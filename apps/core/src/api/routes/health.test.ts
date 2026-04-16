@@ -11,6 +11,8 @@ const testConfig: Config = {
   databaseUrl: 'postgresql://test',
   redisUrl: 'redis://test',
   apiKeySecret: 'test-secret',
+  llmProvider: 'null',
+  openaiApiKey: undefined,
 }
 
 describe('GET /health', () => {

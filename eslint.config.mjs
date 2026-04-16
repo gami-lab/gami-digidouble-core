@@ -17,6 +17,8 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'error',
       // Enforce explicit return types on module-boundary functions
       '@typescript-eslint/explicit-module-boundary-types': 'warn',
+      // Allow unused function parameters prefixed with _
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       // Cyclomatic complexity — keep functions simple and testable
       complexity: ['error', 10],
       // File length — encourages single-responsibility modules

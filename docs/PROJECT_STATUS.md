@@ -3,14 +3,14 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 16, 2026
+**Last updated:** April 17, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1 is complete.**
+Phase A is in progress. **EPIC 1.1 is complete. EPIC 1.2 is in progress (Prompt 01 done).**
 
 Monorepo workspace bootstrap is done:
 
@@ -56,16 +56,29 @@ Foundation validated end-to-end:
 - Bootstrap reproducible from `CONTRIBUTING.md` onboarding steps alone
 - Documentation synchronized: ARCHITECTURE.md code structure, TECH_STACK.md developer tooling, README setup steps all updated to match reality
 
+EPIC 1.2 — Prompt 01 (LLM provider adapter) is done:
+
+- `infrastructure/llm/llm.error.ts` — `LlmError` class (provider, message, optional statusCode)
+- `infrastructure/llm/openai.adapter.ts` — `OpenAiAdapter` implements `ILlmAdapter`, 30s timeout, latency measurement, wraps SDK errors in `LlmError`
+- `infrastructure/llm/null.adapter.ts` — `NullLlmAdapter` for tests — deterministic, zero network calls
+- `infrastructure/llm/anthropic.adapter.ts` / `mistral.adapter.ts` — stubs that reject with `LlmError('not implemented')`
+- `infrastructure/llm/index.ts` — `createLlmAdapter(config)` factory; throws on unknown providers at startup
+- `config.ts` updated: `llmProvider` (default `'null'`) and `openaiApiKey` optional fields added
+- `.env.example` updated: `LLM_PROVIDER=openai` line added
+- ESLint config updated: `argsIgnorePattern: '^_'` added to `no-unused-vars`
+- 10 unit tests covering: `NullLlmAdapter` (4), `OpenAiAdapter` happy-path, model override, API error wrapping, generic error wrapping, empty choices, message ordering (6)
+- All quality gates pass: `pnpm lint`, `pnpm typecheck`, `pnpm test` (11/11)
+
 ---
 
 ## Phase A — Sprint Status
 
 ### Sprint 1 — Foundations
 
-| Epic                                      | Status       | Notes                                                |
-| ----------------------------------------- | ------------ | ---------------------------------------------------- |
-| EPIC 1.1 — Platform Bootstrap             | **Complete** | All 5 prompts delivered and validated end-to-end     |
-| EPIC 1.2 — First LLM Loop + Observability | Not started  | LLM wrapper, basic text exchange, metrics from day 1 |
+| Epic                                      | Status          | Notes                                               |
+| ----------------------------------------- | --------------- | --------------------------------------------------- |
+| EPIC 1.1 — Platform Bootstrap             | **Complete**    | All 5 prompts delivered and validated end-to-end    |
+| EPIC 1.2 — First LLM Loop + Observability | **In progress** | Prompt 01 done: LLM provider adapter layer complete |
 
 ### Sprint 2 — Avatar + Game Master
 

@@ -11,6 +11,8 @@ export interface Config {
   databaseUrl: string
   redisUrl: string
   apiKeySecret: string
+  llmProvider: string
+  openaiApiKey: string | undefined
 }
 
 function requireEnv(key: string): string {
@@ -30,5 +32,7 @@ export function loadConfig(): Config {
     databaseUrl: requireEnv('DATABASE_URL'),
     redisUrl: requireEnv('REDIS_URL'),
     apiKeySecret: requireEnv('API_KEY_SECRET'),
+    llmProvider: process.env['LLM_PROVIDER'] ?? 'null',
+    openaiApiKey: process.env['OPENAI_API_KEY'],
   }
 }
