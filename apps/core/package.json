@@ -10,11 +10,12 @@
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vitest run",
+    "test": "vitest run --config vitest.config.ts",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@gami/shared": "workspace:*"
+    "@gami/shared": "workspace:*",
+    "fastify": "^5.8.5"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

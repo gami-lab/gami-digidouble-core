@@ -23,15 +23,16 @@ Monorepo workspace bootstrap is done:
 - `.nvmrc` pinned to Node.js 22 LTS
 - All workspace packages typecheck cleanly
 
-Docker local stack is done:
-- `docker-compose.yml` with three services: postgres, redis, app
-- postgres uses `pgvector/pgvector:pg17` image with pgvector extension init
-- redis uses `redis:7-alpine` with append-only persistence
-- app service uses `Dockerfile.dev` (tsx hot reload) with source volume mount
-- Health checks on all dependency services; app waits for both postgres and redis
-- `infra/postgres/init.sql` creates the `vector` extension on first start
-- Root infra scripts: `infra:up`, `infra:up:all`, `infra:down`, `infra:reset`, `infra:logs`
-- `env_file` marked optional so config validation works without a local `.env`
+Modular monolith skeleton is done:
+- `apps/core/src/` layered structure: `api/`, `application/`, `domain/`, `infrastructure/`
+- Domain types: conversation (Session, Message), avatar, game-master (Input/Output/State), memory, context, knowledge, scenario
+- Application port interfaces: ISessionRepository, IMessageRepository, ILlmAdapter, ICacheAdapter, IObservabilityAdapter
+- API: Fastify bootstrap, `/health` route returning `ApiResponse<T>` envelope
+- Config: `loadConfig()` with fail-fast env validation
+- Infrastructure stubs: db, cache, llm, observability (placeholders for EPIC 1.2+)
+- `packages/shared`: `ApiResponse<T>`, `ErrorCode`, `ok()` / `fail()` helpers
+- Smoke test: `GET /health` → 200, standard envelope, error null
+- `pnpm typecheck` and `pnpm test` pass cleanly across all workspace packages
 
 ---
 
@@ -40,7 +41,7 @@ Docker local stack is done:
 ### Sprint 1 — Foundations
 | Epic | Status | Notes |
 |---|---|---|
-| EPIC 1.1 — Platform Bootstrap | In progress (02/05) | Monorepo + Docker stack done; module skeleton, CI pending |
+| EPIC 1.1 — Platform Bootstrap | In progress (03/05) | Monorepo, Docker stack, module skeleton done; dev workflow CI pending |
 | EPIC 1.2 — First LLM Loop + Observability | Not started | LLM wrapper, basic text exchange, metrics from day 1 |
 
 ### Sprint 2 — Avatar + Game Master

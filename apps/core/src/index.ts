@@ -1,8 +1,16 @@
-/**
- * Gami DigiDouble Core — application entrypoint
- *
- * This file bootstraps the application.
- * Layer structure and Fastify wiring are added in EPIC 1.1 prompt 03.
- */
+import { loadConfig } from './config.js'
+import { createServer } from './api/server.js'
 
-console.log('[gami-core] starting...');
+async function main(): Promise<void> {
+  const config = loadConfig()
+  const server = createServer(config)
+
+  try {
+    await server.listen({ port: config.port, host: config.host })
+  } catch (err) {
+    server.log.error(err)
+    process.exit(1)
+  }
+}
+
+await main()
