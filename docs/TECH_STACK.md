@@ -45,12 +45,12 @@ This is a working document — decisions can evolve, but the current direction i
 
 ### Choice
 
-- **pnpm**
-- **Turborepo**
+- **pnpm** — workspace package manager
+- **Turborepo** — task orchestration (build, lint, typecheck, test, format)
 
 ### Why
 
-- explicitly planned in Sprint 1
+- aligned with team constraints and roadmap
 - supports a clean separation between core modules, back-office, shared types, and tooling
 - good fit for a small TS-only team
 
@@ -59,6 +59,31 @@ This is a working document — decisions can evolve, but the current direction i
 - dev ergonomics
 - simple local setup
 - CI friendliness
+
+---
+
+## 2b. Developer Quality Tooling
+
+### Choice
+
+- **ESLint 9** with `typescript-eslint` `strictTypeChecked` preset
+- **Prettier 3** for consistent formatting
+- **simple-git-hooks** + **lint-staged** for pre-commit enforcement
+- **GitHub Actions** CI: format check → lint → typecheck → test on every push/PR
+
+### Code Quality Rules Enforced
+
+- `complexity` ≤ 10 (cyclomatic)
+- `max-lines` ≤ 300 per file (excluding blanks and comments)
+- `max-lines-per-function` ≤ 50 (excluding blanks and comments)
+- `no-floating-promises` — all async calls must be awaited or handled
+- `explicit-module-boundary-types` — all exported functions must declare return types
+
+### Why
+
+- small team benefits from hard guardrails over convention
+- pre-commit hooks catch issues before CI
+- enforced rules prevent complexity from accumulating silently
 
 ---
 
@@ -545,6 +570,12 @@ This is now an explicit architecture rule: the Core is headless and does not bec
 ---
 
 ## 17. Testing & Validation
+
+### Test Runner
+
+- **Vitest 3** — fast, native TypeScript, Node environment
+- Tests colocated with source files (`*.test.ts` next to the file under test)
+- Unit tests are deterministic — no LLM calls
 
 ### Phase A minimum
 

@@ -108,19 +108,21 @@ See [docs/API_CONTRACT.md](docs/API_CONTRACT.md) for the full contract.
 git clone https://github.com/your-org/gami-digidouble-core.git
 cd gami-digidouble-core
 
-# Install dependencies
+# Install dependencies (also registers the pre-commit hook)
 pnpm install
 
 # Copy environment variables
 cp .env.example .env
 # Fill in your LLM provider API keys and DB credentials
 
-# Start infrastructure
-docker compose up -d
+# Start infrastructure (PostgreSQL + Redis only)
+pnpm infra:up
 
 # Start the development server
 pnpm dev
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full onboarding guide, quality commands, and workflow conventions.
 
 ---
 
@@ -138,6 +140,7 @@ pnpm dev
 | [EPICS.md](docs/EPICS.md)                               | Roadmap broken into sprints and epics               |
 | [TEST_STRATEGY.md](docs/TEST_STRATEGY.md)               | Test philosophy, pyramid, and module coverage       |
 | [PROJECT_STATUS.md](docs/PROJECT_STATUS.md)             | Current implementation status                       |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                      | Onboarding guide, commands, and conventions         |
 
 ---
 

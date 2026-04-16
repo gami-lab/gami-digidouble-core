@@ -418,45 +418,32 @@ This preserves latency and autonomy.
 
 ---
 
-# Suggested Code Structure
+# Code Structure
+
+This is the canonical structure as implemented in `apps/core/src/`.
 
 ```text
 src/
-  api/
+  api/                   → Fastify routes, handlers, validation, serialization
     routes/
-    controllers/
-    schemas/
 
-  app/
-    use-cases/
-    dto/
+  application/           → Use cases (StartSession, SendMessage, ResetSession, …)
+    ports/               → Port interfaces (ILlmAdapter, ICacheAdapter, …)
 
   domain/
-    conversation/
-    avatar/
-    game-master/
-    memory/
-    context/
-    scenario/
-    shared/
+    conversation/        → Session and message logic
+    avatar/              → Persona configuration, response generation
+    game-master/         → Trigger logic, state management, guidance injection
+    memory/              → Session summary + persistent user facts
+    context/             → Context assembly (memory + scenario + knowledge)
+    knowledge/           → Ingestion, chunking, embeddings, RAG retrieval
+    scenario/            → Config-driven experience templates
 
-  ports/
-    llm.ts
-    logger.ts
-    repositories.ts
-    cache.ts
-    embeddings.ts
-
-  infra/
-    db/
-    llm/
-    logging/
-    cache/
-
-  jobs/
-    async-workers/
-
-  tests/
+  infrastructure/        → Concrete adapter implementations
+    db/                  → PostgreSQL repositories (pgvector included)
+    cache/               → Redis adapters
+    llm/                 → Provider abstraction layer + adapters
+    observability/       → Langfuse wrapper, logging, metrics
 ```
 
 Keep folders boring and predictable.

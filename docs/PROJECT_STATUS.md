@@ -10,13 +10,13 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. EPIC 1.1 (prompt 04/05) is complete.
+Phase A is in progress. **EPIC 1.1 is complete.**
 
 Monorepo workspace bootstrap is done:
 
 - pnpm + Turborepo workspace with `apps/*` and `packages/*`
 - Root TypeScript strict configuration (NodeNext, strict, noUncheckedIndexedAccess)
-- Root ESLint flat config with typescript-eslint strict rules
+- Root ESLint flat config with typescript-eslint strict rules + complexity/line limits
 - `apps/core` package (`@gami/core`) — main application skeleton
 - `packages/shared` package (`@gami/shared`) — shared types placeholder
 - Root scripts: `build`, `dev`, `test`, `lint`, `typecheck`, `clean`, `format`, `format:check`
@@ -46,16 +46,26 @@ Developer workflow & CI guardrails are done:
 - `CONTRIBUTING.md` — onboarding guide, daily commands, pre-commit and CI behaviour, conventions
 - All quality gates verified: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` all pass
 
+Foundation validated end-to-end:
+
+- Clean install from scratch (`pnpm install`) succeeds
+- `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` all pass after clean install
+- Docker stack starts cleanly: postgres healthy, redis PONG, pgvector 0.8.2 confirmed
+- Application starts with `pnpm dev` and responds correctly to `GET /health`
+- Health response: `{ "data": { "status": "ok", ... }, "error": null }` — correct `ApiResponse<T>` envelope
+- Bootstrap reproducible from `CONTRIBUTING.md` onboarding steps alone
+- Documentation synchronized: ARCHITECTURE.md code structure, TECH_STACK.md developer tooling, README setup steps all updated to match reality
+
 ---
 
 ## Phase A — Sprint Status
 
 ### Sprint 1 — Foundations
 
-| Epic                                      | Status              | Notes                                                                          |
-| ----------------------------------------- | ------------------- | ------------------------------------------------------------------------------ |
-| EPIC 1.1 — Platform Bootstrap             | In progress (04/05) | Monorepo, Docker stack, module skeleton, dev workflow done; validation pending |
-| EPIC 1.2 — First LLM Loop + Observability | Not started         | LLM wrapper, basic text exchange, metrics from day 1                           |
+| Epic                                      | Status       | Notes                                                |
+| ----------------------------------------- | ------------ | ---------------------------------------------------- |
+| EPIC 1.1 — Platform Bootstrap             | **Complete** | All 5 prompts delivered and validated end-to-end     |
+| EPIC 1.2 — First LLM Loop + Observability | Not started  | LLM wrapper, basic text exchange, metrics from day 1 |
 
 ### Sprint 2 — Avatar + Game Master
 
