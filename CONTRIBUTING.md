@@ -6,6 +6,24 @@
 - [pnpm 9+](https://pnpm.io/installation) — `npm install -g pnpm`
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) for local infrastructure
 
+## VS Code Setup
+
+Install the recommended extensions when prompted, or manually:
+
+- **Prettier - Code formatter** (`esbenp.prettier-vscode`) — formatter
+- **ESLint** (`dbaeumer.vscode-eslint`) — inline lint errors
+
+Then add the following to your local `.vscode/settings.json` (not committed — kept personal):
+
+```json
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true
+}
+```
+
+This enables format-on-save using the project's `.prettierrc.json`.
+
 ## First-time Setup
 
 ```bash
