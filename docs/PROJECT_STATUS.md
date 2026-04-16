@@ -10,8 +10,18 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A has not started. No code has been written yet.
-All documentation is in place and serves as the base instructions for development.
+Phase A is in progress. EPIC 1.1 (prompt 01) is complete.
+
+Monorepo workspace bootstrap is done:
+- pnpm + Turborepo workspace with `apps/*` and `packages/*`
+- Root TypeScript strict configuration (NodeNext, strict, noUncheckedIndexedAccess)
+- Root ESLint flat config with typescript-eslint strict rules
+- `apps/core` package (`@gami/core`) — main application skeleton
+- `packages/shared` package (`@gami/shared`) — shared types placeholder
+- Root scripts: `build`, `dev`, `test`, `lint`, `typecheck`, `clean`
+- `.env.example` with full environment variable contract
+- `.nvmrc` pinned to Node.js 22 LTS
+- All workspace packages typecheck cleanly
 
 ---
 
@@ -20,7 +30,7 @@ All documentation is in place and serves as the base instructions for developmen
 ### Sprint 1 — Foundations
 | Epic | Status | Notes |
 |---|---|---|
-| EPIC 1.1 — Platform Bootstrap | Not started | Monorepo, Docker stack, module structure, dev workflow |
+| EPIC 1.1 — Platform Bootstrap | In progress (01/05) | Monorepo + workspace bootstrap done; Docker, module skeleton, CI pending |
 | EPIC 1.2 — First LLM Loop + Observability | Not started | LLM wrapper, basic text exchange, metrics from day 1 |
 
 ### Sprint 2 — Avatar + Game Master
