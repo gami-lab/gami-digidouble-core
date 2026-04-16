@@ -7,12 +7,14 @@ EPIC 1.1 is not complete without a concrete code skeleton aligned to the target 
 ## Scope
 
 What must be implemented now:
+
 - Create initial `src/` structure aligned with API, Application, Domain, Infrastructure layers.
 - Add placeholder module directories for conversation, avatar, game-master, memory, context, knowledge, and scenario.
 - Add minimal interface contracts (ports) to demonstrate dependency direction.
 - Add a basic Fastify bootstrap entrypoint wired to health endpoint only.
 
 What is out of scope:
+
 - Full endpoint implementations.
 - Real business logic for avatars or game master.
 - Provider-specific LLM integrations.
@@ -42,6 +44,7 @@ Avoid fake domain behavior; placeholders should be clearly intentional and minim
 ## Constraints
 
 Respect:
+
 - Layer isolation and explicit interfaces.
 - KISS and YAGNI (no speculative complexity).
 - DRY naming and folder conventions.
@@ -58,6 +61,7 @@ Respect:
 ## Mandatory Final Step — Documentation Update
 
 After implementation, review and update:
+
 - `docs/PROJECT_STATUS.md`
 - Any impacted outdated docs, especially:
   - `docs/ARCHITECTURE.md`

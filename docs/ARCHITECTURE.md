@@ -142,7 +142,7 @@ Adapters
     +--> PostgreSQL
     +--> Redis
     +--> Langfuse
-````
+```
 
 ---
 
@@ -152,23 +152,23 @@ Adapters
 
 Responsibility:
 
-* HTTP / WebSocket entry points
-* auth
-* request validation
-* response serialization
-* streaming transport
+- HTTP / WebSocket entry points
+- auth
+- request validation
+- response serialization
+- streaming transport
 
 Contains:
 
-* controllers
-* route definitions
-* DTO mapping
+- controllers
+- route definitions
+- DTO mapping
 
 Must NOT contain:
 
-* orchestration logic
-* SQL
-* prompt logic
+- orchestration logic
+- SQL
+- prompt logic
 
 ---
 
@@ -178,18 +178,18 @@ Coordinates use cases.
 
 Examples:
 
-* StartSession
-* SendMessage
-* UploadKnowledgeSource
-* RunScenarioTest
-* GetSessionHistory
+- StartSession
+- SendMessage
+- UploadKnowledgeSource
+- RunScenarioTest
+- GetSessionHistory
 
 Responsibilities:
 
-* transaction boundaries
-* call domain services
-* call ports/adapters
-* assemble outputs
+- transaction boundaries
+- call domain services
+- call ports/adapters
+- assemble outputs
 
 This layer is the main workflow coordinator.
 
@@ -203,11 +203,11 @@ Contains business rules independent of infrastructure.
 
 Examples:
 
-* how Game Master decides triggers
-* how memory is compacted
-* how context is assembled
-* how session state evolves
-* how scenarios behave
+- how Game Master decides triggers
+- how memory is compacted
+- how context is assembled
+- how session state evolves
+- how scenarios behave
 
 Must remain framework-agnostic.
 
@@ -221,10 +221,10 @@ Concrete implementations of interfaces.
 
 Examples:
 
-* Postgres repositories
-* OpenAI adapter
-* Langfuse logger
-* Redis cache adapter
+- Postgres repositories
+- OpenAI adapter
+- Langfuse logger
+- Redis cache adapter
 
 Replaceable without touching domain logic.
 
@@ -240,17 +240,17 @@ Owns runtime conversations.
 
 Contains:
 
-* sessions
-* messages
-* streaming responses
-* session lifecycle
+- sessions
+- messages
+- streaming responses
+- session lifecycle
 
 Key use cases:
 
-* start session
-* send message
-* close session
-* reset session
+- start session
+- send message
+- close session
+- reset session
 
 ---
 
@@ -260,10 +260,10 @@ Owns the speaking entity.
 
 Contains:
 
-* persona configuration
-* avatar prompt building
-* style behavior
-* response generation
+- persona configuration
+- avatar prompt building
+- style behavior
+- response generation
 
 The Avatar speaks.
 
@@ -277,11 +277,11 @@ Owns orchestration.
 
 Contains:
 
-* trigger decisions
-* progression logic
-* directive generation
-* scenario pacing
-* state transitions
+- trigger decisions
+- progression logic
+- directive generation
+- scenario pacing
+- state transitions
 
 The Game Master guides.
 
@@ -295,10 +295,10 @@ Owns persistence of useful memory.
 
 Contains:
 
-* session summary
-* user facts
-* retrieval of relevant memories
-* compaction jobs
+- session summary
+- user facts
+- retrieval of relevant memories
+- compaction jobs
 
 Avoid storing noise.
 
@@ -310,12 +310,12 @@ Builds runtime context for each turn.
 
 Combines:
 
-* recent messages
-* memory summary
-* user facts
-* scenario config
-* retrieved knowledge
-* GM directives
+- recent messages
+- memory summary
+- user facts
+- scenario config
+- retrieved knowledge
+- GM directives
 
 Produces bounded context payloads.
 
@@ -327,11 +327,11 @@ Owns source ingestion and retrieval.
 
 Contains:
 
-* file registration
-* chunking
-* embeddings
-* vector search
-* source metadata
+- file registration
+- chunking
+- embeddings
+- vector search
+- source metadata
 
 ---
 
@@ -341,11 +341,11 @@ Owns configurable experiences.
 
 Contains:
 
-* scenario config
-* objectives
-* enabled avatars
-* rules
-* linked sources
+- scenario config
+- objectives
+- enabled avatars
+- rules
+- linked sources
 
 ---
 
@@ -355,12 +355,12 @@ Owns metrics and traceability.
 
 Contains:
 
-* latency
-* token counts
-* costs
-* errors
-* events
-* evaluations later
+- latency
+- token counts
+- costs
+- errors
+- events
+- evaluations later
 
 ---
 
@@ -391,10 +391,10 @@ Directly interacts with the user.
 
 Optimized for:
 
-* personality
-* responsiveness
-* immersion
-* continuity
+- personality
+- responsiveness
+- immersion
+- continuity
 
 ## Game Master = Director
 
@@ -402,11 +402,11 @@ Observes and influences future turns.
 
 Optimized for:
 
-* progression
-* pacing
-* objective coverage
-* switching context
-* scenario quality
+- progression
+- pacing
+- objective coverage
+- switching context
+- scenario quality
 
 ## Rule
 
@@ -503,9 +503,9 @@ Use pgvector for embeddings.
 
 Use JSONB for flexible evolving fields:
 
-* scenario config
-* metadata
-* event payloads
+- scenario config
+- metadata
+- event payloads
 
 Prefer relational columns for stable concepts.
 
@@ -517,10 +517,10 @@ Use only where useful.
 
 Initial uses:
 
-* hot session cache
-* pub/sub for async signals
-* rate limiting later
-* short-lived locks if needed
+- hot session cache
+- pub/sub for async signals
+- rate limiting later
+- short-lived locks if needed
 
 If Redis adds no value, keep usage minimal.
 
@@ -534,13 +534,13 @@ Use Logger Port.
 
 Track:
 
-* request ids
-* latency
-* model used
-* token usage
-* costs
-* failures
-* trigger frequency
+- request ids
+- latency
+- model used
+- token usage
+- costs
+- failures
+- trigger frequency
 
 This allows replacing tools later.
 
@@ -552,18 +552,18 @@ All providers accessed through one internal abstraction.
 
 Capabilities:
 
-* provider selection
-* retries
-* timeouts
-* fallback model
-* structured JSON mode
-* streaming mode
+- provider selection
+- retries
+- timeouts
+- fallback model
+- structured JSON mode
+- streaming mode
 
 Use different models by role when useful:
 
-* Avatar model
-* Game Master model
-* background evaluator later
+- Avatar model
+- Game Master model
+- background evaluator later
 
 ---
 
@@ -573,26 +573,26 @@ Use different models by role when useful:
 
 For:
 
-* domain services
-* Game Master decisions
-* memory logic
-* context builders
+- domain services
+- Game Master decisions
+- memory logic
+- context builders
 
 ## Integration Tests
 
 For:
 
-* API endpoints
-* repository implementations
-* LLM adapters (mocked or sandbox)
+- API endpoints
+- repository implementations
+- LLM adapters (mocked or sandbox)
 
 ## End-to-End Tests
 
 For:
 
-* full conversation flows
-* scenario setup
-* back-office critical paths
+- full conversation flows
+- scenario setup
+- back-office critical paths
 
 ---
 
@@ -611,13 +611,13 @@ If not, defer.
 
 # What We Intentionally Avoid (Now)
 
-* microservices
-* event bus complexity
-* multiple databases
-* heavy agent frameworks as architecture core
-* premature plugin systems
-* over-modeled domain objects
-* generic abstractions with one implementation
+- microservices
+- event bus complexity
+- multiple databases
+- heavy agent frameworks as architecture core
+- premature plugin systems
+- over-modeled domain objects
+- generic abstractions with one implementation
 
 ---
 
@@ -625,11 +625,11 @@ If not, defer.
 
 When changing architecture:
 
-* preserve ports first
-* migrate one module at a time
-* keep tests green
-* avoid cross-module leakage
-* prefer deletion over accumulation
+- preserve ports first
+- migrate one module at a time
+- keep tests green
+- avoid cross-module leakage
+- prefer deletion over accumulation
 
 ---
 
@@ -637,12 +637,12 @@ When changing architecture:
 
 Good architecture means:
 
-* new features can be added safely
-* LLM provider can change quickly
-* business rules are understandable
-* orchestration can evolve easily
-* debugging is practical
-* two developers can move fast without collisions
+- new features can be added safely
+- LLM provider can change quickly
+- business rules are understandable
+- orchestration can evolve easily
+- debugging is practical
+- two developers can move fast without collisions
 
 ---
 

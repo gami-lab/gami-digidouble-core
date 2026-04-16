@@ -10,8 +10,8 @@ These prompt packs are created from a selected **EPIC** and must be written as *
 
 I will give you:
 
-* an **EPIC name**
-* optionally an EPIC section from `docs/EPICS.md`
+- an **EPIC name**
+- optionally an EPIC section from `docs/EPICS.md`
 
 Your task is to create a **set of implementation prompt files** linked to that EPIC.
 
@@ -29,12 +29,12 @@ Every generated implementation prompt MUST instruct the coding agent that once i
 
 Mandatory end-of-task doc review includes:
 
-* `docs/PROJECT_STATUS.md` (**always required**)
-* any impacted architecture docs
-* any changed contracts
-* data model changes
-* testing strategy changes if relevant
-* roadmap / EPIC progress if relevant
+- `docs/PROJECT_STATUS.md` (**always required**)
+- any impacted architecture docs
+- any changed contracts
+- data model changes
+- testing strategy changes if relevant
+- roadmap / EPIC progress if relevant
 
 If code changed but docs did not, the task is incomplete.
 
@@ -44,16 +44,16 @@ If code changed but docs did not, the task is incomplete.
 
 Always align with:
 
-* `docs/VISION.md`
-* `docs/PRINCIPLES.md`
-* `docs/ARCHITECTURE.md`
-* `docs/TECH_STACK.md`
-* `docs/DATA_MODEL.md`
-* `docs/API_CONTRACT.md`
-* `docs/GAME_MASTER_CONTRACT.md`
-* `docs/TEST_STRATEGY.md`
-* `docs/EPICS.md`
-* `docs/PROJECT_STATUS.md`
+- `docs/VISION.md`
+- `docs/PRINCIPLES.md`
+- `docs/ARCHITECTURE.md`
+- `docs/TECH_STACK.md`
+- `docs/DATA_MODEL.md`
+- `docs/API_CONTRACT.md`
+- `docs/GAME_MASTER_CONTRACT.md`
+- `docs/TEST_STRATEGY.md`
+- `docs/EPICS.md`
+- `docs/PROJECT_STATUS.md`
 
 Read docs as one coherent system.
 
@@ -86,13 +86,13 @@ README.md
 
 # README.md Must Contain
 
-* EPIC name
-* short objective
-* generated date
-* ordered execution list
-* dependencies between prompts
-* suggested execution order
-* definition of done for full EPIC
+- EPIC name
+- short objective
+- generated date
+- ordered execution list
+- dependencies between prompts
+- suggested execution order
+- definition of done for full EPIC
 
 ---
 
@@ -128,12 +128,12 @@ Do NOT provide full code.
 
 Respect:
 
-* current architecture
-* KISS
-* YAGNI
-* DRY
-* backward compatibility where relevant
-* explicit contracts
+- current architecture
+- KISS
+- YAGNI
+- DRY
+- backward compatibility where relevant
+- explicit contracts
 
 # Deliverables
 
@@ -143,15 +143,15 @@ Concrete expected outputs.
 
 After implementation, review and update:
 
-* `docs/PROJECT_STATUS.md`
-* any outdated impacted docs
+- `docs/PROJECT_STATUS.md`
+- any outdated impacted docs
 
 Examples:
 
-* `docs/API_CONTRACT.md`
-* `docs/DATA_MODEL.md`
-* `docs/ARCHITECTURE.md`
-* `docs/TEST_STRATEGY.md`
+- `docs/API_CONTRACT.md`
+- `docs/DATA_MODEL.md`
+- `docs/ARCHITECTURE.md`
+- `docs/TEST_STRATEGY.md`
 
 If no doc changes are needed, explicitly verify that docs are still accurate.
 
@@ -171,7 +171,7 @@ Each file should represent one coherent chunk a coding agent can complete.
 
 Good:
 
-* add endpoint + use case + tests + docs
+- add endpoint + use case + tests + docs
 
 ## 3. Respect sequencing
 
@@ -201,12 +201,12 @@ No silent drift between implementation and documentation.
 
 Write like a pragmatic Staff Engineer:
 
-* clear
-* direct
-* implementation-aware
-* no fluff
-* no generic filler
-* no theoretical essays
+- clear
+- direct
+- implementation-aware
+- no fluff
+- no generic filler
+- no theoretical essays
 
 ---
 

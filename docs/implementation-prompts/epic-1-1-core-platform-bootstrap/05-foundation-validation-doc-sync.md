@@ -7,12 +7,14 @@ Final EPIC 1.1 closure requires proving that the bootstrap foundation actually w
 ## Scope
 
 What must be implemented now:
+
 - Perform end-to-end local validation of monorepo scripts, service boot, and dockerized dependencies.
 - Resolve integration friction found during bootstrap tests.
 - Finalize and synchronize all impacted documentation.
 - Mark EPIC 1.1 progress accurately in status tracking.
 
 What is out of scope:
+
 - Starting EPIC 1.2 feature implementation.
 - Adding nonessential refactors unrelated to bootstrap stability.
 
@@ -29,6 +31,7 @@ What is out of scope:
 ## Implementation Guidance
 
 Validation checklist to execute:
+
 - Clean install from scratch.
 - Run local quality commands (`lint`, `typecheck`, `test`, `build` as applicable).
 - Start infrastructure stack and verify service connectivity.
@@ -36,6 +39,7 @@ Validation checklist to execute:
 - Confirm developer onboarding steps are complete and reproducible.
 
 Hardening expectations:
+
 - Remove dead bootstrap files.
 - Normalize script names and command behavior.
 - Ensure error messages and setup docs guide troubleshooting.
@@ -43,6 +47,7 @@ Hardening expectations:
 ## Constraints
 
 Respect:
+
 - No feature creep into later EPICs.
 - KISS and minimal moving parts.
 - Backward compatibility with planned EPIC 1.2 foundation usage.
@@ -58,6 +63,7 @@ Respect:
 ## Mandatory Final Step — Documentation Update
 
 After implementation, review and update:
+
 - `docs/PROJECT_STATUS.md` (required)
 - Plus any impacted docs that drifted from implementation:
   - `docs/ARCHITECTURE.md`

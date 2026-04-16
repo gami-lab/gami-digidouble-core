@@ -15,8 +15,8 @@ If a decision violates these principles, it must be challenged.
 We are not building an AI system.  
 We are building **interactive experiences powered by AI**.
 
-* The goal is not better models
-* The goal is better conversations, immersion, learning, and engagement
+- The goal is not better models
+- The goal is better conversations, immersion, learning, and engagement
 
 👉 If it doesn’t improve the experience, it’s not worth it. :contentReference[oaicite:0]{index=0}
 
@@ -28,10 +28,10 @@ Raw generation is not enough.
 
 Value comes from:
 
-* structuring context
-* guiding progression
-* managing state over time
-* triggering the right actions at the right moment
+- structuring context
+- guiding progression
+- managing state over time
+- triggering the right actions at the right moment
 
 The system must **decide before it generates**.
 
@@ -43,11 +43,11 @@ The system must **decide before it generates**.
 
 System quality depends on how context is:
 
-* selected
-* structured
-* retrieved
-* updated
-* compacted
+- selected
+- structured
+- retrieved
+- updated
+- compacted
 
 Not all information is useful. Most of it is noise.
 
@@ -59,9 +59,9 @@ Not all information is useful. Most of it is noise.
 
 The Core must remain:
 
-* minimal
-* focused
-* stable
+- minimal
+- focused
+- stable
 
 Its main role is:
 
@@ -69,11 +69,11 @@ Its main role is:
 
 Everything else belongs outside:
 
-* UI
-* voice
-* video rendering
-* authoring tools
-* content management
+- UI
+- voice
+- video rendering
+- authoring tools
+- content management
 
 👉 If in doubt, it does **not** belong in the Core.
 
@@ -83,10 +83,10 @@ Everything else belongs outside:
 
 The Core is accessed through clear contracts.
 
-* No hidden coupling
-* No direct frontend assumptions
-* No provider-specific leakage
-* Structured inputs / outputs
+- No hidden coupling
+- No direct frontend assumptions
+- No provider-specific leakage
+- Structured inputs / outputs
 
 👉 If it cannot be exposed cleanly, it is wrongly designed.
 
@@ -96,10 +96,10 @@ The Core is accessed through clear contracts.
 
 We never depend on a single model or provider.
 
-* Any provider can be replaced
-* Multiple models can coexist
-* Different roles may use different models
-* Switching must stay practical
+- Any provider can be replaced
+- Multiple models can coexist
+- Different roles may use different models
+- Switching must stay practical
 
 👉 The system owns the logic, not the model.
 
@@ -109,8 +109,8 @@ We never depend on a single model or provider.
 
 Different responsibilities may require different intelligence modes:
 
-* thinking (reasoning, planning, orchestration)
-* speaking (persona response, style, conversation)
+- thinking (reasoning, planning, orchestration)
+- speaking (persona response, style, conversation)
 
 They should not be merged by habit.
 
@@ -124,10 +124,10 @@ Not every decision must delay the response.
 
 Use asynchronous flows when possible:
 
-* background analysis
-* memory updates
-* trigger preparation
-* quality scoring
+- background analysis
+- memory updates
+- trigger preparation
+- quality scoring
 
 Only block when it materially improves the current exchange.
 
@@ -139,9 +139,9 @@ Only block when it materially improves the current exchange.
 
 Avoid premature complexity.
 
-* Prefer modular monolith over microservices early
-* Prefer simple memory over theoretical memory
-* Prefer working loops over elegant diagrams
+- Prefer modular monolith over microservices early
+- Prefer simple memory over theoretical memory
+- Prefer working loops over elegant diagrams
 
 👉 Complexity is earned, not assumed.
 
@@ -153,12 +153,12 @@ We cannot improve what we do not observe.
 
 At minimum:
 
-* latency
-* cost
-* token usage
-* retrieval quality
-* conversation quality
-* failure rates
+- latency
+- cost
+- token usage
+- retrieval quality
+- conversation quality
+- failure rates
 
 👉 Every important decision should be measurable.
 
@@ -170,11 +170,11 @@ We are still discovering the right product and architecture.
 
 The system must support:
 
-* fast iteration
-* experiments
-* A/B comparisons
-* rollback
-* rapid prototypes
+- fast iteration
+- experiments
+- A/B comparisons
+- rollback
+- rapid prototypes
 
 👉 The best architecture is the one that helps us learn faster.
 
@@ -184,11 +184,11 @@ The system must support:
 
 We should expect:
 
-* new models
-* new interfaces
-* new media formats
-* new use cases
-* new research modules
+- new models
+- new interfaces
+- new media formats
+- new use cases
+- new research modules
 
 👉 Flexibility beats premature completeness.
 
@@ -200,10 +200,10 @@ Human judgment is valuable.
 
 Use humans for:
 
-* direction
-* evaluation
-* taste
-* strategic corrections
+- direction
+- evaluation
+- taste
+- strategic corrections
 
 Use automation for repetition and scale.
 
@@ -215,10 +215,10 @@ Use automation for repetition and scale.
 
 Storing everything is easy. Using it well is hard.
 
-* Keep what matters
-* Forget what doesn’t
-* Summarize when needed
-* Retrieve when relevant
+- Keep what matters
+- Forget what doesn’t
+- Summarize when needed
+- Retrieve when relevant
 
 👉 Memory is a tool, not an archive.
 
@@ -228,11 +228,11 @@ Storing everything is easy. Using it well is hard.
 
 Examples:
 
-* Game Master → orchestrate
-* Avatar → interact
-* Context Manager → assemble relevant context
-* Memory Layer → persist and retrieve
-* Delivery Layer → present outputs
+- Game Master → orchestrate
+- Avatar → interact
+- Context Manager → assemble relevant context
+- Memory Layer → persist and retrieve
+- Delivery Layer → present outputs
 
 👉 If a component does too much, redesign it.
 
@@ -242,12 +242,12 @@ Examples:
 
 The system must survive reality:
 
-* long sessions
-* noisy inputs
-* cost constraints
-* multiple scenarios
-* imperfect content
-* operator mistakes
+- long sessions
+- noisy inputs
+- cost constraints
+- multiple scenarios
+- imperfect content
+- operator mistakes
 
 👉 If it only works in demos, it does not work.
 
@@ -257,11 +257,11 @@ The system must survive reality:
 
 Limits are design inputs:
 
-* token windows
-* latency
-* budget
-* small team bandwidth
-* time-to-market
+- token windows
+- latency
+- budget
+- small team bandwidth
+- time-to-market
 
 👉 Use constraints to sharpen choices.
 
@@ -271,10 +271,10 @@ Limits are design inputs:
 
 Every important part should be:
 
-* understandable
-* explainable
-* testable
-* debuggable
+- understandable
+- explainable
+- testable
+- debuggable
 
 👉 If we cannot reason about it, we cannot trust it.
 

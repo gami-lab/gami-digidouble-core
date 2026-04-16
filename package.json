@@ -14,6 +14,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean",
+    "format": "prettier --write \"**/*.{ts,json,md,yaml,yml}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,json,md,yaml,yml}\" --ignore-path .prettierignore",
     "infra:up": "docker compose up postgres redis -d",
     "infra:up:all": "docker compose up -d",
     "infra:down": "docker compose down",
@@ -23,9 +25,24 @@
   "devDependencies": {
     "@eslint/js": "^9.25.0",
     "eslint": "^9.25.0",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.3",
+    "simple-git-hooks": "^2.13.1",
     "turbo": "^2.5.0",
     "typescript": "^5.8.0",
     "typescript-eslint": "^8.30.0"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yaml,yml}": [
+      "prettier --write"
+    ]
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged"
   },
   "packageManager": "pnpm@9.15.0"
 }

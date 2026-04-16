@@ -18,17 +18,17 @@ The engine coordinates two AI agents: an **Avatar** (the conversational actor) a
 
 Before implementing any feature or making any architectural decision, consult the relevant documentation in `docs/`:
 
-| Document | When to Read |
-|---|---|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Before touching any module structure, layers, or flow |
-| [PRINCIPLES.md](docs/PRINCIPLES.md) | Before any design decision — 19 principles govern all choices |
-| [DATA_MODEL.md](docs/DATA_MODEL.md) | Before writing any DB schema, entity, or repository |
-| [API_CONTRACT.md](docs/API_CONTRACT.md) | Before adding or modifying any API endpoint |
-| [GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md) | Before touching the Game Master module |
-| [TECH_STACK.md](docs/TECH_STACK.md) | Before adding any dependency or infrastructure change |
-| [EPICS.md](docs/EPICS.md) | For understanding which sprint/epic a task belongs to |
-| [TEST_STRATEGY.md](docs/TEST_STRATEGY.md) | Before writing or deciding on tests |
-| [PROJECT_STATUS.md](docs/PROJECT_STATUS.md) | For the current state of implemented features |
+| Document                                                | When to Read                                                  |
+| ------------------------------------------------------- | ------------------------------------------------------------- |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Before touching any module structure, layers, or flow         |
+| [PRINCIPLES.md](docs/PRINCIPLES.md)                     | Before any design decision — 19 principles govern all choices |
+| [DATA_MODEL.md](docs/DATA_MODEL.md)                     | Before writing any DB schema, entity, or repository           |
+| [API_CONTRACT.md](docs/API_CONTRACT.md)                 | Before adding or modifying any API endpoint                   |
+| [GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md) | Before touching the Game Master module                        |
+| [TECH_STACK.md](docs/TECH_STACK.md)                     | Before adding any dependency or infrastructure change         |
+| [EPICS.md](docs/EPICS.md)                               | For understanding which sprint/epic a task belongs to         |
+| [TEST_STRATEGY.md](docs/TEST_STRATEGY.md)               | Before writing or deciding on tests                           |
+| [PROJECT_STATUS.md](docs/PROJECT_STATUS.md)             | For the current state of implemented features                 |
 
 ---
 
@@ -37,6 +37,7 @@ Before implementing any feature or making any architectural decision, consult th
 These derive directly from the project principles and must not be violated:
 
 ### Technology
+
 - **Runtime:** Node.js (LTS) + TypeScript in strict mode — no exceptions
 - **Monorepo:** pnpm + Turborepo
 - **API:** Fastify only for HTTP and WebSocket
@@ -45,6 +46,7 @@ These derive directly from the project principles and must not be violated:
 - **LLM providers** must be accessed exclusively through the internal abstraction layer — never call provider SDKs directly from business logic
 
 ### Architecture
+
 - Respect the 4-layer architecture: **API → Application → Domain → Infrastructure**
 - No cross-layer shortcuts. Infrastructure code never in Domain; Domain never in API handlers
 - Each module has one clear responsibility (see [ARCHITECTURE.md](docs/ARCHITECTURE.md))
@@ -52,6 +54,7 @@ These derive directly from the project principles and must not be violated:
 - The Avatar answers the user directly without waiting for GM validation on normal turns
 
 ### Code Quality
+
 - TypeScript strict mode — no `any`, no implicit types
 - All external inputs (user messages, API payloads) must be validated at the API boundary
 - Errors must use the standard `ApiResponse<T>` envelope (see [API_CONTRACT.md](docs/API_CONTRACT.md))
@@ -116,11 +119,11 @@ Follow the strategy defined in [TEST_STRATEGY.md](docs/TEST_STRATEGY.md):
 
 ## Key Design Decisions (Do Not Revisit Without Good Reason)
 
-| Decision | Rationale |
-|---|---|
-| Modular monolith over microservices | Simpler for MVP; boundaries enforced by module structure |
-| Custom orchestration over LangChain | Full control, no hidden abstractions, easier debugging |
-| Avatar answers first, GM async | Latency is critical; blocking on GM would degrade UX |
-| PostgreSQL + pgvector, no separate vector DB | Single datastore for MVP reduces operational complexity |
-| API key auth for Phase A | Simplest viable auth; OAuth deferred to Phase B/C |
-| Langfuse for observability | Self-hosted, LLM-native, wrapped behind abstraction |
+| Decision                                     | Rationale                                                |
+| -------------------------------------------- | -------------------------------------------------------- |
+| Modular monolith over microservices          | Simpler for MVP; boundaries enforced by module structure |
+| Custom orchestration over LangChain          | Full control, no hidden abstractions, easier debugging   |
+| Avatar answers first, GM async               | Latency is critical; blocking on GM would degrade UX     |
+| PostgreSQL + pgvector, no separate vector DB | Single datastore for MVP reduces operational complexity  |
+| API key auth for Phase A                     | Simplest viable auth; OAuth deferred to Phase B/C        |
+| Langfuse for observability                   | Self-hosted, LLM-native, wrapped behind abstraction      |

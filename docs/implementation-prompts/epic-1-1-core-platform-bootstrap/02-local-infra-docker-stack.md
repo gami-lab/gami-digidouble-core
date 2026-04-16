@@ -7,12 +7,14 @@ EPIC 1.1 requires a reproducible local runtime that every developer can start qu
 ## Scope
 
 What must be implemented now:
+
 - Add local Docker Compose stack for app service, PostgreSQL with pgvector capability, and Redis.
 - Define local networking, health checks, and startup dependencies.
 - Add environment variable contract for local development.
 - Ensure one-command startup and teardown workflow.
 
 What is out of scope:
+
 - Production-grade orchestration.
 - Cloud deployment manifests.
 - Full security hardening beyond local baseline.
@@ -37,12 +39,14 @@ What is out of scope:
 - Keep app container config minimal; avoid adding unrelated dev tools in image.
 
 Testing guidance:
+
 - Validate service reachability from app runtime.
 - Validate postgres and redis data persistence behavior for local restarts.
 
 ## Constraints
 
 Respect:
+
 - Architecture separation (infra concerns isolated from domain logic).
 - KISS and local-first reliability.
 - DRY environment configuration.
@@ -59,6 +63,7 @@ Respect:
 ## Mandatory Final Step — Documentation Update
 
 After implementation, review and update:
+
 - `docs/PROJECT_STATUS.md`
 - Any impacted outdated docs, especially:
   - `docs/TECH_STACK.md`

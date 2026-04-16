@@ -10,10 +10,10 @@ Our goal is to change that.
 
 We want to enable experiences where:
 
-* conversations feel natural and evolving
-* context is remembered and used intelligently
-* content adapts to the user, not the opposite
-* media and interactions can be triggered dynamically during the experience
+- conversations feel natural and evolving
+- context is remembered and used intelligently
+- content adapts to the user, not the opposite
+- media and interactions can be triggered dynamically during the experience
 
 This is about moving from **content delivery → interactive experience orchestration**. :contentReference[oaicite:0]{index=0}
 
@@ -27,25 +27,24 @@ This Core is not an application, but a **foundation layer** used by multiple pro
 
 At its heart, the system:
 
-* receives user input
-* understands the situation and context
-* decides how the experience should evolve
-* generates a coherent response through an avatar
-* can trigger structured outputs (text, media, events, actions)
+- receives user input
+- understands the situation and context
+- decides how the experience should evolve
+- generates a coherent response through an avatar
+- can trigger structured outputs (text, media, events, actions)
 
 The system is structured around a few key concepts:
 
-* **Game Master**
+- **Game Master**
   A central orchestrator that understands the global state and guides the experience asynchronously through triggers and directives.
 
-* **Avatar(s)**
+- **Avatar(s)**
   Entities that interact with the user, each with identity, personality, autonomy, and memory.
 
-* **Context** (3 dimensions)
-
-  * Memory (what happened before)
-  * Experience (the world, rules, objectives)
-  * Knowledge (external sources and content)
+- **Context** (3 dimensions)
+  - Memory (what happened before)
+  - Experience (the world, rules, objectives)
+  - Knowledge (external sources and content)
 
 Together, these elements create a system capable of producing **coherent, evolving conversations over time**, not just isolated answers. :contentReference[oaicite:1]{index=1} :contentReference[oaicite:2]{index=2}
 
@@ -70,9 +69,9 @@ The system is not tied to a single AI provider.
 
 We can switch between:
 
-* commercial models
-* open-source models
-* local/self-hosted models
+- commercial models
+- open-source models
+- local/self-hosted models
 
 → This ensures flexibility, cost control, and long-term independence.
 
@@ -82,10 +81,10 @@ We can switch between:
 
 We clearly separate:
 
-* orchestration (Game Master)
-* interaction (Avatar)
-* context (memory, world, knowledge)
-* delivery layers (UI, voice, video, media players)
+- orchestration (Game Master)
+- interaction (Avatar)
+- context (memory, world, knowledge)
+- delivery layers (UI, voice, video, media players)
 
 → This keeps the architecture modular and evolvable.
 
@@ -97,10 +96,10 @@ The quality of the experience depends on how context is managed.
 
 We treat context as a structured system:
 
-* not everything is kept
-* only what matters is injected
-* memory is compacted over time
-* relevant knowledge is retrieved dynamically
+- not everything is kept
+- only what matters is injected
+- memory is compacted over time
+- relevant knowledge is retrieved dynamically
 
 → Context management is one of the main technical differentiators.
 
@@ -110,11 +109,11 @@ We treat context as a structured system:
 
 The Core does not include:
 
-* UI
-* voice systems
-* video avatars
-* editing/builder tools
-* content authoring systems
+- UI
+- voice systems
+- video avatars
+- editing/builder tools
+- content authoring systems
 
 These are separate layers built on top.
 
@@ -126,10 +125,10 @@ These are separate layers built on top.
 
 From day one, the system is designed to:
 
-* measure latency, cost, token usage
-* evaluate quality (consistency, relevance, persona fidelity)
-* compare models and architectures
-* benchmark scenarios over time
+- measure latency, cost, token usage
+- evaluate quality (consistency, relevance, persona fidelity)
+- compare models and architectures
+- benchmark scenarios over time
 
 → This enables evidence-based iteration.
 
@@ -139,11 +138,11 @@ From day one, the system is designed to:
 
 We start simple:
 
-* TypeScript application core
-* PostgreSQL + pgvector
-* Redis
-* local-first development
-* modular wrappers around providers
+- TypeScript application core
+- PostgreSQL + pgvector
+- Redis
+- local-first development
+- modular wrappers around providers
 
 We add complexity only when justified by real bottlenecks.
 
@@ -155,15 +154,15 @@ We add complexity only when justified by real bottlenecks.
 
 The Core can run anywhere:
 
-* locally
-* private infrastructure
-* sovereign cloud environments
+- locally
+- private infrastructure
+- sovereign cloud environments
 
 It is designed to be:
 
-* portable
-* inspectable
-* independent from mandatory external services
+- portable
+- inspectable
+- independent from mandatory external services
 
 ---
 
@@ -181,11 +180,11 @@ Deliver a usable back-office and text-based prototype.
 
 Add:
 
-* voice input/output
-* multimedia triggers
-* multiple scenarios
-* richer memory systems
-* user-facing frontend
+- voice input/output
+- multimedia triggers
+- multiple scenarios
+- richer memory systems
+- user-facing frontend
 
 ### Phase C — Research & Scale Readiness
 
@@ -197,11 +196,11 @@ Prepare the platform for advanced integrations such as expressive avatars, advan
 
 We succeed when:
 
-* a user can engage in a long, coherent conversation
-* the system remembers and adapts over time
-* avatars feel alive, not scripted
-* media can appear naturally when useful
-* new experiences can be launched quickly by creators
-* multiple products can reuse the same Core
+- a user can engage in a long, coherent conversation
+- the system remembers and adapts over time
+- avatars feel alive, not scripted
+- media can appear naturally when useful
+- new experiences can be launched quickly by creators
+- multiple products can reuse the same Core
 
 Ultimately, this Core becomes a **platform for interactive intelligence**, enabling a new generation of learning, storytelling, and simulation products.

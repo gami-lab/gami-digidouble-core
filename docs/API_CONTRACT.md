@@ -60,7 +60,7 @@ All endpoints live under `/v1`.
 
 ```text
 /v1
-````
+```
 
 ## Content Type
 
@@ -96,11 +96,11 @@ All IDs are opaque strings.
 
 Examples:
 
-* `user_...`
-* `scenario_...`
-* `session_...`
-* `msg_...`
-* `source_...`
+- `user_...`
+- `scenario_...`
+- `session_...`
+- `msg_...`
+- `source_...`
 
 No client should infer meaning from IDs.
 
@@ -127,12 +127,12 @@ type ApiResponse<T> = {
 
 Successful responses set:
 
-* `error = null`
+- `error = null`
 
 Failed responses set:
 
-* `data = null`
-* `error != null`
+- `data = null`
+- `error != null`
 
 ---
 
@@ -140,15 +140,15 @@ Failed responses set:
 
 ```ts id="h7kflt"
 type ErrorCode =
-  | "UNAUTHORIZED"
-  | "FORBIDDEN"
-  | "NOT_FOUND"
-  | "INVALID_INPUT"
-  | "CONFLICT"
-  | "RATE_LIMITED"
-  | "PROVIDER_ERROR"
-  | "TIMEOUT"
-  | "INTERNAL_ERROR"
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'INVALID_INPUT'
+  | 'CONFLICT'
+  | 'RATE_LIMITED'
+  | 'PROVIDER_ERROR'
+  | 'TIMEOUT'
+  | 'INTERNAL_ERROR'
 ```
 
 ---
@@ -170,7 +170,7 @@ type ScenarioSummary = {
   scenarioId: string
   name: string
   slug: string
-  status: "draft" | "active" | "archived"
+  status: 'draft' | 'active' | 'archived'
   createdAt: string
   updatedAt: string
 }
@@ -183,7 +183,7 @@ type SessionSummary = {
   sessionId: string
   userId: string
   scenarioId: string
-  status: "active" | "closed" | "archived"
+  status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string
   endedAt?: string | null
@@ -196,7 +196,7 @@ type SessionSummary = {
 type Message = {
   messageId: string
   sessionId: string
-  role: "user" | "avatar" | "system"
+  role: 'user' | 'avatar' | 'system'
   content: string
   createdAt: string
   metadata?: {
@@ -228,8 +228,8 @@ type KnowledgeSourceSummary = {
   sourceId: string
   scenarioId: string
   name: string
-  type: "pdf" | "text" | "markdown" | "url" | "media"
-  status: "pending" | "ready" | "error"
+  type: 'pdf' | 'text' | 'markdown' | 'url' | 'media'
+  status: 'pending' | 'ready' | 'error'
   uriOrPath: string
   createdAt: string
   metadata?: Record<string, unknown>
@@ -278,7 +278,7 @@ type StartSessionRequest = {
 type StartSessionResponse = {
   session: SessionSummary
   gameMaster?: {
-    mode: "init"
+    mode: 'init'
     avatarId?: string
     notes?: string
     directives?: string[]
@@ -288,8 +288,8 @@ type StartSessionResponse = {
 
 ### Notes
 
-* If the user does not already exist, the system may create a minimal user.
-* Session start may synchronously initialize minimal Game Master state.
+- If the user does not already exist, the system may create a minimal user.
+- Session start may synchronously initialize minimal Game Master state.
 
 ---
 
@@ -340,15 +340,14 @@ type SendMessageResponse = {
 
 ### Behavior
 
-* Stores user message
-* Builds runtime context
-* Runs Avatar response generation
-* Stores avatar response
-* Launches async post-processing when relevant:
-
-  * Game Master observation
-  * memory update
-  * event logging
+- Stores user message
+- Builds runtime context
+- Runs Avatar response generation
+- Stores avatar response
+- Launches async post-processing when relevant:
+  - Game Master observation
+  - memory update
+  - event logging
 
 ---
 
@@ -371,16 +370,16 @@ Same as `SendMessageRequest`.
 ```ts id="wlkb96"
 type StreamEvent =
   | {
-      type: "message_started"
+      type: 'message_started'
       sessionId: string
       requestId?: string
     }
   | {
-      type: "token"
+      type: 'token'
       content: string
     }
   | {
-      type: "message_completed"
+      type: 'message_completed'
       avatarMessage: Message
       debug?: {
         model?: string
@@ -393,7 +392,7 @@ type StreamEvent =
       }
     }
   | {
-      type: "error"
+      type: 'error'
       error: {
         code: string
         message: string
@@ -403,8 +402,8 @@ type StreamEvent =
 
 ### Notes
 
-* SSE is the simplest first contract.
-* WebSocket can be added later without changing core payload shapes.
+- SSE is the simplest first contract.
+- WebSocket can be added later without changing core payload shapes.
 
 ---
 
@@ -462,8 +461,8 @@ type GetSessionStateResponse = {
 
 ### Notes
 
-* This endpoint is not for end-user UI.
-* It exists for back-office, testing, and debugging.
+- This endpoint is not for end-user UI.
+- It exists for back-office, testing, and debugging.
 
 ---
 
@@ -526,14 +525,14 @@ POST /v1/scenarios
 type CreateScenarioRequest = {
   name: string
   slug: string
-  status?: "draft" | "active" | "archived"
+  status?: 'draft' | 'active' | 'archived'
   config: {
     avatar?: {
       name?: string
       personaPrompt?: string
       style?: {
         tone?: string
-        verbosity?: "low" | "medium" | "high"
+        verbosity?: 'low' | 'medium' | 'high'
       }
     }
     world?: {
@@ -629,7 +628,7 @@ POST /v1/knowledge-sources
 type RegisterKnowledgeSourceRequest = {
   scenarioId: string
   name: string
-  type: "pdf" | "text" | "markdown" | "url" | "media"
+  type: 'pdf' | 'text' | 'markdown' | 'url' | 'media'
   uriOrPath: string
   metadata?: Record<string, unknown>
 }
@@ -692,7 +691,7 @@ type TriggerKnowledgeIngestionRequest = {
 ```ts id="n92ozv"
 type TriggerKnowledgeIngestionResponse = {
   sourceId: string
-  status: "pending" | "ready" | "error"
+  status: 'pending' | 'ready' | 'error'
 }
 ```
 
@@ -828,19 +827,14 @@ type GameMasterState = {
 ```ts id="vvjlyw"
 type GameMasterOutput = {
   avatarId?: string
-  mode: "init" | "background_trigger"
-  trigger?:
-    | "time_elapsed"
-    | "topic_covered"
-    | "stalled_progression"
-    | "state_change"
-    | "manual"
+  mode: 'init' | 'background_trigger'
+  trigger?: 'time_elapsed' | 'topic_covered' | 'stalled_progression' | 'state_change' | 'manual'
   context?: {
     notes?: string
     directives?: string[]
   }
   stateUpdate: {
-    progression?: "none" | "increase"
+    progression?: 'none' | 'increase'
     topicCovered?: string
     interactionIncrement?: 1
   }
@@ -855,21 +849,21 @@ These shapes should stay aligned with `GAME_MASTER_CONTRACT.md`.
 
 ## Success
 
-* `200 OK` for reads and successful actions
-* `201 Created` for creates
-* `202 Accepted` for async jobs accepted
-* `204 No Content` only when no response body is useful
+- `200 OK` for reads and successful actions
+- `201 Created` for creates
+- `202 Accepted` for async jobs accepted
+- `204 No Content` only when no response body is useful
 
 ## Errors
 
-* `400 Bad Request` → invalid input
-* `401 Unauthorized` → missing/invalid API key
-* `403 Forbidden` → known but not allowed
-* `404 Not Found` → missing entity
-* `409 Conflict` → duplicate slug, invalid state transition
-* `429 Too Many Requests` → throttling
-* `500 Internal Server Error` → unexpected failure
-* `502/503/504` → upstream / provider issues where relevant
+- `400 Bad Request` → invalid input
+- `401 Unauthorized` → missing/invalid API key
+- `403 Forbidden` → known but not allowed
+- `404 Not Found` → missing entity
+- `409 Conflict` → duplicate slug, invalid state transition
+- `429 Too Many Requests` → throttling
+- `500 Internal Server Error` → unexpected failure
+- `502/503/504` → upstream / provider issues where relevant
 
 ---
 
@@ -879,20 +873,20 @@ These shapes should stay aligned with `GAME_MASTER_CONTRACT.md`.
 
 ### Message content
 
-* required
-* non-empty after trimming
-* maximum size configurable
+- required
+- non-empty after trimming
+- maximum size configurable
 
 ### Scenario slug
 
-* unique
-* lowercase kebab-case preferred
+- unique
+- lowercase kebab-case preferred
 
 ### Source registration
 
-* `scenarioId` required
-* `type` required
-* `uriOrPath` required
+- `scenarioId` required
+- `type` required
+- `uriOrPath` required
 
 ---
 
@@ -900,14 +894,14 @@ These shapes should stay aligned with `GAME_MASTER_CONTRACT.md`.
 
 Do not include yet:
 
-* multi-avatar active orchestration endpoints
-* voice upload endpoints
-* media trigger APIs for frontend playback
-* tenant management
-* user auth flows beyond API key
-* prompt management endpoints
-* benchmark control endpoints
-* fine-grained GM manual controls
+- multi-avatar active orchestration endpoints
+- voice upload endpoints
+- media trigger APIs for frontend playback
+- tenant management
+- user auth flows beyond API key
+- prompt management endpoints
+- benchmark control endpoints
+- fine-grained GM manual controls
 
 These can be added later without breaking the basic surface.
 
@@ -929,16 +923,16 @@ When extending the API:
 
 If we need the absolute minimum set to start implementation, it is:
 
-* `POST /v1/conversations/start`
-* `POST /v1/conversations/{sessionId}/messages`
-* `POST /v1/conversations/{sessionId}/messages/stream`
-* `GET /v1/conversations/{sessionId}/history`
-* `DELETE /v1/conversations/{sessionId}`
-* `GET /v1/scenarios`
-* `POST /v1/scenarios`
-* `PUT /v1/scenarios/{scenarioId}`
-* `POST /v1/knowledge-sources`
-* `POST /v1/knowledge-sources/{sourceId}/ingest`
+- `POST /v1/conversations/start`
+- `POST /v1/conversations/{sessionId}/messages`
+- `POST /v1/conversations/{sessionId}/messages/stream`
+- `GET /v1/conversations/{sessionId}/history`
+- `DELETE /v1/conversations/{sessionId}`
+- `GET /v1/scenarios`
+- `POST /v1/scenarios`
+- `PUT /v1/scenarios/{scenarioId}`
+- `POST /v1/knowledge-sources`
+- `POST /v1/knowledge-sources/{sourceId}/ingest`
 
 Everything else is useful, but not required to begin.
 

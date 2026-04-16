@@ -4,15 +4,17 @@
  * Successful responses: data is set, error is null.
  * Failed responses:     data is null, error is set.
  */
-export type ApiResponse<T> = {
-  data: T
-  error: null
-  meta?: ResponseMeta
-} | {
-  data: null
-  error: ApiError
-  meta?: ResponseMeta
-}
+export type ApiResponse<T> =
+  | {
+      data: T
+      error: null
+      meta?: ResponseMeta
+    }
+  | {
+      data: null
+      error: ApiError
+      meta?: ResponseMeta
+    }
 
 export type ApiError = {
   code: ErrorCode

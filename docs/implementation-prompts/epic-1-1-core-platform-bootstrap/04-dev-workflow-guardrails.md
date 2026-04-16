@@ -7,12 +7,14 @@ A platform bootstrap is only useful if contributors can work consistently. This 
 ## Scope
 
 What must be implemented now:
+
 - Add formatting/linting/typecheck/test commands into standard workflow.
 - Add pre-commit or pre-push quality gates suitable for a small team.
 - Add baseline CI workflow to run install, lint, typecheck, and tests.
 - Add contributor-oriented onboarding instructions.
 
 What is out of scope:
+
 - Sophisticated release automation.
 - Multi-environment deployment pipelines.
 - Heavy policy engines or enterprise governance tooling.
@@ -34,11 +36,13 @@ What is out of scope:
 - If pre-commit hooks are added, keep install/setup simple and optional fallback documented.
 
 Testing guidance:
+
 - Add at least one minimal test command path that can run in CI from clean checkout.
 
 ## Constraints
 
 Respect:
+
 - KISS and low maintenance overhead.
 - DRY between local scripts and CI configuration.
 - Backward compatibility with monorepo growth.
@@ -53,6 +57,7 @@ Respect:
 ## Mandatory Final Step — Documentation Update
 
 After implementation, review and update:
+
 - `docs/PROJECT_STATUS.md`
 - Any impacted outdated docs, especially:
   - `docs/TEST_STRATEGY.md`

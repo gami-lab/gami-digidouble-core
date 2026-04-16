@@ -10,6 +10,7 @@ Quick reference for AI agents and contributors. Use this to orient yourself in t
 It is a **platform layer** (not an app), consumed via REST/WebSocket API by products that need interactive, persona-driven conversational experiences.
 
 The core coordinates two AI agents:
+
 - **Avatar** — answers the user directly, has a persona and memory
 - **Game Master (GM)** — runs async in the background, orchestrates the experience without blocking responses
 
@@ -19,19 +20,19 @@ The core coordinates two AI agents:
 
 ### Where to Look for What
 
-| Question | Document |
-|---|---|
-| What is this project trying to achieve? | [docs/VISION.md](docs/VISION.md) |
-| What principles govern every decision? | [docs/PRINCIPLES.md](docs/PRINCIPLES.md) |
-| How is the codebase structured? (layers, modules, flows) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| What does the database look like? (entities, schemas) | [docs/DATA_MODEL.md](docs/DATA_MODEL.md) |
-| What API endpoints exist and what do they return? | [docs/API_CONTRACT.md](docs/API_CONTRACT.md) |
+| Question                                                   | Document                                                     |
+| ---------------------------------------------------------- | ------------------------------------------------------------ |
+| What is this project trying to achieve?                    | [docs/VISION.md](docs/VISION.md)                             |
+| What principles govern every decision?                     | [docs/PRINCIPLES.md](docs/PRINCIPLES.md)                     |
+| How is the codebase structured? (layers, modules, flows)   | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                 |
+| What does the database look like? (entities, schemas)      | [docs/DATA_MODEL.md](docs/DATA_MODEL.md)                     |
+| What API endpoints exist and what do they return?          | [docs/API_CONTRACT.md](docs/API_CONTRACT.md)                 |
 | How does the Game Master work? (inputs, outputs, triggers) | [docs/GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md) |
-| What technologies are used and why? | [docs/TECH_STACK.md](docs/TECH_STACK.md) |
-| What has been built already? | [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) |
-| What is planned and in which sprint? | [docs/EPICS.md](docs/EPICS.md) |
-| How should tests be written? | [docs/TEST_STRATEGY.md](docs/TEST_STRATEGY.md) |
-| How to work on this repo as an agent? | [AGENTS.md](AGENTS.md) |
+| What technologies are used and why?                        | [docs/TECH_STACK.md](docs/TECH_STACK.md)                     |
+| What has been built already?                               | [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)             |
+| What is planned and in which sprint?                       | [docs/EPICS.md](docs/EPICS.md)                               |
+| How should tests be written?                               | [docs/TEST_STRATEGY.md](docs/TEST_STRATEGY.md)               |
+| How to work on this repo as an agent?                      | [AGENTS.md](AGENTS.md)                                       |
 
 ---
 

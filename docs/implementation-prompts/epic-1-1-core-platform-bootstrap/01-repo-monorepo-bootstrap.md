@@ -9,12 +9,14 @@ This task creates the minimum repository skeleton and workspace tooling needed t
 ## Scope
 
 What must be implemented now:
+
 - Initialize pnpm + Turborepo workspace structure.
 - Add root TypeScript baseline configuration for strict mode.
 - Add workspace-level package boundaries (for example app and shared packages).
 - Add root scripts for build, dev, lint, test, and typecheck orchestration.
 
 What is out of scope:
+
 - Implementing business logic.
 - Defining API endpoints.
 - Integrating LLM providers.
@@ -42,6 +44,7 @@ Do not provide implementation shortcuts that lock the codebase to one future int
 ## Constraints
 
 Respect:
+
 - Existing architecture boundaries and headless-core direction.
 - KISS, YAGNI, DRY.
 - TypeScript strictness (no `any`, no implicit types by default policy).
@@ -59,6 +62,7 @@ Respect:
 ## Mandatory Final Step — Documentation Update
 
 After implementation, review and update:
+
 - `docs/PROJECT_STATUS.md`
 - Any impacted outdated docs, especially:
   - `docs/ARCHITECTURE.md`

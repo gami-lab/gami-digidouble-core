@@ -21,7 +21,8 @@ describe('GET /health', () => {
 
     expect(response.statusCode).toBe(200)
 
-    const body = response.json<ApiResponse<{ status: string; version: string; timestamp: string }>>()
+    const body =
+      response.json<ApiResponse<{ status: string; version: string; timestamp: string }>>()
     expect(body.error).toBeNull()
     expect(body.data).not.toBeNull()
     expect(body.data?.status).toBe('ok')

@@ -22,7 +22,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
-
   # ───────────────────────────────────────────
   # PostgreSQL 17 + pgvector
   # ───────────────────────────────────────────
@@ -35,12 +34,12 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: gami_core
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d gami_core"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d gami_core']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -54,12 +53,12 @@ services:
     container_name: gami_redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -84,7 +83,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gami_core
       REDIS_URL: redis://redis:6379
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
       # Mount source for hot reload — exclude node_modules
       - .:/app

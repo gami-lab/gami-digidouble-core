@@ -16,7 +16,7 @@ This is a working document — decisions can evolve, but the current direction i
 - Architecture: **modular monolith**
 - Principle: **we own the architecture, not a framework**
 - MVP target: **Scenario A = API + back-office first**
-- Core style: **headless, API-first, self-hostable** 
+- Core style: **headless, API-first, self-hostable**
 
 ---
 
@@ -80,6 +80,7 @@ This is a working document — decisions can evolve, but the current direction i
 The API layer is the single entry point to the Core.
 
 Expected early responsibilities:
+
 - session start
 - send message
 - history retrieval
@@ -104,6 +105,7 @@ Expected early responsibilities:
 ### Components
 
 We implement:
+
 - **Game Master**
 - **Avatar Agent**
 - **Context Manager**
@@ -112,6 +114,7 @@ We implement:
 ### Rule
 
 External frameworks must **not** control:
+
 - state
 - flow
 - decision logic
@@ -120,6 +123,7 @@ External frameworks must **not** control:
 ### Why
 
 The roadmap and core architecture now clearly favor:
+
 - an **async Director–Actor model**
 - explicit control over orchestration
 - modular A/B-testable architecture
@@ -150,9 +154,10 @@ The roadmap and core architecture now clearly favor:
 ### Why
 
 This is now one of the strongest architectural decisions in the roadmap:
+
 - lower perceived latency
 - clearer role separation
-- better fit for experience orchestration than a single merged agent 
+- better fit for experience orchestration than a single merged agent
 
 ### Validation
 
@@ -189,7 +194,7 @@ This is now one of the strongest architectural decisions in the roadmap:
 
 ### Why
 
-The updated roadmap explicitly reinforces **systematic wrappers** for LLM, logging, and storage. 
+The updated roadmap explicitly reinforces **systematic wrappers** for LLM, logging, and storage.
 
 ### Validation
 
@@ -227,9 +232,11 @@ Use **LLM by role**:
 ### Why
 
 The roadmap explicitly recommends:
+
 - **frugal models for development**
 - **role-based model allocation**
-- provider comparison as part of validation 
+- provider comparison as part of validation
+
 ### Validation
 
 - latency per role
@@ -255,13 +262,15 @@ The roadmap explicitly recommends:
 ### Why
 
 This is now a confirmed architecture decision:
+
 - one relational + vector store
 - lower operational complexity
-- enough for MVP volumes 
+- enough for MVP volumes
 
 ### Scope
 
 Store:
+
 - users
 - sessions
 - exchanges
@@ -293,7 +302,7 @@ Store:
 
 ### Why
 
-Redis is explicitly part of the 3-container MVP architecture. 
+Redis is explicitly part of the 3-container MVP architecture.
 
 ### Validation
 
@@ -337,6 +346,7 @@ Redis is explicitly part of the 3-container MVP architecture.
 ### Why
 
 The roadmap confirms:
+
 - Sprint 4 = RAG + Sources/Knowledge
 - sources include documents and media metadata
 - the real challenge is retrieval relevance + token discipline, not framework sophistication
@@ -368,7 +378,7 @@ Start with **2 layers**:
 
 ### Why
 
-This is now explicitly the roadmap baseline, and it directly addresses the main technical risk: context explosion over long sessions. 
+This is now explicitly the roadmap baseline, and it directly addresses the main technical risk: context explosion over long sessions.
 
 ### Rule
 
@@ -409,7 +419,7 @@ This is now explicitly the roadmap baseline, and it directly addresses the main 
 
 ### Why
 
-The roadmap explicitly says **observability from Sprint 1** and via **wrapper abstraction**, not direct coupling. 
+The roadmap explicitly says **observability from Sprint 1** and via **wrapper abstraction**, not direct coupling.
 
 ### Validation
 
@@ -429,8 +439,9 @@ The roadmap explicitly says **observability from Sprint 1** and via **wrapper ab
 ### Why
 
 The roadmap explicitly calls for:
+
 - REST API + **WebSocket** for streaming
-- low perceived latency through streamed responses 
+- low perceived latency through streamed responses
 
 ### Validation
 
@@ -450,6 +461,7 @@ The roadmap explicitly calls for:
 ### Goal
 
 Allow a non-dev to:
+
 - configure a scenario
 - edit avatar / storyworld / objectives
 - upload source documents
@@ -491,10 +503,11 @@ This matches the recommended MVP Scenario A: **API + back-office first**, no voi
 ### Why
 
 The roadmap now clearly states:
+
 - local-first development in Phase A
 - 3-container MVP architecture
 - no microservices
-- production evolution later only if justified 
+- production evolution later only if justified
 
 ### Validation
 
@@ -522,7 +535,7 @@ The roadmap now clearly states:
 
 ### Why
 
-This is now an explicit architecture rule: the Core is headless and does not become a media storage system. 
+This is now an explicit architecture rule: the Core is headless and does not become a media storage system.
 
 ### Validation
 
@@ -551,7 +564,7 @@ This is now an explicit architecture rule: the Core is headless and does not bec
 
 ### Why
 
-The roadmap now includes an explicit validation framework and benchmarking strategy. 
+The roadmap now includes an explicit validation framework and benchmarking strategy.
 
 ---
 
@@ -569,7 +582,7 @@ The roadmap now includes an explicit validation framework and benchmarking strat
 
 ### Why
 
-This reflects the roadmap: keep security proportional in Phase A, harden later. 
+This reflects the roadmap: keep security proportional in Phase A, harden later.
 
 ---
 
@@ -586,7 +599,7 @@ This reflects the roadmap: keep security proportional in Phase A, harden later.
 9. **Observability from day 1**
 10. **Scenario A first: API + back-office**
 11. **Local-first Phase A**
-12. **Headless core, media external** 
+12. **Headless core, media external**
 
 ---
 

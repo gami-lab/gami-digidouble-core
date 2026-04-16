@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginCallback } from 'fastify'
 import { ok } from '@gami/shared'
 
 type HealthData = {
@@ -7,7 +7,7 @@ type HealthData = {
   timestamp: string
 }
 
-export const healthRoute: FastifyPluginAsync = async (app) => {
+export const healthRoute: FastifyPluginCallback = (app) => {
   app.get('/health', async (_request, reply) => {
     return reply.send(
       ok<HealthData>({

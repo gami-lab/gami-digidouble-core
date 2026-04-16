@@ -6,11 +6,11 @@ This document defines the **EPICs for the MVP roadmap**.
 
 Each EPIC:
 
-* groups several related checklist items into one meaningful delivery block
-* fits within **one sprint** when possible
-* delivers a **testable increment**
-* validates a **key hypothesis or risk**
-* remains understandable in isolation
+- groups several related checklist items into one meaningful delivery block
+- fits within **one sprint** when possible
+- delivers a **testable increment**
+- validates a **key hypothesis or risk**
+- remains understandable in isolation
 
 ## EPIC Granularity Rule
 
@@ -30,12 +30,12 @@ Granularity can be refined later if some EPICs become too large or unclear. :con
 
 Build and validate a **Core Engine (text-in → orchestration → text-out)** that:
 
-* produces coherent conversations
-* manages context efficiently
-* remains performant
-* is measurable
-* is usable through a back-office
-* is ready for a summer prototype
+- produces coherent conversations
+- manages context efficiently
+- remains performant
+- is measurable
+- is usable through a back-office
+- is ready for a summer prototype
 
 ---
 
@@ -56,18 +56,18 @@ A clean local-first foundation increases delivery speed and reduces future rewor
 
 **Includes**
 
-* GitHub repo
-* pnpm / turborepo monorepo
-* Docker local stack
-* app + PostgreSQL + pgvector + Redis
-* base module structure
-* developer scripts
+- GitHub repo
+- pnpm / turborepo monorepo
+- Docker local stack
+- app + PostgreSQL + pgvector + Redis
+- base module structure
+- developer scripts
 
 **DoD**
 
-* full stack runs locally
-* new developer can start in reasonable time
-* project structure is clear
+- full stack runs locally
+- new developer can start in reasonable time
+- project structure is clear
 
 ---
 
@@ -84,17 +84,17 @@ Observability early prevents blind architecture decisions later.
 
 **Includes**
 
-* LLM wrapper
-* first text-in / text-out exchange
-* logging wrapper
-* latency / token / cost tracking
-* basic metrics visibility
+- LLM wrapper
+- first text-in / text-out exchange
+- logging wrapper
+- latency / token / cost tracking
+- basic metrics visibility
 
 **DoD**
 
-* user message returns model response
-* metrics captured for every call
-* wrappers isolate providers/tools
+- user message returns model response
+- metrics captured for every call
+- wrappers isolate providers/tools
 
 ---
 
@@ -115,15 +115,15 @@ A differentiated avatar creates more value than generic chatbot behavior.
 
 **Includes**
 
-* persona prompt structure
-* tone/personality controls
-* direct reply flow
-* session identity continuity
+- persona prompt structure
+- tone/personality controls
+- direct reply flow
+- session identity continuity
 
 **DoD**
 
-* avatar sustains coherent multi-turn exchange
-* avatar feels distinct
+- avatar sustains coherent multi-turn exchange
+- avatar feels distinct
 
 ---
 
@@ -140,15 +140,15 @@ Async orchestration improves quality without unacceptable latency cost.
 
 **Includes**
 
-* GM triggers
-* structured GM outputs
-* instruction injection
-* state observation hooks
+- GM triggers
+- structured GM outputs
+- instruction injection
+- state observation hooks
 
 **DoD**
 
-* GM can influence next turns
-* response latency remains acceptable
+- GM can influence next turns
+- response latency remains acceptable
 
 ---
 
@@ -165,13 +165,13 @@ The async model remains viable in real conditions.
 
 **Includes**
 
-* TTFT metrics
-* step timing
-* provider comparison baseline
+- TTFT metrics
+- step timing
+- provider comparison baseline
 
 **DoD**
 
-* measurable performance baseline exists
+- measurable performance baseline exists
 
 ---
 
@@ -192,15 +192,15 @@ Simple structured memory is enough for MVP usefulness.
 
 **Includes**
 
-* sliding window
-* cumulative summary
-* user fact extraction
-* PostgreSQL persistence
+- sliding window
+- cumulative summary
+- user fact extraction
+- PostgreSQL persistence
 
 **DoD**
 
-* avatar recalls recent conversation
-* key user facts persist across sessions
+- avatar recalls recent conversation
+- key user facts persist across sessions
 
 ---
 
@@ -217,15 +217,15 @@ API-first design accelerates all future UI and integration work.
 
 **Includes**
 
-* /conversation/start
-* /conversation/message
-* /conversation/history
-* API key auth
-* OpenAPI docs
+- /conversation/start
+- /conversation/message
+- /conversation/history
+- API key auth
+- OpenAPI docs
 
 **DoD**
 
-* documented API usable externally
+- documented API usable externally
 
 ---
 
@@ -242,12 +242,12 @@ Streaming matters more than raw completion time.
 
 **Includes**
 
-* token streaming
-* websocket connection flow
+- token streaming
+- websocket connection flow
 
 **DoD**
 
-* user sees progressive response generation
+- user sees progressive response generation
 
 ---
 
@@ -268,14 +268,14 @@ Relevant retrieval improves quality more than larger prompts alone.
 
 **Includes**
 
-* chunking
-* embeddings
-* pgvector storage
-* retrieval pipeline
+- chunking
+- embeddings
+- pgvector storage
+- retrieval pipeline
 
 **DoD**
 
-* ingested content can influence answers
+- ingested content can influence answers
 
 ---
 
@@ -292,15 +292,15 @@ Explicit context composition improves coherence and control.
 
 **Includes**
 
-* memory injection
-* scenario config context
-* RAG merge logic
-* token budget rules
+- memory injection
+- scenario config context
+- RAG merge logic
+- token budget rules
 
 **DoD**
 
-* context sources are traceable
-* prompt remains bounded
+- context sources are traceable
+- prompt remains bounded
 
 ---
 
@@ -317,13 +317,13 @@ Real scenarios expose issues synthetic tests miss.
 
 **Includes**
 
-* AVA documents
-* persona material
-* narrative tests
+- AVA documents
+- persona material
+- narrative tests
 
 **DoD**
 
-* AVA scenario runs with usable quality
+- AVA scenario runs with usable quality
 
 ---
 
@@ -344,14 +344,14 @@ Back-office usability is enough for MVP; no need for full consumer frontend yet.
 
 **Includes**
 
-* scenario config editor
-* avatar config
-* source upload
-* save/load scenario
+- scenario config editor
+- avatar config
+- source upload
+- save/load scenario
 
 **DoD**
 
-* non-dev can configure a scenario
+- non-dev can configure a scenario
 
 ---
 
@@ -368,13 +368,13 @@ Fast testing loops accelerate quality dramatically.
 
 **Includes**
 
-* test chat UI
-* live streamed replies
-* reset session
+- test chat UI
+- live streamed replies
+- reset session
 
 **DoD**
 
-* scenario can be tested end-to-end in browser
+- scenario can be tested end-to-end in browser
 
 ---
 
@@ -391,13 +391,13 @@ Visible metrics reduce waste and improve prioritization.
 
 **Includes**
 
-* session logs
-* latency charts
-* token/cost summaries
+- session logs
+- latency charts
+- token/cost summaries
 
 **DoD**
 
-* team can compare runs and diagnose issues
+- team can compare runs and diagnose issues
 
 ---
 
@@ -418,14 +418,14 @@ Stability matters more than adding last-minute features.
 
 **Includes**
 
-* bug fixing
-* error handling
-* edge case cleanup
-* deployment checks
+- bug fixing
+- error handling
+- edge case cleanup
+- deployment checks
 
 **DoD**
 
-* MVP behaves consistently in demo conditions
+- MVP behaves consistently in demo conditions
 
 ---
 
@@ -442,13 +442,13 @@ Evidence-based decisions outperform intuition.
 
 **Includes**
 
-* P50/P95/P99 latency
-* 3+ model comparison
-* scenario quality review
+- P50/P95/P99 latency
+- 3+ model comparison
+- scenario quality review
 
 **DoD**
 
-* benchmark report available
+- benchmark report available
 
 ---
 
@@ -465,15 +465,15 @@ Scenario A is the right scope for summer success.
 
 **Includes**
 
-* back-office
-* AVA scenario
-* API
-* core engine
-* documentation
+- back-office
+- AVA scenario
+- API
+- core engine
+- documentation
 
 **DoD**
 
-* working prototype demoable to external stakeholders
+- working prototype demoable to external stakeholders
 
 ---
 
@@ -481,12 +481,12 @@ Scenario A is the right scope for summer success.
 
 Future EPIC groups:
 
-* Voice pipeline
-* Node memory + scenario graphs
-* Multimedia triggers
-* End-user frontend
-* Multi-scenarios / multi-avatars
-* Load tests + architecture competitions
+- Voice pipeline
+- Node memory + scenario graphs
+- Multimedia triggers
+- End-user frontend
+- Multi-scenarios / multi-avatars
+- Load tests + architecture competitions
 
 ---
 
@@ -494,11 +494,11 @@ Future EPIC groups:
 
 Future EPIC groups:
 
-* IDIAP contracts
-* security / multi-tenant
-* performance scaling
-* SDK / integrations
-* freeze / handoff package
+- IDIAP contracts
+- security / multi-tenant
+- performance scaling
+- SDK / integrations
+- freeze / handoff package
 
 ---
 
