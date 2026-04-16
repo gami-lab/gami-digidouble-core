@@ -17,6 +17,12 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'error',
       // Enforce explicit return types on module-boundary functions
       '@typescript-eslint/explicit-module-boundary-types': 'warn',
+      // Cyclomatic complexity — keep functions simple and testable
+      complexity: ['error', 10],
+      // File length — encourages single-responsibility modules
+      'max-lines': ['error', { max: 500, skipBlankLines: true, skipComments: true }],
+      // Function length — encourages small, focused functions
+      'max-lines-per-function': ['error', { max: 100, skipBlankLines: true, skipComments: true }],
     },
   },
   {
