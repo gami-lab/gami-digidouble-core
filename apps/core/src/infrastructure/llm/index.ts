@@ -17,6 +17,8 @@ export { NullLlmAdapter } from './null.adapter.js'
 export interface LlmConfig {
   provider: string
   openaiApiKey?: string
+  anthropicApiKey?: string
+  mistralApiKey?: string
 }
 
 export function createLlmAdapter(config: LlmConfig): ILlmAdapter {
@@ -24,9 +26,9 @@ export function createLlmAdapter(config: LlmConfig): ILlmAdapter {
     case 'openai':
       return new OpenAiAdapter(config.openaiApiKey ?? '')
     case 'anthropic':
-      return new AnthropicAdapter()
+      return new AnthropicAdapter(config.anthropicApiKey ?? '')
     case 'mistral':
-      return new MistralAdapter()
+      return new MistralAdapter(config.mistralApiKey ?? '')
     case 'null':
       return new NullLlmAdapter()
     default:

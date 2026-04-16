@@ -13,6 +13,8 @@ export interface Config {
   apiKeySecret: string
   llmProvider: string
   openaiApiKey: string | undefined
+  anthropicApiKey: string | undefined
+  mistralApiKey: string | undefined
 }
 
 function requireEnv(key: string): string {
@@ -34,5 +36,7 @@ export function loadConfig(): Config {
     apiKeySecret: requireEnv('API_KEY_SECRET'),
     llmProvider: process.env['LLM_PROVIDER'] ?? 'null',
     openaiApiKey: process.env['OPENAI_API_KEY'],
+    anthropicApiKey: process.env['ANTHROPIC_API_KEY'],
+    mistralApiKey: process.env['MISTRAL_API_KEY'],
   }
 }

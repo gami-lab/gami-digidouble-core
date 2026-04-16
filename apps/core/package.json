@@ -14,7 +14,9 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
     "@gami/shared": "workspace:*",
+    "@mistralai/mistralai": "^2.2.0",
     "fastify": "^5.8.5",
     "openai": "^6.34.0"
   },

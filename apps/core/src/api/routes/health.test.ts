@@ -13,6 +13,8 @@ const testConfig: Config = {
   apiKeySecret: 'test-secret',
   llmProvider: 'null',
   openaiApiKey: undefined,
+  anthropicApiKey: undefined,
+  mistralApiKey: undefined,
 }
 
 describe('GET /health', () => {
