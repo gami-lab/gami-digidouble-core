@@ -1,0 +1,102 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Gami DigiDouble Core — Local Development Stack
+#
+# Three services:
+#   postgres  PostgreSQL 17 + pgvector  → port 5432
+#   redis     Redis 7                   → port 6379
+#   app       @gami/core (tsx dev)      → port 3000
+#
+# Usage:
+#   Infra only (recommended for active dev):
+#     docker compose up postgres redis
+#     pnpm dev
+#
+#   Full stack in containers:
+#     docker compose up
+#
+#   Teardown (keep volumes):
+#     docker compose down
+#
+#   Teardown (wipe all data):
+#     docker compose down -v
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ───────────────────────────────────────────
+  # PostgreSQL 17 + pgvector
+  # ───────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: gami_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gami_core
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gami_core"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ───────────────────────────────────────────
+  # Redis 7
+  # ───────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: gami_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # ───────────────────────────────────────────
+  # App (dev mode — tsx hot reload)
+  # Used when running the full stack in Docker.
+  # For active development, prefer running the
+  # app locally with `pnpm dev` instead.
+  # ───────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: gami_app
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gami_core
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source for hot reload — exclude node_modules
+      - .:/app
+      - /app/node_modules
+      - /app/apps/core/node_modules
+      - /app/packages/shared/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
