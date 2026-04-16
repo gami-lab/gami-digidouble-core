@@ -15,6 +15,9 @@ const testConfig: Config = {
   openaiApiKey: undefined,
   anthropicApiKey: undefined,
   mistralApiKey: undefined,
+  langfusePublicKey: undefined,
+  langfuseSecretKey: undefined,
+  langfuseHost: undefined,
 }
 
 describe('GET /health', () => {

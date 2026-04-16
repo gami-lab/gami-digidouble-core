@@ -18,6 +18,7 @@
     "@gami/shared": "workspace:*",
     "@mistralai/mistralai": "^2.2.0",
     "fastify": "^5.8.5",
+    "langfuse": "^3.38.20",
     "openai": "^6.34.0"
   },
   "devDependencies": {

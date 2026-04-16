@@ -3,14 +3,14 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 17, 2026
+**Last updated:** April 16, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1 is complete. EPIC 1.2 is in progress (Prompt 01 done).**
+Phase A is in progress. **EPIC 1.1 is complete. EPIC 1.2 is in progress (Prompts 01 and 02 done).**
 
 Monorepo workspace bootstrap is done:
 
@@ -69,16 +69,28 @@ EPIC 1.2 — Prompt 01 (LLM provider adapter) is done:
 - 10 unit tests covering: `NullLlmAdapter` (4), `OpenAiAdapter` happy-path, model override, API error wrapping, generic error wrapping, empty choices, message ordering (6)
 - All quality gates pass: `pnpm lint`, `pnpm typecheck`, `pnpm test` (11/11)
 
+EPIC 1.2 — Prompt 02 (Observability adapter) is done:
+
+- `infrastructure/observability/null.adapter.ts` — `NullObservabilityAdapter` — no-op, used in all tests
+- `infrastructure/observability/console.adapter.ts` — `ConsoleObservabilityAdapter` — structured JSON stdout, used when Langfuse keys absent
+- `infrastructure/observability/langfuse.adapter.ts` — `LangfuseObservabilityAdapter` — records traces + generations to Langfuse; SDK errors silently swallowed; `flush()` idempotent (calls `shutdownAsync()` once)
+- `infrastructure/observability/index.ts` — `createObservabilityAdapter(config)` factory; `ObservabilityConfig` exported
+- `config.ts` updated: optional `langfusePublicKey`, `langfuseSecretKey`, `langfuseHost` fields added
+- `apps/core/src/index.ts` updated: `SIGTERM`/`SIGINT` handlers flush pending traces before process exit; startup error path also flushes
+- `langfuse` SDK installed in `apps/core`; all SDK imports confined to `infrastructure/observability/`
+- 20 unit tests: `NullObservabilityAdapter` (3), `ConsoleObservabilityAdapter` (4), `LangfuseObservabilityAdapter` (7), factory `createObservabilityAdapter` (5) — no live Langfuse instance required
+- All quality gates pass: `pnpm lint`, `pnpm typecheck`, `pnpm test` (46/46)
+
 ---
 
 ## Phase A — Sprint Status
 
 ### Sprint 1 — Foundations
 
-| Epic                                      | Status          | Notes                                               |
-| ----------------------------------------- | --------------- | --------------------------------------------------- |
-| EPIC 1.1 — Platform Bootstrap             | **Complete**    | All 5 prompts delivered and validated end-to-end    |
-| EPIC 1.2 — First LLM Loop + Observability | **In progress** | Prompt 01 done: LLM provider adapter layer complete |
+| Epic                                      | Status          | Notes                                                            |
+| ----------------------------------------- | --------------- | ---------------------------------------------------------------- |
+| EPIC 1.1 — Platform Bootstrap             | **Complete**    | All 5 prompts delivered and validated end-to-end                 |
+| EPIC 1.2 — First LLM Loop + Observability | **In progress** | Prompts 01–02 done: LLM adapter + Observability adapter complete |
 
 ### Sprint 2 — Avatar + Game Master
 
