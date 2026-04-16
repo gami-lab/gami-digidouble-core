@@ -81,16 +81,26 @@ EPIC 1.2 — Prompt 02 (Observability adapter) is done:
 - 20 unit tests: `NullObservabilityAdapter` (3), `ConsoleObservabilityAdapter` (4), `LangfuseObservabilityAdapter` (7), factory `createObservabilityAdapter` (5) — no live Langfuse instance required
 - All quality gates pass: `pnpm lint`, `pnpm typecheck`, `pnpm test` (46/46)
 
+EPIC 1.2 — Prompt 03 (First exchange use case) is done:
+
+- `application/use-cases/send-raw-message/send-raw-message.types.ts` — `SendRawMessageInput` / `SendRawMessageOutput` DTOs
+- `application/use-cases/send-raw-message/send-raw-message.use-case.ts` — `SendRawMessageUseCase.execute()`: generates UUID requestId, calls `ILlmAdapter`, fires non-blocking observability trace, returns output DTO
+- Application layer depends only on `application/ports/` — no infrastructure imports
+- Default system prompt: `"You are a helpful assistant."` (to be replaced by persona in EPIC 2.1)
+- Observability failures caught and logged to stderr — never propagate to caller
+- 10 unit tests: happy path, UUID format, uniqueness, trace call count, trace payload, default/custom system prompt, message forwarding, observability error swallowed, LLM error propagated
+- All quality gates pass: `pnpm lint`, `pnpm typecheck`, `pnpm test` (56/56)
+
 ---
 
 ## Phase A — Sprint Status
 
 ### Sprint 1 — Foundations
 
-| Epic                                      | Status          | Notes                                                            |
-| ----------------------------------------- | --------------- | ---------------------------------------------------------------- |
-| EPIC 1.1 — Platform Bootstrap             | **Complete**    | All 5 prompts delivered and validated end-to-end                 |
-| EPIC 1.2 — First LLM Loop + Observability | **In progress** | Prompts 01–02 done: LLM adapter + Observability adapter complete |
+| Epic                                      | Status          | Notes                                                                           |
+| ----------------------------------------- | --------------- | ------------------------------------------------------------------------------- |
+| EPIC 1.1 — Platform Bootstrap             | **Complete**    | All 5 prompts delivered and validated end-to-end                                |
+| EPIC 1.2 — First LLM Loop + Observability | **In progress** | Prompts 01–03 done: LLM adapter, Observability adapter, SendRawMessage use case |
 
 ### Sprint 2 — Avatar + Game Master
 
