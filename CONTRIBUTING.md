@@ -60,7 +60,7 @@ pnpm infra:down
 
 ## Quality Commands
 
-These are the exact same commands that run in CI. Always verify locally before pushing.
+These are the core quality commands used by CI gates. Always verify locally before pushing.
 
 ```bash
 pnpm format         # Format all files with Prettier
@@ -68,15 +68,23 @@ pnpm format:check   # Check formatting without writing (runs in CI)
 pnpm lint           # ESLint with typescript-eslint strict rules
 pnpm typecheck      # TypeScript strict typecheck across all packages
 pnpm test           # Run all tests via Vitest
+pnpm --filter @gami/core test:coverage   # Coverage thresholds (80%) for @gami/core
 ```
 
 Single-package scope (faster feedback during development):
 
 ```bash
 pnpm --filter @gami/core test
+pnpm --filter @gami/core test:coverage
 pnpm --filter @gami/core typecheck
 pnpm --filter @gami/core exec eslint src
 ```
+
+## CI Behavior
+
+- **Pull requests / push:** format, lint, typecheck, fast test suite, coverage floor, and security checks (dependency review on PR + gitleaks scan)
+- **Push to `main` / `master`:** all PR checks plus explicit integration and E2E suites
+- **Nightly schedule:** real-provider smoke path (via existing gated tests) and secrets scan, with TODO placeholders for mutation/regression/performance suites once scripts exist
 
 ## Pre-commit Hook
 

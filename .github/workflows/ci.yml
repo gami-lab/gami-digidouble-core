@@ -106,7 +106,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: /home/runner/work/gami-digidouble-core/gami-digidouble-core/apps/core/coverage
+          path: apps/core/coverage
           if-no-files-found: error
 
   dependency-vulnerability-review:
