@@ -69,6 +69,7 @@ pnpm lint           # ESLint with typescript-eslint strict rules
 pnpm typecheck      # TypeScript strict typecheck across all packages
 pnpm test           # Run all tests via Vitest
 pnpm --filter @gami/core test:coverage   # Coverage thresholds (80%) for @gami/core
+pnpm --filter @gami/core test:integration-e2e   # Run integration and E2E test suites
 ```
 
 Single-package scope (faster feedback during development):
@@ -76,6 +77,7 @@ Single-package scope (faster feedback during development):
 ```bash
 pnpm --filter @gami/core test
 pnpm --filter @gami/core test:coverage
+pnpm --filter @gami/core test:integration-e2e
 pnpm --filter @gami/core typecheck
 pnpm --filter @gami/core exec eslint src
 ```

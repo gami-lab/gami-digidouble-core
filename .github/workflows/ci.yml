@@ -6,12 +6,13 @@ on:
   pull_request:
     branches: [master, main]
   schedule:
+    # GitHub Actions cron is UTC; this runs nightly at 03:00 UTC.
     - cron: '0 3 * * *'
   workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -51,7 +52,6 @@ jobs:
   tests-fast:
     name: Test suite (fast gate)
     if: github.event_name != 'schedule'
-    needs: static-checks
     runs-on: ubuntu-latest
 
     steps:
@@ -78,7 +78,6 @@ jobs:
   coverage:
     name: Coverage floor
     if: github.event_name != 'schedule'
-    needs: static-checks
     runs-on: ubuntu-latest
 
     steps:
@@ -113,9 +112,6 @@ jobs:
     name: Dependency vulnerability review
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
 
     steps:
       - name: Checkout
@@ -140,7 +136,7 @@ jobs:
   main-extended-tests:
     name: Main extended integration and E2E
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    needs: [tests-fast, coverage, secrets-scan]
+    needs: [tests-fast, coverage]
     runs-on: ubuntu-latest
 
     steps:
@@ -162,7 +158,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run integration and E2E suites
-        run: pnpm --filter @gami/core exec vitest run --config vitest.config.ts "src/**/*.integration.test.ts" "src/**/*.e2e.test.ts"
+        run: pnpm --filter @gami/core test:integration-e2e
 
   nightly-real-provider-smoke:
     name: Nightly real-provider smoke
@@ -187,8 +183,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run integration and E2E suites (real-provider tests skip cleanly without keys)
-        run: pnpm --filter @gami/core exec vitest run --config vitest.config.ts "src/**/*.integration.test.ts" "src/**/*.e2e.test.ts"
+      - name: Run integration and E2E suites (real-provider tests execute when nightly secrets are configured)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: pnpm --filter @gami/core test:integration-e2e
 
       # TODO(TEST_STRATEGY): Add mutation and conversation regression suites once scripts exist.
       # TODO(TEST_STRATEGY): Add performance smoke/soak jobs once baseline thresholds are implemented.
