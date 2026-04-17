@@ -18,7 +18,15 @@
     },
     "test:integration-e2e": {
       "dependsOn": ["^build"],
-      "cache": false
+      "cache": false,
+      "passThroughEnv": [
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY",
+        "LANGFUSE_SECRET_KEY",
+        "LANGFUSE_PUBLIC_KEY",
+        "LANGFUSE_BASE_URL"
+      ]
     },
     "dev": {
       "cache": false,
