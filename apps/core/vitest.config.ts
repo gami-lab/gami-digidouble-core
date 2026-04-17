@@ -11,6 +11,7 @@ export default defineConfig({
       exclude: [
         'src/**/*.test.ts',
         'src/**/*.integration.test.ts',
+        'src/**/*.e2e.test.ts',
         // Entry point wired at runtime — not unit-testable
         'src/index.ts',
         // Pure TypeScript type/interface files — no executable code
