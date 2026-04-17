@@ -3,14 +3,14 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 16, 2026
+**Last updated:** April 17, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1 is complete. EPIC 1.2 is in progress (Prompts 01 and 02 done).**
+Phase A is in progress. **EPIC 1.1 is complete. EPIC 1.2 is in progress (Prompts 01–04 done).**
 
 Monorepo workspace bootstrap is done:
 
@@ -91,16 +91,26 @@ EPIC 1.2 — Prompt 03 (First exchange use case) is done:
 - 10 unit tests: happy path, UUID format, uniqueness, trace call count, trace payload, default/custom system prompt, message forwarding, observability error swallowed, LLM error propagated
 - All quality gates pass: `pnpm lint`, `pnpm typecheck`, `pnpm test` (56/56)
 
+EPIC 1.2 — Prompt 04 (Expose exchange via API endpoint) is done:
+
+- `api/hooks/authenticate.ts` — reusable `authenticateApiKey` preHandler using constant-time comparison (`crypto.timingSafeEqual`)
+- `api/routes/exchange.ts` — `POST /v1/exchange` route with Fastify body schema validation and `SendRawMessageUseCase` wiring
+- `api/server.ts` — route registration and validation error envelope mapping (`VALIDATION_ERROR`)
+- `api/routes/exchange.test.ts` — integration tests via Fastify `inject()`: success, missing/wrong API key, and invalid body
+- `createServer()` supports adapter overrides for tests to inject `NullLlmAdapter` + `NullObservabilityAdapter` and avoid live LLM calls
+- `packages/shared` error codes updated with `VALIDATION_ERROR` and `EXTERNAL_SERVICE_ERROR`
+- `docs/API_CONTRACT.md` updated with `POST /v1/exchange` contract and endpoint-specific error mapping
+
 ---
 
 ## Phase A — Sprint Status
 
 ### Sprint 1 — Foundations
 
-| Epic                                      | Status          | Notes                                                                           |
-| ----------------------------------------- | --------------- | ------------------------------------------------------------------------------- |
-| EPIC 1.1 — Platform Bootstrap             | **Complete**    | All 5 prompts delivered and validated end-to-end                                |
-| EPIC 1.2 — First LLM Loop + Observability | **In progress** | Prompts 01–03 done: LLM adapter, Observability adapter, SendRawMessage use case |
+| Epic                                      | Status          | Notes                                                               |
+| ----------------------------------------- | --------------- | ------------------------------------------------------------------- |
+| EPIC 1.1 — Platform Bootstrap             | **Complete**    | All 5 prompts delivered and validated end-to-end                    |
+| EPIC 1.2 — First LLM Loop + Observability | **In progress** | Prompts 01–04 done: adapters, use case, and `/v1/exchange` endpoint |
 
 ### Sprint 2 — Avatar + Game Master
 
