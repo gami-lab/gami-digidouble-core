@@ -30,9 +30,9 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     openaiApiKey: process.env['OPENAI_API_KEY'],
     anthropicApiKey: process.env['ANTHROPIC_API_KEY'],
     mistralApiKey: process.env['MISTRAL_API_KEY'],
-    langfusePublicKey: undefined,
-    langfuseSecretKey: undefined,
-    langfuseHost: undefined,
+    langfusePublicKey: process.env['LANGFUSE_PUBLIC_KEY'],
+    langfuseSecretKey: process.env['LANGFUSE_SECRET_KEY'],
+    langfuseHost: process.env['LANGFUSE_BASE_URL'],
     ...overrides,
   }
 }
