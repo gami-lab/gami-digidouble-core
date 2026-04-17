@@ -5,7 +5,7 @@ import { createObservabilityAdapter } from './infrastructure/observability/index
 async function main(): Promise<void> {
   const config = loadConfig()
   const observability = createObservabilityAdapter(config)
-  const server = createServer(config)
+  const server = createServer(config, { observabilityAdapter: observability })
 
   async function shutdown(): Promise<void> {
     await observability.flush()

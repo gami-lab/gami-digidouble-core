@@ -603,6 +603,7 @@ Run only for:
 - manual validation
 - nightly benchmark runs
 - pre-release checks on critical flows
+- `POST /v1/exchange` live smoke with real `OPENAI_API_KEY` when credentials are available
 
 ## 3. What to assert with real LLMs
 

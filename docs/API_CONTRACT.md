@@ -292,6 +292,16 @@ ApiResponse<{
 - `502` → `EXTERNAL_SERVICE_ERROR` (LLM/provider failure)
 - `500` → `INTERNAL_ERROR` (unexpected server error)
 
+### Observability Side Effects
+
+Each successful call emits an internal `llm.completion` trace event carrying:
+
+- `requestId`
+- `latencyMs`
+- `inputTokens`
+- `outputTokens`
+- `metadata.model`
+
 ## 1. Start Session
 
 Create a new conversation session.
