@@ -1,0 +1,44 @@
+name: Nightly
+
+on:
+  schedule:
+    # GitHub Actions cron is UTC; this runs nightly at 03:00 UTC.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-provider-smoke:
+    name: Real-provider smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run integration and E2E suites with real providers
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: pnpm test:integration-e2e
+
+      # TODO(TEST_STRATEGY): Add mutation and conversation regression suites once scripts exist.
+      # TODO(TEST_STRATEGY): Add performance smoke/soak jobs once baseline thresholds are implemented.
+      # TODO(TEST_STRATEGY): Add secrets scan once a suitable free tool is available for GitHub orgs.
