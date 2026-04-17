@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LlmRequest, LlmResponse } from '../../ports/ILlmAdapter.js'
 import type { TraceEvent } from '../../ports/IObservabilityAdapter.js'
 import { SendRawMessageUseCase } from './send-raw-message.use-case.js'
+import { expectConsoleError } from '../../../test-utils/console.js'
 
 // ── Test doubles ─────────────────────────────────────────────────────────────
 
@@ -104,8 +105,11 @@ describe('SendRawMessageUseCase', () => {
 
   it('does not crash when observability.trace() rejects', async () => {
     traceMock.mockRejectedValue(new Error('Langfuse down'))
-    await expect(useCase.execute({ userMessage: 'Hi' })).resolves.toBeDefined()
-    await new Promise((r) => setTimeout(r, 0))
+    const result = await expectConsoleError(
+      () => useCase.execute({ userMessage: 'Hi' }),
+      /Observability trace failed.*Langfuse down/,
+    )
+    expect(result).toBeDefined()
   })
 
   it('propagates LLM errors to the caller', async () => {

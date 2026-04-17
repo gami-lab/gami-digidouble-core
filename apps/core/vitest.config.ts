@@ -23,6 +23,8 @@ export default defineConfig({
         'src/application/ports/**',
         'src/infrastructure/cache/**',
         'src/infrastructure/db/**',
+        // Test helper utilities — not production code
+        'src/test-utils/**',
       ],
       thresholds: {
         lines: 80,

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LangfuseObservabilityAdapter } from './langfuse.adapter.js'
 import type { TraceEvent } from '../../application/ports/IObservabilityAdapter.js'
+import { expectConsoleError } from '../../test-utils/console.js'
 
 // ── SDK mock ────────────────────────────────────────────────────────────────
 
@@ -73,7 +74,10 @@ describe('LangfuseObservabilityAdapter', () => {
       throw new Error('Langfuse network failure')
     })
     const adapter = makeAdapter()
-    await expect(adapter.trace(event)).resolves.toBeUndefined()
+    await expectConsoleError(
+      () => adapter.trace(event),
+      /Failed to record trace.*Langfuse network failure/,
+    )
   })
 
   it('calls shutdownAsync() on flush()', async () => {
@@ -92,7 +96,7 @@ describe('LangfuseObservabilityAdapter', () => {
   it('does not propagate errors from flush()', async () => {
     mockShutdownAsync.mockRejectedValue(new Error('shutdown failure'))
     const adapter = makeAdapter()
-    await expect(adapter.flush()).resolves.toBeUndefined()
+    await expectConsoleError(() => adapter.flush(), /Failed to flush traces.*shutdown failure/)
   })
 
   it('handles a TraceEvent without optional fields', async () => {
