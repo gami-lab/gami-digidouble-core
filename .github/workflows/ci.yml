@@ -129,9 +129,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install gitleaks
-        run: brew install gitleaks
+        run: curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/scripts/install.sh | sudo sh -s -- -b /usr/local/bin
       - name: Run gitleaks
-        run: gitleaks detect --source . --redact --no-git=false --log-level warn
+        run: gitleaks detect --source . --redact --log-level warn
 
   main-extended-tests:
     name: Main extended integration and E2E
@@ -203,6 +203,6 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install gitleaks
-        run: brew install gitleaks
+        run: curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/scripts/install.sh | sudo sh -s -- -b /usr/local/bin
       - name: Run gitleaks
-        run: gitleaks detect --source . --redact --no-git=false --log-level warn
+        run: gitleaks detect --source . --redact --log-level warn
