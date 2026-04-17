@@ -119,20 +119,6 @@ jobs:
       - name: Review dependency changes
         uses: actions/dependency-review-action@v4
 
-  secrets-scan:
-    name: Secrets scan
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install gitleaks
-        run: curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/scripts/install.sh | sudo sh -s -- -b /usr/local/bin
-      - name: Run gitleaks
-        run: gitleaks detect --source . --redact --log-level warn
-
   main-extended-tests:
     name: Main extended integration and E2E
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
@@ -192,17 +178,4 @@ jobs:
 
       # TODO(TEST_STRATEGY): Add mutation and conversation regression suites once scripts exist.
       # TODO(TEST_STRATEGY): Add performance smoke/soak jobs once baseline thresholds are implemented.
-
-  nightly-secrets-scan:
-    name: Nightly secrets scan
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install gitleaks
-        run: curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/scripts/install.sh | sudo sh -s -- -b /usr/local/bin
-      - name: Run gitleaks
-        run: gitleaks detect --source . --redact --log-level warn
+      # TODO(TEST_STRATEGY): Add secrets scan once a suitable free tool is available for GitHub orgs.
