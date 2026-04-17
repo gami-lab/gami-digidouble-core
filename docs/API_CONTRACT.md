@@ -141,11 +141,13 @@ Failed responses set:
 ```ts id="h7kflt"
 type ErrorCode =
   | 'UNAUTHORIZED'
+  | 'VALIDATION_ERROR'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'INVALID_INPUT'
   | 'CONFLICT'
   | 'RATE_LIMITED'
+  | 'EXTERNAL_SERVICE_ERROR'
   | 'PROVIDER_ERROR'
   | 'TIMEOUT'
   | 'INTERNAL_ERROR'
@@ -239,6 +241,56 @@ type KnowledgeSourceSummary = {
 ---
 
 # Conversation API
+
+## 0. Raw Exchange (EPIC 1.2)
+
+Minimal non-session endpoint used to validate the first HTTP → use case → LLM loop.
+
+### Endpoint
+
+```text
+POST /v1/exchange
+```
+
+### Auth
+
+```text
+x-api-key: <API_KEY>
+```
+
+### Request
+
+```ts
+type ExchangeRequest = {
+  message: string
+  systemPrompt?: string
+}
+```
+
+Validation rules:
+
+- `message`: required, string, min length 1, max length 4000
+- `systemPrompt`: optional, string, max length 2000
+
+### Success Response (200)
+
+```ts
+ApiResponse<{
+  requestId: string
+  reply: string
+  model: string
+  inputTokens: number
+  outputTokens: number
+  latencyMs: number
+}>
+```
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED` (missing/invalid API key)
+- `400` → `VALIDATION_ERROR` (invalid request body)
+- `502` → `EXTERNAL_SERVICE_ERROR` (LLM/provider failure)
+- `500` → `INTERNAL_ERROR` (unexpected server error)
 
 ## 1. Start Session
 

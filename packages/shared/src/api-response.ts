@@ -29,11 +29,13 @@ export type ResponseMeta = {
 
 export type ErrorCode =
   | 'UNAUTHORIZED'
+  | 'VALIDATION_ERROR'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'INVALID_INPUT'
   | 'CONFLICT'
   | 'RATE_LIMITED'
+  | 'EXTERNAL_SERVICE_ERROR'
   | 'PROVIDER_ERROR'
   | 'TIMEOUT'
   | 'INTERNAL_ERROR'
