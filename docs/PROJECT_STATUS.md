@@ -10,7 +10,7 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1 is complete. EPIC 1.2 is in progress (Prompts 01–04 done).**
+Phase A is in progress. **EPIC 1.1 is complete. EPIC 1.2 is complete.**
 
 Monorepo workspace bootstrap is done:
 
@@ -61,7 +61,7 @@ EPIC 1.2 — Prompt 01 (LLM provider adapter) is done:
 - `infrastructure/llm/llm.error.ts` — `LlmError` class (provider, message, optional statusCode)
 - `infrastructure/llm/openai.adapter.ts` — `OpenAiAdapter` implements `ILlmAdapter`, 30s timeout, latency measurement, wraps SDK errors in `LlmError`
 - `infrastructure/llm/null.adapter.ts` — `NullLlmAdapter` for tests — deterministic, zero network calls
-- `infrastructure/llm/anthropic.adapter.ts` / `mistral.adapter.ts` — stubs that reject with `LlmError('not implemented')`
+- `infrastructure/llm/anthropic.adapter.ts` / `mistral.adapter.ts` — concrete adapters with provider error wrapping and latency/token extraction
 - `infrastructure/llm/index.ts` — `createLlmAdapter(config)` factory; throws on unknown providers at startup
 - `config.ts` updated: `llmProvider` (default `'null'`) and `openaiApiKey` optional fields added
 - `.env.example` updated: `LLM_PROVIDER=openai` line added
@@ -101,16 +101,26 @@ EPIC 1.2 — Prompt 04 (Expose exchange via API endpoint) is done:
 - `packages/shared` error codes updated with `VALIDATION_ERROR` and `EXTERNAL_SERVICE_ERROR`
 - `docs/API_CONTRACT.md` updated with `POST /v1/exchange` contract and endpoint-specific error mapping
 
+EPIC 1.2 — Final closure validation is done:
+
+- Clean install from scratch executed: `rm -rf node_modules apps/core/node_modules packages/shared/node_modules && pnpm install`
+- Quality gates pass from workspace root: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`
+- End-to-end loop validated for `POST /v1/exchange`: HTTP route → use case → LLM adapter → observability trace → API response
+- Metrics confirmed in both API output and observability traces: latency, input/output tokens, model
+- Startup/shutdown flush path validated and aligned: the same observability adapter instance is used by request handling and process shutdown hooks
+- Leftover EPIC 1.2 placeholder text removed from `infrastructure/llm/index.ts`
+- Real-provider smoke (`OPENAI_API_KEY`) remains an environment-dependent manual step when credentials are available
+
 ---
 
 ## Phase A — Sprint Status
 
 ### Sprint 1 — Foundations
 
-| Epic                                      | Status          | Notes                                                               |
-| ----------------------------------------- | --------------- | ------------------------------------------------------------------- |
-| EPIC 1.1 — Platform Bootstrap             | **Complete**    | All 5 prompts delivered and validated end-to-end                    |
-| EPIC 1.2 — First LLM Loop + Observability | **In progress** | Prompts 01–04 done: adapters, use case, and `/v1/exchange` endpoint |
+| Epic                                      | Status       | Notes                                                                              |
+| ----------------------------------------- | ------------ | ---------------------------------------------------------------------------------- |
+| EPIC 1.1 — Platform Bootstrap             | **Complete** | All 5 prompts delivered and validated end-to-end                                   |
+| EPIC 1.2 — First LLM Loop + Observability | **Complete** | Full loop validated end-to-end, docs synchronized, shutdown flush wiring finalized |
 
 ### Sprint 2 — Avatar + Game Master
 
@@ -156,7 +166,9 @@ EPIC 1.2 — Prompt 04 (Expose exchange via API endpoint) is done:
 
 ## Implemented Modules
 
-None yet.
+- API baseline (`/health`, `/v1/exchange`)
+- LLM adapter layer (OpenAI, Anthropic, Mistral, Null)
+- Observability adapter layer (Langfuse, Console, Null)
 
 ---
 

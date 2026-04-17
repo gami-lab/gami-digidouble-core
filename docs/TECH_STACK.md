@@ -228,6 +228,12 @@ The updated roadmap explicitly reinforces **systematic wrappers** for LLM, loggi
 - robust timeout / fallback handling
 - streaming works consistently across providers
 
+Current implementation baseline (EPIC 1.2):
+
+- provider wrapper implemented and active for `openai`, `anthropic`, `mistral`, and deterministic `null`
+- first non-session loop exposed via `POST /v1/exchange`
+- every successful call returns and traces `model`, `inputTokens`, `outputTokens`, and `latencyMs`
+
 ---
 
 ## 7. LLM Providers (Initial)

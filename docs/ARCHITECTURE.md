@@ -531,6 +531,12 @@ Track:
 
 This allows replacing tools later.
 
+Current implementation baseline (EPIC 1.2):
+
+- `POST /v1/exchange` records one trace per request (`llm.completion`)
+- trace payload includes request id, latency, token usage, and model metadata
+- process shutdown path flushes the same observability adapter instance used during requests
+
 ---
 
 # LLM Strategy
