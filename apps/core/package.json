@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vitest run --config vitest.config.ts",
-    "test:integration-e2e": "vitest run --config vitest.config.ts integration.test.ts && vitest run --config vitest.config.ts e2e.test.ts",
+    "test:integration-e2e": "vitest run --config vitest.integration.config.ts",
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },

@@ -760,6 +760,47 @@ These must stay fast and reliable. A slow PR gate is a gate that gets bypassed.
 
 ---
 
+# File Naming Convention and CI Gate Assignment
+
+Every test file must follow this naming scheme. The suffix determines **which CI gate owns it** and which Vitest config picks it up.
+
+| File suffix             | Test tier   | Vitest config                  | CI gate                        |
+| ----------------------- | ----------- | ------------------------------ | ------------------------------ |
+| `*.test.ts`             | Unit        | `vitest.config.ts`             | PR fast gate (always runs)     |
+| `*.integration.test.ts` | Integration | `vitest.integration.config.ts` | Extended (main push) + nightly |
+| `*.e2e.test.ts`         | E2E         | `vitest.integration.config.ts` | Extended (main push) + nightly |
+
+## Rules
+
+- **Unit** (`*.test.ts`): no network, no real provider calls, no real DB. Always fast,
+  always deterministic. These are the hard gate — a failed unit test blocks the PR.
+
+- **Integration** (`*.integration.test.ts`): real adapter collaboration. Tests that require
+  live credentials must guard their entire `describe` block with `describe.skipIf(!apiKey)`.
+  They run in the extended CI gate without credentials (skipped gracefully) and in the
+  nightly job with real credentials.
+
+- **E2E** (`*.e2e.test.ts`): full HTTP-stack flows through a running Fastify server. Same
+  `describe.skipIf` guard convention as integration tests for provider-dependent suites.
+  E2E tests that use the `null` LLM provider always execute; those exercising real providers
+  are skipped unless the corresponding key is present.
+
+## Scripts
+
+```
+pnpm test                                               # unit tests only (fast gate)
+pnpm turbo run test:integration-e2e --filter=@gami/core # integration + E2E
+pnpm turbo run test:coverage --filter=@gami/core        # unit tests with coverage
+```
+
+## Do not mix tiers in one file
+
+A file named `*.test.ts` must not make network calls or call real LLM providers.
+A file named `*.integration.test.ts` must not assert on prompt wording or prose quality.
+If a test doesn't fit cleanly, create the right file.
+
+---
+
 # Security Testing
 
 Security is not a QA phase — it is part of each PR and release gate.

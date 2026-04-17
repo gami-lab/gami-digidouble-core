@@ -1,9 +1,13 @@
 import { defineConfig } from 'vitest/config'
 
+// Unit-tests only — no real network, no LLM calls, always fast.
+// Integration and E2E tests live in vitest.integration.config.ts and run only
+// on the extended CI gate (push to main) and in nightly jobs.
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/*.integration.test.ts'],
+    include: ['src/**/*.test.ts'],
+    exclude: ['src/**/*.integration.test.ts', 'src/**/*.e2e.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
     coverage: {
       provider: 'v8',
