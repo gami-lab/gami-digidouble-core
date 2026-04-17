@@ -26,6 +26,7 @@ Use YAGNI and KISS:
 - PostgreSQL is the source of truth
 - JSONB is acceptable for flexible configuration
 - Session memory and persistent memory are different concerns
+- Avatar memory inside a session is a first-class concern
 - Derived data can be recomputed when practical
 - Every important entity must be deletable/resettable
 
@@ -73,20 +74,74 @@ Defines a runnable experience configuration.
 
 ### Typical Config
 
-- avatar prompt/persona
 - world context
 - objectives
 - enabled features
-- source references
 - UI hints
+- runtime defaults
 
 ### Notes
 
 Scenario config is data, not code.
 
+A Scenario owns:
+
+- its avatars
+- its knowledge sources
+- its rules/configuration
+
+The Scenario is the container of the experience.
+
 ---
 
-## 3. Session
+## 3. Avatar
+
+Represents an actor available in one scenario.
+
+An Avatar is now a first-class object.
+
+### Fields
+
+- id
+- scenario_id
+- name
+- slug
+- status (draft / active / archived)
+- description (nullable)
+- persona_prompt
+- config (JSONB)
+- created_at
+- updated_at
+
+### Typical Config
+
+- tone / speaking style
+- role in the experience
+- response constraints
+- allowed knowledge scope
+- optional voice / media references
+- optional UI hints
+
+### Notes
+
+An Avatar belongs to exactly one Scenario.
+
+This keeps the model simple for now:
+
+- no shared avatar library
+- no cross-scenario avatar reuse
+- no separate actor catalog yet
+
+If shared avatars become a real product need later, we can evolve toward:
+
+- reusable Avatar templates
+- ScenarioAvatar binding table
+
+For MVP, one Avatar = one actor defined inside one Scenario.
+
+---
+
+## 4. Session
 
 Represents one conversation instance.
 
@@ -104,9 +159,17 @@ Represents one conversation instance.
 
 One session = one conversation timeline.
 
+A Session is the equivalent of one run of the experience.
+
+Using the movie analogy:
+
+- Scenario = the production setup
+- Avatar = an actor in that production
+- Session = one concrete movie/playthrough
+
 ---
 
-## 4. Message
+## 5. Message
 
 Represents one message in a session.
 
@@ -120,6 +183,7 @@ Represents one message in a session.
 
 ### Optional
 
+- avatar_id (nullable)
 - metadata (JSONB)
 
 ### Metadata Examples
@@ -132,12 +196,21 @@ Represents one message in a session.
 
 ### Notes
 
-Use one table for all messages.  
+Use one table for all messages.
+
+`avatar_id` is nullable because:
+
+- user messages have no avatar
+- some system messages may not belong to a specific avatar
+- avatar messages should reference the speaking avatar
+
+This prepares the model for multi-avatar sessions without needing separate message tables.
+
 Avoid separate Exchange tables unless clearly needed later.
 
 ---
 
-## 5. SessionMemory
+## 6. SessionMemory
 
 Compact working memory for an active session.
 
@@ -149,12 +222,65 @@ Compact working memory for an active session.
 
 ### Notes
 
-Recent raw messages come from Message table.  
-This table stores only compacted memory.
+Recent raw messages come from Message table.
+
+This table stores only compacted session-level memory.
+
+This is the shared memory of the session itself:
+
+- what happened globally
+- what the overall interaction has covered
+- what the system may need regardless of a specific avatar
+
+Using the analogy:
+
+This is the memory of the movie/playthrough as a whole.
 
 ---
 
-## 6. UserMemoryFact
+## 7. AvatarSessionMemory
+
+Compact working memory for one avatar inside one session.
+
+### Fields
+
+- session_id
+- avatar_id
+- summary
+- updated_at
+
+### Notes
+
+This stores what happened for a specific avatar in a specific session.
+
+Examples:
+
+- what this avatar already told the user
+- what this avatar has learned in the conversation
+- emotional or narrative continuity if later needed
+- unresolved threads from this avatar’s point of view
+
+This is intentionally separate from `SessionMemory`.
+
+Why:
+
+- session memory = global memory of the experience
+- avatar session memory = subjective memory of one actor in that experience
+
+This follows the Director / Actor analogy:
+
+- SessionMemory = shared movie memory
+- AvatarSessionMemory = actor memory for that movie
+
+For MVP, keep it compact:
+
+- one summary per `(session_id, avatar_id)`
+- no raw transcript duplication
+- no complex episodic memory yet
+
+---
+
+## 8. UserMemoryFact
 
 Persistent structured memory about a user.
 
@@ -178,9 +304,11 @@ Persistent structured memory about a user.
 
 Store facts, not transcripts.
 
+This memory is cross-session and user-centric.
+
 ---
 
-## 7. KnowledgeSource
+## 9. KnowledgeSource
 
 A document or external source attached to a scenario.
 
@@ -197,12 +325,17 @@ A document or external source attached to a scenario.
 
 ### Notes
 
-Content files may live outside the Core.  
+Content files may live outside the Core.
+
 The Core stores references + metadata.
+
+Knowledge sources belong to the Scenario, not to a specific avatar.
+
+An avatar may later use only part of the scenario knowledge, controlled by config.
 
 ---
 
-## 8. KnowledgeChunk
+## 10. KnowledgeChunk
 
 Searchable chunk used for retrieval.
 
@@ -220,7 +353,7 @@ Stored in PostgreSQL + pgvector.
 
 ---
 
-## 9. EventLog
+## 11. EventLog
 
 Operational events useful for debugging and metrics.
 
@@ -232,6 +365,15 @@ Operational events useful for debugging and metrics.
 - payload (JSONB)
 - created_at
 
+### Optional payload examples
+
+- avatar_id
+- gm decision
+- retrieval used
+- fallback used
+- llm error details
+- state update info
+
 ### Examples
 
 - gm_triggered
@@ -239,6 +381,8 @@ Operational events useful for debugging and metrics.
 - llm_error
 - fallback_used
 - session_started
+- avatar_switched
+- avatar_memory_updated
 
 ### Notes
 
@@ -250,10 +394,14 @@ Use only events that are actually useful.
 
 - User → Sessions (1:N)
 - User → UserMemoryFacts (1:N)
+- Scenario → Avatars (1:N)
 - Scenario → Sessions (1:N)
 - Scenario → KnowledgeSources (1:N)
 - Session → Messages (1:N)
 - Session → SessionMemory (1:1)
+- Session → AvatarSessionMemories (1:N)
+- Avatar → Messages (1:N, nullable on Message side)
+- Avatar → AvatarSessionMemories (1:N)
 - KnowledgeSource → KnowledgeChunks (1:N)
 - Session → EventLogs (1:N)
 
@@ -264,18 +412,27 @@ Use only events that are actually useful.
 Use JSONB when structure may evolve quickly:
 
 - scenario config
+- avatar config
 - message metadata
 - source metadata
 - event payloads
 
 Do **not** hide core relational data inside JSONB.
 
+In particular, do not hide:
+
+- avatar ownership
+- session ownership
+- message/session relations
+- avatar/session memory relations
+
 ---
 
 # What We Intentionally Avoid (For Now)
 
-- separate Avatar table
+- shared avatar library across scenarios
 - separate Storyworld table
+- separate Place table
 - node graph tables
 - emotional state tables
 - multi-tenant billing tables
@@ -294,12 +451,15 @@ Deletes:
 
 - messages
 - session memory
+- avatar session memories
 - session events
 
 Keeps:
 
 - user
 - scenario
+- avatars
+- knowledge sources
 - user memory facts
 
 ## Reset User
@@ -307,19 +467,38 @@ Keeps:
 Deletes:
 
 - sessions
+- session memories
+- avatar session memories through sessions
 - user memory facts
 - related logs
+
+Keeps:
+
+- scenarios
+- avatars
+- knowledge sources
 
 ---
 
 # Suggested Indexes (Minimal)
 
 - sessions(user_id, last_activity_at)
+- sessions(scenario_id, last_activity_at)
+- avatars(scenario_id, status)
+- avatars(scenario_id, slug)
 - messages(session_id, created_at)
+- messages(session_id, avatar_id, created_at)
+- avatar_session_memories(session_id, avatar_id)
 - user_memory_facts(user_id, category)
 - knowledge_sources(scenario_id)
 - knowledge_chunks(source_id)
 - event_logs(session_id, created_at)
+
+Add unique indexes where relevant:
+
+- scenarios(slug)
+- avatars(scenario_id, slug)
+- avatar_session_memories(session_id, avatar_id)
 
 Vector index added when chunk volume justifies it.
 
@@ -329,13 +508,16 @@ Vector index added when chunk volume justifies it.
 
 Introduce only when needed:
 
-- Avatar table (shared personas)
-- Node / graph runtime state
-- Multi-avatar sessions
-- Tenant isolation
-- Evaluation results tables
-- Billing / quotas
-- Dedicated analytics store
+- shared Avatar templates across scenarios
+- ScenarioAvatar binding table
+- Place / location model
+- Purpose / Frame model
+- node / graph runtime state
+- multi-avatar orchestration state tables
+- tenant isolation
+- evaluation results tables
+- billing / quotas
+- dedicated analytics store
 
 ---
 
