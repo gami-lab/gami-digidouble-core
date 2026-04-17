@@ -42,9 +42,13 @@ Developer workflow & CI guardrails are done:
 - `format` / `format:check` scripts wired through Turborepo
 - `lint-staged` configured for staged TypeScript and config files
 - `simple-git-hooks` pre-commit hook runs lint-staged on every commit
-- `.github/workflows/ci.yml` — GitHub Actions CI on push/PR to main: format check, lint, typecheck, test
+- `.github/workflows/ci.yml` now uses separated CI gates with PR/main/nightly behavior:
+  - PR/push gates: static checks (`format:check`, `lint`, `typecheck`), fast test suite (`pnpm test`), coverage floor (`pnpm --filter @gami/core test:coverage`), dependency vulnerability review (PR), and secrets scan (gitleaks)
+  - main-only heavier gate: dedicated integration + E2E run (`*.integration.test.ts`, `*.e2e.test.ts`) to surface critical-path regressions explicitly
+  - nightly scheduled checks: real-provider smoke path (via existing gated integration/E2E tests) and secrets scan, with TODO markers for mutation/regression/performance suites
+  - concurrency cancellation enabled for superseded PR runs; coverage report uploaded as workflow artifact
 - `CONTRIBUTING.md` — onboarding guide, daily commands, pre-commit and CI behaviour, conventions
-- All quality gates verified: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` all pass
+- All quality gates verified: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm --filter @gami/core test:coverage` all pass
 
 Foundation validated end-to-end:
 
