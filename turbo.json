@@ -17,7 +17,8 @@
       "outputs": ["coverage/**"]
     },
     "test:integration-e2e": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "cache": false
     },
     "dev": {
       "cache": false,
