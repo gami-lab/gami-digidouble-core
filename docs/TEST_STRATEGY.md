@@ -788,9 +788,9 @@ Every test file must follow this naming scheme. The suffix determines **which CI
 ## Scripts
 
 ```
-pnpm test                                               # unit tests only (fast gate)
-pnpm turbo run test:integration-e2e --filter=@gami/core # integration + E2E
-pnpm turbo run test:coverage --filter=@gami/core        # unit tests with coverage
+pnpm test                        # unit tests only (fast gate)
+pnpm test:integration-e2e        # integration + E2E (extended gate / nightly)
+pnpm turbo run test:coverage --filter=@gami/core   # unit tests with coverage
 ```
 
 ## Do not mix tiers in one file

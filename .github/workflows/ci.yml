@@ -144,7 +144,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run integration and E2E suites
-        run: pnpm turbo run test:integration-e2e --filter=@gami/core
+        run: pnpm test:integration-e2e
 
   nightly-real-provider-smoke:
     name: Nightly real-provider smoke
@@ -174,7 +174,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-        run: pnpm turbo run test:integration-e2e --filter=@gami/core
+        run: pnpm test:integration-e2e
 
       # TODO(TEST_STRATEGY): Add mutation and conversation regression suites once scripts exist.
       # TODO(TEST_STRATEGY): Add performance smoke/soak jobs once baseline thresholds are implemented.
