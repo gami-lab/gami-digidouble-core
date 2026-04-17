@@ -790,7 +790,7 @@ Every test file must follow this naming scheme. The suffix determines **which CI
 ```
 pnpm test                        # unit tests only (fast gate)
 pnpm test:integration-e2e        # integration + E2E (extended gate / nightly)
-pnpm turbo run test:coverage --filter=@gami/core   # unit tests with coverage
+pnpm test:coverage               # unit tests with coverage report
 ```
 
 ## Do not mix tiers in one file
@@ -1070,7 +1070,7 @@ coverage: {
 }
 ```
 
-Run coverage locally: `pnpm --filter @gami/core test:coverage`
+Run coverage locally: `pnpm test:coverage`
 
 ## File naming conventions
 
