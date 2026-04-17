@@ -497,22 +497,41 @@ Critical system workflows on a running stack.
 
 ## Purpose
 
-Protect stable interfaces.
+Protect stable interfaces. Contracts are a scaling tool — they let modules evolve independently without silent breakage.
 
-## Must cover
+## Public API contracts
 
-- public API request/response schemas
-- stream event schema
-- Game Master input/output
+HTTP schema stability for all consumer-facing endpoints:
+
+- request/response schemas for every route
+- stream event envelope
+- error response shape (`ApiResponse<T>`)
+- pagination and filter parameters
+
+## Internal contracts
+
+Explicit shape guarantees between modules:
+
+- Game Master input/output schema
+- Avatar prompt assembly output
+- Context Manager assembled payload
 - scenario config schema
 - repository interface expectations
-- wrapper input/output format
+- LLM adapter input/output format
+
+## Consumer-driven contracts
+
+If frontends or external integrators depend on the API, capture their expectations as explicit schema tests. Do not let internal changes silently break consumers.
+
+## Versioning rules
+
+- additive changes (new optional fields) are safe without a version bump
+- breaking changes (removed fields, type changes, renamed paths) require a version bump and update to `API_CONTRACT.md`
+- any breaking API change must be reviewed before merge
 
 ## Recommendation
 
-Use schema validation and type-driven checks where practical.
-
-Important for this project because most modules communicate through explicit contracts.
+Use schema validation and type-driven checks where practical. Keep contract tests close to the boundary they protect.
 
 ---
 
@@ -580,6 +599,18 @@ They are run manually, nightly, or before important decisions.
 - comparison table
 - recommendation
 
+## AI Eval harness (roadmap)
+
+Do not build now, but plan for it. Eventually track:
+
+- scenario scorecards (structured rubric per scenario type)
+- persona consistency score (does the avatar remain in character?)
+- factual grounding score (are claims supported by retrieved knowledge?)
+- retrieval usefulness score (is what was retrieved actually used?)
+- cost per successful session
+
+Do not add an evaluation platform before MVP needs it. The conversation regression tests and benchmark suite are sufficient for Phase A. The eval harness belongs to Phase B/C.
+
 ---
 
 # LLM Testing Strategy
@@ -630,6 +661,15 @@ Avoid:
 - explicit
 - scenario-based
 - reusable without becoming magical
+- versioned alongside test code — fixture changes are reviewed like code changes
+
+## Data governance
+
+- never use real user data in fixtures without anonymization
+- adversarial and edge-case fixtures are as important as happy-path ones
+- multilingual samples should be included once the system supports them
+- long conversation fixtures (30+ turns) are required for memory regression coverage
+- fixtures for corrupted or malformed inputs must exist for every ingestion path
 
 ## Needed fixture sets
 
@@ -645,10 +685,12 @@ Small valid scenarios for:
 ### 2. Conversation fixtures
 
 - short session
-- long session
+- long session (30+ turns for memory testing)
 - repetitive user
 - user fact emergence
 - stalled progression case
+- adversarial user inputs (injection attempts, gibberish, very long messages)
+- multilingual inputs (when applicable)
 
 ### 3. Knowledge fixtures
 
@@ -656,6 +698,7 @@ Small valid scenarios for:
 - small PDF/text equivalent fixture
 - invalid source fixture
 - source with overlapping topics
+- corrupted document fixture
 
 ### 4. Provider fixtures
 
@@ -664,39 +707,153 @@ Small valid scenarios for:
 - malformed JSON
 - empty response
 - provider error
+- partial stream failure
 
 ---
 
-# CI Strategy
+# CI Enforcement Levels
 
-## On every PR
-
-Run:
+## Pull Requests (blocking — must pass to merge)
 
 - lint
 - typecheck
 - unit tests
 - fast integration tests
-- contract tests
+- contract validation
+- SAST scan
+- secrets scan
+- dependency vulnerability check
 
-These must stay fast and reliable.
+These must stay fast and reliable. A slow PR gate is a gate that gets bypassed.
+
+## Main branch (blocking — must pass to deploy)
+
+- all PR checks
+- extended integration suite
+- E2E critical flows (real providers skip cleanly via `describe.skipIf` when keys are absent)
+- container image scan
+- performance smoke thresholds (latency budget check)
+
+## Nightly (non-blocking — alerts on failure)
+
+- mutation test suite (Game Master, memory, token budget, validation logic)
+- real-provider smoke tests
+- conversation regression pack
+- DAST against staging
+- soak and spike performance suite
+- latency/cost comparison jobs
+
+## Release (full gate)
+
+- all of the above
+- production smoke test
+- release validation checklist (see below)
+
+---
+
+| Trigger | Checks                                                                 |
+| ------- | ---------------------------------------------------------------------- |
+| PR      | lint, typecheck, unit, fast integration, contracts, SAST, secrets scan |
+| Main    | full integration, E2E, image scan, perf smoke                          |
+| Nightly | mutation, DAST, regression packs, soak/perf                            |
+| Release | full gate + production smoke                                           |
+
+---
+
+# Security Testing
+
+Security is not a QA phase — it is part of each PR and release gate.
+
+## Static security (every PR)
+
+- **SAST**: static analysis scan on TypeScript source
+- **Dependency vulnerability scan**: check for known CVEs in `pnpm-lock.yaml` dependencies
+- **Secrets scan**: no credentials, tokens, or keys committed to the repository
+- **Container image scan** (on main): scan built Docker image for OS and package vulnerabilities
+
+## Dynamic security (staging / nightly)
+
+- **API auth abuse tests**: verify that requests with missing, expired, or malformed API keys are rejected; timing-safe comparison must be in use
+- **Rate limit verification**: verify that rate limiting is applied and cannot be trivially bypassed
+- **Injection tests**: validate that user-supplied inputs (message, scenario fields) cannot escape their context (prompt injection, SQL injection)
+- **Broken access control checks**: ensure session isolation — one API key cannot read or influence another session
+- **DAST**: automated dynamic scan against staging environment nightly
+
+## Policy
+
+- no critical or high-severity vulnerabilities may land on `main`
+- no secrets may ever be committed — enforce with pre-commit and CI gates
+- security findings are treated as bugs, not tech debt
+
+---
+
+# Performance Strategy
+
+## Per PR
+
+- micro benchmarks on hot paths if changed (token budget logic, context assembly, GM trigger evaluation)
 
 ## On main branch
 
-Run:
+- k6 smoke test on critical API endpoints
+- latency budget check: fail if p95 regresses beyond threshold
 
-- all of the above
-- extended integration suite
-- E2E suite (real provider tests skip cleanly via `describe.skipIf` when keys are absent)
+## Nightly
 
-## Nightly / manual
+- soak test: sustained load for a meaningful duration
+- spike test: sudden concurrency burst
+- concurrency scenarios: multiple simultaneous sessions
+- memory leak check: monitor RSS over time under load
+- DB query regression: compare query count per request vs baseline
 
-Run:
+## Metrics to track
 
-- benchmark suite
-- selected real-provider smoke tests
-- conversation regression pack
-- latency/cost comparison jobs
+See the Non-Functional Thresholds section for the target table. Once a baseline is measured, thresholds become enforced gates.
+
+---
+
+# Mutation Testing
+
+High coverage alone does not mean confident tests. Mutation testing detects weak assertions — tests that pass even when logic is broken.
+
+## Run nightly on high-value modules
+
+- Game Master trigger logic and state transitions
+- Memory rules (fact extraction, summarization decisions)
+- Token budget logic (context assembly limits)
+- Input validation rules
+- Routing and branching decisions in use cases
+
+## Goal
+
+- detect "green tests, broken logic" scenarios
+- prevent coverage inflation hiding poor assertions
+- mutation score is tracked as a trend metric, not a hard gate (until baseline exists)
+
+## Tooling
+
+Evaluate Stryker or equivalent TypeScript mutation runner. Start with the Game Master module as the highest-value target.
+
+---
+
+# Resilience and Chaos Testing
+
+The system is async and integrates external providers. It must degrade gracefully, not silently corrupt state or hang.
+
+## Test the following failure modes
+
+- **Provider timeout**: LLM call times out — verify graceful error response, no hung sessions
+- **Partial stream failure**: stream starts then drops mid-response
+- **DB unavailable**: repository calls fail — verify proper error propagation, no data corruption
+- **Redis unavailable**: cache layer fails — verify fallback or clean error
+- **Retry storm**: verify retry logic has backoff and does not amplify upstream pressure
+- **Duplicate events**: same GM event delivered twice — verify idempotency
+- **Queue delay**: GM trigger delayed significantly — verify eventual consistency holds
+- **Stale memory read**: outdated context returns from cache — verify TTL and invalidation
+
+## Aligned with principle
+
+This directly supports the "Build for Real Use, Not Demo" principle. The system should be honest about failures rather than silently degrading.
 
 ---
 
@@ -719,18 +876,29 @@ Enforced via `@vitest/coverage-v8` in `vitest.config.ts`. Build fails if any thr
 
 Excluded from coverage: type-only files (`*.types.ts`), port interfaces (`application/ports/**`), infrastructure stubs (`cache/`, `db/`), entry point (`index.ts`).
 
-## Other thresholds to track
+## Performance thresholds to track
 
-- unit + fast integration suite should remain fast enough for daily use
-- critical endpoints must have bounded latency in local/dev conditions
-- streaming must start quickly enough to feel responsive
-- token use per turn must remain within expected budget
+Metrics to capture once baseline exists:
+
+| Metric                          | Target (TBD after measurement) |
+| ------------------------------- | ------------------------------ |
+| p50 response latency            | to be established              |
+| p95 response latency            | to be established              |
+| p99 response latency            | to be established              |
+| Throughput (req/s)              | to be established              |
+| Time-to-first-token (streaming) | to be established              |
+| Tokens per turn (avatar path)   | to be established              |
+| DB query count per request      | to be established              |
+| Memory (RSS) under soak         | to be established              |
+
+Do not invent hard numbers before measurement. Once the first baseline exists, codify it here and enforce it in CI performance smoke tests.
+
+## Other operational thresholds
+
+- unit + fast integration suite must remain fast enough for daily use
 - fallback/error rate should stay low
 - GM trigger rate should remain understandable, not chaotic
-
-Exact numeric thresholds can be added once the first baseline exists.
-
-Do not invent hard numbers before measurement.
+- provider failure rate should be monitored and alerted on
 
 ---
 
@@ -774,6 +942,29 @@ Testing is not owned by QA alone.
 - reporting regressions clearly
 - adding regression cases when bugs escape
 - keeping the suite readable
+
+---
+
+---
+
+# Engineering Quality Dashboard
+
+Since observability is a first-class concern, test quality should also be visible as a trend — not just a pass/fail gate.
+
+## Track the following metrics over time
+
+| Metric                  | Purpose                                            |
+| ----------------------- | -------------------------------------------------- |
+| Flaky test count        | Detect unreliable tests before they erode trust    |
+| Suite runtime (PR gate) | Prevent gate creep that leads to bypassing         |
+| Deploy success rate     | Signal stability of the release pipeline           |
+| Escaped defects         | Bugs found in production that had no covering test |
+| Mutation score          | Confidence in assertion quality                    |
+| p95 latency trend       | Early warning for performance regression           |
+| Provider failure rate   | LLM availability signal                            |
+| Token cost per session  | Cost regression detection                          |
+
+This turns the test suite into a management signal, not just a binary green/red check.
 
 ---
 
