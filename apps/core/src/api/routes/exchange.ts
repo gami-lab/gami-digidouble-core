@@ -8,6 +8,7 @@ import type { Config } from '../../config.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
+import type { LlmConfig } from '../../infrastructure/llm/index.js'
 
 export type ExchangeRouteOptions = {
   config: Config
@@ -31,22 +32,17 @@ const exchangeBodySchema = {
 } as const
 
 export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, options) => {
-  const llmConfig: {
-    provider: string
-    openaiApiKey?: string
-    anthropicApiKey?: string
-    mistralApiKey?: string
-  } = {
+  const llmConfig: LlmConfig = {
     provider: options.config.llmProvider,
-  }
-  if (options.config.openaiApiKey !== undefined) {
-    llmConfig.openaiApiKey = options.config.openaiApiKey
-  }
-  if (options.config.anthropicApiKey !== undefined) {
-    llmConfig.anthropicApiKey = options.config.anthropicApiKey
-  }
-  if (options.config.mistralApiKey !== undefined) {
-    llmConfig.mistralApiKey = options.config.mistralApiKey
+    ...(options.config.openaiApiKey !== undefined
+      ? { openaiApiKey: options.config.openaiApiKey }
+      : {}),
+    ...(options.config.anthropicApiKey !== undefined
+      ? { anthropicApiKey: options.config.anthropicApiKey }
+      : {}),
+    ...(options.config.mistralApiKey !== undefined
+      ? { mistralApiKey: options.config.mistralApiKey }
+      : {}),
   }
 
   const llmAdapter = options.llmAdapter ?? createLlmAdapter(llmConfig)
