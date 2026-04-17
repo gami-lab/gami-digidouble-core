@@ -687,7 +687,7 @@ Run:
 
 - all of the above
 - extended integration suite
-- E2E suite with fake provider
+- E2E suite (real provider tests skip cleanly via `describe.skipIf` when keys are absent)
 
 ## Nightly / manual
 
@@ -704,7 +704,22 @@ Run:
 
 These are initial guardrails, not permanent truths.
 
-## Initial thresholds to track
+## Code coverage thresholds (enforced)
+
+Enforced via `@vitest/coverage-v8` in `vitest.config.ts`. Build fails if any threshold is not met:
+
+| Metric     | Threshold |
+| ---------- | --------- |
+| Statements | ≥ 80%     |
+| Branches   | ≥ 80%     |
+| Functions  | ≥ 80%     |
+| Lines      | ≥ 80%     |
+
+**Current baseline (post-EPIC 1.2):** 94.4% statements · 87.9% branches · 100% functions · 67 tests · 15 files
+
+Excluded from coverage: type-only files (`*.types.ts`), port interfaces (`application/ports/**`), infrastructure stubs (`cache/`, `db/`), entry point (`index.ts`).
+
+## Other thresholds to track
 
 - unit + fast integration suite should remain fast enough for daily use
 - critical endpoints must have bounded latency in local/dev conditions
@@ -790,17 +805,73 @@ For now, we avoid:
 
 ---
 
-# Initial Recommended Test Stack
+# Implemented Test Stack
 
-The exact libraries may evolve, but the strategy assumes:
+## Core tooling (active)
 
-- test runner for TypeScript unit/integration tests
-- API test tooling
-- schema/assertion helpers
-- Docker-based local integration environment
-- optional browser/E2E runner for back-office later
-- provider fakes for deterministic CI
-- lightweight evaluation scripts for manual/nightly comparison
+| Tool                    | Version | Purpose                                               |
+| ----------------------- | ------- | ----------------------------------------------------- |
+| **Vitest**              | 3.2.4   | Test runner for unit, API, integration, and E2E tests |
+| **@vitest/coverage-v8** | 3.2.4   | Code coverage via V8 native instrumentation           |
+| **Fastify `inject()`**  | —       | In-process HTTP request simulation for API tests      |
+
+## Coverage configuration
+
+Coverage is enforced in `apps/core/vitest.config.ts`:
+
+```ts
+coverage: {
+  provider: 'v8',
+  include: ['src/**/*.ts'],
+  exclude: [
+    'src/**/*.test.ts',
+    'src/**/*.integration.test.ts',
+    'src/**/*.e2e.test.ts',
+    'src/index.ts',
+    'src/**/*.types.ts',
+    'src/application/ports/**',
+    'src/infrastructure/cache/**',
+    'src/infrastructure/db/**',
+  ],
+  thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
+  reporter: ['text', 'lcov'],
+}
+```
+
+Run coverage locally: `pnpm --filter @gami/core test:coverage`
+
+## File naming conventions
+
+| Pattern                 | Type                                           |
+| ----------------------- | ---------------------------------------------- |
+| `*.test.ts`             | Unit and API tests (no I/O, no real providers) |
+| `*.integration.test.ts` | Live provider tests (real API calls, gated)    |
+| `*.e2e.test.ts`         | Full HTTP stack tests (real providers, gated)  |
+
+## Mock strategy
+
+**Rule: mocks only at infrastructure adapter boundaries.**
+
+- Domain and application layer tests: use `vi.fn()` references declared at module level (avoids `@typescript-eslint/unbound-method` lint errors)
+- API route tests: inject `NullLlmAdapter` and `NullObservabilityAdapter` via the `ServerAdapters` interface — no mocking of internals
+- Never mock domain logic, use case classes, or repository interfaces in API tests — only swap the infrastructure adapters
+
+## E2E and integration test gating
+
+Real-provider tests use `describe.skipIf` to skip cleanly in CI without credentials:
+
+```ts
+const apiKey = process.env['OPENAI_API_KEY']
+describe.skipIf(!apiKey)('E2E — POST /v1/exchange with real OpenAI', () => {
+  it('returns a non-empty reply', async () => { ... }, 30_000)
+})
+```
+
+This enables:
+
+- Clean CI runs (tests skipped, not failed, when keys are missing)
+- Full local validation with `.env` loaded
+- Nightly/manual real-provider runs with credentials injected
 
 Keep the tooling boring and maintainable.
 

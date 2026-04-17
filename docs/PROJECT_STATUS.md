@@ -111,6 +111,15 @@ EPIC 1.2 — Final closure validation is done:
 - Leftover EPIC 1.2 placeholder text removed from `infrastructure/llm/index.ts`
 - Real-provider smoke (`OPENAI_API_KEY`) remains an environment-dependent manual step when credentials are available
 
+Test coverage hardening (post-EPIC 1.2):
+
+- `@vitest/coverage-v8` installed; coverage thresholds enforced at 80% lines/branches/functions/statements
+- `vitest.config.ts` updated: coverage enabled with `reporter: ['text', 'lcov']`; type-only files (ports, domain types, cache/db stubs) correctly excluded from measurement
+- `pnpm test:coverage` script added to `apps/core/package.json`
+- `api/routes/exchange.test.ts` expanded: 8 tests now covering auth (missing/wrong key), validation (missing field, empty message), error paths (502 via `LlmError`, 500 via unexpected error), and systemPrompt forwarding
+- `api/routes/exchange.e2e.test.ts` added: 3 real E2E tests (OpenAI, Anthropic, Mistral) exercising the full HTTP → LLM → response path with no mocks; each `skipIf` guarded by the respective API key environment variable
+- Achieved: 94.38% statement coverage, 87.91% branch coverage, 100% function coverage (67 tests across 15 test files)
+
 ---
 
 ## Phase A — Sprint Status
