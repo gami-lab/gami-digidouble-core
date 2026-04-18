@@ -14,7 +14,7 @@ describe('Stack E2E — GET /health', () => {
 
     expect(res.status).toBe(200)
 
-    const body = (await res.json()) as { status: string }
-    expect(body.status).toBe('ok')
+    const body = (await res.json()) as { data: { status: string } }
+    expect(body.data.status).toBe('ok')
   })
 })
