@@ -26,27 +26,27 @@ export class SendMessageUseCase {
     const requestId = crypto.randomUUID()
     const start = Date.now()
 
-    await this.loadActiveSession(input.sessionId)
+    const session = await this.loadActiveSession(input.sessionId)
     const avatar = await this.loadAvatar(input.avatarId)
     const systemPrompt = assemblePersonaPrompt(avatar)
-    const historyMessages = await this.buildHistoryMessages(input.sessionId)
-    const userMessage = await this.persistUserMessage(input.sessionId, input.userMessage)
+    const historyMessages = await this.buildHistoryMessages(session.sessionId)
+    const userMessage = await this.persistUserMessage(session.sessionId, input.userMessage)
 
     const llmRequest = {
       systemPrompt,
       messages: [...historyMessages, { role: 'user' as const, content: userMessage.content }],
     }
     const response = await this.llm.complete(llmRequest)
-    const avatarMessage = await this.persistAvatarMessage(input.sessionId, response)
+    const avatarMessage = await this.persistAvatarMessage(session.sessionId, response)
 
     // TODO(EPIC-2.2): trigger GM observation
 
     const latencyMs = Date.now() - start
-    this.traceNonBlocking(requestId, input.sessionId, llmRequest.messages, response, latencyMs)
+    this.traceNonBlocking(requestId, session.sessionId, llmRequest.messages, response, latencyMs)
 
     return {
       requestId,
-      sessionId: input.sessionId,
+      sessionId: session.sessionId,
       userMessage: {
         messageId: userMessage.messageId,
         content: userMessage.content,
