@@ -54,6 +54,11 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
       langfuseHost: options.config.langfuseHost,
     })
 
+  // Flush buffered observability events (e.g. Langfuse) when the server shuts down.
+  app.addHook('onClose', async () => {
+    await observabilityAdapter.flush()
+  })
+
   app.post<{ Body: ExchangeRequestBody }>(
     '/v1/exchange',
     {

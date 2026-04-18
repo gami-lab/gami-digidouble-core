@@ -54,6 +54,7 @@ describe.skipIf(!openaiKey)('E2E — POST /v1/exchange with real OpenAI', () => 
         systemPrompt: 'You are a terse assistant. Follow instructions precisely.',
       },
     })
+    await app.close()
 
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<SendRawMessageOutput>>()
@@ -86,6 +87,7 @@ describe.skipIf(!anthropicKey)('E2E — POST /v1/exchange with real Anthropic', 
         systemPrompt: 'You are a terse assistant. Follow instructions precisely.',
       },
     })
+    await app.close()
 
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<SendRawMessageOutput>>()
@@ -114,6 +116,7 @@ describe.skipIf(!mistralKey)('E2E — POST /v1/exchange with real Mistral', () =
         systemPrompt: 'You are a terse assistant. Follow instructions precisely.',
       },
     })
+    await app.close()
 
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<SendRawMessageOutput>>()
