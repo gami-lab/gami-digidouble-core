@@ -769,6 +769,7 @@ Every test file must follow this naming scheme. The suffix determines **which CI
 | `*.test.ts`             | Unit        | `vitest.config.ts`             | PR fast gate (always runs)     |
 | `*.integration.test.ts` | Integration | `vitest.integration.config.ts` | Extended (main push) + nightly |
 | `*.e2e.test.ts`         | E2E         | `vitest.integration.config.ts` | Extended (main push) + nightly |
+| `*.stack-e2e.test.ts`   | Stack E2E   | `vitest.stack-e2e.config.ts`   | Nightly only                   |
 
 ## Rules
 
@@ -780,23 +781,40 @@ Every test file must follow this naming scheme. The suffix determines **which CI
   They run in the extended CI gate without credentials (skipped gracefully) and in the
   nightly job with real credentials.
 
-- **E2E** (`*.e2e.test.ts`): full HTTP-stack flows through a running Fastify server. Same
-  `describe.skipIf` guard convention as integration tests for provider-dependent suites.
-  E2E tests that use the `null` LLM provider always execute; those exercising real providers
-  are skipped unless the corresponding key is present.
+- **E2E** (`*.e2e.test.ts`): full HTTP-stack flows through a running **in-process** Fastify
+  server (Fastify `inject()` — no real network). Same `describe.skipIf` guard convention as
+  integration tests for provider-dependent suites. E2E tests that use the `null` LLM provider
+  always execute; those exercising real providers are skipped unless the corresponding key is
+  present.
+
+- **Stack E2E** (`*.stack-e2e.test.ts`): real HTTP requests against a live Docker stack
+  (production image + postgres + redis). These are the only tests that exercise the full
+  production binary over the network, including real DB connections and real Redis. Run in the
+  nightly job only; require `APP_URL` to point to a running server. Auth and schema tests are
+  always-on (use `LLM_PROVIDER=null`); real-provider tests use `describe.skipIf`.
 
 ## Scripts
 
 ```
 pnpm test                        # unit tests only (fast gate)
 pnpm test:integration-e2e        # integration + E2E (extended gate / nightly)
+pnpm test:stack-e2e              # stack E2E — requires a running Docker stack (nightly)
 pnpm test:coverage               # unit tests with coverage report
 ```
+
+## Docker build verification
+
+Every PR and push also runs a `docker-build` CI job that builds the production image from
+`Dockerfile` (multi-stage TypeScript compilation) without pushing it. This ensures the
+production image compiles and layers cache correctly on every commit — not just at release
+time. Layer caching (GitHub Actions cache) keeps this job fast.
 
 ## Do not mix tiers in one file
 
 A file named `*.test.ts` must not make network calls or call real LLM providers.
 A file named `*.integration.test.ts` must not assert on prompt wording or prose quality.
+A file named `*.e2e.test.ts` uses Fastify inject() — it must not open real TCP connections.
+A file named `*.stack-e2e.test.ts` must not import Fastify or assert on internal state.
 If a test doesn't fit cleanly, create the right file.
 
 ---

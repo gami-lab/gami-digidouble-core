@@ -113,6 +113,27 @@ jobs:
       - name: Review dependency changes
         uses: actions/dependency-review-action@v4
 
+  docker-build:
+    name: Docker — production image builds
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          dockerfile: Dockerfile
+          push: false
+          # Cache layers across runs using GitHub Actions cache
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   main-extended-tests:
     name: Main — extended integration and E2E
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')

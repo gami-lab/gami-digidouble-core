@@ -12,6 +12,7 @@
     "lint": "eslint src",
     "test": "vitest run --config vitest.config.ts",
     "test:integration-e2e": "vitest run --config vitest.integration.config.ts",
+    "test:stack-e2e": "vitest run --config vitest.stack-e2e.config.ts",
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },

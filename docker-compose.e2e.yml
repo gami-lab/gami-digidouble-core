@@ -1,0 +1,77 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# E2E stack — production image + real infrastructure
+#
+# Used by the nightly CI job and for local full-stack E2E validation.
+# Unlike docker-compose.yml (which mounts source for hot reload), this file
+# builds from the production Dockerfile and injects env vars from the shell.
+#
+# Usage:
+#   docker compose -f docker-compose.e2e.yml up -d --build --wait
+#   APP_URL=http://localhost:3000 pnpm test:stack-e2e
+#   docker compose -f docker-compose.e2e.yml down -v
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: no
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gami_core
+    volumes:
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d gami_core']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: no
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: no
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      LOG_LEVEL: info
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gami_core
+      REDIS_URL: redis://redis:6379
+      # Fixed test secret — known by the stack-e2e test suite
+      API_KEY_SECRET: e2e-stack-secret
+      # LLM provider — defaults to null (always-on tests); override to exercise real providers
+      LLM_PROVIDER: ${LLM_PROVIDER:-null}
+      # LLM provider credentials — injected from the shell environment when available
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      # Observability — injected from the shell environment when available
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/health || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s

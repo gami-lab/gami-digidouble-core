@@ -28,6 +28,11 @@
         "LANGFUSE_BASE_URL"
       ]
     },
+    "test:stack-e2e": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": ["APP_URL", "LLM_PROVIDER", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

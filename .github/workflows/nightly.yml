@@ -45,3 +45,54 @@ jobs:
       # TODO(TEST_STRATEGY): Add mutation and conversation regression suites once scripts exist.
       # TODO(TEST_STRATEGY): Add performance smoke/soak jobs once baseline thresholds are implemented.
       # TODO(TEST_STRATEGY): Add secrets scan once a suitable free tool is available for GitHub orgs.
+
+  stack-e2e:
+    name: Stack E2E — production Docker stack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start production stack (postgres + redis + app)
+        env:
+          LLM_PROVIDER: openai
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL }}
+        run: docker compose -f docker-compose.e2e.yml up -d --build --wait
+
+      - name: Run stack E2E tests
+        env:
+          APP_URL: http://localhost:3000
+          LLM_PROVIDER: openai
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: pnpm test:stack-e2e
+
+      - name: Collect container logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yml logs app
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f docker-compose.e2e.yml down -v
