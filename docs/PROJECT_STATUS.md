@@ -141,6 +141,24 @@ EPIC 2.1 — Prompt 05 (tests and hardening) is done:
 - `api/routes/messages.e2e.test.ts` added with `describe.skipIf(!OPENAI_API_KEY)` for optional real-provider multi-turn context continuity checks
 - Coverage threshold (≥80%) and quality gates remain validated for the workspace execution flow
 
+EPIC 2.1 — Avatar Agent v1 closure summary:
+
+- Delivered scope:
+  - Avatar domain model and repository port (`domain/avatar/avatar.types.ts`, `application/ports/IAvatarRepository.ts`)
+  - Persona-driven prompt assembly (`domain/avatar/persona-prompt.service.ts`) with fixture support (`domain/avatar/avatar.fixtures.ts`)
+  - Conversation orchestration use case (`application/use-cases/send-message/send-message.use-case.ts`) with session validation, avatar loading, history assembly, and message persistence
+  - HTTP endpoint `POST /v1/conversations/:sessionId/messages` (`api/routes/messages.ts`) with auth, validation, contract mapping, and error mapping
+- Key design decisions locked in EPIC 2.1:
+  - History limit hard-capped to 20 messages before LLM invocation
+  - `avatarId` is required in request body for Sprint 2 (temporary until scenario-defaulted avatar flow in Sprint 4)
+  - Non-blocking observability tracing; LLM errors propagate; observability failures are swallowed/logged
+  - Explicit `// TODO(EPIC-2.2): trigger GM observation` marker after avatar message persistence
+- Test and quality summary for EPIC closure:
+  - Core unit suite: 91 tests across 15 test files (`corepack pnpm --filter @gami/shared build && corepack pnpm --filter @gami/core test:coverage`)
+  - Coverage: 94.90% statements, 85.64% branches, 100% functions, 94.90% lines
+  - Route coverage includes `messages.test.ts` and optional real-provider `messages.e2e.test.ts` (`describe.skipIf(!OPENAI_API_KEY)`)
+  - All Sprint 2 documentation targets synchronized to implementation (PROJECT_STATUS, API_CONTRACT, DATA_MODEL, ARCHITECTURE, TEST_STRATEGY)
+
 Test coverage hardening (post-EPIC 1.2):
 
 - `@vitest/coverage-v8` installed; coverage thresholds enforced at 80% lines/branches/functions/statements

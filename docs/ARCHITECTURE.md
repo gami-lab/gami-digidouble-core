@@ -240,8 +240,8 @@ Owns runtime conversations.
 
 Contains:
 
-- sessions
-- messages
+- session types (`domain/conversation/session.types.ts`)
+- message types and metadata (`domain/conversation/session.types.ts`)
 - streaming responses
 - session lifecycle
 
@@ -260,14 +260,14 @@ Owns the speaking entity.
 
 Contains:
 
-- persona configuration
-- avatar prompt building
-- style behavior
-- response generation
+- persona configuration types (`domain/avatar/avatar.types.ts`)
+- persona prompt assembly (`domain/avatar/persona-prompt.service.ts`)
+- deterministic avatar fixtures (`domain/avatar/avatar.fixtures.ts`)
+- style behavior rules used by persona prompt assembly
 
 The Avatar speaks.
 
-The Avatar does not own global orchestration.
+The Avatar module does not own response orchestration; `SendMessageUseCase` in the application layer coordinates history + LLM invocation.
 
 ---
 
@@ -469,7 +469,7 @@ src/
 
   domain/
     conversation/        → Session and message logic
-    avatar/              → Persona configuration, response generation
+    avatar/              → Persona configuration and prompt assembly
     game-master/         → Trigger logic, state management, guidance injection
     memory/              → Session summary + persistent user facts
     context/             → Context assembly (memory + scenario + knowledge)

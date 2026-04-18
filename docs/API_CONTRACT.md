@@ -381,6 +381,8 @@ Validation rules (Sprint 2 implementation):
 - `avatarId`: required, string, min length 1
 - `message.content`: required, string, min length 1, max length 4000
 
+`avatarId` is intentionally required in Sprint 2. It is a temporary contract and is planned to be replaced by scenario-defaulted avatar resolution in Sprint 4.
+
 ### Non-Streaming Response
 
 ```ts id="d0b3wa"
@@ -409,13 +411,12 @@ type SendMessageResponse = {
 ### Behavior
 
 - Stores user message
-- Builds runtime context
-- Runs Avatar response generation
+- Builds persona-driven system prompt from avatar config
+- Builds chronological history from persisted session messages (hard cap: 20)
+- Runs one LLM completion for the avatar turn
 - Stores avatar response
-- Launches async post-processing when relevant:
-  - Game Master observation
-  - memory update
-  - event logging
+- Emits observability trace in non-blocking mode
+- Game Master trigger integration is not active yet (`TODO(EPIC-2.2)` in use case)
 
 ### Error Mapping (Sprint 2 implementation)
 
