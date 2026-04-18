@@ -124,6 +124,14 @@ EPIC 2.1 — Prompt 03 (SendMessage use case) is done:
 - LLM errors are propagated unmodified; observability failures are swallowed and logged to stderr; `// TODO(EPIC-2.2): trigger GM observation` added after avatar message persistence
 - Unit tests cover happy path, session/avatar not found, closed session, history ordering, LLM error propagation, observability failure swallowing, and user message persistence ordering before LLM call
 
+EPIC 2.1 — Prompt 04 (API endpoint for send message) is done:
+
+- `api/routes/messages.ts` — `POST /v1/conversations/:sessionId/messages` with API-key auth, body schema validation (`avatarId`, `message.content`), `SendMessageUseCase` wiring, response DTO mapping to `SendMessageResponse`, and error mapping (`404`/`409`/`502`/`500`)
+- `api/server.ts` — route registered via `server.register(messagesRoute, { prefix: '/v1/conversations' })`
+- `infrastructure/db/in-memory-session.repository.ts` and `infrastructure/db/in-memory-message.repository.ts` added as Sprint 2 placeholders implementing `ISessionRepository` and `IMessageRepository`
+- `api/routes/messages.test.ts` — inject() tests for success, auth failures, validation failures, unknown session, closed session, `LlmError`, and unexpected error
+- `docs/API_CONTRACT.md` section 2 updated to match Sprint 2 request/response and error mapping
+
 Test coverage hardening (post-EPIC 1.2):
 
 - `@vitest/coverage-v8` installed; coverage thresholds enforced at 80% lines/branches/functions/statements
@@ -146,11 +154,11 @@ Test coverage hardening (post-EPIC 1.2):
 
 ### Sprint 2 — Avatar + Game Master
 
-| Epic                            | Status      | Notes                                                                                                              |
-| ------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
-| EPIC 2.1 — Avatar Agent v1      | In progress | Prompt 01 done; Prompt 02 done: persona prompt assembly service + unit tests; Prompt 03 done: SendMessage use case |
-| EPIC 2.2 — Async Game Master v1 | Not started | Triggers, structured outputs, async directives                                                                     |
-| EPIC 2.3 — Performance Baseline | Not started | Latency, TTFT, token usage benchmarks                                                                              |
+| Epic                            | Status      | Notes                                                                                                                                                                            |
+| ------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EPIC 2.1 — Avatar Agent v1      | In progress | Prompt 01 done; Prompt 02 done: persona prompt assembly service + unit tests; Prompt 03 done: SendMessage use case; Prompt 04 done: `POST /v1/conversations/:sessionId/messages` |
+| EPIC 2.2 — Async Game Master v1 | Not started | Triggers, structured outputs, async directives                                                                                                                                   |
+| EPIC 2.3 — Performance Baseline | Not started | Latency, TTFT, token usage benchmarks                                                                                                                                            |
 
 ### Sprint O — Operations / Control Plane
 
