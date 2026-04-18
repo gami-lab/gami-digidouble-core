@@ -104,10 +104,16 @@ export class SendMessageUseCase {
     return history
       .slice()
       .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-      .map((message) => ({
-        role: message.role === 'user' ? 'user' : 'assistant',
-        content: message.content,
-      }))
+      .reduce<Array<{ role: 'user' | 'assistant'; content: string }>>((messages, message) => {
+        if (message.role === 'user') {
+          messages.push({ role: 'user', content: message.content })
+          return messages
+        }
+        if (message.role === 'avatar') {
+          messages.push({ role: 'assistant', content: message.content })
+        }
+        return messages
+      }, [])
   }
 
   private persistUserMessage(sessionId: string, content: string): Promise<Message> {

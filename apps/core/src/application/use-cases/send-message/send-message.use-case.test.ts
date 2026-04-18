@@ -190,7 +190,7 @@ describe('SendMessageUseCase - conversation flow', () => {
     ).rejects.toEqual(expect.objectContaining<Partial<DomainError>>({ code: 'NOT_FOUND' }))
   })
 
-  it('passes history to the LLM in chronological order', async () => {
+  it('passes user/avatar history to the LLM in chronological order and ignores system turns', async () => {
     const useCase = createUseCase()
     findMessagesBySessionIdMock.mockResolvedValue([
       makeMessage({
@@ -219,7 +219,6 @@ describe('SendMessageUseCase - conversation flow', () => {
     expect(llmArg.messages).toEqual([
       { role: 'user', content: 'First' },
       { role: 'assistant', content: 'Second' },
-      { role: 'assistant', content: 'Third' },
       { role: 'user', content: 'Latest' },
     ])
   })
