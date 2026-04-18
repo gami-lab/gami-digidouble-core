@@ -137,11 +137,11 @@ Test coverage hardening (post-EPIC 1.2):
 
 ### Sprint 2 — Avatar + Game Master
 
-| Epic                            | Status      | Notes                                                                 |
-| ------------------------------- | ----------- | --------------------------------------------------------------------- |
-| EPIC 2.1 — Avatar Agent v1      | In progress | Prompt 01 in progress: avatar domain model + repository port scaffold |
-| EPIC 2.2 — Async Game Master v1 | Not started | Triggers, structured outputs, async directives                        |
-| EPIC 2.3 — Performance Baseline | Not started | Latency, TTFT, token usage benchmarks                                 |
+| Epic                            | Status      | Notes                                                                        |
+| ------------------------------- | ----------- | ---------------------------------------------------------------------------- |
+| EPIC 2.1 — Avatar Agent v1      | In progress | Prompt 01 done; Prompt 02 done: persona prompt assembly service + unit tests |
+| EPIC 2.2 — Async Game Master v1 | Not started | Triggers, structured outputs, async directives                               |
+| EPIC 2.3 — Performance Baseline | Not started | Latency, TTFT, token usage benchmarks                                        |
 
 ### Sprint O — Operations / Control Plane
 
