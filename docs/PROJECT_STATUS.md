@@ -115,6 +115,15 @@ EPIC 1.2 — Final closure validation is done:
 - Leftover EPIC 1.2 placeholder text removed from `infrastructure/llm/index.ts`
 - Real-provider smoke (`OPENAI_API_KEY`) remains an environment-dependent manual step when credentials are available
 
+EPIC 2.1 — Prompt 03 (SendMessage use case) is done:
+
+- `application/use-cases/send-message/send-message.types.ts` — `SendMessageInput` / `SendMessageOutput` DTOs
+- `application/use-cases/send-message/send-message.use-case.ts` — `SendMessageUseCase.execute()`: validates input, loads active session and avatar, assembles persona system prompt, builds chronological message history (limit 20), persists user/avatar messages, and fires non-blocking observability trace
+- `application/ports/IMessageRepository.ts` updated: `findBySessionId(sessionId, { limit? })` and `save(...)` contract for persisted messages with generated IDs and timestamps
+- `domain/errors.ts` — `DomainError` (`code` + `message`) for application/domain not-found and invalid-state flows
+- LLM errors are propagated unmodified; observability failures are swallowed and logged to stderr; `// TODO(EPIC-2.2): trigger GM observation` added after avatar message persistence
+- Unit tests cover happy path, session/avatar not found, closed session, history ordering, LLM error propagation, observability failure swallowing, and user message persistence ordering before LLM call
+
 Test coverage hardening (post-EPIC 1.2):
 
 - `@vitest/coverage-v8` installed; coverage thresholds enforced at 80% lines/branches/functions/statements
@@ -137,11 +146,11 @@ Test coverage hardening (post-EPIC 1.2):
 
 ### Sprint 2 — Avatar + Game Master
 
-| Epic                            | Status      | Notes                                                                        |
-| ------------------------------- | ----------- | ---------------------------------------------------------------------------- |
-| EPIC 2.1 — Avatar Agent v1      | In progress | Prompt 01 done; Prompt 02 done: persona prompt assembly service + unit tests |
-| EPIC 2.2 — Async Game Master v1 | Not started | Triggers, structured outputs, async directives                               |
-| EPIC 2.3 — Performance Baseline | Not started | Latency, TTFT, token usage benchmarks                                        |
+| Epic                            | Status      | Notes                                                                                                              |
+| ------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
+| EPIC 2.1 — Avatar Agent v1      | In progress | Prompt 01 done; Prompt 02 done: persona prompt assembly service + unit tests; Prompt 03 done: SendMessage use case |
+| EPIC 2.2 — Async Game Master v1 | Not started | Triggers, structured outputs, async directives                                                                     |
+| EPIC 2.3 — Performance Baseline | Not started | Latency, TTFT, token usage benchmarks                                                                              |
 
 ### Sprint O — Operations / Control Plane
 
