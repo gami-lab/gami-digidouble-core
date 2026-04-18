@@ -16,8 +16,8 @@ export interface Avatar {
   tone?: string
   /** Optional human-readable avatar description. */
   description?: string
-  /** Optional JSONB-backed extensible configuration. */
-  config?: Record<string, unknown>
+  /** JSONB-backed extensible configuration. */
+  config: Record<string, unknown>
   createdAt: string
   updatedAt: string
 }
