@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
+import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { Config } from '../../config.js'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Message, Session } from '../../domain/conversation/session.types.js'
-import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
@@ -26,6 +26,19 @@ const testConfig: Config = {
   langfusePublicKey: undefined,
   langfuseSecretKey: undefined,
   langfuseHost: undefined,
+}
+
+type SendMessageRouteData = {
+  session: Session
+  userMessage: Message
+  avatarMessage: Message
+  debug: {
+    requestId: string
+    model: string
+    latencyMs: number
+    inputTokens: number
+    outputTokens: number
+  }
 }
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -74,37 +87,85 @@ function makeApp({
   })
 }
 
-function expectData<T>(body: ApiResponse<T>): T {
-  if (body.data === null) throw new Error('Expected successful response data.')
-  return body.data
-}
+describe('POST /v1/conversations/:sessionId/messages — auth and validation', () => {
+  it('returns 401 when API key is missing', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/conversations/sess_1/messages',
+      payload: { avatarId: 'ava_1', message: { content: 'Hello avatar' } },
+    })
+    expect(response.statusCode).toBe(401)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.data).toBeNull()
+    expect(body.error?.code).toBe('UNAUTHORIZED')
+  })
 
-describe('POST /v1/conversations/:sessionId/messages — success response', () => {
-  it('returns 200 with SendMessageResponse envelope when request is valid', async () => {
+  it('returns 401 when API key is wrong', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/conversations/sess_1/messages',
+      headers: { 'x-api-key': 'wrong-secret' },
+      payload: { avatarId: 'ava_1', message: { content: 'Hello avatar' } },
+    })
+    expect(response.statusCode).toBe(401)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.data).toBeNull()
+    expect(body.error?.code).toBe('UNAUTHORIZED')
+  })
+
+  it('returns 400 when avatarId is missing', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/conversations/sess_1/messages',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { message: { content: 'Hello avatar' } },
+    })
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.data).toBeNull()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 400 when message.content is missing', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/conversations/sess_1/messages',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { avatarId: 'ava_1', message: {} },
+    })
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.data).toBeNull()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 400 when message.content is empty', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/conversations/sess_1/messages',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { avatarId: 'ava_1', message: { content: '' } },
+    })
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.data).toBeNull()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+})
+
+describe('POST /v1/conversations/:sessionId/messages — session and use-case behavior', () => {
+  it('returns 200 with a valid envelope on happy path', async () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/sess_1/messages',
       headers: { 'x-api-key': 'test-secret' },
       payload: { avatarId: 'ava_1', message: { content: 'Hello avatar' } },
     })
-
     expect(response.statusCode).toBe(200)
-    const body = response.json<
-      ApiResponse<{
-        session: Session
-        userMessage: Message
-        avatarMessage: Message
-        debug: {
-          requestId: string
-          model: string
-          latencyMs: number
-          inputTokens: number
-          outputTokens: number
-        }
-      }>
-    >()
-    const data = expectData(body)
+    const body = response.json<ApiResponse<SendMessageRouteData>>()
     expect(body.error).toBeNull()
+    expect(body.data).not.toBeNull()
+    const data = body.data as SendMessageRouteData
     expect(data.session.sessionId).toBe('sess_1')
     expect(data.session.userId).toBe('user_1')
     expect(data.session.scenarioId).toBe('scn_1')
@@ -127,74 +188,14 @@ describe('POST /v1/conversations/:sessionId/messages — success response', () =
     expect(data.debug.inputTokens).toBe(10)
     expect(data.debug.outputTokens).toBe(20)
   })
-})
 
-describe('POST /v1/conversations/:sessionId/messages — auth and validation', () => {
-  it('returns 401 when API key is missing', async () => {
-    const response = await makeApp().inject({
-      method: 'POST',
-      url: '/v1/conversations/sess_1/messages',
-      payload: { avatarId: 'ava_1', message: { content: 'Hello avatar' } },
-    })
-
-    expect(response.statusCode).toBe(401)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.data).toBeNull()
-    expect(body.error?.code).toBe('UNAUTHORIZED')
-  })
-
-  it('returns 401 when API key is wrong', async () => {
-    const response = await makeApp().inject({
-      method: 'POST',
-      url: '/v1/conversations/sess_1/messages',
-      headers: { 'x-api-key': 'wrong-secret' },
-      payload: { avatarId: 'ava_1', message: { content: 'Hello avatar' } },
-    })
-
-    expect(response.statusCode).toBe(401)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.data).toBeNull()
-    expect(body.error?.code).toBe('UNAUTHORIZED')
-  })
-
-  it('returns 400 when message.content is missing', async () => {
-    const response = await makeApp().inject({
-      method: 'POST',
-      url: '/v1/conversations/sess_1/messages',
-      headers: { 'x-api-key': 'test-secret' },
-      payload: { avatarId: 'ava_1', message: {} },
-    })
-
-    expect(response.statusCode).toBe(400)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.data).toBeNull()
-    expect(body.error?.code).toBe('VALIDATION_ERROR')
-  })
-
-  it('returns 400 when message.content is empty', async () => {
-    const response = await makeApp().inject({
-      method: 'POST',
-      url: '/v1/conversations/sess_1/messages',
-      headers: { 'x-api-key': 'test-secret' },
-      payload: { avatarId: 'ava_1', message: { content: '' } },
-    })
-
-    expect(response.statusCode).toBe(400)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.data).toBeNull()
-    expect(body.error?.code).toBe('VALIDATION_ERROR')
-  })
-})
-
-describe('POST /v1/conversations/:sessionId/messages — error mapping', () => {
-  it('returns 404 when session does not exist', async () => {
+  it('returns 404 when session is unknown', async () => {
     const response = await makeApp({ sessions: [] }).inject({
       method: 'POST',
       url: '/v1/conversations/missing/messages',
       headers: { 'x-api-key': 'test-secret' },
       payload: { avatarId: 'ava_1', message: { content: 'Hello avatar' } },
     })
-
     expect(response.statusCode).toBe(404)
     const body = response.json<ApiResponse<null>>()
     expect(body.data).toBeNull()
@@ -210,14 +211,13 @@ describe('POST /v1/conversations/:sessionId/messages — error mapping', () => {
       headers: { 'x-api-key': 'test-secret' },
       payload: { avatarId: 'ava_1', message: { content: 'Hello avatar' } },
     })
-
     expect(response.statusCode).toBe(409)
     const body = response.json<ApiResponse<null>>()
     expect(body.data).toBeNull()
     expect(body.error?.code).toBe('CONFLICT')
   })
 
-  it('returns 502 when the LLM adapter throws a LlmError', async () => {
+  it('returns 502 when the LLM adapter throws LlmError', async () => {
     const failingLlm = {
       complete: vi.fn().mockRejectedValue(new LlmError('openai', 'Provider timeout', 504)),
     }
@@ -227,7 +227,6 @@ describe('POST /v1/conversations/:sessionId/messages — error mapping', () => {
       headers: { 'x-api-key': 'test-secret' },
       payload: { avatarId: 'ava_1', message: { content: 'Hello avatar' } },
     })
-
     expect(response.statusCode).toBe(502)
     const body = response.json<ApiResponse<null>>()
     expect(body.data).toBeNull()
@@ -244,10 +243,56 @@ describe('POST /v1/conversations/:sessionId/messages — error mapping', () => {
       headers: { 'x-api-key': 'test-secret' },
       payload: { avatarId: 'ava_1', message: { content: 'Hello avatar' } },
     })
-
     expect(response.statusCode).toBe(500)
     const body = response.json<ApiResponse<null>>()
     expect(body.data).toBeNull()
     expect(body.error?.code).toBe('INTERNAL_ERROR')
+  })
+})
+
+describe('POST /v1/conversations/:sessionId/messages — manual smoke flow', () => {
+  it('supports three sequential turns and builds history chronologically', async () => {
+    const complete = vi.fn().mockResolvedValue({
+      content: 'Avatar reply',
+      model: 'smoke-model',
+      inputTokens: 3,
+      outputTokens: 4,
+      latencyMs: 2,
+    })
+    const app = makeApp({ llmAdapter: { complete } })
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/sess_1/messages',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { avatarId: 'ava_1', message: { content: 'First user turn' } },
+    })
+    const second = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/sess_1/messages',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { avatarId: 'ava_1', message: { content: 'Second user turn' } },
+    })
+    const third = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/sess_1/messages',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { avatarId: 'ava_1', message: { content: 'Third user turn' } },
+    })
+
+    expect(first.statusCode).toBe(200)
+    expect(second.statusCode).toBe(200)
+    expect(third.statusCode).toBe(200)
+    expect(complete).toHaveBeenCalledTimes(3)
+    const thirdRequest = complete.mock.calls[2]?.[0] as {
+      messages: Array<{ role: 'user' | 'assistant'; content: string }>
+    }
+    expect(thirdRequest.messages).toEqual([
+      { role: 'user', content: 'First user turn' },
+      { role: 'assistant', content: 'Avatar reply' },
+      { role: 'user', content: 'Second user turn' },
+      { role: 'assistant', content: 'Avatar reply' },
+      { role: 'user', content: 'Third user turn' },
+    ])
   })
 })

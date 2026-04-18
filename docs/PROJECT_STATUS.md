@@ -132,6 +132,15 @@ EPIC 2.1 — Prompt 04 (API endpoint for send message) is done:
 - `api/routes/messages.test.ts` — inject() tests for success, auth failures, validation failures, unknown session, closed session, `LlmError`, and unexpected error
 - `docs/API_CONTRACT.md` section 2 updated to match Sprint 2 request/response and error mapping
 
+EPIC 2.1 — Prompt 05 (tests and hardening) is done:
+
+- `domain/avatar/persona-prompt.service.test.ts` now covers persona inclusion, name inclusion, tone placement, empty persona validation, and deterministic output
+- `application/use-cases/send-message/send-message.use-case.ts` now hard-caps assembled history to 20 messages before LLM invocation, even if repository output exceeds the requested limit
+- `application/use-cases/send-message/send-message.use-case.test.ts` now covers session validation (`not found` / `closed` / `archived`), avatar loading, prompt assembly, history ordering + truncation, persistence ordering + metadata, observability trace behavior, and `LlmError` propagation
+- `api/routes/messages.test.ts` now follows auth/validation + session/use-case behavior blocks and covers status mappings `200`, `401`, `400`, `404`, `409`, `502`, and `500` with strict envelope assertions
+- `api/routes/messages.e2e.test.ts` added with `describe.skipIf(!OPENAI_API_KEY)` for optional real-provider multi-turn context continuity checks
+- Coverage threshold (≥80%) and quality gates remain validated for the workspace execution flow
+
 Test coverage hardening (post-EPIC 1.2):
 
 - `@vitest/coverage-v8` installed; coverage thresholds enforced at 80% lines/branches/functions/statements
@@ -154,11 +163,11 @@ Test coverage hardening (post-EPIC 1.2):
 
 ### Sprint 2 — Avatar + Game Master
 
-| Epic                            | Status      | Notes                                                                                                                                                                            |
-| ------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EPIC 2.1 — Avatar Agent v1      | In progress | Prompt 01 done; Prompt 02 done: persona prompt assembly service + unit tests; Prompt 03 done: SendMessage use case; Prompt 04 done: `POST /v1/conversations/:sessionId/messages` |
-| EPIC 2.2 — Async Game Master v1 | Not started | Triggers, structured outputs, async directives                                                                                                                                   |
-| EPIC 2.3 — Performance Baseline | Not started | Latency, TTFT, token usage benchmarks                                                                                                                                            |
+| Epic                            | Status       | Notes                                                                                                                                                                                                                                        |
+| ------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EPIC 2.1 — Avatar Agent v1      | **Complete** | Prompt 01 done; Prompt 02 done: persona prompt assembly service + unit tests; Prompt 03 done: SendMessage use case; Prompt 04 done: `POST /v1/conversations/:sessionId/messages`; Prompt 05 done: tests + hardening + coverage gate retained |
+| EPIC 2.2 — Async Game Master v1 | Not started  | Triggers, structured outputs, async directives                                                                                                                                                                                               |
+| EPIC 2.3 — Performance Baseline | Not started  | Latency, TTFT, token usage benchmarks                                                                                                                                                                                                        |
 
 ### Sprint O — Operations / Control Plane
 
