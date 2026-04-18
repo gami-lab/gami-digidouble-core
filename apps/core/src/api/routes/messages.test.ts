@@ -87,6 +87,16 @@ function makeApp({
   })
 }
 
+function hasMessageHistory(
+  value: unknown,
+): value is { messages: Array<{ role: 'user' | 'assistant'; content: string }> } {
+  if (typeof value !== 'object' || value === null || !('messages' in value)) {
+    return false
+  }
+  const candidate = value as { messages: unknown }
+  return Array.isArray(candidate.messages)
+}
+
 describe('POST /v1/conversations/:sessionId/messages — auth and validation', () => {
   it('returns 401 when API key is missing', async () => {
     const response = await makeApp().inject({
@@ -284,8 +294,10 @@ describe('POST /v1/conversations/:sessionId/messages — manual smoke flow', () 
     expect(second.statusCode).toBe(200)
     expect(third.statusCode).toBe(200)
     expect(complete).toHaveBeenCalledTimes(3)
-    const thirdRequest = complete.mock.calls[2]?.[0] as {
-      messages: Array<{ role: 'user' | 'assistant'; content: string }>
+    const thirdRequest = complete.mock.calls[2]?.[0] as unknown
+    expect(hasMessageHistory(thirdRequest)).toBe(true)
+    if (!hasMessageHistory(thirdRequest)) {
+      throw new Error('Expected third LLM call to include message history.')
     }
     expect(thirdRequest.messages).toEqual([
       { role: 'user', content: 'First user turn' },

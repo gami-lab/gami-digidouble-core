@@ -55,7 +55,7 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
 
 function makeMessage(overrides: Partial<Message> = {}): Message {
   return {
-    messageId: `msg_${crypto.randomUUID()}`,
+    messageId: 'msg_prev',
     sessionId: 'sess_1',
     role: 'user',
     content: 'Earlier message',
