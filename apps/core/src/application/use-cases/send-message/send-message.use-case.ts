@@ -101,10 +101,13 @@ export class SendMessageUseCase {
     const history = await this.messageRepository.findBySessionId(sessionId, {
       limit: MESSAGE_HISTORY_LIMIT,
     })
-    return history
+    const recentHistory = history
       .slice()
       .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-      .reduce<Array<{ role: 'user' | 'assistant'; content: string }>>((messages, message) => {
+      .slice(-MESSAGE_HISTORY_LIMIT)
+
+    return recentHistory.reduce<Array<{ role: 'user' | 'assistant'; content: string }>>(
+      (messages, message) => {
         if (message.role === 'user') {
           messages.push({ role: 'user', content: message.content })
           return messages
@@ -113,7 +116,9 @@ export class SendMessageUseCase {
           messages.push({ role: 'assistant', content: message.content })
         }
         return messages
-      }, [])
+      },
+      [],
+    )
   }
 
   private persistUserMessage(sessionId: string, content: string): Promise<Message> {

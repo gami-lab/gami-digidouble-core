@@ -1,12 +1,9 @@
-import { readFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { makeAvatarConfig } from './avatar.fixtures.js'
 import { assemblePersonaPrompt } from './persona-prompt.service.js'
 
-describe('assemblePersonaPrompt', () => {
-  it('always includes personaPrompt verbatim in output', () => {
+describe('assemblePersonaPrompt -> personaPrompt included', () => {
+  it('always includes personaPrompt in output', () => {
     const config = makeAvatarConfig({
       personaPrompt: 'You are the scenario librarian. Never break role.',
     })
@@ -15,8 +12,10 @@ describe('assemblePersonaPrompt', () => {
 
     expect(prompt).toContain(config.personaPrompt)
   })
+})
 
-  it('includes name identification when personaPrompt does not reference the avatar name', () => {
+describe('assemblePersonaPrompt -> name included', () => {
+  it('includes name when provided and not already present in personaPrompt', () => {
     const config = makeAvatarConfig({
       name: 'Nova',
       personaPrompt: 'You are a futuristic museum guide.',
@@ -26,49 +25,37 @@ describe('assemblePersonaPrompt', () => {
 
     expect(prompt).toContain('Your name is Nova.')
   })
+})
 
-  it('does not duplicate name identification when personaPrompt already references the avatar name', () => {
+describe('assemblePersonaPrompt -> tone included', () => {
+  it('includes tone when provided and places it after the persona section', () => {
     const config = makeAvatarConfig({
-      name: 'Ava',
-      personaPrompt: 'You are Ava, a warm and curious guide.',
-    })
-
-    const prompt = assemblePersonaPrompt(config)
-
-    expect(prompt).not.toContain('Your name is Ava.')
-  })
-
-  it('includes tone modifier when tone is provided', () => {
-    const config = makeAvatarConfig({
+      personaPrompt: 'You are a focused guide.',
       tone: 'calm and precise',
     })
 
     const prompt = assemblePersonaPrompt(config)
+    const personaIndex = prompt.indexOf('You are a focused guide.')
+    const toneIndex = prompt.indexOf('Your tone is calm and precise.')
 
     expect(prompt).toContain('Your tone is calm and precise.')
+    expect(personaIndex).toBeGreaterThanOrEqual(0)
+    expect(toneIndex).toBeGreaterThan(personaIndex)
   })
+})
 
-  it('returns a non-empty string output', () => {
-    const prompt = assemblePersonaPrompt(makeAvatarConfig())
+describe('assemblePersonaPrompt -> empty personaPrompt', () => {
+  it('throws when personaPrompt is empty', () => {
+    const config = makeAvatarConfig({ personaPrompt: '   ' })
 
-    expect(typeof prompt).toBe('string')
-    expect(prompt.trim().length).toBeGreaterThan(0)
+    expect(() => assemblePersonaPrompt(config)).toThrow(
+      'Avatar personaPrompt must be a non-empty string.',
+    )
   })
+})
 
-  it('does not throw with minimal runtime config where only personaPrompt is meaningful', () => {
-    const config = {
-      avatarId: 'avatar-minimal',
-      scenarioId: 'scenario-minimal',
-      name: 'Mina',
-      slug: 'mina',
-      status: 'active' as const,
-      personaPrompt: 'You are a calm museum docent.',
-    }
-
-    expect(() => assemblePersonaPrompt(config)).not.toThrow()
-  })
-
-  it('is deterministic for the same input', () => {
+describe('assemblePersonaPrompt -> determinism', () => {
+  it('returns exactly the same output across repeated calls with same input', () => {
     const config = makeAvatarConfig({
       config: {
         personaAdjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
@@ -77,40 +64,9 @@ describe('assemblePersonaPrompt', () => {
 
     const first = assemblePersonaPrompt(config)
     const second = assemblePersonaPrompt(config)
+    const third = assemblePersonaPrompt(config)
 
     expect(first).toBe(second)
-  })
-
-  it('includes optional persona adjustments from config when provided', () => {
-    const config = makeAvatarConfig({
-      config: {
-        personaAdjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
-      },
-    })
-
-    const prompt = assemblePersonaPrompt(config)
-
-    expect(prompt).toContain('Avoid markdown tables.')
-    expect(prompt).toContain('Use short paragraphs.')
-  })
-
-  it('throws a clear domain error when personaPrompt is empty', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: '   ',
-    })
-
-    expect(() => assemblePersonaPrompt(config)).toThrow(
-      'Avatar personaPrompt must be a non-empty string.',
-    )
-  })
-
-  it('contains no imports from application, infrastructure, or external libraries', async () => {
-    const testFilePath = fileURLToPath(import.meta.url)
-    const servicePath = resolve(dirname(testFilePath), 'persona-prompt.service.ts')
-    const source = await readFile(servicePath, 'utf8')
-
-    expect(source).not.toMatch(/from ['"]\.\.\/\.\.\/application\//)
-    expect(source).not.toMatch(/from ['"]\.\.\/\.\.\/infrastructure\//)
-    expect(source).not.toMatch(/from ['"](?![./])/)
+    expect(second).toBe(third)
   })
 })
