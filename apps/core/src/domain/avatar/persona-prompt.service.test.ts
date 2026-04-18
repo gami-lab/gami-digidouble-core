@@ -79,7 +79,6 @@ describe('assemblePersonaPrompt -> adjustments included', () => {
     const config = makeAvatarConfig({
       name: 'Cosmos',
       personaPrompt: 'You are a helpful guide.',
-      adjustments: undefined,
     })
 
     const prompt = assemblePersonaPrompt(config)
