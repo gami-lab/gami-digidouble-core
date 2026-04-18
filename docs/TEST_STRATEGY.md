@@ -147,6 +147,25 @@ We avoid:
 
 ---
 
+## 7. Assert from the consumer inward, not from the implementation outward
+
+The most dangerous test gap is a test that passes because it only checks what the code already does, not what the consumer requires.
+
+**Wrong approach (implementation-mirroring):**
+Write the production code, then write a test that asserts on the fields that the code already sets. The test is green by construction. Any field the implementation forgot to set is simply not tested.
+
+**Required approach (consumer-contract):**
+Before writing production code for any adapter or use case, ask:
+_"What must the consumer of this output observe for the feature to actually work?"_
+
+For an LLM observability adapter: the consumer is the Langfuse dashboard. The tests must assert every field that appears in the UI — `input`, `output`, `usage`, `metadata` — not only the fields the adapter happened to set.
+
+For a use case that calls observability: the consumer is the monitoring/alerting system. The test must assert that the trace carries the actual conversation content (messages array, reply text), not only the token counts.
+
+**Rule:** When asserting on an object passed to a boundary (SDK, external API, queue, adapter), enumerate what the downstream consumer needs and assert every field explicitly. High code coverage does not substitute for this — a mock call can be verified at 100% coverage without ever checking its arguments.
+
+---
+
 # Test Pyramid for This Project
 
 We do not use a generic pyramid mechanically.

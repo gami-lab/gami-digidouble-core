@@ -1,3 +1,12 @@
+/**
+ * Consumer-contract tests for the Langfuse adapter.
+ *
+ * The consumer here is the Langfuse dashboard. Every field that must appear
+ * in the UI must have an assertion in this file — not just the fields the
+ * implementation happened to set. When adding a feature to the adapter, start
+ * by asking: "what must the Langfuse consumer observe for this to work?"
+ * and add assertions for that before writing the production code.
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LangfuseObservabilityAdapter } from './langfuse.adapter.js'
 import type { TraceEvent } from '../../application/ports/IObservabilityAdapter.js'
