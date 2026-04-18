@@ -364,6 +364,9 @@ Operational events useful for debugging and metrics.
 - type
 - payload (JSONB)
 - created_at
+- **request_id** (nullable) — correlates with the originating HTTP request
+- **correlation_id** (nullable) — groups events across async boundaries (e.g. one turn → GM trigger → memory update)
+- **severity** — `info` | `warning` | `error`
 
 ### Optional payload examples
 
@@ -388,6 +391,62 @@ Operational events useful for debugging and metrics.
 
 Use only events that are actually useful.
 
+The `request_id` and `correlation_id` fields are essential for tracing failures across async flows without requiring a full distributed tracing stack.
+
+---
+
+## 12. IngestionJob
+
+Tracks the lifecycle of a knowledge source ingestion job.
+
+Required for operator visibility into the knowledge pipeline status.
+
+### Fields
+
+- id
+- source_id (FK → KnowledgeSource)
+- status — `pending` | `running` | `completed` | `failed`
+- attempts (int, default 0)
+- started_at (nullable)
+- completed_at (nullable)
+- error_message (nullable)
+- created_at
+
+### Notes
+
+One job per ingestion attempt.
+
+On failure, the status moves to `failed` and `error_message` stores the reason.
+Retry creates a new job row (or increments `attempts`) depending on the retry strategy chosen.
+
+Admin API exposes these rows directly for inspection and manual retry.
+
+---
+
+## 13. AdminActionLog
+
+Audit trail of all admin actions taken through the admin API.
+
+Provides accountability and debugging context for operator interventions.
+
+### Fields
+
+- id
+- actor — the API key identifier or operator label that performed the action
+- action_type — e.g. `session.reset`, `session.replay`, `job.retry`, `scenario.archive`
+- target_type — `session` | `job` | `scenario` | `source`
+- target_id — the ID of the affected entity
+- payload (JSONB, nullable) — parameters passed to the action
+- created_at
+
+### Notes
+
+Never delete from this table.
+
+Kept as an append-only audit log.
+
+No PII in payload — store IDs and structured metadata only.
+
 ---
 
 # Relationships
@@ -403,6 +462,7 @@ Use only events that are actually useful.
 - Avatar → Messages (1:N, nullable on Message side)
 - Avatar → AvatarSessionMemories (1:N)
 - KnowledgeSource → KnowledgeChunks (1:N)
+- KnowledgeSource → IngestionJobs (1:N)
 - Session → EventLogs (1:N)
 
 ---

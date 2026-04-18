@@ -140,6 +140,65 @@ Must test:
 
 ---
 
+## Operations Module
+
+**Goals:** operational endpoints are correct, safe, and do not leak sensitive data.
+
+### Health & Dependencies
+
+Must test:
+
+- `GET /v1/admin/health` returns `ok` when all dependencies are up
+- `GET /v1/admin/dependencies`: postgres timeout → dependency `status: 'degraded'`; redis failure → dependency `status: 'error'`; top-level status reflects worst dependency
+- missing or invalid API key returns `401`
+
+### Session Inspector
+
+Must test:
+
+- session found → returns correct message count, memory summary, GM state fields present
+- session not found → 404 with correct error code
+- event list returns entries ordered by `created_at` desc
+- event list correctly filters by `severity`
+- no prompt content or credential values in any response field
+
+### Reset & Replay
+
+Must test:
+
+- reset deletes messages and memory for the correct session; does NOT delete other sessions
+- reset returns accurate deletion counts
+- reset writes an `AdminActionLog` entry with correct `actionType: 'session.reset'` and `targetId`
+- replay does NOT create a new message row in the DB
+- replay returns a non-empty content field (uses NullLlmAdapter in unit tests)
+- replay writes an `AdminActionLog` entry
+
+### Ingestion Job Management
+
+Must test:
+
+- job list filters by status correctly
+- retry on a `failed` job transitions it to `pending` and writes an audit entry
+- retry on a `completed` or `running` job is idempotent (returns current status, no duplicate job created)
+
+### Metrics Overview
+
+Must test:
+
+- default period aggregates last 24h
+- all required fields present even when counts are 0
+- custom `since` parameter respected
+
+### Audit Log
+
+Must test:
+
+- every admin action (reset, replay, retry) produces one audit log entry
+- audit log query filters by `targetType` and `targetId` correctly
+- entries are append-only (no update path exists)
+
+---
+
 # Critical E2E Flows
 
 Minimum set that must pass on every release:

@@ -39,6 +39,26 @@ Fewer focused tests beat many brittle ones. Prefer: clear naming, simple fixture
 
 ---
 
+## 7. Test the Admin plane as a contract, not an internal detail
+
+Admin endpoints have consumers: operators, back-office UIs, monitoring systems.
+
+Treat them with the same contract discipline as the public API.
+
+Required tests:
+
+- **Health aggregation:** verify that each dependency state (`ok` / `degraded` / `error`) produces the correct top-level status
+- **Dependency probe:** verify that a simulated postgres timeout returns `status: 'degraded'`, not `status: 'ok'`
+- **Session inspector:** verify the shape of returned state — messages, memory, GM state, events — not just that it doesn't crash
+- **Reset:** verify that reset deletes messages and memory but keeps the session record; verify the audit log entry is created
+- **Replay:** verify that replayed turn does NOT write a new message to the DB
+- **Ingestion retry:** verify that retrying a completed job returns current status rather than creating a duplicate run
+- **Audit log:** verify that every admin action writes an entry with the correct `actionType`, `targetType`, and `targetId`
+- **Auth:** verify that admin endpoints require a valid API key (same as public API in Phase A)
+- **No sensitive data leakage:** verify that session event payloads and admin responses do not expose raw prompt content or credential values
+
+---
+
 # Test Tiers
 
 Four tiers. The file suffix determines which Vitest config runs it and which CI gate owns it.

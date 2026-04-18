@@ -424,24 +424,36 @@ This is now explicitly the roadmap baseline, and it directly addresses the main 
 
 ---
 
-## 12. Observability (CRITICAL)
+## 12. Observability — LLM Traces (CRITICAL)
 
 ### Choice
 
 - **Langfuse (self-hosted preferred)**
 - wrapped behind an internal logging / observability abstraction
 
-### Track from day 1
+### Scope
 
-- prompts
-- responses
-- latency
-- TTFT
-- tokens
-- cost
-- model used
-- context size
-- metadata by role / session / scenario
+**Langfuse covers LLM traces only.**
+
+It captures:
+
+- prompts and responses
+- latency and TTFT
+- token counts
+- cost estimates
+- model metadata per call
+- context size by role / session / scenario
+
+It does **not** cover:
+
+- general system health
+- session or GM state inspection
+- ingestion job status
+- admin actions
+- endpoint metrics
+- dependency health
+
+Those belong to the **Operational Stack** (see section 12b) and the **Operations module**.
 
 ### Later additions
 
@@ -457,6 +469,38 @@ The roadmap explicitly says **observability from Sprint 1** and via **wrapper ab
 - debugging usefulness
 - comparison between models / prompts / architectures
 - low friction for dev workflow
+
+---
+
+## 12b. Operational Stack
+
+### Purpose
+
+Beyond LLM traces, the platform needs operational visibility across the whole system.
+
+### Tooling
+
+| Concern                  | Tool / Approach                                                            |
+| ------------------------ | -------------------------------------------------------------------------- |
+| Structured logs          | JSON stdout (Pino / Fastify built-in) — already in place                   |
+| Health endpoints         | `GET /health` (flat), `GET /v1/admin/dependencies` (rich)                  |
+| Admin inspection API     | Fastify admin routes — `/v1/admin/*`                                       |
+| Metrics overview         | Lightweight in-DB aggregation (session count, error rate, latency P50/P95) |
+| Dashboards               | Grafana or embedded back-office charts — Phase A simple                    |
+| Audit log                | `AdminActionLog` table — persisted in PostgreSQL                           |
+| Ingestion job visibility | `IngestionJob` table — status, attempts, error detail                      |
+
+### Constraints
+
+- No separate metrics server (Prometheus/Grafana) in Phase A unless it becomes clearly necessary
+- Keep admin API as part of the Core — not a separate service
+- Back-office UI reads admin API — no direct DB access from UI
+
+### Validation
+
+- operator can diagnose a failed session without a database query
+- operator can retry a failed ingestion job through the admin API
+- dependency health check covers postgres, redis, and LLM provider reachability
 
 ---
 

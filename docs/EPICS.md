@@ -175,6 +175,143 @@ The async model remains viable in real conditions.
 
 ---
 
+# Sprint O — Operations / Control Plane
+
+Inserted after Sprint 2 and before Sprint 3.
+
+**Rationale:** After the Avatar and Game Master are functional, we need to operate them confidently before adding more capability. Operational tooling is not polish — it is the layer that allows the team to learn, diagnose, and iterate safely.
+
+Without this, we are flying blind on sessions, GM decisions, memory state, and ingestion jobs.
+
+---
+
+## EPIC O1 — Operational Health & Dependency Monitoring
+
+**Purpose**
+Know if the platform is actually working before a user reports it.
+
+**Description**
+Enrich the health endpoint and add a dependency probe endpoint that checks Postgres, Redis, and LLM provider reachability — each individually — so a partial failure is detectable.
+
+**Hypothesis**
+A richer health probe reduces incident response time dramatically and enables reliable monitoring.
+
+**Includes**
+
+- `GET /v1/admin/health` (auth-protected)
+- `GET /v1/admin/dependencies` with per-dependency status and latency
+- structured logging for dependency check results
+- structured log output — JSON on stdout, already partially in place
+
+**DoD**
+
+- operator can determine which dependency is degraded from a single API call
+- monitoring system can use this endpoint for alerting
+- fails gracefully if one dependency is slow / unreachable
+
+---
+
+## EPIC O2 — Admin Runtime Console (Session Inspector)
+
+**Purpose**
+Allow operators to inspect live and past sessions without database access.
+
+**Description**
+Implement admin endpoints to read session state, messages, memory, GM state, and events. This is the minimum needed to diagnose quality and behavior issues in production.
+
+**Hypothesis**
+Human inspection of real sessions is the fastest way to find product-level bugs.
+
+**Includes**
+
+- `GET /v1/admin/sessions` — filtered list
+- `GET /v1/admin/sessions/{id}` — full session state
+- `GET /v1/admin/sessions/{id}/memory` — memory snapshot
+- `GET /v1/admin/sessions/{id}/events` — event trail with severity and correlation IDs
+- `GET /v1/admin/errors` — recent error events
+- `GET /v1/admin/audit-log` — audit trail of admin actions
+- `AdminActionLog` table creation and write path
+
+**DoD**
+
+- operator can inspect a specific session end-to-end without database access
+- recent errors are surfaced in one call
+
+---
+
+## EPIC O3 — Manual Test Console & Endpoint Explorer
+
+**Purpose**
+Allow developers and product people to trigger conversations and inspect results without writing code.
+
+**Description**
+A minimal back-office screen (or CLI wrapper) that sends messages to the exchange endpoint, shows the response, and can reset and replay turns.
+
+**Hypothesis**
+A usable test console compresses the feedback loop between architecture change and quality observation.
+
+**Includes**
+
+- `POST /v1/admin/sessions/{id}/reset` — wipe runtime, keep session record
+- `POST /v1/admin/sessions/{id}/replay-last-turn` — re-run last Avatar call without storing
+- Back-office UI screen that wraps the exchange or conversation endpoints in a simple chat interface
+- Reset and replay buttons
+
+**DoD**
+
+- non-developer can trigger a conversation, reset it, and replay a turn through a UI
+
+---
+
+## EPIC O4 — Usage Analytics & Reliability Dashboard
+
+**Purpose**
+Turn operational data into visible, actionable signals.
+
+**Description**
+Implement the metrics overview endpoint and wire it into a simple back-office dashboard (Grafana or embedded charts). Cover token usage, cost, latency, error rates.
+
+**Hypothesis**
+Visible metrics reduce waste and surface quality regressions before they become incidents.
+
+**Includes**
+
+- `GET /v1/admin/metrics/overview` with configurable period
+- back-office dashboard with charts for: session count, message volume, token usage, P50/P95 latency, error rate
+- per-provider breakdown if multiple providers are active
+
+**DoD**
+
+- team can see at a glance whether yesterday's usage was normal
+
+---
+
+## EPIC O5 — Ingestion Pipeline Visibility & Recovery
+
+**Purpose**
+Ensure knowledge source ingestion is observable and recoverable without engineering intervention.
+
+**Description**
+Implement ingestion job tracking (IngestionJob table), expose job list endpoint, and allow manual retry of failed jobs.
+
+**Hypothesis**
+Knowledge pipeline failures are silent today. Making them visible and recoverable is a product quality multiplier.
+
+**Includes**
+
+- `IngestionJob` entity and repository
+- job status updated across the ingestion lifecycle
+- `GET /v1/admin/jobs` — filtered list with status and error details
+- `POST /v1/admin/jobs/{id}/retry` — idempotent retry
+- audit log entry on retry
+
+**DoD**
+
+- operator can see all failed ingestion jobs and retry them from the admin API
+- retry is idempotent and logged
+
+---
+
 # Sprint 3 — Memory + API Gateway
 
 ---
@@ -361,16 +498,17 @@ Back-office usability is enough for MVP; no need for full consumer frontend yet.
 Allow rapid iteration cycles.
 
 **Description**  
-Run conversations in-browser and inspect answers in real time.
+Expand the manual test console from EPIC O3 into a more polished back-office chat UI, building on the admin reset/replay tooling already in place.
 
-**Hypothesis**  
+**Hypothesis**
 Fast testing loops accelerate quality dramatically.
 
 **Includes**
 
-- test chat UI
+- polished test chat UI (building on O3 foundations)
 - live streamed replies
 - reset session
+- show debug panel (model, tokens, latency, GM triggered)
 
 **DoD**
 
@@ -380,30 +518,25 @@ Fast testing loops accelerate quality dramatically.
 
 ## EPIC 5.3 — Logs & Metrics Dashboard
 
-**Purpose**  
+**Purpose**
 Turn telemetry into decisions.
 
-**Description**  
-Expose usage, latency, token, and cost data inside the back-office.
+**Description**
+Expand the metrics overview (EPIC O4) into a full back-office dashboard. Shift from raw numbers to trends, comparisons, and cost forecasts.
 
-**Hypothesis**  
+**Hypothesis**
 Visible metrics reduce waste and improve prioritization.
 
 **Includes**
 
-- session logs
-- latency charts
-- token/cost summaries
+- extended session logs view
+- latency trend charts (building on O4 data)
+- token/cost summaries and forecasts
+- provider comparison view
 
 **DoD**
 
-- team can compare runs and diagnose issues
-
----
-
-# Sprint 6 — Stabilisation + Summer Demo
-
----
+- team can compare runs, spot regressions, and forecast cost
 
 ## EPIC 6.1 — Production Readiness v0
 

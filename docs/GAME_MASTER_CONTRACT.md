@@ -381,3 +381,69 @@ If the Avatar can handle it →
 👉 **The Game Master should not exist for that decision.**
 
 The GM is here to **route and lightly guide**, not to control everything.
+
+---
+
+# 14. Diagnostic Trace (Admin Visibility)
+
+Every GM decision must emit a structured event to the `EventLog` so operators can inspect why it triggered and what it decided.
+
+This is required for admin inspection via `GET /v1/admin/sessions/{sessionId}/events`.
+
+## Required Fields
+
+```ts
+type GameMasterEvent = {
+  // Standard EventLog fields
+  type: 'gm_triggered' | 'gm_skipped'
+  severity: 'info'
+  correlationId: string // shared with the originating user turn
+  requestId?: string
+
+  payload: {
+    // Why the GM ran
+    triggerReason:
+      | 'session_start'
+      | 'turn_threshold'
+      | 'topic_repeat'
+      | 'progression_stalled'
+      | 'manual'
+    turnIndex: number
+    interactionCount: number
+
+    // State before the GM decision
+    stateBefore: {
+      currentAvatarId?: string
+      progression: string
+      topicsCovered: string[]
+    }
+
+    // Decision summary (only when type = 'gm_triggered')
+    decision?: {
+      avatarId: string
+      conversationMode: 'new' | 'continue'
+      notesInjected: boolean
+      directiveCount: number
+    }
+
+    // State after (only when type = 'gm_triggered')
+    stateAfter?: {
+      currentAvatarId?: string
+      progression: string
+      topicsCovered: string[]
+    }
+
+    // Performance
+    latencyMs: number
+    inputTokens?: number
+    outputTokens?: number
+  }
+}
+```
+
+## Rules
+
+- Emit for every GM run, including skipped runs (`type: 'gm_skipped'`)
+- Never include prompt content or raw user message in the diagnostic payload — these are sensitive
+- The `correlationId` must match the one used by the parent `SendMessage` use case for this turn
+- Admin inspection endpoint surfaces these events alongside session messages

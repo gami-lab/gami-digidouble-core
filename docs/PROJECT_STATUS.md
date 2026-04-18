@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 17, 2026
+**Last updated:** April 18, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -143,6 +143,16 @@ Test coverage hardening (post-EPIC 1.2):
 | EPIC 2.2 — Async Game Master v1 | Not started | Triggers, structured outputs, async directives    |
 | EPIC 2.3 — Performance Baseline | Not started | Latency, TTFT, token usage benchmarks             |
 
+### Sprint O — Operations / Control Plane
+
+| Epic                                     | Status      | Notes                                                                    |
+| ---------------------------------------- | ----------- | ------------------------------------------------------------------------ |
+| EPIC O1 — Health & Dependency Monitoring | Not started | Rich `/v1/admin/health` + `/v1/admin/dependencies` per-dependency probes |
+| EPIC O2 — Admin Runtime Console          | Not started | Session inspector: state, memory, GM state, events, errors, audit log    |
+| EPIC O3 — Manual Test Console & Replay   | Not started | Reset + replay-turn endpoints; back-office test chat UI                  |
+| EPIC O4 — Usage Analytics & Reliability  | Not started | Metrics overview endpoint; back-office dashboard charts                  |
+| EPIC O5 — Ingestion Pipeline Visibility  | Not started | IngestionJob entity; job list; retry endpoint; audit log on retry        |
+
 ### Sprint 3 — Memory + API
 
 | Epic                       | Status      | Notes                                                 |
@@ -187,4 +197,35 @@ Test coverage hardening (post-EPIC 1.2):
 
 ## Known Issues / Blockers
 
-None yet.
+### Operational Gap (structural, not a bug)
+
+EPIC 1.2 delivered LLM tracing foundations (Langfuse wrapper, token/latency tracking, structured logs).
+
+However, the current system lacks production operability:
+
+- No dependency health probe (`GET /health` is flat; no per-dependency status)
+- No session inspector (operators cannot read session state, memory, or GM state without DB access)
+- No ingestion job visibility (knowledge pipeline failures are silent)
+- No admin actions (reset, replay, retry require engineering intervention)
+- No audit trail (no record of who did what in production)
+- No metrics endpoint (no token usage summary, cost, error rate at a glance)
+- Langfuse captures LLM traces only — total system operability is untracked
+
+**Resolution:** Sprint O (EPICs O1–O5) has been added to the roadmap and is now the next priority after Sprint 2.
+
+---
+
+## Recommended Next Execution Order
+
+1. **Sprint 2** — Avatar Agent v1 (EPIC 2.1) + Async Game Master v1 (EPIC 2.2) + Performance Baseline (EPIC 2.3)
+2. **Sprint O** — O1 (health), O2 (session inspector), O3 (test console + reset/replay), O4 (metrics dashboard), O5 (ingestion visibility)
+3. **Sprint 3** — Memory Layer v1 + Public Core API + Streaming UX
+4. **Sprint 4** — RAG + Context Intelligence
+5. **Sprint 5** — Back-office v1 (builds on O3/O4 foundations)
+6. **Sprint 6** — Stabilization + Summer Demo
+
+Operations is deliberately ordered before Memory and API, because:
+
+- Memory bugs are invisible without session inspection tools
+- API design quality improves when operators can replay and inspect real traffic
+- The team cannot iterate on GM and Avatar quality without a manual test console

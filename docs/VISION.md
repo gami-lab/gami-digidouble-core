@@ -98,6 +98,26 @@ We treat context as a structured system:
 
 - not everything is kept
 - only what matters is injected
+
+---
+
+### 5. Trusted and Operable in Production
+
+Building a great conversation is not enough.
+
+The platform must also be:
+
+- observable by operators — not just by reading raw logs
+- inspectable at runtime — sessions, memory, GM state, ingestion jobs
+- diagnosable without requiring a code change or a database query
+- recoverable by humans — reset, replay, retry without engineering intervention
+- measurable over time — usage, cost, errors, quality signals
+
+→ An experience that cannot be confidently operated is not a product.
+
+We are building a **back-office control plane** alongside the conversational engine.
+These two capabilities must arrive together, not sequentially.
+
 - memory is compacted over time
 - relevant knowledge is retrieved dynamically
 

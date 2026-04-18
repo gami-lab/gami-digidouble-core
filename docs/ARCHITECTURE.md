@@ -115,7 +115,7 @@ Application Layer
     +--> Conversation Engine
     +--> Scenario Management
     +--> Knowledge Management
-    +--> Admin / Metrics
+    +--> Operations / Control Plane
     |
     v
 Domain Layer
@@ -351,16 +351,52 @@ Contains:
 
 ## Module: Observability
 
-Owns metrics and traceability.
+Owns LLM traces, metrics, and structured event emission.
 
 Contains:
 
-- latency
-- token counts
-- costs
-- errors
-- events
-- evaluations later
+- latency tracking
+- token counts and cost accounting
+- LLM-specific generation traces (Langfuse)
+- structured error events
+- adapter abstraction for swappable backends
+
+**Scope boundary:** Observability covers instrumentation only.
+It does not cover admin actions, session inspection, or recovery tools.
+Those belong to the Operations module.
+
+---
+
+## Module: Operations / Control Plane
+
+Owns runtime inspection, operational tools, and admin actions.
+
+This module is distinct from Observability.
+Observability emits signals. Operations exposes tools to act on those signals.
+
+Contains:
+
+- **Dependency health probes** — postgres, redis, LLM provider reachability
+- **Session inspector** — read session state, messages, memory, GM state via admin API
+- **Ingestion job monitor** — status, retry, error detail for knowledge pipeline jobs
+- **Admin actions** — reset session, replay last turn, retry failed job
+- **Audit log** — who triggered which admin action and when
+- **Metrics overview** — token usage, cost, latency aggregates, error rates
+
+### Admin API vs Public API
+
+The Core exposes two API surfaces:
+
+- **Public API** (`/v1/conversations`, `/v1/scenarios`, `/v1/knowledge-sources`)
+  → used by product clients, SDKs, future UIs
+  → user-facing, stable, versioned
+
+- **Admin API** (`/v1/admin/*`)
+  → used by back-office, operators, internal tools
+  → not user-facing, may expose internal state
+  → same auth model but may require additional guards (IP allowlist, role, etc.)
+
+These surfaces must stay clearly separated in routing and responsibility.
 
 ---
 
@@ -425,7 +461,8 @@ This is the canonical structure as implemented in `apps/core/src/`.
 ```text
 src/
   api/                   → Fastify routes, handlers, validation, serialization
-    routes/
+    routes/              → Public API routes (/v1/conversations, /v1/scenarios, …)
+    admin/               → Admin API routes (/v1/admin/*)
 
   application/           → Use cases (StartSession, SendMessage, ResetSession, …)
     ports/               → Port interfaces (ILlmAdapter, ICacheAdapter, …)
@@ -438,12 +475,13 @@ src/
     context/             → Context assembly (memory + scenario + knowledge)
     knowledge/           → Ingestion, chunking, embeddings, RAG retrieval
     scenario/            → Config-driven experience templates
+    operations/          → Health aggregation, dependency probes, metrics summaries
 
   infrastructure/        → Concrete adapter implementations
     db/                  → PostgreSQL repositories (pgvector included)
     cache/               → Redis adapters
     llm/                 → Provider abstraction layer + adapters
-    observability/       → Langfuse wrapper, logging, metrics
+    observability/       → Langfuse wrapper, logging, structured event emission
 ```
 
 Keep folders boring and predictable.

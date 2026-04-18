@@ -280,6 +280,53 @@ Every important part should be:
 
 ---
 
+## 19. If It Cannot Be Inspected, It Is Not Production-Ready
+
+Systems that work invisibly are not trustworthy.
+
+Every important runtime component must be:
+
+- inspectable through an admin API or tool
+- diagnosable through structured logs and events
+- resettable by a human without touching code
+
+Invisible behavior is a maintenance and trust liability.
+
+👉 Operational visibility is a first-class requirement, not a nice-to-have.
+
+---
+
+## 20. Observability Is Necessary But Not Sufficient
+
+Metrics, traces, and logs are essential.
+
+But they do not replace:
+
+- admin endpoints that expose runtime state directly
+- inspection tools usable without opening a log query console
+- humans being able to take corrective action safely
+
+Langfuse tells us what the LLM did. It does not tell us what the session, GM, memory, or ingestion pipeline are doing.
+
+👉 We need metrics AND operational tools that cover the full system.
+
+---
+
+## 21. Admin Tools Are Part of Product Learning Speed
+
+Every time we cannot inspect a session, replay a turn, or reset a state:
+
+- we lose debugging time
+- we lose quality signal
+- we lose confidence in production behavior
+
+Admin tools are not secondary work added after features.
+They are how we learn what the product actually does.
+
+👉 Invest in operational tooling as early as in conversational capability.
+
+---
+
 ## 19. Content and Engine Stay Decoupled
 
 Experiences, scenarios, avatars, and media should evolve without rewriting the engine.

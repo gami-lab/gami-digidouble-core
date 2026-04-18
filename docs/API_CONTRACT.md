@@ -869,6 +869,421 @@ Detailed observability remains in the logging system.
 
 ---
 
+# Admin / Operations API
+
+All admin endpoints live under `/v1/admin/`.
+
+**Access:** same `x-api-key` header as the public API. In Phase B+, admin routes may require additional guards (IP allowlist, admin role).
+
+**Principle:** these endpoints are not for end-user clients. They exist for the back-office, operators, and internal tooling. They may expose internal state that should never surface in public API responses.
+
+---
+
+## A1. Platform Health (rich)
+
+### Endpoint
+
+```text
+GET /v1/admin/health
+```
+
+### Response
+
+```ts
+type AdminHealthResponse = {
+  status: 'ok' | 'degraded' | 'error'
+  version: string
+  timestamp: string
+}
+```
+
+Same as `/health` but auth-protected. Useful for monitoring systems that use the same API key.
+
+---
+
+## A2. Dependency Health
+
+### Endpoint
+
+```text
+GET /v1/admin/dependencies
+```
+
+### Response
+
+```ts
+type DependenciesResponse = {
+  dependencies: Array<{
+    name: 'postgres' | 'redis' | 'llm_provider'
+    status: 'ok' | 'degraded' | 'error'
+    latencyMs?: number
+    detail?: string
+  }>
+}
+```
+
+### Notes
+
+- Postgres: send a simple ping query
+- Redis: send `PING`
+- LLM provider: optional lightweight probe (can be skipped if too costly)
+
+---
+
+## A3. List Sessions
+
+### Endpoint
+
+```text
+GET /v1/admin/sessions
+```
+
+### Query Parameters
+
+- `status` (optional): `active` | `closed` | `archived`
+- `scenarioId` (optional)
+- `limit` (optional, default 50, max 200)
+- `offset` (optional, default 0)
+
+### Response
+
+```ts
+type AdminListSessionsResponse = {
+  sessions: SessionSummary[]
+  total: number
+}
+```
+
+---
+
+## A4. Inspect Session
+
+### Endpoint
+
+```text
+GET /v1/admin/sessions/{sessionId}
+```
+
+### Response
+
+```ts
+type AdminSessionDetailResponse = {
+  session: SessionSummary
+  messageCount: number
+  memory?: SessionMemorySummary
+  gameMasterState?: {
+    currentAvatarId?: string
+    progression: string
+    topicsCovered: string[]
+    interactionCount: number
+  }
+  recentEvents?: Array<{
+    id: string
+    type: string
+    severity: 'info' | 'warning' | 'error'
+    createdAt: string
+    requestId?: string
+    payload?: Record<string, unknown>
+  }>
+}
+```
+
+---
+
+## A5. Get Session Memory
+
+### Endpoint
+
+```text
+GET /v1/admin/sessions/{sessionId}/memory
+```
+
+### Response
+
+```ts
+type AdminSessionMemoryResponse = {
+  session: SessionMemorySummary
+  avatarMemories: Array<{
+    avatarId: string
+    summary: string
+    updatedAt: string
+  }>
+  userFacts: Array<{
+    id: string
+    category: string
+    key: string
+    value: string
+    confidence?: number | null
+    updatedAt: string
+  }>
+}
+```
+
+---
+
+## A6. Get Session Events
+
+### Endpoint
+
+```text
+GET /v1/admin/sessions/{sessionId}/events
+```
+
+### Query Parameters
+
+- `severity` (optional): `info` | `warning` | `error`
+- `limit` (optional, default 50)
+- `offset` (optional, default 0)
+
+### Response
+
+```ts
+type AdminSessionEventsResponse = {
+  events: Array<{
+    id: string
+    type: string
+    severity: 'info' | 'warning' | 'error'
+    requestId?: string
+    correlationId?: string
+    createdAt: string
+    payload?: Record<string, unknown>
+  }>
+  total: number
+}
+```
+
+---
+
+## A7. Reset Session
+
+Deletes runtime conversation data. Does NOT delete the session record itself.
+
+### Endpoint
+
+```text
+POST /v1/admin/sessions/{sessionId}/reset
+```
+
+### Response
+
+```ts
+type AdminResetSessionResponse = {
+  sessionId: string
+  deleted: {
+    messages: number
+    sessionMemory: boolean
+    avatarMemories: number
+    events: number
+  }
+}
+```
+
+### Notes
+
+- This action is logged in `AdminActionLog`
+- Audit entry includes actor, target session ID, and timestamp
+
+---
+
+## A8. Replay Last Turn
+
+Re-runs the Avatar call for the last user message without re-storing the user message. Useful for debugging quality issues on a specific turn.
+
+### Endpoint
+
+```text
+POST /v1/admin/sessions/{sessionId}/replay-last-turn
+```
+
+### Response
+
+```ts
+type AdminReplayTurnResponse = {
+  sessionId: string
+  replayedMessage: {
+    content: string
+    model?: string
+    latencyMs?: number
+    inputTokens?: number
+    outputTokens?: number
+  }
+}
+```
+
+### Notes
+
+- The replayed response is **not** stored
+- This action is logged in `AdminActionLog`
+
+---
+
+## A9. List Ingestion Jobs
+
+### Endpoint
+
+```text
+GET /v1/admin/jobs
+```
+
+### Query Parameters
+
+- `status` (optional): `pending` | `running` | `completed` | `failed`
+- `sourceId` (optional)
+- `limit` (optional, default 50)
+
+### Response
+
+```ts
+type AdminListJobsResponse = {
+  jobs: Array<{
+    id: string
+    sourceId: string
+    status: 'pending' | 'running' | 'completed' | 'failed'
+    attempts: number
+    startedAt?: string
+    completedAt?: string
+    errorMessage?: string
+    createdAt: string
+  }>
+  total: number
+}
+```
+
+---
+
+## A10. Retry Ingestion Job
+
+### Endpoint
+
+```text
+POST /v1/admin/jobs/{jobId}/retry
+```
+
+### Response
+
+```ts
+type AdminRetryJobResponse = {
+  jobId: string
+  status: 'pending' | 'running'
+}
+```
+
+### Notes
+
+- Idempotent: if the job is already pending/running, returns current status without creating a duplicate
+- This action is logged in `AdminActionLog`
+
+---
+
+## A11. Metrics Overview
+
+### Endpoint
+
+```text
+GET /v1/admin/metrics/overview
+```
+
+### Query Parameters
+
+- `since` (optional): ISO 8601 datetime, defaults to last 24h
+
+### Response
+
+```ts
+type AdminMetricsOverviewResponse = {
+  period: {
+    from: string
+    to: string
+  }
+  sessions: {
+    total: number
+    active: number
+  }
+  messages: {
+    total: number
+  }
+  tokens: {
+    input?: number
+    output?: number
+    total?: number
+    estimatedCostUsd?: number
+  }
+  latency: {
+    p50Ms?: number
+    p95Ms?: number
+  }
+  errors: {
+    total: number
+    byCode: Record<string, number>
+  }
+}
+```
+
+---
+
+## A12. Recent Errors
+
+### Endpoint
+
+```text
+GET /v1/admin/errors
+```
+
+### Query Parameters
+
+- `limit` (optional, default 50)
+
+### Response
+
+```ts
+type AdminErrorsResponse = {
+  errors: Array<{
+    id: string
+    type: string
+    sessionId?: string
+    requestId?: string
+    createdAt: string
+    payload?: Record<string, unknown>
+  }>
+}
+```
+
+---
+
+## A13. Audit Log
+
+### Endpoint
+
+```text
+GET /v1/admin/audit-log
+```
+
+### Query Parameters
+
+- `targetType` (optional): `session` | `job` | `scenario` | `source`
+- `targetId` (optional)
+- `limit` (optional, default 50)
+- `offset` (optional, default 0)
+
+### Response
+
+```ts
+type AdminAuditLogResponse = {
+  entries: Array<{
+    id: string
+    actor: string
+    actionType: string
+    targetType: string
+    targetId: string
+    payload?: Record<string, unknown>
+    createdAt: string
+  }>
+  total: number
+}
+```
+
+---
+
 # Game Master / Internal Runtime Shapes
 
 These are not necessarily public endpoints, but they define stable internal contract shapes that influence API payloads.
