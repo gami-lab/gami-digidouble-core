@@ -27,7 +27,8 @@ Before implementing any feature or making any architectural decision, consult th
 | [GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md) | Before touching the Game Master module                        |
 | [TECH_STACK.md](docs/TECH_STACK.md)                     | Before adding any dependency or infrastructure change         |
 | [EPICS.md](docs/EPICS.md)                               | For understanding which sprint/epic a task belongs to         |
-| [TEST_STRATEGY.md](docs/TEST_STRATEGY.md)               | Before writing or deciding on tests                           |
+| [TEST_STRATEGY.md](docs/TEST_STRATEGY.md)               | Before writing or deciding on tests (how to design tests)     |
+| [TEST_COVERAGE_PLAN.md](docs/TEST_COVERAGE_PLAN.md)     | Before implementing a module (what must be tested per module) |
 | [PROJECT_STATUS.md](docs/PROJECT_STATUS.md)             | For the current state of implemented features                 |
 
 ---
