@@ -10,10 +10,12 @@
  *   - unknown session returns 404 with correct error code
  *
  * Full happy-path stack test (deferred):
- *   A success-path test requires a pre-seeded session and avatar in the DB.
- *   This will be added once a session-creation API endpoint exists (planned
- *   for the Core Public API epic). For now, the happy path is covered by the
- *   in-process E2E (messages.e2e.test.ts) and unit/API tests (messages.test.ts).
+ *   A success-path test requires a pre-seeded avatar in the Docker stack.
+ *   Since no avatar API endpoint exists yet, the avatar cannot be created
+ *   via HTTP within the test itself.
+ *   TODO(EPIC-6.1 or EPIC-3.2): enable when POST /v1/avatars (or equivalent)
+ *   is available. Until then, avatar + session lifecycle is covered by
+ *   the in-process E2E (messages.e2e.test.ts) and unit/API tests (messages.test.ts).
  *
  * The Docker stack is configured with API_KEY_SECRET=e2e-stack-secret and
  * LLM_PROVIDER=${LLM_PROVIDER:-null} (see docker-compose.e2e.yml).
