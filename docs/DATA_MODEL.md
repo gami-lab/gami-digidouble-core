@@ -108,6 +108,7 @@ An Avatar is now a first-class object.
 - slug
 - status (draft / active / archived)
 - description (nullable)
+- tone (nullable)
 - persona_prompt
 - config (JSONB)
 - created_at
@@ -115,7 +116,7 @@ An Avatar is now a first-class object.
 
 ### Typical Config
 
-- tone / speaking style
+- speaking style details
 - role in the experience
 - response constraints
 - allowed knowledge scope
