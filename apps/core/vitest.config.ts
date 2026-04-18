@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
-    exclude: ['src/**/*.integration.test.ts', 'src/**/*.e2e.test.ts'],
+    exclude: ['src/**/*.integration.test.ts', 'src/**/*.e2e.test.ts', 'src/**/*.stack-e2e.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
     coverage: {
       provider: 'v8',
@@ -16,6 +16,7 @@ export default defineConfig({
         'src/**/*.test.ts',
         'src/**/*.integration.test.ts',
         'src/**/*.e2e.test.ts',
+        'src/**/*.stack-e2e.test.ts',
         // Entry point wired at runtime — not unit-testable
         'src/index.ts',
         // Pure TypeScript type/interface files — no executable code
