@@ -23,6 +23,8 @@ const event: TraceEvent = {
   requestId: 'req-003',
   sessionId: 'session-789',
   event: 'llm.completion',
+  input: [{ role: 'user', content: 'Hello' }],
+  output: 'Hello from the model.',
   latencyMs: 150,
   inputTokens: 20,
   outputTokens: 40,
@@ -67,6 +69,8 @@ describe('LangfuseObservabilityAdapter', () => {
     expect(usage['output']).toBe(event.outputTokens)
     expect(usage['totalCost']).toBe(event.costUsd)
     expect(genArg['metadata']).toEqual(event.metadata)
+    expect(genArg['input']).toEqual(event.input)
+    expect(genArg['output']).toBe(event.output)
   })
 
   it('does not propagate errors from langfuse.trace()', async () => {

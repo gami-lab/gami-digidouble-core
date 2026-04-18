@@ -10,6 +10,8 @@ export interface TraceEvent {
   requestId: string
   sessionId?: string
   event: string
+  input?: unknown
+  output?: unknown
   latencyMs?: number
   inputTokens?: number
   outputTokens?: number

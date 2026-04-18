@@ -14,10 +14,12 @@ export class SendRawMessageUseCase {
     const requestId = crypto.randomUUID()
     const start = Date.now()
 
-    const response = await this.llm.complete({
+    const llmRequest = {
       systemPrompt: input.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: input.userMessage }],
-    })
+      messages: [{ role: 'user' as const, content: input.userMessage }],
+    }
+
+    const response = await this.llm.complete(llmRequest)
 
     const latencyMs = Date.now() - start
 
@@ -25,6 +27,8 @@ export class SendRawMessageUseCase {
       .trace({
         requestId,
         event: 'llm.completion',
+        input: llmRequest.messages,
+        output: response.content,
         latencyMs,
         inputTokens: response.inputTokens,
         outputTokens: response.outputTokens,

@@ -81,6 +81,15 @@ describe('SendRawMessageUseCase', () => {
     expect(traceArg.event).toBe('llm.completion')
   })
 
+  it('passes the messages array as input and the reply as output in the trace event', async () => {
+    await useCase.execute({ userMessage: 'Tell me a joke.' })
+    await new Promise((r) => setTimeout(r, 0))
+
+    const traceArg = traceMock.mock.calls[0]?.[0] as TraceEvent
+    expect(traceArg.input).toEqual([{ role: 'user', content: 'Tell me a joke.' }])
+    expect(traceArg.output).toBe('Hello from the model.')
+  })
+
   it('passes the default system prompt when none is provided', async () => {
     await useCase.execute({ userMessage: 'Hello' })
 

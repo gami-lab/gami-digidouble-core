@@ -33,6 +33,8 @@ export class LangfuseObservabilityAdapter implements IObservabilityAdapter {
         name: event.event,
         startTime: new Date(Date.now() - (event.latencyMs ?? 0)),
         endTime: new Date(),
+        input: event.input ?? null,
+        output: event.output ?? null,
         usage: buildUsage(event),
         ...(event.metadata !== undefined ? { metadata: event.metadata } : {}),
       })
