@@ -149,6 +149,22 @@ Cases:
 
 Use `vi.useFakeTimers()` if needed to advance promises; ensure clean-up in `afterEach`.
 
+### 8. Stack E2E — verify `messages.stack-e2e.test.ts` still passes
+
+EPIC 2.2 modifies the `POST /v1/conversations/:sessionId/messages` endpoint (GM wiring). The
+existing `messages.stack-e2e.test.ts` exercises auth, schema validation, and resource-not-found
+paths — all of which must remain green after EPIC 2.2 changes.
+
+Do NOT create a new stack-e2e file for EPIC 2.2 (no new endpoint is introduced). Do verify that
+the existing stack-e2e suite still passes against the Docker stack:
+
+```sh
+APP_URL=http://localhost:3000 pnpm test:stack-e2e
+```
+
+If any always-on stack-e2e test fails after the EPIC 2.2 changes, fix the regression before
+marking the EPIC complete.
+
 ---
 
 ## Coverage Gate
@@ -197,3 +213,4 @@ Also verify manually:
 - [ ] GM error-swallowing is exercised in the `SendMessageUseCase` test
 - [ ] Coverage gate remains green
 - [ ] `pnpm lint`, `pnpm typecheck`, `pnpm test` all pass clean
+- [ ] `messages.stack-e2e.test.ts` still passes against the Docker stack (auth, validation, 404 cases unaffected by EPIC 2.2 changes)

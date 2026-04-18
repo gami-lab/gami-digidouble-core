@@ -183,6 +183,32 @@ Avoid giant prompts that mix too many concerns.
 
 ## 5. Final prompt should often include hardening + full doc sync
 
+## 6. Every new API endpoint MUST have a stack-e2e test file
+
+This is a non-negotiable rule. Any EPIC that introduces a new HTTP endpoint must produce a
+`*.stack-e2e.test.ts` file alongside the unit and E2E files.
+
+The stack-e2e file must at minimum cover:
+
+- **Auth enforcement** — requests with no API key and with a wrong API key both return `401`
+- **Schema validation** — requests with invalid or missing required fields return `400`
+- **Resource-not-found** — if the endpoint operates on a resource (e.g., a session), a request
+  with an unknown ID returns `404` with the correct error code in the `ApiResponse` envelope
+
+If a full success-path test (200) requires seeded data not yet available (e.g., no session
+creation API exists), the test file must:
+
+1. Skip the happy-path test with a clear `// TODO(EPIC-X): deferred until ...` comment
+2. Cover auth, validation, and resource-not-found without seeding
+3. Be ready to have the happy-path case added when the prerequisite API or seeding mechanism exists
+
+The stack-e2e file is owned by the same EPIC that creates the endpoint. Do not defer its
+creation to a future EPIC.
+
+**File naming convention:** `apps/core/src/api/routes/<route-name>.stack-e2e.test.ts`
+
+**Pattern to follow:** `exchange.stack-e2e.test.ts` in the same directory.
+
 ---
 
 # Special Rule: Documentation Discipline
