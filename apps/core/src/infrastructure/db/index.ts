@@ -5,4 +5,4 @@
  * All exports from this module will implement the port interfaces
  * defined in application/ports/.
  */
-export {}
+export { InMemoryAvatarRepository } from './in-memory-avatar.repository.js'
