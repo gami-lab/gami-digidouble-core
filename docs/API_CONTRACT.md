@@ -369,15 +369,17 @@ POST /v1/conversations/{sessionId}/messages
 
 ```ts id="uw9g8l"
 type SendMessageRequest = {
+  avatarId: string
   message: {
     content: string
   }
-  options?: {
-    stream?: boolean
-    debug?: boolean
-  }
 }
 ```
+
+Validation rules (Sprint 2 implementation):
+
+- `avatarId`: required, string, min length 1
+- `message.content`: required, string, min length 1, max length 4000
 
 ### Non-Streaming Response
 
@@ -386,19 +388,23 @@ type SendMessageResponse = {
   session: SessionSummary
   userMessage: Message
   avatarMessage: Message
-  memory?: SessionMemorySummary
-  debug?: {
-    requestId?: string
-    model?: string
-    latencyMs?: number
-    inputTokens?: number
-    outputTokens?: number
-    totalTokens?: number
-    costUsd?: number
-    gmTriggered?: boolean
+  debug: {
+    requestId: string
+    model: string
+    latencyMs: number
+    inputTokens: number
+    outputTokens: number
   }
 }
 ```
+
+`avatarMessage.metadata` includes:
+
+- `model`
+- `latencyMs`
+- `inputTokens`
+- `outputTokens`
+- `totalTokens`
 
 ### Behavior
 
@@ -410,6 +416,15 @@ type SendMessageResponse = {
   - Game Master observation
   - memory update
   - event logging
+
+### Error Mapping (Sprint 2 implementation)
+
+- `401` → `UNAUTHORIZED` (missing/wrong API key)
+- `400` → `VALIDATION_ERROR` (invalid request body)
+- `404` → `NOT_FOUND` (session or avatar not found)
+- `409` → `CONFLICT` (session is closed/archived)
+- `502` → `EXTERNAL_SERVICE_ERROR` (`LlmError`)
+- `500` → `INTERNAL_ERROR` (unexpected error)
 
 ---
 

@@ -2,13 +2,20 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import { fail } from '@gami/shared'
 import type { ILlmAdapter } from '../application/ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../application/ports/IObservabilityAdapter.js'
+import type { IAvatarRepository } from '../application/ports/IAvatarRepository.js'
+import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
+import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
 import type { Config } from '../config.js'
 import { exchangeRoute } from './routes/exchange.js'
 import { healthRoute } from './routes/health.js'
+import { messagesRoute } from './routes/messages.js'
 
 export interface ServerAdapters {
   llmAdapter?: ILlmAdapter
   observabilityAdapter?: IObservabilityAdapter
+  avatarRepository?: IAvatarRepository
+  sessionRepository?: ISessionRepository
+  messageRepository?: IMessageRepository
 }
 
 type FastifyValidationError = {
@@ -41,6 +48,7 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
 
   app.register(healthRoute)
   app.register(exchangeRoute, { config, ...adapters })
+  app.register(messagesRoute, { prefix: '/v1/conversations', config, ...adapters })
 
   return app
 }
