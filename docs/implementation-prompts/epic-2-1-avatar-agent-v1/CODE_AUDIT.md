@@ -25,19 +25,17 @@
 
 ## Overall grade
 
-**Grade: B**
+**Grade: A** _(post-remediation)_
 
-The EPIC delivers a clean, well-structured Avatar persona pipeline. The domain model is properly layered, the use case is readable and well-tested against its contracts, and the API route handles error mapping and auth correctly. There are no structural or architectural violations. The main weaknesses are: a magic config key (`personaAdjustments`) with no TypeScript contract; redundant double-limit application on history; a hardcoded style rule that belongs in config not the domain; and a second HTTP round-trip to the session repository inside the route handler that could be eliminated. None of these are blockers; the implementation is safe to build on.
+The initial delivery was B quality. After remediation the two Medium findings (untyped `personaAdjustments` magic key, hardcoded demo fixtures in the production route) are resolved, the secondary DB read in the route is eliminated, and test coverage for the `adjustments` path is explicit. The remaining deferred items are all Low severity with clear YAGNI justifications. The implementation is clean, correctly layered, contract-enforced, and safe to build on.
 
 ---
 
 ## Executive summary
 
-EPIC 2.1 is a solid foundation. The persona prompt assembly is deterministic, properly separated in the domain layer, and the dedup logic for the avatar's name is a good defensive touch. The `SendMessageUseCase` correctly orchestrates the full turn: load session and avatar, assemble prompt, fetch history, persist user message, call LLM, persist avatar message, fire observability non-blocking. All critical error cases are handled and mapped to appropriate HTTP status codes in the route. Testing is strong at the unit and integration levels.
+EPIC 2.1 is a solid, well-remediated foundation. The persona prompt assembly is deterministic, properly separated in the domain layer, and the dedup logic for the avatar's name is a good defensive touch. The `SendMessageUseCase` correctly orchestrates the full turn: load session and avatar, assemble prompt, fetch history, persist user message, call LLM, persist avatar message, fire observability non-blocking. All critical error cases are handled and mapped to appropriate HTTP status codes in the route. Testing is strong at the unit and integration levels.
 
-The two most important weaknesses are: (1) the `personaAdjustments` key read from an untyped `Record<string, unknown>` `config` field — this is a hidden contract that TypeScript cannot enforce; and (2) the route does a second database read (`getSessionOrThrow`) after the use case already loaded the session, to enrich the response — this is wasteful and adds latency with no benefit if the use case output included the session fields needed. Both are fixable without architectural change.
-
-A minor concern: `nowIso()` and `createMessageId()` are private instance methods on `SendMessageUseCase` but are stateless pure functions. This creates a gap in deterministic testability for assertions on exact `createdAt` or `messageId` values (tests currently rely on the field being present as a `string`, not on its specific value — acceptable for now, but worth noting for future needs).
+All Medium findings from the initial audit have been resolved. The `AvatarConfig.adjustments` field is now a typed `string[]` — no magic keys. The route no longer performs a second session repository read; session data flows through `SendMessageOutput`. Production defaults no longer seed demo fixtures. The adjustments path has explicit test coverage.
 
 The EPIC is safe to close and build upon.
 
@@ -219,9 +217,9 @@ These four changes, none requiring architectural rethinking, would raise the imp
 
 ## Final verdict
 
-**Close with follow-up debt.**
+**Close as-is** _(post-remediation)_
 
-EPIC 2.1 is a well-executed, solid foundation. The domain model, persona prompt pipeline, use case orchestration, and test coverage are all strong. The architecture is clean. Two findings (F7 demo data in production, F1 untyped config key) are worth addressing before they compound, but neither is a blocker to closing this EPIC and starting EPIC 2.2. The remaining findings are technical debt items to track and resolve during normal development.
+EPIC 2.1 is a clean, well-tested, correctly layered implementation. All Medium findings have been resolved. The four remaining deferred items are Low severity with clear YAGNI justifications appropriate for this MVP stage. The EPIC is ready for EPIC 2.2 to build on.
 
 ---
 

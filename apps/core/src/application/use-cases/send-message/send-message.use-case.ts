@@ -47,6 +47,14 @@ export class SendMessageUseCase {
     return {
       requestId,
       sessionId: session.sessionId,
+      session: {
+        sessionId: session.sessionId,
+        userId: session.userId,
+        scenarioId: session.scenarioId,
+        status: session.status,
+        startedAt: session.startedAt,
+        lastActivityAt: session.lastActivityAt,
+      },
       userMessage: {
         messageId: userMessage.messageId,
         content: userMessage.content,

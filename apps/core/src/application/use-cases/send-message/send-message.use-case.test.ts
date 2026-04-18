@@ -264,6 +264,12 @@ describe('SendMessageUseCase -> observability', () => {
     })
 
     expect(output.sessionId).toBe('sess_1')
+    expect(output.session).toMatchObject({
+      sessionId: 'sess_1',
+      userId: 'user_1',
+      scenarioId: 'scn_1',
+      status: 'active',
+    })
     expect(traceMock).toHaveBeenCalledTimes(1)
     expect(traceMock).toHaveBeenCalledWith(
       expect.objectContaining({

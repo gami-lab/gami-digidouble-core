@@ -117,7 +117,7 @@ An Avatar is now a first-class object.
 ### Implementation Alignment (TypeScript)
 
 - `Avatar` (persistence shape) includes all fields above with camelCase names: `id`, `scenarioId`, `name`, `slug`, `status`, `personaPrompt`, optional `tone`, optional `description`, required extensible `config`, `createdAt`, `updatedAt`.
-- `AvatarConfig` (runtime shape used by prompt assembly and send-message flow) includes: `avatarId`, `scenarioId`, `name`, `slug`, `status`, required `personaPrompt`, optional `tone`, optional `description`, optional `config`.
+- `AvatarConfig` (runtime shape used by prompt assembly and send-message flow) includes: `avatarId`, `scenarioId`, `name`, `slug`, `status`, required `personaPrompt`, optional `tone`, optional `description`, optional typed `adjustments: string[]` (ordered style adjustments appended to the assembled system prompt), optional extensible `config`.
 
 ### Typical Config
 

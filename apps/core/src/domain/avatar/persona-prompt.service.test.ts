@@ -54,12 +54,56 @@ describe('assemblePersonaPrompt -> empty personaPrompt', () => {
   })
 })
 
+describe('assemblePersonaPrompt -> adjustments included', () => {
+  it('appends non-empty adjustments after tone and before the style rule', () => {
+    const config = makeAvatarConfig({
+      personaPrompt: 'You are a focused guide.',
+      tone: 'precise',
+      adjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
+    })
+
+    const prompt = assemblePersonaPrompt(config)
+    const toneIndex = prompt.indexOf('Your tone is precise.')
+    const firstAdjIndex = prompt.indexOf('Avoid markdown tables.')
+    const secondAdjIndex = prompt.indexOf('Use short paragraphs.')
+    const styleRuleIndex = prompt.indexOf('Stay in character')
+
+    expect(prompt).toContain('Avoid markdown tables.')
+    expect(prompt).toContain('Use short paragraphs.')
+    expect(firstAdjIndex).toBeGreaterThan(toneIndex)
+    expect(secondAdjIndex).toBeGreaterThan(firstAdjIndex)
+    expect(styleRuleIndex).toBeGreaterThan(secondAdjIndex)
+  })
+
+  it('omits adjustments section when adjustments is undefined', () => {
+    const config = makeAvatarConfig({
+      name: 'Cosmos',
+      personaPrompt: 'You are a helpful guide.',
+      adjustments: undefined,
+    })
+
+    const prompt = assemblePersonaPrompt(config)
+    const lines = prompt.split('\n\n')
+
+    // personaPrompt + name + tone + DEFAULT_STYLE_RULE — no adjustment lines
+    expect(lines).toHaveLength(4)
+  })
+
+  it('skips blank or whitespace-only adjustments', () => {
+    const config = makeAvatarConfig({ adjustments: ['', '  ', 'Keep it brief.'] })
+
+    const prompt = assemblePersonaPrompt(config)
+
+    expect(prompt).toContain('Keep it brief.')
+    // blank items do not produce empty sections
+    expect(prompt).not.toMatch(/\n\n\n/)
+  })
+})
+
 describe('assemblePersonaPrompt -> determinism', () => {
   it('returns exactly the same output across repeated calls with same input', () => {
     const config = makeAvatarConfig({
-      config: {
-        personaAdjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
-      },
+      adjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
     })
 
     const first = assemblePersonaPrompt(config)

@@ -7,7 +7,6 @@ import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
-import type { Session } from '../../domain/conversation/session.types.js'
 import { DomainError } from '../../domain/errors.js'
 import type { Config } from '../../config.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
@@ -76,7 +75,6 @@ type SendMessageResponse = {
 type RouteDependencies = {
   useCase: SendMessageUseCase
   observabilityAdapter: IObservabilityAdapter
-  sessionRepository: ISessionRepository
 }
 
 const messagesBodySchema = {
@@ -116,8 +114,7 @@ export const messagesRoute: FastifyPluginCallback<MessagesRouteOptions> = (app, 
           avatarId: request.body.avatarId,
           userMessage: request.body.message.content,
         })
-        const session = await getSessionOrThrow(deps.sessionRepository, output.sessionId)
-        const response = mapSendMessageResponse(output, session)
+        const response = mapSendMessageResponse(output)
         return await reply.send(ok<SendMessageResponse>(response))
       } catch (error) {
         const mappedError = handleRouteError(error)
@@ -136,13 +133,12 @@ function createRouteDependencies(options: MessagesRouteOptions): RouteDependenci
       langfuseSecretKey: options.config.langfuseSecretKey,
       langfuseHost: options.config.langfuseHost,
     })
-  const avatarRepository = options.avatarRepository ?? createDefaultAvatarRepository()
-  const sessionRepository = options.sessionRepository ?? createDefaultSessionRepository()
+  const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
+  const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
   const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
 
   return {
     observabilityAdapter,
-    sessionRepository,
     useCase: new SendMessageUseCase(
       sessionRepository,
       avatarRepository,
@@ -162,52 +158,15 @@ function buildLlmConfig(config: Config): LlmConfig {
   }
 }
 
-function createDefaultAvatarRepository(): InMemoryAvatarRepository {
-  return new InMemoryAvatarRepository([
-    {
-      avatarId: 'ava_demo',
-      scenarioId: 'scn_demo',
-      name: 'Demo Avatar',
-      slug: 'demo-avatar',
-      status: 'active',
-      personaPrompt: 'You are a helpful assistant.',
-    },
-  ])
-}
-
-function createDefaultSessionRepository(): InMemorySessionRepository {
-  return new InMemorySessionRepository([
-    {
-      sessionId: 'sess_demo',
-      userId: 'user_demo',
-      scenarioId: 'scn_demo',
-      status: 'active',
-      startedAt: '2026-01-01T00:00:00.000Z',
-      lastActivityAt: '2026-01-01T00:00:00.000Z',
-      endedAt: null,
-    },
-  ])
-}
-
-function getSessionOrThrow(
-  sessionRepository: ISessionRepository,
-  sessionId: string,
-): Promise<Session> {
-  return sessionRepository.findById(sessionId).then((session) => {
-    if (session === null) throw new Error(`Session ${sessionId} was not found after send message.`)
-    return session
-  })
-}
-
-function mapSendMessageResponse(output: SendMessageOutput, session: Session): SendMessageResponse {
+function mapSendMessageResponse(output: SendMessageOutput): SendMessageResponse {
   return {
     session: {
-      sessionId: session.sessionId,
-      userId: session.userId,
-      scenarioId: session.scenarioId,
-      status: session.status,
-      startedAt: session.startedAt,
-      lastActivityAt: session.lastActivityAt,
+      sessionId: output.session.sessionId,
+      userId: output.session.userId,
+      scenarioId: output.session.scenarioId,
+      status: output.session.status,
+      startedAt: output.session.startedAt,
+      lastActivityAt: output.session.lastActivityAt,
     },
     userMessage: {
       messageId: output.userMessage.messageId,

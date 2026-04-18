@@ -14,7 +14,7 @@ export function assemblePersonaPrompt(config: AvatarConfig): string {
     sections.push(`Your tone is ${config.tone.trim()}.`)
   }
 
-  sections.push(...buildConfigAdjustments(config.config))
+  sections.push(...buildAdjustments(config.adjustments))
 
   // EPIC 2.2 extension point: inject async Game Master directives here.
   sections.push(DEFAULT_STYLE_RULE)
@@ -39,20 +39,9 @@ function shouldAppendName(personaPrompt: string, name: string): boolean {
   return !namePattern.test(personaPrompt)
 }
 
-function buildConfigAdjustments(config: AvatarConfig['config']): string[] {
-  if (config === undefined) {
-    return []
-  }
-
-  const rawAdjustments = config.personaAdjustments
-  if (!Array.isArray(rawAdjustments)) {
-    return []
-  }
-
-  return rawAdjustments
-    .filter((value): value is string => typeof value === 'string')
-    .map((value) => value.trim())
-    .filter((value) => value.length > 0)
+function buildAdjustments(adjustments: AvatarConfig['adjustments']): string[] {
+  if (adjustments === undefined) return []
+  return adjustments.map((a) => a.trim()).filter((a) => a.length > 0)
 }
 
 function hasText(value: string | undefined): value is string {

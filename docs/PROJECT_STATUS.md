@@ -145,17 +145,17 @@ EPIC 2.1 — Avatar Agent v1 closure summary:
 
 - Delivered scope:
   - Avatar domain model and repository port (`domain/avatar/avatar.types.ts`, `application/ports/IAvatarRepository.ts`)
-  - Persona-driven prompt assembly (`domain/avatar/persona-prompt.service.ts`) with fixture support (`domain/avatar/avatar.fixtures.ts`)
-  - Conversation orchestration use case (`application/use-cases/send-message/send-message.use-case.ts`) with session validation, avatar loading, history assembly, and message persistence
-  - HTTP endpoint `POST /v1/conversations/:sessionId/messages` (`api/routes/messages.ts`) with auth, validation, contract mapping, and error mapping
+  - Persona-driven prompt assembly (`domain/avatar/persona-prompt.service.ts`) with fixture support (`domain/avatar/avatar.fixtures.ts`); `adjustments?: string[]` is a typed first-class field on `AvatarConfig` (no magic config keys)
+  - Conversation orchestration use case (`application/use-cases/send-message/send-message.use-case.ts`) with session validation, avatar loading, history assembly, message persistence; use case output includes `session` summary (no second DB read at route level)
+  - HTTP endpoint `POST /v1/conversations/:sessionId/messages` (`api/routes/messages.ts`) with auth, validation, contract mapping, and error mapping; route defaults to empty in-memory repos (no hardcoded demo fixtures)
 - Key design decisions locked in EPIC 2.1:
   - History limit hard-capped to 20 messages before LLM invocation
   - `avatarId` is required in request body for Sprint 2 (temporary until scenario-defaulted avatar flow in Sprint 4)
   - Non-blocking observability tracing; LLM errors propagate; observability failures are swallowed/logged
   - Explicit `// TODO(EPIC-2.2): trigger GM observation` marker after avatar message persistence
 - Test and quality summary for EPIC closure:
-  - Core unit suite: 91 tests across 15 test files (`corepack pnpm --filter @gami/shared build && corepack pnpm --filter @gami/core test:coverage`)
-  - Coverage: 94.90% statements, 85.64% branches, 100% functions, 94.90% lines
+  - Core unit suite: 94 tests across 15 test files
+  - Coverage gate (≥80%) retained on all dimensions
   - Route coverage includes `messages.test.ts` and optional real-provider `messages.e2e.test.ts` (`describe.skipIf(!OPENAI_API_KEY)`)
   - All Sprint 2 documentation targets synchronized to implementation (PROJECT_STATUS, API_CONTRACT, DATA_MODEL, ARCHITECTURE, TEST_STRATEGY)
 
@@ -181,11 +181,11 @@ Test coverage hardening (post-EPIC 1.2):
 
 ### Sprint 2 — Avatar + Game Master
 
-| Epic                            | Status       | Notes                                                                                                                                                                                                                                        |
-| ------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EPIC 2.1 — Avatar Agent v1      | **Complete** | Prompt 01 done; Prompt 02 done: persona prompt assembly service + unit tests; Prompt 03 done: SendMessage use case; Prompt 04 done: `POST /v1/conversations/:sessionId/messages`; Prompt 05 done: tests + hardening + coverage gate retained |
-| EPIC 2.2 — Async Game Master v1 | Not started  | Triggers, structured outputs, async directives                                                                                                                                                                                               |
-| EPIC 2.3 — Performance Baseline | Not started  | Latency, TTFT, token usage benchmarks                                                                                                                                                                                                        |
+| Epic                            | Status       | Notes                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EPIC 2.1 — Avatar Agent v1      | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained. |
+| EPIC 2.2 — Async Game Master v1 | Not started  | Triggers, structured outputs, async directives                                                                                                                                                                                                                                                                                                |
+| EPIC 2.3 — Performance Baseline | Not started  | Latency, TTFT, token usage benchmarks                                                                                                                                                                                                                                                                                                         |
 
 ### Sprint O — Operations / Control Plane
 
