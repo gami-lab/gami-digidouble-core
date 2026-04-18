@@ -81,6 +81,7 @@ Real adapter collaboration: real PostgreSQL for repositories, real Redis when Re
 ### E2E (`*.e2e.test.ts`)
 
 Full HTTP-stack flows through an **in-process** Fastify server (`inject()` — no real TCP). Same `describe.skipIf` guard convention. Tests using `null` LLM always execute; provider-dependent tests are skipped unless the key is present.
+Example naming is current and enforced by practice (e.g., `exchange.e2e.test.ts`, `messages.e2e.test.ts`).
 
 ### Stack E2E (`*.stack-e2e.test.ts`)
 
@@ -171,7 +172,7 @@ Enforced in `vitest.config.ts` via `@vitest/coverage-v8`. Build fails if any thr
 
 Excluded from coverage: `*.types.ts`, `application/ports/**`, `infrastructure/cache/**`, `infrastructure/db/**`, `index.ts`.
 
-**Current baseline (post-EPIC 1.2):** 94.4% statements · 87.9% branches · 100% functions · 62 tests · 12 files
+**Current baseline (post-EPIC 2.1):** 94.9% statements · 85.64% branches · 100% functions · 91 tests · 15 files
 
 ---
 

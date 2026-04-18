@@ -109,10 +109,15 @@ An Avatar is now a first-class object.
 - status (draft / active / archived)
 - description (nullable)
 - tone (nullable)
-- persona_prompt
-- config (JSONB)
+- persona_prompt (required, non-null)
+- config (JSONB, required, extensible)
 - created_at
 - updated_at
+
+### Implementation Alignment (TypeScript)
+
+- `Avatar` (persistence shape) includes all fields above with camelCase names: `id`, `scenarioId`, `name`, `slug`, `status`, `personaPrompt`, optional `tone`, optional `description`, required extensible `config`, `createdAt`, `updatedAt`.
+- `AvatarConfig` (runtime shape used by prompt assembly and send-message flow) includes: `avatarId`, `scenarioId`, `name`, `slug`, `status`, required `personaPrompt`, optional `tone`, optional `description`, optional `config`.
 
 ### Typical Config
 
@@ -187,13 +192,17 @@ Represents one message in a session.
 - avatar_id (nullable)
 - metadata (JSONB)
 
-### Metadata Examples
+### Metadata Shape (JSONB)
 
-- model used
-- latency_ms
-- token counts
-- trigger source
-- stream stats
+Current `MessageMetadata` fields:
+
+- `model?`
+- `latencyMs?`
+- `inputTokens?`
+- `outputTokens?`
+- `totalTokens?`
+- `costUsd?`
+- `triggerSource?`
 
 ### Notes
 
