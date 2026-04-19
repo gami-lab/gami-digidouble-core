@@ -130,3 +130,41 @@ describe('CreateAvatarUseCase', () => {
     expect(output.avatar.adjustments).toBeUndefined()
   })
 })
+
+describe('CreateAvatarUseCase — optional fields', () => {
+  it('passes optional fields (tone, description, adjustments) through to repository and output', async () => {
+    const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+    createAvatarMock.mockResolvedValue(
+      makeAvatarConfig({
+        avatarId: 'avatar_opt',
+        name: 'Lex',
+        slug: 'lex',
+        personaPrompt: 'You are Lex.',
+        tone: 'formal',
+        description: 'A formal legal assistant.',
+        adjustments: ['Use concise sentences.', 'Avoid jargon.'],
+      }),
+    )
+
+    const output = await useCase.execute({
+      scenarioId: 'scenario_1',
+      name: 'Lex',
+      slug: 'lex',
+      personaPrompt: 'You are Lex.',
+      tone: 'formal',
+      description: 'A formal legal assistant.',
+      adjustments: ['Use concise sentences.', 'Avoid jargon.'],
+    })
+
+    expect(createAvatarMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tone: 'formal',
+        description: 'A formal legal assistant.',
+        adjustments: ['Use concise sentences.', 'Avoid jargon.'],
+      }),
+    )
+    expect(output.avatar.tone).toBe('formal')
+    expect(output.avatar.description).toBe('A formal legal assistant.')
+    expect(output.avatar.adjustments).toEqual(['Use concise sentences.', 'Avoid jargon.'])
+  })
+})

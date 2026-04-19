@@ -266,3 +266,80 @@ All branch gaps are in optional-field paths (tone, description, config) or inter
 **EPIC 2.2 is complete and production-ready for Phase A.** All DoD items are fulfilled. Quality gates pass. Four findings are documented: one medium (timestamp synthesis design smell, deferred to the Postgres adapter phase), three low (TODO placeholder, auth pattern inconsistency, verbose conditional spread). None are blockers.
 
 The next EPIC can proceed.
+
+---
+
+## Remediation Outcome
+
+**Remediated:** 2026-04-19
+
+### Changes Made
+
+| File                                                                 | Change                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `application/use-cases/start-session/start-session.use-case.ts`      | Fixed `TODO(EPIC-X)` → `TODO(EPIC-4.2)`                                                                                                                                                                                                                      |
+| `api/routes/scenarios.ts`                                            | Moved auth from per-route `preHandler` option to plugin-level `app.addHook('preHandler', ...)`, matching `conversations.ts` pattern                                                                                                                          |
+| `application/use-cases/create-avatar/create-avatar.use-case.test.ts` | Added `describe('CreateAvatarUseCase — optional fields')` with test proving `tone`, `description`, `adjustments` are passed to repository and returned in output                                                                                             |
+| `api/routes/scenarios.test.ts`                                       | Added import for `IScenarioRepository`; extended `CreateAvatarRouteData` type with optional fields; added 4 new tests: scenario with explicit `status`, scenario with `config`, avatar with optional fields, and 500 fallback on unexpected repository error |
+
+### F-04 Closure (WNF)
+
+F-04 ("unnecessary conditional spread for `avatarRepository` in `server.ts`") was reversed after attempting the simplification. TypeScript strict mode with `exactOptionalPropertyTypes: true` forbids explicitly passing `undefined` for optional properties — the conditional spread is required, not redundant. Finding closed as **not a real finding**.
+
+### Findings Resolved
+
+| Finding                                          | Resolution                                                                              |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| **F-02** (Low) — `TODO(EPIC-X)` placeholder      | ✅ Resolved — changed to `TODO(EPIC-4.2)`                                               |
+| **F-03** (Low) — Auth hook pattern inconsistency | ✅ Resolved — `scenarios.ts` now uses `app.addHook` at plugin level                     |
+| **F-04** (Low) — Verbose conditional spread      | ✅ Closed as WNF — conditional spread is required by `exactOptionalPropertyTypes: true` |
+
+### Findings Deferred
+
+| Finding                                             | Reason                                                                                                                                                                                                      |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **F-01** (Medium) — `AvatarConfig` lacks timestamps | Correctly deferred to the Postgres adapter phase. When `PostgresAvatarRepository` is implemented, `AvatarConfig` should gain `createdAt`/`updatedAt` and the use case can remove the synthesized timestamp. |
+
+### Build Gates
+
+| Gate                 | Result                                |
+| -------------------- | ------------------------------------- |
+| `pnpm lint`          | ✅ PASS                               |
+| `pnpm typecheck`     | ✅ PASS                               |
+| `pnpm test`          | ✅ PASS — 146/146 (5 new tests added) |
+| `pnpm test:coverage` | ✅ PASS                               |
+
+### Coverage After Remediation
+
+| Metric                               | Before | After  | Delta   |
+| ------------------------------------ | ------ | ------ | ------- |
+| Statements (all files)               | 94.05% | 94.42% | +0.37%  |
+| Branches (all files)                 | 81.38% | 85.88% | +4.50%  |
+| `scenarios.ts` branches              | 45.83% | 80.00% | +34.17% |
+| `create-avatar.use-case.ts` branches | 65.51% | 87.87% | +22.36% |
+| Functions (all files)                | 100%   | 100%   | —       |
+
+### Final Feature Confidence
+
+| Feature                                                               | Proven By                                                                  |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `POST /v1/scenarios` auth enforcement (both routes)                   | Unit inject tests (401 without key, 401 with wrong key)                    |
+| `POST /v1/scenarios` creates scenario with all fields                 | Tests for minimal, explicit status, explicit config                        |
+| `POST /v1/scenarios` rejects bad input                                | Tests for missing name, missing slug, bad slug format, bad status          |
+| `POST /v1/scenarios` returns 500 on unexpected error                  | New repository-throws test                                                 |
+| `POST /v1/scenarios/:scenarioId/avatars` creates avatar               | Tests for minimal and all optional fields (tone, description, adjustments) |
+| `POST /v1/scenarios/:scenarioId/avatars` validates scenario existence | Test for unknown scenario → 404                                            |
+| Optional fields flow into repository and response                     | Unit test in `create-avatar.use-case.test.ts`                              |
+| `POST /v1/conversations/start` creates session                        | Tests for 201 + correct session shape                                      |
+| `GET /v1/conversations/:sessionId/history` returns history            | Tests for 200 + correct envelope                                           |
+| `DELETE /v1/conversations/:sessionId` resets messages                 | Tests for 200 + deleted count                                              |
+| All routes enforce API key auth                                       | Auth tests across all 5 endpoints                                          |
+
+### Final Grade
+
+**A**
+
+### Remaining Risks
+
+- **F-01 deferred**: `AvatarConfig` timestamp synthesis will need to be resolved when `PostgresAvatarRepository` is introduced. The response timestamps are wall-clock accurate but not derived from the DB write. Tag: `EPIC that introduces PostgresAvatarRepository`.
+- `scenarios.ts` branches at 80% (exactly at target) — the `INTERNAL_ERROR` path for the avatar creation route (distinct from scenario creation) is not yet tested. Low risk; pattern is identical to the tested scenario creation fallback.

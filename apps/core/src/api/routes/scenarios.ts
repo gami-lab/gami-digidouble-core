@@ -123,12 +123,11 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
   const createScenarioUseCase = new CreateScenarioUseCase(scenarioRepository)
   const createAvatarUseCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
 
+  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
+
   app.post<{ Body: CreateScenarioRequestBody }>(
     '/',
-    {
-      schema: { body: createScenarioBodySchema },
-      preHandler: authenticateApiKey(options.config.apiKeySecret),
-    },
+    { schema: { body: createScenarioBodySchema } },
     async (request, reply) => {
       try {
         const output = await createScenarioUseCase.execute(mapCreateInput(request.body))
@@ -149,7 +148,6 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
         params: createAvatarParamsSchema,
         body: createAvatarBodySchema,
       },
-      preHandler: authenticateApiKey(options.config.apiKeySecret),
     },
     async (request, reply) => {
       try {

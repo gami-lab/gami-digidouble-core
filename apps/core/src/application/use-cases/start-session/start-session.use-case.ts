@@ -6,7 +6,7 @@ export class StartSessionUseCase {
   constructor(private readonly sessionRepository: ISessionRepository) {}
 
   async execute(input: StartSessionInput): Promise<StartSessionOutput> {
-    // TODO(EPIC-X): expand to full StartSessionRequest shape (nested user, initialContext)
+    // TODO(EPIC-4.2): expand to full StartSessionRequest shape (nested user, initialContext)
     const userId = input.userId.trim()
     const scenarioId = input.scenarioId.trim()
 
