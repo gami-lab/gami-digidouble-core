@@ -195,6 +195,11 @@ EPIC 2.2 — Prompt 03 (Session lifecycle endpoints) is done:
   - History omits `memory` (deferred to EPIC 4.2)
   - Reset hardcodes `sessionMemory=false` (EPIC 4.2) and `events=0` (EPIC 3.3)
 
+EPIC 2.2 — Prompt 04 (Messages stack happy path) is done:
+
+- `api/routes/messages.stack-e2e.test.ts` now includes a working happy-path stack test that creates scenario + avatar + session via HTTP, then sends a message and asserts response contract shape
+- Happy-path section is guarded with `describe.skipIf(!isNullProvider)` so it runs in null-provider stack environments and skips otherwise
+
 Test coverage hardening (post-EPIC 1.2):
 
 - `@vitest/coverage-v8` installed; coverage thresholds enforced at 80% lines/branches/functions/statements

@@ -9,22 +9,51 @@
  *   - schema validation rejection (missing required fields)
  *   - unknown session returns 404 with correct error code
  *
- * Full happy-path stack test (deferred):
- *   A success-path test requires a pre-seeded avatar in the Docker stack.
- *   Since no avatar API endpoint exists yet, the avatar cannot be created
- *   via HTTP within the test itself.
- *   TODO(EPIC-6.1 or EPIC-3.2): enable when POST /v1/avatars (or equivalent)
- *   is available. Until then, avatar + session lifecycle is covered by
- *   the in-process E2E (messages.e2e.test.ts) and unit/API tests (messages.test.ts).
+ * Full happy-path test:
+ *   Creates scenario + avatar + session via API, then sends a message.
+ *   Guarded by describe.skipIf(!isNullProvider) — runs only when LLM_PROVIDER=null.
  *
  * The Docker stack is configured with API_KEY_SECRET=e2e-stack-secret and
  * LLM_PROVIDER=${LLM_PROVIDER:-null} (see docker-compose.e2e.yml).
  */
 import { describe, expect, it } from 'vitest'
+import type { ApiResponse } from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
 const ENDPOINT = `${APP_URL}/v1/conversations/sess_unknown/messages`
+const isNullProvider = (process.env['LLM_PROVIDER'] ?? 'null') === 'null'
+
+type CreateScenarioResponse = {
+  scenario: {
+    scenarioId: string
+  }
+}
+
+type CreateAvatarResponse = {
+  avatar: {
+    avatarId: string
+    scenarioId: string
+  }
+}
+
+type StartSessionResponse = {
+  session: {
+    sessionId: string
+  }
+}
+
+type SendMessageResponse = {
+  session: {
+    sessionId: string
+  }
+  userMessage: {
+    content: string
+  }
+  avatarMessage: {
+    content: string
+  }
+}
 
 // ── Auth guard tests (always run) ────────────────────────────────────────────
 
@@ -117,3 +146,108 @@ describe('Stack E2E — POST /v1/conversations/:sessionId/messages — resource 
     expect(body.error.code).toBe('NOT_FOUND')
   })
 })
+
+describe.skipIf(!isNullProvider)(
+  'Stack E2E — POST /v1/conversations/:sessionId/messages — null provider happy path',
+  () => {
+    let scenarioId = ''
+    let avatarId = ''
+    let sessionId = ''
+    const userMessage = 'Hello from stack-e2e'
+
+    it('creates scenario, avatar, and session via HTTP setup', async () => {
+      const idSuffix = String(Date.now())
+
+      const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({
+          name: `Messages Stack Scenario ${idSuffix}`,
+          slug: `messages-stack-scenario-${idSuffix}`,
+        }),
+      })
+
+      if (createScenarioRes.status !== 201) {
+        throw new Error(
+          `Expected 201 from POST /v1/scenarios, got ${String(createScenarioRes.status)}: ${await createScenarioRes.text()}`,
+        )
+      }
+
+      const createdScenario =
+        (await createScenarioRes.json()) as ApiResponse<CreateScenarioResponse>
+      scenarioId = createdScenario.data?.scenario.scenarioId ?? ''
+      expect(scenarioId.length).toBeGreaterThan(0)
+
+      const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({
+          name: `Messages Stack Avatar ${idSuffix}`,
+          slug: `messages-stack-avatar-${idSuffix}`,
+          personaPrompt: 'You are a stack e2e test avatar.',
+        }),
+      })
+
+      if (createAvatarRes.status !== 201) {
+        throw new Error(
+          `Expected 201 from POST /v1/scenarios/:scenarioId/avatars, got ${String(createAvatarRes.status)}: ${await createAvatarRes.text()}`,
+        )
+      }
+
+      const createdAvatar = (await createAvatarRes.json()) as ApiResponse<CreateAvatarResponse>
+      avatarId = createdAvatar.data?.avatar.avatarId ?? ''
+      expect(avatarId.length).toBeGreaterThan(0)
+
+      const startSessionRes = await fetch(`${APP_URL}/v1/conversations/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({
+          userId: `user_messages_stack_${idSuffix}`,
+          scenarioId,
+        }),
+      })
+
+      if (startSessionRes.status !== 201) {
+        throw new Error(
+          `Expected 201 from POST /v1/conversations/start, got ${String(startSessionRes.status)}: ${await startSessionRes.text()}`,
+        )
+      }
+
+      const startedSession = (await startSessionRes.json()) as ApiResponse<StartSessionResponse>
+      sessionId = startedSession.data?.session.sessionId ?? ''
+      expect(sessionId.length).toBeGreaterThan(0)
+    })
+
+    it('sends a message and returns expected response shape', async () => {
+      expect(sessionId.length).toBeGreaterThan(0)
+      expect(avatarId.length).toBeGreaterThan(0)
+
+      const res = await fetch(`${APP_URL}/v1/conversations/${sessionId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({ avatarId, message: { content: userMessage } }),
+      })
+
+      expect(res.status).toBe(200)
+
+      const body = (await res.json()) as ApiResponse<SendMessageResponse>
+      expect(body.error).toBeNull()
+      expect(body.data?.session.sessionId).toBe(sessionId)
+      expect(body.data?.userMessage.content).toBe(userMessage)
+      expect(typeof body.data?.avatarMessage.content).toBe('string')
+      expect((body.data?.avatarMessage.content.length ?? 0) > 0).toBe(true)
+    })
+  },
+)
