@@ -178,6 +178,23 @@ EPIC 2.2 — Prompt 02 (Avatar creation endpoint) is done:
 - `api/routes/avatars.stack-e2e.test.ts` added to cover auth, validation, unknown scenario (`404`), and full success flow (`201`) by creating a scenario then an avatar via real HTTP
 - `docs/API_CONTRACT.md` updated with the avatar creation contract (`POST /v1/scenarios/{scenarioId}/avatars`)
 
+EPIC 2.2 — Prompt 03 (Session lifecycle endpoints) is done:
+
+- `application/ports/IMessageRepository.ts` extended with `deleteBySessionId(sessionId): Promise<number>`
+- `infrastructure/db/in-memory-message.repository.ts` now implements in-place message deletion by `sessionId` and returns deleted count
+- Added use cases: `StartSessionUseCase`, `GetHistoryUseCase`, and `ResetSessionUseCase` with `DomainError` mappings for validation and not-found flows
+- Added `api/routes/conversations.ts` with:
+  - `POST /v1/conversations/start`
+  - `GET /v1/conversations/:sessionId/history`
+  - `DELETE /v1/conversations/:sessionId`
+- `api/server.ts` now registers `conversationsRoute` under `/v1/conversations` alongside `messagesRoute`
+- Added `api/routes/conversations.test.ts` (inject-based route tests) for auth, validation, not-found, and success paths
+- Added `api/routes/conversations.stack-e2e.test.ts` for stack lifecycle flow: start → history → reset → history (session preserved)
+- Updated `docs/API_CONTRACT.md` notes for Sprint 2 simplifications/deferred fields:
+  - Start Session uses flat `userId` + `scenarioId`
+  - History omits `memory` (deferred to EPIC 4.2)
+  - Reset hardcodes `sessionMemory=false` (EPIC 4.2) and `events=0` (EPIC 3.3)
+
 Test coverage hardening (post-EPIC 1.2):
 
 - `@vitest/coverage-v8` installed; coverage thresholds enforced at 80% lines/branches/functions/statements
@@ -203,7 +220,7 @@ Test coverage hardening (post-EPIC 1.2):
 | Epic                            | Status       | Notes                                                                                                                                                                                                                                                                                                                                         |
 | ------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | EPIC 2.1 — Avatar Agent v1      | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained. |
-| EPIC 2.2 — Async Game Master v1 | In progress  | Prompt 01 delivered: scenario repository + create-scenario use case + `POST /v1/scenarios`; remaining work covers GM triggers, structured outputs, and async directives                                                                                                                                                                       |
+| EPIC 2.2 — Async Game Master v1 | In progress  | Prompt 01–03 delivered: scenario creation, avatar creation, and session lifecycle endpoints (`start`, `history`, `reset`); remaining work covers GM triggers, structured outputs, and async directives                                                                                                                                        |
 | EPIC 2.3 — Performance Baseline | Not started  | Latency, TTFT, token usage benchmarks                                                                                                                                                                                                                                                                                                         |
 
 ### Sprint O — Operations / Control Plane
