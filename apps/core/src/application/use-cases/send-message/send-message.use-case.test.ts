@@ -22,7 +22,7 @@ const sessionRepository = {
   delete: vi.fn(),
 }
 
-const avatarRepository = { findById: findAvatarByIdMock }
+const avatarRepository = { findById: findAvatarByIdMock, create: vi.fn() }
 const messageRepository = { findBySessionId: findMessagesBySessionIdMock, save: saveMessageMock }
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: flushMock }

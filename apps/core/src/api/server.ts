@@ -57,6 +57,9 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     prefix: '/v1/scenarios',
     config,
     scenarioRepository: adapters.scenarioRepository ?? new InMemoryScenarioRepository(),
+    ...(adapters.avatarRepository !== undefined
+      ? { avatarRepository: adapters.avatarRepository }
+      : {}),
   })
 
   return app
