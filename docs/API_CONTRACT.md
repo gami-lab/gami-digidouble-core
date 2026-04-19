@@ -334,21 +334,8 @@ POST /v1/conversations/start
 
 ```ts id="za0q2v"
 type StartSessionRequest = {
-  user: {
-    userId?: string
-    externalId?: string
-    email?: string
-    metadata?: Record<string, unknown>
-  }
+  userId: string
   scenarioId: string
-  initialContext?: {
-    notes?: string
-    userFacts?: Array<{
-      category: string
-      key: string
-      value: string
-    }>
-  }
 }
 ```
 
@@ -357,12 +344,6 @@ type StartSessionRequest = {
 ```ts id="jy22i6"
 type StartSessionResponse = {
   session: SessionSummary
-  gameMaster?: {
-    mode: 'init'
-    avatarId?: string
-    notes?: string
-    directives?: string[]
-  }
 }
 ```
 
@@ -371,6 +352,7 @@ type StartSessionResponse = {
 - If the user does not already exist, the system may create a minimal user.
 - Session start may synchronously initialize minimal Game Master state.
 - Sprint 2 simplification: request uses flat `userId` and `scenarioId` fields. Nested `user` object and `initialContext` are deferred to a later EPIC.
+- Sprint 2 simplification: `scenarioId` existence is not validated at this endpoint yet (no FK check in in-memory flow).
 
 ---
 
@@ -435,7 +417,7 @@ type SendMessageResponse = {
 - Runs one LLM completion for the avatar turn
 - Stores avatar response
 - Emits observability trace in non-blocking mode
-- Game Master trigger integration is not active yet (`TODO(EPIC-2.2)` in use case)
+- Game Master trigger integration is not active yet (`TODO(EPIC-4.1)` in use case)
 
 ### Error Mapping (Sprint 2 implementation)
 
@@ -526,7 +508,7 @@ type GetHistoryResponse = {
 
 ### Notes
 
-- Sprint 2: `memory` is absent and deferred to EPIC 4.2.
+- Sprint 2: `memory` field is absent. Deferred to EPIC 4.2 (Memory Layer).
 
 ---
 
@@ -594,6 +576,7 @@ type ResetSessionResponse = {
 
 - Sprint 2: `sessionMemory` is hardcoded to `false` (deferred to EPIC 4.2).
 - Sprint 2: `events` is hardcoded to `0` (deferred to EPIC 3.3).
+- Sprint 2: session record is preserved; only messages are removed.
 
 ---
 
@@ -632,27 +615,7 @@ type CreateScenarioRequest = {
   name: string
   slug: string
   status?: 'draft' | 'active' | 'archived'
-  config: {
-    avatar?: {
-      name?: string
-      personaPrompt?: string
-      style?: {
-        tone?: string
-        verbosity?: 'low' | 'medium' | 'high'
-      }
-    }
-    world?: {
-      description?: string
-      objectives?: string[]
-      constraints?: string[]
-    }
-    features?: {
-      knowledgeEnabled?: boolean
-      gameMasterEnabled?: boolean
-      streamingEnabled?: boolean
-    }
-    sourceIds?: string[]
-  }
+  config?: Record<string, unknown>
 }
 ```
 

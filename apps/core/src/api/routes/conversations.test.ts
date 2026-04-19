@@ -156,6 +156,22 @@ describe('GET /v1/conversations/:sessionId/history', () => {
     expect(data.session.sessionId).toBe('sess_1')
     expect(data.messages).toEqual([])
   })
+
+  it('returns 200 when session is closed', async () => {
+    const response = await makeApp({
+      sessions: [makeSession({ status: 'closed', endedAt: '2026-04-18T11:00:00.000Z' })],
+    }).inject({
+      method: 'GET',
+      url: '/v1/conversations/sess_1/history',
+      headers: { 'x-api-key': 'test-secret' },
+    })
+    expect(response.statusCode).toBe(200)
+
+    const body = response.json<ApiResponse<{ session: SessionSummary; messages: unknown[] }>>()
+    expect(body.error).toBeNull()
+    const data = body.data as { session: SessionSummary; messages: unknown[] }
+    expect(data.session.status).toBe('closed')
+  })
 })
 
 describe('DELETE /v1/conversations/:sessionId', () => {
@@ -201,6 +217,32 @@ describe('DELETE /v1/conversations/:sessionId', () => {
     }
     expect(data.sessionId).toBe('sess_1')
     expect(data.deleted.messages).toBe(0)
+    expect(data.deleted.sessionMemory).toBe(false)
+    expect(data.deleted.events).toBe(0)
+  })
+
+  it('returns 200 when session is closed but exists', async () => {
+    const response = await makeApp({
+      sessions: [makeSession({ status: 'closed', endedAt: '2026-04-18T11:00:00.000Z' })],
+    }).inject({
+      method: 'DELETE',
+      url: '/v1/conversations/sess_1',
+      headers: { 'x-api-key': 'test-secret' },
+    })
+    expect(response.statusCode).toBe(200)
+
+    const body = response.json<
+      ApiResponse<{
+        sessionId: string
+        deleted: { messages: number; sessionMemory: boolean; events: number }
+      }>
+    >()
+    expect(body.error).toBeNull()
+    const data = body.data as {
+      sessionId: string
+      deleted: { messages: number; sessionMemory: boolean; events: number }
+    }
+    expect(data.sessionId).toBe('sess_1')
     expect(data.deleted.sessionMemory).toBe(false)
     expect(data.deleted.events).toBe(0)
   })

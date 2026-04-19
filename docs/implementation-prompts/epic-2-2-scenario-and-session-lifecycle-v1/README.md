@@ -106,8 +106,8 @@ Each prompt depends on the previous being complete. Do not start 02 before schem
 - [ ] `IScenarioRepository` port created
 - [ ] `InMemoryScenarioRepository` created
 - [ ] `scenarioRepository` added to `ServerAdapters` in `server.ts`
-- [ ] `TODO(EPIC-2.2)` in `send-message.use-case.ts` updated to `TODO(EPIC-4.1)`
-- [ ] `TODO(EPIC-2.2)` in `API_CONTRACT.md` updated to `TODO(EPIC-4.1)`
+- [ ] `TODO(EPIC-4.1)` in `send-message.use-case.ts` updated to `TODO(EPIC-4.1)`
+- [ ] `TODO(EPIC-4.1)` in `API_CONTRACT.md` updated to `TODO(EPIC-4.1)`
 - [ ] Coverage gate (≥80%) still passes
 - [ ] `pnpm lint`, `pnpm typecheck`, `pnpm test` all pass
 - [ ] `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`, `docs/PROJECT_STATUS.md` all synced
