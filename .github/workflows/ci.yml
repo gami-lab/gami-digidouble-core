@@ -105,16 +105,31 @@ jobs:
           path: apps/core/coverage
           if-no-files-found: error
 
-  dependency-vulnerability-review:
-    name: Dependency vulnerability review
+  dependency-audit:
+    name: Dependency audit (pnpm)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Review dependency changes
-        uses: actions/dependency-review-action@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit for known vulnerabilities
+        run: pnpm audit --audit-level=high
 
   docker-build:
     name: Docker — production image builds
