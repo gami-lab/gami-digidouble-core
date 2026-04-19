@@ -526,32 +526,50 @@ The roadmap explicitly calls for:
 
 ---
 
-## 14. Back-office (Phase A UI)
+## 14. Admin UI / Back-office (Phase A)
 
 ### Choice
 
-- **Next.js (TypeScript)** preferred for maintainable back-office
-- **Lovable / Bolt / vibe-coded UI** acceptable for acceleration if quality is sufficient
+- **Next.js (App Router)**
+- **React**
+- **TypeScript (strict)**
+- **Tailwind CSS**
+- **shadcn/ui** for UI primitives
+- **TanStack Query** for server state and mutations
+- **Zod** for client-side form validation aligned with API contracts
 
-### Goal
+### Scope
 
-Allow a non-dev to:
+This UI is an **internal admin and manual test console**, not a public product UI.
 
-- configure a scenario
-- edit avatar / storyworld / objectives
-- upload source documents
-- launch test conversations
-- inspect logs and metrics
+### Rules
+
+- The admin UI is a **separate app in the monorepo**
+- It consumes the Core only through **HTTP admin/public API contracts**
+- **No direct database access** from the UI
+- **No business logic duplication** in the UI
+- Keep the UI thin: orchestration and runtime logic stay in the Core
+- Prefer simple server-state patterns over frontend complexity
+
+### Monorepo Placement
+
+- `apps/backoffice` or `apps/admin`
 
 ### Why
 
-This matches the recommended MVP Scenario A: **API + back-office first**, no voice yet.
+This choice fits the project constraints:
+
+- TypeScript-only team and codebase
+- API-first, headless Core
+- need for a production-level internal tool
+- maintainable UI for operators and non-developers
+- easy alignment with existing API contracts and admin endpoints
 
 ### Validation
 
-- usable by non-dev
-- does not slow down Core delivery
-- reuses API contracts cleanly
+- UI remains thin and easy to maintain
+- API contracts are reused directly
+- adding operational screens does not require architectural changes
 
 ---
 
