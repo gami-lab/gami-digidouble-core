@@ -296,9 +296,9 @@ F-04 ("unnecessary conditional spread for `avatarRepository` in `server.ts`") wa
 
 ### Findings Deferred
 
-| Finding                                             | Reason                                                                                                                                                                                                      |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **F-01** (Medium) — `AvatarConfig` lacks timestamps | Correctly deferred to the Postgres adapter phase. When `PostgresAvatarRepository` is implemented, `AvatarConfig` should gain `createdAt`/`updatedAt` and the use case can remove the synthesized timestamp. |
+| Finding                                             | Reason                                                                                                                                                                                                           |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **F-01** (Medium) — `AvatarConfig` lacks timestamps | Correctly deferred to EPIC 2.3 — Persistence Layer v1. When `PostgresAvatarRepository` is implemented, `AvatarConfig` should gain `createdAt`/`updatedAt` and the use case can remove the synthesized timestamp. |
 
 ### Build Gates
 
@@ -341,5 +341,5 @@ F-04 ("unnecessary conditional spread for `avatarRepository` in `server.ts`") wa
 
 ### Remaining Risks
 
-- **F-01 deferred**: `AvatarConfig` timestamp synthesis will need to be resolved when `PostgresAvatarRepository` is introduced. The response timestamps are wall-clock accurate but not derived from the DB write. Tag: `EPIC that introduces PostgresAvatarRepository`.
+- **F-01 deferred to EPIC 2.3**: `AvatarConfig` timestamp synthesis will be resolved when `PostgresAvatarRepository` is introduced (EPIC 2.3 — Persistence Layer v1). The response timestamps are wall-clock accurate but not derived from the DB write. Tag: `EPIC 2.3`.
 - `scenarios.ts` branches at 80% (exactly at target) — the `INTERNAL_ERROR` path for the avatar creation route (distinct from scenario creation) is not yet tested. Low risk; pattern is identical to the tested scenario creation fallback.

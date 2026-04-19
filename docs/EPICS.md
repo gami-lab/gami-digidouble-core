@@ -200,7 +200,53 @@ Real usable sessions require manageable content objects and persistent conversat
 
 ---
 
-## EPIC 2.3 — Manual Test Console v1
+## EPIC 2.3 — Persistence Layer v1
+
+**Purpose**  
+Replace in-memory stubs with a production-ready PostgreSQL persistence layer.
+
+**Description**  
+Implement real Postgres repository adapters for all core domain entities (Scenario, Avatar, Session, Message), write DB migrations, and wire the adapters into the server. After this EPIC, no domain data is lost on server restart.
+
+**Hypothesis**  
+Production persistence is a prerequisite for any real user session, scenario validation, or operational tooling.
+
+**Includes**
+
+- DB schema migrations (scenarios, avatars, sessions, messages tables)
+- `PostgresScenarioRepository` (create, findById)
+- `PostgresAvatarRepository` (create, findById) — adds `createdAt`/`updatedAt` to `AvatarConfig`, resolving the timestamp synthesis gap from EPIC 2.2
+- `PostgresSessionRepository` (create, findById, update)
+- `PostgresMessageRepository` (save, findBySessionId, deleteBySessionId)
+- Connection pooling (pg driver, configured via `DATABASE_URL`)
+- Migration tooling integrated into dev workflow and CI
+- `ServerAdapters` wires Postgres repositories in production/staging; in-memory stubs remain for unit tests only
+
+**DoD**
+
+- all domain data persists across server restarts
+- all existing unit tests still pass using in-memory stubs
+- integration tests validate each Postgres repository against a real DB
+- `AvatarConfig` carries `createdAt` / `updatedAt` returned from the DB write
+- DB schema matches `DATA_MODEL.md` exactly
+- migration runs automatically on startup (or via explicit command)
+- `pnpm lint`, `pnpm typecheck`, `pnpm test` all pass
+
+**What Can Be Tested**
+
+1. create scenario → restart server → GET scenario still exists
+2. create avatar → restart server → avatar still exists
+3. start session → send messages → restart server → history intact
+4. reset session → messages deleted → confirmed via history endpoint
+5. DB schema matches DATA_MODEL.md documentation
+
+**User Increment**
+
+- first production-durable conversations: nothing is lost between deployments or restarts
+
+---
+
+## EPIC 2.4 — Manual Test Console v1
 
 **Purpose**  
 Allow rapid testing by developers and non-developers.

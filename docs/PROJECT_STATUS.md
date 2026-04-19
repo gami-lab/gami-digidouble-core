@@ -226,7 +226,8 @@ Test coverage hardening (post-EPIC 1.2):
 | ------------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | EPIC 2.1 — Avatar Agent v1                 | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained. |
 | EPIC 2.2 — Scenario & Session Lifecycle v1 | **Complete** | POST /v1/scenarios, POST /v1/scenarios/:scenarioId/avatars, POST /v1/conversations/start, GET /v1/conversations/:sessionId/history, DELETE /v1/conversations/:sessionId implemented. IScenarioRepository, IAvatarRepository.create, IMessageRepository.deleteBySessionId added. messages.stack-e2e.test.ts happy path unblocked.              |
-| EPIC 2.3 — Manual Test Console v1          | Not started  | Non-developer test console for scenario/avatar/session flows and manual iteration loop                                                                                                                                                                                                                                                        |
+| EPIC 2.3 — Persistence Layer v1            | Not started  | Postgres repository adapters (Scenario, Avatar, Session, Message), DB schema migrations, connection pooling. Replaces all in-memory stubs in production. Fixes AvatarConfig timestamp gap from EPIC 2.2.                                                                                                                                      |
+| EPIC 2.4 — Manual Test Console v1          | Not started  | Non-developer test console for scenario/avatar/session flows and manual iteration loop                                                                                                                                                                                                                                                        |
 
 ### Sprint O — Operations / Control Plane
 
@@ -305,7 +306,7 @@ However, the current system lacks production operability:
 
 ## Recommended Next Execution Order
 
-1. **Sprint 2** — Avatar Agent v1 (EPIC 2.1) + Scenario & Session Lifecycle v1 (EPIC 2.2) + Manual Test Console v1 (EPIC 2.3)
+1. **Sprint 2** — Avatar Agent v1 (EPIC 2.1) + Scenario & Session Lifecycle v1 (EPIC 2.2) + Persistence Layer v1 (EPIC 2.3) + Manual Test Console v1 (EPIC 2.4)
 2. **Sprint O** — O1 (health), O2 (session inspector), O3 (test console + reset/replay), O4 (metrics dashboard), O5 (ingestion visibility)
 3. **Sprint 3** — Memory Layer v1 + Public Core API + Streaming UX
 4. **Sprint 4** — RAG + Context Intelligence
