@@ -370,6 +370,7 @@ type StartSessionResponse = {
 
 - If the user does not already exist, the system may create a minimal user.
 - Session start may synchronously initialize minimal Game Master state.
+- Sprint 2 simplification: request uses flat `userId` and `scenarioId` fields. Nested `user` object and `initialContext` are deferred to a later EPIC.
 
 ---
 
@@ -523,6 +524,10 @@ type GetHistoryResponse = {
 }
 ```
 
+### Notes
+
+- Sprint 2: `memory` is absent and deferred to EPIC 4.2.
+
 ---
 
 ## 5. Get Session State
@@ -584,6 +589,11 @@ type ResetSessionResponse = {
   }
 }
 ```
+
+### Notes
+
+- Sprint 2: `sessionMemory` is hardcoded to `false` (deferred to EPIC 4.2).
+- Sprint 2: `events` is hardcoded to `0` (deferred to EPIC 3.3).
 
 ---
 

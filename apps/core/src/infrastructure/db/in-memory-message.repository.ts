@@ -29,4 +29,22 @@ export class InMemoryMessageRepository implements IMessageRepository {
     this.messages.push(message)
     return Promise.resolve(message)
   }
+
+  deleteBySessionId(sessionId: string): Promise<number> {
+    const matchingIndexes: number[] = []
+    for (let index = 0; index < this.messages.length; index += 1) {
+      if (this.messages[index]?.sessionId === sessionId) {
+        matchingIndexes.push(index)
+      }
+    }
+
+    for (let index = matchingIndexes.length - 1; index >= 0; index -= 1) {
+      const messageIndex = matchingIndexes[index]
+      if (messageIndex !== undefined) {
+        this.messages.splice(messageIndex, 1)
+      }
+    }
+
+    return Promise.resolve(matchingIndexes.length)
+  }
 }

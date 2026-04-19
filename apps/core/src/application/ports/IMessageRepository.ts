@@ -4,6 +4,7 @@ import type { Message, MessageMetadata } from '../../domain/conversation/session
 export interface IMessageRepository {
   findBySessionId(sessionId: string, options?: FindMessagesOptions): Promise<Message[]>
   save(params: SaveMessageParams): Promise<Message>
+  deleteBySessionId(sessionId: string): Promise<number>
 }
 
 export interface FindMessagesOptions {
