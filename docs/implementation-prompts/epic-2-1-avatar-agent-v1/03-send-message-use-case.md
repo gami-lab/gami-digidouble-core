@@ -30,7 +30,7 @@ EPIC 2.1 requires replacing it with `SendMessageUseCase` — the real conversati
 **Out of scope:**
 
 - Context assembly from memory or knowledge (EPIC 4.2)
-- Game Master observation trigger (EPIC 2.2 — leave a clear `// TODO(EPIC-2.2): trigger GM observation` comment after avatar message is stored)
+- Game Master observation trigger (EPIC 2.2 — leave a clear `// TODO(EPIC-4.1): trigger GM observation` comment after avatar message is stored)
 - Streaming (EPIC 3.3)
 - Token budget enforcement (EPIC 4.2)
 - Automatic session creation (session must already exist — caller is responsible)
@@ -104,7 +104,7 @@ type SendMessageOutput = {
 6. Persist user message via IMessageRepository.save({ role: 'user', content, ... })
 7. Call ILlmAdapter.complete({ systemPrompt, messages: [...history, userMessage] })
 8. Persist avatar message via IMessageRepository.save({ role: 'avatar', content: response.content, metadata: {...} })
-9. // TODO(EPIC-2.2): trigger async GM observation here (non-blocking)
+9. // TODO(EPIC-4.1): trigger async GM observation here (non-blocking)
 10. Fire non-blocking observability trace (same pattern as SendRawMessageUseCase)
 11. Return SendMessageOutput
 ```
@@ -167,6 +167,6 @@ After implementation, verify:
 - [ ] Conversation history (up to 20 messages) passed to LLM in chronological order
 - [ ] Observability trace fires non-blocking; failure does not propagate
 - [ ] `LlmError` propagates to caller
-- [ ] `// TODO(EPIC-2.2)` comment present after avatar message is stored
+- [ ] `// TODO(EPIC-4.1)` comment present after avatar message is stored
 - [ ] Unit tests cover: happy path, session not found, avatar not found, closed session, LLM error, observability failure swallowed, history ordering
 - [ ] `pnpm lint`, `pnpm typecheck`, `pnpm test` all pass

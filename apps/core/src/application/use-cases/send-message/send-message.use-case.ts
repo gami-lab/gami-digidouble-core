@@ -39,7 +39,7 @@ export class SendMessageUseCase {
     const response = await this.llm.complete(llmRequest)
     const avatarMessage = await this.persistAvatarMessage(session.sessionId, response)
 
-    // TODO(EPIC-2.2): trigger GM observation
+    // TODO(EPIC-4.1): trigger GM observation
 
     const latencyMs = Date.now() - start
     this.traceNonBlocking(requestId, session.sessionId, llmRequest.messages, response, latencyMs)

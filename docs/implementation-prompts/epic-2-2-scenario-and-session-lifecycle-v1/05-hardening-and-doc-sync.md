@@ -22,7 +22,7 @@ wrong assumptions.
 - `docs/API_CONTRACT.md` sync
 - `docs/DATA_MODEL.md` sync
 - `docs/PROJECT_STATUS.md` sync
-- Update stale `TODO(EPIC-2.2)` markers in code and docs to `TODO(EPIC-4.1)`
+- Update stale `TODO(EPIC-4.1)` markers in code and docs to `TODO(EPIC-4.1)`
 
 **Out of scope:**
 
@@ -121,10 +121,10 @@ If coverage drops below threshold:
 
 ### 4. Update Stale TODO Markers
 
-Search for `TODO(EPIC-2.2)` across the codebase:
+Search for `TODO(EPIC-4.1)` across the codebase:
 
 ```bash
-grep -r "TODO(EPIC-2.2)" apps/ docs/
+grep -r "TODO(EPIC-4.1)" apps/ docs/
 ```
 
 Expected occurrences:
@@ -132,7 +132,7 @@ Expected occurrences:
 **`apps/core/src/application/use-cases/send-message/send-message.use-case.ts`**
 
 ```ts
-// TODO(EPIC-2.2): trigger GM observation
+// TODO(EPIC-4.1): trigger GM observation
 ```
 
 Change to:
@@ -144,7 +144,7 @@ Change to:
 **`docs/API_CONTRACT.md` §2 (Send Message → Behavior section)**
 
 ```
-Game Master trigger integration is not active yet (`TODO(EPIC-2.2)` in use case)
+Game Master trigger integration is not active yet (`TODO(EPIC-4.1)` in use case)
 ```
 
 Change to:
@@ -153,7 +153,7 @@ Change to:
 Game Master trigger integration is not active yet (`TODO(EPIC-4.1)` in use case)
 ```
 
-If there are other `TODO(EPIC-2.2)` markers not listed above, update them to the appropriate
+If there are other `TODO(EPIC-4.1)` markers not listed above, update them to the appropriate
 EPIC number (EPIC-4.1 for GM, or the correct EPIC for whatever the TODO describes).
 
 ### 5. docs/API_CONTRACT.md Sync
@@ -267,7 +267,7 @@ If any gate fails, fix before marking EPIC complete.
 
 - New or updated unit tests for all new use cases (gap fill)
 - `pnpm test:coverage` passing at ≥80% on all dimensions
-- `TODO(EPIC-2.2)` → `TODO(EPIC-4.1)` in use case and API_CONTRACT
+- `TODO(EPIC-4.1)` → `TODO(EPIC-4.1)` in use case and API_CONTRACT
 - `docs/API_CONTRACT.md` updated with implementation notes and avatar endpoint confirmed accurate
 - `docs/DATA_MODEL.md` verified accurate; Avatar create/AvatarConfig distinction confirmed
 - `docs/PROJECT_STATUS.md` updated to mark EPIC 2.2 Complete
@@ -311,7 +311,7 @@ feat(scenario-session): EPIC 2.2 — Scenario & Session Lifecycle v1 complete [E
 - [ ] `InMemoryScenarioRepository`, `InMemoryAvatarRepository.create`, `InMemoryMessageRepository.deleteBySessionId` all have unit tests
 - [ ] Coverage gate (≥80% all dimensions) passes
 - [ ] `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` all pass
-- [ ] No `TODO(EPIC-2.2)` remains anywhere in `apps/` or `docs/`
+- [ ] No `TODO(EPIC-4.1)` remains anywhere in `apps/` or `docs/`
 - [ ] `API_CONTRACT.md` has implementation notes on §1, §4, §6, avatar endpoint
 - [ ] `DATA_MODEL.md` accurately reflects Avatar create/AvatarConfig distinction
 - [ ] `PROJECT_STATUS.md` marks EPIC 2.2 as Complete with accurate summary

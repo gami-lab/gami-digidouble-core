@@ -10,7 +10,7 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1 is complete. EPIC 1.2 is complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, and EPIC 2.2 are complete.**
 
 Monorepo workspace bootstrap is done:
 
@@ -121,7 +121,7 @@ EPIC 2.1 — Prompt 03 (SendMessage use case) is done:
 - `application/use-cases/send-message/send-message.use-case.ts` — `SendMessageUseCase.execute()`: validates input, loads active session and avatar, assembles persona system prompt, builds chronological message history (limit 20), persists user/avatar messages, and fires non-blocking observability trace
 - `application/ports/IMessageRepository.ts` updated: `findBySessionId(sessionId, { limit? })` and `save(...)` contract for persisted messages with generated IDs and timestamps
 - `domain/errors.ts` — `DomainError` (`code` + `message`) for application/domain not-found and invalid-state flows
-- LLM errors are propagated unmodified; observability failures are swallowed and logged to stderr; `// TODO(EPIC-2.2): trigger GM observation` added after avatar message persistence
+- LLM errors are propagated unmodified; observability failures are swallowed and logged to stderr; `// TODO(EPIC-4.1): trigger GM observation` added after avatar message persistence
 - Unit tests cover happy path, session/avatar not found, closed session, history ordering, LLM error propagation, observability failure swallowing, and user message persistence ordering before LLM call
 
 EPIC 2.1 — Prompt 04 (API endpoint for send message) is done:
@@ -152,7 +152,7 @@ EPIC 2.1 — Avatar Agent v1 closure summary:
   - History limit hard-capped to 20 messages before LLM invocation
   - `avatarId` is required in request body for Sprint 2 (temporary until scenario-defaulted avatar flow in Sprint 4)
   - Non-blocking observability tracing; LLM errors propagate; observability failures are swallowed/logged
-  - Explicit `// TODO(EPIC-2.2): trigger GM observation` marker after avatar message persistence
+  - Explicit `// TODO(EPIC-4.1): trigger GM observation` marker after avatar message persistence
 - Test and quality summary for EPIC closure:
   - Core unit suite: 94 tests across 15 test files
   - Coverage gate (≥80%) retained on all dimensions
@@ -220,13 +220,13 @@ Test coverage hardening (post-EPIC 1.2):
 | EPIC 1.1 — Platform Bootstrap             | **Complete** | All 5 prompts delivered and validated end-to-end                                   |
 | EPIC 1.2 — First LLM Loop + Observability | **Complete** | Full loop validated end-to-end, docs synchronized, shutdown flush wiring finalized |
 
-### Sprint 2 — Avatar + Game Master
+### Sprint 2 — First Usable Product Slice
 
-| Epic                            | Status       | Notes                                                                                                                                                                                                                                                                                                                                         |
-| ------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EPIC 2.1 — Avatar Agent v1      | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained. |
-| EPIC 2.2 — Async Game Master v1 | In progress  | Prompt 01–03 delivered: scenario creation, avatar creation, and session lifecycle endpoints (`start`, `history`, `reset`); remaining work covers GM triggers, structured outputs, and async directives                                                                                                                                        |
-| EPIC 2.3 — Performance Baseline | Not started  | Latency, TTFT, token usage benchmarks                                                                                                                                                                                                                                                                                                         |
+| Epic                                       | Status       | Notes                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EPIC 2.1 — Avatar Agent v1                 | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained. |
+| EPIC 2.2 — Scenario & Session Lifecycle v1 | **Complete** | POST /v1/scenarios, POST /v1/scenarios/:scenarioId/avatars, POST /v1/conversations/start, GET /v1/conversations/:sessionId/history, DELETE /v1/conversations/:sessionId implemented. IScenarioRepository, IAvatarRepository.create, IMessageRepository.deleteBySessionId added. messages.stack-e2e.test.ts happy path unblocked.              |
+| EPIC 2.3 — Manual Test Console v1          | Not started  | Non-developer test console for scenario/avatar/session flows and manual iteration loop                                                                                                                                                                                                                                                        |
 
 ### Sprint O — Operations / Control Plane
 
@@ -277,6 +277,9 @@ Test coverage hardening (post-EPIC 1.2):
 - API baseline (`/health`, `/v1/exchange`)
 - LLM adapter layer (OpenAI, Anthropic, Mistral, Null)
 - Observability adapter layer (Langfuse, Console, Null)
+- Session lifecycle (start, history, reset)
+- Scenario management (create)
+- Avatar management (create)
 
 ---
 
@@ -302,7 +305,7 @@ However, the current system lacks production operability:
 
 ## Recommended Next Execution Order
 
-1. **Sprint 2** — Avatar Agent v1 (EPIC 2.1) + Async Game Master v1 (EPIC 2.2) + Performance Baseline (EPIC 2.3)
+1. **Sprint 2** — Avatar Agent v1 (EPIC 2.1) + Scenario & Session Lifecycle v1 (EPIC 2.2) + Manual Test Console v1 (EPIC 2.3)
 2. **Sprint O** — O1 (health), O2 (session inspector), O3 (test console + reset/replay), O4 (metrics dashboard), O5 (ingestion visibility)
 3. **Sprint 3** — Memory Layer v1 + Public Core API + Streaming UX
 4. **Sprint 4** — RAG + Context Intelligence
