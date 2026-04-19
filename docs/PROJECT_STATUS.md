@@ -168,6 +168,16 @@ EPIC 2.2 — Prompt 01 (Scenario domain and endpoint) is done:
 - `api/server.ts` updated to wire `scenarioRepository` through `ServerAdapters` and register `scenariosRoute` under `/v1/scenarios`
 - `api/routes/scenarios.test.ts` and `api/routes/scenarios.stack-e2e.test.ts` added covering auth, validation, and happy path
 
+EPIC 2.2 — Prompt 02 (Avatar creation endpoint) is done:
+
+- `application/ports/IAvatarRepository.ts` extended with typed `create(params)` and `CreateAvatarParams`
+- `infrastructure/db/in-memory-avatar.repository.ts` now implements `create` with `avatar_<uuid>` ID generation and map persistence
+- `application/use-cases/create-avatar/*` added with validation (`name`, `slug`, `personaPrompt`, slug pattern), scenario existence check, and `DomainError` mapping (`VALIDATION_ERROR`, `NOT_FOUND`)
+- `api/routes/scenarios.ts` extended with `POST /v1/scenarios/:scenarioId/avatars` (API-key auth, schema validation, `201` success envelope, `400/404/500` mapping)
+- `api/server.ts` updated to pass `avatarRepository` through scenarios route wiring
+- `api/routes/avatars.stack-e2e.test.ts` added to cover auth, validation, unknown scenario (`404`), and full success flow (`201`) by creating a scenario then an avatar via real HTTP
+- `docs/API_CONTRACT.md` updated with the avatar creation contract (`POST /v1/scenarios/{scenarioId}/avatars`)
+
 Test coverage hardening (post-EPIC 1.2):
 
 - `@vitest/coverage-v8` installed; coverage thresholds enforced at 80% lines/branches/functions/statements

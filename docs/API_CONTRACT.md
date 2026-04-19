@@ -178,6 +178,24 @@ type ScenarioSummary = {
 }
 ```
 
+## Avatar Summary
+
+```ts
+type AvatarSummary = {
+  avatarId: string
+  scenarioId: string
+  name: string
+  slug: string
+  status: 'draft' | 'active' | 'archived'
+  personaPrompt: string
+  tone?: string
+  description?: string
+  adjustments?: string[]
+  createdAt: string
+  updatedAt: string
+}
+```
+
 ## Session Summary
 
 ```ts id="744oc5"
@@ -663,6 +681,46 @@ type GetScenarioResponse = {
   }
 }
 ```
+
+---
+
+## 9.5. Create Avatar for Scenario
+
+### Endpoint
+
+```text
+POST /v1/scenarios/{scenarioId}/avatars
+```
+
+### Request
+
+```ts
+type CreateAvatarRequest = {
+  name: string
+  slug: string
+  personaPrompt: string
+  tone?: string
+  description?: string
+  adjustments?: string[]
+  config?: Record<string, unknown>
+  status?: 'draft' | 'active' | 'archived'
+}
+```
+
+### Response
+
+```ts
+type CreateAvatarResponse = {
+  avatar: AvatarSummary
+}
+```
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED` (missing/invalid API key)
+- `400` → `VALIDATION_ERROR` (schema or domain validation failure)
+- `404` → `NOT_FOUND` (scenario not found)
+- `500` → `INTERNAL_ERROR` (unexpected failure)
 
 ---
 
@@ -1429,6 +1487,7 @@ If we need the absolute minimum set to start implementation, it is:
 - `DELETE /v1/conversations/{sessionId}`
 - `GET /v1/scenarios`
 - `POST /v1/scenarios`
+- `POST /v1/scenarios/{scenarioId}/avatars`
 - `PUT /v1/scenarios/{scenarioId}`
 - `POST /v1/knowledge-sources`
 - `POST /v1/knowledge-sources/{sourceId}/ingest`
