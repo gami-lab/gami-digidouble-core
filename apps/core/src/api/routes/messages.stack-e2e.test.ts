@@ -114,6 +114,6 @@ describe('Stack E2E — POST /v1/conversations/:sessionId/messages — resource 
     const body = (await res.json()) as { data: null; error: { code: string } }
     expect(body.data).toBeNull()
     expect(body.error).not.toBeNull()
-    expect(body.error.code).toBe('SESSION_NOT_FOUND')
+    expect(body.error.code).toBe('NOT_FOUND')
   })
 })
