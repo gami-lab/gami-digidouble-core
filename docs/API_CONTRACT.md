@@ -638,6 +638,12 @@ type CreateScenarioResponse = {
 }
 ```
 
+### Sprint 2 implementation notes
+
+- `POST /v1/scenarios` returns `201 Created` on success.
+- `status` defaults to `draft` when omitted.
+- Slug format is validated (`^[a-z0-9-]+$`) but slug uniqueness is **not** enforced yet in Sprint 2.
+
 ---
 
 ## 9. Get Scenario

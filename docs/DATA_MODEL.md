@@ -72,6 +72,12 @@ Defines a runnable experience configuration.
 - created_at
 - updated_at
 
+### Implementation Alignment (TypeScript)
+
+- `Scenario` includes: `scenarioId`, `name`, `slug`, `status`, `config`, `createdAt`, `updatedAt`.
+- `status` is constrained to `'draft' | 'active' | 'archived'`.
+- `config` is a typed object (`ScenarioConfig`) carrying scenario runtime settings.
+
 ### Typical Config
 
 - world context

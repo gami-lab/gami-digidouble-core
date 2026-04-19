@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 18, 2026
+**Last updated:** April 19, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -159,6 +159,15 @@ EPIC 2.1 — Avatar Agent v1 closure summary:
   - Route coverage includes `messages.test.ts` and optional real-provider `messages.e2e.test.ts` (`describe.skipIf(!OPENAI_API_KEY)`)
   - All Sprint 2 documentation targets synchronized to implementation (PROJECT_STATUS, API_CONTRACT, DATA_MODEL, ARCHITECTURE, TEST_STRATEGY)
 
+EPIC 2.2 — Prompt 01 (Scenario domain and endpoint) is done:
+
+- `application/ports/IScenarioRepository.ts` added with `create` and `findById` methods
+- `infrastructure/db/in-memory-scenario.repository.ts` added with constructor seed support and scenario ID generation (`scenario_<uuid>`)
+- `application/use-cases/create-scenario/*` added with validation for name/slug/status and `DomainError('VALIDATION_ERROR', ...)` mapping for invalid input
+- `api/routes/scenarios.ts` added for `POST /v1/scenarios` with API-key auth, schema validation, and `201 Created` response envelope
+- `api/server.ts` updated to wire `scenarioRepository` through `ServerAdapters` and register `scenariosRoute` under `/v1/scenarios`
+- `api/routes/scenarios.test.ts` and `api/routes/scenarios.stack-e2e.test.ts` added covering auth, validation, and happy path
+
 Test coverage hardening (post-EPIC 1.2):
 
 - `@vitest/coverage-v8` installed; coverage thresholds enforced at 80% lines/branches/functions/statements
@@ -184,7 +193,7 @@ Test coverage hardening (post-EPIC 1.2):
 | Epic                            | Status       | Notes                                                                                                                                                                                                                                                                                                                                         |
 | ------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | EPIC 2.1 — Avatar Agent v1      | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained. |
-| EPIC 2.2 — Async Game Master v1 | Not started  | Triggers, structured outputs, async directives                                                                                                                                                                                                                                                                                                |
+| EPIC 2.2 — Async Game Master v1 | In progress  | Prompt 01 delivered: scenario repository + create-scenario use case + `POST /v1/scenarios`; remaining work covers GM triggers, structured outputs, and async directives                                                                                                                                                                       |
 | EPIC 2.3 — Performance Baseline | Not started  | Latency, TTFT, token usage benchmarks                                                                                                                                                                                                                                                                                                         |
 
 ### Sprint O — Operations / Control Plane
