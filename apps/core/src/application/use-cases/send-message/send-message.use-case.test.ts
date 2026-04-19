@@ -11,6 +11,7 @@ const findSessionByIdMock = vi.fn()
 const findAvatarByIdMock = vi.fn()
 const findMessagesBySessionIdMock = vi.fn()
 const saveMessageMock = vi.fn()
+const deleteBySessionIdMock = vi.fn()
 const completeMock = vi.fn()
 const traceMock = vi.fn()
 const flushMock = vi.fn()
@@ -23,7 +24,11 @@ const sessionRepository = {
 }
 
 const avatarRepository = { findById: findAvatarByIdMock, create: vi.fn() }
-const messageRepository = { findBySessionId: findMessagesBySessionIdMock, save: saveMessageMock }
+const messageRepository = {
+  findBySessionId: findMessagesBySessionIdMock,
+  save: saveMessageMock,
+  deleteBySessionId: deleteBySessionIdMock,
+}
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: flushMock }
 
@@ -98,6 +103,7 @@ beforeEach(() => {
   findAvatarByIdMock.mockReset()
   findMessagesBySessionIdMock.mockReset()
   saveMessageMock.mockReset()
+  deleteBySessionIdMock.mockReset()
   completeMock.mockReset()
   traceMock.mockReset()
   flushMock.mockReset()
@@ -106,6 +112,7 @@ beforeEach(() => {
   findAvatarByIdMock.mockResolvedValue(makeAvatar())
   findMessagesBySessionIdMock.mockResolvedValue([])
   saveMessageMock.mockImplementation((message: Message) => Promise.resolve(message))
+  deleteBySessionIdMock.mockResolvedValue(0)
   completeMock.mockResolvedValue(makeLlmResponse())
   traceMock.mockResolvedValue(undefined)
   flushMock.mockResolvedValue(undefined)
