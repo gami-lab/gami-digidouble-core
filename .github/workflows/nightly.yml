@@ -16,6 +16,9 @@ jobs:
   real-provider-smoke:
     name: Real-provider smoke
     runs-on: ubuntu-latest
+    # continue-on-error: transient provider outages (rate limits, API downtime) should not hard-fail
+    # the nightly build. The job result is still visible as a warning in GitHub Actions.
+    continue-on-error: true
 
     steps:
       - name: Checkout
