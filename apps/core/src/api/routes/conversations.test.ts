@@ -112,10 +112,11 @@ describe('POST /v1/conversations/start', () => {
 
     const body = response.json<ApiResponse<{ session: SessionSummary }>>()
     expect(body.error).toBeNull()
-    expect(body.data.session.sessionId.startsWith('session_')).toBe(true)
-    expect(body.data.session.userId).toBe('user_1')
-    expect(body.data.session.scenarioId).toBe('scenario_1')
-    expect(body.data.session.status).toBe('active')
+    const data = body.data as { session: SessionSummary }
+    expect(data.session.sessionId.startsWith('session_')).toBe(true)
+    expect(data.session.userId).toBe('user_1')
+    expect(data.session.scenarioId).toBe('scenario_1')
+    expect(data.session.status).toBe('active')
   })
 })
 
@@ -151,8 +152,9 @@ describe('GET /v1/conversations/:sessionId/history', () => {
 
     const body = response.json<ApiResponse<{ session: SessionSummary; messages: unknown[] }>>()
     expect(body.error).toBeNull()
-    expect(body.data.session.sessionId).toBe('sess_1')
-    expect(body.data.messages).toEqual([])
+    const data = body.data as { session: SessionSummary; messages: unknown[] }
+    expect(data.session.sessionId).toBe('sess_1')
+    expect(data.messages).toEqual([])
   })
 })
 
@@ -186,17 +188,20 @@ describe('DELETE /v1/conversations/:sessionId', () => {
     })
     expect(response.statusCode).toBe(200)
 
-    const body =
-      response.json<
-        ApiResponse<{
-          sessionId: string
-          deleted: { messages: number; sessionMemory: boolean; events: number }
-        }>
-      >()
+    const body = response.json<
+      ApiResponse<{
+        sessionId: string
+        deleted: { messages: number; sessionMemory: boolean; events: number }
+      }>
+    >()
     expect(body.error).toBeNull()
-    expect(body.data.sessionId).toBe('sess_1')
-    expect(body.data.deleted.messages).toBe(0)
-    expect(body.data.deleted.sessionMemory).toBe(false)
-    expect(body.data.deleted.events).toBe(0)
+    const data = body.data as {
+      sessionId: string
+      deleted: { messages: number; sessionMemory: boolean; events: number }
+    }
+    expect(data.sessionId).toBe('sess_1')
+    expect(data.deleted.messages).toBe(0)
+    expect(data.deleted.sessionMemory).toBe(false)
+    expect(data.deleted.events).toBe(0)
   })
 })

@@ -26,7 +26,7 @@ export class GetHistoryUseCase {
         status: session.status,
         startedAt: session.startedAt,
         lastActivityAt: session.lastActivityAt,
-        endedAt: session.endedAt,
+        ...(session.endedAt !== undefined ? { endedAt: session.endedAt } : {}),
       },
       messages,
     }
