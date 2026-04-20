@@ -401,7 +401,7 @@ Fast recovery loops improve iteration speed dramatically.
 Validate the Director–Actor model.
 
 **Description**  
-Implement a Game Master observing conversations and injecting directives asynchronously instead of blocking every turn.
+Implement a Game Master observing conversations and injecting directives asynchronously instead of blocking every turn, with a clear split between reasoning and deterministic policy checks.
 
 **Hypothesis**  
 Async orchestration improves quality without unacceptable latency cost.
@@ -412,6 +412,8 @@ Async orchestration improves quality without unacceptable latency cost.
 - structured GM outputs
 - instruction injection
 - state observation hooks
+- policy-aware transition decisions (goals, pacing, constraints)
+- active-avatar routing updates
 
 **DoD**
 
@@ -424,10 +426,50 @@ Async orchestration improves quality without unacceptable latency cost.
 - verify next response changes after trigger
 - inspect GM state/directives
 - compare latency with and without GM
+- verify deterministic policy behavior with fixed inputs
+- verify active avatar stays consistent after GM routing decisions
 
 **User Increment**
 
 - smarter guided conversations with low latency
+
+---
+
+## EPIC 4.4 — Multi-Avatar Navigation v1
+
+**Purpose**  
+Make avatar switching explicit, coherent, and reusable across scenarios.
+
+**Description**  
+Add generic avatar routing and transition rules so users can move across avatars through progression, topic triggers, or explicit choice.
+
+**Hypothesis**  
+Structured multi-avatar navigation increases immersion and learning value more than single-avatar loops.
+
+**Includes**
+
+- active avatar tracking in session state
+- available avatar list by scenario/session
+- transition rule evaluation (topic/progression/manual)
+- transition reason and history capture
+- handoff context notes between avatars
+
+**DoD**
+
+- avatar transitions happen deterministically when rules match
+- operators can inspect why a transition happened
+- no hardcoded scenario-specific transition logic in core
+
+**What Can Be Tested**
+
+1. transition fires from avatar A to B on progression trigger
+2. manual avatar switch updates session state correctly
+3. transition history records reason + timestamp
+4. invalid transition request returns contract error
+
+**User Increment**
+
+- users experience coherent multi-avatar journeys instead of isolated chat turns
 
 ---
 
@@ -607,6 +649,44 @@ Streaming matters more than raw completion speed.
 
 ---
 
+## EPIC 5.4 — Guided Progression Engine v1
+
+**Purpose**  
+Ensure conversations move toward scenario objectives instead of drifting into generic chat.
+
+**Description**  
+Implement configurable progression logic that combines goals, pacing rules, and role fidelity constraints with GM orchestration.
+
+**Hypothesis**  
+Explicit progression rules produce better educational and narrative outcomes than free-form generation alone.
+
+**Includes**
+
+- scenario goals model integration
+- pacing rule evaluation
+- progression milestone tracking
+- recommended user choices generation
+- guardrails for role fidelity and objective coverage
+
+**DoD**
+
+- progression state is visible and testable
+- stalling conversations trigger appropriate guidance
+- role breaks are reduced in guided scenarios
+
+**What Can Be Tested**
+
+1. progression increases when objective criteria are met
+2. pacing rule triggers guidance after stalled turns
+3. recommended choices align with current objective
+4. role-fidelity constraints block invalid guidance paths
+
+**User Increment**
+
+- sessions feel directed, meaningful, and outcome-oriented
+
+---
+
 # Sprint 6 — Back-office + Real Scenario
 
 ---
@@ -626,6 +706,9 @@ Back-office usability is enough for MVP; no consumer frontend required yet.
 
 - scenario editor
 - avatar editor
+- goals/pacing editor
+- transition rule editor
+- reusable variable editor
 - source upload
 - save/load config
 
@@ -713,6 +796,42 @@ Scenario A is the right scope for summer success.
 - first external prototype ready
 
 ---
+
+## EPIC 6.4 — Hybrid Response Optimization v1
+
+**Purpose**  
+Improve response consistency and latency while preserving generative flexibility.
+
+**Description**  
+Introduce a hybrid response path combining canonical answers, retrieval-backed answers, constrained generation, and live generation fallback.
+
+**Hypothesis**  
+A hybrid response engine improves quality/cost/latency trade-offs versus pure live generation.
+
+**Includes**
+
+- canonical response lookup for recurring intents
+- retrieval-grounded response path
+- constrained generation templates for high-risk outputs
+- fallback path to live generation when no deterministic match exists
+- response-path observability tags
+
+**DoD**
+
+- response path is explicit per turn
+- fallback behavior is safe and measurable
+- no regression in baseline conversational quality
+
+**What Can Be Tested**
+
+1. known intent returns canonical response path
+2. retrieval path used when source confidence threshold is met
+3. constrained generation path validates required structure
+4. fallback path activates when other paths are not eligible
+
+**User Increment**
+
+- faster, more reliable responses without losing adaptability
 
 # Final Rule
 

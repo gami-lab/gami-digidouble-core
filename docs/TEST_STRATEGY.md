@@ -23,6 +23,17 @@ We do not test OpenAI, Anthropic, or Mistral. We test our wrapper, our retry/tim
 
 Contract breakage is one of the biggest risks in a modular API-first system. Protect: HTTP request/response shapes, streaming event shapes, Game Master I/O contracts, scenario config schema, repository interfaces. Any breaking change requires a version bump and an update to [API_CONTRACT.md](API_CONTRACT.md).
 
+## 4b. Prefer deterministic policy tests for orchestration
+
+When behavior is defined by transition rules, pacing rules, constraints, and scenario goals, test it as deterministic policy first. LLM reasoning should be layered on top, not used as the only test surface.
+
+Minimum assertions for orchestration updates:
+
+- active avatar routing stays consistent across turns
+- transition reasons are emitted when handoffs occur
+- policy rule changes produce expected behavior deltas
+- progression-driven routing does not regress into random switching
+
 ## 5. Assert from the consumer inward, not from the implementation outward
 
 The most dangerous test gap is a test that passes because it only checks what the code already does, not what the consumer requires.
@@ -36,6 +47,8 @@ The most dangerous test gap is a test that passes because it only checks what th
 ## 6. Keep the suite useful
 
 Fewer focused tests beat many brittle ones. Prefer: clear naming, simple fixtures, explicit arrange/act/assert. Avoid: giant opaque fixtures, snapshot abuse, overly clever helpers, giant E2E suites standing in for unit tests.
+
+When structured configuration drives behavior, add regression tests around config changes to prevent silent orchestration drift.
 
 ---
 

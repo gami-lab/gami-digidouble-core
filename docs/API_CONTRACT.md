@@ -203,6 +203,8 @@ type SessionSummary = {
   sessionId: string
   userId: string
   scenarioId: string
+  activeAvatarId?: string | null
+  availableAvatarIds?: string[]
   status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string
@@ -370,7 +372,7 @@ POST /v1/conversations/{sessionId}/messages
 
 ```ts id="uw9g8l"
 type SendMessageRequest = {
-  avatarId: string
+  avatarId?: string
   message: {
     content: string
   }
@@ -379,10 +381,19 @@ type SendMessageRequest = {
 
 Validation rules (Sprint 2 implementation):
 
-- `avatarId`: required, string, min length 1
+- `avatarId`: optional, when provided must be string, min length 1
 - `message.content`: required, string, min length 1, max length 4000
 
-`avatarId` is intentionally required in Sprint 2. It is a temporary contract and is planned to be replaced by scenario-defaulted avatar resolution in Sprint 4.
+Routing rule:
+
+- if `avatarId` is provided, use it for this turn
+- if omitted, use `session.activeAvatarId` when available
+- if both are missing, return `400 VALIDATION_ERROR`
+
+Implementation note:
+
+- Sprint 2 runtime still requires `avatarId` in the request.
+- Optional `avatarId` is the target contract once active-avatar session routing is enabled.
 
 ### Non-Streaming Response
 
@@ -416,6 +427,7 @@ type SendMessageResponse = {
 - Builds chronological history from persisted session messages (hard cap: 20)
 - Runs one LLM completion for the avatar turn
 - Stores avatar response
+- Updates session active avatar when request routing changes it
 - Emits observability trace in non-blocking mode
 - Game Master trigger integration is not active yet (`TODO(EPIC-4.1)` in use case)
 
@@ -527,6 +539,8 @@ GET /v1/conversations/{sessionId}/state
 ```ts id="c1hh90"
 type GetSessionStateResponse = {
   session: SessionSummary
+  activeAvatarId?: string | null
+  availableAvatarIds?: string[]
   memory?: SessionMemorySummary
   gameMasterState?: {
     currentAvatarId?: string
@@ -544,8 +558,51 @@ type GetSessionStateResponse = {
 
 ### Notes
 
+- `activeAvatarId` and `availableAvatarIds` are returned for back-office and routing-aware clients.
+
+### Notes
+
 - This endpoint is not for end-user UI.
 - It exists for back-office, testing, and debugging.
+
+---
+
+## 5b. Switch Active Avatar (Optional Future Endpoint)
+
+Lightweight explicit handoff endpoint for clients that want deterministic avatar switching outside send-message.
+
+### Endpoint
+
+```text
+POST /v1/conversations/{sessionId}/switch-avatar
+```
+
+### Request
+
+```ts
+type SwitchAvatarRequest = {
+  avatarId: string
+  reason?: string
+}
+```
+
+### Response
+
+```ts
+type SwitchAvatarResponse = {
+  session: SessionSummary
+  transition: {
+    fromAvatarId?: string | null
+    toAvatarId: string
+    reason?: string
+    switchedAt: string
+  }
+}
+```
+
+### Notes
+
+- Keep optional for MVP. `Send Message` routing remains sufficient for core flows.
 
 ---
 
@@ -1349,6 +1406,12 @@ type GameMasterState = {
   progression: string
   topicsCovered: string[]
   interactionCount: number
+  transitionHistory?: Array<{
+    fromAvatarId?: string
+    toAvatarId: string
+    reason?: string
+    atTurn: number
+  }>
 }
 ```
 
@@ -1357,6 +1420,13 @@ type GameMasterState = {
 ```ts id="vvjlyw"
 type GameMasterOutput = {
   avatarId?: string
+  nextAvatarId?: string
+  transitionReason?: string
+  recommendedChoices?: Array<{
+    id: string
+    label: string
+  }>
+  contentTrigger?: string
   mode: 'init' | 'background_trigger'
   trigger?: 'time_elapsed' | 'topic_covered' | 'stalled_progression' | 'state_change' | 'manual'
   context?: {
@@ -1366,6 +1436,7 @@ type GameMasterOutput = {
   stateUpdate: {
     progression?: 'none' | 'increase'
     topicCovered?: string
+    activeAvatarId?: string
     interactionIncrement?: 1
   }
 }

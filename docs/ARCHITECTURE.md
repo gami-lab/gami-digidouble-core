@@ -279,15 +279,55 @@ Owns orchestration.
 
 Contains:
 
-- trigger decisions
+- reasoning decisions (LLM when useful)
+- deterministic policy evaluation (config + rules)
 - progression logic
 - directive generation
 - scenario pacing
 - state transitions
+- avatar routing and handoff logic
 
 The Game Master guides.
 
 The Game Master should remain lightweight in MVP.
+
+### Game Master Internal Split
+
+#### 1) Reasoning Layer
+
+Used when interpretation is needed:
+
+- classify user intent in context
+- suggest progression moves
+- draft guidance notes
+- propose candidate transitions
+
+This layer may use LLM calls.
+
+#### 2) Policy Layer
+
+Used for deterministic, inspectable control:
+
+- transition rules
+- priorities
+- pacing rules
+- allowed actions
+- scenario goals
+- constraints
+
+This layer must be configurable and testable without prompt-only behavior.
+
+#### 3) Avatar Routing / Transition Engine
+
+Owns multi-avatar navigation state per session:
+
+- active avatar
+- available avatars
+- handoff logic
+- content handoff directives
+- transition history
+
+Transitions must stay generic and scenario-configurable, not hardcoded per experience.
 
 ---
 
@@ -472,7 +512,7 @@ src/
   domain/
     conversation/        → Session and message logic
     avatar/              → Persona configuration and prompt assembly
-    game-master/         → Trigger logic, state management, guidance injection
+    game-master/         → Reasoning + policy logic, avatar routing, state management, guidance injection
     memory/              → Session summary + persistent user facts
     context/             → Context assembly (memory + scenario + knowledge)
     knowledge/           → Ingestion, chunking, embeddings, RAG retrieval

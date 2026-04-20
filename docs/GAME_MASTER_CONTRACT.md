@@ -81,6 +81,17 @@ Only keep what is strictly needed to:
 - avoid repetition
 - track interaction
 
+## 2.5 Hybrid decision mode
+
+The GM combines:
+
+- **reasoning input** (LLM when useful)
+- **policy input** (structured scenario config and deterministic rules)
+
+Not all decisions should come from prompts.
+
+---
+
 ---
 
 # 3. Turn Pipeline (Async Model)
@@ -123,6 +134,7 @@ export type GameMasterInput = {
     experience: {
       scenarioId: string
       description?: string
+      goals?: string[]
     }
 
     availableAvatars: Array<{
@@ -130,6 +142,22 @@ export type GameMasterInput = {
       name: string
       description?: string
     }>
+
+    policy?: {
+      transitionRules?: Array<{
+        fromAvatarId?: string
+        toAvatarId: string
+        triggerType: 'topic' | 'progression' | 'manual_choice' | 'system'
+        priority?: number
+        constraints?: string[]
+      }>
+      pacing?: {
+        minTurnsPerAvatar?: number
+        maxTurnsWithoutProgression?: number
+      }
+      allowedActions?: string[]
+      constraints?: string[]
+    }
   }
 }
 ```
@@ -141,6 +169,13 @@ export type GameMasterInput = {
 ```ts
 export type GameMasterOutput = {
   avatarId: string
+  nextAvatarId?: string
+  transitionReason?: string
+  recommendedChoices?: Array<{
+    id: string
+    label: string
+  }>
+  contentTrigger?: string
 
   conversationMode: 'new' | 'continue'
 
@@ -151,10 +186,19 @@ export type GameMasterOutput = {
   stateUpdate: {
     progression?: 'none' | 'increase'
     topicCovered?: string
+    activeAvatarId?: string
     interactionIncrement: 1
   }
 }
 ```
+
+### Notes
+
+- `avatarId` = avatar for the immediate turn
+- `nextAvatarId` = suggested handoff target for a next step
+- `stateUpdate.activeAvatarId` keeps session routing deterministic after a switch
+- `recommendedChoices` allows guided progression without forcing one path
+- `contentTrigger` can signal non-text assets or events
 
 ---
 
@@ -171,6 +215,13 @@ export type GameMasterState = {
   topicsCovered: string[]
 
   interactionCount: number
+
+  transitionHistory?: Array<{
+    fromAvatarId?: string
+    toAvatarId: string
+    reason?: string
+    atTurn: number
+  }>
 }
 ```
 
@@ -233,6 +284,12 @@ Examples:
 - "Move toward next objective"
 
 👉 This is guidance, not control.
+
+In addition, GM may propose:
+
+- when to switch avatar
+- why a transition is useful
+- what user choices help progression
 
 ---
 

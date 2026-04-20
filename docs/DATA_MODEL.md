@@ -89,6 +89,9 @@ Defines a runnable experience configuration.
 
 - world context
 - objectives
+- goals
+- pacing rules
+- transition settings
 - enabled features
 - UI hints
 - runtime defaults
@@ -178,6 +181,7 @@ Represents one conversation instance.
 - id
 - user_id
 - scenario_id
+- active_avatar_id (nullable, FK → Avatar)
 - status (active / closed / archived)
 - started_at
 - last_activity_at
@@ -193,6 +197,8 @@ Represents one conversation instance.
 ### Notes
 
 One session = one conversation timeline.
+
+`active_avatar_id` tracks who currently speaks by default in this session.
 
 A Session is the equivalent of one run of the experience.
 
@@ -495,6 +501,51 @@ No PII in payload — store IDs and structured metadata only.
 
 ---
 
+## 14. AvatarTransitionRule
+
+Lightweight transition policy attached to a scenario.
+
+### Fields
+
+- id
+- scenario_id
+- from_avatar_id (nullable)
+- to_avatar_id
+- trigger_type (`topic` | `progression` | `manual_choice` | `system`)
+- priority (int, default 0)
+- is_enabled (boolean, default true)
+- config (JSONB, nullable)
+- created_at
+- updated_at
+
+### Notes
+
+Keep this simple in MVP.
+
+`config` may store optional rule details (topic match, progression threshold, content trigger key, additional constraints) without introducing complex graph tables.
+
+---
+
+## 15. PromptTemplateVariable (Optional)
+
+Reusable scenario-level variables injected into prompt/template fragments.
+
+### Fields
+
+- id
+- scenario_id
+- key
+- value
+- updated_at
+
+### Notes
+
+Keep optional for MVP.
+
+Use only when repeated prompt/template fragments need explicit editable variables instead of hidden prompt edits.
+
+---
+
 # Relationships
 
 - User → Sessions (1:N)
@@ -510,6 +561,8 @@ No PII in payload — store IDs and structured metadata only.
 - KnowledgeSource → KnowledgeChunks (1:N)
 - KnowledgeSource → IngestionJobs (1:N)
 - Session → EventLogs (1:N)
+- Scenario → AvatarTransitionRules (1:N)
+- Scenario → PromptTemplateVariables (1:N, optional)
 
 ---
 
@@ -522,6 +575,8 @@ Use JSONB when structure may evolve quickly:
 - message metadata
 - source metadata
 - event payloads
+- transition rule config
+- prompt/template variables when scenario-authoring needs reusable placeholders (if not modeled relationally)
 
 Do **not** hide core relational data inside JSONB.
 
