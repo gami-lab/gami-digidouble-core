@@ -49,6 +49,8 @@ describe.skipIf(!openaiKey)(
             status: 'active',
             personaPrompt: 'You are a precise archivist. Follow user instructions exactly.',
             tone: 'direct',
+            createdAt: '2026-04-20T10:00:00.000Z',
+            updatedAt: '2026-04-20T10:00:00.000Z',
           },
         ]),
         sessionRepository: new InMemorySessionRepository([

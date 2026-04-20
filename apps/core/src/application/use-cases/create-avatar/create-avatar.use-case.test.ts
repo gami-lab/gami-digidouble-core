@@ -38,6 +38,8 @@ function makeAvatarConfig(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
     slug: 'ava',
     status: 'active',
     personaPrompt: 'You are Ava.',
+    createdAt: '2026-04-20T10:00:00.000Z',
+    updatedAt: '2026-04-20T10:00:00.000Z',
     ...overrides,
   }
 }

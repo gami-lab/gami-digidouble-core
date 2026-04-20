@@ -123,8 +123,8 @@ An Avatar is now a first-class object.
 ### Implementation Alignment (TypeScript)
 
 - `Avatar` (persistence shape) includes all fields above with camelCase names: `id`, `scenarioId`, `name`, `slug`, `status`, `personaPrompt`, optional `tone`, optional `description`, required extensible `config`, `createdAt`, `updatedAt`.
-- `AvatarConfig` (runtime shape used by prompt assembly and send-message flow) includes: `avatarId`, `scenarioId`, `name`, `slug`, `status`, required `personaPrompt`, optional `tone`, optional `description`, optional typed `adjustments: string[]` (ordered style adjustments appended to the assembled system prompt), optional extensible `config`.
-- `AvatarConfig` intentionally omits persistence timestamps (`createdAt`, `updatedAt`) and database primary key naming (`id`) because runtime conversation flows consume stable runtime fields only.
+- `AvatarConfig` (runtime shape used by prompt assembly and send-message flow) includes: `avatarId`, `scenarioId`, `name`, `slug`, `status`, required `personaPrompt`, optional `tone`, optional `description`, optional typed `adjustments: string[]` (ordered style adjustments appended to the assembled system prompt), optional extensible `config`, and persistence timestamps `createdAt` / `updatedAt`.
+- `AvatarConfig` keeps runtime-first naming (`avatarId`) while still carrying database-sourced timestamps for API responses and auditing use cases.
 - Avatar creation input in application layer maps to runtime config fields: `scenarioId`, `name`, `slug`, `personaPrompt`, optional `tone`, `description`, `adjustments`, `config`, and optional `status`.
 
 ### Typical Config

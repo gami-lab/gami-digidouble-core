@@ -15,6 +15,7 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
   }
 
   create(params: CreateAvatarParams): Promise<AvatarConfig> {
+    const now = new Date().toISOString()
     const avatar: AvatarConfig = {
       avatarId: `avatar_${crypto.randomUUID()}`,
       scenarioId: params.scenarioId,
@@ -26,6 +27,8 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
       ...(params.description !== undefined ? { description: params.description } : {}),
       ...(params.adjustments !== undefined ? { adjustments: params.adjustments } : {}),
       ...(params.config !== undefined ? { config: params.config } : {}),
+      createdAt: now,
+      updatedAt: now,
     }
 
     this.avatars.set(avatar.avatarId, avatar)

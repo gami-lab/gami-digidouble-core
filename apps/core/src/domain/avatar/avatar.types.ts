@@ -40,4 +40,6 @@ export interface AvatarConfig {
   adjustments?: string[]
   /** JSONB-backed extensible configuration for voice, UI hints, knowledge scope, etc. */
   config?: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
 }
