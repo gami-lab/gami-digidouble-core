@@ -7,7 +7,6 @@ import type { IScenarioRepository } from '../application/ports/IScenarioReposito
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
 import type { Config } from '../config.js'
-import { InMemoryScenarioRepository } from '../infrastructure/db/in-memory-scenario.repository.js'
 import { conversationsRoute } from './routes/conversations.js'
 import { exchangeRoute } from './routes/exchange.js'
 import { healthRoute } from './routes/health.js'
@@ -58,7 +57,7 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',
     config,
-    scenarioRepository: adapters.scenarioRepository ?? new InMemoryScenarioRepository(),
+    scenarioRepository: adapters.scenarioRepository,
     ...(adapters.avatarRepository !== undefined
       ? { avatarRepository: adapters.avatarRepository }
       : {}),

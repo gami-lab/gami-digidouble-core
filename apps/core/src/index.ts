@@ -1,14 +1,38 @@
 import { loadConfig } from './config.js'
 import { createServer } from './api/server.js'
 import { createObservabilityAdapter } from './infrastructure/observability/index.js'
+import {
+  getDbClient,
+  closeDbClient,
+  runMigrations,
+  PostgresScenarioRepository,
+  PostgresAvatarRepository,
+  PostgresSessionRepository,
+  PostgresMessageRepository,
+} from './infrastructure/db/index.js'
 
 async function main(): Promise<void> {
   const config = loadConfig()
   const observability = createObservabilityAdapter(config)
-  const server = createServer(config, { observabilityAdapter: observability })
+  const sql = getDbClient(config.databaseUrl)
+  await runMigrations(sql)
+
+  const adapters = {
+    observabilityAdapter: observability,
+    scenarioRepository: new PostgresScenarioRepository(sql),
+    avatarRepository: new PostgresAvatarRepository(sql),
+    sessionRepository: new PostgresSessionRepository(sql),
+    messageRepository: new PostgresMessageRepository(sql),
+  }
+  const server = createServer(config, adapters)
+
+  server.addHook('onClose', async () => {
+    await closeDbClient()
+    await observability.flush()
+  })
 
   async function shutdown(): Promise<void> {
-    await observability.flush()
+    await server.close()
     process.exit(0)
   }
 
@@ -19,7 +43,7 @@ async function main(): Promise<void> {
     await server.listen({ port: config.port, host: config.host })
   } catch (err) {
     server.log.error(err)
-    await observability.flush()
+    await server.close()
     process.exit(1)
   }
 }
