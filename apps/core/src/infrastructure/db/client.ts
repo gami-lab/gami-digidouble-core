@@ -6,7 +6,9 @@ let sqlUrl: string | null = null
 
 export function getDbClient(url: string): Sql {
   if (sql && sqlUrl !== url) {
-    throw new Error('Database client already initialized with a different DATABASE_URL')
+    throw new Error(
+      'Database client already initialized with a different URL. Restart the application to change DATABASE_URL.',
+    )
   }
 
   if (!sql) {
