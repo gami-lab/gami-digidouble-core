@@ -50,6 +50,9 @@ export class PostgresSessionRepository implements ISessionRepository {
   }
 
   async update(sessionId: string, updates: SessionUpdate): Promise<Session> {
+    const endedAtValue =
+      updates.endedAt === undefined || updates.endedAt === null ? null : new Date(updates.endedAt)
+
     const [row] = await this.sql<[SessionRow?]>`
       UPDATE sessions
       SET
@@ -58,10 +61,7 @@ export class PostgresSessionRepository implements ISessionRepository {
           ${updates.lastActivityAt === undefined ? null : new Date(updates.lastActivityAt)}::TIMESTAMPTZ,
           last_activity_at
         ),
-        ended_at = COALESCE(
-          ${updates.endedAt == null ? null : new Date(updates.endedAt)}::TIMESTAMPTZ,
-          ended_at
-        )
+        ended_at = COALESCE(${endedAtValue}::TIMESTAMPTZ, ended_at)
       WHERE id = ${sessionId}
       RETURNING id, user_id, scenario_id, status, started_at, last_activity_at, ended_at
     `
