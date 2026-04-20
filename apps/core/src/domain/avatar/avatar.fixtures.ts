@@ -21,6 +21,8 @@ export function makeAvatarConfig(overrides: Partial<AvatarConfig> = {}): AvatarC
         accentColor: '#6C5CE7',
       },
     },
+    createdAt: '2026-04-20T00:00:00.000Z',
+    updatedAt: '2026-04-20T00:00:00.000Z',
     ...overrides,
   }
 }

@@ -21,8 +21,6 @@ export class CreateAvatarUseCase {
       throw new DomainError('NOT_FOUND', 'Scenario not found')
     }
 
-    const now = new Date().toISOString()
-
     const avatar = await this.avatarRepository.create({
       scenarioId: scenario.scenarioId,
       name: normalized.name,
@@ -36,7 +34,7 @@ export class CreateAvatarUseCase {
     })
 
     return {
-      avatar: mapAvatarOutput(avatar, now),
+      avatar: mapAvatarOutput(avatar),
     }
   }
 }
@@ -77,7 +75,6 @@ function normalizeAndValidateInput(input: CreateAvatarInput): {
 
 function mapAvatarOutput(
   avatar: Awaited<ReturnType<IAvatarRepository['create']>>,
-  timestamp: string,
 ): CreateAvatarOutput['avatar'] {
   return {
     avatarId: avatar.avatarId,
@@ -89,7 +86,7 @@ function mapAvatarOutput(
     ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
     ...(avatar.description !== undefined ? { description: avatar.description } : {}),
     ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
-    createdAt: timestamp,
-    updatedAt: timestamp,
+    createdAt: avatar.createdAt,
+    updatedAt: avatar.updatedAt,
   }
 }
