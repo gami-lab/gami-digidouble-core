@@ -20,6 +20,8 @@
       "dependsOn": ["^build"],
       "cache": false,
       "passThroughEnv": [
+        "DATABASE_URL",
+        "REDIS_URL",
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "MISTRAL_API_KEY",
@@ -31,7 +33,16 @@
     "test:stack-e2e": {
       "dependsOn": ["^build"],
       "cache": false,
-      "passThroughEnv": ["APP_URL", "LLM_PROVIDER", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"]
+      "passThroughEnv": [
+        "APP_URL",
+        "LLM_PROVIDER",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY",
+        "LANGFUSE_SECRET_KEY",
+        "LANGFUSE_PUBLIC_KEY",
+        "LANGFUSE_BASE_URL"
+      ]
     },
     "dev": {
       "cache": false,
