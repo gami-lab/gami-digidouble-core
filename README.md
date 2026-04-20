@@ -87,7 +87,8 @@ GET    /v1/conversations/:sessionId/state             # Debug state
 DELETE /v1/conversations/:sessionId                   # Reset session
 ```
 
-See [docs/API_CONTRACT.md](docs/API_CONTRACT.md) for the full contract.
+See [docs/API_GUIDE.md](API_GUIDE.md) for curl examples, the full integration flow, and frontend notes.
+See [docs/API_CONTRACT.md](docs/API_CONTRACT.md) for the full formal spec.
 
 ---
 
@@ -128,19 +129,20 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full onboarding guide, quality co
 
 ## Documentation
 
-| Document                                                | Description                                         |
-| ------------------------------------------------------- | --------------------------------------------------- |
-| [VISION.md](docs/VISION.md)                             | Project vision and mission                          |
-| [PRINCIPLES.md](docs/PRINCIPLES.md)                     | 19 guiding principles behind every decision         |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Layered architecture, module map, request flows     |
-| [DATA_MODEL.md](docs/DATA_MODEL.md)                     | Entities, schemas, database design                  |
-| [API_CONTRACT.md](docs/API_CONTRACT.md)                 | Full REST + WebSocket + SSE API specification       |
-| [GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md) | Game Master input/output contract and trigger rules |
-| [TECH_STACK.md](docs/TECH_STACK.md)                     | Technology choices and rationale                    |
-| [EPICS.md](docs/EPICS.md)                               | Roadmap broken into sprints and epics               |
-| [TEST_STRATEGY.md](docs/TEST_STRATEGY.md)               | Test philosophy, pyramid, and module coverage       |
-| [PROJECT_STATUS.md](docs/PROJECT_STATUS.md)             | Current implementation status                       |
-| [CONTRIBUTING.md](CONTRIBUTING.md)                      | Onboarding guide, commands, and conventions         |
+| Document                                                | Description                                                    |
+| ------------------------------------------------------- | -------------------------------------------------------------- |
+| [API_GUIDE.md](docs/API_GUIDE.md)                       | **Developer guide** — curl examples, full flow, frontend notes |
+| [VISION.md](docs/VISION.md)                             | Project vision and mission                                     |
+| [PRINCIPLES.md](docs/PRINCIPLES.md)                     | 19 guiding principles behind every decision                    |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Layered architecture, module map, request flows                |
+| [DATA_MODEL.md](docs/DATA_MODEL.md)                     | Entities, schemas, database design                             |
+| [API_CONTRACT.md](docs/API_CONTRACT.md)                 | Full REST + WebSocket + SSE API specification                  |
+| [GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md) | Game Master input/output contract and trigger rules            |
+| [TECH_STACK.md](docs/TECH_STACK.md)                     | Technology choices and rationale                               |
+| [EPICS.md](docs/EPICS.md)                               | Roadmap broken into sprints and epics                          |
+| [TEST_STRATEGY.md](docs/TEST_STRATEGY.md)               | Test philosophy, pyramid, and module coverage                  |
+| [PROJECT_STATUS.md](docs/PROJECT_STATUS.md)             | Current implementation status                                  |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                      | Onboarding guide, commands, and conventions                    |
 
 ---
 
