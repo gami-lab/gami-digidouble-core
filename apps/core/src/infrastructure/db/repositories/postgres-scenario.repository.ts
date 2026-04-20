@@ -4,6 +4,7 @@ import type {
   IScenarioRepository,
 } from '../../../application/ports/IScenarioRepository.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
+import { extractUuid } from './id-prefix.js'
 
 interface ScenarioRow {
   id: string
@@ -17,7 +18,7 @@ interface ScenarioRow {
 
 function rowToScenario(row: ScenarioRow): Scenario {
   return {
-    scenarioId: row.id,
+    scenarioId: `scenario_${row.id}`,
     name: row.name,
     slug: row.slug,
     status: row.status as Scenario['status'],
@@ -45,10 +46,12 @@ export class PostgresScenarioRepository implements IScenarioRepository {
   }
 
   async findById(scenarioId: string): Promise<Scenario | null> {
+    const uuid = extractUuid('scenario_', scenarioId)
+    if (uuid === null) return null
     const [row] = await this.sql<[ScenarioRow?]>`
       SELECT id, name, slug, status, config, created_at, updated_at
       FROM scenarios
-      WHERE id = ${scenarioId}
+      WHERE id = ${uuid}
     `
     return row ? rowToScenario(row) : null
   }

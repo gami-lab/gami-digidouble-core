@@ -12,14 +12,14 @@ let sessionId: string
 function defineSaveTests(): void {
   it('saves a message and returns it', async () => {
     const saved = await messageRepo.save({
-      messageId: '11111111-1111-1111-1111-111111111111',
+      messageId: 'msg_11111111-1111-1111-1111-111111111111',
       sessionId,
       role: 'user',
       content: 'Hello!',
       createdAt: new Date().toISOString(),
     })
 
-    expect(saved.messageId).toBe('11111111-1111-1111-1111-111111111111')
+    expect(saved.messageId).toBe('msg_11111111-1111-1111-1111-111111111111')
     expect(saved.sessionId).toBe(sessionId)
     expect(saved.role).toBe('user')
     expect(saved.content).toBe('Hello!')
@@ -28,7 +28,7 @@ function defineSaveTests(): void {
 
   it('saves a message with metadata', async () => {
     const saved = await messageRepo.save({
-      messageId: '22222222-2222-2222-2222-222222222222',
+      messageId: 'msg_22222222-2222-2222-2222-222222222222',
       sessionId,
       role: 'avatar',
       content: 'Hi there!',
@@ -47,21 +47,21 @@ function defineFindTests(): void {
     const t3 = new Date().toISOString()
 
     await messageRepo.save({
-      messageId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      messageId: 'msg_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
       sessionId,
       role: 'user',
       content: 'First',
       createdAt: t1,
     })
     await messageRepo.save({
-      messageId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      messageId: 'msg_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
       sessionId,
       role: 'avatar',
       content: 'Second',
       createdAt: t2,
     })
     await messageRepo.save({
-      messageId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+      messageId: 'msg_cccccccc-cccc-cccc-cccc-cccccccccccc',
       sessionId,
       role: 'user',
       content: 'Third',
@@ -80,21 +80,21 @@ function defineFindTests(): void {
     const t3 = new Date().toISOString()
 
     await messageRepo.save({
-      messageId: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+      messageId: 'msg_dddddddd-dddd-dddd-dddd-dddddddddddd',
       sessionId,
       role: 'user',
       content: 'A',
       createdAt: t1,
     })
     await messageRepo.save({
-      messageId: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+      messageId: 'msg_eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
       sessionId,
       role: 'avatar',
       content: 'B',
       createdAt: t2,
     })
     await messageRepo.save({
-      messageId: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+      messageId: 'msg_ffffffff-ffff-ffff-ffff-ffffffffffff',
       sessionId,
       role: 'user',
       content: 'C',
@@ -114,14 +114,14 @@ function defineFindTests(): void {
 function defineDeleteTests(): void {
   it('deleteBySessionId removes all messages and returns the count', async () => {
     await messageRepo.save({
-      messageId: '11111112-1111-1111-1111-111111111111',
+      messageId: 'msg_11111112-1111-1111-1111-111111111111',
       sessionId,
       role: 'user',
       content: 'A',
       createdAt: new Date().toISOString(),
     })
     await messageRepo.save({
-      messageId: '11111113-1111-1111-1111-111111111111',
+      messageId: 'msg_11111113-1111-1111-1111-111111111111',
       sessionId,
       role: 'avatar',
       content: 'B',

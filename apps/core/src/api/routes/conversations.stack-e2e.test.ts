@@ -75,6 +75,19 @@ describe('Stack E2E — conversations routes — not found', () => {
 
 describe('Stack E2E — conversations lifecycle happy path', () => {
   it('runs start -> history -> reset -> history via real HTTP', async () => {
+    const slug = `e2e-lifecycle-${String(Date.now())}`
+    const scenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({ name: 'Lifecycle Test Scenario', slug }),
+    })
+    expect(scenarioRes.status).toBe(201)
+    const scenarioBody = (await scenarioRes.json()) as {
+      data: { scenario: { scenarioId: string } }
+      error: null
+    }
+    const scenarioId = scenarioBody.data.scenario.scenarioId
+
     const userId = `user_stack_${String(Date.now())}`
 
     const startRes = await fetch(START_ENDPOINT, {
@@ -83,7 +96,7 @@ describe('Stack E2E — conversations lifecycle happy path', () => {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
       },
-      body: JSON.stringify({ userId, scenarioId: 'scenario_test_default' }),
+      body: JSON.stringify({ userId, scenarioId }),
     })
     expect(startRes.status).toBe(201)
     const startBody = (await startRes.json()) as {

@@ -5,6 +5,7 @@ import type {
   SaveMessageParams,
 } from '../../../application/ports/IMessageRepository.js'
 import type { Message, MessageMetadata } from '../../../domain/conversation/session.types.js'
+import { extractUuid, stripPrefix } from './id-prefix.js'
 
 interface MessageRow {
   id: string
@@ -17,8 +18,8 @@ interface MessageRow {
 
 function rowToMessage(row: MessageRow): Message {
   return {
-    messageId: row.id,
-    sessionId: row.session_id,
+    messageId: `msg_${row.id}`,
+    sessionId: `session_${row.session_id}`,
     role: row.role as Message['role'],
     content: row.content,
     createdAt: row.created_at.toISOString(),
@@ -30,11 +31,13 @@ export class PostgresMessageRepository implements IMessageRepository {
   constructor(private readonly sql: Sql) {}
 
   async save(params: SaveMessageParams): Promise<Message> {
+    const messageUuid = stripPrefix('msg_', params.messageId)
+    const sessionUuid = stripPrefix('session_', params.sessionId)
     const [row] = await this.sql<[MessageRow]>`
       INSERT INTO messages (id, session_id, role, content, created_at, metadata)
       VALUES (
-        ${params.messageId},
-        ${params.sessionId},
+        ${messageUuid},
+        ${sessionUuid},
         ${params.role},
         ${params.content},
         ${new Date(params.createdAt)},
@@ -46,6 +49,8 @@ export class PostgresMessageRepository implements IMessageRepository {
   }
 
   async findBySessionId(sessionId: string, options?: FindMessagesOptions): Promise<Message[]> {
+    const uuid = extractUuid('session_', sessionId)
+    if (uuid === null) return []
     const limit = options?.limit
 
     const rows =
@@ -53,13 +58,13 @@ export class PostgresMessageRepository implements IMessageRepository {
         ? await this.sql<MessageRow[]>`
             SELECT id, session_id, role, content, created_at, metadata
             FROM messages
-            WHERE session_id = ${sessionId}
+            WHERE session_id = ${uuid}
             ORDER BY created_at ASC
           `
         : await this.sql<MessageRow[]>`
             SELECT id, session_id, role, content, created_at, metadata
             FROM messages
-            WHERE session_id = ${sessionId}
+            WHERE session_id = ${uuid}
             ORDER BY created_at ASC
             LIMIT ${limit}
           `
@@ -68,9 +73,11 @@ export class PostgresMessageRepository implements IMessageRepository {
   }
 
   async deleteBySessionId(sessionId: string): Promise<number> {
+    const uuid = extractUuid('session_', sessionId)
+    if (uuid === null) return 0
     const result = await this.sql`
       DELETE FROM messages
-      WHERE session_id = ${sessionId}
+      WHERE session_id = ${uuid}
     `
     return result.count
   }

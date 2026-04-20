@@ -4,6 +4,7 @@ import type {
   IAvatarRepository,
 } from '../../../application/ports/IAvatarRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import { extractUuid, stripPrefix } from './id-prefix.js'
 
 interface AvatarRow {
   id: string
@@ -22,8 +23,8 @@ interface AvatarRow {
 
 function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
   return {
-    avatarId: row.id,
-    scenarioId: row.scenario_id,
+    avatarId: `avatar_${row.id}`,
+    scenarioId: `scenario_${row.scenario_id}`,
     name: row.name,
     slug: row.slug,
     status: row.status as AvatarConfig['status'],
@@ -41,13 +42,14 @@ export class PostgresAvatarRepository implements IAvatarRepository {
   constructor(private readonly sql: Sql) {}
 
   async create(params: CreateAvatarParams): Promise<AvatarConfig> {
+    const scenarioUuid = stripPrefix('scenario_', params.scenarioId)
     const [row] = await this.sql<[AvatarRow]>`
       INSERT INTO avatars (
         scenario_id, name, slug, status,
         persona_prompt, tone, description, adjustments, config
       )
       VALUES (
-        ${params.scenarioId},
+        ${scenarioUuid},
         ${params.name},
         ${params.slug},
         ${params.status ?? 'active'},
@@ -66,13 +68,15 @@ export class PostgresAvatarRepository implements IAvatarRepository {
   }
 
   async findById(avatarId: string): Promise<AvatarConfig | null> {
+    const uuid = extractUuid('avatar_', avatarId)
+    if (uuid === null) return null
     const [row] = await this.sql<[AvatarRow?]>`
       SELECT
         id, scenario_id, name, slug, status,
         persona_prompt, tone, description, adjustments, config,
         created_at, updated_at
       FROM avatars
-      WHERE id = ${avatarId}
+      WHERE id = ${uuid}
     `
     return row ? rowToAvatarConfig(row) : null
   }
