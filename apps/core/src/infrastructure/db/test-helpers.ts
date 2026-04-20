@@ -1,0 +1,20 @@
+import postgres from 'postgres'
+import type { Sql } from 'postgres'
+import { runMigrations } from './migrations/runner.js'
+
+export const DB_AVAILABLE = Boolean(process.env['DATABASE_URL'])
+
+export async function createTestSql(): Promise<Sql> {
+  const url = process.env['DATABASE_URL']
+  if (!url) {
+    throw new Error('DATABASE_URL is required for integration tests')
+  }
+
+  const sql = postgres(url, { max: 2 })
+  await runMigrations(sql)
+  return sql
+}
+
+export async function truncateAllTables(sql: Sql): Promise<void> {
+  await sql`TRUNCATE messages, sessions, avatars, scenarios CASCADE`
+}
