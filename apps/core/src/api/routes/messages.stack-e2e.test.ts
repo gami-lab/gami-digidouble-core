@@ -52,6 +52,12 @@ type SendMessageResponse = {
   }
   avatarMessage: {
     content: string
+    metadata: {
+      model: string
+      latencyMs: number
+      inputTokens: number
+      outputTokens: number
+    }
   }
 }
 
@@ -147,6 +153,66 @@ describe('Stack E2E — POST /v1/conversations/:sessionId/messages — resource 
   })
 })
 
+// ── Shared setup helper ─────────────────────────────────────────────────────
+
+async function createStackFixture(): Promise<{
+  scenarioId: string
+  avatarId: string
+  sessionId: string
+}> {
+  const idSuffix = String(Date.now())
+
+  const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+    body: JSON.stringify({
+      name: `Messages Stack Scenario ${idSuffix}`,
+      slug: `messages-stack-scenario-${idSuffix}`,
+    }),
+  })
+  if (createScenarioRes.status !== 201) {
+    throw new Error(
+      `Expected 201 from POST /v1/scenarios, got ${String(createScenarioRes.status)}: ${await createScenarioRes.text()}`,
+    )
+  }
+  const createdScenario = (await createScenarioRes.json()) as ApiResponse<CreateScenarioResponse>
+  const scenarioId = createdScenario.data?.scenario.scenarioId ?? ''
+
+  const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+    body: JSON.stringify({
+      name: `Messages Stack Avatar ${idSuffix}`,
+      slug: `messages-stack-avatar-${idSuffix}`,
+      personaPrompt: 'You are a stack e2e test avatar. Follow user instructions precisely.',
+    }),
+  })
+  if (createAvatarRes.status !== 201) {
+    throw new Error(
+      `Expected 201 from POST /v1/scenarios/:scenarioId/avatars, got ${String(createAvatarRes.status)}: ${await createAvatarRes.text()}`,
+    )
+  }
+  const createdAvatar = (await createAvatarRes.json()) as ApiResponse<CreateAvatarResponse>
+  const avatarId = createdAvatar.data?.avatar.avatarId ?? ''
+
+  const startSessionRes = await fetch(`${APP_URL}/v1/conversations/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+    body: JSON.stringify({ userId: `user_messages_stack_${idSuffix}`, scenarioId }),
+  })
+  if (startSessionRes.status !== 201) {
+    throw new Error(
+      `Expected 201 from POST /v1/conversations/start, got ${String(startSessionRes.status)}: ${await startSessionRes.text()}`,
+    )
+  }
+  const startedSession = (await startSessionRes.json()) as ApiResponse<StartSessionResponse>
+  const sessionId = startedSession.data?.session.sessionId ?? ''
+
+  return { scenarioId, avatarId, sessionId }
+}
+
+// ── Null provider happy path ──────────────────────────────────────────────────
+
 describe.skipIf(!isNullProvider)(
   'Stack E2E — POST /v1/conversations/:sessionId/messages — null provider happy path',
   () => {
@@ -156,74 +222,12 @@ describe.skipIf(!isNullProvider)(
     const userMessage = 'Hello from stack-e2e'
 
     it('creates scenario, avatar, and session via HTTP setup', async () => {
-      const idSuffix = String(Date.now())
-
-      const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-        },
-        body: JSON.stringify({
-          name: `Messages Stack Scenario ${idSuffix}`,
-          slug: `messages-stack-scenario-${idSuffix}`,
-        }),
-      })
-
-      if (createScenarioRes.status !== 201) {
-        throw new Error(
-          `Expected 201 from POST /v1/scenarios, got ${String(createScenarioRes.status)}: ${await createScenarioRes.text()}`,
-        )
-      }
-
-      const createdScenario =
-        (await createScenarioRes.json()) as ApiResponse<CreateScenarioResponse>
-      scenarioId = createdScenario.data?.scenario.scenarioId ?? ''
+      const fixture = await createStackFixture()
+      scenarioId = fixture.scenarioId
+      avatarId = fixture.avatarId
+      sessionId = fixture.sessionId
       expect(scenarioId.length).toBeGreaterThan(0)
-
-      const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-        },
-        body: JSON.stringify({
-          name: `Messages Stack Avatar ${idSuffix}`,
-          slug: `messages-stack-avatar-${idSuffix}`,
-          personaPrompt: 'You are a stack e2e test avatar.',
-        }),
-      })
-
-      if (createAvatarRes.status !== 201) {
-        throw new Error(
-          `Expected 201 from POST /v1/scenarios/:scenarioId/avatars, got ${String(createAvatarRes.status)}: ${await createAvatarRes.text()}`,
-        )
-      }
-
-      const createdAvatar = (await createAvatarRes.json()) as ApiResponse<CreateAvatarResponse>
-      avatarId = createdAvatar.data?.avatar.avatarId ?? ''
       expect(avatarId.length).toBeGreaterThan(0)
-
-      const startSessionRes = await fetch(`${APP_URL}/v1/conversations/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-        },
-        body: JSON.stringify({
-          userId: `user_messages_stack_${idSuffix}`,
-          scenarioId,
-        }),
-      })
-
-      if (startSessionRes.status !== 201) {
-        throw new Error(
-          `Expected 201 from POST /v1/conversations/start, got ${String(startSessionRes.status)}: ${await startSessionRes.text()}`,
-        )
-      }
-
-      const startedSession = (await startSessionRes.json()) as ApiResponse<StartSessionResponse>
-      sessionId = startedSession.data?.session.sessionId ?? ''
       expect(sessionId.length).toBeGreaterThan(0)
     })
 
@@ -248,6 +252,94 @@ describe.skipIf(!isNullProvider)(
       expect(body.data?.userMessage.content).toBe(userMessage)
       expect(typeof body.data?.avatarMessage.content).toBe('string')
       expect((body.data?.avatarMessage.content.length ?? 0) > 0).toBe(true)
+    })
+  },
+)
+
+// ── Real provider happy paths ─────────────────────────────────────────────────
+
+const openaiKey = process.env['OPENAI_API_KEY']
+
+describe.skipIf(!openaiKey || isNullProvider)(
+  'Stack E2E — POST /v1/conversations/:sessionId/messages — real OpenAI',
+  () => {
+    let avatarId = ''
+    let sessionId = ''
+
+    it('creates scenario, avatar, and session via HTTP setup', async () => {
+      const fixture = await createStackFixture()
+      avatarId = fixture.avatarId
+      sessionId = fixture.sessionId
+      expect(sessionId.length).toBeGreaterThan(0)
+    })
+
+    it('sends a message and returns a non-empty LLM reply with token counts', async () => {
+      expect(sessionId.length).toBeGreaterThan(0)
+      expect(avatarId.length).toBeGreaterThan(0)
+
+      const res = await fetch(`${APP_URL}/v1/conversations/${sessionId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({
+          avatarId,
+          message: { content: 'Reply with exactly two words: "stack ok".' },
+        }),
+      })
+
+      expect(res.status).toBe(200)
+
+      const body = (await res.json()) as ApiResponse<SendMessageResponse>
+      expect(body.error).toBeNull()
+      expect(body.data?.avatarMessage.content).toBeTruthy()
+      expect(body.data?.avatarMessage.metadata.inputTokens).toBeGreaterThan(0)
+      expect(body.data?.avatarMessage.metadata.outputTokens).toBeGreaterThan(0)
+      expect(body.data?.avatarMessage.metadata.latencyMs).toBeGreaterThan(0)
+    })
+  },
+)
+
+const anthropicKey = process.env['ANTHROPIC_API_KEY']
+
+describe.skipIf(!anthropicKey || isNullProvider)(
+  'Stack E2E — POST /v1/conversations/:sessionId/messages — real Anthropic',
+  () => {
+    let avatarId = ''
+    let sessionId = ''
+
+    it('creates scenario, avatar, and session via HTTP setup', async () => {
+      const fixture = await createStackFixture()
+      avatarId = fixture.avatarId
+      sessionId = fixture.sessionId
+      expect(sessionId.length).toBeGreaterThan(0)
+    })
+
+    it('sends a message and returns a non-empty LLM reply with token counts', async () => {
+      expect(sessionId.length).toBeGreaterThan(0)
+      expect(avatarId.length).toBeGreaterThan(0)
+
+      const res = await fetch(`${APP_URL}/v1/conversations/${sessionId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({
+          avatarId,
+          message: { content: 'Reply with exactly two words: "stack ok".' },
+        }),
+      })
+
+      expect(res.status).toBe(200)
+
+      const body = (await res.json()) as ApiResponse<SendMessageResponse>
+      expect(body.error).toBeNull()
+      expect(body.data?.avatarMessage.content).toBeTruthy()
+      expect(body.data?.avatarMessage.metadata.inputTokens).toBeGreaterThan(0)
+      expect(body.data?.avatarMessage.metadata.outputTokens).toBeGreaterThan(0)
+      expect(body.data?.avatarMessage.metadata.latencyMs).toBeGreaterThan(0)
     })
   },
 )
