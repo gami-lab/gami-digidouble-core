@@ -14,6 +14,7 @@ interface AvatarRow {
   persona_prompt: string
   tone: string | null
   description: string | null
+  adjustments: string[] | null
   config: Record<string, unknown>
   created_at: Date
   updated_at: Date
@@ -29,6 +30,7 @@ function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
     personaPrompt: row.persona_prompt,
     ...(row.tone !== null ? { tone: row.tone } : {}),
     ...(row.description !== null ? { description: row.description } : {}),
+    ...(row.adjustments !== null ? { adjustments: row.adjustments } : {}),
     config: row.config,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -39,12 +41,10 @@ export class PostgresAvatarRepository implements IAvatarRepository {
   constructor(private readonly sql: Sql) {}
 
   async create(params: CreateAvatarParams): Promise<AvatarConfig> {
-    // NOTE(EPIC-2.3): `adjustments` is runtime-only in Phase A and is not
-    // persisted because the initial avatars schema has no `adjustments` column.
     const [row] = await this.sql<[AvatarRow]>`
       INSERT INTO avatars (
         scenario_id, name, slug, status,
-        persona_prompt, tone, description, config
+        persona_prompt, tone, description, adjustments, config
       )
       VALUES (
         ${params.scenarioId},
@@ -54,11 +54,12 @@ export class PostgresAvatarRepository implements IAvatarRepository {
         ${params.personaPrompt},
         ${params.tone ?? null},
         ${params.description ?? null},
+        ${params.adjustments ?? null},
         ${this.sql.json((params.config ?? {}) as JSONValue)}
       )
       RETURNING
         id, scenario_id, name, slug, status,
-        persona_prompt, tone, description, config,
+        persona_prompt, tone, description, adjustments, config,
         created_at, updated_at
     `
     return rowToAvatarConfig(row)
@@ -68,7 +69,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
     const [row] = await this.sql<[AvatarRow?]>`
       SELECT
         id, scenario_id, name, slug, status,
-        persona_prompt, tone, description, config,
+        persona_prompt, tone, description, adjustments, config,
         created_at, updated_at
       FROM avatars
       WHERE id = ${avatarId}

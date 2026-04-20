@@ -51,8 +51,7 @@ export class PostgresSessionRepository implements ISessionRepository {
 
   async update(sessionId: string, updates: SessionUpdate): Promise<Session> {
     const hasEndedAtUpdate = Object.hasOwn(updates, 'endedAt')
-    const endedAtValue =
-      updates.endedAt === undefined || updates.endedAt === null ? null : new Date(updates.endedAt)
+    const endedAtValue = updates.endedAt === undefined ? null : new Date(updates.endedAt)
 
     const [row] = await this.sql<[SessionRow?]>`
       UPDATE sessions

@@ -40,7 +40,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     status: 'active',
     startedAt: '2026-04-18T10:00:00.000Z',
     lastActivityAt: '2026-04-18T10:00:00.000Z',
-    endedAt: null,
+
     ...overrides,
   }
 }
@@ -54,6 +54,7 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
     status: 'active',
     personaPrompt: 'You are Ava, a helpful guide.',
     tone: 'friendly',
+    config: {},
     createdAt: '2026-04-20T10:00:00.000Z',
     updatedAt: '2026-04-20T10:00:00.000Z',
     ...overrides,

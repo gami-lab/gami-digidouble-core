@@ -28,7 +28,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     status: 'active',
     startedAt: '2026-04-19T10:00:00.000Z',
     lastActivityAt: '2026-04-19T10:00:00.000Z',
-    endedAt: null,
+
     ...overrides,
   }
 }

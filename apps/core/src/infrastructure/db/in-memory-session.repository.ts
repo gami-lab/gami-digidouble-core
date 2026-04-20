@@ -28,7 +28,6 @@ export class InMemorySessionRepository implements ISessionRepository {
       status: 'active',
       startedAt: now,
       lastActivityAt: now,
-      endedAt: null,
     }
     this.sessions.set(session.sessionId, session)
     return Promise.resolve(session)

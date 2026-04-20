@@ -26,7 +26,7 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
       ...(params.tone !== undefined ? { tone: params.tone } : {}),
       ...(params.description !== undefined ? { description: params.description } : {}),
       ...(params.adjustments !== undefined ? { adjustments: params.adjustments } : {}),
-      ...(params.config !== undefined ? { config: params.config } : {}),
+      config: params.config ?? {},
       createdAt: now,
       updatedAt: now,
     }

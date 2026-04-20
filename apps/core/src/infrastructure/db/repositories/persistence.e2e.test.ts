@@ -11,6 +11,7 @@ describe.skipIf(!DB_AVAILABLE)('Persistence stack — end-to-end', () => {
 
   beforeAll(async () => {
     sql = await createTestSql()
+    await truncateAllTables(sql)
   })
 
   afterAll(async () => {
@@ -44,7 +45,7 @@ describe.skipIf(!DB_AVAILABLE)('Persistence stack — end-to-end', () => {
     })
 
     await messageRepo1.save({
-      messageId: 'e2e00000-0000-0000-0000-000000000001',
+      messageId: crypto.randomUUID(),
       sessionId: session.sessionId,
       role: 'user',
       content: 'Hello from stack e2e!',

@@ -76,6 +76,35 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
     expect(result.description).toBeUndefined()
   })
 
+  it('persists and returns adjustments', async () => {
+    const result = await avatarRepo.create({
+      scenarioId,
+      name: 'Adjusted Avatar',
+      slug: 'adjusted-avatar',
+      personaPrompt: 'You are adjusted.',
+      adjustments: ['Be concise.', 'Use bullet points.'],
+    })
+
+    expect(result.adjustments).toEqual(['Be concise.', 'Use bullet points.'])
+
+    const found = await avatarRepo.findById(result.avatarId)
+    expect(found?.adjustments).toEqual(['Be concise.', 'Use bullet points.'])
+  })
+
+  it('adjustments are undefined when not provided', async () => {
+    const result = await avatarRepo.create({
+      scenarioId,
+      name: 'Plain Avatar',
+      slug: 'plain-avatar',
+      personaPrompt: 'No adjustments.',
+    })
+
+    expect(result.adjustments).toBeUndefined()
+
+    const found = await avatarRepo.findById(result.avatarId)
+    expect(found?.adjustments).toBeUndefined()
+  })
+
   it('findById returns the avatar by its id', async () => {
     const created = await avatarRepo.create({
       scenarioId,

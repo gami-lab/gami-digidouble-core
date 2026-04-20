@@ -6,7 +6,7 @@ export interface Session {
   status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string
-  endedAt?: string | null
+  endedAt?: string
 }
 
 /** A single message in a conversation. */

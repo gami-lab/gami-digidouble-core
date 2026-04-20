@@ -30,7 +30,7 @@ type SessionSummary = {
   status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string
-  endedAt?: string | null
+  endedAt?: string
 }
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -41,7 +41,6 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     status: 'active',
     startedAt: '2026-04-18T10:00:00.000Z',
     lastActivityAt: '2026-04-18T10:00:00.000Z',
-    endedAt: null,
     ...overrides,
   }
 }

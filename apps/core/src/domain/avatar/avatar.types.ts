@@ -39,7 +39,7 @@ export interface AvatarConfig {
   /** Ordered list of persona style adjustments appended to the assembled system prompt. */
   adjustments?: string[]
   /** JSONB-backed extensible configuration for voice, UI hints, knowledge scope, etc. */
-  config?: Record<string, unknown>
+  config: Record<string, unknown>
   createdAt: string
   updatedAt: string
 }
