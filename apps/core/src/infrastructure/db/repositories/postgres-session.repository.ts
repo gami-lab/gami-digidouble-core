@@ -50,6 +50,7 @@ export class PostgresSessionRepository implements ISessionRepository {
   }
 
   async update(sessionId: string, updates: SessionUpdate): Promise<Session> {
+    const hasEndedAtUpdate = Object.hasOwn(updates, 'endedAt')
     const endedAtValue =
       updates.endedAt === undefined || updates.endedAt === null ? null : new Date(updates.endedAt)
 
@@ -61,7 +62,10 @@ export class PostgresSessionRepository implements ISessionRepository {
           ${updates.lastActivityAt === undefined ? null : new Date(updates.lastActivityAt)}::TIMESTAMPTZ,
           last_activity_at
         ),
-        ended_at = COALESCE(${endedAtValue}::TIMESTAMPTZ, ended_at)
+        ended_at = CASE
+          WHEN ${hasEndedAtUpdate}::BOOLEAN THEN ${endedAtValue}::TIMESTAMPTZ
+          ELSE ended_at
+        END
       WHERE id = ${sessionId}
       RETURNING id, user_id, scenario_id, status, started_at, last_activity_at, ended_at
     `
