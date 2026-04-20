@@ -1,4 +1,25 @@
 import { afterEach, beforeEach } from 'vitest'
+import { fileURLToPath } from 'node:url'
+
+// ── Environment ───────────────────────────────────────────────────────────────
+//
+// Load the root .env file into process.env so that module-level constants
+// (e.g. DB_AVAILABLE, API key guards) are resolved correctly whether the tests
+// are invoked directly via `vitest` or through Turbo.
+//
+// process.loadEnvFile does NOT overwrite env vars that are already set, so:
+//   - Shell-exported vars (dev machine) win
+//   - Turbo passThroughEnv vars win
+//   - CI/Docker injected secrets win
+//   - .env values serve as fallback for local development
+{
+  const envFile = fileURLToPath(new URL('../../.env', import.meta.url))
+  try {
+    process.loadEnvFile(envFile)
+  } catch {
+    // .env is optional — CI and Docker inject secrets as env vars directly
+  }
+}
 
 // ── Console guards ────────────────────────────────────────────────────────────
 //
