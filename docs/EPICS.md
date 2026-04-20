@@ -157,7 +157,7 @@ A differentiated avatar creates more value than generic chatbot behavior.
 
 ---
 
-## EPIC 2.2 — Scenario & Session Lifecycle v1
+## EPIC 2.2 — Scenario & Session Lifecycle v1 ✅ Done
 
 **Purpose**  
 Make the platform continuously usable through real conversations.
@@ -200,7 +200,7 @@ Real usable sessions require manageable content objects and persistent conversat
 
 ---
 
-## EPIC 2.3 — Persistence Layer v1
+## EPIC 2.3 — Persistence Layer v1 ✅ Done
 
 **Purpose**  
 Replace in-memory stubs with a production-ready PostgreSQL persistence layer.
