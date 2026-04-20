@@ -157,6 +157,20 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     needs: [tests-fast, coverage]
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: gami_core
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gami_core"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout
@@ -177,4 +191,6 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run integration and E2E suites
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/gami_core
         run: pnpm test:integration-e2e
