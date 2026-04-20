@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS messages (
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_avatars_scenario_id ON avatars(scenario_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_avatars_scenario_slug ON avatars(scenario_id, slug);
 CREATE INDEX IF NOT EXISTS idx_sessions_scenario_id ON sessions(scenario_id);
 CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(session_id, created_at);
