@@ -11,7 +11,7 @@
  *
  * Full happy-path test:
  *   Creates scenario + avatar + session via API, then sends a message.
- *   Guarded by describe.skipIf(!isNullProvider) — runs only when LLM_PROVIDER=null.
+ *   Always runs — validates the full stack without requiring a real LLM key.
  *
  * The Docker stack is configured with API_KEY_SECRET=e2e-stack-secret and
  * LLM_PROVIDER=${LLM_PROVIDER:-null} (see docker-compose.e2e.yml).
@@ -213,48 +213,45 @@ async function createStackFixture(): Promise<{
 
 // ── Null provider happy path ──────────────────────────────────────────────────
 
-describe.skipIf(!isNullProvider)(
-  'Stack E2E — POST /v1/conversations/:sessionId/messages — null provider happy path',
-  () => {
-    let scenarioId = ''
-    let avatarId = ''
-    let sessionId = ''
-    const userMessage = 'Hello from stack-e2e'
+describe('Stack E2E — POST /v1/conversations/:sessionId/messages — null provider happy path', () => {
+  let scenarioId = ''
+  let avatarId = ''
+  let sessionId = ''
+  const userMessage = 'Hello from stack-e2e'
 
-    it('creates scenario, avatar, and session via HTTP setup', async () => {
-      const fixture = await createStackFixture()
-      scenarioId = fixture.scenarioId
-      avatarId = fixture.avatarId
-      sessionId = fixture.sessionId
-      expect(scenarioId.length).toBeGreaterThan(0)
-      expect(avatarId.length).toBeGreaterThan(0)
-      expect(sessionId.length).toBeGreaterThan(0)
+  it('creates scenario, avatar, and session via HTTP setup', async () => {
+    const fixture = await createStackFixture()
+    scenarioId = fixture.scenarioId
+    avatarId = fixture.avatarId
+    sessionId = fixture.sessionId
+    expect(scenarioId.length).toBeGreaterThan(0)
+    expect(avatarId.length).toBeGreaterThan(0)
+    expect(sessionId.length).toBeGreaterThan(0)
+  })
+
+  it('sends a message and returns expected response shape', async () => {
+    expect(sessionId.length).toBeGreaterThan(0)
+    expect(avatarId.length).toBeGreaterThan(0)
+
+    const res = await fetch(`${APP_URL}/v1/conversations/${sessionId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+      },
+      body: JSON.stringify({ avatarId, message: { content: userMessage } }),
     })
 
-    it('sends a message and returns expected response shape', async () => {
-      expect(sessionId.length).toBeGreaterThan(0)
-      expect(avatarId.length).toBeGreaterThan(0)
+    expect(res.status).toBe(200)
 
-      const res = await fetch(`${APP_URL}/v1/conversations/${sessionId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-        },
-        body: JSON.stringify({ avatarId, message: { content: userMessage } }),
-      })
-
-      expect(res.status).toBe(200)
-
-      const body = (await res.json()) as ApiResponse<SendMessageResponse>
-      expect(body.error).toBeNull()
-      expect(body.data?.session.sessionId).toBe(sessionId)
-      expect(body.data?.userMessage.content).toBe(userMessage)
-      expect(typeof body.data?.avatarMessage.content).toBe('string')
-      expect((body.data?.avatarMessage.content.length ?? 0) > 0).toBe(true)
-    })
-  },
-)
+    const body = (await res.json()) as ApiResponse<SendMessageResponse>
+    expect(body.error).toBeNull()
+    expect(body.data?.session.sessionId).toBe(sessionId)
+    expect(body.data?.userMessage.content).toBe(userMessage)
+    expect(typeof body.data?.avatarMessage.content).toBe('string')
+    expect((body.data?.avatarMessage.content.length ?? 0) > 0).toBe(true)
+  })
+})
 
 // ── Real provider happy paths ─────────────────────────────────────────────────
 

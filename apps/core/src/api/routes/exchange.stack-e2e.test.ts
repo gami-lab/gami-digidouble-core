@@ -64,40 +64,36 @@ describe('Stack E2E — POST /v1/exchange — auth', () => {
 
 // ── Null provider — always runs (no LLM key required) ────────────────────────
 //
-// When LLM_PROVIDER=null the server responds with a deterministic empty reply.
-// This always executes — it validates the full stack (HTTP → app → DB → Redis)
-// without any external dependencies.
+// Uses the null adapter to validate the full stack (HTTP → app → DB → Redis)
+// without any external dependencies. Runs regardless of LLM_PROVIDER.
 
 const isNullProvider = (process.env['LLM_PROVIDER'] ?? 'null') === 'null'
 
-describe.skipIf(!isNullProvider)(
-  'Stack E2E — POST /v1/exchange — null provider (always-on)',
-  () => {
-    it('returns 200 with correct response envelope', async () => {
-      const res = await fetch(`${APP_URL}/v1/exchange`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-        },
-        body: JSON.stringify({
-          message: 'hello',
-          systemPrompt: 'You are a test assistant.',
-        }),
-      })
-
-      expect(res.status).toBe(200)
-
-      const body = (await res.json()) as ApiResponse<SendRawMessageOutput>
-      expect(body.error).toBeNull()
-      expect(body.data).not.toBeNull()
-      expect(body.data?.requestId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      )
-      expect(typeof body.data?.latencyMs).toBe('number')
+describe('Stack E2E — POST /v1/exchange — null provider (always-on)', () => {
+  it('returns 200 with correct response envelope', async () => {
+    const res = await fetch(`${APP_URL}/v1/exchange`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+      },
+      body: JSON.stringify({
+        message: 'hello',
+        systemPrompt: 'You are a test assistant.',
+      }),
     })
-  },
-)
+
+    expect(res.status).toBe(200)
+
+    const body = (await res.json()) as ApiResponse<SendRawMessageOutput>
+    expect(body.error).toBeNull()
+    expect(body.data).not.toBeNull()
+    expect(body.data?.requestId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    )
+    expect(typeof body.data?.latencyMs).toBe('number')
+  })
+})
 
 // ── Real provider — skipped when API key is absent ───────────────────────────
 
