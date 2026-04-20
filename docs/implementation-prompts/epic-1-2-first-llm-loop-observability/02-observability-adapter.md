@@ -88,7 +88,7 @@ function createObservabilityAdapter(config: ObservabilityConfig): IObservability
 
 ### Config integration
 
-- `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST` are already in `.env.example` as optional.
+- `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` are already in `.env.example` as optional.
 - Add optional `langfusePublicKey`, `langfuseSecretKey`, `langfuseHost` fields to `Config`.
 - These must not be required — the app must start without them (falls back to console adapter).
 

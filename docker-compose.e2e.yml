@@ -63,7 +63,7 @@ services:
       # Observability — injected from the shell environment when available
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
-      LANGFUSE_HOST: ${LANGFUSE_HOST:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
     depends_on:
       postgres:
         condition: service_healthy

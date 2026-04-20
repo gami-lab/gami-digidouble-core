@@ -43,6 +43,6 @@ export function loadConfig(): Config {
     mistralApiKey: process.env['MISTRAL_API_KEY'],
     langfusePublicKey: process.env['LANGFUSE_PUBLIC_KEY'],
     langfuseSecretKey: process.env['LANGFUSE_SECRET_KEY'],
-    langfuseHost: process.env['LANGFUSE_HOST'],
+    langfuseHost: process.env['LANGFUSE_BASE_URL'],
   }
 }
