@@ -78,6 +78,13 @@ Defines a runnable experience configuration.
 - `status` is constrained to `'draft' | 'active' | 'archived'`.
 - `config` is a typed object (`ScenarioConfig`) carrying scenario runtime settings.
 
+### Implementation Status (EPIC 2.3)
+
+- **Table:** `scenarios`
+- **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
+- **Repository:** `PostgresScenarioRepository`
+- **Status:** Fully implemented.
+
 ### Typical Config
 
 - world context
@@ -127,6 +134,13 @@ An Avatar is now a first-class object.
 - `AvatarConfig` keeps runtime-first naming (`avatarId`) while still carrying database-sourced timestamps for API responses and auditing use cases.
 - Avatar creation input in application layer maps to runtime config fields: `scenarioId`, `name`, `slug`, `personaPrompt`, optional `tone`, `description`, `adjustments`, `config`, and optional `status`.
 
+### Implementation Status (EPIC 2.3)
+
+- **Table:** `avatars`
+- **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
+- **Repository:** `PostgresAvatarRepository`
+- **Status:** Fully implemented. The `adjustments` field (runtime-only, from `AvatarConfig`) is not persisted in Phase A and remains in-memory only. Add a `TEXT[]` column via a future migration if persistence is required.
+
 ### Typical Config
 
 - speaking style details
@@ -169,6 +183,13 @@ Represents one conversation instance.
 - last_activity_at
 - ended_at (nullable)
 
+### Implementation Status (EPIC 2.3)
+
+- **Table:** `sessions`
+- **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
+- **Repository:** `PostgresSessionRepository`
+- **Status:** Fully implemented.
+
 ### Notes
 
 One session = one conversation timeline.
@@ -199,6 +220,13 @@ Represents one message in a session.
 
 - avatar_id (nullable)
 - metadata (JSONB)
+
+### Implementation Status (EPIC 2.3)
+
+- **Table:** `messages`
+- **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
+- **Repository:** `PostgresMessageRepository`
+- **Status:** Fully implemented.
 
 ### Metadata Shape (JSONB)
 

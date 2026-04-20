@@ -226,6 +226,8 @@ Examples:
 - Langfuse logger
 - Redis cache adapter
 
+Persistence is now wired to production PostgreSQL through `postgres` (postgres.js). The DB client singleton lives in `infrastructure/db/client.ts`, startup runs SQL migrations via `infrastructure/db/migrations/runner.ts`, and concrete repositories are implemented in `infrastructure/db/repositories/` (`PostgresScenarioRepository`, `PostgresAvatarRepository`, `PostgresSessionRepository`, `PostgresMessageRepository`). In-memory repository stubs remain available for unit tests and are injected through `ServerAdapters`; `createServer` does not instantiate test stubs by itself.
+
 Replaceable without touching domain logic.
 
 ---
