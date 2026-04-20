@@ -57,7 +57,9 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',
     config,
-    scenarioRepository: adapters.scenarioRepository,
+    ...(adapters.scenarioRepository !== undefined
+      ? { scenarioRepository: adapters.scenarioRepository }
+      : {}),
     ...(adapters.avatarRepository !== undefined
       ? { avatarRepository: adapters.avatarRepository }
       : {}),
