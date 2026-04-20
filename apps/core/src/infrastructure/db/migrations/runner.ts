@@ -13,7 +13,9 @@ export async function runMigrations(sql: Sql): Promise<void> {
     )
   `
 
-  const files = (await readdir(MIGRATIONS_DIR)).filter((file) => file.endsWith('.sql')).sort()
+  const files = (await readdir(MIGRATIONS_DIR))
+    .filter((file) => file.endsWith('.sql'))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
 
   for (const file of files) {
     const [existing] = await sql<[{ filename: string }?]>`
