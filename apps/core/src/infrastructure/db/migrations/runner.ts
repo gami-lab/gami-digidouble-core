@@ -13,9 +13,17 @@ export async function runMigrations(sql: Sql): Promise<void> {
     )
   `
 
-  const files = (await readdir(MIGRATIONS_DIR))
-    .filter((file) => file.endsWith('.sql'))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+  let files: string[]
+  try {
+    files = (await readdir(MIGRATIONS_DIR))
+      .filter((file) => file.endsWith('.sql'))
+      // Migration files must use zero-padded prefixes (001_, 002_, ...).
+      .sort()
+  } catch (error) {
+    throw new Error(`Unable to read migrations directory: ${MIGRATIONS_DIR}`, {
+      cause: error,
+    })
+  }
 
   for (const file of files) {
     const [existing] = await sql<[{ filename: string }?]>`
