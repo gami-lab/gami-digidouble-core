@@ -2,7 +2,7 @@
 
 ## Purpose
 
-We are building a new kind of system to create and run **interactive, conversational experiences** — where users don’t just consume content, but engage with it through dialogue, exploration, and narrative.
+We are building a new kind of system to create and run **guided interactive experiences** — where users don’t just consume content, but progress through purposeful dialogue, exploration, and narrative.
 
 Today, most learning, storytelling, and simulation tools are static, linear, or hard to adapt. They do not respond to the user in a meaningful, contextual way.
 
@@ -11,6 +11,7 @@ Our goal is to change that.
 We want to enable experiences where:
 
 - conversations feel natural and evolving
+- progression is explicit and meaningful
 - context is remembered and used intelligently
 - content adapts to the user, not the opposite
 - media and interactions can be triggered dynamically during the experience
@@ -21,7 +22,7 @@ This is about moving from **content delivery → interactive experience orchestr
 
 ## What We Build
 
-We build a **Core Engine** that orchestrates conversational experiences.
+We build a **Core Engine** that orchestrates guided interactive experiences.
 
 This Core is not an application, but a **foundation layer** used by multiple products (learning, storytelling, simulations, cultural mediation, training, etc.).
 
@@ -30,7 +31,8 @@ At its heart, the system:
 - receives user input
 - understands the situation and context
 - decides how the experience should evolve
-- generates a coherent response through an avatar
+- routes interaction to the right avatar at the right moment
+- generates coherent responses through avatars
 - can trigger structured outputs (text, media, events, actions)
 
 The system is structured around a few key concepts:
@@ -39,14 +41,15 @@ The system is structured around a few key concepts:
   A central orchestrator that understands the global state and guides the experience asynchronously through triggers and directives.
 
 - **Avatar(s)**
-  Entities that interact with the user, each with identity, personality, autonomy, and memory.
+  Entities that interact with the user, each with identity, personality, autonomy, and memory.  
+  Avatars are interaction surfaces, not the product itself.
 
 - **Context** (3 dimensions)
   - Memory (what happened before)
   - Experience (the world, rules, objectives)
   - Knowledge (external sources and content)
 
-Together, these elements create a system capable of producing **coherent, evolving conversations over time**, not just isolated answers. :contentReference[oaicite:1]{index=1} :contentReference[oaicite:2]{index=2}
+Together, these elements create a system capable of producing **coherent, evolving guided experiences over time**, not just isolated answers. :contentReference[oaicite:1]{index=1} :contentReference[oaicite:2]{index=2}
 
 ---
 
@@ -192,7 +195,7 @@ It is designed to be:
 
 Validate the fundamental loop:
 
-user input → context assembly → avatar response → memory update
+user input → context assembly → orchestrated avatar response → memory update
 
 Deliver a usable back-office and text-based prototype.
 
@@ -216,9 +219,10 @@ Prepare the platform for advanced integrations such as expressive avatars, advan
 
 We succeed when:
 
-- a user can engage in a long, coherent conversation
+- a user can engage in a long, coherent guided experience
 - the system remembers and adapts over time
 - avatars feel alive, not scripted
+- avatar transitions feel intentional and scenario-driven
 - media can appear naturally when useful
 - new experiences can be launched quickly by creators
 - multiple products can reuse the same Core

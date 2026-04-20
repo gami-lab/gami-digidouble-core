@@ -39,6 +39,38 @@ The system must **decide before it generates**.
 
 ---
 
+## 2b. Productized AI Over Artisanal Prompting
+
+Long handcrafted prompts are not a product architecture.
+
+Prefer:
+
+- editable configuration
+- explicit rules
+- reusable variables
+- stable contracts
+
+Use prompts where useful, but do not hide core product behavior inside prompt sprawl.
+
+👉 If the behavior cannot be inspected and configured, it is not product-ready.
+
+---
+
+## 2c. Structured Control Beats Prompt Sprawl
+
+Decision quality must come from a balance of:
+
+- reasoning
+- policy rules
+- progression state
+- constraints
+
+Not from one giant prompt.
+
+👉 Deterministic, configurable decisions should stay deterministic and configurable.
+
+---
+
 ## 3. Context is the Product
 
 System quality depends on how context is:
@@ -221,6 +253,34 @@ Storing everything is easy. Using it well is hard.
 - Retrieve when relevant
 
 👉 Memory is a tool, not an archive.
+
+---
+
+## 14b. Guidance Over Generic Generation
+
+Open-ended chat is not the goal.
+
+The system should actively support:
+
+- role fidelity
+- progression
+- pacing
+- objective coverage
+
+👉 A strong experience is guided, not merely reactive.
+
+---
+
+## 14c. User Progression Is a First-Class Outcome
+
+Each turn should be evaluated by what it moves forward:
+
+- understanding
+- discovery
+- narrative advancement
+- scenario objectives
+
+👉 If nothing progresses, orchestration failed.
 
 ---
 

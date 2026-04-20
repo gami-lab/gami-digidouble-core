@@ -135,6 +135,7 @@ We implement:
 - **Avatar Agent**
 - **Context Manager**
 - **Memory / State update flow**
+- **Policy config layer** (editable scenario goals, pacing, transitions, constraints)
 
 ### Rule
 
@@ -163,6 +164,7 @@ The roadmap and core architecture now clearly favor:
 - can model async GM triggers cleanly
 - remains debuggable
 - supports headless evolution toward nodes / multi-scenarios later
+- supports deterministic policy decisions without prompt-only logic
 
 ---
 
@@ -369,6 +371,7 @@ Redis is explicitly part of the 3-container MVP architecture.
 
 - no heavy RAG framework at MVP stage
 - RAG is a subsystem, not the architecture
+- retrieval remains one response path among others (not the only one)
 
 ### Optional helpers
 
@@ -388,6 +391,26 @@ The roadmap confirms:
 - latency
 - token impact
 - operational simplicity
+
+---
+
+## 10b. Hybrid Response Composition (Directional)
+
+### MVP stance
+
+- Keep live generation as the baseline path
+
+### Optional layers (later, when justified)
+
+- canonical answer cache for recurring intents
+- retrieval-grounded response path
+- constrained generation templates for structured outputs
+- live generation fallback when deterministic paths do not apply
+
+### Rule
+
+- response path selection must be observable and testable
+- avoid hidden routing logic in giant prompts
 
 ---
 
@@ -541,6 +564,8 @@ The roadmap explicitly calls for:
 ### Scope
 
 This UI is an **internal admin and manual test console**, not a public product UI.
+
+It is also the future home for editable policy configuration (goals, pacing, transition rules, constraints), once those controls are introduced.
 
 ### Rules
 
@@ -711,6 +736,9 @@ This reflects the roadmap: keep security proportional in Phase A, harden later.
 5. Next.js vs vibe-coded back-office implementation
 6. concrete provider mix for GM / Avatar
 7. Langfuse self-hosting ergonomics in the dev loop
+8. when to introduce canonical-answer caching in the hybrid response path
+9. criteria for enabling constrained-generation templates per scenario
+10. if/when parameter-efficient tuning (LoRA/fine-tuning) is justified by measured gaps
 
 ---
 

@@ -32,9 +32,11 @@ Avoid: retesting business rules already covered by unit tests.
 Must test:
 
 - session creation
+- active avatar initialization on session start
 - message persistence order
 - message metadata persistence
 - history retrieval consistency
+- active avatar consistency when message routing changes avatar
 - reset deletes the right data and keeps the right data
 
 ---
@@ -67,6 +69,10 @@ Must test:
 - state reducer logic
 - duplicate topic handling
 - progression update rules
+- avatar transition rules (topic/progression/manual)
+- deterministic policy evaluation from structured config
+- transition reason output and history logging
+- available-avatar filtering and invalid transition rejection
 
 This module deserves strong unit coverage — it controls orchestration semantics.
 
@@ -98,8 +104,10 @@ Must test:
 - recent messages included/excluded correctly
 - memory injected correctly
 - scenario context injected correctly
+- scenario goals/pacing constraints injected correctly
 - knowledge retrieval merged correctly
 - GM directives injected correctly
+- handoff context injected during avatar transitions
 - context trimming when over budget
 - precedence rules when inputs conflict
 
