@@ -23,6 +23,53 @@
  *   )
  * })
  */
+/**
+ * Silences console.log for the duration of fn() and asserts that at least
+ * one emitted message matches expectedPattern.
+ *
+ * Use this in tests that exercise code paths where production code deliberately
+ * writes to stdout (e.g. the ConsoleObservabilityAdapter). Without this wrapper,
+ * the global console.log guard installed in vitest.setup.ts will fail the test.
+ *
+ * @example
+ * it('logs the trace event as JSON', async () => {
+ *   await expectConsoleLog(
+ *     () => adapter.trace(event),
+ *     /requestId/,
+ *   )
+ * })
+ */
+export async function expectConsoleLog<T>(
+  fn: () => T | Promise<T>,
+  expectedPattern: RegExp,
+): Promise<T> {
+  const captured: string[] = []
+  const savedImpl = console.log
+
+  console.log = (...args: unknown[]): void => {
+    captured.push(args.map(String).join(' '))
+  }
+
+  try {
+    const result = await fn()
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+
+    const matched = captured.some((msg) => expectedPattern.test(msg))
+    if (!matched) {
+      throw new Error(
+        `expectConsoleLog: expected a console.log matching ${String(expectedPattern)}, but got:${
+          captured.length === 0 ? ' (no calls)' : `\n  ${captured.join('\n  ')}`
+        }`,
+      )
+    }
+
+    return result
+  } finally {
+    console.log = savedImpl
+  }
+}
+
 export async function expectConsoleError<T>(
   fn: () => T | Promise<T>,
   expectedPattern: RegExp,

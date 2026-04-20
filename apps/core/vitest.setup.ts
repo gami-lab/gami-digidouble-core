@@ -34,10 +34,28 @@ import { fileURLToPath } from 'node:url'
 // calls mockRestore() on vi.fn() mocks, which clears their implementations and
 // breaks module-level mocks in other test files.
 
+const _originalConsoleLog = console.log.bind(console)
+const _originalConsoleInfo = console.info.bind(console)
+const _originalConsoleDebug = console.debug.bind(console)
 const _originalConsoleError = console.error.bind(console)
 const _originalConsoleWarn = console.warn.bind(console)
 
 beforeEach(() => {
+  console.log = (...args: unknown[]): void => {
+    throw new Error(
+      `Unexpected console.log in test — wrap the code in expectConsoleLog() if this log is intentional.\n${args.map(String).join(' ')}`,
+    )
+  }
+  console.info = (...args: unknown[]): void => {
+    throw new Error(
+      `Unexpected console.info in test — add a guard if this log is intentional.\n${args.map(String).join(' ')}`,
+    )
+  }
+  console.debug = (...args: unknown[]): void => {
+    throw new Error(
+      `Unexpected console.debug in test — add a guard if this log is intentional.\n${args.map(String).join(' ')}`,
+    )
+  }
   console.error = (...args: unknown[]): void => {
     throw new Error(
       `Unexpected console.error in test — wrap the code in expectConsoleError() if this log is intentional.\n${args.map(String).join(' ')}`,
@@ -51,6 +69,9 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  console.log = _originalConsoleLog
+  console.info = _originalConsoleInfo
+  console.debug = _originalConsoleDebug
   console.error = _originalConsoleError
   console.warn = _originalConsoleWarn
 })
