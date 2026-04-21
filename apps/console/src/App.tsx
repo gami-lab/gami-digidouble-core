@@ -55,10 +55,10 @@ const sessionPlaceholderStyle: CSSProperties = {
   backgroundColor: '#ffffff',
 }
 
-const breadcrumbPages: Array<{ page: Page; label: string }> = [
-  { page: 'scenario', label: 'Scenario' },
-  { page: 'avatar', label: 'Avatar' },
-  { page: 'session', label: 'Session' },
+const breadcrumbItems: Array<{ id: Page; label: string }> = [
+  { id: 'scenario', label: 'Scenario' },
+  { id: 'avatar', label: 'Avatar' },
+  { id: 'session', label: 'Session' },
 ]
 
 function App(): JSX.Element {
@@ -72,9 +72,19 @@ function App(): JSX.Element {
   useEffect(() => {
     if (page === 'avatar' && testContext.scenarioId === null) {
       setPage('scenario')
+      return
     }
 
-    if (page === 'session' && testContext.avatarId === null) {
+    if (page !== 'session') {
+      return
+    }
+
+    if (testContext.scenarioId === null) {
+      setPage('scenario')
+      return
+    }
+
+    if (testContext.avatarId === null) {
       setPage('avatar')
     }
   }, [page, testContext.avatarId, testContext.scenarioId])
@@ -100,7 +110,7 @@ function App(): JSX.Element {
 
     if (page === 'avatar') {
       if (testContext.scenarioId === null) {
-        return <p>Scenario is required before creating an avatar.</p>
+        return <p>Redirecting to scenario setup…</p>
       }
 
       return (
@@ -136,13 +146,13 @@ function App(): JSX.Element {
         <p style={{ marginTop: 0, color: '#4b5563' }}>API URL: {apiUrl}</p>
 
         <nav style={breadcrumbStyle} aria-label="Page flow">
-          {breadcrumbPages.map((item, index) => (
+          {breadcrumbItems.map((item, index) => (
             <span
-              key={item.page}
-              style={item.page === page ? breadcrumbActiveStyle : breadcrumbInactiveStyle}
+              key={item.id}
+              style={item.id === page ? breadcrumbActiveStyle : breadcrumbInactiveStyle}
             >
               {item.label}
-              {index < breadcrumbPages.length - 1 ? ' →' : ''}
+              {index < breadcrumbItems.length - 1 ? ' →' : ''}
             </span>
           ))}
         </nav>
