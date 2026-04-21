@@ -87,6 +87,18 @@ This is a working document — decisions can evolve, but the current direction i
 
 ---
 
+## Front-end (Manual Test Console)
+
+| Concern   | Choice                         | Notes                         |
+| --------- | ------------------------------ | ----------------------------- |
+| Framework | React 18                       | Via Vite template             |
+| Bundler   | Vite                           | Dev server + production build |
+| Language  | TypeScript (strict mode)       | Same tsconfig conventions     |
+| Styling   | Inline styles / CSS modules    | No external CSS framework     |
+| Env vars  | `VITE_API_URL`, `VITE_API_KEY` | Injected at dev time          |
+
+---
+
 ## 3. API Layer
 
 ### Choice

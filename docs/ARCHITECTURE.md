@@ -528,6 +528,10 @@ src/
 
 Keep folders boring and predictable.
 
+`apps/console/` is a front-end consumer layer, not part of the backend 4-layer architecture.
+It consumes Core HTTP APIs and has no direct access to backend domain or infrastructure modules.
+Architecturally, it sits at the same external-consumer level as any third-party API client.
+
 ---
 
 # Port / Adapter Contracts
