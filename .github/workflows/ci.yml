@@ -190,6 +190,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Apply database schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d gami_core -f infra/postgres/init.sql
+
       - name: Run integration and E2E suites
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/gami_core
