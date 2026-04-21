@@ -26,6 +26,7 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     databaseUrl: 'postgresql://test',
     redisUrl: 'redis://test',
     apiKeySecret: 'e2e-secret',
+    corsOrigin: '*',
     llmProvider: overrides.llmProvider ?? 'null',
     openaiApiKey: process.env['OPENAI_API_KEY'],
     anthropicApiKey: process.env['ANTHROPIC_API_KEY'],

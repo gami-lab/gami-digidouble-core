@@ -11,6 +11,7 @@ export interface Config {
   databaseUrl: string
   redisUrl: string
   apiKeySecret: string
+  corsOrigin: string
   llmProvider: string
   openaiApiKey: string | undefined
   anthropicApiKey: string | undefined
@@ -37,6 +38,7 @@ export function loadConfig(): Config {
     databaseUrl: requireEnv('DATABASE_URL'),
     redisUrl: requireEnv('REDIS_URL'),
     apiKeySecret: requireEnv('API_KEY_SECRET'),
+    corsOrigin: process.env['CORS_ORIGIN'] ?? '*',
     llmProvider: process.env['LLM_PROVIDER'] ?? 'null',
     openaiApiKey: process.env['OPENAI_API_KEY'],
     anthropicApiKey: process.env['ANTHROPIC_API_KEY'],

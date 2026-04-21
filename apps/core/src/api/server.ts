@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from 'fastify'
+import cors from '@fastify/cors'
 import { fail } from '@gami/shared'
 import type { ILlmAdapter } from '../application/ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../application/ports/IObservabilityAdapter.js'
@@ -39,6 +40,8 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   const app = Fastify({
     logger: config.nodeEnv !== 'test' ? { level: config.logLevel } : false,
   })
+
+  void app.register(cors, { origin: config.corsOrigin })
 
   app.setErrorHandler((error, _request, reply) => {
     if (isFastifyValidationError(error)) {

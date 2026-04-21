@@ -22,6 +22,7 @@ function makeConfig(): Config {
     databaseUrl: 'postgresql://test',
     redisUrl: 'redis://test',
     apiKeySecret: 'e2e-secret',
+    corsOrigin: '*',
     llmProvider: 'openai',
     openaiApiKey: process.env['OPENAI_API_KEY'],
     anthropicApiKey: undefined,

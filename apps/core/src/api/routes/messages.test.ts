@@ -19,6 +19,7 @@ const testConfig: Config = {
   databaseUrl: 'postgresql://test',
   redisUrl: 'redis://test',
   apiKeySecret: 'test-secret',
+  corsOrigin: '*',
   llmProvider: 'null',
   openaiApiKey: undefined,
   anthropicApiKey: undefined,
