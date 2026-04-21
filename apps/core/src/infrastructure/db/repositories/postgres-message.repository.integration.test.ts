@@ -138,7 +138,7 @@ function defineDeleteTests(): void {
 
 describe.skipIf(!DB_AVAILABLE)('PostgresMessageRepository', () => {
   beforeAll(async () => {
-    sql = await createTestSql()
+    sql = createTestSql()
     const scenarioRepo = new PostgresScenarioRepository(sql)
     const sessionRepo = new PostgresSessionRepository(sql)
     messageRepo = new PostgresMessageRepository(sql)

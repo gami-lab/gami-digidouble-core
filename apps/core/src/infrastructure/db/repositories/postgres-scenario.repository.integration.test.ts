@@ -7,8 +7,8 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
   let sql: Sql
   let repo: PostgresScenarioRepository
 
-  beforeAll(async () => {
-    sql = await createTestSql()
+  beforeAll(() => {
+    sql = createTestSql()
     repo = new PostgresScenarioRepository(sql)
   })
 

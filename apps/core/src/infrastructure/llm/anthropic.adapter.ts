@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { ILlmAdapter, LlmRequest, LlmResponse } from '../../application/ports/ILlmAdapter.js'
 import { LlmError } from './llm.error.js'
 
-const DEFAULT_MODEL = 'claude-3-haiku-20240307'
+const DEFAULT_MODEL = 'claude-haiku-4-5'
 const DEFAULT_MAX_TOKENS = 1024
 const REQUEST_TIMEOUT_MS = 30_000
 

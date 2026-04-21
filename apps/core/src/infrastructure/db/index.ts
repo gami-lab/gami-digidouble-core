@@ -10,4 +10,3 @@ export { PostgresAvatarRepository } from './repositories/postgres-avatar.reposit
 export { PostgresSessionRepository } from './repositories/postgres-session.repository.js'
 export { PostgresMessageRepository } from './repositories/postgres-message.repository.js'
 export { getDbClient, closeDbClient } from './client.js'
-export { runMigrations } from './migrations/runner.js'

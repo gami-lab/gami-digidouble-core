@@ -134,8 +134,8 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
   let scenarioId: string
   let avatarRepo: PostgresAvatarRepository
 
-  beforeAll(async () => {
-    sql = await createTestSql()
+  beforeAll(() => {
+    sql = createTestSql()
     scenarioRepo = new PostgresScenarioRepository(sql)
     avatarRepo = new PostgresAvatarRepository(sql)
   })

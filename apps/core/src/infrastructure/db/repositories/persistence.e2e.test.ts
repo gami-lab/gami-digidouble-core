@@ -10,7 +10,7 @@ describe.skipIf(!DB_AVAILABLE)('Persistence stack — end-to-end', () => {
   let sql: Sql
 
   beforeAll(async () => {
-    sql = await createTestSql()
+    sql = createTestSql()
     await truncateAllTables(sql)
   })
 

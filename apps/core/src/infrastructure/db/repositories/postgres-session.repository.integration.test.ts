@@ -11,7 +11,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository', () => {
   let scenarioId: string
 
   beforeAll(async () => {
-    sql = await createTestSql()
+    sql = createTestSql()
     scenarioRepo = new PostgresScenarioRepository(sql)
     sessionRepo = new PostgresSessionRepository(sql)
     const scenario = await scenarioRepo.create({

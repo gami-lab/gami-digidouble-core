@@ -4,7 +4,6 @@ import { createObservabilityAdapter } from './infrastructure/observability/index
 import {
   getDbClient,
   closeDbClient,
-  runMigrations,
   PostgresScenarioRepository,
   PostgresAvatarRepository,
   PostgresSessionRepository,
@@ -15,7 +14,6 @@ async function main(): Promise<void> {
   const config = loadConfig()
   const observability = createObservabilityAdapter(config)
   const sql = getDbClient(config.databaseUrl)
-  await runMigrations(sql)
 
   const adapters = {
     observabilityAdapter: observability,
