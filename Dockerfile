@@ -25,9 +25,9 @@ COPY packages/shared/package.json ./packages/shared/
 
 RUN pnpm install --frozen-lockfile
 
-# Copy full source and compile
+# Copy full source and compile core runtime packages only
 COPY . .
-RUN pnpm build
+RUN pnpm turbo run build --filter=@gami/core --filter=@gami/shared
 
 # ── Stage 2: Production runner ────────────────────────────────────────────────
 FROM node:22-alpine AS runner
