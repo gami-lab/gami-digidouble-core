@@ -1,7 +1,15 @@
-import type { ApiResponse } from '@gami/shared'
 import { apiKey, apiUrl } from '../env'
 
 type HttpMethod = 'GET' | 'POST' | 'DELETE'
+type ApiResponseEnvelope<T> = {
+  data: T | null
+  error: ApiResponseError | null
+}
+
+type ApiResponseError = {
+  code: string
+  message: string
+}
 
 const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
 
@@ -12,12 +20,24 @@ const shouldInjectApiKey = (path: string): boolean => normalizePath(path) !== '/
 const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
-const isApiResponseEnvelope = <T>(value: unknown): value is ApiResponse<T> => {
+const isApiResponseError = (value: unknown): value is ApiResponseError => {
   if (!isObjectRecord(value)) {
     return false
   }
 
-  return 'data' in value && 'error' in value
+  return typeof value.code === 'string' && typeof value.message === 'string'
+}
+
+const isApiResponseEnvelope = <T>(value: unknown): value is ApiResponseEnvelope<T> => {
+  if (!isObjectRecord(value)) {
+    return false
+  }
+
+  if (!('data' in value) || !('error' in value)) {
+    return false
+  }
+
+  return value.error === null || isApiResponseError(value.error)
 }
 
 export class ApiError extends Error {
@@ -47,7 +67,7 @@ export async function coreRequest<T>(method: HttpMethod, path: string, body?: un
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     })
   } catch {
-    throw new ApiError('NETWORK_ERROR', 'Network request failed')
+    throw new ApiError('NETWORK_ERROR', `Network request failed: ${method} ${normalizedPath}`)
   }
 
   let payload: unknown
