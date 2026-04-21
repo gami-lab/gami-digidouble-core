@@ -3,16 +3,6 @@ import { apiKey, apiUrl } from '../env'
 
 type HttpMethod = 'GET' | 'POST' | 'DELETE'
 
-type ApiErrorEnvelope = {
-  code: string
-  message: string
-}
-
-type ApiResponseEnvelope<T> = {
-  data: T | null
-  error: ApiErrorEnvelope | null
-}
-
 const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
 
 const normalizePath = (path: string): string => (path.startsWith('/') ? path : `/${path}`)
@@ -22,7 +12,7 @@ const shouldInjectApiKey = (path: string): boolean => normalizePath(path) !== '/
 const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
-const isApiResponseEnvelope = <T>(value: unknown): value is ApiResponseEnvelope<T> => {
+const isApiResponseEnvelope = <T>(value: unknown): value is ApiResponse<T> => {
   if (!isObjectRecord(value)) {
     return false
   }
@@ -62,7 +52,7 @@ export async function coreRequest<T>(method: HttpMethod, path: string, body?: un
 
   let payload: unknown
   try {
-    payload = (await response.json()) as ApiResponse<T>
+    payload = await response.json()
   } catch {
     throw new ApiError('NETWORK_ERROR', `Invalid JSON response from ${normalizedPath}`)
   }
