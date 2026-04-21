@@ -226,7 +226,7 @@ Test coverage hardening (post-EPIC 1.2):
 | Epic                                       | Status       | Notes                                                                                                                                                                                                                                                                                                                                         |
 | ------------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | EPIC 2.1 — Avatar Agent v1                 | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained. |
-| EPIC 2.2 — Scenario & Session Lifecycle v1 | **Complete** | POST /v1/scenarios, POST /v1/scenarios/:scenarioId/avatars, POST /v1/conversations/start, GET /v1/conversations/:sessionId/history, DELETE /v1/conversations/:sessionId implemented. IScenarioRepository, IAvatarRepository.create, IMessageRepository.deleteBySessionId added. messages.stack-e2e.test.ts happy path unblocked.              |
+| EPIC 2.2 — Scenario & Session Lifecycle v1 | **Complete** | POST /v1/scenarios, GET /v1/scenarios, POST /v1/scenarios/:scenarioId/avatars, GET /v1/scenarios/:scenarioId/avatars, DELETE /v1/avatars/:avatarId, DELETE /v1/scenarios/:scenarioId, POST /v1/conversations/start, GET /v1/conversations/:sessionId/history, DELETE /v1/conversations/:sessionId implemented with explicit 404/409 rules.    |
 | EPIC 2.3 — Persistence Layer v1            | **Complete** | Postgres repository adapters (Scenario, Avatar, Session, Message), DB schema migrations, connection pooling. Replaces all in-memory stubs in production. Fixes AvatarConfig timestamp gap from EPIC 2.2.                                                                                                                                      |
 | EPIC 2.4 — Manual Test Console v1          | **Complete** | `@gami/console` delivered with health check, scenario/avatar creation, session start/chat/history/reset, per-avatar-message debug metadata panel (`model`, `latencyMs`, `inputTokens`, `outputTokens`), and global React `ErrorBoundary` with reload fallback.                                                                                |
 
@@ -281,7 +281,8 @@ Test coverage hardening (post-EPIC 1.2):
 - Observability adapter layer (Langfuse, Console, Null)
 - Session lifecycle (start, history, reset)
 - Scenario management (create)
-- Avatar management (create)
+- Scenario management (create, list, delete with dependency checks)
+- Avatar management (create, list-by-scenario, delete with active-session safety checks)
 - Manual Test Console scaffold (`apps/console`) with API connectivity check (`GET /health`)
 - Manual Test Console API client layer (`apps/console/src/api`) for create scenario/avatar, start/send/history/reset flows
 - Manual Test Console scenario/avatar management pages (`apps/console/src/pages/ScenarioPage.tsx`, `AvatarPage.tsx`) with sequential progression and context capture

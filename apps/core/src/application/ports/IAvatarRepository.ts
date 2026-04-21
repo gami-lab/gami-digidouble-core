@@ -4,6 +4,8 @@ import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 export interface IAvatarRepository {
   create(params: CreateAvatarParams): Promise<AvatarConfig>
   findById(avatarId: string): Promise<AvatarConfig | null>
+  listByScenarioId(scenarioId: string): Promise<AvatarConfig[]>
+  delete(avatarId: string): Promise<void>
 }
 
 export interface CreateAvatarParams {

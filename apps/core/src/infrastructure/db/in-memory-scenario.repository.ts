@@ -15,6 +15,13 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
     return Promise.resolve(this.scenarios.get(scenarioId) ?? null)
   }
 
+  list(): Promise<Scenario[]> {
+    const scenarios = [...this.scenarios.values()].sort(
+      (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
+    )
+    return Promise.resolve(scenarios)
+  }
+
   create(params: CreateScenarioParams): Promise<Scenario> {
     const now = new Date().toISOString()
     const scenario: Scenario = {
@@ -28,5 +35,10 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
 
     this.scenarios.set(scenario.scenarioId, scenario)
     return Promise.resolve(scenario)
+  }
+
+  delete(scenarioId: string): Promise<void> {
+    this.scenarios.delete(scenarioId)
+    return Promise.resolve()
   }
 }

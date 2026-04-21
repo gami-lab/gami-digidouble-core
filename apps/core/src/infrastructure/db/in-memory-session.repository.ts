@@ -47,4 +47,18 @@ export class InMemorySessionRepository implements ISessionRepository {
     this.sessions.delete(sessionId)
     return Promise.resolve()
   }
+
+  countByScenarioId(scenarioId: string): Promise<number> {
+    const count = [...this.sessions.values()].filter(
+      (session) => session.scenarioId === scenarioId,
+    ).length
+    return Promise.resolve(count)
+  }
+
+  countActiveByScenarioId(scenarioId: string): Promise<number> {
+    const count = [...this.sessions.values()].filter(
+      (session) => session.scenarioId === scenarioId && session.status === 'active',
+    ).length
+    return Promise.resolve(count)
+  }
 }

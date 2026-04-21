@@ -18,6 +18,18 @@ type CreateAvatarResponse = {
   }
 }
 
+type ListScenariosResponse = {
+  scenarios: Array<{
+    scenarioId: string
+  }>
+}
+
+type ListAvatarsResponse = {
+  avatars: Array<{
+    avatarId: string
+  }>
+}
+
 describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — auth', () => {
   it('rejects requests with no API key (401)', async () => {
     const res = await fetch(UNKNOWN_ENDPOINT, {
@@ -134,5 +146,70 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — success', () 
     expect(avatarBody.error).toBeNull()
     expect(avatarBody.data?.avatar.avatarId.startsWith('avatar_')).toBe(true)
     expect(avatarBody.data?.avatar.scenarioId).toBe(scenarioId)
+  })
+})
+
+describe('Stack E2E — scenario/avatar management full flow', () => {
+  it('runs create scenario -> create avatar -> list scenarios -> list avatars -> delete avatar -> delete scenario', async () => {
+    const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+      },
+      body: JSON.stringify({
+        name: `Ops Flow Scenario ${String(Date.now())}`,
+      }),
+    })
+    expect(createScenarioRes.status).toBe(201)
+    const createdScenario = (await createScenarioRes.json()) as ApiResponse<CreateScenarioResponse>
+    const scenarioId = createdScenario.data?.scenario.scenarioId ?? ''
+    expect(scenarioId.startsWith('scenario_')).toBe(true)
+
+    const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+      },
+      body: JSON.stringify({
+        name: 'Ops Flow Avatar',
+        personaPrompt: 'You are an operational test avatar.',
+      }),
+    })
+    expect(createAvatarRes.status).toBe(201)
+    const createdAvatar = (await createAvatarRes.json()) as ApiResponse<CreateAvatarResponse>
+    const avatarId = createdAvatar.data?.avatar.avatarId ?? ''
+    expect(avatarId.startsWith('avatar_')).toBe(true)
+
+    const listScenariosRes = await fetch(`${APP_URL}/v1/scenarios`, {
+      method: 'GET',
+      headers: { 'x-api-key': API_KEY },
+    })
+    expect(listScenariosRes.status).toBe(200)
+    const listScenariosBody = (await listScenariosRes.json()) as ApiResponse<ListScenariosResponse>
+    expect(
+      listScenariosBody.data?.scenarios.some((scenario) => scenario.scenarioId === scenarioId),
+    ).toBe(true)
+
+    const listAvatarsRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+      method: 'GET',
+      headers: { 'x-api-key': API_KEY },
+    })
+    expect(listAvatarsRes.status).toBe(200)
+    const listAvatarsBody = (await listAvatarsRes.json()) as ApiResponse<ListAvatarsResponse>
+    expect(listAvatarsBody.data?.avatars.some((avatar) => avatar.avatarId === avatarId)).toBe(true)
+
+    const deleteAvatarRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+      method: 'DELETE',
+      headers: { 'x-api-key': API_KEY },
+    })
+    expect(deleteAvatarRes.status).toBe(200)
+
+    const deleteScenarioRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}`, {
+      method: 'DELETE',
+      headers: { 'x-api-key': API_KEY },
+    })
+    expect(deleteScenarioRes.status).toBe(200)
   })
 })

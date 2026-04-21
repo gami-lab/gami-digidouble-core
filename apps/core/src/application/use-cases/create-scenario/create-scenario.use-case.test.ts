@@ -8,6 +8,8 @@ const createMock = vi.fn()
 const scenarioRepository = {
   create: createMock,
   findById: vi.fn(),
+  list: vi.fn(),
+  delete: vi.fn(),
 }
 
 function makeScenario(overrides: Partial<Scenario> = {}): Scenario {

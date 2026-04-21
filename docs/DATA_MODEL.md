@@ -168,6 +168,8 @@ If shared avatars become a real product need later, we can evolve toward:
 
 For MVP, one Avatar = one actor defined inside one Scenario.
 
+**Phase A deletion safety rule:** avatar deletion is rejected while the owning scenario has active sessions.
+
 ---
 
 ## 4. Session
@@ -205,6 +207,8 @@ Using the movie analogy:
 - Scenario = the production setup
 - Avatar = an actor in that production
 - Session = one concrete movie/playthrough
+
+**Phase A deletion safety rule:** scenario deletion is rejected while dependent avatars or sessions still exist.
 
 ---
 

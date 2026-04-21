@@ -38,4 +38,42 @@ describe('InMemoryAvatarRepository', () => {
 
     expect(result).toBeNull()
   })
+
+  it('listByScenarioId returns avatars ordered by createdAt DESC', async () => {
+    const repository = new InMemoryAvatarRepository([
+      {
+        avatarId: 'avatar_old',
+        scenarioId: 'scenario_1',
+        name: 'Old',
+        status: 'active',
+        personaPrompt: 'Old',
+        config: {},
+        createdAt: '2026-04-21T08:00:00.000Z',
+        updatedAt: '2026-04-21T08:00:00.000Z',
+      },
+      {
+        avatarId: 'avatar_new',
+        scenarioId: 'scenario_1',
+        name: 'New',
+        status: 'active',
+        personaPrompt: 'New',
+        config: {},
+        createdAt: '2026-04-21T09:00:00.000Z',
+        updatedAt: '2026-04-21T09:00:00.000Z',
+      },
+    ])
+
+    const result = await repository.listByScenarioId('scenario_1')
+
+    expect(result.map((avatar) => avatar.avatarId)).toEqual(['avatar_new', 'avatar_old'])
+  })
+
+  it('delete removes avatar by id', async () => {
+    const avatar = makeAvatarConfig()
+    const repository = new InMemoryAvatarRepository([avatar])
+
+    await repository.delete(avatar.avatarId)
+
+    await expect(repository.findById(avatar.avatarId)).resolves.toBeNull()
+  })
 })

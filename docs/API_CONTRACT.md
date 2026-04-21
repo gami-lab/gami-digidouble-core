@@ -653,6 +653,11 @@ type ListScenariosResponse = {
 }
 ```
 
+### Behavior
+
+- Returns `200 OK` with `scenarios: []` when no scenarios exist.
+- Ordering is deterministic: `createdAt DESC` (newest first).
+
 ---
 
 ## 8. Create Scenario
@@ -746,6 +751,83 @@ type CreateAvatarResponse = {
 - `400` → `VALIDATION_ERROR` (schema or domain validation failure)
 - `404` → `NOT_FOUND` (scenario not found)
 - `500` → `INTERNAL_ERROR` (unexpected failure)
+
+---
+
+## 9.6. List Avatars for Scenario
+
+### Endpoint
+
+```text
+GET /v1/scenarios/{scenarioId}/avatars
+```
+
+### Response
+
+```ts
+type ListScenarioAvatarsResponse = {
+  avatars: AvatarSummary[]
+}
+```
+
+### Behavior
+
+- Returns `404 NOT_FOUND` when the scenario does not exist.
+- Returns `200 OK` with `avatars: []` when the scenario exists but has no avatars.
+- Ordering is deterministic: `createdAt DESC` (newest first).
+
+---
+
+## 9.7. Delete Avatar
+
+### Endpoint
+
+```text
+DELETE /v1/avatars/{avatarId}
+```
+
+### Response
+
+```ts
+type DeleteAvatarResponse = {
+  avatarId: string
+  deleted: true
+}
+```
+
+### Error Mapping
+
+- `404` → `NOT_FOUND` (avatar not found)
+- `409` → `CONFLICT` (avatar deletion blocked by active sessions in its scenario)
+
+---
+
+## 9.8. Delete Scenario
+
+### Endpoint
+
+```text
+DELETE /v1/scenarios/{scenarioId}
+```
+
+### Response
+
+```ts
+type DeleteScenarioResponse = {
+  scenarioId: string
+  deleted: true
+}
+```
+
+### Deletion Rule (Phase A)
+
+- Scenario deletion is **rejected** with `409 CONFLICT` if the scenario still has **any avatars** or **any sessions**.
+- No force-delete semantics are supported in this slice.
+
+### Error Mapping
+
+- `404` → `NOT_FOUND` (scenario not found)
+- `409` → `CONFLICT` (dependent avatars or sessions exist)
 
 ---
 
@@ -1522,6 +1604,9 @@ If we need the absolute minimum set to start implementation, it is:
 - `GET /v1/scenarios`
 - `POST /v1/scenarios`
 - `POST /v1/scenarios/{scenarioId}/avatars`
+- `GET /v1/scenarios/{scenarioId}/avatars`
+- `DELETE /v1/avatars/{avatarId}`
+- `DELETE /v1/scenarios/{scenarioId}`
 - `PUT /v1/scenarios/{scenarioId}`
 - `POST /v1/knowledge-sources`
 - `POST /v1/knowledge-sources/{sourceId}/ingest`

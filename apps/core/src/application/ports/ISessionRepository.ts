@@ -6,6 +6,8 @@ export interface ISessionRepository {
   create(params: CreateSessionParams): Promise<Session>
   update(sessionId: string, updates: SessionUpdate): Promise<Session>
   delete(sessionId: string): Promise<void>
+  countByScenarioId(scenarioId: string): Promise<number>
+  countActiveByScenarioId(scenarioId: string): Promise<number>
 }
 
 export interface CreateSessionParams {

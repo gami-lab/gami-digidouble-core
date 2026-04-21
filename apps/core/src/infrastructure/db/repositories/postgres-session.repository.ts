@@ -89,4 +89,29 @@ export class PostgresSessionRepository implements ISessionRepository {
     if (uuid === null) return
     await this.sql`DELETE FROM sessions WHERE id = ${uuid}`
   }
+
+  async countByScenarioId(scenarioId: string): Promise<number> {
+    const scenarioUuid = extractUuid('scenario_', scenarioId)
+    if (scenarioUuid === null) return 0
+
+    const [row] = await this.sql<Array<{ count: string }>>`
+      SELECT COUNT(*)::TEXT AS count
+      FROM sessions
+      WHERE scenario_id = ${scenarioUuid}
+    `
+    return Number(row?.count ?? '0')
+  }
+
+  async countActiveByScenarioId(scenarioId: string): Promise<number> {
+    const scenarioUuid = extractUuid('scenario_', scenarioId)
+    if (scenarioUuid === null) return 0
+
+    const [row] = await this.sql<Array<{ count: string }>>`
+      SELECT COUNT(*)::TEXT AS count
+      FROM sessions
+      WHERE scenario_id = ${scenarioUuid}
+        AND status = 'active'
+    `
+    return Number(row?.count ?? '0')
+  }
 }

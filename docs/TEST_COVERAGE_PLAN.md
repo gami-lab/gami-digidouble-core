@@ -19,6 +19,11 @@ Must test:
 - session not found → 404
 - successful happy paths return correct envelope
 - contract shape of all public endpoints
+- scenario/avata​r operability contracts:
+  - `GET /v1/scenarios` returns deterministic ordering and clean empty list
+  - `GET /v1/scenarios/:scenarioId/avatars` returns `404` when scenario is missing and `200` with empty list when scenario exists with no avatars
+  - `DELETE /v1/avatars/:avatarId` returns `404` when missing and `409` when blocked by active sessions
+  - `DELETE /v1/scenarios/:scenarioId` returns `404` when missing and `409` when dependent avatars or sessions exist
 - SSE event ordering (when SSE is used)
 
 Avoid: retesting business rules already covered by unit tests.

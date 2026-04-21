@@ -10,11 +10,15 @@ const createAvatarMock = vi.fn()
 const scenarioRepository = {
   create: vi.fn(),
   findById: findScenarioByIdMock,
+  list: vi.fn(),
+  delete: vi.fn(),
 }
 
 const avatarRepository = {
   create: createAvatarMock,
   findById: vi.fn(),
+  listByScenarioId: vi.fn(),
+  delete: vi.fn(),
 }
 
 function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
