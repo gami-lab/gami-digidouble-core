@@ -35,9 +35,9 @@ type LocalMessage = {
   }
 }
 
-const pendingMessageId = 'pending-avatar-message'
-
-const toLocalMessageId = (): string => `local_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+const PENDING_MESSAGE_ID = 'pending-avatar-message'
+const generateLocalMessageId = (): string => `local_${crypto.randomUUID()}`
+const isBlankMessage = (value: string): boolean => value.trim().length === 0
 type HistoryMessage = Awaited<ReturnType<typeof getHistory>>['messages'][number]
 const isChatHistoryMessage = (message: HistoryMessage): message is HistoryMessage & { role: 'user' | 'avatar' } =>
   message.role === 'user' || message.role === 'avatar'
@@ -69,12 +69,15 @@ const mapHistoryToLocalMessages = (history: Awaited<ReturnType<typeof getHistory
     .filter(isChatHistoryMessage)
     .map((message) => {
       const metadata = message.role === 'avatar' ? toLocalAvatarMetadata(message.metadata) : undefined
-      return {
+      const baseMessage: LocalMessage = {
         id: message.messageId,
         role: message.role,
         content: message.content,
-        ...(metadata !== undefined ? { metadata } : {}),
       }
+      if (metadata !== undefined) {
+        baseMessage.metadata = metadata
+      }
+      return baseMessage
     })
 
 type StartSessionFormProps = {
@@ -91,10 +94,11 @@ type ChatPanelProps = {
   draftMessage: string
   isResettingSession: boolean
   isSendingMessage: boolean
+  isSendDisabled: boolean
   error: string | null
   messageBottomRef: RefObject<HTMLDivElement | null>
   onDraftMessageChange: (value: string) => void
-  onReset: () => void
+  onReset: () => Promise<void>
   onSubmit: (event: FormSubmitEvent) => void
 }
 
@@ -139,6 +143,7 @@ function ChatPanel({
   draftMessage,
   isResettingSession,
   isSendingMessage,
+  isSendDisabled,
   error,
   messageBottomRef,
   onDraftMessageChange,
@@ -153,7 +158,9 @@ function ChatPanel({
           type="button"
           style={resetButtonStyle}
           disabled={isResettingSession || isSendingMessage}
-          onClick={onReset}
+          onClick={() => {
+            void onReset()
+          }}
         >
           {isResettingSession ? 'Resetting…' : 'Reset'}
         </button>
@@ -182,7 +189,7 @@ function ChatPanel({
         <button
           type="submit"
           style={sendButtonStyle}
-          disabled={isSendingMessage || isResettingSession || draftMessage.trim() === ''}
+          disabled={isSendingMessage || isResettingSession || isSendDisabled}
         >
           {isSendingMessage ? 'Sending…' : 'Send'}
         </button>
@@ -200,8 +207,10 @@ type SendMessageStateActions = {
   setError: (error: string) => void
   clearDraft: () => void
   appendMessages: (messages: LocalMessage[]) => void
+  replaceMessage: (messageId: string, message: LocalMessage) => void
   replacePendingMessage: (message: LocalMessage) => void
   removePendingMessage: () => void
+  removeMessage: (messageId: string) => void
 }
 const createSendMessageActions = (
   setSubmitError: (error: string | null) => void,
@@ -227,13 +236,21 @@ const createSendMessageActions = (
   appendMessages: (nextMessages) => {
     setMessages((current) => [...current, ...nextMessages])
   },
+  replaceMessage: (messageId, message) => {
+    setMessages((current) =>
+      current.map((currentMessage) => (currentMessage.id === messageId ? message : currentMessage)),
+    )
+  },
   replacePendingMessage: (message) => {
     setMessages((current) =>
-      current.map((currentMessage) => (currentMessage.id === pendingMessageId ? message : currentMessage)),
+      current.map((currentMessage) => (currentMessage.id === PENDING_MESSAGE_ID ? message : currentMessage)),
     )
   },
   removePendingMessage: () => {
-    setMessages((current) => current.filter((currentMessage) => currentMessage.id !== pendingMessageId))
+    setMessages((current) => current.filter((currentMessage) => currentMessage.id !== PENDING_MESSAGE_ID))
+  },
+  removeMessage: (messageId) => {
+    setMessages((current) => current.filter((currentMessage) => currentMessage.id !== messageId))
   },
 })
 
@@ -243,8 +260,8 @@ async function submitSendMessage(
   content: string,
   actions: SendMessageStateActions,
 ): Promise<void> {
-  const optimisticMessage: LocalMessage = { id: toLocalMessageId(), role: 'user', content }
-  const pendingMessage: LocalMessage = { id: pendingMessageId, role: 'avatar', content: '…' }
+  const optimisticMessage: LocalMessage = { id: generateLocalMessageId(), role: 'user', content }
+  const pendingMessage: LocalMessage = { id: PENDING_MESSAGE_ID, role: 'avatar', content: '…' }
 
   actions.clearError()
   actions.clearDraft()
@@ -253,20 +270,26 @@ async function submitSendMessage(
 
   try {
     const response = await sendMessage(sessionId, { avatarId, message: { content } })
-    actions.replacePendingMessage({
+    actions.replaceMessage(optimisticMessage.id, {
+      id: response.userMessage.messageId,
+      role: 'user',
+      content: response.userMessage.content,
+    })
+
+    const avatarMetadata = toLocalAvatarMetadata(response.avatarMessage.metadata)
+    const avatarMessage: LocalMessage = {
       id: response.avatarMessage.messageId,
       role: 'avatar',
       content: response.avatarMessage.content,
-      metadata: {
-        model: response.avatarMessage.metadata.model,
-        latencyMs: response.avatarMessage.metadata.latencyMs,
-        inputTokens: response.avatarMessage.metadata.inputTokens,
-        outputTokens: response.avatarMessage.metadata.outputTokens,
-      },
-    })
+    }
+    if (avatarMetadata !== undefined) {
+      avatarMessage.metadata = avatarMetadata
+    }
+    actions.replacePendingMessage(avatarMessage)
   } catch (error) {
     actions.setError(formatApiError(error, 'UNKNOWN_ERROR: Failed to send message'))
     actions.removePendingMessage()
+    actions.removeMessage(optimisticMessage.id)
   } finally {
     actions.finishSending()
   }
@@ -383,13 +406,14 @@ type SessionChatController = {
   isStartingSession: boolean
   isResettingSession: boolean
   isSendingMessage: boolean
+  isSendDisabled: boolean
   submitError: string | null
   messageBottomRef: RefObject<HTMLDivElement | null>
   setUserId: (value: string) => void
   setDraftMessage: (value: string) => void
   handleStartSubmit: (event: FormSubmitEvent) => void
   handleSendSubmit: (event: FormSubmitEvent) => void
-  handleReset: () => void
+  handleReset: () => Promise<void>
 }
 function useSessionChatController(
   scenarioId: string,
@@ -405,6 +429,7 @@ function useSessionChatController(
   const [isSendingMessage, setIsSendingMessage] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const messageBottomRef = useRef<HTMLDivElement | null>(null)
+  const isSendDisabled = isBlankMessage(draftMessage)
 
   useEffect(() => {
     messageBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -419,7 +444,7 @@ function useSessionChatController(
   }
 
   const handleSendMessage = async (): Promise<void> => {
-    if (sessionId === null || draftMessage.trim().length === 0 || isSendingMessage) {
+    if (sessionId === null || isSendDisabled) {
       return
     }
 
@@ -431,12 +456,12 @@ function useSessionChatController(
     )
   }
 
-  const handleReset = (): void => {
+  const handleReset = async (): Promise<void> => {
     if (sessionId === null) {
       return
     }
 
-    void submitResetSession(
+    await submitResetSession(
       sessionId,
       createResetSessionActions(setSubmitError, setIsResettingSession, setMessages, onSessionIdChange),
     )
@@ -459,6 +484,7 @@ function useSessionChatController(
     isStartingSession,
     isResettingSession,
     isSendingMessage,
+    isSendDisabled,
     submitError,
     messageBottomRef,
     setUserId,
@@ -497,6 +523,7 @@ export function SessionPage({
       draftMessage={controller.draftMessage}
       isResettingSession={controller.isResettingSession}
       isSendingMessage={controller.isSendingMessage}
+      isSendDisabled={controller.isSendDisabled}
       error={controller.submitError}
       messageBottomRef={controller.messageBottomRef}
       onDraftMessageChange={controller.setDraftMessage}
