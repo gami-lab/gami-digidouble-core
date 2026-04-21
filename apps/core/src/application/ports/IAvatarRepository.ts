@@ -9,7 +9,6 @@ export interface IAvatarRepository {
 export interface CreateAvatarParams {
   scenarioId: string
   name: string
-  slug: string
   personaPrompt: string
   tone?: string
   description?: string

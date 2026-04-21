@@ -21,7 +21,6 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   return {
     scenarioId: 'scenario_1',
     name: 'Scenario',
-    slug: 'scenario',
     status: 'active',
     config: {},
     createdAt: '2026-04-19T10:00:00.000Z',
@@ -35,7 +34,6 @@ function makeAvatarConfig(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
     avatarId: 'avatar_1',
     scenarioId: 'scenario_1',
     name: 'Ava',
-    slug: 'ava',
     status: 'active',
     personaPrompt: 'You are Ava.',
     config: {},
@@ -61,7 +59,6 @@ describe('CreateAvatarUseCase', () => {
       useCase.execute({
         scenarioId: 'scenario_1',
         name: ' ',
-        slug: 'ava',
         personaPrompt: 'You are Ava.',
       }),
     ).rejects.toEqual(expect.objectContaining<Partial<DomainError>>({ code: 'VALIDATION_ERROR' }))
@@ -74,7 +71,6 @@ describe('CreateAvatarUseCase', () => {
       useCase.execute({
         scenarioId: 'scenario_1',
         name: 'Ava',
-        slug: 'ava',
         personaPrompt: ' ',
       }),
     ).rejects.toEqual(expect.objectContaining<Partial<DomainError>>({ code: 'VALIDATION_ERROR' }))
@@ -88,7 +84,6 @@ describe('CreateAvatarUseCase', () => {
       useCase.execute({
         scenarioId: 'missing',
         name: 'Ava',
-        slug: 'ava',
         personaPrompt: 'You are Ava.',
       }),
     ).rejects.toEqual(expect.objectContaining<Partial<DomainError>>({ code: 'NOT_FOUND' }))
@@ -101,7 +96,6 @@ describe('CreateAvatarUseCase', () => {
         avatarId: 'avatar_abc',
         scenarioId: 'scenario_1',
         name: 'Ava',
-        slug: 'ava',
         status: 'active',
       }),
     )
@@ -109,14 +103,12 @@ describe('CreateAvatarUseCase', () => {
     const output = await useCase.execute({
       scenarioId: 'scenario_1',
       name: '  Ava  ',
-      slug: '  ava  ',
       personaPrompt: '  You are Ava.  ',
     })
 
     expect(createAvatarMock).toHaveBeenCalledWith({
       scenarioId: 'scenario_1',
       name: 'Ava',
-      slug: 'ava',
       personaPrompt: 'You are Ava.',
       status: 'active',
     })
@@ -124,7 +116,6 @@ describe('CreateAvatarUseCase', () => {
       avatarId: 'avatar_abc',
       scenarioId: 'scenario_1',
       name: 'Ava',
-      slug: 'ava',
       status: 'active',
       personaPrompt: 'You are Ava.',
     })
@@ -141,7 +132,6 @@ describe('CreateAvatarUseCase — optional fields', () => {
       makeAvatarConfig({
         avatarId: 'avatar_opt',
         name: 'Lex',
-        slug: 'lex',
         personaPrompt: 'You are Lex.',
         tone: 'formal',
         description: 'A formal legal assistant.',
@@ -152,7 +142,6 @@ describe('CreateAvatarUseCase — optional fields', () => {
     const output = await useCase.execute({
       scenarioId: 'scenario_1',
       name: 'Lex',
-      slug: 'lex',
       personaPrompt: 'You are Lex.',
       tone: 'formal',
       description: 'A formal legal assistant.',

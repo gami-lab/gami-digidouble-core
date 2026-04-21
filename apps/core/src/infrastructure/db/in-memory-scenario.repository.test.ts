@@ -6,7 +6,6 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   return {
     scenarioId: 'scenario_1',
     name: 'Demo',
-    slug: 'demo',
     status: 'draft',
     config: {},
     createdAt: '2026-04-19T10:00:00.000Z',
@@ -21,7 +20,6 @@ describe('InMemoryScenarioRepository', () => {
 
     const created = await repository.create({
       name: 'Demo',
-      slug: 'demo',
     })
 
     expect(created.scenarioId.startsWith('scenario_')).toBe(true)

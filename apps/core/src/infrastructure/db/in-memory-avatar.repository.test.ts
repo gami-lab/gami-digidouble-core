@@ -9,7 +9,6 @@ describe('InMemoryAvatarRepository', () => {
     const created = await repository.create({
       scenarioId: 'scenario-1',
       name: 'Ava',
-      slug: 'ava',
       personaPrompt: 'You are Ava.',
       adjustments: ['Use short answers.'],
     })

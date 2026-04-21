@@ -9,7 +9,7 @@ describe('Stack E2E — POST /v1/scenarios — auth', () => {
     const res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'E2E Scenario', slug: 'e2e-scenario-no-key' }),
+      body: JSON.stringify({ name: 'E2E Scenario' }),
     })
 
     expect(res.status).toBe(401)
@@ -22,7 +22,7 @@ describe('Stack E2E — POST /v1/scenarios — auth', () => {
         'Content-Type': 'application/json',
         'x-api-key': 'wrong-key',
       },
-      body: JSON.stringify({ name: 'E2E Scenario', slug: 'e2e-scenario-wrong-key' }),
+      body: JSON.stringify({ name: 'E2E Scenario' }),
     })
 
     expect(res.status).toBe(401)
@@ -37,33 +37,20 @@ describe('Stack E2E — POST /v1/scenarios — validation', () => {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
       },
-      body: JSON.stringify({ slug: 'missing-name' }),
+      body: JSON.stringify({}),
     })
 
     expect(res.status).toBe(400)
   })
 
-  it('rejects requests with missing slug field (400)', async () => {
+  it('rejects requests with missing required fields (400)', async () => {
     const res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
       },
-      body: JSON.stringify({ name: 'Missing Slug' }),
-    })
-
-    expect(res.status).toBe(400)
-  })
-
-  it('rejects requests with invalid slug format (400)', async () => {
-    const res = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-      },
-      body: JSON.stringify({ name: 'Invalid Slug', slug: 'Invalid Slug' }),
+      body: JSON.stringify({}),
     })
 
     expect(res.status).toBe(400)
@@ -72,8 +59,6 @@ describe('Stack E2E — POST /v1/scenarios — validation', () => {
 
 describe('Stack E2E — POST /v1/scenarios — success', () => {
   it('creates scenario and returns 201 with default draft status', async () => {
-    const uniqueSlug = `e2e-scenario-${String(Date.now())}`
-
     const res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: {
@@ -82,7 +67,6 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
       },
       body: JSON.stringify({
         name: 'E2E Scenario',
-        slug: uniqueSlug,
       }),
     })
 

@@ -29,7 +29,6 @@ type ScenarioStatus = 'draft' | 'active' | 'archived'
 
 type CreateScenarioRequestBody = {
   name: string
-  slug: string
   status?: ScenarioStatus
   config?: Record<string, unknown>
 }
@@ -38,7 +37,6 @@ type CreateScenarioResponse = {
   scenario: {
     scenarioId: string
     name: string
-    slug: string
     status: ScenarioStatus
     config: Record<string, unknown>
     createdAt: string
@@ -52,7 +50,6 @@ type CreateAvatarRequestParams = {
 
 type CreateAvatarRequestBody = {
   name: string
-  slug: string
   personaPrompt: string
   tone?: string
   description?: string
@@ -66,7 +63,6 @@ type CreateAvatarResponse = {
     avatarId: string
     scenarioId: string
     name: string
-    slug: string
     status: AvatarStatus
     personaPrompt: string
     tone?: string
@@ -79,10 +75,9 @@ type CreateAvatarResponse = {
 
 const createScenarioBodySchema = {
   type: 'object',
-  required: ['name', 'slug'],
+  required: ['name'],
   properties: {
     name: { type: 'string', minLength: 1 },
-    slug: { type: 'string', minLength: 1, pattern: '^[a-z0-9-]+$' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
     config: { type: 'object' },
   },
@@ -100,10 +95,9 @@ const createAvatarParamsSchema = {
 
 const createAvatarBodySchema = {
   type: 'object',
-  required: ['name', 'slug', 'personaPrompt'],
+  required: ['name', 'personaPrompt'],
   properties: {
     name: { type: 'string', minLength: 1 },
-    slug: { type: 'string', minLength: 1, pattern: '^[a-z0-9-]+$' },
     personaPrompt: { type: 'string', minLength: 1 },
     tone: { type: 'string' },
     description: { type: 'string' },
@@ -133,8 +127,23 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
         const output = await createScenarioUseCase.execute(mapCreateInput(request.body))
         return await reply.status(201).send(ok<CreateScenarioResponse>(mapCreateResponse(output)))
       } catch (error) {
-        if (error instanceof DomainError && error.code === 'VALIDATION_ERROR') {
-          return await reply.status(400).send(fail('VALIDATION_ERROR', error.message))
+        if (error instanceof DomainError) {
+          if (error.code === 'VALIDATION_ERROR' || error.code === 'INVALID_INPUT') {
+            return await reply.status(400).send(fail('VALIDATION_ERROR', error.message))
+          }
+          if (error.code === 'NOT_FOUND') {
+            return await reply.status(404).send(fail('NOT_FOUND', error.message))
+          }
+          if (error.code === 'CONFLICT') {
+            return await reply.status(409).send(fail('CONFLICT', error.message))
+          }
+          if (
+            error.code === 'EXTERNAL_SERVICE_ERROR' ||
+            error.code === 'PROVIDER_ERROR' ||
+            error.code === 'TIMEOUT'
+          ) {
+            return await reply.status(502).send(fail('EXTERNAL_SERVICE_ERROR', error.message))
+          }
         }
         return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
       }
@@ -159,11 +168,21 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
           .send(ok<CreateAvatarResponse>(mapCreateAvatarResponse(output)))
       } catch (error) {
         if (error instanceof DomainError) {
+          if (error.code === 'VALIDATION_ERROR' || error.code === 'INVALID_INPUT') {
+            return await reply.status(400).send(fail('VALIDATION_ERROR', error.message))
+          }
           if (error.code === 'NOT_FOUND') {
             return await reply.status(404).send(fail('NOT_FOUND', error.message))
           }
-          if (error.code === 'VALIDATION_ERROR') {
-            return await reply.status(400).send(fail('VALIDATION_ERROR', error.message))
+          if (error.code === 'CONFLICT') {
+            return await reply.status(409).send(fail('CONFLICT', error.message))
+          }
+          if (
+            error.code === 'EXTERNAL_SERVICE_ERROR' ||
+            error.code === 'PROVIDER_ERROR' ||
+            error.code === 'TIMEOUT'
+          ) {
+            return await reply.status(502).send(fail('EXTERNAL_SERVICE_ERROR', error.message))
           }
         }
         return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
@@ -175,7 +194,6 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
 function mapCreateInput(body: CreateScenarioRequestBody): CreateScenarioInput {
   return {
     name: body.name,
-    slug: body.slug,
     ...(body.status !== undefined ? { status: body.status } : {}),
     ...(body.config !== undefined ? { config: body.config } : {}),
   }
@@ -186,7 +204,6 @@ function mapCreateResponse(output: CreateScenarioOutput): CreateScenarioResponse
     scenario: {
       scenarioId: output.scenario.scenarioId,
       name: output.scenario.name,
-      slug: output.scenario.slug,
       status: output.scenario.status,
       config: output.scenario.config,
       createdAt: output.scenario.createdAt,
@@ -202,7 +219,6 @@ function mapCreateAvatarInput(
   return {
     scenarioId,
     name: body.name,
-    slug: body.slug,
     personaPrompt: body.personaPrompt,
     ...(body.tone !== undefined ? { tone: body.tone } : {}),
     ...(body.description !== undefined ? { description: body.description } : {}),
@@ -218,7 +234,6 @@ function mapCreateAvatarResponse(output: CreateAvatarOutput): CreateAvatarRespon
       avatarId: output.avatar.avatarId,
       scenarioId: output.avatar.scenarioId,
       name: output.avatar.name,
-      slug: output.avatar.slug,
       status: output.avatar.status,
       personaPrompt: output.avatar.personaPrompt,
       ...(output.avatar.tone !== undefined ? { tone: output.avatar.tone } : {}),

@@ -3,7 +3,6 @@ import type { AvatarStatus } from '../../../domain/avatar/avatar.types.js'
 export interface CreateAvatarInput {
   scenarioId: string
   name: string
-  slug: string
   personaPrompt: string
   tone?: string
   description?: string
@@ -17,7 +16,6 @@ export interface CreateAvatarOutput {
     avatarId: string
     scenarioId: string
     name: string
-    slug: string
     status: AvatarStatus
     personaPrompt: string
     tone?: string

@@ -50,7 +50,6 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
     avatarId: 'ava_1',
     scenarioId: 'scn_1',
     name: 'Ava',
-    slug: 'ava',
     status: 'active',
     personaPrompt: 'You are Ava, a helpful guide.',
     tone: 'friendly',

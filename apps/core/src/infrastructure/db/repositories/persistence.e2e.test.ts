@@ -27,14 +27,12 @@ describe.skipIf(!DB_AVAILABLE)('Persistence stack — end-to-end', () => {
 
     const scenario = await scenarioRepo1.create({
       name: 'Stack E2E Scenario',
-      slug: 'stack-e2e-scenario',
       status: 'active',
     })
 
     const avatar = await avatarRepo1.create({
       scenarioId: scenario.scenarioId,
       name: 'Stack E2E Avatar',
-      slug: 'stack-e2e-avatar',
       personaPrompt: 'You are a stack e2e avatar.',
       status: 'active',
     })

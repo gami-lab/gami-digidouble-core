@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
 import { createScenario } from '../api'
 import { formatApiError } from '../api/error'
@@ -20,32 +20,21 @@ type ScenarioPageProps = {
 
 type FormSubmitEvent = Parameters<NonNullable<ComponentProps<'form'>['onSubmit']>>[0]
 
-const slugPattern = /^[a-z0-9-]+$/
-
 export function ScenarioPage({ onScenarioCreated, onNext }: ScenarioPageProps): JSX.Element {
   const [name, setName] = useState('')
-  const [slug, setSlug] = useState('')
   const [status, setStatus] = useState<ScenarioStatus>('active')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [createdScenarioId, setCreatedScenarioId] = useState<string | null>(null)
 
-  const isSlugInvalid = useMemo(() => slug.length > 0 && !slugPattern.test(slug), [slug])
   const isFormDisabled = createdScenarioId !== null
 
   const submitScenario = async (): Promise<void> => {
-    if (isSlugInvalid) {
-      setSubmitError(
-        'VALIDATION_ERROR: Cannot create scenario: slug format is invalid (use lowercase letters, digits, and hyphens only)',
-      )
-      return
-    }
-
     setSubmitError(null)
     setIsSubmitting(true)
 
     try {
-      const scenario = await createScenario({ name, slug, status })
+      const scenario = await createScenario({ name, status })
       setCreatedScenarioId(scenario.scenarioId)
       onScenarioCreated(scenario.scenarioId)
     } catch (error) {
@@ -78,20 +67,6 @@ export function ScenarioPage({ onScenarioCreated, onNext }: ScenarioPageProps): 
             style={inputStyle}
             labelStyle={labelStyle}
           />
-
-          <LabeledInput
-            id="scenario-slug"
-            label="Slug"
-            value={slug}
-            onChange={setSlug}
-            required
-            invalid={isSlugInvalid}
-            style={inputStyle}
-            labelStyle={labelStyle}
-          />
-          {isSlugInvalid && (
-            <p style={errorStyle}>Slug must use lowercase letters, digits, and hyphens only.</p>
-          )}
 
           <label style={labelStyle} htmlFor="scenario-status">
             Status

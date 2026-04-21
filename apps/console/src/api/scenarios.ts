@@ -5,7 +5,6 @@ export type ScenarioStatus = 'draft' | 'active' | 'archived'
 export type ScenarioSummary = {
   scenarioId: string
   name: string
-  slug: string
   status: ScenarioStatus
   createdAt: string
   updatedAt: string
@@ -15,7 +14,6 @@ export type AvatarSummary = {
   avatarId: string
   scenarioId: string
   name: string
-  slug: string
   status: ScenarioStatus
   personaPrompt: string
   tone?: string
@@ -27,7 +25,6 @@ export type AvatarSummary = {
 
 export type CreateScenarioParams = {
   name: string
-  slug: string
   status?: ScenarioStatus
   config?: Record<string, unknown>
 }
@@ -40,7 +37,6 @@ type CreateScenarioPayload = {
 
 export type CreateAvatarParams = {
   name: string
-  slug: string
   personaPrompt: string
   tone?: string
   description?: string

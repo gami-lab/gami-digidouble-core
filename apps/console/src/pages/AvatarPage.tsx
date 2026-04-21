@@ -46,7 +46,6 @@ function PersonaPromptField({ value, onChange }: PersonaPromptFieldProps): JSX.E
 
 export function AvatarPage({ scenarioId, onAvatarCreated, onNext }: AvatarPageProps): JSX.Element {
   const [name, setName] = useState('')
-  const [slug, setSlug] = useState('')
   const [personaPrompt, setPersonaPrompt] = useState('')
   const [tone, setTone] = useState('')
   const [description, setDescription] = useState('')
@@ -63,7 +62,6 @@ export function AvatarPage({ scenarioId, onAvatarCreated, onNext }: AvatarPagePr
     try {
       const avatar = await createAvatar(scenarioId, {
         name,
-        slug,
         personaPrompt,
         ...(tone.trim().length > 0 ? { tone } : {}),
         ...(description.trim().length > 0 ? { description } : {}),
@@ -102,16 +100,6 @@ export function AvatarPage({ scenarioId, onAvatarCreated, onNext }: AvatarPagePr
             style={inputStyle}
             labelStyle={labelStyle}
           />
-          <LabeledInput
-            id="avatar-slug"
-            label="Slug"
-            value={slug}
-            onChange={setSlug}
-            required
-            style={inputStyle}
-            labelStyle={labelStyle}
-          />
-
           <PersonaPromptField value={personaPrompt} onChange={setPersonaPrompt} />
 
           <LabeledInput

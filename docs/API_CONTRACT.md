@@ -171,7 +171,6 @@ type UserRef = {
 type ScenarioSummary = {
   scenarioId: string
   name: string
-  slug: string
   status: 'draft' | 'active' | 'archived'
   createdAt: string
   updatedAt: string
@@ -185,7 +184,6 @@ type AvatarSummary = {
   avatarId: string
   scenarioId: string
   name: string
-  slug: string
   status: 'draft' | 'active' | 'archived'
   personaPrompt: string
   tone?: string
@@ -354,7 +352,7 @@ type StartSessionResponse = {
 - If the user does not already exist, the system may create a minimal user.
 - Session start may synchronously initialize minimal Game Master state.
 - Sprint 2 simplification: request uses flat `userId` and `scenarioId` fields. Nested `user` object and `initialContext` are deferred to a later EPIC.
-- Sprint 2 simplification: `scenarioId` existence is not validated at this endpoint yet (no FK check in in-memory flow).
+- `scenarioId` must reference an existing scenario; otherwise the endpoint returns `404 NOT_FOUND`.
 
 ---
 
@@ -670,7 +668,6 @@ POST /v1/scenarios
 ```ts id="re7n8a"
 type CreateScenarioRequest = {
   name: string
-  slug: string
   status?: 'draft' | 'active' | 'archived'
   config?: Record<string, unknown>
 }
@@ -690,7 +687,6 @@ type CreateScenarioResponse = {
 
 - `POST /v1/scenarios` returns `201 Created` on success.
 - `status` defaults to `draft` when omitted.
-- Slug format is validated (`^[a-z0-9-]+$`) but slug uniqueness is **not** enforced yet in Sprint 2.
 
 ---
 
@@ -727,7 +723,6 @@ POST /v1/scenarios/{scenarioId}/avatars
 ```ts
 type CreateAvatarRequest = {
   name: string
-  slug: string
   personaPrompt: string
   tone?: string
   description?: string
@@ -1461,7 +1456,7 @@ These shapes should stay aligned with `GAME_MASTER_CONTRACT.md`.
 - `401 Unauthorized` → missing/invalid API key
 - `403 Forbidden` → known but not allowed
 - `404 Not Found` → missing entity
-- `409 Conflict` → duplicate slug, invalid state transition
+- `409 Conflict` → invalid state transition or conflicting state
 - `429 Too Many Requests` → throttling
 - `500 Internal Server Error` → unexpected failure
 - `502/503/504` → upstream / provider issues where relevant
@@ -1477,11 +1472,6 @@ These shapes should stay aligned with `GAME_MASTER_CONTRACT.md`.
 - required
 - non-empty after trimming
 - maximum size configurable
-
-### Scenario slug
-
-- unique
-- lowercase kebab-case preferred
 
 ### Source registration
 
