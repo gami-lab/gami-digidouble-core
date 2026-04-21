@@ -43,13 +43,13 @@ export function DebugPanel({ metadata }: DebugPanelProps): JSX.Element | null {
       nextRows.push(`model: ${metadata.model}`)
     }
     if (metadata.latencyMs !== undefined) {
-      nextRows.push(`latency: ${metadata.latencyMs} ms`)
+      nextRows.push(`latency: ${String(metadata.latencyMs)} ms`)
     }
     if (metadata.inputTokens !== undefined) {
-      nextRows.push(`input tokens: ${metadata.inputTokens}`)
+      nextRows.push(`input tokens: ${String(metadata.inputTokens)}`)
     }
     if (metadata.outputTokens !== undefined) {
-      nextRows.push(`output tokens: ${metadata.outputTokens}`)
+      nextRows.push(`output tokens: ${String(metadata.outputTokens)}`)
     }
     return nextRows
   }, [metadata.inputTokens, metadata.latencyMs, metadata.model, metadata.outputTokens])

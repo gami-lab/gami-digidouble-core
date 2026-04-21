@@ -43,11 +43,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+  public override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('Unhandled UI error', error, errorInfo)
   }
 
-  public render(): JSX.Element {
+  public override render(): JSX.Element {
     if (this.state.hasError) {
       return (
         <section role="alert" style={fallbackContainerStyle}>
