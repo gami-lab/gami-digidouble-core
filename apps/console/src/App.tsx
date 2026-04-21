@@ -3,6 +3,7 @@ import type { CSSProperties, JSX } from 'react'
 import { apiUrl } from './env'
 import { AvatarPage } from './pages/AvatarPage'
 import { ScenarioPage } from './pages/ScenarioPage'
+import { SessionPage } from './pages/SessionPage'
 
 type Page = 'scenario' | 'avatar' | 'session'
 
@@ -46,13 +47,6 @@ const breadcrumbActiveStyle: CSSProperties = {
 
 const breadcrumbInactiveStyle: CSSProperties = {
   color: '#9ca3af',
-}
-
-const sessionPlaceholderStyle: CSSProperties = {
-  border: '1px solid #d1d5db',
-  borderRadius: '12px',
-  padding: '20px',
-  backgroundColor: '#ffffff',
 }
 
 const breadcrumbItems: Array<{ id: Page; label: string }> = [
@@ -126,16 +120,19 @@ function App(): JSX.Element {
       )
     }
 
+    if (testContext.scenarioId === null || testContext.avatarId === null) {
+      return <p>Redirecting to setup…</p>
+    }
+
     return (
-      <section style={sessionPlaceholderStyle}>
-        <h2 style={{ marginTop: 0 }}>Session & Chat</h2>
-        <p style={{ marginBottom: '8px', color: '#4b5563' }}>Prompt 04 will implement this page.</p>
-        <p style={{ margin: 0 }}>
-          Active context: scenarioId=<strong>{testContext.scenarioId ?? '—'}</strong>, avatarId=
-          <strong>{testContext.avatarId ?? '—'}</strong>, sessionId=
-          <strong>{testContext.sessionId ?? '—'}</strong>
-        </p>
-      </section>
+      <SessionPage
+        scenarioId={testContext.scenarioId}
+        avatarId={testContext.avatarId}
+        sessionId={testContext.sessionId}
+        onSessionIdChange={(sessionId) => {
+          setTestContext((previous) => ({ ...previous, sessionId }))
+        }}
+      />
     )
   }, [page, testContext.avatarId, testContext.scenarioId, testContext.sessionId])
 
