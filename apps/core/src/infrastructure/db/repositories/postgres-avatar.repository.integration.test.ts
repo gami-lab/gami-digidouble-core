@@ -4,33 +4,10 @@ import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.
 import { PostgresAvatarRepository } from './postgres-avatar.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 
-describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
-  let sql: Sql
-  let scenarioRepo: PostgresScenarioRepository
-  let avatarRepo: PostgresAvatarRepository
-  let scenarioId: string
+let scenarioId = ''
+let avatarRepo: PostgresAvatarRepository
 
-  beforeAll(async () => {
-    sql = await createTestSql()
-    scenarioRepo = new PostgresScenarioRepository(sql)
-    avatarRepo = new PostgresAvatarRepository(sql)
-  })
-
-  beforeEach(async () => {
-    const scenario = await scenarioRepo.create({
-      name: 'Harness',
-    })
-    scenarioId = scenario.scenarioId
-  })
-
-  afterEach(async () => {
-    await truncateAllTables(sql)
-  })
-
-  afterAll(async () => {
-    await sql.end()
-  })
-
+function defineCreateAndReadTests(): void {
   it('creates an avatar and returns it with generated id and timestamps', async () => {
     const result = await avatarRepo.create({
       scenarioId,
@@ -114,4 +91,65 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
     const result = await avatarRepo.findById('00000000-0000-0000-0000-000000000000')
     expect(result).toBeNull()
   })
+}
+
+function defineListAndDeleteTests(): void {
+  it('listByScenarioId returns avatars ordered by created_at DESC', async () => {
+    const older = await avatarRepo.create({
+      scenarioId,
+      name: 'Old',
+      personaPrompt: 'Old prompt',
+    })
+    const newer = await avatarRepo.create({
+      scenarioId,
+      name: 'New',
+      personaPrompt: 'New prompt',
+    })
+
+    const listed = await avatarRepo.listByScenarioId(scenarioId)
+
+    expect(listed.map((avatar) => avatar.avatarId)).toEqual([newer.avatarId, older.avatarId])
+  })
+
+  it('delete removes an existing avatar', async () => {
+    const created = await avatarRepo.create({
+      scenarioId,
+      name: 'Disposable',
+      personaPrompt: 'Disposable prompt',
+    })
+
+    await avatarRepo.delete(created.avatarId)
+    const found = await avatarRepo.findById(created.avatarId)
+
+    expect(found).toBeNull()
+  })
+}
+
+describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
+  let sql: Sql
+  let scenarioRepo: PostgresScenarioRepository
+
+  beforeAll(async () => {
+    sql = await createTestSql()
+    scenarioRepo = new PostgresScenarioRepository(sql)
+    avatarRepo = new PostgresAvatarRepository(sql)
+  })
+
+  beforeEach(async () => {
+    const scenario = await scenarioRepo.create({
+      name: 'Harness',
+    })
+    scenarioId = scenario.scenarioId
+  })
+
+  afterEach(async () => {
+    await truncateAllTables(sql)
+  })
+
+  afterAll(async () => {
+    await sql.end()
+  })
+
+  defineCreateAndReadTests()
+  defineListAndDeleteTests()
 })

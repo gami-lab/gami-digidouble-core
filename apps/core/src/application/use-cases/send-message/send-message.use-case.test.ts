@@ -21,9 +21,16 @@ const sessionRepository = {
   create: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
+  countByScenarioId: vi.fn(),
+  countActiveByScenarioId: vi.fn(),
 }
 
-const avatarRepository = { findById: findAvatarByIdMock, create: vi.fn() }
+const avatarRepository = {
+  findById: findAvatarByIdMock,
+  create: vi.fn(),
+  listByScenarioId: vi.fn(),
+  delete: vi.fn(),
+}
 const messageRepository = {
   findBySessionId: findMessagesBySessionIdMock,
   save: saveMessageMock,

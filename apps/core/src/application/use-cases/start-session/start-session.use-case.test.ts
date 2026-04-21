@@ -12,11 +12,15 @@ const sessionRepository = {
   create: createSessionMock,
   update: vi.fn(),
   delete: vi.fn(),
+  countByScenarioId: vi.fn(),
+  countActiveByScenarioId: vi.fn(),
 }
 
 const scenarioRepository = {
   create: vi.fn(),
   findById: findScenarioByIdMock,
+  list: vi.fn(),
+  delete: vi.fn(),
 }
 
 function makeSession(overrides: Partial<Session> = {}): Session {

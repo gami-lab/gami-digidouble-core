@@ -52,4 +52,22 @@ export class PostgresScenarioRepository implements IScenarioRepository {
     `
     return row ? rowToScenario(row) : null
   }
+
+  async list(): Promise<Scenario[]> {
+    const rows = await this.sql<ScenarioRow[]>`
+      SELECT id, name, status, config, created_at, updated_at
+      FROM scenarios
+      ORDER BY created_at DESC
+    `
+    return rows.map(rowToScenario)
+  }
+
+  async delete(scenarioId: string): Promise<void> {
+    const uuid = extractUuid('scenario_', scenarioId)
+    if (uuid === null) return
+    await this.sql`
+      DELETE FROM scenarios
+      WHERE id = ${uuid}
+    `
+  }
 }

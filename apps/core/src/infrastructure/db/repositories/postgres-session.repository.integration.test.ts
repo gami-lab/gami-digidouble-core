@@ -93,4 +93,24 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository', () => {
 
     expect(found).toBeNull()
   })
+
+  it('countByScenarioId returns all sessions linked to the scenario', async () => {
+    await sessionRepo.create({ userId: 'user-7', scenarioId })
+    await sessionRepo.create({ userId: 'user-8', scenarioId })
+
+    const count = await sessionRepo.countByScenarioId(scenarioId)
+
+    expect(count).toBe(2)
+  })
+
+  it('countActiveByScenarioId returns only active sessions', async () => {
+    const active = await sessionRepo.create({ userId: 'user-9', scenarioId })
+    const closed = await sessionRepo.create({ userId: 'user-10', scenarioId })
+    await sessionRepo.update(closed.sessionId, { status: 'closed' })
+
+    const count = await sessionRepo.countActiveByScenarioId(scenarioId)
+
+    expect(count).toBe(1)
+    expect(active.sessionId).toContain('session_')
+  })
 })

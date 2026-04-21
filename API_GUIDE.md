@@ -14,8 +14,12 @@ For the formal spec (all types, error codes, future endpoints), see
 | Method   | Path                                    | Description                       | Auth |
 | -------- | --------------------------------------- | --------------------------------- | ---- |
 | `GET`    | `/health`                               | Engine health check               | No   |
+| `GET`    | `/v1/scenarios`                         | List scenarios (newest first)     | Yes  |
 | `POST`   | `/v1/scenarios`                         | Create a scenario                 | Yes  |
 | `POST`   | `/v1/scenarios/:scenarioId/avatars`     | Create an avatar for a scenario   | Yes  |
+| `GET`    | `/v1/scenarios/:scenarioId/avatars`     | List avatars for a scenario       | Yes  |
+| `DELETE` | `/v1/avatars/:avatarId`                 | Delete avatar (safe checks)       | Yes  |
+| `DELETE` | `/v1/scenarios/:scenarioId`             | Delete scenario (safe checks)     | Yes  |
 | `POST`   | `/v1/conversations/start`               | Start a session                   | Yes  |
 | `POST`   | `/v1/conversations/:sessionId/messages` | Send a message, get avatar reply  | Yes  |
 | `GET`    | `/v1/conversations/:sessionId/history`  | Get full conversation history     | Yes  |
@@ -176,6 +180,36 @@ Save the `scenarioId` — it is required for avatar creation and session start.
 
 ---
 
+### 1.1 List Scenarios
+
+Returns scenarios ordered by `createdAt DESC` (newest first).
+
+```bash
+curl -X GET "$BASE_URL/v1/scenarios" \
+  -H "x-api-key: $API_KEY"
+```
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "scenarios": [
+      {
+        "scenarioId": "scenario_01jwxxxxxx",
+        "name": "Museum Guide",
+        "status": "active",
+        "createdAt": "2026-04-20T10:00:00.000Z",
+        "updatedAt": "2026-04-20T10:00:00.000Z"
+      }
+    ]
+  },
+  "error": null
+}
+```
+
+---
+
 ### 2. Create an Avatar
 
 An **Avatar** is a persona attached to a scenario. The `personaPrompt` is injected as the
@@ -233,6 +267,50 @@ curl -X POST "$BASE_URL/v1/scenarios/$SCENARIO_ID/avatars" \
 - `400 VALIDATION_ERROR` — missing required fields or invalid input
 
 Save the `avatarId` — it is required when sending messages.
+
+---
+
+### 2.1 List Avatars for a Scenario
+
+```bash
+curl -X GET "$BASE_URL/v1/scenarios/$SCENARIO_ID/avatars" \
+  -H "x-api-key: $API_KEY"
+```
+
+Behavior:
+
+- `404 NOT_FOUND` if scenario does not exist
+- `200` with `avatars: []` if scenario exists with no avatars
+- ordered by `createdAt DESC` (newest first)
+
+---
+
+### 2.2 Delete an Avatar
+
+```bash
+curl -X DELETE "$BASE_URL/v1/avatars/$AVATAR_ID" \
+  -H "x-api-key: $API_KEY"
+```
+
+Behavior:
+
+- `404 NOT_FOUND` if avatar does not exist
+- `409 CONFLICT` if deletion is blocked because the avatar's scenario still has active sessions
+
+---
+
+### 2.3 Delete a Scenario
+
+```bash
+curl -X DELETE "$BASE_URL/v1/scenarios/$SCENARIO_ID" \
+  -H "x-api-key: $API_KEY"
+```
+
+Behavior:
+
+- `404 NOT_FOUND` if scenario does not exist
+- `409 CONFLICT` if the scenario still has avatars or sessions
+- no force-delete behavior in this slice
 
 ---
 
@@ -666,7 +744,6 @@ These endpoints are defined in [API_CONTRACT.md](API_CONTRACT.md) but not yet li
 | Endpoint                                                | Epic     |
 | ------------------------------------------------------- | -------- |
 | `GET /v1/conversations/:sessionId/state`                | EPIC 4.1 |
-| `GET /v1/scenarios`                                     | EPIC 3.x |
 | `GET /v1/scenarios/:scenarioId`                         | EPIC 3.x |
 | Streaming: `POST /v1/conversations/:id/messages/stream` | EPIC 3.x |
 | Memory: `SessionMemorySummary` in history               | EPIC 4.2 |

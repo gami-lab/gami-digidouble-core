@@ -11,6 +11,8 @@ const sessionRepository = {
   create: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
+  countByScenarioId: vi.fn(),
+  countActiveByScenarioId: vi.fn(),
 }
 
 const messageRepository = {

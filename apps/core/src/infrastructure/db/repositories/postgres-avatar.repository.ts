@@ -77,4 +77,29 @@ export class PostgresAvatarRepository implements IAvatarRepository {
     `
     return row ? rowToAvatarConfig(row) : null
   }
+
+  async listByScenarioId(scenarioId: string): Promise<AvatarConfig[]> {
+    const scenarioUuid = extractUuid('scenario_', scenarioId)
+    if (scenarioUuid === null) return []
+
+    const rows = await this.sql<AvatarRow[]>`
+      SELECT
+        id, scenario_id, name, status,
+        persona_prompt, tone, description, adjustments, config,
+        created_at, updated_at
+      FROM avatars
+      WHERE scenario_id = ${scenarioUuid}
+      ORDER BY created_at DESC
+    `
+    return rows.map(rowToAvatarConfig)
+  }
+
+  async delete(avatarId: string): Promise<void> {
+    const uuid = extractUuid('avatar_', avatarId)
+    if (uuid === null) return
+    await this.sql`
+      DELETE FROM avatars
+      WHERE id = ${uuid}
+    `
+  }
 }

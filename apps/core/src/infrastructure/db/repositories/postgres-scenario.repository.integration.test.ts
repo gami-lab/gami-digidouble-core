@@ -56,4 +56,25 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
     const result = await repo.findById('00000000-0000-0000-0000-000000000000')
     expect(result).toBeNull()
   })
+
+  it('list returns scenarios ordered by created_at DESC', async () => {
+    const older = await repo.create({ name: 'Older' })
+    const newer = await repo.create({ name: 'Newer' })
+
+    const listed = await repo.list()
+
+    expect(listed.map((scenario) => scenario.scenarioId)).toEqual([
+      newer.scenarioId,
+      older.scenarioId,
+    ])
+  })
+
+  it('delete removes an existing scenario', async () => {
+    const created = await repo.create({ name: 'To delete' })
+
+    await repo.delete(created.scenarioId)
+    const found = await repo.findById(created.scenarioId)
+
+    expect(found).toBeNull()
+  })
 })

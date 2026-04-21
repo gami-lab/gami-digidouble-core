@@ -8,6 +8,7 @@ import type { IScenarioRepository } from '../application/ports/IScenarioReposito
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
 import type { Config } from '../config.js'
+import { avatarsRoute } from './routes/avatars.js'
 import { conversationsRoute } from './routes/conversations.js'
 import { exchangeRoute } from './routes/exchange.js'
 import { healthRoute } from './routes/health.js'
@@ -65,6 +66,19 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
       : {}),
     ...(adapters.avatarRepository !== undefined
       ? { avatarRepository: adapters.avatarRepository }
+      : {}),
+    ...(adapters.sessionRepository !== undefined
+      ? { sessionRepository: adapters.sessionRepository }
+      : {}),
+  })
+  app.register(avatarsRoute, {
+    prefix: '/v1/avatars',
+    config,
+    ...(adapters.avatarRepository !== undefined
+      ? { avatarRepository: adapters.avatarRepository }
+      : {}),
+    ...(adapters.sessionRepository !== undefined
+      ? { sessionRepository: adapters.sessionRepository }
       : {}),
   })
 

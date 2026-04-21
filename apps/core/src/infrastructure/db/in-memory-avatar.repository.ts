@@ -37,4 +37,16 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
   findById(avatarId: string): Promise<AvatarConfig | null> {
     return Promise.resolve(this.avatars.get(avatarId) ?? null)
   }
+
+  listByScenarioId(scenarioId: string): Promise<AvatarConfig[]> {
+    const avatars = [...this.avatars.values()]
+      .filter((avatar) => avatar.scenarioId === scenarioId)
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    return Promise.resolve(avatars)
+  }
+
+  delete(avatarId: string): Promise<void> {
+    this.avatars.delete(avatarId)
+    return Promise.resolve()
+  }
 }
