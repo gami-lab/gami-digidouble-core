@@ -551,6 +551,22 @@ The roadmap explicitly calls for:
 
 ## 14. Admin UI / Back-office (Phase A)
 
+### Manual Test Console bootstrap (EPIC 2.4)
+
+Current delivered frontend package for internal manual API validation:
+
+- **Vite**
+- **React**
+- **TypeScript (strict)**
+- minimal styling only (no design system/framework at bootstrap stage)
+
+Rules for this package:
+
+- package location: `apps/console`
+- consume Core only through HTTP API contracts (starts with `GET /health`)
+- environment-driven Core connection (`VITE_API_URL`, `VITE_API_KEY`)
+- keep scope minimal (no scenario/session UI during bootstrap prompt)
+
 ### Choice
 
 - **Next.js (App Router)**

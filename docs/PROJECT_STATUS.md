@@ -3,14 +3,14 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 20, 2026
+**Last updated:** April 21, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, and EPIC 2.3 are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, and EPIC 2.3 are complete. EPIC 2.4 is in progress (Prompt 01 scaffold complete).**
 
 Monorepo workspace bootstrap is done:
 
@@ -227,7 +227,7 @@ Test coverage hardening (post-EPIC 1.2):
 | EPIC 2.1 — Avatar Agent v1                 | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained. |
 | EPIC 2.2 — Scenario & Session Lifecycle v1 | **Complete** | POST /v1/scenarios, POST /v1/scenarios/:scenarioId/avatars, POST /v1/conversations/start, GET /v1/conversations/:sessionId/history, DELETE /v1/conversations/:sessionId implemented. IScenarioRepository, IAvatarRepository.create, IMessageRepository.deleteBySessionId added. messages.stack-e2e.test.ts happy path unblocked.              |
 | EPIC 2.3 — Persistence Layer v1            | **Complete** | Postgres repository adapters (Scenario, Avatar, Session, Message), DB schema migrations, connection pooling. Replaces all in-memory stubs in production. Fixes AvatarConfig timestamp gap from EPIC 2.2.                                                                                                                                      |
-| EPIC 2.4 — Manual Test Console v1          | Not started  | Non-developer test console for scenario/avatar/session flows and manual iteration loop                                                                                                                                                                                                                                                        |
+| EPIC 2.4 — Manual Test Console v1          | In progress  | `apps/console` scaffolded with Vite + React + TypeScript, env wiring, and landing-page `/health` connectivity check                                                                                                                                                                                                                           |
 
 ### Sprint O — Operations / Control Plane
 
@@ -281,6 +281,7 @@ Test coverage hardening (post-EPIC 1.2):
 - Session lifecycle (start, history, reset)
 - Scenario management (create)
 - Avatar management (create)
+- Manual Test Console scaffold (`apps/console`) with API connectivity check (`GET /health`)
 
 **Persistence Layer (EPIC 2.3):**
 
