@@ -50,12 +50,6 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/apps/core/dist ./apps/core/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
-# Copy SQL migration files — tsc does not copy non-TS assets.
-# runner.ts resolves migrations via dirname(import.meta.url), which in production
-# points to apps/core/dist/infrastructure/db/migrations/. Without these files the
-# migration runner finds nothing, tables are never created, and all DB writes return 500.
-COPY apps/core/src/infrastructure/db/migrations/*.sql ./apps/core/dist/infrastructure/db/migrations/
-
 EXPOSE 3000
 
 # NODE_ENV tells the application it is running in production mode
