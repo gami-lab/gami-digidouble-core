@@ -2,7 +2,7 @@ import { coreRequest } from './client'
 import type { Message, SessionSummary } from './sessions'
 
 export type SendMessageParams = {
-  avatarId?: string
+  avatarId: string
   message: {
     content: string
   }

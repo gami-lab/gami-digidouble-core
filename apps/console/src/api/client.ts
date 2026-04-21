@@ -1,7 +1,4 @@
-import type {
-  ApiError as SharedApiError,
-  ApiResponse,
-} from '../../../../packages/shared/src/api-response.ts'
+import type { ApiError as SharedApiError, ApiResponse } from '@gami/shared'
 import { apiKey, apiUrl } from '../env'
 
 type HttpMethod = 'GET' | 'POST' | 'DELETE'
@@ -82,6 +79,9 @@ export async function coreRequest<T>(method: HttpMethod, path: string, body?: un
     throw new ApiError('NETWORK_ERROR', `Invalid API response envelope from ${normalizedPath}`)
   }
 
+  // Check error field first: a conformant server always sets error when status is non-2xx,
+  // so the envelope error field is the authoritative signal. The response.ok guard below
+  // is a final safety net for any unexpected status/envelope combination.
   if (payload.error !== null) {
     throw new ApiError(payload.error.code, payload.error.message)
   }

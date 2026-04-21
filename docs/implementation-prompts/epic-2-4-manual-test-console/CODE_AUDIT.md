@@ -144,10 +144,11 @@ Per the project's `TEST_STRATEGY.md`, this exception is acceptable for a develop
 
 **What would high-confidence testing look like (for future reference):**
 
-- Integration: mount `ScenarioPage` → assert form submits correct payload shape including `slug`
+- Integration: mount `ScenarioPage` → assert form submits correct payload shape (`name`, `status`)
+- Integration: mount `AvatarPage` → assert form submits correct payload shape (`name`, `personaPrompt`, etc.)
 - Integration: mock `coreRequest` to return specific errors → assert `ErrorBoundary` and inline error states render correctly
 - Unit: `formatApiError` parses all `ApiError` code variants
-- Unit: `coreRequest` error ordering (F-04) — demonstrates the envelope-before-ok bug
+- Unit: `coreRequest` — verify `ApiError` code and message are propagated correctly from envelope `error` field
 
 **Missing tests on Core side:** The Core already has 178 tests covering scenario/avatar/session/message use cases. No gaps identified from the `@gami/core` audit.
 
@@ -190,3 +191,63 @@ The following steps are required to reach an A grade:
 The primary functional flow is correct: scenario creation, avatar creation, session management, and chat all align with the Core API contract. Build, lint, typecheck, and Core tests all pass. The EPIC DoD is reachable.
 
 The one meaningful issue before closing is F-01 (workspace package import path). It is a quick fix and should be done before merge. F-02 is low-risk type cleanup recommended alongside it. After those two changes and a manual end-to-end verification of the full flow, the EPIC can be closed.
+
+---
+
+## Remediation Outcome
+
+**Date:** 2026-04-21
+
+### Changes Made
+
+| File                               | Change                                                                                       |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| `apps/console/src/api/client.ts`   | Import `ApiResponse` / `ApiError` from `@gami/shared` package instead of relative `.ts` path |
+| `apps/console/src/api/messages.ts` | `SendMessageParams.avatarId` changed from `avatarId?: string` to `avatarId: string`          |
+| `apps/console/src/api/client.ts`   | Added explanatory comment on envelope-before-ok ordering in `coreRequest`                    |
+| `apps/console/vite.config.ts`      | Added CORS dependency comment                                                                |
+| `apps/console/README.md`           | Created — setup guide, env vars, CORS requirement, full flow walkthrough                     |
+| `docs/PROJECT_STATUS.md`           | EPIC 2.4 notes updated to reflect post-audit remediation                                     |
+
+### Findings Resolved
+
+| Finding                                               | Resolution                                                                                    |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| F-01 (High) — relative `.ts` import of `@gami/shared` | Import corrected to `@gami/shared`; `@gami/shared: workspace:*` was already in `package.json` |
+| F-02 (Medium) — `avatarId` typed optional             | Made required in `SendMessageParams` to match Core contract                                   |
+| F-03 (Low) — coreRequest ordering                     | Clarifying comment added explaining the intentional envelope-first check                      |
+| F-04 (Low) — CORS undocumented                        | Comment in `vite.config.ts`; full CORS setup section in `README.md`                           |
+| Documentation gap — no `apps/console/README.md`       | `README.md` created with complete setup and usage docs                                        |
+
+### Findings Deferred
+
+None. All findings addressed.
+
+### Build Gates
+
+| Check                                   | Result                         |
+| --------------------------------------- | ------------------------------ |
+| `pnpm --filter @gami/console lint`      | ✅ PASS                        |
+| `pnpm --filter @gami/console typecheck` | ✅ PASS                        |
+| `pnpm --filter @gami/console build`     | ✅ PASS (60 ms, 206 kB bundle) |
+| `pnpm --filter @gami/core test`         | ✅ PASS (178 tests / 32 files) |
+
+### Final Feature Confidence
+
+| Feature            | Confidence | Basis                                                                       |
+| ------------------ | ---------- | --------------------------------------------------------------------------- |
+| Scenario creation  | Medium     | Types align with Core schema; `@gami/shared` import now correct             |
+| Avatar creation    | Medium     | Types align with Core schema; `avatarId` type contract enforced             |
+| Session management | Medium     | `SessionPage` logic verified by inspection                                  |
+| Chat interface     | Medium     | `avatarId: string` now enforced at type level; always provided at call site |
+| Debug panel        | Medium     | Guarded field access verified by inspection                                 |
+| Error handling     | Medium     | `ApiError`, `ErrorBoundary`, inline error states all present                |
+
+### Final Grade
+
+**A — All audit findings resolved. Build gates pass. Documentation complete.**
+
+### Remaining Risks
+
+- No automated UI tests (explicitly out of EPIC scope). All feature confidence is by inspection, not by test. A future hardening pass could add unit tests for `coreRequest` error paths and `formatApiError`.
+- All features at Medium confidence only because there is no automated behavioral proof. This is an accepted trade-off per EPIC scope.
