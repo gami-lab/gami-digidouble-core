@@ -163,7 +163,8 @@ function registerListScenariosRoute(app: FastifyInstance, useCase: ListScenarios
     try {
       const output = await useCase.execute()
       return await reply.send(ok<ListScenariosResponse>(output))
-    } catch {
+    } catch (error) {
+      app.log.error({ error }, 'Failed to list scenarios.')
       return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
     }
   })
@@ -178,7 +179,7 @@ function registerCreateScenarioRoute(app: FastifyInstance, useCase: CreateScenar
         const output = await useCase.execute(mapCreateInput(request.body))
         return await reply.status(201).send(ok<CreateScenarioResponse>(mapCreateResponse(output)))
       } catch (error) {
-        return handleCommonDomainError(error, reply)
+        return handleDomainError(error, reply)
       }
     },
   )
@@ -202,7 +203,7 @@ function registerCreateAvatarRoute(app: FastifyInstance, useCase: CreateAvatarUs
           .status(201)
           .send(ok<CreateAvatarResponse>(mapCreateAvatarResponse(output)))
       } catch (error) {
-        return handleCommonDomainError(error, reply)
+        return handleDomainError(error, reply)
       }
     },
   )
@@ -252,26 +253,26 @@ function registerDeleteScenarioRoute(app: FastifyInstance, useCase: DeleteScenar
   )
 }
 
-function handleCommonDomainError(error: unknown, reply: FastifyReply): FastifyReply {
+async function handleDomainError(error: unknown, reply: FastifyReply): Promise<FastifyReply> {
   if (error instanceof DomainError) {
     if (error.code === 'VALIDATION_ERROR' || error.code === 'INVALID_INPUT') {
-      return reply.status(400).send(fail('VALIDATION_ERROR', error.message))
+      return await reply.status(400).send(fail('VALIDATION_ERROR', error.message))
     }
     if (error.code === 'NOT_FOUND') {
-      return reply.status(404).send(fail('NOT_FOUND', error.message))
+      return await reply.status(404).send(fail('NOT_FOUND', error.message))
     }
     if (error.code === 'CONFLICT') {
-      return reply.status(409).send(fail('CONFLICT', error.message))
+      return await reply.status(409).send(fail('CONFLICT', error.message))
     }
     if (
       error.code === 'EXTERNAL_SERVICE_ERROR' ||
       error.code === 'PROVIDER_ERROR' ||
       error.code === 'TIMEOUT'
     ) {
-      return reply.status(502).send(fail('EXTERNAL_SERVICE_ERROR', error.message))
+      return await reply.status(502).send(fail('EXTERNAL_SERVICE_ERROR', error.message))
     }
   }
-  return reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
+  return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
 }
 
 function mapCreateInput(body: CreateScenarioRequestBody): CreateScenarioInput {
