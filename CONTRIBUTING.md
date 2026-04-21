@@ -111,6 +111,12 @@ pnpm dev
 pnpm infra:down
 ```
 
+Console package (manual test UI) during EPIC 2.4 development:
+
+```bash
+pnpm --filter @gami/console dev
+```
+
 ## Quality Commands
 
 These are the core quality commands used by CI gates. Always verify locally before pushing.
@@ -134,6 +140,9 @@ pnpm --filter @gami/core test:coverage
 pnpm --filter @gami/core test:integration-e2e
 pnpm --filter @gami/core typecheck
 pnpm --filter @gami/core exec eslint src
+pnpm --filter @gami/console lint
+pnpm --filter @gami/console typecheck
+pnpm --filter @gami/console build
 ```
 
 ## CI Behavior
