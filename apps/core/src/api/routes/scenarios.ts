@@ -105,7 +105,7 @@ const createScenarioBodySchema = {
   additionalProperties: false,
 } as const
 
-const createAvatarParamsSchema = {
+const scenarioIdParamsSchema = {
   type: 'object',
   required: ['scenarioId'],
   properties: {
@@ -190,7 +190,7 @@ function registerCreateAvatarRoute(app: FastifyInstance, useCase: CreateAvatarUs
     '/:scenarioId/avatars',
     {
       schema: {
-        params: createAvatarParamsSchema,
+        params: scenarioIdParamsSchema,
         body: createAvatarBodySchema,
       },
     },
@@ -215,7 +215,7 @@ function registerListScenarioAvatarsRoute(
 ): void {
   app.get<{ Params: ListScenarioAvatarsRequestParams }>(
     '/:scenarioId/avatars',
-    { schema: { params: createAvatarParamsSchema } },
+    { schema: { params: scenarioIdParamsSchema } },
     async (request, reply) => {
       try {
         const output = await useCase.execute({ scenarioId: request.params.scenarioId })
@@ -233,7 +233,7 @@ function registerListScenarioAvatarsRoute(
 function registerDeleteScenarioRoute(app: FastifyInstance, useCase: DeleteScenarioUseCase): void {
   app.delete<{ Params: DeleteScenarioRequestParams }>(
     '/:scenarioId',
-    { schema: { params: createAvatarParamsSchema } },
+    { schema: { params: scenarioIdParamsSchema } },
     async (request, reply) => {
       try {
         const output = await useCase.execute({ scenarioId: request.params.scenarioId })
