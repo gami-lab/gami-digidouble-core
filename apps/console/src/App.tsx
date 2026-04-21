@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
+import { coreRequest } from './api'
 import { apiUrl } from './env'
 
 type HealthData = {
@@ -7,20 +8,10 @@ type HealthData = {
   version?: string
 }
 
-type ApiResponse<TData> = {
-  data: TData | null
-  error: {
-    code: string
-    message: string
-  } | null
-}
-
 type ConnectivityState =
   | { status: 'loading' }
   | { status: 'connected'; version: string | null }
   | { status: 'unreachable' }
-
-const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
 
 const appContainerStyle: CSSProperties = {
   minHeight: '100vh',
@@ -55,33 +46,15 @@ const valueStyle: CSSProperties = {
 function App(): JSX.Element {
   const [connectivity, setConnectivity] = useState<ConnectivityState>({ status: 'loading' })
 
-  const healthUrl = useMemo(() => `${normalizeApiUrl(apiUrl)}/health`, [])
-
   useEffect(() => {
     const controller = new AbortController()
 
     const checkConnectivity = async (): Promise<void> => {
       try {
-        const response = await fetch(healthUrl, {
-          method: 'GET',
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          setConnectivity({ status: 'unreachable' })
-          return
-        }
-
-        const payload = (await response.json()) as ApiResponse<HealthData>
-
-        if (payload.error !== null || payload.data?.status !== 'ok') {
-          setConnectivity({ status: 'unreachable' })
-          return
-        }
-
+        const health = await coreRequest<HealthData>('GET', '/health')
         setConnectivity({
           status: 'connected',
-          version: payload.data.version ?? null,
+          version: health.version ?? null,
         })
       } catch {
         if (!controller.signal.aborted) {
@@ -95,7 +68,7 @@ function App(): JSX.Element {
     return () => {
       controller.abort()
     }
-  }, [healthUrl])
+  }, [])
 
   return (
     <main style={appContainerStyle}>
