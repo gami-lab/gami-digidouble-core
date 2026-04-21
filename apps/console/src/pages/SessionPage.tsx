@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { ComponentProps, JSX, RefObject } from 'react'
 import { getHistory, resetSession, sendMessage, startSession } from '../api'
 import { formatApiError } from '../api/error'
+import { DebugPanel } from '../components/DebugPanel'
+import type { DebugMetadata } from '../components/DebugPanel'
 import { LabeledInput } from '../components/LabeledInput'
 import { buttonStyle, errorStyle, inputStyle, labelStyle, sectionStyle } from './form-styles'
 import {
@@ -27,12 +29,7 @@ type LocalMessage = {
   id: string
   role: 'user' | 'avatar'
   content: string
-  metadata?: {
-    model?: string
-    latencyMs?: number
-    inputTokens?: number
-    outputTokens?: number
-  }
+  metadata?: DebugMetadata
 }
 
 const PENDING_MESSAGE_ID = 'pending-avatar-message'
@@ -42,7 +39,7 @@ type HistoryMessage = Awaited<ReturnType<typeof getHistory>>['messages'][number]
 const isChatHistoryMessage = (message: HistoryMessage): message is HistoryMessage & { role: 'user' | 'avatar' } =>
   message.role === 'user' || message.role === 'avatar'
 
-const toLocalAvatarMetadata = (metadata: HistoryMessage['metadata']): LocalMessage['metadata'] | undefined => {
+const toLocalAvatarMetadata = (metadata: HistoryMessage['metadata']): DebugMetadata | undefined => {
   if (metadata === undefined) {
     return undefined
   }
@@ -170,6 +167,9 @@ function ChatPanel({
         {messages.map((message) => (
           <div key={message.id} style={message.role === 'user' ? userMessageStyle : avatarMessageStyle}>
             <strong>{message.role === 'user' ? 'You:' : 'Avatar:'}</strong> {message.content}
+            {message.role === 'avatar' && message.metadata !== undefined ? (
+              <DebugPanel metadata={message.metadata} />
+            ) : null}
           </div>
         ))}
         <div ref={messageBottomRef} />

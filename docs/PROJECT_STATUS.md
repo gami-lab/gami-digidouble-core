@@ -18,6 +18,7 @@ Monorepo workspace bootstrap is done:
 - Root TypeScript strict configuration (NodeNext, strict, noUncheckedIndexedAccess)
 - Root ESLint flat config with typescript-eslint strict rules + complexity/line limits
 - `apps/core` package (`@gami/core`) — main application skeleton
+- `apps/console` package (`@gami/console`) — internal manual test console consuming Core API contracts
 - `packages/shared` package (`@gami/shared`) — shared types placeholder
 - Root scripts: `build`, `dev`, `test`, `lint`, `typecheck`, `clean`, `format`, `format:check`
 - `.env.example` with full environment variable contract
@@ -227,7 +228,7 @@ Test coverage hardening (post-EPIC 1.2):
 | EPIC 2.1 — Avatar Agent v1                 | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained. |
 | EPIC 2.2 — Scenario & Session Lifecycle v1 | **Complete** | POST /v1/scenarios, POST /v1/scenarios/:scenarioId/avatars, POST /v1/conversations/start, GET /v1/conversations/:sessionId/history, DELETE /v1/conversations/:sessionId implemented. IScenarioRepository, IAvatarRepository.create, IMessageRepository.deleteBySessionId added. messages.stack-e2e.test.ts happy path unblocked.              |
 | EPIC 2.3 — Persistence Layer v1            | **Complete** | Postgres repository adapters (Scenario, Avatar, Session, Message), DB schema migrations, connection pooling. Replaces all in-memory stubs in production. Fixes AvatarConfig timestamp gap from EPIC 2.2.                                                                                                                                      |
-| EPIC 2.4 — Manual Test Console v1          | **Complete** | `apps/console` scaffolded with Vite + React + TypeScript, env wiring, typed API client layer, Prompt 03 sequential Scenario → Avatar pages, and Prompt 04 Session & Chat page (start session, load history, send message with loading state, reset session, API error display, and context handoff including `sessionId`)                     |
+| EPIC 2.4 — Manual Test Console v1          | **Complete** | `@gami/console` delivered with health check, scenario/avatar creation, session start/chat/history/reset, per-avatar-message debug metadata panel (`model`, `latencyMs`, `inputTokens`, `outputTokens`), and global React `ErrorBoundary` with reload fallback.                                                                                |
 
 ### Sprint O — Operations / Control Plane
 
@@ -285,6 +286,8 @@ Test coverage hardening (post-EPIC 1.2):
 - Manual Test Console API client layer (`apps/console/src/api`) for create scenario/avatar, start/send/history/reset flows
 - Manual Test Console scenario/avatar management pages (`apps/console/src/pages/ScenarioPage.tsx`, `AvatarPage.tsx`) with sequential progression and context capture
 - Manual Test Console session/chat page (`apps/console/src/pages/SessionPage.tsx`) with session start, history load, send-message loop, pending avatar placeholder, and reset flow
+- Per-avatar-message debug metadata panel for `model`, `latencyMs`, `inputTokens`, and `outputTokens` when present
+- Global UI `ErrorBoundary` fallback for unhandled render errors with explicit reload action
 
 **Persistence Layer (EPIC 2.3):**
 
