@@ -167,7 +167,6 @@ async function createStackFixture(): Promise<{
     headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
     body: JSON.stringify({
       name: `Messages Stack Scenario ${idSuffix}`,
-      slug: `messages-stack-scenario-${idSuffix}`,
     }),
   })
   if (createScenarioRes.status !== 201) {
@@ -183,7 +182,6 @@ async function createStackFixture(): Promise<{
     headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
     body: JSON.stringify({
       name: `Messages Stack Avatar ${idSuffix}`,
-      slug: `messages-stack-avatar-${idSuffix}`,
       personaPrompt: 'You are a stack e2e test avatar. Follow user instructions precisely.',
     }),
   })

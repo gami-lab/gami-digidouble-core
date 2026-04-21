@@ -26,7 +26,6 @@ type CreateScenarioRouteData = {
   scenario: {
     scenarioId: string
     name: string
-    slug: string
     status: 'draft' | 'active' | 'archived'
     config: Record<string, unknown>
     createdAt: string
@@ -39,7 +38,6 @@ type CreateAvatarRouteData = {
     avatarId: string
     scenarioId: string
     name: string
-    slug: string
     status: 'draft' | 'active' | 'archived'
     personaPrompt: string
     tone?: string
@@ -55,7 +53,7 @@ describe('POST /v1/scenarios — auth', () => {
     const response = await createServer(testConfig).inject({
       method: 'POST',
       url: '/v1/scenarios',
-      payload: { name: 'Demo', slug: 'demo-scenario' },
+      payload: { name: 'Demo' },
     })
 
     expect(response.statusCode).toBe(401)
@@ -69,7 +67,7 @@ describe('POST /v1/scenarios — auth', () => {
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'wrong-secret' },
-      payload: { name: 'Demo', slug: 'demo-scenario' },
+      payload: { name: 'Demo' },
     })
 
     expect(response.statusCode).toBe(401)
@@ -85,7 +83,7 @@ describe('POST /v1/scenarios — validation', () => {
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { slug: 'demo-scenario' },
+      payload: {},
     })
 
     expect(response.statusCode).toBe(400)
@@ -94,26 +92,12 @@ describe('POST /v1/scenarios — validation', () => {
     expect(body.error?.code).toBe('VALIDATION_ERROR')
   })
 
-  it('returns 400 when slug is missing', async () => {
+  it('returns 400 when required fields are missing', async () => {
     const response = await createServer(testConfig).inject({
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { name: 'Demo' },
-    })
-
-    expect(response.statusCode).toBe(400)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.data).toBeNull()
-    expect(body.error?.code).toBe('VALIDATION_ERROR')
-  })
-
-  it('returns 400 when slug format is invalid', async () => {
-    const response = await createServer(testConfig).inject({
-      method: 'POST',
-      url: '/v1/scenarios',
-      headers: { 'x-api-key': 'test-secret' },
-      payload: { name: 'Demo', slug: 'Demo Scenario' },
+      payload: {},
     })
 
     expect(response.statusCode).toBe(400)
@@ -127,7 +111,7 @@ describe('POST /v1/scenarios — validation', () => {
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { name: 'Demo', slug: 'demo-scenario', status: 'paused' },
+      payload: { name: 'Demo', status: 'paused' },
     })
 
     expect(response.statusCode).toBe(400)
@@ -145,7 +129,6 @@ describe('POST /v1/scenarios — success', () => {
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Demo Scenario',
-        slug: 'demo-scenario',
         config: { worldContext: 'A test world' },
       },
     })
@@ -165,7 +148,6 @@ describe('POST /v1/scenarios/:scenarioId/avatars — auth', () => {
       url: '/v1/scenarios/scenario_unknown/avatars',
       payload: {
         name: 'Avatar',
-        slug: 'avatar-no-key',
         personaPrompt: 'You are a helper.',
       },
     })
@@ -183,7 +165,7 @@ describe('POST /v1/scenarios/:scenarioId/avatars — validation', () => {
       method: 'POST',
       url: '/v1/scenarios/scenario_unknown/avatars',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { name: 'Avatar', slug: 'avatar-validation' },
+      payload: { name: 'Avatar' },
     })
 
     expect(response.statusCode).toBe(400)
@@ -201,7 +183,6 @@ describe('POST /v1/scenarios/:scenarioId/avatars — resource lookup', () => {
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Avatar',
-        slug: 'avatar-unknown-scenario',
         personaPrompt: 'You are a helper.',
       },
     })
@@ -222,7 +203,6 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Avatar Scenario',
-        slug: 'avatar-scenario',
       },
     })
 
@@ -240,7 +220,6 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Ava',
-        slug: 'ava',
         personaPrompt: 'You are Ava.',
       },
     })
@@ -259,7 +238,7 @@ describe('POST /v1/scenarios — optional field coverage', () => {
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { name: 'Active Scenario', slug: 'active-scenario', status: 'active' },
+      payload: { name: 'Active Scenario', status: 'active' },
     })
 
     expect(response.statusCode).toBe(201)
@@ -274,7 +253,6 @@ describe('POST /v1/scenarios — optional field coverage', () => {
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Configured Scenario',
-        slug: 'configured-scenario',
         config: { worldContext: 'A fantasy world' },
       },
     })
@@ -296,7 +274,7 @@ describe('POST /v1/scenarios — optional field coverage', () => {
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { name: 'Test', slug: 'test-internal-error' },
+      payload: { name: 'Test' },
     })
 
     expect(response.statusCode).toBe(500)
@@ -313,7 +291,7 @@ describe('POST /v1/scenarios/:scenarioId/avatars — optional field coverage', (
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { name: 'Optional Fields Scenario', slug: 'optional-fields-scenario' },
+      payload: { name: 'Optional Fields Scenario' },
     })
     const scenarioId =
       createScenarioResponse.json<ApiResponse<CreateScenarioRouteData>>().data?.scenario.scenarioId
@@ -325,7 +303,6 @@ describe('POST /v1/scenarios/:scenarioId/avatars — optional field coverage', (
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Lex',
-        slug: 'lex',
         personaPrompt: 'You are Lex.',
         tone: 'formal',
         description: 'A formal legal assistant.',

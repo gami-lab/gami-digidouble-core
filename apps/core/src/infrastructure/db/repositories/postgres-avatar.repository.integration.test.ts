@@ -19,7 +19,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
   beforeEach(async () => {
     const scenario = await scenarioRepo.create({
       name: 'Harness',
-      slug: `harness-${crypto.randomUUID()}`,
     })
     scenarioId = scenario.scenarioId
   })
@@ -36,14 +35,12 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
     const result = await avatarRepo.create({
       scenarioId,
       name: 'Test Avatar',
-      slug: 'test-avatar',
       personaPrompt: 'You are a test avatar.',
     })
 
     expect(result.avatarId).toBeTypeOf('string')
     expect(result.scenarioId).toBe(scenarioId)
     expect(result.name).toBe('Test Avatar')
-    expect(result.slug).toBe('test-avatar')
     expect(result.status).toBe('active')
     expect(result.personaPrompt).toBe('You are a test avatar.')
     expect(result.createdAt).toBeTypeOf('string')
@@ -54,7 +51,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
     const result = await avatarRepo.create({
       scenarioId,
       name: 'Rich Avatar',
-      slug: 'rich-avatar',
       personaPrompt: 'You are rich.',
       tone: 'formal',
       description: 'A formal avatar.',
@@ -68,7 +64,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
     const result = await avatarRepo.create({
       scenarioId,
       name: 'Sparse Avatar',
-      slug: 'sparse-avatar',
       personaPrompt: 'Sparse.',
     })
 
@@ -80,7 +75,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
     const result = await avatarRepo.create({
       scenarioId,
       name: 'Adjusted Avatar',
-      slug: 'adjusted-avatar',
       personaPrompt: 'You are adjusted.',
       adjustments: ['Be concise.', 'Use bullet points.'],
     })
@@ -95,7 +89,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
     const result = await avatarRepo.create({
       scenarioId,
       name: 'Plain Avatar',
-      slug: 'plain-avatar',
       personaPrompt: 'No adjustments.',
     })
 
@@ -109,7 +102,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
     const created = await avatarRepo.create({
       scenarioId,
       name: 'Findable Avatar',
-      slug: 'findable-avatar',
       personaPrompt: 'Find me.',
     })
     const found = await avatarRepo.findById(created.avatarId)

@@ -23,12 +23,10 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
   it('creates a scenario and returns it with generated id and timestamps', async () => {
     const result = await repo.create({
       name: 'Test Scenario',
-      slug: 'test-scenario',
     })
 
     expect(result.scenarioId).toBeTypeOf('string')
     expect(result.name).toBe('Test Scenario')
-    expect(result.slug).toBe('test-scenario')
     expect(result.status).toBe('draft')
     expect(result.createdAt).toBeTypeOf('string')
     expect(result.updatedAt).toBeTypeOf('string')
@@ -37,7 +35,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
   it('creates a scenario with explicit status and config', async () => {
     const result = await repo.create({
       name: 'Active Scenario',
-      slug: 'active-scenario',
       status: 'active',
       config: { language: 'fr' },
     })
@@ -47,7 +44,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
   })
 
   it('findById returns the scenario by its id', async () => {
-    const created = await repo.create({ name: 'Findable', slug: 'findable' })
+    const created = await repo.create({ name: 'Findable' })
     const found = await repo.findById(created.scenarioId)
 
     expect(found).not.toBeNull()
@@ -58,10 +55,5 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
   it('findById returns null for a non-existent id', async () => {
     const result = await repo.findById('00000000-0000-0000-0000-000000000000')
     expect(result).toBeNull()
-  })
-
-  it('enforces unique slug constraint', async () => {
-    await repo.create({ name: 'First', slug: 'same-slug' })
-    await expect(repo.create({ name: 'Second', slug: 'same-slug' })).rejects.toThrow()
   })
 })

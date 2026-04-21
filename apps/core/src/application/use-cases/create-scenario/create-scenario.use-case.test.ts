@@ -14,7 +14,6 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   return {
     scenarioId: 'scenario_1',
     name: 'Demo',
-    slug: 'demo',
     status: 'draft',
     config: {},
     createdAt: '2026-04-19T10:00:00.000Z',
@@ -32,15 +31,7 @@ describe('CreateScenarioUseCase', () => {
   it('throws VALIDATION_ERROR for blank name', async () => {
     const useCase = new CreateScenarioUseCase(scenarioRepository)
 
-    await expect(useCase.execute({ name: '   ', slug: 'valid-slug' })).rejects.toEqual(
-      expect.objectContaining<Partial<DomainError>>({ code: 'VALIDATION_ERROR' }),
-    )
-  })
-
-  it('throws VALIDATION_ERROR for invalid slug pattern', async () => {
-    const useCase = new CreateScenarioUseCase(scenarioRepository)
-
-    await expect(useCase.execute({ name: 'Demo', slug: 'Invalid Slug' })).rejects.toEqual(
+    await expect(useCase.execute({ name: '   ' })).rejects.toEqual(
       expect.objectContaining<Partial<DomainError>>({ code: 'VALIDATION_ERROR' }),
     )
   })
@@ -51,7 +42,6 @@ describe('CreateScenarioUseCase', () => {
     await expect(
       useCase.execute({
         name: 'Demo',
-        slug: 'demo',
         status: 'paused' as unknown as Scenario['status'],
       }),
     ).rejects.toEqual(expect.objectContaining<Partial<DomainError>>({ code: 'VALIDATION_ERROR' }))
@@ -63,26 +53,22 @@ describe('CreateScenarioUseCase', () => {
       makeScenario({
         scenarioId: 'scenario_abc',
         name: 'Demo Name',
-        slug: 'demo-name',
         status: 'active',
       }),
     )
 
     const output = await useCase.execute({
       name: '  Demo Name  ',
-      slug: '  demo-name  ',
       status: 'active',
     })
 
     expect(createMock).toHaveBeenCalledWith({
       name: 'Demo Name',
-      slug: 'demo-name',
       status: 'active',
     })
     expect(output.scenario).toMatchObject({
       scenarioId: 'scenario_abc',
       name: 'Demo Name',
-      slug: 'demo-name',
       status: 'active',
     })
   })

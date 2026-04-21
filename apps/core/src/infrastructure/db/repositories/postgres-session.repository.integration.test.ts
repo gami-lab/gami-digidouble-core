@@ -16,7 +16,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository', () => {
     sessionRepo = new PostgresSessionRepository(sql)
     const scenario = await scenarioRepo.create({
       name: 'Harness',
-      slug: `session-harness-${crypto.randomUUID()}`,
     })
     scenarioId = scenario.scenarioId
   })

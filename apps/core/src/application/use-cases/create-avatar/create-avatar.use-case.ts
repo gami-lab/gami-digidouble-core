@@ -4,7 +4,6 @@ import type { AvatarStatus } from '../../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { CreateAvatarInput, CreateAvatarOutput } from './create-avatar.types.js'
 
-const AVATAR_SLUG_PATTERN = /^[a-z0-9-]+$/
 const ALLOWED_AVATAR_STATUSES: ReadonlySet<AvatarStatus> = new Set(['draft', 'active', 'archived'])
 
 export class CreateAvatarUseCase {
@@ -24,7 +23,6 @@ export class CreateAvatarUseCase {
     const avatar = await this.avatarRepository.create({
       scenarioId: scenario.scenarioId,
       name: normalized.name,
-      slug: normalized.slug,
       personaPrompt: normalized.personaPrompt,
       status: normalized.status,
       ...(input.tone !== undefined ? { tone: input.tone } : {}),
@@ -41,28 +39,17 @@ export class CreateAvatarUseCase {
 
 function normalizeAndValidateInput(input: CreateAvatarInput): {
   name: string
-  slug: string
   personaPrompt: string
   status: AvatarStatus
 } {
   const name = input.name.trim()
-  const slug = input.slug.trim()
   const personaPrompt = input.personaPrompt.trim()
 
   if (name.length === 0) {
     throw new DomainError('VALIDATION_ERROR', 'name must be a non-empty string.')
   }
-  if (slug.length === 0) {
-    throw new DomainError('VALIDATION_ERROR', 'slug must be a non-empty string.')
-  }
   if (personaPrompt.length === 0) {
     throw new DomainError('VALIDATION_ERROR', 'personaPrompt must be a non-empty string.')
-  }
-  if (!AVATAR_SLUG_PATTERN.test(slug)) {
-    throw new DomainError(
-      'VALIDATION_ERROR',
-      'slug must contain only lowercase letters, numbers, and hyphens.',
-    )
   }
 
   const status = input.status ?? 'active'
@@ -70,7 +57,7 @@ function normalizeAndValidateInput(input: CreateAvatarInput): {
     throw new DomainError('VALIDATION_ERROR', 'status must be one of: draft, active, archived.')
   }
 
-  return { name, slug, personaPrompt, status }
+  return { name, personaPrompt, status }
 }
 
 function mapAvatarOutput(
@@ -80,7 +67,6 @@ function mapAvatarOutput(
     avatarId: avatar.avatarId,
     scenarioId: avatar.scenarioId,
     name: avatar.name,
-    slug: avatar.slug,
     status: avatar.status,
     personaPrompt: avatar.personaPrompt,
     ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),

@@ -20,7 +20,6 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
       avatarId: `avatar_${crypto.randomUUID()}`,
       scenarioId: params.scenarioId,
       name: params.name,
-      slug: params.slug,
       status: params.status ?? 'active',
       personaPrompt: params.personaPrompt,
       ...(params.tone !== undefined ? { tone: params.tone } : {}),

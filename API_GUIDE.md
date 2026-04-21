@@ -133,7 +133,7 @@ curl "$BASE_URL/health"
 
 ### 1. Create a Scenario
 
-A **Scenario** defines an interactive experience: its name, slug, and optional configuration.
+A **Scenario** defines an interactive experience: its name and optional configuration.
 At least one Avatar must be attached before users can start a session.
 
 ```bash
@@ -142,7 +142,6 @@ curl -X POST "$BASE_URL/v1/scenarios" \
   -H "x-api-key: $API_KEY" \
   -d '{
     "name": "Museum Guide",
-    "slug": "museum-guide",
     "status": "active"
   }'
 ```
@@ -152,7 +151,6 @@ curl -X POST "$BASE_URL/v1/scenarios" \
 | Field    | Type                                    | Required | Notes                            |
 | -------- | --------------------------------------- | -------- | -------------------------------- |
 | `name`   | string                                  | Yes      | Display name                     |
-| `slug`   | string (`^[a-z0-9-]+$`)                 | Yes      | URL-safe identifier              |
 | `status` | `"draft"` \| `"active"` \| `"archived"` | No       | Defaults to `"draft"`            |
 | `config` | object                                  | No       | Arbitrary scenario configuration |
 
@@ -164,7 +162,6 @@ curl -X POST "$BASE_URL/v1/scenarios" \
     "scenario": {
       "scenarioId": "scenario_01jwxxxxxx",
       "name": "Museum Guide",
-      "slug": "museum-guide",
       "status": "active",
       "config": {},
       "createdAt": "2026-04-20T10:00:00.000Z",
@@ -190,7 +187,6 @@ curl -X POST "$BASE_URL/v1/scenarios/$SCENARIO_ID/avatars" \
   -H "x-api-key: $API_KEY" \
   -d '{
     "name": "Marie Curie",
-    "slug": "marie-curie",
     "personaPrompt": "You are Marie Curie, speaking to a museum visitor. You are passionate about science, approachable, and historically accurate. Respond in the first person.",
     "tone": "warm and enthusiastic",
     "description": "A historically-grounded avatar of Marie Curie for the science wing."
@@ -199,16 +195,15 @@ curl -X POST "$BASE_URL/v1/scenarios/$SCENARIO_ID/avatars" \
 
 **Request fields:**
 
-| Field           | Type                                    | Required | Notes                                           |
-| --------------- | --------------------------------------- | -------- | ----------------------------------------------- |
-| `name`          | string                                  | Yes      | Display name                                    |
-| `slug`          | string (`^[a-z0-9-]+$`)                 | Yes      | URL-safe identifier, unique within the scenario |
-| `personaPrompt` | string                                  | Yes      | System prompt defining the avatar's character   |
-| `tone`          | string                                  | No       | Optional tone descriptor passed to the LLM      |
-| `description`   | string                                  | No       | Human-readable description (not sent to LLM)    |
-| `adjustments`   | string[]                                | No       | Additional persona modifiers                    |
-| `config`        | object                                  | No       | Avatar-specific configuration                   |
-| `status`        | `"draft"` \| `"active"` \| `"archived"` | No       | Defaults to `"draft"`                           |
+| Field           | Type                                    | Required | Notes                                         |
+| --------------- | --------------------------------------- | -------- | --------------------------------------------- |
+| `name`          | string                                  | Yes      | Display name                                  |
+| `personaPrompt` | string                                  | Yes      | System prompt defining the avatar's character |
+| `tone`          | string                                  | No       | Optional tone descriptor passed to the LLM    |
+| `description`   | string                                  | No       | Human-readable description (not sent to LLM)  |
+| `adjustments`   | string[]                                | No       | Additional persona modifiers                  |
+| `config`        | object                                  | No       | Avatar-specific configuration                 |
+| `status`        | `"draft"` \| `"active"` \| `"archived"` | No       | Defaults to `"draft"`                         |
 
 **Response (201):**
 
@@ -219,7 +214,6 @@ curl -X POST "$BASE_URL/v1/scenarios/$SCENARIO_ID/avatars" \
       "avatarId": "avatar_01jwxxxxxx",
       "scenarioId": "scenario_01jwxxxxxx",
       "name": "Marie Curie",
-      "slug": "marie-curie",
       "status": "draft",
       "personaPrompt": "You are Marie Curie...",
       "tone": "warm and enthusiastic",
@@ -236,7 +230,7 @@ curl -X POST "$BASE_URL/v1/scenarios/$SCENARIO_ID/avatars" \
 **Error cases:**
 
 - `404 NOT_FOUND` — the `scenarioId` in the URL does not exist
-- `400 VALIDATION_ERROR` — missing required fields or invalid slug format
+- `400 VALIDATION_ERROR` — missing required fields or invalid input
 
 Save the `avatarId` — it is required when sending messages.
 
@@ -527,7 +521,6 @@ SCENARIO=$(curl -s -X POST "$BASE_URL/v1/scenarios" \
   -H "x-api-key: $API_KEY" \
   -d '{
     "name": "Demo Experience",
-    "slug": "demo-experience-'"$(date +%s)"'",
     "status": "active"
   }')
 echo "$SCENARIO" | python3 -m json.tool
@@ -541,7 +534,6 @@ AVATAR=$(curl -s -X POST "$BASE_URL/v1/scenarios/$SCENARIO_ID/avatars" \
   -H "x-api-key: $API_KEY" \
   -d '{
     "name": "AI Guide",
-    "slug": "ai-guide",
     "personaPrompt": "You are a friendly and knowledgeable guide. Answer clearly and encourage curiosity.",
     "tone": "friendly"
   }')

@@ -7,7 +7,6 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS scenarios (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   name        TEXT        NOT NULL,
-  slug        TEXT        NOT NULL UNIQUE,
   status      TEXT        NOT NULL DEFAULT 'draft',
   config      JSONB       NOT NULL DEFAULT '{}',
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -19,7 +18,6 @@ CREATE TABLE IF NOT EXISTS avatars (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   scenario_id    UUID        NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
   name           TEXT        NOT NULL,
-  slug           TEXT        NOT NULL,
   status         TEXT        NOT NULL DEFAULT 'draft',
   description    TEXT,
   tone           TEXT,
@@ -53,7 +51,6 @@ CREATE TABLE IF NOT EXISTS messages (
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_avatars_scenario_id ON avatars(scenario_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_avatars_scenario_slug_uniq ON avatars(scenario_id, slug);
 CREATE INDEX IF NOT EXISTS idx_sessions_scenario_id ON sessions(scenario_id);
 CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(session_id, created_at);

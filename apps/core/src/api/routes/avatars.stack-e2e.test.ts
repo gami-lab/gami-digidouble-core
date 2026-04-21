@@ -25,7 +25,6 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — auth', () => 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Avatar',
-        slug: 'avatar-auth-no-key',
         personaPrompt: 'You are a helpful avatar.',
       }),
     })
@@ -42,7 +41,6 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — auth', () => 
       },
       body: JSON.stringify({
         name: 'Avatar',
-        slug: 'avatar-auth-wrong-key',
         personaPrompt: 'You are a helpful avatar.',
       }),
     })
@@ -60,7 +58,6 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — validation', 
         'x-api-key': API_KEY,
       },
       body: JSON.stringify({
-        slug: 'avatar-missing-name',
         personaPrompt: 'You are a helpful avatar.',
       }),
     })
@@ -77,24 +74,6 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — validation', 
       },
       body: JSON.stringify({
         name: 'Avatar',
-        slug: 'avatar-missing-prompt',
-      }),
-    })
-
-    expect(res.status).toBe(400)
-  })
-
-  it('rejects requests with invalid slug format (400)', async () => {
-    const res = await fetch(UNKNOWN_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-      },
-      body: JSON.stringify({
-        name: 'Avatar',
-        slug: 'Invalid Slug',
-        personaPrompt: 'You are a helpful avatar.',
       }),
     })
 
@@ -112,7 +91,6 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — resource look
       },
       body: JSON.stringify({
         name: 'Avatar',
-        slug: 'avatar-unknown-scenario',
         personaPrompt: 'You are a helpful avatar.',
       }),
     })
@@ -123,7 +101,6 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — resource look
 
 describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — success', () => {
   it('creates avatar and returns 201 for a valid scenario', async () => {
-    const scenarioSlug = `e2e-avatar-scenario-${String(Date.now())}`
     const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
       method: 'POST',
       headers: {
@@ -132,7 +109,6 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — success', () 
       },
       body: JSON.stringify({
         name: 'Avatar E2E Scenario',
-        slug: scenarioSlug,
       }),
     })
 
@@ -140,7 +116,6 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — success', () 
     const createdScenario = (await createScenarioRes.json()) as ApiResponse<CreateScenarioResponse>
     const scenarioId = createdScenario.data?.scenario.scenarioId ?? ''
 
-    const avatarSlug = `e2e-avatar-${String(Date.now())}`
     const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
       method: 'POST',
       headers: {
@@ -149,7 +124,6 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — success', () 
       },
       body: JSON.stringify({
         name: 'E2E Avatar',
-        slug: avatarSlug,
         personaPrompt: 'You are an E2E test avatar.',
       }),
     })

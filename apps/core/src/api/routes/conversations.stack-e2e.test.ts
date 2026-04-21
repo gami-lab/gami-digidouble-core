@@ -71,15 +71,29 @@ describe('Stack E2E — conversations routes — not found', () => {
     })
     expect(resetRes.status).toBe(404)
   })
+
+  it('returns 404 when start-session scenarioId does not exist', async () => {
+    const res = await fetch(START_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+      },
+      body: JSON.stringify({
+        userId: `user_${String(Date.now())}`,
+        scenarioId: 'scenario_missing',
+      }),
+    })
+    expect(res.status).toBe(404)
+  })
 })
 
 describe('Stack E2E — conversations lifecycle happy path', () => {
   it('runs start -> history -> reset -> history via real HTTP', async () => {
-    const slug = `e2e-lifecycle-${String(Date.now())}`
     const scenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ name: 'Lifecycle Test Scenario', slug }),
+      body: JSON.stringify({ name: 'Lifecycle Test Scenario' }),
     })
     expect(scenarioRes.status).toBe(201)
     const scenarioBody = (await scenarioRes.json()) as {

@@ -8,7 +8,6 @@ export interface Avatar {
   id: string
   scenarioId: string
   name: string
-  slug: string
   status: AvatarStatus
   /** Core system prompt defining character, role, and behavior. */
   personaPrompt: string
@@ -30,7 +29,6 @@ export interface AvatarConfig {
   avatarId: string
   scenarioId: string
   name: string
-  slug: string
   status: AvatarStatus
   /** Core system prompt defining character, role, and behavior. */
   personaPrompt: string

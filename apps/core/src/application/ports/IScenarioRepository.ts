@@ -7,7 +7,6 @@ export interface IScenarioRepository {
 
 export interface CreateScenarioParams {
   name: string
-  slug: string
   status?: Scenario['status']
   config?: Record<string, unknown>
 }

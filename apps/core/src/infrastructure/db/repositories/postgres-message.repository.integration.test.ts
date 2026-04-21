@@ -145,7 +145,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresMessageRepository', () => {
 
     const scenario = await scenarioRepo.create({
       name: 'Harness',
-      slug: `message-harness-${crypto.randomUUID()}`,
     })
     const session = await sessionRepo.create({
       userId: 'user-1',

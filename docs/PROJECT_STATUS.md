@@ -164,7 +164,7 @@ EPIC 2.2 — Prompt 01 (Scenario domain and endpoint) is done:
 
 - `application/ports/IScenarioRepository.ts` added with `create` and `findById` methods
 - `infrastructure/db/in-memory-scenario.repository.ts` added with constructor seed support and scenario ID generation (`scenario_<uuid>`)
-- `application/use-cases/create-scenario/*` added with validation for name/slug/status and `DomainError('VALIDATION_ERROR', ...)` mapping for invalid input
+- `application/use-cases/create-scenario/*` added with validation for name/status and `DomainError('VALIDATION_ERROR', ...)` mapping for invalid input
 - `api/routes/scenarios.ts` added for `POST /v1/scenarios` with API-key auth, schema validation, and `201 Created` response envelope
 - `api/server.ts` updated to wire `scenarioRepository` through `ServerAdapters` and register `scenariosRoute` under `/v1/scenarios`
 - `api/routes/scenarios.test.ts` and `api/routes/scenarios.stack-e2e.test.ts` added covering auth, validation, and happy path
@@ -173,7 +173,7 @@ EPIC 2.2 — Prompt 02 (Avatar creation endpoint) is done:
 
 - `application/ports/IAvatarRepository.ts` extended with typed `create(params)` and `CreateAvatarParams`
 - `infrastructure/db/in-memory-avatar.repository.ts` now implements `create` with `avatar_<uuid>` ID generation and map persistence
-- `application/use-cases/create-avatar/*` added with validation (`name`, `slug`, `personaPrompt`, slug pattern), scenario existence check, and `DomainError` mapping (`VALIDATION_ERROR`, `NOT_FOUND`)
+- `application/use-cases/create-avatar/*` added with validation (`name`, `personaPrompt`), scenario existence check, and `DomainError` mapping (`VALIDATION_ERROR`, `NOT_FOUND`)
 - `api/routes/scenarios.ts` extended with `POST /v1/scenarios/:scenarioId/avatars` (API-key auth, schema validation, `201` success envelope, `400/404/500` mapping)
 - `api/server.ts` updated to pass `avatarRepository` through scenarios route wiring
 - `api/routes/avatars.stack-e2e.test.ts` added to cover auth, validation, unknown scenario (`404`), and full success flow (`201`) by creating a scenario then an avatar via real HTTP
@@ -183,7 +183,7 @@ EPIC 2.2 — Prompt 03 (Session lifecycle endpoints) is done:
 
 - `application/ports/IMessageRepository.ts` extended with `deleteBySessionId(sessionId): Promise<number>`
 - `infrastructure/db/in-memory-message.repository.ts` now implements in-place message deletion by `sessionId` and returns deleted count
-- Added use cases: `StartSessionUseCase`, `GetHistoryUseCase`, and `ResetSessionUseCase` with `DomainError` mappings for validation and not-found flows
+- Added use cases: `StartSessionUseCase`, `GetHistoryUseCase`, and `ResetSessionUseCase` with `DomainError` mappings for validation and not-found flows (including `scenarioId` existence validation on start session)
 - Added `api/routes/conversations.ts` with:
   - `POST /v1/conversations/start`
   - `GET /v1/conversations/:sessionId/history`

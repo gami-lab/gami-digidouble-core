@@ -20,7 +20,6 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
     const scenario: Scenario = {
       scenarioId: `scenario_${crypto.randomUUID()}`,
       name: params.name,
-      slug: params.slug,
       status: params.status ?? 'draft',
       config: (params.config ?? {}) as Scenario['config'],
       createdAt: now,

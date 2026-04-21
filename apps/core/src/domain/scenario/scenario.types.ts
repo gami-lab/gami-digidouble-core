@@ -8,7 +8,6 @@
 export interface Scenario {
   scenarioId: string
   name: string
-  slug: string
   status: 'draft' | 'active' | 'archived'
   config: ScenarioConfig
   createdAt: string

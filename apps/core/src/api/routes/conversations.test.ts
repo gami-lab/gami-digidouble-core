@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { Config } from '../../config.js'
 import type { Session } from '../../domain/conversation/session.types.js'
+import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
+import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
 
@@ -46,9 +48,28 @@ function makeSession(overrides: Partial<Session> = {}): Session {
   }
 }
 
-function makeApp({ sessions = [makeSession()] }: { sessions?: Session[] } = {}) {
+function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
+  return {
+    scenarioId: 'scenario_1',
+    name: 'Scenario',
+    status: 'active',
+    config: {},
+    createdAt: '2026-04-18T10:00:00.000Z',
+    updatedAt: '2026-04-18T10:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function makeApp({
+  sessions = [makeSession()],
+  scenarios = [makeScenario()],
+}: {
+  sessions?: Session[]
+  scenarios?: Scenario[]
+} = {}) {
   return createServer(testConfig, {
     sessionRepository: new InMemorySessionRepository(sessions),
+    scenarioRepository: new InMemoryScenarioRepository(scenarios),
     messageRepository: new InMemoryMessageRepository(),
   })
 }
@@ -99,6 +120,18 @@ describe('POST /v1/conversations/start', () => {
     expect(response.statusCode).toBe(400)
     const body = response.json<ApiResponse<null>>()
     expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 404 when scenarioId does not exist', async () => {
+    const response = await makeApp({ scenarios: [] }).inject({
+      method: 'POST',
+      url: '/v1/conversations/start',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { userId: 'user_1', scenarioId: 'scenario_missing' },
+    })
+    expect(response.statusCode).toBe(404)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('NOT_FOUND')
   })
 
   it('returns 201 with a created session', async () => {

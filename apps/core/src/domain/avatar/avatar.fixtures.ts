@@ -8,7 +8,6 @@ export function makeAvatarConfig(overrides: Partial<AvatarConfig> = {}): AvatarC
     avatarId: 'avatar-1',
     scenarioId: 'scenario-1',
     name: 'Ava',
-    slug: 'ava',
     status: 'active',
     personaPrompt: 'You are Ava, a warm and curious guide.',
     tone: 'warm and curious',

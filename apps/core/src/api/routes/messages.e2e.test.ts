@@ -46,7 +46,6 @@ describe.skipIf(!openaiKey)(
             avatarId: 'ava_e2e',
             scenarioId: 'scn_e2e',
             name: 'Archivist',
-            slug: 'archivist',
             status: 'active',
             personaPrompt: 'You are a precise archivist. Follow user instructions exactly.',
             tone: 'direct',
