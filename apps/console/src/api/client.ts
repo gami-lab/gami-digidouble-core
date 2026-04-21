@@ -1,15 +1,12 @@
+import type {
+  ApiError as SharedApiError,
+  ApiResponse,
+} from '../../../../packages/shared/src/api-response.ts'
 import { apiKey, apiUrl } from '../env'
 
 type HttpMethod = 'GET' | 'POST' | 'DELETE'
-type ApiResponseEnvelope<T> = {
-  data: T | null
-  error: ApiResponseError | null
-}
-
-type ApiResponseError = {
-  code: string
-  message: string
-}
+type ApiResponseEnvelope<T> = ApiResponse<T>
+type ApiResponseError = SharedApiError
 
 const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
 
@@ -37,7 +34,11 @@ const isApiResponseEnvelope = <T>(value: unknown): value is ApiResponseEnvelope<
     return false
   }
 
-  return value.error === null || isApiResponseError(value.error)
+  if (value.error === null) {
+    return value.data !== null
+  }
+
+  return isApiResponseError(value.error) && value.data === null
 }
 
 export class ApiError extends Error {
