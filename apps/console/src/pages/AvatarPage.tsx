@@ -1,6 +1,16 @@
 import { useState } from 'react'
-import type { CSSProperties, ComponentProps, JSX } from 'react'
-import { ApiError, createAvatar } from '../api'
+import type { ComponentProps, JSX } from 'react'
+import { createAvatar } from '../api'
+import { formatApiError } from '../api/error'
+import { LabeledInput } from '../components/LabeledInput'
+import {
+  buttonStyle,
+  errorStyle,
+  inputStyle,
+  labelStyle,
+  sectionStyle,
+  successStyle,
+} from './form-styles'
 
 type AvatarPageProps = {
   scenarioId: string
@@ -10,84 +20,25 @@ type AvatarPageProps = {
 
 type FormSubmitEvent = Parameters<NonNullable<ComponentProps<'form'>['onSubmit']>>[0]
 
-const sectionStyle: CSSProperties = {
-  border: '1px solid #d1d5db',
-  borderRadius: '12px',
-  padding: '20px',
-  backgroundColor: '#ffffff',
-}
-
-const labelStyle: CSSProperties = {
-  display: 'block',
-  marginTop: '12px',
-  marginBottom: '6px',
-  fontWeight: 600,
-}
-
-const inputStyle: CSSProperties = {
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '10px 12px',
-  border: '1px solid #d1d5db',
-  borderRadius: '8px',
-}
-
-const successStyle: CSSProperties = {
-  marginTop: '12px',
-  padding: '10px 12px',
-  borderRadius: '8px',
-  border: '1px solid #16a34a',
-  color: '#166534',
-  backgroundColor: '#ecfdf5',
-}
-
-const errorStyle: CSSProperties = {
-  marginTop: '8px',
-  color: '#b91c1c',
-  fontSize: '14px',
-}
-
-const buttonStyle: CSSProperties = {
-  marginTop: '16px',
-  padding: '10px 14px',
-  border: '1px solid #1f2937',
-  borderRadius: '8px',
-  backgroundColor: '#1f2937',
-  color: '#ffffff',
-  cursor: 'pointer',
-}
-
-const getErrorMessage = (error: unknown): string => {
-  if (error instanceof ApiError) {
-    return `${error.code}: ${error.message}`
-  }
-
-  return 'UNKNOWN_ERROR: Failed to create avatar'
-}
-
-function LabeledInput(props: {
-  id: string
-  label: string
+type PersonaPromptFieldProps = {
   value: string
   onChange: (nextValue: string) => void
-  required?: boolean
-}): JSX.Element {
-  const { id, label, value, onChange, required = false } = props
+}
 
+function PersonaPromptField({ value, onChange }: PersonaPromptFieldProps): JSX.Element {
   return (
     <>
-      <label style={labelStyle} htmlFor={id}>
-        {label}
+      <label style={labelStyle} htmlFor="avatar-persona-prompt">
+        Persona Prompt
       </label>
-      <input
-        id={id}
-        type="text"
-        style={inputStyle}
+      <textarea
+        id="avatar-persona-prompt"
+        style={{ ...inputStyle, minHeight: '120px', resize: 'vertical' }}
         value={value}
         onChange={(event) => {
           onChange(event.target.value)
         }}
-        required={required}
+        required
       />
     </>
   )
@@ -121,7 +72,7 @@ export function AvatarPage({ scenarioId, onAvatarCreated, onNext }: AvatarPagePr
       setCreatedAvatarId(avatar.avatarId)
       onAvatarCreated(avatar.avatarId)
     } catch (error) {
-      setSubmitError(getErrorMessage(error))
+      setSubmitError(formatApiError(error, 'UNKNOWN_ERROR: Failed to create avatar'))
     } finally {
       setIsSubmitting(false)
     }
@@ -142,28 +93,42 @@ export function AvatarPage({ scenarioId, onAvatarCreated, onNext }: AvatarPagePr
           disabled={isFormDisabled}
           style={{ margin: 0, padding: 0, border: 'none', opacity: isFormDisabled ? 0.6 : 1 }}
         >
-          <LabeledInput id="avatar-name" label="Name" value={name} onChange={setName} required />
-          <LabeledInput id="avatar-slug" label="Slug" value={slug} onChange={setSlug} required />
-
-          <label style={labelStyle} htmlFor="avatar-persona-prompt">
-            Persona Prompt
-          </label>
-          <textarea
-            id="avatar-persona-prompt"
-            style={{ ...inputStyle, minHeight: '120px', resize: 'vertical' }}
-            value={personaPrompt}
-            onChange={(event) => {
-              setPersonaPrompt(event.target.value)
-            }}
+          <LabeledInput
+            id="avatar-name"
+            label="Name"
+            value={name}
+            onChange={setName}
             required
+            style={inputStyle}
+            labelStyle={labelStyle}
+          />
+          <LabeledInput
+            id="avatar-slug"
+            label="Slug"
+            value={slug}
+            onChange={setSlug}
+            required
+            style={inputStyle}
+            labelStyle={labelStyle}
           />
 
-          <LabeledInput id="avatar-tone" label="Tone (optional)" value={tone} onChange={setTone} />
+          <PersonaPromptField value={personaPrompt} onChange={setPersonaPrompt} />
+
+          <LabeledInput
+            id="avatar-tone"
+            label="Tone (optional)"
+            value={tone}
+            onChange={setTone}
+            style={inputStyle}
+            labelStyle={labelStyle}
+          />
           <LabeledInput
             id="avatar-description"
             label="Description (optional)"
             value={description}
             onChange={setDescription}
+            style={inputStyle}
+            labelStyle={labelStyle}
           />
 
           <button type="submit" style={buttonStyle} disabled={isSubmitting || isFormDisabled}>
