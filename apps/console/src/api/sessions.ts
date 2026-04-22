@@ -14,7 +14,7 @@ export type SessionSummary = {
 
 export type Message = {
   messageId: string
-  sessionId: string
+  conversationId: string
   role: 'user' | 'avatar' | 'system'
   content: string
   createdAt: string
@@ -35,6 +35,16 @@ export type SessionMemorySummary = {
   updatedAt: string
 }
 
+export type ConversationSummary = {
+  conversationId: string
+  sessionId: string
+  avatarId: string
+  status: 'active' | 'closed' | 'archived'
+  startedAt: string
+  lastActivityAt: string
+  endedAt?: string | null
+}
+
 export type StartSessionParams = {
   userId: string
   scenarioId: string
@@ -45,29 +55,36 @@ type StartSessionPayload = {
 }
 
 export type GetHistoryResponse = {
-  session: SessionSummary
+  conversation: ConversationSummary
   messages: Message[]
   memory?: SessionMemorySummary
 }
 
-export type ResetSessionResponse = {
-  sessionId: string
-  deleted: {
-    messages: number
-    sessionMemory: boolean
-    events: number
-  }
+export type StartConversationParams = {
+  avatarId: string
+}
+
+type StartConversationPayload = {
+  conversation: ConversationSummary
 }
 
 export async function startSession(params: StartSessionParams): Promise<SessionSummary> {
-  const payload = await coreRequest<StartSessionPayload>('POST', '/v1/conversations/start', params)
+  const payload = await coreRequest<StartSessionPayload>('POST', '/v1/sessions', params)
   return payload.session
 }
 
-export async function getHistory(sessionId: string): Promise<GetHistoryResponse> {
-  return coreRequest<GetHistoryResponse>('GET', `/v1/conversations/${sessionId}/history`)
+export async function startConversation(
+  sessionId: string,
+  params: StartConversationParams,
+): Promise<ConversationSummary> {
+  const payload = await coreRequest<StartConversationPayload>(
+    'POST',
+    `/v1/sessions/${sessionId}/conversations`,
+    params,
+  )
+  return payload.conversation
 }
 
-export async function resetSession(sessionId: string): Promise<ResetSessionResponse> {
-  return coreRequest<ResetSessionResponse>('DELETE', `/v1/conversations/${sessionId}`)
+export async function getHistory(conversationId: string): Promise<GetHistoryResponse> {
+  return coreRequest<GetHistoryResponse>('GET', `/v1/conversations/${conversationId}/history`)
 }

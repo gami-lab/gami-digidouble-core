@@ -38,6 +38,11 @@ This is a **Director / Actor model**:
   - injects context or directives asynchronously
   - manages lightweight progression state
 
+Terminology used in this contract:
+
+- `session` = one experience run container
+- `conversation` = one bounded avatar dialogue episode inside a session
+
 Its job is only to:
 
 - decide which avatar the user interacts with
@@ -96,14 +101,14 @@ Not all decisions should come from prompts.
 
 # 3. Turn Pipeline (Async Model)
 
-## Session Start
+## Session Start (experience run)
 
 1. User starts session
-2. Game Master selects avatar and initial context
-3. Avatar receives setup
+2. Game Master may suggest initial avatar/context
+3. Client or policy starts the first conversation in the session
 4. Avatar responds to user
 
-## Ongoing Conversation
+## Ongoing Conversation (inside a session)
 
 1. User sends message
 2. Avatar responds directly using its own memory
@@ -197,6 +202,7 @@ export type GameMasterOutput = {
 - `avatarId` = avatar for the immediate turn
 - `nextAvatarId` = suggested handoff target for a next step
 - `stateUpdate.activeAvatarId` keeps session routing deterministic after a switch
+- `conversationMode: 'new' | 'continue'` means start a new bounded conversation or continue the current conversation **inside the same session**
 - `recommendedChoices` allows guided progression without forcing one path
 - `contentTrigger` can signal non-text assets or events
 

@@ -1,56 +1,111 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
+import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
+import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
+import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
-import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
+import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
-import { ResetSessionUseCase } from '../../application/use-cases/reset-session/reset-session.use-case.js'
-import type { ResetSessionOutput } from '../../application/use-cases/reset-session/reset-session.types.js'
-import { StartSessionUseCase } from '../../application/use-cases/start-session/start-session.use-case.js'
-import type { StartSessionOutput } from '../../application/use-cases/start-session/start-session.types.js'
+import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
+import type { SendMessageOutput } from '../../application/use-cases/send-message/send-message.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
+import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
+import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
-import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
+import type { LlmConfig } from '../../infrastructure/llm/index.js'
+import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 
-export type ConversationsRouteOptions = {
+type ConversationsRouteOptions = {
   config: Config
-  scenarioRepository?: IScenarioRepository
+  llmAdapter?: ILlmAdapter
+  observabilityAdapter?: IObservabilityAdapter
+  avatarRepository?: IAvatarRepository
   sessionRepository?: ISessionRepository
+  conversationRepository?: IConversationRepository
   messageRepository?: IMessageRepository
 }
 
-type StartSessionRequestBody = {
-  userId: string
-  scenarioId: string
+type ConversationParams = { conversationId: string }
+
+type SendMessageBody = {
+  message: { content: string }
 }
 
-type SessionParams = {
-  sessionId: string
+type SendMessageResponse = {
+  conversation: {
+    conversationId: string
+    sessionId: string
+    avatarId: string
+    status: 'active' | 'closed' | 'archived'
+    startedAt: string
+    lastActivityAt: string
+  }
+  session: {
+    sessionId: string
+    userId: string
+    scenarioId: string
+    activeAvatarId?: string
+    status: 'active' | 'closed' | 'archived'
+    startedAt: string
+    lastActivityAt: string
+  }
+  userMessage: {
+    messageId: string
+    conversationId: string
+    role: 'user'
+    content: string
+    createdAt: string
+  }
+  avatarMessage: {
+    messageId: string
+    conversationId: string
+    role: 'avatar'
+    content: string
+    createdAt: string
+    metadata: {
+      model: string
+      latencyMs: number
+      inputTokens: number
+      outputTokens: number
+      totalTokens: number
+    }
+  }
+  debug: {
+    requestId: string
+    model: string
+    latencyMs: number
+    inputTokens: number
+    outputTokens: number
+  }
 }
 
-type StartSessionResponse = StartSessionOutput
-type GetHistoryResponse = GetHistoryOutput
-type ResetSessionResponse = ResetSessionOutput
-
-const startSessionBodySchema = {
+const conversationParamsSchema = {
   type: 'object',
-  required: ['userId', 'scenarioId'],
+  required: ['conversationId'],
   properties: {
-    userId: { type: 'string', minLength: 1 },
-    scenarioId: { type: 'string', minLength: 1 },
+    conversationId: { type: 'string', minLength: 1 },
   },
   additionalProperties: false,
 } as const
 
-const sessionParamsSchema = {
+const sendMessageBodySchema = {
   type: 'object',
-  required: ['sessionId'],
+  required: ['message'],
   properties: {
-    sessionId: { type: 'string', minLength: 1 },
+    message: {
+      type: 'object',
+      required: ['content'],
+      properties: {
+        content: { type: 'string', minLength: 1, maxLength: 4000 },
+      },
+      additionalProperties: false,
+    },
   },
   additionalProperties: false,
 } as const
@@ -59,57 +114,45 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
   app,
   options,
 ) => {
-  const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
-  const scenarioRepository = options.scenarioRepository ?? new InMemoryScenarioRepository()
-  const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
-
-  const startSessionUseCase = new StartSessionUseCase(sessionRepository, scenarioRepository)
-  const getHistoryUseCase = new GetHistoryUseCase(sessionRepository, messageRepository)
-  const resetSessionUseCase = new ResetSessionUseCase(sessionRepository, messageRepository)
+  const deps = createRouteDependencies(options)
+  const getHistoryUseCase = new GetHistoryUseCase(
+    deps.conversationRepository,
+    deps.messageRepository,
+  )
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
-  app.post<{ Body: StartSessionRequestBody }>(
-    '/start',
-    { schema: { body: startSessionBodySchema } },
+  app.addHook('onClose', async () => {
+    await deps.observabilityAdapter.flush()
+  })
+
+  app.post<{ Params: ConversationParams; Body: SendMessageBody }>(
+    '/:conversationId/messages',
+    { schema: { params: conversationParamsSchema, body: sendMessageBodySchema } },
     async (request, reply) => {
       try {
-        const output = await startSessionUseCase.execute({
-          userId: request.body.userId,
-          scenarioId: request.body.scenarioId,
+        const output = await deps.sendMessageUseCase.execute({
+          conversationId: request.params.conversationId,
+          userMessage: request.body.message.content,
         })
-        return await reply.status(201).send(ok<StartSessionResponse>(output))
+        const response = mapSendMessageResponse(output)
+        return await reply.send(ok<SendMessageResponse>(response))
       } catch (error) {
-        if (error instanceof DomainError) {
-          if (error.code === 'VALIDATION_ERROR' || error.code === 'INVALID_INPUT') {
-            return await reply.status(400).send(fail('VALIDATION_ERROR', error.message))
-          }
-          if (error.code === 'NOT_FOUND') {
-            return await reply.status(404).send(fail('NOT_FOUND', error.message))
-          }
-          if (error.code === 'CONFLICT') {
-            return await reply.status(409).send(fail('CONFLICT', error.message))
-          }
-          if (
-            error.code === 'EXTERNAL_SERVICE_ERROR' ||
-            error.code === 'PROVIDER_ERROR' ||
-            error.code === 'TIMEOUT'
-          ) {
-            return await reply.status(502).send(fail('EXTERNAL_SERVICE_ERROR', error.message))
-          }
-        }
-        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
+        const mappedError = handleRouteError(error)
+        return await reply.status(mappedError.statusCode).send(mappedError.body)
       }
     },
   )
 
-  app.get<{ Params: SessionParams }>(
-    '/:sessionId/history',
-    { schema: { params: sessionParamsSchema } },
+  app.get<{ Params: ConversationParams }>(
+    '/:conversationId/history',
+    { schema: { params: conversationParamsSchema } },
     async (request, reply) => {
       try {
-        const output = await getHistoryUseCase.execute({ sessionId: request.params.sessionId })
-        return await reply.send(ok<GetHistoryResponse>(output))
+        const output = await getHistoryUseCase.execute({
+          conversationId: request.params.conversationId,
+        })
+        return await reply.send(ok<GetHistoryOutput>(output))
       } catch (error) {
         if (error instanceof DomainError && error.code === 'NOT_FOUND') {
           return await reply.status(404).send(fail('NOT_FOUND', error.message))
@@ -118,20 +161,117 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
       }
     },
   )
+}
 
-  app.delete<{ Params: SessionParams }>(
-    '/:sessionId',
-    { schema: { params: sessionParamsSchema } },
-    async (request, reply) => {
-      try {
-        const output = await resetSessionUseCase.execute({ sessionId: request.params.sessionId })
-        return await reply.send(ok<ResetSessionResponse>(output))
-      } catch (error) {
-        if (error instanceof DomainError && error.code === 'NOT_FOUND') {
-          return await reply.status(404).send(fail('NOT_FOUND', error.message))
-        }
-        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
-      }
+type RouteDependencies = {
+  sendMessageUseCase: SendMessageUseCase
+  observabilityAdapter: IObservabilityAdapter
+  conversationRepository: IConversationRepository
+  messageRepository: IMessageRepository
+}
+
+function createRouteDependencies(options: ConversationsRouteOptions): RouteDependencies {
+  const llmAdapter = options.llmAdapter ?? createLlmAdapter(buildLlmConfig(options.config))
+  const observabilityAdapter =
+    options.observabilityAdapter ??
+    createObservabilityAdapter({
+      langfusePublicKey: options.config.langfusePublicKey,
+      langfuseSecretKey: options.config.langfuseSecretKey,
+      langfuseHost: options.config.langfuseHost,
+    })
+  const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
+  const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
+  const conversationRepository =
+    options.conversationRepository ?? new InMemoryConversationRepository()
+  const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
+
+  return {
+    observabilityAdapter,
+    conversationRepository,
+    messageRepository,
+    sendMessageUseCase: new SendMessageUseCase(
+      sessionRepository,
+      conversationRepository,
+      avatarRepository,
+      messageRepository,
+      llmAdapter,
+      observabilityAdapter,
+    ),
+  }
+}
+
+function buildLlmConfig(config: Config): LlmConfig {
+  return {
+    provider: config.llmProvider,
+    ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
+    ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
+    ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
+  }
+}
+
+function mapSendMessageResponse(output: SendMessageOutput): SendMessageResponse {
+  return {
+    conversation: {
+      conversationId: output.conversation.conversationId,
+      sessionId: output.conversation.sessionId,
+      avatarId: output.conversation.avatarId,
+      status: output.conversation.status,
+      startedAt: output.conversation.startedAt,
+      lastActivityAt: output.conversation.lastActivityAt,
     },
-  )
+    session: {
+      sessionId: output.session.sessionId,
+      userId: output.session.userId,
+      scenarioId: output.session.scenarioId,
+      ...(output.session.activeAvatarId !== undefined
+        ? { activeAvatarId: output.session.activeAvatarId }
+        : {}),
+      status: output.session.status,
+      startedAt: output.session.startedAt,
+      lastActivityAt: output.session.lastActivityAt,
+    },
+    userMessage: {
+      messageId: output.userMessage.messageId,
+      conversationId: output.conversationId,
+      role: 'user',
+      content: output.userMessage.content,
+      createdAt: output.userMessage.createdAt,
+    },
+    avatarMessage: {
+      messageId: output.avatarMessage.messageId,
+      conversationId: output.conversationId,
+      role: 'avatar',
+      content: output.avatarMessage.content,
+      createdAt: output.avatarMessage.createdAt,
+      metadata: {
+        model: output.avatarMessage.model,
+        latencyMs: output.avatarMessage.latencyMs,
+        inputTokens: output.avatarMessage.inputTokens,
+        outputTokens: output.avatarMessage.outputTokens,
+        totalTokens: output.avatarMessage.inputTokens + output.avatarMessage.outputTokens,
+      },
+    },
+    debug: {
+      requestId: output.requestId,
+      model: output.avatarMessage.model,
+      latencyMs: output.avatarMessage.latencyMs,
+      inputTokens: output.avatarMessage.inputTokens,
+      outputTokens: output.avatarMessage.outputTokens,
+    },
+  }
+}
+
+function handleRouteError(error: unknown): { statusCode: number; body: ReturnType<typeof fail> } {
+  if (error instanceof DomainError) {
+    const code = error.code as string
+    if (code === 'NOT_FOUND') return { statusCode: 404, body: fail('NOT_FOUND', error.message) }
+    if (code === 'CONFLICT') return { statusCode: 409, body: fail('CONFLICT', error.message) }
+    if (code === 'INVALID_INPUT' || code === 'VALIDATION_ERROR') {
+      return { statusCode: 400, body: fail('VALIDATION_ERROR', error.message) }
+    }
+  }
+  if (error instanceof LlmError) {
+    return { statusCode: 502, body: fail('EXTERNAL_SERVICE_ERROR', error.message) }
+  }
+  return { statusCode: 500, body: fail('INTERNAL_ERROR', 'Internal server error') }
 }

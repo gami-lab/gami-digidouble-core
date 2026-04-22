@@ -238,21 +238,21 @@ Replaceable without touching domain logic.
 
 ## Module: Conversation
 
-Owns runtime conversations.
+Owns session containers, bounded conversations, and message flow boundaries.
 
 Contains:
 
-- session types (`domain/conversation/session.types.ts`)
+- session + conversation types (`domain/conversation/session.types.ts`)
 - message types and metadata (`domain/conversation/session.types.ts`)
 - streaming responses
-- session lifecycle
+- session lifecycle and conversation lifecycle
 
 Key use cases:
 
-- start session
-- send message
-- close session
-- reset session
+- create session
+- start conversation in session
+- send message to conversation
+- get conversation history
 
 ---
 
@@ -429,7 +429,7 @@ Contains:
 
 The Core exposes two API surfaces:
 
-- **Public API** (`/v1/conversations`, `/v1/scenarios`, `/v1/knowledge-sources`)
+- **Public API** (`/v1/sessions`, `/v1/conversations`, `/v1/scenarios`, `/v1/knowledge-sources`)
   → used by product clients, SDKs, future UIs
   → user-facing, stable, versioned
 
@@ -448,10 +448,10 @@ These surfaces must stay clearly separated in routing and responsibility.
 1. Client sends message
 2. API validates request
 3. SendMessage use case starts
-4. Load session + scenario
-5. Context module builds runtime context
-6. Avatar generates streamed response
-7. Message saved
+4. Load conversation + parent session + scenario
+5. Context module builds runtime context for that conversation
+6. Avatar generates streamed response for the conversation avatar
+7. Messages saved under conversation
 8. Async tasks launched:
    - Game Master review
    - memory update

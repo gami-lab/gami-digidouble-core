@@ -15,9 +15,9 @@ export class InMemoryMessageRepository implements IMessageRepository {
     this.messages = [...initialData]
   }
 
-  findBySessionId(sessionId: string, options?: FindMessagesOptions): Promise<Message[]> {
+  findByConversationId(conversationId: string, options?: FindMessagesOptions): Promise<Message[]> {
     const bySession = this.messages
-      .filter((message) => message.sessionId === sessionId)
+      .filter((message) => message.conversationId === conversationId)
       .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
 
     if (options?.limit === undefined) return Promise.resolve(bySession)
@@ -30,10 +30,10 @@ export class InMemoryMessageRepository implements IMessageRepository {
     return Promise.resolve(message)
   }
 
-  deleteBySessionId(sessionId: string): Promise<number> {
+  deleteByConversationId(conversationId: string): Promise<number> {
     const matchingIndexes: number[] = []
     for (let index = 0; index < this.messages.length; index += 1) {
-      if (this.messages[index]?.sessionId === sessionId) {
+      if (this.messages[index]?.conversationId === conversationId) {
         matchingIndexes.push(index)
       }
     }

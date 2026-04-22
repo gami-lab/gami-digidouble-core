@@ -1,7 +1,7 @@
 export { ApiError, coreRequest } from './client'
 export { createAvatar, createScenario } from './scenarios'
 export { sendMessage } from './messages'
-export { getHistory, resetSession, startSession } from './sessions'
+export { getHistory, startConversation, startSession } from './sessions'
 
 export type { SendMessageParams, SendMessageResponse } from './messages'
 export type {
@@ -13,7 +13,8 @@ export type {
 export type {
   GetHistoryResponse,
   Message,
-  ResetSessionResponse,
+  ConversationSummary,
   SessionSummary,
+  StartConversationParams,
   StartSessionParams,
 } from './sessions'

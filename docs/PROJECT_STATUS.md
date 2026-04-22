@@ -12,6 +12,25 @@ Update it as epics and features are completed.
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, and EPIC 2.4 are complete.**
 
+### Session vs Conversation model refactor (April 22, 2026)
+
+The core model has been refactored to remove the old ambiguity:
+
+- Session is now an experience-run container.
+- Conversation is now a first-class bounded dialogue episode inside a session.
+- Messages are now owned by conversation (not by session timeline).
+
+Public API surface now uses:
+
+- `POST /v1/sessions`
+- `GET /v1/sessions/:sessionId`
+- `POST /v1/sessions/:sessionId/conversations`
+- `GET /v1/sessions/:sessionId/conversations`
+- `POST /v1/conversations/:conversationId/messages`
+- `GET /v1/conversations/:conversationId/history`
+
+Deprecated ambiguous routes (`/v1/conversations/start`, message/history by `{sessionId}`) were removed.
+
 Monorepo workspace bootstrap is done:
 
 - pnpm + Turborepo workspace with `apps/*` and `packages/*`
@@ -127,7 +146,7 @@ EPIC 2.1 — Prompt 03 (SendMessage use case) is done:
 
 EPIC 2.1 — Prompt 04 (API endpoint for send message) is done:
 
-- `api/routes/messages.ts` — `POST /v1/conversations/:sessionId/messages` with API-key auth, body schema validation (`avatarId`, `message.content`), `SendMessageUseCase` wiring, response DTO mapping to `SendMessageResponse`, and error mapping (`404`/`409`/`502`/`500`)
+- `api/routes/conversations.ts` — `POST /v1/conversations/:conversationId/messages` with API-key auth, conversation-scoped validation, `SendMessageUseCase` wiring, and error mapping (`404`/`409`/`502`/`500`)
 - `api/server.ts` — route registered via `server.register(messagesRoute, { prefix: '/v1/conversations' })`
 - `infrastructure/db/in-memory-session.repository.ts` and `infrastructure/db/in-memory-message.repository.ts` added as Sprint 2 placeholders implementing `ISessionRepository` and `IMessageRepository`
 - `api/routes/messages.test.ts` — inject() tests for success, auth failures, validation failures, unknown session, closed session, `LlmError`, and unexpected error
@@ -148,7 +167,7 @@ EPIC 2.1 — Avatar Agent v1 closure summary:
   - Avatar domain model and repository port (`domain/avatar/avatar.types.ts`, `application/ports/IAvatarRepository.ts`)
   - Persona-driven prompt assembly (`domain/avatar/persona-prompt.service.ts`) with fixture support (`domain/avatar/avatar.fixtures.ts`); `adjustments?: string[]` is a typed first-class field on `AvatarConfig` (no magic config keys)
   - Conversation orchestration use case (`application/use-cases/send-message/send-message.use-case.ts`) with session validation, avatar loading, history assembly, message persistence; use case output includes `session` summary (no second DB read at route level)
-  - HTTP endpoint `POST /v1/conversations/:sessionId/messages` (`api/routes/messages.ts`) with auth, validation, contract mapping, and error mapping; route defaults to empty in-memory repos (no hardcoded demo fixtures)
+  - HTTP endpoint `POST /v1/conversations/:conversationId/messages` (`api/routes/conversations.ts`) with auth, validation, contract mapping, and error mapping; route defaults to empty in-memory repos (no hardcoded demo fixtures)
 - Key design decisions locked in EPIC 2.1:
   - History limit hard-capped to 20 messages before LLM invocation
   - `avatarId` is required in request body for Sprint 2 (temporary until scenario-defaulted avatar flow in Sprint 4)
@@ -185,9 +204,9 @@ EPIC 2.2 — Prompt 03 (Session lifecycle endpoints) is done:
 - `infrastructure/db/in-memory-message.repository.ts` now implements in-place message deletion by `sessionId` and returns deleted count
 - Added use cases: `StartSessionUseCase`, `GetHistoryUseCase`, and `ResetSessionUseCase` with `DomainError` mappings for validation and not-found flows (including `scenarioId` existence validation on start session)
 - Added `api/routes/conversations.ts` with:
-  - `POST /v1/conversations/start`
-  - `GET /v1/conversations/:sessionId/history`
-  - `DELETE /v1/conversations/:sessionId`
+  - `POST /v1/sessions`
+  - `POST /v1/sessions/:sessionId/conversations`
+  - `GET /v1/conversations/:conversationId/history`
 - `api/server.ts` now registers `conversationsRoute` under `/v1/conversations` alongside `messagesRoute`
 - Added `api/routes/conversations.test.ts` (inject-based route tests) for auth, validation, not-found, and success paths
 - Added `api/routes/conversations.stack-e2e.test.ts` for stack lifecycle flow: start → history → reset → history (session preserved)
@@ -226,7 +245,7 @@ Test coverage hardening (post-EPIC 1.2):
 | Epic                                       | Status       | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------------------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | EPIC 2.1 — Avatar Agent v1                 | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained.                                                                                                                              |
-| EPIC 2.2 — Scenario & Session Lifecycle v1 | **Complete** | POST /v1/scenarios, GET /v1/scenarios, POST /v1/scenarios/:scenarioId/avatars, GET /v1/scenarios/:scenarioId/avatars, DELETE /v1/avatars/:avatarId, DELETE /v1/scenarios/:scenarioId, POST /v1/conversations/start, GET /v1/conversations/:sessionId/history, DELETE /v1/conversations/:sessionId implemented with explicit 404/409 rules.                                                                                                                                 |
+| EPIC 2.2 — Scenario & Session Lifecycle v1 | **Complete** | POST /v1/scenarios, GET /v1/scenarios, POST /v1/scenarios/:scenarioId/avatars, GET /v1/scenarios/:scenarioId/avatars, DELETE /v1/avatars/:avatarId, DELETE /v1/scenarios/:scenarioId, plus refactored session/conversation lifecycle routes (`POST /v1/sessions`, `POST /v1/sessions/:sessionId/conversations`, `POST /v1/conversations/:conversationId/messages`, `GET /v1/conversations/:conversationId/history`, `GET /v1/sessions/:sessionId/conversations`).          |
 | EPIC 2.3 — Persistence Layer v1            | **Complete** | Postgres repository adapters (Scenario, Avatar, Session, Message), DB schema migrations, connection pooling. Replaces all in-memory stubs in production. Fixes AvatarConfig timestamp gap from EPIC 2.2.                                                                                                                                                                                                                                                                   |
 | EPIC 2.4 — Manual Test Console v1          | **Complete** | `@gami/console` delivered with health check, scenario/avatar creation, session start/chat/history/reset, per-avatar-message debug metadata panel (`model`, `latencyMs`, `inputTokens`, `outputTokens`), and global React `ErrorBoundary` with reload fallback. Post-audit remediation applied: `@gami/shared` import path corrected to use workspace package, `avatarId` made required in `SendMessageParams`, CORS dependency documented, `apps/console/README.md` added. |
 
@@ -279,7 +298,7 @@ Test coverage hardening (post-EPIC 1.2):
 - API baseline (`/health`, `/v1/exchange`)
 - LLM adapter layer (OpenAI, Anthropic, Mistral, Null)
 - Observability adapter layer (Langfuse, Console, Null)
-- Session lifecycle (start, history, reset)
+- Session + conversation lifecycle (session create/read, conversation start/list, message send/history by conversation)
 - Scenario management (create)
 - Scenario management (create, list, delete with dependency checks)
 - Avatar management (create, list-by-scenario, delete with active-session safety checks)

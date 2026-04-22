@@ -3,16 +3,31 @@ export interface Session {
   sessionId: string
   userId: string
   scenarioId: string
+  activeAvatarId?: string
   status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string
   endedAt?: string
 }
 
+/** One bounded dialogue episode with one avatar inside a session. */
+export interface Conversation {
+  conversationId: string
+  sessionId: string
+  avatarId: string
+  status: 'active' | 'closed' | 'archived'
+  startedAt: string
+  lastActivityAt: string
+  endedAt?: string
+  startedBy?: 'user' | 'gm' | 'system'
+  reason?: string
+  handoffFromConversationId?: string
+}
+
 /** A single message in a conversation. */
 export interface Message {
   messageId: string
-  sessionId: string
+  conversationId: string
   role: 'user' | 'avatar' | 'system'
   content: string
   createdAt: string

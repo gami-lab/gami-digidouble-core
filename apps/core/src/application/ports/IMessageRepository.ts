@@ -2,9 +2,9 @@ import type { Message, MessageMetadata } from '../../domain/conversation/session
 
 /** Port: message persistence. Infrastructure must implement this interface. */
 export interface IMessageRepository {
-  findBySessionId(sessionId: string, options?: FindMessagesOptions): Promise<Message[]>
+  findByConversationId(conversationId: string, options?: FindMessagesOptions): Promise<Message[]>
   save(params: SaveMessageParams): Promise<Message>
-  deleteBySessionId(sessionId: string): Promise<number>
+  deleteByConversationId(conversationId: string): Promise<number>
 }
 
 export interface FindMessagesOptions {
@@ -13,7 +13,7 @@ export interface FindMessagesOptions {
 
 export interface SaveMessageParams {
   messageId: string
-  sessionId: string
+  conversationId: string
   role: Message['role']
   content: string
   createdAt: string

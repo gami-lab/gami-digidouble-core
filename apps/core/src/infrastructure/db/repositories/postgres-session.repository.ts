@@ -11,6 +11,7 @@ interface SessionRow {
   id: string
   user_id: string
   scenario_id: string
+  active_avatar_id: string | null
   status: string
   started_at: Date
   last_activity_at: Date
@@ -22,6 +23,7 @@ function rowToSession(row: SessionRow): Session {
     sessionId: `session_${row.id}`,
     userId: row.user_id,
     scenarioId: `scenario_${row.scenario_id}`,
+    ...(row.active_avatar_id !== null ? { activeAvatarId: `avatar_${row.active_avatar_id}` } : {}),
     status: row.status as Session['status'],
     startedAt: row.started_at.toISOString(),
     lastActivityAt: row.last_activity_at.toISOString(),
@@ -35,9 +37,9 @@ export class PostgresSessionRepository implements ISessionRepository {
   async create(params: CreateSessionParams): Promise<Session> {
     const scenarioUuid = stripPrefix('scenario_', params.scenarioId)
     const [row] = await this.sql<[SessionRow]>`
-      INSERT INTO sessions (user_id, scenario_id)
-      VALUES (${params.userId}, ${scenarioUuid})
-      RETURNING id, user_id, scenario_id, status, started_at, last_activity_at, ended_at
+      INSERT INTO sessions (user_id, scenario_id, active_avatar_id)
+      VALUES (${params.userId}, ${scenarioUuid}, NULL)
+      RETURNING id, user_id, scenario_id, active_avatar_id, status, started_at, last_activity_at, ended_at
     `
     return rowToSession(row)
   }
@@ -46,7 +48,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     const uuid = extractUuid('session_', sessionId)
     if (uuid === null) return null
     const [row] = await this.sql<[SessionRow?]>`
-      SELECT id, user_id, scenario_id, status, started_at, last_activity_at, ended_at
+      SELECT id, user_id, scenario_id, active_avatar_id, status, started_at, last_activity_at, ended_at
       FROM sessions
       WHERE id = ${uuid}
     `
@@ -60,6 +62,9 @@ export class PostgresSessionRepository implements ISessionRepository {
     }
     const hasEndedAtUpdate = Object.hasOwn(updates, 'endedAt')
     const endedAtValue = updates.endedAt === undefined ? null : new Date(updates.endedAt)
+    const activeAvatarUuid =
+      updates.activeAvatarId === undefined ? null : stripPrefix('avatar_', updates.activeAvatarId)
+    const hasActiveAvatarUpdate = Object.hasOwn(updates, 'activeAvatarId')
 
     const [row] = await this.sql<[SessionRow?]>`
       UPDATE sessions
@@ -72,9 +77,13 @@ export class PostgresSessionRepository implements ISessionRepository {
         ended_at = CASE
           WHEN ${hasEndedAtUpdate}::BOOLEAN THEN ${endedAtValue}::TIMESTAMPTZ
           ELSE ended_at
+        END,
+        active_avatar_id = CASE
+          WHEN ${hasActiveAvatarUpdate}::BOOLEAN THEN ${activeAvatarUuid}::UUID
+          ELSE active_avatar_id
         END
       WHERE id = ${uuid}
-      RETURNING id, user_id, scenario_id, status, started_at, last_activity_at, ended_at
+      RETURNING id, user_id, scenario_id, active_avatar_id, status, started_at, last_activity_at, ended_at
     `
 
     if (!row) {

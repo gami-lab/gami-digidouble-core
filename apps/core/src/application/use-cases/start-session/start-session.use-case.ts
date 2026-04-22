@@ -33,6 +33,7 @@ export class StartSessionUseCase {
         sessionId: session.sessionId,
         userId: session.userId,
         scenarioId: session.scenarioId,
+        ...(session.activeAvatarId !== undefined ? { activeAvatarId: session.activeAvatarId } : {}),
         status: session.status,
         startedAt: session.startedAt,
         lastActivityAt: session.lastActivityAt,

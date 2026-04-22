@@ -174,7 +174,7 @@ For MVP, one Avatar = one actor defined inside one Scenario.
 
 ## 4. Session
 
-Represents one conversation instance.
+Represents one user run through one scenario.
 
 ### Fields
 
@@ -196,9 +196,9 @@ Represents one conversation instance.
 
 ### Notes
 
-One session = one conversation timeline.
+One session can contain multiple conversations over time.
 
-`active_avatar_id` tracks who currently speaks by default in this session.
+`active_avatar_id` tracks the current routing focus for session-level orchestration.
 
 A Session is the equivalent of one run of the experience.
 
@@ -206,27 +206,55 @@ Using the movie analogy:
 
 - Scenario = the production setup
 - Avatar = an actor in that production
-- Session = one concrete movie/playthrough
-
-**Phase A deletion safety rule:** scenario deletion is rejected while dependent avatars or sessions still exist.
+- Session = one concrete movie/playthrough container
 
 ---
 
-## 5. Message
+## 5. Conversation
 
-Represents one message in a session.
+Represents one bounded dialogue episode with one avatar inside one session.
 
 ### Fields
 
 - id
 - session_id
+- avatar_id
+- status (active / closed / archived)
+- started_at
+- last_activity_at
+- ended_at (nullable)
+
+### Optional
+
+- started_by (user / gm / system)
+- reason (nullable)
+- handoff_from_conversation_id (nullable)
+
+### Notes
+
+- Switching avatar creates a new conversation.
+- Returning later to the same avatar also creates a new conversation.
+- Conversation history is isolated per conversation.
+- Session memory continuity should happen through SessionMemory / AvatarSessionMemory, not by raw transcript continuation by default.
+
+**Phase A deletion safety rule:** scenario deletion is rejected while dependent avatars or sessions still exist.
+
+---
+
+## 6. Message
+
+Represents one message in a conversation.
+
+### Fields
+
+- id
+- conversation_id
 - role (user / avatar / system)
 - content
 - created_at
 
 ### Optional
 
-- avatar_id (nullable)
 - metadata (JSONB)
 
 ### Implementation Status (EPIC 2.3)
@@ -252,19 +280,13 @@ Current `MessageMetadata` fields:
 
 Use one table for all messages.
 
-`avatar_id` is nullable because:
-
-- user messages have no avatar
-- some system messages may not belong to a specific avatar
-- avatar messages should reference the speaking avatar
-
-This prepares the model for multi-avatar sessions without needing separate message tables.
+The speaking avatar is derived from the parent conversation.
 
 Avoid separate Exchange tables unless clearly needed later.
 
 ---
 
-## 6. SessionMemory
+## 7. SessionMemory
 
 Compact working memory for an active session.
 
@@ -292,7 +314,7 @@ This is the memory of the movie/playthrough as a whole.
 
 ---
 
-## 7. AvatarSessionMemory
+## 8. AvatarSessionMemory
 
 Compact working memory for one avatar inside one session.
 
@@ -334,7 +356,7 @@ For MVP, keep it compact:
 
 ---
 
-## 8. UserMemoryFact
+## 9. UserMemoryFact
 
 Persistent structured memory about a user.
 
@@ -362,7 +384,7 @@ This memory is cross-session and user-centric.
 
 ---
 
-## 9. KnowledgeSource
+## 10. KnowledgeSource
 
 A document or external source attached to a scenario.
 
@@ -389,7 +411,7 @@ An avatar may later use only part of the scenario knowledge, controlled by confi
 
 ---
 
-## 10. KnowledgeChunk
+## 11. KnowledgeChunk
 
 Searchable chunk used for retrieval.
 
@@ -407,7 +429,7 @@ Stored in PostgreSQL + pgvector.
 
 ---
 
-## 11. EventLog
+## 12. EventLog
 
 Operational events useful for debugging and metrics.
 
@@ -449,7 +471,7 @@ The `request_id` and `correlation_id` fields are essential for tracing failures 
 
 ---
 
-## 12. IngestionJob
+## 13. IngestionJob
 
 Tracks the lifecycle of a knowledge source ingestion job.
 
@@ -477,7 +499,7 @@ Admin API exposes these rows directly for inspection and manual retry.
 
 ---
 
-## 13. AdminActionLog
+## 14. AdminActionLog
 
 Audit trail of all admin actions taken through the admin API.
 
@@ -503,7 +525,7 @@ No PII in payload — store IDs and structured metadata only.
 
 ---
 
-## 14. AvatarTransitionRule
+## 15. AvatarTransitionRule
 
 Lightweight transition policy attached to a scenario.
 
@@ -528,7 +550,7 @@ Keep this simple in MVP.
 
 ---
 
-## 15. PromptTemplateVariable (Optional)
+## 16. PromptTemplateVariable (Optional)
 
 Reusable scenario-level variables injected into prompt/template fragments.
 
@@ -555,10 +577,11 @@ Use only when repeated prompt/template fragments need explicit editable variable
 - Scenario → Avatars (1:N)
 - Scenario → Sessions (1:N)
 - Scenario → KnowledgeSources (1:N)
-- Session → Messages (1:N)
+- Session → Conversations (1:N)
+- Conversation → Messages (1:N)
 - Session → SessionMemory (1:1)
 - Session → AvatarSessionMemories (1:N)
-- Avatar → Messages (1:N, nullable on Message side)
+- Avatar → Conversations (1:N)
 - Avatar → AvatarSessionMemories (1:N)
 - KnowledgeSource → KnowledgeChunks (1:N)
 - KnowledgeSource → IngestionJobs (1:N)
@@ -586,7 +609,8 @@ In particular, do not hide:
 
 - avatar ownership
 - session ownership
-- message/session relations
+- conversation/session relations
+- message/conversation relations
 - avatar/session memory relations
 
 ---
@@ -612,6 +636,7 @@ These can be introduced when usage justifies them.
 
 Deletes:
 
+- conversations
 - messages
 - session memory
 - avatar session memories
@@ -647,9 +672,10 @@ Keeps:
 
 - sessions(user_id, last_activity_at)
 - sessions(scenario_id, last_activity_at)
+- conversations(session_id, started_at)
+- conversations(session_id, avatar_id, started_at)
 - avatars(scenario_id, status)
-- messages(session_id, created_at)
-- messages(session_id, avatar_id, created_at)
+- messages(conversation_id, created_at)
 - avatar_session_memories(session_id, avatar_id)
 - user_memory_facts(user_id, category)
 - knowledge_sources(scenario_id)

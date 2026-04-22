@@ -51,21 +51,36 @@ CREATE TABLE IF NOT EXISTS sessions (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id          TEXT        NOT NULL,
   scenario_id      UUID        NOT NULL REFERENCES scenarios(id),
+  active_avatar_id UUID        REFERENCES avatars(id),
   status           TEXT        NOT NULL DEFAULT 'active',
   started_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_activity_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   ended_at         TIMESTAMPTZ
 );
 
+-- ── Conversations ─────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS conversations (
+  id                          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id                  UUID        NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  avatar_id                   UUID        NOT NULL REFERENCES avatars(id),
+  status                      TEXT        NOT NULL DEFAULT 'active',
+  started_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_activity_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ended_at                    TIMESTAMPTZ,
+  started_by                  TEXT,
+  reason                      TEXT,
+  handoff_from_conversation_id UUID       REFERENCES conversations(id)
+);
+
 -- ── Messages ──────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS messages (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id UUID        NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  conversation_id UUID   NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
   role       TEXT        NOT NULL,
   content    TEXT        NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  avatar_id  UUID        REFERENCES avatars(id),
   metadata   JSONB
 );
 
@@ -73,5 +88,8 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE INDEX IF NOT EXISTS idx_avatars_scenario_id   ON avatars(scenario_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_scenario_id  ON sessions(scenario_id);
-CREATE INDEX IF NOT EXISTS idx_messages_session_id   ON messages(session_id);
-CREATE INDEX IF NOT EXISTS idx_messages_created_at   ON messages(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_active_avatar_id ON sessions(active_avatar_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON conversations(session_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_avatar_id ON conversations(avatar_id);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at   ON messages(conversation_id, created_at);
