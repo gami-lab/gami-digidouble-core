@@ -87,7 +87,7 @@ GET    /v1/conversations/:sessionId/state             # Debug state
 DELETE /v1/conversations/:sessionId                   # Reset session
 ```
 
-See [docs/API_GUIDE.md](API_GUIDE.md) for curl examples, the full integration flow, and frontend notes.
+See [API_GUIDE.md](API_GUIDE.md) for curl examples, the full integration flow, and frontend notes.
 See [docs/API_CONTRACT.md](docs/API_CONTRACT.md) for the full formal spec.
 
 ---
@@ -131,7 +131,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full onboarding guide, quality co
 
 | Document                                                | Description                                                    |
 | ------------------------------------------------------- | -------------------------------------------------------------- |
-| [API_GUIDE.md](docs/API_GUIDE.md)                       | **Developer guide** — curl examples, full flow, frontend notes |
+| [API_GUIDE.md](API_GUIDE.md)                            | **Developer guide** — curl examples, full flow, frontend notes |
 | [VISION.md](docs/VISION.md)                             | Project vision and mission                                     |
 | [PRINCIPLES.md](docs/PRINCIPLES.md)                     | 19 guiding principles behind every decision                    |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Layered architecture, module map, request flows                |
