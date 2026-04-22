@@ -32,17 +32,20 @@ Avoid: retesting business rules already covered by unit tests.
 
 ## Conversation Module
 
-**Goals:** session lifecycle correctness, message persistence, history retrieval, reset behavior.
+**Goals:** session/container correctness, conversation lifecycle correctness, message persistence by conversation, history isolation.
 
 Must test:
 
 - session creation
-- active avatar initialization on session start
-- message persistence order
+- start conversation inside session
+- active avatar update when new conversation starts
+- message persistence order per conversation
 - message metadata persistence
-- history retrieval consistency
-- active avatar consistency when message routing changes avatar
-- reset deletes the right data and keeps the right data
+- history retrieval consistency per conversation
+- switch avatar creates another conversation
+- return to same avatar creates a new conversation record
+- session-level conversation listing
+- invalid session/conversation IDs return 404 with contract error codes
 
 ---
 
@@ -216,11 +219,11 @@ Must test:
 
 Minimum set that must pass on every release:
 
-1. start session
-2. send message
-3. stream response
-4. read history
-5. reset session
+1. create session
+2. start conversation
+3. send message (conversationId)
+4. read conversation history
+5. create additional conversations in same session and verify history isolation
 6. create scenario
 7. register source
 8. ingest source
