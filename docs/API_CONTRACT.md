@@ -838,7 +838,7 @@ type DeleteUserMemoryFactResponse = {
 ### Endpoint
 
 ```text
-GET /v1/conversations/{sessionId}/events
+GET /v1/sessions/{sessionId}/events
 ```
 
 ### Response
@@ -1435,10 +1435,11 @@ When extending the API:
 If we need the absolute minimum set to start implementation, it is:
 
 - `POST /v1/sessions`
+- `GET /v1/sessions/{sessionId}`
 - `POST /v1/sessions/{sessionId}/conversations`
+- `GET /v1/sessions/{sessionId}/conversations`
 - `POST /v1/conversations/{conversationId}/messages`
 - `GET /v1/conversations/{conversationId}/history`
-- `DELETE /v1/conversations/{sessionId}`
 - `GET /v1/scenarios`
 - `POST /v1/scenarios`
 - `POST /v1/scenarios/{scenarioId}/avatars`

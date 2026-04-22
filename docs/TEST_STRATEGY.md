@@ -9,7 +9,7 @@ Application-specific coverage targets (what to test per module) are in [TEST_COV
 
 ## 1. Test the risk, not the code volume
 
-Prioritize where failure is costly or hard to detect. High-risk areas: session lifecycle, context assembly, Game Master decisions, memory logic, API contracts, provider wrappers. Low-risk: thin pass-through mappings, obvious DTO plumbing.
+Prioritize where failure is costly or hard to detect. High-risk areas: session lifecycle, conversation lifecycle and history isolation, context assembly, Game Master decisions, memory logic, API contracts, provider wrappers. Low-risk: thin pass-through mappings, obvious DTO plumbing.
 
 ## 2. Prefer deterministic tests first
 

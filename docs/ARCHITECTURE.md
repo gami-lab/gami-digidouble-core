@@ -510,7 +510,7 @@ src/
     ports/               → Port interfaces (ILlmAdapter, ICacheAdapter, …)
 
   domain/
-    conversation/        → Session and message logic
+    conversation/        → Session container, conversation episodes, and message logic
     avatar/              → Persona configuration and prompt assembly
     game-master/         → Reasoning + policy logic, avatar routing, state management, guidance injection
     memory/              → Session summary + persistent user facts
