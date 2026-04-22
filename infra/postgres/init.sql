@@ -96,6 +96,19 @@ CREATE TABLE IF NOT EXISTS messages (
   metadata   JSONB
 );
 
+-- ── Event Log ─────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS event_log (
+  id             TEXT        PRIMARY KEY DEFAULT 'evt_' || gen_random_uuid()::TEXT,
+  session_id     TEXT        REFERENCES sessions(id) ON DELETE SET NULL,
+  type           TEXT        NOT NULL,
+  severity       TEXT        NOT NULL DEFAULT 'info',
+  correlation_id TEXT,
+  request_id     TEXT,
+  payload        JSONB       NOT NULL DEFAULT '{}',
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ── Indexes ───────────────────────────────────────────────────────────────────
 
 CREATE INDEX IF NOT EXISTS idx_avatars_scenario_id   ON avatars(scenario_id);
@@ -105,3 +118,5 @@ CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON conversations(session
 CREATE INDEX IF NOT EXISTS idx_conversations_avatar_id ON conversations(avatar_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at   ON messages(conversation_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_event_log_session_id ON event_log(session_id);
+CREATE INDEX IF NOT EXISTS idx_event_log_type ON event_log(type);

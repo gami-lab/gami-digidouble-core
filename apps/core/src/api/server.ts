@@ -5,12 +5,14 @@ import type { ILlmAdapter } from '../application/ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../application/ports/IObservabilityAdapter.js'
 import type { IAvatarRepository } from '../application/ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../application/ports/IConversationRepository.js'
+import type { IEventLogRepository } from '../application/ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../application/ports/IGmStateRepository.js'
 import type { IScenarioRepository } from '../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { Config } from '../config.js'
+import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
 import { avatarsRoute } from './routes/avatars.js'
 import { conversationsRoute } from './routes/conversations.js'
@@ -24,6 +26,7 @@ export interface ServerAdapters {
   observabilityAdapter?: IObservabilityAdapter
   avatarRepository?: IAvatarRepository
   conversationRepository?: IConversationRepository
+  eventLogRepository?: IEventLogRepository
   gmStateRepository?: IGmStateRepository
   runGameMasterUseCase?: RunGameMasterUseCase
   scenarioRepository?: IScenarioRepository
@@ -47,6 +50,7 @@ function isFastifyValidationError(
 export function createServer(config: Config, adapters: ServerAdapters = {}): FastifyInstance {
   const resolvedAdapters: ServerAdapters = {
     ...adapters,
+    eventLogRepository: adapters.eventLogRepository ?? new InMemoryEventLogRepository(),
     gmStateRepository: adapters.gmStateRepository ?? new InMemoryGmStateRepository(),
   }
 

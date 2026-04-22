@@ -1,4 +1,5 @@
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
+import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { ILlmAdapter } from '../../ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
@@ -28,15 +29,17 @@ export class RunGameMasterUseCase {
     private readonly llm: ILlmAdapter,
     private readonly observability: IObservabilityAdapter,
     private readonly scenarioRepository?: IScenarioRepository,
+    private readonly eventLogRepository?: IEventLogRepository,
   ) {}
 
   async execute(input: RunGameMasterInput): Promise<void> {
+    const start = Date.now()
     const currentState = await this.loadCurrentState(input.sessionId)
     const scenarioContext = await this.loadScenarioContext(input.scenarioId)
     const triggerReason = evaluateTriggers(currentState, scenarioContext.policy)
 
     if (triggerReason === null) {
-      await this.handleSkippedTurn(input, currentState)
+      await this.handleSkippedTurn(input, currentState, start)
       return
     }
 
@@ -50,7 +53,14 @@ export class RunGameMasterUseCase {
 
     const output = safeParseGameMasterOutput(llmResponse.content)
     if (output === null) {
-      await this.handleInvalidOutput(input, currentState, triggerReason, llmResponse, llmStart)
+      await this.handleInvalidOutput(
+        input,
+        currentState,
+        triggerReason,
+        llmResponse,
+        llmStart,
+        start,
+      )
       return
     }
 
@@ -60,7 +70,29 @@ export class RunGameMasterUseCase {
     if (hasText(output.context?.notes)) {
       await this.sessionRepository.update(input.sessionId, { gmNotes: output.context.notes.trim() })
     }
-    // TODO(EPIC-4.1-events): emit gm_triggered event
+
+    await this.emitEventSafe({
+      sessionId: input.sessionId,
+      type: 'gm_triggered',
+      severity: 'info',
+      correlationId: input.correlationId,
+      payload: {
+        triggerReason,
+        turnIndex: input.turnIndex,
+        interactionCount: nextState.interactionCount,
+        stateBefore: buildStateSummary(currentState),
+        decision: {
+          avatarId: output.avatarId,
+          conversationMode: output.conversationMode,
+          notesInjected: Boolean(output.context?.notes),
+          directiveCount: output.recommendedChoices?.length ?? 0,
+        },
+        stateAfter: buildStateSummary(nextState),
+        latencyMs: Date.now() - start,
+        inputTokens: llmResponse.inputTokens,
+        outputTokens: llmResponse.outputTokens,
+      },
+    })
 
     if (
       hasText(output.stateUpdate.activeAvatarId) &&
@@ -129,9 +161,23 @@ export class RunGameMasterUseCase {
   private async handleSkippedTurn(
     input: RunGameMasterInput,
     currentState: GameMasterState,
+    start: number,
   ): Promise<void> {
     await this.incrementInteractionAndSave(input.sessionId, currentState)
-    // TODO(EPIC-4.1-events): emit gm_skipped event
+    const updatedState = { ...currentState, interactionCount: currentState.interactionCount + 1 }
+    await this.emitEventSafe({
+      sessionId: input.sessionId,
+      type: 'gm_skipped',
+      severity: 'info',
+      correlationId: input.correlationId,
+      payload: {
+        triggerReason: null,
+        turnIndex: input.turnIndex,
+        interactionCount: updatedState.interactionCount,
+        stateBefore: buildStateSummary(currentState),
+        latencyMs: Date.now() - start,
+      },
+    })
     await this.traceSafe({
       requestId: input.correlationId,
       sessionId: input.sessionId,
@@ -154,9 +200,25 @@ export class RunGameMasterUseCase {
       outputTokens: number
     },
     llmStart: number,
+    start: number,
   ): Promise<void> {
     await this.incrementInteractionAndSave(input.sessionId, currentState)
-    // TODO(EPIC-4.1-events): emit gm_skipped event
+    const updatedState = { ...currentState, interactionCount: currentState.interactionCount + 1 }
+    await this.emitEventSafe({
+      sessionId: input.sessionId,
+      type: 'gm_skipped',
+      severity: 'info',
+      correlationId: input.correlationId,
+      payload: {
+        triggerReason,
+        turnIndex: input.turnIndex,
+        interactionCount: updatedState.interactionCount,
+        stateBefore: buildStateSummary(currentState),
+        latencyMs: Date.now() - start,
+        inputTokens: llmResponse.inputTokens,
+        outputTokens: llmResponse.outputTokens,
+      },
+    })
     await this.traceSafe({
       requestId: input.correlationId,
       sessionId: input.sessionId,
@@ -195,6 +257,15 @@ export class RunGameMasterUseCase {
       await this.observability.trace(event)
     } catch (err: unknown) {
       console.error('[GM] Observability trace failed for event:', event.event, err)
+    }
+  }
+
+  private async emitEventSafe(event: StoredEvent): Promise<void> {
+    if (this.eventLogRepository === undefined) return
+    try {
+      await this.eventLogRepository.append(event)
+    } catch (err: unknown) {
+      console.error('[GM] Event log emission failed for type:', event.type, err)
     }
   }
 
@@ -320,4 +391,16 @@ function toValidPositiveInteger(value: unknown): number | undefined {
     return undefined
   }
   return value
+}
+
+function buildStateSummary(state: GameMasterState): {
+  currentAvatarId?: string
+  progression: string
+  topicsCovered: string[]
+} {
+  return {
+    ...(state.currentAvatarId !== undefined ? { currentAvatarId: state.currentAvatarId } : {}),
+    progression: state.progression,
+    topicsCovered: state.topicsCovered,
+  }
 }
