@@ -70,6 +70,13 @@ export interface GameMasterOutput {
   }
 }
 
+/** Snapshot of GM state fields included in diagnostic event payloads. */
+export type GameMasterStateSummary = {
+  currentAvatarId?: string
+  progression: string
+  topicsCovered: string[]
+}
+
 /** Structured diagnostic event emitted by the GM for every run (triggered or skipped). */
 export type GameMasterEvent = {
   type: 'gm_triggered' | 'gm_skipped'
@@ -87,22 +94,14 @@ export type GameMasterEvent = {
       | null
     turnIndex: number
     interactionCount: number
-    stateBefore: {
-      currentAvatarId?: string
-      progression: string
-      topicsCovered: string[]
-    }
+    stateBefore: GameMasterStateSummary
     decision?: {
       avatarId: string
       conversationMode: 'new' | 'continue'
       notesInjected: boolean
       directiveCount: number
     }
-    stateAfter?: {
-      currentAvatarId?: string
-      progression: string
-      topicsCovered: string[]
-    }
+    stateAfter?: GameMasterStateSummary
     latencyMs: number
     inputTokens?: number
     outputTokens?: number

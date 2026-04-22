@@ -11,6 +11,7 @@ import type {
   GameMasterInput,
   GameMasterOutput,
   GameMasterState,
+  GameMasterStateSummary,
 } from '../../../domain/game-master/game-master.types.js'
 import { evaluateTriggers, type TriggerPolicy } from '../../../domain/game-master/trigger-engine.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
@@ -33,13 +34,13 @@ export class RunGameMasterUseCase {
   ) {}
 
   async execute(input: RunGameMasterInput): Promise<void> {
-    const start = Date.now()
+    const gmRunStartMs = Date.now()
     const currentState = await this.loadCurrentState(input.sessionId)
     const scenarioContext = await this.loadScenarioContext(input.scenarioId)
     const triggerReason = evaluateTriggers(currentState, scenarioContext.policy)
 
     if (triggerReason === null) {
-      await this.handleSkippedTurn(input, currentState, start)
+      await this.handleSkippedTurn(input, currentState, gmRunStartMs)
       return
     }
 
@@ -59,7 +60,7 @@ export class RunGameMasterUseCase {
         triggerReason,
         llmResponse,
         llmStart,
-        start,
+        gmRunStartMs,
       )
       return
     }
@@ -88,7 +89,7 @@ export class RunGameMasterUseCase {
           directiveCount: output.recommendedChoices?.length ?? 0,
         },
         stateAfter: buildStateSummary(nextState),
-        latencyMs: Date.now() - start,
+        latencyMs: Date.now() - gmRunStartMs,
         inputTokens: llmResponse.inputTokens,
         outputTokens: llmResponse.outputTokens,
       },
@@ -161,7 +162,7 @@ export class RunGameMasterUseCase {
   private async handleSkippedTurn(
     input: RunGameMasterInput,
     currentState: GameMasterState,
-    start: number,
+    gmRunStartMs: number,
   ): Promise<void> {
     await this.incrementInteractionAndSave(input.sessionId, currentState)
     const updatedState = { ...currentState, interactionCount: currentState.interactionCount + 1 }
@@ -175,7 +176,7 @@ export class RunGameMasterUseCase {
         turnIndex: input.turnIndex,
         interactionCount: updatedState.interactionCount,
         stateBefore: buildStateSummary(currentState),
-        latencyMs: Date.now() - start,
+        latencyMs: Date.now() - gmRunStartMs,
       },
     })
     await this.traceSafe({
@@ -200,7 +201,7 @@ export class RunGameMasterUseCase {
       outputTokens: number
     },
     llmStart: number,
-    start: number,
+    gmRunStartMs: number,
   ): Promise<void> {
     await this.incrementInteractionAndSave(input.sessionId, currentState)
     const updatedState = { ...currentState, interactionCount: currentState.interactionCount + 1 }
@@ -214,7 +215,7 @@ export class RunGameMasterUseCase {
         turnIndex: input.turnIndex,
         interactionCount: updatedState.interactionCount,
         stateBefore: buildStateSummary(currentState),
-        latencyMs: Date.now() - start,
+        latencyMs: Date.now() - gmRunStartMs,
         inputTokens: llmResponse.inputTokens,
         outputTokens: llmResponse.outputTokens,
       },
@@ -393,11 +394,7 @@ function toValidPositiveInteger(value: unknown): number | undefined {
   return value
 }
 
-function buildStateSummary(state: GameMasterState): {
-  currentAvatarId?: string
-  progression: string
-  topicsCovered: string[]
-} {
+function buildStateSummary(state: GameMasterState): GameMasterStateSummary {
   return {
     ...(state.currentAvatarId !== undefined ? { currentAvatarId: state.currentAvatarId } : {}),
     progression: state.progression,

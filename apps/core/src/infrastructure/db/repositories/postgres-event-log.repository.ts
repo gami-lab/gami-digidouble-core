@@ -5,6 +5,8 @@ import type {
   StoredEvent,
 } from '../../../application/ports/IEventLogRepository.js'
 
+const SESSION_PREFIX = 'session_'
+
 export class PostgresEventLogRepository implements IEventLogRepository {
   constructor(private readonly sql: Sql) {}
 
@@ -29,5 +31,5 @@ export class PostgresEventLogRepository implements IEventLogRepository {
 }
 
 function stripSessionPrefix(id: string): string {
-  return id.startsWith('session_') ? id.slice('session_'.length) : id
+  return id.startsWith(SESSION_PREFIX) ? id.slice(SESSION_PREFIX.length) : id
 }
