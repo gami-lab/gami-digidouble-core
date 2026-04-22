@@ -300,6 +300,7 @@ Test coverage hardening (post-EPIC 1.2):
 - Observability adapter layer (Langfuse, Console, Null)
 - Session + conversation lifecycle (session create/read, conversation start/list, message send/history by conversation)
 - GM state persistence (table `gm_states`, in-memory + Postgres repositories, adapter wiring)
+- GM deterministic trigger engine (`evaluateTriggers`) with policy thresholds for `turn_threshold`, `topic_repeat`, and `progression_stalled`
 - Scenario management (create)
 - Scenario management (create, list, delete with dependency checks)
 - Avatar management (create, list-by-scenario, delete with active-session safety checks)

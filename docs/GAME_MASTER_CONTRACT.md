@@ -281,6 +281,31 @@ The Game Master only makes 3 decisions:
 - no → Avatar continues alone
 - yes → inject guidance asynchronously
 
+### Deterministic trigger policy (MVP)
+
+The first intervention gate is deterministic and does not call an LLM.
+It evaluates `GameMasterState` with fixed trigger priority.
+
+Priority order:
+
+1. `turn_threshold`
+2. `topic_repeat`
+3. `progression_stalled`
+
+`session_start` and `manual` are reserved explicit triggers from calling code and are not evaluated by this policy function.
+
+Default thresholds:
+
+- `DEFAULT_TURN_THRESHOLD = 5`
+- `DEFAULT_MAX_TOPIC_REPEATS = 3`
+- `DEFAULT_MAX_TURNS_WITHOUT_PROGRESSION = 8`
+
+Trigger conditions:
+
+- `turn_threshold` → `interactionCount > 0 && interactionCount % turnThreshold === 0`
+- `topic_repeat` → any topic appears at least `maxTopicRepeatCount` times in `topicsCovered`
+- `progression_stalled` → `interactionCount >= maxTurnsWithoutProgression` and `progression` is still initial (`''` or `'none'`)
+
 ## 8.3 What context to provide?
 
 Examples:
