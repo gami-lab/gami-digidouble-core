@@ -182,6 +182,21 @@ pnpm simple-git-hooks
 - **Epic references** — include epic ID in commits when applicable:
   `feat(avatar): add persona prompt builder [EPIC-2.1]`
 
+## Troubleshooting
+
+### Reset the database from scratch
+
+If the local DB is in a bad state (schema drift, corrupted data, failed migration), wipe all Docker volumes and restart:
+
+```bash
+pnpm infra:reset   # docker compose down -v  — stops containers AND deletes all volumes
+pnpm infra:up      # recreates postgres + redis with a clean DB (init.sql is applied automatically)
+```
+
+`infra/postgres/init.sql` is the single source of truth for the schema — it is executed by the `postgres` container on first start against an empty volume.
+
+---
+
 ## Useful References
 
 - [API_GUIDE.md](API_GUIDE.md) — curl examples, integration flow, and frontend notes
