@@ -1,5 +1,5 @@
 import { coreRequest } from './client'
-import type { Message, SessionSummary } from './sessions'
+import type { ConversationSummary, Message, SessionSummary } from './sessions'
 
 export type SendMessageParams = {
   message: {
@@ -18,6 +18,7 @@ type AvatarMessageMetadata = {
 }
 
 export type SendMessageResponse = {
+  conversation: ConversationSummary
   session: SessionSummary
   userMessage: Message
   avatarMessage: Message & {

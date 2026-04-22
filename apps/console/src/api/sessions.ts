@@ -54,6 +54,10 @@ type StartSessionPayload = {
   session: SessionSummary
 }
 
+type GetSessionPayload = {
+  session: SessionSummary
+}
+
 export type GetHistoryResponse = {
   conversation: ConversationSummary
   messages: Message[]
@@ -68,8 +72,17 @@ type StartConversationPayload = {
   conversation: ConversationSummary
 }
 
+type ListSessionConversationsPayload = {
+  conversations: ConversationSummary[]
+}
+
 export async function startSession(params: StartSessionParams): Promise<SessionSummary> {
   const payload = await coreRequest<StartSessionPayload>('POST', '/v1/sessions', params)
+  return payload.session
+}
+
+export async function getSession(sessionId: string): Promise<SessionSummary> {
+  const payload = await coreRequest<GetSessionPayload>('GET', `/v1/sessions/${sessionId}`)
   return payload.session
 }
 
@@ -83,6 +96,14 @@ export async function startConversation(
     params,
   )
   return payload.conversation
+}
+
+export async function listSessionConversations(sessionId: string): Promise<ConversationSummary[]> {
+  const payload = await coreRequest<ListSessionConversationsPayload>(
+    'GET',
+    `/v1/sessions/${sessionId}/conversations`,
+  )
+  return payload.conversations
 }
 
 export async function getHistory(conversationId: string): Promise<GetHistoryResponse> {
