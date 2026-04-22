@@ -193,6 +193,7 @@ Represents one user run through one scenario.
 - **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
 - **Repository:** `PostgresSessionRepository`
 - **Status:** Fully implemented.
+- **Column note:** `active_avatar_id` is nullable and persisted for GM-driven default avatar routing.
 
 ### Notes
 
@@ -286,7 +287,35 @@ Avoid separate Exchange tables unless clearly needed later.
 
 ---
 
-## 7. SessionMemory
+## 7. GameMasterState (`gm_states`)
+
+Lightweight persisted per-session Game Master state used to keep progression continuity across turns and server restarts.
+
+### Fields
+
+- session_id (PK, FK → Session, ON DELETE CASCADE)
+- current_avatar_id (nullable)
+- progression
+- topics_covered (`TEXT[]`)
+- interaction_count
+- updated_at
+
+### Notes
+
+- Exactly one row per session (`session_id` is both PK and FK).
+- Deleting a session cascades and removes its GM state row.
+- Stores only the minimal `GameMasterState` persistence shape.
+
+### Implementation Status (EPIC 4.1)
+
+- **Table:** `gm_states`
+- **Schema source:** `infra/postgres/init.sql`
+- **Repository:** `PostgresGmStateRepository`
+- **Status:** Implemented.
+
+---
+
+## 8. SessionMemory
 
 Compact working memory for an active session.
 
@@ -314,7 +343,7 @@ This is the memory of the movie/playthrough as a whole.
 
 ---
 
-## 8. AvatarSessionMemory
+## 9. AvatarSessionMemory
 
 Compact working memory for one avatar inside one session.
 
@@ -356,7 +385,7 @@ For MVP, keep it compact:
 
 ---
 
-## 9. UserMemoryFact
+## 10. UserMemoryFact
 
 Persistent structured memory about a user.
 
@@ -384,7 +413,7 @@ This memory is cross-session and user-centric.
 
 ---
 
-## 10. KnowledgeSource
+## 11. KnowledgeSource
 
 A document or external source attached to a scenario.
 
@@ -411,7 +440,7 @@ An avatar may later use only part of the scenario knowledge, controlled by confi
 
 ---
 
-## 11. KnowledgeChunk
+## 12. KnowledgeChunk
 
 Searchable chunk used for retrieval.
 
@@ -429,7 +458,7 @@ Stored in PostgreSQL + pgvector.
 
 ---
 
-## 12. EventLog
+## 13. EventLog
 
 Operational events useful for debugging and metrics.
 
@@ -471,7 +500,7 @@ The `request_id` and `correlation_id` fields are essential for tracing failures 
 
 ---
 
-## 13. IngestionJob
+## 14. IngestionJob
 
 Tracks the lifecycle of a knowledge source ingestion job.
 
@@ -499,7 +528,7 @@ Admin API exposes these rows directly for inspection and manual retry.
 
 ---
 
-## 14. AdminActionLog
+## 15. AdminActionLog
 
 Audit trail of all admin actions taken through the admin API.
 
@@ -525,7 +554,7 @@ No PII in payload — store IDs and structured metadata only.
 
 ---
 
-## 15. AvatarTransitionRule
+## 16. AvatarTransitionRule
 
 Lightweight transition policy attached to a scenario.
 
@@ -550,7 +579,7 @@ Keep this simple in MVP.
 
 ---
 
-## 16. PromptTemplateVariable (Optional)
+## 17. PromptTemplateVariable (Optional)
 
 Reusable scenario-level variables injected into prompt/template fragments.
 
@@ -578,6 +607,7 @@ Use only when repeated prompt/template fragments need explicit editable variable
 - Scenario → Sessions (1:N)
 - Scenario → KnowledgeSources (1:N)
 - Session → Conversations (1:N)
+- Session → GameMasterState (1:1)
 - Conversation → Messages (1:N)
 - Session → SessionMemory (1:1)
 - Session → AvatarSessionMemories (1:N)

@@ -5,10 +5,12 @@ import type { ILlmAdapter } from '../application/ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../application/ports/IObservabilityAdapter.js'
 import type { IAvatarRepository } from '../application/ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../application/ports/IConversationRepository.js'
+import type { IGmStateRepository } from '../application/ports/IGmStateRepository.js'
 import type { IScenarioRepository } from '../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
 import type { Config } from '../config.js'
+import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
 import { avatarsRoute } from './routes/avatars.js'
 import { conversationsRoute } from './routes/conversations.js'
 import { exchangeRoute } from './routes/exchange.js'
@@ -21,6 +23,7 @@ export interface ServerAdapters {
   observabilityAdapter?: IObservabilityAdapter
   avatarRepository?: IAvatarRepository
   conversationRepository?: IConversationRepository
+  gmStateRepository?: IGmStateRepository
   scenarioRepository?: IScenarioRepository
   sessionRepository?: ISessionRepository
   messageRepository?: IMessageRepository
@@ -40,6 +43,11 @@ function isFastifyValidationError(
 }
 
 export function createServer(config: Config, adapters: ServerAdapters = {}): FastifyInstance {
+  const resolvedAdapters: ServerAdapters = {
+    ...adapters,
+    gmStateRepository: adapters.gmStateRepository ?? new InMemoryGmStateRepository(),
+  }
+
   const app = Fastify({
     logger: config.nodeEnv !== 'test' ? { level: config.logLevel } : false,
   })
@@ -57,30 +65,34 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   })
 
   app.register(healthRoute)
-  app.register(exchangeRoute, { config, ...adapters })
-  app.register(sessionsRoute, { prefix: '/v1/sessions', config, ...adapters })
-  app.register(conversationsRoute, { prefix: '/v1/conversations', config, ...adapters })
+  app.register(exchangeRoute, { config, ...resolvedAdapters })
+  app.register(sessionsRoute, { prefix: '/v1/sessions', config, ...resolvedAdapters })
+  app.register(conversationsRoute, {
+    prefix: '/v1/conversations',
+    config,
+    ...resolvedAdapters,
+  })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',
     config,
-    ...(adapters.scenarioRepository !== undefined
-      ? { scenarioRepository: adapters.scenarioRepository }
+    ...(resolvedAdapters.scenarioRepository !== undefined
+      ? { scenarioRepository: resolvedAdapters.scenarioRepository }
       : {}),
-    ...(adapters.avatarRepository !== undefined
-      ? { avatarRepository: adapters.avatarRepository }
+    ...(resolvedAdapters.avatarRepository !== undefined
+      ? { avatarRepository: resolvedAdapters.avatarRepository }
       : {}),
-    ...(adapters.sessionRepository !== undefined
-      ? { sessionRepository: adapters.sessionRepository }
+    ...(resolvedAdapters.sessionRepository !== undefined
+      ? { sessionRepository: resolvedAdapters.sessionRepository }
       : {}),
   })
   app.register(avatarsRoute, {
     prefix: '/v1/avatars',
     config,
-    ...(adapters.avatarRepository !== undefined
-      ? { avatarRepository: adapters.avatarRepository }
+    ...(resolvedAdapters.avatarRepository !== undefined
+      ? { avatarRepository: resolvedAdapters.avatarRepository }
       : {}),
-    ...(adapters.sessionRepository !== undefined
-      ? { sessionRepository: adapters.sessionRepository }
+    ...(resolvedAdapters.sessionRepository !== undefined
+      ? { sessionRepository: resolvedAdapters.sessionRepository }
       : {}),
   })
 

@@ -58,6 +58,17 @@ CREATE TABLE IF NOT EXISTS sessions (
   ended_at         TIMESTAMPTZ
 );
 
+-- ── Game Master States ────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS gm_states (
+  session_id        UUID        PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+  current_avatar_id TEXT,
+  progression       TEXT        NOT NULL DEFAULT '',
+  topics_covered    TEXT[]      NOT NULL DEFAULT '{}',
+  interaction_count INT         NOT NULL DEFAULT 0,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ── Conversations ─────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS conversations (

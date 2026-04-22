@@ -299,6 +299,7 @@ Test coverage hardening (post-EPIC 1.2):
 - LLM adapter layer (OpenAI, Anthropic, Mistral, Null)
 - Observability adapter layer (Langfuse, Console, Null)
 - Session + conversation lifecycle (session create/read, conversation start/list, message send/history by conversation)
+- GM state persistence (table `gm_states`, in-memory + Postgres repositories, adapter wiring)
 - Scenario management (create)
 - Scenario management (create, list, delete with dependency checks)
 - Avatar management (create, list-by-scenario, delete with active-session safety checks)
