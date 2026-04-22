@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentProps, JSX, RefObject } from 'react'
-import { getHistory, sendMessage, startConversation, startSession } from '../api'
+import { sendMessage, startConversation, startSession } from '../api'
 import { formatApiError } from '../api/error'
 import { DebugPanel } from '../components/DebugPanel'
 import type { DebugMetadata } from '../components/DebugPanel'
@@ -33,11 +33,10 @@ type LocalMessage = {
 
 const generateLocalMessageId = (): string => `local_${crypto.randomUUID()}`
 const isBlankMessage = (value: string): boolean => value.trim().length === 0
-type HistoryMessage = Awaited<ReturnType<typeof getHistory>>['messages'][number]
-const isChatHistoryMessage = (message: HistoryMessage): message is HistoryMessage & { role: 'user' | 'avatar' } =>
-  message.role === 'user' || message.role === 'avatar'
 
-const toLocalAvatarMetadata = (metadata: HistoryMessage['metadata']): DebugMetadata | undefined => {
+const toLocalAvatarMetadata = (
+  metadata: Awaited<ReturnType<typeof sendMessage>>['avatarMessage']['metadata'] | undefined,
+): DebugMetadata | undefined => {
   if (metadata === undefined) {
     return undefined
   }
@@ -48,22 +47,6 @@ const toLocalAvatarMetadata = (metadata: HistoryMessage['metadata']): DebugMetad
   if (typeof metadata.outputTokens === 'number') nextMetadata.outputTokens = metadata.outputTokens
   return Object.keys(nextMetadata).length > 0 ? nextMetadata : undefined
 }
-
-const mapHistoryToLocalMessages = (history: Awaited<ReturnType<typeof getHistory>>): LocalMessage[] =>
-  history.messages
-    .filter(isChatHistoryMessage)
-    .map((message) => {
-      const metadata = message.role === 'avatar' ? toLocalAvatarMetadata(message.metadata) : undefined
-      const baseMessage: LocalMessage = {
-        id: message.messageId,
-        role: message.role,
-        content: message.content,
-      }
-      if (metadata !== undefined) {
-        baseMessage.metadata = metadata
-      }
-      return baseMessage
-    })
 
 type StartSessionFormProps = {
   scenarioId: string
@@ -257,8 +240,7 @@ function useSessionPageController(
         onSessionIdChange(startedSession.sessionId)
         const startedConversation = await startConversation(startedSession.sessionId, { avatarId })
         setConversationId(startedConversation.conversationId)
-        const history = await getHistory(startedConversation.conversationId)
-        setMessages(mapHistoryToLocalMessages(history))
+        setMessages([])
       } catch (error) {
         setSubmitError(formatApiError(error, 'UNKNOWN_ERROR: Failed to start session'))
       } finally {

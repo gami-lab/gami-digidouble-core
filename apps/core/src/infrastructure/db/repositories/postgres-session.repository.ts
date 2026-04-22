@@ -62,9 +62,11 @@ export class PostgresSessionRepository implements ISessionRepository {
     }
     const hasEndedAtUpdate = Object.hasOwn(updates, 'endedAt')
     const endedAtValue = updates.endedAt === undefined ? null : new Date(updates.endedAt)
-    const activeAvatarUuid =
-      updates.activeAvatarId === undefined ? null : stripPrefix('avatar_', updates.activeAvatarId)
     const hasActiveAvatarUpdate = Object.hasOwn(updates, 'activeAvatarId')
+    const activeAvatarUuid =
+      hasActiveAvatarUpdate && updates.activeAvatarId !== undefined
+        ? stripPrefix('avatar_', updates.activeAvatarId)
+        : null
 
     const [row] = await this.sql<[SessionRow?]>`
       UPDATE sessions
