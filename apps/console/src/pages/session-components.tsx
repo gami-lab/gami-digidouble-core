@@ -46,8 +46,10 @@ type StartSessionSectionProps = {
   userId: string
   isStartingSession: boolean
   error: string | null
+  knownSessions?: SessionSummary[]
   onUserIdChange: (value: string) => void
   onSubmit: (event: FormSubmitEvent) => void
+  onSelectSession?: (sessionId: string) => void
 }
 
 export function StartSessionSection({
@@ -55,13 +57,50 @@ export function StartSessionSection({
   userId,
   isStartingSession,
   error,
+  knownSessions = [],
   onUserIdChange,
   onSubmit,
+  onSelectSession,
 }: StartSessionSectionProps): JSX.Element {
   return (
     <section style={sectionStyle}>
       <h2 style={{ marginTop: 0 }}>Session</h2>
       <p style={{ marginTop: 0, color: '#4b5563' }}>Scenario: {scenario.name}</p>
+
+      {knownSessions.length > 0 ? (
+        <>
+          <h3 style={{ marginTop: '16px' }}>Recent sessions</h3>
+          {knownSessions.map((session) => (
+            <div
+              key={session.sessionId}
+              style={{
+                ...cardStyle,
+                marginTop: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              <div style={{ fontSize: '13px' }}>
+                <strong>Session:</strong> {session.sessionId}
+              </div>
+              <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                User: {session.userId} · Status: {session.status}
+              </div>
+              <button
+                type="button"
+                style={{ ...buttonStyle, marginTop: '6px', alignSelf: 'flex-start' }}
+                onClick={() => {
+                  onSelectSession?.(session.sessionId)
+                }}
+              >
+                Resume session
+              </button>
+            </div>
+          ))}
+          <h3 style={{ marginTop: '24px' }}>Start new session</h3>
+        </>
+      ) : null}
 
       <form onSubmit={onSubmit}>
         <fieldset style={{ margin: 0, padding: 0, border: 'none' }} disabled={isStartingSession}>

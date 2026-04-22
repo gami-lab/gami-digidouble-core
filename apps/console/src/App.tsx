@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
 import { apiUrl } from './env'
-import type { AvatarSummary, ScenarioSummary } from './api'
-import { AvatarPage } from './pages/AvatarPage'
+import type { ScenarioSummary, SessionSummary } from './api'
 import { ScenarioPage } from './pages/ScenarioPage'
 import { SessionPage } from './pages/SessionPage'
 
-type Page = 'scenario' | 'avatar' | 'session'
+type Page = 'scenario' | 'session'
+
+const pageOrder: Page[] = ['scenario', 'session']
 
 type TestContext = {
   scenario: ScenarioSummary | null
-  avatar: AvatarSummary | null
   sessionId: string | null
 }
 
@@ -52,7 +52,6 @@ const breadcrumbInactiveStyle: CSSProperties = {
 
 const breadcrumbItems: Array<{ id: Page; label: string }> = [
   { id: 'scenario', label: 'Scenario' },
-  { id: 'avatar', label: 'Avatar' },
   { id: 'session', label: 'Session + Conversations' },
 ]
 
@@ -60,20 +59,20 @@ function App(): JSX.Element {
   const [page, setPage] = useState<Page>('scenario')
   const [testContext, setTestContext] = useState<TestContext>({
     scenario: null,
-    avatar: null,
     sessionId: null,
   })
+  const [knownSessions, setKnownSessions] = useState<SessionSummary[]>([])
 
   useEffect(() => {
-    if (page === 'avatar' && testContext.scenario === null) {
-      setPage('scenario')
-      return
-    }
-
     if (page === 'session' && testContext.scenario === null) {
       setPage('scenario')
     }
   }, [page, testContext.scenario])
+
+  const scenarioSessions = useMemo(
+    () => knownSessions.filter((s) => s.scenarioId === testContext.scenario?.scenarioId),
+    [knownSessions, testContext.scenario?.scenarioId],
+  )
 
   const currentBody = useMemo((): JSX.Element => {
     if (page === 'scenario') {
@@ -81,26 +80,8 @@ function App(): JSX.Element {
         <ScenarioPage
           selectedScenarioId={testContext.scenario?.scenarioId ?? null}
           onScenarioSelected={(scenario) => {
-            setTestContext({ scenario, avatar: null, sessionId: null })
-          }}
-          onNext={() => {
-            setPage('avatar')
-          }}
-        />
-      )
-    }
-
-    if (page === 'avatar') {
-      if (testContext.scenario === null) {
-        return <p>Redirecting to scenario setup…</p>
-      }
-
-      return (
-        <AvatarPage
-          scenarioId={testContext.scenario.scenarioId}
-          selectedAvatarId={testContext.avatar?.avatarId ?? null}
-          onAvatarSelected={(avatar) => {
-            setTestContext((previous) => ({ ...previous, avatar, sessionId: null }))
+            setTestContext({ scenario, sessionId: null })
+            setKnownSessions([])
           }}
           onNext={() => {
             setPage('session')
@@ -116,14 +97,30 @@ function App(): JSX.Element {
     return (
       <SessionPage
         scenario={testContext.scenario}
-        initialAvatar={testContext.avatar}
+        initialAvatar={null}
         sessionId={testContext.sessionId}
+        knownSessions={scenarioSessions}
         onSessionIdChange={(sessionId) => {
           setTestContext((previous) => ({ ...previous, sessionId }))
         }}
+        onSessionStarted={(session) => {
+          setTestContext((previous) => ({ ...previous, sessionId: session.sessionId }))
+          setKnownSessions((previous) => {
+            if (previous.some((s) => s.sessionId === session.sessionId)) return previous
+            return [session, ...previous]
+          })
+        }}
       />
     )
-  }, [page, testContext.avatar, testContext.scenario, testContext.sessionId])
+  }, [page, testContext.scenario, testContext.sessionId, scenarioSessions])
+
+  function handleBreadcrumbClick(targetPage: Page): void {
+    const targetIndex = pageOrder.indexOf(targetPage)
+    const currentIndex = pageOrder.indexOf(page)
+    if (targetIndex < currentIndex) {
+      setPage(targetPage)
+    }
+  }
 
   return (
     <main style={appContainerStyle}>
@@ -133,22 +130,49 @@ function App(): JSX.Element {
         <p style={{ marginTop: 0, color: '#4b5563' }}>
           Session = global run. Conversation = one avatar thread inside that session.
         </p>
-
-        <nav style={breadcrumbStyle} aria-label="Page flow">
-          {breadcrumbItems.map((item, index) => (
-            <span
-              key={item.id}
-              style={item.id === page ? breadcrumbActiveStyle : breadcrumbInactiveStyle}
-            >
-              {item.label}
-              {index < breadcrumbItems.length - 1 ? ' →' : ''}
-            </span>
-          ))}
-        </nav>
-
+        <Breadcrumb activePage={page} onNavigate={handleBreadcrumbClick} />
         {currentBody}
       </section>
     </main>
+  )
+}
+
+type BreadcrumbProps = { activePage: Page; onNavigate: (page: Page) => void }
+
+function Breadcrumb({ activePage, onNavigate }: BreadcrumbProps): JSX.Element {
+  const currentIndex = pageOrder.indexOf(activePage)
+  return (
+    <nav style={breadcrumbStyle} aria-label="Page flow">
+      {breadcrumbItems.map((item, index) => {
+        const itemIndex = pageOrder.indexOf(item.id)
+        const isActive = item.id === activePage
+        const isClickable = itemIndex < currentIndex
+        return (
+          <span key={item.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            {isClickable ? (
+              <button
+                type="button"
+                onClick={() => { onNavigate(item.id) }}
+                style={{
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  fontWeight: 600, color: '#3b82f6', fontFamily: 'inherit',
+                  fontSize: 'inherit', textDecoration: 'underline',
+                }}
+              >
+                {item.label}
+              </button>
+            ) : (
+              <span style={isActive ? breadcrumbActiveStyle : breadcrumbInactiveStyle}>
+                {item.label}
+              </span>
+            )}
+            {index < breadcrumbItems.length - 1 ? (
+              <span style={{ color: '#9ca3af', fontWeight: 600 }}>→</span>
+            ) : null}
+          </span>
+        )
+      })}
+    </nav>
   )
 }
 

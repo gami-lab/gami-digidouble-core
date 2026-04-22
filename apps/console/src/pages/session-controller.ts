@@ -9,7 +9,13 @@ import {
   startConversation,
   startSession,
 } from '../api'
-import type { AvatarSummary, ConversationSummary, Message, ScenarioSummary } from '../api'
+import type {
+  AvatarSummary,
+  ConversationSummary,
+  Message,
+  ScenarioSummary,
+  SessionSummary,
+} from '../api'
 import { formatApiError } from '../api/error'
 import {
   addOrUpdateConversation,
@@ -89,6 +95,7 @@ export function useSessionPageController(
   initialAvatar: AvatarSummary | null,
   sessionId: string | null,
   onSessionIdChange: (sessionId: string | null) => void,
+  onSessionStarted?: (session: SessionSummary) => void,
 ): SessionPageController {
   const ui = useSessionControllerState(initialAvatar, sessionId)
 
@@ -126,6 +133,7 @@ export function useSessionPageController(
       ui.setSubmitError,
       ui.setIsStartingSession,
       ui.setState,
+      onSessionStarted,
     ),
     handleStartConversation: buildStartConversationHandler(
       ui.activeSessionId,
@@ -234,6 +242,7 @@ function buildStartSessionHandler(
   setSubmitError: (value: string | null) => void,
   setIsStartingSession: (value: boolean) => void,
   setState: Dispatch<SetStateAction<SessionConsoleState>>,
+  onSessionStarted?: (session: SessionSummary) => void,
 ): (event: FormSubmitEvent) => void {
   return (event: FormSubmitEvent): void => {
     event.preventDefault()
@@ -244,6 +253,7 @@ function buildStartSessionHandler(
       try {
         const startedSession = await startSession({ scenarioId: scenario.scenarioId, userId })
         onSessionIdChange(startedSession.sessionId)
+        onSessionStarted?.(startedSession)
         setState(withSession(createInitialSessionConsoleState(), startedSession))
       } catch (error) {
         setSubmitError(formatApiError(error, 'UNKNOWN_ERROR: Failed to start session'))
