@@ -9,6 +9,7 @@ import type { IGmStateRepository } from '../application/ports/IGmStateRepository
 import type { IScenarioRepository } from '../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
+import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { Config } from '../config.js'
 import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
 import { avatarsRoute } from './routes/avatars.js'
@@ -24,6 +25,7 @@ export interface ServerAdapters {
   avatarRepository?: IAvatarRepository
   conversationRepository?: IConversationRepository
   gmStateRepository?: IGmStateRepository
+  runGameMasterUseCase?: RunGameMasterUseCase
   scenarioRepository?: IScenarioRepository
   sessionRepository?: ISessionRepository
   messageRepository?: IMessageRepository

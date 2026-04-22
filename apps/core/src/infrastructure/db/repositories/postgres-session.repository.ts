@@ -12,6 +12,7 @@ interface SessionRow {
   user_id: string
   scenario_id: string
   active_avatar_id: string | null
+  gm_notes: string | null
   status: string
   started_at: Date
   last_activity_at: Date
@@ -24,6 +25,7 @@ function rowToSession(row: SessionRow): Session {
     userId: row.user_id,
     scenarioId: `scenario_${row.scenario_id}`,
     ...(row.active_avatar_id !== null ? { activeAvatarId: `avatar_${row.active_avatar_id}` } : {}),
+    ...(row.gm_notes !== null ? { gmNotes: row.gm_notes } : {}),
     status: row.status as Session['status'],
     startedAt: row.started_at.toISOString(),
     lastActivityAt: row.last_activity_at.toISOString(),
@@ -39,7 +41,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     const [row] = await this.sql<[SessionRow]>`
       INSERT INTO sessions (user_id, scenario_id, active_avatar_id)
       VALUES (${params.userId}, ${scenarioUuid}, NULL)
-      RETURNING id, user_id, scenario_id, active_avatar_id, status, started_at, last_activity_at, ended_at
+      RETURNING id, user_id, scenario_id, active_avatar_id, gm_notes, status, started_at, last_activity_at, ended_at
     `
     return rowToSession(row)
   }
@@ -48,7 +50,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     const uuid = extractUuid('session_', sessionId)
     if (uuid === null) return null
     const [row] = await this.sql<[SessionRow?]>`
-      SELECT id, user_id, scenario_id, active_avatar_id, status, started_at, last_activity_at, ended_at
+      SELECT id, user_id, scenario_id, active_avatar_id, gm_notes, status, started_at, last_activity_at, ended_at
       FROM sessions
       WHERE id = ${uuid}
     `
@@ -67,6 +69,8 @@ export class PostgresSessionRepository implements ISessionRepository {
       hasActiveAvatarUpdate && updates.activeAvatarId !== undefined
         ? stripPrefix('avatar_', updates.activeAvatarId)
         : null
+    const hasGmNotesUpdate = Object.hasOwn(updates, 'gmNotes')
+    const gmNotesValue = updates.gmNotes ?? null
 
     const [row] = await this.sql<[SessionRow?]>`
       UPDATE sessions
@@ -83,9 +87,13 @@ export class PostgresSessionRepository implements ISessionRepository {
         active_avatar_id = CASE
           WHEN ${hasActiveAvatarUpdate}::BOOLEAN THEN ${activeAvatarUuid}::UUID
           ELSE active_avatar_id
+        END,
+        gm_notes = CASE
+          WHEN ${hasGmNotesUpdate}::BOOLEAN THEN ${gmNotesValue}::TEXT
+          ELSE gm_notes
         END
       WHERE id = ${uuid}
-      RETURNING id, user_id, scenario_id, active_avatar_id, status, started_at, last_activity_at, ended_at
+      RETURNING id, user_id, scenario_id, active_avatar_id, gm_notes, status, started_at, last_activity_at, ended_at
     `
 
     if (!row) {

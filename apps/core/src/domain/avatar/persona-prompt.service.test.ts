@@ -113,3 +113,15 @@ describe('assemblePersonaPrompt -> determinism', () => {
     expect(second).toBe(third)
   })
 })
+
+describe('assemblePersonaPrompt -> gm notes', () => {
+  it('appends director notes when gmNotes is provided', () => {
+    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
+
+    const prompt = assemblePersonaPrompt(config, {
+      gmNotes: 'Steer the user toward practical examples.',
+    })
+
+    expect(prompt).toContain('Director notes: Steer the user toward practical examples.')
+  })
+})

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
+import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
 
 const findSessionByIdMock = vi.fn()
@@ -13,6 +14,7 @@ const saveMessageMock = vi.fn()
 const completeMock = vi.fn()
 const traceMock = vi.fn()
 const flushMock = vi.fn()
+const runGameMasterExecuteMock = vi.fn()
 
 const sessionRepository = {
   findById: findSessionByIdMock,
@@ -85,7 +87,10 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   }
 }
 
-function createUseCase(): SendMessageUseCase {
+function createUseCase(withRunGameMaster = false): SendMessageUseCase {
+  const runGameMasterUseCase = withRunGameMaster
+    ? ({ execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase)
+    : null
   return new SendMessageUseCase(
     sessionRepository,
     conversationRepository,
@@ -93,6 +98,7 @@ function createUseCase(): SendMessageUseCase {
     messageRepository,
     llm,
     observability,
+    runGameMasterUseCase,
   )
 }
 
@@ -107,6 +113,7 @@ beforeEach(() => {
   completeMock.mockReset()
   traceMock.mockReset()
   flushMock.mockReset()
+  runGameMasterExecuteMock.mockReset()
 
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession())
@@ -124,6 +131,7 @@ beforeEach(() => {
   })
   traceMock.mockResolvedValue(undefined)
   flushMock.mockResolvedValue(undefined)
+  runGameMasterExecuteMock.mockResolvedValue(undefined)
 })
 
 describe('SendMessageUseCase', () => {
@@ -160,5 +168,41 @@ describe('SendMessageUseCase', () => {
     await expect(
       useCase.execute({ conversationId: 'conversation_missing', userMessage: 'Hello' }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  it('injects gmNotes into persona system prompt when present on session', async () => {
+    const useCase = createUseCase()
+    findSessionByIdMock.mockResolvedValue(
+      makeSession({ gmNotes: 'Push user deeper into examples.' }),
+    )
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    const llmRequestUnknown: unknown = completeMock.mock.calls[0]?.[0]
+    if (
+      typeof llmRequestUnknown !== 'object' ||
+      llmRequestUnknown === null ||
+      typeof (llmRequestUnknown as { systemPrompt?: unknown }).systemPrompt !== 'string'
+    ) {
+      throw new Error('Expected llm request with a string systemPrompt')
+    }
+    const llmRequest = llmRequestUnknown as { systemPrompt: string }
+    expect(llmRequest.systemPrompt).toContain('Director notes: Push user deeper into examples.')
+  })
+
+  it('fires run game master in the background when dependency is provided', async () => {
+    const useCase = createUseCase(true)
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    expect(runGameMasterExecuteMock).toHaveBeenCalledTimes(1)
+    expect(runGameMasterExecuteMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'session_1',
+        scenarioId: 'scenario_1',
+        avatarId: 'avatar_1',
+        userMessageText: 'Hello',
+      }),
+    )
   })
 })

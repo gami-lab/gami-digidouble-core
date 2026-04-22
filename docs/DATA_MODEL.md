@@ -182,6 +182,7 @@ Represents one user run through one scenario.
 - user_id
 - scenario_id
 - active_avatar_id (nullable, FK → Avatar)
+- gm_notes (nullable, director guidance for next avatar turn)
 - status (active / closed / archived)
 - started_at
 - last_activity_at
@@ -194,6 +195,7 @@ Represents one user run through one scenario.
 - **Repository:** `PostgresSessionRepository`
 - **Status:** Fully implemented.
 - **Column note:** `active_avatar_id` is nullable and persisted for GM-driven default avatar routing.
+- **Column note:** `gm_notes` stores latest Game Master guidance injected into the next avatar system prompt.
 
 ### Notes
 

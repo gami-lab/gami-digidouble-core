@@ -404,49 +404,45 @@ State:
 
 # 12. Implementation Guidance (MVP)
 
-Start extremely simple.
+The current MVP implementation runs GM as an async observer after each avatar turn.
 
-## Step 1 — No GM during live turns
+## 12.1 Runtime flow (`RunGameMasterUseCase`)
 
-- Avatar answers directly
-- GM only used at session start
+1. Load state from `IGmStateRepository.findBySessionId(sessionId)`; if missing, initialize:
+   - `progression: ''`
+   - `topicsCovered: []`
+   - `interactionCount: 0`
+2. Evaluate deterministic triggers with `evaluateTriggers(state, policy?)`.
+3. If no trigger:
+   - increment `interactionCount`
+   - persist state
+   - leave session GM notes unchanged
+4. If a trigger fires:
+   - build `GameMasterInput` (session, user message, state, scenario/avatar context)
+   - call LLM via `ILlmAdapter.complete()`
+   - parse JSON into `GameMasterOutput`
+   - apply reducer (`reduceGmState`) and persist state
+   - store `output.context.notes` into session-level GM notes when provided
+   - update `session.activeAvatarId` when `stateUpdate.activeAvatarId` changes
+5. GM errors must not break user response path; in message flow the GM call is fire-and-forget with error catch.
 
-## Step 2 — Add background observer
+## 12.2 GM system prompt structure (MVP)
 
-Every N turns or every X seconds:
+The GM system prompt is intentionally short and role-focused:
 
-- inspect conversation
-- optionally produce new context notes
+- define GM as a silent director (not a chat responder)
+- require valid JSON-only output matching `GameMasterOutput`
+- constrain `context.notes` to one concise sentence
+- allow avatar selection only from provided `availableAvatars`
 
-## Step 3 — Trigger examples
+No scenario-specific content is hard-coded into the system prompt.
 
-- after 5 interactions
-- topic repeated too often
-- progression stalled
-- user reached milestone
+## 12.3 Session guidance notes storage decision
 
-## Step 4 — Keep reducer simple
+For MVP, guidance notes are stored on `sessions.gm_notes` (TEXT).
+The Avatar prompt assembler appends these notes on the next turn as:
 
-```ts
-state.interactionCount += 1
-if (gm.progression === 'increase') state.progression += 1
-if (gm.topicCovered) state.topicsCovered.push(gm.topicCovered)
-```
-
-## Step 5 — Observability from day 1
-
-Track:
-
-- prompt
-  n- completion
-- latency
-- tokens
-- cost
-- feedback thumbs up/down
-
-Optional later:
-
-- quality reviewer LLM on sample conversations
+- `Director notes: <gm_notes>`
 
 ---
 
