@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 21, 2026
+**Last updated:** April 22, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -242,12 +242,12 @@ Test coverage hardening (post-EPIC 1.2):
 
 ### Sprint 2 — First Usable Product Slice
 
-| Epic                                       | Status       | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------------------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EPIC 2.1 — Avatar Agent v1                 | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained.                                                                                                                              |
-| EPIC 2.2 — Scenario & Session Lifecycle v1 | **Complete** | POST /v1/scenarios, GET /v1/scenarios, POST /v1/scenarios/:scenarioId/avatars, GET /v1/scenarios/:scenarioId/avatars, DELETE /v1/avatars/:avatarId, DELETE /v1/scenarios/:scenarioId, plus refactored session/conversation lifecycle routes (`POST /v1/sessions`, `POST /v1/sessions/:sessionId/conversations`, `POST /v1/conversations/:conversationId/messages`, `GET /v1/conversations/:conversationId/history`, `GET /v1/sessions/:sessionId/conversations`).          |
-| EPIC 2.3 — Persistence Layer v1            | **Complete** | Postgres repository adapters (Scenario, Avatar, Session, Message), DB schema migrations, connection pooling. Replaces all in-memory stubs in production. Fixes AvatarConfig timestamp gap from EPIC 2.2.                                                                                                                                                                                                                                                                   |
-| EPIC 2.4 — Manual Test Console v1          | **Complete** | `@gami/console` delivered with health check, scenario/avatar creation, session start/chat/history/reset, per-avatar-message debug metadata panel (`model`, `latencyMs`, `inputTokens`, `outputTokens`), and global React `ErrorBoundary` with reload fallback. Post-audit remediation applied: `@gami/shared` import path corrected to use workspace package, `avatarId` made required in `SendMessageParams`, CORS dependency documented, `apps/console/README.md` added. |
+| Epic                                       | Status       | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EPIC 2.1 — Avatar Agent v1                 | **Complete** | Prompt 01–06 delivered. Post-audit remediation applied: `adjustments?: string[]` typed field on `AvatarConfig` (replacing untyped magic key), `SendMessageOutput` now carries session summary (eliminates second DB read in route), demo/fixture data removed from production route defaults. Test suite: 94 passing, coverage gate retained.                                                                                                                     |
+| EPIC 2.2 — Scenario & Session Lifecycle v1 | **Complete** | POST /v1/scenarios, GET /v1/scenarios, POST /v1/scenarios/:scenarioId/avatars, GET /v1/scenarios/:scenarioId/avatars, DELETE /v1/avatars/:avatarId, DELETE /v1/scenarios/:scenarioId, plus refactored session/conversation lifecycle routes (`POST /v1/sessions`, `POST /v1/sessions/:sessionId/conversations`, `POST /v1/conversations/:conversationId/messages`, `GET /v1/conversations/:conversationId/history`, `GET /v1/sessions/:sessionId/conversations`). |
+| EPIC 2.3 — Persistence Layer v1            | **Complete** | Postgres repository adapters (Scenario, Avatar, Session, Message), DB schema migrations, connection pooling. Replaces all in-memory stubs in production. Fixes AvatarConfig timestamp gap from EPIC 2.2.                                                                                                                                                                                                                                                          |
+| EPIC 2.4 — Manual Test Console v1          | **Complete** | `@gami/console` now reflects the refactored Session/Conversation model: scenario select/create, avatar select/create, session detail, explicit conversation-start actions, session conversation list, conversation-scoped history, and conversation-level send-message flow (`/v1/conversations/:conversationId/messages`). Includes state-transition tests for multi-conversation-per-avatar behavior and history isolation, plus updated console docs.          |
 
 ### Sprint O — Operations / Control Plane
 
@@ -303,10 +303,11 @@ Test coverage hardening (post-EPIC 1.2):
 - Scenario management (create, list, delete with dependency checks)
 - Avatar management (create, list-by-scenario, delete with active-session safety checks)
 - Manual Test Console scaffold (`apps/console`) with API connectivity check (`GET /health`)
-- Manual Test Console API client layer (`apps/console/src/api`) for create scenario/avatar, start/send/history/reset flows
-- Manual Test Console scenario/avatar management pages (`apps/console/src/pages/ScenarioPage.tsx`, `AvatarPage.tsx`) with sequential progression and context capture
-- Manual Test Console session/chat page (`apps/console/src/pages/SessionPage.tsx`) with session start, history load, send-message loop, pending avatar placeholder, and reset flow
+- Manual Test Console API client layer (`apps/console/src/api`) for scenario/avatar list+create, session create/read, conversation start/list/history, and conversation message send
+- Manual Test Console scenario/avatar management pages (`apps/console/src/pages/ScenarioPage.tsx`, `AvatarPage.tsx`) with explicit create-or-select flow
+- Manual Test Console session page (`apps/console/src/pages/SessionPage.tsx`) with session metadata, explicit conversation start CTAs, session conversation list, open-previous-conversation flow, and conversation-scoped chat history
 - Per-avatar-message debug metadata panel for `model`, `latencyMs`, `inputTokens`, and `outputTokens` when present
+- Console state/model transition tests for distinct conversations per avatar and selected-conversation history isolation (`apps/console/src/pages/session-state.test.ts`)
 - Global UI `ErrorBoundary` fallback for unhandled render errors with explicit reload action
 
 **Persistence Layer (EPIC 2.3):**

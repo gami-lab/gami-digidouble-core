@@ -151,3 +151,18 @@ When done, provide:
 3. tests added/updated
 4. docs updated
 5. any remaining console limitations
+
+---
+
+## Implementation sync note (April 22, 2026)
+
+The manual test console has been updated to align with the refactored backend model:
+
+- scenario create/select and avatar create/select flows are explicit
+- session detail now shows session metadata + session conversation list
+- conversation actions are explicit:
+  - Start conversation with avatar
+  - Start new conversation with this avatar
+  - Open previous conversation
+- message send/history is fully conversation-scoped (`conversationId`)
+- conversation state transitions now have Vitest coverage in `apps/console/src/pages/session-state.test.ts`

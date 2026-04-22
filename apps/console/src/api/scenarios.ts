@@ -49,6 +49,27 @@ type CreateAvatarPayload = {
   avatar: AvatarSummary
 }
 
+type ListScenariosPayload = {
+  scenarios: ScenarioSummary[]
+}
+
+type ListScenarioAvatarsPayload = {
+  avatars: AvatarSummary[]
+}
+
+export async function listScenarios(): Promise<ScenarioSummary[]> {
+  const payload = await coreRequest<ListScenariosPayload>('GET', '/v1/scenarios')
+  return payload.scenarios
+}
+
+export async function listScenarioAvatars(scenarioId: string): Promise<AvatarSummary[]> {
+  const payload = await coreRequest<ListScenarioAvatarsPayload>(
+    'GET',
+    `/v1/scenarios/${scenarioId}/avatars`,
+  )
+  return payload.avatars
+}
+
 export async function createScenario(
   params: CreateScenarioParams,
 ): Promise<CreateScenarioPayload['scenario']> {
