@@ -8,6 +8,7 @@ import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
+import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
 
 const MESSAGE_HISTORY_LIMIT = 20
@@ -20,6 +21,7 @@ export class SendMessageUseCase {
     private readonly messageRepository: IMessageRepository,
     private readonly llm: ILlmAdapter,
     private readonly observability: IObservabilityAdapter,
+    private readonly runGameMasterUseCase: RunGameMasterUseCase | null = null,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -31,7 +33,10 @@ export class SendMessageUseCase {
     const conversation = await this.loadActiveConversation(input.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
-    const systemPrompt = assemblePersonaPrompt(avatar)
+    const systemPrompt = assemblePersonaPrompt(
+      avatar,
+      session.gmNotes !== undefined ? { gmNotes: session.gmNotes } : undefined,
+    )
     const historyMessages = await this.buildHistoryMessages(conversation.conversationId)
     const userMessage = await this.persistUserMessage(
       conversation.conversationId,
@@ -48,7 +53,27 @@ export class SendMessageUseCase {
     await this.conversationRepository.update(conversation.conversationId, { lastActivityAt: now })
     await this.sessionRepository.update(session.sessionId, { lastActivityAt: now })
 
-    // TODO(EPIC-4.1): trigger GM observation
+    if (this.runGameMasterUseCase !== null) {
+      const nextTurnIndex = historyMessages.filter((message) => message.role === 'user').length + 1
+      void this.runGameMasterUseCase
+        .execute({
+          sessionId: session.sessionId,
+          scenarioId: session.scenarioId,
+          avatarId: conversation.avatarId,
+          userMessageText: input.userMessage,
+          turnIndex: nextTurnIndex,
+          correlationId: requestId,
+        })
+        .catch((err: unknown) => {
+          console.error(
+            '[GM] Background execution failed for session:',
+            session.sessionId,
+            'correlationId:',
+            requestId,
+            err,
+          )
+        })
+    }
 
     const latencyMs = Date.now() - start
     this.traceNonBlocking(requestId, session.sessionId, llmRequest.messages, response, latencyMs)

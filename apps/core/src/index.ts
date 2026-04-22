@@ -1,6 +1,8 @@
 import { loadConfig } from './config.js'
 import { createServer } from './api/server.js'
+import { RunGameMasterUseCase } from './application/use-cases/run-game-master/run-game-master.use-case.js'
 import { createObservabilityAdapter } from './infrastructure/observability/index.js'
+import { createLlmAdapter } from './infrastructure/llm/index.js'
 import {
   getDbClient,
   closeDbClient,
@@ -15,16 +17,36 @@ import {
 async function main(): Promise<void> {
   const config = loadConfig()
   const observability = createObservabilityAdapter(config)
+  const llmAdapter = createLlmAdapter({
+    provider: config.llmProvider,
+    ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
+    ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
+    ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
+  })
   const sql = getDbClient(config.databaseUrl)
+  const scenarioRepository = new PostgresScenarioRepository(sql)
+  const gmStateRepository = new PostgresGmStateRepository(sql)
+  const sessionRepository = new PostgresSessionRepository(sql)
+  const avatarRepository = new PostgresAvatarRepository(sql)
+  const runGameMasterUseCase = new RunGameMasterUseCase(
+    gmStateRepository,
+    sessionRepository,
+    avatarRepository,
+    llmAdapter,
+    observability,
+    scenarioRepository,
+  )
 
   const adapters = {
+    llmAdapter,
     observabilityAdapter: observability,
-    scenarioRepository: new PostgresScenarioRepository(sql),
-    avatarRepository: new PostgresAvatarRepository(sql),
-    gmStateRepository: new PostgresGmStateRepository(sql),
-    sessionRepository: new PostgresSessionRepository(sql),
+    scenarioRepository,
+    avatarRepository,
+    gmStateRepository,
+    sessionRepository,
     conversationRepository: new PostgresConversationRepository(sql),
     messageRepository: new PostgresMessageRepository(sql),
+    runGameMasterUseCase,
   }
   const server = createServer(config, adapters)
 

@@ -31,18 +31,31 @@ export interface GameMasterInput {
     experience: {
       scenarioId: string
       description?: string
+      goals?: string[]
     }
     availableAvatars: Array<{
       avatarId: string
       name: string
       description?: string
     }>
+    policy?: {
+      turnThreshold?: number
+      maxTopicRepeatCount?: number
+      maxTurnsWithoutProgression?: number
+    }
   }
 }
 
 /** Decision output produced by the GM. */
 export interface GameMasterOutput {
   avatarId: string
+  nextAvatarId?: string
+  transitionReason?: string
+  recommendedChoices?: Array<{
+    id: string
+    label: string
+  }>
+  contentTrigger?: string
   conversationMode: 'new' | 'continue'
   context?: {
     /** Freeform guidance note injected into the Avatar's next context. */
@@ -51,6 +64,7 @@ export interface GameMasterOutput {
   stateUpdate: {
     progression?: 'none' | 'increase'
     topicCovered?: string
+    activeAvatarId?: string
     /** Always 1 — increment applied by the state reducer. */
     interactionIncrement: 1
   }

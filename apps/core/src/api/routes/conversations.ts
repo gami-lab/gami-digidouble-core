@@ -7,6 +7,7 @@ import type { IMessageRepository } from '../../application/ports/IMessageReposit
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
+import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
 import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
 import type { SendMessageOutput } from '../../application/use-cases/send-message/send-message.types.js'
@@ -29,6 +30,7 @@ type ConversationsRouteOptions = {
   sessionRepository?: ISessionRepository
   conversationRepository?: IConversationRepository
   messageRepository?: IMessageRepository
+  runGameMasterUseCase?: RunGameMasterUseCase
 }
 
 type ConversationParams = { conversationId: string }
@@ -196,6 +198,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       messageRepository,
       llmAdapter,
       observabilityAdapter,
+      options.runGameMasterUseCase ?? null,
     ),
   }
 }

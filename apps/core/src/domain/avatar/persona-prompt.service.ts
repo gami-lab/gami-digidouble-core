@@ -2,7 +2,7 @@ import type { AvatarConfig } from './avatar.types.js'
 
 const DEFAULT_STYLE_RULE = 'Stay in character and keep responses concise.'
 
-export function assemblePersonaPrompt(config: AvatarConfig): string {
+export function assemblePersonaPrompt(config: AvatarConfig, opts?: { gmNotes?: string }): string {
   const personaPrompt = requirePersonaPrompt(config.personaPrompt)
   const sections: string[] = [personaPrompt]
 
@@ -18,6 +18,9 @@ export function assemblePersonaPrompt(config: AvatarConfig): string {
 
   // EPIC 2.2 extension point: inject async Game Master directives here.
   sections.push(DEFAULT_STYLE_RULE)
+  if (hasText(opts?.gmNotes)) {
+    sections.push(`Director notes: ${opts.gmNotes.trim()}`)
+  }
   return sections.join('\n\n')
 }
 
