@@ -3,6 +3,7 @@
 // Postgres repositories are wired in production via apps/core/src/index.ts.
 export { InMemoryAvatarRepository } from './in-memory-avatar.repository.js'
 export { InMemoryGmStateRepository } from './in-memory-gm-state.repository.js'
+export { InMemoryEventLogRepository } from './in-memory-event-log.repository.js'
 export { InMemorySessionRepository } from './in-memory-session.repository.js'
 export { InMemoryMessageRepository } from './in-memory-message.repository.js'
 export { InMemoryScenarioRepository } from './in-memory-scenario.repository.js'
@@ -12,5 +13,6 @@ export { PostgresGmStateRepository } from './repositories/postgres-gm-state.repo
 export { PostgresSessionRepository } from './repositories/postgres-session.repository.js'
 export { PostgresConversationRepository } from './repositories/postgres-conversation.repository.js'
 export { PostgresMessageRepository } from './repositories/postgres-message.repository.js'
+export { PostgresEventLogRepository } from './repositories/postgres-event-log.repository.js'
 export { InMemoryConversationRepository } from './in-memory-conversation.repository.js'
 export { getDbClient, closeDbClient } from './client.js'

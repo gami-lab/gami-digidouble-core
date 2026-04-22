@@ -498,6 +498,15 @@ Operational events useful for debugging and metrics.
 
 Use only events that are actually useful.
 
+### Implementation Status
+
+- **Table:** `event_log` created in `infra/postgres/init.sql` with indexes on `session_id` and `type`
+- **Port:** `IEventLogRepository` in `apps/core/src/application/ports/IEventLogRepository.ts`
+- **In-memory:** `InMemoryEventLogRepository` in `apps/core/src/infrastructure/db/in-memory-event-log.repository.ts`
+- **Postgres:** `PostgresEventLogRepository` in `apps/core/src/infrastructure/db/repositories/postgres-event-log.repository.ts`
+- **Domain type:** `GameMasterEvent` added to `apps/core/src/domain/game-master/game-master.types.ts`
+- GM emits `gm_triggered` and `gm_skipped` events on every run via `RunGameMasterUseCase`
+
 The `request_id` and `correlation_id` fields are essential for tracing failures across async flows without requiring a full distributed tracing stack.
 
 ---

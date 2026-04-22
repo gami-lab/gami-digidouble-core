@@ -69,3 +69,42 @@ export interface GameMasterOutput {
     interactionIncrement: 1
   }
 }
+
+/** Structured diagnostic event emitted by the GM for every run (triggered or skipped). */
+export type GameMasterEvent = {
+  type: 'gm_triggered' | 'gm_skipped'
+  severity: 'info'
+  /** Shared with the originating user turn. */
+  correlationId: string
+  requestId?: string
+  payload: {
+    triggerReason:
+      | 'session_start'
+      | 'turn_threshold'
+      | 'topic_repeat'
+      | 'progression_stalled'
+      | 'manual'
+      | null
+    turnIndex: number
+    interactionCount: number
+    stateBefore: {
+      currentAvatarId?: string
+      progression: string
+      topicsCovered: string[]
+    }
+    decision?: {
+      avatarId: string
+      conversationMode: 'new' | 'continue'
+      notesInjected: boolean
+      directiveCount: number
+    }
+    stateAfter?: {
+      currentAvatarId?: string
+      progression: string
+      topicsCovered: string[]
+    }
+    latencyMs: number
+    inputTokens?: number
+    outputTokens?: number
+  }
+}

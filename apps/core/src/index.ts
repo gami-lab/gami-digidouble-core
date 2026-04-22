@@ -8,6 +8,7 @@ import {
   closeDbClient,
   PostgresScenarioRepository,
   PostgresAvatarRepository,
+  PostgresEventLogRepository,
   PostgresGmStateRepository,
   PostgresSessionRepository,
   PostgresConversationRepository,
@@ -28,6 +29,7 @@ async function main(): Promise<void> {
   const gmStateRepository = new PostgresGmStateRepository(sql)
   const sessionRepository = new PostgresSessionRepository(sql)
   const avatarRepository = new PostgresAvatarRepository(sql)
+  const eventLogRepository = new PostgresEventLogRepository(sql)
   const runGameMasterUseCase = new RunGameMasterUseCase(
     gmStateRepository,
     sessionRepository,
@@ -35,6 +37,7 @@ async function main(): Promise<void> {
     llmAdapter,
     observability,
     scenarioRepository,
+    eventLogRepository,
   )
 
   const adapters = {
@@ -42,6 +45,7 @@ async function main(): Promise<void> {
     observabilityAdapter: observability,
     scenarioRepository,
     avatarRepository,
+    eventLogRepository,
     gmStateRepository,
     sessionRepository,
     conversationRepository: new PostgresConversationRepository(sql),
