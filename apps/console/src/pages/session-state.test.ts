@@ -55,7 +55,7 @@ function makeMessage(
   }
 }
 
-describe('session-state', () => {
+describe('session-state distinct avatar conversations', () => {
   it('keeps two conversations with the same avatar as distinct entries', () => {
     const conversationA1 = makeConversation(
       'conversation_a_1',
@@ -88,7 +88,9 @@ describe('session-state', () => {
     ])
     expect(countAvatarConversations(state.conversations, 'avatar_a')).toBe(2)
   })
+})
 
+describe('session-state message scoping', () => {
   it('keeps message history scoped to the selected conversation', () => {
     const conversationA1 = makeConversation(
       'conversation_a_1',
@@ -118,7 +120,9 @@ describe('session-state', () => {
     const selectedA2 = state.messagesByConversationId[state.selectedConversationId ?? ''] ?? []
     expect(selectedA2.map((message) => message.content)).toEqual(['hello A2'])
   })
+})
 
+describe('session-state progression flow', () => {
   it('supports session-to-conversation progression and message append flow', () => {
     const conversationA1 = makeConversation(
       'conversation_a_1',
