@@ -5,7 +5,7 @@ import { InMemoryMessageRepository } from './in-memory-message.repository.js'
 function makeMessage(overrides: Partial<Message> = {}): Message {
   return {
     messageId: 'msg_1',
-    sessionId: 'session_1',
+    conversationId: 'conversation_1',
     role: 'user',
     content: 'hello',
     createdAt: '2026-04-19T10:00:00.000Z',
@@ -14,39 +14,39 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
 }
 
 describe('InMemoryMessageRepository', () => {
-  it("deleteBySessionId removes only the target session's messages", async () => {
+  it("deleteByConversationId removes only the target conversation's messages", async () => {
     const repository = new InMemoryMessageRepository([
-      makeMessage({ messageId: 'msg_1', sessionId: 'session_1' }),
-      makeMessage({ messageId: 'msg_2', sessionId: 'session_1' }),
-      makeMessage({ messageId: 'msg_3', sessionId: 'session_2' }),
+      makeMessage({ messageId: 'msg_1', conversationId: 'conversation_1' }),
+      makeMessage({ messageId: 'msg_2', conversationId: 'conversation_1' }),
+      makeMessage({ messageId: 'msg_3', conversationId: 'conversation_2' }),
     ])
 
-    await repository.deleteBySessionId('session_1')
+    await repository.deleteByConversationId('conversation_1')
 
-    const remainingSession1 = await repository.findBySessionId('session_1')
-    const remainingSession2 = await repository.findBySessionId('session_2')
-    expect(remainingSession1).toEqual([])
-    expect(remainingSession2.map((message) => message.messageId)).toEqual(['msg_3'])
+    const remainingConversation1 = await repository.findByConversationId('conversation_1')
+    const remainingConversation2 = await repository.findByConversationId('conversation_2')
+    expect(remainingConversation1).toEqual([])
+    expect(remainingConversation2.map((message) => message.messageId)).toEqual(['msg_3'])
   })
 
-  it('deleteBySessionId returns the number of deleted messages', async () => {
+  it('deleteByConversationId returns the number of deleted messages', async () => {
     const repository = new InMemoryMessageRepository([
-      makeMessage({ messageId: 'msg_1', sessionId: 'session_1' }),
-      makeMessage({ messageId: 'msg_2', sessionId: 'session_1' }),
-      makeMessage({ messageId: 'msg_3', sessionId: 'session_2' }),
+      makeMessage({ messageId: 'msg_1', conversationId: 'conversation_1' }),
+      makeMessage({ messageId: 'msg_2', conversationId: 'conversation_1' }),
+      makeMessage({ messageId: 'msg_3', conversationId: 'conversation_2' }),
     ])
 
-    const deletedCount = await repository.deleteBySessionId('session_1')
+    const deletedCount = await repository.deleteByConversationId('conversation_1')
 
     expect(deletedCount).toBe(2)
   })
 
-  it('deleteBySessionId returns 0 when session has no messages', async () => {
+  it('deleteByConversationId returns 0 when conversation has no messages', async () => {
     const repository = new InMemoryMessageRepository([
-      makeMessage({ messageId: 'msg_1', sessionId: 'session_1' }),
+      makeMessage({ messageId: 'msg_1', conversationId: 'conversation_1' }),
     ])
 
-    const deletedCount = await repository.deleteBySessionId('session_missing')
+    const deletedCount = await repository.deleteByConversationId('conversation_missing')
 
     expect(deletedCount).toBe(0)
   })

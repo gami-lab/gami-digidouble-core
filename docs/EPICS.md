@@ -163,7 +163,7 @@ A differentiated avatar creates more value than generic chatbot behavior.
 Make the platform continuously usable through real conversations.
 
 **Description**  
-Implement minimal admin creation of scenarios/avatars plus session lifecycle: start session, persist messages, read history, reset session.
+Implement minimal admin creation of scenarios/avatars plus session + conversation lifecycle: create session, start conversation in session, persist messages by conversation, and read conversation history.
 
 **Hypothesis**  
 Real usable sessions require manageable content objects and persistent conversation state.
@@ -172,27 +172,28 @@ Real usable sessions require manageable content objects and persistent conversat
 
 - create scenario endpoint
 - create avatar endpoint
-- start session endpoint
-- message persistence
-- history endpoint
-- reset session endpoint
+- create session endpoint
+- start conversation endpoint
+- message persistence by conversation
+- conversation history endpoint
+- session-level conversation listing
 - session status management
 
 **DoD**
 
 - operator can create scenario + avatar
-- user can create a session and converse across turns
-- history is preserved
-- session can be reset safely
+- user can create a session, start one or more conversations, and converse across turns
+- history is preserved per conversation
+- returning to the same avatar can create a new conversation in the same session
 
 **What Can Be Tested**
 
 1. create scenario
 2. create avatar
-3. start session
-4. send messages
-5. reload history
-6. reset session
+3. create session
+4. start conversation
+5. send messages
+6. reload conversation history
 
 **User Increment**
 

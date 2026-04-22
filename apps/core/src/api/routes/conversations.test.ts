@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { Config } from '../../config.js'
-import type { Session } from '../../domain/conversation/session.types.js'
+import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
+import type { Conversation, Message, Session } from '../../domain/conversation/session.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
+import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
+import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { NullLlmAdapter } from '../../infrastructure/llm/index.js'
+import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
 
 const testConfig: Config = {
@@ -26,28 +31,6 @@ const testConfig: Config = {
   langfuseHost: undefined,
 }
 
-type SessionSummary = {
-  sessionId: string
-  userId: string
-  scenarioId: string
-  status: 'active' | 'closed' | 'archived'
-  startedAt: string
-  lastActivityAt: string
-  endedAt?: string
-}
-
-function makeSession(overrides: Partial<Session> = {}): Session {
-  return {
-    sessionId: 'sess_1',
-    userId: 'user_1',
-    scenarioId: 'scenario_1',
-    status: 'active',
-    startedAt: '2026-04-18T10:00:00.000Z',
-    lastActivityAt: '2026-04-18T10:00:00.000Z',
-    ...overrides,
-  }
-}
-
 function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   return {
     scenarioId: 'scenario_1',
@@ -60,223 +43,203 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   }
 }
 
+function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
+  return {
+    avatarId: 'avatar_1',
+    scenarioId: 'scenario_1',
+    name: 'Ava',
+    status: 'active',
+    personaPrompt: 'You are Ava, a helpful guide.',
+    config: {},
+    createdAt: '2026-04-20T10:00:00.000Z',
+    updatedAt: '2026-04-20T10:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function makeSession(overrides: Partial<Session> = {}): Session {
+  return {
+    sessionId: 'session_1',
+    userId: 'user_1',
+    scenarioId: 'scenario_1',
+    status: 'active',
+    startedAt: '2026-04-18T10:00:00.000Z',
+    lastActivityAt: '2026-04-18T10:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
+  return {
+    conversationId: 'conversation_1',
+    sessionId: 'session_1',
+    avatarId: 'avatar_1',
+    status: 'active',
+    startedAt: '2026-04-18T10:00:00.000Z',
+    lastActivityAt: '2026-04-18T10:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function makeMessage(overrides: Partial<Message> = {}): Message {
+  return {
+    messageId: 'msg_1',
+    conversationId: 'conversation_1',
+    role: 'user',
+    content: 'Hello',
+    createdAt: '2026-04-18T10:00:00.000Z',
+    ...overrides,
+  }
+}
+
 function makeApp({
-  sessions = [makeSession()],
   scenarios = [makeScenario()],
+  avatars = [makeAvatar()],
+  sessions = [makeSession()],
+  conversations = [makeConversation()],
+  messages = [],
 }: {
-  sessions?: Session[]
   scenarios?: Scenario[]
+  avatars?: AvatarConfig[]
+  sessions?: Session[]
+  conversations?: Conversation[]
+  messages?: Message[]
 } = {}) {
   return createServer(testConfig, {
-    sessionRepository: new InMemorySessionRepository(sessions),
+    llmAdapter: new NullLlmAdapter('Avatar reply', 'null-model'),
+    observabilityAdapter: new NullObservabilityAdapter(),
     scenarioRepository: new InMemoryScenarioRepository(scenarios),
-    messageRepository: new InMemoryMessageRepository(),
+    avatarRepository: new InMemoryAvatarRepository(avatars),
+    sessionRepository: new InMemorySessionRepository(sessions),
+    conversationRepository: new InMemoryConversationRepository(conversations),
+    messageRepository: new InMemoryMessageRepository(messages),
   })
 }
 
-describe('POST /v1/conversations/start', () => {
-  it('returns 401 when API key is missing', async () => {
+describe('session API', () => {
+  it('creates a session with POST /v1/sessions', async () => {
     const response = await makeApp().inject({
       method: 'POST',
-      url: '/v1/conversations/start',
-      payload: { userId: 'user_1', scenarioId: 'scenario_1' },
-    })
-    expect(response.statusCode).toBe(401)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('UNAUTHORIZED')
-  })
-
-  it('returns 401 when API key is wrong', async () => {
-    const response = await makeApp().inject({
-      method: 'POST',
-      url: '/v1/conversations/start',
-      headers: { 'x-api-key': 'wrong-secret' },
-      payload: { userId: 'user_1', scenarioId: 'scenario_1' },
-    })
-    expect(response.statusCode).toBe(401)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('UNAUTHORIZED')
-  })
-
-  it('returns 400 when userId is blank', async () => {
-    const response = await makeApp().inject({
-      method: 'POST',
-      url: '/v1/conversations/start',
+      url: '/v1/sessions',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { userId: '', scenarioId: 'scenario_1' },
-    })
-    expect(response.statusCode).toBe(400)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('VALIDATION_ERROR')
-  })
-
-  it('returns 400 when scenarioId is blank', async () => {
-    const response = await makeApp().inject({
-      method: 'POST',
-      url: '/v1/conversations/start',
-      headers: { 'x-api-key': 'test-secret' },
-      payload: { userId: 'user_1', scenarioId: '' },
-    })
-    expect(response.statusCode).toBe(400)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('VALIDATION_ERROR')
-  })
-
-  it('returns 404 when scenarioId does not exist', async () => {
-    const response = await makeApp({ scenarios: [] }).inject({
-      method: 'POST',
-      url: '/v1/conversations/start',
-      headers: { 'x-api-key': 'test-secret' },
-      payload: { userId: 'user_1', scenarioId: 'scenario_missing' },
-    })
-    expect(response.statusCode).toBe(404)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('NOT_FOUND')
-  })
-
-  it('returns 201 with a created session', async () => {
-    const response = await makeApp().inject({
-      method: 'POST',
-      url: '/v1/conversations/start',
-      headers: { 'x-api-key': 'test-secret' },
-      payload: { userId: 'user_1', scenarioId: 'scenario_1' },
+      payload: { userId: 'user_x', scenarioId: 'scenario_1' },
     })
     expect(response.statusCode).toBe(201)
-
-    const body = response.json<ApiResponse<{ session: SessionSummary }>>()
+    const body = response.json<ApiResponse<{ session: { sessionId: string } }>>()
     expect(body.error).toBeNull()
-    const data = body.data as { session: SessionSummary }
-    expect(data.session.sessionId.startsWith('session_')).toBe(true)
-    expect(data.session.userId).toBe('user_1')
-    expect(data.session.scenarioId).toBe('scenario_1')
-    expect(data.session.status).toBe('active')
+    expect(body.data?.session.sessionId.startsWith('session_')).toBe(true)
+  })
+
+  it('starts a conversation inside a session', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/sessions/session_1/conversations',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { avatarId: 'avatar_1' },
+    })
+    expect(response.statusCode).toBe(201)
+    const body = response.json<ApiResponse<{ conversation: { avatarId: string } }>>()
+    expect(body.error).toBeNull()
+    expect(body.data?.conversation.avatarId).toBe('avatar_1')
+  })
+
+  it('returns 404 for invalid sessionId on start conversation', async () => {
+    const response = await makeApp({ sessions: [] }).inject({
+      method: 'POST',
+      url: '/v1/sessions/session_missing/conversations',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { avatarId: 'avatar_1' },
+    })
+    expect(response.statusCode).toBe(404)
   })
 })
 
-describe('GET /v1/conversations/:sessionId/history', () => {
-  it('returns 401 when API key is missing', async () => {
-    const response = await makeApp().inject({
-      method: 'GET',
-      url: '/v1/conversations/sess_1/history',
+describe('conversation message/history API', () => {
+  it('sends message using conversationId and gets isolated history', async () => {
+    const app = makeApp({
+      conversations: [
+        makeConversation({ conversationId: 'conversation_1', avatarId: 'avatar_1' }),
+        makeConversation({ conversationId: 'conversation_2', avatarId: 'avatar_2' }),
+        makeConversation({ conversationId: 'conversation_3', avatarId: 'avatar_1' }),
+      ],
+      avatars: [makeAvatar({ avatarId: 'avatar_1' }), makeAvatar({ avatarId: 'avatar_2' })],
+      messages: [
+        makeMessage({
+          messageId: 'msg_conv2',
+          conversationId: 'conversation_2',
+          content: 'Only in conversation 2',
+        }),
+      ],
     })
-    expect(response.statusCode).toBe(401)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('UNAUTHORIZED')
-  })
 
-  it('returns 404 when session is unknown', async () => {
-    const response = await makeApp({ sessions: [] }).inject({
+    const sendResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/messages',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { message: { content: 'Hello from conversation 1' } },
+    })
+    expect(sendResponse.statusCode).toBe(200)
+
+    const history1 = await app.inject({
       method: 'GET',
-      url: '/v1/conversations/missing/history',
+      url: '/v1/conversations/conversation_1/history',
       headers: { 'x-api-key': 'test-secret' },
     })
-    expect(response.statusCode).toBe(404)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('NOT_FOUND')
-  })
-
-  it('returns 200 with session and empty messages', async () => {
-    const response = await makeApp({ sessions: [makeSession()] }).inject({
+    const history2 = await app.inject({
       method: 'GET',
-      url: '/v1/conversations/sess_1/history',
+      url: '/v1/conversations/conversation_2/history',
       headers: { 'x-api-key': 'test-secret' },
     })
-    expect(response.statusCode).toBe(200)
+    expect(history1.statusCode).toBe(200)
+    expect(history2.statusCode).toBe(200)
 
-    const body = response.json<ApiResponse<{ session: SessionSummary; messages: unknown[] }>>()
-    expect(body.error).toBeNull()
-    const data = body.data as { session: SessionSummary; messages: unknown[] }
-    expect(data.session.sessionId).toBe('sess_1')
-    expect(data.messages).toEqual([])
+    const body1 = history1.json<ApiResponse<{ messages: Message[] }>>()
+    const body2 = history2.json<ApiResponse<{ messages: Message[] }>>()
+    expect(body1.data?.messages.map((message) => message.content)).toEqual([
+      'Hello from conversation 1',
+      'Avatar reply',
+    ])
+    expect(body2.data?.messages.map((message) => message.content)).toEqual([
+      'Only in conversation 2',
+    ])
   })
 
-  it('returns 200 when session is closed', async () => {
-    const response = await makeApp({
-      sessions: [makeSession({ status: 'closed', endedAt: '2026-04-18T11:00:00.000Z' })],
-    }).inject({
+  it('returns 404 for invalid conversationId on send/history', async () => {
+    const app = makeApp({ conversations: [] })
+    const sendResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_missing/messages',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { message: { content: 'Hello' } },
+    })
+    const historyResponse = await app.inject({
       method: 'GET',
-      url: '/v1/conversations/sess_1/history',
+      url: '/v1/conversations/conversation_missing/history',
       headers: { 'x-api-key': 'test-secret' },
     })
-    expect(response.statusCode).toBe(200)
-
-    const body = response.json<ApiResponse<{ session: SessionSummary; messages: unknown[] }>>()
-    expect(body.error).toBeNull()
-    const data = body.data as { session: SessionSummary; messages: unknown[] }
-    expect(data.session.status).toBe('closed')
+    expect(sendResponse.statusCode).toBe(404)
+    expect(historyResponse.statusCode).toBe(404)
   })
 })
 
-describe('DELETE /v1/conversations/:sessionId', () => {
-  it('returns 401 when API key is missing', async () => {
-    const response = await makeApp().inject({
-      method: 'DELETE',
-      url: '/v1/conversations/sess_1',
-    })
-    expect(response.statusCode).toBe(401)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('UNAUTHORIZED')
-  })
-
-  it('returns 404 when session is unknown', async () => {
-    const response = await makeApp({ sessions: [] }).inject({
-      method: 'DELETE',
-      url: '/v1/conversations/missing',
-      headers: { 'x-api-key': 'test-secret' },
-    })
-    expect(response.statusCode).toBe(404)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('NOT_FOUND')
-  })
-
-  it('returns 200 and deleted.messages as 0 for existing session', async () => {
-    const response = await makeApp({ sessions: [makeSession()] }).inject({
-      method: 'DELETE',
-      url: '/v1/conversations/sess_1',
-      headers: { 'x-api-key': 'test-secret' },
-    })
-    expect(response.statusCode).toBe(200)
-
-    const body = response.json<
-      ApiResponse<{
-        sessionId: string
-        deleted: { messages: number; sessionMemory: boolean; events: number }
-      }>
-    >()
-    expect(body.error).toBeNull()
-    const data = body.data as {
-      sessionId: string
-      deleted: { messages: number; sessionMemory: boolean; events: number }
-    }
-    expect(data.sessionId).toBe('sess_1')
-    expect(data.deleted.messages).toBe(0)
-    expect(data.deleted.sessionMemory).toBe(false)
-    expect(data.deleted.events).toBe(0)
-  })
-
-  it('returns 200 when session is closed but exists', async () => {
+describe('session conversation listing API', () => {
+  it('lists conversations for a session', async () => {
     const response = await makeApp({
-      sessions: [makeSession({ status: 'closed', endedAt: '2026-04-18T11:00:00.000Z' })],
+      conversations: [
+        makeConversation({ conversationId: 'conversation_1', avatarId: 'avatar_1' }),
+        makeConversation({ conversationId: 'conversation_2', avatarId: 'avatar_2' }),
+        makeConversation({ conversationId: 'conversation_3', sessionId: 'session_2' }),
+      ],
     }).inject({
-      method: 'DELETE',
-      url: '/v1/conversations/sess_1',
+      method: 'GET',
+      url: '/v1/sessions/session_1/conversations',
       headers: { 'x-api-key': 'test-secret' },
     })
     expect(response.statusCode).toBe(200)
-
-    const body = response.json<
-      ApiResponse<{
-        sessionId: string
-        deleted: { messages: number; sessionMemory: boolean; events: number }
-      }>
-    >()
-    expect(body.error).toBeNull()
-    const data = body.data as {
-      sessionId: string
-      deleted: { messages: number; sessionMemory: boolean; events: number }
-    }
-    expect(data.sessionId).toBe('sess_1')
-    expect(data.deleted.sessionMemory).toBe(false)
-    expect(data.deleted.events).toBe(0)
+    const body = response.json<ApiResponse<{ conversations: Array<{ conversationId: string }> }>>()
+    expect(body.data?.conversations.map((item) => item.conversationId)).toEqual([
+      'conversation_1',
+      'conversation_2',
+    ])
   })
 })

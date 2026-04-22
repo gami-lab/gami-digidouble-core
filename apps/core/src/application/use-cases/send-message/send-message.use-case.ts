@@ -1,11 +1,12 @@
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
+import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { ILlmAdapter } from '../../ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
-import type { Message, Session } from '../../../domain/conversation/session.types.js'
+import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
 
@@ -14,6 +15,7 @@ const MESSAGE_HISTORY_LIMIT = 20
 export class SendMessageUseCase {
   constructor(
     private readonly sessionRepository: ISessionRepository,
+    private readonly conversationRepository: IConversationRepository,
     private readonly avatarRepository: IAvatarRepository,
     private readonly messageRepository: IMessageRepository,
     private readonly llm: ILlmAdapter,
@@ -26,18 +28,25 @@ export class SendMessageUseCase {
     const requestId = crypto.randomUUID()
     const start = Date.now()
 
-    const session = await this.loadActiveSession(input.sessionId)
-    const avatar = await this.loadAvatar(input.avatarId)
+    const conversation = await this.loadActiveConversation(input.conversationId)
+    const session = await this.loadActiveSession(conversation.sessionId)
+    const avatar = await this.loadAvatar(conversation.avatarId)
     const systemPrompt = assemblePersonaPrompt(avatar)
-    const historyMessages = await this.buildHistoryMessages(session.sessionId)
-    const userMessage = await this.persistUserMessage(session.sessionId, input.userMessage)
+    const historyMessages = await this.buildHistoryMessages(conversation.conversationId)
+    const userMessage = await this.persistUserMessage(
+      conversation.conversationId,
+      input.userMessage,
+    )
 
     const llmRequest = {
       systemPrompt,
       messages: [...historyMessages, { role: 'user' as const, content: userMessage.content }],
     }
     const response = await this.llm.complete(llmRequest)
-    const avatarMessage = await this.persistAvatarMessage(session.sessionId, response)
+    const avatarMessage = await this.persistAvatarMessage(conversation.conversationId, response)
+    const now = this.nowIso()
+    await this.conversationRepository.update(conversation.conversationId, { lastActivityAt: now })
+    await this.sessionRepository.update(session.sessionId, { lastActivityAt: now })
 
     // TODO(EPIC-4.1): trigger GM observation
 
@@ -46,14 +55,24 @@ export class SendMessageUseCase {
 
     return {
       requestId,
-      sessionId: session.sessionId,
+      conversationId: conversation.conversationId,
+      conversation: {
+        conversationId: conversation.conversationId,
+        sessionId: conversation.sessionId,
+        avatarId: conversation.avatarId,
+        status: conversation.status,
+        startedAt: conversation.startedAt,
+        lastActivityAt: now,
+        ...(conversation.endedAt !== undefined ? { endedAt: conversation.endedAt } : {}),
+      },
       session: {
         sessionId: session.sessionId,
         userId: session.userId,
         scenarioId: session.scenarioId,
+        ...(session.activeAvatarId !== undefined ? { activeAvatarId: session.activeAvatarId } : {}),
         status: session.status,
         startedAt: session.startedAt,
-        lastActivityAt: session.lastActivityAt,
+        lastActivityAt: now,
       },
       userMessage: {
         messageId: userMessage.messageId,
@@ -73,15 +92,23 @@ export class SendMessageUseCase {
   }
 
   private validateInput(input: SendMessageInput): void {
-    if (!hasText(input.sessionId)) {
-      throw new DomainError('INVALID_INPUT', 'sessionId must be a non-empty string.')
-    }
-    if (!hasText(input.avatarId)) {
-      throw new DomainError('INVALID_INPUT', 'avatarId must be a non-empty string.')
+    if (!hasText(input.conversationId)) {
+      throw new DomainError('INVALID_INPUT', 'conversationId must be a non-empty string.')
     }
     if (!hasText(input.userMessage)) {
       throw new DomainError('INVALID_INPUT', 'userMessage must be a non-empty string.')
     }
+  }
+
+  private async loadActiveConversation(conversationId: string): Promise<Conversation> {
+    const conversation = await this.conversationRepository.findById(conversationId)
+    if (conversation === null) {
+      throw new DomainError('NOT_FOUND', `Conversation ${conversationId} was not found.`)
+    }
+    if (conversation.status !== 'active') {
+      throw new DomainError('CONFLICT', `Conversation ${conversationId} is not active.`)
+    }
+    return conversation
   }
 
   private async loadActiveSession(sessionId: string): Promise<Session> {
@@ -104,9 +131,9 @@ export class SendMessageUseCase {
   }
 
   private async buildHistoryMessages(
-    sessionId: string,
+    conversationId: string,
   ): Promise<Array<{ role: 'user' | 'assistant'; content: string }>> {
-    const history = await this.messageRepository.findBySessionId(sessionId, {
+    const history = await this.messageRepository.findByConversationId(conversationId, {
       limit: MESSAGE_HISTORY_LIMIT,
     })
     const recentHistory = history
@@ -129,10 +156,10 @@ export class SendMessageUseCase {
     )
   }
 
-  private persistUserMessage(sessionId: string, content: string): Promise<Message> {
+  private persistUserMessage(conversationId: string, content: string): Promise<Message> {
     return this.messageRepository.save({
       messageId: this.createMessageId(),
-      sessionId,
+      conversationId,
       role: 'user',
       content,
       createdAt: this.nowIso(),
@@ -140,7 +167,7 @@ export class SendMessageUseCase {
   }
 
   private persistAvatarMessage(
-    sessionId: string,
+    conversationId: string,
     response: {
       content: string
       model: string
@@ -151,7 +178,7 @@ export class SendMessageUseCase {
   ): Promise<Message> {
     return this.messageRepository.save({
       messageId: this.createMessageId(),
-      sessionId,
+      conversationId,
       role: 'avatar',
       content: response.content,
       createdAt: this.nowIso(),

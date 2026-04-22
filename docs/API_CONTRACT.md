@@ -202,7 +202,20 @@ type SessionSummary = {
   userId: string
   scenarioId: string
   activeAvatarId?: string | null
-  availableAvatarIds?: string[]
+  status: 'active' | 'closed' | 'archived'
+  startedAt: string
+  lastActivityAt: string
+  endedAt?: string | null
+}
+```
+
+## Conversation Summary
+
+```ts
+type ConversationSummary = {
+  conversationId: string
+  sessionId: string
+  avatarId: string
   status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string
@@ -215,7 +228,7 @@ type SessionSummary = {
 ```ts id="1esb1v"
 type Message = {
   messageId: string
-  sessionId: string
+  conversationId: string
   role: 'user' | 'avatar' | 'system'
   content: string
   createdAt: string
@@ -258,7 +271,7 @@ type KnowledgeSourceSummary = {
 
 ---
 
-# Conversation API
+# Session + Conversation API
 
 ## 0. Raw Exchange (EPIC 1.2)
 
@@ -270,70 +283,38 @@ Minimal non-session endpoint used to validate the first HTTP → use case → LL
 POST /v1/exchange
 ```
 
-### Auth
-
-```text
-x-api-key: <API_KEY>
-```
-
-### Request
-
-```ts
-type ExchangeRequest = {
-  message: string
-  systemPrompt?: string
-}
-```
-
-Validation rules:
-
-- `message`: required, string, min length 1, max length 4000
-- `systemPrompt`: optional, string, max length 2000
-
-### Success Response (200)
-
-```ts
-ApiResponse<{
-  requestId: string
-  reply: string
-  model: string
-  inputTokens: number
-  outputTokens: number
-  latencyMs: number
-}>
-```
-
 ### Error Mapping
 
-- `401` → `UNAUTHORIZED` (missing/invalid API key)
-- `400` → `VALIDATION_ERROR` (invalid request body)
-- `502` → `EXTERNAL_SERVICE_ERROR` (LLM/provider failure)
-- `500` → `INTERNAL_ERROR` (unexpected server error)
+- `401` → `UNAUTHORIZED`
+- `400` → `VALIDATION_ERROR`
+- `502` → `EXTERNAL_SERVICE_ERROR`
+- `500` → `INTERNAL_ERROR`
 
-### Observability Side Effects
+---
 
-Each successful call emits an internal `llm.completion` trace event carrying:
+## Core semantics
 
-- `requestId`
-- `latencyMs`
-- `inputTokens`
-- `outputTokens`
-- `metadata.model`
+- **Session** = one user run inside one scenario (durable container)
+- **Conversation** = one bounded dialogue episode with one avatar inside a session
+- **Message** always belongs to a **conversation**
+- Switching avatar creates a new conversation
+- Returning later to the same avatar also creates a new conversation
+- Send-message targets conversationId and does **not** accept avatarId
 
-## 1. Start Session
+---
 
-Create a new conversation session.
+## 1. Create Session
 
 ### Endpoint
 
 ```text
-POST /v1/conversations/start
+POST /v1/sessions
 ```
 
 ### Request
 
-```ts id="za0q2v"
-type StartSessionRequest = {
+```ts
+type CreateSessionRequest = {
   userId: string
   scenarioId: string
 }
@@ -341,62 +322,114 @@ type StartSessionRequest = {
 
 ### Response
 
-```ts id="jy22i6"
-type StartSessionResponse = {
+```ts
+type CreateSessionResponse = {
   session: SessionSummary
 }
 ```
 
-### Notes
+### Error Mapping
 
-- If the user does not already exist, the system may create a minimal user.
-- Session start may synchronously initialize minimal Game Master state.
-- Sprint 2 simplification: request uses flat `userId` and `scenarioId` fields. Nested `user` object and `initialContext` are deferred to a later EPIC.
-- `scenarioId` must reference an existing scenario; otherwise the endpoint returns `404 NOT_FOUND`.
+- `401` → `UNAUTHORIZED`
+- `400` → `VALIDATION_ERROR`
+- `404` → `NOT_FOUND` (scenario missing)
+- `500` → `INTERNAL_ERROR`
 
 ---
 
-## 2. Send Message
-
-Send one user message and receive one avatar response.
+## 2. Get Session
 
 ### Endpoint
 
 ```text
-POST /v1/conversations/{sessionId}/messages
+GET /v1/sessions/{sessionId}
+```
+
+### Response
+
+```ts
+type GetSessionResponse = {
+  session: SessionSummary
+}
+```
+
+---
+
+## 3. Start Conversation in Session
+
+### Endpoint
+
+```text
+POST /v1/sessions/{sessionId}/conversations
 ```
 
 ### Request
 
-```ts id="uw9g8l"
+```ts
+type StartConversationRequest = {
+  avatarId: string
+}
+```
+
+### Response
+
+```ts
+type StartConversationResponse = {
+  conversation: ConversationSummary
+}
+```
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `400` → `VALIDATION_ERROR`
+- `404` → `NOT_FOUND` (session or avatar missing)
+- `409` → `CONFLICT` (session not active)
+- `500` → `INTERNAL_ERROR`
+
+---
+
+## 4. List Session Conversations
+
+### Endpoint
+
+```text
+GET /v1/sessions/{sessionId}/conversations
+```
+
+### Response
+
+```ts
+type ListSessionConversationsResponse = {
+  conversations: ConversationSummary[]
+}
+```
+
+---
+
+## 5. Send Message to Conversation
+
+### Endpoint
+
+```text
+POST /v1/conversations/{conversationId}/messages
+```
+
+### Request
+
+```ts
 type SendMessageRequest = {
-  avatarId?: string
   message: {
     content: string
   }
 }
 ```
 
-Validation rules (Sprint 2 implementation):
+### Response
 
-- `avatarId`: optional, when provided must be string, min length 1
-- `message.content`: required, string, min length 1, max length 4000
-
-Routing rule:
-
-- if `avatarId` is provided, use it for this turn
-- if omitted, use `session.activeAvatarId` when available
-- if both are missing, return `400 VALIDATION_ERROR`
-
-Implementation note:
-
-- Sprint 2 runtime still requires `avatarId` in the request.
-- Optional `avatarId` is the target contract once active-avatar session routing is enabled.
-
-### Non-Streaming Response
-
-```ts id="d0b3wa"
+```ts
 type SendMessageResponse = {
+  conversation: ConversationSummary
   session: SessionSummary
   userMessage: Message
   avatarMessage: Message
@@ -410,228 +443,33 @@ type SendMessageResponse = {
 }
 ```
 
-`avatarMessage.metadata` includes:
+### Error Mapping
 
-- `model`
-- `latencyMs`
-- `inputTokens`
-- `outputTokens`
-- `totalTokens`
-
-### Behavior
-
-- Stores user message
-- Builds persona-driven system prompt from avatar config
-- Builds chronological history from persisted session messages (hard cap: 20)
-- Runs one LLM completion for the avatar turn
-- Stores avatar response
-- Updates session active avatar when request routing changes it
-- Emits observability trace in non-blocking mode
-- Game Master trigger integration is not active yet (`TODO(EPIC-4.1)` in use case)
-
-### Error Mapping (Sprint 2 implementation)
-
-- `401` → `UNAUTHORIZED` (missing/wrong API key)
-- `400` → `VALIDATION_ERROR` (invalid request body)
-- `404` → `NOT_FOUND` (session or avatar not found)
-- `409` → `CONFLICT` (session is closed/archived)
-- `502` → `EXTERNAL_SERVICE_ERROR` (`LlmError`)
-- `500` → `INTERNAL_ERROR` (unexpected error)
+- `401` → `UNAUTHORIZED`
+- `400` → `VALIDATION_ERROR`
+- `404` → `NOT_FOUND` (conversation missing)
+- `409` → `CONFLICT` (conversation or session not active)
+- `502` → `EXTERNAL_SERVICE_ERROR`
+- `500` → `INTERNAL_ERROR`
 
 ---
 
-## 3. Stream Message Response (SSE)
-
-Streaming version for Phase A compatibility.
+## 6. Get Conversation History
 
 ### Endpoint
 
 ```text
-POST /v1/conversations/{sessionId}/messages/stream
-```
-
-### Request
-
-Same as `SendMessageRequest`.
-
-### Response Stream Events
-
-```ts id="wlkb96"
-type StreamEvent =
-  | {
-      type: 'message_started'
-      sessionId: string
-      requestId?: string
-    }
-  | {
-      type: 'token'
-      content: string
-    }
-  | {
-      type: 'message_completed'
-      avatarMessage: Message
-      debug?: {
-        model?: string
-        latencyMs?: number
-        inputTokens?: number
-        outputTokens?: number
-        totalTokens?: number
-        costUsd?: number
-        gmTriggered?: boolean
-      }
-    }
-  | {
-      type: 'error'
-      error: {
-        code: string
-        message: string
-      }
-    }
-```
-
-### Notes
-
-- SSE is the simplest first contract.
-- WebSocket can be added later without changing core payload shapes.
-
----
-
-## 4. Get Conversation History
-
-Return all stored messages for a session.
-
-### Endpoint
-
-```text
-GET /v1/conversations/{sessionId}/history
+GET /v1/conversations/{conversationId}/history
 ```
 
 ### Response
 
-```ts id="22th8c"
-type GetHistoryResponse = {
-  session: SessionSummary
+```ts
+type GetConversationHistoryResponse = {
+  conversation: ConversationSummary
   messages: Message[]
-  memory?: SessionMemorySummary
 }
 ```
-
-### Notes
-
-- Sprint 2: `memory` field is absent. Deferred to EPIC 4.2 (Memory Layer).
-
----
-
-## 5. Get Session State
-
-Debug-oriented endpoint for back-office and development.
-
-### Endpoint
-
-```text
-GET /v1/conversations/{sessionId}/state
-```
-
-### Response
-
-```ts id="c1hh90"
-type GetSessionStateResponse = {
-  session: SessionSummary
-  activeAvatarId?: string | null
-  availableAvatarIds?: string[]
-  memory?: SessionMemorySummary
-  gameMasterState?: {
-    currentAvatarId?: string
-    progression: string
-    topicsCovered: string[]
-    interactionCount: number
-  }
-  lastEvents?: Array<{
-    type: string
-    createdAt: string
-    payload?: Record<string, unknown>
-  }>
-}
-```
-
-### Notes
-
-- `activeAvatarId` and `availableAvatarIds` are returned for back-office and routing-aware clients.
-
-### Notes
-
-- This endpoint is not for end-user UI.
-- It exists for back-office, testing, and debugging.
-
----
-
-## 5b. Switch Active Avatar (Optional Future Endpoint)
-
-Lightweight explicit handoff endpoint for clients that want deterministic avatar switching outside send-message.
-
-### Endpoint
-
-```text
-POST /v1/conversations/{sessionId}/switch-avatar
-```
-
-### Request
-
-```ts
-type SwitchAvatarRequest = {
-  avatarId: string
-  reason?: string
-}
-```
-
-### Response
-
-```ts
-type SwitchAvatarResponse = {
-  session: SessionSummary
-  transition: {
-    fromAvatarId?: string | null
-    toAvatarId: string
-    reason?: string
-    switchedAt: string
-  }
-}
-```
-
-### Notes
-
-- Keep optional for MVP. `Send Message` routing remains sufficient for core flows.
-
----
-
-## 6. Reset Session
-
-Delete conversation runtime data for one session.
-
-### Endpoint
-
-```text
-DELETE /v1/conversations/{sessionId}
-```
-
-### Response
-
-```ts id="6kkvkt"
-type ResetSessionResponse = {
-  sessionId: string
-  deleted: {
-    messages: number
-    sessionMemory: boolean
-    events: number
-  }
-}
-```
-
-### Notes
-
-- Sprint 2: `sessionMemory` is hardcoded to `false` (deferred to EPIC 4.2).
-- Sprint 2: `events` is hardcoded to `0` (deferred to EPIC 3.3).
-- Sprint 2: session record is preserved; only messages are removed.
 
 ---
 
@@ -1596,10 +1434,10 @@ When extending the API:
 
 If we need the absolute minimum set to start implementation, it is:
 
-- `POST /v1/conversations/start`
-- `POST /v1/conversations/{sessionId}/messages`
-- `POST /v1/conversations/{sessionId}/messages/stream`
-- `GET /v1/conversations/{sessionId}/history`
+- `POST /v1/sessions`
+- `POST /v1/sessions/{sessionId}/conversations`
+- `POST /v1/conversations/{conversationId}/messages`
+- `GET /v1/conversations/{conversationId}/history`
 - `DELETE /v1/conversations/{sessionId}`
 - `GET /v1/scenarios`
 - `POST /v1/scenarios`

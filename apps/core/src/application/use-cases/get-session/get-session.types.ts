@@ -1,8 +1,7 @@
 import type { Session } from '../../../domain/conversation/session.types.js'
 
-export interface StartSessionInput {
-  userId: string
-  scenarioId: string
+export interface GetSessionInput {
+  sessionId: string
 }
 
 export type SessionSummary = Pick<
@@ -17,6 +16,6 @@ export type SessionSummary = Pick<
   | 'endedAt'
 >
 
-export interface StartSessionOutput {
+export interface GetSessionOutput {
   session: SessionSummary
 }

@@ -2,7 +2,6 @@ import { coreRequest } from './client'
 import type { Message, SessionSummary } from './sessions'
 
 export type SendMessageParams = {
-  avatarId: string
   message: {
     content: string
   }
@@ -34,8 +33,12 @@ export type SendMessageResponse = {
 }
 
 export async function sendMessage(
-  sessionId: string,
+  conversationId: string,
   params: SendMessageParams,
 ): Promise<SendMessageResponse> {
-  return coreRequest<SendMessageResponse>('POST', `/v1/conversations/${sessionId}/messages`, params)
+  return coreRequest<SendMessageResponse>(
+    'POST',
+    `/v1/conversations/${conversationId}/messages`,
+    params,
+  )
 }

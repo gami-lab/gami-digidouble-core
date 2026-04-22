@@ -16,4 +16,6 @@ export interface CreateSessionParams {
 }
 
 /** Partial update — only supplied fields will be persisted. */
-export type SessionUpdate = Partial<Pick<Session, 'status' | 'lastActivityAt' | 'endedAt'>>
+export type SessionUpdate = Partial<
+  Pick<Session, 'status' | 'lastActivityAt' | 'endedAt' | 'activeAvatarId'>
+>

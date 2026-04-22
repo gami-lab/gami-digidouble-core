@@ -1,19 +1,34 @@
-import type { Session } from '../../../domain/conversation/session.types.js'
+import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 
 export interface SendMessageInput {
-  sessionId: string
-  avatarId: string
+  conversationId: string
   userMessage: string
 }
 
 export type SendMessageSessionSummary = Pick<
   Session,
-  'sessionId' | 'userId' | 'scenarioId' | 'status' | 'startedAt' | 'lastActivityAt'
+  | 'sessionId'
+  | 'userId'
+  | 'scenarioId'
+  | 'activeAvatarId'
+  | 'status'
+  | 'startedAt'
+  | 'lastActivityAt'
 >
 
 export interface SendMessageOutput {
   requestId: string
-  sessionId: string
+  conversationId: string
+  conversation: Pick<
+    Conversation,
+    | 'conversationId'
+    | 'sessionId'
+    | 'avatarId'
+    | 'status'
+    | 'startedAt'
+    | 'lastActivityAt'
+    | 'endedAt'
+  >
   session: SendMessageSessionSummary
   userMessage: {
     messageId: string

@@ -1,7 +1,8 @@
-import type { Conversation, Message } from '../../../domain/conversation/session.types.js'
+import type { Conversation } from '../../../domain/conversation/session.types.js'
 
-export interface GetHistoryInput {
-  conversationId: string
+export interface StartConversationInput {
+  sessionId: string
+  avatarId: string
 }
 
 export type ConversationSummary = Pick<
@@ -15,7 +16,6 @@ export type ConversationSummary = Pick<
   | 'endedAt'
 >
 
-export interface GetHistoryOutput {
+export interface StartConversationOutput {
   conversation: ConversationSummary
-  messages: Message[]
 }

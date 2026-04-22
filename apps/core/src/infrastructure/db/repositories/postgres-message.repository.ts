@@ -9,7 +9,7 @@ import { extractUuid, stripPrefix } from './id-prefix.js'
 
 interface MessageRow {
   id: string
-  session_id: string
+  conversation_id: string
   role: string
   content: string
   created_at: Date
@@ -19,7 +19,7 @@ interface MessageRow {
 function rowToMessage(row: MessageRow): Message {
   return {
     messageId: `msg_${row.id}`,
-    sessionId: `session_${row.session_id}`,
+    conversationId: `conversation_${row.conversation_id}`,
     role: row.role as Message['role'],
     content: row.content,
     createdAt: row.created_at.toISOString(),
@@ -32,39 +32,42 @@ export class PostgresMessageRepository implements IMessageRepository {
 
   async save(params: SaveMessageParams): Promise<Message> {
     const messageUuid = stripPrefix('msg_', params.messageId)
-    const sessionUuid = stripPrefix('session_', params.sessionId)
+    const conversationUuid = stripPrefix('conversation_', params.conversationId)
     const [row] = await this.sql<[MessageRow]>`
-      INSERT INTO messages (id, session_id, role, content, created_at, metadata)
+      INSERT INTO messages (id, conversation_id, role, content, created_at, metadata)
       VALUES (
         ${messageUuid},
-        ${sessionUuid},
+        ${conversationUuid},
         ${params.role},
         ${params.content},
         ${new Date(params.createdAt)},
         ${params.metadata === undefined ? null : this.sql.json(params.metadata as JSONValue)}
       )
-      RETURNING id, session_id, role, content, created_at, metadata
+      RETURNING id, conversation_id, role, content, created_at, metadata
     `
     return rowToMessage(row)
   }
 
-  async findBySessionId(sessionId: string, options?: FindMessagesOptions): Promise<Message[]> {
-    const uuid = extractUuid('session_', sessionId)
+  async findByConversationId(
+    conversationId: string,
+    options?: FindMessagesOptions,
+  ): Promise<Message[]> {
+    const uuid = extractUuid('conversation_', conversationId)
     if (uuid === null) return []
     const limit = options?.limit
 
     const rows =
       limit === undefined
         ? await this.sql<MessageRow[]>`
-            SELECT id, session_id, role, content, created_at, metadata
+            SELECT id, conversation_id, role, content, created_at, metadata
             FROM messages
-            WHERE session_id = ${uuid}
+            WHERE conversation_id = ${uuid}
             ORDER BY created_at ASC
           `
         : await this.sql<MessageRow[]>`
-            SELECT id, session_id, role, content, created_at, metadata
+            SELECT id, conversation_id, role, content, created_at, metadata
             FROM messages
-            WHERE session_id = ${uuid}
+            WHERE conversation_id = ${uuid}
             ORDER BY created_at ASC
             LIMIT ${limit}
           `
@@ -72,12 +75,12 @@ export class PostgresMessageRepository implements IMessageRepository {
     return rows.map(rowToMessage)
   }
 
-  async deleteBySessionId(sessionId: string): Promise<number> {
-    const uuid = extractUuid('session_', sessionId)
+  async deleteByConversationId(conversationId: string): Promise<number> {
+    const uuid = extractUuid('conversation_', conversationId)
     if (uuid === null) return 0
     const result = await this.sql`
       DELETE FROM messages
-      WHERE session_id = ${uuid}
+      WHERE conversation_id = ${uuid}
     `
     return result.count
   }

@@ -1,35 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Message, Session } from '../../../domain/conversation/session.types.js'
-import type { DomainError } from '../../../domain/errors.js'
+import type { Conversation, Message } from '../../../domain/conversation/session.types.js'
 import { GetHistoryUseCase } from './get-history.use-case.js'
 
-const findSessionByIdMock = vi.fn()
-const findMessagesBySessionIdMock = vi.fn()
+const findConversationByIdMock = vi.fn()
+const findMessagesByConversationIdMock = vi.fn()
 
-const sessionRepository = {
-  findById: findSessionByIdMock,
+const conversationRepository = {
+  findById: findConversationByIdMock,
   create: vi.fn(),
+  listBySessionId: vi.fn(),
   update: vi.fn(),
-  delete: vi.fn(),
-  countByScenarioId: vi.fn(),
-  countActiveByScenarioId: vi.fn(),
 }
 
 const messageRepository = {
-  findBySessionId: findMessagesBySessionIdMock,
+  findByConversationId: findMessagesByConversationIdMock,
   save: vi.fn(),
-  deleteBySessionId: vi.fn(),
+  deleteByConversationId: vi.fn(),
 }
 
-function makeSession(overrides: Partial<Session> = {}): Session {
+function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
   return {
-    sessionId: 'sess_1',
-    userId: 'user_1',
-    scenarioId: 'scenario_1',
+    conversationId: 'conversation_1',
+    sessionId: 'session_1',
+    avatarId: 'avatar_1',
     status: 'active',
     startedAt: '2026-04-19T10:00:00.000Z',
     lastActivityAt: '2026-04-19T10:00:00.000Z',
-
     ...overrides,
   }
 }
@@ -37,7 +33,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
 function makeMessage(overrides: Partial<Message> = {}): Message {
   return {
     messageId: 'msg_1',
-    sessionId: 'sess_1',
+    conversationId: 'conversation_1',
     role: 'user',
     content: 'hello',
     createdAt: '2026-04-19T10:00:00.000Z',
@@ -46,34 +42,34 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
 }
 
 beforeEach(() => {
-  findSessionByIdMock.mockReset()
-  findMessagesBySessionIdMock.mockReset()
-  findSessionByIdMock.mockResolvedValue(makeSession())
-  findMessagesBySessionIdMock.mockResolvedValue([])
+  findConversationByIdMock.mockReset()
+  findMessagesByConversationIdMock.mockReset()
+  findConversationByIdMock.mockResolvedValue(makeConversation())
+  findMessagesByConversationIdMock.mockResolvedValue([])
 })
 
 describe('GetHistoryUseCase', () => {
-  it('throws NOT_FOUND when session does not exist', async () => {
-    const useCase = new GetHistoryUseCase(sessionRepository, messageRepository)
-    findSessionByIdMock.mockResolvedValue(null)
+  it('throws NOT_FOUND when conversation does not exist', async () => {
+    const useCase = new GetHistoryUseCase(conversationRepository, messageRepository)
+    findConversationByIdMock.mockResolvedValue(null)
 
-    await expect(useCase.execute({ sessionId: 'missing' })).rejects.toEqual(
-      expect.objectContaining<Partial<DomainError>>({ code: 'NOT_FOUND' }),
-    )
+    await expect(useCase.execute({ conversationId: 'missing' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
   })
 
-  it('returns session with empty messages when no messages exist', async () => {
-    const useCase = new GetHistoryUseCase(sessionRepository, messageRepository)
+  it('returns conversation with empty messages when no messages exist', async () => {
+    const useCase = new GetHistoryUseCase(conversationRepository, messageRepository)
 
-    const output = await useCase.execute({ sessionId: 'sess_1' })
+    const output = await useCase.execute({ conversationId: 'conversation_1' })
 
-    expect(output.session.sessionId).toBe('sess_1')
+    expect(output.conversation.conversationId).toBe('conversation_1')
     expect(output.messages).toEqual([])
   })
 
-  it('returns messages sorted by createdAt from repository output', async () => {
-    const useCase = new GetHistoryUseCase(sessionRepository, messageRepository)
-    const sortedMessages = [
+  it('returns messages from repository output', async () => {
+    const useCase = new GetHistoryUseCase(conversationRepository, messageRepository)
+    const messages = [
       makeMessage({ messageId: 'msg_1', createdAt: '2026-04-19T10:00:01.000Z', content: 'first' }),
       makeMessage({
         messageId: 'msg_2',
@@ -82,14 +78,10 @@ describe('GetHistoryUseCase', () => {
         content: 'second',
       }),
     ]
-    findMessagesBySessionIdMock.mockResolvedValue(sortedMessages)
+    findMessagesByConversationIdMock.mockResolvedValue(messages)
 
-    const output = await useCase.execute({ sessionId: 'sess_1' })
+    const output = await useCase.execute({ conversationId: 'conversation_1' })
 
-    expect(output.messages).toEqual(sortedMessages)
-    expect(output.messages.map((message) => message.createdAt)).toEqual([
-      '2026-04-19T10:00:01.000Z',
-      '2026-04-19T10:00:02.000Z',
-    ])
+    expect(output.messages).toEqual(messages)
   })
 })

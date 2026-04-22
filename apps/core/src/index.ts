@@ -7,6 +7,7 @@ import {
   PostgresScenarioRepository,
   PostgresAvatarRepository,
   PostgresSessionRepository,
+  PostgresConversationRepository,
   PostgresMessageRepository,
 } from './infrastructure/db/index.js'
 
@@ -20,6 +21,7 @@ async function main(): Promise<void> {
     scenarioRepository: new PostgresScenarioRepository(sql),
     avatarRepository: new PostgresAvatarRepository(sql),
     sessionRepository: new PostgresSessionRepository(sql),
+    conversationRepository: new PostgresConversationRepository(sql),
     messageRepository: new PostgresMessageRepository(sql),
   }
   const server = createServer(config, adapters)
