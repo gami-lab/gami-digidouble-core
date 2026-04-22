@@ -27,6 +27,7 @@ The core coordinates two AI agents:
 | How is the codebase structured? (layers, modules, flows)   | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                 |
 | What does the database look like? (entities, schemas)      | [docs/DATA_MODEL.md](docs/DATA_MODEL.md)                     |
 | What API endpoints exist and what do they return?          | [docs/API_CONTRACT.md](docs/API_CONTRACT.md)                 |
+| How do I use the API? (curl examples, integration flow)    | [API_GUIDE.md](API_GUIDE.md)                                 |
 | How does the Game Master work? (inputs, outputs, triggers) | [docs/GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md) |
 | What technologies are used and why?                        | [docs/TECH_STACK.md](docs/TECH_STACK.md)                     |
 | What has been built already?                               | [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)             |
@@ -44,7 +45,7 @@ The core coordinates two AI agents:
 - **LLM:** Provider-agnostic — all LLM calls go through an internal abstraction layer
 - **Deployment:** Docker Compose (3 containers: app, PostgreSQL, Redis)
 - **No LangChain / LangGraph** — orchestration is owned, not delegated to a framework
-- **Current Phase:** Phase A (MVP), April–July 2026 — nothing implemented yet
+- **Current Phase:** Phase A (MVP), April–July 2026 — EPICs 1.1, 1.2, 2.1, 2.2, 2.3, and 2.4 complete
 
 ---
 
