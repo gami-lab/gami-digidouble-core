@@ -184,6 +184,7 @@ pnpm simple-git-hooks
 
 ## Useful References
 
+- [API_GUIDE.md](API_GUIDE.md) — curl examples, integration flow, and frontend notes
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layer map and module responsibilities
 - [docs/PRINCIPLES.md](docs/PRINCIPLES.md) — 19 guiding principles
 - [docs/API_CONTRACT.md](docs/API_CONTRACT.md) — API envelope and endpoint contracts

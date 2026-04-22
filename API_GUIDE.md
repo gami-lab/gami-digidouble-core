@@ -11,20 +11,22 @@ For the formal spec (all types, error codes, future endpoints), see
 
 ## Quick Reference
 
-| Method   | Path                                    | Description                       | Auth |
-| -------- | --------------------------------------- | --------------------------------- | ---- |
-| `GET`    | `/health`                               | Engine health check               | No   |
-| `GET`    | `/v1/scenarios`                         | List scenarios (newest first)     | Yes  |
-| `POST`   | `/v1/scenarios`                         | Create a scenario                 | Yes  |
-| `POST`   | `/v1/scenarios/:scenarioId/avatars`     | Create an avatar for a scenario   | Yes  |
-| `GET`    | `/v1/scenarios/:scenarioId/avatars`     | List avatars for a scenario       | Yes  |
-| `DELETE` | `/v1/avatars/:avatarId`                 | Delete avatar (safe checks)       | Yes  |
-| `DELETE` | `/v1/scenarios/:scenarioId`             | Delete scenario (safe checks)     | Yes  |
-| `POST`   | `/v1/conversations/start`               | Start a session                   | Yes  |
-| `POST`   | `/v1/conversations/:sessionId/messages` | Send a message, get avatar reply  | Yes  |
-| `GET`    | `/v1/conversations/:sessionId/history`  | Get full conversation history     | Yes  |
-| `DELETE` | `/v1/conversations/:sessionId`          | Reset a session (delete messages) | Yes  |
-| `POST`   | `/v1/exchange`                          | Raw LLM exchange (no session)     | Yes  |
+| Method   | Path                                         | Description                       | Auth |
+| -------- | -------------------------------------------- | --------------------------------- | ---- |
+| `GET`    | `/health`                                    | Engine health check               | No   |
+| `GET`    | `/v1/scenarios`                              | List scenarios (newest first)     | Yes  |
+| `POST`   | `/v1/scenarios`                              | Create a scenario                 | Yes  |
+| `POST`   | `/v1/scenarios/:scenarioId/avatars`          | Create an avatar for a scenario   | Yes  |
+| `GET`    | `/v1/scenarios/:scenarioId/avatars`          | List avatars for a scenario       | Yes  |
+| `DELETE` | `/v1/avatars/:avatarId`                      | Delete avatar (safe checks)       | Yes  |
+| `DELETE` | `/v1/scenarios/:scenarioId`                  | Delete scenario (safe checks)     | Yes  |
+| `POST`   | `/v1/sessions`                               | Create a session                  | Yes  |
+| `GET`    | `/v1/sessions/:sessionId`                    | Get session                       | Yes  |
+| `POST`   | `/v1/sessions/:sessionId/conversations`      | Start a conversation in a session | Yes  |
+| `GET`    | `/v1/sessions/:sessionId/conversations`      | List conversations in a session   | Yes  |
+| `POST`   | `/v1/conversations/:conversationId/messages` | Send a message, get avatar reply  | Yes  |
+| `GET`    | `/v1/conversations/:conversationId/history`  | Get conversation history          | Yes  |
+| `POST`   | `/v1/exchange`                               | Raw LLM exchange (no session)     | Yes  |
 
 ---
 
@@ -100,14 +102,18 @@ The standard flow for testing or building a frontend:
 ```
 1. Create a Scenario          POST /v1/scenarios
 2. Create an Avatar           POST /v1/scenarios/:scenarioId/avatars
-3. Start a Session            POST /v1/conversations/start
-4. Send Messages              POST /v1/conversations/:sessionId/messages  (repeat)
-5. Read History               GET  /v1/conversations/:sessionId/history
-6. Reset (optional)           DELETE /v1/conversations/:sessionId
+3. Create a Session           POST /v1/sessions
+4. Start a Conversation       POST /v1/sessions/:sessionId/conversations
+5. Send Messages              POST /v1/conversations/:conversationId/messages  (repeat)
+6. Read History               GET  /v1/conversations/:conversationId/history
 ```
 
 Steps 1 and 2 are configuration — they only need to happen once per experience.
 Steps 3–6 are runtime — they happen per user session.
+
+A **Session** is the durable container for one user's run inside a scenario. A **Conversation**
+is a bounded dialogue episode with one avatar inside that session. Switching avatars or resuming
+later creates a new conversation inside the same session.
 
 ---
 
@@ -314,13 +320,13 @@ Behavior:
 
 ---
 
-### 3. Start a Session
+### 3. Create a Session
 
-A **Session** represents one user's conversation within a scenario. Each session has its own
-message history and memory.
+A **Session** is a durable container for one user's run inside a scenario. It holds the session
+state and links all conversations that happen during that run.
 
 ```bash
-curl -X POST "$BASE_URL/v1/conversations/start" \
+curl -X POST "$BASE_URL/v1/sessions" \
   -H "Content-Type: application/json" \
   -H "x-api-key: $API_KEY" \
   -d '{
@@ -354,10 +360,59 @@ curl -X POST "$BASE_URL/v1/conversations/start" \
 }
 ```
 
-Save the `sessionId` — it is the key for all subsequent calls in this conversation.
+Save the `sessionId` — you need it to start a conversation.
 
-> **Note (Sprint 2):** The `scenarioId` is not validated for existence at session start yet.
-> Validation happens at message-send time when the avatar is loaded.
+**Error cases:**
+
+- `404 NOT_FOUND` — the `scenarioId` does not exist
+- `400 VALIDATION_ERROR` — missing required fields
+
+---
+
+### 3.5. Start a Conversation
+
+A **Conversation** is a bounded dialogue episode with one avatar inside a session. Create one
+after creating the session, then use its `conversationId` for all message calls.
+
+```bash
+curl -X POST "$BASE_URL/v1/sessions/$SESSION_ID/conversations" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $API_KEY" \
+  -d '{
+    "avatarId": "avatar_01jwxxxxxx"
+  }'
+```
+
+**Request fields:**
+
+| Field      | Type   | Required | Notes                                              |
+| ---------- | ------ | -------- | -------------------------------------------------- |
+| `avatarId` | string | Yes      | ID of the avatar that will respond in this episode |
+
+**Response (201):**
+
+```json
+{
+  "data": {
+    "conversation": {
+      "conversationId": "conv_01jwxxxxxx",
+      "sessionId": "session_01jwxxxxxx",
+      "avatarId": "avatar_01jwxxxxxx",
+      "status": "active",
+      "startedAt": "2026-04-20T10:01:30.000Z",
+      "lastActivityAt": "2026-04-20T10:01:30.000Z"
+    }
+  },
+  "error": null
+}
+```
+
+Save the `conversationId` — it is the key for all message and history calls.
+
+**Error cases:**
+
+- `404 NOT_FOUND` — `sessionId` or `avatarId` does not exist
+- `409 CONFLICT` — session is not active
 
 ---
 
@@ -366,11 +421,10 @@ Save the `sessionId` — it is the key for all subsequent calls in this conversa
 Send one user message and receive one avatar reply. This is the main runtime loop.
 
 ```bash
-curl -X POST "$BASE_URL/v1/conversations/$SESSION_ID/messages" \
+curl -X POST "$BASE_URL/v1/conversations/$CONVERSATION_ID/messages" \
   -H "Content-Type: application/json" \
   -H "x-api-key: $API_KEY" \
   -d '{
-    "avatarId": "avatar_01jwxxxxxx",
     "message": {
       "content": "Tell me about your discovery of polonium."
     }
@@ -381,14 +435,24 @@ curl -X POST "$BASE_URL/v1/conversations/$SESSION_ID/messages" \
 
 | Field             | Type   | Required | Constraints       |
 | ----------------- | ------ | -------- | ----------------- |
-| `avatarId`        | string | Yes      | Must exist        |
 | `message.content` | string | Yes      | 1–4000 characters |
+
+The avatar that responds is determined by the `avatarId` set when the conversation was started
+(`POST /v1/sessions/:sessionId/conversations`).
 
 **Response (200):**
 
 ```json
 {
   "data": {
+    "conversation": {
+      "conversationId": "conv_01jwxxxxxx",
+      "sessionId": "session_01jwxxxxxx",
+      "avatarId": "avatar_01jwxxxxxx",
+      "status": "active",
+      "startedAt": "2026-04-20T10:01:30.000Z",
+      "lastActivityAt": "2026-04-20T10:02:00.000Z"
+    },
     "session": {
       "sessionId": "session_01jwxxxxxx",
       "userId": "user_alice",
@@ -399,14 +463,14 @@ curl -X POST "$BASE_URL/v1/conversations/$SESSION_ID/messages" \
     },
     "userMessage": {
       "messageId": "msg_01jwxxxxxx",
-      "sessionId": "session_01jwxxxxxx",
+      "conversationId": "conv_01jwxxxxxx",
       "role": "user",
       "content": "Tell me about your discovery of polonium.",
       "createdAt": "2026-04-20T10:02:00.000Z"
     },
     "avatarMessage": {
       "messageId": "msg_01jwxxxxxy",
-      "sessionId": "session_01jwxxxxxx",
+      "conversationId": "conv_01jwxxxxxx",
       "role": "avatar",
       "content": "Polonium was the first element I discovered, named after my homeland Poland...",
       "createdAt": "2026-04-20T10:02:01.200Z",
@@ -443,8 +507,8 @@ curl -X POST "$BASE_URL/v1/conversations/$SESSION_ID/messages" \
 
 **Error cases:**
 
-- `404 NOT_FOUND` — `sessionId` or `avatarId` does not exist
-- `409 CONFLICT` — session is closed or archived
+- `404 NOT_FOUND` — `conversationId` does not exist
+- `409 CONFLICT` — conversation or session is closed or archived
 - `400 VALIDATION_ERROR` — missing fields or content exceeds 4000 chars
 - `502 EXTERNAL_SERVICE_ERROR` — LLM provider call failed
 
@@ -456,10 +520,10 @@ curl -X POST "$BASE_URL/v1/conversations/$SESSION_ID/messages" \
 
 ### 5. Get Conversation History
 
-Retrieve all messages for a session in chronological order.
+Retrieve all messages for a conversation in chronological order.
 
 ```bash
-curl "$BASE_URL/v1/conversations/$SESSION_ID/history" \
+curl "$BASE_URL/v1/conversations/$CONVERSATION_ID/history" \
   -H "x-api-key: $API_KEY"
 ```
 
@@ -468,25 +532,25 @@ curl "$BASE_URL/v1/conversations/$SESSION_ID/history" \
 ```json
 {
   "data": {
-    "session": {
+    "conversation": {
+      "conversationId": "conv_01jwxxxxxx",
       "sessionId": "session_01jwxxxxxx",
-      "userId": "user_alice",
-      "scenarioId": "scenario_01jwxxxxxx",
+      "avatarId": "avatar_01jwxxxxxx",
       "status": "active",
-      "startedAt": "2026-04-20T10:01:00.000Z",
+      "startedAt": "2026-04-20T10:01:30.000Z",
       "lastActivityAt": "2026-04-20T10:02:01.200Z"
     },
     "messages": [
       {
         "messageId": "msg_01jwxxxxxx",
-        "sessionId": "session_01jwxxxxxx",
+        "conversationId": "conv_01jwxxxxxx",
         "role": "user",
         "content": "Tell me about your discovery of polonium.",
         "createdAt": "2026-04-20T10:02:00.000Z"
       },
       {
         "messageId": "msg_01jwxxxxxy",
-        "sessionId": "session_01jwxxxxxx",
+        "conversationId": "conv_01jwxxxxxx",
         "role": "avatar",
         "content": "Polonium was the first element I discovered...",
         "createdAt": "2026-04-20T10:02:01.200Z",
@@ -509,42 +573,7 @@ your chat UI.
 
 **Error cases:**
 
-- `404 NOT_FOUND` — `sessionId` does not exist
-
----
-
-### 6. Reset a Session
-
-Delete all messages in a session. The session record is kept (enabling re-use of the same
-`sessionId`) but the conversation history is cleared.
-
-```bash
-curl -X DELETE "$BASE_URL/v1/conversations/$SESSION_ID" \
-  -H "x-api-key: $API_KEY"
-```
-
-**Response (200):**
-
-```json
-{
-  "data": {
-    "sessionId": "session_01jwxxxxxx",
-    "deleted": {
-      "messages": 4,
-      "sessionMemory": false,
-      "events": 0
-    }
-  },
-  "error": null
-}
-```
-
-> **Note (Sprint 2):** `sessionMemory` is always `false` (deferred to EPIC 4.2 — Memory Layer).
-> `events` is always `0` (deferred to EPIC 3.3 — Game Master Events).
-
-**Error cases:**
-
-- `404 NOT_FOUND` — `sessionId` does not exist
+- `404 NOT_FOUND` — `conversationId` does not exist
 
 ---
 
@@ -620,8 +649,8 @@ AVATAR_ID=$(echo "$AVATAR" | python3 -c "import sys,json; print(json.load(sys.st
 echo "avatarId: $AVATAR_ID"
 
 echo ""
-echo "=== 3. Start Session ==="
-SESSION=$(curl -s -X POST "$BASE_URL/v1/conversations/start" \
+echo "=== 3. Create Session ==="
+SESSION=$(curl -s -X POST "$BASE_URL/v1/sessions" \
   -H "Content-Type: application/json" \
   -H "x-api-key: $API_KEY" \
   -d "{
@@ -633,24 +662,28 @@ SESSION_ID=$(echo "$SESSION" | python3 -c "import sys,json; print(json.load(sys.
 echo "sessionId: $SESSION_ID"
 
 echo ""
-echo "=== 4. Send Message ==="
-REPLY=$(curl -s -X POST "$BASE_URL/v1/conversations/$SESSION_ID/messages" \
+echo "=== 4. Start Conversation ==="
+CONVERSATION=$(curl -s -X POST "$BASE_URL/v1/sessions/$SESSION_ID/conversations" \
   -H "Content-Type: application/json" \
   -H "x-api-key: $API_KEY" \
   -d "{
-    \"avatarId\": \"$AVATAR_ID\",
-    \"message\": { \"content\": \"Hello! What can you help me with?\" }
+    \"avatarId\": \"$AVATAR_ID\"
   }")
+echo "$CONVERSATION" | python3 -m json.tool
+CONVERSATION_ID=$(echo "$CONVERSATION" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['conversation']['conversationId'])")
+echo "conversationId: $CONVERSATION_ID"
+
+echo ""
+echo "=== 5. Send Message ==="
+REPLY=$(curl -s -X POST "$BASE_URL/v1/conversations/$CONVERSATION_ID/messages" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $API_KEY" \
+  -d '{"message": { "content": "Hello! What can you help me with?" }}')
 echo "$REPLY" | python3 -m json.tool
 
 echo ""
-echo "=== 5. Get History ==="
-curl -s "$BASE_URL/v1/conversations/$SESSION_ID/history" \
-  -H "x-api-key: $API_KEY" | python3 -m json.tool
-
-echo ""
-echo "=== 6. Reset Session ==="
-curl -s -X DELETE "$BASE_URL/v1/conversations/$SESSION_ID" \
+echo "=== 6. Get History ==="
+curl -s "$BASE_URL/v1/conversations/$CONVERSATION_ID/history" \
   -H "x-api-key: $API_KEY" | python3 -m json.tool
 ```
 
@@ -665,16 +698,19 @@ App state:
   scenarioId: string | null
   avatarId: string | null
   sessionId: string | null
+  conversationId: string | null
   messages: Message[]
 
 Message shape for UI:
   { role: "user" | "avatar", content: string, metadata?: { model, latencyMs, inputTokens, outputTokens } }
 ```
 
-### Session start
+### Session and conversation start
 
-Call `POST /v1/conversations/start` once. Store `sessionId` in component state (or local
-storage for page-reload persistence).
+Call `POST /v1/sessions` once per user run. Store `sessionId`. Then call
+`POST /v1/sessions/:sessionId/conversations` with the desired `avatarId` to open the dialogue
+episode. Store `conversationId` in component state (or local storage for page-reload
+persistence).
 
 ### Optimistic message append
 
@@ -687,7 +723,7 @@ After sending a message:
 
 ### History hydration
 
-On mount (or session resume), call `GET /v1/conversations/:sessionId/history` to load
+On mount (or session resume), call `GET /v1/conversations/:conversationId/history` to load
 previous messages. Map `role: "avatar"` messages to your avatar display format.
 
 ### Token / latency metadata
@@ -700,8 +736,8 @@ debug panel during development; it can be hidden or shown conditionally in produ
 Never swallow errors silently. If `error !== null` in the response envelope, show the
 `error.code` and `error.message` to the user or developer. Common patterns:
 
-- `NOT_FOUND` on session → session expired or never created → show "Start a new session"
-- `CONFLICT` → session was reset externally → refresh state
+- `NOT_FOUND` on conversation → conversation expired or never created → show "Start a new session"
+- `CONFLICT` → conversation or session was closed externally → refresh state
 - `EXTERNAL_SERVICE_ERROR` → LLM provider down → show retry prompt
 
 ---
@@ -723,15 +759,21 @@ To import into Postman:
    // After "Create Avatar":
    pm.collectionVariables.set('avatar_id', pm.response.json().data.avatar.avatarId)
 
-   // After "Start Session":
+   // After "Create Session":
    pm.collectionVariables.set('session_id', pm.response.json().data.session.sessionId)
+
+   // After "Start Conversation":
+   pm.collectionVariables.set(
+     'conversation_id',
+     pm.response.json().data.conversation.conversationId,
+   )
    ```
 
 ---
 
 ## IDs and Timestamps
 
-- All IDs are opaque strings prefixed by type: `scenario_...`, `avatar_...`, `session_...`, `msg_...`
+- All IDs are opaque strings prefixed by type: `scenario_...`, `avatar_...`, `session_...`, `conv_...`, `msg_...`
 - Never parse or generate IDs on the client; always use values returned by the API
 - All timestamps are ISO 8601 UTC strings
 
@@ -741,13 +783,13 @@ To import into Postman:
 
 These endpoints are defined in [API_CONTRACT.md](API_CONTRACT.md) but not yet live:
 
-| Endpoint                                                | Epic     |
-| ------------------------------------------------------- | -------- |
-| `GET /v1/conversations/:sessionId/state`                | EPIC 4.1 |
-| `GET /v1/scenarios/:scenarioId`                         | EPIC 3.x |
-| Streaming: `POST /v1/conversations/:id/messages/stream` | EPIC 3.x |
-| Memory: `SessionMemorySummary` in history               | EPIC 4.2 |
-| Knowledge: `/v1/knowledge-sources`                      | EPIC 5.x |
+| Endpoint                                                            | Epic     |
+| ------------------------------------------------------------------- | -------- |
+| `GET /v1/sessions/:sessionId/state`                                 | EPIC 4.1 |
+| `GET /v1/scenarios/:scenarioId`                                     | EPIC 3.x |
+| Streaming: `POST /v1/conversations/:conversationId/messages/stream` | EPIC 3.x |
+| Memory: `SessionMemorySummary` in history                           | EPIC 4.2 |
+| Knowledge: `/v1/knowledge-sources`                                  | EPIC 5.x |
 
 > This document should be updated whenever a new endpoint goes live. The source of truth for
 > what is currently implemented is [PROJECT_STATUS.md](PROJECT_STATUS.md).

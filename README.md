@@ -23,7 +23,8 @@ The result is a system where conversations feel natural and adaptive, while rema
 | ---------------------- | --------------------------------------------------------------------------------------------------------- |
 | **Avatar**             | An AI persona with a defined character, tone, and knowledge domain. Responds directly to user messages.   |
 | **Game Master (GM)**   | Runs asynchronously in the background. Decides when to intervene, switch avatars, or inject guidance.     |
-| **Session**            | A single conversation between a user and an avatar, tracked with full history and memory.                 |
+| **Session**            | A durable container for one user's run inside a scenario. Holds state and links all conversations.        |
+| **Conversation**       | A bounded dialogue episode with one avatar inside a session. Messages belong to a conversation.           |
 | **Scenario**           | A config-driven experience template: objectives, avatars, knowledge sources, progression rules.           |
 | **Memory**             | Two-layer system: session summaries (short-term) and persistent user facts (long-term).                   |
 | **Context Manager**    | Assembles the three context dimensions for each turn: memory, experience/world, and knowledge.            |
@@ -79,12 +80,13 @@ User message → API validation → Load session/scenario
 All endpoints are under `/v1` and require an `x-api-key` header.
 
 ```
-POST   /v1/conversations/start                        # Start a new session
-POST   /v1/conversations/:sessionId/messages          # Send a message
-POST   /v1/conversations/:sessionId/messages/stream   # Send a message (SSE streaming)
-GET    /v1/conversations/:sessionId/history           # Retrieve session history
-GET    /v1/conversations/:sessionId/state             # Debug state
-DELETE /v1/conversations/:sessionId                   # Reset session
+POST   /v1/sessions                                        # Create a session
+GET    /v1/sessions/:sessionId                             # Get session
+POST   /v1/sessions/:sessionId/conversations               # Start a conversation
+GET    /v1/sessions/:sessionId/conversations               # List conversations
+POST   /v1/conversations/:conversationId/messages          # Send a message
+GET    /v1/conversations/:conversationId/history           # Get conversation history
+POST   /v1/exchange                                        # Raw LLM exchange (no session)
 ```
 
 See [API_GUIDE.md](API_GUIDE.md) for curl examples, the full integration flow, and frontend notes.
