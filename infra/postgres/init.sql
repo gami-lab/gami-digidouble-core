@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id          TEXT        NOT NULL,
   scenario_id      UUID        NOT NULL REFERENCES scenarios(id),
-  active_avatar_id UUID        REFERENCES avatars(id),
+  active_avatar_id UUID        REFERENCES avatars(id) ON DELETE SET NULL,
   status           TEXT        NOT NULL DEFAULT 'active',
   started_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_activity_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS conversations (
   ended_at                    TIMESTAMPTZ,
   started_by                  TEXT,
   reason                      TEXT,
-  handoff_from_conversation_id UUID       REFERENCES conversations(id)
+  handoff_from_conversation_id UUID       REFERENCES conversations(id) ON DELETE SET NULL
 );
 
 -- ── Messages ──────────────────────────────────────────────────────────────────

@@ -46,10 +46,11 @@ export class StartConversationUseCase {
       avatarId,
       startedBy: 'user',
     })
+    const now = new Date().toISOString()
 
     await this.sessionRepository.update(sessionId, {
       activeAvatarId: avatarId,
-      lastActivityAt: conversation.lastActivityAt,
+      lastActivityAt: now,
     })
 
     return {
