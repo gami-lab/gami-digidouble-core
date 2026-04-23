@@ -1,3 +1,5 @@
+import type { AvatarTransitionRule } from '../avatar/avatar-transition.types.js'
+
 /**
  * Scenario domain types.
  *
@@ -25,4 +27,6 @@ export interface ScenarioConfig {
   enabledFeatures?: string[]
   /** IDs of knowledge sources linked to this scenario. */
   sourceReferences?: string[]
+  /** Avatar routing rules evaluated by the transition engine. */
+  avatarTransitionRules?: AvatarTransitionRule[]
 }
