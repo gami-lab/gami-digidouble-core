@@ -56,7 +56,8 @@ export function extractScenarioAvatarTransitionRules(config: unknown): {
   if (!isRecord(config) || !Array.isArray(config['avatarTransitionRules'])) {
     return {}
   }
-  return { avatarTransitionRules: config['avatarTransitionRules'] as AvatarTransitionRule[] }
+  const avatarTransitionRules = config['avatarTransitionRules'].filter(isAvatarTransitionRule)
+  return avatarTransitionRules.length > 0 ? { avatarTransitionRules } : {}
 }
 
 function toGameMasterOutput(value: unknown): GameMasterOutput | null {
@@ -146,6 +147,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function isAvatarTransitionRule(value: unknown): value is AvatarTransitionRule {
+  if (!isRecord(value) || !hasText(value['fromAvatarId']) || !hasText(value['toAvatarId'])) {
+    return false
+  }
+  const trigger = value['trigger']
+  if (trigger !== 'progression' && trigger !== 'topic_repeat' && trigger !== 'manual') {
+    return false
+  }
+  return value['topic'] === undefined || hasText(value['topic'])
 }
 
 function toValidPositiveInteger(value: unknown): number | undefined {
