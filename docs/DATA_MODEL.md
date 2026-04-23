@@ -94,6 +94,8 @@ Defines a runnable experience configuration.
 - enabled features
 - UI hints
 - runtime defaults
+- `avatarTransitionRules` — optional array of `AvatarTransitionRule` objects evaluated by the
+  transition engine to decide which avatar to route to next (EPIC 4.4)
 
 ### Notes
 
