@@ -18,8 +18,20 @@ describe('evaluateTriggers -> turn_threshold', () => {
     expect(evaluateTriggers(makeState({ interactionCount: 10 }))).toBe('turn_threshold')
   })
 
+  it('does not fire when interactionCount is below default threshold', () => {
+    expect(evaluateTriggers(makeState({ interactionCount: 4 }))).toBeNull()
+  })
+
   it('uses custom turn threshold when provided', () => {
     const trigger = evaluateTriggers(makeState({ interactionCount: 6 }), {
+      turnThreshold: 3,
+    })
+
+    expect(trigger).toBe('turn_threshold')
+  })
+
+  it('fires at exactly the custom threshold', () => {
+    const trigger = evaluateTriggers(makeState({ interactionCount: 3 }), {
       turnThreshold: 3,
     })
 
@@ -37,6 +49,17 @@ describe('evaluateTriggers -> topic_repeat', () => {
     )
 
     expect(trigger).toBe('topic_repeat')
+  })
+
+  it('does not fire when no topic reaches the default repeat count', () => {
+    const trigger = evaluateTriggers(
+      makeState({
+        interactionCount: 4,
+        topicsCovered: ['a', 'a', 'b', 'b'],
+      }),
+    )
+
+    expect(trigger).toBeNull()
   })
 
   it('uses custom max topic repeat count when provided', () => {
@@ -73,6 +96,28 @@ describe('evaluateTriggers -> progression_stalled', () => {
     )
 
     expect(trigger).toBe('progression_stalled')
+  })
+
+  it('does not fire when progression has text', () => {
+    const trigger = evaluateTriggers(
+      makeState({
+        interactionCount: 8,
+        progression: 'some progress',
+      }),
+    )
+
+    expect(trigger).toBeNull()
+  })
+
+  it('does not fire when interaction count is below threshold', () => {
+    const trigger = evaluateTriggers(
+      makeState({
+        interactionCount: 7,
+        progression: '',
+      }),
+    )
+
+    expect(trigger).toBeNull()
   })
 
   it('uses custom progression threshold when provided', () => {
@@ -121,6 +166,16 @@ describe('evaluateTriggers -> ordering and null behavior', () => {
         topicsCovered: ['plastic', 'water'],
       }),
     )
+
+    expect(trigger).toBeNull()
+  })
+
+  it('returns null for zero state (no thresholds reached)', () => {
+    const trigger = evaluateTriggers({
+      progression: '',
+      topicsCovered: [],
+      interactionCount: 0,
+    })
 
     expect(trigger).toBeNull()
   })

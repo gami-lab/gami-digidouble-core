@@ -3,14 +3,14 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 22, 2026
+**Last updated:** April 23, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, and event log infrastructure (EPIC-4.1 prerequisite) are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, event log infrastructure (EPIC-4.1 prerequisite), and GM system tests + hardening (Prompt 05) are complete.**
 
 ### Session vs Conversation model refactor (April 22, 2026)
 
@@ -228,6 +228,16 @@ Test coverage hardening (post-EPIC 1.2):
 - `api/routes/exchange.test.ts` expanded: 8 tests now covering auth (missing/wrong key), validation (missing field, empty message), error paths (502 via `LlmError`, 500 via unexpected error), and systemPrompt forwarding
 - `api/routes/exchange.e2e.test.ts` added: 3 real E2E tests (OpenAI, Anthropic, Mistral) exercising the full HTTP → LLM → response path with no mocks; each `skipIf` guarded by the respective API key environment variable
 - Achieved: 94.38% statement coverage, 87.91% branch coverage, 100% function coverage (67 tests across 15 test files)
+
+GM system — Prompt 05 (Tests and hardening) is done:
+
+- `domain/game-master/trigger-engine.test.ts` extended: all trigger paths covered — `turn_threshold` (at/below/double default threshold, custom threshold of exactly 3), `topic_repeat` (fires at 3 repeats, null with 2 each at default threshold), `progression_stalled` (empty and `'none'` progression, has text → null, below count → null, custom threshold), priority ordering (turn_threshold beats topic_repeat beats progression_stalled), and zero-state base case (`interactionCount=0`)
+- `domain/game-master/gm-state-reducer.test.ts` extended: all-undefined `stateUpdate` (only `interactionCount` changes), and non-mutation of input state (original array reference and count unchanged after call)
+- `application/use-cases/run-game-master/run-game-master.use-case.ts` hardened: LLM call wrapped in try/catch via extracted `callLlm` private method; LLM errors are caught silently, state is still incremented, and a `gm_skipped` event is emitted; `execute` complexity reduced by extracting triggered path to `handleTriggeredTurn`
+- `application/use-cases/run-game-master/run-game-master.use-case.test.ts` extended: event log shape tests (`gm_skipped` and `gm_triggered` field verification), event payload security (confirms `userMessageText` and raw system prompt are absent from emitted payloads), and LLM error path (no exception propagates, state incremented, `gm_skipped` emitted with correct `triggerReason`)
+- `infrastructure/db/repositories/postgres-gm-state.repository.integration.test.ts` added: `findBySessionId` returns null for unknown session, `save` inserts row, second `save` upserts (row count stays 1), all `GameMasterState` fields round-trip, `currentAvatarId` is `undefined` (not null) when absent
+- `infrastructure/db/repositories/postgres-event-log.repository.integration.test.ts` added: `append` inserts row, row retrievable by `correlation_id`, `sessionId = null` is valid (nullable FK), JSONB payload stores and retrieves nested objects, `sessionId` with `session_` prefix stores the FK correctly
+- Unit test suite: 187 tests · 35 test files (up from 175 · 35); all quality gates pass
 
 ---
 
