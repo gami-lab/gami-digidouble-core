@@ -1,10 +1,16 @@
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
+import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { ILlmAdapter, LlmResponse } from '../../ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
+import type {
+  AvatarTransitionRule,
+  EligibleTransition,
+} from '../../../domain/avatar/avatar-transition.types.js'
+import { evaluateTransitionRules } from '../../../domain/avatar/transition-engine.js'
 import { buildGameMasterSystemPrompt } from '../../../domain/game-master/gm-prompt.service.js'
 import { reduceGmState } from '../../../domain/game-master/gm-state-reducer.js'
 import type {
@@ -13,13 +19,30 @@ import type {
   GameMasterState,
   GameMasterStateSummary,
 } from '../../../domain/game-master/game-master.types.js'
-import { evaluateTriggers, type TriggerPolicy } from '../../../domain/game-master/trigger-engine.js'
+import {
+  evaluateTriggers,
+  type TriggerPolicy,
+  type TriggerReason,
+} from '../../../domain/game-master/trigger-engine.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
+import {
+  extractScenarioAvatarTransitionRules,
+  extractScenarioPolicy,
+  mapTriggerReasonToTransitionTrigger,
+  safeParseGameMasterOutput,
+} from './run-game-master.helpers.js'
 
 const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
   progression: '',
   topicsCovered: [],
   interactionCount: 0,
+}
+
+type ScenarioContext = {
+  description?: string
+  goals?: string[]
+  policy?: TriggerPolicy
+  avatarTransitionRules?: AvatarTransitionRule[]
 }
 
 export class RunGameMasterUseCase {
@@ -31,6 +54,7 @@ export class RunGameMasterUseCase {
     private readonly observability: IObservabilityAdapter,
     private readonly scenarioRepository?: IScenarioRepository,
     private readonly eventLogRepository?: IEventLogRepository,
+    private readonly conversationRepository?: IConversationRepository,
   ) {}
 
   async execute(input: RunGameMasterInput): Promise<void> {
@@ -56,11 +80,22 @@ export class RunGameMasterUseCase {
   private async handleTriggeredTurn(
     input: RunGameMasterInput,
     currentState: GameMasterState,
-    scenarioContext: { description?: string; goals?: string[]; policy?: TriggerPolicy },
-    triggerReason: string,
+    scenarioContext: ScenarioContext,
+    triggerReason: TriggerReason,
     gmRunStartMs: number,
   ): Promise<void> {
-    const gmInput = await this.buildGameMasterInput(input, currentState, scenarioContext)
+    const eligibleTransitions = evaluateTransitionRules(
+      currentState.currentAvatarId,
+      currentState,
+      scenarioContext.avatarTransitionRules ?? [],
+      mapTriggerReasonToTransitionTrigger(triggerReason),
+    )
+    const gmInput = await this.buildGameMasterInput(
+      input,
+      currentState,
+      scenarioContext,
+      eligibleTransitions,
+    )
     const llmStart = Date.now()
 
     const llmResponse = await this.callLlm(
@@ -88,10 +123,7 @@ export class RunGameMasterUseCase {
 
     const nextState = reduceGmState(currentState, output.stateUpdate)
     await this.gmStateRepository.save(input.sessionId, nextState)
-
-    if (hasText(output.context?.notes)) {
-      await this.sessionRepository.update(input.sessionId, { gmNotes: output.context.notes.trim() })
-    }
+    await this.persistTriggeredNotes(input.sessionId, output)
 
     await this.emitEventSafe({
       sessionId: input.sessionId,
@@ -116,17 +148,7 @@ export class RunGameMasterUseCase {
       },
     })
 
-    // conversationMode: 'new' — starting a fresh bounded conversation inside the session
-    // is deferred to a future EPIC (conversation lifecycle management).
-
-    if (
-      hasText(output.stateUpdate.activeAvatarId) &&
-      output.stateUpdate.activeAvatarId.trim() !== currentState.currentAvatarId
-    ) {
-      await this.sessionRepository.update(input.sessionId, {
-        activeAvatarId: output.stateUpdate.activeAvatarId.trim(),
-      })
-    }
+    await this.applyAvatarRoutingUpdates(input, currentState, output, eligibleTransitions)
 
     await this.traceSafe({
       requestId: input.correlationId,
@@ -143,6 +165,7 @@ export class RunGameMasterUseCase {
       metadata: { model: llmResponse.model },
     })
   }
+
   private async callLlm(
     gmInput: GameMasterInput,
     input: RunGameMasterInput,
@@ -193,11 +216,8 @@ export class RunGameMasterUseCase {
   private async buildGameMasterInput(
     input: RunGameMasterInput,
     currentState: GameMasterState,
-    scenarioContext: {
-      description?: string
-      goals?: string[]
-      policy?: TriggerPolicy
-    },
+    scenarioContext: ScenarioContext,
+    eligibleTransitions: EligibleTransition[],
   ): Promise<GameMasterInput> {
     const availableAvatars = await this.avatarRepository.listByScenarioId(input.scenarioId)
 
@@ -218,8 +238,94 @@ export class RunGameMasterUseCase {
           name: avatar.name,
           ...(avatar.description !== undefined ? { description: avatar.description } : {}),
         })),
+        eligibleTransitions: eligibleTransitions.map((transition) => ({
+          toAvatarId: transition.toAvatarId,
+          reason: transition.reason,
+        })),
         ...(scenarioContext.policy !== undefined ? { policy: scenarioContext.policy } : {}),
       },
+    }
+  }
+
+  private async performAvatarSwitch(
+    input: RunGameMasterInput,
+    output: GameMasterOutput,
+    eligibleTransitions: EligibleTransition[],
+  ): Promise<void> {
+    if (this.conversationRepository === undefined || !hasText(output.nextAvatarId)) {
+      return
+    }
+
+    const nextAvatarId = output.nextAvatarId.trim()
+
+    if (
+      eligibleTransitions.length > 0 &&
+      !eligibleTransitions.some((transition) => transition.toAvatarId === nextAvatarId)
+    ) {
+      console.warn(
+        '[GM] Skipping avatar switch: nextAvatarId is not in eligible transitions.',
+        nextAvatarId,
+        eligibleTransitions.map((transition) => transition.toAvatarId),
+      )
+      return
+    }
+
+    try {
+      const activeConversation = await this.conversationRepository.findActiveBySessionId(
+        input.sessionId,
+      )
+      const now = new Date().toISOString()
+
+      if (activeConversation !== null) {
+        await this.conversationRepository.update(activeConversation.conversationId, {
+          status: 'closed',
+          endedAt: now,
+        })
+      }
+
+      await this.conversationRepository.create({
+        sessionId: input.sessionId,
+        avatarId: nextAvatarId,
+        startedBy: 'gm',
+        reason: output.transitionReason ?? 'gm_directed',
+        ...(activeConversation !== null
+          ? { handoffFromConversationId: activeConversation.conversationId }
+          : {}),
+      })
+
+      await this.sessionRepository.update(input.sessionId, { activeAvatarId: nextAvatarId })
+    } catch (err: unknown) {
+      console.error('[GM] Avatar switch failed:', err)
+    }
+  }
+
+  private async persistTriggeredNotes(sessionId: string, output: GameMasterOutput): Promise<void> {
+    if (!hasText(output.context?.notes)) return
+    await this.sessionRepository.update(sessionId, { gmNotes: output.context.notes.trim() })
+  }
+
+  private async applyAvatarRoutingUpdates(
+    input: RunGameMasterInput,
+    currentState: GameMasterState,
+    output: GameMasterOutput,
+    eligibleTransitions: EligibleTransition[],
+  ): Promise<void> {
+    if (
+      output.conversationMode === 'new' &&
+      hasText(output.nextAvatarId) &&
+      this.conversationRepository !== undefined
+    ) {
+      await this.performAvatarSwitch(input, output, eligibleTransitions)
+      return
+    }
+
+    if (
+      hasText(output.stateUpdate.activeAvatarId) &&
+      output.stateUpdate.activeAvatarId.trim() !== currentState.currentAvatarId
+    ) {
+      await this.sessionRepository.update(input.sessionId, {
+        activeAvatarId: output.stateUpdate.activeAvatarId.trim(),
+      })
     }
   }
 
@@ -334,11 +440,7 @@ export class RunGameMasterUseCase {
     }
   }
 
-  private async loadScenarioContext(scenarioId: string): Promise<{
-    description?: string
-    goals?: string[]
-    policy?: TriggerPolicy
-  }> {
+  private async loadScenarioContext(scenarioId: string): Promise<ScenarioContext> {
     if (this.scenarioRepository === undefined) {
       return {}
     }
@@ -352,110 +454,13 @@ export class RunGameMasterUseCase {
         : {}),
       ...(Array.isArray(scenario.config.objectives) ? { goals: scenario.config.objectives } : {}),
       ...extractScenarioPolicy(scenario.config),
+      ...extractScenarioAvatarTransitionRules(scenario.config),
     }
   }
-}
-
-function safeParseGameMasterOutput(content: string): GameMasterOutput | null {
-  try {
-    const parsed: unknown = JSON.parse(content)
-    const output = toGameMasterOutput(parsed)
-    if (output !== null) {
-      return output
-    }
-  } catch (parseError) {
-    console.error('[GM] Failed to parse Game Master output JSON:', content, parseError)
-    return null
-  }
-
-  console.error(
-    '[GM] Invalid Game Master output shape: missing required fields or incorrect types.',
-  )
-  return null
-}
-
-function toGameMasterOutput(value: unknown): GameMasterOutput | null {
-  if (!isRecord(value)) return null
-  const avatarId = value['avatarId']
-  if (!hasText(avatarId)) return null
-  if (!isConversationMode(value['conversationMode'])) return null
-
-  const stateUpdate = toStateUpdate(value['stateUpdate'])
-  if (stateUpdate === null) return null
-
-  const context = value['context']
-  const notes = isRecord(context) && hasText(context['notes']) ? context['notes'].trim() : undefined
-
-  return {
-    avatarId: avatarId.trim(),
-    conversationMode: value['conversationMode'],
-    ...(notes !== undefined ? { context: { notes } } : {}),
-    stateUpdate,
-  }
-}
-
-function toStateUpdate(value: unknown): GameMasterOutput['stateUpdate'] | null {
-  if (!isRecord(value)) return null
-  if (value['interactionIncrement'] !== 1) return null
-  if (!isValidProgression(value['progression'])) return null
-  const topicCovered = hasText(value['topicCovered']) ? value['topicCovered'].trim() : undefined
-  const activeAvatarId = hasText(value['activeAvatarId'])
-    ? value['activeAvatarId'].trim()
-    : undefined
-
-  return {
-    interactionIncrement: 1,
-    ...(value['progression'] !== undefined ? { progression: value['progression'] } : {}),
-    ...(topicCovered !== undefined ? { topicCovered } : {}),
-    ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
-  }
-}
-
-function isValidProgression(value: unknown): value is 'none' | 'increase' | undefined {
-  return value === undefined || value === 'none' || value === 'increase'
-}
-
-function isConversationMode(value: unknown): value is 'new' | 'continue' {
-  return value === 'new' || value === 'continue'
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
-}
-
-function extractScenarioPolicy(config: unknown): { policy?: TriggerPolicy } {
-  if (!isRecord(config)) {
-    return {}
-  }
-  const policyRaw = config['policy']
-  if (typeof policyRaw !== 'object' || policyRaw === null) {
-    return {}
-  }
-
-  const policyCandidate = policyRaw as Record<string, unknown>
-  const turnThreshold = toValidPositiveInteger(policyCandidate['turnThreshold'])
-  const maxTopicRepeatCount = toValidPositiveInteger(policyCandidate['maxTopicRepeatCount'])
-  const maxTurnsWithoutProgression = toValidPositiveInteger(
-    policyCandidate['maxTurnsWithoutProgression'],
-  )
-  const policy: TriggerPolicy = {
-    ...(turnThreshold !== undefined ? { turnThreshold } : {}),
-    ...(maxTopicRepeatCount !== undefined ? { maxTopicRepeatCount } : {}),
-    ...(maxTurnsWithoutProgression !== undefined ? { maxTurnsWithoutProgression } : {}),
-  }
-
-  return Object.keys(policy).length > 0 ? { policy } : {}
-}
-
-function toValidPositiveInteger(value: unknown): number | undefined {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
-    return undefined
-  }
-  return value
 }
 
 function buildStateSummary(state: GameMasterState): GameMasterStateSummary {

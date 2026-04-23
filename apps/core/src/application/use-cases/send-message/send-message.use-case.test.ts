@@ -27,6 +27,7 @@ const sessionRepository = {
 
 const conversationRepository = {
   findById: findConversationByIdMock,
+  findActiveBySessionId: vi.fn(),
   create: vi.fn(),
   listBySessionId: vi.fn(),
   update: updateConversationMock,

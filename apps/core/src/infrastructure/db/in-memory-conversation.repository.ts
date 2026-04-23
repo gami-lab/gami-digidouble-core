@@ -18,6 +18,15 @@ export class InMemoryConversationRepository implements IConversationRepository {
     return Promise.resolve(this.conversations.get(conversationId) ?? null)
   }
 
+  findActiveBySessionId(sessionId: string): Promise<Conversation | null> {
+    const activeConversations = [...this.conversations.values()]
+      .filter(
+        (conversation) => conversation.sessionId === sessionId && conversation.status === 'active',
+      )
+      .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))
+    return Promise.resolve(activeConversations[0] ?? null)
+  }
+
   create(params: CreateConversationParams): Promise<Conversation> {
     const now = new Date().toISOString()
     const conversation: Conversation = {

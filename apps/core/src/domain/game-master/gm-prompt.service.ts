@@ -2,6 +2,9 @@ export function buildGameMasterSystemPrompt(): string {
   const schema = JSON.stringify(
     {
       avatarId: '<string — must match an avatarId from availableAvatars>',
+      nextAvatarId:
+        '<optional string — target avatar when conversationMode is "new"; otherwise null>',
+      transitionReason: '<optional string — short reason for switching to nextAvatarId>',
       conversationMode: '<"new" | "continue">',
       context: {
         notes: '<optional one-sentence guidance for the Avatar on the next turn>',
@@ -25,6 +28,8 @@ export function buildGameMasterSystemPrompt(): string {
     'Rules:',
     '- context.notes must be one sentence maximum.',
     '- avatarId must be one of the avatarIds listed in availableAvatars in the input.',
+    '- When context.eligibleTransitions is non-empty, nextAvatarId must be one of its toAvatarId values only if a switch is needed.',
+    '- When context.eligibleTransitions is empty, set nextAvatarId to null and conversationMode to "continue".',
     '- stateUpdate.interactionIncrement must always be exactly 1.',
     '- Set stateUpdate.activeAvatarId only when changing the active avatar.',
   ].join('\n')

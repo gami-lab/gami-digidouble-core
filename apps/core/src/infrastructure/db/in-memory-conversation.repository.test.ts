@@ -36,4 +36,31 @@ describe('InMemoryConversationRepository', () => {
 
     expect(updated.status).toBe('closed')
   })
+
+  it('findActiveBySessionId returns latest active conversation for a session', async () => {
+    const repository = new InMemoryConversationRepository([
+      makeConversation({
+        conversationId: 'conversation_1',
+        sessionId: 'session_1',
+        status: 'active',
+        startedAt: '2026-04-21T08:00:00.000Z',
+      }),
+      makeConversation({
+        conversationId: 'conversation_2',
+        sessionId: 'session_1',
+        status: 'closed',
+        startedAt: '2026-04-21T09:00:00.000Z',
+      }),
+      makeConversation({
+        conversationId: 'conversation_3',
+        sessionId: 'session_1',
+        status: 'active',
+        startedAt: '2026-04-21T10:00:00.000Z',
+      }),
+    ])
+
+    const result = await repository.findActiveBySessionId('session_1')
+
+    expect(result?.conversationId).toBe('conversation_3')
+  })
 })

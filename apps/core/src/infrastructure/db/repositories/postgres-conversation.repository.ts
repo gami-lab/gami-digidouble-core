@@ -102,6 +102,30 @@ export class PostgresConversationRepository implements IConversationRepository {
     return rowToConversation(row)
   }
 
+  async findActiveBySessionId(sessionId: string): Promise<Conversation | null> {
+    const sessionUuid = extractUuid('session_', sessionId)
+    if (sessionUuid === null) return null
+    const [row] = await this.sql<[ConversationRow?]>`
+      SELECT
+        id,
+        session_id,
+        avatar_id,
+        status,
+        started_at,
+        last_activity_at,
+        ended_at,
+        started_by,
+        reason,
+        handoff_from_conversation_id
+      FROM conversations
+      WHERE session_id = ${sessionUuid}
+        AND status = 'active'
+      ORDER BY started_at DESC
+      LIMIT 1
+    `
+    return row === undefined ? null : rowToConversation(row)
+  }
+
   async listBySessionId(sessionId: string): Promise<Conversation[]> {
     const sessionUuid = extractUuid('session_', sessionId)
     if (sessionUuid === null) return []
