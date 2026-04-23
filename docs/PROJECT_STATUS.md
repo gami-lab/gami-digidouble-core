@@ -279,12 +279,12 @@ GM system — Prompt 05 (Tests and hardening) is done:
 
 ### Sprint 4 — Orchestration Intelligence
 
-| Epic                                      | Status       | Notes                                                                                                          |
-| ----------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
-| EPIC 4.1 — Async Game Master v1           | **Complete** | Trigger engine (turn_threshold, topic_repeat, progression_stalled), RunGameMasterUseCase, GM state persistence (PostgresGmStateRepository), event log (PostgresEventLogRepository), guidance note injection into Avatar prompt |
-| EPIC 4.4 — Multi-Avatar Navigation v1     | Not started  | Active-avatar routing, transition rules, handoff context                                                       |
-| EPIC 4.2 — Memory Layer v1               | Not started  | Session summary + persistent user facts                                                                        |
-| EPIC 4.3 — Performance Baseline          | Not started  | TTFT metrics, step timing, Avatar-only vs Avatar+GM comparison                                                 |
+| Epic                                  | Status       | Notes                                                                                                                                                                                                                          |
+| ------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| EPIC 4.1 — Async Game Master v1       | **Complete** | Trigger engine (turn_threshold, topic_repeat, progression_stalled), RunGameMasterUseCase, GM state persistence (PostgresGmStateRepository), event log (PostgresEventLogRepository), guidance note injection into Avatar prompt |
+| EPIC 4.4 — Multi-Avatar Navigation v1 | Not started  | Active-avatar routing, transition rules, handoff context                                                                                                                                                                       |
+| EPIC 4.2 — Memory Layer v1            | Not started  | Session summary + persistent user facts                                                                                                                                                                                        |
+| EPIC 4.3 — Performance Baseline       | Not started  | TTFT metrics, step timing, Avatar-only vs Avatar+GM comparison                                                                                                                                                                 |
 
 ### Sprint 5 — Back-office v1
 

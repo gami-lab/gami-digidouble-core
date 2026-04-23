@@ -152,11 +152,19 @@ function Breadcrumb({ activePage, onNavigate }: BreadcrumbProps): JSX.Element {
             {isClickable ? (
               <button
                 type="button"
-                onClick={() => { onNavigate(item.id) }}
+                onClick={() => {
+                  onNavigate(item.id)
+                }}
                 style={{
-                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                  fontWeight: 600, color: '#3b82f6', fontFamily: 'inherit',
-                  fontSize: 'inherit', textDecoration: 'underline',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  color: '#3b82f6',
+                  fontFamily: 'inherit',
+                  fontSize: 'inherit',
+                  textDecoration: 'underline',
                 }}
               >
                 {item.label}

@@ -1,5 +1,11 @@
 import type { ComponentProps, JSX } from 'react'
-import type { AvatarSummary, ConversationSummary, Message, ScenarioSummary, SessionSummary } from '../api'
+import type {
+  AvatarSummary,
+  ConversationSummary,
+  Message,
+  ScenarioSummary,
+  SessionSummary,
+} from '../api'
 import { DebugPanel } from '../components/DebugPanel'
 import type { DebugMetadata } from '../components/DebugPanel'
 import { LabeledInput } from '../components/LabeledInput'
@@ -113,7 +119,11 @@ export function StartSessionSection({
             style={inputStyle}
             labelStyle={labelStyle}
           />
-          <button type="submit" style={buttonStyle} disabled={isStartingSession || userId.trim() === ''}>
+          <button
+            type="submit"
+            style={buttonStyle}
+            disabled={isStartingSession || userId.trim() === ''}
+          >
             {isStartingSession ? 'Starting…' : 'Start Session'}
           </button>
         </fieldset>
@@ -248,7 +258,8 @@ function ConversationStarter({
     <>
       <h3>Start conversation</h3>
       <p style={{ marginTop: 0, color: '#4b5563' }}>
-        Opening a previous conversation keeps that old thread. Starting again with the same avatar creates a new conversation.
+        Opening a previous conversation keeps that old thread. Starting again with the same avatar
+        creates a new conversation.
       </p>
       <div>
         <label style={labelStyle} htmlFor="conversation-avatar-select">
@@ -302,7 +313,9 @@ function ConversationList({
     <>
       <h3>Session conversations</h3>
       <div style={listContainerStyle}>
-        {conversations.length === 0 ? <p style={{ margin: 0, color: '#6b7280' }}>No conversations yet.</p> : null}
+        {conversations.length === 0 ? (
+          <p style={{ margin: 0, color: '#6b7280' }}>No conversations yet.</p>
+        ) : null}
         {conversations.map((conversation) => {
           const avatar = avatarsById.get(conversation.avatarId)
           const isSelected = conversation.conversationId === selectedConversationId
@@ -318,8 +331,12 @@ function ConversationList({
               <div style={{ fontSize: '12px', color: '#6b7280' }}>
                 Conversation ID: {conversation.conversationId}
               </div>
-              <div style={{ fontSize: '12px', color: '#6b7280' }}>Avatar ID: {conversation.avatarId}</div>
-              <div style={{ fontSize: '12px', color: '#6b7280' }}>Started: {conversation.startedAt}</div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                Avatar ID: {conversation.avatarId}
+              </div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                Started: {conversation.startedAt}
+              </div>
               <div style={{ fontSize: '12px', color: '#6b7280' }}>
                 Last activity: {conversation.lastActivityAt}
               </div>
@@ -331,7 +348,9 @@ function ConversationList({
                   onOpenConversation(conversation)
                 }}
               >
-                {isSelected ? 'Open previous conversation (selected)' : 'Open previous conversation'}
+                {isSelected
+                  ? 'Open previous conversation (selected)'
+                  : 'Open previous conversation'}
               </button>
             </div>
           )
@@ -389,9 +408,14 @@ function ConversationDetail({
           flexDirection: 'column',
         }}
       >
-        {messages.length === 0 ? <p style={{ margin: 0, color: '#6b7280' }}>No messages yet.</p> : null}
+        {messages.length === 0 ? (
+          <p style={{ margin: 0, color: '#6b7280' }}>No messages yet.</p>
+        ) : null}
         {messages.map((message) => (
-          <div key={message.messageId} style={message.role === 'user' ? userMessageStyle : avatarMessageStyle}>
+          <div
+            key={message.messageId}
+            style={message.role === 'user' ? userMessageStyle : avatarMessageStyle}
+          >
             <div>
               <strong>{message.role}</strong> · {message.createdAt}
             </div>

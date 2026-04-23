@@ -53,7 +53,9 @@ export function ScenarioPage({
       onScenarioSelected,
       setSubmitError,
       setIsSubmitting,
-      () => { setName('') },
+      () => {
+        setName('')
+      },
       async () => loadScenarios(setScenarios, setIsLoading, setListError),
     )
   }
@@ -61,7 +63,9 @@ export function ScenarioPage({
   return (
     <section style={sectionStyle}>
       <h2 style={{ marginTop: 0 }}>Scenario</h2>
-      <p style={{ marginTop: 0, color: '#4b5563' }}>Create a new scenario or select an existing one.</p>
+      <p style={{ marginTop: 0, color: '#4b5563' }}>
+        Create a new scenario or select an existing one.
+      </p>
 
       <ScenarioForm
         name={name}
@@ -98,7 +102,10 @@ export function ScenarioPage({
 
 function useAvatarSection(selectedScenarioId: string | null): AvatarSectionProps {
   const [values, setValues] = useState<AvatarFormValues>({
-    name: '', personaPrompt: '', tone: '', description: '',
+    name: '',
+    personaPrompt: '',
+    tone: '',
+    description: '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -107,7 +114,10 @@ function useAvatarSection(selectedScenarioId: string | null): AvatarSectionProps
   const [avatars, setAvatars] = useState<AvatarSummary[]>([])
 
   useEffect(() => {
-    if (selectedScenarioId === null) { setAvatars([]); return }
+    if (selectedScenarioId === null) {
+      setAvatars([])
+      return
+    }
     void loadAvatars(selectedScenarioId, setAvatars, setIsLoading, setListError)
   }, [selectedScenarioId])
 
@@ -115,13 +125,27 @@ function useAvatarSection(selectedScenarioId: string | null): AvatarSectionProps
     event.preventDefault()
     if (selectedScenarioId === null) return
     void submitAvatar(
-      selectedScenarioId, values, setSubmitError, setIsSubmitting,
-      () => { setValues({ name: '', personaPrompt: '', tone: '', description: '' }) },
+      selectedScenarioId,
+      values,
+      setSubmitError,
+      setIsSubmitting,
+      () => {
+        setValues({ name: '', personaPrompt: '', tone: '', description: '' })
+      },
       async () => loadAvatars(selectedScenarioId, setAvatars, setIsLoading, setListError),
     )
   }
 
-  return { values, isSubmitting, submitError, avatars, isLoading, listError, onValuesChange: setValues, onSubmit }
+  return {
+    values,
+    isSubmitting,
+    submitError,
+    avatars,
+    isLoading,
+    listError,
+    onValuesChange: setValues,
+    onSubmit,
+  }
 }
 
 type ScenarioFormProps = {
@@ -219,7 +243,9 @@ function ScenarioList({
             <div>
               <strong>{scenario.name}</strong> · {scenario.status}
             </div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>Scenario ID: {scenario.scenarioId}</div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+              Scenario ID: {scenario.scenarioId}
+            </div>
             <button
               type="button"
               style={{ ...buttonStyle, marginTop: '8px' }}
@@ -326,7 +352,13 @@ type AvatarFormProps = {
   onSubmit: (event: FormSubmitEvent) => void
 }
 
-function AvatarForm({ values, isSubmitting, submitError, onValuesChange, onSubmit }: AvatarFormProps): JSX.Element {
+function AvatarForm({
+  values,
+  isSubmitting,
+  submitError,
+  onValuesChange,
+  onSubmit,
+}: AvatarFormProps): JSX.Element {
   return (
     <form onSubmit={onSubmit}>
       <fieldset style={{ margin: 0, padding: 0, border: 'none' }} disabled={isSubmitting}>
