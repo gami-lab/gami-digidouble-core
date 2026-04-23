@@ -152,19 +152,12 @@ export type GameMasterInput = {
     }>
 
     policy?: {
-      transitionRules?: Array<{
-        fromAvatarId?: string
-        toAvatarId: string
-        triggerType: 'topic' | 'progression' | 'manual_choice' | 'system'
-        priority?: number
-        constraints?: string[]
-      }>
-      pacing?: {
-        minTurnsPerAvatar?: number
-        maxTurnsWithoutProgression?: number
-      }
-      allowedActions?: string[]
-      constraints?: string[]
+      /** Override the default turn-count trigger interval (default: 5). */
+      turnThreshold?: number
+      /** Override how many times a topic must repeat before triggering (default: 3). */
+      maxTopicRepeatCount?: number
+      /** Override how many turns without progression before triggering (default: 8). */
+      maxTurnsWithoutProgression?: number
     }
   }
 }

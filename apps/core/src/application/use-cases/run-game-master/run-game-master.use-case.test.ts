@@ -313,3 +313,195 @@ describe('RunGameMasterUseCase — LLM error handling', () => {
     expect(events[0]?.payload['triggerReason']).toBe('turn_threshold')
   })
 })
+
+describe('RunGameMasterUseCase — defensive error paths', () => {
+  it('emitEventSafe failure does not propagate and execute() still resolves', async () => {
+    const failingEventLog = {
+      append: vi.fn().mockRejectedValue(new Error('db write failed')),
+    }
+    const useCase = new RunGameMasterUseCase(
+      gmStateRepository,
+      sessionRepository,
+      avatarRepository,
+      llm,
+      observability,
+      undefined,
+      failingEventLog,
+    )
+
+    // A skipped turn (no trigger) still calls emitEventSafe — verify no throw
+    await expectConsoleError(
+      () =>
+        useCase.execute({
+          sessionId: 'session_1',
+          scenarioId: 'scenario_1',
+          avatarId: 'avatar_1',
+          userMessageText: 'hello',
+          turnIndex: 2,
+          correlationId: 'corr_safe',
+        }),
+      /\[GM\] Event log emission failed for type:/,
+    )
+
+    expect(failingEventLog.append).toHaveBeenCalledTimes(1)
+    expect(saveGmStateMock).toHaveBeenCalledOnce()
+  })
+
+  it('traceSafe failure does not propagate on triggered turn', async () => {
+    traceMock.mockRejectedValue(new Error('langfuse down'))
+    findBySessionIdMock.mockResolvedValue(
+      makeState({ interactionCount: 5, progression: 'none', currentAvatarId: 'avatar_1' }),
+    )
+    const useCase = createUseCase()
+
+    await expectConsoleError(
+      () =>
+        useCase.execute({
+          sessionId: 'session_1',
+          scenarioId: 'scenario_1',
+          avatarId: 'avatar_1',
+          userMessageText: 'hello',
+          turnIndex: 6,
+          correlationId: 'corr_trace',
+        }),
+      /\[GM\] Observability trace failed for event:/,
+    )
+
+    expect(completeMock).toHaveBeenCalledTimes(1)
+    expect(saveGmStateMock).toHaveBeenCalledOnce()
+  })
+
+  it('does not update session when activeAvatarId is unchanged', async () => {
+    findBySessionIdMock.mockResolvedValue(
+      makeState({ interactionCount: 5, progression: 'none', currentAvatarId: 'avatar_1' }),
+    )
+    // LLM returns activeAvatarId = same avatar already active
+    completeMock.mockResolvedValue({
+      content: JSON.stringify({
+        avatarId: 'avatar_1',
+        conversationMode: 'continue',
+        stateUpdate: {
+          activeAvatarId: 'avatar_1',
+          interactionIncrement: 1,
+        },
+      }),
+      model: 'null-model',
+      inputTokens: 5,
+      outputTokens: 5,
+      latencyMs: 1,
+    })
+    const useCase = createUseCase()
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 6,
+      correlationId: 'corr_unchanged',
+    })
+
+    // Session should NOT be updated for activeAvatarId when it has not changed
+    const avatarUpdateCalls = updateSessionMock.mock.calls.filter(
+      (call) => (call[1] as Record<string, unknown>)['activeAvatarId'] !== undefined,
+    )
+    expect(avatarUpdateCalls).toHaveLength(0)
+  })
+})
+
+describe('RunGameMasterUseCase — scenario policy wiring', () => {
+  const findByIdScenarioMock = vi.fn()
+
+  const scenarioRepository = {
+    findById: findByIdScenarioMock,
+    create: vi.fn(),
+    list: vi.fn(),
+    delete: vi.fn(),
+  }
+
+  function createUseCaseWithScenario(eventLog?: InMemoryEventLogRepository): RunGameMasterUseCase {
+    return new RunGameMasterUseCase(
+      gmStateRepository,
+      sessionRepository,
+      avatarRepository,
+      llm,
+      observability,
+      scenarioRepository,
+      eventLog,
+    )
+  }
+
+  beforeEach(() => {
+    findByIdScenarioMock.mockReset()
+    findByIdScenarioMock.mockResolvedValue(null)
+  })
+
+  it('returns empty context when scenarioRepository returns null', async () => {
+    // scenario not found → triggers still evaluate against default policy
+    findByIdScenarioMock.mockResolvedValue(null)
+    findBySessionIdMock.mockResolvedValue(makeState({ interactionCount: 1 }))
+
+    await createUseCaseWithScenario().execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_missing',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 2,
+      correlationId: 'corr_null_scenario',
+    })
+
+    expect(completeMock).not.toHaveBeenCalled()
+    expect(saveGmStateMock).toHaveBeenCalledWith(
+      'session_1',
+      expect.objectContaining({ interactionCount: 2 }),
+    )
+  })
+
+  it('uses custom policy from scenario config when scenario is found', async () => {
+    // turnThreshold of 2 means interactionCount=2 fires a trigger
+    findByIdScenarioMock.mockResolvedValue({
+      scenarioId: 'scenario_1',
+      name: 'Test',
+      status: 'active',
+      config: { policy: { turnThreshold: 2 } },
+      createdAt: '',
+      updatedAt: '',
+    })
+    findBySessionIdMock.mockResolvedValue(makeState({ interactionCount: 2, progression: 'none' }))
+
+    await createUseCaseWithScenario().execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 3,
+      correlationId: 'corr_policy',
+    })
+
+    expect(completeMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores invalid policy values (non-positive integer) and falls back to defaults', async () => {
+    findByIdScenarioMock.mockResolvedValue({
+      scenarioId: 'scenario_1',
+      name: 'Test',
+      status: 'active',
+      config: { policy: { turnThreshold: -5, maxTopicRepeatCount: 1.5 } },
+      createdAt: '',
+      updatedAt: '',
+    })
+    // With default turnThreshold=5, interactionCount=3 should NOT trigger
+    findBySessionIdMock.mockResolvedValue(makeState({ interactionCount: 3 }))
+
+    await createUseCaseWithScenario().execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 4,
+      correlationId: 'corr_bad_policy',
+    })
+
+    expect(completeMock).not.toHaveBeenCalled()
+  })
+})

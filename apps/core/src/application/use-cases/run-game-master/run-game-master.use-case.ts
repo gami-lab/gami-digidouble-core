@@ -116,6 +116,9 @@ export class RunGameMasterUseCase {
       },
     })
 
+    // conversationMode: 'new' — starting a fresh bounded conversation inside the session
+    // is deferred to a future EPIC (conversation lifecycle management).
+
     if (
       hasText(output.stateUpdate.activeAvatarId) &&
       output.stateUpdate.activeAvatarId.trim() !== currentState.currentAvatarId
