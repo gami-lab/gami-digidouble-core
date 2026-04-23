@@ -159,6 +159,10 @@ export type GameMasterInput = {
       /** Override how many turns without progression before triggering (default: 8). */
       maxTurnsWithoutProgression?: number
     }
+    eligibleTransitions?: Array<{
+      toAvatarId: string
+      reason: string
+    }>
   }
 }
 ```
@@ -419,7 +423,8 @@ The current MVP implementation runs GM as an async observer after each avatar tu
    - parse JSON into `GameMasterOutput`
    - apply reducer (`reduceGmState`) and persist state
    - store `output.context.notes` into session-level GM notes when provided
-   - update `session.activeAvatarId` when `stateUpdate.activeAvatarId` changes
+   - when `conversationMode: 'new'` and `nextAvatarId` is valid for eligible transitions, close the active conversation, create a new GM-started conversation for `nextAvatarId`, and update `session.activeAvatarId`
+   - otherwise update `session.activeAvatarId` when `stateUpdate.activeAvatarId` changes
 5. GM errors must not break user response path; in message flow the GM call is fire-and-forget with error catch.
 
 ## 12.2 GM system prompt structure (MVP)

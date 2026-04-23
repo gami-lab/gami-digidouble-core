@@ -3,6 +3,11 @@ import type { Conversation, Session } from '../../domain/conversation/session.ty
 /** Port: conversation persistence. Infrastructure must implement this interface. */
 export interface IConversationRepository {
   findById(conversationId: string): Promise<Conversation | null>
+  /**
+   * Returns the most recently created active conversation for a session,
+   * or null when none exists.
+   */
+  findActiveBySessionId(sessionId: string): Promise<Conversation | null>
   create(params: CreateConversationParams): Promise<Conversation>
   listBySessionId(sessionId: string): Promise<Conversation[]>
   update(conversationId: string, updates: ConversationUpdate): Promise<Conversation>

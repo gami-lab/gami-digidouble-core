@@ -66,4 +66,18 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationRepository', () => {
       second.conversationId,
     ])
   })
+
+  it('findActiveBySessionId returns the most recently started active conversation', async () => {
+    const first = await repository.create({ sessionId, avatarId, startedBy: 'user' })
+    const second = await repository.create({ sessionId, avatarId, startedBy: 'user' })
+    await repository.update(first.conversationId, {
+      status: 'closed',
+      endedAt: new Date().toISOString(),
+    })
+
+    const active = await repository.findActiveBySessionId(sessionId)
+
+    expect(active?.conversationId).toBe(second.conversationId)
+    expect(active?.status).toBe('active')
+  })
 })

@@ -7,6 +7,7 @@ const findMessagesByConversationIdMock = vi.fn()
 
 const conversationRepository = {
   findById: findConversationByIdMock,
+  findActiveBySessionId: vi.fn(),
   create: vi.fn(),
   listBySessionId: vi.fn(),
   update: vi.fn(),

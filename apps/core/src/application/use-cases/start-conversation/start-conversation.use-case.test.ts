@@ -26,6 +26,7 @@ const avatarRepository = {
 
 const conversationRepository = {
   findById: vi.fn(),
+  findActiveBySessionId: vi.fn(),
   create: createConversationMock,
   listBySessionId: vi.fn(),
   update: vi.fn(),

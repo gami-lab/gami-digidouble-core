@@ -30,6 +30,7 @@ async function main(): Promise<void> {
   const sessionRepository = new PostgresSessionRepository(sql)
   const avatarRepository = new PostgresAvatarRepository(sql)
   const eventLogRepository = new PostgresEventLogRepository(sql)
+  const conversationRepository = new PostgresConversationRepository(sql)
   const runGameMasterUseCase = new RunGameMasterUseCase(
     gmStateRepository,
     sessionRepository,
@@ -38,6 +39,7 @@ async function main(): Promise<void> {
     observability,
     scenarioRepository,
     eventLogRepository,
+    conversationRepository,
   )
 
   const adapters = {
@@ -48,7 +50,7 @@ async function main(): Promise<void> {
     eventLogRepository,
     gmStateRepository,
     sessionRepository,
-    conversationRepository: new PostgresConversationRepository(sql),
+    conversationRepository,
     messageRepository: new PostgresMessageRepository(sql),
     runGameMasterUseCase,
   }

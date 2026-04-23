@@ -43,6 +43,10 @@ export interface GameMasterInput {
       maxTopicRepeatCount?: number
       maxTurnsWithoutProgression?: number
     }
+    eligibleTransitions?: Array<{
+      toAvatarId: string
+      reason: string
+    }>
   }
 }
 
