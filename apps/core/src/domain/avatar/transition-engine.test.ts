@@ -96,12 +96,42 @@ describe('evaluateTransitionRules', () => {
     const result = evaluateTransitionRules(undefined, makeState(), rules, 'progression')
     expect(result).toEqual([])
   })
+})
 
+describe('evaluateTransitionRules edge cases', () => {
   it('manual trigger type is never returned by evaluateTransitionRules', () => {
     const rules: AvatarTransitionRule[] = [
       { fromAvatarId: 'avatar-1', toAvatarId: 'avatar-2', trigger: 'manual' },
     ]
     const result = evaluateTransitionRules('avatar-1', makeState(), rules, 'progression')
+    expect(result).toEqual([])
+  })
+
+  it('matching fromAvatarId without activeTrigger returns no transitions', () => {
+    const rules: AvatarTransitionRule[] = [
+      makeProgressionRule('avatar-1', 'avatar-2'),
+      makeTopicRepeatRule('avatar-1', 'avatar-3', 'plastic'),
+    ]
+    const state = makeState({ topicsCovered: ['plastic'] })
+    const result = evaluateTransitionRules('avatar-1', state, rules, null)
+    expect(result).toEqual([])
+  })
+
+  it('returns both progression rules when they share fromAvatarId and activeTrigger is progression', () => {
+    const rules: AvatarTransitionRule[] = [
+      makeProgressionRule('avatar-1', 'avatar-2'),
+      makeProgressionRule('avatar-1', 'avatar-3'),
+    ]
+    const result = evaluateTransitionRules('avatar-1', makeState(), rules, 'progression')
+    expect(result.map((rule) => rule.toAvatarId)).toEqual(['avatar-2', 'avatar-3'])
+  })
+
+  it('treats empty topic in topic_repeat rule as non-matching', () => {
+    const rules: AvatarTransitionRule[] = [
+      { fromAvatarId: 'avatar-1', toAvatarId: 'avatar-2', trigger: 'topic_repeat', topic: '' },
+    ]
+    const state = makeState({ topicsCovered: [''] })
+    const result = evaluateTransitionRules('avatar-1', state, rules, 'topic_repeat')
     expect(result).toEqual([])
   })
 

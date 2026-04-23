@@ -59,6 +59,7 @@ function tryMatchTopicRepeatRule(
   if (
     activeTrigger !== 'topic_repeat' ||
     rule.topic === undefined ||
+    rule.topic.trim().length === 0 ||
     !state.topicsCovered.includes(rule.topic)
   ) {
     return null

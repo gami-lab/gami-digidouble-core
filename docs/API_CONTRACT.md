@@ -423,7 +423,7 @@ type SwitchAvatarRequest = {
 ### Response
 
 ```ts
-type SwitchAvatarResponse = {
+type SwitchAvatarOutput = {
   session: SessionSummary
   conversation: ConversationSummary
   previousConversationId: string | null
@@ -460,7 +460,7 @@ GET /v1/sessions/{sessionId}/available-avatars
 ### Response
 
 ```ts
-type GetAvailableAvatarsResponse = {
+type GetAvailableAvatarsOutput = {
   sessionId: string
   currentAvatarId: string | null
   avatars: AvatarSummary[]
@@ -486,7 +486,7 @@ GET /v1/sessions/{sessionId}/avatar-transitions
 ### Response
 
 ```ts
-type GetAvatarTransitionsResponse = {
+type GetAvatarTransitionsOutput = {
   sessionId: string
   transitions: AvatarTransitionRecord[]
 }

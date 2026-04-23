@@ -182,6 +182,25 @@ describe('SwitchAvatarUseCase success flows', () => {
       expect.objectContaining({ avatarId: 'avatar_1' }),
     )
   })
+
+  it('does not enforce reason max length in use case (validated at route layer)', async () => {
+    const useCase = new SwitchAvatarUseCase(
+      sessionRepository,
+      avatarRepository,
+      conversationRepository,
+    )
+    const longReason = 'r'.repeat(201)
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      avatarId: 'avatar_2',
+      reason: longReason,
+    })
+
+    expect(createConversationMock).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: longReason }),
+    )
+  })
 })
 
 describe('SwitchAvatarUseCase validation and state checks', () => {

@@ -208,6 +208,69 @@ describe('RunGameMasterUseCase — avatar switch flow (happy/no-op paths)', () =
     expect(updateSessionMock).toHaveBeenCalledWith('session_1', { activeAvatarId: 'avatar_2' })
   })
 
+  it('conversationMode new with empty nextAvatarId skips switch', async () => {
+    const useCase = createUseCase()
+    mockTriggeredLlmOutput({
+      avatarId: 'avatar_1',
+      nextAvatarId: '  ',
+      conversationMode: 'new',
+      stateUpdate: { interactionIncrement: 1 },
+    })
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 6,
+      correlationId: 'corr_1b',
+    })
+
+    expect(createConversationMock).not.toHaveBeenCalled()
+    expect(updateConversationMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('RunGameMasterUseCase — avatar switch flow (no active conversation paths)', () => {
+  it('conversationMode new with no active conversation creates conversation without handoffFromConversationId', async () => {
+    const useCase = createUseCase({
+      scenarioRepository: makeScenarioRepository({
+        avatarTransitionRules: [
+          {
+            fromAvatarId: 'avatar_1',
+            toAvatarId: 'avatar_2',
+            trigger: 'progression',
+          },
+        ],
+      }),
+    })
+    findActiveBySessionIdMock.mockResolvedValue(null)
+    mockTriggeredLlmOutput({
+      avatarId: 'avatar_1',
+      nextAvatarId: 'avatar_2',
+      transitionReason: 'progression_handoff',
+      conversationMode: 'new',
+      stateUpdate: { interactionIncrement: 1 },
+    })
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 6,
+      correlationId: 'corr_1c',
+    })
+
+    expect(updateConversationMock).not.toHaveBeenCalled()
+    expect(createConversationMock).toHaveBeenCalledWith({
+      sessionId: 'session_1',
+      avatarId: 'avatar_2',
+      startedBy: 'gm',
+      reason: 'progression_handoff',
+    })
+  })
+
   it('conversationMode new without conversation repository is a graceful no-op switch path', async () => {
     const useCase = createUseCase({ withConversationRepository: false })
     mockTriggeredLlmOutput({

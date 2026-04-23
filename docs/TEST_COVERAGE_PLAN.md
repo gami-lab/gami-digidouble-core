@@ -45,6 +45,8 @@ Must test:
 - switch avatar creates another conversation
 - return to same avatar creates a new conversation record
 - session-level conversation listing
+- `application/use-cases/switch-avatar/` has unit tests for all branches (no active conversation, same-avatar switch, scenario mismatch, missing entities, inactive session)
+- `application/use-cases/get-avatar-transitions/` has unit tests for chain-derivation edge cases (session start, A→B linkage, missing handoff source)
 - invalid session/conversation IDs return 404 with contract error codes
 
 ---
@@ -60,6 +62,7 @@ Must test:
 - structured output parsing when required
 - streaming assembly
 - error propagation on provider failures
+- `domain/avatar/transition-engine.ts` requires 100% statements and branches (pure deterministic function)
 
 Do not test prose quality or writing style — only structure, contract, and error behavior.
 
