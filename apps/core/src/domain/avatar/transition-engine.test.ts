@@ -12,10 +12,7 @@ function makeState(overrides?: Partial<GameMasterState>): GameMasterState {
   }
 }
 
-function makeProgressionRule(
-  fromAvatarId: string,
-  toAvatarId: string,
-): AvatarTransitionRule {
+function makeProgressionRule(fromAvatarId: string, toAvatarId: string): AvatarTransitionRule {
   return { fromAvatarId, toAvatarId, trigger: 'progression' }
 }
 
