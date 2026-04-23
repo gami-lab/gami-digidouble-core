@@ -288,7 +288,7 @@ A visible manual testing loop accelerates quality more than backend-only progres
 
 ---
 
-## EPIC 4.1 — Async Game Master v1
+## EPIC 4.1 — Async Game Master v1 ✅ Done
 
 **Purpose**  
 Validate the Director–Actor model.
@@ -328,7 +328,7 @@ Async orchestration improves quality without unacceptable latency cost.
 
 ---
 
-## EPIC 4.4 — Multi-Avatar Navigation v1
+## EPIC 4.4 — Multi-Avatar Navigation v1 ✅ Done
 
 **Purpose**  
 Make avatar switching explicit, coherent, and reusable across scenarios.
