@@ -389,6 +389,52 @@ type StartConversationResponse = {
 
 ---
 
+## 3.5 Manual Avatar Switch in Session
+
+### Endpoint
+
+```text
+POST /v1/sessions/{sessionId}/switch-avatar
+```
+
+### Request
+
+```ts
+type SwitchAvatarRequest = {
+  avatarId: string
+  reason?: string // optional free-text reason label, max 200 chars
+}
+```
+
+### Response
+
+```ts
+type SwitchAvatarResponse = {
+  session: SessionSummary
+  conversation: ConversationSummary
+  previousConversationId: string | null
+}
+```
+
+### Semantics
+
+- Manual switch is always allowed when session + avatar are valid.
+- Current active conversation is closed if present.
+- A new conversation is always created, including when switching to the same avatar.
+- New conversation carries `startedBy = 'user'`.
+- `reason` defaults to `'manual_switch'` when omitted.
+- `handoffFromConversationId` is set to the previous active conversation when one existed.
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `400` → `VALIDATION_ERROR`
+- `404` → `NOT_FOUND` (session or avatar missing)
+- `409` → `CONFLICT` (session not active)
+- `500` → `INTERNAL_ERROR`
+
+---
+
 ## 4. List Session Conversations
 
 ### Endpoint
@@ -1439,6 +1485,7 @@ If we need the absolute minimum set to start implementation, it is:
 - `POST /v1/sessions`
 - `GET /v1/sessions/{sessionId}`
 - `POST /v1/sessions/{sessionId}/conversations`
+- `POST /v1/sessions/{sessionId}/switch-avatar`
 - `GET /v1/sessions/{sessionId}/conversations`
 - `POST /v1/conversations/{conversationId}/messages`
 - `GET /v1/conversations/{conversationId}/history`

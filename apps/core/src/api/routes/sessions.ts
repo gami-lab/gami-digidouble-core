@@ -12,6 +12,8 @@ import { StartConversationUseCase } from '../../application/use-cases/start-conv
 import type { StartConversationOutput } from '../../application/use-cases/start-conversation/start-conversation.types.js'
 import { StartSessionUseCase } from '../../application/use-cases/start-session/start-session.use-case.js'
 import type { StartSessionOutput } from '../../application/use-cases/start-session/start-session.types.js'
+import { SwitchAvatarUseCase } from '../../application/use-cases/switch-avatar/switch-avatar.use-case.js'
+import type { SwitchAvatarOutput } from '../../application/use-cases/switch-avatar/switch-avatar.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
@@ -37,6 +39,11 @@ type StartConversationRequestBody = {
   avatarId: string
 }
 
+type SwitchAvatarRequestBody = {
+  avatarId: string
+  reason?: string
+}
+
 type SessionParams = {
   sessionId: string
 }
@@ -56,6 +63,16 @@ const startConversationBodySchema = {
   required: ['avatarId'],
   properties: {
     avatarId: { type: 'string', minLength: 1 },
+  },
+  additionalProperties: false,
+} as const
+
+const switchAvatarBodySchema = {
+  type: 'object',
+  required: ['avatarId'],
+  properties: {
+    avatarId: { type: 'string', minLength: 1 },
+    reason: { type: 'string', maxLength: 200 },
   },
   additionalProperties: false,
 } as const
@@ -85,6 +102,11 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   )
   const listSessionConversationsUseCase = new ListSessionConversationsUseCase(
     sessionRepository,
+    conversationRepository,
+  )
+  const switchAvatarUseCase = new SwitchAvatarUseCase(
+    sessionRepository,
+    avatarRepository,
     conversationRepository,
   )
 
@@ -144,6 +166,23 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
           sessionId: request.params.sessionId,
         })
         return await reply.send(ok<ListSessionConversationsOutput>(output))
+      } catch (error) {
+        return await mapDomainError(error, reply)
+      }
+    },
+  )
+
+  app.post<{ Params: SessionParams; Body: SwitchAvatarRequestBody }>(
+    '/:sessionId/switch-avatar',
+    { schema: { params: sessionParamsSchema, body: switchAvatarBodySchema } },
+    async (request, reply) => {
+      try {
+        const output = await switchAvatarUseCase.execute({
+          sessionId: request.params.sessionId,
+          avatarId: request.body.avatarId,
+          ...(request.body.reason !== undefined ? { reason: request.body.reason } : {}),
+        })
+        return await reply.status(200).send(ok<SwitchAvatarOutput>(output))
       } catch (error) {
         return await mapDomainError(error, reply)
       }
