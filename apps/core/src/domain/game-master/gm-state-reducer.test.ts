@@ -53,4 +53,29 @@ describe('reduceGmState', () => {
 
     expect(result.currentAvatarId).toBe('avatar_2')
   })
+
+  it('leaves all fields unchanged when stateUpdate has no optional fields', () => {
+    const state = makeState()
+    const result = reduceGmState(state, { interactionIncrement: 1 })
+
+    expect(result.progression).toBe(state.progression)
+    expect(result.topicsCovered).toEqual(state.topicsCovered)
+    expect(result.currentAvatarId).toBeUndefined()
+    expect(result.interactionCount).toBe(state.interactionCount + 1)
+  })
+
+  it('does not mutate the input state', () => {
+    const original: GameMasterState = {
+      progression: 'intro',
+      topicsCovered: ['plastic'],
+      interactionCount: 2,
+    }
+    const topicsRef = original.topicsCovered
+
+    reduceGmState(original, { topicCovered: 'ocean', interactionIncrement: 1 })
+
+    expect(original.interactionCount).toBe(2)
+    expect(original.topicsCovered).toBe(topicsRef)
+    expect(original.topicsCovered).toEqual(['plastic'])
+  })
 })

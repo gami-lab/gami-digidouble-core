@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
 import { expectConsoleError } from '../../../test-utils/console.js'
+import { LlmError } from '../../../infrastructure/llm/llm.error.js'
+import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
 const findBySessionIdMock = vi.fn()
@@ -59,13 +61,15 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   }
 }
 
-function createUseCase(): RunGameMasterUseCase {
+function createUseCase(eventLog?: InMemoryEventLogRepository): RunGameMasterUseCase {
   return new RunGameMasterUseCase(
     gmStateRepository,
     sessionRepository,
     avatarRepository,
     llm,
     observability,
+    undefined, // scenarioRepository — not needed for unit tests
+    eventLog,
   )
 }
 
@@ -188,5 +192,124 @@ describe('RunGameMasterUseCase', () => {
       expect.objectContaining({ interactionCount: 6, progression: 'none' }),
     )
     expect(updateSessionMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('RunGameMasterUseCase — event log', () => {
+  it('emits gm_skipped with correct fields when no trigger fires', async () => {
+    const eventLog = new InMemoryEventLogRepository()
+    const useCase = createUseCase(eventLog)
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 2,
+      correlationId: 'corr_abc',
+    })
+
+    const events = eventLog.getAll()
+    expect(events).toHaveLength(1)
+    const event = events[0]
+    expect(event).toBeDefined()
+    expect(event?.type).toBe('gm_skipped')
+    expect(event?.severity).toBe('info')
+    expect(event?.sessionId).toBe('session_1')
+    expect(event?.correlationId).toBe('corr_abc')
+    expect(event?.payload['triggerReason']).toBeNull()
+    expect(event?.payload['turnIndex']).toBe(2)
+    expect(event?.payload['interactionCount']).toBe(2)
+    expect(event?.payload).toHaveProperty('stateBefore')
+    expect(event?.payload).toHaveProperty('latencyMs')
+  })
+
+  it('emits gm_triggered with decision and stateAfter when trigger fires', async () => {
+    const eventLog = new InMemoryEventLogRepository()
+    const useCase = createUseCase(eventLog)
+    findBySessionIdMock.mockResolvedValue(
+      makeState({ interactionCount: 5, progression: 'none', currentAvatarId: 'avatar_1' }),
+    )
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 6,
+      correlationId: 'corr_xyz',
+    })
+
+    const events = eventLog.getAll()
+    expect(events).toHaveLength(1)
+    const event = events[0]
+    expect(event).toBeDefined()
+    expect(event?.type).toBe('gm_triggered')
+    expect(event?.severity).toBe('info')
+    expect(event?.sessionId).toBe('session_1')
+    expect(event?.correlationId).toBe('corr_xyz')
+    expect(event?.payload['triggerReason']).toBe('turn_threshold')
+    expect(event?.payload['turnIndex']).toBe(6)
+    expect(event?.payload['decision']).toBeDefined()
+    expect(event?.payload['stateAfter']).toBeDefined()
+    expect(event?.payload).toHaveProperty('latencyMs')
+  })
+
+  it('gm_triggered payload does not include userMessageText or raw system prompt', async () => {
+    const eventLog = new InMemoryEventLogRepository()
+    const useCase = createUseCase(eventLog)
+    findBySessionIdMock.mockResolvedValue(
+      makeState({ interactionCount: 5, progression: 'none', currentAvatarId: 'avatar_1' }),
+    )
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'secret user input',
+      turnIndex: 6,
+      correlationId: 'corr_sec',
+    })
+
+    const events = eventLog.getAll()
+    const event = events[0]
+    expect(event).toBeDefined()
+    expect(JSON.stringify(event?.payload ?? {})).not.toContain('secret user input')
+    expect(JSON.stringify(event?.payload ?? {})).not.toContain('systemPrompt')
+  })
+})
+
+describe('RunGameMasterUseCase — LLM error handling', () => {
+  it('does not propagate LlmError from execute(), increments state, emits gm_skipped', async () => {
+    const eventLog = new InMemoryEventLogRepository()
+    const useCase = createUseCase(eventLog)
+    findBySessionIdMock.mockResolvedValue(
+      makeState({ interactionCount: 5, progression: 'none', currentAvatarId: 'avatar_1' }),
+    )
+    completeMock.mockRejectedValue(new LlmError('null', 'provider down', 503))
+
+    await expectConsoleError(
+      () =>
+        useCase.execute({
+          sessionId: 'session_1',
+          scenarioId: 'scenario_1',
+          avatarId: 'avatar_1',
+          userMessageText: 'hello',
+          turnIndex: 6,
+          correlationId: 'corr_err',
+        }),
+      /\[GM\] LLM call failed:/,
+    )
+
+    expect(saveGmStateMock).toHaveBeenCalledWith(
+      'session_1',
+      expect.objectContaining({ interactionCount: 6 }),
+    )
+    expect(updateSessionMock).not.toHaveBeenCalled()
+
+    const events = eventLog.getAll()
+    expect(events).toHaveLength(1)
+    expect(events[0]?.type).toBe('gm_skipped')
+    expect(events[0]?.payload['triggerReason']).toBe('turn_threshold')
   })
 })

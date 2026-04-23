@@ -1,7 +1,7 @@
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
-import type { ILlmAdapter } from '../../ports/ILlmAdapter.js'
+import type { ILlmAdapter, LlmResponse } from '../../ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
@@ -44,13 +44,34 @@ export class RunGameMasterUseCase {
       return
     }
 
-    const gmInput = await this.buildGameMasterInput(input, currentState, scenarioContext)
+    await this.handleTriggeredTurn(
+      input,
+      currentState,
+      scenarioContext,
+      triggerReason,
+      gmRunStartMs,
+    )
+  }
 
+  private async handleTriggeredTurn(
+    input: RunGameMasterInput,
+    currentState: GameMasterState,
+    scenarioContext: { description?: string; goals?: string[]; policy?: TriggerPolicy },
+    triggerReason: string,
+    gmRunStartMs: number,
+  ): Promise<void> {
+    const gmInput = await this.buildGameMasterInput(input, currentState, scenarioContext)
     const llmStart = Date.now()
-    const llmResponse = await this.llm.complete({
-      systemPrompt: buildGameMasterSystemPrompt(),
-      messages: [{ role: 'user', content: JSON.stringify(gmInput) }],
-    })
+
+    const llmResponse = await this.callLlm(
+      gmInput,
+      input,
+      currentState,
+      triggerReason,
+      llmStart,
+      gmRunStartMs,
+    )
+    if (llmResponse === null) return
 
     const output = safeParseGameMasterOutput(llmResponse.content)
     if (output === null) {
@@ -118,6 +139,46 @@ export class RunGameMasterUseCase {
       outputTokens: llmResponse.outputTokens,
       metadata: { model: llmResponse.model },
     })
+  }
+  private async callLlm(
+    gmInput: GameMasterInput,
+    input: RunGameMasterInput,
+    currentState: GameMasterState,
+    triggerReason: string,
+    llmStart: number,
+    gmRunStartMs: number,
+  ): Promise<LlmResponse | null> {
+    try {
+      return await this.llm.complete({
+        systemPrompt: buildGameMasterSystemPrompt(),
+        messages: [{ role: 'user', content: JSON.stringify(gmInput) }],
+      })
+    } catch (err: unknown) {
+      console.error('[GM] LLM call failed:', err)
+      await this.incrementInteractionAndSave(input.sessionId, currentState)
+      const updatedCount = currentState.interactionCount + 1
+      await this.emitEventSafe({
+        sessionId: input.sessionId,
+        type: 'gm_skipped',
+        severity: 'info',
+        correlationId: input.correlationId,
+        payload: {
+          triggerReason,
+          turnIndex: input.turnIndex,
+          interactionCount: updatedCount,
+          stateBefore: buildStateSummary(currentState),
+          latencyMs: Date.now() - gmRunStartMs,
+        },
+      })
+      await this.traceSafe({
+        requestId: input.correlationId,
+        sessionId: input.sessionId,
+        event: 'gm.llm_error',
+        input: { triggerReason },
+        latencyMs: Date.now() - llmStart,
+      })
+      return null
+    }
   }
 
   private async loadCurrentState(sessionId: string): Promise<GameMasterState> {
