@@ -1,9 +1,13 @@
-import type { FastifyPluginCallback, FastifyReply } from 'fastify'
+import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
+import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
+import type { GetAvailableAvatarsOutput } from '../../application/use-cases/get-available-avatars/get-available-avatars.types.js'
+import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
+import type { GetAvatarTransitionsOutput } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.types.js'
 import { GetSessionUseCase } from '../../application/use-cases/get-session/get-session.use-case.js'
 import type { GetSessionOutput } from '../../application/use-cases/get-session/get-session.types.js'
 import { ListSessionConversationsUseCase } from '../../application/use-cases/list-session-conversations/list-session-conversations.use-case.js'
@@ -109,15 +113,32 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     avatarRepository,
     conversationRepository,
   )
+  const getAvailableAvatarsUseCase = new GetAvailableAvatarsUseCase(
+    sessionRepository,
+    avatarRepository,
+  )
+  const getAvatarTransitionsUseCase = new GetAvatarTransitionsUseCase(
+    sessionRepository,
+    conversationRepository,
+  )
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
+  registerStartSessionRoute(app, startSessionUseCase)
+  registerGetSessionRoute(app, getSessionUseCase)
+  registerStartConversationRoute(app, startConversationUseCase)
+  registerListSessionConversationsRoute(app, listSessionConversationsUseCase)
+  registerSwitchAvatarRoute(app, switchAvatarUseCase)
+  registerGetAvailableAvatarsRoute(app, getAvailableAvatarsUseCase)
+  registerGetAvatarTransitionsRoute(app, getAvatarTransitionsUseCase)
+}
 
+function registerStartSessionRoute(app: FastifyInstance, useCase: StartSessionUseCase): void {
   app.post<{ Body: StartSessionRequestBody }>(
     '/',
     { schema: { body: startSessionBodySchema } },
     async (request, reply) => {
       try {
-        const output = await startSessionUseCase.execute({
+        const output = await useCase.execute({
           userId: request.body.userId,
           scenarioId: request.body.scenarioId,
         })
@@ -127,26 +148,33 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
       }
     },
   )
+}
 
+function registerGetSessionRoute(app: FastifyInstance, useCase: GetSessionUseCase): void {
   app.get<{ Params: SessionParams }>(
     '/:sessionId',
     { schema: { params: sessionParamsSchema } },
     async (request, reply) => {
       try {
-        const output = await getSessionUseCase.execute({ sessionId: request.params.sessionId })
+        const output = await useCase.execute({ sessionId: request.params.sessionId })
         return await reply.send(ok<GetSessionOutput>(output))
       } catch (error) {
         return await mapDomainError(error, reply)
       }
     },
   )
+}
 
+function registerStartConversationRoute(
+  app: FastifyInstance,
+  useCase: StartConversationUseCase,
+): void {
   app.post<{ Params: SessionParams; Body: StartConversationRequestBody }>(
     '/:sessionId/conversations',
     { schema: { params: sessionParamsSchema, body: startConversationBodySchema } },
     async (request, reply) => {
       try {
-        const output = await startConversationUseCase.execute({
+        const output = await useCase.execute({
           sessionId: request.params.sessionId,
           avatarId: request.body.avatarId,
         })
@@ -156,13 +184,18 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
       }
     },
   )
+}
 
+function registerListSessionConversationsRoute(
+  app: FastifyInstance,
+  useCase: ListSessionConversationsUseCase,
+): void {
   app.get<{ Params: SessionParams }>(
     '/:sessionId/conversations',
     { schema: { params: sessionParamsSchema } },
     async (request, reply) => {
       try {
-        const output = await listSessionConversationsUseCase.execute({
+        const output = await useCase.execute({
           sessionId: request.params.sessionId,
         })
         return await reply.send(ok<ListSessionConversationsOutput>(output))
@@ -171,18 +204,56 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
       }
     },
   )
+}
 
+function registerSwitchAvatarRoute(app: FastifyInstance, useCase: SwitchAvatarUseCase): void {
   app.post<{ Params: SessionParams; Body: SwitchAvatarRequestBody }>(
     '/:sessionId/switch-avatar',
     { schema: { params: sessionParamsSchema, body: switchAvatarBodySchema } },
     async (request, reply) => {
       try {
-        const output = await switchAvatarUseCase.execute({
+        const output = await useCase.execute({
           sessionId: request.params.sessionId,
           avatarId: request.body.avatarId,
           ...(request.body.reason !== undefined ? { reason: request.body.reason } : {}),
         })
         return await reply.status(200).send(ok<SwitchAvatarOutput>(output))
+      } catch (error) {
+        return await mapDomainError(error, reply)
+      }
+    },
+  )
+}
+
+function registerGetAvailableAvatarsRoute(
+  app: FastifyInstance,
+  useCase: GetAvailableAvatarsUseCase,
+): void {
+  app.get<{ Params: SessionParams }>(
+    '/:sessionId/available-avatars',
+    { schema: { params: sessionParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await useCase.execute({ sessionId: request.params.sessionId })
+        return await reply.send(ok<GetAvailableAvatarsOutput>(output))
+      } catch (error) {
+        return await mapDomainError(error, reply)
+      }
+    },
+  )
+}
+
+function registerGetAvatarTransitionsRoute(
+  app: FastifyInstance,
+  useCase: GetAvatarTransitionsUseCase,
+): void {
+  app.get<{ Params: SessionParams }>(
+    '/:sessionId/avatar-transitions',
+    { schema: { params: sessionParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await useCase.execute({ sessionId: request.params.sessionId })
+        return await reply.send(ok<GetAvatarTransitionsOutput>(output))
       } catch (error) {
         return await mapDomainError(error, reply)
       }
