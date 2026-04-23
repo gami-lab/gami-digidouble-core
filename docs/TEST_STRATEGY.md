@@ -98,6 +98,7 @@ No network. No real providers. No real DB. Always fast, always deterministic. Ha
 Real adapter collaboration: real PostgreSQL for repositories, real Redis when Redis semantics matter, mocked LLM providers unless specifically testing provider integration. Tests requiring live credentials use `describe.skipIf(!apiKey)` — skipped in CI without credentials, run in nightly with credentials.
 
 GM integration test files (guarded by `DB_AVAILABLE`):
+
 - `postgres-gm-state.repository.integration.test.ts` — verifies `findBySessionId`, `save` (insert and upsert), full `GameMasterState` field round-trip, and nullable `currentAvatarId` returned as `undefined`
 - `postgres-event-log.repository.integration.test.ts` — verifies `append` inserts rows, JSONB payload round-trip, nullable `sessionId`, and `correlation_id` lookup
 
