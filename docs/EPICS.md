@@ -284,114 +284,6 @@ A visible manual testing loop accelerates quality more than backend-only progres
 
 ---
 
-# Sprint 3 — Operability + Control
-
----
-
-## EPIC 3.1 — Operational Health & Dependency Monitoring
-
-**Purpose**  
-Know if the platform is working before users report issues.
-
-**Description**  
-Expose health and dependency probes for Postgres, Redis, and LLM providers.
-
-**Hypothesis**  
-Early monitoring reduces downtime and blind debugging.
-
-**Includes**
-
-- `/health`
-- `/admin/dependencies`
-- latency probes
-- structured health logs
-
-**DoD**
-
-- operator can detect degraded dependencies immediately
-
-**What Can Be Tested**
-
-- stop DB → degraded state
-- stop Redis → degraded state
-- wrong provider key → provider error visible
-
-**User Increment**
-
-- operators can trust platform runtime state
-
----
-
-## EPIC 3.2 — Session Inspector v1
-
-**Purpose**  
-Allow operators to inspect live behavior safely.
-
-**Description**  
-Create admin endpoints/UI to inspect sessions, messages, memory, and recent events.
-
-**Hypothesis**  
-Real production visibility finds bugs faster than assumptions.
-
-**Includes**
-
-- session list
-- session detail
-- messages view
-- memory snapshot
-- recent errors
-
-**DoD**
-
-- operator can diagnose one session without DB access
-
-**What Can Be Tested**
-
-- run a session
-- inspect stored messages
-- compare expected vs actual state
-
-**User Increment**
-
-- first debugging cockpit for conversations
-
----
-
-## EPIC 3.3 — Replay & Recovery Tools
-
-**Purpose**  
-Enable safe experimentation and faster debugging.
-
-**Description**  
-Provide reset, replay-last-turn, and audit logging for operational actions.
-
-**Hypothesis**  
-Fast recovery loops improve iteration speed dramatically.
-
-**Includes**
-
-- replay last turn
-- reset runtime state
-- admin action audit log
-- action permissions groundwork
-
-**DoD**
-
-- operator can retry and recover sessions safely
-
-**What Can Be Tested**
-
-- force bad conversation
-- replay turn
-- reset broken session
-- verify audit trail
-
-**User Increment**
-
-- safe recovery tools without engineering intervention
-
----
-
 # Sprint 4 — Orchestration Intelligence
 
 ---
@@ -539,6 +431,114 @@ The async model remains viable in real conditions.
 **User Increment**
 
 - objective data for product decisions
+
+---
+
+# Sprint 3 — Operability + Control
+
+---
+
+## EPIC 3.1 — Operational Health & Dependency Monitoring
+
+**Purpose**  
+Know if the platform is working before users report issues.
+
+**Description**  
+Expose health and dependency probes for Postgres, Redis, and LLM providers.
+
+**Hypothesis**  
+Early monitoring reduces downtime and blind debugging.
+
+**Includes**
+
+- `/health`
+- `/admin/dependencies`
+- latency probes
+- structured health logs
+
+**DoD**
+
+- operator can detect degraded dependencies immediately
+
+**What Can Be Tested**
+
+- stop DB → degraded state
+- stop Redis → degraded state
+- wrong provider key → provider error visible
+
+**User Increment**
+
+- operators can trust platform runtime state
+
+---
+
+## EPIC 3.2 — Session Inspector v1
+
+**Purpose**  
+Allow operators to inspect live behavior safely.
+
+**Description**  
+Create admin endpoints/UI to inspect sessions, messages, memory, and recent events.
+
+**Hypothesis**  
+Real production visibility finds bugs faster than assumptions.
+
+**Includes**
+
+- session list
+- session detail
+- messages view
+- memory snapshot
+- recent errors
+
+**DoD**
+
+- operator can diagnose one session without DB access
+
+**What Can Be Tested**
+
+- run a session
+- inspect stored messages
+- compare expected vs actual state
+
+**User Increment**
+
+- first debugging cockpit for conversations
+
+---
+
+## EPIC 3.3 — Replay & Recovery Tools
+
+**Purpose**  
+Enable safe experimentation and faster debugging.
+
+**Description**  
+Provide reset, replay-last-turn, and audit logging for operational actions.
+
+**Hypothesis**  
+Fast recovery loops improve iteration speed dramatically.
+
+**Includes**
+
+- replay last turn
+- reset runtime state
+- admin action audit log
+- action permissions groundwork
+
+**DoD**
+
+- operator can retry and recover sessions safely
+
+**What Can Be Tested**
+
+- force bad conversation
+- replay turn
+- reset broken session
+- verify audit trail
+
+**User Increment**
+
+- safe recovery tools without engineering intervention
 
 ---
 
