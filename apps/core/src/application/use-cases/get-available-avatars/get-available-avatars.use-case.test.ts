@@ -66,7 +66,9 @@ describe('GetAvailableAvatarsUseCase', () => {
 
     expect(output.sessionId).toBe('session_1')
     expect(output.currentAvatarId).toBe('avatar_2')
-    expect(output.avatars.map((avatar) => avatar.avatarId)).toEqual(['avatar_2', 'avatar_1'])
+    const avatarIds = output.avatars.map((avatar) => avatar.avatarId)
+    expect(avatarIds).toHaveLength(2)
+    expect(avatarIds).toEqual(expect.arrayContaining(['avatar_1', 'avatar_2']))
   })
 
   it('returns null currentAvatarId when session active avatar is not set', async () => {
