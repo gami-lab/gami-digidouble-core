@@ -313,7 +313,7 @@ Lightweight persisted per-session Game Master state used to keep progression con
 - **Table:** `gm_states`
 - **Schema source:** `infra/postgres/init.sql`
 - **Repository:** `PostgresGmStateRepository`
-- **Status:** Implemented.
+- **Status:** Fully implemented.
 
 ---
 
@@ -498,13 +498,14 @@ Operational events useful for debugging and metrics.
 
 Use only events that are actually useful.
 
-### Implementation Status
+### Implementation Status (EPIC 4.1)
 
 - **Table:** `event_log` created in `infra/postgres/init.sql` with indexes on `session_id` and `type`
 - **Port:** `IEventLogRepository` in `apps/core/src/application/ports/IEventLogRepository.ts`
 - **In-memory:** `InMemoryEventLogRepository` in `apps/core/src/infrastructure/db/in-memory-event-log.repository.ts`
 - **Postgres:** `PostgresEventLogRepository` in `apps/core/src/infrastructure/db/repositories/postgres-event-log.repository.ts`
 - **Domain type:** `GameMasterEvent` added to `apps/core/src/domain/game-master/game-master.types.ts`
+- **Status:** Fully implemented. Currently used for GM diagnostic events (`gm_triggered`, `gm_skipped`).
 - GM emits `gm_triggered` and `gm_skipped` events on every run via `RunGameMasterUseCase`
 
 The `request_id` and `correlation_id` fields are essential for tracing failures across async flows without requiring a full distributed tracing stack.

@@ -91,11 +91,15 @@ No network. No real providers. No real DB. Always fast, always deterministic. Ha
 
 - **Trigger engine** (`trigger-engine.test.ts`): deterministic evaluation of all `evaluateTriggers` paths — `turn_threshold` (at/below threshold, custom threshold, zero state), `topic_repeat` (meets/below repeat count), `progression_stalled` (empty progression, has text, below count), priority ordering, and null/zero-state base case.
 - **State reducer** (`gm-state-reducer.test.ts`): all `reduceGmState` field mutations — `interactionCount` increment, `progression` increase, `topicsCovered` append, `currentAvatarId` update, all-undefined update, and non-mutation of input state.
-- **Async use case** (`run-game-master.use-case.test.ts`): no-trigger path (LLM not called, state incremented), trigger+LLM success path (LLM called, state reduced, notes stored, avatar updated), JSON parse error (treated as no-trigger, state incremented), LLM error (caught silently, state incremented, `gm_skipped` emitted), event log shape verification (`gm_skipped` / `gm_triggered` fields), and event payload security (no `userMessageText` or raw system prompt in emitted events).
+- **Async use case** (`run-game-master.use-case.test.ts`): no-trigger path (LLM not called, state incremented), trigger+LLM success path (LLM called with a `vi.fn()` mock returning hardcoded JSON matching `GameMasterOutput`, state reduced, notes stored, avatar updated), JSON parse error (treated as no-trigger, state incremented), LLM error (caught silently, state incremented, `gm_skipped` emitted), event log shape verification (`gm_skipped` / `gm_triggered` fields), and event payload security (no `userMessageText` or raw system prompt in emitted events).
 
 ### Integration (`*.integration.test.ts`)
 
 Real adapter collaboration: real PostgreSQL for repositories, real Redis when Redis semantics matter, mocked LLM providers unless specifically testing provider integration. Tests requiring live credentials use `describe.skipIf(!apiKey)` — skipped in CI without credentials, run in nightly with credentials.
+
+GM integration test files (guarded by `DB_AVAILABLE`):
+- `postgres-gm-state.repository.integration.test.ts` — verifies `findBySessionId`, `save` (insert and upsert), full `GameMasterState` field round-trip, and nullable `currentAvatarId` returned as `undefined`
+- `postgres-event-log.repository.integration.test.ts` — verifies `append` inserts rows, JSONB payload round-trip, nullable `sessionId`, and `correlation_id` lookup
 
 ### E2E (`*.e2e.test.ts`)
 

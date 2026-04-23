@@ -452,6 +452,8 @@ type SendMessageResponse = {
 - `502` → `EXTERNAL_SERVICE_ERROR`
 - `500` → `INTERNAL_ERROR`
 
+> **Game Master integration:** If the Game Master has stored guidance notes for this session (set asynchronously after a previous turn), they are appended to the Avatar's assembled system prompt before the LLM call. This is transparent to API consumers — the envelope shape is unchanged.
+
 ---
 
 ## 6. Get Conversation History

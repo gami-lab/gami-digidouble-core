@@ -10,7 +10,7 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, event log infrastructure (EPIC-4.1 prerequisite), and GM system tests + hardening (Prompt 05) are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 4.1 (Async Game Master v1), and all associated tests and hardening are complete.**
 
 ### Session vs Conversation model refactor (April 22, 2026)
 
@@ -277,13 +277,14 @@ GM system — Prompt 05 (Tests and hardening) is done:
 | EPIC 3.2 — Public Core API | Not started | REST endpoints: start, message, history, state, reset |
 | EPIC 3.3 — Streaming UX    | Not started | WebSocket token streaming                             |
 
-### Sprint 4 — RAG + Context
+### Sprint 4 — Orchestration Intelligence
 
-| Epic                              | Status      | Notes                                                      |
-| --------------------------------- | ----------- | ---------------------------------------------------------- |
-| EPIC 4.1 — Knowledge Pipeline v1  | Not started | PDF/Markdown/text ingestion, chunking, pgvector, retrieval |
-| EPIC 4.2 — Context Manager v1     | Not started | Unified context assembly, memory injection, token budgets  |
-| EPIC 4.3 — AVA Content Validation | Not started | Test on real scenario assets                               |
+| Epic                                      | Status       | Notes                                                                                                          |
+| ----------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
+| EPIC 4.1 — Async Game Master v1           | **Complete** | Trigger engine (turn_threshold, topic_repeat, progression_stalled), RunGameMasterUseCase, GM state persistence (PostgresGmStateRepository), event log (PostgresEventLogRepository), guidance note injection into Avatar prompt |
+| EPIC 4.4 — Multi-Avatar Navigation v1     | Not started  | Active-avatar routing, transition rules, handoff context                                                       |
+| EPIC 4.2 — Memory Layer v1               | Not started  | Session summary + persistent user facts                                                                        |
+| EPIC 4.3 — Performance Baseline          | Not started  | TTFT metrics, step timing, Avatar-only vs Avatar+GM comparison                                                 |
 
 ### Sprint 5 — Back-office v1
 

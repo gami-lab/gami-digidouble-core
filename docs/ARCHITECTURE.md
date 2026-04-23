@@ -508,6 +508,8 @@ src/
 
   application/           → Use cases (StartSession, SendMessage, ResetSession, …)
     ports/               → Port interfaces (ILlmAdapter, ICacheAdapter, …)
+    use-cases/
+      run-game-master/   → RunGameMasterUseCase
 
   domain/
     conversation/        → Session container, conversation episodes, and message logic
@@ -521,6 +523,7 @@ src/
 
   infrastructure/        → Concrete adapter implementations
     db/                  → PostgreSQL repositories (pgvector included)
+      repositories/      → postgres-gm-state.repository, postgres-event-log.repository, …
     cache/               → Redis adapters
     llm/                 → Provider abstraction layer + adapters
     observability/       → Langfuse wrapper, logging, structured event emission
