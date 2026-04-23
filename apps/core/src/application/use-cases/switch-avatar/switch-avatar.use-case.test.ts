@@ -89,7 +89,7 @@ beforeEach(() => {
   updateConversationMock.mockResolvedValue(makeConversation({ status: 'closed' }))
 })
 
-describe('SwitchAvatarUseCase', () => {
+describe('SwitchAvatarUseCase success flows', () => {
   it('closes active conversation, creates handoff conversation, and updates session', async () => {
     findSessionByIdMock
       .mockResolvedValueOnce(makeSession())
@@ -182,7 +182,9 @@ describe('SwitchAvatarUseCase', () => {
       expect.objectContaining({ avatarId: 'avatar_1' }),
     )
   })
+})
 
+describe('SwitchAvatarUseCase validation and state checks', () => {
   it('rejects empty sessionId', async () => {
     const useCase = new SwitchAvatarUseCase(
       sessionRepository,
