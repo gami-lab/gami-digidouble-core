@@ -110,11 +110,14 @@ Not all decisions should come from prompts.
 
 ## Ongoing Conversation (inside a session)
 
-1. User sends message
-2. Avatar responds directly using its own memory
-3. Game Master observes in background
-4. If a trigger fires, GM updates future context/instructions
-5. State is updated asynchronously
+1. User message received
+2. Avatar responds directly (no waiting for GM)
+3. Avatar message persisted
+4. GM fires asynchronously — non-blocking; errors are caught and logged, never propagate to the user response
+5. GM evaluates deterministic triggers against current state
+6. If a trigger fires: LLM called, state reduced, guidance notes stored into `sessions.gm_notes` for the next turn; `session.activeAvatarId` updated if avatar changed; `gm_triggered` event emitted
+7. If no trigger: interaction count incremented, state persisted; `gm_skipped` event emitted
+8. An event is emitted in all cases (see Section 14)
 
 This removes the double-latency problem of sequential two-LLM calls.
 
