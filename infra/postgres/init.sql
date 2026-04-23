@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE TABLE IF NOT EXISTS event_log (
   id             TEXT        PRIMARY KEY DEFAULT 'evt_' || gen_random_uuid()::TEXT,
-  session_id     TEXT        REFERENCES sessions(id) ON DELETE SET NULL,
+  session_id     UUID        REFERENCES sessions(id) ON DELETE SET NULL,
   type           TEXT        NOT NULL,
   severity       TEXT        NOT NULL DEFAULT 'info',
   correlation_id TEXT,
