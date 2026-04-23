@@ -223,6 +223,20 @@ type ConversationSummary = {
 }
 ```
 
+## Avatar Transition Record
+
+```ts
+type AvatarTransitionRecord = {
+  toConversationId: string
+  toAvatarId: string
+  fromConversationId: string | null
+  fromAvatarId: string | null
+  reason: string | null
+  startedBy: 'user' | 'gm' | 'system' | null
+  transitionedAt: string
+}
+```
+
 ## Message
 
 ```ts id="1esb1v"
@@ -431,6 +445,66 @@ type SwitchAvatarResponse = {
 - `400` → `VALIDATION_ERROR`
 - `404` → `NOT_FOUND` (session or avatar missing)
 - `409` → `CONFLICT` (session not active)
+- `500` → `INTERNAL_ERROR`
+
+---
+
+## 3.6 Get Available Avatars in Session
+
+### Endpoint
+
+```text
+GET /v1/sessions/{sessionId}/available-avatars
+```
+
+### Response
+
+```ts
+type GetAvailableAvatarsResponse = {
+  sessionId: string
+  currentAvatarId: string | null
+  avatars: AvatarSummary[]
+}
+```
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `404` → `NOT_FOUND` (session missing)
+- `500` → `INTERNAL_ERROR`
+
+---
+
+## 3.7 Get Avatar Transitions in Session
+
+### Endpoint
+
+```text
+GET /v1/sessions/{sessionId}/avatar-transitions
+```
+
+### Response
+
+```ts
+type GetAvatarTransitionsResponse = {
+  sessionId: string
+  transitions: AvatarTransitionRecord[]
+}
+```
+
+### Semantics
+
+- Returns transitions ordered by `transitionedAt ASC`.
+- When there are no conversations in the session, returns `transitions: []`.
+- The first conversation transition always has:
+  - `fromConversationId = null`
+  - `fromAvatarId = null`
+  - `reason = 'session_start'`
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `404` → `NOT_FOUND` (session missing)
 - `500` → `INTERNAL_ERROR`
 
 ---
@@ -1486,6 +1560,8 @@ If we need the absolute minimum set to start implementation, it is:
 - `GET /v1/sessions/{sessionId}`
 - `POST /v1/sessions/{sessionId}/conversations`
 - `POST /v1/sessions/{sessionId}/switch-avatar`
+- `GET /v1/sessions/{sessionId}/available-avatars`
+- `GET /v1/sessions/{sessionId}/avatar-transitions`
 - `GET /v1/sessions/{sessionId}/conversations`
 - `POST /v1/conversations/{conversationId}/messages`
 - `GET /v1/conversations/{conversationId}/history`

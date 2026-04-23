@@ -68,6 +68,32 @@ async function seedSwitchScenario(app: FastifyInstance): Promise<{
   avatar2Id: string
   previousConversationId: string
 }> {
+  const seeded = await seedSessionWithAvatars(app)
+
+  const startConversation = await app.inject({
+    method: 'POST',
+    url: `/v1/sessions/${seeded.sessionId}/conversations`,
+    headers: authHeaders(),
+    payload: { avatarId: seeded.avatar1Id },
+  })
+  expect(startConversation.statusCode).toBe(201)
+  const conversationBody =
+    startConversation.json<ApiResponse<{ conversation: { conversationId: string } }>>()
+  const previousConversationId = requireId(conversationBody.data?.conversation, 'conversationId')
+
+  return {
+    sessionId: seeded.sessionId,
+    avatar1Id: seeded.avatar1Id,
+    avatar2Id: seeded.avatar2Id,
+    previousConversationId,
+  }
+}
+
+async function seedSessionWithAvatars(app: FastifyInstance): Promise<{
+  sessionId: string
+  avatar1Id: string
+  avatar2Id: string
+}> {
   const createScenario = await app.inject({
     method: 'POST',
     url: '/v1/scenarios',
@@ -107,20 +133,204 @@ async function seedSwitchScenario(app: FastifyInstance): Promise<{
   expect(createSession.statusCode).toBe(201)
   const sessionBody = createSession.json<ApiResponse<{ session: { sessionId: string } }>>()
   const sessionId = requireId(sessionBody.data?.session, 'sessionId')
-
-  const startConversation = await app.inject({
-    method: 'POST',
-    url: `/v1/sessions/${sessionId}/conversations`,
-    headers: authHeaders(),
-    payload: { avatarId: avatar1Id },
-  })
-  expect(startConversation.statusCode).toBe(201)
-  const conversationBody =
-    startConversation.json<ApiResponse<{ conversation: { conversationId: string } }>>()
-  const previousConversationId = requireId(conversationBody.data?.conversation, 'conversationId')
-
-  return { sessionId, avatar1Id, avatar2Id, previousConversationId }
+  return { sessionId, avatar1Id, avatar2Id }
 }
+
+describe('GET /:sessionId/available-avatars auth', () => {
+  it('returns 401 UNAUTHORIZED when API key is missing', async () => {
+    const app = registerApp(makeApp())
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions/session_1/available-avatars',
+    })
+
+    expect(response.statusCode).toBe(401)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('UNAUTHORIZED')
+  })
+
+  it('returns 401 UNAUTHORIZED when API key is wrong', async () => {
+    const app = registerApp(makeApp())
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions/session_1/available-avatars',
+      headers: authHeaders('wrong-key'),
+    })
+
+    expect(response.statusCode).toBe(401)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('UNAUTHORIZED')
+  })
+})
+
+describe('GET /:sessionId/available-avatars behavior', () => {
+  it('returns 404 NOT_FOUND when sessionId does not exist', async () => {
+    const app = registerApp(makeApp())
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions/session_unknown/available-avatars',
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(404)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('NOT_FOUND')
+  })
+
+  it('returns available avatars and currentAvatarId', async () => {
+    const app = registerApp(makeApp())
+    const seeded = await seedSessionWithAvatars(app)
+
+    const startConversation = await app.inject({
+      method: 'POST',
+      url: `/v1/sessions/${seeded.sessionId}/conversations`,
+      headers: authHeaders(),
+      payload: { avatarId: seeded.avatar1Id },
+    })
+    expect(startConversation.statusCode).toBe(201)
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/v1/sessions/${seeded.sessionId}/available-avatars`,
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<
+      ApiResponse<{
+        sessionId: string
+        currentAvatarId: string | null
+        avatars: Array<{ avatarId: string }>
+      }>
+    >()
+    expect(body.error).toBeNull()
+    expect(body.data?.sessionId).toBe(seeded.sessionId)
+    expect(body.data?.currentAvatarId).toBe(seeded.avatar1Id)
+    const avatarIds = body.data?.avatars.map((avatar) => avatar.avatarId) ?? []
+    expect(avatarIds).toContain(seeded.avatar1Id)
+    expect(avatarIds).toContain(seeded.avatar2Id)
+  })
+})
+
+describe('GET /:sessionId/avatar-transitions auth', () => {
+  it('returns 401 UNAUTHORIZED when API key is missing', async () => {
+    const app = registerApp(makeApp())
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions/session_1/avatar-transitions',
+    })
+
+    expect(response.statusCode).toBe(401)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('UNAUTHORIZED')
+  })
+
+  it('returns 401 UNAUTHORIZED when API key is wrong', async () => {
+    const app = registerApp(makeApp())
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions/session_1/avatar-transitions',
+      headers: authHeaders('wrong-key'),
+    })
+
+    expect(response.statusCode).toBe(401)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('UNAUTHORIZED')
+  })
+})
+
+describe('GET /:sessionId/avatar-transitions behavior', () => {
+  it('returns 404 NOT_FOUND when sessionId does not exist', async () => {
+    const app = registerApp(makeApp())
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions/session_unknown/avatar-transitions',
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(404)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('NOT_FOUND')
+  })
+
+  it('returns [] when session has no conversations', async () => {
+    const app = registerApp(makeApp())
+    const seeded = await seedSessionWithAvatars(app)
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/v1/sessions/${seeded.sessionId}/avatar-transitions`,
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ transitions: unknown[] }>>()
+    expect(body.error).toBeNull()
+    expect(body.data?.transitions).toEqual([])
+  })
+
+  it('returns session_start and manual_switch after switch-avatar', async () => {
+    const app = registerApp(makeApp())
+    const seeded = await seedSwitchScenario(app)
+
+    const switchAvatar = await app.inject({
+      method: 'POST',
+      url: `/v1/sessions/${seeded.sessionId}/switch-avatar`,
+      headers: authHeaders(),
+      payload: { avatarId: seeded.avatar2Id },
+    })
+    expect(switchAvatar.statusCode).toBe(200)
+    const switchBody = switchAvatar.json<
+      ApiResponse<{
+        conversation: { conversationId: string }
+      }>
+    >()
+    const switchedConversationId = requireId(switchBody.data?.conversation, 'conversationId')
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/v1/sessions/${seeded.sessionId}/avatar-transitions`,
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<
+      ApiResponse<{
+        transitions: Array<{
+          toConversationId: string
+          toAvatarId: string
+          fromConversationId: string | null
+          fromAvatarId: string | null
+          reason: string | null
+        }>
+      }>
+    >()
+    expect(body.error).toBeNull()
+    expect(body.data?.transitions).toHaveLength(2)
+    expect(body.data?.transitions[0]).toMatchObject({
+      toConversationId: seeded.previousConversationId,
+      toAvatarId: seeded.avatar1Id,
+      fromConversationId: null,
+      fromAvatarId: null,
+      reason: 'session_start',
+      startedBy: 'user',
+    })
+    expect(body.data?.transitions[1]).toMatchObject({
+      toConversationId: switchedConversationId,
+      toAvatarId: seeded.avatar2Id,
+      fromConversationId: seeded.previousConversationId,
+      fromAvatarId: seeded.avatar1Id,
+      reason: 'manual_switch',
+      startedBy: 'user',
+    })
+  })
+})
 
 describe('POST /:sessionId/switch-avatar auth', () => {
   it('returns 401 UNAUTHORIZED when API key is missing', async () => {
