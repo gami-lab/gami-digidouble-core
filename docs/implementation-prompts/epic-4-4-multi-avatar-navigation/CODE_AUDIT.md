@@ -177,3 +177,71 @@ Minimal steps needed to reach A:
 **Rework before close**
 
 The EPIC is close, but I would not close it yet. The implementation is structurally decent and most scope is present, but the GM-driven routing path still has correctness gaps that undermine deterministic multi-avatar navigation, and the test suite does not yet prove the highest-risk behaviors strongly enough.
+
+## Remediation Outcome
+
+### Changes Made
+
+- `apps/core/src/application/use-cases/send-message/send-message.use-case.ts`
+  - GM handoff notes are now single-consumption: after the avatar turn runs, `gmNotes` is explicitly cleared (`gmNotes: null`) while updating session activity.
+- `apps/core/src/application/ports/ISessionRepository.ts`
+  - `SessionUpdate.gmNotes` now supports explicit `null` to clear persisted `gm_notes`.
+- `apps/core/src/infrastructure/db/in-memory-session.repository.ts`
+  - In-memory session update now handles `gmNotes: null` by removing the field, matching Postgres semantics.
+- `apps/core/src/application/use-cases/run-game-master/run-game-master.use-case.ts`
+  - GM switch path now validates `nextAvatarId` against active scenario avatars even when no transition rules are configured.
+  - GM available-avatar context now includes only active avatars.
+  - GM state is reconciled with routing outcome: `currentAvatarId` updates only after successful routing, preventing state/session divergence on switch failure.
+- `apps/core/src/application/use-cases/get-available-avatars/get-available-avatars.use-case.ts`
+  - Endpoint now returns only active avatars as available avatars.
+- `apps/core/src/application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.ts`
+  - Transition ordering is now enforced in the use case (`startedAt ASC`) regardless of repository ordering.
+- Tests strengthened:
+  - `apps/core/src/application/use-cases/send-message/send-message.use-case.test.ts`
+    - Added regression tests for GM note consumption and clearing behavior.
+  - `apps/core/src/application/use-cases/get-available-avatars/get-available-avatars.use-case.test.ts`
+    - Added filtering test for draft/archived avatars.
+  - `apps/core/src/application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.test.ts`
+    - Added unsorted-repository regression test to prove use-case-level ordering guarantee.
+  - `apps/core/src/application/use-cases/run-game-master/run-game-master.avatar-switch.hardening.use-case.test.ts`
+    - Added focused hardening tests for switch failure consistency and active-avatar context filtering.
+  - `apps/core/src/application/use-cases/run-game-master/run-game-master.avatar-switch.use-case.test.ts`
+    - Retained core switch-path behavior tests; split for lint-compliant maintainability.
+- Docs sync:
+  - `docs/API_CONTRACT.md`
+    - Documented that `GET /v1/sessions/{sessionId}/available-avatars` returns only active avatars.
+
+### Findings Resolved
+
+- ✅ GM handoff notes persist beyond next avatar turn
+- ✅ GM-driven switching accepted arbitrary `nextAvatarId` without rules
+- ✅ GM state/session divergence risk on switch failure
+- ✅ Available avatars endpoint exposed non-active avatars
+- ✅ Transition ordering depended on repository convention
+
+### Findings Deferred
+
+- None.
+
+### Build Gates
+
+- lint: PASS (`pnpm lint`)
+- typecheck: PASS (`pnpm typecheck`)
+- tests: PASS (`pnpm test`)
+- coverage: PASS (`pnpm --filter @gami/core test:coverage`) — 92.85% stmts / 86.54% branches / 99.47% funcs
+
+### Final Feature Confidence
+
+- GM handoff notes lifecycle is now behaviorally proven as single-turn guidance.
+- GM avatar switching now enforces active-scenario avatar validity at runtime, not prompt-only compliance.
+- GM state consistency is preserved when routing side effects fail.
+- Available avatar contracts are now explicit and enforced (active only).
+- Transition history ordering is guaranteed at the use-case boundary and tested against unsorted repository input.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- GM avatar-switch tests still include some interaction-level assertions; current coverage is strong but can be further hardened over time with more API-level proofs for async GM side effects.

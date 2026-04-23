@@ -20,7 +20,9 @@ export class GetAvailableAvatarsUseCase {
       throw new DomainError('NOT_FOUND', `Session ${input.sessionId} was not found.`)
     }
 
-    const avatars = await this.avatarRepository.listByScenarioId(session.scenarioId)
+    const avatars = (await this.avatarRepository.listByScenarioId(session.scenarioId)).filter(
+      (avatar) => avatar.status === 'active',
+    )
 
     return {
       sessionId: session.sessionId,

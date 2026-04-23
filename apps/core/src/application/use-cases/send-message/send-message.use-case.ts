@@ -51,7 +51,10 @@ export class SendMessageUseCase {
     const avatarMessage = await this.persistAvatarMessage(conversation.conversationId, response)
     const now = this.nowIso()
     await this.conversationRepository.update(conversation.conversationId, { lastActivityAt: now })
-    await this.sessionRepository.update(session.sessionId, { lastActivityAt: now })
+    await this.sessionRepository.update(session.sessionId, {
+      lastActivityAt: now,
+      ...(session.gmNotes !== undefined ? { gmNotes: null } : {}),
+    })
 
     if (this.runGameMasterUseCase !== null) {
       const nextTurnIndex = historyMessages.filter((message) => message.role === 'user').length + 1

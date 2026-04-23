@@ -191,6 +191,34 @@ describe('SendMessageUseCase', () => {
     expect(llmRequest.systemPrompt).toContain('Director notes: Push user deeper into examples.')
   })
 
+  it('clears gmNotes after the turn that consumes them', async () => {
+    const useCase = createUseCase()
+    findSessionByIdMock.mockResolvedValue(
+      makeSession({ gmNotes: 'Handoff summary for next avatar turn.' }),
+    )
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    expect(updateSessionMock).toHaveBeenCalledWith(
+      'session_1',
+      expect.objectContaining({
+        gmNotes: null,
+      }),
+    )
+  })
+
+  it('does not send gmNotes clearing update when no gmNotes exist', async () => {
+    const useCase = createUseCase()
+    findSessionByIdMock.mockResolvedValue(makeSession())
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    expect(updateSessionMock).toHaveBeenCalledWith(
+      'session_1',
+      expect.not.objectContaining({ gmNotes: undefined }),
+    )
+  })
+
   it('fires run game master in the background when dependency is provided', async () => {
     const useCase = createUseCase(true)
 

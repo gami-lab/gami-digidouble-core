@@ -20,7 +20,9 @@ export class GetAvatarTransitionsUseCase {
       throw new DomainError('NOT_FOUND', `Session ${input.sessionId} was not found.`)
     }
 
-    const conversations = await this.conversationRepository.listBySessionId(input.sessionId)
+    const conversations = (await this.conversationRepository.listBySessionId(input.sessionId))
+      .slice()
+      .sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt))
     const conversationById = new Map(
       conversations.map((conversation) => [conversation.conversationId, conversation]),
     )

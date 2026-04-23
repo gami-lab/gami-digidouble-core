@@ -16,6 +16,11 @@ export interface CreateSessionParams {
 }
 
 /** Partial update — only supplied fields will be persisted. */
-export type SessionUpdate = Partial<
-  Pick<Session, 'status' | 'lastActivityAt' | 'endedAt' | 'activeAvatarId' | 'gmNotes'>
->
+export type SessionUpdate = {
+  status?: Session['status']
+  lastActivityAt?: Session['lastActivityAt']
+  endedAt?: Session['endedAt']
+  activeAvatarId?: Session['activeAvatarId']
+  /** null clears persisted gm_notes. */
+  gmNotes?: string | null
+}

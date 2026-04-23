@@ -70,7 +70,9 @@ describe('GetAvailableAvatarsUseCase', () => {
     expect(avatarIds).toHaveLength(2)
     expect(avatarIds).toEqual(expect.arrayContaining(['avatar_1', 'avatar_2']))
   })
+})
 
+describe('GetAvailableAvatarsUseCase availability semantics', () => {
   it('returns null currentAvatarId when session active avatar is not set', async () => {
     const useCase = new GetAvailableAvatarsUseCase(
       new InMemorySessionRepository([
@@ -90,5 +92,58 @@ describe('GetAvailableAvatarsUseCase', () => {
 
     expect(output.currentAvatarId).toBeNull()
     expect(output.avatars).toEqual([])
+  })
+
+  it('filters out non-active avatars from available list', async () => {
+    const useCase = new GetAvailableAvatarsUseCase(
+      new InMemorySessionRepository([
+        {
+          sessionId: 'session_1',
+          userId: 'user_1',
+          scenarioId: 'scenario_1',
+          activeAvatarId: 'avatar_active',
+          status: 'active',
+          startedAt: '2026-04-23T10:00:00.000Z',
+          lastActivityAt: '2026-04-23T10:01:00.000Z',
+        },
+      ]),
+      new InMemoryAvatarRepository([
+        {
+          avatarId: 'avatar_active',
+          scenarioId: 'scenario_1',
+          name: 'Active',
+          status: 'active',
+          personaPrompt: 'Active',
+          config: {},
+          createdAt: '2026-04-23T10:00:00.000Z',
+          updatedAt: '2026-04-23T10:00:00.000Z',
+        },
+        {
+          avatarId: 'avatar_draft',
+          scenarioId: 'scenario_1',
+          name: 'Draft',
+          status: 'draft',
+          personaPrompt: 'Draft',
+          config: {},
+          createdAt: '2026-04-23T10:00:00.000Z',
+          updatedAt: '2026-04-23T10:00:00.000Z',
+        },
+        {
+          avatarId: 'avatar_archived',
+          scenarioId: 'scenario_1',
+          name: 'Archived',
+          status: 'archived',
+          personaPrompt: 'Archived',
+          config: {},
+          createdAt: '2026-04-23T10:00:00.000Z',
+          updatedAt: '2026-04-23T10:00:00.000Z',
+        },
+      ]),
+    )
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.avatars).toHaveLength(1)
+    expect(output.avatars[0]?.avatarId).toBe('avatar_active')
   })
 })

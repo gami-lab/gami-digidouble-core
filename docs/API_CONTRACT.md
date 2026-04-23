@@ -467,6 +467,10 @@ type GetAvailableAvatarsOutput = {
 }
 ```
 
+### Semantics
+
+- `avatars` contains only avatars with `status = 'active'` in the session's scenario.
+
 ### Error Mapping
 
 - `401` → `UNAUTHORIZED`

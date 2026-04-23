@@ -38,7 +38,15 @@ export class InMemorySessionRepository implements ISessionRepository {
     if (current === undefined) {
       throw new Error(`Session ${sessionId} was not found.`)
     }
-    const updated: Session = { ...current, ...updates }
+    const merged = { ...current, ...updates }
+    let updated: Session
+    if (Object.hasOwn(updates, 'gmNotes') && updates.gmNotes === null) {
+      const withoutGmNotes = { ...merged }
+      delete (withoutGmNotes as { gmNotes?: string }).gmNotes
+      updated = withoutGmNotes as Session
+    } else {
+      updated = merged as Session
+    }
     this.sessions.set(sessionId, updated)
     return Promise.resolve(updated)
   }

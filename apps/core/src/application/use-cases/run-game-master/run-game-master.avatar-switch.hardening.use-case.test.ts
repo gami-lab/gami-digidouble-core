@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
-import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
+import type {
+  GameMasterInput,
+  GameMasterState,
+} from '../../../domain/game-master/game-master.types.js'
+import { expectConsoleError } from '../../../test-utils/console.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
 const findBySessionIdMock = vi.fn()
@@ -111,6 +115,20 @@ function mockTriggeredLlmOutput(content: Record<string, unknown>): void {
   })
 }
 
+function parseGameMasterInputFromLlmCall(): GameMasterInput {
+  const firstCall = completeMock.mock.calls[0]?.[0] as
+    | { messages: Array<{ content: string }> }
+    | undefined
+  if (firstCall === undefined) {
+    throw new Error('Expected llm.complete to be called at least once.')
+  }
+  const payload = JSON.parse(firstCall.messages[0]?.content ?? 'null') as unknown
+  if (typeof payload !== 'object' || payload === null) {
+    throw new Error('Expected JSON payload object in llm input.')
+  }
+  return payload as GameMasterInput
+}
+
 beforeEach(() => {
   findBySessionIdMock.mockReset()
   saveGmStateMock.mockReset()
@@ -142,8 +160,8 @@ beforeEach(() => {
   traceMock.mockResolvedValue(undefined)
 })
 
-describe('RunGameMasterUseCase — avatar switch flow (happy/no-op paths)', () => {
-  it('conversationMode new with valid nextAvatarId closes old conversation and creates a new one', async () => {
+describe('RunGameMasterUseCase — avatar switch flow (failure handling)', () => {
+  it('swallows performAvatarSwitch internal errors without propagating', async () => {
     const useCase = createUseCase({
       scenarioRepository: makeScenarioRepository({
         avatarTransitionRules: [
@@ -155,66 +173,29 @@ describe('RunGameMasterUseCase — avatar switch flow (happy/no-op paths)', () =
         ],
       }),
     })
+    updateConversationMock.mockRejectedValue(new Error('db write failed'))
     mockTriggeredLlmOutput({
       avatarId: 'avatar_1',
       nextAvatarId: 'avatar_2',
-      transitionReason: 'progression_handoff',
-      conversationMode: 'new',
-      context: { notes: 'Handoff to avatar 2 with a short recap.' },
-      stateUpdate: { interactionIncrement: 1 },
-    })
-
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_1',
-    })
-
-    expect(updateConversationMock).toHaveBeenCalledTimes(1)
-    const closeCall = updateConversationMock.mock.calls[0] as
-      | [string, { status?: string; endedAt?: string }]
-      | undefined
-    expect(closeCall?.[0]).toBe('conversation_old')
-    expect(closeCall?.[1].status).toBe('closed')
-    expect(typeof closeCall?.[1].endedAt).toBe('string')
-    expect(createConversationMock).toHaveBeenCalledWith({
-      sessionId: 'session_1',
-      avatarId: 'avatar_2',
-      startedBy: 'gm',
-      reason: 'progression_handoff',
-      handoffFromConversationId: 'conversation_old',
-    })
-    expect(updateSessionMock).toHaveBeenCalledWith('session_1', { activeAvatarId: 'avatar_2' })
-  })
-
-  it('conversationMode new with empty nextAvatarId skips switch', async () => {
-    const useCase = createUseCase()
-    mockTriggeredLlmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: '  ',
       conversationMode: 'new',
       stateUpdate: { interactionIncrement: 1 },
     })
 
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_1b',
-    })
-
-    expect(createConversationMock).not.toHaveBeenCalled()
-    expect(updateConversationMock).not.toHaveBeenCalled()
+    await expectConsoleError(
+      () =>
+        useCase.execute({
+          sessionId: 'session_1',
+          scenarioId: 'scenario_1',
+          avatarId: 'avatar_1',
+          userMessageText: 'hello',
+          turnIndex: 6,
+          correlationId: 'corr_5',
+        }),
+      /\[GM\] Avatar switch failed:/,
+    )
   })
-})
 
-describe('RunGameMasterUseCase — avatar switch flow (no active conversation paths)', () => {
-  it('conversationMode new with no active conversation creates conversation without handoffFromConversationId', async () => {
+  it('keeps gm currentAvatarId unchanged when switch fails even if output.stateUpdate.activeAvatarId is set', async () => {
     const useCase = createUseCase({
       scenarioRepository: makeScenarioRepository({
         avatarTransitionRules: [
@@ -226,133 +207,95 @@ describe('RunGameMasterUseCase — avatar switch flow (no active conversation pa
         ],
       }),
     })
-    findActiveBySessionIdMock.mockResolvedValue(null)
-    mockTriggeredLlmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: 'avatar_2',
-      transitionReason: 'progression_handoff',
-      conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
-    })
-
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_1c',
-    })
-
-    expect(updateConversationMock).not.toHaveBeenCalled()
-    expect(createConversationMock).toHaveBeenCalledWith({
-      sessionId: 'session_1',
-      avatarId: 'avatar_2',
-      startedBy: 'gm',
-      reason: 'progression_handoff',
-    })
-  })
-
-  it('conversationMode new without conversation repository is a graceful no-op switch path', async () => {
-    const useCase = createUseCase({ withConversationRepository: false })
+    updateConversationMock.mockRejectedValue(new Error('db write failed'))
     mockTriggeredLlmOutput({
       avatarId: 'avatar_1',
       nextAvatarId: 'avatar_2',
       conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
+      stateUpdate: {
+        interactionIncrement: 1,
+        activeAvatarId: 'avatar_2',
+      },
     })
 
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_2',
-    })
+    await expectConsoleError(
+      () =>
+        useCase.execute({
+          sessionId: 'session_1',
+          scenarioId: 'scenario_1',
+          avatarId: 'avatar_1',
+          userMessageText: 'hello',
+          turnIndex: 6,
+          correlationId: 'corr_5b',
+        }),
+      /\[GM\] Avatar switch failed:/,
+    )
 
-    expect(createConversationMock).not.toHaveBeenCalled()
-    expect(updateConversationMock).not.toHaveBeenCalled()
+    expect(saveGmStateMock).toHaveBeenCalledWith(
+      'session_1',
+      expect.objectContaining({ currentAvatarId: 'avatar_1' }),
+    )
   })
 })
 
-describe('RunGameMasterUseCase — avatar switch flow (guard rails)', () => {
-  it('conversationMode new with no rules and invalid nextAvatarId skips switch', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+describe('RunGameMasterUseCase — eligible transitions context', () => {
+  it('passes eligible transitions into GameMasterInput context', async () => {
+    const useCase = createUseCase({
+      scenarioRepository: makeScenarioRepository({
+        avatarTransitionRules: [
+          {
+            fromAvatarId: 'avatar_1',
+            toAvatarId: 'avatar_2',
+            trigger: 'topic_repeat',
+            topic: 'plastic',
+          },
+        ],
+      }),
+    })
+    findBySessionIdMock.mockResolvedValue(
+      makeState({
+        progression: 'progressing',
+        interactionCount: 1,
+        topicsCovered: ['plastic', 'plastic', 'plastic'],
+      }),
+    )
+    mockTriggeredLlmOutput({
+      avatarId: 'avatar_1',
+      conversationMode: 'continue',
+      stateUpdate: { interactionIncrement: 1 },
+    })
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 2,
+      correlationId: 'corr_6',
+    })
+
+    const gmInput = parseGameMasterInputFromLlmCall()
+    expect(gmInput.context.eligibleTransitions).toEqual([
+      {
+        toAvatarId: 'avatar_2',
+        reason: 'topic_rule:plastic:avatar_1→avatar_2',
+      },
+    ])
+  })
+
+  it('passes only active avatars into GameMasterInput availableAvatars', async () => {
     const useCase = createUseCase({
       scenarioRepository: makeScenarioRepository({
         avatarTransitionRules: [],
       }),
     })
+    listAvatarsByScenarioIdMock.mockResolvedValue([
+      makeAvatar({ avatarId: 'avatar_1', status: 'active' }),
+      makeAvatar({ avatarId: 'avatar_draft', status: 'draft' }),
+      makeAvatar({ avatarId: 'avatar_archived', status: 'archived' }),
+    ])
     mockTriggeredLlmOutput({
       avatarId: 'avatar_1',
-      nextAvatarId: 'avatar_999',
-      conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
-    })
-
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_3a',
-    })
-
-    expect(createConversationMock).not.toHaveBeenCalled()
-    expect(updateConversationMock).not.toHaveBeenCalled()
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[GM] Skipping avatar switch: nextAvatarId is not an active avatar in the scenario.',
-      'avatar_999',
-    )
-    warnSpy.mockRestore()
-  })
-
-  it('conversationMode new with nextAvatarId outside eligible set skips switch', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    const useCase = createUseCase({
-      scenarioRepository: makeScenarioRepository({
-        avatarTransitionRules: [
-          {
-            fromAvatarId: 'avatar_1',
-            toAvatarId: 'avatar_2',
-            trigger: 'progression',
-          },
-        ],
-      }),
-    })
-    mockTriggeredLlmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: 'avatar_3',
-      conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
-    })
-
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_3',
-    })
-
-    expect(createConversationMock).not.toHaveBeenCalled()
-    expect(updateConversationMock).not.toHaveBeenCalled()
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[GM] Skipping avatar switch: nextAvatarId is not in eligible transitions.',
-      'avatar_3',
-      ['avatar_2'],
-    )
-    warnSpy.mockRestore()
-  })
-
-  it('conversationMode continue does not create a new conversation', async () => {
-    const useCase = createUseCase()
-    mockTriggeredLlmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: 'avatar_2',
       conversationMode: 'continue',
       stateUpdate: { interactionIncrement: 1 },
     })
@@ -363,9 +306,15 @@ describe('RunGameMasterUseCase — avatar switch flow (guard rails)', () => {
       avatarId: 'avatar_1',
       userMessageText: 'hello',
       turnIndex: 6,
-      correlationId: 'corr_4',
+      correlationId: 'corr_7',
     })
 
-    expect(createConversationMock).not.toHaveBeenCalled()
+    const gmInput = parseGameMasterInputFromLlmCall()
+    expect(gmInput.context.availableAvatars).toEqual([
+      {
+        avatarId: 'avatar_1',
+        name: 'Ava',
+      },
+    ])
   })
 })

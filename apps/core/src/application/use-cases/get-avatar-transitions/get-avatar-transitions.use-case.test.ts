@@ -233,3 +233,56 @@ describe('GetAvatarTransitionsUseCase linkage edge cases', () => {
     })
   })
 })
+
+describe('GetAvatarTransitionsUseCase ordering contract', () => {
+  it('sorts transitions by startedAt ascending even when repository returns unsorted conversations', async () => {
+    const sessionRepository = {
+      findById: () =>
+        Promise.resolve({
+          sessionId: 'session_1',
+          userId: 'user_1',
+          scenarioId: 'scenario_1',
+          status: 'active' as const,
+          startedAt: '2026-04-23T10:00:00.000Z',
+          lastActivityAt: '2026-04-23T10:01:00.000Z',
+        }),
+    }
+    const conversationRepository = {
+      listBySessionId: () =>
+        Promise.resolve([
+          {
+            conversationId: 'conversation_2',
+            sessionId: 'session_1',
+            avatarId: 'avatar_2',
+            status: 'active' as const,
+            startedAt: '2026-04-23T10:05:00.000Z',
+            lastActivityAt: '2026-04-23T10:05:00.000Z',
+            reason: 'manual_switch',
+            handoffFromConversationId: 'conversation_1',
+            startedBy: 'user' as const,
+          },
+          {
+            conversationId: 'conversation_1',
+            sessionId: 'session_1',
+            avatarId: 'avatar_1',
+            status: 'closed' as const,
+            startedAt: '2026-04-23T10:00:00.000Z',
+            lastActivityAt: '2026-04-23T10:00:00.000Z',
+            startedBy: 'user' as const,
+          },
+        ]),
+    }
+
+    const useCase = new GetAvatarTransitionsUseCase(
+      sessionRepository as unknown as InMemorySessionRepository,
+      conversationRepository as unknown as InMemoryConversationRepository,
+    )
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.transitions.map((transition) => transition.toConversationId)).toEqual([
+      'conversation_1',
+      'conversation_2',
+    ])
+  })
+})

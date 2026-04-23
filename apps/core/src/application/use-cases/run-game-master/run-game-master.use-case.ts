@@ -45,6 +45,10 @@ type ScenarioContext = {
   avatarTransitionRules?: AvatarTransitionRule[]
 }
 
+type AvatarRoutingResult = {
+  switchedAvatarId?: string
+}
+
 export class RunGameMasterUseCase {
   constructor(
     private readonly gmStateRepository: IGmStateRepository,
@@ -121,8 +125,22 @@ export class RunGameMasterUseCase {
       return
     }
 
-    const nextState = reduceGmState(currentState, output.stateUpdate)
-    await this.gmStateRepository.save(input.sessionId, nextState)
+    const sanitizedStateUpdate = { ...output.stateUpdate }
+    if (output.conversationMode === 'new') {
+      delete sanitizedStateUpdate.activeAvatarId
+    }
+    const nextState = reduceGmState(currentState, sanitizedStateUpdate)
+    const routingResult = await this.applyAvatarRoutingUpdates(
+      input,
+      currentState,
+      output,
+      eligibleTransitions,
+    )
+    const reconciledState: GameMasterState =
+      routingResult.switchedAvatarId !== undefined
+        ? { ...nextState, currentAvatarId: routingResult.switchedAvatarId }
+        : nextState
+    await this.gmStateRepository.save(input.sessionId, reconciledState)
     await this.persistTriggeredNotes(input.sessionId, output)
 
     await this.emitEventSafe({
@@ -133,7 +151,7 @@ export class RunGameMasterUseCase {
       payload: {
         triggerReason,
         turnIndex: input.turnIndex,
-        interactionCount: nextState.interactionCount,
+        interactionCount: reconciledState.interactionCount,
         stateBefore: buildStateSummary(currentState),
         decision: {
           avatarId: output.avatarId,
@@ -141,14 +159,12 @@ export class RunGameMasterUseCase {
           notesInjected: Boolean(output.context?.notes),
           directiveCount: output.recommendedChoices?.length ?? 0,
         },
-        stateAfter: buildStateSummary(nextState),
+        stateAfter: buildStateSummary(reconciledState),
         latencyMs: Date.now() - gmRunStartMs,
         inputTokens: llmResponse.inputTokens,
         outputTokens: llmResponse.outputTokens,
       },
     })
-
-    await this.applyAvatarRoutingUpdates(input, currentState, output, eligibleTransitions)
 
     await this.traceSafe({
       requestId: input.correlationId,
@@ -219,7 +235,9 @@ export class RunGameMasterUseCase {
     scenarioContext: ScenarioContext,
     eligibleTransitions: EligibleTransition[],
   ): Promise<GameMasterInput> {
-    const availableAvatars = await this.avatarRepository.listByScenarioId(input.scenarioId)
+    const availableAvatars = (
+      await this.avatarRepository.listByScenarioId(input.scenarioId)
+    ).filter((avatar) => avatar.status === 'active')
 
     return {
       session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
@@ -251,9 +269,9 @@ export class RunGameMasterUseCase {
     input: RunGameMasterInput,
     output: GameMasterOutput,
     eligibleTransitions: EligibleTransition[],
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     if (this.conversationRepository === undefined || !hasText(output.nextAvatarId)) {
-      return
+      return undefined
     }
 
     const nextAvatarId = output.nextAvatarId.trim()
@@ -267,7 +285,21 @@ export class RunGameMasterUseCase {
         nextAvatarId,
         eligibleTransitions.map((transition) => transition.toAvatarId),
       )
-      return
+      return undefined
+    }
+
+    const scenarioAvatarIds = new Set(
+      (await this.avatarRepository.listByScenarioId(input.scenarioId))
+        .filter((avatar) => avatar.status === 'active')
+        .map((avatar) => avatar.avatarId),
+    )
+
+    if (!scenarioAvatarIds.has(nextAvatarId)) {
+      console.warn(
+        '[GM] Skipping avatar switch: nextAvatarId is not an active avatar in the scenario.',
+        nextAvatarId,
+      )
+      return undefined
     }
 
     try {
@@ -294,8 +326,10 @@ export class RunGameMasterUseCase {
       })
 
       await this.sessionRepository.update(input.sessionId, { activeAvatarId: nextAvatarId })
+      return nextAvatarId
     } catch (err: unknown) {
       console.error('[GM] Avatar switch failed:', err)
+      return undefined
     }
   }
 
@@ -309,14 +343,14 @@ export class RunGameMasterUseCase {
     currentState: GameMasterState,
     output: GameMasterOutput,
     eligibleTransitions: EligibleTransition[],
-  ): Promise<void> {
+  ): Promise<AvatarRoutingResult> {
     if (
       output.conversationMode === 'new' &&
       hasText(output.nextAvatarId) &&
       this.conversationRepository !== undefined
     ) {
-      await this.performAvatarSwitch(input, output, eligibleTransitions)
-      return
+      const switchedAvatarId = await this.performAvatarSwitch(input, output, eligibleTransitions)
+      return switchedAvatarId !== undefined ? { switchedAvatarId } : {}
     }
 
     if (
@@ -326,7 +360,10 @@ export class RunGameMasterUseCase {
       await this.sessionRepository.update(input.sessionId, {
         activeAvatarId: output.stateUpdate.activeAvatarId.trim(),
       })
+      return { switchedAvatarId: output.stateUpdate.activeAvatarId.trim() }
     }
+
+    return {}
   }
 
   private async handleSkippedTurn(
