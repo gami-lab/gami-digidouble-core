@@ -40,6 +40,46 @@ describe('GetAvatarTransitionsUseCase', () => {
 })
 
 describe('GetAvatarTransitionsUseCase transition mapping', () => {
+  it('returns one session_start record when session has one conversation with no handoff', async () => {
+    const useCase = new GetAvatarTransitionsUseCase(
+      new InMemorySessionRepository([
+        {
+          sessionId: 'session_1',
+          userId: 'user_1',
+          scenarioId: 'scenario_1',
+          status: 'active',
+          startedAt: '2026-04-23T10:00:00.000Z',
+          lastActivityAt: '2026-04-23T10:01:00.000Z',
+        },
+      ]),
+      new InMemoryConversationRepository([
+        {
+          conversationId: 'conversation_1',
+          sessionId: 'session_1',
+          avatarId: 'avatar_1',
+          status: 'active',
+          startedAt: '2026-04-23T10:00:00.000Z',
+          lastActivityAt: '2026-04-23T10:00:00.000Z',
+          startedBy: 'user',
+        },
+      ]),
+    )
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.transitions).toEqual([
+      {
+        toConversationId: 'conversation_1',
+        toAvatarId: 'avatar_1',
+        fromConversationId: null,
+        fromAvatarId: null,
+        reason: 'session_start',
+        startedBy: 'user',
+        transitionedAt: '2026-04-23T10:00:00.000Z',
+      },
+    ])
+  })
+
   it('returns session_start and manual switch transition records in order', async () => {
     const useCase = new GetAvatarTransitionsUseCase(
       new InMemorySessionRepository([
@@ -98,6 +138,61 @@ describe('GetAvatarTransitionsUseCase transition mapping', () => {
         transitionedAt: '2026-04-23T10:05:00.000Z',
       },
     ])
+  })
+})
+
+describe('GetAvatarTransitionsUseCase linkage edge cases', () => {
+  it('links fromAvatarId when second conversation hands off from first conversation', async () => {
+    const useCase = new GetAvatarTransitionsUseCase(
+      new InMemorySessionRepository([
+        {
+          sessionId: 'session_1',
+          userId: 'user_1',
+          scenarioId: 'scenario_1',
+          status: 'active',
+          startedAt: '2026-04-23T10:00:00.000Z',
+          lastActivityAt: '2026-04-23T10:01:00.000Z',
+        },
+      ]),
+      new InMemoryConversationRepository([
+        {
+          conversationId: 'conversation_a',
+          sessionId: 'session_1',
+          avatarId: 'avatar_a',
+          status: 'closed',
+          startedAt: '2026-04-23T10:00:00.000Z',
+          lastActivityAt: '2026-04-23T10:00:00.000Z',
+          startedBy: 'user',
+        },
+        {
+          conversationId: 'conversation_b',
+          sessionId: 'session_1',
+          avatarId: 'avatar_b',
+          status: 'active',
+          startedAt: '2026-04-23T10:05:00.000Z',
+          lastActivityAt: '2026-04-23T10:05:00.000Z',
+          startedBy: 'gm',
+          reason: 'progression_rule:avatar_a→avatar_b',
+          handoffFromConversationId: 'conversation_a',
+        },
+      ]),
+    )
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.transitions).toHaveLength(2)
+    expect(output.transitions[0]).toMatchObject({
+      toConversationId: 'conversation_a',
+      fromConversationId: null,
+      fromAvatarId: null,
+      reason: 'session_start',
+    })
+    expect(output.transitions[1]).toMatchObject({
+      toConversationId: 'conversation_b',
+      fromConversationId: 'conversation_a',
+      fromAvatarId: 'avatar_a',
+      reason: 'progression_rule:avatar_a→avatar_b',
+    })
   })
 
   it('sets fromAvatarId null when handoff source is missing', async () => {

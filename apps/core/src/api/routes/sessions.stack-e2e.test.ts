@@ -379,6 +379,22 @@ describe('POST /:sessionId/switch-avatar validation and conflicts', () => {
     expect(body.error?.code).toBe('VALIDATION_ERROR')
   })
 
+  it('returns 400 VALIDATION_ERROR when reason exceeds max length 200', async () => {
+    const app = registerApp(makeApp())
+    const seeded = await seedSwitchScenario(app)
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/sessions/${seeded.sessionId}/switch-avatar`,
+      headers: authHeaders(),
+      payload: { avatarId: seeded.avatar2Id, reason: 'r'.repeat(201) },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
   it('returns 404 NOT_FOUND when sessionId does not exist', async () => {
     const app = registerApp(makeApp())
 

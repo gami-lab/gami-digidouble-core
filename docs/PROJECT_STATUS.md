@@ -10,7 +10,7 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 4.1 (Async Game Master v1), and all associated tests and hardening are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
 ### Session vs Conversation model refactor (April 22, 2026)
 
@@ -282,7 +282,7 @@ GM system — Prompt 05 (Tests and hardening) is done:
 | Epic                                  | Status       | Notes                                                                                                                                                                                                                          |
 | ------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | EPIC 4.1 — Async Game Master v1       | **Complete** | Trigger engine (turn_threshold, topic_repeat, progression_stalled), RunGameMasterUseCase, GM state persistence (PostgresGmStateRepository), event log (PostgresEventLogRepository), guidance note injection into Avatar prompt |
-| EPIC 4.4 — Multi-Avatar Navigation v1 | Not started  | Active-avatar routing, transition rules, handoff context                                                                                                                                                                       |
+| EPIC 4.4 — Multi-Avatar Navigation v1 | **Complete** | Active-avatar routing, transition rules, manual+GM handoff flow, transition history endpoints, and test/doc hardening are implemented and validated                                                                            |
 | EPIC 4.2 — Memory Layer v1            | Not started  | Session summary + persistent user facts                                                                                                                                                                                        |
 | EPIC 4.3 — Performance Baseline       | Not started  | TTFT metrics, step timing, Avatar-only vs Avatar+GM comparison                                                                                                                                                                 |
 
@@ -334,6 +334,17 @@ GM system — Prompt 05 (Tests and hardening) is done:
 - `AvatarConfig` now carries `createdAt` / `updatedAt` (F-01 fix)
 - `CreateAvatarUseCase` no longer synthesises timestamps
 - Stack-level persistence verified by `persistence.e2e.test.ts`
+
+## EPIC 4.4 — Multi-Avatar Navigation v1 ✅ Done
+
+Completed multi-avatar routing and persistence hardening across domain, application, API, and Postgres adapters.
+
+- AvatarTransitionRule types + transition-engine.ts (pure domain)
+- GM-driven conversationMode: 'new' path activated in RunGameMasterUseCase
+- POST /v1/sessions/:sessionId/switch-avatar — manual switch use case + route
+- GET /v1/sessions/:sessionId/available-avatars
+- GET /v1/sessions/:sessionId/avatar-transitions
+- Full unit, integration, and stack-e2e test coverage
 
 ---
 

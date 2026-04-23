@@ -115,7 +115,7 @@ Not all decisions should come from prompts.
 3. Avatar message persisted
 4. GM fires asynchronously — non-blocking; errors are caught and logged, never propagate to the user response
 5. GM evaluates deterministic triggers against current state
-6. If a trigger fires: LLM called, state reduced, guidance notes stored into `sessions.gm_notes` for the next turn; `session.activeAvatarId` updated if avatar changed; `gm_triggered` event emitted
+6. If a trigger fires: LLM called, state reduced, guidance notes stored into `sessions.gm_notes` for the next turn; when `conversationMode === 'new'` and `nextAvatarId` is valid, the current conversation is closed and a new conversation is opened for the next avatar; `session.activeAvatarId` updated if avatar changed; `gm_triggered` event emitted
 7. If no trigger: interaction count incremented, state persisted; `gm_skipped` event emitted
 8. An event is emitted in all cases (see Section 14)
 
@@ -203,6 +203,7 @@ export type GameMasterOutput = {
 - `nextAvatarId` = suggested handoff target for a next step
 - `stateUpdate.activeAvatarId` keeps session routing deterministic after a switch
 - `conversationMode: 'new' | 'continue'` means start a new bounded conversation or continue the current conversation **inside the same session**
+- `conversationMode: 'new'` is active in MVP runtime (not deferred): `RunGameMasterUseCase` performs the conversation handoff when `nextAvatarId` is valid
 - `recommendedChoices` allows guided progression without forcing one path
 - `contentTrigger` can signal non-text assets or events
 
@@ -532,3 +533,13 @@ type GameMasterEvent = {
 - Never include prompt content or raw user message in the diagnostic payload — these are sensitive
 - The `correlationId` must match the one used by the parent `SendMessage` use case for this turn
 - Admin inspection endpoint surfaces these events alongside session messages
+
+---
+
+# 15. Avatar Switch Flow
+
+When rule-based transitions are configured, avatar switching follows this flow:
+
+1. Trigger policy fires (`turn_threshold`, `topic_repeat`, or `progression_stalled`) and transition rules are evaluated from current avatar and state.
+2. Eligible transitions are passed into `GameMasterInput.context.eligibleTransitions` as `{ toAvatarId, reason }[]` so the GM can only pick from valid handoff targets.
+3. If rules exist, `nextAvatarId` is accepted only when it is in the eligible set; if valid and `conversationMode === 'new'`, current conversation is closed, new conversation is created, and session active avatar is updated.

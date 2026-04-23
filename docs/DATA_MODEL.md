@@ -94,8 +94,16 @@ Defines a runnable experience configuration.
 - enabled features
 - UI hints
 - runtime defaults
-- `avatarTransitionRules` — optional array of `AvatarTransitionRule` objects evaluated by the
-  transition engine to decide which avatar to route to next (EPIC 4.4)
+- avatarTransitionRules (AvatarTransitionRule[]): defines eligible avatar transitions; evaluated by the domain transition engine
+
+### ScenarioConfig — AvatarTransitionRule
+
+`avatarTransitionRules` entries use the runtime `AvatarTransitionRule` shape:
+
+- `fromAvatarId` (string)
+- `toAvatarId` (string)
+- `trigger` (`'progression' | 'topic_repeat' | 'manual'`)
+- `topic?` (string, optional; only used when `trigger = 'topic_repeat'`)
 
 ### Notes
 
@@ -570,26 +578,19 @@ No PII in payload — store IDs and structured metadata only.
 
 ## 16. AvatarTransitionRule
 
-Lightweight transition policy attached to a scenario.
+Scenario runtime transition policy attached through `ScenarioConfig.avatarTransitionRules`.
 
-### Fields
+### Fields (runtime shape)
 
-- id
-- scenario_id
-- from_avatar_id (nullable)
-- to_avatar_id
-- trigger_type (`topic` | `progression` | `manual_choice` | `system`)
-- priority (int, default 0)
-- is_enabled (boolean, default true)
-- config (JSONB, nullable)
-- created_at
-- updated_at
+- `fromAvatarId` (string)
+- `toAvatarId` (string)
+- `trigger` (`'progression' | 'topic_repeat' | 'manual'`)
+- `topic?` (string, optional)
 
 ### Notes
 
-Keep this simple in MVP.
-
-`config` may store optional rule details (topic match, progression threshold, content trigger key, additional constraints) without introducing complex graph tables.
+- Rules are evaluated by `domain/avatar/transition-engine.ts`.
+- `manual` rules are for explicit/manual transitions and are not auto-selected by deterministic trigger evaluation.
 
 ---
 

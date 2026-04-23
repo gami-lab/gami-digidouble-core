@@ -67,7 +67,22 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationRepository', () => {
     ])
   })
 
-  it('findActiveBySessionId returns the most recently started active conversation', async () => {
+  it('findActiveBySessionId returns null when no conversations exist in session', async () => {
+    const active = await repository.findActiveBySessionId(sessionId)
+
+    expect(active).toBeNull()
+  })
+
+  it('findActiveBySessionId returns active conversation when one exists', async () => {
+    const created = await repository.create({ sessionId, avatarId, startedBy: 'user' })
+
+    const active = await repository.findActiveBySessionId(sessionId)
+
+    expect(active?.conversationId).toBe(created.conversationId)
+    expect(active?.status).toBe('active')
+  })
+
+  it('findActiveBySessionId returns only the currently active conversation', async () => {
     const first = await repository.create({ sessionId, avatarId, startedBy: 'user' })
     const second = await repository.create({ sessionId, avatarId, startedBy: 'user' })
     await repository.update(first.conversationId, {
@@ -79,5 +94,17 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationRepository', () => {
 
     expect(active?.conversationId).toBe(second.conversationId)
     expect(active?.status).toBe('active')
+  })
+
+  it('findActiveBySessionId returns null after conversation is closed', async () => {
+    const created = await repository.create({ sessionId, avatarId, startedBy: 'user' })
+    await repository.update(created.conversationId, {
+      status: 'closed',
+      endedAt: new Date().toISOString(),
+    })
+
+    const active = await repository.findActiveBySessionId(sessionId)
+
+    expect(active).toBeNull()
   })
 })
