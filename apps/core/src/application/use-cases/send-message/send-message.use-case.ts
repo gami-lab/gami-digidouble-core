@@ -115,7 +115,7 @@ export class SendMessageUseCase {
 
     const latencyMs = Date.now() - start
     if (redirect === null) {
-      this.traceNonBlocking(requestId, session.sessionId, llmRequest.messages, response, latencyMs)
+      this.traceNonBlocking(requestId, session.sessionId, llmRequest, response, latencyMs)
     }
 
     return this.buildOutput(
@@ -293,7 +293,10 @@ export class SendMessageUseCase {
   private traceNonBlocking(
     requestId: string,
     sessionId: string,
-    input: Array<{ role: 'user' | 'assistant'; content: string }>,
+    llmRequest: {
+      systemPrompt: string
+      messages: Array<{ role: 'user' | 'assistant'; content: string }>
+    },
     response: { content: string; model: string; inputTokens: number; outputTokens: number },
     latencyMs: number,
   ): void {
@@ -302,7 +305,10 @@ export class SendMessageUseCase {
         requestId,
         sessionId,
         event: 'llm.completion',
-        input,
+        input: {
+          systemPrompt: llmRequest.systemPrompt,
+          messages: llmRequest.messages,
+        },
         output: response.content,
         latencyMs,
         inputTokens: response.inputTokens,

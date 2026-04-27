@@ -27,7 +27,10 @@ export class SendRawMessageUseCase {
       .trace({
         requestId,
         event: 'llm.completion',
-        input: llmRequest.messages,
+        input: {
+          systemPrompt: llmRequest.systemPrompt,
+          messages: llmRequest.messages,
+        },
         output: response.content,
         latencyMs,
         inputTokens: response.inputTokens,

@@ -184,6 +184,26 @@ describe('SendMessageUseCase — message routing', () => {
   })
 })
 
+describe('SendMessageUseCase — observability payload', () => {
+  it('traces system prompt and user prompt messages for llm completions', async () => {
+    const useCase = createUseCase()
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello tracing' })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const traceArg = traceMock.mock.calls[0]?.[0] as {
+      input?: {
+        systemPrompt?: string
+        messages?: Array<{ role: string; content: string }>
+      }
+      metadata?: Record<string, unknown>
+    }
+    expect(traceArg.input?.systemPrompt).toContain('You are Ava.')
+    expect(traceArg.input?.messages).toEqual([{ role: 'user', content: 'Hello tracing' }])
+    expect(traceArg.metadata?.['model']).toBe('null-model')
+  })
+})
+
 describe('SendMessageUseCase — scenario policy', () => {
   it('unlocks a specialist when scenario topic rules match the guide turn', async () => {
     const useCase = createUseCase()

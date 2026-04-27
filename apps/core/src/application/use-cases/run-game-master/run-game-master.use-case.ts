@@ -102,7 +102,7 @@ export class RunGameMasterUseCase {
     )
     const llmStart = Date.now()
 
-    const llmResponse = await this.callLlm(
+    const llmCallResult = await this.callLlm(
       gmInput,
       input,
       currentState,
@@ -110,7 +110,9 @@ export class RunGameMasterUseCase {
       llmStart,
       gmRunStartMs,
     )
-    if (llmResponse === null) return
+    if (llmCallResult === null) return
+
+    const { llmRequest, llmResponse } = llmCallResult
 
     const output = safeParseGameMasterOutput(llmResponse.content)
     if (output === null) {
@@ -118,6 +120,7 @@ export class RunGameMasterUseCase {
         input,
         currentState,
         triggerReason,
+        llmRequest,
         llmResponse,
         llmStart,
         gmRunStartMs,
@@ -173,6 +176,7 @@ export class RunGameMasterUseCase {
       input: {
         triggerReason,
         turnIndex: input.turnIndex,
+        llmRequest,
       },
       output,
       latencyMs: Date.now() - llmStart,
@@ -189,12 +193,21 @@ export class RunGameMasterUseCase {
     triggerReason: string,
     llmStart: number,
     gmRunStartMs: number,
-  ): Promise<LlmResponse | null> {
+  ): Promise<{
+    llmRequest: {
+      systemPrompt: string
+      messages: Array<{ role: 'user'; content: string }>
+    }
+    llmResponse: LlmResponse
+  } | null> {
+    const llmRequest = {
+      systemPrompt: buildGameMasterSystemPrompt(),
+      messages: [{ role: 'user' as const, content: JSON.stringify(gmInput) }],
+    }
+
     try {
-      return await this.llm.complete({
-        systemPrompt: buildGameMasterSystemPrompt(),
-        messages: [{ role: 'user', content: JSON.stringify(gmInput) }],
-      })
+      const llmResponse = await this.llm.complete(llmRequest)
+      return { llmRequest, llmResponse }
     } catch (err: unknown) {
       console.error('[GM] LLM call failed:', err)
       await this.incrementInteractionAndSave(input.sessionId, currentState)
@@ -216,7 +229,10 @@ export class RunGameMasterUseCase {
         requestId: input.correlationId,
         sessionId: input.sessionId,
         event: 'gm.llm_error',
-        input: { triggerReason },
+        input: {
+          triggerReason,
+          llmRequest,
+        },
         latencyMs: Date.now() - llmStart,
       })
       return null
@@ -401,6 +417,10 @@ export class RunGameMasterUseCase {
     input: RunGameMasterInput,
     currentState: GameMasterState,
     triggerReason: string,
+    llmRequest: {
+      systemPrompt: string
+      messages: Array<{ role: 'user'; content: string }>
+    },
     llmResponse: {
       content: string
       model: string
@@ -431,7 +451,10 @@ export class RunGameMasterUseCase {
       requestId: input.correlationId,
       sessionId: input.sessionId,
       event: 'gm.invalid_output',
-      input: { triggerReason },
+      input: {
+        triggerReason,
+        llmRequest,
+      },
       output: llmResponse.content,
       latencyMs: Date.now() - llmStart,
       inputTokens: llmResponse.inputTokens,

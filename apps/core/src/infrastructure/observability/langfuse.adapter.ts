@@ -22,6 +22,7 @@ export class LangfuseObservabilityAdapter implements IObservabilityAdapter {
 
   trace(event: TraceEvent): Promise<void> {
     try {
+      const model = extractModel(event.metadata)
       const trace = this.client.trace({
         id: event.requestId,
         name: event.event,
@@ -36,6 +37,7 @@ export class LangfuseObservabilityAdapter implements IObservabilityAdapter {
         input: event.input ?? null,
         output: event.output ?? null,
         usage: buildUsage(event),
+        model: model ?? null,
         ...(event.metadata !== undefined ? { metadata: event.metadata } : {}),
       })
     } catch (err) {
@@ -61,4 +63,9 @@ function buildUsage(event: TraceEvent): Record<string, number> {
   if (event.outputTokens !== undefined) usage['output'] = event.outputTokens
   if (event.costUsd !== undefined) usage['totalCost'] = event.costUsd
   return usage
+}
+
+function extractModel(metadata: Record<string, unknown> | undefined): string | undefined {
+  const model = metadata?.['model']
+  return typeof model === 'string' && model.trim().length > 0 ? model : undefined
 }
