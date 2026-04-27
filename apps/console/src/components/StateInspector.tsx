@@ -114,9 +114,7 @@ export function StateInspector({
       </div>
       <div style={rowStyle}>
         <span style={labelStyle}>Last activity</span>
-        <span style={valueStyle}>
-          {new Date(session.lastActivityAt).toLocaleTimeString()}
-        </span>
+        <span style={valueStyle}>{new Date(session.lastActivityAt).toLocaleTimeString()}</span>
       </div>
 
       {unlockEvents.length > 0 ? (
@@ -124,8 +122,7 @@ export function StateInspector({
           <div style={{ fontWeight: 600, marginBottom: '6px' }}>Unlock history</div>
           {unlockEvents.map((event, index) => (
             <div key={index} style={unlockEventStyle}>
-              Turn {event.turnIndex} — <strong>{event.avatarName}</strong> unlocked.{' '}
-              {event.reason}
+              Turn {event.turnIndex} — <strong>{event.avatarName}</strong> unlocked. {event.reason}
             </div>
           ))}
         </div>
@@ -141,9 +138,7 @@ export function StateInspector({
         >
           {showRaw ? 'Hide raw session JSON' : 'Show raw session JSON'}
         </button>
-        {showRaw ? (
-          <pre style={rawJsonStyle}>{JSON.stringify(session, null, 2)}</pre>
-        ) : null}
+        {showRaw ? <pre style={rawJsonStyle}>{JSON.stringify(session, null, 2)}</pre> : null}
       </div>
     </div>
   )

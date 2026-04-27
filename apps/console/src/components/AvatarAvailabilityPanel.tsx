@@ -118,7 +118,9 @@ export function AvatarAvailabilityPanel({
                 type="button"
                 style={canSwitch ? switchButtonStyle : disabledSwitchButtonStyle}
                 disabled={!canSwitch}
-                title={isLocked ? 'This specialist is locked. Chat with the guide first.' : undefined}
+                title={
+                  isLocked ? 'This specialist is locked. Chat with the guide first.' : undefined
+                }
                 onClick={() => {
                   if (canSwitch) onSwitch(avatar.avatarId)
                 }}

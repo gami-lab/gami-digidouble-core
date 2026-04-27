@@ -1,10 +1,5 @@
 import type { Dispatch, JSX, SetStateAction, SyntheticEvent } from 'react'
-import type {
-  AvailableAvatarSummary,
-  ConversationSummary,
-  Message,
-  ScenarioSummary,
-} from '../api'
+import type { AvailableAvatarSummary, ConversationSummary, Message, ScenarioSummary } from '../api'
 import { AvatarAvailabilityPanel } from './AvatarAvailabilityPanel'
 import { ConversationTimeline } from './ConversationTimeline'
 import { GuidedShortcuts, AI_GUIDED_DISCOVERY_SHORTCUTS } from './GuidedShortcuts'
@@ -86,7 +81,14 @@ export function ScenarioTestLayout({
       />
       {state.session !== null ? (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+              marginTop: '16px',
+            }}
+          >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Avatars</h3>
