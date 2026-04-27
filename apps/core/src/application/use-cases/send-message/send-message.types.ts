@@ -11,6 +11,7 @@ export type SendMessageSessionSummary = Pick<
   | 'userId'
   | 'scenarioId'
   | 'activeAvatarId'
+  | 'unlockedAvatarIds'
   | 'status'
   | 'startedAt'
   | 'lastActivityAt'

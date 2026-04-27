@@ -40,6 +40,9 @@ export class StartConversationUseCase {
         `Avatar ${avatarId} does not belong to scenario ${session.scenarioId}.`,
       )
     }
+    if (session.unlockedAvatarIds !== undefined && !session.unlockedAvatarIds.includes(avatarId)) {
+      throw new DomainError('FORBIDDEN', `Avatar ${avatarId} is locked for session ${sessionId}.`)
+    }
 
     const conversation = await this.conversationRepository.create({
       sessionId,

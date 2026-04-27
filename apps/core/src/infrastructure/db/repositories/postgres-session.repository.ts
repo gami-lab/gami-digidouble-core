@@ -12,6 +12,7 @@ interface SessionRow {
   user_id: string
   scenario_id: string
   active_avatar_id: string | null
+  unlocked_avatar_ids: string[] | null
   gm_notes: string | null
   status: string
   started_at: Date
@@ -25,6 +26,9 @@ function rowToSession(row: SessionRow): Session {
     userId: row.user_id,
     scenarioId: `scenario_${row.scenario_id}`,
     ...(row.active_avatar_id !== null ? { activeAvatarId: `avatar_${row.active_avatar_id}` } : {}),
+    ...(row.unlocked_avatar_ids !== null
+      ? { unlockedAvatarIds: row.unlocked_avatar_ids.map((avatarId) => `avatar_${avatarId}`) }
+      : {}),
     ...(row.gm_notes !== null ? { gmNotes: row.gm_notes } : {}),
     status: row.status as Session['status'],
     startedAt: row.started_at.toISOString(),
@@ -38,10 +42,12 @@ export class PostgresSessionRepository implements ISessionRepository {
 
   async create(params: CreateSessionParams): Promise<Session> {
     const scenarioUuid = stripPrefix('scenario_', params.scenarioId)
+    const unlockedAvatarUuids =
+      params.unlockedAvatarIds?.map((avatarId) => stripPrefix('avatar_', avatarId)) ?? null
     const [row] = await this.sql<[SessionRow]>`
-      INSERT INTO sessions (user_id, scenario_id, active_avatar_id)
-      VALUES (${params.userId}, ${scenarioUuid}, NULL)
-      RETURNING id, user_id, scenario_id, active_avatar_id, gm_notes, status, started_at, last_activity_at, ended_at
+      INSERT INTO sessions (user_id, scenario_id, active_avatar_id, unlocked_avatar_ids)
+      VALUES (${params.userId}, ${scenarioUuid}, NULL, ${unlockedAvatarUuids}::UUID[])
+      RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, gm_notes, status, started_at, last_activity_at, ended_at
     `
     return rowToSession(row)
   }
@@ -50,7 +56,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     const uuid = extractUuid('session_', sessionId)
     if (uuid === null) return null
     const [row] = await this.sql<[SessionRow?]>`
-      SELECT id, user_id, scenario_id, active_avatar_id, gm_notes, status, started_at, last_activity_at, ended_at
+      SELECT id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, gm_notes, status, started_at, last_activity_at, ended_at
       FROM sessions
       WHERE id = ${uuid}
     `
@@ -62,15 +68,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     if (uuid === null) {
       throw new Error(`Session ${sessionId} was not found.`)
     }
-    const hasEndedAtUpdate = Object.hasOwn(updates, 'endedAt')
-    const endedAtValue = updates.endedAt === undefined ? null : new Date(updates.endedAt)
-    const hasActiveAvatarUpdate = Object.hasOwn(updates, 'activeAvatarId')
-    const activeAvatarUuid =
-      hasActiveAvatarUpdate && updates.activeAvatarId !== undefined
-        ? stripPrefix('avatar_', updates.activeAvatarId)
-        : null
-    const hasGmNotesUpdate = Object.hasOwn(updates, 'gmNotes')
-    const gmNotesValue = updates.gmNotes ?? null
+    const p = this.buildUpdateParams(updates)
 
     const [row] = await this.sql<[SessionRow?]>`
       UPDATE sessions
@@ -81,19 +79,23 @@ export class PostgresSessionRepository implements ISessionRepository {
           last_activity_at
         ),
         ended_at = CASE
-          WHEN ${hasEndedAtUpdate}::BOOLEAN THEN ${endedAtValue}::TIMESTAMPTZ
+          WHEN ${p.hasEndedAtUpdate}::BOOLEAN THEN ${p.endedAtValue}::TIMESTAMPTZ
           ELSE ended_at
         END,
         active_avatar_id = CASE
-          WHEN ${hasActiveAvatarUpdate}::BOOLEAN THEN ${activeAvatarUuid}::UUID
+          WHEN ${p.hasActiveAvatarUpdate}::BOOLEAN THEN ${p.activeAvatarUuid}::UUID
           ELSE active_avatar_id
         END,
+        unlocked_avatar_ids = CASE
+          WHEN ${p.hasUnlockedAvatarIdsUpdate}::BOOLEAN THEN ${p.unlockedAvatarUuids}::UUID[]
+          ELSE unlocked_avatar_ids
+        END,
         gm_notes = CASE
-          WHEN ${hasGmNotesUpdate}::BOOLEAN THEN ${gmNotesValue}::TEXT
+          WHEN ${p.hasGmNotesUpdate}::BOOLEAN THEN ${p.gmNotesValue}::TEXT
           ELSE gm_notes
         END
       WHERE id = ${uuid}
-      RETURNING id, user_id, scenario_id, active_avatar_id, gm_notes, status, started_at, last_activity_at, ended_at
+      RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, gm_notes, status, started_at, last_activity_at, ended_at
     `
 
     if (!row) {
@@ -101,6 +103,42 @@ export class PostgresSessionRepository implements ISessionRepository {
     }
 
     return rowToSession(row)
+  }
+
+  private buildUpdateParams(updates: SessionUpdate): {
+    hasEndedAtUpdate: boolean
+    endedAtValue: Date | null
+    hasActiveAvatarUpdate: boolean
+    activeAvatarUuid: string | null
+    hasUnlockedAvatarIdsUpdate: boolean
+    unlockedAvatarUuids: string[] | null
+    hasGmNotesUpdate: boolean
+    gmNotesValue: string | null
+  } {
+    const hasEndedAtUpdate = Object.hasOwn(updates, 'endedAt')
+    const endedAtValue = updates.endedAt === undefined ? null : new Date(updates.endedAt)
+    const hasActiveAvatarUpdate = Object.hasOwn(updates, 'activeAvatarId')
+    const activeAvatarUuid =
+      hasActiveAvatarUpdate && updates.activeAvatarId !== undefined
+        ? stripPrefix('avatar_', updates.activeAvatarId)
+        : null
+    const hasUnlockedAvatarIdsUpdate = Object.hasOwn(updates, 'unlockedAvatarIds')
+    const unlockedAvatarUuids =
+      hasUnlockedAvatarIdsUpdate && updates.unlockedAvatarIds !== undefined
+        ? updates.unlockedAvatarIds.map((avatarId) => stripPrefix('avatar_', avatarId))
+        : null
+    const hasGmNotesUpdate = Object.hasOwn(updates, 'gmNotes')
+    const gmNotesValue = updates.gmNotes ?? null
+    return {
+      hasEndedAtUpdate,
+      endedAtValue,
+      hasActiveAvatarUpdate,
+      activeAvatarUuid,
+      hasUnlockedAvatarIdsUpdate,
+      unlockedAvatarUuids,
+      hasGmNotesUpdate,
+      gmNotesValue,
+    }
   }
 
   async delete(sessionId: string): Promise<void> {

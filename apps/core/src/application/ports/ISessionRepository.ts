@@ -13,6 +13,7 @@ export interface ISessionRepository {
 export interface CreateSessionParams {
   userId: string
   scenarioId: string
+  unlockedAvatarIds?: string[]
 }
 
 /** Partial update — only supplied fields will be persisted. */
@@ -21,6 +22,7 @@ export type SessionUpdate = {
   lastActivityAt?: Session['lastActivityAt']
   endedAt?: Session['endedAt']
   activeAvatarId?: Session['activeAvatarId']
+  unlockedAvatarIds?: Session['unlockedAvatarIds']
   /** null clears persisted gm_notes. */
   gmNotes?: string | null
 }

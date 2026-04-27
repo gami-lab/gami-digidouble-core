@@ -97,7 +97,11 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   const conversationRepository =
     options.conversationRepository ?? new InMemoryConversationRepository()
 
-  const startSessionUseCase = new StartSessionUseCase(sessionRepository, scenarioRepository)
+  const startSessionUseCase = new StartSessionUseCase(
+    sessionRepository,
+    scenarioRepository,
+    avatarRepository,
+  )
   const getSessionUseCase = new GetSessionUseCase(sessionRepository)
   const startConversationUseCase = new StartConversationUseCase(
     sessionRepository,
@@ -271,6 +275,9 @@ async function mapDomainError(error: unknown, reply: FastifyReply): Promise<Fast
     }
     if (error.code === 'CONFLICT') {
       return await reply.status(409).send(fail('CONFLICT', error.message))
+    }
+    if (error.code === 'FORBIDDEN') {
+      return await reply.status(403).send(fail('FORBIDDEN', error.message))
     }
   }
 

@@ -4,6 +4,7 @@ export interface Session {
   userId: string
   scenarioId: string
   activeAvatarId?: string
+  unlockedAvatarIds?: string[]
   gmNotes?: string
   status: 'active' | 'closed' | 'archived'
   startedAt: string

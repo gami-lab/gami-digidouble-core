@@ -127,4 +127,17 @@ describe('StartConversationUseCase', () => {
       useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' }),
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
   })
+
+  it('rejects locked avatars when session unlock state is present', async () => {
+    const useCase = new StartConversationUseCase(
+      sessionRepository,
+      avatarRepository,
+      conversationRepository,
+    )
+    findSessionByIdMock.mockResolvedValue(makeSession({ unlockedAvatarIds: ['avatar_guide'] }))
+
+    await expect(
+      useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
 })

@@ -202,6 +202,7 @@ type SessionSummary = {
   userId: string
   scenarioId: string
   activeAvatarId?: string | null
+  unlockedAvatarIds?: string[]
   status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string
@@ -397,6 +398,7 @@ type StartConversationResponse = {
 
 - `401` → `UNAUTHORIZED`
 - `400` → `VALIDATION_ERROR`
+- `403` → `FORBIDDEN` (avatar locked for this session)
 - `404` → `NOT_FOUND` (session or avatar missing)
 - `409` → `CONFLICT` (session not active)
 - `500` → `INTERNAL_ERROR`
@@ -432,7 +434,7 @@ type SwitchAvatarOutput = {
 
 ### Semantics
 
-- Manual switch is always allowed when session + avatar are valid.
+- Manual switch requires an unlocked avatar when `session.unlockedAvatarIds` is present.
 - Current active conversation is closed if present.
 - A new conversation is always created, including when switching to the same avatar.
 - New conversation carries `startedBy = 'user'`.
@@ -443,6 +445,7 @@ type SwitchAvatarOutput = {
 
 - `401` → `UNAUTHORIZED`
 - `400` → `VALIDATION_ERROR`
+- `403` → `FORBIDDEN` (avatar locked for this session)
 - `404` → `NOT_FOUND` (session or avatar missing)
 - `409` → `CONFLICT` (session not active)
 - `500` → `INTERNAL_ERROR`
@@ -470,6 +473,8 @@ type GetAvailableAvatarsOutput = {
 ### Semantics
 
 - `avatars` contains only avatars with `status = 'active'` in the session's scenario.
+- When `session.unlockedAvatarIds` exists, `avatars` is additionally filtered to that unlocked set.
+- Legacy sessions without `unlockedAvatarIds` return all active scenario avatars.
 
 ### Error Mapping
 

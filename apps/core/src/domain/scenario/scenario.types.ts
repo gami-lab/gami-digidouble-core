@@ -29,4 +29,25 @@ export interface ScenarioConfig {
   sourceReferences?: string[]
   /** Avatar routing rules evaluated by the transition engine. */
   avatarTransitionRules?: AvatarTransitionRule[]
+  /** Deterministic topic tags derived from user messages. */
+  topicSignals?: ScenarioTopicSignal[]
+  /** Session-scoped avatar availability rules. */
+  avatarAvailability?: ScenarioAvatarAvailabilityConfig
+}
+
+export interface ScenarioTopicSignal {
+  topicId: string
+  keywords: string[]
+}
+
+export interface ScenarioAvatarAvailabilityConfig {
+  initialAvatarKeys?: string[]
+  unlockRules?: ScenarioAvatarUnlockRule[]
+}
+
+export interface ScenarioAvatarUnlockRule {
+  sourceAvatarKey: string
+  targetAvatarKey: string
+  topicId: string
+  introductionMessage: string
 }

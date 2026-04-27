@@ -25,6 +25,9 @@ export class InMemorySessionRepository implements ISessionRepository {
       sessionId: `session_${crypto.randomUUID()}`,
       userId: params.userId,
       scenarioId: params.scenarioId,
+      ...(params.unlockedAvatarIds !== undefined
+        ? { unlockedAvatarIds: [...params.unlockedAvatarIds] }
+        : {}),
       status: 'active',
       startedAt: now,
       lastActivityAt: now,

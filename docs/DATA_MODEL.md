@@ -91,6 +91,8 @@ Defines a runnable experience configuration.
 - goals
 - pacing rules
 - transition settings
+- topic signals (deterministic message tags)
+- avatar availability policy (initially available avatars + unlock rules)
 - enabled features
 - UI hints
 - runtime defaults
@@ -192,6 +194,7 @@ Represents one user run through one scenario.
 - user_id
 - scenario_id
 - active_avatar_id (nullable, FK → Avatar)
+- unlocked_avatar_ids (nullable UUID[], session-scoped available avatars)
 - gm_notes (nullable, director guidance for next avatar turn)
 - status (active / closed / archived)
 - started_at
@@ -205,6 +208,7 @@ Represents one user run through one scenario.
 - **Repository:** `PostgresSessionRepository`
 - **Status:** Fully implemented.
 - **Column note:** `active_avatar_id` is nullable and persisted for GM-driven default avatar routing.
+- **Column note:** `unlocked_avatar_ids` stores per-session avatar unlock progression when scenario policy enables locked specialists.
 - **Column note:** `gm_notes` stores latest Game Master guidance injected into the next avatar system prompt.
 
 ### Notes
@@ -212,6 +216,7 @@ Represents one user run through one scenario.
 One session can contain multiple conversations over time.
 
 `active_avatar_id` tracks the current routing focus for session-level orchestration.
+`unlocked_avatar_ids` tracks which avatars are accessible in that specific session.
 
 A Session is the equivalent of one run of the experience.
 

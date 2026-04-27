@@ -10,6 +10,7 @@ export type SessionSummary = Pick<
   | 'userId'
   | 'scenarioId'
   | 'activeAvatarId'
+  | 'unlockedAvatarIds'
   | 'status'
   | 'startedAt'
   | 'lastActivityAt'

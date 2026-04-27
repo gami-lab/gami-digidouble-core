@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   user_id          TEXT        NOT NULL,
   scenario_id      UUID        NOT NULL REFERENCES scenarios(id),
   active_avatar_id UUID        REFERENCES avatars(id) ON DELETE SET NULL,
+  unlocked_avatar_ids UUID[],
   gm_notes         TEXT,
   status           TEXT        NOT NULL DEFAULT 'active',
   started_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),

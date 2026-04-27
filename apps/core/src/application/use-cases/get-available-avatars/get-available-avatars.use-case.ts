@@ -23,11 +23,15 @@ export class GetAvailableAvatarsUseCase {
     const avatars = (await this.avatarRepository.listByScenarioId(session.scenarioId)).filter(
       (avatar) => avatar.status === 'active',
     )
+    const availableAvatars =
+      session.unlockedAvatarIds === undefined
+        ? avatars
+        : avatars.filter((avatar) => session.unlockedAvatarIds?.includes(avatar.avatarId))
 
     return {
       sessionId: session.sessionId,
       currentAvatarId: session.activeAvatarId ?? null,
-      avatars: avatars.map(mapAvatarSummary),
+      avatars: availableAvatars.map(mapAvatarSummary),
     }
   }
 }

@@ -53,7 +53,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository', () => {
     const result = await sessionRepo.findById('00000000-0000-0000-0000-000000000000')
     expect(result).toBeNull()
   })
-
   it('update changes status and returns the updated session', async () => {
     const created = await sessionRepo.create({ userId: 'user-3', scenarioId })
     const updated = await sessionRepo.update(created.sessionId, { status: 'closed' })
@@ -78,6 +77,47 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository', () => {
     expect(updated.scenarioId).toBe(created.scenarioId)
     expect(updated.startedAt).toBe(created.startedAt)
     expect(updated.status).toBe('archived')
+  })
+})
+
+describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository — extended operations', () => {
+  let sql: Sql
+  let scenarioRepo: PostgresScenarioRepository
+  let sessionRepo: PostgresSessionRepository
+  let scenarioId: string
+
+  beforeAll(async () => {
+    sql = createTestSql()
+    scenarioRepo = new PostgresScenarioRepository(sql)
+    sessionRepo = new PostgresSessionRepository(sql)
+    const scenario = await scenarioRepo.create({ name: 'Harness Extended' })
+    scenarioId = scenario.scenarioId
+  })
+
+  afterEach(async () => {
+    await sql`TRUNCATE sessions CASCADE`
+  })
+
+  afterAll(async () => {
+    await truncateAllTables(sql)
+    await sql.end()
+  })
+
+  it('round-trips unlockedAvatarIds when they are provided', async () => {
+    const avatarSqlId = crypto.randomUUID()
+    await sql`
+      INSERT INTO avatars (id, scenario_id, name, status, persona_prompt, config)
+      VALUES (${avatarSqlId}, ${scenarioId.replace('scenario_', '')}::UUID, 'Guide', 'active', 'Guide prompt', '{}'::JSONB)
+    `
+
+    const created = await sessionRepo.create({
+      userId: 'user-locked',
+      scenarioId,
+      unlockedAvatarIds: [`avatar_${avatarSqlId}`],
+    })
+    const found = await sessionRepo.findById(created.sessionId)
+
+    expect(found?.unlockedAvatarIds).toEqual([`avatar_${avatarSqlId}`])
   })
 
   it('update throws when session does not exist', async () => {

@@ -3,11 +3,18 @@ import type { IConversationRepository } from '../../ports/IConversationRepositor
 import type { ILlmAdapter } from '../../ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
+import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
+import type { Scenario } from '../../../domain/scenario/scenario.types.js'
+import {
+  classifyScenarioTopic,
+  resolveCompetenceRedirect,
+  resolveUnlocksForTurn,
+} from '../../../domain/scenario/scenario-policy.service.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
 
@@ -18,6 +25,7 @@ export class SendMessageUseCase {
     private readonly sessionRepository: ISessionRepository,
     private readonly conversationRepository: IConversationRepository,
     private readonly avatarRepository: IAvatarRepository,
+    private readonly scenarioRepository: IScenarioRepository,
     private readonly messageRepository: IMessageRepository,
     private readonly llm: ILlmAdapter,
     private readonly observability: IObservabilityAdapter,
@@ -33,6 +41,9 @@ export class SendMessageUseCase {
     const conversation = await this.loadActiveConversation(input.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
+    const scenario = await this.loadScenario(session.scenarioId)
+    const scenarioAvatars = await this.avatarRepository.listByScenarioId(session.scenarioId)
+    const topicId = classifyScenarioTopic(input.userMessage, scenario.config)
     const systemPrompt = assemblePersonaPrompt(
       avatar,
       session.gmNotes !== undefined ? { gmNotes: session.gmNotes } : undefined,
@@ -42,17 +53,41 @@ export class SendMessageUseCase {
       conversation.conversationId,
       input.userMessage,
     )
-
+    const redirect = resolveCompetenceRedirect(avatar, topicId)
     const llmRequest = {
       systemPrompt,
       messages: [...historyMessages, { role: 'user' as const, content: userMessage.content }],
     }
-    const response = await this.llm.complete(llmRequest)
-    const avatarMessage = await this.persistAvatarMessage(conversation.conversationId, response)
+    const response =
+      redirect === null
+        ? await this.llm.complete(llmRequest)
+        : {
+            content: redirect.message,
+            model: 'policy.redirect',
+            inputTokens: 0,
+            outputTokens: 0,
+            latencyMs: 0,
+          }
+    const unlockResult = resolveUnlocksForTurn(
+      scenario.config,
+      avatar,
+      scenarioAvatars,
+      topicId,
+      session.unlockedAvatarIds,
+    )
+    const avatarContent = this.buildAvatarContent(
+      response.content,
+      unlockResult?.introductionMessages,
+    )
+    const avatarMessage = await this.persistAvatarMessage(conversation.conversationId, {
+      ...response,
+      content: avatarContent,
+    })
     const now = this.nowIso()
     await this.conversationRepository.update(conversation.conversationId, { lastActivityAt: now })
-    await this.sessionRepository.update(session.sessionId, {
+    const updatedSession = await this.sessionRepository.update(session.sessionId, {
       lastActivityAt: now,
+      ...(unlockResult !== null ? { unlockedAvatarIds: unlockResult.unlockedAvatarIds } : {}),
       ...(session.gmNotes !== undefined ? { gmNotes: null } : {}),
     })
 
@@ -79,8 +114,30 @@ export class SendMessageUseCase {
     }
 
     const latencyMs = Date.now() - start
-    this.traceNonBlocking(requestId, session.sessionId, llmRequest.messages, response, latencyMs)
+    if (redirect === null) {
+      this.traceNonBlocking(requestId, session.sessionId, llmRequest.messages, response, latencyMs)
+    }
 
+    return this.buildOutput(
+      requestId,
+      conversation,
+      updatedSession,
+      userMessage,
+      avatarMessage,
+      response,
+      now,
+    )
+  }
+
+  private buildOutput(
+    requestId: string,
+    conversation: Conversation,
+    updatedSession: Session,
+    userMessage: Message,
+    avatarMessage: Message,
+    response: { model: string; inputTokens: number; outputTokens: number; latencyMs: number },
+    now: string,
+  ): SendMessageOutput {
     return {
       requestId,
       conversationId: conversation.conversationId,
@@ -94,12 +151,17 @@ export class SendMessageUseCase {
         ...(conversation.endedAt !== undefined ? { endedAt: conversation.endedAt } : {}),
       },
       session: {
-        sessionId: session.sessionId,
-        userId: session.userId,
-        scenarioId: session.scenarioId,
-        ...(session.activeAvatarId !== undefined ? { activeAvatarId: session.activeAvatarId } : {}),
-        status: session.status,
-        startedAt: session.startedAt,
+        sessionId: updatedSession.sessionId,
+        userId: updatedSession.userId,
+        scenarioId: updatedSession.scenarioId,
+        ...(updatedSession.activeAvatarId !== undefined
+          ? { activeAvatarId: updatedSession.activeAvatarId }
+          : {}),
+        ...(updatedSession.unlockedAvatarIds !== undefined
+          ? { unlockedAvatarIds: updatedSession.unlockedAvatarIds }
+          : {}),
+        status: updatedSession.status,
+        startedAt: updatedSession.startedAt,
         lastActivityAt: now,
       },
       userMessage: {
@@ -156,6 +218,14 @@ export class SendMessageUseCase {
       throw new DomainError('NOT_FOUND', `Avatar ${avatarId} was not found.`)
     }
     return avatar
+  }
+
+  private async loadScenario(scenarioId: string): Promise<Scenario> {
+    const scenario = await this.scenarioRepository.findById(scenarioId)
+    if (scenario === null) {
+      throw new DomainError('NOT_FOUND', `Scenario ${scenarioId} was not found.`)
+    }
+    return scenario
   }
 
   private async buildHistoryMessages(
@@ -250,6 +320,14 @@ export class SendMessageUseCase {
 
   private nowIso(): string {
     return new Date().toISOString()
+  }
+
+  private buildAvatarContent(baseContent: string, introductionMessages?: string[]): string {
+    if (introductionMessages === undefined || introductionMessages.length === 0) {
+      return baseContent
+    }
+
+    return [baseContent, ...introductionMessages].join('\n\n')
   }
 }
 

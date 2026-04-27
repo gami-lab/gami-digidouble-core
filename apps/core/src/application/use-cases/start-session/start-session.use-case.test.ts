@@ -23,6 +23,15 @@ const scenarioRepository = {
   delete: vi.fn(),
 }
 
+const listAvatarsByScenarioIdMock = vi.fn()
+
+const avatarRepository = {
+  findById: vi.fn(),
+  create: vi.fn(),
+  listByScenarioId: listAvatarsByScenarioIdMock,
+  delete: vi.fn(),
+}
+
 function makeSession(overrides: Partial<Session> = {}): Session {
   return {
     sessionId: 'session_1',
@@ -51,13 +60,15 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
 beforeEach(() => {
   createSessionMock.mockReset()
   findScenarioByIdMock.mockReset()
+  listAvatarsByScenarioIdMock.mockReset()
   createSessionMock.mockResolvedValue(makeSession())
   findScenarioByIdMock.mockResolvedValue(makeScenario())
+  listAvatarsByScenarioIdMock.mockResolvedValue([])
 })
 
 describe('StartSessionUseCase', () => {
   it('throws VALIDATION_ERROR for blank userId', async () => {
-    const useCase = new StartSessionUseCase(sessionRepository, scenarioRepository)
+    const useCase = new StartSessionUseCase(sessionRepository, scenarioRepository, avatarRepository)
 
     await expect(useCase.execute({ userId: ' ', scenarioId: 'scenario_1' })).rejects.toEqual(
       expect.objectContaining<Partial<DomainError>>({ code: 'VALIDATION_ERROR' }),
@@ -65,7 +76,7 @@ describe('StartSessionUseCase', () => {
   })
 
   it('throws VALIDATION_ERROR for blank scenarioId', async () => {
-    const useCase = new StartSessionUseCase(sessionRepository, scenarioRepository)
+    const useCase = new StartSessionUseCase(sessionRepository, scenarioRepository, avatarRepository)
 
     await expect(useCase.execute({ userId: 'user_1', scenarioId: ' ' })).rejects.toEqual(
       expect.objectContaining<Partial<DomainError>>({ code: 'VALIDATION_ERROR' }),
@@ -73,7 +84,7 @@ describe('StartSessionUseCase', () => {
   })
 
   it('throws NOT_FOUND when scenario does not exist', async () => {
-    const useCase = new StartSessionUseCase(sessionRepository, scenarioRepository)
+    const useCase = new StartSessionUseCase(sessionRepository, scenarioRepository, avatarRepository)
     findScenarioByIdMock.mockResolvedValue(null)
 
     await expect(useCase.execute({ userId: 'user_1', scenarioId: 'missing' })).rejects.toEqual(
@@ -82,7 +93,7 @@ describe('StartSessionUseCase', () => {
   })
 
   it("creates and returns an 'active' session for valid input", async () => {
-    const useCase = new StartSessionUseCase(sessionRepository, scenarioRepository)
+    const useCase = new StartSessionUseCase(sessionRepository, scenarioRepository, avatarRepository)
     createSessionMock.mockResolvedValue(
       makeSession({
         sessionId: 'session_abc',

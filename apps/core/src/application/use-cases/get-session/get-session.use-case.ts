@@ -17,6 +17,9 @@ export class GetSessionUseCase {
         userId: session.userId,
         scenarioId: session.scenarioId,
         ...(session.activeAvatarId !== undefined ? { activeAvatarId: session.activeAvatarId } : {}),
+        ...(session.unlockedAvatarIds !== undefined
+          ? { unlockedAvatarIds: session.unlockedAvatarIds }
+          : {}),
         status: session.status,
         startedAt: session.startedAt,
         lastActivityAt: session.lastActivityAt,

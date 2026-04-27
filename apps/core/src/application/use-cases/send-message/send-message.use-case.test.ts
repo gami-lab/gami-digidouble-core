@@ -9,6 +9,8 @@ const updateSessionMock = vi.fn()
 const findConversationByIdMock = vi.fn()
 const updateConversationMock = vi.fn()
 const findAvatarByIdMock = vi.fn()
+const findScenarioByIdMock = vi.fn()
+const listAvatarsByScenarioIdMock = vi.fn()
 const findMessagesByConversationIdMock = vi.fn()
 const saveMessageMock = vi.fn()
 const completeMock = vi.fn()
@@ -36,7 +38,14 @@ const conversationRepository = {
 const avatarRepository = {
   findById: findAvatarByIdMock,
   create: vi.fn(),
-  listByScenarioId: vi.fn(),
+  listByScenarioId: listAvatarsByScenarioIdMock,
+  delete: vi.fn(),
+}
+
+const scenarioRepository = {
+  create: vi.fn(),
+  findById: findScenarioByIdMock,
+  list: vi.fn(),
   delete: vi.fn(),
 }
 
@@ -96,6 +105,7 @@ function createUseCase(withRunGameMaster = false): SendMessageUseCase {
     sessionRepository,
     conversationRepository,
     avatarRepository,
+    scenarioRepository,
     messageRepository,
     llm,
     observability,
@@ -109,6 +119,8 @@ beforeEach(() => {
   findConversationByIdMock.mockReset()
   updateConversationMock.mockReset()
   findAvatarByIdMock.mockReset()
+  findScenarioByIdMock.mockReset()
+  listAvatarsByScenarioIdMock.mockReset()
   findMessagesByConversationIdMock.mockReset()
   saveMessageMock.mockReset()
   completeMock.mockReset()
@@ -121,6 +133,15 @@ beforeEach(() => {
   findConversationByIdMock.mockResolvedValue(makeConversation())
   updateConversationMock.mockResolvedValue(makeConversation())
   findAvatarByIdMock.mockResolvedValue(makeAvatar())
+  findScenarioByIdMock.mockResolvedValue({
+    scenarioId: 'scenario_1',
+    name: 'Scenario',
+    status: 'active',
+    config: {},
+    createdAt: '2026-04-18T10:00:00.000Z',
+    updatedAt: '2026-04-18T10:00:00.000Z',
+  })
+  listAvatarsByScenarioIdMock.mockResolvedValue([makeAvatar()])
   findMessagesByConversationIdMock.mockResolvedValue([])
   saveMessageMock.mockImplementation((message: Message) => Promise.resolve(message))
   completeMock.mockResolvedValue({
@@ -135,7 +156,7 @@ beforeEach(() => {
   runGameMasterExecuteMock.mockResolvedValue(undefined)
 })
 
-describe('SendMessageUseCase', () => {
+describe('SendMessageUseCase — message routing', () => {
   it('uses conversation.avatarId to resolve speaking avatar', async () => {
     const useCase = createUseCase()
     findConversationByIdMock.mockResolvedValue(makeConversation({ avatarId: 'avatar_2' }))
@@ -161,7 +182,100 @@ describe('SendMessageUseCase', () => {
       role: 'avatar',
     })
   })
+})
 
+describe('SendMessageUseCase — scenario policy', () => {
+  it('unlocks a specialist when scenario topic rules match the guide turn', async () => {
+    const useCase = createUseCase()
+    findSessionByIdMock.mockResolvedValue(makeSession({ unlockedAvatarIds: ['avatar_1'] }))
+    updateSessionMock.mockResolvedValue(
+      makeSession({ unlockedAvatarIds: ['avatar_1', 'avatar_2'] }),
+    )
+    findAvatarByIdMock.mockResolvedValue(
+      makeAvatar({
+        config: { routeKey: 'guide' },
+      }),
+    )
+    listAvatarsByScenarioIdMock.mockResolvedValue([
+      makeAvatar({ avatarId: 'avatar_1', config: { routeKey: 'guide' } }),
+      makeAvatar({ avatarId: 'avatar_2', config: { routeKey: 'theo' } }),
+    ])
+    findScenarioByIdMock.mockResolvedValue({
+      scenarioId: 'scenario_1',
+      name: 'AI Guided Discovery',
+      status: 'active',
+      config: {
+        topicSignals: [{ topicId: 'technical', keywords: ['transformer'] }],
+        avatarAvailability: {
+          unlockRules: [
+            {
+              sourceAvatarKey: 'guide',
+              targetAvatarKey: 'theo',
+              topicId: 'technical',
+              introductionMessage: 'I can introduce Theo if you want to go deeper.',
+            },
+          ],
+        },
+      },
+      createdAt: '2026-04-18T10:00:00.000Z',
+      updatedAt: '2026-04-18T10:00:00.000Z',
+    })
+
+    const output = await useCase.execute({
+      conversationId: 'conversation_1',
+      userMessage: 'How does a transformer work?',
+    })
+
+    expect(updateSessionMock).toHaveBeenCalledWith(
+      'session_1',
+      expect.objectContaining({ unlockedAvatarIds: ['avatar_1', 'avatar_2'] }),
+    )
+    expect(output.session.unlockedAvatarIds).toEqual(['avatar_1', 'avatar_2'])
+    expect(output.avatarMessage.content).toContain('I can introduce Theo')
+  })
+
+  it('returns deterministic redirect content when avatar competence boundary is exceeded', async () => {
+    const useCase = createUseCase()
+    findAvatarByIdMock.mockResolvedValue(
+      makeAvatar({
+        name: 'Theo',
+        config: {
+          routeKey: 'theo',
+          competenceBoundary: {
+            allowedTopicIds: ['technical'],
+            redirects: [
+              {
+                topicId: 'ethics',
+                message: "That is Eva's territory. Ask Eva or return to the guide for ethics.",
+              },
+            ],
+          },
+        },
+      }),
+    )
+    findScenarioByIdMock.mockResolvedValue({
+      scenarioId: 'scenario_1',
+      name: 'AI Guided Discovery',
+      status: 'active',
+      config: {
+        topicSignals: [{ topicId: 'ethics', keywords: ['bias'] }],
+      },
+      createdAt: '2026-04-18T10:00:00.000Z',
+      updatedAt: '2026-04-18T10:00:00.000Z',
+    })
+
+    const output = await useCase.execute({
+      conversationId: 'conversation_1',
+      userMessage: 'What about bias and fairness?',
+    })
+
+    expect(completeMock).not.toHaveBeenCalled()
+    expect(output.avatarMessage.content).toContain("Eva's territory")
+    expect(output.avatarMessage.model).toBe('policy.redirect')
+  })
+})
+
+describe('SendMessageUseCase — validation and GM integration', () => {
   it('returns NOT_FOUND for unknown conversation', async () => {
     const useCase = createUseCase()
     findConversationByIdMock.mockResolvedValue(null)

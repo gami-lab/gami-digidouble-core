@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 23, 2026
+**Last updated:** April 27, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -11,6 +11,20 @@ Update it as epics and features are completed.
 ## Overall Progress
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+
+### AI Guided Discovery reference scenario (April 27, 2026)
+
+A new post-EPIC-4.4 reference acceptance scenario is now implemented and seedable.
+
+- Seed module added: `apps/core/src/seed/ai-guided-discovery.ts`
+- Seed command added: `pnpm --filter @gami/core seed:ai-guided-discovery`
+- Scenario includes one always-available guide avatar plus two unlockable specialists (`Theo` technical, `Eva` ethics)
+- Session state now supports `unlockedAvatarIds` for deterministic per-session avatar availability progression
+- Session routes now return `403 FORBIDDEN` when opening/switching to locked avatars in unlock-enabled sessions
+- `GET /v1/sessions/{sessionId}/available-avatars` now reflects unlock progression
+- `SendMessageUseCase` now applies deterministic topic-signal unlock rules and bounded-competence policy redirects
+- Acceptance suite added: `apps/core/src/application/use-cases/ai-guided-discovery.acceptance.test.ts`
+- Core unit suite validation after implementation: `pnpm --filter @gami/core test` passes (`255/255`)
 
 ### Session vs Conversation model refactor (April 22, 2026)
 

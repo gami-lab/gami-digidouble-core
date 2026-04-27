@@ -16,6 +16,7 @@ export class SwitchAvatarUseCase {
     const { sessionId, avatarId } = this.validateInput(input)
     const session = await this.loadActiveSession(sessionId)
     await this.ensureAvatarBelongsToScenario(avatarId, session.scenarioId)
+    this.ensureAvatarIsUnlocked(session, avatarId)
 
     const previousConversation = await this.conversationRepository.findActiveBySessionId(sessionId)
     const now = new Date().toISOString()
@@ -47,6 +48,16 @@ export class SwitchAvatarUseCase {
       conversation: this.toConversationSummary(conversation),
       previousConversationId: previousConversation?.conversationId ?? null,
     }
+  }
+
+  private ensureAvatarIsUnlocked(session: Session, avatarId: string): void {
+    if (session.unlockedAvatarIds === undefined) return
+    if (session.unlockedAvatarIds.includes(avatarId)) return
+
+    throw new DomainError(
+      'FORBIDDEN',
+      `Avatar ${avatarId} is locked for session ${session.sessionId}.`,
+    )
   }
 
   private validateInput(input: SwitchAvatarInput): { sessionId: string; avatarId: string } {

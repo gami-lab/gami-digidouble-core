@@ -117,6 +117,12 @@ Console package (manual test UI) during EPIC 2.4 development:
 pnpm --filter @gami/console dev
 ```
 
+Reference scenario seed (AI Guided Discovery):
+
+```bash
+pnpm --filter @gami/core seed:ai-guided-discovery
+```
+
 ## Quality Commands
 
 These are the core quality commands used by CI gates. Always verify locally before pushing.

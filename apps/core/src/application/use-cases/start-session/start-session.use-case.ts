@@ -1,12 +1,15 @@
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
+import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import { DomainError } from '../../../domain/errors.js'
+import { resolveInitialUnlockedAvatarIds } from '../../../domain/scenario/scenario-policy.service.js'
 import type { StartSessionInput, StartSessionOutput } from './start-session.types.js'
 
 export class StartSessionUseCase {
   constructor(
     private readonly sessionRepository: ISessionRepository,
     private readonly scenarioRepository: IScenarioRepository,
+    private readonly avatarRepository: IAvatarRepository,
   ) {}
 
   async execute(input: StartSessionInput): Promise<StartSessionOutput> {
@@ -26,7 +29,13 @@ export class StartSessionUseCase {
       throw new DomainError('NOT_FOUND', 'Scenario not found')
     }
 
-    const session = await this.sessionRepository.create({ userId, scenarioId })
+    const scenarioAvatars = await this.avatarRepository.listByScenarioId(scenarioId)
+    const unlockedAvatarIds = resolveInitialUnlockedAvatarIds(scenario.config, scenarioAvatars)
+    const session = await this.sessionRepository.create({
+      userId,
+      scenarioId,
+      ...(unlockedAvatarIds !== undefined ? { unlockedAvatarIds } : {}),
+    })
 
     return {
       session: {
@@ -34,6 +43,9 @@ export class StartSessionUseCase {
         userId: session.userId,
         scenarioId: session.scenarioId,
         ...(session.activeAvatarId !== undefined ? { activeAvatarId: session.activeAvatarId } : {}),
+        ...(session.unlockedAvatarIds !== undefined
+          ? { unlockedAvatarIds: session.unlockedAvatarIds }
+          : {}),
         status: session.status,
         startedAt: session.startedAt,
         lastActivityAt: session.lastActivityAt,

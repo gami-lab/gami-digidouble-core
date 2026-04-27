@@ -152,6 +152,34 @@ describe('session API', () => {
     })
     expect(response.statusCode).toBe(404)
   })
+
+  it('returns 403 when trying to open a locked avatar in a seeded session', async () => {
+    const response = await makeApp({
+      scenarios: [
+        makeScenario({
+          config: {
+            avatarAvailability: {
+              initialAvatarKeys: ['guide'],
+            },
+          },
+        }),
+      ],
+      avatars: [
+        makeAvatar({ avatarId: 'avatar_guide', config: { routeKey: 'guide' } }),
+        makeAvatar({ avatarId: 'avatar_theo', name: 'Theo', config: { routeKey: 'theo' } }),
+      ],
+      sessions: [makeSession({ unlockedAvatarIds: ['avatar_guide'] })],
+    }).inject({
+      method: 'POST',
+      url: '/v1/sessions/session_1/conversations',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { avatarId: 'avatar_theo' },
+    })
+
+    expect(response.statusCode).toBe(403)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('FORBIDDEN')
+  })
 })
 
 describe('conversation message/history API', () => {

@@ -5,6 +5,7 @@ import type { IConversationRepository } from '../../application/ports/IConversat
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
+import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
@@ -16,6 +17,7 @@ import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
+import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
 import type { LlmConfig } from '../../infrastructure/llm/index.js'
@@ -27,6 +29,7 @@ type ConversationsRouteOptions = {
   llmAdapter?: ILlmAdapter
   observabilityAdapter?: IObservabilityAdapter
   avatarRepository?: IAvatarRepository
+  scenarioRepository?: IScenarioRepository
   sessionRepository?: ISessionRepository
   conversationRepository?: IConversationRepository
   messageRepository?: IMessageRepository
@@ -53,6 +56,7 @@ type SendMessageResponse = {
     userId: string
     scenarioId: string
     activeAvatarId?: string
+    unlockedAvatarIds?: string[]
     status: 'active' | 'closed' | 'archived'
     startedAt: string
     lastActivityAt: string
@@ -182,6 +186,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       langfuseHost: options.config.langfuseHost,
     })
   const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
+  const scenarioRepository = options.scenarioRepository ?? new InMemoryScenarioRepository()
   const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
   const conversationRepository =
     options.conversationRepository ?? new InMemoryConversationRepository()
@@ -195,6 +200,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       sessionRepository,
       conversationRepository,
       avatarRepository,
+      scenarioRepository,
       messageRepository,
       llmAdapter,
       observabilityAdapter,
@@ -228,6 +234,9 @@ function mapSendMessageResponse(output: SendMessageOutput): SendMessageResponse 
       scenarioId: output.session.scenarioId,
       ...(output.session.activeAvatarId !== undefined
         ? { activeAvatarId: output.session.activeAvatarId }
+        : {}),
+      ...(output.session.unlockedAvatarIds !== undefined
+        ? { unlockedAvatarIds: output.session.unlockedAvatarIds }
         : {}),
       status: output.session.status,
       startedAt: output.session.startedAt,

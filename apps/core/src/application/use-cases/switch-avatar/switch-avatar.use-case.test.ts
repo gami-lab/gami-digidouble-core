@@ -274,4 +274,18 @@ describe('SwitchAvatarUseCase validation and state checks', () => {
       message: 'Avatar does not belong to the session scenario.',
     })
   })
+
+  it('rejects switching to a locked avatar when session unlock state is present', async () => {
+    findSessionByIdMock.mockResolvedValue(makeSession({ unlockedAvatarIds: ['avatar_1'] }))
+
+    const useCase = new SwitchAvatarUseCase(
+      sessionRepository,
+      avatarRepository,
+      conversationRepository,
+    )
+
+    await expect(
+      useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_2' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
 })
