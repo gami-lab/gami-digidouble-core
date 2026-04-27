@@ -3,11 +3,12 @@ import type { CSSProperties, JSX } from 'react'
 import { apiUrl } from './env'
 import type { ScenarioSummary, SessionSummary } from './api'
 import { ScenarioPage } from './pages/ScenarioPage'
+import { ScenarioTestPage } from './pages/ScenarioTestPage'
 import { SessionPage } from './pages/SessionPage'
 
-type Page = 'scenario' | 'session'
+type Page = 'scenario' | 'session' | 'scenario-test'
 
-const pageOrder: Page[] = ['scenario', 'session']
+const pageOrder: Page[] = ['scenario', 'session', 'scenario-test']
 
 type TestContext = {
   scenario: ScenarioSummary | null
@@ -53,6 +54,7 @@ const breadcrumbInactiveStyle: CSSProperties = {
 const breadcrumbItems: Array<{ id: Page; label: string }> = [
   { id: 'scenario', label: 'Scenario' },
   { id: 'session', label: 'Session + Conversations' },
+  { id: 'scenario-test', label: 'Scenario Test Bench' },
 ]
 
 function App(): JSX.Element {
@@ -64,7 +66,7 @@ function App(): JSX.Element {
   const [knownSessions, setKnownSessions] = useState<SessionSummary[]>([])
 
   useEffect(() => {
-    if (page === 'session' && testContext.scenario === null) {
+    if (page !== 'scenario' && testContext.scenario === null) {
       setPage('scenario')
     }
   }, [page, testContext.scenario])
@@ -77,21 +79,48 @@ function App(): JSX.Element {
   const currentBody = useMemo((): JSX.Element => {
     if (page === 'scenario') {
       return (
-        <ScenarioPage
-          selectedScenarioId={testContext.scenario?.scenarioId ?? null}
-          onScenarioSelected={(scenario) => {
-            setTestContext({ scenario, sessionId: null })
-            setKnownSessions([])
-          }}
-          onNext={() => {
-            setPage('session')
-          }}
-        />
+        <>
+          <ScenarioPage
+            selectedScenarioId={testContext.scenario?.scenarioId ?? null}
+            onScenarioSelected={(scenario) => {
+              setTestContext({ scenario, sessionId: null })
+              setKnownSessions([])
+            }}
+            onNext={() => {
+              setPage('session')
+            }}
+          />
+          {testContext.scenario !== null ? (
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setPage('scenario-test')
+                }}
+                style={{
+                  border: '1px solid #2563eb',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontWeight: 600,
+                  color: '#1d4ed8',
+                  backgroundColor: '#eff6ff',
+                  cursor: 'pointer',
+                }}
+              >
+                Open Scenario Test Bench
+              </button>
+            </div>
+          ) : null}
+        </>
       )
     }
 
     if (testContext.scenario === null) {
       return <p>Redirecting to setup…</p>
+    }
+
+    if (page === 'scenario-test') {
+      return <ScenarioTestPage scenario={testContext.scenario} />
     }
 
     return (

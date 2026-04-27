@@ -98,6 +98,46 @@ export async function startConversation(
   return payload.conversation
 }
 
+export type AvailableAvatarSummary = {
+  avatarId: string
+  scenarioId: string
+  name: string
+  status: string
+  personaPrompt: string
+  tone?: string
+  description?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type GetAvailableAvatarsResponse = {
+  sessionId: string
+  currentAvatarId: string | null
+  avatars: AvailableAvatarSummary[]
+}
+
+export type SwitchAvatarResponse = {
+  session: SessionSummary
+  conversation: ConversationSummary
+  previousConversationId: string | null
+}
+
+export async function getAvailableAvatars(sessionId: string): Promise<GetAvailableAvatarsResponse> {
+  return coreRequest<GetAvailableAvatarsResponse>(
+    'GET',
+    `/v1/sessions/${sessionId}/available-avatars`,
+  )
+}
+
+export async function switchAvatar(
+  sessionId: string,
+  avatarId: string,
+): Promise<SwitchAvatarResponse> {
+  return coreRequest<SwitchAvatarResponse>('POST', `/v1/sessions/${sessionId}/switch-avatar`, {
+    avatarId,
+  })
+}
+
 export async function listSessionConversations(sessionId: string): Promise<ConversationSummary[]> {
   const payload = await coreRequest<ListSessionConversationsPayload>(
     'GET',
