@@ -12,6 +12,18 @@ import {
 } from '../infrastructure/db/index.js'
 
 const SCENARIO_NAME = 'AI Guided Discovery'
+const FIXTURE_TIMESTAMP = '2026-04-27T00:00:00.000Z'
+
+type AiGuidedDiscoveryAvatarDefinition = {
+  routeKey: string
+  fixtureAvatarId: string
+  name: string
+  status: AvatarConfig['status']
+  description: string
+  tone: string
+  personaPrompt: string
+  config: Record<string, unknown>
+}
 
 export const aiGuidedDiscoveryScenarioConfig: CreateScenarioParams = {
   name: SCENARIO_NAME,
@@ -80,9 +92,10 @@ export const aiGuidedDiscoveryScenarioConfig: CreateScenarioParams = {
   },
 }
 
-export const aiGuidedDiscoveryAvatarSeeds: CreateAvatarParams[] = [
+const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = [
   {
-    scenarioId: 'scenario_pending',
+    routeKey: 'guide',
+    fixtureAvatarId: 'avatar_mira',
     name: 'Mira',
     status: 'active',
     description: 'Friendly first-contact guide for broad AI discovery.',
@@ -95,7 +108,8 @@ export const aiGuidedDiscoveryAvatarSeeds: CreateAvatarParams[] = [
     },
   },
   {
-    scenarioId: 'scenario_pending',
+    routeKey: 'theo',
+    fixtureAvatarId: 'avatar_theo',
     name: 'Theo',
     status: 'active',
     description: 'Technical AI specialist focused on models and systems.',
@@ -118,7 +132,8 @@ export const aiGuidedDiscoveryAvatarSeeds: CreateAvatarParams[] = [
     },
   },
   {
-    scenarioId: 'scenario_pending',
+    routeKey: 'eva',
+    fixtureAvatarId: 'avatar_eva',
     name: 'Eva',
     status: 'active',
     description: 'Ethics and responsible AI specialist.',
@@ -142,6 +157,45 @@ export const aiGuidedDiscoveryAvatarSeeds: CreateAvatarParams[] = [
   },
 ]
 
+function toCreateAvatarParams(
+  definition: AiGuidedDiscoveryAvatarDefinition,
+  scenarioId: string,
+): CreateAvatarParams {
+  return {
+    scenarioId,
+    name: definition.name,
+    status: definition.status,
+    description: definition.description,
+    tone: definition.tone,
+    personaPrompt: definition.personaPrompt,
+    config: definition.config,
+  }
+}
+
+function toFixtureAvatar(
+  definition: AiGuidedDiscoveryAvatarDefinition,
+  scenarioId: string,
+): AvatarConfig {
+  return {
+    avatarId: definition.fixtureAvatarId,
+    scenarioId,
+    name: definition.name,
+    status: definition.status,
+    description: definition.description,
+    tone: definition.tone,
+    personaPrompt: definition.personaPrompt,
+    config: definition.config,
+    createdAt: FIXTURE_TIMESTAMP,
+    updatedAt: FIXTURE_TIMESTAMP,
+  }
+}
+
+export function buildAiGuidedDiscoveryAvatarSeedParams(scenarioId: string): CreateAvatarParams[] {
+  return aiGuidedDiscoveryAvatarDefinitions.map((definition) =>
+    toCreateAvatarParams(definition, scenarioId),
+  )
+}
+
 export function buildAiGuidedDiscoveryFixture(): {
   scenario: Scenario
   avatars: AvatarConfig[]
@@ -151,51 +205,13 @@ export function buildAiGuidedDiscoveryFixture(): {
     name: SCENARIO_NAME,
     status: 'active',
     config: aiGuidedDiscoveryScenarioConfig.config as Scenario['config'],
-    createdAt: '2026-04-27T00:00:00.000Z',
-    updatedAt: '2026-04-27T00:00:00.000Z',
+    createdAt: FIXTURE_TIMESTAMP,
+    updatedAt: FIXTURE_TIMESTAMP,
   }
 
-  const avatars: AvatarConfig[] = [
-    {
-      avatarId: 'avatar_mira',
-      scenarioId: scenario.scenarioId,
-      name: 'Mira',
-      status: 'active',
-      description: 'Friendly first-contact guide for broad AI discovery.',
-      tone: 'Warm, clear, and approachable.',
-      personaPrompt:
-        'You are Mira, a friendly and knowledgeable AI guide. Explain concepts simply, stay broad, and introduce specialists only when the user needs deeper technical or ethical expertise.',
-      config: { routeKey: 'guide', ui: { unlockState: 'available' } },
-      createdAt: '2026-04-27T00:00:00.000Z',
-      updatedAt: '2026-04-27T00:00:00.000Z',
-    },
-    {
-      avatarId: 'avatar_theo',
-      scenarioId: scenario.scenarioId,
-      name: 'Theo',
-      status: 'active',
-      description: 'Technical AI specialist focused on models and systems.',
-      tone: 'Precise, technical, and grounded.',
-      personaPrompt:
-        'You are Theo, an expert in technical AI topics such as LLMs, transformers, embeddings, training, inference, RAG, agents, latency, cost, scaling, and model providers. Stay technical and do not drift into ethics coaching.',
-      config: aiGuidedDiscoveryAvatarSeeds[1]?.config ?? {},
-      createdAt: '2026-04-27T00:00:00.000Z',
-      updatedAt: '2026-04-27T00:00:00.000Z',
-    },
-    {
-      avatarId: 'avatar_eva',
-      scenarioId: scenario.scenarioId,
-      name: 'Eva',
-      status: 'active',
-      description: 'Ethics and responsible AI specialist.',
-      tone: 'Thoughtful, balanced, and practical.',
-      personaPrompt:
-        'You are Eva, an expert in AI ethics and responsible AI. Focus on bias, fairness, transparency, privacy, regulation, oversight, and societal impact. Redirect deep implementation questions back to Theo or the guide.',
-      config: aiGuidedDiscoveryAvatarSeeds[2]?.config ?? {},
-      createdAt: '2026-04-27T00:00:00.000Z',
-      updatedAt: '2026-04-27T00:00:00.000Z',
-    },
-  ]
+  const avatars = aiGuidedDiscoveryAvatarDefinitions.map((definition) =>
+    toFixtureAvatar(definition, scenario.scenarioId),
+  )
 
   return { scenario, avatars }
 }
@@ -223,7 +239,7 @@ export async function ensureAiGuidedDiscoverySeed(): Promise<{
         .filter((routeKey): routeKey is string => typeof routeKey === 'string'),
     )
 
-    for (const avatarSeed of aiGuidedDiscoveryAvatarSeeds) {
+    for (const avatarSeed of buildAiGuidedDiscoveryAvatarSeedParams(scenario.scenarioId)) {
       const routeKey = avatarSeed.config?.['routeKey']
       if (typeof routeKey !== 'string' || existingRouteKeys.has(routeKey)) {
         continue
