@@ -12,6 +12,8 @@ import {
   sectionStyle,
   successStyle,
 } from './form-styles'
+import { ScenarioRow } from './scenario-row'
+import { AvatarRow } from './avatar-row'
 
 type ScenarioPageProps = {
   selectedScenarioId: string | null
@@ -60,6 +62,14 @@ export function ScenarioPage({
     )
   }
 
+  const handleScenarioUpdated = (updated: ScenarioSummary): void => {
+    setScenarios((prev) => prev.map((s) => (s.scenarioId === updated.scenarioId ? updated : s)))
+  }
+
+  const handleScenarioDeleted = (scenarioId: string): void => {
+    setScenarios((prev) => prev.filter((s) => s.scenarioId !== scenarioId))
+  }
+
   return (
     <section style={sectionStyle}>
       <h2 style={{ marginTop: 0 }}>Scenario</h2>
@@ -83,6 +93,8 @@ export function ScenarioPage({
         listError={listError}
         selectedScenarioId={selectedScenarioId}
         onScenarioSelected={onScenarioSelected}
+        onScenarioUpdated={handleScenarioUpdated}
+        onScenarioDeleted={handleScenarioDeleted}
       />
 
       {selectedScenarioId !== null ? (
@@ -136,6 +148,14 @@ function useAvatarSection(selectedScenarioId: string | null): AvatarSectionProps
     )
   }
 
+  const onAvatarUpdated = (updated: AvatarSummary): void => {
+    setAvatars((prev) => prev.map((a) => (a.avatarId === updated.avatarId ? updated : a)))
+  }
+
+  const onAvatarDeleted = (avatarId: string): void => {
+    setAvatars((prev) => prev.filter((a) => a.avatarId !== avatarId))
+  }
+
   return {
     values,
     isSubmitting,
@@ -145,6 +165,8 @@ function useAvatarSection(selectedScenarioId: string | null): AvatarSectionProps
     listError,
     onValuesChange: setValues,
     onSubmit,
+    onAvatarUpdated,
+    onAvatarDeleted,
   }
 }
 
@@ -212,6 +234,8 @@ type ScenarioListProps = {
   listError: string | null
   selectedScenarioId: string | null
   onScenarioSelected: (scenario: ScenarioSummary) => void
+  onScenarioUpdated: (scenario: ScenarioSummary) => void
+  onScenarioDeleted: (scenarioId: string) => void
 }
 
 function ScenarioList({
@@ -220,6 +244,8 @@ function ScenarioList({
   listError,
   selectedScenarioId,
   onScenarioSelected,
+  onScenarioUpdated,
+  onScenarioDeleted,
 }: ScenarioListProps): JSX.Element {
   return (
     <>
@@ -227,37 +253,16 @@ function ScenarioList({
       {isLoading ? <p>Loading scenarios…</p> : null}
       {listError !== null ? <p style={errorStyle}>{listError}</p> : null}
       {scenarios.length === 0 ? <p style={{ color: '#6b7280' }}>No scenarios yet.</p> : null}
-      {scenarios.map((scenario) => {
-        const isSelected = scenario.scenarioId === selectedScenarioId
-        return (
-          <div
-            key={scenario.scenarioId}
-            style={{
-              marginTop: '8px',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '10px',
-              backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
-            }}
-          >
-            <div>
-              <strong>{scenario.name}</strong> · {scenario.status}
-            </div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>
-              Scenario ID: {scenario.scenarioId}
-            </div>
-            <button
-              type="button"
-              style={{ ...buttonStyle, marginTop: '8px' }}
-              onClick={() => {
-                onScenarioSelected(scenario)
-              }}
-            >
-              {isSelected ? 'Selected scenario' : 'Select scenario'}
-            </button>
-          </div>
-        )
-      })}
+      {scenarios.map((scenario) => (
+        <ScenarioRow
+          key={scenario.scenarioId}
+          scenario={scenario}
+          isSelected={scenario.scenarioId === selectedScenarioId}
+          onSelected={onScenarioSelected}
+          onUpdated={onScenarioUpdated}
+          onDeleted={onScenarioDeleted}
+        />
+      ))}
     </>
   )
 }
@@ -314,6 +319,8 @@ type AvatarSectionProps = {
   listError: string | null
   onValuesChange: (values: AvatarFormValues) => void
   onSubmit: (event: FormSubmitEvent) => void
+  onAvatarUpdated: (avatar: AvatarSummary) => void
+  onAvatarDeleted: (avatarId: string) => void
 }
 
 function AvatarSection({
@@ -325,6 +332,8 @@ function AvatarSection({
   listError,
   onValuesChange,
   onSubmit,
+  onAvatarUpdated,
+  onAvatarDeleted,
 }: AvatarSectionProps): JSX.Element {
   return (
     <div style={{ marginTop: '24px' }}>
@@ -339,7 +348,13 @@ function AvatarSection({
         onValuesChange={onValuesChange}
         onSubmit={onSubmit}
       />
-      <AvatarList avatars={avatars} isLoading={isLoading} listError={listError} />
+      <AvatarList
+        avatars={avatars}
+        isLoading={isLoading}
+        listError={listError}
+        onAvatarUpdated={onAvatarUpdated}
+        onAvatarDeleted={onAvatarDeleted}
+      />
     </div>
   )
 }
@@ -426,9 +441,11 @@ type AvatarListProps = {
   avatars: AvatarSummary[]
   isLoading: boolean
   listError: string | null
+  onAvatarUpdated: (avatar: AvatarSummary) => void
+  onAvatarDeleted: (avatarId: string) => void
 }
 
-function AvatarList({ avatars, isLoading, listError }: AvatarListProps): JSX.Element {
+function AvatarList({ avatars, isLoading, listError, onAvatarUpdated, onAvatarDeleted }: AvatarListProps): JSX.Element {
   return (
     <>
       <h4 style={{ marginTop: '16px', marginBottom: '4px' }}>Scenario avatars</h4>
@@ -438,21 +455,12 @@ function AvatarList({ avatars, isLoading, listError }: AvatarListProps): JSX.Ele
         <p style={{ color: '#6b7280' }}>No avatars yet.</p>
       ) : null}
       {avatars.map((avatar) => (
-        <div
+        <AvatarRow
           key={avatar.avatarId}
-          style={{
-            marginTop: '8px',
-            border: '1px solid #d1d5db',
-            borderRadius: '8px',
-            padding: '10px',
-            backgroundColor: '#ffffff',
-          }}
-        >
-          <div>
-            <strong>{avatar.name}</strong> · {avatar.status}
-          </div>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>Avatar ID: {avatar.avatarId}</div>
-        </div>
+          avatar={avatar}
+          onUpdated={onAvatarUpdated}
+          onDeleted={onAvatarDeleted}
+        />
       ))}
     </>
   )

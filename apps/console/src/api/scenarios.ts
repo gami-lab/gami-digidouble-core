@@ -49,6 +49,24 @@ type CreateAvatarPayload = {
   avatar: AvatarSummary
 }
 
+type UpdateScenarioPayload = {
+  scenario: ScenarioSummary & { config: Record<string, unknown> }
+}
+
+type DeleteScenarioPayload = {
+  scenarioId: string
+  deleted: true
+}
+
+type UpdateAvatarPayload = {
+  avatar: AvatarSummary
+}
+
+type DeleteAvatarPayload = {
+  avatarId: string
+  deleted: true
+}
+
 type ListScenariosPayload = {
   scenarios: ScenarioSummary[]
 }
@@ -88,4 +106,32 @@ export async function createAvatar(
   )
 
   return payload.avatar
+}
+
+export async function updateScenario(
+  scenarioId: string,
+  updates: Partial<Pick<ScenarioSummary, 'name' | 'status'>>,
+): Promise<ScenarioSummary> {
+  const payload = await coreRequest<UpdateScenarioPayload>(
+    'PATCH',
+    `/v1/scenarios/${scenarioId}`,
+    updates,
+  )
+  return payload.scenario
+}
+
+export async function deleteScenario(scenarioId: string): Promise<void> {
+  await coreRequest<DeleteScenarioPayload>('DELETE', `/v1/scenarios/${scenarioId}`)
+}
+
+export async function updateAvatar(
+  avatarId: string,
+  updates: Partial<Pick<AvatarSummary, 'name' | 'personaPrompt' | 'tone' | 'description' | 'status'>>,
+): Promise<AvatarSummary> {
+  const payload = await coreRequest<UpdateAvatarPayload>('PATCH', `/v1/avatars/${avatarId}`, updates)
+  return payload.avatar
+}
+
+export async function deleteAvatar(avatarId: string): Promise<void> {
+  await coreRequest<DeleteAvatarPayload>('DELETE', `/v1/avatars/${avatarId}`)
 }

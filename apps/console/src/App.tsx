@@ -5,10 +5,11 @@ import type { ScenarioSummary, SessionSummary } from './api'
 import { ScenarioPage } from './pages/ScenarioPage'
 import { ScenarioTestPage } from './pages/ScenarioTestPage'
 import { SessionPage } from './pages/SessionPage'
+import { SessionAdminPage } from './pages/SessionAdminPage'
 
-type Page = 'scenario' | 'session' | 'scenario-test'
+type Page = 'scenario' | 'session' | 'scenario-test' | 'session-admin'
 
-const pageOrder: Page[] = ['scenario', 'session', 'scenario-test']
+const pageOrder: Page[] = ['scenario', 'session', 'scenario-test', 'session-admin']
 
 type TestContext = {
   scenario: ScenarioSummary | null
@@ -55,7 +56,68 @@ const breadcrumbItems: Array<{ id: Page; label: string }> = [
   { id: 'scenario', label: 'Scenario' },
   { id: 'session', label: 'Session + Conversations' },
   { id: 'scenario-test', label: 'Scenario Test Bench' },
+  { id: 'session-admin', label: 'Session Admin' },
 ]
+
+type ScenarioPageWithActionsProps = {
+  selectedScenarioId: string | null
+  onScenarioSelected: (s: ScenarioSummary) => void
+  onNext: () => void
+  onOpenSessionAdmin: () => void
+  onOpenTestBench: () => void
+}
+
+function ScenarioPageWithActions({
+  selectedScenarioId,
+  onScenarioSelected,
+  onNext,
+  onOpenSessionAdmin,
+  onOpenTestBench,
+}: ScenarioPageWithActionsProps): JSX.Element {
+  return (
+    <>
+      <ScenarioPage
+        selectedScenarioId={selectedScenarioId}
+        onScenarioSelected={onScenarioSelected}
+        onNext={onNext}
+      />
+      {selectedScenarioId !== null ? (
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={onOpenSessionAdmin}
+            style={{
+              border: '1px solid #6b7280',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              fontWeight: 600,
+              color: '#374151',
+              backgroundColor: '#f9fafb',
+              cursor: 'pointer',
+            }}
+          >
+            Session Admin
+          </button>
+          <button
+            type="button"
+            onClick={onOpenTestBench}
+            style={{
+              border: '1px solid #2563eb',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              fontWeight: 600,
+              color: '#1d4ed8',
+              backgroundColor: '#eff6ff',
+              cursor: 'pointer',
+            }}
+          >
+            Open Scenario Test Bench
+          </button>
+        </div>
+      ) : null}
+    </>
+  )
+}
 
 function App(): JSX.Element {
   const [page, setPage] = useState<Page>('scenario')
@@ -79,50 +141,21 @@ function App(): JSX.Element {
   const currentBody = useMemo((): JSX.Element => {
     if (page === 'scenario') {
       return (
-        <>
-          <ScenarioPage
-            selectedScenarioId={testContext.scenario?.scenarioId ?? null}
-            onScenarioSelected={(scenario) => {
-              setTestContext({ scenario, sessionId: null })
-              setKnownSessions([])
-            }}
-            onNext={() => {
-              setPage('session')
-            }}
-          />
-          {testContext.scenario !== null ? (
-            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setPage('scenario-test')
-                }}
-                style={{
-                  border: '1px solid #2563eb',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontWeight: 600,
-                  color: '#1d4ed8',
-                  backgroundColor: '#eff6ff',
-                  cursor: 'pointer',
-                }}
-              >
-                Open Scenario Test Bench
-              </button>
-            </div>
-          ) : null}
-        </>
+        <ScenarioPageWithActions
+          selectedScenarioId={testContext.scenario?.scenarioId ?? null}
+          onScenarioSelected={(scenario) => {
+            setTestContext({ scenario, sessionId: null })
+            setKnownSessions([])
+          }}
+          onNext={() => { setPage('session') }}
+          onOpenSessionAdmin={() => { setPage('session-admin') }}
+          onOpenTestBench={() => { setPage('scenario-test') }}
+        />
       )
     }
-
-    if (testContext.scenario === null) {
-      return <p>Redirecting to setup…</p>
-    }
-
-    if (page === 'scenario-test') {
-      return <ScenarioTestPage scenario={testContext.scenario} />
-    }
-
+    if (testContext.scenario === null) return <p>Redirecting to setup…</p>
+    if (page === 'scenario-test') return <ScenarioTestPage scenario={testContext.scenario} />
+    if (page === 'session-admin') return <SessionAdminPage scenarioId={testContext.scenario.scenarioId} />
     return (
       <SessionPage
         scenario={testContext.scenario}

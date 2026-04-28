@@ -12,6 +12,36 @@ Update it as epics and features are completed.
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
+### Console Admin UI — Full CRUD for Scenarios, Avatars, and Sessions (April 28, 2026)
+
+The `@gami/console` operator UI now supports full admin CRUD flows:
+
+**API client extensions (`apps/console/src/api/`):**
+
+- `scenarios.ts` — `updateScenario(scenarioId, updates)` → `PATCH /v1/scenarios/{scenarioId}`, `deleteScenario(scenarioId)` → `DELETE /v1/scenarios/{scenarioId}`, `updateAvatar(avatarId, updates)` → `PATCH /v1/avatars/{avatarId}`, `deleteAvatar(avatarId)` → `DELETE /v1/avatars/{avatarId}`
+- `sessions.ts` — `listSessions(filter?)` → `GET /v1/sessions`, `resetSession(sessionId)` → `POST /v1/sessions/{sessionId}/reset`
+- `client.ts` — `HttpMethod` extended to include `'PATCH'`
+- `index.ts` — all new functions and `ListSessionsFilter` type re-exported
+
+**Page updates:**
+
+- `ScenarioPage.tsx` — scenario list uses `ScenarioRow` with inline edit (pre-filled name + status form) and delete (window.confirm + 409 conflict message). Avatar section uses `AvatarRow` with inline edit (name, personaPrompt, tone, description) and delete.
+- `AvatarPage.tsx` — avatar list uses `AvatarRow` with inline edit and delete.
+- New `SessionAdminPage.tsx` — lists all sessions (filtered by selected scenario), status dropdown filter (all/active/closed/archived), Refresh button, per-row Reset button (window.confirm + optimistic row update on success).
+
+**New shared component files:**
+
+- `pages/scenario-row.tsx` — `ScenarioRow`, `ScenarioEditForm`, async update/delete helpers
+- `pages/avatar-row.tsx` — `AvatarRow`, `AvatarEditForm`, async update/delete helpers (shared by `ScenarioPage` and `AvatarPage`)
+
+**Navigation (`App.tsx`):**
+
+- `'session-admin'` added to `Page` type and breadcrumb bar
+- `ScenarioPageWithActions` component wraps `ScenarioPage` + "Session Admin" and "Open Scenario Test Bench" action buttons
+- Session Admin page receives the currently selected `scenarioId` as an optional filter
+
+**Quality gates:** `pnpm --filter @gami/console lint` and `pnpm --filter @gami/console typecheck` both pass cleanly.
+
 ### Session Admin Endpoints (April 28, 2026)
 
 Two session admin endpoints have been implemented for console and operational use:
