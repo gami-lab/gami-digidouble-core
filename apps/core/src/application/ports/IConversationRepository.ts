@@ -10,6 +10,7 @@ export interface IConversationRepository {
   findActiveBySessionId(sessionId: string): Promise<Conversation | null>
   create(params: CreateConversationParams): Promise<Conversation>
   listBySessionId(sessionId: string): Promise<Conversation[]>
+  deleteBySessionId(sessionId: string): Promise<number>
   update(conversationId: string, updates: ConversationUpdate): Promise<Conversation>
 }
 

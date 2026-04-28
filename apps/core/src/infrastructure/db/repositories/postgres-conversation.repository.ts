@@ -148,6 +148,16 @@ export class PostgresConversationRepository implements IConversationRepository {
     return rows.map(rowToConversation)
   }
 
+  async deleteBySessionId(sessionId: string): Promise<number> {
+    const sessionUuid = extractUuid('session_', sessionId)
+    if (sessionUuid === null) return 0
+    const result = await this.sql`
+      DELETE FROM conversations
+      WHERE session_id = ${sessionUuid}
+    `
+    return result.count
+  }
+
   async update(conversationId: string, updates: ConversationUpdate): Promise<Conversation> {
     const uuid = extractUuid('conversation_', conversationId)
     if (uuid === null) {

@@ -370,6 +370,86 @@ type GetSessionResponse = {
 
 ---
 
+## 2.1 List Sessions
+
+### Endpoint
+
+```text
+GET /v1/sessions
+```
+
+### Query Parameters
+
+All parameters are optional.
+
+| Parameter    | Type                              | Description                                  |
+| ------------ | --------------------------------- | -------------------------------------------- |
+| `scenarioId` | string                            | Filter sessions by scenario                  |
+| `userId`     | string                            | Filter sessions by user                      |
+| `status`     | `active` \| `closed` \| `archived` | Filter sessions by status                  |
+
+### Response
+
+```ts
+type ListSessionsResponse = {
+  sessions: SessionSummary[]
+}
+```
+
+Sessions are ordered by `lastActivityAt DESC` (most recently active first). Phase A returns the full result set without pagination.
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `400` → `VALIDATION_ERROR` (invalid status filter value)
+- `500` → `INTERNAL_ERROR`
+
+---
+
+## 2.2 Reset Session
+
+### Endpoint
+
+```text
+POST /v1/sessions/{sessionId}/reset
+```
+
+### Semantics
+
+A reset is a hard reset to a clean slate. The session record is **not deleted**, only its runtime state is cleared:
+
+- All **messages** for all conversations in the session are deleted
+- All **conversations** for the session are deleted
+- `activeAvatarId` is cleared to `null`
+- `unlockedAvatarIds` is reset to `[]`
+- `gmNotes` is cleared to `null`
+- `status` is reset to `'active'` (even if previously `'closed'`)
+- `lastActivityAt` is refreshed to now
+
+The session's `userId` and `scenarioId` binding is preserved.
+
+### Request
+
+No request body required.
+
+### Response
+
+```ts
+type ResetSessionResponse = {
+  session: SessionSummary
+}
+```
+
+Returns the updated session record (`200 OK`).
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `404` → `NOT_FOUND` (session not found)
+- `500` → `INTERNAL_ERROR`
+
+---
+
 ## 3. Start Conversation in Session
 
 ### Endpoint

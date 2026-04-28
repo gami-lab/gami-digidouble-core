@@ -12,6 +12,7 @@ const sessionRepository = {
   create: createSessionMock,
   update: vi.fn(),
   delete: vi.fn(),
+  list: vi.fn(),
   countByScenarioId: vi.fn(),
   countActiveByScenarioId: vi.fn(),
 }

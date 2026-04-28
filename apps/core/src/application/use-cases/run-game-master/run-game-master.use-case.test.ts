@@ -24,6 +24,7 @@ const sessionRepository = {
   create: vi.fn(),
   update: updateSessionMock,
   delete: vi.fn(),
+  list: vi.fn(),
   countByScenarioId: vi.fn(),
   countActiveByScenarioId: vi.fn(),
 }

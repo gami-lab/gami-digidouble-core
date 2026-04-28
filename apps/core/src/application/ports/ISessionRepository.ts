@@ -6,8 +6,15 @@ export interface ISessionRepository {
   create(params: CreateSessionParams): Promise<Session>
   update(sessionId: string, updates: SessionUpdate): Promise<Session>
   delete(sessionId: string): Promise<void>
+  list(filter?: ListSessionsFilter): Promise<Session[]>
   countByScenarioId(scenarioId: string): Promise<number>
   countActiveByScenarioId(scenarioId: string): Promise<number>
+}
+
+export type ListSessionsFilter = {
+  scenarioId?: string
+  userId?: string
+  status?: Session['status']
 }
 
 export interface CreateSessionParams {
@@ -21,7 +28,8 @@ export type SessionUpdate = {
   status?: Session['status']
   lastActivityAt?: Session['lastActivityAt']
   endedAt?: Session['endedAt']
-  activeAvatarId?: Session['activeAvatarId']
+  /** null clears the active avatar (no avatar currently selected). */
+  activeAvatarId?: Session['activeAvatarId'] | null
   unlockedAvatarIds?: Session['unlockedAvatarIds']
   /** null clears persisted gm_notes. */
   gmNotes?: string | null

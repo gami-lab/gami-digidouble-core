@@ -54,6 +54,17 @@ export class InMemoryConversationRepository implements IConversationRepository {
     )
   }
 
+  deleteBySessionId(sessionId: string): Promise<number> {
+    let count = 0
+    for (const [id, conversation] of this.conversations.entries()) {
+      if (conversation.sessionId === sessionId) {
+        this.conversations.delete(id)
+        count += 1
+      }
+    }
+    return Promise.resolve(count)
+  }
+
   update(conversationId: string, updates: ConversationUpdate): Promise<Conversation> {
     const current = this.conversations.get(conversationId)
     if (current === undefined) {

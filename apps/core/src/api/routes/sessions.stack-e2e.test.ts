@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify'
 import type { Config } from '../../config.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
@@ -47,6 +48,7 @@ function makeApp(params?: {
     avatarRepository: new InMemoryAvatarRepository(params?.avatars ?? []),
     sessionRepository: new InMemorySessionRepository(params?.sessions ?? []),
     conversationRepository: new InMemoryConversationRepository(),
+    messageRepository: new InMemoryMessageRepository(),
   })
 }
 

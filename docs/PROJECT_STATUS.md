@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 27, 2026
+**Last updated:** April 28, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -11,6 +11,23 @@ Update it as epics and features are completed.
 ## Overall Progress
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+
+### Session Admin Endpoints (April 28, 2026)
+
+Two session admin endpoints have been implemented for console and operational use:
+
+- `GET /v1/sessions` — list all sessions with optional filtering by `scenarioId`, `userId`, or `status`, ordered by `lastActivityAt DESC`
+- `POST /v1/sessions/{sessionId}/reset` — hard reset of a session's runtime state: deletes all conversations and messages, clears `activeAvatarId`, `unlockedAvatarIds`, `gmNotes`, resets `status` to `'active'`
+
+Implementation details:
+
+- `ISessionRepository.list(filter?)` port method added with `ListSessionsFilter` type
+- `IConversationRepository.deleteBySessionId(sessionId)` port method added
+- In-memory and Postgres repository implementations updated for both new methods
+- `ListSessionsUseCase` in `application/use-cases/list-sessions/`
+- `ResetSessionUseCase` in `application/use-cases/reset-session/`
+- `SessionUpdate.activeAvatarId` type extended to allow `null` for explicit clearing
+- Stack-e2e coverage in `sessions-admin.stack-e2e.test.ts` (auth, not-found, happy-path)
 
 ### AI Guided Discovery reference scenario (April 27, 2026)
 

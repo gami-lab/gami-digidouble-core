@@ -1,6 +1,7 @@
 import type {
   CreateSessionParams,
   ISessionRepository,
+  ListSessionsFilter,
   SessionUpdate,
 } from '../../application/ports/ISessionRepository.js'
 import type { Session } from '../../domain/conversation/session.types.js'
@@ -42,13 +43,16 @@ export class InMemorySessionRepository implements ISessionRepository {
       throw new Error(`Session ${sessionId} was not found.`)
     }
     const merged = { ...current, ...updates }
-    let updated: Session
+    let updated: Session = merged as Session
     if (Object.hasOwn(updates, 'gmNotes') && updates.gmNotes === null) {
-      const withoutGmNotes = { ...merged }
-      delete (withoutGmNotes as { gmNotes?: string }).gmNotes
-      updated = withoutGmNotes as Session
-    } else {
-      updated = merged as Session
+      const without = { ...updated }
+      delete (without as { gmNotes?: string }).gmNotes
+      updated = without as Session
+    }
+    if (Object.hasOwn(updates, 'activeAvatarId') && updates.activeAvatarId === null) {
+      const without = { ...updated }
+      delete (without as { activeAvatarId?: string }).activeAvatarId
+      updated = without as Session
     }
     this.sessions.set(sessionId, updated)
     return Promise.resolve(updated)
@@ -57,6 +61,21 @@ export class InMemorySessionRepository implements ISessionRepository {
   delete(sessionId: string): Promise<void> {
     this.sessions.delete(sessionId)
     return Promise.resolve()
+  }
+
+  list(filter?: ListSessionsFilter): Promise<Session[]> {
+    let result = [...this.sessions.values()]
+    if (filter?.scenarioId !== undefined) {
+      result = result.filter((session) => session.scenarioId === filter.scenarioId)
+    }
+    if (filter?.userId !== undefined) {
+      result = result.filter((session) => session.userId === filter.userId)
+    }
+    if (filter?.status !== undefined) {
+      result = result.filter((session) => session.status === filter.status)
+    }
+    result.sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt))
+    return Promise.resolve(result)
   }
 
   countByScenarioId(scenarioId: string): Promise<number> {

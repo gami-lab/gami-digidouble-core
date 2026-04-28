@@ -2,6 +2,7 @@ import type { Sql } from 'postgres'
 import type {
   CreateSessionParams,
   ISessionRepository,
+  ListSessionsFilter,
   SessionUpdate,
 } from '../../../application/ports/ISessionRepository.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
@@ -119,7 +120,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     const endedAtValue = updates.endedAt === undefined ? null : new Date(updates.endedAt)
     const hasActiveAvatarUpdate = Object.hasOwn(updates, 'activeAvatarId')
     const activeAvatarUuid =
-      hasActiveAvatarUpdate && updates.activeAvatarId !== undefined
+      hasActiveAvatarUpdate && updates.activeAvatarId !== undefined && updates.activeAvatarId !== null
         ? stripPrefix('avatar_', updates.activeAvatarId)
         : null
     const hasUnlockedAvatarIdsUpdate = Object.hasOwn(updates, 'unlockedAvatarIds')
@@ -145,6 +146,23 @@ export class PostgresSessionRepository implements ISessionRepository {
     const uuid = extractUuid('session_', sessionId)
     if (uuid === null) return
     await this.sql`DELETE FROM sessions WHERE id = ${uuid}`
+  }
+
+  async list(filter?: ListSessionsFilter): Promise<Session[]> {
+    const scenarioUuid =
+      filter?.scenarioId !== undefined ? extractUuid('scenario_', filter.scenarioId) : null
+    const userId = filter?.userId ?? null
+    const status = filter?.status ?? null
+
+    const rows = await this.sql<SessionRow[]>`
+      SELECT id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, gm_notes, status, started_at, last_activity_at, ended_at
+      FROM sessions
+      WHERE (${scenarioUuid}::UUID IS NULL OR scenario_id = ${scenarioUuid}::UUID)
+        AND (${userId}::TEXT IS NULL OR user_id = ${userId}::TEXT)
+        AND (${status}::TEXT IS NULL OR status = ${status}::TEXT)
+      ORDER BY last_activity_at DESC
+    `
+    return rows.map(rowToSession)
   }
 
   async countByScenarioId(scenarioId: string): Promise<number> {
