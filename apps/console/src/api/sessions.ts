@@ -70,6 +70,40 @@ export type InspectSessionResponse = {
   }
 }
 
+export type SessionEventRecord = {
+  type: 'gm_triggered' | 'gm_skipped'
+  correlationId: string
+  createdAt: string
+  payload: {
+    triggerReason: string | null
+    turnIndex: number
+    interactionCount: number
+    stateBefore: {
+      currentAvatarId?: string
+      progression: string
+      topicsCovered: string[]
+    }
+    decision?: {
+      avatarId: string
+      conversationMode: 'new' | 'continue'
+      notesInjected: boolean
+      directiveCount: number
+    }
+    stateAfter?: {
+      currentAvatarId?: string
+      progression: string
+      topicsCovered: string[]
+    }
+    latencyMs: number
+    inputTokens?: number
+    outputTokens?: number
+  }
+}
+
+export type ListSessionEventsResponse = {
+  events: SessionEventRecord[]
+}
+
 export type StartSessionParams = {
   userId: string
   scenarioId: string
@@ -207,4 +241,18 @@ export async function resetSession(sessionId: string): Promise<SessionSummary> {
 
 export async function inspectSession(sessionId: string): Promise<InspectSessionResponse> {
   return coreRequest<InspectSessionResponse>('GET', `/v1/admin/sessions/${sessionId}/inspect`)
+}
+
+export async function listSessionEvents(
+  sessionId: string,
+  opts?: { limit?: number },
+): Promise<ListSessionEventsResponse> {
+  const params = new URLSearchParams()
+  if (opts?.limit !== undefined) params.set('limit', String(opts.limit))
+  const query = params.toString()
+  const path =
+    query.length > 0
+      ? `/v1/admin/sessions/${sessionId}/events?${query}`
+      : `/v1/admin/sessions/${sessionId}/events`
+  return coreRequest<ListSessionEventsResponse>('GET', path)
 }

@@ -1106,10 +1106,12 @@ type DeleteUserMemoryFactResponse = {
 
 ## 16. Get Session Events
 
+Deprecated draft path. The implemented Phase A endpoint is `GET /v1/admin/sessions/{sessionId}/events`; see Admin / Operations API A6.
+
 ### Endpoint
 
 ```text
-GET /v1/sessions/{sessionId}/events
+GET /v1/admin/sessions/{sessionId}/events
 ```
 
 ### Response
@@ -1343,26 +1345,57 @@ GET /v1/admin/sessions/{sessionId}/events
 
 ### Query Parameters
 
-- `severity` (optional): `info` | `warning` | `error`
-- `limit` (optional, default 50)
-- `offset` (optional, default 0)
+- `limit` (optional): positive integer, default `50`, clamped to max `200`
 
 ### Response
 
 ```ts
 type AdminSessionEventsResponse = {
   events: Array<{
-    id: string
-    type: string
-    severity: 'info' | 'warning' | 'error'
-    requestId?: string
-    correlationId?: string
+    type: 'gm_triggered' | 'gm_skipped'
+    correlationId: string
     createdAt: string
-    payload?: Record<string, unknown>
+    payload: {
+      triggerReason: string | null
+      turnIndex: number
+      interactionCount: number
+      stateBefore: {
+        currentAvatarId?: string
+        progression: string
+        topicsCovered: string[]
+      }
+      decision?: {
+        avatarId: string
+        conversationMode: 'new' | 'continue'
+        notesInjected: boolean
+        directiveCount: number
+      }
+      stateAfter?: {
+        currentAvatarId?: string
+        progression: string
+        topicsCovered: string[]
+      }
+      latencyMs: number
+      inputTokens?: number
+      outputTokens?: number
+    }
   }>
-  total: number
 }
 ```
+
+### Semantics
+
+- Returns only `gm_triggered` and `gm_skipped` diagnostic events.
+- Results are ordered newest-first.
+- Non-GM event types are silently excluded.
+- Raw user message content, prompt text, credentials, and LLM model names are never included.
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `400` → `VALIDATION_ERROR` (invalid `limit`)
+- `404` → `NOT_FOUND` (session missing)
+- `500` → `INTERNAL_ERROR`
 
 ---
 

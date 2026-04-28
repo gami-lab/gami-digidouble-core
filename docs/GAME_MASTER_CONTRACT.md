@@ -474,7 +474,7 @@ The GM is here to **route and lightly guide**, not to control everything.
 
 Every GM decision must emit a structured event to the `EventLog` so operators can inspect why it triggered and what it decided.
 
-This is required for admin inspection via `GET /v1/admin/sessions/{sessionId}/events`.
+This is implemented for admin inspection via `GET /v1/admin/sessions/{sessionId}/events`.
 
 The EventLog repository exposes both append and session-scoped read operations:
 
@@ -541,7 +541,7 @@ type GameMasterEvent = {
 - Emit for every GM run, including skipped runs (`type: 'gm_skipped'`)
 - Never include prompt content or raw user message in the diagnostic payload — these are sensitive
 - The `correlationId` must match the one used by the parent `SendMessage` use case for this turn
-- Admin inspection endpoint surfaces these events alongside session messages
+- The admin events endpoint surfaces only safe `gm_triggered` and `gm_skipped` diagnostic fields, newest-first
 
 ---
 
