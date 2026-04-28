@@ -805,16 +805,22 @@ type DeleteScenarioResponse = {
 ### Endpoint
 
 ```text
-PUT /v1/scenarios/{scenarioId}
+PATCH /v1/scenarios/{scenarioId}
 ```
 
 ### Request
 
-Same shape as create, but partial updates allowed.
+Partial update — only fields present in the request body are written. Fields absent from the body are left unchanged.
 
 ```ts id="pvwq0y"
-type UpdateScenarioRequest = Partial<CreateScenarioRequest>
+type UpdateScenarioRequest = {
+  name?: string
+  status?: 'draft' | 'active' | 'archived'
+  config?: Record<string, unknown>
+}
 ```
+
+At least one field must be provided. An empty body `{}` returns `400 VALIDATION_ERROR`.
 
 ### Response
 
@@ -825,6 +831,17 @@ type UpdateScenarioResponse = {
   }
 }
 ```
+
+### Notes
+
+- `updatedAt` is always refreshed on a successful update.
+- `config` is fully replaced when provided — it is not deep-merged.
+- `PATCH` with an unknown `scenarioId` returns `404 NOT_FOUND`.
+
+### Error Mapping
+
+- `400` → `VALIDATION_ERROR` (empty body — no updatable fields provided)
+- `404` → `NOT_FOUND` (scenario not found)
 
 ---
 
@@ -1581,6 +1598,7 @@ If we need the absolute minimum set to start implementation, it is:
 - `DELETE /v1/avatars/{avatarId}`
 - `DELETE /v1/scenarios/{scenarioId}`
 - `PUT /v1/scenarios/{scenarioId}`
+- `PATCH /v1/scenarios/{scenarioId}`
 - `POST /v1/knowledge-sources`
 - `POST /v1/knowledge-sources/{sourceId}/ingest`
 

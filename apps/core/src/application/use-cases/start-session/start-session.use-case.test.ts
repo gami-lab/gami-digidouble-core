@@ -21,6 +21,7 @@ const scenarioRepository = {
   findById: findScenarioByIdMock,
   list: vi.fn(),
   delete: vi.fn(),
+  update: vi.fn(),
 }
 
 const listAvatarsByScenarioIdMock = vi.fn()

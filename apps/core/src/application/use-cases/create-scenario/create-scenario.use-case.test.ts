@@ -10,6 +10,7 @@ const scenarioRepository = {
   findById: vi.fn(),
   list: vi.fn(),
   delete: vi.fn(),
+  update: vi.fn(),
 }
 
 function makeScenario(overrides: Partial<Scenario> = {}): Scenario {

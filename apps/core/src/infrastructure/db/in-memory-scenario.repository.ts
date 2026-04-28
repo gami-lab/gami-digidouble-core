@@ -1,8 +1,10 @@
 import type {
   CreateScenarioParams,
   IScenarioRepository,
+  UpdateScenarioParams,
 } from '../../application/ports/IScenarioRepository.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
+import { DomainError } from '../../domain/errors.js'
 
 export class InMemoryScenarioRepository implements IScenarioRepository {
   private readonly scenarios: Map<string, Scenario>
@@ -40,5 +42,21 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
   delete(scenarioId: string): Promise<void> {
     this.scenarios.delete(scenarioId)
     return Promise.resolve()
+  }
+
+  async update(scenarioId: string, updates: UpdateScenarioParams): Promise<Scenario> {
+    const existing = this.scenarios.get(scenarioId)
+    if (existing === undefined) {
+      throw new DomainError('NOT_FOUND', 'Scenario not found')
+    }
+    const updated: Scenario = {
+      ...existing,
+      ...(updates.name !== undefined ? { name: updates.name } : {}),
+      ...(updates.status !== undefined ? { status: updates.status } : {}),
+      ...(updates.config !== undefined ? { config: updates.config as Scenario['config'] } : {}),
+      updatedAt: new Date().toISOString(),
+    }
+    this.scenarios.set(scenarioId, updated)
+    return Promise.resolve(updated)
   }
 }
