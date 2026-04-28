@@ -73,9 +73,7 @@ export function ScenarioRow({
       <div>
         <strong>{scenario.name}</strong> · {scenario.status}
       </div>
-      <div style={{ fontSize: '12px', color: '#6b7280' }}>
-        Scenario ID: {scenario.scenarioId}
-      </div>
+      <div style={{ fontSize: '12px', color: '#6b7280' }}>Scenario ID: {scenario.scenarioId}</div>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <button
           type="button"
@@ -168,11 +166,7 @@ export function ScenarioEditForm({
             <option value="archived">archived</option>
           </select>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="submit"
-              style={buttonStyle}
-              disabled={isSubmitting || name.trim() === ''}
-            >
+            <button type="submit" style={buttonStyle} disabled={isSubmitting || name.trim() === ''}>
               {isSubmitting ? 'Saving…' : 'Save'}
             </button>
             <button type="button" style={secondaryButtonStyle} onClick={onCancel}>

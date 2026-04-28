@@ -184,9 +184,7 @@ export function AvatarEditForm({ avatar, onSaved, onCancel }: AvatarEditFormProp
               type="submit"
               style={buttonStyle}
               disabled={
-                isSubmitting ||
-                values.name.trim() === '' ||
-                values.personaPrompt.trim() === ''
+                isSubmitting || values.name.trim() === '' || values.personaPrompt.trim() === ''
               }
             >
               {isSubmitting ? 'Saving…' : 'Save'}

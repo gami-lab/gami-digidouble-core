@@ -59,7 +59,9 @@ function SessionAdminRow({ session, onReset }: SessionRowProps): JSX.Element {
         >
           {isResetting ? 'Resetting…' : 'Reset'}
         </button>
-        {resetError !== null ? <span style={{ ...errorStyle, display: 'block' }}>{resetError}</span> : null}
+        {resetError !== null ? (
+          <span style={{ ...errorStyle, display: 'block' }}>{resetError}</span>
+        ) : null}
       </td>
     </tr>
   )
@@ -83,9 +85,7 @@ export function SessionAdminPage({ scenarioId }: SessionAdminPageProps): JSX.Ele
     statusFilter === 'all' ? sessions : sessions.filter((s) => s.status === statusFilter)
 
   const handleSessionReset = (updated: SessionSummary): void => {
-    setSessions((prev) =>
-      prev.map((s) => (s.sessionId === updated.sessionId ? updated : s)),
-    )
+    setSessions((prev) => prev.map((s) => (s.sessionId === updated.sessionId ? updated : s)))
   }
 
   return (
@@ -97,7 +97,10 @@ export function SessionAdminPage({ scenarioId }: SessionAdminPageProps): JSX.Ele
       </p>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-        <label style={{ ...labelStyle, marginTop: 0, marginBottom: 0 }} htmlFor="session-status-filter">
+        <label
+          style={{ ...labelStyle, marginTop: 0, marginBottom: 0 }}
+          htmlFor="session-status-filter"
+        >
           Filter by status:
         </label>
         <select
