@@ -199,9 +199,10 @@ describe('POST /v1/sessions/:sessionId/reset behavior', () => {
       headers: authHeaders(),
     })
     expect(reset.statusCode).toBe(200)
-    const resetBody = reset.json<
-      ApiResponse<{ session: { sessionId: string; status: string; activeAvatarId?: string } }>
-    >()
+    const resetBody =
+      reset.json<
+        ApiResponse<{ session: { sessionId: string; status: string; activeAvatarId?: string } }>
+      >()
     expect(resetBody.error).toBeNull()
     expect(resetBody.data?.session.sessionId).toBe(seeded.sessionId)
     expect(resetBody.data?.session.status).toBe('active')
@@ -213,6 +214,8 @@ describe('POST /v1/sessions/:sessionId/reset behavior', () => {
       headers: authHeaders(),
     })
     expect(convList.statusCode).toBe(200)
-    expect(convList.json<ApiResponse<{ conversations: unknown[] }>>().data?.conversations).toHaveLength(0)
+    expect(
+      convList.json<ApiResponse<{ conversations: unknown[] }>>().data?.conversations,
+    ).toHaveLength(0)
   })
 })

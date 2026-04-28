@@ -120,7 +120,9 @@ export class PostgresSessionRepository implements ISessionRepository {
     const endedAtValue = updates.endedAt === undefined ? null : new Date(updates.endedAt)
     const hasActiveAvatarUpdate = Object.hasOwn(updates, 'activeAvatarId')
     const activeAvatarUuid =
-      hasActiveAvatarUpdate && updates.activeAvatarId !== undefined && updates.activeAvatarId !== null
+      hasActiveAvatarUpdate &&
+      updates.activeAvatarId !== undefined &&
+      updates.activeAvatarId !== null
         ? stripPrefix('avatar_', updates.activeAvatarId)
         : null
     const hasUnlockedAvatarIdsUpdate = Object.hasOwn(updates, 'unlockedAvatarIds')
