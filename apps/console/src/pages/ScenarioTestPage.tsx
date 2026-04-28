@@ -230,6 +230,8 @@ export function ScenarioTestPage({ scenario }: ScenarioTestPageProps): JSX.Eleme
   const [isSwitching, setIsSwitching] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [showGmPanel, setShowGmPanel] = useState(false)
+  const [gmRefreshTrigger, setGmRefreshTrigger] = useState(0)
   const turnIndexRef = useRef(0)
 
   const {
@@ -295,6 +297,7 @@ export function ScenarioTestPage({ scenario }: ScenarioTestPageProps): JSX.Eleme
             turnIndexRef,
             allAvatarsById,
           )
+          setGmRefreshTrigger((prev) => prev + 1)
         } catch (error) {
           setState((prev) => withError(prev, formatApiError(error, 'Failed to send message')))
         } finally {
@@ -339,6 +342,8 @@ export function ScenarioTestPage({ scenario }: ScenarioTestPageProps): JSX.Eleme
       isSwitching={isSwitching}
       isSending={isSending}
       isLoadingHistory={isLoadingHistory}
+      showGmPanel={showGmPanel}
+      gmRefreshTrigger={gmRefreshTrigger}
       availabilityEntries={availabilityEntries}
       timelineEntries={timelineEntries}
       selectedConversation={selectedConversation}
@@ -354,6 +359,9 @@ export function ScenarioTestPage({ scenario }: ScenarioTestPageProps): JSX.Eleme
       onOpenConversation={handleOpenConversation}
       onReturnToGuide={handleReturnToGuide}
       onTestLockedAccess={handleTestLockedAccess}
+      onToggleGmPanel={() => {
+        setShowGmPanel((prev) => !prev)
+      }}
     />
   )
 }

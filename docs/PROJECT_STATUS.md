@@ -25,6 +25,7 @@ Repository groundwork for `GET /v1/admin/sessions/{sessionId}/events` is impleme
 - Stack-E2E contract coverage added for both EPIC 2.6 admin session endpoints: auth, not-found, events limit validation, happy-path response shape, no raw message content in inspect, and GM-only event filtering
 - Console API client exposes `inspectSession(sessionId)` for the upcoming GM Debug Panel
 - Console API client exposes `listSessionEvents(sessionId, { limit? })` for the upcoming GM Debug Panel
+- Console Scenario Test Bench includes a collapsed-by-default GM Debug Panel with manual refresh, automatic refresh after message turns, active avatar, unlocked avatars, GM notes, transition history, recent GM events, loading, and error states
 
 ### EPIC 2.5 — Admin CRUD Completion + Console Integration: **complete** (April 28, 2026)
 
