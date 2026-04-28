@@ -22,6 +22,7 @@ Repository groundwork for `GET /v1/admin/sessions/{sessionId}/events` is impleme
 - Postgres integration coverage verifies session filtering, newest-first ordering, limit handling, empty results, and `createdAt` mapping
 - `GET /v1/admin/sessions/{sessionId}/inspect` implemented with auth, session summary, GM state snapshot, newest-first transition history, unlocked avatars, GM notes, and admin-safe response filtering
 - `GET /v1/admin/sessions/{sessionId}/events` implemented with auth, positive integer `limit` validation, default 50 / max 200 limit handling, newest-first safe GM event records, and non-GM event filtering
+- Stack-E2E contract coverage added for both EPIC 2.6 admin session endpoints: auth, not-found, events limit validation, happy-path response shape, no raw message content in inspect, and GM-only event filtering
 - Console API client exposes `inspectSession(sessionId)` for the upcoming GM Debug Panel
 - Console API client exposes `listSessionEvents(sessionId, { limit? })` for the upcoming GM Debug Panel
 
