@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fasti
 import { fail, ok } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
+import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
@@ -12,6 +13,10 @@ import { GetSessionUseCase } from '../../application/use-cases/get-session/get-s
 import type { GetSessionOutput } from '../../application/use-cases/get-session/get-session.types.js'
 import { ListSessionConversationsUseCase } from '../../application/use-cases/list-session-conversations/list-session-conversations.use-case.js'
 import type { ListSessionConversationsOutput } from '../../application/use-cases/list-session-conversations/list-session-conversations.types.js'
+import { ListSessionsUseCase } from '../../application/use-cases/list-sessions/list-sessions.use-case.js'
+import type { ListSessionsOutput } from '../../application/use-cases/list-sessions/list-sessions.types.js'
+import { ResetSessionUseCase } from '../../application/use-cases/reset-session/reset-session.use-case.js'
+import type { ResetSessionOutput } from '../../application/use-cases/reset-session/reset-session.types.js'
 import { StartConversationUseCase } from '../../application/use-cases/start-conversation/start-conversation.use-case.js'
 import type { StartConversationOutput } from '../../application/use-cases/start-conversation/start-conversation.types.js'
 import { StartSessionUseCase } from '../../application/use-cases/start-session/start-session.use-case.js'
@@ -22,6 +27,7 @@ import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
@@ -32,6 +38,7 @@ export type SessionsRouteOptions = {
   sessionRepository?: ISessionRepository
   avatarRepository?: IAvatarRepository
   conversationRepository?: IConversationRepository
+  messageRepository?: IMessageRepository
 }
 
 type StartSessionRequestBody = {
@@ -50,6 +57,12 @@ type SwitchAvatarRequestBody = {
 
 type SessionParams = {
   sessionId: string
+}
+
+type ListSessionsQuerystring = {
+  scenarioId?: string
+  userId?: string
+  status?: string
 }
 
 const startSessionBodySchema = {
@@ -90,12 +103,23 @@ const sessionParamsSchema = {
   additionalProperties: false,
 } as const
 
+const listSessionsQuerySchema = {
+  type: 'object',
+  properties: {
+    scenarioId: { type: 'string', minLength: 1 },
+    userId: { type: 'string', minLength: 1 },
+    status: { type: 'string', enum: ['active', 'closed', 'archived'] },
+  },
+  additionalProperties: false,
+} as const
+
 export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, options) => {
   const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
   const scenarioRepository = options.scenarioRepository ?? new InMemoryScenarioRepository()
   const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
   const conversationRepository =
     options.conversationRepository ?? new InMemoryConversationRepository()
+  const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
 
   const startSessionUseCase = new StartSessionUseCase(
     sessionRepository,
@@ -103,6 +127,12 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     avatarRepository,
   )
   const getSessionUseCase = new GetSessionUseCase(sessionRepository)
+  const listSessionsUseCase = new ListSessionsUseCase(sessionRepository)
+  const resetSessionUseCase = new ResetSessionUseCase(
+    sessionRepository,
+    conversationRepository,
+    messageRepository,
+  )
   const startConversationUseCase = new StartConversationUseCase(
     sessionRepository,
     avatarRepository,
@@ -129,6 +159,8 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
   registerStartSessionRoute(app, startSessionUseCase)
   registerGetSessionRoute(app, getSessionUseCase)
+  registerListSessionsRoute(app, listSessionsUseCase)
+  registerResetSessionRoute(app, resetSessionUseCase)
   registerStartConversationRoute(app, startConversationUseCase)
   registerListSessionConversationsRoute(app, listSessionConversationsUseCase)
   registerSwitchAvatarRoute(app, switchAvatarUseCase)
@@ -162,6 +194,44 @@ function registerGetSessionRoute(app: FastifyInstance, useCase: GetSessionUseCas
       try {
         const output = await useCase.execute({ sessionId: request.params.sessionId })
         return await reply.send(ok<GetSessionOutput>(output))
+      } catch (error) {
+        return await mapDomainError(error, reply)
+      }
+    },
+  )
+}
+
+function registerListSessionsRoute(app: FastifyInstance, useCase: ListSessionsUseCase): void {
+  app.get<{ Querystring: ListSessionsQuerystring }>(
+    '/',
+    { schema: { querystring: listSessionsQuerySchema } },
+    async (request, reply) => {
+      try {
+        const output = await useCase.execute({
+          ...(request.query.scenarioId !== undefined
+            ? { scenarioId: request.query.scenarioId }
+            : {}),
+          ...(request.query.userId !== undefined ? { userId: request.query.userId } : {}),
+          ...(request.query.status !== undefined
+            ? { status: request.query.status as 'active' | 'closed' | 'archived' }
+            : {}),
+        })
+        return await reply.send(ok<ListSessionsOutput>(output))
+      } catch (error) {
+        return await mapDomainError(error, reply)
+      }
+    },
+  )
+}
+
+function registerResetSessionRoute(app: FastifyInstance, useCase: ResetSessionUseCase): void {
+  app.post<{ Params: SessionParams }>(
+    '/:sessionId/reset',
+    { schema: { params: sessionParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await useCase.execute({ sessionId: request.params.sessionId })
+        return await reply.send(ok<ResetSessionOutput>(output))
       } catch (error) {
         return await mapDomainError(error, reply)
       }

@@ -10,6 +10,7 @@ const conversationRepository = {
   findActiveBySessionId: vi.fn(),
   create: vi.fn(),
   listBySessionId: vi.fn(),
+  deleteBySessionId: vi.fn(),
   update: vi.fn(),
 }
 

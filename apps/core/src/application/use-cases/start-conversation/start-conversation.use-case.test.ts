@@ -13,6 +13,7 @@ const sessionRepository = {
   create: vi.fn(),
   update: updateSessionMock,
   delete: vi.fn(),
+  list: vi.fn(),
   countByScenarioId: vi.fn(),
   countActiveByScenarioId: vi.fn(),
 }
@@ -30,6 +31,7 @@ const conversationRepository = {
   findActiveBySessionId: vi.fn(),
   create: createConversationMock,
   listBySessionId: vi.fn(),
+  deleteBySessionId: vi.fn(),
   update: vi.fn(),
 }
 
