@@ -45,6 +45,31 @@ export type ConversationSummary = {
   endedAt?: string | null
 }
 
+export type GmStateSummary = {
+  currentAvatarId?: string
+  progression: string
+  topicsCovered: string[]
+  interactionCount: number
+}
+
+export type SessionTransitionRecord = {
+  fromAvatarId: string | null
+  toAvatarId: string
+  reason: string | null
+  startedBy: 'user' | 'gm' | 'system' | null
+  transitionedAt: string
+}
+
+export type InspectSessionResponse = {
+  inspect: {
+    session: SessionSummary
+    gmState: GmStateSummary | null
+    transitionHistory: SessionTransitionRecord[]
+    unlockedAvatarIds: string[]
+    gmNotes: string | null
+  }
+}
+
 export type StartSessionParams = {
   userId: string
   scenarioId: string
@@ -178,4 +203,8 @@ export async function listSessions(filter?: ListSessionsFilter): Promise<Session
 export async function resetSession(sessionId: string): Promise<SessionSummary> {
   const payload = await coreRequest<ResetSessionPayload>('POST', `/v1/sessions/${sessionId}/reset`)
   return payload.session
+}
+
+export async function inspectSession(sessionId: string): Promise<InspectSessionResponse> {
+  return coreRequest<InspectSessionResponse>('GET', `/v1/admin/sessions/${sessionId}/inspect`)
 }

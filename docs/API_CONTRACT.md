@@ -1252,37 +1252,53 @@ type AdminListSessionsResponse = {
 
 ---
 
-## A4. Inspect Session
+## A4. Inspect Session Orchestration State
+
+Implemented Phase A endpoint for GM Debug Panel state inspection.
 
 ### Endpoint
 
 ```text
-GET /v1/admin/sessions/{sessionId}
+GET /v1/admin/sessions/{sessionId}/inspect
 ```
 
 ### Response
 
 ```ts
-type AdminSessionDetailResponse = {
-  session: SessionSummary
-  messageCount: number
-  memory?: SessionMemorySummary
-  gameMasterState?: {
-    currentAvatarId?: string
-    progression: string
-    topicsCovered: string[]
-    interactionCount: number
+type InspectSessionResponse = {
+  inspect: {
+    session: SessionSummary
+    gmState: {
+      currentAvatarId?: string
+      progression: string
+      topicsCovered: string[]
+      interactionCount: number
+    } | null
+    transitionHistory: Array<{
+      fromAvatarId: string | null
+      toAvatarId: string
+      reason: string | null
+      startedBy: 'user' | 'gm' | 'system' | null
+      transitionedAt: string
+    }>
+    unlockedAvatarIds: string[]
+    gmNotes: string | null
   }
-  recentEvents?: Array<{
-    id: string
-    type: string
-    severity: 'info' | 'warning' | 'error'
-    createdAt: string
-    requestId?: string
-    payload?: Record<string, unknown>
-  }>
 }
 ```
+
+### Semantics
+
+- `gmState` is `null` until the Game Master has run for the session.
+- `transitionHistory` is derived from the session's conversation sequence and returned newest-first.
+- Raw message content, prompt text, credentials, and LLM model names are never included.
+- `gmNotes` is safe to surface because it is director guidance, not raw user input.
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `404` → `NOT_FOUND` (session missing)
+- `500` → `INTERNAL_ERROR`
 
 ---
 

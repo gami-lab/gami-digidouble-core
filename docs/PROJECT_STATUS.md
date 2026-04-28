@@ -20,6 +20,8 @@ Repository groundwork for `GET /v1/admin/sessions/{sessionId}/events` is impleme
 - `StoredEvent.createdAt` added for timestamp surfacing on read responses
 - In-memory and Postgres event log repositories now return session events newest-first and support an optional limit
 - Postgres integration coverage verifies session filtering, newest-first ordering, limit handling, empty results, and `createdAt` mapping
+- `GET /v1/admin/sessions/{sessionId}/inspect` implemented with auth, session summary, GM state snapshot, newest-first transition history, unlocked avatars, GM notes, and admin-safe response filtering
+- Console API client exposes `inspectSession(sessionId)` for the upcoming GM Debug Panel
 
 ### EPIC 2.5 — Admin CRUD Completion + Console Integration: **complete** (April 28, 2026)
 

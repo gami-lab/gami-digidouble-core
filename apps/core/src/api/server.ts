@@ -14,6 +14,7 @@ import type { RunGameMasterUseCase } from '../application/use-cases/run-game-mas
 import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
+import { adminSessionsRoute } from './routes/admin-sessions.js'
 import { avatarsRoute } from './routes/avatars.js'
 import { conversationsRoute } from './routes/conversations.js'
 import { exchangeRoute } from './routes/exchange.js'
@@ -75,6 +76,11 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   app.register(sessionsRoute, { prefix: '/v1/sessions', config, ...resolvedAdapters })
   app.register(conversationsRoute, {
     prefix: '/v1/conversations',
+    config,
+    ...resolvedAdapters,
+  })
+  app.register(adminSessionsRoute, {
+    prefix: '/v1/admin',
     config,
     ...resolvedAdapters,
   })
