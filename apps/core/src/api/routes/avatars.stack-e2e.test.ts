@@ -15,6 +15,15 @@ type CreateAvatarResponse = {
   avatar: {
     avatarId: string
     scenarioId: string
+    updatedAt: string
+  }
+}
+
+type PatchAvatarResponse = {
+  avatar: {
+    avatarId: string
+    personaPrompt: string
+    updatedAt: string
   }
 }
 
@@ -211,5 +220,93 @@ describe('Stack E2E — scenario/avatar management full flow', () => {
       headers: { 'x-api-key': API_KEY },
     })
     expect(deleteScenarioRes.status).toBe(200)
+  })
+})
+
+describe('Stack E2E — PATCH /v1/avatars/:avatarId — auth', () => {
+  it('rejects requests with no API key (401)', async () => {
+    const res = await fetch(`${APP_URL}/v1/avatars/avatar_any`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'New name' }),
+    })
+
+    expect(res.status).toBe(401)
+  })
+
+  it('rejects requests with wrong API key (401)', async () => {
+    const res = await fetch(`${APP_URL}/v1/avatars/avatar_any`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': 'wrong-key' },
+      body: JSON.stringify({ name: 'New name' }),
+    })
+
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('Stack E2E — PATCH /v1/avatars/:avatarId — validation', () => {
+  it('returns 400 for empty body', async () => {
+    const res = await fetch(`${APP_URL}/v1/avatars/avatar_any`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({}),
+    })
+
+    expect(res.status).toBe(400)
+    const body = (await res.json()) as ApiResponse<null>
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+})
+
+describe('Stack E2E — PATCH /v1/avatars/:avatarId — resource lookup', () => {
+  it('returns 404 for nonexistent avatar', async () => {
+    const res = await fetch(`${APP_URL}/v1/avatars/avatar_nonexistent_id_123`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({ name: 'New name' }),
+    })
+
+    expect(res.status).toBe(404)
+    const body = (await res.json()) as ApiResponse<null>
+    expect(body.error?.code).toBe('NOT_FOUND')
+  })
+})
+
+describe('Stack E2E — PATCH /v1/avatars/:avatarId — success', () => {
+  it('updates personaPrompt and reflects new value with refreshed updatedAt', async () => {
+    const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({ name: `PATCH Avatar E2E Scenario ${String(Date.now())}` }),
+    })
+    expect(createScenarioRes.status).toBe(201)
+    const createdScenario = (await createScenarioRes.json()) as ApiResponse<CreateScenarioResponse>
+    const scenarioId = createdScenario.data?.scenario.scenarioId ?? ''
+
+    const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({
+        name: 'PATCH E2E Avatar',
+        personaPrompt: 'Original prompt.',
+      }),
+    })
+    expect(createAvatarRes.status).toBe(201)
+    const createdAvatar = (await createAvatarRes.json()) as ApiResponse<CreateAvatarResponse>
+    const avatarId = createdAvatar.data?.avatar.avatarId ?? ''
+    const originalUpdatedAt = createdAvatar.data?.avatar.updatedAt ?? ''
+
+    const patchRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({ personaPrompt: 'Patched prompt.' }),
+    })
+    expect(patchRes.status).toBe(200)
+    const patchBody = (await patchRes.json()) as ApiResponse<PatchAvatarResponse>
+    expect(patchBody.error).toBeNull()
+    expect(patchBody.data?.avatar.personaPrompt).toBe('Patched prompt.')
+    expect(patchBody.data?.avatar.avatarId).toBe(avatarId)
+    expect(patchBody.data?.avatar.updatedAt).not.toBe(originalUpdatedAt)
   })
 })

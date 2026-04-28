@@ -6,12 +6,23 @@ export interface IAvatarRepository {
   findById(avatarId: string): Promise<AvatarConfig | null>
   listByScenarioId(scenarioId: string): Promise<AvatarConfig[]>
   delete(avatarId: string): Promise<void>
+  update(avatarId: string, updates: UpdateAvatarParams): Promise<AvatarConfig>
 }
 
 export interface CreateAvatarParams {
   scenarioId: string
   name: string
   personaPrompt: string
+  tone?: string
+  description?: string
+  adjustments?: string[]
+  config?: Record<string, unknown>
+  status?: AvatarConfig['status']
+}
+
+export type UpdateAvatarParams = {
+  name?: string
+  personaPrompt?: string
   tone?: string
   description?: string
   adjustments?: string[]

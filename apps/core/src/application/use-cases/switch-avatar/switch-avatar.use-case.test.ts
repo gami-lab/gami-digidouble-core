@@ -24,6 +24,7 @@ const avatarRepository = {
   create: vi.fn(),
   listByScenarioId: vi.fn(),
   delete: vi.fn(),
+  update: vi.fn(),
 }
 
 const conversationRepository = {

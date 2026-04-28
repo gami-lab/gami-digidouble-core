@@ -76,4 +76,27 @@ describe('InMemoryAvatarRepository', () => {
 
     await expect(repository.findById(avatar.avatarId)).resolves.toBeNull()
   })
+
+  it('update merges provided fields and refreshes updatedAt', async () => {
+    const avatar = makeAvatarConfig()
+    const repository = new InMemoryAvatarRepository([avatar])
+
+    const result = await repository.update(avatar.avatarId, {
+      personaPrompt: 'Updated prompt',
+      tone: 'formal',
+    })
+
+    expect(result.personaPrompt).toBe('Updated prompt')
+    expect(result.tone).toBe('formal')
+    expect(result.name).toBe(avatar.name)
+    expect(result.updatedAt).not.toBe(avatar.updatedAt)
+  })
+
+  it('update throws NOT_FOUND when avatar does not exist', async () => {
+    const repository = new InMemoryAvatarRepository()
+
+    await expect(repository.update('avatar_missing', { name: 'New name' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
+  })
 })

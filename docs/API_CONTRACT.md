@@ -771,6 +771,49 @@ type DeleteAvatarResponse = {
 
 ---
 
+## 9.7b. Update Avatar
+
+### Endpoint
+
+```text
+PATCH /v1/avatars/{avatarId}
+```
+
+### Request
+
+Partial update — only fields present in the request body are written. Fields absent from the body are left unchanged. `scenarioId` is immutable and is not accepted.
+
+```ts
+type PatchAvatarRequest = {
+  name?: string
+  personaPrompt?: string
+  tone?: string
+  description?: string
+  adjustments?: string[]
+  config?: Record<string, unknown>
+  status?: 'draft' | 'active' | 'archived'
+}
+```
+
+At least one field must be present in the body; an empty `{}` body is rejected.
+
+### Response
+
+```ts
+type PatchAvatarResponse = {
+  avatar: AvatarSummary
+}
+```
+
+`updatedAt` is always refreshed when the update succeeds.
+
+### Error Mapping
+
+- `400` → `VALIDATION_ERROR` (empty body — no fields provided)
+- `404` → `NOT_FOUND` (avatar not found)
+
+---
+
 ## 9.8. Delete Scenario
 
 ### Endpoint

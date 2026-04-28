@@ -109,3 +109,63 @@ describe('DELETE /v1/avatars/:avatarId', () => {
     expect(body.error?.code).toBe('CONFLICT')
   })
 })
+
+describe('PATCH /v1/avatars/:avatarId', () => {
+  it('updates avatar and returns updated fields', async () => {
+    const app = makeApp({
+      avatars: [makeAvatar({ avatarId: 'avatar_1', personaPrompt: 'You are Ava.' })],
+    })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { personaPrompt: 'Updated prompt', tone: 'formal' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ avatar: { personaPrompt: string; tone: string } }>>()
+    expect(body.error).toBeNull()
+    expect(body.data?.avatar.personaPrompt).toBe('Updated prompt')
+    expect(body.data?.avatar.tone).toBe('formal')
+  })
+
+  it('returns 404 when avatar does not exist', async () => {
+    const response = await makeApp().inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_missing',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { name: 'New name' },
+    })
+
+    expect(response.statusCode).toBe(404)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('NOT_FOUND')
+  })
+
+  it('returns 400 when body is empty', async () => {
+    const response = await makeApp({
+      avatars: [makeAvatar({ avatarId: 'avatar_1' })],
+    }).inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 401 when no API key provided', async () => {
+    const response = await makeApp().inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'content-type': 'application/json' },
+      payload: { name: 'x' },
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+})

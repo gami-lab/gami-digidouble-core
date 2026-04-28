@@ -20,6 +20,7 @@ const avatarRepository = {
   findById: vi.fn(),
   listByScenarioId: vi.fn(),
   delete: vi.fn(),
+  update: vi.fn(),
 }
 
 function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
