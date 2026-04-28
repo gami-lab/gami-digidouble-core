@@ -176,9 +176,6 @@ export async function listSessions(filter?: ListSessionsFilter): Promise<Session
 }
 
 export async function resetSession(sessionId: string): Promise<SessionSummary> {
-  const payload = await coreRequest<ResetSessionPayload>(
-    'POST',
-    `/v1/sessions/${sessionId}/reset`,
-  )
+  const payload = await coreRequest<ResetSessionPayload>('POST', `/v1/sessions/${sessionId}/reset`)
   return payload.session
 }

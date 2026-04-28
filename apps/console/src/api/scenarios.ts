@@ -126,9 +126,15 @@ export async function deleteScenario(scenarioId: string): Promise<void> {
 
 export async function updateAvatar(
   avatarId: string,
-  updates: Partial<Pick<AvatarSummary, 'name' | 'personaPrompt' | 'tone' | 'description' | 'status'>>,
+  updates: Partial<
+    Pick<AvatarSummary, 'name' | 'personaPrompt' | 'tone' | 'description' | 'status'>
+  >,
 ): Promise<AvatarSummary> {
-  const payload = await coreRequest<UpdateAvatarPayload>('PATCH', `/v1/avatars/${avatarId}`, updates)
+  const payload = await coreRequest<UpdateAvatarPayload>(
+    'PATCH',
+    `/v1/avatars/${avatarId}`,
+    updates,
+  )
   return payload.avatar
 }
 
