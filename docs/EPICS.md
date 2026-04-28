@@ -284,6 +284,104 @@ A visible manual testing loop accelerates quality more than backend-only progres
 
 ---
 
+## EPIC 2.5 — Admin CRUD Completion + Console Integration
+
+**Purpose**
+Make the platform operationally manageable through complete admin CRUD flows directly usable from the console.
+
+**Description**
+Implement missing Tier 1 CRUD endpoints for scenarios, avatars, and sessions, then upgrade the manual console to consume these APIs for real administration instead of partial seed/demo flows.
+
+**Hypothesis**
+A complete admin plane accelerates testing, reduces developer dependency, and turns the console into a true back-office tool.
+
+**Includes**
+
+- `GET /v1/scenarios`
+- `PATCH /v1/scenarios/{scenarioId}`
+- `DELETE /v1/scenarios/{scenarioId}`
+- `PATCH /v1/avatars/{avatarId}`
+- `DELETE /v1/avatars/{avatarId}`
+- `GET /v1/sessions`
+- `POST /v1/sessions/{sessionId}/reset`
+- scenario list/edit/delete UI
+- avatar edit/delete UI
+- session list/filter/reset UI
+- dependency-safe delete conflict handling
+- repository + API contract updates
+
+**DoD**
+
+- operator can manage scenarios without code changes
+- operator can edit avatar prompts/configuration from UI
+- operator can inspect and reset sessions from UI
+- delete safety rules return clear conflicts
+- console uses real APIs end-to-end
+
+**What Can Be Tested**
+
+1. create scenario → list appears in console
+2. edit scenario → changes persist after reload
+3. edit avatar → updated behavior visible in next session
+4. blocked delete returns `409 CONFLICT`
+5. list sessions ordered by recent activity
+6. reset session preserves session record and clears runtime state
+7. full admin flow works from UI only
+
+**User Increment**
+
+- first usable internal admin console with real content lifecycle management
+
+---
+
+## EPIC 2.6 — GM Debug Panel v1 + Observability APIs
+
+**Purpose**
+Make Game Master orchestration visible and testable during Scenario Test Bench sessions.
+
+**Description**
+Add lightweight admin/debug APIs and a console GM Debug Panel showing triggers, transitions, unlocks, notes, and session orchestration state after each turn.
+
+**Hypothesis**
+Visible orchestration behavior dramatically improves debugging speed, scenario tuning, and trust in the Director–Actor architecture.
+
+**Includes**
+
+- GM Debug panel in Scenario Test Bench
+- before/after turn state refresh
+- active avatar display
+- unlocked avatars display
+- GM notes display
+- transition history display
+- recent GM events display
+- `GET /v1/admin/sessions/{sessionId}/inspect`
+- `GET /v1/admin/sessions/{sessionId}/events`
+- optional `GET /v1/admin/sessions/{sessionId}/gm-state`
+- admin-safe event filtering
+- no sensitive prompt/credential leakage
+
+**DoD**
+
+- tester can understand what the GM did after each turn
+- avatar switches are explainable
+- unlock logic is inspectable
+- GM events are queryable through API
+- debugging no longer requires DB access or raw logs
+
+**What Can Be Tested**
+
+1. send user message → GM event appears if trigger fires
+2. no trigger path logs `gm_skipped` event
+3. avatar transition displays reason + timestamp
+4. unlocked specialist avatar appears after qualifying turn
+5. inspect endpoint returns session + GM state summary
+6. events endpoint ordered newest first
+7. GM panel updates after every interaction
+
+**User Increment**
+
+- first operational cockpit for observing and tuning guided multi-avatar conversations
+
 # Sprint 4 — Orchestration Intelligence
 
 ---
