@@ -155,3 +155,55 @@ Minimal steps needed to reach A:
 - **Rework before close**
 
 The EPIC is close, and the architecture/build health are solid, but one of the shipped operator-facing behaviors is wrong in unlock-gated scenarios. That is enough to hold back closure until fixed.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Fixed reset-session correctness in `apps/core/src/application/use-cases/reset-session/reset-session.use-case.ts` by restoring initial unlock policy from scenario config (`resolveInitialUnlockedAvatarIds`) instead of clearing unlocks to an empty list.
+- Wired reset dependencies in `apps/core/src/api/routes/sessions.ts` so reset has access to scenario and avatar repositories.
+- Added reset policy regression test in `apps/core/src/application/use-cases/reset-session/reset-session.use-case.test.ts`.
+- Added HTTP contract tests for session ordering and filter semantics, plus reset unlock-policy behavior, in `apps/core/src/api/routes/sessions-admin.stack-e2e.test.ts`.
+- Aligned console session contract field in `apps/console/src/api/sessions.ts` from `availableAvatarIds` to `unlockedAvatarIds`.
+- Added behavior-focused console admin action tests:
+  - `apps/console/src/pages/scenario-row.actions.test.ts`
+  - `apps/console/src/pages/avatar-row.actions.test.ts`
+  - `apps/console/src/pages/session-admin.actions.test.ts`
+- Exported admin action helpers for testability without coupling tests to component internals:
+  - `apps/console/src/pages/scenario-row.tsx`
+  - `apps/console/src/pages/avatar-row.tsx`
+  - `apps/console/src/pages/SessionAdminPage.tsx`
+
+### Findings Resolved
+
+- Resolved: Reset leaves unlock-gated sessions unusable.
+- Resolved: Session list contract only partially proven at HTTP level.
+- Resolved: Console session type drift from API contract.
+- Resolved: Console admin flows had no automated behavioral coverage.
+
+### Findings Deferred
+
+- None.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`pnpm test:coverage`) — `289/289` tests passing, `91.46%` statements, `86.80%` branches, `97.89%` functions, `91.46%` lines
+
+### Final Feature Confidence
+
+- `PATCH /v1/scenarios/{scenarioId}` behavior proven by use-case + route + stack/e2e tests.
+- `PATCH /v1/avatars/{avatarId}` behavior proven by use-case + route + stack/e2e tests.
+- `GET /v1/sessions` ordering and filtering proven at HTTP contract boundary.
+- `POST /v1/sessions/{sessionId}/reset` now restores initial unlocked avatars and is regression-tested for unlock-policy scenarios.
+- Console admin edit/delete/reset behavior is now covered by focused interaction tests that validate observable outcomes and error mapping.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- Console tests cover behavior handlers and state outcomes, but not full DOM-level rendering flows with a browser runtime.

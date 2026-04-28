@@ -130,6 +130,8 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   const listSessionsUseCase = new ListSessionsUseCase(sessionRepository)
   const resetSessionUseCase = new ResetSessionUseCase(
     sessionRepository,
+    scenarioRepository,
+    avatarRepository,
     conversationRepository,
     messageRepository,
   )

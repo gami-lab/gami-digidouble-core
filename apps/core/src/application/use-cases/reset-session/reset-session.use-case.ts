@@ -1,12 +1,17 @@
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
+import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
+import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import { DomainError } from '../../../domain/errors.js'
+import { resolveInitialUnlockedAvatarIds } from '../../../domain/scenario/scenario-policy.service.js'
 import type { ResetSessionInput, ResetSessionOutput } from './reset-session.types.js'
 
 export class ResetSessionUseCase {
   constructor(
     private readonly sessionRepository: ISessionRepository,
+    private readonly scenarioRepository: IScenarioRepository,
+    private readonly avatarRepository: IAvatarRepository,
     private readonly conversationRepository: IConversationRepository,
     private readonly messageRepository: IMessageRepository,
   ) {}
@@ -16,6 +21,16 @@ export class ResetSessionUseCase {
     if (session === null) {
       throw new DomainError('NOT_FOUND', `Session ${input.sessionId} was not found.`)
     }
+
+    const scenario = await this.scenarioRepository.findById(session.scenarioId)
+    if (scenario === null) {
+      throw new DomainError('NOT_FOUND', `Scenario ${session.scenarioId} was not found.`)
+    }
+    const scenarioAvatars = await this.avatarRepository.listByScenarioId(session.scenarioId)
+    const initialUnlockedAvatarIds = resolveInitialUnlockedAvatarIds(
+      scenario.config,
+      scenarioAvatars,
+    )
 
     const conversations = await this.conversationRepository.listBySessionId(input.sessionId)
     await Promise.all(
@@ -28,7 +43,9 @@ export class ResetSessionUseCase {
     try {
       const updated = await this.sessionRepository.update(input.sessionId, {
         activeAvatarId: null,
-        unlockedAvatarIds: [],
+        ...(initialUnlockedAvatarIds !== undefined
+          ? { unlockedAvatarIds: initialUnlockedAvatarIds }
+          : {}),
         gmNotes: null,
         status: 'active',
         lastActivityAt: new Date().toISOString(),

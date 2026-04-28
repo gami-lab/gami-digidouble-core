@@ -155,7 +155,7 @@ export function SessionAdminPage({ scenarioId }: SessionAdminPageProps): JSX.Ele
   )
 }
 
-async function loadSessions(
+export async function loadSessions(
   scenarioId: string | undefined,
   setSessions: (v: SessionSummary[]) => void,
   setIsLoading: (v: boolean) => void,
@@ -173,7 +173,7 @@ async function loadSessions(
   }
 }
 
-async function performResetSession(
+export async function performResetSession(
   sessionId: string,
   onReset: (updated: SessionSummary) => void,
   setIsResetting: (v: boolean) => void,

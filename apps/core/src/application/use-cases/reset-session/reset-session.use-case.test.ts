@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
+import type { Scenario } from '../../../domain/scenario/scenario.types.js'
+import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
+import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
 import { ResetSessionUseCase } from './reset-session.use-case.js'
 
@@ -16,13 +20,64 @@ function makeSession(overrides: Partial<Session> & Pick<Session, 'sessionId'>): 
   }
 }
 
-describe('ResetSessionUseCase', () => {
+function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
+  return {
+    scenarioId: 'scenario_1',
+    name: 'Scenario 1',
+    status: 'active',
+    config: {
+      avatarAvailability: {
+        initialAvatarKeys: [],
+      },
+    },
+    createdAt: '2026-04-21T08:00:00.000Z',
+    updatedAt: '2026-04-21T08:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function makeAvatar({
+  avatarId,
+  ...overrides
+}: Partial<AvatarConfig> & Pick<AvatarConfig, 'avatarId'>): AvatarConfig {
+  return {
+    avatarId,
+    scenarioId: 'scenario_1',
+    name: 'Guide',
+    status: 'active',
+    personaPrompt: 'Guide persona',
+    config: { routeKey: 'guide' },
+    createdAt: '2026-04-21T08:00:00.000Z',
+    updatedAt: '2026-04-21T08:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function makeUseCase({
+  sessions = [],
+  scenarios = [makeScenario()],
+  avatars = [],
+  conversationRepository = new InMemoryConversationRepository(),
+  messageRepository = new InMemoryMessageRepository(),
+}: {
+  sessions?: Session[]
+  scenarios?: Scenario[]
+  avatars?: AvatarConfig[]
+  conversationRepository?: InMemoryConversationRepository
+  messageRepository?: InMemoryMessageRepository
+} = {}): ResetSessionUseCase {
+  return new ResetSessionUseCase(
+    new InMemorySessionRepository(sessions),
+    new InMemoryScenarioRepository(scenarios),
+    new InMemoryAvatarRepository(avatars),
+    conversationRepository,
+    messageRepository,
+  )
+}
+
+describe('ResetSessionUseCase baseline behavior', () => {
   it('throws NOT_FOUND when session does not exist', async () => {
-    const useCase = new ResetSessionUseCase(
-      new InMemorySessionRepository(),
-      new InMemoryConversationRepository(),
-      new InMemoryMessageRepository(),
-    )
+    const useCase = makeUseCase()
 
     await expect(useCase.execute({ sessionId: 'session_missing' })).rejects.toMatchObject({
       code: 'NOT_FOUND',
@@ -30,20 +85,17 @@ describe('ResetSessionUseCase', () => {
   })
 
   it('resets session state fields and returns updated session', async () => {
-    const sessionRepository = new InMemorySessionRepository([
-      makeSession({
-        sessionId: 'session_1',
-        activeAvatarId: 'avatar_1',
-        unlockedAvatarIds: ['avatar_1', 'avatar_2'],
-        gmNotes: 'Some GM notes',
-        status: 'closed',
-      }),
-    ])
-    const useCase = new ResetSessionUseCase(
-      sessionRepository,
-      new InMemoryConversationRepository(),
-      new InMemoryMessageRepository(),
-    )
+    const useCase = makeUseCase({
+      sessions: [
+        makeSession({
+          sessionId: 'session_1',
+          activeAvatarId: 'avatar_1',
+          unlockedAvatarIds: ['avatar_1', 'avatar_2'],
+          gmNotes: 'Some GM notes',
+          status: 'closed',
+        }),
+      ],
+    })
 
     const result = await useCase.execute({ sessionId: 'session_1' })
 
@@ -54,9 +106,6 @@ describe('ResetSessionUseCase', () => {
   })
 
   it('deletes all conversations and messages for the session', async () => {
-    const sessionRepository = new InMemorySessionRepository([
-      makeSession({ sessionId: 'session_1' }),
-    ])
     const conversationRepository = new InMemoryConversationRepository([
       {
         conversationId: 'conversation_1',
@@ -76,11 +125,11 @@ describe('ResetSessionUseCase', () => {
         createdAt: '2026-04-21T08:01:00.000Z',
       },
     ])
-    const useCase = new ResetSessionUseCase(
-      sessionRepository,
+    const useCase = makeUseCase({
+      sessions: [makeSession({ sessionId: 'session_1' })],
       conversationRepository,
       messageRepository,
-    )
+    })
 
     await useCase.execute({ sessionId: 'session_1' })
 
@@ -93,20 +142,58 @@ describe('ResetSessionUseCase', () => {
 
   it('refreshes lastActivityAt to a recent timestamp', async () => {
     const beforeReset = new Date().toISOString()
-    const sessionRepository = new InMemorySessionRepository([
-      makeSession({
-        sessionId: 'session_1',
-        lastActivityAt: '2026-01-01T00:00:00.000Z',
-      }),
-    ])
-    const useCase = new ResetSessionUseCase(
-      sessionRepository,
-      new InMemoryConversationRepository(),
-      new InMemoryMessageRepository(),
-    )
+    const useCase = makeUseCase({
+      sessions: [
+        makeSession({
+          sessionId: 'session_1',
+          lastActivityAt: '2026-01-01T00:00:00.000Z',
+        }),
+      ],
+    })
 
     const result = await useCase.execute({ sessionId: 'session_1' })
 
     expect(result.session.lastActivityAt >= beforeReset).toBe(true)
+  })
+})
+
+describe('ResetSessionUseCase unlock policy behavior', () => {
+  it('restores initial unlocked avatars from scenario policy after reset', async () => {
+    const useCase = makeUseCase({
+      sessions: [
+        makeSession({
+          sessionId: 'session_1',
+          scenarioId: 'scenario_policy',
+          unlockedAvatarIds: ['avatar_guide', 'avatar_ethics'],
+        }),
+      ],
+      scenarios: [
+        makeScenario({
+          scenarioId: 'scenario_policy',
+          config: {
+            avatarAvailability: {
+              initialAvatarKeys: ['guide'],
+            },
+          },
+        }),
+      ],
+      avatars: [
+        makeAvatar({
+          avatarId: 'avatar_guide',
+          scenarioId: 'scenario_policy',
+          config: { routeKey: 'guide' },
+        }),
+        makeAvatar({
+          avatarId: 'avatar_ethics',
+          scenarioId: 'scenario_policy',
+          name: 'Ethics',
+          config: { routeKey: 'ethics' },
+        }),
+      ],
+    })
+
+    const result = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(result.session.unlockedAvatarIds).toEqual(['avatar_guide'])
   })
 })

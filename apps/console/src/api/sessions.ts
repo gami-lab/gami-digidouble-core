@@ -5,7 +5,7 @@ export type SessionSummary = {
   userId: string
   scenarioId: string
   activeAvatarId?: string | null
-  availableAvatarIds?: string[]
+  unlockedAvatarIds?: string[]
   status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string

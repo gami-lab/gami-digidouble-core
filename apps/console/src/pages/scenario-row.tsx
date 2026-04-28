@@ -186,7 +186,7 @@ export function ScenarioEditForm({
   )
 }
 
-async function performUpdateScenario(
+export async function performUpdateScenario(
   scenarioId: string,
   updates: { name: string; status: ScenarioStatus },
   onSaved: (updated: ScenarioSummary) => void,
@@ -205,7 +205,7 @@ async function performUpdateScenario(
   }
 }
 
-async function performDeleteScenario(
+export async function performDeleteScenario(
   scenarioId: string,
   onDeleted: (id: string) => void,
   setDeleteError: (e: string | null) => void,

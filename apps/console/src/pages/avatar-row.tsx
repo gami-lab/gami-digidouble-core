@@ -202,7 +202,7 @@ export function AvatarEditForm({ avatar, onSaved, onCancel }: AvatarEditFormProp
   )
 }
 
-async function performUpdateAvatar(
+export async function performUpdateAvatar(
   avatarId: string,
   values: AvatarEditValues,
   onSaved: (updated: AvatarSummary) => void,
@@ -226,7 +226,7 @@ async function performUpdateAvatar(
   }
 }
 
-async function performDeleteAvatar(
+export async function performDeleteAvatar(
   avatarId: string,
   onDeleted: (avatarId: string) => void,
   setDeleteError: (e: string | null) => void,
