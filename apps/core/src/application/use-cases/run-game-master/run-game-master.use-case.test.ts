@@ -320,6 +320,7 @@ describe('RunGameMasterUseCase — defensive error paths', () => {
   it('emitEventSafe failure does not propagate and execute() still resolves', async () => {
     const failingEventLog = {
       append: vi.fn().mockRejectedValue(new Error('db write failed')),
+      findBySessionId: vi.fn(),
     }
     const useCase = new RunGameMasterUseCase(
       gmStateRepository,

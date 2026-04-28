@@ -476,6 +476,15 @@ Every GM decision must emit a structured event to the `EventLog` so operators ca
 
 This is required for admin inspection via `GET /v1/admin/sessions/{sessionId}/events`.
 
+The EventLog repository exposes both append and session-scoped read operations:
+
+```ts
+interface IEventLogRepository {
+  append(event: StoredEvent): Promise<void>
+  findBySessionId(sessionId: string, opts?: { limit?: number }): Promise<StoredEvent[]>
+}
+```
+
 ## Required Fields
 
 ```ts

@@ -12,6 +12,15 @@ Update it as epics and features are completed.
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
+### EPIC 2.6 — GM Debug Panel v1 + Observability APIs: **in progress** (April 28, 2026)
+
+Repository groundwork for `GET /v1/admin/sessions/{sessionId}/events` is implemented:
+
+- `IEventLogRepository.findBySessionId(sessionId, { limit? })` added
+- `StoredEvent.createdAt` added for timestamp surfacing on read responses
+- In-memory and Postgres event log repositories now return session events newest-first and support an optional limit
+- Postgres integration coverage verifies session filtering, newest-first ordering, limit handling, empty results, and `createdAt` mapping
+
 ### EPIC 2.5 — Admin CRUD Completion + Console Integration: **complete** (April 28, 2026)
 
 All four new endpoints are implemented, tested, and documented:
@@ -406,7 +415,7 @@ GM system — Prompt 05 (Tests and hardening) is done:
 - GM state persistence (table `gm_states`, in-memory + Postgres repositories, adapter wiring)
 - GM deterministic trigger engine (`evaluateTriggers`) with policy thresholds for `turn_threshold`, `topic_repeat`, and `progression_stalled`
 - GM background orchestration wired (`RunGameMasterUseCase`): non-blocking execution from `SendMessageUseCase`, state reducer persistence, and session-level director notes injection into next avatar prompt
-- Event log infrastructure (table `event_log`, `IEventLogRepository` port, `InMemoryEventLogRepository`, `PostgresEventLogRepository`); `RunGameMasterUseCase` emits `gm_triggered` and `gm_skipped` events on every run; emission failures are swallowed and logged to stderr
+- Event log infrastructure (table `event_log`, `IEventLogRepository` port, `InMemoryEventLogRepository`, `PostgresEventLogRepository`); `RunGameMasterUseCase` emits `gm_triggered` and `gm_skipped` events on every run; repositories support session-scoped newest-first event reads for admin inspection; emission failures are swallowed and logged to stderr
 - Scenario management (create)
 - Scenario management (create, list, delete with dependency checks)
 - Avatar management (create, list-by-scenario, delete with active-session safety checks)
