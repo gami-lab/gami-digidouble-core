@@ -129,6 +129,8 @@ const createScenarioBodySchema = {
   additionalProperties: false,
 } as const
 
+// All fields are optional — the empty-body guard (at least one field required)
+// is enforced in UpdateScenarioUseCase, not at the schema level.
 const updateScenarioBodySchema = {
   type: 'object',
   properties: {
@@ -295,9 +297,12 @@ function registerUpdateScenarioRoute(app: FastifyInstance, useCase: UpdateScenar
     { schema: { params: scenarioIdParamsSchema, body: updateScenarioBodySchema } },
     async (request, reply) => {
       try {
+        const { name, status, config } = request.body
         const output = await useCase.execute({
           scenarioId: request.params.scenarioId,
-          ...mapUpdateInput(request.body),
+          ...(name !== undefined ? { name } : {}),
+          ...(status !== undefined ? { status } : {}),
+          ...(config !== undefined ? { config } : {}),
         })
         return await reply.send(ok<PatchScenarioResponse>(mapUpdateResponse(output)))
       } catch (error) {
@@ -384,14 +389,6 @@ function mapCreateAvatarResponse(output: CreateAvatarOutput): CreateAvatarRespon
       createdAt: output.avatar.createdAt,
       updatedAt: output.avatar.updatedAt,
     },
-  }
-}
-
-function mapUpdateInput(body: UpdateScenarioRequestBody): Omit<UpdateScenarioRequestBody, never> {
-  return {
-    ...(body.name !== undefined ? { name: body.name } : {}),
-    ...(body.status !== undefined ? { status: body.status } : {}),
-    ...(body.config !== undefined ? { config: body.config } : {}),
   }
 }
 
