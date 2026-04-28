@@ -382,11 +382,11 @@ GET /v1/sessions
 
 All parameters are optional.
 
-| Parameter    | Type                              | Description                                  |
-| ------------ | --------------------------------- | -------------------------------------------- |
-| `scenarioId` | string                            | Filter sessions by scenario                  |
-| `userId`     | string                            | Filter sessions by user                      |
-| `status`     | `active` \| `closed` \| `archived` | Filter sessions by status                  |
+| Parameter    | Type                               | Description                 |
+| ------------ | ---------------------------------- | --------------------------- |
+| `scenarioId` | string                             | Filter sessions by scenario |
+| `userId`     | string                             | Filter sessions by user     |
+| `status`     | `active` \| `closed` \| `archived` | Filter sessions by status   |
 
 ### Response
 
