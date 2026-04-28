@@ -41,7 +41,7 @@ Prefer:
 - stronger tests
 - documentation sync
 
----
+## Commit the changes
 
 ## CRITICAL TESTING RULES
 

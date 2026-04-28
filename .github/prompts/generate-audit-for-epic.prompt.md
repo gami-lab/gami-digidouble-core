@@ -150,6 +150,8 @@ Create or overwrite:
 
 (in current EPIC folder)
 
+Commit the changes
+
 ---
 
 ## REQUIRED FILE CONTENT

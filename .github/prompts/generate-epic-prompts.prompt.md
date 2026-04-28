@@ -82,6 +82,8 @@ docs/implementation-prompts/epic-3-2-public-core-api/
 README.md
 ```
 
+Commit the changes
+
 ---
 
 # README.md Must Contain
