@@ -12,6 +12,7 @@ import {
   sectionStyle,
   successStyle,
 } from './form-styles'
+import { AvatarRow } from './avatar-row'
 
 type AvatarPageProps = {
   scenarioId: string
@@ -67,6 +68,14 @@ export function AvatarPage({
     )
   }
 
+  const handleAvatarUpdated = (updated: AvatarSummary): void => {
+    setAvatars((prev) => prev.map((a) => (a.avatarId === updated.avatarId ? updated : a)))
+  }
+
+  const handleAvatarDeleted = (avatarId: string): void => {
+    setAvatars((prev) => prev.filter((a) => a.avatarId !== avatarId))
+  }
+
   return (
     <section style={sectionStyle}>
       <h2 style={{ marginTop: 0 }}>Avatar</h2>
@@ -87,6 +96,8 @@ export function AvatarPage({
         listError={listError}
         selectedAvatarId={selectedAvatarId}
         onAvatarSelected={onAvatarSelected}
+        onAvatarUpdated={handleAvatarUpdated}
+        onAvatarDeleted={handleAvatarDeleted}
       />
 
       {selectedAvatarId !== null ? (
@@ -181,6 +192,8 @@ type AvatarListProps = {
   listError: string | null
   selectedAvatarId: string | null
   onAvatarSelected: (avatar: AvatarSummary) => void
+  onAvatarUpdated: (avatar: AvatarSummary) => void
+  onAvatarDeleted: (avatarId: string) => void
 }
 
 function AvatarList({
@@ -189,6 +202,8 @@ function AvatarList({
   listError,
   selectedAvatarId,
   onAvatarSelected,
+  onAvatarUpdated,
+  onAvatarDeleted,
 }: AvatarListProps): JSX.Element {
   return (
     <>
@@ -196,35 +211,16 @@ function AvatarList({
       {isLoading ? <p>Loading avatars…</p> : null}
       {listError !== null ? <p style={errorStyle}>{listError}</p> : null}
       {avatars.length === 0 ? <p style={{ color: '#6b7280' }}>No avatars yet.</p> : null}
-      {avatars.map((avatar) => {
-        const isSelected = avatar.avatarId === selectedAvatarId
-        return (
-          <div
-            key={avatar.avatarId}
-            style={{
-              marginTop: '8px',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '10px',
-              backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
-            }}
-          >
-            <div>
-              <strong>{avatar.name}</strong> · {avatar.status}
-            </div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>Avatar ID: {avatar.avatarId}</div>
-            <button
-              type="button"
-              style={{ ...buttonStyle, marginTop: '8px' }}
-              onClick={() => {
-                onAvatarSelected(avatar)
-              }}
-            >
-              {isSelected ? 'Selected avatar' : 'Select avatar'}
-            </button>
-          </div>
-        )
-      })}
+      {avatars.map((avatar) => (
+        <AvatarRow
+          key={avatar.avatarId}
+          avatar={avatar}
+          isSelected={avatar.avatarId === selectedAvatarId}
+          onSelected={onAvatarSelected}
+          onUpdated={onAvatarUpdated}
+          onDeleted={onAvatarDeleted}
+        />
+      ))}
     </>
   )
 }

@@ -149,3 +149,36 @@ export async function listSessionConversations(sessionId: string): Promise<Conve
 export async function getHistory(conversationId: string): Promise<GetHistoryResponse> {
   return coreRequest<GetHistoryResponse>('GET', `/v1/conversations/${conversationId}/history`)
 }
+
+export type ListSessionsFilter = {
+  scenarioId?: string
+  userId?: string
+  status?: string
+}
+
+type ListSessionsPayload = {
+  sessions: SessionSummary[]
+}
+
+type ResetSessionPayload = {
+  session: SessionSummary
+}
+
+export async function listSessions(filter?: ListSessionsFilter): Promise<SessionSummary[]> {
+  const params = new URLSearchParams()
+  if (filter?.scenarioId !== undefined) params.set('scenarioId', filter.scenarioId)
+  if (filter?.userId !== undefined) params.set('userId', filter.userId)
+  if (filter?.status !== undefined) params.set('status', filter.status)
+  const query = params.toString()
+  const path = query.length > 0 ? `/v1/sessions?${query}` : '/v1/sessions'
+  const payload = await coreRequest<ListSessionsPayload>('GET', path)
+  return payload.sessions
+}
+
+export async function resetSession(sessionId: string): Promise<SessionSummary> {
+  const payload = await coreRequest<ResetSessionPayload>(
+    'POST',
+    `/v1/sessions/${sessionId}/reset`,
+  )
+  return payload.session
+}

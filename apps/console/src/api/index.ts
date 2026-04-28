@@ -1,11 +1,22 @@
 export { ApiError, coreRequest } from './client'
-export { createAvatar, createScenario, listScenarioAvatars, listScenarios } from './scenarios'
+export {
+  createAvatar,
+  createScenario,
+  deleteAvatar,
+  deleteScenario,
+  listScenarioAvatars,
+  listScenarios,
+  updateAvatar,
+  updateScenario,
+} from './scenarios'
 export { sendMessage } from './messages'
 export {
   getAvailableAvatars,
   getHistory,
   getSession,
   listSessionConversations,
+  listSessions,
+  resetSession,
   startConversation,
   startSession,
   switchAvatar,
@@ -23,6 +34,7 @@ export type {
   ConversationSummary,
   GetAvailableAvatarsResponse,
   GetHistoryResponse,
+  ListSessionsFilter,
   Message,
   SessionSummary,
   StartConversationParams,
