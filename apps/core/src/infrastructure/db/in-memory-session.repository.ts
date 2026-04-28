@@ -45,14 +45,14 @@ export class InMemorySessionRepository implements ISessionRepository {
     const merged = { ...current, ...updates }
     let updated: Session = merged as Session
     if (Object.hasOwn(updates, 'gmNotes') && updates.gmNotes === null) {
-      const without = { ...updated }
-      delete (without as { gmNotes?: string }).gmNotes
-      updated = without as Session
+      const withoutGmNotes = { ...updated }
+      delete (withoutGmNotes as { gmNotes?: string }).gmNotes
+      updated = withoutGmNotes as Session
     }
     if (Object.hasOwn(updates, 'activeAvatarId') && updates.activeAvatarId === null) {
-      const without = { ...updated }
-      delete (without as { activeAvatarId?: string }).activeAvatarId
-      updated = without as Session
+      const withoutActiveAvatar = { ...updated }
+      delete (withoutActiveAvatar as { activeAvatarId?: string }).activeAvatarId
+      updated = withoutActiveAvatar as Session
     }
     this.sessions.set(sessionId, updated)
     return Promise.resolve(updated)
