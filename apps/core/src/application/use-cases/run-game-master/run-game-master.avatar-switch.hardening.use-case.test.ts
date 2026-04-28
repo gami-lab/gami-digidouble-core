@@ -36,6 +36,7 @@ const avatarRepository = {
   create: vi.fn(),
   listByScenarioId: listAvatarsByScenarioIdMock,
   delete: vi.fn(),
+  update: vi.fn(),
 }
 
 const llm = { complete: completeMock }

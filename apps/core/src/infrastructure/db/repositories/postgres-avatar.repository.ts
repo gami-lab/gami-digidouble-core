@@ -2,8 +2,10 @@ import type { JSONValue, Sql } from 'postgres'
 import type {
   CreateAvatarParams,
   IAvatarRepository,
+  UpdateAvatarParams,
 } from '../../../application/ports/IAvatarRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import { DomainError } from '../../../domain/errors.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
 interface AvatarRow {
@@ -101,5 +103,64 @@ export class PostgresAvatarRepository implements IAvatarRepository {
       DELETE FROM avatars
       WHERE id = ${uuid}
     `
+  }
+
+  async update(avatarId: string, updates: UpdateAvatarParams): Promise<AvatarConfig> {
+    const uuid = extractUuid('avatar_', avatarId)
+    if (uuid === null) {
+      throw new DomainError('NOT_FOUND', 'Avatar not found')
+    }
+
+    const setClauses: string[] = ['updated_at = NOW()']
+    const values: string[] = []
+
+    if (updates.name !== undefined) {
+      values.push(updates.name)
+      setClauses.push(`name = $${String(values.length)}`)
+    }
+    if (updates.personaPrompt !== undefined) {
+      values.push(updates.personaPrompt)
+      setClauses.push(`persona_prompt = $${String(values.length)}`)
+    }
+    if (updates.tone !== undefined) {
+      values.push(updates.tone)
+      setClauses.push(`tone = $${String(values.length)}`)
+    }
+    if (updates.description !== undefined) {
+      values.push(updates.description)
+      setClauses.push(`description = $${String(values.length)}`)
+    }
+    if (updates.adjustments !== undefined) {
+      values.push(JSON.stringify(updates.adjustments))
+      setClauses.push(`adjustments = $${String(values.length)}`)
+    }
+    if (updates.config !== undefined) {
+      values.push(JSON.stringify(updates.config))
+      setClauses.push(`config = $${String(values.length)}`)
+    }
+    if (updates.status !== undefined) {
+      values.push(updates.status)
+      setClauses.push(`status = $${String(values.length)}`)
+    }
+
+    values.push(uuid)
+    const whereParam = `$${String(values.length)}`
+
+    const query = `
+      UPDATE avatars
+      SET ${setClauses.join(', ')}
+      WHERE id = ${whereParam}
+      RETURNING
+        id, scenario_id, name, status,
+        persona_prompt, tone, description, adjustments, config,
+        created_at, updated_at
+    `
+
+    const rows = await this.sql.unsafe<AvatarRow[]>(query, values)
+    const row = rows[0]
+    if (row === undefined) {
+      throw new DomainError('NOT_FOUND', 'Avatar not found')
+    }
+    return rowToAvatarConfig(row)
   }
 }
