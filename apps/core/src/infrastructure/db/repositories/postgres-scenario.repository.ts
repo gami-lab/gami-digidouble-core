@@ -2,8 +2,10 @@ import type { JSONValue, Sql } from 'postgres'
 import type {
   CreateScenarioParams,
   IScenarioRepository,
+  UpdateScenarioParams,
 } from '../../../application/ports/IScenarioRepository.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
+import { DomainError } from '../../../domain/errors.js'
 import { extractUuid } from './id-prefix.js'
 
 interface ScenarioRow {
@@ -69,5 +71,45 @@ export class PostgresScenarioRepository implements IScenarioRepository {
       DELETE FROM scenarios
       WHERE id = ${uuid}
     `
+  }
+
+  async update(scenarioId: string, updates: UpdateScenarioParams): Promise<Scenario> {
+    const uuid = extractUuid('scenario_', scenarioId)
+    if (uuid === null) {
+      throw new DomainError('NOT_FOUND', 'Scenario not found')
+    }
+
+    const setClauses: string[] = ['updated_at = NOW()']
+    const values: unknown[] = []
+
+    if (updates.name !== undefined) {
+      values.push(updates.name)
+      setClauses.push(`name = $${String(values.length)}`)
+    }
+    if (updates.status !== undefined) {
+      values.push(updates.status)
+      setClauses.push(`status = $${String(values.length)}`)
+    }
+    if (updates.config !== undefined) {
+      values.push(JSON.stringify(updates.config))
+      setClauses.push(`config = $${String(values.length)}::jsonb`)
+    }
+
+    values.push(uuid)
+    const whereParam = `$${String(values.length)}`
+
+    const query = `
+      UPDATE scenarios
+      SET ${setClauses.join(', ')}
+      WHERE id = ${whereParam}
+      RETURNING id, name, status, config, created_at, updated_at
+    `
+
+    const rows = await this.sql.unsafe(query, values as string[])
+    const row = rows[0] as ScenarioRow | undefined
+    if (!row) {
+      throw new DomainError('NOT_FOUND', 'Scenario not found')
+    }
+    return rowToScenario(row)
   }
 }

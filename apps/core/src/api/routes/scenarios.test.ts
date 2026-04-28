@@ -270,6 +270,7 @@ describe('POST /v1/scenarios — optional field coverage', () => {
       findById: () => Promise.resolve(null),
       list: () => Promise.resolve([]),
       delete: () => Promise.resolve(),
+      update: () => Promise.reject(new Error('DB connection failed')),
     }
 
     const response = await createServer(testConfig, { scenarioRepository: brokenRepo }).inject({

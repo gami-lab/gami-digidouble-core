@@ -69,4 +69,37 @@ describe('InMemoryScenarioRepository', () => {
 
     await expect(repository.findById('scenario_seeded')).resolves.toBeNull()
   })
+
+  it('update throws NOT_FOUND for unknown id', async () => {
+    const repository = new InMemoryScenarioRepository()
+
+    await expect(repository.update('scenario_missing', { name: 'X' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
+  })
+
+  it('update merges only supplied fields', async () => {
+    const seeded = makeScenario({
+      scenarioId: 'scenario_1',
+      name: 'Old',
+      status: 'draft',
+      config: {},
+    })
+    const repository = new InMemoryScenarioRepository([seeded])
+
+    const updated = await repository.update('scenario_1', { name: 'New' })
+
+    expect(updated.name).toBe('New')
+    expect(updated.status).toBe('draft')
+    expect(updated.config).toEqual({})
+  })
+
+  it('update refreshes updatedAt', async () => {
+    const seeded = makeScenario({ scenarioId: 'scenario_1' })
+    const repository = new InMemoryScenarioRepository([seeded])
+
+    const updated = await repository.update('scenario_1', { status: 'active' })
+
+    expect(updated.updatedAt).not.toBe(seeded.updatedAt)
+  })
 })

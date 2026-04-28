@@ -19,6 +19,8 @@ import { ListScenarioAvatarsUseCase } from '../../application/use-cases/list-sce
 import type { ListScenarioAvatarsOutput } from '../../application/use-cases/list-scenario-avatars/list-scenario-avatars.types.js'
 import { ListScenariosUseCase } from '../../application/use-cases/list-scenarios/list-scenarios.use-case.js'
 import type { ListScenariosOutput } from '../../application/use-cases/list-scenarios/list-scenarios.types.js'
+import { UpdateScenarioUseCase } from '../../application/use-cases/update-scenario/update-scenario.use-case.js'
+import type { UpdateScenarioOutput } from '../../application/use-cases/update-scenario/update-scenario.types.js'
 import type { AvatarStatus } from '../../domain/avatar/avatar.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
@@ -65,6 +67,27 @@ type DeleteScenarioRequestParams = {
   scenarioId: string
 }
 
+type UpdateScenarioRequestParams = {
+  scenarioId: string
+}
+
+type UpdateScenarioRequestBody = {
+  name?: string
+  status?: ScenarioStatus
+  config?: Record<string, unknown>
+}
+
+type UpdateScenarioResponse = {
+  scenario: {
+    scenarioId: string
+    name: string
+    status: ScenarioStatus
+    config: Record<string, unknown>
+    createdAt: string
+    updatedAt: string
+  }
+}
+
 type CreateAvatarRequestBody = {
   name: string
   personaPrompt: string
@@ -93,10 +116,21 @@ type CreateAvatarResponse = {
 type ListScenariosResponse = ListScenariosOutput
 type ListScenarioAvatarsResponse = ListScenarioAvatarsOutput
 type DeleteScenarioResponse = DeleteScenarioOutput
+type PatchScenarioResponse = UpdateScenarioResponse
 
 const createScenarioBodySchema = {
   type: 'object',
   required: ['name'],
+  properties: {
+    name: { type: 'string', minLength: 1 },
+    status: { type: 'string', enum: ['draft', 'active', 'archived'] },
+    config: { type: 'object' },
+  },
+  additionalProperties: false,
+} as const
+
+const updateScenarioBodySchema = {
+  type: 'object',
   properties: {
     name: { type: 'string', minLength: 1 },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
@@ -148,6 +182,7 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
     avatarRepository,
     sessionRepository,
   )
+  const updateScenarioUseCase = new UpdateScenarioUseCase(scenarioRepository)
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
@@ -156,6 +191,7 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
   registerCreateAvatarRoute(app, createAvatarUseCase)
   registerListScenarioAvatarsRoute(app, listScenarioAvatarsUseCase)
   registerDeleteScenarioRoute(app, deleteScenarioUseCase)
+  registerUpdateScenarioRoute(app, updateScenarioUseCase)
 }
 
 function registerListScenariosRoute(app: FastifyInstance, useCase: ListScenariosUseCase): void {
@@ -253,6 +289,24 @@ function registerDeleteScenarioRoute(app: FastifyInstance, useCase: DeleteScenar
   )
 }
 
+function registerUpdateScenarioRoute(app: FastifyInstance, useCase: UpdateScenarioUseCase): void {
+  app.patch<{ Params: UpdateScenarioRequestParams; Body: UpdateScenarioRequestBody }>(
+    '/:scenarioId',
+    { schema: { params: scenarioIdParamsSchema, body: updateScenarioBodySchema } },
+    async (request, reply) => {
+      try {
+        const output = await useCase.execute({
+          scenarioId: request.params.scenarioId,
+          ...mapUpdateInput(request.body),
+        })
+        return await reply.send(ok<PatchScenarioResponse>(mapUpdateResponse(output)))
+      } catch (error) {
+        return handleDomainError(error, reply)
+      }
+    },
+  )
+}
+
 async function handleDomainError(error: unknown, reply: FastifyReply): Promise<FastifyReply> {
   if (error instanceof DomainError) {
     if (error.code === 'VALIDATION_ERROR' || error.code === 'INVALID_INPUT') {
@@ -329,6 +383,27 @@ function mapCreateAvatarResponse(output: CreateAvatarOutput): CreateAvatarRespon
         : {}),
       createdAt: output.avatar.createdAt,
       updatedAt: output.avatar.updatedAt,
+    },
+  }
+}
+
+function mapUpdateInput(body: UpdateScenarioRequestBody): Omit<UpdateScenarioRequestBody, never> {
+  return {
+    ...(body.name !== undefined ? { name: body.name } : {}),
+    ...(body.status !== undefined ? { status: body.status } : {}),
+    ...(body.config !== undefined ? { config: body.config } : {}),
+  }
+}
+
+function mapUpdateResponse(output: UpdateScenarioOutput): UpdateScenarioResponse {
+  return {
+    scenario: {
+      scenarioId: output.scenario.scenarioId,
+      name: output.scenario.name,
+      status: output.scenario.status,
+      config: output.scenario.config as Record<string, unknown>,
+      createdAt: output.scenario.createdAt,
+      updatedAt: output.scenario.updatedAt,
     },
   }
 }

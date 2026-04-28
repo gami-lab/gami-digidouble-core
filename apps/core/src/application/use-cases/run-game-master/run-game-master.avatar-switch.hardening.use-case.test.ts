@@ -86,6 +86,7 @@ function makeScenarioRepository(config: Record<string, unknown>) {
     create: vi.fn(),
     list: vi.fn(),
     delete: vi.fn(),
+    update: vi.fn(),
   }
 }
 

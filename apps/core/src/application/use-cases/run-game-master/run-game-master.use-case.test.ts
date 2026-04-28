@@ -417,6 +417,7 @@ describe('RunGameMasterUseCase — scenario policy wiring', () => {
     create: vi.fn(),
     list: vi.fn(),
     delete: vi.fn(),
+    update: vi.fn(),
   }
 
   function createUseCaseWithScenario(eventLog?: InMemoryEventLogRepository): RunGameMasterUseCase {
