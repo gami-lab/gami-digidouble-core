@@ -743,7 +743,8 @@ Keeps:
 - user_memory_facts(user_id, category)
 - knowledge_sources(scenario_id)
 - knowledge_chunks(source_id)
-- event_logs(session_id, created_at)
+- event_log(session_id)
+- event_log(type)
 
 Add unique indexes where relevant:
 

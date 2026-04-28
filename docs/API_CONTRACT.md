@@ -1106,26 +1106,7 @@ type DeleteUserMemoryFactResponse = {
 
 ## 16. Get Session Events
 
-Deprecated draft path. The implemented Phase A endpoint is `GET /v1/admin/sessions/{sessionId}/events`; see Admin / Operations API A6.
-
-### Endpoint
-
-```text
-GET /v1/admin/sessions/{sessionId}/events
-```
-
-### Response
-
-```ts id="ovq9az"
-type GetSessionEventsResponse = {
-  events: Array<{
-    id: string
-    type: string
-    createdAt: string
-    payload?: Record<string, unknown>
-  }>
-}
-```
+Deprecated draft section. The implemented Phase A endpoint is `GET /v1/admin/sessions/{sessionId}/events`; see Admin / Operations API A6 for the authoritative contract.
 
 ---
 
@@ -1254,7 +1235,7 @@ type AdminListSessionsResponse = {
 
 ---
 
-## A4. Inspect Session Orchestration State
+## A4. Admin: Inspect Session
 
 Implemented Phase A endpoint for GM Debug Panel state inspection.
 
@@ -1335,7 +1316,7 @@ type AdminSessionMemoryResponse = {
 
 ---
 
-## A6. Get Session Events
+## A6. Admin: List Session Events
 
 ### Endpoint
 
@@ -1345,7 +1326,9 @@ GET /v1/admin/sessions/{sessionId}/events
 
 ### Query Parameters
 
-- `limit` (optional): positive integer, default `50`, clamped to max `200`
+| Parameter | Type    | Default | Max | Description                    |
+| --------- | ------- | ------- | --- | ------------------------------ |
+| `limit`   | integer | `50`    | 200 | Max number of events to return |
 
 ### Response
 

@@ -10,22 +10,20 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
-### EPIC 2.6 — GM Debug Panel v1 + Observability APIs: **in progress** (April 28, 2026)
+### EPIC 2.6 — GM Debug Panel v1 + Observability APIs: **complete** (April 28, 2026)
 
-Repository groundwork for `GET /v1/admin/sessions/{sessionId}/events` is implemented:
+The GM Debug Panel and supporting observability APIs are implemented, tested, and documented:
 
-- `IEventLogRepository.findBySessionId(sessionId, { limit? })` added
-- `StoredEvent.createdAt` added for timestamp surfacing on read responses
-- In-memory and Postgres event log repositories now return session events newest-first and support an optional limit
-- Postgres integration coverage verifies session filtering, newest-first ordering, limit handling, empty results, and `createdAt` mapping
-- `GET /v1/admin/sessions/{sessionId}/inspect` implemented with auth, session summary, GM state snapshot, newest-first transition history, unlocked avatars, GM notes, and admin-safe response filtering
-- `GET /v1/admin/sessions/{sessionId}/events` implemented with auth, positive integer `limit` validation, default 50 / max 200 limit handling, newest-first safe GM event records, and non-GM event filtering
-- Stack-E2E contract coverage added for both EPIC 2.6 admin session endpoints: auth, not-found, events limit validation, happy-path response shape, no raw message content in inspect, and GM-only event filtering
-- Console API client exposes `inspectSession(sessionId)` for the upcoming GM Debug Panel
-- Console API client exposes `listSessionEvents(sessionId, { limit? })` for the upcoming GM Debug Panel
-- Console Scenario Test Bench includes a collapsed-by-default GM Debug Panel with manual refresh, automatic refresh after message turns, active avatar, unlocked avatars, GM notes, transition history, recent GM events, loading, and error states
+- `IEventLogRepository.findBySessionId` implemented in memory and Postgres, with `StoredEvent.createdAt` populated on reads
+- `GET /v1/admin/sessions/{sessionId}/inspect` — returns session summary, GM state snapshot, newest-first transition history, unlocked avatars, and GM notes
+- `GET /v1/admin/sessions/{sessionId}/events` — returns safe GM event records newest-first, supports a positive integer `limit` query param with default 50 / max 200, and filters out non-GM events
+- `admin-sessions.stack-e2e.test.ts` — covers auth, validation, not-found, happy-path response shape, no raw message content in inspect, and GM-only event filtering
+- Console Scenario Test Bench includes a collapsed-by-default GM Debug Panel that auto-refreshes after each message turn and supports manual refresh
+- Panel displays active avatar, unlocked avatars, GM notes, transition history, recent GM events, loading state, and local error state
+- No sensitive prompt content, raw user message content, credentials, or LLM model names are exposed through the EPIC 2.6 admin endpoints
+- Quality gates confirmed during implementation: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, focused Postgres event-log integration, and focused admin stack-E2E coverage pass
 
 ### EPIC 2.5 — Admin CRUD Completion + Console Integration: **complete** (April 28, 2026)
 

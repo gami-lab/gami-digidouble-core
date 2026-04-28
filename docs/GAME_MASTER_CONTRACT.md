@@ -474,7 +474,7 @@ The GM is here to **route and lightly guide**, not to control everything.
 
 Every GM decision must emit a structured event to the `EventLog` so operators can inspect why it triggered and what it decided.
 
-This is implemented for admin inspection via `GET /v1/admin/sessions/{sessionId}/events`.
+Admin inspection endpoint `GET /v1/admin/sessions/{sessionId}/events` is **implemented** (EPIC 2.6). See `docs/API_CONTRACT.md` for full contract.
 
 The EventLog repository exposes both append and session-scoped read operations:
 
