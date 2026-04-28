@@ -10,7 +10,28 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+
+### EPIC 2.5 — Admin CRUD Completion + Console Integration: **complete** (April 28, 2026)
+
+All four new endpoints are implemented, tested, and documented:
+
+- `PATCH /v1/scenarios/{scenarioId}` — partial update of scenario name, status, and config
+- `PATCH /v1/avatars/{avatarId}` — partial update of avatar fields (name, personaPrompt, tone, description, adjustments, config, status)
+- `GET /v1/sessions` — list all sessions with optional filtering by `scenarioId`, `userId`, or `status`, ordered by `lastActivityAt DESC`
+- `POST /v1/sessions/{sessionId}/reset` — hard reset of session state: deletes conversations and messages, clears `activeAvatarId`, `unlockedAvatarIds`, `gmNotes`, resets `status` to `'active'`
+
+Console (`@gami/console`) receives full inline edit/delete flows for scenarios and avatars, plus a dedicated session admin panel with list, filter, and per-row reset.
+
+Hardening completed in this pass:
+
+- `DomainError` extended with optional `details` field; `409 CONFLICT` responses for delete operations now carry structured details (`{avatarCount, sessionCount}` for scenario delete; `{activeSessionCount}` for avatar delete)
+- `docs/DATA_MODEL.md` updated: `active_avatar_id`, `unlocked_avatar_ids`, and `gm_notes` documented as clearable fields on session reset; `updated_at` auto-update behaviour documented for scenarios and avatars tables; Reset Session section now lists all cleared fields and reset values
+- `docs/API_CONTRACT.md` verified: all four new endpoints present with correct method, request shape, response shape, and error mapping (including `400 VALIDATION_ERROR` for empty-body PATCH, `409 CONFLICT` with details for delete operations, and reset semantics)
+- Stack-e2e test coverage verified complete: auth, validation, not-found, and happy-path tests for all four endpoints
+- Repository interface sync verified: `IScenarioRepository`, `IAvatarRepository`, `ISessionRepository` all in sync across port, in-memory, and Postgres implementations
+- `apps/console/src/api/index.ts` verified: `updateScenario`, `deleteScenario`, `updateAvatar`, `deleteAvatar`, `listSessions`, `resetSession` all exported
+- Quality gates confirmed: `pnpm --filter @gami/core lint`, `pnpm --filter @gami/core typecheck`, `pnpm --filter @gami/core test` all pass
 
 ### Console Admin UI — Full CRUD for Scenarios, Avatars, and Sessions (April 28, 2026)
 

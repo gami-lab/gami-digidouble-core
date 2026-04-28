@@ -19,7 +19,8 @@ export class DeleteAvatarUseCase {
     if (activeSessions > 0) {
       throw new DomainError(
         'CONFLICT',
-        'Avatar cannot be deleted while the scenario has active sessions.',
+        `Cannot delete avatar: scenario has ${String(activeSessions)} active session(s).`,
+        { activeSessionCount: activeSessions },
       )
     }
 

@@ -25,7 +25,8 @@ export class DeleteScenarioUseCase {
     if (avatarsCount > 0 || sessionsCount > 0) {
       throw new DomainError(
         'CONFLICT',
-        'Scenario cannot be deleted while it still has avatars or sessions.',
+        `Cannot delete scenario: ${String(avatarsCount)} avatar(s) and ${String(sessionsCount)} session(s) exist.`,
+        { avatarCount: avatarsCount, sessionCount: sessionsCount },
       )
     }
 

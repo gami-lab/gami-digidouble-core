@@ -95,7 +95,7 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
             return await reply.status(404).send(fail('NOT_FOUND', error.message))
           }
           if (error.code === 'CONFLICT') {
-            return await reply.status(409).send(fail('CONFLICT', error.message))
+            return await reply.status(409).send(fail('CONFLICT', error.message, error.details))
           }
         }
         return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))

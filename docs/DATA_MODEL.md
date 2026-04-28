@@ -83,6 +83,7 @@ Defines a runnable experience configuration.
 - **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
 - **Repository:** `PostgresScenarioRepository`
 - **Status:** Fully implemented.
+- **Column note:** `updated_at` is automatically refreshed to `NOW()` on every `UPDATE` via the repository's `update()` method (`SET updated_at = NOW()` in the SQL statement), including partial updates via `PATCH /v1/scenarios/{scenarioId}`.
 
 ### Typical Config
 
@@ -153,6 +154,7 @@ An Avatar is now a first-class object.
 - **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
 - **Repository:** `PostgresAvatarRepository`
 - **Status:** Fully implemented. The `adjustments` field (runtime-only, from `AvatarConfig`) is not persisted in Phase A and remains in-memory only. Add a `TEXT[]` column via a future migration if persistence is required.
+- **Column note:** `updated_at` is automatically refreshed to `NOW()` on every `UPDATE` via the repository's `update()` method (`SET updated_at = NOW()` in the SQL statement), including partial updates via `PATCH /v1/avatars/{avatarId}`.
 
 ### Typical Config
 
@@ -207,9 +209,9 @@ Represents one user run through one scenario.
 - **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
 - **Repository:** `PostgresSessionRepository`
 - **Status:** Fully implemented.
-- **Column note:** `active_avatar_id` is nullable and persisted for GM-driven default avatar routing.
-- **Column note:** `unlocked_avatar_ids` stores per-session avatar unlock progression when scenario policy enables locked specialists.
-- **Column note:** `gm_notes` stores latest Game Master guidance injected into the next avatar system prompt.
+- **Column note:** `active_avatar_id` is nullable and persisted for GM-driven default avatar routing. Cleared to `NULL` on session reset.
+- **Column note:** `unlocked_avatar_ids` stores per-session avatar unlock progression when scenario policy enables locked specialists. Cleared to `[]` on session reset.
+- **Column note:** `gm_notes` stores latest Game Master guidance injected into the next avatar system prompt. Cleared to `NULL` on session reset.
 
 ### Notes
 
@@ -691,6 +693,17 @@ Deletes:
 - session memory
 - avatar session memories
 - session events
+
+Clears on the session record (fields set to null / empty):
+
+- `activeAvatarId` → `null`
+- `unlockedAvatarIds` → `[]`
+- `gmNotes` → `null`
+
+Resets on the session record:
+
+- `status` → `'active'`
+- `lastActivityAt` → current timestamp
 
 Keeps:
 
