@@ -18,9 +18,11 @@ export class ResetSessionUseCase {
     }
 
     const conversations = await this.conversationRepository.listBySessionId(input.sessionId)
-    for (const conversation of conversations) {
-      await this.messageRepository.deleteByConversationId(conversation.conversationId)
-    }
+    await Promise.all(
+      conversations.map((conversation) =>
+        this.messageRepository.deleteByConversationId(conversation.conversationId),
+      ),
+    )
     await this.conversationRepository.deleteBySessionId(input.sessionId)
 
     try {
