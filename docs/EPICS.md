@@ -284,7 +284,7 @@ A visible manual testing loop accelerates quality more than backend-only progres
 
 ---
 
-## EPIC 2.5 — Admin CRUD Completion + Console Integration
+## EPIC 2.5 — Admin CRUD Completion + Console Integration ✅ Done
 
 **Purpose**
 Make the platform operationally manageable through complete admin CRUD flows directly usable from the console.
@@ -334,7 +334,7 @@ A complete admin plane accelerates testing, reduces developer dependency, and tu
 
 ---
 
-## EPIC 2.6 — GM Debug Panel v1 + Observability APIs
+## EPIC 2.6 — GM Debug Panel v1 + Observability APIs ✅ Done
 
 **Purpose**
 Make Game Master orchestration visible and testable during Scenario Test Bench sessions.
