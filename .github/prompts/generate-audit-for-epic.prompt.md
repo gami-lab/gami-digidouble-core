@@ -67,6 +67,9 @@ Evaluate:
 - hidden side effects
 - error handling
 - observability quality
+- contract duplication
+- field drift risk
+- maintainability under change
 
 4. Test quality (CRITICAL)
 
@@ -106,6 +109,21 @@ A feature is tested only if behavior required by a consumer is proven.
 6. Documentation alignment
    What docs should be updated?
 
+7. Structural Maintainability
+
+Audit whether the EPIC increased or reduced long-term maintainability.
+
+Evaluate:
+
+- duplicated contracts
+- repeated DTO shapes
+- shared type ownership clarity
+- blast radius of future field additions
+- hidden coupling between apps
+- naming drift
+- optional/null mismatch
+- cross-layer leakage
+
 ---
 
 ## MANDATORY COMMANDS
@@ -139,6 +157,8 @@ No A allowed if:
 - typecheck fails
 - tests fail
 - architecture drift exists
+- duplicated entity contracts exist across multiple layers without justification
+- adding a field would require 4+ manual edits
 
 ---
 

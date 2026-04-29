@@ -41,6 +41,14 @@ Prefer:
 - stronger tests
 - documentation sync
 
+## SECONDARY MISSION — Reduce Structural Entropy
+
+Do not only fix symptoms.
+
+Where audit findings reveal repeated patterns, duplicated contracts, or drift-prone structures, prefer the smallest refactor that removes the root cause.
+
+Every remediation pass should aim to leave the repository easier to change than before.
+
 ## Commit the changes
 
 ## CRITICAL TESTING RULES

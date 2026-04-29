@@ -40,6 +40,32 @@ If code changed but docs did not, the task is incomplete.
 
 ---
 
+# Critical Structural Rule — Prevent Contract Drift
+
+Before proposing implementation prompts, inspect whether the EPIC touches an existing model:
+
+- Avatar
+- Scenario
+- Session
+- Conversation
+- Message
+- GM state/events
+- Admin DTOs
+
+If yes, every generated prompt MUST instruct the coding agent to first check for:
+
+- duplicated type definitions
+- repeated inline response shapes
+- local copies in console/client code
+- inconsistent optionality/nullability
+- field-name drift across layers
+
+If adding one field would require editing multiple identical shapes, the task must include a refactor slice first.
+
+No EPIC implementation may knowingly increase contract duplication.
+
+---
+
 # Source of Truth Documents
 
 Always align with:
@@ -141,6 +167,16 @@ Respect:
 
 Concrete expected outputs.
 
+# Mandatory Pre-Implementation Check
+
+Before coding:
+
+1. Identify touched entities/contracts.
+2. Search for duplicated type definitions.
+3. Identify canonical owner of each contract.
+4. Reuse existing shared types where possible.
+5. If no canonical owner exists, create one.
+
 # Mandatory Final Step — Documentation Update
 
 After implementation, review and update:
@@ -222,6 +258,17 @@ Every implementation prompt must reinforce:
 > Code, tests, and docs move together.
 
 No silent drift between implementation and documentation.
+
+---
+
+## Refactor Trigger Rule
+
+If implementing the EPIC reveals obvious structural duplication,
+the prompt pack must include one dedicated prompt:
+
+00-contract-cleanup.md
+
+This prompt must remove the debt before feature work proceeds.
 
 ---
 
