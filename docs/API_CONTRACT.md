@@ -172,6 +172,7 @@ type ScenarioSummary = {
   scenarioId: string
   name: string
   status: 'draft' | 'active' | 'archived'
+  config: Record<string, unknown>
   createdAt: string
   updatedAt: string
 }
@@ -189,6 +190,7 @@ type AvatarSummary = {
   tone?: string
   description?: string
   adjustments?: string[]
+  config: Record<string, unknown>
   createdAt: string
   updatedAt: string
 }
@@ -706,6 +708,7 @@ type ListScenariosResponse = {
 
 - Returns `200 OK` with `scenarios: []` when no scenarios exist.
 - Ordering is deterministic: `createdAt DESC` (newest first).
+- Each scenario includes its persisted `config` object.
 
 ---
 
@@ -731,9 +734,7 @@ type CreateScenarioRequest = {
 
 ```ts id="wab0ne"
 type CreateScenarioResponse = {
-  scenario: ScenarioSummary & {
-    config: Record<string, unknown>
-  }
+  scenario: ScenarioSummary
 }
 ```
 
@@ -756,9 +757,7 @@ GET /v1/scenarios/{scenarioId}
 
 ```ts id="bjlwm4"
 type GetScenarioResponse = {
-  scenario: ScenarioSummary & {
-    config: Record<string, unknown>
-  }
+  scenario: ScenarioSummary
 }
 ```
 
@@ -824,6 +823,7 @@ type ListScenarioAvatarsResponse = {
 - Returns `404 NOT_FOUND` when the scenario does not exist.
 - Returns `200 OK` with `avatars: []` when the scenario exists but has no avatars.
 - Ordering is deterministic: `createdAt DESC` (newest first).
+- Each avatar includes its persisted `config` object.
 
 ---
 
@@ -949,9 +949,7 @@ At least one field must be provided. An empty body `{}` returns `400 VALIDATION_
 
 ```ts id="rfsx9e"
 type UpdateScenarioResponse = {
-  scenario: ScenarioSummary & {
-    config: Record<string, unknown>
-  }
+  scenario: ScenarioSummary
 }
 ```
 

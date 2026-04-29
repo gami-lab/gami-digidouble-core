@@ -11,6 +11,7 @@ export class ListScenariosUseCase {
         scenarioId: scenario.scenarioId,
         name: scenario.name,
         status: scenario.status,
+        config: scenario.config,
         createdAt: scenario.createdAt,
         updatedAt: scenario.updatedAt,
       })),

@@ -113,7 +113,13 @@ describe('DELETE /v1/avatars/:avatarId', () => {
 describe('PATCH /v1/avatars/:avatarId', () => {
   it('updates avatar and returns updated fields', async () => {
     const app = makeApp({
-      avatars: [makeAvatar({ avatarId: 'avatar_1', personaPrompt: 'You are Ava.' })],
+      avatars: [
+        makeAvatar({
+          avatarId: 'avatar_1',
+          personaPrompt: 'You are Ava.',
+          config: { routeKey: 'guide' },
+        }),
+      ],
     })
 
     const response = await app.inject({
@@ -128,6 +134,7 @@ describe('PATCH /v1/avatars/:avatarId', () => {
     expect(body.error).toBeNull()
     expect(body.data?.avatar.personaPrompt).toBe('Updated prompt')
     expect(body.data?.avatar.tone).toBe('formal')
+    expect(body.data?.avatar.config).toEqual({ routeKey: 'guide' })
   })
 
   it('returns 404 when avatar does not exist', async () => {

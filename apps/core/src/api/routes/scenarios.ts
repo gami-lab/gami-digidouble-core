@@ -108,6 +108,7 @@ type CreateAvatarResponse = {
     tone?: string
     description?: string
     adjustments?: string[]
+    config: Record<string, unknown>
     createdAt: string
     updatedAt: string
   }
@@ -386,6 +387,7 @@ function mapCreateAvatarResponse(output: CreateAvatarOutput): CreateAvatarRespon
       ...(output.avatar.adjustments !== undefined
         ? { adjustments: output.avatar.adjustments }
         : {}),
+      config: output.avatar.config,
       createdAt: output.avatar.createdAt,
       updatedAt: output.avatar.updatedAt,
     },

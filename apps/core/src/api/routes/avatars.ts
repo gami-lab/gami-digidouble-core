@@ -46,6 +46,7 @@ type PatchAvatarResponse = {
     tone?: string
     description?: string
     adjustments?: string[]
+    config: Record<string, unknown>
     createdAt: string
     updatedAt: string
   }
@@ -153,6 +154,7 @@ function mapUpdateAvatarResponse(output: UpdateAvatarOutput): PatchAvatarRespons
       ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
       ...(avatar.description !== undefined ? { description: avatar.description } : {}),
       ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
+      config: avatar.config,
       createdAt: avatar.createdAt,
       updatedAt: avatar.updatedAt,
     },

@@ -23,6 +23,7 @@ Avatar unlocking and routing now belong to the async Game Master flow:
 - `GameMasterOutput` supports `unlockAvatarIds`, `suggestedAvatarId`, and `suggestedAvatarReason`; runtime validation ignores inactive avatars, non-scenario IDs, already-unlocked IDs, and duplicates
 - `RunGameMasterUseCase` persists valid unlock decisions to `session.unlockedAvatarIds` asynchronously, emits `gm_triggered` for successful post-turn runs, and emits safe `gm_error` diagnostics for GM failures
 - `GET /v1/sessions/{sessionId}/available-avatars` continues to be the source of truth for switchable avatars, reflecting GM-unlocked specialists
+- Scenario and avatar APIs now expose persisted `config` consistently on create/list/update responses (`GET /v1/scenarios`, `POST /v1/scenarios/:scenarioId/avatars`, `GET /v1/scenarios/:scenarioId/avatars`, `PATCH /v1/avatars/:avatarId`)
 - Regression coverage added for every-turn GM calls, GM unlock decisions, SendMessage no-unlock ownership, avatar prompt awareness, and AI Guided Discovery unlock/switch flows
 
 ### EPIC 2.6 — GM Debug Panel v1 + Observability APIs: **complete** (April 28, 2026)

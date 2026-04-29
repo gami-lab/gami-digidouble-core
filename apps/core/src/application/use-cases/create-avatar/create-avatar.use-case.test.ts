@@ -128,6 +128,7 @@ describe('CreateAvatarUseCase', () => {
     expect(output.avatar.tone).toBeUndefined()
     expect(output.avatar.description).toBeUndefined()
     expect(output.avatar.adjustments).toBeUndefined()
+    expect(output.avatar.config).toEqual({})
   })
 })
 
@@ -164,5 +165,6 @@ describe('CreateAvatarUseCase — optional fields', () => {
     expect(output.avatar.tone).toBe('formal')
     expect(output.avatar.description).toBe('A formal legal assistant.')
     expect(output.avatar.adjustments).toEqual(['Use concise sentences.', 'Avoid jargon.'])
+    expect(output.avatar.config).toEqual({})
   })
 })

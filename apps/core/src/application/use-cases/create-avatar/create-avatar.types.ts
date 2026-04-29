@@ -21,6 +21,7 @@ export interface CreateAvatarOutput {
     tone?: string
     description?: string
     adjustments?: string[]
+    config: Record<string, unknown>
     createdAt: string
     updatedAt: string
   }

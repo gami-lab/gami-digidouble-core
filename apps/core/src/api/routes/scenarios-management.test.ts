@@ -116,6 +116,7 @@ describe('GET /v1/scenarios', () => {
       'scenario_new',
       'scenario_old',
     ])
+    expect(body.data?.scenarios[0]).toMatchObject({ config: {} })
   })
 
   it('returns empty list when no scenarios exist', async () => {
@@ -163,6 +164,7 @@ describe('GET /v1/scenarios/:scenarioId/avatars', () => {
       'avatar_new',
       'avatar_old',
     ])
+    expect(body.data?.avatars[0]).toMatchObject({ config: {} })
   })
 
   it('returns 404 when scenario does not exist', async () => {

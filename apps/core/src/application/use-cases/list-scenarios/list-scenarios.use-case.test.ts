@@ -39,5 +39,6 @@ describe('ListScenariosUseCase', () => {
       'scenario_new',
       'scenario_old',
     ])
+    expect(result.scenarios[0]?.config).toEqual({})
   })
 })

@@ -211,6 +211,14 @@ curl -X GET "$BASE_URL/v1/scenarios" \
         "scenarioId": "scenario_01jwxxxxxx",
         "name": "Museum Guide",
         "status": "active",
+        "config": {
+          "worldContext": "A guided learning experience about AI.",
+          "objectives": ["Introduce AI concepts progressively."],
+          "avatarAvailability": {
+            "initialAvatarKeys": ["guide"],
+            "unlockableAvatarKeys": ["theo", "eva"]
+          }
+        },
         "createdAt": "2026-04-20T10:00:00.000Z",
         "updatedAt": "2026-04-20T10:00:00.000Z"
       }
@@ -219,6 +227,8 @@ curl -X GET "$BASE_URL/v1/scenarios" \
   "error": null
 }
 ```
+
+`config` is returned exactly as stored by `POST /v1/scenarios` or `PATCH /v1/scenarios/:scenarioId`.
 
 ---
 
@@ -265,6 +275,10 @@ curl -X POST "$BASE_URL/v1/scenarios/$SCENARIO_ID/avatars" \
       "tone": "warm and enthusiastic",
       "description": "A historically-grounded avatar of Marie Curie for the science wing.",
       "adjustments": [],
+      "config": {
+        "routeKey": "guide",
+        "scope": "Broad AI literacy"
+      },
       "createdAt": "2026-04-20T10:00:00.000Z",
       "updatedAt": "2026-04-20T10:00:00.000Z"
     }
@@ -294,6 +308,35 @@ Behavior:
 - `404 NOT_FOUND` if scenario does not exist
 - `200` with `avatars: []` if scenario exists with no avatars
 - ordered by `createdAt DESC` (newest first)
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "avatars": [
+      {
+        "avatarId": "avatar_01jwxxxxxx",
+        "scenarioId": "scenario_01jwxxxxxx",
+        "name": "Mira",
+        "status": "active",
+        "personaPrompt": "You are Mira...",
+        "tone": "Warm, clear, and approachable.",
+        "description": "Friendly first-contact guide for broad AI discovery.",
+        "adjustments": [],
+        "config": {
+          "routeKey": "guide",
+          "scope": "Broad AI literacy",
+          "ui": { "unlockState": "available" }
+        },
+        "createdAt": "2026-04-20T10:00:00.000Z",
+        "updatedAt": "2026-04-20T10:00:00.000Z"
+      }
+    ]
+  },
+  "error": null
+}
+```
 
 ---
 
@@ -336,7 +379,13 @@ At least one field must be present; an empty `{}` body returns `400 VALIDATION_E
       "avatarId": "avatar_01jwxxxxxx",
       "scenarioId": "scenario_01jwxxxxxx",
       "name": "Marie Curie (Updated)",
+      "status": "active",
+      "personaPrompt": "You are Marie Curie...",
       "tone": "calm and precise",
+      "config": {
+        "routeKey": "guide",
+        "scope": "Broad AI literacy"
+      },
       "updatedAt": "2026-04-29T09:00:00.000Z"
     }
   },
@@ -398,6 +447,14 @@ At least one field must be present. `updatedAt` is always refreshed on success.
       "scenarioId": "scenario_01jwxxxxxx",
       "name": "Museum Guide v2",
       "status": "active",
+      "config": {
+        "worldContext": "A guided learning experience about AI.",
+        "objectives": ["Introduce AI concepts progressively."],
+        "avatarAvailability": {
+          "initialAvatarKeys": ["guide"],
+          "unlockableAvatarKeys": ["theo", "eva"]
+        }
+      },
       "updatedAt": "2026-04-29T09:00:00.000Z"
     }
   },

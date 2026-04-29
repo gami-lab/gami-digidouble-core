@@ -43,6 +43,7 @@ type CreateAvatarRouteData = {
     tone?: string
     description?: string
     adjustments?: string[]
+    config: Record<string, unknown>
     createdAt: string
     updatedAt: string
   }
@@ -229,6 +230,7 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
     expect(avatarBody.error).toBeNull()
     expect(avatarBody.data?.avatar.avatarId.startsWith('avatar_')).toBe(true)
     expect(avatarBody.data?.avatar.scenarioId).toBe(scenarioId)
+    expect(avatarBody.data?.avatar.config).toEqual({})
   })
 })
 
@@ -319,5 +321,6 @@ describe('POST /v1/scenarios/:scenarioId/avatars — optional field coverage', (
     expect(body.data?.avatar.tone).toBe('formal')
     expect(body.data?.avatar.description).toBe('A formal legal assistant.')
     expect(body.data?.avatar.adjustments).toEqual(['Be concise.'])
+    expect(body.data?.avatar.config).toEqual({})
   })
 })

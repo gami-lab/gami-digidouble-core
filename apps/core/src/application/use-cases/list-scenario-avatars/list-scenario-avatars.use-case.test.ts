@@ -53,5 +53,6 @@ describe('ListScenarioAvatarsUseCase', () => {
     const result = await useCase.execute({ scenarioId: 'scenario_1' })
 
     expect(result.avatars.map((avatar) => avatar.avatarId)).toEqual(['avatar_new', 'avatar_old'])
+    expect(result.avatars[0]?.config).toEqual({})
   })
 })
