@@ -145,7 +145,7 @@ describe('assemblePersonaPrompt -> avatar awareness', () => {
     expect(prompt).toContain(
       '- Theo (locked) — Technical AI specialist. Scope: Model internals and infrastructure.',
     )
-    expect(prompt).toContain('You cannot unlock avatars yourself')
+    expect(prompt).toContain('you may mention locked avatars')
     expect(prompt).not.toContain('competenceBoundary')
   })
 })

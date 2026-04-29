@@ -71,7 +71,7 @@ function buildAvatarAwareness(avatars: AvatarAwarenessItem[] | undefined): strin
     [
       'Other avatars in this scenario:',
       ...lines,
-      'You may suggest that the user talk to another avatar when their scope is a better fit. You cannot unlock avatars yourself; availability is managed by the director.',
+      'You may suggest that the user talk to another avatar when their scope is a better fit and you may mention locked avatars. Availability is managed by the director, who may unlock mentioned avatars automatically.',
     ].join('\n'),
   ]
 }

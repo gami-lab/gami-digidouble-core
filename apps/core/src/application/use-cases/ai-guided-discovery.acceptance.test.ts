@@ -168,7 +168,7 @@ describe('AI Guided Discovery — unlock progression', () => {
 
     await harness.sendMessage.execute({
       conversationId: conversation.conversation.conversationId,
-      userMessage: 'How do transformers handle inference latency?',
+      userMessage: 'Can Theo explain how transformers handle inference latency?',
     })
     await flushBackgroundTasks()
 
@@ -192,7 +192,7 @@ describe('AI Guided Discovery — unlock progression', () => {
 
     await harness.sendMessage.execute({
       conversationId: conversation.conversation.conversationId,
-      userMessage: 'Could AI bias be dangerous for society?',
+      userMessage: 'Could Eva explain whether AI bias is dangerous for society?',
     })
     await flushBackgroundTasks()
 
@@ -216,7 +216,8 @@ describe('AI Guided Discovery — unlock progression', () => {
 
     await harness.sendMessage.execute({
       conversationId: conversation.conversation.conversationId,
-      userMessage: 'Does AI need power, and what does that mean for the environment?',
+      userMessage:
+        'Could Eva explain whether AI needs power, and what that means for the environment?',
     })
     await flushBackgroundTasks()
 
@@ -241,7 +242,7 @@ describe('AI Guided Discovery — unlocked switching', () => {
     })
     await harness.sendMessage.execute({
       conversationId: guideConversation.conversation.conversationId,
-      userMessage: 'Explain transformers and training.',
+      userMessage: 'Theo should explain transformers and training.',
     })
     await flushBackgroundTasks()
 
@@ -265,7 +266,7 @@ describe('AI Guided Discovery — unlocked switching', () => {
     })
     await harness.sendMessage.execute({
       conversationId: guideConversation.conversation.conversationId,
-      userMessage: 'What are the privacy and regulation issues?',
+      userMessage: 'Could Eva explain the privacy and regulation issues?',
     })
     await flushBackgroundTasks()
 
@@ -291,7 +292,7 @@ describe('AI Guided Discovery — multi-avatar session navigation', () => {
     })
     await harness.sendMessage.execute({
       conversationId: guideConversation.conversation.conversationId,
-      userMessage: 'Explain LLM providers and latency trade-offs.',
+      userMessage: 'I want Theo to explain LLM providers and latency trade-offs.',
     })
     await flushBackgroundTasks()
     await harness.switchAvatar.execute({

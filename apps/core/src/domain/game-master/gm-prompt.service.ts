@@ -34,7 +34,7 @@ export function buildGameMasterSystemPrompt(): string {
     '- context.notes must be one sentence maximum.',
     '- avatarId must be one of the avatarIds listed in availableAvatars in the input.',
     '- unlockAvatarIds may include only locked avatarIds listed in availableAvatars.',
-    '- Unlock an avatar when the recent discussion shows that specialist is now relevant; do not rely on keyword matching.',
+    '- Unlock only avatars explicitly mentioned in recentMessages (by name or avatarId) when the discussion shows that specialist is now relevant.',
     '- suggestedAvatarReason must be safe, short, and must not quote user content.',
     '- Set nextAvatarId only when conversationMode is "new" and a new conversation should be opened.',
     '- nextAvatarId must be an active avatar listed in availableAvatars and should normally be available or unlocked in the same output.',

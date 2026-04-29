@@ -18,6 +18,7 @@ export function resolveAvatarUnlocks(
   session: Session | null,
   avatars: AvatarConfig[],
   output: GameMasterOutput,
+  recentMessages: GameMasterInput['recentMessages'] = [],
 ): { nextUnlockedAvatarIds: string[]; newlyUnlockedAvatarIds: string[] } | null {
   if (session?.unlockedAvatarIds === undefined || output.unlockAvatarIds === undefined) {
     return null
@@ -27,10 +28,14 @@ export function resolveAvatarUnlocks(
     avatars.filter((avatar) => avatar.status === 'active').map((avatar) => avatar.avatarId),
   )
   const knownUnlockedIds = new Set(session.unlockedAvatarIds)
+  const mentionedLockedAvatarIds = resolveMentionedLockedAvatarIds(session, avatars, recentMessages)
   const newlyUnlockedAvatarIds = [
     ...new Set(
       output.unlockAvatarIds.filter(
-        (avatarId) => activeAvatarIds.has(avatarId) && !knownUnlockedIds.has(avatarId),
+        (avatarId) =>
+          activeAvatarIds.has(avatarId) &&
+          !knownUnlockedIds.has(avatarId) &&
+          mentionedLockedAvatarIds.has(avatarId),
       ),
     ),
   ]
@@ -41,6 +46,29 @@ export function resolveAvatarUnlocks(
     nextUnlockedAvatarIds: [...session.unlockedAvatarIds, ...newlyUnlockedAvatarIds],
     newlyUnlockedAvatarIds,
   }
+}
+
+function resolveMentionedLockedAvatarIds(
+  session: Session,
+  avatars: AvatarConfig[],
+  recentMessages: GameMasterInput['recentMessages'],
+): Set<string> {
+  const messageCorpus = recentMessages.map((message) => message.content.toLowerCase()).join('\n')
+  const lockedAvatars = avatars.filter(
+    (avatar) => avatar.status === 'active' && !session.unlockedAvatarIds?.includes(avatar.avatarId),
+  )
+
+  return lockedAvatars.reduce<Set<string>>((ids, avatar) => {
+    const avatarName = avatar.name.trim().toLowerCase()
+    const avatarId = avatar.avatarId.toLowerCase()
+    if (
+      (avatarName.length > 0 && messageCorpus.includes(avatarName)) ||
+      messageCorpus.includes(avatarId)
+    ) {
+      ids.add(avatar.avatarId)
+    }
+    return ids
+  }, new Set<string>())
 }
 
 function toAvailableAvatar(

@@ -136,7 +136,13 @@ export class RunGameMasterUseCase {
       scenarioAvatars,
       output,
     )
-    const unlockedAvatarIds = await this.applyAvatarUnlocks(input, session, scenarioAvatars, output)
+    const unlockedAvatarIds = await this.applyAvatarUnlocks(
+      input,
+      session,
+      scenarioAvatars,
+      output,
+      gmInput.recentMessages,
+    )
     const reconciledState: GameMasterState =
       routingResult.switchedAvatarId !== undefined
         ? { ...nextState, currentAvatarId: routingResult.switchedAvatarId }
@@ -361,8 +367,9 @@ export class RunGameMasterUseCase {
     session: Session | null,
     scenarioAvatars: AvatarConfig[],
     output: GameMasterOutput,
+    recentMessages: GameMasterInput['recentMessages'],
   ): Promise<string[]> {
-    const unlocks = resolveAvatarUnlocks(session, scenarioAvatars, output)
+    const unlocks = resolveAvatarUnlocks(session, scenarioAvatars, output, recentMessages)
     if (unlocks === null) return []
 
     await this.sessionRepository.update(input.sessionId, {

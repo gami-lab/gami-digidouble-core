@@ -9,6 +9,7 @@ const saveGmStateMock = vi.fn()
 const findSessionByIdMock = vi.fn()
 const updateSessionMock = vi.fn()
 const listAvatarsByScenarioIdMock = vi.fn()
+const findMessagesByConversationIdMock = vi.fn()
 const completeMock = vi.fn()
 const traceMock = vi.fn()
 
@@ -37,6 +38,10 @@ const avatarRepository = {
 
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
+const messageRepository = {
+  create: vi.fn(),
+  findByConversationId: findMessagesByConversationIdMock,
+}
 
 function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
   return {
@@ -84,6 +89,8 @@ function createUseCase(eventLog?: InMemoryEventLogRepository): RunGameMasterUseC
     observability,
     undefined,
     eventLog,
+    undefined,
+    messageRepository,
   )
 }
 
@@ -102,6 +109,7 @@ async function executeGm(useCase: RunGameMasterUseCase): Promise<void> {
     sessionId: 'session_1',
     scenarioId: 'scenario_1',
     avatarId: 'avatar_1',
+    conversationId: 'conversation_1',
     userMessageText: 'hello',
     turnIndex: 2,
     correlationId: 'corr_unlock',
@@ -114,6 +122,7 @@ beforeEach(() => {
   findSessionByIdMock.mockReset()
   updateSessionMock.mockReset()
   listAvatarsByScenarioIdMock.mockReset()
+  findMessagesByConversationIdMock.mockReset()
   completeMock.mockReset()
   traceMock.mockReset()
 
@@ -125,6 +134,7 @@ beforeEach(() => {
     makeAvatar({ avatarId: 'avatar_1' }),
     makeAvatar({ avatarId: 'avatar_2', name: 'Theo' }),
   ])
+  findMessagesByConversationIdMock.mockResolvedValue([])
   traceMock.mockResolvedValue(undefined)
 })
 
@@ -132,6 +142,15 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
   it('updates session unlockedAvatarIds from valid GM unlock output without duplicates', async () => {
     const eventLog = new InMemoryEventLogRepository()
     const useCase = createUseCase(eventLog)
+    findMessagesByConversationIdMock.mockResolvedValue([
+      {
+        messageId: 'msg_1',
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'Can Theo explain the technical side?',
+        createdAt: '2026-04-20T10:00:00.000Z',
+      },
+    ])
     mockGmOutput({
       avatarId: 'avatar_1',
       unlockAvatarIds: ['avatar_2', 'avatar_2'],
@@ -158,6 +177,29 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
     mockGmOutput({
       avatarId: 'avatar_1',
       unlockAvatarIds: ['avatar_1', 'avatar_missing'],
+      conversationMode: 'continue',
+      stateUpdate: { interactionIncrement: 1 },
+    })
+
+    await executeGm(useCase)
+
+    expect(hasUnlockUpdate()).toBe(false)
+  })
+
+  it('does not unlock locked avatars that were not mentioned in recent discussion', async () => {
+    const useCase = createUseCase()
+    findMessagesByConversationIdMock.mockResolvedValue([
+      {
+        messageId: 'msg_2',
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'Please continue with the current guide.',
+        createdAt: '2026-04-20T10:01:00.000Z',
+      },
+    ])
+    mockGmOutput({
+      avatarId: 'avatar_1',
+      unlockAvatarIds: ['avatar_2'],
       conversationMode: 'continue',
       stateUpdate: { interactionIncrement: 1 },
     })
