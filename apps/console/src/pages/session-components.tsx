@@ -199,7 +199,7 @@ type SessionMetadataProps = {
 
 function SessionMetadata({ session, avatarsById }: SessionMetadataProps): JSX.Element {
   const activeAvatar =
-    session.activeAvatarId === undefined || session.activeAvatarId === null
+    session.activeAvatarId === undefined
       ? null
       : avatarsById.get(session.activeAvatarId)
 
@@ -225,7 +225,7 @@ function SessionMetadata({ session, avatarsById }: SessionMetadataProps): JSX.El
       </div>
       <div>
         <strong>Current active avatar:</strong>{' '}
-        {session.activeAvatarId === undefined || session.activeAvatarId === null
+        {session.activeAvatarId === undefined
           ? 'none'
           : `${activeAvatar?.name ?? 'Unknown avatar'} (${session.activeAvatarId})`}
       </div>

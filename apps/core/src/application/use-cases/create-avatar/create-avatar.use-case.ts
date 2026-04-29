@@ -2,6 +2,7 @@ import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { AvatarStatus } from '../../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../../domain/errors.js'
+import type { AvatarSummary } from '@gami/shared'
 import type { CreateAvatarInput, CreateAvatarOutput } from './create-avatar.types.js'
 
 const ALLOWED_AVATAR_STATUSES: ReadonlySet<AvatarStatus> = new Set(['draft', 'active', 'archived'])
@@ -61,9 +62,7 @@ function normalizeAndValidateInput(input: CreateAvatarInput): {
   return { name, personaPrompt, status }
 }
 
-function mapAvatarOutput(
-  avatar: Awaited<ReturnType<IAvatarRepository['create']>>,
-): CreateAvatarOutput['avatar'] {
+function mapAvatarOutput(avatar: Awaited<ReturnType<IAvatarRepository['create']>>): AvatarSummary {
   return {
     avatarId: avatar.avatarId,
     scenarioId: avatar.scenarioId,

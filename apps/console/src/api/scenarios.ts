@@ -1,38 +1,16 @@
 import { coreRequest } from './client'
+import type { AvatarSummary, ScenarioStatus, ScenarioSummary } from '@gami/shared'
 
-export type ScenarioStatus = 'draft' | 'active' | 'archived'
-
-export type ScenarioSummary = {
-  scenarioId: string
-  name: string
-  status: ScenarioStatus
-  createdAt: string
-  updatedAt: string
-}
-
-export type AvatarSummary = {
-  avatarId: string
-  scenarioId: string
-  name: string
-  status: ScenarioStatus
-  personaPrompt: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  createdAt: string
-  updatedAt: string
-}
+export type { AvatarSummary, ScenarioStatus, ScenarioSummary }
 
 export type CreateScenarioParams = {
   name: string
-  status?: ScenarioStatus
+  status?: ScenarioSummary['status']
   config?: Record<string, unknown>
 }
 
 type CreateScenarioPayload = {
-  scenario: ScenarioSummary & {
-    config: Record<string, unknown>
-  }
+  scenario: ScenarioSummary
 }
 
 export type CreateAvatarParams = {
@@ -42,7 +20,8 @@ export type CreateAvatarParams = {
   description?: string
   adjustments?: string[]
   config?: Record<string, unknown>
-  status?: ScenarioStatus
+  status?: AvatarSummary['status']
+  availabilityKey?: string
 }
 
 type CreateAvatarPayload = {
@@ -50,7 +29,7 @@ type CreateAvatarPayload = {
 }
 
 type UpdateScenarioPayload = {
-  scenario: ScenarioSummary & { config: Record<string, unknown> }
+  scenario: ScenarioSummary
 }
 
 type DeleteScenarioPayload = {

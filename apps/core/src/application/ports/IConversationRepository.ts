@@ -1,4 +1,4 @@
-import type { Conversation, Session } from '../../domain/conversation/session.types.js'
+import type { Conversation } from '../../domain/conversation/session.types.js'
 
 /** Port: conversation persistence. Infrastructure must implement this interface. */
 export interface IConversationRepository {
@@ -24,16 +24,4 @@ export interface CreateConversationParams {
 
 export type ConversationUpdate = Partial<
   Pick<Conversation, 'status' | 'lastActivityAt' | 'endedAt' | 'reason'>
->
-
-export type SessionSummary = Pick<
-  Session,
-  | 'sessionId'
-  | 'userId'
-  | 'scenarioId'
-  | 'activeAvatarId'
-  | 'status'
-  | 'startedAt'
-  | 'lastActivityAt'
-  | 'endedAt'
 >

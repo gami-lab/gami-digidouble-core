@@ -7,3 +7,11 @@
 
 export type { ApiResponse, ApiError, ResponseMeta, ErrorCode } from './api-response.js'
 export { ok, fail } from './api-response.js'
+export type {
+  AvatarStatus,
+  AvatarSummary,
+  ScenarioStatus,
+  ScenarioSummary,
+  SessionSummary,
+  ConversationSummary,
+} from './entity-types.js'

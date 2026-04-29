@@ -5,10 +5,12 @@
  * It defines which avatars are available, the world context,
  * objectives, and linked knowledge sources.
  */
+export type ScenarioStatus = 'draft' | 'active' | 'archived'
+
 export interface Scenario {
   scenarioId: string
   name: string
-  status: 'draft' | 'active' | 'archived'
+  status: ScenarioStatus
   config: ScenarioConfig
   createdAt: string
   updatedAt: string

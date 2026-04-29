@@ -1,22 +1,12 @@
-import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
+import type { SessionSummary } from '@gami/shared'
+import type { Conversation } from '../../../domain/conversation/session.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
 
 export interface InspectSessionInput {
   sessionId: string
 }
 
-export type InspectSessionSummary = Pick<
-  Session,
-  | 'sessionId'
-  | 'userId'
-  | 'scenarioId'
-  | 'activeAvatarId'
-  | 'unlockedAvatarIds'
-  | 'status'
-  | 'startedAt'
-  | 'lastActivityAt'
-  | 'endedAt'
->
+export type { SessionSummary }
 
 export type InspectGmState = Pick<
   GameMasterState,
@@ -33,7 +23,7 @@ export type InspectTransitionRecord = {
 
 export interface InspectSessionOutput {
   inspect: {
-    session: InspectSessionSummary
+    session: SessionSummary
     gmState: InspectGmState | null
     transitionHistory: InspectTransitionRecord[]
     unlockedAvatarIds: string[]

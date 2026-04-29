@@ -21,16 +21,15 @@ function makeAvatar(avatarId: string, name: string): AvailableAvatarSummary {
   }
 }
 
-function makeSession(activeAvatarId: string | null): SessionSummary {
+function makeSession(activeAvatarId: string | undefined): SessionSummary {
   return {
     sessionId: 'session_1',
     userId: 'tester',
     scenarioId: 'scenario_1',
-    activeAvatarId,
+    ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
     status: 'active',
     startedAt: '2026-04-22T00:00:00.000Z',
     lastActivityAt: '2026-04-22T00:00:00.000Z',
-    endedAt: null,
   }
 }
 
@@ -46,7 +45,6 @@ function makeConversation(
     status: 'active',
     startedAt,
     lastActivityAt: startedAt,
-    endedAt: null,
   }
 }
 

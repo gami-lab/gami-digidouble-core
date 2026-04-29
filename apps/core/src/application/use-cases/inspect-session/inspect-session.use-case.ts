@@ -6,7 +6,7 @@ import { DomainError } from '../../../domain/errors.js'
 import type {
   InspectSessionInput,
   InspectSessionOutput,
-  InspectSessionSummary,
+  SessionSummary,
   InspectTransitionRecord,
 } from './inspect-session.types.js'
 
@@ -40,7 +40,7 @@ export class InspectSessionUseCase {
   }
 }
 
-function toSessionSummary(session: Session): InspectSessionSummary {
+function toSessionSummary(session: Session): SessionSummary {
   return {
     sessionId: session.sessionId,
     userId: session.userId,

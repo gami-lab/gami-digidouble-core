@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
+import type { AvatarSummary, ScenarioSummary } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
@@ -21,7 +22,6 @@ import { ListScenariosUseCase } from '../../application/use-cases/list-scenarios
 import type { ListScenariosOutput } from '../../application/use-cases/list-scenarios/list-scenarios.types.js'
 import { UpdateScenarioUseCase } from '../../application/use-cases/update-scenario/update-scenario.use-case.js'
 import type { UpdateScenarioOutput } from '../../application/use-cases/update-scenario/update-scenario.types.js'
-import type { AvatarStatus } from '../../domain/avatar/avatar.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
@@ -36,23 +36,14 @@ export type ScenariosRouteOptions = {
   sessionRepository?: ISessionRepository
 }
 
-type ScenarioStatus = 'draft' | 'active' | 'archived'
-
 type CreateScenarioRequestBody = {
   name: string
-  status?: ScenarioStatus
+  status?: ScenarioSummary['status']
   config?: Record<string, unknown>
 }
 
 type CreateScenarioResponse = {
-  scenario: {
-    scenarioId: string
-    name: string
-    status: ScenarioStatus
-    config: Record<string, unknown>
-    createdAt: string
-    updatedAt: string
-  }
+  scenario: ScenarioSummary
 }
 
 type CreateAvatarRequestParams = {
@@ -73,19 +64,12 @@ type UpdateScenarioRequestParams = {
 
 type UpdateScenarioRequestBody = {
   name?: string
-  status?: ScenarioStatus
+  status?: ScenarioSummary['status']
   config?: Record<string, unknown>
 }
 
 type UpdateScenarioResponse = {
-  scenario: {
-    scenarioId: string
-    name: string
-    status: ScenarioStatus
-    config: Record<string, unknown>
-    createdAt: string
-    updatedAt: string
-  }
+  scenario: ScenarioSummary
 }
 
 type CreateAvatarRequestBody = {
@@ -95,25 +79,12 @@ type CreateAvatarRequestBody = {
   description?: string
   adjustments?: string[]
   config?: Record<string, unknown>
-  status?: AvatarStatus
+  status?: AvatarSummary['status']
   availabilityKey?: string
 }
 
 type CreateAvatarResponse = {
-  avatar: {
-    avatarId: string
-    scenarioId: string
-    name: string
-    status: AvatarStatus
-    personaPrompt: string
-    tone?: string
-    description?: string
-    adjustments?: string[]
-    config: Record<string, unknown>
-    availabilityKey?: string
-    createdAt: string
-    updatedAt: string
-  }
+  avatar: AvatarSummary
 }
 
 type ListScenariosResponse = ListScenariosOutput
@@ -377,28 +348,7 @@ function mapCreateAvatarInput(
 }
 
 function mapCreateAvatarResponse(output: CreateAvatarOutput): CreateAvatarResponse {
-  return {
-    avatar: {
-      avatarId: output.avatar.avatarId,
-      scenarioId: output.avatar.scenarioId,
-      name: output.avatar.name,
-      status: output.avatar.status,
-      personaPrompt: output.avatar.personaPrompt,
-      ...(output.avatar.tone !== undefined ? { tone: output.avatar.tone } : {}),
-      ...(output.avatar.description !== undefined
-        ? { description: output.avatar.description }
-        : {}),
-      ...(output.avatar.adjustments !== undefined
-        ? { adjustments: output.avatar.adjustments }
-        : {}),
-      config: output.avatar.config,
-      ...(output.avatar.availabilityKey !== undefined
-        ? { availabilityKey: output.avatar.availabilityKey }
-        : {}),
-      createdAt: output.avatar.createdAt,
-      updatedAt: output.avatar.updatedAt,
-    },
-  }
+  return { avatar: output.avatar }
 }
 
 function mapUpdateResponse(output: UpdateScenarioOutput): UpdateScenarioResponse {

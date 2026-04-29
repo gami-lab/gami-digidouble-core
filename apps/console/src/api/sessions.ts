@@ -1,16 +1,7 @@
 import { coreRequest } from './client'
+import type { ConversationSummary, SessionSummary } from '@gami/shared'
 
-export type SessionSummary = {
-  sessionId: string
-  userId: string
-  scenarioId: string
-  activeAvatarId?: string | null
-  unlockedAvatarIds?: string[]
-  status: 'active' | 'closed' | 'archived'
-  startedAt: string
-  lastActivityAt: string
-  endedAt?: string | null
-}
+export type { SessionSummary, ConversationSummary }
 
 export type Message = {
   messageId: string
@@ -33,16 +24,6 @@ export type SessionMemorySummary = {
   sessionId: string
   summary: string
   updatedAt: string
-}
-
-export type ConversationSummary = {
-  conversationId: string
-  sessionId: string
-  avatarId: string
-  status: 'active' | 'closed' | 'archived'
-  startedAt: string
-  lastActivityAt: string
-  endedAt?: string | null
 }
 
 export type GmStateSummary = {

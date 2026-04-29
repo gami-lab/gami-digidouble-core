@@ -1,19 +1,11 @@
-import type { Conversation, Message } from '../../../domain/conversation/session.types.js'
+import type { ConversationSummary } from '@gami/shared'
+import type { Message } from '../../../domain/conversation/session.types.js'
 
 export interface GetHistoryInput {
   conversationId: string
 }
 
-export type ConversationSummary = Pick<
-  Conversation,
-  | 'conversationId'
-  | 'sessionId'
-  | 'avatarId'
-  | 'status'
-  | 'startedAt'
-  | 'lastActivityAt'
-  | 'endedAt'
->
+export type { ConversationSummary }
 
 export interface GetHistoryOutput {
   conversation: ConversationSummary

@@ -1,15 +1,12 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
+import type { AvatarSummary } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { DeleteAvatarUseCase } from '../../application/use-cases/delete-avatar/delete-avatar.use-case.js'
 import type { DeleteAvatarOutput } from '../../application/use-cases/delete-avatar/delete-avatar.types.js'
 import { UpdateAvatarUseCase } from '../../application/use-cases/update-avatar/update-avatar.use-case.js'
-import type {
-  UpdateAvatarInput,
-  UpdateAvatarOutput,
-} from '../../application/use-cases/update-avatar/update-avatar.types.js'
-import type { AvatarStatus } from '../../domain/avatar/avatar.types.js'
+import type { UpdateAvatarInput } from '../../application/use-cases/update-avatar/update-avatar.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
@@ -33,25 +30,12 @@ type PatchAvatarBody = {
   description?: string
   adjustments?: string[]
   config?: Record<string, unknown>
-  status?: AvatarStatus
+  status?: AvatarSummary['status']
   availabilityKey?: string
 }
 
 type PatchAvatarResponse = {
-  avatar: {
-    avatarId: string
-    scenarioId: string
-    name: string
-    status: AvatarStatus
-    personaPrompt: string
-    tone?: string
-    description?: string
-    adjustments?: string[]
-    config: Record<string, unknown>
-    availabilityKey?: string
-    createdAt: string
-    updatedAt: string
-  }
+  avatar: AvatarSummary
 }
 
 const avatarIdParamsSchema = {
@@ -147,22 +131,6 @@ function buildUpdateAvatarInput(avatarId: string, body: PatchAvatarBody): Update
   }
 }
 
-function mapUpdateAvatarResponse(output: UpdateAvatarOutput): PatchAvatarResponse {
-  const { avatar } = output
-  return {
-    avatar: {
-      avatarId: avatar.avatarId,
-      scenarioId: avatar.scenarioId,
-      name: avatar.name,
-      status: avatar.status,
-      personaPrompt: avatar.personaPrompt,
-      ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
-      ...(avatar.description !== undefined ? { description: avatar.description } : {}),
-      ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
-      config: avatar.config,
-      ...(avatar.availabilityKey !== undefined ? { availabilityKey: avatar.availabilityKey } : {}),
-      createdAt: avatar.createdAt,
-      updatedAt: avatar.updatedAt,
-    },
-  }
+function mapUpdateAvatarResponse(output: { avatar: AvatarSummary }): PatchAvatarResponse {
+  return { avatar: output.avatar }
 }

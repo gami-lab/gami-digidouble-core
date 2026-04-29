@@ -1,4 +1,4 @@
-import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import type { AvatarSummary } from '@gami/shared'
 
 export type UpdateAvatarInput = {
   avatarId: string
@@ -8,10 +8,10 @@ export type UpdateAvatarInput = {
   description?: string
   adjustments?: string[]
   config?: Record<string, unknown>
-  status?: AvatarConfig['status']
+  status?: AvatarSummary['status']
   availabilityKey?: string
 }
 
 export type UpdateAvatarOutput = {
-  avatar: AvatarConfig
+  avatar: AvatarSummary
 }

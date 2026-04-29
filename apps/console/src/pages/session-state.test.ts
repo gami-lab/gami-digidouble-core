@@ -16,11 +16,9 @@ function makeSession(sessionId: string): SessionSummary {
     sessionId,
     userId: 'user_1',
     scenarioId: 'scenario_1',
-    activeAvatarId: null,
     status: 'active',
     startedAt: '2026-04-22T00:00:00.000Z',
     lastActivityAt: '2026-04-22T00:00:00.000Z',
-    endedAt: null,
   }
 }
 
@@ -36,7 +34,6 @@ function makeConversation(
     status: 'active',
     startedAt: lastActivityAt,
     lastActivityAt,
-    endedAt: null,
   }
 }
 

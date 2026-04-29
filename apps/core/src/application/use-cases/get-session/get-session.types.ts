@@ -1,21 +1,10 @@
-import type { Session } from '../../../domain/conversation/session.types.js'
+import type { SessionSummary } from '@gami/shared'
 
 export interface GetSessionInput {
   sessionId: string
 }
 
-export type SessionSummary = Pick<
-  Session,
-  | 'sessionId'
-  | 'userId'
-  | 'scenarioId'
-  | 'activeAvatarId'
-  | 'unlockedAvatarIds'
-  | 'status'
-  | 'startedAt'
-  | 'lastActivityAt'
-  | 'endedAt'
->
+export type { SessionSummary }
 
 export interface GetSessionOutput {
   session: SessionSummary

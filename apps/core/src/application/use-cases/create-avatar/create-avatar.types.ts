@@ -1,4 +1,4 @@
-import type { AvatarStatus } from '../../../domain/avatar/avatar.types.js'
+import type { AvatarSummary } from '@gami/shared'
 
 export interface CreateAvatarInput {
   scenarioId: string
@@ -8,23 +8,10 @@ export interface CreateAvatarInput {
   description?: string
   adjustments?: string[]
   config?: Record<string, unknown>
-  status?: AvatarStatus
+  status?: AvatarSummary['status']
   availabilityKey?: string
 }
 
 export interface CreateAvatarOutput {
-  avatar: {
-    avatarId: string
-    scenarioId: string
-    name: string
-    status: AvatarStatus
-    personaPrompt: string
-    tone?: string
-    description?: string
-    adjustments?: string[]
-    config: Record<string, unknown>
-    availabilityKey?: string
-    createdAt: string
-    updatedAt: string
-  }
+  avatar: AvatarSummary
 }

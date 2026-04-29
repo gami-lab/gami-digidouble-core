@@ -1,6 +1,6 @@
 # Type Contract Audit
 
-**Status:** Draft — April 2026  
+**Status:** Completed — April 2026  
 **Scope:** Avatar, Scenario, Session, Conversation, Message, GameMaster  
 **Purpose:** Identify duplicated or drifting TypeScript contracts before a consolidation refactor.  
 **Action:** Do not modify implementation files until the refactor plan is executed.
@@ -442,3 +442,71 @@ API_GUIDE.md
 
 Console `AvatarSummary` was **not** updated — it is currently missing `availabilityKey`.
 This is the live drift described above.
+
+---
+
+## Refactor Completed
+
+**Status:** Done — April 2026  
+**Executed by:** GitHub Copilot (TYPE_CONTRACT_AUDIT refactor)
+
+### What Changed
+
+#### New canonical source of truth
+
+`packages/shared/src/entity-types.ts` was created with:
+
+- `AvatarStatus`, `AvatarSummary`
+- `ScenarioStatus`, `ScenarioSummary`
+- `SessionSummary`
+- `ConversationSummary`
+
+All are re-exported from `packages/shared/src/index.ts`.
+
+#### Duplication eliminated
+
+| Type                  | Before                                                         | After                                              |
+| --------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
+| `SessionSummary`      | 5+ definitions (subtly different field subsets)                | 1 in `@gami/shared`, imported everywhere           |
+| `ConversationSummary` | 4 identical definitions in separate use-case files             | 1 in `@gami/shared`                                |
+| `AvatarSummary`       | Inline in every use-case output + route handler + console copy | 1 in `@gami/shared`                                |
+| `ScenarioSummary`     | Inline in create/list/update outputs + console copy            | 1 in `@gami/shared`                                |
+| `ScenarioStatus`      | Local type alias in repository + route + console               | 1 in `@gami/shared` via `ScenarioStatus` in domain |
+
+#### Console drift fixed
+
+- `AvatarSummary` in console was missing `config` and `availabilityKey` — now uses shared type
+- `SessionSummary` in console had `activeAvatarId: string | null` and `endedAt: string | null` — now correctly `string | undefined` (optional, no null)
+- `ConversationSummary` in console had `endedAt: string | null` — fixed to optional `string | undefined`
+
+#### Null-guard cleanup
+
+After removing null from optional fields, residual `=== null` guards in:
+
+- `apps/console/src/components/StateInspector.tsx`
+- `apps/console/src/pages/session-components.tsx`
+
+were simplified to `=== undefined`-only checks. ESLint `@typescript-eslint/no-unnecessary-condition` correctly flagged these and they were removed.
+
+#### Regression tests added
+
+`apps/core/src/api/routes/avatars.test.ts` has two new tests:
+
+- **"sets and returns availabilityKey when provided"** — PATCH sets `availabilityKey: 'guide'` and verifies it round-trips in the response
+- **"response includes all AvatarSummary contract fields"** — structural assertion that all fields of the `AvatarSummary` contract (including `availabilityKey`) are present in the API response
+
+### Intentional Duplication Remaining
+
+These are deliberate — not bugs:
+
+| Location                                                                           | Reason                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `update-scenario.use-case.ts` returns `{ scenario: Scenario }` (full domain type)  | The use-case intentionally returns the raw repo result; the route layer is responsible for mapping `config: ScenarioConfig` → `config: Record<string, unknown>`. `UpdateScenarioOutput.scenario` remains the full domain `Scenario` type. |
+| `send-message.types.ts` uses inline `Pick` for `session` and `conversation` fields | `SendMessageOutput` intentionally exposes a reduced subset of session/conversation fields appropriate to the chat endpoint response context. These are not `SessionSummary`/`ConversationSummary`.                                        |
+| `Avatar`/`AvatarConfig` domain types remain separate                               | The domain persistence shape (`Avatar`) and runtime shape (`AvatarConfig`) serve different purposes and are not collapsed. `AvatarSummary` is the API response shape only.                                                                |
+
+### What Should Be Addressed Later
+
+1. **`UpdateScenarioOutput` uses `Scenario` not `ScenarioSummary`** — the route does a manual cast for `config`. This could be cleaner if the use-case returned a mapped output. Low priority.
+2. **`Message` type** is defined in `apps/core` domain and re-exported through use-cases but not yet in `@gami/shared`. If the console needs `Message` shapes, they should be moved to shared next.
+3. **`AvatarConfig`** (runtime/session shape) is still a core-internal type. If the GM debug panel or other console views ever need the full avatar config (with `adjustments`), that should be evaluated for sharing.

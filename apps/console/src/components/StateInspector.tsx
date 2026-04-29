@@ -88,7 +88,7 @@ export function StateInspector({
   }
 
   const activeAvatar =
-    session.activeAvatarId !== undefined && session.activeAvatarId !== null
+    session.activeAvatarId !== undefined
       ? (allAvatarsById.get(session.activeAvatarId)?.name ?? session.activeAvatarId)
       : 'None'
 

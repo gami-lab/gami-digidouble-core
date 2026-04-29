@@ -1,3 +1,4 @@
+import type { ConversationSummary, SessionSummary } from '@gami/shared'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 
 export interface SendMessageInput {
@@ -5,17 +6,7 @@ export interface SendMessageInput {
   userMessage: string
 }
 
-export type SendMessageSessionSummary = Pick<
-  Session,
-  | 'sessionId'
-  | 'userId'
-  | 'scenarioId'
-  | 'activeAvatarId'
-  | 'unlockedAvatarIds'
-  | 'status'
-  | 'startedAt'
-  | 'lastActivityAt'
->
+export type { SessionSummary, ConversationSummary }
 
 export interface SendMessageOutput {
   requestId: string
@@ -30,7 +21,17 @@ export interface SendMessageOutput {
     | 'lastActivityAt'
     | 'endedAt'
   >
-  session: SendMessageSessionSummary
+  session: Pick<
+    Session,
+    | 'sessionId'
+    | 'userId'
+    | 'scenarioId'
+    | 'activeAvatarId'
+    | 'unlockedAvatarIds'
+    | 'status'
+    | 'startedAt'
+    | 'lastActivityAt'
+  >
   userMessage: {
     messageId: string
     content: string
