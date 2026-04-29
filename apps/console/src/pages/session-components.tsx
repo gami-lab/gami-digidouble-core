@@ -199,9 +199,7 @@ type SessionMetadataProps = {
 
 function SessionMetadata({ session, avatarsById }: SessionMetadataProps): JSX.Element {
   const activeAvatar =
-    session.activeAvatarId === undefined
-      ? null
-      : avatarsById.get(session.activeAvatarId)
+    session.activeAvatarId === undefined ? null : avatarsById.get(session.activeAvatarId)
 
   return (
     <div style={listContainerStyle}>
