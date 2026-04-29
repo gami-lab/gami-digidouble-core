@@ -5,14 +5,6 @@ import type {
   GameMasterOutput,
 } from '../../../domain/game-master/game-master.types.js'
 
-export function hasLockedActiveAvatar(session: Session | null, avatars: AvatarConfig[]): boolean {
-  if (session?.unlockedAvatarIds === undefined) return false
-  const unlockedAvatarIds = new Set(session.unlockedAvatarIds)
-  return avatars.some(
-    (avatar) => avatar.status === 'active' && !unlockedAvatarIds.has(avatar.avatarId),
-  )
-}
-
 export function toGameMasterAvailableAvatars(
   avatars: AvatarConfig[],
   session: Session | null,

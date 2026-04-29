@@ -39,7 +39,7 @@ const makeEventsResponse = () => ({
       correlationId: 'corr_1',
       createdAt: '2026-04-28T10:05:00.000Z',
       payload: {
-        triggerReason: 'turn_threshold',
+        triggerReason: 'post_turn_observation',
         turnIndex: 3,
         interactionCount: 3,
         stateBefore: { progression: 'intro', topicsCovered: [] },

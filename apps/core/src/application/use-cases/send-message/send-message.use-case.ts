@@ -10,10 +10,6 @@ import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.ser
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
-import {
-  classifyScenarioTopic,
-  resolveCompetenceRedirect,
-} from '../../../domain/scenario/scenario-policy.service.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
 
@@ -40,9 +36,8 @@ export class SendMessageUseCase {
     const conversation = await this.loadActiveConversation(input.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
-    const scenario = await this.loadScenario(session.scenarioId)
+    await this.loadScenario(session.scenarioId)
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(session.scenarioId)
-    const topicId = classifyScenarioTopic(input.userMessage, scenario.config)
     const systemPrompt = assemblePersonaPrompt(avatar, {
       ...(session.gmNotes !== undefined ? { gmNotes: session.gmNotes } : {}),
       avatarAwareness: buildAvatarAwareness(avatar, scenarioAvatars, session.unlockedAvatarIds),
@@ -52,21 +47,11 @@ export class SendMessageUseCase {
       conversation.conversationId,
       input.userMessage,
     )
-    const redirect = resolveCompetenceRedirect(avatar, topicId)
     const llmRequest = {
       systemPrompt,
       messages: [...historyMessages, { role: 'user' as const, content: userMessage.content }],
     }
-    const response =
-      redirect === null
-        ? await this.llm.complete(llmRequest)
-        : {
-            content: redirect.message,
-            model: 'policy.redirect',
-            inputTokens: 0,
-            outputTokens: 0,
-            latencyMs: 0,
-          }
+    const response = await this.llm.complete(llmRequest)
     const avatarMessage = await this.persistAvatarMessage(conversation.conversationId, {
       ...response,
     })
@@ -101,9 +86,7 @@ export class SendMessageUseCase {
     }
 
     const latencyMs = Date.now() - start
-    if (redirect === null) {
-      this.traceNonBlocking(requestId, session.sessionId, llmRequest, response, latencyMs)
-    }
+    this.traceNonBlocking(requestId, session.sessionId, llmRequest, response, latencyMs)
 
     return this.buildOutput(
       requestId,

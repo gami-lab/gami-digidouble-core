@@ -12,16 +12,18 @@ Update it as epics and features are completed.
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
-### AI Guided Discovery GM-owned avatar unlocks (April 29, 2026)
+### GM-owned multi-avatar orchestration simplification (April 29, 2026)
 
-Avatar unlocking has been moved out of `SendMessageUseCase` and into the async Game Master flow:
+Avatar unlocking and routing now belong to the async Game Master flow:
 
-- AI Guided Discovery scenario config now uses `avatarAvailability.initialAvatarKeys` and `unlockableAvatarKeys`; keyword `topicSignals`, unlock rules, and scripted `introductionMessage` strings were removed
+- GM runs asynchronously after every completed avatar turn; pacing and interaction count remain context only and no deterministic threshold gate prevents GM reasoning
+- Legacy transition helpers were removed from active runtime code: no `avatarTransitionRules`, topic signal matching, deterministic unlock rules, introduction messages, or eligible transition filtering
+- AI Guided Discovery scenario config now uses only world context, goals/objectives, and `avatarAvailability.initialAvatarKeys` / `unlockableAvatarKeys`
 - Avatar prompt assembly now includes safe awareness of other active scenario avatars, including description/scope and current availability, so actors can naturally recommend specialists without unlocking them
 - `GameMasterOutput` supports `unlockAvatarIds`, `suggestedAvatarId`, and `suggestedAvatarReason`; runtime validation ignores inactive avatars, non-scenario IDs, already-unlocked IDs, and duplicates
-- `RunGameMasterUseCase` persists valid unlock decisions to `session.unlockedAvatarIds` asynchronously and includes safe unlock/suggestion fields in `gm_triggered` diagnostics
+- `RunGameMasterUseCase` persists valid unlock decisions to `session.unlockedAvatarIds` asynchronously, emits `gm_triggered` for successful post-turn runs, and emits safe `gm_error` diagnostics for GM failures
 - `GET /v1/sessions/{sessionId}/available-avatars` continues to be the source of truth for switchable avatars, reflecting GM-unlocked specialists
-- Regression coverage added for GM unlock decisions, SendMessage no-unlock ownership, avatar prompt awareness, and AI Guided Discovery unlock/switch flows
+- Regression coverage added for every-turn GM calls, GM unlock decisions, SendMessage no-unlock ownership, avatar prompt awareness, and AI Guided Discovery unlock/switch flows
 
 ### EPIC 2.6 — GM Debug Panel v1 + Observability APIs: **complete** (April 28, 2026)
 
@@ -346,12 +348,12 @@ Test coverage hardening (post-EPIC 1.2):
 - `api/routes/exchange.e2e.test.ts` added: 3 real E2E tests (OpenAI, Anthropic, Mistral) exercising the full HTTP → LLM → response path with no mocks; each `skipIf` guarded by the respective API key environment variable
 - Achieved: 94.38% statement coverage, 87.91% branch coverage, 100% function coverage (67 tests across 15 test files)
 
-GM system — Prompt 05 (Tests and hardening) is done:
+GM system — Prompt 05 (Tests and hardening) is done, then simplified by the April 29 GM-owned routing refactor:
 
-- `domain/game-master/trigger-engine.test.ts` extended: all trigger paths covered — `turn_threshold` (at/below/double default threshold, custom threshold of exactly 3), `topic_repeat` (fires at 3 repeats, null with 2 each at default threshold), `progression_stalled` (empty and `'none'` progression, has text → null, below count → null, custom threshold), priority ordering (turn_threshold beats topic_repeat beats progression_stalled), and zero-state base case (`interactionCount=0`)
+- Legacy deterministic trigger-engine tests were removed; GM invocation is now verified at the post-turn use-case boundary instead of through threshold gates
 - `domain/game-master/gm-state-reducer.test.ts` extended: all-undefined `stateUpdate` (only `interactionCount` changes), and non-mutation of input state (original array reference and count unchanged after call)
-- `application/use-cases/run-game-master/run-game-master.use-case.ts` hardened: LLM call wrapped in try/catch via extracted `callLlm` private method; LLM errors are caught silently, state is still incremented, and a `gm_skipped` event is emitted; `execute` complexity reduced by extracting triggered path to `handleTriggeredTurn`
-- `application/use-cases/run-game-master/run-game-master.use-case.test.ts` extended: event log shape tests (`gm_skipped` and `gm_triggered` field verification), event payload security (confirms `userMessageText` and raw system prompt are absent from emitted payloads), and LLM error path (no exception propagates, state incremented, `gm_skipped` emitted with correct `triggerReason`)
+- `application/use-cases/run-game-master/run-game-master.use-case.ts` hardened: LLM call wrapped in try/catch via extracted `callLlm` private method; LLM errors are caught silently, state is still incremented, and a `gm_error` event is emitted
+- `application/use-cases/run-game-master/run-game-master.use-case.test.ts` covers every-turn GM invocation, event log shape tests (`gm_error` and `gm_triggered` field verification), event payload security (confirms `userMessageText` and raw system prompt are absent from emitted payloads), and LLM error path (no exception propagates, state incremented, `gm_error` emitted)
 - `infrastructure/db/repositories/postgres-gm-state.repository.integration.test.ts` added: `findBySessionId` returns null for unknown session, `save` inserts row, second `save` upserts (row count stays 1), all `GameMasterState` fields round-trip, `currentAvatarId` is `undefined` (not null) when absent
 - `infrastructure/db/repositories/postgres-event-log.repository.integration.test.ts` added: `append` inserts row, row retrievable by `correlation_id`, `sessionId = null` is valid (nullable FK), JSONB payload stores and retrieves nested objects, `sessionId` with `session_` prefix stores the FK correctly
 - Unit test suite: 187 tests · 35 test files (up from 175 · 35); all quality gates pass
@@ -396,12 +398,12 @@ GM system — Prompt 05 (Tests and hardening) is done:
 
 ### Sprint 4 — Orchestration Intelligence
 
-| Epic                                  | Status       | Notes                                                                                                                                                                                                                          |
-| ------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| EPIC 4.1 — Async Game Master v1       | **Complete** | Trigger engine (turn_threshold, topic_repeat, progression_stalled), RunGameMasterUseCase, GM state persistence (PostgresGmStateRepository), event log (PostgresEventLogRepository), guidance note injection into Avatar prompt |
-| EPIC 4.4 — Multi-Avatar Navigation v1 | **Complete** | Active-avatar routing, transition rules, manual+GM handoff flow, transition history endpoints, and test/doc hardening are implemented and validated                                                                            |
-| EPIC 4.2 — Memory Layer v1            | Not started  | Session summary + persistent user facts                                                                                                                                                                                        |
-| EPIC 4.3 — Performance Baseline       | Not started  | TTFT metrics, step timing, Avatar-only vs Avatar+GM comparison                                                                                                                                                                 |
+| Epic                                  | Status       | Notes                                                                                                                                                                       |
+| ------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EPIC 4.1 — Async Game Master v1       | **Complete** | Every-turn async RunGameMasterUseCase, GM state persistence (PostgresGmStateRepository), event log (PostgresEventLogRepository), guidance note injection into Avatar prompt |
+| EPIC 4.4 — Multi-Avatar Navigation v1 | **Complete** | Active-avatar routing, manual+GM handoff flow, GM-owned unlocks, transition history endpoints, and test/doc hardening are implemented and validated                         |
+| EPIC 4.2 — Memory Layer v1            | Not started  | Session summary + persistent user facts                                                                                                                                     |
+| EPIC 4.3 — Performance Baseline       | Not started  | TTFT metrics, step timing, Avatar-only vs Avatar+GM comparison                                                                                                              |
 
 ### Sprint 5 — Back-office v1
 
@@ -428,9 +430,8 @@ GM system — Prompt 05 (Tests and hardening) is done:
 - Observability adapter layer (Langfuse, Console, Null)
 - Session + conversation lifecycle (session create/read, conversation start/list, message send/history by conversation)
 - GM state persistence (table `gm_states`, in-memory + Postgres repositories, adapter wiring)
-- GM deterministic trigger engine (`evaluateTriggers`) with policy thresholds for `turn_threshold`, `topic_repeat`, and `progression_stalled`
 - GM background orchestration wired (`RunGameMasterUseCase`): non-blocking execution from `SendMessageUseCase`, state reducer persistence, and session-level director notes injection into next avatar prompt
-- Event log infrastructure (table `event_log`, `IEventLogRepository` port, `InMemoryEventLogRepository`, `PostgresEventLogRepository`); `RunGameMasterUseCase` emits `gm_triggered` and `gm_skipped` events on every run; repositories support session-scoped newest-first event reads for admin inspection; emission failures are swallowed and logged to stderr
+- Event log infrastructure (table `event_log`, `IEventLogRepository` port, `InMemoryEventLogRepository`, `PostgresEventLogRepository`); `RunGameMasterUseCase` emits `gm_triggered` for successful post-turn runs and `gm_error` for safe GM failures; repositories support session-scoped newest-first event reads for admin inspection; emission failures are swallowed and logged to stderr
 - Scenario management (create)
 - Scenario management (create, list, delete with dependency checks)
 - Avatar management (create, list-by-scenario, delete with active-session safety checks)
@@ -456,7 +457,6 @@ GM system — Prompt 05 (Tests and hardening) is done:
 
 Completed multi-avatar routing and persistence hardening across domain, application, API, and Postgres adapters.
 
-- AvatarTransitionRule types + transition-engine.ts (pure domain)
 - GM-driven conversationMode: 'new' path activated in RunGameMasterUseCase
 - POST /v1/sessions/:sessionId/switch-avatar — manual switch use case + route
 - GET /v1/sessions/:sessionId/available-avatars

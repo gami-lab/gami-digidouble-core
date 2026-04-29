@@ -40,14 +40,6 @@ export const aiGuidedDiscoveryScenarioConfig: CreateScenarioParams = {
       initialAvatarKeys: ['guide'],
       unlockableAvatarKeys: ['theo', 'eva'],
     },
-    avatarRoutingPolicy: {
-      directorOwnsUnlocks: true,
-      actorMayRecommendSpecialists: true,
-    },
-    specialistRoles: {
-      theo: 'Technical AI specialist for model internals, infrastructure, performance, and implementation questions.',
-      eva: 'Responsible AI specialist for ethics, social impact, governance, environmental impact, and trust questions.',
-    },
   },
 }
 
@@ -81,16 +73,6 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
       scope:
         'Technical AI topics: models, transformers, embeddings, training, inference, RAG, agents, latency, cost, scaling, and providers.',
       ui: { unlockState: 'locked' },
-      competenceBoundary: {
-        allowedTopicIds: ['technical'],
-        redirects: [
-          {
-            topicId: 'ethics',
-            message:
-              "That question belongs more to Eva or the guide. I can help with implementation details, but ethics and societal risk are Eva's domain.",
-          },
-        ],
-      },
     },
   },
   {
@@ -107,16 +89,6 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
       scope:
         'Responsible AI topics: bias, fairness, transparency, privacy, regulation, oversight, environmental impact, and societal consequences.',
       ui: { unlockState: 'locked' },
-      competenceBoundary: {
-        allowedTopicIds: ['ethics'],
-        redirects: [
-          {
-            topicId: 'technical',
-            message:
-              'Theo or the guide is a better fit for deep infrastructure details. I can stay with the ethics, governance, and human oversight side.',
-          },
-        ],
-      },
     },
   },
 ]

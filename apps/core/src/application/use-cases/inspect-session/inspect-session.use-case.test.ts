@@ -99,7 +99,7 @@ const twoConversationParams = {
       conversationId: 'conversation_2',
       avatarId: 'avatar_2',
       startedBy: 'gm',
-      reason: 'turn_threshold',
+      reason: 'post_turn_observation',
       startedAt: '2026-04-28T10:04:00.000Z',
     }),
   ],
@@ -133,7 +133,7 @@ describe('InspectSessionUseCase', () => {
       {
         fromAvatarId: 'avatar_1',
         toAvatarId: 'avatar_2',
-        reason: 'turn_threshold',
+        reason: 'post_turn_observation',
         startedBy: 'gm',
         transitionedAt: '2026-04-28T10:04:00.000Z',
       },

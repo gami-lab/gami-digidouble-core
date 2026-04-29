@@ -90,23 +90,9 @@ Defines a runnable experience configuration.
 - world context
 - objectives
 - goals
-- pacing rules
-- transition settings
 - avatar availability policy (`initialAvatarKeys`, optional `unlockableAvatarKeys`)
-- avatar routing policy / specialist role metadata for prompt and GM context
-- enabled features
 - UI hints
 - runtime defaults
-- avatarTransitionRules (AvatarTransitionRule[]): defines eligible avatar transitions; evaluated by the domain transition engine
-
-### ScenarioConfig — AvatarTransitionRule
-
-`avatarTransitionRules` entries use the runtime `AvatarTransitionRule` shape:
-
-- `fromAvatarId` (string)
-- `toAvatarId` (string)
-- `trigger` (`'progression' | 'topic_repeat' | 'manual'`)
-- `topic?` (string, optional; only used when `trigger = 'topic_repeat'`)
 
 ### Notes
 
@@ -522,8 +508,8 @@ Use only events that are actually useful.
 - **In-memory:** `InMemoryEventLogRepository` in `apps/core/src/infrastructure/db/in-memory-event-log.repository.ts`
 - **Postgres:** `PostgresEventLogRepository` in `apps/core/src/infrastructure/db/repositories/postgres-event-log.repository.ts`
 - **Domain type:** `GameMasterEvent` added to `apps/core/src/domain/game-master/game-master.types.ts`
-- **Status:** Fully implemented. Currently used for GM diagnostic events (`gm_triggered`, `gm_skipped`).
-- GM emits `gm_triggered` and `gm_skipped` events on every run via `RunGameMasterUseCase`
+- **Status:** Fully implemented. Currently used for GM diagnostic events (`gm_triggered`, `gm_error`).
+- GM emits `gm_triggered` after successful post-turn evaluation and `gm_error` for safe GM failures via `RunGameMasterUseCase`
 
 The `request_id` and `correlation_id` fields are essential for tracing failures across async flows without requiring a full distributed tracing stack.
 
@@ -583,25 +569,7 @@ No PII in payload — store IDs and structured metadata only.
 
 ---
 
-## 16. AvatarTransitionRule
-
-Scenario runtime transition policy attached through `ScenarioConfig.avatarTransitionRules`.
-
-### Fields (runtime shape)
-
-- `fromAvatarId` (string)
-- `toAvatarId` (string)
-- `trigger` (`'progression' | 'topic_repeat' | 'manual'`)
-- `topic?` (string, optional)
-
-### Notes
-
-- Rules are evaluated by `domain/avatar/transition-engine.ts`.
-- `manual` rules are for explicit/manual transitions and are not auto-selected by deterministic trigger evaluation.
-
----
-
-## 17. PromptTemplateVariable (Optional)
+## 16. PromptTemplateVariable (Optional)
 
 Reusable scenario-level variables injected into prompt/template fragments.
 
@@ -638,7 +606,6 @@ Use only when repeated prompt/template fragments need explicit editable variable
 - KnowledgeSource → KnowledgeChunks (1:N)
 - KnowledgeSource → IngestionJobs (1:N)
 - Session → EventLogs (1:N)
-- Scenario → AvatarTransitionRules (1:N)
 - Scenario → PromptTemplateVariables (1:N, optional)
 
 ---
@@ -652,7 +619,6 @@ Use JSONB when structure may evolve quickly:
 - message metadata
 - source metadata
 - event payloads
-- transition rule config
 - prompt/template variables when scenario-authoring needs reusable placeholders (if not modeled relationally)
 
 Do **not** hide core relational data inside JSONB.

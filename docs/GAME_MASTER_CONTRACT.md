@@ -86,14 +86,14 @@ Only keep what is strictly needed to:
 - avoid repetition
 - track interaction
 
-## 2.5 Hybrid decision mode
+## 2.5 Reasoning-owned routing
 
 The GM combines:
 
-- **reasoning input** (LLM when useful)
-- **policy input** (structured scenario config and deterministic rules)
+- **reasoning input** from full conversation context
+- **policy input** only for hard safety constraints such as active avatars and session unlock state
 
-Not all decisions should come from prompts.
+Semantic decisions such as avatar unlocks, suggestions, and switches belong to GM reasoning, not keyword lists or threshold gates.
 
 ---
 
@@ -113,11 +113,12 @@ Not all decisions should come from prompts.
 1. User message received
 2. Avatar responds directly (no waiting for GM)
 3. Avatar message persisted
-4. GM fires asynchronously — non-blocking; errors are caught and logged, never propagate to the user response
-5. GM evaluates deterministic triggers against current state
-6. If a trigger fires: LLM called, state reduced, guidance notes stored into `sessions.gm_notes` for the next turn; requested avatar unlocks are validated and persisted to `sessions.unlocked_avatar_ids`; when `conversationMode === 'new'` and `nextAvatarId` is valid, the current conversation is closed and a new conversation is opened for the next avatar; `session.activeAvatarId` updated if avatar changed; `gm_triggered` event emitted
-7. If no trigger: interaction count incremented, state persisted; `gm_skipped` event emitted
-8. An event is emitted in all cases (see Section 14)
+4. GM fires asynchronously after every completed avatar turn — non-blocking; errors are caught and logged, never propagate to the user response
+5. GM LLM is called with recent messages, current state, scenario goals, active avatar, and avatar availability context
+6. GM output is parsed and validated
+7. State is reduced, guidance notes are stored into `sessions.gm_notes` for the next turn, and valid avatar unlocks are persisted to `sessions.unlocked_avatar_ids`
+8. If `conversationMode === 'new'` and `nextAvatarId` is a valid active and switchable avatar, the current conversation is closed and a new conversation is opened for the next avatar; `session.activeAvatarId` is updated
+9. `gm_triggered` is emitted for successful GM runs; `gm_error` is emitted for safe failures
 
 This removes the double-latency problem of sequential two-LLM calls.
 
@@ -156,19 +157,6 @@ export type GameMasterInput = {
       description?: string
       scope?: string
       availability?: 'available' | 'locked'
-    }>
-
-    policy?: {
-      /** Override the default turn-count trigger interval (default: 5). */
-      turnThreshold?: number
-      /** Override how many times a topic must repeat before triggering (default: 3). */
-      maxTopicRepeatCount?: number
-      /** Override how many turns without progression before triggering (default: 8). */
-      maxTurnsWithoutProgression?: number
-    }
-    eligibleTransitions?: Array<{
-      toAvatarId: string
-      reason: string
     }>
   }
 }
@@ -234,13 +222,6 @@ export type GameMasterState = {
   topicsCovered: string[]
 
   interactionCount: number
-
-  transitionHistory?: Array<{
-    fromAvatarId?: string
-    toAvatarId: string
-    reason?: string
-    atTurn: number
-  }>
 }
 ```
 
@@ -266,10 +247,9 @@ Used to:
 
 ## interactionCount
 
-Used to:
+Used as context for pacing, compaction, and progression reasoning.
 
-- detect long sessions
-- trigger future improvements later (compaction, etc.)
+It does not gate whether the GM runs.
 
 ## currentAvatarId
 
@@ -289,35 +269,14 @@ The Game Master only makes 3 decisions:
 - choose initial avatar
 - optionally switch later
 
-## 8.2 Should I intervene?
+## 8.2 What should change after this turn?
 
-- no → Avatar continues alone
-- yes → inject guidance asynchronously
+The GM runs after every completed avatar turn and decides whether to:
 
-### Deterministic trigger policy (MVP)
-
-The first intervention gate is deterministic and does not call an LLM.
-It evaluates `GameMasterState` with fixed trigger priority.
-
-Priority order:
-
-1. `turn_threshold`
-2. `topic_repeat`
-3. `progression_stalled`
-
-`session_start` and `manual` are reserved explicit triggers from calling code and are not evaluated by this policy function.
-
-Default thresholds:
-
-- `DEFAULT_TURN_THRESHOLD = 5`
-- `DEFAULT_MAX_TOPIC_REPEATS = 3`
-- `DEFAULT_MAX_TURNS_WITHOUT_PROGRESSION = 8`
-
-Trigger conditions:
-
-- `turn_threshold` → `interactionCount > 0 && interactionCount % turnThreshold === 0`
-- `topic_repeat` → any topic appears at least `maxTopicRepeatCount` times in `topicsCovered`
-- `progression_stalled` → `interactionCount >= maxTurnsWithoutProgression` and `progression` is still initial (`''` or `'none'`)
+- store a concise director note for the next turn
+- unlock a now-relevant avatar
+- suggest another avatar without forcing a switch
+- switch to another avatar only when it explicitly returns `conversationMode: 'new'` and a valid `nextAvatarId`
 
 ## 8.3 What context to provide?
 
@@ -425,20 +384,16 @@ The current MVP implementation runs GM as an async observer after each avatar tu
    - `progression: ''`
    - `topicsCovered: []`
    - `interactionCount: 0`
-2. Evaluate deterministic triggers with `evaluateTriggers(state, policy?)`.
-3. If no trigger:
-   - increment `interactionCount`
-   - persist state
-   - leave session GM notes unchanged
-4. If a trigger fires:
-   - build `GameMasterInput` (session, user message, state, scenario/avatar context)
-   - call LLM via `ILlmAdapter.complete()`
-   - parse JSON into `GameMasterOutput`
-   - apply reducer (`reduceGmState`) and persist state
-   - store `output.context.notes` into session-level GM notes when provided
-   - when `conversationMode: 'new'` and `nextAvatarId` is valid for eligible transitions, close the active conversation, create a new GM-started conversation for `nextAvatarId`, and update `session.activeAvatarId`
-   - otherwise update `session.activeAvatarId` when `stateUpdate.activeAvatarId` changes
-5. GM errors must not break user response path; in message flow the GM call is fire-and-forget with error catch.
+2. Build `GameMasterInput` (session, recent messages, user message, state, scenario goals, avatar availability context).
+3. Call LLM via `ILlmAdapter.complete()` every post-turn run.
+4. Parse JSON into `GameMasterOutput`.
+5. Validate unlock, suggestion, and switch targets against active scenario avatars and session unlock state.
+6. Apply reducer (`reduceGmState`) and persist state.
+7. Store `output.context.notes` into session-level GM notes when provided.
+8. Persist valid unlocks into `sessions.unlocked_avatar_ids`.
+9. When `conversationMode: 'new'` and `nextAvatarId` is valid and switchable, close the active conversation, create a new GM-started conversation for `nextAvatarId`, and update `session.activeAvatarId`.
+10. Emit `gm_triggered` for successful runs or `gm_error` for safe failures.
+11. GM errors must not break user response path; in message flow the GM call is fire-and-forget with error catch.
 
 ## 12.2 GM system prompt structure (MVP)
 
@@ -502,20 +457,14 @@ interface IEventLogRepository {
 ```ts
 type GameMasterEvent = {
   // Standard EventLog fields
-  type: 'gm_triggered' | 'gm_skipped'
-  severity: 'info'
+  type: 'gm_triggered' | 'gm_error'
+  severity: 'info' | 'error'
   correlationId: string // shared with the originating user turn
   requestId?: string
 
   payload: {
     // Why the GM ran
-    triggerReason:
-      | 'session_start'
-      | 'turn_threshold'
-      | 'topic_repeat'
-      | 'progression_stalled'
-      | 'avatar_unlock_evaluation'
-      | 'manual'
+    triggerReason: 'session_start' | 'post_turn_observation' | 'manual' | null
     turnIndex: number
     interactionCount: number
 
@@ -535,6 +484,7 @@ type GameMasterEvent = {
       unlockedAvatarIds?: string[]
       suggestedAvatarId?: string
       suggestedAvatarReason?: string
+      switchedAvatarId?: string
     }
 
     // State after (only when type = 'gm_triggered')
@@ -548,27 +498,30 @@ type GameMasterEvent = {
     latencyMs: number
     inputTokens?: number
     outputTokens?: number
+    errorCode?: string
   }
 }
 ```
 
 ## Rules
 
-- Emit for every GM run, including skipped runs (`type: 'gm_skipped'`)
+- Emit `gm_triggered` for every successful GM run and `gm_error` for safe GM failures
 - Avatar unlocks are reported inside the safe `gm_triggered.payload.decision.unlockedAvatarIds` field; reasons must be short and must not quote raw conversation text
 - Never include prompt content or raw user message in the diagnostic payload — these are sensitive
 - The `correlationId` must match the one used by the parent `SendMessage` use case for this turn
-- The admin events endpoint surfaces only safe `gm_triggered` and `gm_skipped` diagnostic fields, newest-first
+- The admin events endpoint surfaces only safe `gm_triggered` and `gm_error` diagnostic fields, newest-first
 
 ---
 
 # 15. Avatar Switch Flow
 
-When rule-based transitions are configured, avatar switching follows this flow:
+Avatar switching is owned by the Game Master and validated by the runtime:
 
-1. Trigger policy fires (`turn_threshold`, `topic_repeat`, or `progression_stalled`) and transition rules are evaluated from current avatar and state.
-2. Eligible transitions are passed into `GameMasterInput.context.eligibleTransitions` as `{ toAvatarId, reason }[]` so the GM can only pick from valid handoff targets.
-3. If rules exist, `nextAvatarId` is accepted only when it is in the eligible set; if valid and `conversationMode === 'new'`, current conversation is closed, new conversation is created, and session active avatar is updated.
+1. GM receives active scenario avatars in context, including whether each avatar is currently available or locked.
+2. GM may return `suggestedAvatarId` for a non-forcing recommendation.
+3. GM may return `nextAvatarId` only when `conversationMode === 'new'`.
+4. Runtime accepts a switch only when `nextAvatarId` is an active avatar in the scenario and is already unlocked or unlocked by the same valid GM output.
+5. If valid, the current conversation is closed, a new GM-started conversation is created, and session active avatar is updated.
 
 # 16. Avatar Unlock Flow
 

@@ -5,6 +5,7 @@ import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
 const findBySessionIdMock = vi.fn()
 const saveGmStateMock = vi.fn()
+const findSessionByIdMock = vi.fn()
 const updateSessionMock = vi.fn()
 const listAvatarsByScenarioIdMock = vi.fn()
 const findActiveBySessionIdMock = vi.fn()
@@ -13,13 +14,9 @@ const updateConversationMock = vi.fn()
 const completeMock = vi.fn()
 const traceMock = vi.fn()
 
-const gmStateRepository = {
-  findBySessionId: findBySessionIdMock,
-  save: saveGmStateMock,
-}
-
+const gmStateRepository = { findBySessionId: findBySessionIdMock, save: saveGmStateMock }
 const sessionRepository = {
-  findById: vi.fn(),
+  findById: findSessionByIdMock,
   create: vi.fn(),
   update: updateSessionMock,
   delete: vi.fn(),
@@ -27,7 +24,6 @@ const sessionRepository = {
   countByScenarioId: vi.fn(),
   countActiveByScenarioId: vi.fn(),
 }
-
 const avatarRepository = {
   findById: vi.fn(),
   create: vi.fn(),
@@ -35,10 +31,6 @@ const avatarRepository = {
   delete: vi.fn(),
   update: vi.fn(),
 }
-
-const llm = { complete: completeMock }
-const observability = { trace: traceMock, flush: vi.fn() }
-
 const conversationRepository = {
   findById: vi.fn(),
   findActiveBySessionId: findActiveBySessionIdMock,
@@ -47,12 +39,14 @@ const conversationRepository = {
   deleteBySessionId: vi.fn(),
   update: updateConversationMock,
 }
+const llm = { complete: completeMock }
+const observability = { trace: traceMock, flush: vi.fn() }
 
 function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
   return {
     progression: 'none',
-    topicsCovered: ['plastic'],
-    interactionCount: 5,
+    topicsCovered: [],
+    interactionCount: 1,
     currentAvatarId: 'avatar_1',
     ...overrides,
   }
@@ -72,40 +66,20 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   }
 }
 
-function makeScenarioRepository(config: Record<string, unknown>) {
-  return {
-    findById: vi.fn().mockResolvedValue({
-      scenarioId: 'scenario_1',
-      name: 'Scenario',
-      status: 'active',
-      config,
-      createdAt: '',
-      updatedAt: '',
-    }),
-    create: vi.fn(),
-    list: vi.fn(),
-    delete: vi.fn(),
-    update: vi.fn(),
-  }
-}
-
-function createUseCase(options?: {
-  scenarioRepository?: ReturnType<typeof makeScenarioRepository>
-  withConversationRepository?: boolean
-}): RunGameMasterUseCase {
+function createUseCase(): RunGameMasterUseCase {
   return new RunGameMasterUseCase(
     gmStateRepository,
     sessionRepository,
     avatarRepository,
     llm,
     observability,
-    options?.scenarioRepository,
     undefined,
-    options?.withConversationRepository === false ? undefined : conversationRepository,
+    undefined,
+    conversationRepository,
   )
 }
 
-function mockTriggeredLlmOutput(content: Record<string, unknown>): void {
+function mockGmOutput(content: Record<string, unknown>): void {
   completeMock.mockResolvedValue({
     content: JSON.stringify(content),
     model: 'null-model',
@@ -118,6 +92,7 @@ function mockTriggeredLlmOutput(content: Record<string, unknown>): void {
 beforeEach(() => {
   findBySessionIdMock.mockReset()
   saveGmStateMock.mockReset()
+  findSessionByIdMock.mockReset()
   updateSessionMock.mockReset()
   listAvatarsByScenarioIdMock.mockReset()
   findActiveBySessionIdMock.mockReset()
@@ -128,7 +103,16 @@ beforeEach(() => {
 
   findBySessionIdMock.mockResolvedValue(makeState())
   saveGmStateMock.mockResolvedValue(undefined)
-  updateSessionMock.mockResolvedValue(undefined)
+  findSessionByIdMock.mockResolvedValue({
+    sessionId: 'session_1',
+    userId: 'user_1',
+    scenarioId: 'scenario_1',
+    activeAvatarId: 'avatar_1',
+    unlockedAvatarIds: ['avatar_1', 'avatar_2'],
+    status: 'active',
+    startedAt: '2026-04-18T10:00:00.000Z',
+    lastActivityAt: '2026-04-18T10:00:00.000Z',
+  })
   listAvatarsByScenarioIdMock.mockResolvedValue([
     makeAvatar({ avatarId: 'avatar_1' }),
     makeAvatar({ avatarId: 'avatar_2', name: 'Nova' }),
@@ -146,25 +130,14 @@ beforeEach(() => {
   traceMock.mockResolvedValue(undefined)
 })
 
-describe('RunGameMasterUseCase — avatar switch flow (happy/no-op paths)', () => {
-  it('conversationMode new with valid nextAvatarId closes old conversation and creates a new one', async () => {
-    const useCase = createUseCase({
-      scenarioRepository: makeScenarioRepository({
-        avatarTransitionRules: [
-          {
-            fromAvatarId: 'avatar_1',
-            toAvatarId: 'avatar_2',
-            trigger: 'progression',
-          },
-        ],
-      }),
-    })
-    mockTriggeredLlmOutput({
+describe('RunGameMasterUseCase — avatar switch flow', () => {
+  it('conversationMode new with valid available nextAvatarId opens a new conversation', async () => {
+    const useCase = createUseCase()
+    mockGmOutput({
       avatarId: 'avatar_1',
       nextAvatarId: 'avatar_2',
-      transitionReason: 'progression_handoff',
+      transitionReason: 'specialist_handoff',
       conversationMode: 'new',
-      context: { notes: 'Handoff to avatar 2 with a short recap.' },
       stateUpdate: { interactionIncrement: 1 },
     })
 
@@ -173,93 +146,37 @@ describe('RunGameMasterUseCase — avatar switch flow (happy/no-op paths)', () =
       scenarioId: 'scenario_1',
       avatarId: 'avatar_1',
       userMessageText: 'hello',
-      turnIndex: 6,
+      turnIndex: 2,
       correlationId: 'corr_1',
     })
 
-    expect(updateConversationMock).toHaveBeenCalledTimes(1)
-    const closeCall = updateConversationMock.mock.calls[0] as
-      | [string, { status?: string; endedAt?: string }]
-      | undefined
-    expect(closeCall?.[0]).toBe('conversation_old')
-    expect(closeCall?.[1].status).toBe('closed')
-    expect(typeof closeCall?.[1].endedAt).toBe('string')
+    expect(updateConversationMock).toHaveBeenCalledWith(
+      'conversation_old',
+      expect.objectContaining({ status: 'closed' }),
+    )
     expect(createConversationMock).toHaveBeenCalledWith({
       sessionId: 'session_1',
       avatarId: 'avatar_2',
       startedBy: 'gm',
-      reason: 'progression_handoff',
+      reason: 'specialist_handoff',
       handoffFromConversationId: 'conversation_old',
     })
     expect(updateSessionMock).toHaveBeenCalledWith('session_1', { activeAvatarId: 'avatar_2' })
   })
 
-  it('conversationMode new with empty nextAvatarId skips switch', async () => {
+  it('skips switch when nextAvatarId is locked and not unlocked by the same decision', async () => {
     const useCase = createUseCase()
-    mockTriggeredLlmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: '  ',
-      conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
-    })
-
-    await useCase.execute({
+    findSessionByIdMock.mockResolvedValue({
       sessionId: 'session_1',
+      userId: 'user_1',
       scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_1b',
+      activeAvatarId: 'avatar_1',
+      unlockedAvatarIds: ['avatar_1'],
+      status: 'active',
+      startedAt: '2026-04-18T10:00:00.000Z',
+      lastActivityAt: '2026-04-18T10:00:00.000Z',
     })
-
-    expect(createConversationMock).not.toHaveBeenCalled()
-    expect(updateConversationMock).not.toHaveBeenCalled()
-  })
-})
-
-describe('RunGameMasterUseCase — avatar switch flow (no active conversation paths)', () => {
-  it('conversationMode new with no active conversation creates conversation without handoffFromConversationId', async () => {
-    const useCase = createUseCase({
-      scenarioRepository: makeScenarioRepository({
-        avatarTransitionRules: [
-          {
-            fromAvatarId: 'avatar_1',
-            toAvatarId: 'avatar_2',
-            trigger: 'progression',
-          },
-        ],
-      }),
-    })
-    findActiveBySessionIdMock.mockResolvedValue(null)
-    mockTriggeredLlmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: 'avatar_2',
-      transitionReason: 'progression_handoff',
-      conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
-    })
-
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_1c',
-    })
-
-    expect(updateConversationMock).not.toHaveBeenCalled()
-    expect(createConversationMock).toHaveBeenCalledWith({
-      sessionId: 'session_1',
-      avatarId: 'avatar_2',
-      startedBy: 'gm',
-      reason: 'progression_handoff',
-    })
-  })
-
-  it('conversationMode new without conversation repository is a graceful no-op switch path', async () => {
-    const useCase = createUseCase({ withConversationRepository: false })
-    mockTriggeredLlmOutput({
+    mockGmOutput({
       avatarId: 'avatar_1',
       nextAvatarId: 'avatar_2',
       conversationMode: 'new',
@@ -271,103 +188,8 @@ describe('RunGameMasterUseCase — avatar switch flow (no active conversation pa
       scenarioId: 'scenario_1',
       avatarId: 'avatar_1',
       userMessageText: 'hello',
-      turnIndex: 6,
+      turnIndex: 2,
       correlationId: 'corr_2',
-    })
-
-    expect(createConversationMock).not.toHaveBeenCalled()
-    expect(updateConversationMock).not.toHaveBeenCalled()
-  })
-})
-
-describe('RunGameMasterUseCase — avatar switch flow (guard rails)', () => {
-  it('conversationMode new with no rules and invalid nextAvatarId skips switch', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    const useCase = createUseCase({
-      scenarioRepository: makeScenarioRepository({
-        avatarTransitionRules: [],
-      }),
-    })
-    mockTriggeredLlmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: 'avatar_999',
-      conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
-    })
-
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_3a',
-    })
-
-    expect(createConversationMock).not.toHaveBeenCalled()
-    expect(updateConversationMock).not.toHaveBeenCalled()
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[GM] Skipping avatar switch: nextAvatarId is not an active avatar in the scenario.',
-      'avatar_999',
-    )
-    warnSpy.mockRestore()
-  })
-
-  it('conversationMode new with nextAvatarId outside eligible set skips switch', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    const useCase = createUseCase({
-      scenarioRepository: makeScenarioRepository({
-        avatarTransitionRules: [
-          {
-            fromAvatarId: 'avatar_1',
-            toAvatarId: 'avatar_2',
-            trigger: 'progression',
-          },
-        ],
-      }),
-    })
-    mockTriggeredLlmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: 'avatar_3',
-      conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
-    })
-
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_3',
-    })
-
-    expect(createConversationMock).not.toHaveBeenCalled()
-    expect(updateConversationMock).not.toHaveBeenCalled()
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[GM] Skipping avatar switch: nextAvatarId is not in eligible transitions.',
-      'avatar_3',
-      ['avatar_2'],
-    )
-    warnSpy.mockRestore()
-  })
-
-  it('conversationMode continue does not create a new conversation', async () => {
-    const useCase = createUseCase()
-    mockTriggeredLlmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: 'avatar_2',
-      conversationMode: 'continue',
-      stateUpdate: { interactionIncrement: 1 },
-    })
-
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'hello',
-      turnIndex: 6,
-      correlationId: 'corr_4',
     })
 
     expect(createConversationMock).not.toHaveBeenCalled()

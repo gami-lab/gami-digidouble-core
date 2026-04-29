@@ -46,6 +46,7 @@ describe('ai-guided-discovery seed data derivation', () => {
 
   it('keeps unlock configuration policy-based without keyword triggers or scripted messages', () => {
     expect(aiGuidedDiscoveryScenarioConfig.config?.['topicSignals']).toBeUndefined()
+    expect(aiGuidedDiscoveryScenarioConfig.config?.['avatarTransitionRules']).toBeUndefined()
 
     const avatarAvailability = aiGuidedDiscoveryScenarioConfig.config?.['avatarAvailability']
     expect(avatarAvailability).toEqual({

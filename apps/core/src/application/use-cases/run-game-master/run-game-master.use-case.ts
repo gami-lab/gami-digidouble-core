@@ -8,11 +8,6 @@ import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
-import type {
-  AvatarTransitionRule,
-  EligibleTransition,
-} from '../../../domain/avatar/avatar-transition.types.js'
-import { evaluateTransitionRules } from '../../../domain/avatar/transition-engine.js'
 import { buildGameMasterSystemPrompt } from '../../../domain/game-master/gm-prompt.service.js'
 import { reduceGmState } from '../../../domain/game-master/gm-state-reducer.js'
 import type {
@@ -21,29 +16,16 @@ import type {
   GameMasterState,
 } from '../../../domain/game-master/game-master.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
-import {
-  evaluateTriggers,
-  type TriggerPolicy,
-  type TriggerReason,
-} from '../../../domain/game-master/trigger-engine.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
+import { safeParseGameMasterOutput } from './run-game-master.helpers.js'
 import {
-  extractScenarioAvatarTransitionRules,
-  extractScenarioPolicy,
-  mapTriggerReasonToTransitionTrigger,
-  safeParseGameMasterOutput,
-} from './run-game-master.helpers.js'
-import {
-  hasLockedActiveAvatar,
   resolveAvatarUnlocks,
   toGameMasterAvailableAvatars,
 } from './run-game-master.avatar-unlocks.js'
 import {
-  buildStateSummary,
-  emitEventSafe,
+  emitGameMasterError,
   emitTriggeredGameMasterTurn,
   handleInvalidGameMasterOutput,
-  handleSkippedGameMasterTurn,
   incrementInteractionAndSave,
   traceSafe,
 } from './run-game-master.events.js'
@@ -57,8 +39,6 @@ const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
 type ScenarioContext = {
   description?: string
   goals?: string[]
-  policy?: TriggerPolicy
-  avatarTransitionRules?: AvatarTransitionRule[]
 }
 
 type AvatarRoutingResult = {
@@ -84,23 +64,6 @@ export class RunGameMasterUseCase {
     const scenarioContext = await this.loadScenarioContext(input.scenarioId)
     const session = await this.loadSession(input.sessionId)
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(input.scenarioId)
-    const triggerReason =
-      evaluateTriggers(currentState, scenarioContext.policy) ??
-      this.evaluateUnlockTrigger(session, scenarioAvatars)
-
-    if (triggerReason === null) {
-      await handleSkippedGameMasterTurn({
-        input,
-        currentState,
-        gmRunStartMs,
-        gmStateRepository: this.gmStateRepository,
-        observability: this.observability,
-        ...(this.eventLogRepository !== undefined
-          ? { eventLogRepository: this.eventLogRepository }
-          : {}),
-      })
-      return
-    }
 
     await this.handleTriggeredTurn(
       input,
@@ -108,7 +71,6 @@ export class RunGameMasterUseCase {
       scenarioContext,
       session,
       scenarioAvatars,
-      triggerReason,
       gmRunStartMs,
     )
   }
@@ -119,24 +81,17 @@ export class RunGameMasterUseCase {
     scenarioContext: ScenarioContext,
     session: Session | null,
     scenarioAvatars: AvatarConfig[],
-    triggerReason: TriggerReason,
     gmRunStartMs: number,
   ): Promise<void> {
-    const eligibleTransitions = evaluateTransitionRules(
-      currentState.currentAvatarId,
-      currentState,
-      scenarioContext.avatarTransitionRules ?? [],
-      mapTriggerReasonToTransitionTrigger(triggerReason),
-    )
     const gmInput = await this.buildGameMasterInput(
       input,
       currentState,
       scenarioContext,
       session,
       scenarioAvatars,
-      eligibleTransitions,
     )
     const llmStart = Date.now()
+    const triggerReason = 'post_turn_observation'
 
     const llmCallResult = await this.callLlm(
       gmInput,
@@ -177,8 +132,9 @@ export class RunGameMasterUseCase {
     const routingResult = await this.applyAvatarRoutingUpdates(
       input,
       currentState,
+      session,
+      scenarioAvatars,
       output,
-      eligibleTransitions,
     )
     const unlockedAvatarIds = await this.applyAvatarUnlocks(input, session, scenarioAvatars, output)
     const reconciledState: GameMasterState =
@@ -194,6 +150,9 @@ export class RunGameMasterUseCase {
       reconciledState,
       output,
       unlockedAvatarIds,
+      ...(routingResult.switchedAvatarId !== undefined
+        ? { switchedAvatarId: routingResult.switchedAvatarId }
+        : {}),
       triggerReason,
       gmRunStartMs,
       llmStart,
@@ -231,19 +190,12 @@ export class RunGameMasterUseCase {
     } catch (err: unknown) {
       console.error('[GM] LLM call failed:', err)
       await incrementInteractionAndSave(this.gmStateRepository, input.sessionId, currentState)
-      const updatedCount = currentState.interactionCount + 1
-      await emitEventSafe(this.eventLogRepository, {
-        sessionId: input.sessionId,
-        type: 'gm_skipped',
-        severity: 'info',
-        correlationId: input.correlationId,
-        payload: {
-          triggerReason,
-          turnIndex: input.turnIndex,
-          interactionCount: updatedCount,
-          stateBefore: buildStateSummary(currentState),
-          latencyMs: Date.now() - gmRunStartMs,
-        },
+      await emitGameMasterError(this.eventLogRepository, {
+        input,
+        currentState,
+        triggerReason,
+        latencyMs: Date.now() - gmRunStartMs,
+        errorCode: 'llm_error',
       })
       await traceSafe(this.observability, {
         requestId: input.correlationId,
@@ -274,20 +226,12 @@ export class RunGameMasterUseCase {
     }
   }
 
-  private evaluateUnlockTrigger(
-    session: Session | null,
-    scenarioAvatars: AvatarConfig[],
-  ): TriggerReason | null {
-    return hasLockedActiveAvatar(session, scenarioAvatars) ? 'avatar_unlock_evaluation' : null
-  }
-
   private async buildGameMasterInput(
     input: RunGameMasterInput,
     currentState: GameMasterState,
     scenarioContext: ScenarioContext,
     session: Session | null,
     scenarioAvatars: AvatarConfig[],
-    eligibleTransitions: EligibleTransition[],
   ): Promise<GameMasterInput> {
     const recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }> =
       await this.loadRecentMessages(input.conversationId)
@@ -306,11 +250,6 @@ export class RunGameMasterUseCase {
           ...(scenarioContext.goals !== undefined ? { goals: scenarioContext.goals } : {}),
         },
         availableAvatars: toGameMasterAvailableAvatars(scenarioAvatars, session),
-        eligibleTransitions: eligibleTransitions.map((transition) => ({
-          toAvatarId: transition.toAvatarId,
-          reason: transition.reason,
-        })),
-        ...(scenarioContext.policy !== undefined ? { policy: scenarioContext.policy } : {}),
       },
     }
   }
@@ -330,8 +269,9 @@ export class RunGameMasterUseCase {
 
   private async performAvatarSwitch(
     input: RunGameMasterInput,
+    session: Session | null,
+    scenarioAvatars: AvatarConfig[],
     output: GameMasterOutput,
-    eligibleTransitions: EligibleTransition[],
   ): Promise<string | undefined> {
     if (this.conversationRepository === undefined || !hasText(output.nextAvatarId)) {
       return undefined
@@ -339,20 +279,8 @@ export class RunGameMasterUseCase {
 
     const nextAvatarId = output.nextAvatarId.trim()
 
-    if (
-      eligibleTransitions.length > 0 &&
-      !eligibleTransitions.some((transition) => transition.toAvatarId === nextAvatarId)
-    ) {
-      console.warn(
-        '[GM] Skipping avatar switch: nextAvatarId is not in eligible transitions.',
-        nextAvatarId,
-        eligibleTransitions.map((transition) => transition.toAvatarId),
-      )
-      return undefined
-    }
-
     const scenarioAvatarIds = new Set(
-      (await this.avatarRepository.listByScenarioId(input.scenarioId))
+      scenarioAvatars
         .filter((avatar) => avatar.status === 'active')
         .map((avatar) => avatar.avatarId),
     )
@@ -362,6 +290,9 @@ export class RunGameMasterUseCase {
         '[GM] Skipping avatar switch: nextAvatarId is not an active avatar in the scenario.',
         nextAvatarId,
       )
+      return undefined
+    }
+    if (!isSwitchableAvatar(session, output, nextAvatarId)) {
       return undefined
     }
 
@@ -403,27 +334,23 @@ export class RunGameMasterUseCase {
 
   private async applyAvatarRoutingUpdates(
     input: RunGameMasterInput,
-    currentState: GameMasterState,
+    _currentState: GameMasterState,
+    session: Session | null,
+    scenarioAvatars: AvatarConfig[],
     output: GameMasterOutput,
-    eligibleTransitions: EligibleTransition[],
   ): Promise<AvatarRoutingResult> {
     if (
       output.conversationMode === 'new' &&
       hasText(output.nextAvatarId) &&
       this.conversationRepository !== undefined
     ) {
-      const switchedAvatarId = await this.performAvatarSwitch(input, output, eligibleTransitions)
+      const switchedAvatarId = await this.performAvatarSwitch(
+        input,
+        session,
+        scenarioAvatars,
+        output,
+      )
       return switchedAvatarId !== undefined ? { switchedAvatarId } : {}
-    }
-
-    if (
-      hasText(output.stateUpdate.activeAvatarId) &&
-      output.stateUpdate.activeAvatarId.trim() !== currentState.currentAvatarId
-    ) {
-      await this.sessionRepository.update(input.sessionId, {
-        activeAvatarId: output.stateUpdate.activeAvatarId.trim(),
-      })
-      return { switchedAvatarId: output.stateUpdate.activeAvatarId.trim() }
     }
 
     return {}
@@ -452,17 +379,31 @@ export class RunGameMasterUseCase {
     if (scenario === null) {
       return {}
     }
+    const goals = [
+      ...(Array.isArray(scenario.config.objectives) ? scenario.config.objectives : []),
+      ...(Array.isArray(scenario.config.goals) ? scenario.config.goals : []),
+    ]
     return {
       ...(hasText(scenario.config.worldContext)
         ? { description: scenario.config.worldContext }
         : {}),
-      ...(Array.isArray(scenario.config.objectives) ? { goals: scenario.config.objectives } : {}),
-      ...extractScenarioPolicy(scenario.config),
-      ...extractScenarioAvatarTransitionRules(scenario.config),
+      ...(goals.length > 0 ? { goals } : {}),
     }
   }
 }
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function isSwitchableAvatar(
+  session: Session | null,
+  output: GameMasterOutput,
+  avatarId: string,
+): boolean {
+  if (session?.unlockedAvatarIds === undefined) return true
+  return (
+    session.unlockedAvatarIds.includes(avatarId) ||
+    output.unlockAvatarIds?.includes(avatarId) === true
+  )
 }

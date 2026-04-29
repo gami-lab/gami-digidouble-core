@@ -62,7 +62,6 @@ Must test:
 - structured output parsing when required
 - streaming assembly
 - error propagation on provider failures
-- `domain/avatar/transition-engine.ts` requires 100% statements and branches (pure deterministic function)
 
 Do not test prose quality or writing style — only structure, contract, and error behavior.
 
@@ -70,20 +69,19 @@ Do not test prose quality or writing style — only structure, contract, and err
 
 ## Game Master Module
 
-**Goals:** GM is lightweight, predictable, triggers correctly, state transitions are valid.
+**Goals:** GM is lightweight, predictable, runs after every avatar turn, and state transitions are valid.
 
 Must test:
 
 - init mode output
-- background trigger output
-- trigger conditions (positive and negative)
+- background post-turn output
+- every-turn GM invocation
 - state reducer logic
 - duplicate topic handling
 - progression update rules
-- avatar transition rules (topic/progression/manual)
 - GM avatar unlock decisions, including duplicate suppression and invalid avatar ID rejection
-- deterministic policy evaluation from structured config
-- transition reason output and history logging
+- GM failure isolation and `gm_error` diagnostics
+- transition reason output and history logging for explicit GM switches
 - available-avatar filtering and invalid transition rejection
 
 This module deserves strong unit coverage — it controls orchestration semantics.

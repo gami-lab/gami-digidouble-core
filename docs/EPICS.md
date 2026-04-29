@@ -370,8 +370,8 @@ Visible orchestration behavior dramatically improves debugging speed, scenario t
 
 **What Can Be Tested**
 
-1. send user message → GM event appears if trigger fires
-2. no trigger path logs `gm_skipped` event
+1. send user message → GM event appears after the post-turn GM run
+2. GM failure path logs `gm_error` without breaking message sending
 3. avatar transition displays reason + timestamp
 4. unlocked specialist avatar appears after qualifying turn
 5. inspect endpoint returns session + GM state summary

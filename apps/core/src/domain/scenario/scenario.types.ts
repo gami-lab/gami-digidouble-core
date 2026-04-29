@@ -1,5 +1,3 @@
-import type { AvatarTransitionRule } from '../avatar/avatar-transition.types.js'
-
 /**
  * Scenario domain types.
  *
@@ -17,34 +15,21 @@ export interface Scenario {
 }
 
 export interface ScenarioConfig {
-  /** Avatar persona override for this scenario. */
-  avatarPrompt?: string
   /** World/experience description injected into context. */
   worldContext?: string
   /** Learning or engagement objectives. */
   objectives?: string[]
-  /** Feature flags for this scenario. */
-  enabledFeatures?: string[]
-  /** IDs of knowledge sources linked to this scenario. */
-  sourceReferences?: string[]
-  /** Avatar routing rules evaluated by the transition engine. */
-  avatarTransitionRules?: AvatarTransitionRule[]
-  /** Deterministic topic tags derived from user messages. */
-  topicSignals?: ScenarioTopicSignal[]
+  /** Additional scenario goals. */
+  goals?: string[]
   /** Session-scoped avatar availability policy. */
   avatarAvailability?: ScenarioAvatarAvailabilityConfig
-  /** Optional high-level routing guidance for director and actor prompts. */
-  avatarRoutingPolicy?: Record<string, unknown>
-  /** Optional scenario-level specialist role descriptions. */
-  specialistRoles?: Record<string, unknown>
-}
-
-export interface ScenarioTopicSignal {
-  topicId: string
-  keywords: string[]
+  /** Scenario runtime defaults for adapters and clients. */
+  runtimeDefaults?: Record<string, unknown>
+  /** Optional UI-only hints; ignored by Core orchestration. */
+  uiHints?: Record<string, unknown>
 }
 
 export interface ScenarioAvatarAvailabilityConfig {
-  initialAvatarKeys?: string[]
+  initialAvatarKeys: string[]
   unlockableAvatarKeys?: string[]
 }

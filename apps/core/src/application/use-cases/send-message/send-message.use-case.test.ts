@@ -208,8 +208,8 @@ describe('SendMessageUseCase — observability payload', () => {
   })
 })
 
-describe('SendMessageUseCase — scenario policy', () => {
-  it('does not update unlock state from message topic rules', async () => {
+describe('SendMessageUseCase — GM ownership', () => {
+  it('does not update unlock state during avatar response generation', async () => {
     const useCase = createUseCase()
     findSessionByIdMock.mockResolvedValue(makeSession({ unlockedAvatarIds: ['avatar_1'] }))
     updateSessionMock.mockResolvedValue(makeSession({ unlockedAvatarIds: ['avatar_1'] }))
@@ -227,7 +227,6 @@ describe('SendMessageUseCase — scenario policy', () => {
       name: 'AI Guided Discovery',
       status: 'active',
       config: {
-        topicSignals: [{ topicId: 'technical', keywords: ['transformer'] }],
         avatarAvailability: {
           initialAvatarKeys: ['guide'],
           unlockableAvatarKeys: ['theo'],
@@ -246,46 +245,6 @@ describe('SendMessageUseCase — scenario policy', () => {
     expect(sessionUpdate['unlockedAvatarIds']).toBeUndefined()
     expect(output.session.unlockedAvatarIds).toEqual(['avatar_1'])
     expect(output.avatarMessage.content).not.toContain('I can introduce Theo')
-  })
-
-  it('returns deterministic redirect content when avatar competence boundary is exceeded', async () => {
-    const useCase = createUseCase()
-    findAvatarByIdMock.mockResolvedValue(
-      makeAvatar({
-        name: 'Theo',
-        config: {
-          routeKey: 'theo',
-          competenceBoundary: {
-            allowedTopicIds: ['technical'],
-            redirects: [
-              {
-                topicId: 'ethics',
-                message: "That is Eva's territory. Ask Eva or return to the guide for ethics.",
-              },
-            ],
-          },
-        },
-      }),
-    )
-    findScenarioByIdMock.mockResolvedValue({
-      scenarioId: 'scenario_1',
-      name: 'AI Guided Discovery',
-      status: 'active',
-      config: {
-        topicSignals: [{ topicId: 'ethics', keywords: ['bias'] }],
-      },
-      createdAt: '2026-04-18T10:00:00.000Z',
-      updatedAt: '2026-04-18T10:00:00.000Z',
-    })
-
-    const output = await useCase.execute({
-      conversationId: 'conversation_1',
-      userMessage: 'What about bias and fairness?',
-    })
-
-    expect(completeMock).not.toHaveBeenCalled()
-    expect(output.avatarMessage.content).toContain("Eva's territory")
-    expect(output.avatarMessage.model).toBe('policy.redirect')
   })
 })
 

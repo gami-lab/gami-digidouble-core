@@ -71,7 +71,7 @@ export type InspectSessionResponse = {
 }
 
 export type SessionEventRecord = {
-  type: 'gm_triggered' | 'gm_skipped'
+  type: 'gm_triggered' | 'gm_error'
   correlationId: string
   createdAt: string
   payload: {
@@ -88,6 +88,10 @@ export type SessionEventRecord = {
       conversationMode: 'new' | 'continue'
       notesInjected: boolean
       directiveCount: number
+      unlockedAvatarIds?: string[]
+      suggestedAvatarId?: string
+      suggestedAvatarReason?: string
+      switchedAvatarId?: string
     }
     stateAfter?: {
       currentAvatarId?: string
@@ -97,6 +101,7 @@ export type SessionEventRecord = {
     latencyMs: number
     inputTokens?: number
     outputTokens?: number
+    errorCode?: string
   }
 }
 

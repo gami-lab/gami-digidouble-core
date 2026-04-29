@@ -24,7 +24,7 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
     correlationId: 'corr_1',
     createdAt: '2026-04-28T10:05:00.000Z',
     payload: {
-      triggerReason: 'turn_threshold',
+      triggerReason: 'post_turn_observation',
       turnIndex: 5,
       interactionCount: 5,
       stateBefore: {
@@ -79,38 +79,42 @@ function createUseCase(params?: { session?: Session | null; events?: StoredEvent
   }
 }
 
-function makeSkippedEvent(): StoredEvent {
+function makeErrorEvent(): StoredEvent {
   return makeEvent({
-    type: 'gm_skipped',
-    correlationId: 'corr_skip',
+    type: 'gm_error',
+    severity: 'error',
+    correlationId: 'corr_error',
     createdAt: '2026-04-28T10:06:00.000Z',
     payload: {
-      triggerReason: null,
+      triggerReason: 'post_turn_observation',
       turnIndex: 6,
       interactionCount: 6,
       stateBefore: { currentAvatarId: 'avatar_1', progression: 'intro', topicsCovered: ['setup'] },
       latencyMs: 2,
+      errorCode: 'llm_error',
       userMessageText: 'secret skip input',
     },
   })
 }
 
 describe('ListSessionEventsUseCase', () => {
-  it('includes only gm_triggered and gm_skipped types; excludes system_internal', async () => {
+  it('includes only gm_triggered and gm_error types; excludes system_internal', async () => {
     const { useCase } = createUseCase({
       events: [
         makeEvent({ type: 'system_internal', correlationId: 'corr_internal' }),
         makeEvent(),
         makeEvent({
-          type: 'gm_skipped',
+          type: 'gm_error',
+          severity: 'error',
           correlationId: 'corr_2',
           createdAt: '2026-04-28T10:04:00.000Z',
           payload: {
-            triggerReason: null,
+            triggerReason: 'post_turn_observation',
             turnIndex: 4,
             interactionCount: 4,
             stateBefore: { progression: 'intro', topicsCovered: [] },
             latencyMs: 3,
+            errorCode: 'invalid_output',
           },
         }),
       ],
@@ -118,7 +122,7 @@ describe('ListSessionEventsUseCase', () => {
 
     const output = await useCase.execute({ sessionId: 'session_1' })
 
-    expect(output.events.map((event) => event.type)).toEqual(['gm_triggered', 'gm_skipped'])
+    expect(output.events.map((event) => event.type)).toEqual(['gm_triggered', 'gm_error'])
   })
 
   it('maps gm_triggered payload to safe shape and strips sensitive fields', async () => {
@@ -131,7 +135,7 @@ describe('ListSessionEventsUseCase', () => {
       correlationId: 'corr_1',
       createdAt: '2026-04-28T10:05:00.000Z',
       payload: {
-        triggerReason: 'turn_threshold',
+        triggerReason: 'post_turn_observation',
         turnIndex: 5,
         interactionCount: 5,
         stateBefore: {
@@ -159,18 +163,18 @@ describe('ListSessionEventsUseCase', () => {
     expect(JSON.stringify(output)).not.toContain('hidden prompt')
   })
 
-  it('maps gm_skipped events with null triggerReason to the correct safe output shape', async () => {
-    const { useCase } = createUseCase({ events: [makeSkippedEvent()] })
+  it('maps gm_error events to the correct safe output shape', async () => {
+    const { useCase } = createUseCase({ events: [makeErrorEvent()] })
 
     const output = await useCase.execute({ sessionId: 'session_1' })
 
     expect(output.events).toHaveLength(1)
     expect(output.events[0]).toEqual({
-      type: 'gm_skipped',
-      correlationId: 'corr_skip',
+      type: 'gm_error',
+      correlationId: 'corr_error',
       createdAt: '2026-04-28T10:06:00.000Z',
       payload: {
-        triggerReason: null,
+        triggerReason: 'post_turn_observation',
         turnIndex: 6,
         interactionCount: 6,
         stateBefore: {
@@ -179,6 +183,7 @@ describe('ListSessionEventsUseCase', () => {
           topicsCovered: ['setup'],
         },
         latencyMs: 2,
+        errorCode: 'llm_error',
       },
     })
     expect(JSON.stringify(output)).not.toContain('secret skip input')

@@ -1335,7 +1335,7 @@ GET /v1/admin/sessions/{sessionId}/events
 ```ts
 type AdminSessionEventsResponse = {
   events: Array<{
-    type: 'gm_triggered' | 'gm_skipped'
+    type: 'gm_triggered' | 'gm_error'
     correlationId: string
     createdAt: string
     payload: {
@@ -1355,6 +1355,7 @@ type AdminSessionEventsResponse = {
         unlockedAvatarIds?: string[]
         suggestedAvatarId?: string
         suggestedAvatarReason?: string
+        switchedAvatarId?: string
       }
       stateAfter?: {
         currentAvatarId?: string
@@ -1364,6 +1365,7 @@ type AdminSessionEventsResponse = {
       latencyMs: number
       inputTokens?: number
       outputTokens?: number
+      errorCode?: string
     }
   }>
 }
@@ -1371,7 +1373,7 @@ type AdminSessionEventsResponse = {
 
 ### Semantics
 
-- Returns only `gm_triggered` and `gm_skipped` diagnostic events.
+- Returns only `gm_triggered` and `gm_error` diagnostic events.
 - Results are ordered newest-first.
 - Non-GM event types are silently excluded.
 - Raw user message content, prompt text, credentials, and LLM model names are never included.

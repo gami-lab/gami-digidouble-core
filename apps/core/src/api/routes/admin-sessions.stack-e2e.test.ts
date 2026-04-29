@@ -70,13 +70,14 @@ function makeRawMessage(): Message {
 }
 
 function makeEvent(type: StoredEvent['type'], correlationId: string): StoredEvent {
+  const isError = type === 'gm_error'
   return {
     sessionId: 'session_1',
     type,
-    severity: 'info',
+    severity: isError ? 'error' : 'info',
     correlationId,
     payload: {
-      triggerReason: type === 'gm_skipped' ? null : 'turn_threshold',
+      triggerReason: 'post_turn_observation',
       turnIndex: 5,
       interactionCount: 5,
       stateBefore: {
@@ -85,6 +86,7 @@ function makeEvent(type: StoredEvent['type'], correlationId: string): StoredEven
         topicsCovered: ['setup'],
       },
       latencyMs: 8,
+      ...(isError ? { errorCode: 'llm_error' } : {}),
       userMessageText: 'raw secret user message',
     },
   }
@@ -245,7 +247,7 @@ describe('GET /v1/admin/sessions/:id/events — happy path', () => {
       events: [
         makeEvent('gm_triggered', 'corr_old'),
         makeEvent('system_internal', 'corr_internal'),
-        makeEvent('gm_skipped', 'corr_new'),
+        makeEvent('gm_error', 'corr_new'),
       ],
     }).inject({
       method: 'GET',
@@ -257,7 +259,7 @@ describe('GET /v1/admin/sessions/:id/events — happy path', () => {
     const body = response.json<ApiResponse<{ events: Array<{ type: string }> }>>()
     expect(body.error).toBeNull()
     expect(body.data?.events).toHaveLength(1)
-    expect(body.data?.events[0]?.type).toBe('gm_skipped')
+    expect(body.data?.events[0]?.type).toBe('gm_error')
     expect(response.body).not.toContain('system_internal')
     expect(response.body).not.toContain('raw secret user message')
   })

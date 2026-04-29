@@ -1,6 +1,4 @@
-import type { AvatarTransitionRule } from '../../../domain/avatar/avatar-transition.types.js'
 import type { GameMasterOutput } from '../../../domain/game-master/game-master.types.js'
-import type { TriggerPolicy, TriggerReason } from '../../../domain/game-master/trigger-engine.js'
 
 export function safeParseGameMasterOutput(content: string): GameMasterOutput | null {
   try {
@@ -18,46 +16,6 @@ export function safeParseGameMasterOutput(content: string): GameMasterOutput | n
     '[GM] Invalid Game Master output shape: missing required fields or incorrect types.',
   )
   return null
-}
-
-export function mapTriggerReasonToTransitionTrigger(
-  triggerReason: TriggerReason,
-): 'progression' | 'topic_repeat' {
-  return triggerReason === 'topic_repeat' ? 'topic_repeat' : 'progression'
-}
-
-export function extractScenarioPolicy(config: unknown): { policy?: TriggerPolicy } {
-  if (!isRecord(config)) {
-    return {}
-  }
-  const policyRaw = config['policy']
-  if (typeof policyRaw !== 'object' || policyRaw === null) {
-    return {}
-  }
-
-  const policyCandidate = policyRaw as Record<string, unknown>
-  const turnThreshold = toValidPositiveInteger(policyCandidate['turnThreshold'])
-  const maxTopicRepeatCount = toValidPositiveInteger(policyCandidate['maxTopicRepeatCount'])
-  const maxTurnsWithoutProgression = toValidPositiveInteger(
-    policyCandidate['maxTurnsWithoutProgression'],
-  )
-  const policy: TriggerPolicy = {
-    ...(turnThreshold !== undefined ? { turnThreshold } : {}),
-    ...(maxTopicRepeatCount !== undefined ? { maxTopicRepeatCount } : {}),
-    ...(maxTurnsWithoutProgression !== undefined ? { maxTurnsWithoutProgression } : {}),
-  }
-
-  return Object.keys(policy).length > 0 ? { policy } : {}
-}
-
-export function extractScenarioAvatarTransitionRules(config: unknown): {
-  avatarTransitionRules?: AvatarTransitionRule[]
-} {
-  if (!isRecord(config) || !Array.isArray(config['avatarTransitionRules'])) {
-    return {}
-  }
-  const avatarTransitionRules = config['avatarTransitionRules'].filter(isAvatarTransitionRule)
-  return avatarTransitionRules.length > 0 ? { avatarTransitionRules } : {}
 }
 
 function toGameMasterOutput(value: unknown): GameMasterOutput | null {
@@ -167,22 +125,4 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
-}
-
-function isAvatarTransitionRule(value: unknown): value is AvatarTransitionRule {
-  if (!isRecord(value) || !hasText(value['fromAvatarId']) || !hasText(value['toAvatarId'])) {
-    return false
-  }
-  const trigger = value['trigger']
-  if (trigger !== 'progression' && trigger !== 'topic_repeat' && trigger !== 'manual') {
-    return false
-  }
-  return value['topic'] === undefined || hasText(value['topic'])
-}
-
-function toValidPositiveInteger(value: unknown): number | undefined {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
-    return undefined
-  }
-  return value
 }

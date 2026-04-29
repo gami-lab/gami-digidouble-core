@@ -17,7 +17,7 @@ export function buildGameMasterSystemPrompt(): string {
       stateUpdate: {
         progression: '<"none" | "increase" | undefined>',
         topicCovered: '<optional string>',
-        activeAvatarId: '<optional string — set only when switching avatar>',
+        activeAvatarId: '<optional string — current active avatar after a switch>',
         interactionIncrement: 1,
       },
     },
@@ -36,9 +36,9 @@ export function buildGameMasterSystemPrompt(): string {
     '- unlockAvatarIds may include only locked avatarIds listed in availableAvatars.',
     '- Unlock an avatar when the recent discussion shows that specialist is now relevant; do not rely on keyword matching.',
     '- suggestedAvatarReason must be safe, short, and must not quote user content.',
-    '- When context.eligibleTransitions is non-empty, nextAvatarId must be one of its toAvatarId values only if a switch is needed.',
-    '- When context.eligibleTransitions is empty, set nextAvatarId to null and conversationMode to "continue".',
+    '- Set nextAvatarId only when conversationMode is "new" and a new conversation should be opened.',
+    '- nextAvatarId must be an active avatar listed in availableAvatars and should normally be available or unlocked in the same output.',
     '- stateUpdate.interactionIncrement must always be exactly 1.',
-    '- Set stateUpdate.activeAvatarId only when changing the active avatar.',
+    '- Do not answer the user directly; provide only director decisions and compact context.',
   ].join('\n')
 }

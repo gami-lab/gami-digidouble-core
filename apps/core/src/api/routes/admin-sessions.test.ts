@@ -69,7 +69,7 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
     correlationId: 'corr_1',
     createdAt: '2026-04-28T10:05:00.000Z',
     payload: {
-      triggerReason: 'turn_threshold',
+      triggerReason: 'post_turn_observation',
       turnIndex: 5,
       interactionCount: 5,
       stateBefore: {
@@ -120,7 +120,7 @@ function makeApp(params?: {
           conversationId: 'conversation_2',
           avatarId: 'avatar_2',
           startedBy: 'gm',
-          reason: 'turn_threshold',
+          reason: 'post_turn_observation',
           startedAt: '2026-04-28T10:04:00.000Z',
         }),
         makeConversation({
@@ -208,7 +208,7 @@ describe('GET /v1/admin/sessions/:sessionId/inspect', () => {
       {
         fromAvatarId: 'avatar_1',
         toAvatarId: 'avatar_2',
-        reason: 'turn_threshold',
+        reason: 'post_turn_observation',
         startedBy: 'gm',
         transitionedAt: '2026-04-28T10:04:00.000Z',
       },
@@ -265,7 +265,7 @@ describe('GET /v1/admin/sessions/:sessionId/events behavior', () => {
     const app = makeApp({
       events: [
         makeEvent({ type: 'system_internal', correlationId: 'corr_internal' }),
-        makeEvent({ type: 'gm_skipped', correlationId: 'corr_old' }),
+        makeEvent({ type: 'gm_error', severity: 'error', correlationId: 'corr_old' }),
         makeEvent({ type: 'gm_triggered', correlationId: 'corr_new' }),
       ],
     })
@@ -290,7 +290,7 @@ describe('GET /v1/admin/sessions/:sessionId/events behavior', () => {
     expect(body.error).toBeNull()
     expect(body.data?.events.map((event) => event.correlationId)).toEqual(['corr_new', 'corr_old'])
     expect(body.data?.events[0]?.payload).toEqual({
-      triggerReason: 'turn_threshold',
+      triggerReason: 'post_turn_observation',
       turnIndex: 5,
       interactionCount: 5,
       stateBefore: {

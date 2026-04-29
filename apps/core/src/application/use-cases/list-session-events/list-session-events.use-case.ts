@@ -38,7 +38,7 @@ function resolveLimit(limit: number | undefined): number {
 }
 
 function toSafeSessionEvent(event: StoredEvent): SessionEventRecord[] {
-  if (event.type !== 'gm_triggered' && event.type !== 'gm_skipped') return []
+  if (event.type !== 'gm_triggered' && event.type !== 'gm_error') return []
   if (event.correlationId === undefined || event.createdAt === undefined) return []
 
   return [
@@ -63,6 +63,7 @@ function toSafePayload(payload: Record<string, unknown>): SessionEventRecord['pa
   const stateAfter = readOptionalStateSummary(payload['stateAfter'])
   const inputTokens = readOptionalNumber(payload['inputTokens'])
   const outputTokens = readOptionalNumber(payload['outputTokens'])
+  const errorCode = readOptionalString(payload['errorCode'])
 
   return {
     ...safePayload,
@@ -70,6 +71,7 @@ function toSafePayload(payload: Record<string, unknown>): SessionEventRecord['pa
     ...(stateAfter !== undefined ? { stateAfter } : {}),
     ...(inputTokens !== undefined ? { inputTokens } : {}),
     ...(outputTokens !== undefined ? { outputTokens } : {}),
+    ...(errorCode !== undefined ? { errorCode } : {}),
   }
 }
 
@@ -97,6 +99,10 @@ function readDecision(value: unknown): SessionEventRecord['payload']['decision']
       conversationMode === 'new' || conversationMode === 'continue' ? conversationMode : 'continue',
     notesInjected: value['notesInjected'] === true,
     directiveCount: readNumber(value['directiveCount']),
+    ...readOptionalStringField(value, 'suggestedAvatarId'),
+    ...readOptionalStringField(value, 'suggestedAvatarReason'),
+    ...readOptionalStringField(value, 'switchedAvatarId'),
+    ...readOptionalStringArrayField(value, 'unlockedAvatarIds'),
   }
 }
 
@@ -108,6 +114,25 @@ function readStringArray(value: unknown): string[] {
 
 function readStringOrNull(value: unknown): string | null {
   return typeof value === 'string' ? value : null
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+function readOptionalStringField<
+  K extends 'suggestedAvatarId' | 'suggestedAvatarReason' | 'switchedAvatarId',
+>(value: Record<string, unknown>, key: K): Partial<Record<K, string>> {
+  const field = readOptionalString(value[key])
+  return field !== undefined ? ({ [key]: field } as Partial<Record<K, string>>) : {}
+}
+
+function readOptionalStringArrayField(
+  value: Record<string, unknown>,
+  key: 'unlockedAvatarIds',
+): { unlockedAvatarIds?: string[] } {
+  const field = readStringArray(value[key])
+  return field.length > 0 ? { unlockedAvatarIds: field } : {}
 }
 
 function readNumber(value: unknown): number {

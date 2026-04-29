@@ -7,15 +7,15 @@ describe('InMemoryEventLogRepository', () => {
 
     await repository.append({
       sessionId: 'session_1',
-      type: 'gm_skipped',
-      severity: 'info',
+      type: 'gm_error',
+      severity: 'error',
       correlationId: 'corr-old',
       payload: { turnIndex: 1 },
     })
     await repository.append({
       sessionId: 'session_2',
-      type: 'gm_skipped',
-      severity: 'info',
+      type: 'gm_error',
+      severity: 'error',
       correlationId: 'corr-other',
       payload: { turnIndex: 1 },
     })
@@ -38,8 +38,8 @@ describe('InMemoryEventLogRepository', () => {
     const repository = new InMemoryEventLogRepository()
 
     await repository.append({
-      type: 'gm_skipped',
-      severity: 'info',
+      type: 'gm_error',
+      severity: 'error',
       payload: { turnIndex: 1 },
     })
 

@@ -89,9 +89,8 @@ No network. No real providers. No real DB. Always fast, always deterministic. Ha
 
 **Game Master unit test categories:**
 
-- **Trigger engine** (`trigger-engine.test.ts`): deterministic evaluation of all `evaluateTriggers` paths — `turn_threshold` (at/below threshold, custom threshold, zero state), `topic_repeat` (meets/below repeat count), `progression_stalled` (empty progression, has text, below count), priority ordering, and null/zero-state base case.
 - **State reducer** (`gm-state-reducer.test.ts`): all `reduceGmState` field mutations — `interactionCount` increment, `progression` increase, `topicsCovered` append, `currentAvatarId` update, all-undefined update, and non-mutation of input state.
-- **Async use case** (`run-game-master.use-case.test.ts`): no-trigger path (LLM not called, state incremented), trigger+LLM success path (LLM called with a `vi.fn()` mock returning hardcoded JSON matching `GameMasterOutput`, state reduced, notes stored, avatar updated), JSON parse error (treated as no-trigger, state incremented), LLM error (caught silently, state incremented, `gm_skipped` emitted), event log shape verification (`gm_skipped` / `gm_triggered` fields), and event payload security (no `userMessageText` or raw system prompt in emitted events).
+- **Async use case** (`run-game-master.use-case.test.ts`): every completed avatar turn calls the GM LLM with a `vi.fn()` mock returning hardcoded JSON matching `GameMasterOutput`, state is reduced, notes are stored, valid unlocks are persisted, valid explicit switches open a new conversation, invalid avatar IDs are ignored, JSON parse/shape errors increment state and emit `gm_error`, LLM errors are caught silently, event log shape verifies `gm_triggered` / `gm_error` fields, and event payload security confirms no `userMessageText` or raw system prompt is emitted.
 
 ### Integration (`*.integration.test.ts`)
 

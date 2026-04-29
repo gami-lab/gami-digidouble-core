@@ -6,12 +6,18 @@ import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 import { PostgresSessionRepository } from './postgres-session.repository.js'
 import { PostgresEventLogRepository } from './postgres-event-log.repository.js'
 
-function makeSkippedEvent(correlationId: string): StoredEvent {
+function makeErrorEvent(correlationId: string): StoredEvent {
   return {
-    type: 'gm_skipped',
-    severity: 'info',
+    type: 'gm_error',
+    severity: 'error',
     correlationId,
-    payload: { triggerReason: null, turnIndex: 1, interactionCount: 1, latencyMs: 5 },
+    payload: {
+      triggerReason: 'post_turn_observation',
+      turnIndex: 1,
+      interactionCount: 1,
+      latencyMs: 5,
+      errorCode: 'llm_error',
+    },
   }
 }
 
@@ -40,10 +46,16 @@ function defineFindBySessionOrderingTest(getContext: () => EventLogReadTestConte
 
     await eventLogRepo.append({
       sessionId: targetSession.sessionId,
-      type: 'gm_skipped',
-      severity: 'info',
+      type: 'gm_error',
+      severity: 'error',
       correlationId: 'corr-oldest',
-      payload: { triggerReason: null, turnIndex: 1, interactionCount: 1, latencyMs: 4 },
+      payload: {
+        triggerReason: 'post_turn_observation',
+        turnIndex: 1,
+        interactionCount: 1,
+        latencyMs: 4,
+        errorCode: 'llm_error',
+      },
     })
     await eventLogRepo.append({
       sessionId: otherSession.sessionId,
@@ -58,7 +70,12 @@ function defineFindBySessionOrderingTest(getContext: () => EventLogReadTestConte
       severity: 'info',
       correlationId: 'corr-newest',
       requestId: 'req-newest',
-      payload: { triggerReason: 'turn_threshold', turnIndex: 2, interactionCount: 2, latencyMs: 5 },
+      payload: {
+        triggerReason: 'post_turn_observation',
+        turnIndex: 2,
+        interactionCount: 2,
+        latencyMs: 5,
+      },
     })
 
     await sql`UPDATE event_log SET created_at = ${new Date(oldest)} WHERE correlation_id = 'corr-oldest'`
@@ -76,7 +93,7 @@ function defineFindBySessionOrderingTest(getContext: () => EventLogReadTestConte
       correlationId: 'corr-newest',
       requestId: 'req-newest',
       payload: {
-        triggerReason: 'turn_threshold',
+        triggerReason: 'post_turn_observation',
         turnIndex: 2,
         interactionCount: 2,
         latencyMs: 5,
@@ -98,10 +115,16 @@ function defineFindBySessionLimitTest(getContext: () => EventLogReadTestContext)
 
     await eventLogRepo.append({
       sessionId: session.sessionId,
-      type: 'gm_skipped',
-      severity: 'info',
+      type: 'gm_error',
+      severity: 'error',
       correlationId: 'corr-limit-old',
-      payload: { triggerReason: null, turnIndex: 1, interactionCount: 1, latencyMs: 2 },
+      payload: {
+        triggerReason: 'post_turn_observation',
+        turnIndex: 1,
+        interactionCount: 1,
+        latencyMs: 2,
+        errorCode: 'llm_error',
+      },
     })
     await eventLogRepo.append({
       sessionId: session.sessionId,
@@ -150,7 +173,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — append and basic 
   })
 
   it('append inserts a row successfully', async () => {
-    await expect(eventLogRepo.append(makeSkippedEvent('corr-001'))).resolves.toBeUndefined()
+    await expect(eventLogRepo.append(makeErrorEvent('corr-001'))).resolves.toBeUndefined()
 
     const rows = await sql`SELECT COUNT(*) AS count FROM event_log`
     expect(Number(rows[0]?.['count'])).toBe(1)
@@ -163,7 +186,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — append and basic 
       severity: 'info',
       correlationId,
       payload: {
-        triggerReason: 'turn_threshold',
+        triggerReason: 'post_turn_observation',
         turnIndex: 5,
         interactionCount: 5,
         latencyMs: 10,
@@ -180,7 +203,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — append and basic 
   })
 
   it('sessionId = null is valid (nullable FK)', async () => {
-    await expect(eventLogRepo.append(makeSkippedEvent('corr-no-session'))).resolves.toBeUndefined()
+    await expect(eventLogRepo.append(makeErrorEvent('corr-no-session'))).resolves.toBeUndefined()
 
     const rows =
       await sql`SELECT session_id FROM event_log WHERE correlation_id = 'corr-no-session'`
@@ -223,7 +246,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — JSONB payload and
       stateAfter: { progression: string; topicsCovered: string[] }
     }
     const payload: TestPayload & Record<string, unknown> = {
-      triggerReason: 'topic_repeat',
+      triggerReason: 'post_turn_observation',
       turnIndex: 3,
       interactionCount: 3,
       latencyMs: 8,
@@ -241,7 +264,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — JSONB payload and
     const rows = await sql`SELECT payload FROM event_log WHERE correlation_id = ${correlationId}`
     expect(rows).toHaveLength(1)
     const stored = rows[0]?.['payload'] as TestPayload | undefined
-    expect(stored?.triggerReason).toBe('topic_repeat')
+    expect(stored?.triggerReason).toBe('post_turn_observation')
     expect(stored?.decision).toEqual(payload.decision)
     expect(stored?.stateAfter).toEqual(payload.stateAfter)
   })
@@ -256,7 +279,12 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — JSONB payload and
       type: 'gm_triggered',
       severity: 'info',
       correlationId,
-      payload: { triggerReason: 'turn_threshold', turnIndex: 5, interactionCount: 5, latencyMs: 4 },
+      payload: {
+        triggerReason: 'post_turn_observation',
+        turnIndex: 5,
+        interactionCount: 5,
+        latencyMs: 4,
+      },
     }
 
     await eventLogRepo.append(event)

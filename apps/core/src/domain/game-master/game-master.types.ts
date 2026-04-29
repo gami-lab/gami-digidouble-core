@@ -44,15 +44,6 @@ export interface GameMasterInput {
       scope?: string
       availability?: 'available' | 'locked'
     }>
-    policy?: {
-      turnThreshold?: number
-      maxTopicRepeatCount?: number
-      maxTurnsWithoutProgression?: number
-    }
-    eligibleTransitions?: Array<{
-      toAvatarId: string
-      reason: string
-    }>
   }
 }
 
@@ -90,22 +81,15 @@ export type GameMasterStateSummary = {
   topicsCovered: string[]
 }
 
-/** Structured diagnostic event emitted by the GM for every run (triggered or skipped). */
+/** Structured diagnostic event emitted by the GM after every post-turn run. */
 export type GameMasterEvent = {
-  type: 'gm_triggered' | 'gm_skipped'
-  severity: 'info'
+  type: 'gm_triggered' | 'gm_error'
+  severity: 'info' | 'error'
   /** Shared with the originating user turn. */
   correlationId: string
   requestId?: string
   payload: {
-    triggerReason:
-      | 'session_start'
-      | 'turn_threshold'
-      | 'topic_repeat'
-      | 'progression_stalled'
-      | 'avatar_unlock_evaluation'
-      | 'manual'
-      | null
+    triggerReason: 'session_start' | 'post_turn_observation' | 'manual' | null
     turnIndex: number
     interactionCount: number
     stateBefore: GameMasterStateSummary
@@ -117,6 +101,7 @@ export type GameMasterEvent = {
       unlockedAvatarIds?: string[]
       suggestedAvatarId?: string
       suggestedAvatarReason?: string
+      switchedAvatarId?: string
     }
     stateAfter?: GameMasterStateSummary
     latencyMs: number
