@@ -92,8 +92,8 @@ Defines a runnable experience configuration.
 - goals
 - pacing rules
 - transition settings
-- topic signals (deterministic message tags)
-- avatar availability policy (initially available avatars + unlock rules)
+- avatar availability policy (`initialAvatarKeys`, optional `unlockableAvatarKeys`)
+- avatar routing policy / specialist role metadata for prompt and GM context
 - enabled features
 - UI hints
 - runtime defaults
@@ -210,7 +210,7 @@ Represents one user run through one scenario.
 - **Repository:** `PostgresSessionRepository`
 - **Status:** Fully implemented.
 - **Column note:** `active_avatar_id` is nullable and persisted for GM-driven default avatar routing. Cleared to `NULL` on session reset.
-- **Column note:** `unlocked_avatar_ids` stores per-session avatar unlock progression when scenario policy enables locked specialists. Cleared to `[]` on session reset.
+- **Column note:** `unlocked_avatar_ids` stores per-session avatar unlock progression when scenario policy enables locked specialists. Initial values come from scenario availability policy; later additions are owned by the async Game Master. Cleared to the scenario's initial unlocked avatars on session reset.
 - **Column note:** `gm_notes` stores latest Game Master guidance injected into the next avatar system prompt. Cleared to `NULL` on session reset.
 
 ### Notes

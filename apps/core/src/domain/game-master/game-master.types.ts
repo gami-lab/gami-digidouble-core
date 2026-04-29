@@ -26,6 +26,10 @@ export interface GameMasterInput {
   userMessage: {
     text: string
   }
+  recentMessages?: Array<{
+    role: 'user' | 'avatar' | 'system'
+    content: string
+  }>
   state: GameMasterState
   context: {
     experience: {
@@ -37,6 +41,8 @@ export interface GameMasterInput {
       avatarId: string
       name: string
       description?: string
+      scope?: string
+      availability?: 'available' | 'locked'
     }>
     policy?: {
       turnThreshold?: number
@@ -60,6 +66,9 @@ export interface GameMasterOutput {
     label: string
   }>
   contentTrigger?: string
+  unlockAvatarIds?: string[]
+  suggestedAvatarId?: string
+  suggestedAvatarReason?: string
   conversationMode: 'new' | 'continue'
   context?: {
     /** Freeform guidance note injected into the Avatar's next context. */
@@ -94,6 +103,7 @@ export type GameMasterEvent = {
       | 'turn_threshold'
       | 'topic_repeat'
       | 'progression_stalled'
+      | 'avatar_unlock_evaluation'
       | 'manual'
       | null
     turnIndex: number
@@ -104,6 +114,9 @@ export type GameMasterEvent = {
       conversationMode: 'new' | 'continue'
       notesInjected: boolean
       directiveCount: number
+      unlockedAvatarIds?: string[]
+      suggestedAvatarId?: string
+      suggestedAvatarReason?: string
     }
     stateAfter?: GameMasterStateSummary
     latencyMs: number

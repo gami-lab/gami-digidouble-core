@@ -125,3 +125,27 @@ describe('assemblePersonaPrompt -> gm notes', () => {
     expect(prompt).toContain('Director notes: Steer the user toward practical examples.')
   })
 })
+
+describe('assemblePersonaPrompt -> avatar awareness', () => {
+  it('lists other avatars with availability and scope without exposing policy fields', () => {
+    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
+
+    const prompt = assemblePersonaPrompt(config, {
+      avatarAwareness: [
+        {
+          name: 'Theo',
+          description: 'Technical AI specialist.',
+          scope: 'Model internals and infrastructure.',
+          availability: 'locked',
+        },
+      ],
+    })
+
+    expect(prompt).toContain('Other avatars in this scenario:')
+    expect(prompt).toContain(
+      '- Theo (locked) — Technical AI specialist. Scope: Model internals and infrastructure.',
+    )
+    expect(prompt).toContain('You cannot unlock avatars yourself')
+    expect(prompt).not.toContain('competenceBoundary')
+  })
+})

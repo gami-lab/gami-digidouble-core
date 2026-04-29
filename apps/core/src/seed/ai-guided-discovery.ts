@@ -36,58 +36,17 @@ export const aiGuidedDiscoveryScenarioConfig: CreateScenarioParams = {
       'Demonstrate bounded competence between avatars.',
       'Expose unlockable specialist routing inside one session.',
     ],
-    topicSignals: [
-      {
-        topicId: 'technical',
-        keywords: [
-          'transformer',
-          'transformers',
-          'llm',
-          'embeddings',
-          'rag',
-          'training',
-          'inference',
-          'latency',
-          'scaling',
-          'provider',
-          'providers',
-          'model architecture',
-        ],
-      },
-      {
-        topicId: 'ethics',
-        keywords: [
-          'bias',
-          'fairness',
-          'privacy',
-          'regulation',
-          'transparency',
-          'trust',
-          'oversight',
-          'dangerous',
-          'society',
-          'societal impact',
-        ],
-      },
-    ],
     avatarAvailability: {
       initialAvatarKeys: ['guide'],
-      unlockRules: [
-        {
-          sourceAvatarKey: 'guide',
-          targetAvatarKey: 'theo',
-          topicId: 'technical',
-          introductionMessage:
-            'If you want to go deeper on how models work internally, I can introduce Theo.',
-        },
-        {
-          sourceAvatarKey: 'guide',
-          targetAvatarKey: 'eva',
-          topicId: 'ethics',
-          introductionMessage:
-            'If you want to focus on risks, bias, and responsible AI, I can introduce Eva.',
-        },
-      ],
+      unlockableAvatarKeys: ['theo', 'eva'],
+    },
+    avatarRoutingPolicy: {
+      directorOwnsUnlocks: true,
+      actorMayRecommendSpecialists: true,
+    },
+    specialistRoles: {
+      theo: 'Technical AI specialist for model internals, infrastructure, performance, and implementation questions.',
+      eva: 'Responsible AI specialist for ethics, social impact, governance, environmental impact, and trust questions.',
     },
   },
 }
@@ -104,6 +63,7 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
       'You are Mira, an AI literacy coach. Your sole purpose is to help people understand what AI is — what it can do, what its benefits are, and what its real limits and risks are. You only discuss AI-related topics. If the user tries to talk about anything else, gently redirect them back to the AI learning experience. You keep explanations clear and accessible. For deep technical questions (how models work, infrastructure, performance), you defer to Theo. For ethics, bias, fairness, and societal impact questions, you defer to Eva. You never attempt to answer outside your scope.',
     config: {
       routeKey: 'guide',
+      scope: 'Broad AI literacy, first explanations, and routing to specialists when useful.',
       ui: { unlockState: 'available' },
     },
   },
@@ -118,6 +78,8 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
       'You are Theo, an expert in technical AI topics such as LLMs, transformers, embeddings, training, inference, RAG, agents, latency, cost, scaling, and model providers. Stay technical and do not drift into ethics coaching.',
     config: {
       routeKey: 'theo',
+      scope:
+        'Technical AI topics: models, transformers, embeddings, training, inference, RAG, agents, latency, cost, scaling, and providers.',
       ui: { unlockState: 'locked' },
       competenceBoundary: {
         allowedTopicIds: ['technical'],
@@ -142,6 +104,8 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
       'You are Eva, an expert in AI ethics and responsible AI. Focus on bias, fairness, transparency, privacy, regulation, oversight, and societal impact. Redirect deep implementation questions back to Theo or the guide.',
     config: {
       routeKey: 'eva',
+      scope:
+        'Responsible AI topics: bias, fairness, transparency, privacy, regulation, oversight, environmental impact, and societal consequences.',
       ui: { unlockState: 'locked' },
       competenceBoundary: {
         allowedTopicIds: ['ethics'],
@@ -230,18 +194,30 @@ export async function ensureAiGuidedDiscoverySeed(): Promise<{
       (scenario) => scenario.name === SCENARIO_NAME,
     )
     const scenario =
-      existingScenario ?? (await scenarioRepository.create(aiGuidedDiscoveryScenarioConfig))
+      existingScenario !== undefined
+        ? await scenarioRepository.update(
+            existingScenario.scenarioId,
+            aiGuidedDiscoveryScenarioConfig,
+          )
+        : await scenarioRepository.create(aiGuidedDiscoveryScenarioConfig)
 
     const existingAvatars = await avatarRepository.listByScenarioId(scenario.scenarioId)
-    const existingRouteKeys = new Set(
-      existingAvatars
-        .map((avatar) => avatar.config['routeKey'])
-        .filter((routeKey): routeKey is string => typeof routeKey === 'string'),
+    const existingAvatarsByRouteKey = new Map(
+      existingAvatars.flatMap((avatar) => {
+        const routeKey = avatar.config['routeKey']
+        return typeof routeKey === 'string' ? [[routeKey, avatar]] : []
+      }),
     )
 
     for (const avatarSeed of buildAiGuidedDiscoveryAvatarSeedParams(scenario.scenarioId)) {
       const routeKey = avatarSeed.config?.['routeKey']
-      if (typeof routeKey !== 'string' || existingRouteKeys.has(routeKey)) {
+      if (typeof routeKey !== 'string') {
+        continue
+      }
+
+      const existingAvatar = existingAvatarsByRouteKey.get(routeKey)
+      if (existingAvatar !== undefined) {
+        await avatarRepository.update(existingAvatar.avatarId, avatarSeed)
         continue
       }
 

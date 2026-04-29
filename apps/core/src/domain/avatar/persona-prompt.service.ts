@@ -2,7 +2,17 @@ import type { AvatarConfig } from './avatar.types.js'
 
 const DEFAULT_STYLE_RULE = 'Stay in character and keep responses concise.'
 
-export function assemblePersonaPrompt(config: AvatarConfig, opts?: { gmNotes?: string }): string {
+export type AvatarAwarenessItem = {
+  name: string
+  description?: string
+  scope?: string
+  availability: 'available' | 'locked'
+}
+
+export function assemblePersonaPrompt(
+  config: AvatarConfig,
+  opts?: { gmNotes?: string; avatarAwareness?: AvatarAwarenessItem[] },
+): string {
   const personaPrompt = requirePersonaPrompt(config.personaPrompt)
   const sections: string[] = [personaPrompt]
 
@@ -15,6 +25,7 @@ export function assemblePersonaPrompt(config: AvatarConfig, opts?: { gmNotes?: s
   }
 
   sections.push(...buildAdjustments(config.adjustments))
+  sections.push(...buildAvatarAwareness(opts?.avatarAwareness))
 
   // EPIC 2.2 extension point: inject async Game Master directives here.
   sections.push(DEFAULT_STYLE_RULE)
@@ -45,6 +56,24 @@ function shouldAppendName(personaPrompt: string, name: string): boolean {
 function buildAdjustments(adjustments: AvatarConfig['adjustments']): string[] {
   if (adjustments === undefined) return []
   return adjustments.map((a) => a.trim()).filter((a) => a.length > 0)
+}
+
+function buildAvatarAwareness(avatars: AvatarAwarenessItem[] | undefined): string[] {
+  if (avatars === undefined || avatars.length === 0) return []
+
+  const lines = avatars.map((avatar) => {
+    const details = [avatar.description, avatar.scope].filter(hasText).join(' Scope: ')
+    const suffix = details.length > 0 ? ` — ${details}` : ''
+    return `- ${avatar.name} (${avatar.availability})${suffix}`
+  })
+
+  return [
+    [
+      'Other avatars in this scenario:',
+      ...lines,
+      'You may suggest that the user talk to another avatar when their scope is a better fit. You cannot unlock avatars yourself; availability is managed by the director.',
+    ].join('\n'),
+  ]
 }
 
 function hasText(value: string | undefined): value is string {

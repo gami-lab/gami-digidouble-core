@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  aiGuidedDiscoveryScenarioConfig,
   buildAiGuidedDiscoveryAvatarSeedParams,
   buildAiGuidedDiscoveryFixture,
 } from './ai-guided-discovery.js'
@@ -41,5 +42,16 @@ describe('ai-guided-discovery seed data derivation', () => {
 
     expect(seedParams).toHaveLength(3)
     expect(seedParams.every((seedParam) => seedParam.scenarioId === 'scenario_custom')).toBe(true)
+  })
+
+  it('keeps unlock configuration policy-based without keyword triggers or scripted messages', () => {
+    expect(aiGuidedDiscoveryScenarioConfig.config?.['topicSignals']).toBeUndefined()
+
+    const avatarAvailability = aiGuidedDiscoveryScenarioConfig.config?.['avatarAvailability']
+    expect(avatarAvailability).toEqual({
+      initialAvatarKeys: ['guide'],
+      unlockableAvatarKeys: ['theo', 'eva'],
+    })
+    expect(JSON.stringify(avatarAvailability)).not.toContain('introductionMessage')
   })
 })

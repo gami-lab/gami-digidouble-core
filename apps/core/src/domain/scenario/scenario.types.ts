@@ -31,8 +31,12 @@ export interface ScenarioConfig {
   avatarTransitionRules?: AvatarTransitionRule[]
   /** Deterministic topic tags derived from user messages. */
   topicSignals?: ScenarioTopicSignal[]
-  /** Session-scoped avatar availability rules. */
+  /** Session-scoped avatar availability policy. */
   avatarAvailability?: ScenarioAvatarAvailabilityConfig
+  /** Optional high-level routing guidance for director and actor prompts. */
+  avatarRoutingPolicy?: Record<string, unknown>
+  /** Optional scenario-level specialist role descriptions. */
+  specialistRoles?: Record<string, unknown>
 }
 
 export interface ScenarioTopicSignal {
@@ -42,12 +46,5 @@ export interface ScenarioTopicSignal {
 
 export interface ScenarioAvatarAvailabilityConfig {
   initialAvatarKeys?: string[]
-  unlockRules?: ScenarioAvatarUnlockRule[]
-}
-
-export interface ScenarioAvatarUnlockRule {
-  sourceAvatarKey: string
-  targetAvatarKey: string
-  topicId: string
-  introductionMessage: string
+  unlockableAvatarKeys?: string[]
 }

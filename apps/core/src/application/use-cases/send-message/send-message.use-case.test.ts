@@ -209,12 +209,10 @@ describe('SendMessageUseCase — observability payload', () => {
 })
 
 describe('SendMessageUseCase — scenario policy', () => {
-  it('unlocks a specialist when scenario topic rules match the guide turn', async () => {
+  it('does not update unlock state from message topic rules', async () => {
     const useCase = createUseCase()
     findSessionByIdMock.mockResolvedValue(makeSession({ unlockedAvatarIds: ['avatar_1'] }))
-    updateSessionMock.mockResolvedValue(
-      makeSession({ unlockedAvatarIds: ['avatar_1', 'avatar_2'] }),
-    )
+    updateSessionMock.mockResolvedValue(makeSession({ unlockedAvatarIds: ['avatar_1'] }))
     findAvatarByIdMock.mockResolvedValue(
       makeAvatar({
         config: { routeKey: 'guide' },
@@ -231,14 +229,8 @@ describe('SendMessageUseCase — scenario policy', () => {
       config: {
         topicSignals: [{ topicId: 'technical', keywords: ['transformer'] }],
         avatarAvailability: {
-          unlockRules: [
-            {
-              sourceAvatarKey: 'guide',
-              targetAvatarKey: 'theo',
-              topicId: 'technical',
-              introductionMessage: 'I can introduce Theo if you want to go deeper.',
-            },
-          ],
+          initialAvatarKeys: ['guide'],
+          unlockableAvatarKeys: ['theo'],
         },
       },
       createdAt: '2026-04-18T10:00:00.000Z',
@@ -250,12 +242,10 @@ describe('SendMessageUseCase — scenario policy', () => {
       userMessage: 'How does a transformer work?',
     })
 
-    expect(updateSessionMock).toHaveBeenCalledWith(
-      'session_1',
-      expect.objectContaining({ unlockedAvatarIds: ['avatar_1', 'avatar_2'] }),
-    )
-    expect(output.session.unlockedAvatarIds).toEqual(['avatar_1', 'avatar_2'])
-    expect(output.avatarMessage.content).toContain('I can introduce Theo')
+    const sessionUpdate = updateSessionMock.mock.calls[0]?.[1] as Record<string, unknown>
+    expect(sessionUpdate['unlockedAvatarIds']).toBeUndefined()
+    expect(output.session.unlockedAvatarIds).toEqual(['avatar_1'])
+    expect(output.avatarMessage.content).not.toContain('I can introduce Theo')
   })
 
   it('returns deterministic redirect content when avatar competence boundary is exceeded', async () => {

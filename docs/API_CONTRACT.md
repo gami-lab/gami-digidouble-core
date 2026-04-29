@@ -1352,6 +1352,9 @@ type AdminSessionEventsResponse = {
         conversationMode: 'new' | 'continue'
         notesInjected: boolean
         directiveCount: number
+        unlockedAvatarIds?: string[]
+        suggestedAvatarId?: string
+        suggestedAvatarReason?: string
       }
       stateAfter?: {
         currentAvatarId?: string
@@ -1637,7 +1640,7 @@ type GameMasterState = {
 
 ```ts id="vvjlyw"
 type GameMasterOutput = {
-  avatarId?: string
+  avatarId: string
   nextAvatarId?: string
   transitionReason?: string
   recommendedChoices?: Array<{
@@ -1645,17 +1648,18 @@ type GameMasterOutput = {
     label: string
   }>
   contentTrigger?: string
-  mode: 'init' | 'background_trigger'
-  trigger?: 'time_elapsed' | 'topic_covered' | 'stalled_progression' | 'state_change' | 'manual'
+  unlockAvatarIds?: string[]
+  suggestedAvatarId?: string
+  suggestedAvatarReason?: string
+  conversationMode: 'new' | 'continue'
   context?: {
     notes?: string
-    directives?: string[]
   }
   stateUpdate: {
     progression?: 'none' | 'increase'
     topicCovered?: string
     activeAvatarId?: string
-    interactionIncrement?: 1
+    interactionIncrement: 1
   }
 }
 ```

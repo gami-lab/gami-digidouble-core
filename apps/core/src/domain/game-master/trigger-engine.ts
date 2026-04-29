@@ -4,6 +4,7 @@ export type TriggerReason =
   | 'turn_threshold'
   | 'topic_repeat'
   | 'progression_stalled'
+  | 'avatar_unlock_evaluation'
   | 'session_start'
   | 'manual'
 

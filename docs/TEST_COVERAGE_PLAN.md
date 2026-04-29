@@ -81,6 +81,7 @@ Must test:
 - duplicate topic handling
 - progression update rules
 - avatar transition rules (topic/progression/manual)
+- GM avatar unlock decisions, including duplicate suppression and invalid avatar ID rejection
 - deterministic policy evaluation from structured config
 - transition reason output and history logging
 - available-avatar filtering and invalid transition rejection

@@ -1,11 +1,13 @@
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
-import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
+import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { ILlmAdapter, LlmResponse } from '../../ports/ILlmAdapter.js'
+import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
+import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type {
   AvatarTransitionRule,
   EligibleTransition,
@@ -17,8 +19,8 @@ import type {
   GameMasterInput,
   GameMasterOutput,
   GameMasterState,
-  GameMasterStateSummary,
 } from '../../../domain/game-master/game-master.types.js'
+import type { Session } from '../../../domain/conversation/session.types.js'
 import {
   evaluateTriggers,
   type TriggerPolicy,
@@ -31,6 +33,20 @@ import {
   mapTriggerReasonToTransitionTrigger,
   safeParseGameMasterOutput,
 } from './run-game-master.helpers.js'
+import {
+  hasLockedActiveAvatar,
+  resolveAvatarUnlocks,
+  toGameMasterAvailableAvatars,
+} from './run-game-master.avatar-unlocks.js'
+import {
+  buildStateSummary,
+  emitEventSafe,
+  emitTriggeredGameMasterTurn,
+  handleInvalidGameMasterOutput,
+  handleSkippedGameMasterTurn,
+  incrementInteractionAndSave,
+  traceSafe,
+} from './run-game-master.events.js'
 
 const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
   progression: '',
@@ -59,16 +75,30 @@ export class RunGameMasterUseCase {
     private readonly scenarioRepository?: IScenarioRepository,
     private readonly eventLogRepository?: IEventLogRepository,
     private readonly conversationRepository?: IConversationRepository,
+    private readonly messageRepository?: IMessageRepository,
   ) {}
 
   async execute(input: RunGameMasterInput): Promise<void> {
     const gmRunStartMs = Date.now()
     const currentState = await this.loadCurrentState(input.sessionId)
     const scenarioContext = await this.loadScenarioContext(input.scenarioId)
-    const triggerReason = evaluateTriggers(currentState, scenarioContext.policy)
+    const session = await this.loadSession(input.sessionId)
+    const scenarioAvatars = await this.avatarRepository.listByScenarioId(input.scenarioId)
+    const triggerReason =
+      evaluateTriggers(currentState, scenarioContext.policy) ??
+      this.evaluateUnlockTrigger(session, scenarioAvatars)
 
     if (triggerReason === null) {
-      await this.handleSkippedTurn(input, currentState, gmRunStartMs)
+      await handleSkippedGameMasterTurn({
+        input,
+        currentState,
+        gmRunStartMs,
+        gmStateRepository: this.gmStateRepository,
+        observability: this.observability,
+        ...(this.eventLogRepository !== undefined
+          ? { eventLogRepository: this.eventLogRepository }
+          : {}),
+      })
       return
     }
 
@@ -76,6 +106,8 @@ export class RunGameMasterUseCase {
       input,
       currentState,
       scenarioContext,
+      session,
+      scenarioAvatars,
       triggerReason,
       gmRunStartMs,
     )
@@ -85,6 +117,8 @@ export class RunGameMasterUseCase {
     input: RunGameMasterInput,
     currentState: GameMasterState,
     scenarioContext: ScenarioContext,
+    session: Session | null,
+    scenarioAvatars: AvatarConfig[],
     triggerReason: TriggerReason,
     gmRunStartMs: number,
   ): Promise<void> {
@@ -98,6 +132,8 @@ export class RunGameMasterUseCase {
       input,
       currentState,
       scenarioContext,
+      session,
+      scenarioAvatars,
       eligibleTransitions,
     )
     const llmStart = Date.now()
@@ -116,7 +152,7 @@ export class RunGameMasterUseCase {
 
     const output = safeParseGameMasterOutput(llmResponse.content)
     if (output === null) {
-      await this.handleInvalidOutput(
+      await handleInvalidGameMasterOutput({
         input,
         currentState,
         triggerReason,
@@ -124,7 +160,12 @@ export class RunGameMasterUseCase {
         llmResponse,
         llmStart,
         gmRunStartMs,
-      )
+        gmStateRepository: this.gmStateRepository,
+        observability: this.observability,
+        ...(this.eventLogRepository !== undefined
+          ? { eventLogRepository: this.eventLogRepository }
+          : {}),
+      })
       return
     }
 
@@ -139,6 +180,7 @@ export class RunGameMasterUseCase {
       output,
       eligibleTransitions,
     )
+    const unlockedAvatarIds = await this.applyAvatarUnlocks(input, session, scenarioAvatars, output)
     const reconciledState: GameMasterState =
       routingResult.switchedAvatarId !== undefined
         ? { ...nextState, currentAvatarId: routingResult.switchedAvatarId }
@@ -146,43 +188,21 @@ export class RunGameMasterUseCase {
     await this.gmStateRepository.save(input.sessionId, reconciledState)
     await this.persistTriggeredNotes(input.sessionId, output)
 
-    await this.emitEventSafe({
-      sessionId: input.sessionId,
-      type: 'gm_triggered',
-      severity: 'info',
-      correlationId: input.correlationId,
-      payload: {
-        triggerReason,
-        turnIndex: input.turnIndex,
-        interactionCount: reconciledState.interactionCount,
-        stateBefore: buildStateSummary(currentState),
-        decision: {
-          avatarId: output.avatarId,
-          conversationMode: output.conversationMode,
-          notesInjected: Boolean(output.context?.notes),
-          directiveCount: output.recommendedChoices?.length ?? 0,
-        },
-        stateAfter: buildStateSummary(reconciledState),
-        latencyMs: Date.now() - gmRunStartMs,
-        inputTokens: llmResponse.inputTokens,
-        outputTokens: llmResponse.outputTokens,
-      },
-    })
-
-    await this.traceSafe({
-      requestId: input.correlationId,
-      sessionId: input.sessionId,
-      event: 'gm.triggered',
-      input: {
-        triggerReason,
-        turnIndex: input.turnIndex,
-        llmRequest,
-      },
+    await emitTriggeredGameMasterTurn({
+      input,
+      currentState,
+      reconciledState,
       output,
-      latencyMs: Date.now() - llmStart,
-      inputTokens: llmResponse.inputTokens,
-      outputTokens: llmResponse.outputTokens,
-      metadata: { model: llmResponse.model },
+      unlockedAvatarIds,
+      triggerReason,
+      gmRunStartMs,
+      llmStart,
+      llmRequest,
+      llmResponse,
+      observability: this.observability,
+      ...(this.eventLogRepository !== undefined
+        ? { eventLogRepository: this.eventLogRepository }
+        : {}),
     })
   }
 
@@ -210,9 +230,9 @@ export class RunGameMasterUseCase {
       return { llmRequest, llmResponse }
     } catch (err: unknown) {
       console.error('[GM] LLM call failed:', err)
-      await this.incrementInteractionAndSave(input.sessionId, currentState)
+      await incrementInteractionAndSave(this.gmStateRepository, input.sessionId, currentState)
       const updatedCount = currentState.interactionCount + 1
-      await this.emitEventSafe({
+      await emitEventSafe(this.eventLogRepository, {
         sessionId: input.sessionId,
         type: 'gm_skipped',
         severity: 'info',
@@ -225,7 +245,7 @@ export class RunGameMasterUseCase {
           latencyMs: Date.now() - gmRunStartMs,
         },
       })
-      await this.traceSafe({
+      await traceSafe(this.observability, {
         requestId: input.correlationId,
         sessionId: input.sessionId,
         event: 'gm.llm_error',
@@ -245,19 +265,37 @@ export class RunGameMasterUseCase {
     )
   }
 
+  private async loadSession(sessionId: string): Promise<Session | null> {
+    try {
+      return await this.sessionRepository.findById(sessionId)
+    } catch (err: unknown) {
+      console.error('[GM] Failed to load session for unlock evaluation:', err)
+      return null
+    }
+  }
+
+  private evaluateUnlockTrigger(
+    session: Session | null,
+    scenarioAvatars: AvatarConfig[],
+  ): TriggerReason | null {
+    return hasLockedActiveAvatar(session, scenarioAvatars) ? 'avatar_unlock_evaluation' : null
+  }
+
   private async buildGameMasterInput(
     input: RunGameMasterInput,
     currentState: GameMasterState,
     scenarioContext: ScenarioContext,
+    session: Session | null,
+    scenarioAvatars: AvatarConfig[],
     eligibleTransitions: EligibleTransition[],
   ): Promise<GameMasterInput> {
-    const availableAvatars = (
-      await this.avatarRepository.listByScenarioId(input.scenarioId)
-    ).filter((avatar) => avatar.status === 'active')
+    const recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }> =
+      await this.loadRecentMessages(input.conversationId)
 
     return {
       session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
       userMessage: { text: input.userMessageText },
+      ...(recentMessages.length > 0 ? { recentMessages } : {}),
       state: currentState,
       context: {
         experience: {
@@ -267,11 +305,7 @@ export class RunGameMasterUseCase {
             : {}),
           ...(scenarioContext.goals !== undefined ? { goals: scenarioContext.goals } : {}),
         },
-        availableAvatars: availableAvatars.map((avatar) => ({
-          avatarId: avatar.avatarId,
-          name: avatar.name,
-          ...(avatar.description !== undefined ? { description: avatar.description } : {}),
-        })),
+        availableAvatars: toGameMasterAvailableAvatars(scenarioAvatars, session),
         eligibleTransitions: eligibleTransitions.map((transition) => ({
           toAvatarId: transition.toAvatarId,
           reason: transition.reason,
@@ -279,6 +313,19 @@ export class RunGameMasterUseCase {
         ...(scenarioContext.policy !== undefined ? { policy: scenarioContext.policy } : {}),
       },
     }
+  }
+
+  private async loadRecentMessages(
+    conversationId: string | undefined,
+  ): Promise<Array<{ role: 'user' | 'avatar' | 'system'; content: string }>> {
+    if (conversationId === undefined || this.messageRepository === undefined) return []
+    const messages = await this.messageRepository.findByConversationId(conversationId, {
+      limit: 12,
+    })
+    return messages
+      .slice()
+      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+      .map((message) => ({ role: message.role, content: message.content }))
   }
 
   private async performAvatarSwitch(
@@ -382,122 +429,19 @@ export class RunGameMasterUseCase {
     return {}
   }
 
-  private async handleSkippedTurn(
+  private async applyAvatarUnlocks(
     input: RunGameMasterInput,
-    currentState: GameMasterState,
-    gmRunStartMs: number,
-  ): Promise<void> {
-    await this.incrementInteractionAndSave(input.sessionId, currentState)
-    const updatedState = { ...currentState, interactionCount: currentState.interactionCount + 1 }
-    await this.emitEventSafe({
-      sessionId: input.sessionId,
-      type: 'gm_skipped',
-      severity: 'info',
-      correlationId: input.correlationId,
-      payload: {
-        triggerReason: null,
-        turnIndex: input.turnIndex,
-        interactionCount: updatedState.interactionCount,
-        stateBefore: buildStateSummary(currentState),
-        latencyMs: Date.now() - gmRunStartMs,
-      },
-    })
-    await this.traceSafe({
-      requestId: input.correlationId,
-      sessionId: input.sessionId,
-      event: 'gm.skipped',
-      input: {
-        triggerReason: null,
-        turnIndex: input.turnIndex,
-      },
-    })
-  }
+    session: Session | null,
+    scenarioAvatars: AvatarConfig[],
+    output: GameMasterOutput,
+  ): Promise<string[]> {
+    const unlocks = resolveAvatarUnlocks(session, scenarioAvatars, output)
+    if (unlocks === null) return []
 
-  private async handleInvalidOutput(
-    input: RunGameMasterInput,
-    currentState: GameMasterState,
-    triggerReason: string,
-    llmRequest: {
-      systemPrompt: string
-      messages: Array<{ role: 'user'; content: string }>
-    },
-    llmResponse: {
-      content: string
-      model: string
-      inputTokens: number
-      outputTokens: number
-    },
-    llmStart: number,
-    gmRunStartMs: number,
-  ): Promise<void> {
-    await this.incrementInteractionAndSave(input.sessionId, currentState)
-    const updatedState = { ...currentState, interactionCount: currentState.interactionCount + 1 }
-    await this.emitEventSafe({
-      sessionId: input.sessionId,
-      type: 'gm_skipped',
-      severity: 'info',
-      correlationId: input.correlationId,
-      payload: {
-        triggerReason,
-        turnIndex: input.turnIndex,
-        interactionCount: updatedState.interactionCount,
-        stateBefore: buildStateSummary(currentState),
-        latencyMs: Date.now() - gmRunStartMs,
-        inputTokens: llmResponse.inputTokens,
-        outputTokens: llmResponse.outputTokens,
-      },
+    await this.sessionRepository.update(input.sessionId, {
+      unlockedAvatarIds: unlocks.nextUnlockedAvatarIds,
     })
-    await this.traceSafe({
-      requestId: input.correlationId,
-      sessionId: input.sessionId,
-      event: 'gm.invalid_output',
-      input: {
-        triggerReason,
-        llmRequest,
-      },
-      output: llmResponse.content,
-      latencyMs: Date.now() - llmStart,
-      inputTokens: llmResponse.inputTokens,
-      outputTokens: llmResponse.outputTokens,
-      metadata: { model: llmResponse.model },
-    })
-  }
-
-  private incrementInteractionAndSave(
-    sessionId: string,
-    currentState: GameMasterState,
-  ): Promise<void> {
-    return this.gmStateRepository.save(sessionId, {
-      ...currentState,
-      interactionCount: currentState.interactionCount + 1,
-    })
-  }
-
-  private async traceSafe(event: {
-    requestId: string
-    sessionId: string
-    event: string
-    input?: unknown
-    output?: unknown
-    latencyMs?: number
-    inputTokens?: number
-    outputTokens?: number
-    metadata?: Record<string, unknown>
-  }): Promise<void> {
-    try {
-      await this.observability.trace(event)
-    } catch (err: unknown) {
-      console.error('[GM] Observability trace failed for event:', event.event, err)
-    }
-  }
-
-  private async emitEventSafe(event: StoredEvent): Promise<void> {
-    if (this.eventLogRepository === undefined) return
-    try {
-      await this.eventLogRepository.append(event)
-    } catch (err: unknown) {
-      console.error('[GM] Event log emission failed for type:', event.type, err)
-    }
+    return unlocks.newlyUnlockedAvatarIds
   }
 
   private async loadScenarioContext(scenarioId: string): Promise<ScenarioContext> {
@@ -521,12 +465,4 @@ export class RunGameMasterUseCase {
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
-}
-
-function buildStateSummary(state: GameMasterState): GameMasterStateSummary {
-  return {
-    ...(state.currentAvatarId !== undefined ? { currentAvatarId: state.currentAvatarId } : {}),
-    progression: state.progression,
-    topicsCovered: state.topicsCovered,
-  }
 }

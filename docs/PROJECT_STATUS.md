@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 28, 2026
+**Last updated:** April 29, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -11,6 +11,17 @@ Update it as epics and features are completed.
 ## Overall Progress
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+
+### AI Guided Discovery GM-owned avatar unlocks (April 29, 2026)
+
+Avatar unlocking has been moved out of `SendMessageUseCase` and into the async Game Master flow:
+
+- AI Guided Discovery scenario config now uses `avatarAvailability.initialAvatarKeys` and `unlockableAvatarKeys`; keyword `topicSignals`, unlock rules, and scripted `introductionMessage` strings were removed
+- Avatar prompt assembly now includes safe awareness of other active scenario avatars, including description/scope and current availability, so actors can naturally recommend specialists without unlocking them
+- `GameMasterOutput` supports `unlockAvatarIds`, `suggestedAvatarId`, and `suggestedAvatarReason`; runtime validation ignores inactive avatars, non-scenario IDs, already-unlocked IDs, and duplicates
+- `RunGameMasterUseCase` persists valid unlock decisions to `session.unlockedAvatarIds` asynchronously and includes safe unlock/suggestion fields in `gm_triggered` diagnostics
+- `GET /v1/sessions/{sessionId}/available-avatars` continues to be the source of truth for switchable avatars, reflecting GM-unlocked specialists
+- Regression coverage added for GM unlock decisions, SendMessage no-unlock ownership, avatar prompt awareness, and AI Guided Discovery unlock/switch flows
 
 ### EPIC 2.6 — GM Debug Panel v1 + Observability APIs: **complete** (April 28, 2026)
 
@@ -103,7 +114,7 @@ A new post-EPIC-4.4 reference acceptance scenario is now implemented and seedabl
 - Session state now supports `unlockedAvatarIds` for deterministic per-session avatar availability progression
 - Session routes now return `403 FORBIDDEN` when opening/switching to locked avatars in unlock-enabled sessions
 - `GET /v1/sessions/{sessionId}/available-avatars` now reflects unlock progression
-- `SendMessageUseCase` now applies deterministic topic-signal unlock rules and bounded-competence policy redirects
+- `SendMessageUseCase` injects avatar awareness into actor prompts; async Game Master owns specialist unlock decisions
 - Acceptance suite added: `apps/core/src/application/use-cases/ai-guided-discovery.acceptance.test.ts`
 - Core unit suite validation after implementation: `pnpm --filter @gami/core test` passes (`255/255`)
 

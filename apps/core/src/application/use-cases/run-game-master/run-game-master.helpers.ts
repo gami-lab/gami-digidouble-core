@@ -95,18 +95,38 @@ function parseOptionalOutputFields(value: Record<string, unknown>): {
   nextAvatarId?: string
   transitionReason?: string
   context?: { notes: string }
+  unlockAvatarIds?: string[]
+  suggestedAvatarId?: string
+  suggestedAvatarReason?: string
 } {
+  return {
+    ...parseOptionalTextField(value, 'nextAvatarId'),
+    ...parseOptionalTextField(value, 'transitionReason'),
+    ...parseOptionalContext(value),
+    ...parseOptionalUnlockAvatarIds(value),
+    ...parseOptionalTextField(value, 'suggestedAvatarId'),
+    ...parseOptionalTextField(value, 'suggestedAvatarReason'),
+  }
+}
+
+function parseOptionalTextField<
+  K extends 'nextAvatarId' | 'transitionReason' | 'suggestedAvatarId' | 'suggestedAvatarReason',
+>(value: Record<string, unknown>, key: K): Partial<Record<K, string>> {
+  return hasText(value[key]) ? ({ [key]: value[key].trim() } as Partial<Record<K, string>>) : {}
+}
+
+function parseOptionalContext(value: Record<string, unknown>): { context?: { notes: string } } {
   const context = value['context']
   const notes = isRecord(context) && hasText(context['notes']) ? context['notes'].trim() : undefined
-  const nextAvatarId = hasText(value['nextAvatarId']) ? value['nextAvatarId'].trim() : undefined
-  const transitionReason = hasText(value['transitionReason'])
-    ? value['transitionReason'].trim()
-    : undefined
+  return notes !== undefined ? { context: { notes } } : {}
+}
 
+function parseOptionalUnlockAvatarIds(value: Record<string, unknown>): {
+  unlockAvatarIds?: string[]
+} {
+  if (!Array.isArray(value['unlockAvatarIds'])) return {}
   return {
-    ...(nextAvatarId !== undefined ? { nextAvatarId } : {}),
-    ...(transitionReason !== undefined ? { transitionReason } : {}),
-    ...(notes !== undefined ? { context: { notes } } : {}),
+    unlockAvatarIds: value['unlockAvatarIds'].filter(hasText).map((avatarId) => avatarId.trim()),
   }
 }
 

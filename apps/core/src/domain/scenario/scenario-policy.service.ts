@@ -2,7 +2,6 @@ import type { AvatarConfig } from '../avatar/avatar.types.js'
 import type {
   ScenarioConfig,
   ScenarioAvatarAvailabilityConfig,
-  ScenarioAvatarUnlockRule,
   ScenarioTopicSignal,
 } from './scenario.types.js'
 
@@ -32,40 +31,6 @@ export function resolveInitialUnlockedAvatarIds(
   if (availability?.initialAvatarKeys === undefined) return undefined
 
   return mapAvatarKeysToIds(availability.initialAvatarKeys, avatars)
-}
-
-export function resolveUnlocksForTurn(
-  config: ScenarioConfig,
-  currentAvatar: AvatarConfig,
-  avatars: AvatarConfig[],
-  topicId: string | null,
-  unlockedAvatarIds: string[] | undefined,
-): { unlockedAvatarIds: string[]; introductionMessages: string[] } | null {
-  if (topicId === null) return null
-
-  const availability = extractAvatarAvailability(config)
-  if (availability?.unlockRules === undefined || availability.unlockRules.length === 0) return null
-
-  const currentAvatarKey = extractAvatarRouteKey(currentAvatar)
-  if (currentAvatarKey === null) return null
-
-  const routeIdentities = extractAvatarRouteIdentities(avatars)
-  const knownUnlockedIds = new Set(unlockedAvatarIds ?? [])
-
-  const matchingRules = filterMatchingUnlockRules(
-    availability.unlockRules,
-    currentAvatarKey,
-    topicId,
-  )
-
-  const introductionMessages = collectNewUnlocks(matchingRules, routeIdentities, knownUnlockedIds)
-
-  if (introductionMessages.length === 0) return null
-
-  return {
-    unlockedAvatarIds: [...knownUnlockedIds],
-    introductionMessages,
-  }
 }
 
 export function resolveCompetenceRedirect(
@@ -113,51 +78,14 @@ function extractAvatarAvailability(
   const initialAvatarKeys = Array.isArray(config.avatarAvailability['initialAvatarKeys'])
     ? config.avatarAvailability['initialAvatarKeys'].filter(hasText)
     : undefined
-  const unlockRules = Array.isArray(config.avatarAvailability['unlockRules'])
-    ? config.avatarAvailability['unlockRules'].filter(isScenarioAvatarUnlockRule)
+  const unlockableAvatarKeys = Array.isArray(config.avatarAvailability['unlockableAvatarKeys'])
+    ? config.avatarAvailability['unlockableAvatarKeys'].filter(hasText)
     : undefined
 
   return {
     ...(initialAvatarKeys !== undefined ? { initialAvatarKeys } : {}),
-    ...(unlockRules !== undefined ? { unlockRules } : {}),
+    ...(unlockableAvatarKeys !== undefined ? { unlockableAvatarKeys } : {}),
   }
-}
-
-function collectNewUnlocks(
-  matchingRules: ScenarioAvatarUnlockRule[],
-  routeIdentities: Map<string, string>,
-  knownUnlockedIds: Set<string>,
-): string[] {
-  const introductionMessages: string[] = []
-  for (const rule of matchingRules) {
-    const targetAvatarId = routeIdentities.get(rule.targetAvatarKey)
-    if (targetAvatarId === undefined || knownUnlockedIds.has(targetAvatarId)) {
-      continue
-    }
-    knownUnlockedIds.add(targetAvatarId)
-    introductionMessages.push(rule.introductionMessage)
-  }
-  return introductionMessages
-}
-
-function filterMatchingUnlockRules(
-  rules: ScenarioAvatarUnlockRule[],
-  sourceAvatarKey: string,
-  topicId: string,
-): ScenarioAvatarUnlockRule[] {
-  return rules.filter(
-    (rule) => rule.sourceAvatarKey === sourceAvatarKey && rule.topicId === topicId,
-  )
-}
-
-function isScenarioAvatarUnlockRule(value: unknown): value is ScenarioAvatarUnlockRule {
-  return (
-    isRecord(value) &&
-    hasText(value['sourceAvatarKey']) &&
-    hasText(value['targetAvatarKey']) &&
-    hasText(value['topicId']) &&
-    hasText(value['introductionMessage'])
-  )
 }
 
 function extractAvatarRouteIdentities(avatars: AvatarConfig[]): Map<string, string> {

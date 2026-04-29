@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
@@ -11,16 +12,19 @@ import { GetAvailableAvatarsUseCase } from './get-available-avatars/get-availabl
 import { SendMessageUseCase } from './send-message/send-message.use-case.js'
 import { SwitchAvatarUseCase } from './switch-avatar/switch-avatar.use-case.js'
 import { ListSessionConversationsUseCase } from './list-session-conversations/list-session-conversations.use-case.js'
+import { RunGameMasterUseCase } from './run-game-master/run-game-master.use-case.js'
 import { buildAiGuidedDiscoveryFixture } from '../../seed/ai-guided-discovery.js'
 
-function createHarness() {
+type UnlockTarget = 'theo' | 'eva' | null
+
+function createHarness(unlockTarget: UnlockTarget = null) {
   const { scenario, avatars } = buildAiGuidedDiscoveryFixture()
   const sessionRepository = new InMemorySessionRepository()
   const scenarioRepository = new InMemoryScenarioRepository([scenario])
   const avatarRepository = new InMemoryAvatarRepository(avatars)
   const conversationRepository = new InMemoryConversationRepository()
   const messageRepository = new InMemoryMessageRepository()
-  const llm = {
+  const avatarLlm = {
     complete: () =>
       Promise.resolve({
         content: 'Base LLM reply',
@@ -30,7 +34,28 @@ function createHarness() {
         latencyMs: 5,
       }),
   }
+  const gmLlm = {
+    complete: () =>
+      Promise.resolve({
+        content: JSON.stringify(buildGmOutput(unlockTarget)),
+        model: 'null-model',
+        inputTokens: 10,
+        outputTokens: 20,
+        latencyMs: 5,
+      }),
+  }
   const observability = new NullObservabilityAdapter()
+  const runGameMaster = new RunGameMasterUseCase(
+    new InMemoryGmStateRepository(),
+    sessionRepository,
+    avatarRepository,
+    gmLlm,
+    observability,
+    scenarioRepository,
+    undefined,
+    conversationRepository,
+    messageRepository,
+  )
 
   return {
     scenario,
@@ -53,9 +78,9 @@ function createHarness() {
       avatarRepository,
       scenarioRepository,
       messageRepository,
-      llm,
+      avatarLlm,
       observability,
-      null,
+      runGameMaster,
     ),
     switchAvatar: new SwitchAvatarUseCase(
       sessionRepository,
@@ -67,6 +92,35 @@ function createHarness() {
       conversationRepository,
     ),
   }
+}
+
+function buildGmOutput(unlockTarget: UnlockTarget): Record<string, unknown> {
+  return {
+    avatarId: 'avatar_mira',
+    conversationMode: 'continue',
+    ...(unlockTarget === 'theo'
+      ? {
+          unlockAvatarIds: ['avatar_theo'],
+          suggestedAvatarId: 'avatar_theo',
+          suggestedAvatarReason: 'Technical specialist is relevant now.',
+        }
+      : {}),
+    ...(unlockTarget === 'eva'
+      ? {
+          unlockAvatarIds: ['avatar_eva'],
+          suggestedAvatarId: 'avatar_eva',
+          suggestedAvatarReason: 'Responsible AI specialist is relevant now.',
+        }
+      : {}),
+    stateUpdate: {
+      progression: unlockTarget === null ? 'none' : 'increase',
+      interactionIncrement: 1,
+    },
+  }
+}
+
+async function flushBackgroundTasks(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
 describe('AI Guided Discovery — initial visibility', () => {
@@ -102,7 +156,7 @@ describe('AI Guided Discovery — initial visibility', () => {
 
 describe('AI Guided Discovery — unlock progression', () => {
   it('unlocks Theo after a technical question to the guide', async () => {
-    const harness = createHarness()
+    const harness = createHarness('theo')
     const started = await harness.startSession.execute({
       userId: 'user_1',
       scenarioId: harness.scenario.scenarioId,
@@ -116,6 +170,7 @@ describe('AI Guided Discovery — unlock progression', () => {
       conversationId: conversation.conversation.conversationId,
       userMessage: 'How do transformers handle inference latency?',
     })
+    await flushBackgroundTasks()
 
     const available = await harness.availableAvatars.execute({
       sessionId: started.session.sessionId,
@@ -125,7 +180,7 @@ describe('AI Guided Discovery — unlock progression', () => {
   })
 
   it('unlocks Eva after an ethics question to the guide', async () => {
-    const harness = createHarness()
+    const harness = createHarness('eva')
     const started = await harness.startSession.execute({
       userId: 'user_1',
       scenarioId: harness.scenario.scenarioId,
@@ -139,6 +194,31 @@ describe('AI Guided Discovery — unlock progression', () => {
       conversationId: conversation.conversation.conversationId,
       userMessage: 'Could AI bias be dangerous for society?',
     })
+    await flushBackgroundTasks()
+
+    const available = await harness.availableAvatars.execute({
+      sessionId: started.session.sessionId,
+    })
+
+    expect(available.avatars.map((avatar) => avatar.name)).toEqual(['Mira', 'Eva'])
+  })
+
+  it('unlocks Eva after an environmental impact question to the guide', async () => {
+    const harness = createHarness('eva')
+    const started = await harness.startSession.execute({
+      userId: 'user_1',
+      scenarioId: harness.scenario.scenarioId,
+    })
+    const conversation = await harness.startConversation.execute({
+      sessionId: started.session.sessionId,
+      avatarId: 'avatar_mira',
+    })
+
+    await harness.sendMessage.execute({
+      conversationId: conversation.conversation.conversationId,
+      userMessage: 'Does AI need power, and what does that mean for the environment?',
+    })
+    await flushBackgroundTasks()
 
     const available = await harness.availableAvatars.execute({
       sessionId: started.session.sessionId,
@@ -148,9 +228,9 @@ describe('AI Guided Discovery — unlock progression', () => {
   })
 })
 
-describe('AI Guided Discovery — bounded competence redirects', () => {
-  it('Theo redirects ethics questions back to Eva or the guide', async () => {
-    const harness = createHarness()
+describe('AI Guided Discovery — unlocked switching', () => {
+  it('allows switching to Theo after the GM unlocks Theo', async () => {
+    const harness = createHarness('theo')
     const started = await harness.startSession.execute({
       userId: 'user_1',
       scenarioId: harness.scenario.scenarioId,
@@ -163,21 +243,18 @@ describe('AI Guided Discovery — bounded competence redirects', () => {
       conversationId: guideConversation.conversation.conversationId,
       userMessage: 'Explain transformers and training.',
     })
+    await flushBackgroundTasks()
+
     const theoConversation = await harness.switchAvatar.execute({
       sessionId: started.session.sessionId,
       avatarId: 'avatar_theo',
     })
 
-    const reply = await harness.sendMessage.execute({
-      conversationId: theoConversation.conversation.conversationId,
-      userMessage: 'What about fairness and bias?',
-    })
-
-    expect(reply.avatarMessage.content).toContain('Eva')
+    expect(theoConversation.conversation.avatarId).toBe('avatar_theo')
   })
 
-  it('Eva redirects deep infrastructure questions back to Theo or the guide', async () => {
-    const harness = createHarness()
+  it('allows switching to Eva after the GM unlocks Eva', async () => {
+    const harness = createHarness('eva')
     const started = await harness.startSession.execute({
       userId: 'user_1',
       scenarioId: harness.scenario.scenarioId,
@@ -190,23 +267,20 @@ describe('AI Guided Discovery — bounded competence redirects', () => {
       conversationId: guideConversation.conversation.conversationId,
       userMessage: 'What are the privacy and regulation issues?',
     })
+    await flushBackgroundTasks()
+
     const evaConversation = await harness.switchAvatar.execute({
       sessionId: started.session.sessionId,
       avatarId: 'avatar_eva',
     })
 
-    const reply = await harness.sendMessage.execute({
-      conversationId: evaConversation.conversation.conversationId,
-      userMessage: 'How would you scale RAG and embeddings infrastructure?',
-    })
-
-    expect(reply.avatarMessage.content).toContain('Theo')
+    expect(evaConversation.conversation.avatarId).toBe('avatar_eva')
   })
 })
 
 describe('AI Guided Discovery — multi-avatar session navigation', () => {
   it('creates multiple conversations when switching A to B to A within one session', async () => {
-    const harness = createHarness()
+    const harness = createHarness('theo')
     const started = await harness.startSession.execute({
       userId: 'user_1',
       scenarioId: harness.scenario.scenarioId,
@@ -219,6 +293,7 @@ describe('AI Guided Discovery — multi-avatar session navigation', () => {
       conversationId: guideConversation.conversation.conversationId,
       userMessage: 'Explain LLM providers and latency trade-offs.',
     })
+    await flushBackgroundTasks()
     await harness.switchAvatar.execute({
       sessionId: started.session.sessionId,
       avatarId: 'avatar_theo',

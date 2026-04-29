@@ -13,7 +13,6 @@ import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import {
   classifyScenarioTopic,
   resolveCompetenceRedirect,
-  resolveUnlocksForTurn,
 } from '../../../domain/scenario/scenario-policy.service.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
@@ -44,10 +43,10 @@ export class SendMessageUseCase {
     const scenario = await this.loadScenario(session.scenarioId)
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(session.scenarioId)
     const topicId = classifyScenarioTopic(input.userMessage, scenario.config)
-    const systemPrompt = assemblePersonaPrompt(
-      avatar,
-      session.gmNotes !== undefined ? { gmNotes: session.gmNotes } : undefined,
-    )
+    const systemPrompt = assemblePersonaPrompt(avatar, {
+      ...(session.gmNotes !== undefined ? { gmNotes: session.gmNotes } : {}),
+      avatarAwareness: buildAvatarAwareness(avatar, scenarioAvatars, session.unlockedAvatarIds),
+    })
     const historyMessages = await this.buildHistoryMessages(conversation.conversationId)
     const userMessage = await this.persistUserMessage(
       conversation.conversationId,
@@ -68,26 +67,13 @@ export class SendMessageUseCase {
             outputTokens: 0,
             latencyMs: 0,
           }
-    const unlockResult = resolveUnlocksForTurn(
-      scenario.config,
-      avatar,
-      scenarioAvatars,
-      topicId,
-      session.unlockedAvatarIds,
-    )
-    const avatarContent = this.buildAvatarContent(
-      response.content,
-      unlockResult?.introductionMessages,
-    )
     const avatarMessage = await this.persistAvatarMessage(conversation.conversationId, {
       ...response,
-      content: avatarContent,
     })
     const now = this.nowIso()
     await this.conversationRepository.update(conversation.conversationId, { lastActivityAt: now })
     const updatedSession = await this.sessionRepository.update(session.sessionId, {
       lastActivityAt: now,
-      ...(unlockResult !== null ? { unlockedAvatarIds: unlockResult.unlockedAvatarIds } : {}),
       ...(session.gmNotes !== undefined ? { gmNotes: null } : {}),
     })
 
@@ -98,6 +84,7 @@ export class SendMessageUseCase {
           sessionId: session.sessionId,
           scenarioId: session.scenarioId,
           avatarId: conversation.avatarId,
+          conversationId: conversation.conversationId,
           userMessageText: input.userMessage,
           turnIndex: nextTurnIndex,
           correlationId: requestId,
@@ -327,16 +314,36 @@ export class SendMessageUseCase {
   private nowIso(): string {
     return new Date().toISOString()
   }
-
-  private buildAvatarContent(baseContent: string, introductionMessages?: string[]): string {
-    if (introductionMessages === undefined || introductionMessages.length === 0) {
-      return baseContent
-    }
-
-    return [baseContent, ...introductionMessages].join('\n\n')
-  }
 }
 
 function hasText(value: string): boolean {
   return value.trim().length > 0
+}
+
+function buildAvatarAwareness(
+  currentAvatar: AvatarConfig,
+  scenarioAvatars: AvatarConfig[],
+  unlockedAvatarIds: string[] | undefined,
+): Array<{
+  name: string
+  description?: string
+  scope?: string
+  availability: 'available' | 'locked'
+}> {
+  return scenarioAvatars
+    .filter((avatar) => avatar.status === 'active' && avatar.avatarId !== currentAvatar.avatarId)
+    .map((avatar) => ({
+      name: avatar.name,
+      ...(avatar.description !== undefined ? { description: avatar.description } : {}),
+      ...extractPublicScope(avatar),
+      availability:
+        unlockedAvatarIds === undefined || unlockedAvatarIds.includes(avatar.avatarId)
+          ? 'available'
+          : 'locked',
+    }))
+}
+
+function extractPublicScope(avatar: AvatarConfig): { scope?: string } {
+  const scope = avatar.config['scope']
+  return typeof scope === 'string' && scope.trim().length > 0 ? { scope: scope.trim() } : {}
 }
