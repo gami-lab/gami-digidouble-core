@@ -17,8 +17,6 @@ export interface Avatar {
   description?: string
   /** JSONB-backed extensible configuration. */
   config: Record<string, unknown>
-  /** Stable identifier used to match this avatar against scenario availability policy keys. */
-  availabilityKey?: string
   createdAt: string
   updatedAt: string
 }
@@ -40,8 +38,6 @@ export interface AvatarConfig {
   adjustments?: string[]
   /** JSONB-backed extensible configuration for voice, UI hints, knowledge scope, etc. */
   config: Record<string, unknown>
-  /** Stable identifier used to match this avatar against scenario availability policy keys. */
-  availabilityKey?: string
   createdAt: string
   updatedAt: string
 }

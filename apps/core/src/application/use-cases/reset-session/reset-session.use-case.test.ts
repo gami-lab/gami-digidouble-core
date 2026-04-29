@@ -27,7 +27,7 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
     status: 'active',
     config: {
       avatarAvailability: {
-        initialAvatarKeys: [],
+        initialAvatarIds: [],
       },
     },
     createdAt: '2026-04-21T08:00:00.000Z',
@@ -47,7 +47,6 @@ function makeAvatar({
     status: 'active',
     personaPrompt: 'Guide persona',
     config: {},
-    availabilityKey: 'guide',
     createdAt: '2026-04-21T08:00:00.000Z',
     updatedAt: '2026-04-21T08:00:00.000Z',
     ...overrides,
@@ -173,7 +172,7 @@ describe('ResetSessionUseCase unlock policy behavior', () => {
           scenarioId: 'scenario_policy',
           config: {
             avatarAvailability: {
-              initialAvatarKeys: ['guide'],
+              initialAvatarIds: ['avatar_guide'],
             },
           },
         }),
@@ -182,14 +181,12 @@ describe('ResetSessionUseCase unlock policy behavior', () => {
         makeAvatar({
           avatarId: 'avatar_guide',
           scenarioId: 'scenario_policy',
-          availabilityKey: 'guide',
         }),
         makeAvatar({
           avatarId: 'avatar_ethics',
           scenarioId: 'scenario_policy',
           name: 'Ethics',
           config: {},
-          availabilityKey: 'ethics',
         }),
       ],
     })

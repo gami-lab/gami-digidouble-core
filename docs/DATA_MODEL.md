@@ -90,7 +90,7 @@ Defines a runnable experience configuration.
 - world context
 - objectives
 - goals
-- avatar availability policy (`initialAvatarKeys`, optional `unlockableAvatarKeys`)
+- avatar availability policy (`initialAvatarIds`, optional `unlockableAvatarIds`)
 - UI hints
 - runtime defaults
 
@@ -124,16 +124,12 @@ An Avatar is now a first-class object.
 - tone (nullable)
 - persona_prompt (required, non-null)
 - config (JSONB, required, extensible)
-- availability_key (nullable, stable key matching scenario `avatarAvailability` policy)
 - created_at
 - updated_at
 
 ### Implementation Alignment (TypeScript)
 
-- `Avatar` (persistence shape) includes all fields above with camelCase names: `id`, `scenarioId`, `name`, `status`, `personaPrompt`, optional `tone`, optional `description`, required extensible `config`, optional `availabilityKey`, `createdAt`, `updatedAt`.
-- `AvatarConfig` (runtime shape used by prompt assembly and send-message flow) includes: `avatarId`, `scenarioId`, `name`, `status`, required `personaPrompt`, optional `tone`, optional `description`, optional typed `adjustments: string[]` (ordered style adjustments appended to the assembled system prompt), optional extensible `config`, optional `availabilityKey`, and persistence timestamps `createdAt` / `updatedAt`.
 - `AvatarConfig` keeps runtime-first naming (`avatarId`) while still carrying database-sourced timestamps for API responses and auditing use cases.
-- Avatar creation input in application layer maps to runtime config fields: `scenarioId`, `name`, `personaPrompt`, optional `tone`, `description`, `adjustments`, `config`, `availabilityKey`, and optional `status`.
 
 ### Implementation Status (EPIC 2.3)
 

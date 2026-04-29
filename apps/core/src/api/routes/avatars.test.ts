@@ -180,27 +180,9 @@ describe('PATCH /v1/avatars/:avatarId', () => {
     expect(response.statusCode).toBe(401)
   })
 
-  it('sets and returns availabilityKey when provided', async () => {
-    const app = makeApp({
-      avatars: [makeAvatar({ avatarId: 'avatar_1' })],
-    })
-
-    const response = await app.inject({
-      method: 'PATCH',
-      url: '/v1/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
-      payload: { availabilityKey: 'guide' },
-    })
-
-    expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<{ avatar: { availabilityKey?: string } }>>()
-    expect(body.error).toBeNull()
-    expect(body.data?.avatar.availabilityKey).toBe('guide')
-  })
-
   it('response includes all AvatarSummary contract fields', async () => {
     const app = makeApp({
-      avatars: [makeAvatar({ avatarId: 'avatar_1', availabilityKey: 'guide' })],
+      avatars: [makeAvatar({ avatarId: 'avatar_1' })],
     })
     const response = await app.inject({
       method: 'PATCH',
@@ -215,7 +197,6 @@ describe('PATCH /v1/avatars/:avatarId', () => {
     expect(avatar?.scenarioId).toBe('scenario_1')
     expect(avatar?.name).toBe('Ava Updated')
     expect(avatar?.status).toBe('active')
-    expect(avatar?.availabilityKey).toBe('guide')
     expect(avatar?.config).toBeDefined()
     expect(avatar?.createdAt).toBeDefined()
     expect(avatar?.updatedAt).toBeDefined()

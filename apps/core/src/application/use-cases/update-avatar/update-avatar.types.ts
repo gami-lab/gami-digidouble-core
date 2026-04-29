@@ -9,7 +9,6 @@ export type UpdateAvatarInput = {
   adjustments?: string[]
   config?: Record<string, unknown>
   status?: AvatarSummary['status']
-  availabilityKey?: string
 }
 
 export type UpdateAvatarOutput = {

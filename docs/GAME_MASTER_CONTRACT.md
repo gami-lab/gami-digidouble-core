@@ -527,7 +527,7 @@ Avatar switching is owned by the Game Master and validated by the runtime:
 
 Avatar unlocking is owned by the Game Master.
 
-1. Scenario config may define `avatarAvailability.initialAvatarKeys` and `avatarAvailability.unlockableAvatarKeys`.
+1. Scenario config may define `avatarAvailability.initialAvatarIds` and `avatarAvailability.unlockableAvatarIds`.
 2. Session start maps initial avatar route keys to `session.unlockedAvatarIds`.
 3. During async GM evaluation, locked active avatars are passed in `availableAvatars` with `availability: 'locked'`.
 4. The GM may return `unlockAvatarIds` when the recent discussion makes a specialist relevant.

@@ -18,7 +18,6 @@ export interface CreateAvatarParams {
   adjustments?: string[]
   config?: Record<string, unknown>
   status?: AvatarConfig['status']
-  availabilityKey?: string
 }
 
 export type UpdateAvatarParams = {
@@ -29,5 +28,4 @@ export type UpdateAvatarParams = {
   adjustments?: string[]
   config?: Record<string, unknown>
   status?: AvatarConfig['status']
-  availabilityKey?: string
 }

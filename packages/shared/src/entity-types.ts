@@ -25,7 +25,6 @@ export type AvatarSummary = {
   description?: string
   adjustments?: string[]
   config: Record<string, unknown>
-  availabilityKey?: string
   createdAt: string
   updatedAt: string
 }

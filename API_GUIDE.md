@@ -215,8 +215,8 @@ curl -X GET "$BASE_URL/v1/scenarios" \
           "worldContext": "A guided learning experience about AI.",
           "objectives": ["Introduce AI concepts progressively."],
           "avatarAvailability": {
-            "initialAvatarKeys": ["guide"],
-            "unlockableAvatarKeys": ["theo", "eva"]
+            "initialAvatarIds": ["guide"],
+            "unlockableAvatarIds": ["theo", "eva"]
           }
         },
         "createdAt": "2026-04-20T10:00:00.000Z",
@@ -251,16 +251,15 @@ curl -X POST "$BASE_URL/v1/scenarios/$SCENARIO_ID/avatars" \
 
 **Request fields:**
 
-| Field             | Type                                    | Required | Notes                                                    |
-| ----------------- | --------------------------------------- | -------- | -------------------------------------------------------- |
-| `name`            | string                                  | Yes      | Display name                                             |
-| `personaPrompt`   | string                                  | Yes      | System prompt defining the avatar's character            |
-| `tone`            | string                                  | No       | Optional tone descriptor passed to the LLM               |
-| `description`     | string                                  | No       | Human-readable description (not sent to LLM)             |
-| `adjustments`     | string[]                                | No       | Additional persona modifiers                             |
-| `config`          | object                                  | No       | Avatar-specific configuration                            |
-| `status`          | `"draft"` \| `"active"` \| `"archived"` | No       | Defaults to `"draft"`                                    |
-| `availabilityKey` | string                                  | No       | Stable key matching scenario `avatarAvailability` policy |
+| Field           | Type                                    | Required | Notes                                         |
+| --------------- | --------------------------------------- | -------- | --------------------------------------------- |
+| `name`          | string                                  | Yes      | Display name                                  |
+| `personaPrompt` | string                                  | Yes      | System prompt defining the avatar's character |
+| `tone`          | string                                  | No       | Optional tone descriptor passed to the LLM    |
+| `description`   | string                                  | No       | Human-readable description (not sent to LLM)  |
+| `adjustments`   | string[]                                | No       | Additional persona modifiers                  |
+| `config`        | object                                  | No       | Avatar-specific configuration                 |
+| `status`        | `"draft"` \| `"active"` \| `"archived"` | No       | Defaults to `"draft"`                         |
 
 **Response (201):**
 
@@ -279,7 +278,6 @@ curl -X POST "$BASE_URL/v1/scenarios/$SCENARIO_ID/avatars" \
       "config": {
         "scope": "Broad AI literacy"
       },
-      "availabilityKey": "guide",
       "createdAt": "2026-04-20T10:00:00.000Z",
       "updatedAt": "2026-04-20T10:00:00.000Z"
     }
@@ -328,7 +326,6 @@ Behavior:
         "config": {
           "scope": "Broad AI literacy"
         },
-        "availabilityKey": "guide",
         "createdAt": "2026-04-20T10:00:00.000Z",
         "updatedAt": "2026-04-20T10:00:00.000Z"
       }
@@ -357,16 +354,15 @@ curl -X PATCH "$BASE_URL/v1/avatars/$AVATAR_ID" \
 
 **Updatable fields:**
 
-| Field             | Type                                    |
-| ----------------- | --------------------------------------- |
-| `name`            | string                                  |
-| `personaPrompt`   | string                                  |
-| `tone`            | string                                  |
-| `description`     | string                                  |
-| `adjustments`     | string[]                                |
-| `config`          | object                                  |
-| `status`          | `"draft"` \| `"active"` \| `"archived"` |
-| `availabilityKey` | string                                  |
+| Field           | Type                                    |
+| --------------- | --------------------------------------- |
+| `name`          | string                                  |
+| `personaPrompt` | string                                  |
+| `tone`          | string                                  |
+| `description`   | string                                  |
+| `adjustments`   | string[]                                |
+| `config`        | object                                  |
+| `status`        | `"draft"` \| `"active"` \| `"archived"` |
 
 At least one field must be present; an empty `{}` body returns `400 VALIDATION_ERROR`.
 `updatedAt` is always refreshed on success.
@@ -386,7 +382,6 @@ At least one field must be present; an empty `{}` body returns `400 VALIDATION_E
       "config": {
         "scope": "Broad AI literacy"
       },
-      "availabilityKey": "guide",
       "updatedAt": "2026-04-29T09:00:00.000Z"
     }
   },
@@ -452,8 +447,8 @@ At least one field must be present. `updatedAt` is always refreshed on success.
         "worldContext": "A guided learning experience about AI.",
         "objectives": ["Introduce AI concepts progressively."],
         "avatarAvailability": {
-          "initialAvatarKeys": ["guide"],
-          "unlockableAvatarKeys": ["theo", "eva"]
+          "initialAvatarIds": ["guide"],
+          "unlockableAvatarIds": ["theo", "eva"]
         }
       },
       "updatedAt": "2026-04-29T09:00:00.000Z"

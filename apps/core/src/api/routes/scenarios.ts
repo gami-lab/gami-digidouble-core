@@ -80,7 +80,6 @@ type CreateAvatarRequestBody = {
   adjustments?: string[]
   config?: Record<string, unknown>
   status?: AvatarSummary['status']
-  availabilityKey?: string
 }
 
 type CreateAvatarResponse = {
@@ -138,7 +137,6 @@ const createAvatarBodySchema = {
     },
     config: { type: 'object' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
-    availabilityKey: { type: 'string' },
   },
   additionalProperties: false,
 } as const
@@ -343,7 +341,6 @@ function mapCreateAvatarInput(
     ...(body.adjustments !== undefined ? { adjustments: body.adjustments } : {}),
     ...(body.config !== undefined ? { config: body.config } : {}),
     ...(body.status !== undefined ? { status: body.status } : {}),
-    ...(body.availabilityKey !== undefined ? { availabilityKey: body.availabilityKey } : {}),
   }
 }
 

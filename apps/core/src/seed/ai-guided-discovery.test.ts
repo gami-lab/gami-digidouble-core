@@ -10,15 +10,10 @@ describe('ai-guided-discovery seed data derivation', () => {
     const { scenario, avatars } = buildAiGuidedDiscoveryFixture()
     const seedParams = buildAiGuidedDiscoveryAvatarSeedParams(scenario.scenarioId)
 
-    const fixtureByAvailabilityKey = new Map(
-      avatars.map((avatar) => [avatar.availabilityKey, avatar]),
-    )
+    const fixtureByName = new Map(avatars.map((avatar) => [avatar.name, avatar]))
 
     for (const seedParam of seedParams) {
-      const availabilityKey = seedParam.availabilityKey
-      expect(typeof availabilityKey).toBe('string')
-
-      const fixtureAvatar = fixtureByAvailabilityKey.get(availabilityKey)
+      const fixtureAvatar = fixtureByName.get(seedParam.name)
       expect(fixtureAvatar).toBeDefined()
       expect(fixtureAvatar?.name).toBe(seedParam.name)
       expect(fixtureAvatar?.status).toBe(seedParam.status)
@@ -52,8 +47,8 @@ describe('ai-guided-discovery seed data derivation', () => {
 
     const avatarAvailability = aiGuidedDiscoveryScenarioConfig.config?.['avatarAvailability']
     expect(avatarAvailability).toEqual({
-      initialAvatarKeys: ['guide'],
-      unlockableAvatarKeys: ['theo', 'eva'],
+      initialAvatarIds: ['avatar_mira'],
+      unlockableAvatarIds: ['avatar_theo', 'avatar_eva'],
     })
     expect(JSON.stringify(avatarAvailability)).not.toContain('introductionMessage')
   })

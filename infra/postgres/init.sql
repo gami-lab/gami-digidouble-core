@@ -41,7 +41,6 @@ CREATE TABLE IF NOT EXISTS avatars (
   persona_prompt   TEXT        NOT NULL,
   adjustments      TEXT[],
   config           JSONB       NOT NULL DEFAULT '{}',
-  availability_key TEXT,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

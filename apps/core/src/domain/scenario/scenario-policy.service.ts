@@ -6,13 +6,9 @@ export function resolveInitialUnlockedAvatarIds(
   avatars: AvatarConfig[],
 ): string[] | undefined {
   const availability = extractAvatarAvailability(config)
-  if (availability?.initialAvatarKeys === undefined) return undefined
+  if (availability?.initialAvatarIds === undefined) return undefined
 
-  return mapAvatarKeysToIds(availability.initialAvatarKeys, avatars)
-}
-
-export function extractAvatarRouteKey(avatar: AvatarConfig): string | null {
-  return hasText(avatar.availabilityKey) ? avatar.availabilityKey.trim() : null
+  return filterExistingAvatarIds(availability.initialAvatarIds, avatars)
 }
 
 function extractAvatarAvailability(
@@ -20,37 +16,26 @@ function extractAvatarAvailability(
 ): ScenarioAvatarAvailabilityConfig | null {
   if (!isRecord(config.avatarAvailability)) return null
 
-  const initialAvatarKeys = Array.isArray(config.avatarAvailability['initialAvatarKeys'])
-    ? config.avatarAvailability['initialAvatarKeys'].filter(hasText)
+  const initialAvatarIds = Array.isArray(config.avatarAvailability['initialAvatarIds'])
+    ? config.avatarAvailability['initialAvatarIds'].filter(hasText)
     : []
-  const unlockableAvatarKeys = Array.isArray(config.avatarAvailability['unlockableAvatarKeys'])
-    ? config.avatarAvailability['unlockableAvatarKeys'].filter(hasText)
+  const unlockableAvatarIds = Array.isArray(config.avatarAvailability['unlockableAvatarIds'])
+    ? config.avatarAvailability['unlockableAvatarIds'].filter(hasText)
     : undefined
 
   return {
-    initialAvatarKeys,
-    ...(unlockableAvatarKeys !== undefined ? { unlockableAvatarKeys } : {}),
+    initialAvatarIds,
+    ...(unlockableAvatarIds !== undefined ? { unlockableAvatarIds } : {}),
   }
 }
 
-function extractAvatarRouteIdentities(avatars: AvatarConfig[]): Map<string, string> {
-  return avatars.reduce<Map<string, string>>((identities, avatar) => {
-    const routeKey = extractAvatarRouteKey(avatar)
-    if (routeKey !== null) {
-      identities.set(routeKey, avatar.avatarId)
+function filterExistingAvatarIds(avatarIds: string[], avatars: AvatarConfig[]): string[] {
+  const existingAvatarIds = new Set(avatars.map((avatar) => avatar.avatarId))
+  return avatarIds.reduce<string[]>((resolvedAvatarIds, avatarId) => {
+    if (existingAvatarIds.has(avatarId)) {
+      resolvedAvatarIds.push(avatarId)
     }
-    return identities
-  }, new Map())
-}
-
-function mapAvatarKeysToIds(avatarKeys: string[], avatars: AvatarConfig[]): string[] {
-  const routeIdentities = extractAvatarRouteIdentities(avatars)
-  return avatarKeys.reduce<string[]>((avatarIds, avatarKey) => {
-    const avatarId = routeIdentities.get(avatarKey)
-    if (avatarId !== undefined) {
-      avatarIds.push(avatarId)
-    }
-    return avatarIds
+    return resolvedAvatarIds
   }, [])
 }
 

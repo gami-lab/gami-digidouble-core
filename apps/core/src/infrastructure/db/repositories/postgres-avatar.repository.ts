@@ -18,7 +18,6 @@ interface AvatarRow {
   description: string | null
   adjustments: string[] | null
   config: Record<string, unknown>
-  availability_key: string | null
   created_at: Date
   updated_at: Date
 }
@@ -34,7 +33,6 @@ function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
     ...(row.description !== null ? { description: row.description } : {}),
     ...(row.adjustments !== null ? { adjustments: row.adjustments } : {}),
     config: row.config,
-    ...(row.availability_key !== null ? { availabilityKey: row.availability_key } : {}),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }
@@ -53,7 +51,6 @@ function buildUpdateSetClauses(updates: UpdateAvatarParams): {
     ['tone', updates.tone],
     ['description', updates.description],
     ['status', updates.status],
-    ['availability_key', updates.availabilityKey],
   ]
 
   for (const [column, value] of fields) {
@@ -83,8 +80,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
     const [row] = await this.sql<[AvatarRow]>`
       INSERT INTO avatars (
         scenario_id, name, status,
-        persona_prompt, tone, description, adjustments, config,
-        availability_key
+        persona_prompt, tone, description, adjustments, config
       )
       VALUES (
         ${scenarioUuid},
@@ -94,13 +90,11 @@ export class PostgresAvatarRepository implements IAvatarRepository {
         ${params.tone ?? null},
         ${params.description ?? null},
         ${params.adjustments ?? null},
-        ${this.sql.json((params.config ?? {}) as JSONValue)},
-        ${params.availabilityKey ?? null}
+        ${this.sql.json((params.config ?? {}) as JSONValue)}
       )
       RETURNING
         id, scenario_id, name, status,
-        persona_prompt, tone, description, adjustments, config,
-        availability_key, created_at, updated_at
+        persona_prompt, tone, description, adjustments, config, created_at, updated_at
     `
     return rowToAvatarConfig(row)
   }
@@ -111,8 +105,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
     const [row] = await this.sql<[AvatarRow?]>`
       SELECT
         id, scenario_id, name, status,
-        persona_prompt, tone, description, adjustments, config,
-        availability_key, created_at, updated_at
+        persona_prompt, tone, description, adjustments, config, created_at, updated_at
       FROM avatars
       WHERE id = ${uuid}
     `
@@ -126,8 +119,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
     const rows = await this.sql<AvatarRow[]>`
       SELECT
         id, scenario_id, name, status,
-        persona_prompt, tone, description, adjustments, config,
-        availability_key, created_at, updated_at
+        persona_prompt, tone, description, adjustments, config, created_at, updated_at
       FROM avatars
       WHERE scenario_id = ${scenarioUuid}
       ORDER BY created_at DESC
@@ -160,8 +152,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
       WHERE id = ${whereParam}
       RETURNING
         id, scenario_id, name, status,
-        persona_prompt, tone, description, adjustments, config,
-        availability_key, created_at, updated_at
+        persona_prompt, tone, description, adjustments, config, created_at, updated_at
     `
 
     const rows = await this.sql.unsafe<AvatarRow[]>(query, values)

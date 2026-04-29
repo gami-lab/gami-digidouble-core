@@ -21,7 +21,6 @@ export type CreateAvatarParams = {
   adjustments?: string[]
   config?: Record<string, unknown>
   status?: AvatarSummary['status']
-  availabilityKey?: string
 }
 
 type CreateAvatarPayload = {

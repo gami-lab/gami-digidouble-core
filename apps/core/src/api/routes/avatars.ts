@@ -31,7 +31,6 @@ type PatchAvatarBody = {
   adjustments?: string[]
   config?: Record<string, unknown>
   status?: AvatarSummary['status']
-  availabilityKey?: string
 }
 
 type PatchAvatarResponse = {
@@ -57,7 +56,6 @@ const patchAvatarBodySchema = {
     adjustments: { type: 'array', items: { type: 'string' } },
     config: { type: 'object' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
-    availabilityKey: { type: 'string' },
   },
   additionalProperties: false,
 } as const
@@ -116,8 +114,7 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
 }
 
 function buildUpdateAvatarInput(avatarId: string, body: PatchAvatarBody): UpdateAvatarInput {
-  const { name, personaPrompt, tone, description, adjustments, config, status, availabilityKey } =
-    body
+  const { name, personaPrompt, tone, description, adjustments, config, status } = body
   return {
     avatarId,
     ...(name !== undefined ? { name } : {}),
@@ -127,7 +124,6 @@ function buildUpdateAvatarInput(avatarId: string, body: PatchAvatarBody): Update
     ...(adjustments !== undefined ? { adjustments } : {}),
     ...(config !== undefined ? { config } : {}),
     ...(status !== undefined ? { status } : {}),
-    ...(availabilityKey !== undefined ? { availabilityKey } : {}),
   }
 }
 

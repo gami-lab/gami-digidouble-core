@@ -32,6 +32,6 @@ export interface ScenarioConfig {
 }
 
 export interface ScenarioAvatarAvailabilityConfig {
-  initialAvatarKeys: string[]
-  unlockableAvatarKeys?: string[]
+  initialAvatarIds: string[]
+  unlockableAvatarIds?: string[]
 }

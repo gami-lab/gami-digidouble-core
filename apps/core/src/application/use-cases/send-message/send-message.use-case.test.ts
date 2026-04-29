@@ -213,14 +213,10 @@ describe('SendMessageUseCase — GM ownership', () => {
     const useCase = createUseCase()
     findSessionByIdMock.mockResolvedValue(makeSession({ unlockedAvatarIds: ['avatar_1'] }))
     updateSessionMock.mockResolvedValue(makeSession({ unlockedAvatarIds: ['avatar_1'] }))
-    findAvatarByIdMock.mockResolvedValue(
-      makeAvatar({
-        availabilityKey: 'guide',
-      }),
-    )
+    findAvatarByIdMock.mockResolvedValue(makeAvatar({}))
     listAvatarsByScenarioIdMock.mockResolvedValue([
-      makeAvatar({ avatarId: 'avatar_1', availabilityKey: 'guide' }),
-      makeAvatar({ avatarId: 'avatar_2', availabilityKey: 'theo' }),
+      makeAvatar({ avatarId: 'avatar_1' }),
+      makeAvatar({ avatarId: 'avatar_2' }),
     ])
     findScenarioByIdMock.mockResolvedValue({
       scenarioId: 'scenario_1',
@@ -228,8 +224,8 @@ describe('SendMessageUseCase — GM ownership', () => {
       status: 'active',
       config: {
         avatarAvailability: {
-          initialAvatarKeys: ['guide'],
-          unlockableAvatarKeys: ['theo'],
+          initialAvatarIds: ['avatar_1'],
+          unlockableAvatarIds: ['avatar_2'],
         },
       },
       createdAt: '2026-04-18T10:00:00.000Z',

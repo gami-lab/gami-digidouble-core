@@ -18,7 +18,7 @@ Avatar unlocking and routing now belong to the async Game Master flow:
 
 - GM runs asynchronously after every completed avatar turn; pacing and interaction count remain context only and no deterministic threshold gate prevents GM reasoning
 - Legacy transition helpers were removed from active runtime code: no `avatarTransitionRules`, topic signal matching, deterministic unlock rules, introduction messages, or eligible transition filtering
-- AI Guided Discovery scenario config now uses only world context, goals/objectives, and `avatarAvailability.initialAvatarKeys` / `unlockableAvatarKeys`
+- AI Guided Discovery scenario config now uses only world context, goals/objectives, and `avatarAvailability.initialAvatarIds` / `unlockableAvatarIds`
 - Avatar prompt assembly now includes safe awareness of other active scenario avatars, including description/scope and current availability, so actors can naturally recommend specialists without unlocking them
 - `GameMasterOutput` supports `unlockAvatarIds`, `suggestedAvatarId`, and `suggestedAvatarReason`; runtime validation ignores inactive avatars, non-scenario IDs, already-unlocked IDs, and duplicates
 - `RunGameMasterUseCase` persists valid unlock decisions to `session.unlockedAvatarIds` asynchronously, emits `gm_triggered` for successful post-turn runs, and emits safe `gm_error` diagnostics for GM failures

@@ -120,7 +120,7 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     headers: authHeaders(),
     payload: {
       name: `Policy Scenario ${String(Date.now())}`,
-      config: { avatarAvailability: { initialAvatarKeys: ['guide'] } },
+      config: { avatarAvailability: { initialAvatarIds: [] } },
     },
   })
   expect(createScenario.statusCode).toBe(201)
@@ -144,6 +144,13 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     createGuide.json<ApiResponse<{ avatar: { avatarId: string } }>>().data?.avatar,
     'avatarId',
   )
+  const patchScenario = await app.inject({
+    method: 'PATCH',
+    url: `/v1/scenarios/${scenarioId}`,
+    headers: authHeaders(),
+    payload: { config: { avatarAvailability: { initialAvatarIds: [guideAvatarId] } } },
+  })
+  expect(patchScenario.statusCode).toBe(200)
 
   const createEthics = await app.inject({
     method: 'POST',

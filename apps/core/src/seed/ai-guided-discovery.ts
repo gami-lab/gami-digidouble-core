@@ -15,7 +15,7 @@ const SCENARIO_NAME = 'AI Guided Discovery'
 const FIXTURE_TIMESTAMP = '2026-04-27T00:00:00.000Z'
 
 type AiGuidedDiscoveryAvatarDefinition = {
-  availabilityKey: string
+  slug: string
   fixtureAvatarId: string
   name: string
   status: AvatarConfig['status']
@@ -37,15 +37,15 @@ export const aiGuidedDiscoveryScenarioConfig: CreateScenarioParams = {
       'Expose unlockable specialist routing inside one session.',
     ],
     avatarAvailability: {
-      initialAvatarKeys: ['guide'],
-      unlockableAvatarKeys: ['theo', 'eva'],
+      initialAvatarIds: ['avatar_mira'],
+      unlockableAvatarIds: ['avatar_theo', 'avatar_eva'],
     },
   },
 }
 
 const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = [
   {
-    availabilityKey: 'guide',
+    slug: 'guide',
     fixtureAvatarId: 'avatar_mira',
     name: 'Mira',
     status: 'active',
@@ -58,7 +58,7 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
     },
   },
   {
-    availabilityKey: 'theo',
+    slug: 'theo',
     fixtureAvatarId: 'avatar_theo',
     name: 'Theo',
     status: 'active',
@@ -72,7 +72,7 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
     },
   },
   {
-    availabilityKey: 'eva',
+    slug: 'eva',
     fixtureAvatarId: 'avatar_eva',
     name: 'Eva',
     status: 'active',
@@ -87,6 +87,11 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
   },
 ]
 
+function readSeedSlug(config: Record<string, unknown>): string | null {
+  const value = config['seedSlug']
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
 function toCreateAvatarParams(
   definition: AiGuidedDiscoveryAvatarDefinition,
   scenarioId: string,
@@ -99,7 +104,6 @@ function toCreateAvatarParams(
     tone: definition.tone,
     personaPrompt: definition.personaPrompt,
     config: definition.config,
-    availabilityKey: definition.availabilityKey,
   }
 }
 
@@ -116,7 +120,6 @@ function toFixtureAvatar(
     tone: definition.tone,
     personaPrompt: definition.personaPrompt,
     config: definition.config,
-    availabilityKey: definition.availabilityKey,
     createdAt: FIXTURE_TIMESTAMP,
     updatedAt: FIXTURE_TIMESTAMP,
   }
@@ -170,31 +173,60 @@ export async function ensureAiGuidedDiscoverySeed(): Promise<{
         : await scenarioRepository.create(aiGuidedDiscoveryScenarioConfig)
 
     const existingAvatars = await avatarRepository.listByScenarioId(scenario.scenarioId)
-    const existingAvatarsByAvailabilityKey = new Map(
+    const existingAvatarsBySlug = new Map(
       existingAvatars.flatMap((avatar) => {
-        return avatar.availabilityKey !== undefined ? [[avatar.availabilityKey, avatar]] : []
+        const slug = readSeedSlug(avatar.config)
+        return slug !== null ? [[slug, avatar]] : []
       }),
     )
 
-    for (const avatarSeed of buildAiGuidedDiscoveryAvatarSeedParams(scenario.scenarioId)) {
-      const availabilityKey = avatarSeed.availabilityKey
-      if (typeof availabilityKey !== 'string') {
-        continue
+    for (const definition of aiGuidedDiscoveryAvatarDefinitions) {
+      const avatarSeed = toCreateAvatarParams(definition, scenario.scenarioId)
+      const seedWithSlug: CreateAvatarParams = {
+        ...avatarSeed,
+        config: {
+          ...avatarSeed.config,
+          seedSlug: definition.slug,
+        },
       }
 
-      const existingAvatar = existingAvatarsByAvailabilityKey.get(availabilityKey)
+      const existingAvatar = existingAvatarsBySlug.get(definition.slug)
       if (existingAvatar !== undefined) {
-        await avatarRepository.update(existingAvatar.avatarId, avatarSeed)
+        await avatarRepository.update(existingAvatar.avatarId, seedWithSlug)
         continue
       }
 
       await avatarRepository.create({
-        ...avatarSeed,
+        ...seedWithSlug,
         scenarioId: scenario.scenarioId,
       })
     }
 
     const avatars = await avatarRepository.listByScenarioId(scenario.scenarioId)
+    const avatarBySlug = new Map(
+      avatars.flatMap((avatar) => {
+        const slug = readSeedSlug(avatar.config)
+        return slug !== null ? [[slug, avatar.avatarId]] : []
+      }),
+    )
+    const initialAvatarIds = aiGuidedDiscoveryAvatarDefinitions
+      .map((definition) => avatarBySlug.get(definition.slug))
+      .filter((avatarId): avatarId is string => typeof avatarId === 'string')
+    const unlockableAvatarIds = aiGuidedDiscoveryAvatarDefinitions
+      .filter((definition) => definition.slug !== 'guide')
+      .map((definition) => avatarBySlug.get(definition.slug))
+      .filter((avatarId): avatarId is string => typeof avatarId === 'string')
+
+    await scenarioRepository.update(scenario.scenarioId, {
+      config: {
+        ...scenario.config,
+        avatarAvailability: {
+          initialAvatarIds,
+          unlockableAvatarIds,
+        },
+      },
+    })
+
     return {
       scenarioId: scenario.scenarioId,
       avatarIds: avatars.map((avatar) => avatar.avatarId),

@@ -159,14 +159,14 @@ describe('session API', () => {
         makeScenario({
           config: {
             avatarAvailability: {
-              initialAvatarKeys: ['guide'],
+              initialAvatarIds: ['avatar_guide'],
             },
           },
         }),
       ],
       avatars: [
-        makeAvatar({ avatarId: 'avatar_guide', availabilityKey: 'guide' }),
-        makeAvatar({ avatarId: 'avatar_theo', name: 'Theo', availabilityKey: 'theo' }),
+        makeAvatar({ avatarId: 'avatar_guide' }),
+        makeAvatar({ avatarId: 'avatar_theo', name: 'Theo' }),
       ],
       sessions: [makeSession({ unlockedAvatarIds: ['avatar_guide'] })],
     }).inject({
