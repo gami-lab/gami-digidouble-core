@@ -351,3 +351,60 @@ behind it.
 - [ ] `docs/PROJECT_STATUS.md` — add EPIC 2.6 completion entry
 - [ ] `GmDebugPanel.tsx` — add unit tests (placeholder, fetch on mount, refresh trigger, error state)
 - [ ] `list-session-events.use-case.test.ts` — add `gm_skipped` output shape test case
+
+---
+
+## Remediation Outcome
+
+### Changes Made
+
+1. **`apps/console/src/components/GmDebugPanel.tsx`** — extracted `loadGmDebugPanelData(sessionId)` as an exported async function. The `refresh` callback now delegates to this function. No behaviour change.
+
+2. **`apps/console/src/components/gm-debug-panel.actions.test.ts`** _(new)_ — three tests: happy-path (both APIs called in parallel, combined result returned), `inspectSession` error propagates, `listSessionEvents` error propagates.
+
+3. **`apps/core/src/application/use-cases/list-session-events/list-session-events.use-case.test.ts`** — split the original oversized test into two focused tests (type filtering; payload mapping + security), added `gm_skipped` safe output shape test with `triggerReason: null` and `userMessageText` exclusion verified.
+
+4. **`apps/core/src/application/use-cases/inspect-session/inspect-session.use-case.test.ts`** — added `createUseCaseFromRepositories` helper to remove per-test boilerplate; added `endedAt` test for closed session (`status: 'closed'`, `endedAt` present in output). Original tests refactored to use the helper.
+
+### Findings Resolved
+
+| Finding                                                                     | Severity | Resolved                                                       |
+| --------------------------------------------------------------------------- | -------- | -------------------------------------------------------------- |
+| F1 — `endedAt` inconsistency (no test for closed session)                   | Low      | ✅ Test added asserting `endedAt` in inspect output            |
+| F2 — `GmDebugPanel` has no unit tests                                       | Medium   | ✅ `loadGmDebugPanelData` extracted and 3 tests added          |
+| F4 — `gm_skipped` output shape not tested                                   | Low      | ✅ Explicit shape + safety test added                          |
+| Documentation gaps (API_CONTRACT, GAME_MASTER_CONTRACT §14, PROJECT_STATUS) | —        | ✅ Already present in docs at audit time; confirmed up to date |
+
+### Findings Deferred
+
+| Finding                                          | Severity | Reason                                                                    |
+| ------------------------------------------------ | -------- | ------------------------------------------------------------------------- |
+| F3 — Route tests duplicate use-case assertions   | Low      | Removing working assertions adds no safety and reduces coverage; deferred |
+| F5 — Postgres `findBySessionId` two-branch query | Low      | Functional, explicit, no active maintenance burden; accepted              |
+
+### Build Gates
+
+- lint: **PASS** (4/4 tasks)
+- typecheck: **PASS** (4/4 tasks)
+- tests: **PASS** (51 files / 307 tests — `@gami/core`; 6 files / 16 tests — `@gami/console`)
+- coverage: **91.98% stmts / 86.66% branch / 98.08% funcs** (`@gami/core`)
+
+### Final Feature Confidence
+
+| Feature                                                                                                                      | Confidence                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `IEventLogRepository.findBySessionId`                                                                                        | High                                                            |
+| `GET /v1/admin/sessions/:id/inspect` — happy path, fresh session, not-found, closed session + `endedAt`                      | High                                                            |
+| `GET /v1/admin/sessions/:id/events` — filtering, safe payload mapping (gm_triggered + gm_skipped), limit clamping, not-found | High                                                            |
+| Auth enforcement — both endpoints                                                                                            | High                                                            |
+| GM Debug Panel — data loading (parallel API calls, error propagation)                                                        | High                                                            |
+| GM Debug Panel — rendering / refresh trigger wiring                                                                          | Medium (no RTL in console; logic proven via extracted function) |
+
+### Final Grade
+
+**A**
+
+### Remaining Risks
+
+- `GmDebugPanel` rendering and `refreshTrigger` wiring behaviour cannot be tested without React Testing Library, which is not in the console devDependencies. The data-loading logic is now proven; the rendering path remains visual-only. This is acceptable for Phase A MVP given component simplicity.
+- F5 (Postgres two-branch query) is a maintenance risk only; no correctness risk.

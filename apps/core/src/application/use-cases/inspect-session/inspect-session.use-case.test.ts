@@ -77,31 +77,37 @@ function createRepositories(params?: {
   }
 }
 
+function createUseCaseFromRepositories(params?: Parameters<typeof createRepositories>[0]) {
+  const r = createRepositories(params)
+  return new InspectSessionUseCase(
+    r.sessionRepository,
+    r.gmStateRepository,
+    r.conversationRepository,
+  )
+}
+
+const twoConversationParams = {
+  conversations: [
+    makeConversation({
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      startedBy: 'user',
+      reason: 'session_start',
+      startedAt: '2026-04-28T10:00:00.000Z',
+    }),
+    makeConversation({
+      conversationId: 'conversation_2',
+      avatarId: 'avatar_2',
+      startedBy: 'gm',
+      reason: 'turn_threshold',
+      startedAt: '2026-04-28T10:04:00.000Z',
+    }),
+  ],
+}
+
 describe('InspectSessionUseCase', () => {
-  it('returns an admin-safe session orchestration snapshot', async () => {
-    const repositories = createRepositories({
-      conversations: [
-        makeConversation({
-          conversationId: 'conversation_1',
-          avatarId: 'avatar_1',
-          startedBy: 'user',
-          reason: 'session_start',
-          startedAt: '2026-04-28T10:00:00.000Z',
-        }),
-        makeConversation({
-          conversationId: 'conversation_2',
-          avatarId: 'avatar_2',
-          startedBy: 'gm',
-          reason: 'turn_threshold',
-          startedAt: '2026-04-28T10:04:00.000Z',
-        }),
-      ],
-    })
-    const useCase = new InspectSessionUseCase(
-      repositories.sessionRepository,
-      repositories.gmStateRepository,
-      repositories.conversationRepository,
-    )
+  it('returns session summary, gmState, unlocks, and notes', async () => {
+    const useCase = createUseCaseFromRepositories(twoConversationParams)
 
     const output = await useCase.execute({ sessionId: 'session_1' })
 
@@ -142,7 +148,7 @@ describe('InspectSessionUseCase', () => {
   })
 
   it('returns null gmState, empty unlocks, and null gmNotes for fresh sessions', async () => {
-    const repositories = createRepositories({
+    const useCase = createUseCaseFromRepositories({
       session: {
         sessionId: 'session_1',
         userId: 'user_1',
@@ -153,11 +159,6 @@ describe('InspectSessionUseCase', () => {
       },
       gmState: null,
     })
-    const useCase = new InspectSessionUseCase(
-      repositories.sessionRepository,
-      repositories.gmStateRepository,
-      repositories.conversationRepository,
-    )
 
     const output = await useCase.execute({ sessionId: 'session_1' })
 
@@ -167,15 +168,22 @@ describe('InspectSessionUseCase', () => {
   })
 
   it('throws NOT_FOUND when the session does not exist', async () => {
-    const repositories = createRepositories({ session: null })
-    const useCase = new InspectSessionUseCase(
-      repositories.sessionRepository,
-      repositories.gmStateRepository,
-      repositories.conversationRepository,
-    )
+    const useCase = createUseCaseFromRepositories({ session: null })
 
     await expect(useCase.execute({ sessionId: 'session_missing' })).rejects.toEqual(
       new DomainError('NOT_FOUND', 'Session session_missing was not found.'),
     )
+  })
+
+  it('includes endedAt in session summary when the session is closed', async () => {
+    const useCase = createUseCaseFromRepositories({
+      session: makeSession({ status: 'closed', endedAt: '2026-04-28T11:00:00.000Z' }),
+      gmState: null,
+    })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.inspect.session.status).toBe('closed')
+    expect(output.inspect.session.endedAt).toBe('2026-04-28T11:00:00.000Z')
   })
 })

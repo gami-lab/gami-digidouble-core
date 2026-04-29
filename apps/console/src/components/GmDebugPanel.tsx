@@ -4,6 +4,17 @@ import { inspectSession, listSessionEvents } from '../api'
 import type { InspectSessionResponse, SessionEventRecord, SessionTransitionRecord } from '../api'
 import { formatApiError } from '../api/error'
 
+export async function loadGmDebugPanelData(sessionId: string): Promise<{
+  inspect: InspectSessionResponse['inspect']
+  events: SessionEventRecord[]
+}> {
+  const [inspectResult, eventsResult] = await Promise.all([
+    inspectSession(sessionId),
+    listSessionEvents(sessionId, { limit: 20 }),
+  ])
+  return { inspect: inspectResult.inspect, events: eventsResult.events }
+}
+
 type GmDebugPanelProps = {
   sessionId: string | null
   refreshTrigger: number
@@ -81,11 +92,8 @@ export function GmDebugPanel({ sessionId, refreshTrigger }: GmDebugPanelProps): 
     setState((prev) => ({ ...prev, loading: true, error: null }))
     void (async () => {
       try {
-        const [inspect, events] = await Promise.all([
-          inspectSession(sessionId),
-          listSessionEvents(sessionId, { limit: 20 }),
-        ])
-        setState({ inspect: inspect.inspect, events: events.events, loading: false, error: null })
+        const data = await loadGmDebugPanelData(sessionId)
+        setState({ inspect: data.inspect, events: data.events, loading: false, error: null })
       } catch (error) {
         setState((prev) => ({
           ...prev,

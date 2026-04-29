@@ -79,8 +79,24 @@ function createUseCase(params?: { session?: Session | null; events?: StoredEvent
   }
 }
 
+function makeSkippedEvent(): StoredEvent {
+  return makeEvent({
+    type: 'gm_skipped',
+    correlationId: 'corr_skip',
+    createdAt: '2026-04-28T10:06:00.000Z',
+    payload: {
+      triggerReason: null,
+      turnIndex: 6,
+      interactionCount: 6,
+      stateBefore: { currentAvatarId: 'avatar_1', progression: 'intro', topicsCovered: ['setup'] },
+      latencyMs: 2,
+      userMessageText: 'secret skip input',
+    },
+  })
+}
+
 describe('ListSessionEventsUseCase', () => {
-  it('returns safe GM events and excludes non-GM event types', async () => {
+  it('includes only gm_triggered and gm_skipped types; excludes system_internal', async () => {
     const { useCase } = createUseCase({
       events: [
         makeEvent({ type: 'system_internal', correlationId: 'corr_internal' }),
@@ -103,6 +119,13 @@ describe('ListSessionEventsUseCase', () => {
     const output = await useCase.execute({ sessionId: 'session_1' })
 
     expect(output.events.map((event) => event.type)).toEqual(['gm_triggered', 'gm_skipped'])
+  })
+
+  it('maps gm_triggered payload to safe shape and strips sensitive fields', async () => {
+    const { useCase } = createUseCase({ events: [makeEvent()] })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
     expect(output.events[0]).toEqual({
       type: 'gm_triggered',
       correlationId: 'corr_1',
@@ -134,6 +157,31 @@ describe('ListSessionEventsUseCase', () => {
     })
     expect(JSON.stringify(output)).not.toContain('secret user input')
     expect(JSON.stringify(output)).not.toContain('hidden prompt')
+  })
+
+  it('maps gm_skipped events with null triggerReason to the correct safe output shape', async () => {
+    const { useCase } = createUseCase({ events: [makeSkippedEvent()] })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.events).toHaveLength(1)
+    expect(output.events[0]).toEqual({
+      type: 'gm_skipped',
+      correlationId: 'corr_skip',
+      createdAt: '2026-04-28T10:06:00.000Z',
+      payload: {
+        triggerReason: null,
+        turnIndex: 6,
+        interactionCount: 6,
+        stateBefore: {
+          currentAvatarId: 'avatar_1',
+          progression: 'intro',
+          topicsCovered: ['setup'],
+        },
+        latencyMs: 2,
+      },
+    })
+    expect(JSON.stringify(output)).not.toContain('secret skip input')
   })
 
   it('uses default limit and clamps oversized limits', async () => {
