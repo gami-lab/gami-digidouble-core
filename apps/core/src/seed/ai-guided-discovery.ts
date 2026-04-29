@@ -210,6 +210,7 @@ export async function ensureAiGuidedDiscoverySeed(): Promise<{
       }),
     )
     const initialAvatarIds = aiGuidedDiscoveryAvatarDefinitions
+      .filter((definition) => definition.slug === 'guide')
       .map((definition) => avatarBySlug.get(definition.slug))
       .filter((avatarId): avatarId is string => typeof avatarId === 'string')
     const unlockableAvatarIds = aiGuidedDiscoveryAvatarDefinitions
