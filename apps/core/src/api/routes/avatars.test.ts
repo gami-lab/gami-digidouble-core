@@ -130,12 +130,11 @@ describe('PATCH /v1/avatars/:avatarId', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const body =
-      response.json<
-        ApiResponse<{
-          avatar: { personaPrompt: string; tone: string; config: Record<string, unknown> }
-        }>
-      >()
+    const body = response.json<
+      ApiResponse<{
+        avatar: { personaPrompt: string; tone: string; config: Record<string, unknown> }
+      }>
+    >()
     expect(body.error).toBeNull()
     expect(body.data?.avatar.personaPrompt).toBe('Updated prompt')
     expect(body.data?.avatar.tone).toBe('formal')
