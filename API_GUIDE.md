@@ -16,17 +16,23 @@ For the formal spec (all types, error codes, future endpoints), see
 | `GET`    | `/health`                                    | Engine health check               | No   |
 | `GET`    | `/v1/scenarios`                              | List scenarios (newest first)     | Yes  |
 | `POST`   | `/v1/scenarios`                              | Create a scenario                 | Yes  |
+| `PATCH`  | `/v1/scenarios/:scenarioId`                  | Partial-update a scenario         | Yes  |
+| `DELETE` | `/v1/scenarios/:scenarioId`                  | Delete scenario (safe checks)     | Yes  |
 | `POST`   | `/v1/scenarios/:scenarioId/avatars`          | Create an avatar for a scenario   | Yes  |
 | `GET`    | `/v1/scenarios/:scenarioId/avatars`          | List avatars for a scenario       | Yes  |
+| `PATCH`  | `/v1/avatars/:avatarId`                      | Partial-update an avatar          | Yes  |
 | `DELETE` | `/v1/avatars/:avatarId`                      | Delete avatar (safe checks)       | Yes  |
-| `DELETE` | `/v1/scenarios/:scenarioId`                  | Delete scenario (safe checks)     | Yes  |
 | `POST`   | `/v1/sessions`                               | Create a session                  | Yes  |
+| `GET`    | `/v1/sessions`                               | List sessions (optional filters)  | Yes  |
 | `GET`    | `/v1/sessions/:sessionId`                    | Get session                       | Yes  |
+| `POST`   | `/v1/sessions/:sessionId/reset`              | Hard-reset session state          | Yes  |
 | `POST`   | `/v1/sessions/:sessionId/conversations`      | Start a conversation in a session | Yes  |
 | `GET`    | `/v1/sessions/:sessionId/conversations`      | List conversations in a session   | Yes  |
 | `POST`   | `/v1/conversations/:conversationId/messages` | Send a message, get avatar reply  | Yes  |
 | `GET`    | `/v1/conversations/:conversationId/history`  | Get conversation history          | Yes  |
 | `POST`   | `/v1/exchange`                               | Raw LLM exchange (no session)     | Yes  |
+| `GET`    | `/v1/admin/sessions/:sessionId/inspect`      | GM orchestration snapshot (admin) | Yes  |
+| `GET`    | `/v1/admin/sessions/:sessionId/events`       | GM diagnostic events (admin)      | Yes  |
 
 ---
 
@@ -291,7 +297,61 @@ Behavior:
 
 ---
 
-### 2.2 Delete an Avatar
+### 2.2 Update an Avatar
+
+Partial update — only the fields you include are written. Absent fields are untouched.
+`scenarioId` is immutable and is not accepted.
+
+```bash
+curl -X PATCH "$BASE_URL/v1/avatars/$AVATAR_ID" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $API_KEY" \
+  -d '{
+    "name": "Marie Curie (Updated)",
+    "tone": "calm and precise"
+  }'
+```
+
+**Updatable fields:**
+
+| Field           | Type                                    |
+| --------------- | --------------------------------------- |
+| `name`          | string                                  |
+| `personaPrompt` | string                                  |
+| `tone`          | string                                  |
+| `description`   | string                                  |
+| `adjustments`   | string[]                                |
+| `config`        | object                                  |
+| `status`        | `"draft"` \| `"active"` \| `"archived"` |
+
+At least one field must be present; an empty `{}` body returns `400 VALIDATION_ERROR`.
+`updatedAt` is always refreshed on success.
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "avatar": {
+      "avatarId": "avatar_01jwxxxxxx",
+      "scenarioId": "scenario_01jwxxxxxx",
+      "name": "Marie Curie (Updated)",
+      "tone": "calm and precise",
+      "updatedAt": "2026-04-29T09:00:00.000Z"
+    }
+  },
+  "error": null
+}
+```
+
+**Error cases:**
+
+- `400 VALIDATION_ERROR` — empty body, no fields provided
+- `404 NOT_FOUND` — avatar does not exist
+
+---
+
+### 2.3 Delete an Avatar
 
 ```bash
 curl -X DELETE "$BASE_URL/v1/avatars/$AVATAR_ID" \
@@ -305,7 +365,54 @@ Behavior:
 
 ---
 
-### 2.3 Delete a Scenario
+### 2.4 Update a Scenario
+
+Partial update — only the fields you include are written. Absent fields are untouched.
+
+```bash
+curl -X PATCH "$BASE_URL/v1/scenarios/$SCENARIO_ID" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $API_KEY" \
+  -d '{
+    "name": "Museum Guide v2",
+    "status": "active"
+  }'
+```
+
+**Updatable fields:**
+
+| Field    | Type                                    |
+| -------- | --------------------------------------- |
+| `name`   | string                                  |
+| `status` | `"draft"` \| `"active"` \| `"archived"` |
+| `config` | object (fully replaced, not merged)     |
+
+At least one field must be present. `updatedAt` is always refreshed on success.
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "scenario": {
+      "scenarioId": "scenario_01jwxxxxxx",
+      "name": "Museum Guide v2",
+      "status": "active",
+      "updatedAt": "2026-04-29T09:00:00.000Z"
+    }
+  },
+  "error": null
+}
+```
+
+**Error cases:**
+
+- `400 VALIDATION_ERROR` — empty body
+- `404 NOT_FOUND` — scenario does not exist
+
+---
+
+### 2.5 Delete a Scenario
 
 ```bash
 curl -X DELETE "$BASE_URL/v1/scenarios/$SCENARIO_ID" \
@@ -366,6 +473,99 @@ Save the `sessionId` — you need it to start a conversation.
 
 - `404 NOT_FOUND` — the `scenarioId` does not exist
 - `400 VALIDATION_ERROR` — missing required fields
+
+---
+
+### 3.1 List Sessions
+
+Returns sessions ordered by `lastActivityAt DESC`. All query parameters are optional.
+
+```bash
+curl "$BASE_URL/v1/sessions" \
+  -H "x-api-key: $API_KEY"
+
+# With filters:
+curl "$BASE_URL/v1/sessions?scenarioId=$SCENARIO_ID&status=active" \
+  -H "x-api-key: $API_KEY"
+```
+
+**Query parameters:**
+
+| Parameter    | Type                               | Description              |
+| ------------ | ---------------------------------- | ------------------------ |
+| `scenarioId` | string                             | Filter by scenario       |
+| `userId`     | string                             | Filter by user           |
+| `status`     | `active` \| `closed` \| `archived` | Filter by session status |
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "sessions": [
+      {
+        "sessionId": "session_01jwxxxxxx",
+        "userId": "user_alice",
+        "scenarioId": "scenario_01jwxxxxxx",
+        "status": "active",
+        "startedAt": "2026-04-20T10:01:00.000Z",
+        "lastActivityAt": "2026-04-20T10:05:00.000Z"
+      }
+    ]
+  },
+  "error": null
+}
+```
+
+**Error cases:**
+
+- `400 VALIDATION_ERROR` — invalid `status` value
+
+---
+
+### 3.2 Reset a Session
+
+Hard-resets session state to a clean slate. The session record itself is **not deleted** — only
+its runtime data is cleared:
+
+- All messages and conversations deleted
+- `activeAvatarId` cleared to `null`
+- `unlockedAvatarIds` reset to `[]`
+- `gmNotes` cleared to `null`
+- `status` reset to `'active'`
+- `lastActivityAt` refreshed to now
+
+The `userId` and `scenarioId` binding are preserved.
+
+```bash
+curl -X POST "$BASE_URL/v1/sessions/$SESSION_ID/reset" \
+  -H "x-api-key: $API_KEY"
+```
+
+No request body required.
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "session": {
+      "sessionId": "session_01jwxxxxxx",
+      "userId": "user_alice",
+      "scenarioId": "scenario_01jwxxxxxx",
+      "status": "active",
+      "activeAvatarId": null,
+      "unlockedAvatarIds": [],
+      "lastActivityAt": "2026-04-29T09:00:00.000Z"
+    }
+  },
+  "error": null
+}
+```
+
+**Error cases:**
+
+- `404 NOT_FOUND` — session does not exist
 
 ---
 
@@ -779,13 +979,189 @@ To import into Postman:
 
 ---
 
+## Admin Endpoints
+
+All admin endpoints live under `/v1/admin/` and use the same `x-api-key` authentication.
+These endpoints are for operators and back-office tooling — they may surface internal
+orchestration state that is never exposed through the public API.
+
+### A1. Inspect Session (GM Debug)
+
+Returns an admin-safe orchestration snapshot for a session: GM state, transition history,
+unlocked avatars, and current GM notes. Used by the GM Debug Panel in the test console.
+
+```bash
+curl "$BASE_URL/v1/admin/sessions/$SESSION_ID/inspect" \
+  -H "x-api-key: $API_KEY"
+```
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "inspect": {
+      "session": {
+        "sessionId": "session_01jwxxxxxx",
+        "userId": "user_alice",
+        "scenarioId": "scenario_01jwxxxxxx",
+        "activeAvatarId": "avatar_01jwxxxxxy",
+        "unlockedAvatarIds": ["avatar_01jwxxxxxx", "avatar_01jwxxxxxy"],
+        "status": "active",
+        "startedAt": "2026-04-20T10:00:00.000Z",
+        "lastActivityAt": "2026-04-20T10:10:00.000Z"
+      },
+      "gmState": {
+        "currentAvatarId": "avatar_01jwxxxxxy",
+        "progression": "intro complete",
+        "topicsCovered": ["setup", "background"],
+        "interactionCount": 5
+      },
+      "transitionHistory": [
+        {
+          "fromAvatarId": "avatar_01jwxxxxxx",
+          "toAvatarId": "avatar_01jwxxxxxy",
+          "reason": "turn_threshold",
+          "startedBy": "gm",
+          "transitionedAt": "2026-04-20T10:08:00.000Z"
+        },
+        {
+          "fromAvatarId": null,
+          "toAvatarId": "avatar_01jwxxxxxx",
+          "reason": "session_start",
+          "startedBy": "user",
+          "transitionedAt": "2026-04-20T10:00:00.000Z"
+        }
+      ],
+      "unlockedAvatarIds": ["avatar_01jwxxxxxx", "avatar_01jwxxxxxy"],
+      "gmNotes": "Guide next turn toward reflection topic."
+    }
+  },
+  "error": null
+}
+```
+
+**Key response fields:**
+
+| Field               | Description                                                               |
+| ------------------- | ------------------------------------------------------------------------- |
+| `gmState`           | `null` until the Game Master has run at least once for this session       |
+| `transitionHistory` | Newest-first list of avatar transitions derived from the conversation log |
+| `gmNotes`           | Director guidance injected into the next Avatar turn (safe to display)    |
+| `unlockedAvatarIds` | Avatars currently reachable in this session                               |
+
+No raw user message text, prompt content, or LLM model names are ever included in this response.
+
+**Error cases:**
+
+- `401 UNAUTHORIZED` — missing or wrong API key
+- `404 NOT_FOUND` — session does not exist
+
+---
+
+### A2. List Session GM Events
+
+Returns GM diagnostic events for a session (newest-first). Only `gm_triggered` and `gm_skipped`
+events are returned. All other internal event types are silently excluded.
+
+```bash
+curl "$BASE_URL/v1/admin/sessions/$SESSION_ID/events" \
+  -H "x-api-key: $API_KEY"
+
+# With limit:
+curl "$BASE_URL/v1/admin/sessions/$SESSION_ID/events?limit=10" \
+  -H "x-api-key: $API_KEY"
+```
+
+**Query parameters:**
+
+| Parameter | Type    | Default | Max | Description                    |
+| --------- | ------- | ------- | --- | ------------------------------ |
+| `limit`   | integer | `50`    | 200 | Max number of events to return |
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "events": [
+      {
+        "type": "gm_triggered",
+        "correlationId": "req_01jwxxxxxx",
+        "createdAt": "2026-04-20T10:08:00.000Z",
+        "payload": {
+          "triggerReason": "turn_threshold",
+          "turnIndex": 5,
+          "interactionCount": 5,
+          "stateBefore": {
+            "currentAvatarId": "avatar_01jwxxxxxx",
+            "progression": "intro",
+            "topicsCovered": ["setup"]
+          },
+          "decision": {
+            "avatarId": "avatar_01jwxxxxxy",
+            "conversationMode": "new",
+            "notesInjected": true,
+            "directiveCount": 1
+          },
+          "stateAfter": {
+            "currentAvatarId": "avatar_01jwxxxxxy",
+            "progression": "intro complete",
+            "topicsCovered": ["setup", "background"]
+          },
+          "latencyMs": 240,
+          "inputTokens": 180,
+          "outputTokens": 45
+        }
+      },
+      {
+        "type": "gm_skipped",
+        "correlationId": "req_01jwxxxxxy",
+        "createdAt": "2026-04-20T10:06:00.000Z",
+        "payload": {
+          "triggerReason": null,
+          "turnIndex": 4,
+          "interactionCount": 4,
+          "stateBefore": {
+            "currentAvatarId": "avatar_01jwxxxxxx",
+            "progression": "intro",
+            "topicsCovered": ["setup"]
+          },
+          "latencyMs": 8
+        }
+      }
+    ]
+  },
+  "error": null
+}
+```
+
+**Key response fields:**
+
+| Field                   | Description                                                                             |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| `type`                  | `gm_triggered` = GM ran and made a decision; `gm_skipped` = GM ran but no trigger fired |
+| `payload.triggerReason` | Why the trigger fired, or `null` for skipped turns                                      |
+| `payload.decision`      | Present only on `gm_triggered` events                                                   |
+| `payload.stateAfter`    | Present only on `gm_triggered` events                                                   |
+| `payload.latencyMs`     | Time taken by the GM decision in milliseconds                                           |
+
+No raw user message text, prompt content, or LLM model names are ever included.
+
+**Error cases:**
+
+- `401 UNAUTHORIZED` — missing or wrong API key
+- `400 VALIDATION_ERROR` — invalid `limit` (non-integer or less than 1)
+- `404 NOT_FOUND` — session does not exist
+
+---
+
 ## Not Yet Implemented
 
 These endpoints are defined in [API_CONTRACT.md](API_CONTRACT.md) but not yet live:
 
 | Endpoint                                                            | Epic     |
 | ------------------------------------------------------------------- | -------- |
-| `GET /v1/sessions/:sessionId/state`                                 | EPIC 4.1 |
 | `GET /v1/scenarios/:scenarioId`                                     | EPIC 3.x |
 | Streaming: `POST /v1/conversations/:conversationId/messages/stream` | EPIC 3.x |
 | Memory: `SessionMemorySummary` in history                           | EPIC 4.2 |
