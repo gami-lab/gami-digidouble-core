@@ -165,8 +165,8 @@ describe('session API', () => {
         }),
       ],
       avatars: [
-        makeAvatar({ avatarId: 'avatar_guide', config: { routeKey: 'guide' } }),
-        makeAvatar({ avatarId: 'avatar_theo', name: 'Theo', config: { routeKey: 'theo' } }),
+        makeAvatar({ avatarId: 'avatar_guide', availabilityKey: 'guide' }),
+        makeAvatar({ avatarId: 'avatar_theo', name: 'Theo', availabilityKey: 'theo' }),
       ],
       sessions: [makeSession({ unlockedAvatarIds: ['avatar_guide'] })],
     }).inject({

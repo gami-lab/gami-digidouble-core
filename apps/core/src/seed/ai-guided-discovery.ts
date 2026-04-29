@@ -15,7 +15,7 @@ const SCENARIO_NAME = 'AI Guided Discovery'
 const FIXTURE_TIMESTAMP = '2026-04-27T00:00:00.000Z'
 
 type AiGuidedDiscoveryAvatarDefinition = {
-  routeKey: string
+  availabilityKey: string
   fixtureAvatarId: string
   name: string
   status: AvatarConfig['status']
@@ -45,7 +45,7 @@ export const aiGuidedDiscoveryScenarioConfig: CreateScenarioParams = {
 
 const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = [
   {
-    routeKey: 'guide',
+    availabilityKey: 'guide',
     fixtureAvatarId: 'avatar_mira',
     name: 'Mira',
     status: 'active',
@@ -54,13 +54,11 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
     personaPrompt:
       'You are Mira, an AI literacy coach. Your sole purpose is to help people understand what AI is — what it can do, what its benefits are, and what its real limits and risks are. You only discuss AI-related topics. If the user tries to talk about anything else, gently redirect them back to the AI learning experience. You keep explanations clear and accessible. For deep technical questions (how models work, infrastructure, performance), you defer to Theo. For ethics, bias, fairness, and societal impact questions, you defer to Eva. You never attempt to answer outside your scope.',
     config: {
-      routeKey: 'guide',
       scope: 'Broad AI literacy, first explanations, and routing to specialists when useful.',
-      ui: { unlockState: 'available' },
     },
   },
   {
-    routeKey: 'theo',
+    availabilityKey: 'theo',
     fixtureAvatarId: 'avatar_theo',
     name: 'Theo',
     status: 'active',
@@ -69,14 +67,12 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
     personaPrompt:
       'You are Theo, an expert in technical AI topics such as LLMs, transformers, embeddings, training, inference, RAG, agents, latency, cost, scaling, and model providers. Stay technical and do not drift into ethics coaching.',
     config: {
-      routeKey: 'theo',
       scope:
         'Technical AI topics: models, transformers, embeddings, training, inference, RAG, agents, latency, cost, scaling, and providers.',
-      ui: { unlockState: 'locked' },
     },
   },
   {
-    routeKey: 'eva',
+    availabilityKey: 'eva',
     fixtureAvatarId: 'avatar_eva',
     name: 'Eva',
     status: 'active',
@@ -85,10 +81,8 @@ const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = 
     personaPrompt:
       'You are Eva, an expert in AI ethics and responsible AI. Focus on bias, fairness, transparency, privacy, regulation, oversight, and societal impact. Redirect deep implementation questions back to Theo or the guide.',
     config: {
-      routeKey: 'eva',
       scope:
         'Responsible AI topics: bias, fairness, transparency, privacy, regulation, oversight, environmental impact, and societal consequences.',
-      ui: { unlockState: 'locked' },
     },
   },
 ]
@@ -105,6 +99,7 @@ function toCreateAvatarParams(
     tone: definition.tone,
     personaPrompt: definition.personaPrompt,
     config: definition.config,
+    availabilityKey: definition.availabilityKey,
   }
 }
 
@@ -121,6 +116,7 @@ function toFixtureAvatar(
     tone: definition.tone,
     personaPrompt: definition.personaPrompt,
     config: definition.config,
+    availabilityKey: definition.availabilityKey,
     createdAt: FIXTURE_TIMESTAMP,
     updatedAt: FIXTURE_TIMESTAMP,
   }
@@ -174,20 +170,19 @@ export async function ensureAiGuidedDiscoverySeed(): Promise<{
         : await scenarioRepository.create(aiGuidedDiscoveryScenarioConfig)
 
     const existingAvatars = await avatarRepository.listByScenarioId(scenario.scenarioId)
-    const existingAvatarsByRouteKey = new Map(
+    const existingAvatarsByAvailabilityKey = new Map(
       existingAvatars.flatMap((avatar) => {
-        const routeKey = avatar.config['routeKey']
-        return typeof routeKey === 'string' ? [[routeKey, avatar]] : []
+        return avatar.availabilityKey !== undefined ? [[avatar.availabilityKey, avatar]] : []
       }),
     )
 
     for (const avatarSeed of buildAiGuidedDiscoveryAvatarSeedParams(scenario.scenarioId)) {
-      const routeKey = avatarSeed.config?.['routeKey']
-      if (typeof routeKey !== 'string') {
+      const availabilityKey = avatarSeed.availabilityKey
+      if (typeof availabilityKey !== 'string') {
         continue
       }
 
-      const existingAvatar = existingAvatarsByRouteKey.get(routeKey)
+      const existingAvatar = existingAvatarsByAvailabilityKey.get(availabilityKey)
       if (existingAvatar !== undefined) {
         await avatarRepository.update(existingAvatar.avatarId, avatarSeed)
         continue

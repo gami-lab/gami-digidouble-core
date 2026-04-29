@@ -28,6 +28,7 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
       ...(params.description !== undefined ? { description: params.description } : {}),
       ...(params.adjustments !== undefined ? { adjustments: params.adjustments } : {}),
       config: params.config ?? {},
+      ...(params.availabilityKey !== undefined ? { availabilityKey: params.availabilityKey } : {}),
       createdAt: now,
       updatedAt: now,
     }
@@ -66,6 +67,9 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
       ...(updates.adjustments !== undefined ? { adjustments: updates.adjustments } : {}),
       ...(updates.config !== undefined ? { config: updates.config } : {}),
       ...(updates.status !== undefined ? { status: updates.status } : {}),
+      ...(updates.availabilityKey !== undefined
+        ? { availabilityKey: updates.availabilityKey }
+        : {}),
       updatedAt: new Date().toISOString(),
     }
     this.avatars.set(avatarId, updated)

@@ -18,6 +18,7 @@ interface AvatarRow {
   description: string | null
   adjustments: string[] | null
   config: Record<string, unknown>
+  availability_key: string | null
   created_at: Date
   updated_at: Date
 }
@@ -33,9 +34,45 @@ function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
     ...(row.description !== null ? { description: row.description } : {}),
     ...(row.adjustments !== null ? { adjustments: row.adjustments } : {}),
     config: row.config,
+    ...(row.availability_key !== null ? { availabilityKey: row.availability_key } : {}),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }
+}
+
+function buildUpdateSetClauses(updates: UpdateAvatarParams): {
+  setClauses: string[]
+  values: string[]
+} {
+  const setClauses: string[] = ['updated_at = NOW()']
+  const values: string[] = []
+
+  const fields: Array<[string, string | undefined]> = [
+    ['name', updates.name],
+    ['persona_prompt', updates.personaPrompt],
+    ['tone', updates.tone],
+    ['description', updates.description],
+    ['status', updates.status],
+    ['availability_key', updates.availabilityKey],
+  ]
+
+  for (const [column, value] of fields) {
+    if (value !== undefined) {
+      values.push(value)
+      setClauses.push(`${column} = $${String(values.length)}`)
+    }
+  }
+
+  if (updates.adjustments !== undefined) {
+    values.push(JSON.stringify(updates.adjustments))
+    setClauses.push(`adjustments = $${String(values.length)}`)
+  }
+  if (updates.config !== undefined) {
+    values.push(JSON.stringify(updates.config))
+    setClauses.push(`config = $${String(values.length)}`)
+  }
+
+  return { setClauses, values }
 }
 
 export class PostgresAvatarRepository implements IAvatarRepository {
@@ -46,7 +83,8 @@ export class PostgresAvatarRepository implements IAvatarRepository {
     const [row] = await this.sql<[AvatarRow]>`
       INSERT INTO avatars (
         scenario_id, name, status,
-        persona_prompt, tone, description, adjustments, config
+        persona_prompt, tone, description, adjustments, config,
+        availability_key
       )
       VALUES (
         ${scenarioUuid},
@@ -56,12 +94,13 @@ export class PostgresAvatarRepository implements IAvatarRepository {
         ${params.tone ?? null},
         ${params.description ?? null},
         ${params.adjustments ?? null},
-        ${this.sql.json((params.config ?? {}) as JSONValue)}
+        ${this.sql.json((params.config ?? {}) as JSONValue)},
+        ${params.availabilityKey ?? null}
       )
       RETURNING
         id, scenario_id, name, status,
         persona_prompt, tone, description, adjustments, config,
-        created_at, updated_at
+        availability_key, created_at, updated_at
     `
     return rowToAvatarConfig(row)
   }
@@ -73,7 +112,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
       SELECT
         id, scenario_id, name, status,
         persona_prompt, tone, description, adjustments, config,
-        created_at, updated_at
+        availability_key, created_at, updated_at
       FROM avatars
       WHERE id = ${uuid}
     `
@@ -88,7 +127,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
       SELECT
         id, scenario_id, name, status,
         persona_prompt, tone, description, adjustments, config,
-        created_at, updated_at
+        availability_key, created_at, updated_at
       FROM avatars
       WHERE scenario_id = ${scenarioUuid}
       ORDER BY created_at DESC
@@ -111,38 +150,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
       throw new DomainError('NOT_FOUND', 'Avatar not found')
     }
 
-    const setClauses: string[] = ['updated_at = NOW()']
-    const values: string[] = []
-
-    if (updates.name !== undefined) {
-      values.push(updates.name)
-      setClauses.push(`name = $${String(values.length)}`)
-    }
-    if (updates.personaPrompt !== undefined) {
-      values.push(updates.personaPrompt)
-      setClauses.push(`persona_prompt = $${String(values.length)}`)
-    }
-    if (updates.tone !== undefined) {
-      values.push(updates.tone)
-      setClauses.push(`tone = $${String(values.length)}`)
-    }
-    if (updates.description !== undefined) {
-      values.push(updates.description)
-      setClauses.push(`description = $${String(values.length)}`)
-    }
-    if (updates.adjustments !== undefined) {
-      values.push(JSON.stringify(updates.adjustments))
-      setClauses.push(`adjustments = $${String(values.length)}`)
-    }
-    if (updates.config !== undefined) {
-      values.push(JSON.stringify(updates.config))
-      setClauses.push(`config = $${String(values.length)}`)
-    }
-    if (updates.status !== undefined) {
-      values.push(updates.status)
-      setClauses.push(`status = $${String(values.length)}`)
-    }
-
+    const { setClauses, values } = buildUpdateSetClauses(updates)
     values.push(uuid)
     const whereParam = `$${String(values.length)}`
 
@@ -153,7 +161,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
       RETURNING
         id, scenario_id, name, status,
         persona_prompt, tone, description, adjustments, config,
-        created_at, updated_at
+        availability_key, created_at, updated_at
     `
 
     const rows = await this.sql.unsafe<AvatarRow[]>(query, values)

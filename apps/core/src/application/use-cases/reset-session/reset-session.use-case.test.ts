@@ -46,7 +46,8 @@ function makeAvatar({
     name: 'Guide',
     status: 'active',
     personaPrompt: 'Guide persona',
-    config: { routeKey: 'guide' },
+    config: {},
+    availabilityKey: 'guide',
     createdAt: '2026-04-21T08:00:00.000Z',
     updatedAt: '2026-04-21T08:00:00.000Z',
     ...overrides,
@@ -181,13 +182,14 @@ describe('ResetSessionUseCase unlock policy behavior', () => {
         makeAvatar({
           avatarId: 'avatar_guide',
           scenarioId: 'scenario_policy',
-          config: { routeKey: 'guide' },
+          availabilityKey: 'guide',
         }),
         makeAvatar({
           avatarId: 'avatar_ethics',
           scenarioId: 'scenario_policy',
           name: 'Ethics',
-          config: { routeKey: 'ethics' },
+          config: {},
+          availabilityKey: 'ethics',
         }),
       ],
     })

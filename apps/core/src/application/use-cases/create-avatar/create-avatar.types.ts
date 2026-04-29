@@ -9,6 +9,7 @@ export interface CreateAvatarInput {
   adjustments?: string[]
   config?: Record<string, unknown>
   status?: AvatarStatus
+  availabilityKey?: string
 }
 
 export interface CreateAvatarOutput {
@@ -22,6 +23,7 @@ export interface CreateAvatarOutput {
     description?: string
     adjustments?: string[]
     config: Record<string, unknown>
+    availabilityKey?: string
     createdAt: string
     updatedAt: string
   }

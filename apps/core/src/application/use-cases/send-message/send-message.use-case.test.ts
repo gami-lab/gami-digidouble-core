@@ -215,12 +215,12 @@ describe('SendMessageUseCase — GM ownership', () => {
     updateSessionMock.mockResolvedValue(makeSession({ unlockedAvatarIds: ['avatar_1'] }))
     findAvatarByIdMock.mockResolvedValue(
       makeAvatar({
-        config: { routeKey: 'guide' },
+        availabilityKey: 'guide',
       }),
     )
     listAvatarsByScenarioIdMock.mockResolvedValue([
-      makeAvatar({ avatarId: 'avatar_1', config: { routeKey: 'guide' } }),
-      makeAvatar({ avatarId: 'avatar_2', config: { routeKey: 'theo' } }),
+      makeAvatar({ avatarId: 'avatar_1', availabilityKey: 'guide' }),
+      makeAvatar({ avatarId: 'avatar_2', availabilityKey: 'theo' }),
     ])
     findScenarioByIdMock.mockResolvedValue({
       scenarioId: 'scenario_1',

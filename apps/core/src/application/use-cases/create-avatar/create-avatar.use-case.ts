@@ -29,6 +29,7 @@ export class CreateAvatarUseCase {
       ...(input.description !== undefined ? { description: input.description } : {}),
       ...(input.adjustments !== undefined ? { adjustments: input.adjustments } : {}),
       ...(input.config !== undefined ? { config: input.config } : {}),
+      ...(input.availabilityKey !== undefined ? { availabilityKey: input.availabilityKey } : {}),
     })
 
     return {
@@ -73,6 +74,7 @@ function mapAvatarOutput(
     ...(avatar.description !== undefined ? { description: avatar.description } : {}),
     ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
     config: avatar.config,
+    ...(avatar.availabilityKey !== undefined ? { availabilityKey: avatar.availabilityKey } : {}),
     createdAt: avatar.createdAt,
     updatedAt: avatar.updatedAt,
   }

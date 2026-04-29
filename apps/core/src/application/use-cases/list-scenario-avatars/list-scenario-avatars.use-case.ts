@@ -30,6 +30,9 @@ export class ListScenarioAvatarsUseCase {
         ...(avatar.description !== undefined ? { description: avatar.description } : {}),
         ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
         config: avatar.config,
+        ...(avatar.availabilityKey !== undefined
+          ? { availabilityKey: avatar.availabilityKey }
+          : {}),
         createdAt: avatar.createdAt,
         updatedAt: avatar.updatedAt,
       })),

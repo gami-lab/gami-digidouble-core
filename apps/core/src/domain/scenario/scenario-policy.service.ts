@@ -12,8 +12,7 @@ export function resolveInitialUnlockedAvatarIds(
 }
 
 export function extractAvatarRouteKey(avatar: AvatarConfig): string | null {
-  const routeKey = avatar.config['routeKey']
-  return hasText(routeKey) ? routeKey.trim() : null
+  return hasText(avatar.availabilityKey) ? avatar.availabilityKey.trim() : null
 }
 
 function extractAvatarAvailability(

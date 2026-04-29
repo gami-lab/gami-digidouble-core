@@ -10,13 +10,15 @@ describe('ai-guided-discovery seed data derivation', () => {
     const { scenario, avatars } = buildAiGuidedDiscoveryFixture()
     const seedParams = buildAiGuidedDiscoveryAvatarSeedParams(scenario.scenarioId)
 
-    const fixtureByRouteKey = new Map(avatars.map((avatar) => [avatar.config['routeKey'], avatar]))
+    const fixtureByAvailabilityKey = new Map(
+      avatars.map((avatar) => [avatar.availabilityKey, avatar]),
+    )
 
     for (const seedParam of seedParams) {
-      const routeKey = seedParam.config?.['routeKey']
-      expect(typeof routeKey).toBe('string')
+      const availabilityKey = seedParam.availabilityKey
+      expect(typeof availabilityKey).toBe('string')
 
-      const fixtureAvatar = fixtureByRouteKey.get(routeKey)
+      const fixtureAvatar = fixtureByAvailabilityKey.get(availabilityKey)
       expect(fixtureAvatar).toBeDefined()
       expect(fixtureAvatar?.name).toBe(seedParam.name)
       expect(fixtureAvatar?.status).toBe(seedParam.status)

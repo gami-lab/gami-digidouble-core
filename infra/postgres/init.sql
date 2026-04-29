@@ -32,17 +32,18 @@ CREATE TABLE IF NOT EXISTS scenarios (
 -- ── Avatars ───────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS avatars (
-  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  scenario_id    UUID        NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
-  name           TEXT        NOT NULL,
-  status         TEXT        NOT NULL DEFAULT 'draft',
-  description    TEXT,
-  tone           TEXT,
-  persona_prompt TEXT        NOT NULL,
-  adjustments    TEXT[],
-  config         JSONB       NOT NULL DEFAULT '{}',
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  scenario_id      UUID        NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+  name             TEXT        NOT NULL,
+  status           TEXT        NOT NULL DEFAULT 'draft',
+  description      TEXT,
+  tone             TEXT,
+  persona_prompt   TEXT        NOT NULL,
+  adjustments      TEXT[],
+  config           JSONB       NOT NULL DEFAULT '{}',
+  availability_key TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ── Sessions ──────────────────────────────────────────────────────────────────
