@@ -12,9 +12,28 @@ interface ScenarioRow {
   id: string
   name: string
   status: string
-  config: Record<string, unknown>
+  config: unknown
   created_at: Date
   updated_at: Date
+}
+
+function normalizeConfig(config: unknown): Scenario['config'] {
+  if (isRecord(config)) {
+    return config as Scenario['config']
+  }
+  if (typeof config === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(config)
+      return isRecord(parsed) ? (parsed as Scenario['config']) : {}
+    } catch {
+      return {}
+    }
+  }
+  return {}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function rowToScenario(row: ScenarioRow): Scenario {
@@ -22,7 +41,7 @@ function rowToScenario(row: ScenarioRow): Scenario {
     scenarioId: `scenario_${row.id}`,
     name: row.name,
     status: row.status as Scenario['status'],
-    config: row.config as Scenario['config'],
+    config: normalizeConfig(row.config),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }

@@ -77,4 +77,24 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
 
     expect(found).toBeNull()
   })
+
+  it('update keeps config as object (not serialized string)', async () => {
+    const created = await repo.create({ name: 'Config update' })
+    const updated = await repo.update(created.scenarioId, {
+      config: {
+        worldContext: 'A guided experience',
+        avatarAvailability: { initialAvatarIds: ['avatar_1'] },
+      },
+    })
+
+    expect(typeof updated.config).toBe('object')
+    expect(updated.config).toEqual({
+      worldContext: 'A guided experience',
+      avatarAvailability: { initialAvatarIds: ['avatar_1'] },
+    })
+
+    const listed = await repo.list()
+    const reloaded = listed.find((scenario) => scenario.scenarioId === created.scenarioId)
+    expect(reloaded?.config).toEqual(updated.config)
+  })
 })

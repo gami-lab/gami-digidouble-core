@@ -176,6 +176,8 @@ type ScenarioSummary = {
   createdAt: string
   updatedAt: string
 }
+
+`config` is a JSON object in all scenario responses and must never be returned as a JSON-encoded string.
 ```
 
 ## Avatar Summary
