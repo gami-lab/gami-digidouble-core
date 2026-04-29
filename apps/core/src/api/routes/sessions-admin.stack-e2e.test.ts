@@ -144,13 +144,6 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     createGuide.json<ApiResponse<{ avatar: { avatarId: string } }>>().data?.avatar,
     'avatarId',
   )
-  const patchScenario = await app.inject({
-    method: 'PATCH',
-    url: `/v1/scenarios/${scenarioId}`,
-    headers: authHeaders(),
-    payload: { config: { avatarAvailability: { initialAvatarIds: [guideAvatarId] } } },
-  })
-  expect(patchScenario.statusCode).toBe(200)
 
   const createEthics = await app.inject({
     method: 'POST',
@@ -167,6 +160,15 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     createEthics.json<ApiResponse<{ avatar: { avatarId: string } }>>().data?.avatar,
     'avatarId',
   )
+  const patchScenarioInitialBoth = await app.inject({
+    method: 'PATCH',
+    url: `/v1/scenarios/${scenarioId}`,
+    headers: authHeaders(),
+    payload: {
+      config: { avatarAvailability: { initialAvatarIds: [guideAvatarId, ethicsAvatarId] } },
+    },
+  })
+  expect(patchScenarioInitialBoth.statusCode).toBe(200)
 
   const createSession = await app.inject({
     method: 'POST',
@@ -195,6 +197,14 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     payload: { avatarId: ethicsAvatarId },
   })
   expect(switchConv.statusCode).toBe(200)
+
+  const patchScenarioResetGuide = await app.inject({
+    method: 'PATCH',
+    url: `/v1/scenarios/${scenarioId}`,
+    headers: authHeaders(),
+    payload: { config: { avatarAvailability: { initialAvatarIds: [guideAvatarId] } } },
+  })
+  expect(patchScenarioResetGuide.statusCode).toBe(200)
 
   return { sessionId, guideAvatarId }
 }
