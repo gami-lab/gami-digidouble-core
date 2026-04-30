@@ -259,13 +259,12 @@ describe('GET /v1/admin/sessions/:sessionId/metrics — success without GM', () 
     })
 
     expect(response.statusCode).toBe(200)
-    const body =
-      response.json<
-        ApiResponse<{
-          turns: Array<{ hasGm: boolean; gmLatencyMs?: number }>
-          summary: { turnsWithGm: number }
-        }>
-      >()
+    const body = response.json<
+      ApiResponse<{
+        turns: Array<{ hasGm: boolean; gmLatencyMs?: number }>
+        summary: { turnsWithGm: number }
+      }>
+    >()
     expect(body.error).toBeNull()
     expect(body.data?.summary.turnsWithGm).toBe(0)
     expect(body.data?.turns[0]).toEqual(expect.objectContaining({ hasGm: false }))
