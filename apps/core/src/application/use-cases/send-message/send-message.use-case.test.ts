@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
+import { expectConsoleError } from '../../../test-utils/console.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
 
@@ -250,6 +251,30 @@ describe('SendMessageUseCase — observability payload', () => {
       model: 'null-model',
       hasGm: true,
     })
+  })
+
+  it('sets hasGm to false when no runGameMasterUseCase is provided', async () => {
+    const useCase = createUseCase(false)
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'No gm run' })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const eventArg = appendEventMock.mock.calls[0]?.[0] as {
+      payload: Record<string, unknown>
+    }
+    expect(eventArg.payload['hasGm']).toBe(false)
+    expect(eventArg.payload['avatarLatencyMs']).toBe(5)
+  })
+
+  it('does not throw when turn_completed append fails', async () => {
+    const useCase = createUseCase()
+    appendEventMock.mockRejectedValueOnce(new Error('event log unavailable'))
+
+    await expectConsoleError(
+      async () =>
+        await useCase.execute({ conversationId: 'conversation_1', userMessage: 'still succeeds' }),
+      /\[send-message\] Event log append failed for turn_completed:/,
+    )
   })
 })
 

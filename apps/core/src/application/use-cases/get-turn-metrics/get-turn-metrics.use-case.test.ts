@@ -162,8 +162,23 @@ describe('GetTurnMetricsUseCase — empty and single turn', () => {
 })
 
 describe('GetTurnMetricsUseCase — mixed turns and summaries', () => {
-  it('computes mixed-turn summary and orders by turnIndex asc', async () => {
+  it('computes mixed-turn summary for three turns with two GM matches', async () => {
     const useCase = createUseCase([
+      makeTurnCompletedEvent({
+        correlationId: 'corr_3',
+        turnIndex: 3,
+        avatarLatencyMs: 300,
+        totalTurnLatencyMs: 420,
+        inputTokens: 30,
+        outputTokens: 60,
+        totalTokens: 90,
+      }),
+      makeGmTriggeredEvent({
+        correlationId: 'corr_3',
+        latencyMs: 90,
+        inputTokens: 21,
+        outputTokens: 23,
+      }),
       makeTurnCompletedEvent({
         correlationId: 'corr_2',
         turnIndex: 2,
@@ -192,15 +207,15 @@ describe('GetTurnMetricsUseCase — mixed turns and summaries', () => {
 
     const report = await useCase.execute({ sessionId: 'session_1' })
 
-    expect(report.turns.map((turn) => turn.turnIndex)).toEqual([1, 2])
+    expect(report.turns.map((turn) => turn.turnIndex)).toEqual([1, 2, 3])
     expect(report.summary).toEqual({
-      totalTurns: 2,
-      turnsWithGm: 1,
-      avgAvatarLatencyMs: 150,
-      avgTotalTurnLatencyMs: 225,
-      avgInputTokens: 15,
-      avgOutputTokens: 30,
-      avgGmLatencyMs: 50,
+      totalTurns: 3,
+      turnsWithGm: 2,
+      avgAvatarLatencyMs: 200,
+      avgTotalTurnLatencyMs: 290,
+      avgInputTokens: 20,
+      avgOutputTokens: 40,
+      avgGmLatencyMs: 70,
     })
   })
 })
@@ -261,5 +276,35 @@ describe('GetTurnMetricsUseCase — gm edge cases', () => {
       'corr_1',
     )
     warnSpy.mockRestore()
+  })
+
+  it('ignores gm_triggered events with orphan correlation ids', async () => {
+    const useCase = createUseCase([
+      makeTurnCompletedEvent({
+        correlationId: 'corr_turn',
+        turnIndex: 1,
+        avatarLatencyMs: 110,
+        totalTurnLatencyMs: 160,
+        inputTokens: 11,
+        outputTokens: 19,
+        totalTokens: 30,
+      }),
+      makeGmTriggeredEvent({
+        correlationId: 'corr_orphan',
+        latencyMs: 45,
+        inputTokens: 7,
+        outputTokens: 8,
+      }),
+    ])
+
+    const report = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(report.turns).toEqual([
+      expect.objectContaining({
+        correlationId: 'corr_turn',
+        hasGm: false,
+      }),
+    ])
+    expect(report.summary.avgGmLatencyMs).toBeNull()
   })
 })

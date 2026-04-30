@@ -60,6 +60,14 @@ Avatar unlocking and routing now belong to the async Game Master flow:
 - Route delegates metrics computation to `GetTurnMetricsUseCase` and preserves `avgGmLatencyMs: null` when no GM metrics are available
 - Server wiring updated to register `adminMetricsRoute` with session and event-log repositories
 
+### EPIC 4.3 metrics hardening tests complete (April 30, 2026)
+
+- `GetTurnMetricsUseCase` unit coverage now includes empty logs, single-turn no-GM, single-turn with GM, three-turn mixed sessions, legacy GM payload fallback, orphan GM events, and duplicate-correlation warning handling
+- `SendMessageUseCase` tests now verify `turn_completed` append behavior for `hasGm=true/false`, `avatarLatencyMs` propagation, and non-blocking append failure handling
+- `RunGameMasterUseCase` tests verify `gm_triggered` payload enrichment for latency and token metrics fields
+- `admin-metrics.test.ts` now covers auth, not-found, empty metrics, two-turn GM metrics, and no-GM turn behavior via `app.inject()`
+- New stack-E2E file `admin-metrics.stack-e2e.test.ts` adds live-stack auth/not-found checks and includes an explicit skipped TODO for seeded happy-path coverage
+
 ### EPIC 2.6 — GM Debug Panel v1 + Observability APIs: **complete** (April 28, 2026)
 
 The GM Debug Panel and supporting observability APIs are implemented, tested, and documented:

@@ -99,8 +99,37 @@ describe('GET /v1/admin/sessions/:sessionId/metrics — not found', () => {
   })
 })
 
-describe('GET /v1/admin/sessions/:sessionId/metrics — success', () => {
-  it('returns a metrics report with summary and turns', async () => {
+describe('GET /v1/admin/sessions/:sessionId/metrics — success empty', () => {
+  it('returns 200 with empty metrics for a known session without events', async () => {
+    const response = await makeApp().inject({
+      method: 'GET',
+      url: '/v1/admin/sessions/session_1/metrics',
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<
+      ApiResponse<{
+        summary: { totalTurns: number; turnsWithGm: number; avgGmLatencyMs: number | null }
+        turns: unknown[]
+      }>
+    >()
+    expect(body.error).toBeNull()
+    expect(body.data?.turns).toEqual([])
+    expect(body.data?.summary).toEqual({
+      totalTurns: 0,
+      turnsWithGm: 0,
+      avgAvatarLatencyMs: 0,
+      avgTotalTurnLatencyMs: 0,
+      avgInputTokens: 0,
+      avgOutputTokens: 0,
+      avgGmLatencyMs: null,
+    })
+  })
+})
+
+describe('GET /v1/admin/sessions/:sessionId/metrics — success with GM', () => {
+  it('returns metrics report for two turns with gm data', async () => {
     const response = await makeApp({
       events: [
         makeEvent({
@@ -124,6 +153,25 @@ describe('GET /v1/admin/sessions/:sessionId/metrics — success', () => {
         }),
         makeEvent({
           sessionId: 'session_1',
+          type: 'turn_completed',
+          severity: 'info',
+          correlationId: 'corr_2',
+          payload: {
+            correlationId: 'corr_2',
+            conversationId: 'conversation_1',
+            turnIndex: 2,
+            avatarId: 'avatar_1',
+            avatarLatencyMs: 160,
+            totalTurnLatencyMs: 240,
+            inputTokens: 30,
+            outputTokens: 35,
+            totalTokens: 65,
+            model: 'null-model',
+            hasGm: true,
+          },
+        }),
+        makeEvent({
+          sessionId: 'session_1',
           type: 'gm_triggered',
           severity: 'info',
           correlationId: 'corr_1',
@@ -135,6 +183,21 @@ describe('GET /v1/admin/sessions/:sessionId/metrics — success', () => {
             latencyMs: 45,
             inputTokens: 8,
             outputTokens: 9,
+          },
+        }),
+        makeEvent({
+          sessionId: 'session_1',
+          type: 'gm_triggered',
+          severity: 'info',
+          correlationId: 'corr_2',
+          payload: {
+            triggerReason: 'post_turn_observation',
+            turnIndex: 2,
+            interactionCount: 2,
+            stateBefore: { progression: 'intro', topicsCovered: [] },
+            latencyMs: 55,
+            inputTokens: 9,
+            outputTokens: 10,
           },
         }),
       ],
@@ -155,16 +218,57 @@ describe('GET /v1/admin/sessions/:sessionId/metrics — success', () => {
     expect(body.error).toBeNull()
     expect(body.data?.sessionId).toBe('session_1')
     expect(body.data?.summary).toMatchObject({
-      totalTurns: 1,
-      turnsWithGm: 1,
-      avgGmLatencyMs: 45,
+      totalTurns: 2,
+      turnsWithGm: 2,
     })
-    expect(body.data?.turns).toEqual([
-      expect.objectContaining({
-        turnIndex: 1,
-        hasGm: true,
-        gmLatencyMs: 45,
-      }),
-    ])
+    expect(body.data?.summary.avgGmLatencyMs).toBeTypeOf('number')
+    expect(body.data?.turns).toHaveLength(2)
+    expect(body.data?.turns[0]).toEqual(expect.objectContaining({ turnIndex: 1, hasGm: true }))
+    expect(body.data?.turns[1]).toEqual(expect.objectContaining({ turnIndex: 2, hasGm: true }))
+  })
+})
+
+describe('GET /v1/admin/sessions/:sessionId/metrics — success without GM', () => {
+  it('returns one turn without GM fields when no gm event matches', async () => {
+    const response = await makeApp({
+      events: [
+        makeEvent({
+          sessionId: 'session_1',
+          type: 'turn_completed',
+          severity: 'info',
+          correlationId: 'corr_only_turn',
+          payload: {
+            correlationId: 'corr_only_turn',
+            conversationId: 'conversation_1',
+            turnIndex: 1,
+            avatarId: 'avatar_1',
+            avatarLatencyMs: 110,
+            totalTurnLatencyMs: 180,
+            inputTokens: 18,
+            outputTokens: 22,
+            totalTokens: 40,
+            model: 'null-model',
+            hasGm: false,
+          },
+        }),
+      ],
+    }).inject({
+      method: 'GET',
+      url: '/v1/admin/sessions/session_1/metrics',
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body =
+      response.json<
+        ApiResponse<{
+          turns: Array<{ hasGm: boolean; gmLatencyMs?: number }>
+          summary: { turnsWithGm: number }
+        }>
+      >()
+    expect(body.error).toBeNull()
+    expect(body.data?.summary.turnsWithGm).toBe(0)
+    expect(body.data?.turns[0]).toEqual(expect.objectContaining({ hasGm: false }))
+    expect(body.data?.turns[0]?.gmLatencyMs).toBeUndefined()
   })
 })

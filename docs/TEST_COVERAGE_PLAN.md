@@ -223,6 +223,23 @@ Must test:
 
 ---
 
+## Metrics Module
+
+**Goals:** reliable per-turn metric reconstruction from persisted events and safe admin exposure.
+
+Must test:
+
+- `GetTurnMetricsUseCase` empty event log behavior (`turns: []`, zero/null summary)
+- correlation join between `turn_completed` and `gm_triggered`
+- mixed sessions where only some turns have GM metrics
+- legacy `gm_triggered` payloads missing latency/token fields
+- orphan `gm_triggered` correlation IDs ignored
+- duplicate `gm_triggered` correlation IDs keep first match and warn
+- admin route `GET /v1/admin/sessions/{sessionId}/metrics` auth (`401`), missing session (`404`), and happy-path response envelope/shape (`200`)
+- stack-E2E auth/not-found checks for `GET /v1/admin/sessions/{sessionId}/metrics`
+
+---
+
 # Critical E2E Flows
 
 Minimum set that must pass on every release:
