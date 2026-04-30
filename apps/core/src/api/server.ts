@@ -15,7 +15,9 @@ import type { RunGameMasterUseCase } from '../application/use-cases/run-game-mas
 import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
+import { InMemorySessionRepository } from '../infrastructure/db/in-memory-session.repository.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
+import { adminMetricsRoute } from './routes/admin-metrics.js'
 import { adminHealthRoute } from './routes/admin-health.js'
 import { avatarsRoute, type AvatarsRouteOptions } from './routes/avatars.js'
 import { conversationsRoute } from './routes/conversations.js'
@@ -91,6 +93,12 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     prefix: '/v1/admin',
     config,
     probes: adapters.probes ?? [],
+  })
+  app.register(adminMetricsRoute, {
+    prefix: '/v1/admin',
+    config,
+    sessionRepository: resolvedAdapters.sessionRepository ?? new InMemorySessionRepository(),
+    eventLogRepository: resolvedAdapters.eventLogRepository ?? new InMemoryEventLogRepository(),
   })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',

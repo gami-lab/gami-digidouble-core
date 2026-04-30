@@ -1499,6 +1499,60 @@ type AdminSessionEventsResponse = {
 
 ---
 
+## A7. Admin: Session Turn Metrics
+
+### Endpoint
+
+```text
+GET /v1/admin/sessions/{sessionId}/metrics
+```
+
+### Response
+
+```ts
+type AdminSessionTurnMetricsResponse = {
+  sessionId: string
+  checkedAt: string
+  summary: {
+    totalTurns: number
+    turnsWithGm: number
+    avgAvatarLatencyMs: number
+    avgTotalTurnLatencyMs: number
+    avgInputTokens: number
+    avgOutputTokens: number
+    avgGmLatencyMs: number | null
+  }
+  turns: Array<{
+    turnIndex: number
+    correlationId: string
+    avatarLatencyMs: number
+    totalTurnLatencyMs: number
+    overheadMs: number
+    inputTokens: number
+    outputTokens: number
+    totalTokens: number
+    model: string
+    hasGm: boolean
+    gmLatencyMs?: number
+    gmInputTokens?: number
+    gmOutputTokens?: number
+  }>
+}
+```
+
+### Semantics
+
+- Returns `200` for authenticated requests when session exists, including sessions with zero turns.
+- `summary.avgGmLatencyMs` remains `null` when no turns have associated GM metrics.
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `404` → `NOT_FOUND` (session missing)
+- `500` → `INTERNAL_ERROR`
+
+---
+
 ## A7. Reset Session
 
 Deletes runtime conversation data. Does NOT delete the session record itself.
