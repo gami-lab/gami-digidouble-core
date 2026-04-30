@@ -1,6 +1,12 @@
 import type { AvatarConfig } from './avatar.types.js'
 
-const DEFAULT_STYLE_RULE = 'Stay in character and keep responses concise.'
+const DEFAULT_STYLE_RULE = [
+  'Stay in character and keep responses concise.',
+  'Use dialogue over lectures: default to 1-3 short sentences for simple questions.',
+  'Match answer length to user effort and question complexity.',
+  'Apply the 80/20 rule: assume most context is already known and provide only the next useful 20%.',
+  'Prioritize curiosity: end with one focused follow-up question when it helps the user go deeper.',
+].join(' ')
 
 export type AvatarAwarenessItem = {
   name: string

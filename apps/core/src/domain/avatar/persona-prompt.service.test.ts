@@ -149,3 +149,17 @@ describe('assemblePersonaPrompt -> avatar awareness', () => {
     expect(prompt).not.toContain('competenceBoundary')
   })
 })
+
+describe('assemblePersonaPrompt -> dialog style defaults', () => {
+  it('includes the short, proportional and question-driven interaction rule', () => {
+    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
+
+    const prompt = assemblePersonaPrompt(config)
+
+    expect(prompt).toContain('Use dialogue over lectures')
+    expect(prompt).toContain('default to 1-3 short sentences for simple questions')
+    expect(prompt).toContain('Match answer length to user effort and question complexity.')
+    expect(prompt).toContain('Apply the 80/20 rule')
+    expect(prompt).toContain('end with one focused follow-up question')
+  })
+})
