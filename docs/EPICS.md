@@ -1269,10 +1269,6 @@ If an EPIC does not leave the system more usable, more testable, more operable, 
 
 ## Recommended implementation order
 
-### 1. EPIC 3.1 — Operational Health & Dependency Monitoring
-
-Do this first because every later feature depends on knowing whether Postgres, Redis, providers, and embeddings are healthy.
-
 ### 2. EPIC 4.3 — Performance Baseline
 
 Before adding memory/RAG/context complexity, measure the current system. Otherwise you won’t know what each new layer costs.
