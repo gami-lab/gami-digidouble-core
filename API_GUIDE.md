@@ -33,6 +33,7 @@ For the formal spec (all types, error codes, future endpoints), see
 | `POST`   | `/v1/exchange`                               | Raw LLM exchange (no session)     | Yes  |
 | `GET`    | `/v1/admin/sessions/:sessionId/inspect`      | GM orchestration snapshot (admin) | Yes  |
 | `GET`    | `/v1/admin/sessions/:sessionId/events`       | GM diagnostic events (admin)      | Yes  |
+| `GET`    | `/v1/admin/sessions/:sessionId/metrics`      | Turn performance metrics (admin)  | Yes  |
 
 ---
 
@@ -1112,10 +1113,10 @@ No raw user message text, prompt content, or LLM model names are ever included i
 
 ---
 
-### A2. List Session GM Events
+### A2. List Session Events
 
-Returns GM diagnostic events for a session (newest-first). Only `gm_triggered` and `gm_skipped`
-events are returned. All other internal event types are silently excluded.
+Returns session diagnostic events for a session (newest-first). Supported event types are
+`gm_triggered`, `gm_error`, and `turn_completed`. Unknown/internal types are silently excluded.
 
 ```bash
 curl "$BASE_URL/v1/admin/sessions/$SESSION_ID/events" \
@@ -1164,23 +1165,25 @@ curl "$BASE_URL/v1/admin/sessions/$SESSION_ID/events?limit=10" \
           },
           "latencyMs": 240,
           "inputTokens": 180,
-          "outputTokens": 45
+          "outputTokens": 45,
+          "correlationId": "req_01jwxxxxxx"
         }
       },
       {
-        "type": "gm_skipped",
+        "type": "turn_completed",
         "correlationId": "req_01jwxxxxxy",
         "createdAt": "2026-04-20T10:06:00.000Z",
         "payload": {
-          "triggerReason": null,
+          "conversationId": "conv_01jwxxxxxx",
           "turnIndex": 4,
-          "interactionCount": 4,
-          "stateBefore": {
-            "currentAvatarId": "avatar_01jwxxxxxx",
-            "progression": "intro",
-            "topicsCovered": ["setup"]
-          },
-          "latencyMs": 8
+          "avatarId": "avatar_01jwxxxxxx",
+          "avatarLatencyMs": 1180,
+          "totalTurnLatencyMs": 1290,
+          "inputTokens": 210,
+          "outputTokens": 95,
+          "totalTokens": 305,
+          "model": "gpt-4o-mini",
+          "hasGm": true
         }
       }
     ]
@@ -1191,13 +1194,13 @@ curl "$BASE_URL/v1/admin/sessions/$SESSION_ID/events?limit=10" \
 
 **Key response fields:**
 
-| Field                   | Description                                                                             |
-| ----------------------- | --------------------------------------------------------------------------------------- |
-| `type`                  | `gm_triggered` = GM ran and made a decision; `gm_skipped` = GM ran but no trigger fired |
-| `payload.triggerReason` | Why the trigger fired, or `null` for skipped turns                                      |
-| `payload.decision`      | Present only on `gm_triggered` events                                                   |
-| `payload.stateAfter`    | Present only on `gm_triggered` events                                                   |
-| `payload.latencyMs`     | Time taken by the GM decision in milliseconds                                           |
+| Field                        | Description                                                                |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `type`                       | `gm_triggered`, `gm_error`, or `turn_completed`                            |
+| `payload.decision`           | Present on `gm_triggered` events only                                      |
+| `payload.errorCode`          | Present on `gm_error` events only                                          |
+| `payload.totalTurnLatencyMs` | Present on `turn_completed` events only                                    |
+| `payload.latencyMs`          | GM LLM latency (for `gm_triggered`) or GM failure latency (for `gm_error`) |
 
 No raw user message text, prompt content, or LLM model names are ever included.
 
@@ -1205,6 +1208,66 @@ No raw user message text, prompt content, or LLM model names are ever included.
 
 - `401 UNAUTHORIZED` — missing or wrong API key
 - `400 VALIDATION_ERROR` — invalid `limit` (non-integer or less than 1)
+- `404 NOT_FOUND` — session does not exist
+
+---
+
+### A3. Session Turn Metrics
+
+Returns per-turn performance metrics and summary aggregates for one session.
+
+```bash
+curl "$BASE_URL/v1/admin/sessions/$SESSION_ID/metrics" \
+  -H "x-api-key: $API_KEY"
+```
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "sessionId": "session_01jwxxxxxx",
+    "checkedAt": "2026-04-30T12:00:00.000Z",
+    "summary": {
+      "totalTurns": 2,
+      "turnsWithGm": 2,
+      "avgAvatarLatencyMs": 990,
+      "avgTotalTurnLatencyMs": 1145,
+      "avgInputTokens": 256,
+      "avgOutputTokens": 101,
+      "avgGmLatencyMs": 640
+    },
+    "turns": [
+      {
+        "turnIndex": 1,
+        "correlationId": "req_01jwxxxxxx",
+        "avatarLatencyMs": 820,
+        "totalTurnLatencyMs": 1100,
+        "overheadMs": 280,
+        "inputTokens": 300,
+        "outputTokens": 90,
+        "totalTokens": 390,
+        "model": "gpt-4o-mini",
+        "hasGm": true,
+        "gmLatencyMs": 610,
+        "gmInputTokens": 450,
+        "gmOutputTokens": 55
+      }
+    ]
+  },
+  "error": null
+}
+```
+
+**Behavior notes:**
+
+- Returns `200` when authenticated and session exists, even when `turns` is empty.
+- `summary.avgGmLatencyMs` is `null` when no turns have GM metrics.
+- `turns` is ordered by `turnIndex` ascending.
+
+**Error cases:**
+
+- `401 UNAUTHORIZED` — missing or wrong API key
 - `404 NOT_FOUND` — session does not exist
 
 ---
