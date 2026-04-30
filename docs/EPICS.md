@@ -681,7 +681,7 @@ Better context → better orchestration decisions.
 
 ---
 
-## EPIC 4.3 — Performance Baseline
+## EPIC 4.3 — Performance Baseline ✅ Done
 
 **Purpose**  
 Measure real interaction costs.
@@ -1268,10 +1268,6 @@ A hybrid response engine improves quality/cost/latency trade-offs versus pure li
 If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
 
 ## Recommended implementation order
-
-### 2. EPIC 4.3 — Performance Baseline
-
-Before adding memory/RAG/context complexity, measure the current system. Otherwise you won’t know what each new layer costs.
 
 ### 3. EPIC 5.5 — User Persona System
 
