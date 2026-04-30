@@ -44,6 +44,15 @@ Avatar unlocking and routing now belong to the async Game Master flow:
 - `RunGameMasterUseCase` `gm_triggered` payload is enriched with `latencyMs`, `inputTokens`, `outputTokens`, and `correlationId` for correlation-aware metrics queries
 - `GET /v1/admin/sessions/{sessionId}/events` now returns safe `turn_completed` entries in addition to GM diagnostics
 
+### Turn metrics query use case (April 30, 2026)
+
+- New domain metrics module added: `domain/metrics/metrics.types.ts` and `domain/metrics/index.ts`
+- `GetTurnMetricsUseCase` implemented to build `TurnMetricsReport` from one `IEventLogRepository.findBySessionId` read (limit 500)
+- Use case joins `turn_completed` and `gm_triggered` by `correlationId`, computes per-turn overhead (`totalTurnLatencyMs - avatarLatencyMs`), and returns sorted turn rows
+- Summary includes total turns, turns-with-GM count, average avatar latency, average total turn latency, average input/output tokens, and `avgGmLatencyMs` (`null` when no GM turns)
+- Legacy GM events missing latency are safely ignored for GM metrics, and duplicate `gm_triggered` rows per correlation id keep first match with warning logging
+- Deterministic unit coverage added for empty logs, GM/no-GM turns, mixed-turn averaging, legacy payload fallback, and duplicate GM edge case
+
 ### EPIC 2.6 — GM Debug Panel v1 + Observability APIs: **complete** (April 28, 2026)
 
 The GM Debug Panel and supporting observability APIs are implemented, tested, and documented:

@@ -274,6 +274,21 @@ The Avatar module does not own response orchestration; `SendMessageUseCase` in t
 
 ---
 
+## Module: Metrics
+
+Owns turn-level performance and token reporting models for operational analysis.
+
+Contains:
+
+- turn metrics domain types (`domain/metrics/metrics.types.ts`)
+- use-case-facing report structures for session-level turn analysis
+
+Key use cases:
+
+- get turn metrics report for one session
+
+---
+
 ## Module: Game Master
 
 Owns orchestration.
