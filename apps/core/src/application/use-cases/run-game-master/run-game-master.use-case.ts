@@ -129,7 +129,7 @@ export class RunGameMasterUseCase {
       delete sanitizedStateUpdate.activeAvatarId
     }
     const nextState = reduceGmState(currentState, sanitizedStateUpdate)
-    const routingResult = await this.applyAvatarRoutingUpdates(
+    const routingResult = this.applyAvatarRoutingUpdates(
       input,
       currentState,
       session,
@@ -276,92 +276,18 @@ export class RunGameMasterUseCase {
       .map((message) => ({ role: message.role, content: message.content }))
   }
 
-  private async performAvatarSwitch(
-    input: RunGameMasterInput,
-    session: Session | null,
-    scenarioAvatars: AvatarConfig[],
-    output: GameMasterOutput,
-  ): Promise<string | undefined> {
-    if (this.conversationRepository === undefined || !hasText(output.nextAvatarId)) {
-      return undefined
-    }
-
-    const nextAvatarId = output.nextAvatarId.trim()
-
-    const scenarioAvatarIds = new Set(
-      scenarioAvatars
-        .filter((avatar) => avatar.status === 'active')
-        .map((avatar) => avatar.avatarId),
-    )
-
-    if (!scenarioAvatarIds.has(nextAvatarId)) {
-      console.warn(
-        '[GM] Skipping avatar switch: nextAvatarId is not an active avatar in the scenario.',
-        nextAvatarId,
-      )
-      return undefined
-    }
-    if (!isSwitchableAvatar(session, output, nextAvatarId)) {
-      return undefined
-    }
-
-    try {
-      const activeConversation = await this.conversationRepository.findActiveBySessionId(
-        input.sessionId,
-      )
-      const now = new Date().toISOString()
-
-      if (activeConversation !== null) {
-        await this.conversationRepository.update(activeConversation.conversationId, {
-          status: 'closed',
-          endedAt: now,
-        })
-      }
-
-      await this.conversationRepository.create({
-        sessionId: input.sessionId,
-        avatarId: nextAvatarId,
-        startedBy: 'gm',
-        reason: output.transitionReason ?? 'gm_directed',
-        ...(activeConversation !== null
-          ? { handoffFromConversationId: activeConversation.conversationId }
-          : {}),
-      })
-
-      await this.sessionRepository.update(input.sessionId, { activeAvatarId: nextAvatarId })
-      return nextAvatarId
-    } catch (err: unknown) {
-      console.error('[GM] Avatar switch failed:', err)
-      return undefined
-    }
-  }
-
   private async persistTriggeredNotes(sessionId: string, output: GameMasterOutput): Promise<void> {
     if (!hasText(output.context?.notes)) return
     await this.sessionRepository.update(sessionId, { gmNotes: output.context.notes.trim() })
   }
 
-  private async applyAvatarRoutingUpdates(
-    input: RunGameMasterInput,
+  private applyAvatarRoutingUpdates(
+    _input: RunGameMasterInput,
     _currentState: GameMasterState,
-    session: Session | null,
-    scenarioAvatars: AvatarConfig[],
-    output: GameMasterOutput,
-  ): Promise<AvatarRoutingResult> {
-    if (
-      output.conversationMode === 'new' &&
-      hasText(output.nextAvatarId) &&
-      this.conversationRepository !== undefined
-    ) {
-      const switchedAvatarId = await this.performAvatarSwitch(
-        input,
-        session,
-        scenarioAvatars,
-        output,
-      )
-      return switchedAvatarId !== undefined ? { switchedAvatarId } : {}
-    }
-
+    _session: Session | null,
+    _scenarioAvatars: AvatarConfig[],
+    _output: GameMasterOutput,
+  ): AvatarRoutingResult {
     return {}
   }
 
@@ -404,16 +330,4 @@ export class RunGameMasterUseCase {
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
-}
-
-function isSwitchableAvatar(
-  session: Session | null,
-  output: GameMasterOutput,
-  avatarId: string,
-): boolean {
-  if (session?.unlockedAvatarIds === undefined) return true
-  return (
-    session.unlockedAvatarIds.includes(avatarId) ||
-    output.unlockAvatarIds?.includes(avatarId) === true
-  )
 }

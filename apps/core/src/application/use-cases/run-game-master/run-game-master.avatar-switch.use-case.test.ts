@@ -130,8 +130,8 @@ beforeEach(() => {
   traceMock.mockResolvedValue(undefined)
 })
 
-describe('RunGameMasterUseCase — avatar switch flow', () => {
-  it('conversationMode new with valid available nextAvatarId opens a new conversation', async () => {
+describe('RunGameMasterUseCase — async avatar switch safety', () => {
+  it('does not switch conversations when GM outputs conversationMode new', async () => {
     const useCase = createUseCase()
     mockGmOutput({
       avatarId: 'avatar_1',
@@ -150,21 +150,12 @@ describe('RunGameMasterUseCase — avatar switch flow', () => {
       correlationId: 'corr_1',
     })
 
-    expect(updateConversationMock).toHaveBeenCalledWith(
-      'conversation_old',
-      expect.objectContaining({ status: 'closed' }),
-    )
-    expect(createConversationMock).toHaveBeenCalledWith({
-      sessionId: 'session_1',
-      avatarId: 'avatar_2',
-      startedBy: 'gm',
-      reason: 'specialist_handoff',
-      handoffFromConversationId: 'conversation_old',
-    })
-    expect(updateSessionMock).toHaveBeenCalledWith('session_1', { activeAvatarId: 'avatar_2' })
+    expect(updateConversationMock).not.toHaveBeenCalled()
+    expect(createConversationMock).not.toHaveBeenCalled()
+    expect(updateSessionMock).not.toHaveBeenCalledWith('session_1', { activeAvatarId: 'avatar_2' })
   })
 
-  it('skips switch when nextAvatarId is locked and not unlocked by the same decision', async () => {
+  it('does not switch even when nextAvatarId is locked', async () => {
     const useCase = createUseCase()
     findSessionByIdMock.mockResolvedValue({
       sessionId: 'session_1',
@@ -192,6 +183,7 @@ describe('RunGameMasterUseCase — avatar switch flow', () => {
       correlationId: 'corr_2',
     })
 
+    expect(updateConversationMock).not.toHaveBeenCalled()
     expect(createConversationMock).not.toHaveBeenCalled()
   })
 })
