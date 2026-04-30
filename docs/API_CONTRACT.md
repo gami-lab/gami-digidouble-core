@@ -1260,13 +1260,22 @@ GET /v1/admin/health
 
 ```ts
 type AdminHealthResponse = {
-  status: 'ok' | 'degraded' | 'error'
-  version: string
-  timestamp: string
+  status: 'healthy' | 'degraded' | 'unknown'
+  checkedAt: string
+  dependencies: Array<{
+    name: string
+    status: 'healthy' | 'degraded' | 'unknown'
+    latencyMs?: number
+    message?: string
+  }>
 }
 ```
 
-Same as `/health` but auth-protected. Useful for monitoring systems that use the same API key.
+Envelope: `ApiResponse<AdminHealthResponse>`.
+
+HTTP status is always `200 OK` for successful authenticated requests, including degraded dependency states. Operators must inspect `data.status` and `data.dependencies`.
+
+Auth failures return `401 UNAUTHORIZED`.
 
 ---
 
@@ -1275,27 +1284,20 @@ Same as `/health` but auth-protected. Useful for monitoring systems that use the
 ### Endpoint
 
 ```text
-GET /v1/admin/dependencies
+Merged into `GET /v1/admin/health`
 ```
 
 ### Response
 
 ```ts
-type DependenciesResponse = {
-  dependencies: Array<{
-    name: 'postgres' | 'redis' | 'llm_provider'
-    status: 'ok' | 'degraded' | 'error'
-    latencyMs?: number
-    detail?: string
-  }>
-}
+No separate endpoint in Phase A implementation.
 ```
 
 ### Notes
 
-- Postgres: send a simple ping query
-- Redis: send `PING`
-- LLM provider: optional lightweight probe (can be skipped if too costly)
+- Postgres probe uses a lightweight query.
+- Redis probe uses `PING`.
+- LLM probe uses a minimal low-cost completion call.
 
 ---
 

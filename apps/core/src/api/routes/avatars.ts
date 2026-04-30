@@ -13,7 +13,7 @@ import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avat
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 
-type AvatarsRouteOptions = {
+export type AvatarsRouteOptions = {
   config: Config
   avatarRepository?: IAvatarRepository
   sessionRepository?: ISessionRepository

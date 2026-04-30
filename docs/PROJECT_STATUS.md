@@ -12,6 +12,14 @@ Update it as epics and features are completed.
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
+### EPIC 3.1 — Admin dependency health endpoint (April 30, 2026)
+
+- `GetHealthUseCase` added in application layer; computes `HealthReport` from `IDependencyProbe[]` using `Promise.allSettled`
+- New protected endpoint `GET /v1/admin/health` implemented (API-key required)
+- Endpoint returns `ApiResponse<HealthReport>` and always responds `200` on authenticated requests, including degraded states
+- Production wiring now injects concrete `PostgresProbe`, `RedisProbe`, and `LlmProbe` through `ServerAdapters.probes`
+- Existing public `GET /health` liveness endpoint remains unchanged
+
 ### GM-owned multi-avatar orchestration simplification (April 29, 2026)
 
 Avatar unlocking and routing now belong to the async Game Master flow:

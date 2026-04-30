@@ -1,6 +1,9 @@
 import { loadConfig } from './config.js'
 import { createServer } from './api/server.js'
+import type { IDependencyProbe } from './application/ports/IDependencyProbe.js'
 import { RunGameMasterUseCase } from './application/use-cases/run-game-master/run-game-master.use-case.js'
+import { getRedisClient, closeRedisClient } from './infrastructure/cache/index.js'
+import { LlmProbe, PostgresProbe, RedisProbe } from './infrastructure/health/index.js'
 import { createObservabilityAdapter } from './infrastructure/observability/index.js'
 import { createLlmAdapter } from './infrastructure/llm/index.js'
 import {
@@ -25,6 +28,7 @@ async function main(): Promise<void> {
     ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
   })
   const sql = getDbClient(config.databaseUrl)
+  const redisClient = getRedisClient(config.redisUrl)
   const scenarioRepository = new PostgresScenarioRepository(sql)
   const gmStateRepository = new PostgresGmStateRepository(sql)
   const sessionRepository = new PostgresSessionRepository(sql)
@@ -43,6 +47,11 @@ async function main(): Promise<void> {
     conversationRepository,
     messageRepository,
   )
+  const probes: IDependencyProbe[] = [
+    new PostgresProbe(sql),
+    new RedisProbe(redisClient),
+    new LlmProbe(llmAdapter),
+  ]
 
   const adapters = {
     llmAdapter,
@@ -55,10 +64,12 @@ async function main(): Promise<void> {
     conversationRepository,
     messageRepository,
     runGameMasterUseCase,
+    probes,
   }
   const server = createServer(config, adapters)
 
   server.addHook('onClose', async () => {
+    await closeRedisClient()
     await closeDbClient()
     await observability.flush()
   })

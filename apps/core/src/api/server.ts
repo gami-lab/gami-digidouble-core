@@ -10,17 +10,19 @@ import type { IGmStateRepository } from '../application/ports/IGmStateRepository
 import type { IScenarioRepository } from '../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
+import type { IDependencyProbe } from '../application/ports/IDependencyProbe.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
-import { avatarsRoute } from './routes/avatars.js'
+import { adminHealthRoute } from './routes/admin-health.js'
+import { avatarsRoute, type AvatarsRouteOptions } from './routes/avatars.js'
 import { conversationsRoute } from './routes/conversations.js'
 import { exchangeRoute } from './routes/exchange.js'
 import { healthRoute } from './routes/health.js'
 import { sessionsRoute } from './routes/sessions.js'
-import { scenariosRoute } from './routes/scenarios.js'
+import { scenariosRoute, type ScenariosRouteOptions } from './routes/scenarios.js'
 
 export interface ServerAdapters {
   llmAdapter?: ILlmAdapter
@@ -33,6 +35,7 @@ export interface ServerAdapters {
   scenarioRepository?: IScenarioRepository
   sessionRepository?: ISessionRepository
   messageRepository?: IMessageRepository
+  probes?: IDependencyProbe[]
 }
 
 type FastifyValidationError = {
@@ -84,29 +87,49 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     config,
     ...resolvedAdapters,
   })
+  app.register(adminHealthRoute, {
+    prefix: '/v1/admin',
+    config,
+    probes: adapters.probes ?? [],
+  })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',
-    config,
-    ...(resolvedAdapters.scenarioRepository !== undefined
-      ? { scenarioRepository: resolvedAdapters.scenarioRepository }
-      : {}),
-    ...(resolvedAdapters.avatarRepository !== undefined
-      ? { avatarRepository: resolvedAdapters.avatarRepository }
-      : {}),
-    ...(resolvedAdapters.sessionRepository !== undefined
-      ? { sessionRepository: resolvedAdapters.sessionRepository }
-      : {}),
+    ...buildScenariosRouteOptions(config, resolvedAdapters),
   })
   app.register(avatarsRoute, {
     prefix: '/v1/avatars',
-    config,
-    ...(resolvedAdapters.avatarRepository !== undefined
-      ? { avatarRepository: resolvedAdapters.avatarRepository }
-      : {}),
-    ...(resolvedAdapters.sessionRepository !== undefined
-      ? { sessionRepository: resolvedAdapters.sessionRepository }
-      : {}),
+    ...buildAvatarsRouteOptions(config, resolvedAdapters),
   })
 
   return app
+}
+
+function buildScenariosRouteOptions(
+  config: Config,
+  adapters: ServerAdapters,
+): ScenariosRouteOptions {
+  return {
+    config,
+    ...(adapters.scenarioRepository !== undefined
+      ? { scenarioRepository: adapters.scenarioRepository }
+      : {}),
+    ...(adapters.avatarRepository !== undefined
+      ? { avatarRepository: adapters.avatarRepository }
+      : {}),
+    ...(adapters.sessionRepository !== undefined
+      ? { sessionRepository: adapters.sessionRepository }
+      : {}),
+  }
+}
+
+function buildAvatarsRouteOptions(config: Config, adapters: ServerAdapters): AvatarsRouteOptions {
+  return {
+    config,
+    ...(adapters.avatarRepository !== undefined
+      ? { avatarRepository: adapters.avatarRepository }
+      : {}),
+    ...(adapters.sessionRepository !== undefined
+      ? { sessionRepository: adapters.sessionRepository }
+      : {}),
+  }
 }
