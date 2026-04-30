@@ -225,8 +225,9 @@ Examples:
 - OpenAI adapter
 - Langfuse logger
 - Redis cache adapter
+- Dependency health probes
 
-Persistence is now wired to production PostgreSQL through `postgres` (postgres.js). The DB client singleton lives in `infrastructure/db/client.ts`, startup runs SQL migrations via `infrastructure/db/migrations/runner.ts`, and concrete repositories are implemented in `infrastructure/db/repositories/` (`PostgresScenarioRepository`, `PostgresAvatarRepository`, `PostgresSessionRepository`, `PostgresMessageRepository`). In-memory repository stubs remain available for unit tests and are injected through `ServerAdapters`; `createServer` does not instantiate test stubs by itself.
+Persistence is now wired to production PostgreSQL through `postgres` (postgres.js). The DB client singleton lives in `infrastructure/db/client.ts`, and concrete repositories are implemented in `infrastructure/db/repositories/` (`PostgresScenarioRepository`, `PostgresAvatarRepository`, `PostgresSessionRepository`, `PostgresMessageRepository`). In-memory repository stubs remain available for unit tests and are injected through `ServerAdapters`; `createServer` does not instantiate test stubs by itself.
 
 Replaceable without touching domain logic.
 
@@ -541,6 +542,7 @@ src/
     db/                  → PostgreSQL repositories (pgvector included)
       repositories/      → postgres-gm-state.repository, postgres-event-log.repository, …
     cache/               → Redis adapters
+    health/              → Postgres, Redis, and LLM dependency probes
     llm/                 → Provider abstraction layer + adapters
     observability/       → Langfuse wrapper, logging, structured event emission
 ```

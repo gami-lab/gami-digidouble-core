@@ -10,7 +10,7 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
 ### EPIC 3.1 — Admin dependency health endpoint (April 30, 2026)
 
@@ -21,7 +21,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Existing public `GET /health` liveness endpoint remains unchanged
 - Unit coverage added for `PostgresProbe`, `RedisProbe`, `LlmProbe`, and `GetHealthUseCase`, including timeout and rejection hardening paths
 - Route coverage added for `admin-health.test.ts` (auth + healthy/degraded envelope shape) and `admin-health.stack-e2e.test.ts` (auth + live shape contract without hardcoded dependency statuses)
-- Quality gates confirmed: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration-e2e`, and `pnpm --filter @gami/core test:coverage` pass
+- Quality gates confirmed: `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm --filter @gami/core test:coverage` pass
 
 ### GM-owned multi-avatar orchestration simplification (April 29, 2026)
 
@@ -392,13 +392,13 @@ GM system — Prompt 05 (Tests and hardening) is done, then simplified by the Ap
 
 ### Sprint O — Operations / Control Plane
 
-| Epic                                     | Status      | Notes                                                                    |
-| ---------------------------------------- | ----------- | ------------------------------------------------------------------------ |
-| EPIC O1 — Health & Dependency Monitoring | Not started | Rich `/v1/admin/health` + `/v1/admin/dependencies` per-dependency probes |
-| EPIC O2 — Admin Runtime Console          | Not started | Session inspector: state, memory, GM state, events, errors, audit log    |
-| EPIC O3 — Manual Test Console & Replay   | Not started | Reset + replay-turn endpoints; back-office test chat UI                  |
-| EPIC O4 — Usage Analytics & Reliability  | Not started | Metrics overview endpoint; back-office dashboard charts                  |
-| EPIC O5 — Ingestion Pipeline Visibility  | Not started | IngestionJob entity; job list; retry endpoint; audit log on retry        |
+| Epic                                     | Status       | Notes                                                                             |
+| ---------------------------------------- | ------------ | --------------------------------------------------------------------------------- |
+| EPIC O1 — Health & Dependency Monitoring | **Complete** | Rich `GET /v1/admin/health` probe with Postgres, Redis, and LLM dependency checks |
+| EPIC O2 — Admin Runtime Console          | Not started  | Session inspector: state, memory, GM state, events, errors, audit log             |
+| EPIC O3 — Manual Test Console & Replay   | Not started  | Reset + replay-turn endpoints; back-office test chat UI                           |
+| EPIC O4 — Usage Analytics & Reliability  | Not started  | Metrics overview endpoint; back-office dashboard charts                           |
+| EPIC O5 — Ingestion Pipeline Visibility  | Not started  | IngestionJob entity; job list; retry endpoint; audit log on retry                 |
 
 ### Sprint 3 — Memory + API
 
@@ -438,6 +438,7 @@ GM system — Prompt 05 (Tests and hardening) is done, then simplified by the Ap
 ## Implemented Modules
 
 - API baseline (`/health`, `/v1/exchange`)
+- Admin health endpoint (`GET /v1/admin/health`) with per-dependency probes (`postgres`, `redis`, `llm`) and `healthy/degraded/unknown` statuses
 - LLM adapter layer (OpenAI, Anthropic, Mistral, Null)
 - Observability adapter layer (Langfuse, Console, Null)
 - Session + conversation lifecycle (session create/read, conversation start/list, message send/history by conversation)
@@ -459,7 +460,7 @@ GM system — Prompt 05 (Tests and hardening) is done, then simplified by the Ap
 
 - `PostgresScenarioRepository`, `PostgresAvatarRepository`, `PostgresSessionRepository`, `PostgresMessageRepository` replace in-memory stubs in production
 - `postgres` (postgres.js) client with lazy singleton pool (`max: 10`)
-- SQL migrations in `apps/core/src/infrastructure/db/migrations/`; applied at server startup
+- Database schema is managed in PostgreSQL and used by the repository layer in production.
 - All four repos have integration tests (`*.integration.test.ts`)
 - `AvatarConfig` now carries `createdAt` / `updatedAt` (F-01 fix)
 - `CreateAvatarUseCase` no longer synthesises timestamps
@@ -483,9 +484,8 @@ Completed multi-avatar routing and persistence hardening across domain, applicat
 
 EPIC 1.2 delivered LLM tracing foundations (Langfuse wrapper, token/latency tracking, structured logs).
 
-However, the current system lacks production operability:
+However, the current system still has operational gaps:
 
-- No dependency health probe (`GET /health` is flat; no per-dependency status)
 - No session inspector (operators cannot read session state, memory, or GM state without DB access)
 - No ingestion job visibility (knowledge pipeline failures are silent)
 - No admin actions (reset, replay, retry require engineering intervention)

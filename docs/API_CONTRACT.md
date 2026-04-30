@@ -1256,26 +1256,46 @@ All admin endpoints live under `/v1/admin/`.
 GET /v1/admin/health
 ```
 
+### Request
+
+```text
+GET /v1/admin/health
+x-api-key: <API_KEY>
+```
+
 ### Response
 
-```ts
-type AdminHealthResponse = {
-  status: 'healthy' | 'degraded' | 'unknown'
-  checkedAt: string
-  dependencies: Array<{
-    name: string
-    status: 'healthy' | 'degraded' | 'unknown'
-    latencyMs?: number
-    message?: string
-  }>
+```json
+{
+  "data": {
+    "status": "healthy | degraded",
+    "checkedAt": "<ISO 8601 UTC>",
+    "dependencies": [
+      {
+        "name": "postgres | redis | llm",
+        "status": "healthy | degraded | unknown",
+        "latencyMs": 4,
+        "message": "connect ECONNREFUSED"
+      }
+    ]
+  },
+  "error": null
 }
 ```
 
-Envelope: `ApiResponse<AdminHealthResponse>`.
+### HTTP status
 
-HTTP status is always `200 OK` for successful authenticated requests, including degraded dependency states. Operators must inspect `data.status` and `data.dependencies`.
+Always `200 OK` for successful authenticated requests, including degraded dependency states. Operators must inspect `data.status` and `data.dependencies`.
+
+### Auth
 
 Auth failures return `401 UNAUTHORIZED`.
+
+### Notes
+
+- Overall `status` is `'healthy'` only when all dependency probes return `'healthy'`; otherwise it is `'degraded'`.
+- Individual probe failures do not change the HTTP status; they appear in `dependencies[].status`.
+- `latencyMs` is the probe round-trip time in milliseconds (when available).
 
 ---
 
