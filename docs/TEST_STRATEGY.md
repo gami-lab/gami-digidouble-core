@@ -69,6 +69,7 @@ Required tests:
 - **Audit log:** verify that every admin action writes an entry with the correct `actionType`, `targetType`, and `targetId`
 - **Auth:** verify that admin endpoints require a valid API key (same as public API in Phase A)
 - **No sensitive data leakage:** verify that session event payloads and admin responses do not expose raw prompt content or credential values
+- **Stack E2E health shape:** verify `GET /v1/admin/health` auth behavior and response envelope/shape without hardcoding dependency statuses
 
 ---
 
@@ -195,7 +196,7 @@ Enforced in `vitest.config.ts` via `@vitest/coverage-v8`. Build fails if any thr
 
 Excluded from coverage: `*.types.ts`, `application/ports/**`, `infrastructure/cache/**`, `infrastructure/db/**`, `index.ts`.
 
-**Current baseline (post-EPIC 4.1 GM tests):** unit suite: 187 tests · 35 test files; integration suite adds `PostgresGmStateRepository` and `PostgresEventLogRepository` test files (guarded by `DB_AVAILABLE`)
+**Current baseline (post-EPIC 3.1 health hardening):** unit suite: 289 tests · 55 test files; integration suite adds `PostgresGmStateRepository` and `PostgresEventLogRepository` test files (guarded by `DB_AVAILABLE`)
 
 ---
 

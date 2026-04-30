@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 29, 2026
+**Last updated:** April 30, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -19,6 +19,9 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Endpoint returns `ApiResponse<HealthReport>` and always responds `200` on authenticated requests, including degraded states
 - Production wiring now injects concrete `PostgresProbe`, `RedisProbe`, and `LlmProbe` through `ServerAdapters.probes`
 - Existing public `GET /health` liveness endpoint remains unchanged
+- Unit coverage added for `PostgresProbe`, `RedisProbe`, `LlmProbe`, and `GetHealthUseCase`, including timeout and rejection hardening paths
+- Route coverage added for `admin-health.test.ts` (auth + healthy/degraded envelope shape) and `admin-health.stack-e2e.test.ts` (auth + live shape contract without hardcoded dependency statuses)
+- Quality gates confirmed: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration-e2e`, and `pnpm --filter @gami/core test:coverage` pass
 
 ### GM-owned multi-avatar orchestration simplification (April 29, 2026)
 
