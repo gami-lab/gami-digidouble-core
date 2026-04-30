@@ -165,6 +165,16 @@ type UserRef = {
 }
 ```
 
+## User Persona
+
+```ts
+type UserPersona = {
+  role?: string
+  tonePreference?: string
+  interactionHints?: string[]
+}
+```
+
 ## Scenario Summary
 
 ```ts id="e3su3b"
@@ -269,6 +279,10 @@ type Message = {
 type SessionMemorySummary = {
   sessionId: string
   summary: string
+  shortTerm?: {
+    exchangeCount: 2
+  }
+  longTermFactCount?: number
   updatedAt: string
 }
 ```
@@ -284,7 +298,10 @@ type KnowledgeSourceSummary = {
   status: 'pending' | 'ready' | 'error'
   uriOrPath: string
   createdAt: string
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown> & {
+    layer?: 'avatar-memory' | 'world' | 'media'
+    avatarId?: string
+  }
 }
 ```
 
@@ -318,6 +335,7 @@ POST /v1/exchange
 - **Message** always belongs to a **conversation**
 - Switching avatar creates a new conversation
 - Returning later to the same avatar also creates a new conversation
+- Runtime context is assembled from bounded inputs (short-term, working memory, long-term facts, scenario, retrieval, GM notes, optional user persona), not full transcript replay.
 - Send-message targets conversationId and does **not** accept avatarId
 
 ---
@@ -599,6 +617,43 @@ type GetAvatarTransitionsOutput = {
 - `401` → `UNAUTHORIZED`
 - `404` → `NOT_FOUND` (session missing)
 - `500` → `INTERNAL_ERROR`
+
+---
+
+## 3.8 End Conversation in Session
+
+Explicitly close a conversation and schedule async memory compaction for that boundary.
+
+### Endpoint
+
+```text
+POST /v1/sessions/{sessionId}/conversations/{conversationId}/end
+```
+
+### Request
+
+```ts
+type EndConversationRequest = {
+  reason?: string
+}
+```
+
+### Response
+
+```ts
+type EndConversationResponse = {
+  conversation: ConversationSummary
+  compaction: {
+    scheduled: true
+  }
+}
+```
+
+### Notes
+
+- Conversation closure can also happen implicitly (avatar switch / reset).
+- This endpoint is additive and does not change existing send-message flow.
+- Compaction is asynchronous and must not block response latency.
 
 ---
 
@@ -1056,6 +1111,41 @@ type TriggerKnowledgeIngestionResponse = {
 ---
 
 # User Memory API
+
+## 13b. Upsert User Persona
+
+Stores lightweight user persona used by context assembly.
+
+### Endpoint
+
+```text
+PATCH /v1/users/{userId}/persona
+```
+
+### Request
+
+```ts
+type UpsertUserPersonaRequest = {
+  persona: {
+    role?: string
+    tonePreference?: string
+    interactionHints?: string[]
+  }
+}
+```
+
+At least one field must be provided in `persona`.
+
+### Response
+
+```ts
+type UpsertUserPersonaResponse = {
+  user: {
+    userId: string
+    persona: UserPersona
+  }
+}
+```
 
 ## 14. List User Memory Facts
 

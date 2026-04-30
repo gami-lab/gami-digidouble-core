@@ -51,10 +51,19 @@ Represents a person or external identity using the system.
 - external_id
 - email
 - metadata (JSONB)
+- persona (JSONB)
 
 ### Notes
 
 Keep minimal until stronger auth or tenancy is required.
+
+`persona` is intentionally lightweight and optional. Suggested shape:
+
+- `role` (e.g. friend, coach, psychologist)
+- `tonePreference` (e.g. direct, warm, concise)
+- `interactionHints?: string[]` (optional short hints)
+
+Persona is consumed by the Context module at assembly time. It is not duplicated across session, conversation, or message rows.
 
 ---
 
@@ -181,6 +190,7 @@ Represents one user run through one scenario.
 - active_avatar_id (nullable, FK → Avatar)
 - unlocked_avatar_ids (nullable UUID[], session-scoped available avatars)
 - gm_notes (nullable, director guidance for next avatar turn)
+- memory_summary (nullable, compact working-memory summary for the session)
 - status (active / closed / archived)
 - started_at
 - last_activity_at
@@ -195,6 +205,7 @@ Represents one user run through one scenario.
 - **Column note:** `active_avatar_id` is nullable and persisted for GM-driven default avatar routing. Cleared to `NULL` on session reset.
 - **Column note:** `unlocked_avatar_ids` stores per-session avatar unlock progression when scenario policy enables locked specialists. Initial values come from scenario availability policy; later additions are owned by the async Game Master. Cleared to the scenario's initial unlocked avatars on session reset.
 - **Column note:** `gm_notes` stores latest Game Master guidance injected into the next avatar system prompt. Cleared to `NULL` on session reset.
+- **Column note:** `memory_summary` stores compact working memory for fast context hydration; it is bounded and updated asynchronously, then cleared on session reset.
 
 ### Notes
 
@@ -239,6 +250,7 @@ Represents one bounded dialogue episode with one avatar inside one session.
 - Returning later to the same avatar also creates a new conversation.
 - Conversation history is isolated per conversation.
 - Session memory continuity should happen through SessionMemory / AvatarSessionMemory, not by raw transcript continuation by default.
+- Conversation closure (`status = closed` + `ended_at`) is the trigger boundary for conversation → memory compaction. Compaction is async and must not block the response path.
 
 **Phase A deletion safety rule:** scenario deletion is rejected while dependent avatars or sessions still exist.
 
@@ -331,7 +343,13 @@ Compact working memory for an active session.
 
 Recent raw messages come from Message table.
 
-This table stores only compacted session-level memory.
+This table stores only compacted session-level memory (working memory layer).
+
+The memory model is pyramidal and bounded:
+
+- Short-term memory: last 2 exchanges (assembled at runtime from `Message`; not persisted here)
+- Working memory: evolving session summary (this table and/or `sessions.memory_summary`)
+- Long-term memory: persisted structured facts/events (`UserMemoryFact`)
 
 This is the shared memory of the session itself:
 
@@ -411,7 +429,7 @@ Persistent structured memory about a user.
 
 Store facts, not transcripts.
 
-This memory is cross-session and user-centric.
+This memory is cross-session and user-centric (long-term layer). Facts/events should be compact, structured, and deduplicated when practical.
 
 ---
 
@@ -439,6 +457,12 @@ The Core stores references + metadata.
 Knowledge sources belong to the Scenario, not to a specific avatar.
 
 An avatar may later use only part of the scenario knowledge, controlled by config.
+
+Multi-layer RAG stays simple by extending `type` + `metadata`, not by new core tables:
+
+- Avatar memory RAG: `type = 'text' | 'markdown'`, `metadata.layer = 'avatar-memory'`, optional `metadata.avatarId`
+- Scenario/world RAG: `metadata.layer = 'world'`
+- Media RAG: `type = 'media'`, `metadata.layer = 'media'`, optional media descriptors (mime, duration, tags)
 
 ---
 

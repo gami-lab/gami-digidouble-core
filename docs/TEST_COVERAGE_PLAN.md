@@ -94,11 +94,14 @@ This module deserves strong unit coverage — it controls orchestration semantic
 
 Must test:
 
-- session summary creation/update
+- short-term memory window policy (exactly last 2 exchanges)
+- session summary creation/update (working memory)
 - persistent user fact extraction rules
 - retrieval of relevant facts
 - memory overwrite/update behavior
 - long conversation compaction boundaries (30+ turns)
+- conversation-end compaction trigger (explicit close and implicit close via switch/reset)
+- async compaction scheduling never blocks avatar response
 - reset behavior
 
 Risk: memory systems silently degrade quality while appearing to work. Requires both logic tests and conversational regression checks.
@@ -111,15 +114,17 @@ Risk: memory systems silently degrade quality while appearing to work. Requires 
 
 Must test:
 
-- recent messages included/excluded correctly
-- memory injected correctly
+- recent messages included/excluded correctly (short-term bounded window)
+- memory layers injected correctly (short-term + working + long-term)
 - scenario context injected correctly
 - scenario goals/pacing constraints injected correctly
-- knowledge retrieval merged correctly
+- knowledge retrieval merged correctly by layer (avatar-memory / world / media)
 - GM directives injected correctly
+- user persona injected correctly when present and omitted cleanly when absent
 - handoff context injected during avatar transitions
 - context trimming when over budget
 - precedence rules when inputs conflict
+- deterministic assembly order and stable output shape for same inputs
 
 This is one of the highest-risk modules in the project.
 
@@ -135,6 +140,7 @@ Must test:
 - ingestion job status transitions
 - chunk creation and embedding persistence
 - retrieval by scenario/source
+- retrieval partitioning by layer metadata (`avatar-memory`, `world`, `media`)
 - filtering behavior
 - invalid source handling
 
@@ -230,6 +236,7 @@ Minimum set that must pass on every release:
 7. register source
 8. ingest source
 9. ask question that uses retrieved knowledge
+10. close conversation and verify memory compaction is scheduled and later reflected in session memory
 
 ---
 
@@ -260,6 +267,7 @@ Example expected properties: response stays in persona · references a prior kno
 
 - short session (happy path)
 - long session (30+ turns for memory testing)
+- bounded-memory session (verify only last 2 exchanges enter short-term context)
 - adversarial inputs (injection attempts, gibberish, very long messages)
 - user fact emergence across turns
 
@@ -267,6 +275,7 @@ Example expected properties: response stays in persona · references a prior kno
 
 - small valid markdown source
 - source with overlapping topics
+- mixed-layer sources (avatar-memory + world + media metadata)
 - corrupted / invalid source
 
 ### Provider responses

@@ -337,12 +337,14 @@ Owns persistence of useful memory.
 
 Contains:
 
-- session summary
-- user facts
+- short-term memory policy (last 2 exchanges, runtime-assembled)
+- working memory summary (session-level compact summary)
+- long-term user facts/events
 - retrieval of relevant memories
 - compaction jobs
 
 Avoid storing noise.
+No full transcript replay in context.
 
 ---
 
@@ -352,14 +354,17 @@ Builds runtime context for each turn.
 
 Combines:
 
-- recent messages
-- memory summary
+- short-term memory (last 2 exchanges)
+- working memory summary
+- long-term user facts/events
 - user facts
 - scenario config
-- retrieved knowledge
+- retrieved knowledge (avatar-memory / world / media)
 - GM directives
+- optional user persona
 
 Produces bounded context payloads.
+Context assembly is deterministic, inspectable, and testable.
 
 ---
 
@@ -449,7 +454,11 @@ These surfaces must stay clearly separated in routing and responsibility.
 2. API validates request
 3. SendMessage use case starts
 4. Load conversation + parent session + scenario
-5. Context module builds runtime context for that conversation
+5. Context module builds runtime context for that conversation:
+   - short-term (last 2 exchanges)
+   - working memory summary
+   - long-term facts/events
+   - scenario + RAG + GM notes + optional user persona
 6. Avatar generates streamed response for the conversation avatar
 7. Messages saved under conversation
 8. Async tasks launched:
@@ -494,6 +503,13 @@ Game Master intervenes only when useful.
 
 This preserves latency and autonomy.
 
+Conversation boundaries are explicit signals for async memory compaction:
+
+- explicit close endpoint
+- implicit close via avatar switch/reset
+
+Compaction remains non-blocking and never delays avatar response.
+
 ---
 
 # Code Structure
@@ -515,8 +531,8 @@ src/
     conversation/        → Session container, conversation episodes, and message logic
     avatar/              → Persona configuration and prompt assembly
     game-master/         → Reasoning + policy logic, avatar routing, state management, guidance injection
-    memory/              → Session summary + persistent user facts
-    context/             → Context assembly (memory + scenario + knowledge)
+    memory/              → Layered memory (short-term policy + working summary + long-term facts)
+    context/             → Deterministic context assembly (memory + scenario + knowledge + persona + GM notes)
     knowledge/           → Ingestion, chunking, embeddings, RAG retrieval
     scenario/            → Config-driven experience templates
     operations/          → Health aggregation, dependency probes, metrics summaries

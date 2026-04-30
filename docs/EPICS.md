@@ -157,6 +157,92 @@ A differentiated avatar creates more value than generic chatbot behavior.
 
 ---
 
+## EPIC 2.1b — Avatar Agent v2 (Memory + Persona + RAG Awareness)
+
+**Purpose**
+Evolve avatars from stateless responders into context-aware actors.
+
+**Description**
+Extend Avatar behavior to incorporate:
+
+- user persona awareness
+- short-term memory (last exchanges)
+- long-term memory (via memory layer)
+- RAG retrieval (avatar + media)
+
+This EPIC does NOT change base architecture — it enriches prompt assembly and context injection.
+
+**Hypothesis**
+Context-aware avatars significantly improve perceived intelligence and coherence.
+
+**Includes**
+
+- user persona injection into avatar prompt
+- memory hooks (read-only at this stage)
+- RAG retrieval hooks
+- media reference capability (non-rendering)
+
+**DoD**
+
+- avatar responses reflect user role (e.g. psychologist vs friend)
+- avatar references past interactions naturally
+- avatar can surface external knowledge/media
+
+**What Can Be Tested**
+
+- same question → different answer depending on user persona
+- avatar recalls past interaction without full history
+- avatar references external knowledge source
+
+**User Increment**
+
+- avatars feel adaptive and aware, not reactive
+
+---
+
+## EPIC 2.2b — Conversation Lifecycle v2 (End Signal + Compaction Trigger)
+
+**Purpose**
+Introduce realistic conversation boundaries and prepare memory transitions.
+
+**Description**
+
+Extend conversation lifecycle:
+
+- introduce **explicit or implicit conversation end signal**
+- trigger memory compaction at conversation end
+- prepare transition from conversation → memory
+
+This EPIC prepares memory behavior but does not yet implement full pyramidal memory.
+
+**Hypothesis**
+Explicit lifecycle improves memory quality and system scalability.
+
+**Includes**
+
+- conversation close endpoint or heuristic
+- end-of-conversation detection rules
+- trigger hook for memory compaction
+- session state update on conversation end
+
+**DoD**
+
+- conversations can be explicitly closed
+- memory compaction is triggered at closure
+- new conversation does not rely on full history replay
+
+**What Can Be Tested**
+
+- close conversation → memory summary updated
+- new conversation uses summary instead of history
+- system behaves correctly without full transcript
+
+**User Increment**
+
+- conversations feel bounded and structured
+
+---
+
 ## EPIC 2.2 — Scenario & Session Lifecycle v1 ✅ Done
 
 **Purpose**  
@@ -499,6 +585,102 @@ Simple structured memory is enough for MVP usefulness.
 
 ---
 
+---
+
+## EPIC 4.2b — Memory System v2 (Pyramidal Memory)
+
+**Purpose**
+Transform memory into a structured, multi-layer system.
+
+**Description**
+
+Replace flat memory with:
+
+1. **Short-term memory**
+   - last 2 exchanges only
+
+2. **Working memory**
+   - evolving session summary
+
+3. **Long-term memory**
+   - structured facts, events, relationships
+
+Memory is:
+
+- compacted continuously
+- updated asynchronously (aligned with GM)
+
+**Hypothesis**
+Hierarchical memory reduces hallucinations and improves continuity.
+
+**Includes**
+
+- memory layer definitions
+- compaction pipeline
+- storage schema evolution
+- retrieval per layer
+
+**DoD**
+
+- long conversations remain coherent without full history
+- memory stays bounded
+- memory layers are testable independently
+
+**What Can Be Tested**
+
+- 30+ turn conversation remains coherent
+- irrelevant history is dropped
+- key facts persist correctly
+
+**User Increment**
+
+- system “remembers like a human”
+
+---
+
+## EPIC 4.1b — Game Master Context Awareness Upgrade
+
+**Purpose**
+Enable GM to reason using memory and world context, not only recent messages.
+
+**Description**
+
+Extend GM input to include:
+
+- memory summaries
+- world context (scenario RAG)
+- avatar knowledge context
+
+GM now:
+
+- navigates memory layers
+- triggers context injection (not only routing)
+
+**Hypothesis**
+Better context → better orchestration decisions.
+
+**Includes**
+
+- updated GM input contract
+- memory + RAG injection into GM reasoning
+- context-aware unlock decisions
+
+**DoD**
+
+- GM decisions reflect past events
+- avatar routing improves with context
+
+**What Can Be Tested**
+
+- GM suggests different avatars based on past interactions
+- GM avoids repeating topics already covered
+
+**User Increment**
+
+- smarter, less repetitive guidance
+
+---
+
 ## EPIC 4.3 — Performance Baseline
 
 **Purpose**  
@@ -644,74 +826,141 @@ Fast recovery loops improve iteration speed dramatically.
 
 ---
 
-## EPIC 5.1 — Knowledge Pipeline v1
+## EPIC 5.1 — Multi-Layer Knowledge & RAG System v1
 
-**Purpose**  
-Allow the system to use external content.
+**Purpose**
+Enable the system to use structured knowledge across different domains in a consistent and scalable way.
 
-**Description**  
-Build ingestion + retrieval for PDF, markdown, and text sources.
+**Description**
+Build a unified knowledge pipeline that supports **multiple types of retrieval (RAG)** instead of a single generic knowledge store.
 
-**Hypothesis**  
-Relevant retrieval improves quality more than larger prompts alone.
+The system must support three distinct knowledge domains:
+
+1. **Avatar Memory RAG**
+   - personal history
+   - past interactions
+   - long-term memory outputs
+
+2. **World / Scenario RAG**
+   - environment descriptions
+   - rules, lore, objectives
+   - contextual elements of the experience
+
+3. **Media RAG (image/video)**
+   - visual or external references
+   - illustrative content linked to context
+
+All knowledge types share a **common ingestion pipeline**, but:
+
+- are differentiated by `type` and metadata
+- may use different retrieval strategies
+- are merged later by the Context Engine
+
+**Hypothesis**
+Structured knowledge retrieval improves relevance, reduces noise, and enables richer interactions compared to a flat knowledge system.
 
 **Includes**
 
-- source upload
-- chunking
-- embeddings
-- pgvector storage
-- retrieval pipeline
+- source upload (PDF, markdown, text, media)
+- chunking and preprocessing
+- embeddings and pgvector storage
+- knowledge source typing (`memory`, `world`, `media`)
+- retrieval pipelines per type
+- metadata for traceability
 
 **DoD**
 
-- ingested knowledge can influence answers
+- ingested knowledge influences responses
+- retrieval respects knowledge type (memory vs world vs media)
+- sources are traceable and inspectable
+- system avoids mixing unrelated knowledge domains
 
 **What Can Be Tested**
 
-1. upload source
-2. wait ready
-3. ask source question
-4. verify grounded answer
+1. upload different source types (text, world, media)
+2. query each type independently
+3. verify correct retrieval based on context
+4. verify irrelevant sources are not retrieved
 
 **User Increment**
 
-- first knowledge-powered scenarios
+- richer, more grounded, and context-aware responses
 
 ---
 
-## EPIC 5.2 — Context Manager v1
+## EPIC 5.2 — Context Engine v2 (Core Orchestrator)
 
-**Purpose**  
-Unify all context dimensions.
+**Purpose**
+Make context assembly the central intelligence of the system.
 
-**Description**  
-Assemble memory, scenario world, retrieved knowledge, and GM directives into bounded runtime context.
+**Description**
+Build a deterministic **Context Engine** responsible for assembling all relevant information into a bounded runtime context for the Avatar and Game Master.
 
-**Hypothesis**  
-Explicit context composition improves coherence and control.
+The Context Engine combines:
+
+- **short-term memory**
+  - last exchanges only
+
+- **working memory**
+  - session summary
+
+- **long-term memory**
+  - structured persistent memory
+
+- **RAG outputs**
+  - avatar memory
+  - world/scenario knowledge
+  - media references
+
+- **scenario context**
+  - goals, rules, environment
+
+- **Game Master directives**
+  - guidance and orchestration signals
+
+- **user persona**
+  - role and tone influencing interaction
+
+The engine is responsible for:
+
+- selecting relevant information
+- prioritizing context sources
+- resolving conflicts between sources
+- enforcing token budget constraints
+
+Aligned with principle:
+👉 Context is the product
+
+**Hypothesis**
+Context quality has a greater impact on system behavior than model choice.
 
 **Includes**
 
-- memory injection
-- scenario context
-- retrieval merge logic
-- token budget rules
+- context assembly pipeline
+- priority and precedence rules
+- token budget management
+- context trimming strategies
+- deterministic merging logic
+- observability of final context payload
 
 **DoD**
 
-- context sources are traceable
-- prompts remain bounded
+- context is explainable and testable
+- each context component is independently verifiable
+- system remains stable under long conversations
+- removing a context layer has a predictable impact
 
 **What Can Be Tested**
 
-- long realistic scenario sessions
-- verify right facts used
-- verify irrelevant noise excluded
+1. inspect final context payload per turn
+2. verify correct prioritization (memory vs RAG vs scenario)
+3. test long conversations without degradation
+4. verify irrelevant context is excluded
+5. validate token budget enforcement
 
 **User Increment**
 
-- more coherent and controllable responses
+- more coherent, stable, and controllable conversations
 
 ---
 
@@ -785,6 +1034,88 @@ Explicit progression rules produce better educational and narrative outcomes tha
 - sessions feel directed, meaningful, and outcome-oriented
 
 ---
+
+## EPIC 5.5 — User Persona System
+
+**Purpose**
+Allow users to define their role in the experience.
+
+**Description**
+
+Extend User model with:
+
+- role (friend, psychologist, etc.)
+- tone preference
+- optional interaction style
+
+Persona is injected into:
+
+- avatar prompts
+- GM reasoning
+
+**Hypothesis**
+User-defined identity increases immersion and relevance.
+
+**Includes**
+
+- user persona schema (JSONB)
+- API to define/update persona
+- context integration
+
+**DoD**
+
+- persona influences avatar responses
+- persona persists across sessions
+
+**What Can Be Tested**
+
+- same scenario, different persona → different experience
+
+**User Increment**
+
+- user becomes part of the system, not just an input source
+
+---
+
+## EPIC 5.6 — Hybrid Response System v2 (Cache + AI)
+
+**Purpose**
+Improve latency and consistency.
+
+**Description**
+
+Introduce:
+
+- pre-generated Q/A cache
+- retrieval-first response strategy
+- fallback to LLM
+
+Optional future:
+
+- SLM fine-tuning (not blocking)
+
+**Hypothesis**
+Hybrid systems outperform pure LLM systems.
+
+**Includes**
+
+- cache layer
+- response selection logic
+- fallback strategy
+
+**DoD**
+
+- common queries are faster
+- fallback works reliably
+
+**What Can Be Tested**
+
+- known queries hit cache
+- unknown queries fallback to LLM
+
+**User Increment**
+
+- faster and more reliable responses
 
 # Sprint 6 — Back-office + Real Scenario
 

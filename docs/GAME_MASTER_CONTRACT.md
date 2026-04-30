@@ -78,6 +78,8 @@ The Game Master provides context.
 
 The Avatar decides how to behave.
 
+The GM consumes assembled context layers, not full raw history replay.
+
 ## 2.4 Minimal state
 
 Only keep what is strictly needed to:
@@ -115,6 +117,8 @@ Semantic decisions such as avatar unlocks, suggestions, and switches belong to G
 3. Avatar message persisted
 4. GM fires asynchronously after every completed avatar turn — non-blocking; errors are caught and logged, never propagate to the user response
 5. GM LLM is called with recent messages, current state, scenario goals, active avatar, and avatar availability context
+   - recent messages are bounded and provided as short-term context (not full replay)
+   - working memory, long-term facts/events, RAG snippets, and optional user persona are included via context
 6. GM output is parsed and validated
 7. State is reduced, guidance notes are stored into `sessions.gm_notes` for the next turn, and valid avatar unlocks are persisted to `sessions.unlocked_avatar_ids`
 8. If `conversationMode === 'new'` and `nextAvatarId` is a valid active and switchable avatar, the current conversation is closed and a new conversation is opened for the next avatar; `session.activeAvatarId` is updated
@@ -145,6 +149,33 @@ export type GameMasterInput = {
   state: GameMasterState
 
   context: {
+    persona?: {
+      role?: string
+      tonePreference?: string
+      interactionHints?: string[]
+    }
+
+    memory?: {
+      shortTerm?: {
+        recentExchanges: Array<{
+          user: string
+          avatar: string
+        }>
+      }
+      workingSummary?: string
+      longTermFacts?: Array<{
+        category: string
+        key: string
+        value: string
+      }>
+    }
+
+    rag?: {
+      avatarMemory?: Array<{ sourceId: string; excerpt: string }>
+      world?: Array<{ sourceId: string; excerpt: string }>
+      media?: Array<{ sourceId: string; excerpt: string }>
+    }
+
     experience: {
       scenarioId: string
       description?: string
@@ -331,12 +362,13 @@ The Game Master does NOT:
 
 - answer every user message in sequence
 - block the Avatar response path
-- manage conversation memory → Avatar does
+- manage heavy memory compaction pipelines in-line
 - control tone → Avatar does
 - enforce strict dialogue flow
 - classify emotions deeply
 - run heavy retrieval pipelines on every turn
 - orchestrate complex strategies
+- consume unbounded raw transcript history by default
 
 ---
 
