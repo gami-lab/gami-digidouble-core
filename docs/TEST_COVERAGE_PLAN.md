@@ -227,6 +227,14 @@ Must test:
 
 **Goals:** reliable per-turn metric reconstruction from persisted events and safe admin exposure.
 
+Coverage expectations by module:
+
+| Module path                               | Required coverage                                                                |
+| ----------------------------------------- | -------------------------------------------------------------------------------- |
+| `domain/metrics/metrics.types.ts`         | Types only; no runtime logic (N/A for behavioral unit assertions)                |
+| `application/use-cases/get-turn-metrics/` | Unit tests for all logical branches (empty, avatar-only, GM, legacy/orphan data) |
+| `api/routes/admin-metrics.ts`             | Route tests for auth, not-found, empty session metrics, and populated data cases |
+
 Must test:
 
 - `GetTurnMetricsUseCase` empty event log behavior (`turns: []`, zero/null summary)

@@ -237,6 +237,26 @@ Replaceable without touching domain logic.
 
 ---
 
+## Module Map (Current)
+
+```text
+domain/
+  avatar/
+  context/
+  conversation/
+  game-master/
+  health/
+  knowledge/
+  memory/
+  metrics/      -> TurnMetrics, TurnMetricsSummary, TurnMetricsReport
+  scenario/
+
+application/use-cases/
+  get-turn-metrics/ -> Session-scoped metrics aggregation from event log
+```
+
+---
+
 ## Module: Conversation
 
 Owns session containers, bounded conversations, and message flow boundaries.

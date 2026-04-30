@@ -1447,47 +1447,61 @@ GET /v1/admin/sessions/{sessionId}/events
 ```ts
 type AdminSessionEventsResponse = {
   events: Array<{
-    type: 'gm_triggered' | 'gm_error'
+    type: 'gm_triggered' | 'gm_error' | 'turn_completed'
     correlationId: string
     createdAt: string
-    payload: {
-      triggerReason: string | null
-      turnIndex: number
-      interactionCount: number
-      stateBefore: {
-        currentAvatarId?: string
-        progression: string
-        topicsCovered: string[]
-      }
-      decision?: {
-        avatarId: string
-        conversationMode: 'new' | 'continue'
-        notesInjected: boolean
-        directiveCount: number
-        unlockedAvatarIds?: string[]
-        suggestedAvatarId?: string
-        suggestedAvatarReason?: string
-        switchedAvatarId?: string
-      }
-      stateAfter?: {
-        currentAvatarId?: string
-        progression: string
-        topicsCovered: string[]
-      }
-      latencyMs: number
-      inputTokens?: number
-      outputTokens?: number
-      errorCode?: string
-    }
+    payload:
+      | {
+          triggerReason: string | null
+          turnIndex: number
+          interactionCount: number
+          stateBefore: {
+            currentAvatarId?: string
+            progression: string
+            topicsCovered: string[]
+          }
+          decision?: {
+            avatarId: string
+            conversationMode: 'new' | 'continue'
+            notesInjected: boolean
+            directiveCount: number
+            unlockedAvatarIds?: string[]
+            suggestedAvatarId?: string
+            suggestedAvatarReason?: string
+            switchedAvatarId?: string
+          }
+          stateAfter?: {
+            currentAvatarId?: string
+            progression: string
+            topicsCovered: string[]
+          }
+          latencyMs: number
+          inputTokens?: number
+          outputTokens?: number
+          errorCode?: string
+        }
+      | {
+          conversationId: string
+          turnIndex: number
+          avatarId: string
+          avatarLatencyMs: number
+          totalTurnLatencyMs: number
+          inputTokens: number
+          outputTokens: number
+          totalTokens: number
+          model: string
+          hasGm: boolean
+          correlationId?: string
+        }
   }>
 }
 ```
 
 ### Semantics
 
-- Returns only `gm_triggered` and `gm_error` diagnostic events.
+- Returns `gm_triggered`, `gm_error`, and `turn_completed` events.
 - Results are ordered newest-first.
-- Non-GM event types are silently excluded.
+- Unknown/unsupported event types are silently excluded.
 - Raw user message content, prompt text, credentials, and LLM model names are never included.
 
 ### Error Mapping
@@ -1506,6 +1520,10 @@ type AdminSessionEventsResponse = {
 ```text
 GET /v1/admin/sessions/{sessionId}/metrics
 ```
+
+### Auth
+
+- API key required in header: `x-api-key: <API_KEY>`
 
 ### Response
 
@@ -1544,6 +1562,8 @@ type AdminSessionTurnMetricsResponse = {
 
 - Returns `200` for authenticated requests when session exists, including sessions with zero turns.
 - `summary.avgGmLatencyMs` remains `null` when no turns have associated GM metrics.
+- `turns` is ordered by `turnIndex` ascending.
+- Turns that pre-date EPIC 4.3 and do not have `turn_completed` events are not included.
 
 ### Error Mapping
 
@@ -1553,7 +1573,7 @@ type AdminSessionTurnMetricsResponse = {
 
 ---
 
-## A7. Reset Session
+## A8. Reset Session
 
 Deletes runtime conversation data. Does NOT delete the session record itself.
 
@@ -1584,7 +1604,7 @@ type AdminResetSessionResponse = {
 
 ---
 
-## A8. Replay Last Turn
+## A9. Replay Last Turn
 
 Re-runs the Avatar call for the last user message without re-storing the user message. Useful for debugging quality issues on a specific turn.
 
@@ -1616,7 +1636,7 @@ type AdminReplayTurnResponse = {
 
 ---
 
-## A9. List Ingestion Jobs
+## A10. List Ingestion Jobs
 
 ### Endpoint
 
@@ -1650,7 +1670,7 @@ type AdminListJobsResponse = {
 
 ---
 
-## A10. Retry Ingestion Job
+## A11. Retry Ingestion Job
 
 ### Endpoint
 
@@ -1674,7 +1694,7 @@ type AdminRetryJobResponse = {
 
 ---
 
-## A11. Metrics Overview
+## A12. Metrics Overview
 
 ### Endpoint
 
@@ -1720,7 +1740,7 @@ type AdminMetricsOverviewResponse = {
 
 ---
 
-## A12. Recent Errors
+## A13. Recent Errors
 
 ### Endpoint
 
@@ -1749,7 +1769,7 @@ type AdminErrorsResponse = {
 
 ---
 
-## A13. Audit Log
+## A14. Audit Log
 
 ### Endpoint
 

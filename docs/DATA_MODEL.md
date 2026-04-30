@@ -534,6 +534,33 @@ Use only events that are actually useful.
 - `SendMessageUseCase` appends `turn_completed` for each successful avatar turn (includes latency and token metrics in payload)
 - GM emits `gm_triggered` after successful post-turn evaluation and `gm_error` for safe GM failures via `RunGameMasterUseCase`; `gm_triggered` payload includes latency/tokens plus mirrored `correlationId` for query joins
 
+### Event: `turn_completed`
+
+Emitted by `SendMessageUseCase` after each successful avatar turn using fire-and-forget event append semantics.
+
+Payload fields:
+
+- `conversationId` — string
+- `turnIndex` — number (1-based count of user turns in the conversation)
+- `avatarId` — string
+- `avatarLatencyMs` — number (avatar LLM call wall clock from `ILlmAdapter.complete`)
+- `totalTurnLatencyMs` — number (full `SendMessageUseCase` wall clock)
+- `inputTokens` — number
+- `outputTokens` — number
+- `totalTokens` — number
+- `model` — string
+- `hasGm` — boolean (whether a GM background run was dispatched)
+
+### Event: `gm_triggered` (enriched)
+
+Pre-existing event type; payload includes the following performance fields used by EPIC 4.3 metrics:
+
+- `latencyMs` — number (GM LLM call wall clock)
+- `inputTokens` — number
+- `outputTokens` — number
+
+The `StoredEvent.correlationId` links `gm_triggered` events to parent `turn_completed` events (shared request correlation).
+
 The `request_id` and `correlation_id` fields are essential for tracing failures across async flows without requiring a full distributed tracing stack.
 
 ---

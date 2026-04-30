@@ -10,7 +10,7 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
 ### EPIC 3.1 — Admin dependency health endpoint (April 30, 2026)
 
@@ -67,6 +67,18 @@ Avatar unlocking and routing now belong to the async Game Master flow:
 - `RunGameMasterUseCase` tests verify `gm_triggered` payload enrichment for latency and token metrics fields
 - `admin-metrics.test.ts` now covers auth, not-found, empty metrics, two-turn GM metrics, and no-GM turn behavior via `app.inject()`
 - New stack-E2E file `admin-metrics.stack-e2e.test.ts` adds live-stack auth/not-found checks and includes an explicit skipped TODO for seeded happy-path coverage
+
+### EPIC 4.3 — Performance Baseline: **complete** (April 30, 2026)
+
+- `turn_completed` events persisted to event log on every successful avatar turn, capturing avatar LLM latency, total turn latency, token counts, model, and `hasGm` flag
+- `gm_triggered` event payload enriched with GM LLM latency and token usage
+- `GetTurnMetricsUseCase` added; reads event log, joins turn and GM events by `correlationId`, computes per-turn metrics and session-level summary statistics
+- `GET /v1/admin/sessions/{sessionId}/metrics` implemented (API-key required); returns `ApiResponse<TurnMetricsReport>` with per-turn and summary data
+- Route returns `404` for unknown sessions and `200` with empty turns for sessions with no metric events
+- Unit tests cover `GetTurnMetricsUseCase` scenarios including legacy events and orphan GM events
+- Route tests cover auth, not-found, empty, and data-populated cases
+- Stack-E2E covers auth rejection and not-found; happy-path is deferred pending a stack session seeding utility
+- Quality gates confirmed: `pnpm lint`, `pnpm typecheck`, `pnpm test` pass
 
 ### EPIC 2.6 — GM Debug Panel v1 + Observability APIs: **complete** (April 28, 2026)
 
@@ -446,7 +458,7 @@ GM system — Prompt 05 (Tests and hardening) is done, then simplified by the Ap
 | EPIC 4.1 — Async Game Master v1       | **Complete** | Every-turn async RunGameMasterUseCase, GM state persistence (PostgresGmStateRepository), event log (PostgresEventLogRepository), guidance note injection into Avatar prompt |
 | EPIC 4.4 — Multi-Avatar Navigation v1 | **Complete** | Active-avatar routing, manual+GM handoff flow, GM-owned unlocks, transition history endpoints, and test/doc hardening are implemented and validated                         |
 | EPIC 4.2 — Memory Layer v1            | Not started  | Session summary + persistent user facts                                                                                                                                     |
-| EPIC 4.3 — Performance Baseline       | Not started  | TTFT metrics, step timing, Avatar-only vs Avatar+GM comparison                                                                                                              |
+| EPIC 4.3 — Performance Baseline       | **Complete** | `turn_completed` + enriched `gm_triggered` event metrics, `GetTurnMetricsUseCase`, and `GET /v1/admin/sessions/{sessionId}/metrics` implemented with full test hardening    |
 
 ### Sprint 5 — Back-office v1
 
