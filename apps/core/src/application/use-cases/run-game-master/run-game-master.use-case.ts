@@ -103,7 +103,7 @@ export class RunGameMasterUseCase {
     )
     if (llmCallResult === null) return
 
-    const { llmRequest, llmResponse } = llmCallResult
+    const { llmRequest, llmResponse, llmLatencyMs } = llmCallResult
 
     const output = safeParseGameMasterOutput(llmResponse.content)
     if (output === null) {
@@ -162,6 +162,7 @@ export class RunGameMasterUseCase {
       triggerReason,
       gmRunStartMs,
       llmStart,
+      llmLatencyMs,
       llmRequest,
       llmResponse,
       observability: this.observability,
@@ -184,6 +185,7 @@ export class RunGameMasterUseCase {
       messages: Array<{ role: 'user'; content: string }>
     }
     llmResponse: LlmResponse
+    llmLatencyMs: number
   } | null> {
     const llmRequest = {
       systemPrompt: buildGameMasterSystemPrompt(),
@@ -191,8 +193,9 @@ export class RunGameMasterUseCase {
     }
 
     try {
+      const llmCallStart = Date.now()
       const llmResponse = await this.llm.complete(llmRequest)
-      return { llmRequest, llmResponse }
+      return { llmRequest, llmResponse, llmLatencyMs: Date.now() - llmCallStart }
     } catch (err: unknown) {
       console.error('[GM] LLM call failed:', err)
       await incrementInteractionAndSave(this.gmStateRepository, input.sessionId, currentState)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
@@ -45,6 +46,7 @@ function createHarness(unlockTarget: UnlockTarget = null) {
       }),
   }
   const observability = new NullObservabilityAdapter()
+  const eventLogRepository = new InMemoryEventLogRepository()
   const runGameMaster = new RunGameMasterUseCase(
     new InMemoryGmStateRepository(),
     sessionRepository,
@@ -79,6 +81,7 @@ function createHarness(unlockTarget: UnlockTarget = null) {
       scenarioRepository,
       messageRepository,
       avatarLlm,
+      eventLogRepository,
       observability,
       runGameMaster,
     ),

@@ -511,6 +511,7 @@ Operational events useful for debugging and metrics.
 ### Examples
 
 - gm_triggered
+- turn_completed
 - retrieval_used
 - llm_error
 - fallback_used
@@ -529,8 +530,9 @@ Use only events that are actually useful.
 - **In-memory:** `InMemoryEventLogRepository` in `apps/core/src/infrastructure/db/in-memory-event-log.repository.ts`
 - **Postgres:** `PostgresEventLogRepository` in `apps/core/src/infrastructure/db/repositories/postgres-event-log.repository.ts`
 - **Domain type:** `GameMasterEvent` added to `apps/core/src/domain/game-master/game-master.types.ts`
-- **Status:** Fully implemented. Currently used for GM diagnostic events (`gm_triggered`, `gm_error`).
-- GM emits `gm_triggered` after successful post-turn evaluation and `gm_error` for safe GM failures via `RunGameMasterUseCase`
+- **Status:** Fully implemented. Used for GM diagnostics and turn timing events (`gm_triggered`, `gm_error`, `turn_completed`).
+- `SendMessageUseCase` appends `turn_completed` for each successful avatar turn (includes latency and token metrics in payload)
+- GM emits `gm_triggered` after successful post-turn evaluation and `gm_error` for safe GM failures via `RunGameMasterUseCase`; `gm_triggered` payload includes latency/tokens plus mirrored `correlationId` for query joins
 
 The `request_id` and `correlation_id` fields are essential for tracing failures across async flows without requiring a full distributed tracing stack.
 

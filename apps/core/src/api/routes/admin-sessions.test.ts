@@ -310,7 +310,64 @@ describe('GET /v1/admin/sessions/:sessionId/events behavior', () => {
     expect(response.body).not.toContain('secret user input')
     expect(response.body).not.toContain('hidden prompt')
   })
+})
 
+describe('GET /v1/admin/sessions/:sessionId/events turn-completed behavior', () => {
+  it('returns turn_completed events in safe shape', async () => {
+    const app = makeApp({
+      events: [
+        makeEvent({
+          type: 'turn_completed',
+          correlationId: 'corr_turn',
+          payload: {
+            correlationId: 'corr_turn',
+            conversationId: 'conversation_1',
+            turnIndex: 3,
+            avatarId: 'avatar_1',
+            avatarLatencyMs: 16,
+            totalTurnLatencyMs: 24,
+            inputTokens: 13,
+            outputTokens: 21,
+            totalTokens: 34,
+            model: 'null-model',
+            hasGm: true,
+            userMessageText: 'secret user input',
+          },
+        }),
+      ],
+    })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/admin/sessions/session_1/events',
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ events: Array<{ type: string; payload: unknown }> }>>()
+    expect(body.data?.events[0]).toEqual(
+      expect.objectContaining({
+        type: 'turn_completed',
+        payload: {
+          correlationId: 'corr_turn',
+          conversationId: 'conversation_1',
+          turnIndex: 3,
+          avatarId: 'avatar_1',
+          avatarLatencyMs: 16,
+          totalTurnLatencyMs: 24,
+          inputTokens: 13,
+          outputTokens: 21,
+          totalTokens: 34,
+          model: 'null-model',
+          hasGm: true,
+        },
+      }),
+    )
+    expect(response.body).not.toContain('secret user input')
+  })
+})
+
+describe('GET /v1/admin/sessions/:sessionId/events pagination behavior', () => {
   it('validates limit, defaults to 50, and clamps to 200', async () => {
     const events = Array.from({ length: 205 }, (_, index) =>
       makeEvent({ correlationId: `corr_${String(index).padStart(3, '0')}` }),

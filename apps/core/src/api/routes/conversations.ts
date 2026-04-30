@@ -2,6 +2,7 @@ import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
+import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
@@ -16,6 +17,7 @@ import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
@@ -32,6 +34,7 @@ type ConversationsRouteOptions = {
   scenarioRepository?: IScenarioRepository
   sessionRepository?: ISessionRepository
   conversationRepository?: IConversationRepository
+  eventLogRepository?: IEventLogRepository
   messageRepository?: IMessageRepository
   runGameMasterUseCase?: RunGameMasterUseCase
 }
@@ -190,6 +193,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
   const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
   const conversationRepository =
     options.conversationRepository ?? new InMemoryConversationRepository()
+  const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
   const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
 
   return {
@@ -203,6 +207,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       scenarioRepository,
       messageRepository,
       llmAdapter,
+      eventLogRepository,
       observabilityAdapter,
       options.runGameMasterUseCase ?? null,
     ),

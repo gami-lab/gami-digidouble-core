@@ -97,11 +97,26 @@ function makeErrorEvent(): StoredEvent {
   })
 }
 
-describe('ListSessionEventsUseCase', () => {
-  it('includes only gm_triggered and gm_error types; excludes system_internal', async () => {
+describe('ListSessionEventsUseCase — filtering', () => {
+  it('includes gm and turn_completed events; excludes unrelated system_internal', async () => {
     const { useCase } = createUseCase({
       events: [
         makeEvent({ type: 'system_internal', correlationId: 'corr_internal' }),
+        makeEvent({
+          type: 'turn_completed',
+          payload: {
+            conversationId: 'conversation_1',
+            turnIndex: 5,
+            avatarId: 'avatar_1',
+            avatarLatencyMs: 11,
+            totalTurnLatencyMs: 22,
+            inputTokens: 9,
+            outputTokens: 7,
+            totalTokens: 16,
+            model: 'null-model',
+            hasGm: true,
+          },
+        }),
         makeEvent(),
         makeEvent({
           type: 'gm_error',
@@ -122,9 +137,15 @@ describe('ListSessionEventsUseCase', () => {
 
     const output = await useCase.execute({ sessionId: 'session_1' })
 
-    expect(output.events.map((event) => event.type)).toEqual(['gm_triggered', 'gm_error'])
+    expect(output.events.map((event) => event.type)).toEqual([
+      'turn_completed',
+      'gm_triggered',
+      'gm_error',
+    ])
   })
+})
 
+describe('ListSessionEventsUseCase — gm payload safety', () => {
   it('maps gm_triggered payload to safe shape and strips sensitive fields', async () => {
     const { useCase } = createUseCase({ events: [makeEvent()] })
 
@@ -188,7 +209,55 @@ describe('ListSessionEventsUseCase', () => {
     })
     expect(JSON.stringify(output)).not.toContain('secret skip input')
   })
+})
 
+describe('ListSessionEventsUseCase — turn completed mapping', () => {
+  it('maps turn_completed payload to safe shape', async () => {
+    const { useCase } = createUseCase({
+      events: [
+        makeEvent({
+          type: 'turn_completed',
+          payload: {
+            conversationId: 'conversation_1',
+            turnIndex: 2,
+            avatarId: 'avatar_1',
+            avatarLatencyMs: 8,
+            totalTurnLatencyMs: 19,
+            inputTokens: 13,
+            outputTokens: 21,
+            totalTokens: 34,
+            model: 'null-model',
+            hasGm: false,
+          },
+        }),
+      ],
+    })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.events).toEqual([
+      {
+        type: 'turn_completed',
+        correlationId: 'corr_1',
+        createdAt: '2026-04-28T10:05:00.000Z',
+        payload: {
+          conversationId: 'conversation_1',
+          turnIndex: 2,
+          avatarId: 'avatar_1',
+          avatarLatencyMs: 8,
+          totalTurnLatencyMs: 19,
+          inputTokens: 13,
+          outputTokens: 21,
+          totalTokens: 34,
+          model: 'null-model',
+          hasGm: false,
+        },
+      },
+    ])
+  })
+})
+
+describe('ListSessionEventsUseCase — limits and errors', () => {
   it('uses default limit and clamps oversized limits', async () => {
     const { useCase, findBySessionIdMock } = createUseCase()
 

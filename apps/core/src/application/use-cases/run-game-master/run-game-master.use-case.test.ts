@@ -203,6 +203,26 @@ describe('RunGameMasterUseCase — event log', () => {
     expect(JSON.stringify(event?.payload ?? {})).not.toContain('secret user input')
     expect(JSON.stringify(event?.payload ?? {})).not.toContain('systemPrompt')
   })
+
+  it('enriches gm_triggered payload with latency, token usage, and correlation id', async () => {
+    const eventLog = new InMemoryEventLogRepository()
+    const useCase = createUseCase(eventLog)
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 2,
+      correlationId: 'corr_metric',
+    })
+
+    const event = eventLog.getAll()[0]
+    expect(typeof event?.payload['latencyMs']).toBe('number')
+    expect(event?.payload['inputTokens']).toBe(10)
+    expect(event?.payload['outputTokens']).toBe(20)
+    expect(event?.payload['correlationId']).toBe('corr_metric')
+  })
 })
 
 describe('RunGameMasterUseCase — error handling', () => {

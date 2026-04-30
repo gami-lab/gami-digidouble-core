@@ -3,9 +3,11 @@ import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { GameMasterStateSummary } from '../../../domain/game-master/game-master.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type {
+  GmSessionEventPayload,
   ListSessionEventsInput,
   ListSessionEventsOutput,
   SessionEventRecord,
+  TurnCompletedEventPayload,
 } from './list-session-events.types.js'
 
 const DEFAULT_LIMIT = 50
@@ -38,21 +40,26 @@ function resolveLimit(limit: number | undefined): number {
 }
 
 function toSafeSessionEvent(event: StoredEvent): SessionEventRecord[] {
-  if (event.type !== 'gm_triggered' && event.type !== 'gm_error') return []
+  if (event.type !== 'gm_triggered' && event.type !== 'gm_error' && event.type !== 'turn_completed')
+    return []
   if (event.correlationId === undefined || event.createdAt === undefined) return []
+  const payload =
+    event.type === 'turn_completed'
+      ? toSafeTurnCompletedPayload(event.payload)
+      : toSafePayload(event.payload)
 
   return [
     {
       type: event.type,
       correlationId: event.correlationId,
       createdAt: event.createdAt,
-      payload: toSafePayload(event.payload),
+      payload,
     },
   ]
 }
 
-function toSafePayload(payload: Record<string, unknown>): SessionEventRecord['payload'] {
-  const safePayload: SessionEventRecord['payload'] = {
+function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload {
+  const safePayload: GmSessionEventPayload = {
     triggerReason: readStringOrNull(payload['triggerReason']),
     turnIndex: readNumber(payload['turnIndex']),
     interactionCount: readNumber(payload['interactionCount']),
@@ -75,6 +82,22 @@ function toSafePayload(payload: Record<string, unknown>): SessionEventRecord['pa
   }
 }
 
+function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompletedEventPayload {
+  return {
+    conversationId: readString(payload['conversationId']),
+    turnIndex: readNumber(payload['turnIndex']),
+    avatarId: readString(payload['avatarId']),
+    avatarLatencyMs: readNumber(payload['avatarLatencyMs']),
+    totalTurnLatencyMs: readNumber(payload['totalTurnLatencyMs']),
+    inputTokens: readNumber(payload['inputTokens']),
+    outputTokens: readNumber(payload['outputTokens']),
+    totalTokens: readNumber(payload['totalTokens']),
+    model: readString(payload['model']),
+    hasGm: readBoolean(payload['hasGm']),
+    ...readOptionalStringField(payload, 'correlationId'),
+  }
+}
+
 function readStateSummary(value: unknown): GameMasterStateSummary {
   const record = isRecord(value) ? value : {}
   return {
@@ -90,7 +113,7 @@ function readOptionalStateSummary(value: unknown): GameMasterStateSummary | unde
   return isRecord(value) ? readStateSummary(value) : undefined
 }
 
-function readDecision(value: unknown): SessionEventRecord['payload']['decision'] | undefined {
+function readDecision(value: unknown): GmSessionEventPayload['decision'] | undefined {
   if (!isRecord(value)) return undefined
   const conversationMode = value['conversationMode']
   return {
@@ -121,10 +144,14 @@ function readOptionalString(value: unknown): string | undefined {
 }
 
 function readOptionalStringField<
-  K extends 'suggestedAvatarId' | 'suggestedAvatarReason' | 'switchedAvatarId',
+  K extends 'suggestedAvatarId' | 'suggestedAvatarReason' | 'switchedAvatarId' | 'correlationId',
 >(value: Record<string, unknown>, key: K): Partial<Record<K, string>> {
   const field = readOptionalString(value[key])
   return field !== undefined ? ({ [key]: field } as Partial<Record<K, string>>) : {}
+}
+
+function readString(value: unknown): string {
+  return typeof value === 'string' ? value : ''
 }
 
 function readOptionalStringArrayField(
@@ -141,6 +168,10 @@ function readNumber(value: unknown): number {
 
 function readOptionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function readBoolean(value: unknown): boolean {
+  return value === true
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

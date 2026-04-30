@@ -95,6 +95,7 @@ export async function emitTriggeredGameMasterTurn(args: {
   triggerReason: string
   gmRunStartMs: number
   llmStart: number
+  llmLatencyMs: number
   llmRequest: {
     systemPrompt: string
     messages: Array<{ role: 'user'; content: string }>
@@ -119,9 +120,11 @@ export async function emitTriggeredGameMasterTurn(args: {
       stateBefore: buildStateSummary(args.currentState),
       decision: buildTriggeredDecision(args.output, args.unlockedAvatarIds, args.switchedAvatarId),
       stateAfter: buildStateSummary(args.reconciledState),
-      latencyMs: Date.now() - args.gmRunStartMs,
+      latencyMs: args.llmLatencyMs,
       inputTokens: args.llmResponse.inputTokens,
       outputTokens: args.llmResponse.outputTokens,
+      correlationId: args.input.correlationId,
+      totalLatencyMs: Date.now() - args.gmRunStartMs,
     },
   })
   await traceSafe(args.observability, {

@@ -14,6 +14,7 @@ const listAvatarsByScenarioIdMock = vi.fn()
 const findMessagesByConversationIdMock = vi.fn()
 const saveMessageMock = vi.fn()
 const completeMock = vi.fn()
+const appendEventMock = vi.fn()
 const traceMock = vi.fn()
 const flushMock = vi.fn()
 const runGameMasterExecuteMock = vi.fn()
@@ -60,6 +61,7 @@ const messageRepository = {
 }
 
 const llm = { complete: completeMock }
+const eventLogRepository = { append: appendEventMock, findBySessionId: vi.fn() }
 const observability = { trace: traceMock, flush: flushMock }
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -112,6 +114,7 @@ function createUseCase(withRunGameMaster = false): SendMessageUseCase {
     scenarioRepository,
     messageRepository,
     llm,
+    eventLogRepository,
     observability,
     runGameMasterUseCase,
   )
@@ -130,6 +133,7 @@ beforeEach(() => {
   completeMock.mockReset()
   traceMock.mockReset()
   flushMock.mockReset()
+  appendEventMock.mockReset()
   runGameMasterExecuteMock.mockReset()
 
   findSessionByIdMock.mockResolvedValue(makeSession())
@@ -157,6 +161,7 @@ beforeEach(() => {
   })
   traceMock.mockResolvedValue(undefined)
   flushMock.mockResolvedValue(undefined)
+  appendEventMock.mockResolvedValue(undefined)
   runGameMasterExecuteMock.mockResolvedValue(undefined)
 })
 
@@ -205,6 +210,46 @@ describe('SendMessageUseCase — observability payload', () => {
     expect(traceArg.input?.systemPrompt).toContain('You are Ava.')
     expect(traceArg.input?.messages).toEqual([{ role: 'user', content: 'Hello tracing' }])
     expect(traceArg.metadata?.['model']).toBe('null-model')
+  })
+
+  it('emits turn_completed event payload in a non-blocking path', async () => {
+    const useCase = createUseCase(true)
+    findMessagesByConversationIdMock.mockResolvedValue([
+      {
+        messageId: 'msg_u_1',
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'old',
+        createdAt: '2026-04-18T10:00:00.000Z',
+      },
+    ])
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello tracing' })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const eventArg = appendEventMock.mock.calls[0]?.[0] as {
+      type: string
+      severity: string
+      sessionId?: string
+      correlationId?: string
+      payload: Record<string, unknown>
+    }
+
+    expect(eventArg.type).toBe('turn_completed')
+    expect(eventArg.severity).toBe('info')
+    expect(eventArg.sessionId).toBe('session_1')
+    expect(typeof eventArg.correlationId).toBe('string')
+    expect(eventArg.payload).toMatchObject({
+      conversationId: 'conversation_1',
+      turnIndex: 2,
+      avatarId: 'avatar_1',
+      avatarLatencyMs: 5,
+      inputTokens: 10,
+      outputTokens: 20,
+      totalTokens: 30,
+      model: 'null-model',
+      hasGm: true,
+    })
   })
 })
 

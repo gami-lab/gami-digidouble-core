@@ -37,6 +37,13 @@ Avatar unlocking and routing now belong to the async Game Master flow:
 - Scenario and avatar APIs now expose persisted `config` consistently on create/list/update responses (`GET /v1/scenarios`, `POST /v1/scenarios/:scenarioId/avatars`, `GET /v1/scenarios/:scenarioId/avatars`, `PATCH /v1/avatars/:avatarId`)
 - Regression coverage added for every-turn GM calls, GM unlock decisions, SendMessage no-unlock ownership, avatar prompt awareness, and AI Guided Discovery unlock/switch flows
 
+### Turn timing persisted in event log (April 30, 2026)
+
+- `SendMessageUseCase` now appends a non-blocking `turn_completed` event to `event_log` on every successful avatar turn
+- `turn_completed` payload includes correlation/session join fields and turn metrics: `conversationId`, `turnIndex`, `avatarId`, `avatarLatencyMs`, `totalTurnLatencyMs`, `inputTokens`, `outputTokens`, `totalTokens`, `model`, `hasGm`
+- `RunGameMasterUseCase` `gm_triggered` payload is enriched with `latencyMs`, `inputTokens`, `outputTokens`, and `correlationId` for correlation-aware metrics queries
+- `GET /v1/admin/sessions/{sessionId}/events` now returns safe `turn_completed` entries in addition to GM diagnostics
+
 ### EPIC 2.6 — GM Debug Panel v1 + Observability APIs: **complete** (April 28, 2026)
 
 The GM Debug Panel and supporting observability APIs are implemented, tested, and documented:

@@ -1,5 +1,6 @@
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
+import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../../ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
@@ -23,6 +24,7 @@ export class SendMessageUseCase {
     private readonly scenarioRepository: IScenarioRepository,
     private readonly messageRepository: IMessageRepository,
     private readonly llm: ILlmAdapter,
+    private readonly eventLogRepository: IEventLogRepository,
     private readonly observability: IObservabilityAdapter,
     private readonly runGameMasterUseCase: RunGameMasterUseCase | null = null,
   ) {}
@@ -62,8 +64,8 @@ export class SendMessageUseCase {
       ...(session.gmNotes !== undefined ? { gmNotes: null } : {}),
     })
 
+    const nextTurnIndex = historyMessages.filter((message) => message.role === 'user').length + 1
     if (this.runGameMasterUseCase !== null) {
-      const nextTurnIndex = historyMessages.filter((message) => message.role === 'user').length + 1
       void this.runGameMasterUseCase
         .execute({
           sessionId: session.sessionId,
@@ -86,6 +88,19 @@ export class SendMessageUseCase {
     }
 
     const latencyMs = Date.now() - start
+    this.emitTurnCompletedEventNonBlocking({
+      requestId,
+      sessionId: session.sessionId,
+      conversationId: conversation.conversationId,
+      turnIndex: nextTurnIndex,
+      avatarId: conversation.avatarId,
+      avatarLatencyMs: response.latencyMs,
+      totalTurnLatencyMs: latencyMs,
+      inputTokens: response.inputTokens,
+      outputTokens: response.outputTokens,
+      model: response.model,
+      hasGm: this.runGameMasterUseCase !== null,
+    })
     this.traceNonBlocking(requestId, session.sessionId, llmRequest, response, latencyMs)
 
     return this.buildOutput(
@@ -287,6 +302,46 @@ export class SendMessageUseCase {
       })
       .catch((err: unknown) => {
         console.error('[send-message] Observability trace failed:', err)
+      })
+  }
+
+  private emitTurnCompletedEventNonBlocking(args: {
+    requestId: string
+    sessionId: string
+    conversationId: string
+    turnIndex: number
+    avatarId: string
+    avatarLatencyMs: number
+    totalTurnLatencyMs: number
+    inputTokens: number
+    outputTokens: number
+    model: string
+    hasGm: boolean
+  }): void {
+    const payload = {
+      correlationId: args.requestId,
+      conversationId: args.conversationId,
+      turnIndex: args.turnIndex,
+      avatarId: args.avatarId,
+      avatarLatencyMs: args.avatarLatencyMs,
+      totalTurnLatencyMs: args.totalTurnLatencyMs,
+      inputTokens: args.inputTokens,
+      outputTokens: args.outputTokens,
+      totalTokens: args.inputTokens + args.outputTokens,
+      model: args.model,
+      hasGm: args.hasGm,
+    } as const
+
+    void this.eventLogRepository
+      .append({
+        sessionId: args.sessionId,
+        type: 'turn_completed',
+        severity: 'info',
+        correlationId: args.requestId,
+        payload,
+      })
+      .catch((err: unknown) => {
+        console.error('[send-message] Event log append failed for turn_completed:', err)
       })
   }
 
