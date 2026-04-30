@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { createServer } from '../server.js'
 import type { Config } from '../../config.js'
 import type { ApiResponse } from '@gami/shared'
+import type { ServerAdapters } from '../server.js'
 
 const testConfig: Config = {
   port: 3000,
@@ -35,5 +36,30 @@ describe('GET /health', () => {
     expect(body.data).not.toBeNull()
     expect(body.data?.status).toBe('ok')
     expect(typeof body.data?.timestamp).toBe('string')
+  })
+
+  it('never touches external adapters — safe as a Kubernetes liveness probe', async () => {
+    const failIfCalled = (): never => {
+      throw new Error('GET /health must not call any external adapter')
+    }
+
+    const adapters: ServerAdapters = {
+      llmAdapter: { complete: vi.fn(failIfCalled) },
+      avatarRepository: {
+        create: vi.fn(failIfCalled),
+        findById: vi.fn(failIfCalled),
+        listByScenarioId: vi.fn(failIfCalled),
+        delete: vi.fn(failIfCalled),
+        update: vi.fn(failIfCalled),
+      },
+      probes: [{ probe: vi.fn(failIfCalled) }],
+    }
+
+    const app = createServer(testConfig, adapters)
+
+    const response = await app.inject({ method: 'GET', url: '/health' })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json<ApiResponse<{ status: string }>>().data?.status).toBe('ok')
   })
 })

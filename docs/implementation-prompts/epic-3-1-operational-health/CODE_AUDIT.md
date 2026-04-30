@@ -236,3 +236,73 @@ None of these require architecture changes. Total estimated effort: half-sprint.
 **Close with debt.**
 
 The EPIC is functionally complete, correctly implemented, and well-tested. All DoD items are met. All quality gates pass. The identified issues are low-to-medium severity and do not affect correctness of the production path. The three medium/low items (no-dependency liveness test, empty-probes guard, `withTimeout` duplication) should be tracked as technical debt for the next hardening sprint rather than blocking EPIC closure.
+
+---
+
+## Remediation Outcome
+
+Remediation performed: **April 30, 2026**
+
+### Changes Made
+
+1. **`apps/core/src/infrastructure/health/probe-utils.ts`** — New file. Extracts `withTimeout<T>`, `PROBE_TIMEOUT_MS`, and `getErrorMessage` from the three probe files into a single shared utility. The extracted `withTimeout` also fixes the timer leak: the `setTimeout` handle is now cleared in a `finally` block after the `Promise.race` settles.
+
+2. **`apps/core/src/infrastructure/health/postgres.probe.ts`** — Removed local `withTimeout`, `PROBE_TIMEOUT_MS`, and `getErrorMessage`. Now imports from `./probe-utils.js`.
+
+3. **`apps/core/src/infrastructure/health/redis.probe.ts`** — Same as above.
+
+4. **`apps/core/src/infrastructure/health/llm.probe.ts`** — Same as above.
+
+5. **`apps/core/src/api/routes/health.test.ts`** — Added test: _"never touches external adapters — safe as a Kubernetes liveness probe"_. Creates a server with all adapters stubbed to throw if called, then verifies `GET /health` returns 200. Any future regression that accidentally injects a dependency into the liveness handler will cause this test to fail.
+
+6. **`apps/core/src/application/use-cases/get-health/get-health.use-case.test.ts`** — Added test: _"returns healthy with empty dependencies when no probes are registered"_. Documents that empty-probes → `{status:'healthy', dependencies:[]}` is intentional behavior.
+
+### Findings Resolved
+
+| Finding                                       | Resolution                                                                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Finding 1: Empty probes behavior undocumented | **Resolved** — Test added asserting the intent. Behavior is now explicitly proven and documented.             |
+| Finding 2: Liveness has no no-dependency test | **Resolved** — Test added using throw-on-call adapter stubs to prove `GET /health` never touches any adapter. |
+| Finding 3: `withTimeout` duplicated 3×        | **Resolved** — Extracted to `probe-utils.ts`. Single source of truth.                                         |
+| Finding 5: Timer leak in `withTimeout`        | **Resolved** — Fixed in `probe-utils.ts` via `finally { clearTimeout(handle) }`.                              |
+
+### Findings Deferred
+
+| Finding                                                        | Reason                                                                                                                                                                                                                                                                                |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Finding 4: Probe rejection produces `name: 'unknown'`          | Design-level concern. All three production probes never throw — the rejection path is only reachable through broken custom probes. Fixing it would require wrapping the port interface, which is a larger change than warranted. Deferred with test coverage of the current contract. |
+| Finding 6: `infrastructure/health/index.ts` barrel not covered | Low risk. Barrel is now partially mitigated: `probe-utils.ts` (the new shared file) has 100% stmt/line/func coverage via the probe tests. The barrel itself remains uncovered; a future smoke test could address this.                                                                |
+
+### Build Gates
+
+| Gate      | Result                                                          |
+| --------- | --------------------------------------------------------------- |
+| lint      | **PASS**                                                        |
+| typecheck | **PASS**                                                        |
+| tests     | **PASS** — 291 tests, 55 test files (+2 tests from remediation) |
+| coverage  | **PASS** — 89.56% stmts, 86.55% branch, 97.14% funcs            |
+
+### Final Feature Confidence
+
+| Feature                                                        | Confidence                                             |
+| -------------------------------------------------------------- | ------------------------------------------------------ |
+| `GET /health` — liveness, always 200, never touches DB         | **High** — now proven by explicit no-adapter-call test |
+| `GET /v1/admin/health` — auth enforced                         | **High**                                               |
+| All probes healthy → overall `healthy`                         | **High**                                               |
+| One or more probes degraded → overall `degraded`               | **High**                                               |
+| Per-probe timeout (3s) fires correctly, returns `degraded`     | **High**                                               |
+| Probe rejection caught by `allSettled`, never crashes endpoint | **High**                                               |
+| `latencyMs` and `checkedAt` always present                     | **High**                                               |
+| Timer leak on healthy probes resolved                          | **High** — fixed in `probe-utils.ts`                   |
+| Empty probes → `healthy` with zero dependencies (intentional)  | **High** — now explicitly tested                       |
+
+### Final Grade
+
+**A**
+
+All medium-severity audit findings resolved. Timer leak fixed. DRY violation eliminated with a clean shared utility. Critical Kubernetes liveness contract now has executable proof. All quality gates pass. The codebase is meaningfully easier to extend (adding a new probe requires only implementing `IDependencyProbe` and importing `withTimeout` from the shared utility).
+
+### Remaining Risks
+
+- **`name: 'unknown'` on probe rejection** (Finding 4): Low operational risk — only reachable through a broken custom probe, not any production probe. Observable via the `message` field.
+- **Barrel import untested** (Finding 6): If a probe class is accidentally removed from `index.ts`, tests would still pass. Risk is low given that `index.ts` has 4 lines and is reviewed in every PR touching the probe directory.

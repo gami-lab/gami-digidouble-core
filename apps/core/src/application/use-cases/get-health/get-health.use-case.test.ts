@@ -86,4 +86,13 @@ describe('GetHealthUseCase', () => {
 
     expect(Number.isNaN(Date.parse(report.checkedAt))).toBe(false)
   })
+
+  it('returns healthy with empty dependencies when no probes are registered', async () => {
+    const useCase = new GetHealthUseCase([])
+
+    const report = await useCase.execute()
+
+    expect(report.status).toBe('healthy')
+    expect(report.dependencies).toHaveLength(0)
+  })
 })

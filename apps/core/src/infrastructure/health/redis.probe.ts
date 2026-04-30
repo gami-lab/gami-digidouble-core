@@ -1,8 +1,7 @@
 import type { IDependencyProbe } from '../../application/ports/IDependencyProbe.js'
 import type { DependencyProbeResult } from '../../domain/health/index.js'
 import type { Redis } from 'ioredis'
-
-const PROBE_TIMEOUT_MS = 3_000
+import { PROBE_TIMEOUT_MS, getErrorMessage, withTimeout } from './probe-utils.js'
 
 export class RedisProbe implements IDependencyProbe {
   constructor(private readonly client: Redis) {}
@@ -31,19 +30,4 @@ export class RedisProbe implements IDependencyProbe {
       }
     }
   }
-}
-
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return await Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('probe timed out'))
-      }, timeoutMs)
-    }),
-  ])
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
