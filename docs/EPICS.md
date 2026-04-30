@@ -714,6 +714,33 @@ The async model remains viable in real conditions.
 
 ---
 
+## EPIC 4.5 — Player Runtime State & World Events
+
+**Purpose**  
+Let clients know when the world/session state has changed after an async GM run.
+
+**Description**  
+Add a player-facing runtime-state model and SSE event stream so clients can react to async world changes without relying on implicit polling or waiting for the next user turn.
+
+**Includes**
+
+- SSE runtime stream endpoint: `GET /v1/sessions/{sessionId}/events/stream`
+- `GET /v1/sessions/{sessionId}/runtime-state`
+- explicit runtime status model (`canSendMessage`, `isProcessing`, optional pending event)
+- runtime events emitted from async GM/system decisions (unlocks, suggestions, choice required, processing lifecycle)
+- session-scoped event publication (no event leakage across sessions)
+
+**DoD**
+
+- client can react to async world changes in realtime via SSE
+- client can retrieve a consistent runtime-state snapshot at any time
+- GM remains async and non-blocking while its decisions become observable to clients
+- no WebSocket dependency in Phase A (SSE only)
+- no heavy event sourcing/event-store redesign introduced
+- async GM remains non-blocking by default
+
+---
+
 # Sprint 3 — Operability + Control
 
 ---
@@ -1269,13 +1296,17 @@ If an EPIC does not leave the system more usable, more testable, more operable, 
 
 ## Recommended implementation order
 
-### 3. EPIC 5.5 — User Persona System
+### 2. EPIC 5.5 — User Persona System
 
 This is small, foundational, and needed by the Context Engine and Avatar v2.
 
-### 4. EPIC 2.2b — Conversation Lifecycle v2
+### 3. EPIC 2.2b — Conversation Lifecycle v2
 
 You need the “conversation is over” signal before proper memory compaction can work.
+
+### 4. EPIC 4.5 — Player Runtime State & World Events
+
+Expose runtime state and world events so clients can react to async Game Master changes (conversation end, avatar handoff, session closure) without polling.
 
 ### 5. EPIC 4.2 — Memory Layer v1
 

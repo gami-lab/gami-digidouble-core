@@ -248,6 +248,26 @@ Must test:
 
 ---
 
+## Runtime Events Module (EPIC 4.5)
+
+**Goals:** session-scoped realtime runtime updates without blocking avatar response flow.
+
+Must test:
+
+- SSE connection lifecycle (`GET /v1/sessions/{sessionId}/events/stream` connect, heartbeat, disconnect)
+- authenticated session subscriber receives runtime events emitted after GM runs
+- no cross-session event leakage (session A events are never received by session B subscriber)
+- reconnect behavior (new connection receives subsequent events and remains stable after transient disconnect)
+- runtime-state snapshot consistency (`GET /v1/sessions/{sessionId}/runtime-state`) with latest emitted runtime signals
+- async-first guarantee: runtime-event publication failures do not fail avatar turn responses
+
+Avoid:
+
+- introducing WebSocket-only test paths in Phase A
+- heavy persistence assumptions for runtime events beyond existing event log diagnostics
+
+---
+
 # Critical E2E Flows
 
 Minimum set that must pass on every release:

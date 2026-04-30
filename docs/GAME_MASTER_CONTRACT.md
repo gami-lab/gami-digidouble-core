@@ -121,7 +121,7 @@ Semantic decisions such as avatar unlocks, suggestions, and switches belong to G
    - working memory, long-term facts/events, RAG snippets, and optional user persona are included via context
 6. GM output is parsed and validated
 7. State is reduced, guidance notes are stored into `sessions.gm_notes` for the next turn, and valid avatar unlocks are persisted to `sessions.unlocked_avatar_ids`
-8. If `conversationMode === 'new'` and `nextAvatarId` is a valid active and switchable avatar, the current conversation is closed and a new conversation is opened for the next avatar; `session.activeAvatarId` is updated
+8. Runtime events are emitted from GM decisions (unlocks, suggestions, world-processing state changes) through the system event publisher
 9. `gm_triggered` is emitted for successful GM runs; `gm_error` is emitted for safe failures
 
 This removes the double-latency problem of sequential two-LLM calls.
@@ -232,11 +232,20 @@ export type GameMasterOutput = {
 - `nextAvatarId` = suggested handoff target for a next step
 - `unlockAvatarIds` = active scenario avatars the GM decides should become available now; invalid IDs, inactive avatars, and already-unlocked avatars are ignored
 - `suggestedAvatarId` / `suggestedAvatarReason` = a safe, non-forcing recommendation surfaced in GM diagnostics and future context; it does not switch conversations by itself
-- `stateUpdate.activeAvatarId` keeps session routing deterministic after a switch
-- `conversationMode: 'new' | 'continue'` means start a new bounded conversation or continue the current conversation **inside the same session**
-- `conversationMode: 'new'` is active in MVP runtime (not deferred): `RunGameMasterUseCase` performs the conversation handoff when `nextAvatarId` is valid
+- `stateUpdate.activeAvatarId` is advisory context, not an instruction to auto-switch conversations
+- `conversationMode: 'new' | 'continue'` is a director recommendation consumed by policy and UI orchestration
+- In MVP runtime, GM does **not** close/open conversations asynchronously; conversation switches remain explicit user/API actions
 - `recommendedChoices` allows guided progression without forcing one path
 - `contentTrigger` can signal non-text assets or events
+
+### Runtime event emission capability
+
+GM output can trigger RuntimeEvents (emitted by the system, not by GM directly), for example:
+
+- `unlockAvatarIds` → `runtime.avatar_unlocked`
+- `suggestedAvatarId` / `suggestedAvatarReason` → `runtime.avatar_suggested`
+- `recommendedChoices` present → `runtime.choice_required`
+- GM run start/end lifecycle → `runtime.processing_started` / `runtime.processing_finished`
 
 ---
 
@@ -307,7 +316,7 @@ The GM runs after every completed avatar turn and decides whether to:
 - store a concise director note for the next turn
 - unlock a now-relevant avatar
 - suggest another avatar without forcing a switch
-- switch to another avatar only when it explicitly returns `conversationMode: 'new'` and a valid `nextAvatarId`
+- emit runtime world-update signals that clients can consume via SSE
 
 ## 8.3 What context to provide?
 
@@ -318,6 +327,14 @@ Examples:
 - "Move toward next objective"
 
 👉 This is guidance, not control.
+
+---
+
+# 9. Client communication boundary
+
+- GM does not talk directly to clients.
+- GM produces structured decisions and state updates.
+- API/Application layers translate those decisions into runtime events and runtime-state snapshots.
 
 In addition, GM may propose:
 

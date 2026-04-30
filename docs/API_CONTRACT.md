@@ -74,8 +74,6 @@ Streaming endpoints may additionally use:
 text/event-stream
 ```
 
-or WebSocket.
-
 ## Authentication
 
 Phase A uses simple API key authentication.
@@ -221,6 +219,39 @@ type SessionSummary = {
   startedAt: string
   lastActivityAt: string
   endedAt?: string | null
+}
+```
+
+## Runtime Event
+
+```ts
+type RuntimeEvent = {
+  eventId: string
+  sessionId: string
+  conversationId?: string
+  type:
+    | 'runtime.processing_started'
+    | 'runtime.processing_finished'
+    | 'runtime.avatar_unlocked'
+    | 'runtime.avatar_suggested'
+    | 'runtime.choice_required'
+    | 'runtime.session_closed'
+  occurredAt: string
+  correlationId?: string
+  payload: Record<string, unknown>
+}
+```
+
+## Runtime State
+
+```ts
+type RuntimeState = {
+  sessionId: string
+  conversationId?: string
+  canSendMessage: boolean
+  isProcessing: boolean
+  pendingEvent?: RuntimeEvent
+  updatedAt: string
 }
 ```
 
@@ -672,6 +703,82 @@ type ListSessionConversationsResponse = {
   conversations: ConversationSummary[]
 }
 ```
+
+---
+
+## 4.1 Stream Session Runtime Events (SSE)
+
+### Endpoint
+
+```text
+GET /v1/sessions/{sessionId}/events/stream
+```
+
+### Content Type
+
+```text
+text/event-stream
+```
+
+### SSE Message Format
+
+```text
+event: runtime_event
+id: <eventId>
+data: {"sessionId":"...","type":"runtime.avatar_unlocked","occurredAt":"...","payload":{...}}
+
+```
+
+Heartbeat frame (optional keepalive):
+
+```text
+: keepalive
+
+```
+
+### Semantics
+
+- Stream is scoped to one session.
+- Server emits `runtime_event` frames only for that session.
+- Event ordering is best-effort by emission time.
+- No historical replay in Phase A; stream starts from connect time.
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `404` → `NOT_FOUND` (session missing)
+- `500` → `INTERNAL_ERROR`
+
+---
+
+## 4.2 Get Session Runtime State
+
+### Endpoint
+
+```text
+GET /v1/sessions/{sessionId}/runtime-state
+```
+
+### Response
+
+```ts
+type GetSessionRuntimeStateResponse = {
+  runtimeState: RuntimeState
+}
+```
+
+### Semantics
+
+- Returns derived runtime state for one session.
+- `canSendMessage` is `false` when session/conversation is not message-accepting.
+- `isProcessing` reflects in-flight async world orchestration.
+- `pendingEvent` is optional and present only when the client should surface a world update before next user action.
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `404` → `NOT_FOUND` (session missing)
+- `500` → `INTERNAL_ERROR`
 
 ---
 

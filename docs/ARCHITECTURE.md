@@ -109,6 +109,11 @@ Clients / Tools
     v
 API Layer
     |
+    +--> Event Stream (SSE)
+    |        |
+    |        v
+    |    Client UI reacts to world changes
+    |
     v
 Application Layer
     |
@@ -152,7 +157,8 @@ Adapters
 
 Responsibility:
 
-- HTTP / WebSocket entry points
+- HTTP entry points (including SSE streaming endpoints)
+- SSE entry points for runtime events
 - auth
 - request validation
 - response serialization
@@ -190,6 +196,7 @@ Responsibilities:
 - call domain services
 - call ports/adapters
 - assemble outputs
+- publish runtime events to session-scoped stream subscribers
 
 This layer is the main workflow coordinator.
 
@@ -208,6 +215,7 @@ Examples:
 - how context is assembled
 - how session state evolves
 - how scenarios behave
+- how runtime state is derived from session + conversation + async world status
 
 Must remain framework-agnostic.
 
@@ -267,6 +275,7 @@ Contains:
 - message types and metadata (`domain/conversation/session.types.ts`)
 - streaming responses
 - session lifecycle and conversation lifecycle
+- runtime-state derivation for session-level message readiness
 
 Key use cases:
 
@@ -274,6 +283,8 @@ Key use cases:
 - start conversation in session
 - send message to conversation
 - get conversation history
+- stream runtime events (SSE)
+- get runtime state snapshot
 
 ---
 
@@ -326,6 +337,8 @@ Contains:
 The Game Master guides.
 
 The Game Master should remain lightweight in MVP.
+
+Runtime side effects are emitted as structured runtime events; GM itself does not push directly to clients.
 
 ### Game Master Internal Split
 

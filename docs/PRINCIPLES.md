@@ -167,6 +167,24 @@ Only block when it materially improves the current exchange.
 
 ---
 
+## 8b. Event-Driven UX Over Polling
+
+When async orchestration changes session/world state, clients should be notified through explicit runtime events.
+
+Prefer:
+
+- server-emitted events for runtime changes
+- lightweight runtime-state snapshots for reconnect/recovery
+
+Avoid:
+
+- hidden state changes that are only discovered on next user message
+- mandatory high-frequency polling loops in Phase A
+
+👉 Speaking (Avatar response) and world evolution (GM/system updates) must be observable as separate flows.
+
+---
+
 ## 9. Start Simple, Evolve When Needed
 
 Avoid premature complexity.

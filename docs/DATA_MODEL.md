@@ -222,6 +222,14 @@ Using the movie analogy:
 - Avatar = an actor in that production
 - Session = one concrete movie/playthrough container
 
+### Derived runtime state (EPIC 4.5)
+
+`session_runtime_state` is derived at read time from session/conversation status plus async world-processing signals.
+
+- It is **not** a persisted table in Phase A.
+- It is exposed through API (`GET /v1/sessions/{sessionId}/runtime-state`) and SSE event flow.
+- Keep this model derived/simple to avoid premature event-sourcing complexity.
+
 ---
 
 ## 5. Conversation
