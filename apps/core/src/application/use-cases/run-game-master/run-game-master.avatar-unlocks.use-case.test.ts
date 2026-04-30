@@ -10,6 +10,8 @@ const findSessionByIdMock = vi.fn()
 const updateSessionMock = vi.fn()
 const listAvatarsByScenarioIdMock = vi.fn()
 const findMessagesByConversationIdMock = vi.fn()
+const saveMessageMock = vi.fn()
+const deleteMessagesByConversationIdMock = vi.fn()
 const completeMock = vi.fn()
 const traceMock = vi.fn()
 
@@ -39,8 +41,9 @@ const avatarRepository = {
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
 const messageRepository = {
-  create: vi.fn(),
   findByConversationId: findMessagesByConversationIdMock,
+  save: saveMessageMock,
+  deleteByConversationId: deleteMessagesByConversationIdMock,
 }
 
 function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
@@ -123,6 +126,8 @@ beforeEach(() => {
   updateSessionMock.mockReset()
   listAvatarsByScenarioIdMock.mockReset()
   findMessagesByConversationIdMock.mockReset()
+  saveMessageMock.mockReset()
+  deleteMessagesByConversationIdMock.mockReset()
   completeMock.mockReset()
   traceMock.mockReset()
 
@@ -135,6 +140,8 @@ beforeEach(() => {
     makeAvatar({ avatarId: 'avatar_2', name: 'Theo' }),
   ])
   findMessagesByConversationIdMock.mockResolvedValue([])
+  saveMessageMock.mockResolvedValue(undefined)
+  deleteMessagesByConversationIdMock.mockResolvedValue(0)
   traceMock.mockResolvedValue(undefined)
 })
 

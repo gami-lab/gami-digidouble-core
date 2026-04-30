@@ -53,7 +53,8 @@ function resolveMentionedLockedAvatarIds(
   avatars: AvatarConfig[],
   recentMessages: GameMasterInput['recentMessages'],
 ): Set<string> {
-  const messageCorpus = recentMessages.map((message) => message.content.toLowerCase()).join('\n')
+  const recentMessageList = recentMessages ?? []
+  const messageCorpus = recentMessageList.map((message) => message.content.toLowerCase()).join('\n')
   const lockedAvatars = avatars.filter(
     (avatar) => avatar.status === 'active' && !session.unlockedAvatarIds?.includes(avatar.avatarId),
   )
