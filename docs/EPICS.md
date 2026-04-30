@@ -1266,3 +1266,77 @@ A hybrid response engine improves quality/cost/latency trade-offs versus pure li
 # Final Rule
 
 If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
+
+## Recommended implementation order
+
+### 1. EPIC 3.1 — Operational Health & Dependency Monitoring
+
+Do this first because every later feature depends on knowing whether Postgres, Redis, providers, and embeddings are healthy.
+
+### 2. EPIC 4.3 — Performance Baseline
+
+Before adding memory/RAG/context complexity, measure the current system. Otherwise you won’t know what each new layer costs.
+
+### 3. EPIC 5.5 — User Persona System
+
+This is small, foundational, and needed by the Context Engine and Avatar v2.
+
+### 4. EPIC 2.2b — Conversation Lifecycle v2
+
+You need the “conversation is over” signal before proper memory compaction can work.
+
+### 5. EPIC 4.2 — Memory Layer v1
+
+Implement the simple memory first: session summary + persistent facts. Do not jump directly to pyramidal memory.
+
+### 6. EPIC 4.2b — Memory System v2
+
+Once v1 exists, evolve it into short-term / working / long-term memory.
+
+### 7. EPIC 5.1 — Multi-Layer Knowledge & RAG System v1
+
+Now build RAG, because memory and world/media retrieval need a retrieval infrastructure.
+
+### 8. EPIC 5.2 — Context Engine v2
+
+This should come **after persona + memory + RAG**, because its job is to assemble them. It becomes the integration layer.
+
+### 9. EPIC 2.1b — Avatar Agent v2
+
+Once the Context Engine exists, upgrade avatars to consume persona, memory, and RAG-aware context. Otherwise you risk hardcoding context injection into avatar prompts.
+
+### 10. EPIC 4.1b — Game Master Context Awareness Upgrade
+
+After Context Engine + Avatar v2, upgrade the GM to use the same memory/RAG/persona context.
+
+### 11. EPIC 5.4 — Guided Progression Engine v1
+
+Do this after GM context awareness, because progression depends on better memory, context, and scenario state.
+
+### 12. EPIC 3.2 — Session Inspector v1
+
+At this point, the system has enough complex state that inspection becomes essential: memory, context payloads, RAG results, GM decisions.
+
+### 13. EPIC 3.3 — Replay & Recovery Tools
+
+Replay is more useful once the context/memory pipeline exists, because you’ll need to debug complex turns.
+
+### 14. EPIC 5.3 — Streaming UX Layer
+
+Do this after the core intelligence loop is stable. Streaming improves UX but does not fix reasoning quality.
+
+### 15. EPIC 6.1 — Scenario Builder v1
+
+Only build richer authoring once the underlying concepts are stable: persona, memory, RAG, context, progression.
+
+### 16. EPIC 6.2 — AVA Scenario Validation
+
+Use the real scenario once the core is coherent enough to expose meaningful issues.
+
+### 17. EPIC 5.6 / 6.4 — Hybrid Response System / Optimization
+
+These two overlap strongly. I would merge them later and implement only after you have real usage patterns.
+
+### 18. EPIC 6.3 — Summer Prototype Delivery
+
+Final packaging/demo milestone.
