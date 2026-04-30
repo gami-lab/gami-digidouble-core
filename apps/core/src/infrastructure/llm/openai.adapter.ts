@@ -22,9 +22,11 @@ export class OpenAiAdapter implements ILlmAdapter {
     let completion: OpenAI.ChatCompletion
 
     try {
+      const maxTokens = request.maxTokens
       completion = await this.client.chat.completions.create({
         model,
         messages: buildMessages(request),
+        ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       })
     } catch (err) {
       throw wrapOpenAiError(err)

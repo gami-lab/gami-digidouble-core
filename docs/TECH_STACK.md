@@ -337,6 +337,7 @@ Store:
 ### Choice
 
 - **Redis**
+- **ioredis** client in Core infrastructure (`apps/core/src/infrastructure/cache/index.ts`)
 
 ### Usage
 

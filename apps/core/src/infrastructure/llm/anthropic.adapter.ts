@@ -25,7 +25,7 @@ export class AnthropicAdapter implements ILlmAdapter {
     try {
       message = await this.client.messages.create({
         model,
-        max_tokens: DEFAULT_MAX_TOKENS,
+        max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
         system: request.systemPrompt,
         messages: request.messages.map((m) => ({
           role: m.role,

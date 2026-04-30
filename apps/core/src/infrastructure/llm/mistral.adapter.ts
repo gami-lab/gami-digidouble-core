@@ -23,7 +23,7 @@ export class MistralAdapter implements ILlmAdapter {
 
     try {
       const result = await this.client.chat.complete(
-        { model, messages: buildMessages(request) },
+        { model, messages: buildMessages(request), maxTokens: request.maxTokens },
         { timeoutMs: REQUEST_TIMEOUT_MS },
       )
 
