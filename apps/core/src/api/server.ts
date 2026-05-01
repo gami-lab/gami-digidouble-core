@@ -10,12 +10,14 @@ import type { IGmStateRepository } from '../application/ports/IGmStateRepository
 import type { IScenarioRepository } from '../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
+import type { IUserRepository } from '../application/ports/IUserRepository.js'
 import type { IDependencyProbe } from '../application/ports/IDependencyProbe.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemorySessionRepository } from '../infrastructure/db/in-memory-session.repository.js'
+import { InMemoryUserRepository } from '../infrastructure/db/in-memory-user.repository.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
 import { adminMetricsRoute } from './routes/admin-metrics.js'
 import { adminHealthRoute } from './routes/admin-health.js'
@@ -37,6 +39,7 @@ export interface ServerAdapters {
   scenarioRepository?: IScenarioRepository
   sessionRepository?: ISessionRepository
   messageRepository?: IMessageRepository
+  userRepository?: IUserRepository
   probes?: IDependencyProbe[]
 }
 
@@ -58,6 +61,7 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     ...adapters,
     eventLogRepository: adapters.eventLogRepository ?? new InMemoryEventLogRepository(),
     gmStateRepository: adapters.gmStateRepository ?? new InMemoryGmStateRepository(),
+    userRepository: adapters.userRepository ?? new InMemoryUserRepository(),
   }
 
   const app = Fastify({

@@ -110,6 +110,15 @@ CREATE TABLE IF NOT EXISTS event_log (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ── Users ─────────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS users (
+  id         TEXT        PRIMARY KEY,
+  persona    JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ── Indexes ───────────────────────────────────────────────────────────────────
 
 CREATE INDEX IF NOT EXISTS idx_avatars_scenario_id   ON avatars(scenario_id);

@@ -16,6 +16,7 @@ import {
   PostgresSessionRepository,
   PostgresConversationRepository,
   PostgresMessageRepository,
+  PostgresUserRepository,
 } from './infrastructure/db/index.js'
 
 async function main(): Promise<void> {
@@ -36,6 +37,7 @@ async function main(): Promise<void> {
   const eventLogRepository = new PostgresEventLogRepository(sql)
   const conversationRepository = new PostgresConversationRepository(sql)
   const messageRepository = new PostgresMessageRepository(sql)
+  const userRepository = new PostgresUserRepository(sql)
   const runGameMasterUseCase = new RunGameMasterUseCase(
     gmStateRepository,
     sessionRepository,
@@ -63,6 +65,7 @@ async function main(): Promise<void> {
     sessionRepository,
     conversationRepository,
     messageRepository,
+    userRepository,
     runGameMasterUseCase,
     probes,
   }
