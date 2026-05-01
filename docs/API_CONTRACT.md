@@ -1219,40 +1219,72 @@ type TriggerKnowledgeIngestionResponse = {
 
 # User Memory API
 
-## 13b. Upsert User Persona
+## 13b. User Persona (U1)
 
-Stores lightweight user persona used by context assembly.
+Store and read lightweight user persona used by context assembly.
 
-### Endpoint
+Auth: API key required (`x-api-key`).
+
+### 13b.1 Upsert User Persona
+
+#### Endpoint
 
 ```text
-PATCH /v1/users/{userId}/persona
+PUT /v1/users/{userId}/persona
 ```
 
-### Request
+#### Request
 
 ```ts
-type UpsertUserPersonaRequest = {
-  persona: {
-    role?: string
-    tonePreference?: string
-    interactionHints?: string[]
-  }
-}
+type PutUserPersonaRequest = UserPersona
 ```
 
-At least one field must be provided in `persona`.
+All fields are optional; empty object `{}` is valid.
 
-### Response
+#### Response
 
 ```ts
-type UpsertUserPersonaResponse = {
+type PutUserPersonaResponse = {
   user: {
     userId: string
-    persona: UserPersona
+    persona?: UserPersona
+    createdAt: string
+    updatedAt: string
   }
 }
 ```
+
+#### Error mapping
+
+- `401` → `UNAUTHORIZED`
+- `400` → `VALIDATION_ERROR`
+- `500` → `INTERNAL_ERROR`
+
+### 13b.2 Get User Persona
+
+#### Endpoint
+
+```text
+GET /v1/users/{userId}/persona
+```
+
+#### Response
+
+```ts
+type GetUserPersonaResponse = {
+  persona: UserPersona | null
+}
+```
+
+Behavior:
+
+- returns `200` with `persona: null` when user record does not exist yet
+- never returns `404` for unknown `userId`
+
+#### Error mapping
+
+- `401` → `UNAUTHORIZED`
+- `500` → `INTERNAL_ERROR`
 
 ## 14. List User Memory Facts
 

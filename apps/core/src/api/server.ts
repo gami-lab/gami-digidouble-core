@@ -27,6 +27,7 @@ import { exchangeRoute } from './routes/exchange.js'
 import { healthRoute } from './routes/health.js'
 import { sessionsRoute } from './routes/sessions.js'
 import { scenariosRoute, type ScenariosRouteOptions } from './routes/scenarios.js'
+import { usersRoute } from './routes/users.js'
 
 export interface ServerAdapters {
   llmAdapter?: ILlmAdapter
@@ -107,6 +108,11 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',
     ...buildScenariosRouteOptions(config, resolvedAdapters),
+  })
+  app.register(usersRoute, {
+    prefix: '/v1/users',
+    config,
+    userRepository: resolvedAdapters.userRepository ?? new InMemoryUserRepository(),
   })
   app.register(avatarsRoute, {
     prefix: '/v1/avatars',
