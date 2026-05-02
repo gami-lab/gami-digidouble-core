@@ -37,6 +37,7 @@ export interface GameMasterInput {
       description?: string
       goals?: string[]
     }
+    userPersona?: UserPersona
     availableAvatars: Array<{
       avatarId: string
       name: string
@@ -109,3 +110,4 @@ export type GameMasterEvent = {
     outputTokens?: number
   }
 }
+import type { UserPersona } from '../user/user.types.js'

@@ -258,6 +258,7 @@ export class RunGameMasterUseCase {
             : {}),
           ...(scenarioContext.goals !== undefined ? { goals: scenarioContext.goals } : {}),
         },
+        ...(input.userPersona !== undefined ? { userPersona: input.userPersona } : {}),
         availableAvatars: toGameMasterAvailableAvatars(scenarioAvatars, session),
       },
     }

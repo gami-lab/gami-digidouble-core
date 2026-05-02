@@ -446,4 +446,36 @@ describe('SendMessageUseCase — user persona injection', () => {
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
     expect(llmRequest.systemPrompt).not.toContain('You are speaking with someone in the role of:')
   })
+
+  it('passes userPersona to run game master when persona is present', async () => {
+    const useCase = createUseCase(true, true)
+    findUserByIdMock.mockResolvedValue({
+      userId: 'user_1',
+      persona: { role: 'coach' },
+      createdAt: '2026-05-01T10:00:00.000Z',
+      updatedAt: '2026-05-01T10:00:00.000Z',
+    } satisfies User)
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    expect(runGameMasterExecuteMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userPersona: { role: 'coach' },
+      }),
+    )
+  })
+
+  it('calls run game master without userPersona when persona is absent', async () => {
+    const useCase = createUseCase(true, true)
+    findUserByIdMock.mockResolvedValue({
+      userId: 'user_1',
+      createdAt: '2026-05-01T10:00:00.000Z',
+      updatedAt: '2026-05-01T10:00:00.000Z',
+    } satisfies User)
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    const gmInput = runGameMasterExecuteMock.mock.calls[0]?.[0] as Record<string, unknown>
+    expect(Object.hasOwn(gmInput, 'userPersona')).toBe(false)
+  })
 })

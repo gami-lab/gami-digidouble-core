@@ -80,6 +80,7 @@ export class SendMessageUseCase {
           userMessageText: input.userMessage,
           turnIndex: nextTurnIndex,
           correlationId: requestId,
+          ...(userPersona !== undefined ? { userPersona } : {}),
         })
         .catch((err: unknown) => {
           console.error(

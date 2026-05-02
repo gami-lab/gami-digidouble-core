@@ -1,3 +1,5 @@
+import type { UserPersona } from '../../../domain/user/user.types.js'
+
 export type RunGameMasterInput = {
   sessionId: string
   scenarioId: string
@@ -6,4 +8,5 @@ export type RunGameMasterInput = {
   userMessageText: string
   turnIndex: number
   correlationId: string
+  userPersona?: UserPersona
 }

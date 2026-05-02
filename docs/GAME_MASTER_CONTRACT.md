@@ -149,7 +149,7 @@ export type GameMasterInput = {
   state: GameMasterState
 
   context: {
-    persona?: {
+    userPersona?: {
       role?: string
       tonePreference?: string
       interactionHints?: string[]
@@ -192,6 +192,9 @@ export type GameMasterInput = {
   }
 }
 ```
+
+`context.userPersona` is optional and carries lightweight information about who the user is
+(for example, role) so GM routing and pacing can adapt without coupling the GM to persistence.
 
 ---
 

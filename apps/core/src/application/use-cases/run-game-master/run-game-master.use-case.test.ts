@@ -180,6 +180,45 @@ describe('RunGameMasterUseCase', () => {
     ])
     expect(gmInput.context.availableAvatars).toEqual([{ avatarId: 'avatar_1', name: 'Ava' }])
   })
+
+  it('passes userPersona through to GM input when provided', async () => {
+    const useCase = createUseCase()
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 2,
+      correlationId: 'request_persona',
+      userPersona: { role: 'friend' },
+    })
+
+    const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
+    const gmInput = JSON.parse(request.messages[0]?.content ?? '{}') as {
+      context: { userPersona?: { role?: string } }
+    }
+    expect(gmInput.context.userPersona?.role).toBe('friend')
+  })
+
+  it('does not inject empty userPersona when input has none', async () => {
+    const useCase = createUseCase()
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 2,
+      correlationId: 'request_no_persona',
+    })
+
+    const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
+    const gmInput = JSON.parse(request.messages[0]?.content ?? '{}') as {
+      context: Record<string, unknown>
+    }
+    expect(Object.hasOwn(gmInput.context, 'userPersona')).toBe(false)
+  })
 })
 
 describe('RunGameMasterUseCase — event log', () => {
