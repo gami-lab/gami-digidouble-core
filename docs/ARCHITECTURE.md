@@ -258,9 +258,12 @@ domain/
   memory/
   metrics/      -> TurnMetrics, TurnMetricsSummary, TurnMetricsReport
   scenario/
+  user/         -> User entity, UserPersona type
 
 application/use-cases/
   get-turn-metrics/ -> Session-scoped metrics aggregation from event log
+  upsert-user-persona/ -> Idempotent persona write for one user
+  get-user-persona/ -> Persona read for one user
 ```
 
 ---
@@ -584,6 +587,7 @@ src/
     context/             → Deterministic context assembly (memory + scenario + knowledge + persona + GM notes)
     knowledge/           → Ingestion, chunking, embeddings, RAG retrieval
     scenario/            → Config-driven experience templates
+    user/                → User entity and persona types
     operations/          → Health aggregation, dependency probes, metrics summaries
 
   infrastructure/        → Concrete adapter implementations

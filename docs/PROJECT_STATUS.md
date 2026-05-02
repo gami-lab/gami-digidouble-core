@@ -12,6 +12,18 @@ Update it as epics and features are completed.
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
+### EPIC 5.5 — User Persona System: **complete** (May 2, 2026)
+
+- Added `User` / `UserPersona` domain model and persistence port (`IUserRepository`)
+- Added in-memory and Postgres repositories; `users` table implemented in canonical schema (`id TEXT`, `persona JSONB`)
+- Added authenticated persona API endpoints:
+  - `PUT /v1/users/{userId}/persona` (idempotent upsert)
+  - `GET /v1/users/{userId}/persona` (returns `200` with `persona: null` when unknown)
+- Added persona injection into avatar prompt assembly (`SendMessageUseCase` + `assemblePersonaPrompt`)
+- Added persona threading into async GM input (`RunGameMasterInput` → `GameMasterInput.context.userPersona`)
+- Added integration tests for `PostgresUserRepository` and hardening coverage for persona/route edge cases
+- Quality gates confirmed: `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm --filter @gami/core test:coverage` pass
+
 ### EPIC 3.1 — Admin dependency health endpoint (April 30, 2026)
 
 - `GetHealthUseCase` added in application layer; computes `HealthReport` from `IDependencyProbe[]` using `Promise.allSettled`

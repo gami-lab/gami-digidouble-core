@@ -41,6 +41,18 @@ function makeApp(): FastifyInstance {
   return app
 }
 
+function makeFailingApp(): FastifyInstance {
+  const failingRepo = {
+    findById: () => Promise.reject(new Error('read failed')),
+    upsert: () => Promise.reject(new Error('write failed')),
+  }
+  const app = createServer(testConfig, {
+    userRepository: failingRepo,
+  })
+  appsToClose.push(app)
+  return app
+}
+
 describe('PUT /v1/users/:userId/persona', () => {
   it('stores valid persona and returns user', async () => {
     const app = makeApp()
@@ -101,6 +113,44 @@ describe('PUT /v1/users/:userId/persona', () => {
     expect(body.error).toBeNull()
     expect(body.data?.user.persona).toEqual({})
   })
+
+  it('returns 400 when body contains unknown fields', async () => {
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/v1/users/user_1/persona',
+      headers: authHeaders(),
+      payload: { unknownField: 'x' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 400 when userId is whitespace only', async () => {
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/v1/users/%20%20%20/persona',
+      headers: authHeaders(),
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 500 when repository upsert throws unexpectedly', async () => {
+    const app = makeFailingApp()
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/v1/users/user_1/persona',
+      headers: authHeaders(),
+      payload: { role: 'mentor' },
+    })
+
+    expect(response.statusCode).toBe(500)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('INTERNAL_ERROR')
+  })
 })
 
 describe('GET /v1/users/:userId/persona', () => {
@@ -142,5 +192,18 @@ describe('GET /v1/users/:userId/persona', () => {
     const body = response.json<ApiResponse<{ persona: null }>>()
     expect(body.error).toBeNull()
     expect(body.data?.persona).toBeNull()
+  })
+
+  it('returns 500 when repository findById throws unexpectedly', async () => {
+    const app = makeFailingApp()
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/users/user_1/persona',
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(500)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('INTERNAL_ERROR')
   })
 })

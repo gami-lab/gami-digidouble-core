@@ -191,6 +191,45 @@ describe('assemblePersonaPrompt -> user persona role context', () => {
     expect(prompt).not.toContain('You are speaking with someone in the role of:')
   })
 
+  it('omits role sentence when role is an empty string', () => {
+    const config = makeAvatarConfig({
+      personaPrompt: 'You are a helpful guide.',
+      tone: 'warm',
+    })
+
+    const prompt = assemblePersonaPrompt(config, {
+      userPersona: { role: '' },
+    })
+
+    expect(prompt).not.toContain('You are speaking with someone in the role of:')
+  })
+
+  it('omits role sentence when role is whitespace-only', () => {
+    const config = makeAvatarConfig({
+      personaPrompt: 'You are a helpful guide.',
+      tone: 'warm',
+    })
+
+    const prompt = assemblePersonaPrompt(config, {
+      userPersona: { role: '   ' },
+    })
+
+    expect(prompt).not.toContain('You are speaking with someone in the role of:')
+  })
+
+  it('does not emit persona sentence when tonePreference is set without role', () => {
+    const config = makeAvatarConfig({
+      personaPrompt: 'You are a helpful guide.',
+      tone: 'warm',
+    })
+
+    const prompt = assemblePersonaPrompt(config, {
+      userPersona: { tonePreference: 'direct' },
+    })
+
+    expect(prompt).not.toContain('You are speaking with someone in the role of:')
+  })
+
   it('keeps behavior unchanged when userPersona is not provided', () => {
     const config = makeAvatarConfig({
       personaPrompt: 'You are a helpful guide.',

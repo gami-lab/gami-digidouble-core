@@ -65,6 +65,13 @@ Keep minimal until stronger auth or tenancy is required.
 
 Persona is consumed by the Context module at assembly time. It is not duplicated across session, conversation, or message rows.
 
+### Implementation Status (EPIC 5.5)
+
+- **Table:** `users`
+- **Repository:** `PostgresUserRepository`
+- **Status:** Fully implemented. `persona` is a JSONB column; all fields optional.
+- **Column note:** `id` is `TEXT` (not UUID) — mirrors `sessions.user_id TEXT`.
+
 ---
 
 ## 2. Scenario

@@ -248,6 +248,33 @@ Must test:
 
 ---
 
+## User Persona Module (EPIC 5.5)
+
+**Goals:** reliable persona persistence and safe persona-aware context injection.
+
+Coverage expectations by module:
+
+| Module path                                                | Required coverage                                                                   |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `domain/user/user.types.ts`                                | Types only; no runtime logic (N/A for behavioral unit assertions)                   |
+| `application/use-cases/upsert-user-persona/`               | Unit tests for create/update flow and input hardening paths                         |
+| `application/use-cases/get-user-persona/`                  | Unit tests for found/missing user and missing persona                               |
+| `api/routes/users.ts`                                      | Route tests for auth, validation, idempotent write/read, unknown user null behavior |
+| `infrastructure/db/repositories/postgres-user.repository`  | Integration tests for upsert/find behavior and JSONB persona round-trip             |
+| `domain/avatar/persona-prompt.service.ts`                  | Unit tests for persona role sentence inclusion and boundary cases                   |
+| `application/use-cases/send-message/send-message.use-case` | Unit tests for persona injection and graceful degradation                           |
+| `application/use-cases/run-game-master/run-game-master`    | Unit tests for persona threading into GM input JSON                                 |
+
+Must test:
+
+- `PUT /v1/users/{userId}/persona` accepts partial/empty persona objects and rejects unknown fields
+- `GET /v1/users/{userId}/persona` returns `200` with `persona: null` for unknown users
+- persona role context appears in avatar prompt only when role is non-empty
+- persona lookup failures never break avatar turn delivery
+- GM input JSON includes `context.userPersona` only when provided
+
+---
+
 ## Runtime Events Module (EPIC 4.5)
 
 **Goals:** session-scoped realtime runtime updates without blocking avatar response flow.
