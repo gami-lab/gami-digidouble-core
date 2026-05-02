@@ -6,11 +6,13 @@ import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
+import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
+import type { UserPersona } from '../../../domain/user/user.types.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
 
@@ -27,6 +29,7 @@ export class SendMessageUseCase {
     private readonly eventLogRepository: IEventLogRepository,
     private readonly observability: IObservabilityAdapter,
     private readonly runGameMasterUseCase: RunGameMasterUseCase | null = null,
+    private readonly userRepository?: IUserRepository,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -40,9 +43,11 @@ export class SendMessageUseCase {
     const avatar = await this.loadAvatar(conversation.avatarId)
     await this.loadScenario(session.scenarioId)
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(session.scenarioId)
+    const userPersona = await this.loadUserPersona(session.userId)
     const systemPrompt = assemblePersonaPrompt(avatar, {
       ...(session.gmNotes !== undefined ? { gmNotes: session.gmNotes } : {}),
       avatarAwareness: buildAvatarAwareness(avatar, scenarioAvatars, session.unlockedAvatarIds),
+      ...(userPersona !== undefined ? { userPersona } : {}),
     })
     const historyMessages = await this.buildHistoryMessages(conversation.conversationId)
     const userMessage = await this.persistUserMessage(
@@ -343,6 +348,16 @@ export class SendMessageUseCase {
       .catch((err: unknown) => {
         console.error('[send-message] Event log append failed for turn_completed:', err)
       })
+  }
+
+  private async loadUserPersona(userId: string): Promise<UserPersona | undefined> {
+    if (this.userRepository === undefined) return undefined
+    try {
+      const user = await this.userRepository.findById(userId)
+      return user?.persona
+    } catch {
+      return undefined
+    }
   }
 
   private createMessageId(): string {

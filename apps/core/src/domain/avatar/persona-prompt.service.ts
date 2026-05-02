@@ -1,4 +1,5 @@
 import type { AvatarConfig } from './avatar.types.js'
+import type { UserPersona } from '../user/index.js'
 
 const DEFAULT_STYLE_RULE = [
   'Stay in character and keep responses concise.',
@@ -17,7 +18,11 @@ export type AvatarAwarenessItem = {
 
 export function assemblePersonaPrompt(
   config: AvatarConfig,
-  opts?: { gmNotes?: string; avatarAwareness?: AvatarAwarenessItem[] },
+  opts?: {
+    gmNotes?: string
+    avatarAwareness?: AvatarAwarenessItem[]
+    userPersona?: UserPersona
+  },
 ): string {
   const personaPrompt = requirePersonaPrompt(config.personaPrompt)
   const sections: string[] = [personaPrompt]
@@ -30,6 +35,7 @@ export function assemblePersonaPrompt(
     sections.push(`Your tone is ${config.tone.trim()}.`)
   }
 
+  sections.push(...buildUserPersonaContext(opts?.userPersona))
   sections.push(...buildAdjustments(config.adjustments))
   sections.push(...buildAvatarAwareness(opts?.avatarAwareness))
 
@@ -39,6 +45,11 @@ export function assemblePersonaPrompt(
     sections.push(`Director notes: ${opts.gmNotes.trim()}`)
   }
   return sections.join('\n\n')
+}
+
+function buildUserPersonaContext(userPersona: UserPersona | undefined): string[] {
+  if (!hasText(userPersona?.role)) return []
+  return [`You are speaking with someone in the role of: ${userPersona.role.trim()}.`]
 }
 
 function requirePersonaPrompt(personaPrompt: string): string {

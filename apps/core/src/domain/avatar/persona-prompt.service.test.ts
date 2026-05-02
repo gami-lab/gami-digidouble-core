@@ -163,3 +163,58 @@ describe('assemblePersonaPrompt -> dialog style defaults', () => {
     expect(prompt).toContain('end with one focused follow-up question')
   })
 })
+
+describe('assemblePersonaPrompt -> user persona role context', () => {
+  it('includes role sentence when userPersona.role is provided', () => {
+    const config = makeAvatarConfig({
+      personaPrompt: 'You are a helpful guide.',
+      tone: 'warm',
+    })
+
+    const prompt = assemblePersonaPrompt(config, {
+      userPersona: { role: 'psychologist' },
+    })
+
+    expect(prompt).toContain('You are speaking with someone in the role of: psychologist.')
+  })
+
+  it('omits role sentence when userPersona is empty', () => {
+    const config = makeAvatarConfig({
+      personaPrompt: 'You are a helpful guide.',
+      tone: 'warm',
+    })
+
+    const prompt = assemblePersonaPrompt(config, {
+      userPersona: {},
+    })
+
+    expect(prompt).not.toContain('You are speaking with someone in the role of:')
+  })
+
+  it('keeps behavior unchanged when userPersona is not provided', () => {
+    const config = makeAvatarConfig({
+      personaPrompt: 'You are a helpful guide.',
+      tone: 'warm',
+    })
+
+    const prompt = assemblePersonaPrompt(config)
+
+    expect(prompt).not.toContain('You are speaking with someone in the role of:')
+  })
+
+  it('places role sentence before default style rule', () => {
+    const config = makeAvatarConfig({
+      personaPrompt: 'You are a helpful guide.',
+      tone: 'warm',
+    })
+
+    const prompt = assemblePersonaPrompt(config, {
+      userPersona: { role: 'psychologist' },
+    })
+    const roleIndex = prompt.indexOf('You are speaking with someone in the role of: psychologist.')
+    const styleIndex = prompt.indexOf('Stay in character')
+
+    expect(roleIndex).toBeGreaterThanOrEqual(0)
+    expect(styleIndex).toBeGreaterThan(roleIndex)
+  })
+})

@@ -8,6 +8,7 @@ import type { IMessageRepository } from '../../application/ports/IMessageReposit
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
+import type { IUserRepository } from '../../application/ports/IUserRepository.js'
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
@@ -21,6 +22,7 @@ import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-ev
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
 import type { LlmConfig } from '../../infrastructure/llm/index.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
@@ -37,6 +39,7 @@ type ConversationsRouteOptions = {
   eventLogRepository?: IEventLogRepository
   messageRepository?: IMessageRepository
   runGameMasterUseCase?: RunGameMasterUseCase
+  userRepository?: IUserRepository
 }
 
 type ConversationParams = { conversationId: string }
@@ -179,6 +182,16 @@ type RouteDependencies = {
   messageRepository: IMessageRepository
 }
 
+type ConversationPersistenceDeps = {
+  avatarRepository: IAvatarRepository
+  scenarioRepository: IScenarioRepository
+  sessionRepository: ISessionRepository
+  conversationRepository: IConversationRepository
+  eventLogRepository: IEventLogRepository
+  messageRepository: IMessageRepository
+  userRepository: IUserRepository
+}
+
 function createRouteDependencies(options: ConversationsRouteOptions): RouteDependencies {
   const llmAdapter = options.llmAdapter ?? createLlmAdapter(buildLlmConfig(options.config))
   const observabilityAdapter =
@@ -188,29 +201,36 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       langfuseSecretKey: options.config.langfuseSecretKey,
       langfuseHost: options.config.langfuseHost,
     })
-  const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
-  const scenarioRepository = options.scenarioRepository ?? new InMemoryScenarioRepository()
-  const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
-  const conversationRepository =
-    options.conversationRepository ?? new InMemoryConversationRepository()
-  const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
-  const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
+  const repositories = resolvePersistenceDeps(options)
 
   return {
     observabilityAdapter,
-    conversationRepository,
-    messageRepository,
+    conversationRepository: repositories.conversationRepository,
+    messageRepository: repositories.messageRepository,
     sendMessageUseCase: new SendMessageUseCase(
-      sessionRepository,
-      conversationRepository,
-      avatarRepository,
-      scenarioRepository,
-      messageRepository,
+      repositories.sessionRepository,
+      repositories.conversationRepository,
+      repositories.avatarRepository,
+      repositories.scenarioRepository,
+      repositories.messageRepository,
       llmAdapter,
-      eventLogRepository,
+      repositories.eventLogRepository,
       observabilityAdapter,
       options.runGameMasterUseCase ?? null,
+      repositories.userRepository,
     ),
+  }
+}
+
+function resolvePersistenceDeps(options: ConversationsRouteOptions): ConversationPersistenceDeps {
+  return {
+    avatarRepository: options.avatarRepository ?? new InMemoryAvatarRepository(),
+    scenarioRepository: options.scenarioRepository ?? new InMemoryScenarioRepository(),
+    sessionRepository: options.sessionRepository ?? new InMemorySessionRepository(),
+    conversationRepository: options.conversationRepository ?? new InMemoryConversationRepository(),
+    eventLogRepository: options.eventLogRepository ?? new InMemoryEventLogRepository(),
+    messageRepository: options.messageRepository ?? new InMemoryMessageRepository(),
+    userRepository: options.userRepository ?? new InMemoryUserRepository(),
   }
 }
 
