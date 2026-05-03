@@ -182,3 +182,54 @@ The three noted issues are all low/informational — no blocking defects, no arc
 drift, no test coverage gaps for critical behavior paths.
 
 **Grade: A**
+
+---
+
+## Remediation Outcome
+
+### Changes Made
+
+- `apps/core/src/api/routes/users.ts`: Added a 4-line comment above `allowedPersonaKeys`
+  explaining why manual body validation is used instead of Fastify JSON schema
+  `additionalProperties: false` (persona type is designed to grow incrementally — keeping
+  the allowed-key Set as the single source of truth avoids coordinating schema + type changes).
+
+### Findings Resolved
+
+- **I1 (Low)** — Comment added above `allowedPersonaKeys` documenting the intentional design
+  choice. Resolved.
+
+### Findings Deferred
+
+- **I2 (Low)** — Redundant `userId` guard in use case: useful safety net for direct callers.
+  No change needed.
+- **I3 (Info)** — Extra `pattern` in `userParamsSchema`: purposeful and tested. No change needed.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS (343 tests, 61 files)
+
+### Final Feature Confidence
+
+Key features now proven:
+
+- **Upsert persona** — creates user, replaces persona on second call, preserves `createdAt`
+- **Get persona** — returns persona or `null` for unknown users (no 404)
+- **Auth enforcement** — 401 on missing/wrong key for both PUT and GET
+- **Unknown-field rejection** — 400 for extra keys in persona body
+- **Whitespace userId rejection** — 400 for whitespace-only userId param
+- **Prompt injection** — `role` sentence appears in LLM system prompt when persona has role
+- **Graceful degradation** — no repo → no persona; repo throws → swallowed, prompt unaffected
+- **GM passthrough** — `userPersona` threaded into `RunGameMasterInput` and `GameMasterInput.context`
+- **GM absent case** — `userPersona` key absent from GM input when no persona loaded
+- **PostgreSQL persistence** — round-trip for all persona fields (role, tonePreference, interactionHints)
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+None.

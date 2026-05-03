@@ -27,6 +27,10 @@ const userParamsSchema = {
   additionalProperties: false,
 } as const
 
+// UserPersona validation is intentionally manual rather than via Fastify JSON schema
+// additionalProperties:false. The persona shape is designed to grow incrementally — adding a
+// new optional field only requires updating this Set and one conditional, rather than
+// coordinating schema changes across route and type definitions.
 const allowedPersonaKeys = new Set(['role', 'tonePreference', 'interactionHints'])
 
 export const usersRoute: FastifyPluginCallback<UsersRouteOptions> = (app, options) => {
