@@ -1062,7 +1062,7 @@ Explicit progression rules produce better educational and narrative outcomes tha
 
 ---
 
-## EPIC 5.5 — User Persona System
+## EPIC 5.5 — User Persona System ✅ Done
 
 **Purpose**
 Allow users to define their role in the experience.
@@ -1295,10 +1295,6 @@ A hybrid response engine improves quality/cost/latency trade-offs versus pure li
 If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
 
 ## Recommended implementation order
-
-### 2. EPIC 5.5 — User Persona System
-
-This is small, foundational, and needed by the Context Engine and Avatar v2.
 
 ### 3. EPIC 2.2b — Conversation Lifecycle v2
 
