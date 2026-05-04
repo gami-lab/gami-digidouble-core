@@ -1,6 +1,11 @@
 import type { LifecycleStatus } from './entity-types.js'
 
 export type ConversationStartedBy = 'user' | 'gm' | 'system'
+export type ConversationEndReason =
+  | 'user_end'
+  | 'operator_end'
+  | 'scenario_complete'
+  | 'safety_stop'
 
 export type SessionMemorySummary = {
   sessionId: string
@@ -29,4 +34,19 @@ export type AvatarTransitionRecord = {
 export type LifecycleSummary = {
   status: LifecycleStatus
   endedAt?: string
+}
+
+export type EndConversationResponse = {
+  conversation: {
+    conversationId: string
+    sessionId: string
+    avatarId: string
+    status: LifecycleStatus
+    startedAt: string
+    lastActivityAt: string
+    endedAt?: string
+  }
+  compaction: {
+    scheduled: true
+  }
 }

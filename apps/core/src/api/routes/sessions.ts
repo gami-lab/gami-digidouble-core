@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
-import type { LifecycleStatus } from '@gami/shared'
+import type { ConversationEndReason, EndConversationResponse, LifecycleStatus } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
@@ -10,6 +10,7 @@ import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-avai
 import type { GetAvailableAvatarsOutput } from '../../application/use-cases/get-available-avatars/get-available-avatars.types.js'
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
 import type { GetAvatarTransitionsOutput } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.types.js'
+import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
 import { GetSessionUseCase } from '../../application/use-cases/get-session/get-session.use-case.js'
 import type { GetSessionOutput } from '../../application/use-cases/get-session/get-session.types.js'
 import { ListSessionConversationsUseCase } from '../../application/use-cases/list-session-conversations/list-session-conversations.use-case.js'
@@ -60,6 +61,15 @@ type SessionParams = {
   sessionId: string
 }
 
+type SessionConversationParams = {
+  sessionId: string
+  conversationId: string
+}
+
+type EndConversationRequestBody = {
+  reason?: ConversationEndReason
+}
+
 type ListSessionsQuerystring = {
   scenarioId?: string
   userId?: string
@@ -100,6 +110,27 @@ const sessionParamsSchema = {
   required: ['sessionId'],
   properties: {
     sessionId: { type: 'string', minLength: 1 },
+  },
+  additionalProperties: false,
+} as const
+
+const sessionConversationParamsSchema = {
+  type: 'object',
+  required: ['sessionId', 'conversationId'],
+  properties: {
+    sessionId: { type: 'string', minLength: 1 },
+    conversationId: { type: 'string', minLength: 1 },
+  },
+  additionalProperties: false,
+} as const
+
+const endConversationBodySchema = {
+  type: 'object',
+  properties: {
+    reason: {
+      type: 'string',
+      enum: ['user_end', 'operator_end', 'scenario_complete', 'safety_stop'],
+    },
   },
   additionalProperties: false,
 } as const
@@ -158,6 +189,10 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     sessionRepository,
     conversationRepository,
   )
+  const endConversationUseCase = new EndConversationUseCase(
+    sessionRepository,
+    conversationRepository,
+  )
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
   registerStartSessionRoute(app, startSessionUseCase)
@@ -166,6 +201,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   registerResetSessionRoute(app, resetSessionUseCase)
   registerStartConversationRoute(app, startConversationUseCase)
   registerListSessionConversationsRoute(app, listSessionConversationsUseCase)
+  registerEndConversationRoute(app, endConversationUseCase)
   registerSwitchAvatarRoute(app, switchAvatarUseCase)
   registerGetAvailableAvatarsRoute(app, getAvailableAvatarsUseCase)
   registerGetAvatarTransitionsRoute(app, getAvatarTransitionsUseCase)
@@ -274,6 +310,25 @@ function registerListSessionConversationsRoute(
           sessionId: request.params.sessionId,
         })
         return await reply.send(ok<ListSessionConversationsOutput>(output))
+      } catch (error) {
+        return await mapDomainError(error, reply)
+      }
+    },
+  )
+}
+
+function registerEndConversationRoute(app: FastifyInstance, useCase: EndConversationUseCase): void {
+  app.post<{ Params: SessionConversationParams; Body: EndConversationRequestBody }>(
+    '/:sessionId/conversations/:conversationId/end',
+    { schema: { params: sessionConversationParamsSchema, body: endConversationBodySchema } },
+    async (request, reply) => {
+      try {
+        const output = await useCase.execute({
+          sessionId: request.params.sessionId,
+          conversationId: request.params.conversationId,
+          ...(request.body.reason !== undefined ? { reason: request.body.reason } : {}),
+        })
+        return await reply.send(ok<EndConversationResponse>(output))
       } catch (error) {
         return await mapDomainError(error, reply)
       }

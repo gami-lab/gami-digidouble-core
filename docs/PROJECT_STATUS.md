@@ -23,6 +23,21 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - `docs/API_CONTRACT.md` lifecycle summaries updated to match implementation (`SessionSummary.endedAt?: string`, `ConversationSummary.endedAt?: string`).
 - Verification: `pnpm --filter @gami/shared build`, `pnpm --filter @gami/core typecheck`, `pnpm --filter @gami/console typecheck` pass.
 
+### EPIC 2.2b — Explicit end-conversation endpoint (May 4, 2026)
+
+- Added explicit endpoint `POST /v1/sessions/{sessionId}/conversations/{conversationId}/end`.
+- Implemented `EndConversationUseCase` in application layer with deterministic transition rules:
+  - only `active -> closed` is allowed
+  - sets `endedAt` and updates conversation/session `lastActivityAt`
+  - persists close `reason` (defaults to `operator_end`)
+  - returns `409 CONFLICT` for non-active session/conversation
+- Bounded close-reason vocabulary introduced for this endpoint: `user_end | operator_end | scenario_complete | safety_stop`.
+- Response contract implemented with standard `ApiResponse<T>` envelope and canonical shared DTOs (`@gami/shared` `EndConversationResponse`).
+- Console API client now exposes `endConversation(sessionId, conversationId, reason?)` using shared lifecycle DTOs.
+- Tests added/extended:
+  - unit: `end-conversation.use-case.test.ts`
+  - stack-e2e route baseline in `sessions.stack-e2e.test.ts` (auth, validation, not-found, conflict, happy path).
+
 ### EPIC 5.5 — User Persona System: **complete** (May 2, 2026)
 
 - Added `User` / `UserPersona` domain model and persistence port (`IUserRepository`)

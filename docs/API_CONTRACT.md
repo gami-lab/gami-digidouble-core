@@ -665,7 +665,7 @@ POST /v1/sessions/{sessionId}/conversations/{conversationId}/end
 
 ```ts
 type EndConversationRequest = {
-  reason?: string
+  reason?: 'user_end' | 'operator_end' | 'scenario_complete' | 'safety_stop'
 }
 ```
 
@@ -685,6 +685,15 @@ type EndConversationResponse = {
 - Conversation closure can also happen implicitly (avatar switch / reset).
 - This endpoint is additive and does not change existing send-message flow.
 - Compaction is asynchronous and must not block response latency.
+- `reason` defaults to `'operator_end'` when omitted.
+- Idempotency policy: calling this endpoint for an already-closed conversation returns `409 CONFLICT`.
+
+### Error Mapping
+
+- `400` → `VALIDATION_ERROR` (invalid or unsupported `reason`)
+- `401` → `UNAUTHORIZED`
+- `404` → `NOT_FOUND` (session missing, or conversation not in session)
+- `409` → `CONFLICT` (session not active, or conversation not active)
 
 ---
 

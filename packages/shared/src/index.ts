@@ -17,9 +17,11 @@ export type {
   ConversationSummary,
 } from './entity-types.js'
 export type {
+  ConversationEndReason,
   ConversationStartedBy,
   SessionMemorySummary,
   SessionTransitionRecord,
   AvatarTransitionRecord,
   LifecycleSummary,
+  EndConversationResponse,
 } from './lifecycle-types.js'

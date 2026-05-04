@@ -1,6 +1,8 @@
 import { coreRequest } from './client'
 import type {
+  ConversationEndReason,
   ConversationSummary,
+  EndConversationResponse,
   LifecycleStatus,
   SessionMemorySummary,
   SessionSummary,
@@ -8,6 +10,7 @@ import type {
 } from '@gami/shared'
 
 export type { SessionSummary, ConversationSummary, SessionMemorySummary, SessionTransitionRecord }
+export type { ConversationEndReason, EndConversationResponse }
 
 export type Message = {
   messageId: string
@@ -181,6 +184,18 @@ export async function listSessionConversations(sessionId: string): Promise<Conve
     `/v1/sessions/${sessionId}/conversations`,
   )
   return payload.conversations
+}
+
+export async function endConversation(
+  sessionId: string,
+  conversationId: string,
+  reason?: ConversationEndReason,
+): Promise<EndConversationResponse> {
+  return coreRequest<EndConversationResponse>(
+    'POST',
+    `/v1/sessions/${sessionId}/conversations/${conversationId}/end`,
+    reason !== undefined ? { reason } : {},
+  )
 }
 
 export async function getHistory(conversationId: string): Promise<GetHistoryResponse> {

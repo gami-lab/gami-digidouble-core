@@ -11,6 +11,7 @@ export {
 } from './scenarios'
 export { sendMessage } from './messages'
 export {
+  endConversation,
   getAvailableAvatars,
   getHistory,
   getSession,
@@ -33,7 +34,9 @@ export type {
 } from './scenarios'
 export type {
   AvailableAvatarSummary,
+  ConversationEndReason,
   ConversationSummary,
+  EndConversationResponse,
   GetAvailableAvatarsResponse,
   GetHistoryResponse,
   GmStateSummary,
