@@ -200,7 +200,7 @@ Context-aware avatars significantly improve perceived intelligence and coherence
 
 ---
 
-## EPIC 2.2b — Conversation Lifecycle v2 (End Signal + Compaction Trigger)
+## EPIC 2.2b — Conversation Lifecycle v2 (End Signal + Compaction Trigger) ✅ Done
 
 **Purpose**
 Introduce realistic conversation boundaries and prepare memory transitions.
@@ -1295,10 +1295,6 @@ A hybrid response engine improves quality/cost/latency trade-offs versus pure li
 If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
 
 ## Recommended implementation order
-
-### 3. EPIC 2.2b — Conversation Lifecycle v2
-
-You need the “conversation is over” signal before proper memory compaction can work.
 
 ### 4. EPIC 4.5 — Player Runtime State & World Events
 
