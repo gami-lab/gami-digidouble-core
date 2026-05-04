@@ -682,11 +682,14 @@ type EndConversationResponse = {
 
 ### Notes
 
-- Conversation closure can also happen implicitly (avatar switch / reset).
+- Conversation closure can also happen implicitly.
 - This endpoint is additive and does not change existing send-message flow.
 - Compaction is asynchronous and must not block response latency.
 - `reason` defaults to `'operator_end'` when omitted.
 - Idempotency policy: calling this endpoint for an already-closed conversation returns `409 CONFLICT`.
+- Implicit closure reasons are bounded to:
+  - `auto_terminal_signal` (detected terminal user utterance)
+  - `inactivity_timeout` (policy-enabled inactivity threshold)
 
 ### Error Mapping
 
@@ -837,6 +840,8 @@ type SendMessageResponse = {
 - `500` → `INTERNAL_ERROR`
 
 > **Game Master integration:** If the Game Master has stored guidance notes for this session (set asynchronously after a previous turn), they are appended to the Avatar's assembled system prompt before the LLM call. This is transparent to API consumers — the envelope shape is unchanged.
+>
+> **Implicit end integration:** After a successful turn, deterministic implicit-end rules may close the same conversation through the canonical close pipeline. When this occurs, response `conversation.status` can be `closed` with `endedAt` populated.
 
 ---
 

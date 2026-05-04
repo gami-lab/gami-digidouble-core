@@ -6,6 +6,8 @@ export type ConversationEndReason =
   | 'operator_end'
   | 'scenario_complete'
   | 'safety_stop'
+  | 'inactivity_timeout'
+  | 'auto_terminal_signal'
 
 export type SessionMemorySummary = {
   sessionId: string

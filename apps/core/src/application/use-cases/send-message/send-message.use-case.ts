@@ -13,10 +13,23 @@ import type { Conversation, Message, Session } from '../../../domain/conversatio
 import { DomainError } from '../../../domain/errors.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { UserPersona } from '../../../domain/user/user.types.js'
+import type { ConversationEndReason, EndConversationResponse } from '@gami/shared'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
+import {
+  DEFAULT_IMPLICIT_END_POLICY,
+  detectImplicitEndReason,
+  type ImplicitEndPolicy,
+} from '../../services/implicit-end-detection.service.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
 
 const MESSAGE_HISTORY_LIMIT = 20
+type ConversationCloser = {
+  execute(input: {
+    sessionId: string
+    conversationId: string
+    reason?: ConversationEndReason
+  }): Promise<EndConversationResponse>
+}
 
 export class SendMessageUseCase {
   constructor(
@@ -30,6 +43,8 @@ export class SendMessageUseCase {
     private readonly observability: IObservabilityAdapter,
     private readonly runGameMasterUseCase: RunGameMasterUseCase | null = null,
     private readonly userRepository?: IUserRepository,
+    private readonly endConversationUseCase: ConversationCloser | null = null,
+    private readonly implicitEndPolicy: ImplicitEndPolicy = DEFAULT_IMPLICIT_END_POLICY,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -109,7 +124,7 @@ export class SendMessageUseCase {
     })
     this.traceNonBlocking(requestId, session.sessionId, llmRequest, response, latencyMs)
 
-    return this.buildOutput(
+    const output = this.buildOutput(
       requestId,
       conversation,
       updatedSession,
@@ -118,6 +133,24 @@ export class SendMessageUseCase {
       response,
       now,
     )
+
+    const implicitEnd = await this.tryImplicitClose({
+      requestId,
+      sessionId: session.sessionId,
+      conversationId: conversation.conversationId,
+      userMessage: input.userMessage,
+      lastActivityAtBeforeTurn: conversation.lastActivityAt,
+      now,
+    })
+    if (implicitEnd !== null) {
+      output.conversation.status = implicitEnd.conversation.status
+      output.conversation.lastActivityAt = implicitEnd.conversation.lastActivityAt
+      if (implicitEnd.conversation.endedAt !== undefined) {
+        output.conversation.endedAt = implicitEnd.conversation.endedAt
+      }
+    }
+
+    return output
   }
 
   private buildOutput(
@@ -367,6 +400,76 @@ export class SendMessageUseCase {
 
   private nowIso(): string {
     return new Date().toISOString()
+  }
+
+  private async tryImplicitClose(args: {
+    requestId: string
+    sessionId: string
+    conversationId: string
+    userMessage: string
+    lastActivityAtBeforeTurn: string
+    now: string
+  }) {
+    if (this.endConversationUseCase === null) return null
+
+    const reason = detectImplicitEndReason({
+      userMessage: args.userMessage,
+      lastActivityAt: args.lastActivityAtBeforeTurn,
+      now: args.now,
+      policy: this.implicitEndPolicy,
+    })
+    if (reason === null) return null
+
+    await this.appendEventSafe({
+      sessionId: args.sessionId,
+      type: 'implicit_end_detected',
+      severity: 'info',
+      requestId: args.requestId,
+      payload: {
+        conversationId: args.conversationId,
+        reason,
+      },
+    })
+
+    try {
+      const closed = await this.endConversationUseCase.execute({
+        sessionId: args.sessionId,
+        conversationId: args.conversationId,
+        reason,
+      })
+      await this.appendEventSafe({
+        sessionId: args.sessionId,
+        type: 'implicit_end_closed',
+        severity: 'info',
+        requestId: args.requestId,
+        payload: {
+          conversationId: args.conversationId,
+          reason,
+        },
+      })
+      return closed
+    } catch (error) {
+      await this.appendEventSafe({
+        sessionId: args.sessionId,
+        type: 'implicit_end_skipped',
+        severity: 'warning',
+        requestId: args.requestId,
+        payload: {
+          conversationId: args.conversationId,
+          reason,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      })
+      return null
+    }
+  }
+
+  private async appendEventSafe(args: Parameters<IEventLogRepository['append']>[0]): Promise<void> {
+    try {
+      await this.eventLogRepository.append(args)
+    } catch (error) {
+      console.error('[send-message] Event log append failed:', error)
+    }
   }
 }
 

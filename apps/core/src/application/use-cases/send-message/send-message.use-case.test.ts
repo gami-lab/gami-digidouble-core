@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ConversationEndReason } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import type { User } from '../../../domain/user/user.types.js'
@@ -20,6 +21,7 @@ const appendEventMock = vi.fn()
 const traceMock = vi.fn()
 const flushMock = vi.fn()
 const runGameMasterExecuteMock = vi.fn()
+const endConversationExecuteMock = vi.fn()
 const findUserByIdMock = vi.fn()
 
 const sessionRepository = {
@@ -107,9 +109,33 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   }
 }
 
-function createUseCase(withRunGameMaster = false, withUserRepository = true): SendMessageUseCase {
+function createUseCase(
+  withRunGameMaster = false,
+  withUserRepository = true,
+  withImplicitEnd = false,
+): SendMessageUseCase {
   const runGameMasterUseCase = withRunGameMaster
     ? ({ execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase)
+    : null
+  const endConversationUseCase = withImplicitEnd
+    ? ({ execute: endConversationExecuteMock } as unknown as {
+        execute: (input: {
+          sessionId: string
+          conversationId: string
+          reason?: ConversationEndReason
+        }) => Promise<{
+          conversation: {
+            conversationId: string
+            sessionId: string
+            avatarId: string
+            status: 'active' | 'closed' | 'archived'
+            startedAt: string
+            lastActivityAt: string
+            endedAt?: string
+          }
+          compaction: { scheduled: true }
+        }>
+      })
     : null
   return new SendMessageUseCase(
     sessionRepository,
@@ -122,6 +148,7 @@ function createUseCase(withRunGameMaster = false, withUserRepository = true): Se
     observability,
     runGameMasterUseCase,
     withUserRepository ? userRepository : undefined,
+    endConversationUseCase,
   )
 }
 
@@ -140,6 +167,7 @@ beforeEach(() => {
   flushMock.mockReset()
   appendEventMock.mockReset()
   runGameMasterExecuteMock.mockReset()
+  endConversationExecuteMock.mockReset()
   findUserByIdMock.mockReset()
 
   findSessionByIdMock.mockResolvedValue(makeSession())
@@ -169,6 +197,18 @@ beforeEach(() => {
   flushMock.mockResolvedValue(undefined)
   appendEventMock.mockResolvedValue(undefined)
   runGameMasterExecuteMock.mockResolvedValue(undefined)
+  endConversationExecuteMock.mockResolvedValue({
+    conversation: {
+      conversationId: 'conversation_1',
+      sessionId: 'session_1',
+      avatarId: 'avatar_1',
+      status: 'closed',
+      startedAt: '2026-04-18T10:00:00.000Z',
+      lastActivityAt: '2026-04-18T10:00:02.000Z',
+      endedAt: '2026-04-18T10:00:02.000Z',
+    },
+    compaction: { scheduled: true },
+  })
   findUserByIdMock.mockResolvedValue(null)
 })
 
@@ -392,6 +432,35 @@ describe('SendMessageUseCase — validation and GM integration', () => {
         userMessageText: 'Hello',
       }),
     )
+  })
+})
+
+describe('SendMessageUseCase — implicit end detection', () => {
+  it('closes conversation through canonical close use case on terminal signal', async () => {
+    const useCase = createUseCase(false, true, true)
+
+    const output = await useCase.execute({ conversationId: 'conversation_1', userMessage: 'bye' })
+
+    expect(endConversationExecuteMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'session_1',
+        conversationId: 'conversation_1',
+        reason: 'auto_terminal_signal',
+      }),
+    )
+    expect(output.conversation.status).toBe('closed')
+    expect(output.conversation.endedAt).toBeTypeOf('string')
+  })
+
+  it('does not close conversation when no implicit-end rule matches', async () => {
+    const useCase = createUseCase(false, true, true)
+
+    await useCase.execute({
+      conversationId: 'conversation_1',
+      userMessage: 'Tell me more details.',
+    })
+
+    expect(endConversationExecuteMock).not.toHaveBeenCalled()
   })
 })
 

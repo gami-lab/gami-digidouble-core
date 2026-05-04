@@ -12,6 +12,8 @@ import type { IUserRepository } from '../../application/ports/IUserRepository.js
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
+import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
+import { MessageHistoryCompactionService } from '../../application/services/message-history-compaction.service.js'
 import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
 import type { SendMessageOutput } from '../../application/use-cases/send-message/send-message.types.js'
 import type { Config } from '../../config.js'
@@ -56,6 +58,7 @@ type SendMessageResponse = {
     status: 'active' | 'closed' | 'archived'
     startedAt: string
     lastActivityAt: string
+    endedAt?: string
   }
   session: {
     sessionId: string
@@ -218,6 +221,12 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       observabilityAdapter,
       options.runGameMasterUseCase ?? null,
       repositories.userRepository,
+      new EndConversationUseCase(
+        repositories.sessionRepository,
+        repositories.conversationRepository,
+        new MessageHistoryCompactionService(repositories.messageRepository),
+        repositories.eventLogRepository,
+      ),
     ),
   }
 }
@@ -252,6 +261,9 @@ function mapSendMessageResponse(output: SendMessageOutput): SendMessageResponse 
       status: output.conversation.status,
       startedAt: output.conversation.startedAt,
       lastActivityAt: output.conversation.lastActivityAt,
+      ...(output.conversation.endedAt !== undefined
+        ? { endedAt: output.conversation.endedAt }
+        : {}),
     },
     session: {
       sessionId: output.session.sessionId,

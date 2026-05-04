@@ -60,6 +60,23 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `end-conversation.use-case.test.ts` validates compaction success persistence, failure fallback robustness, and emitted compaction events
   - `end-conversation.stack-e2e.test.ts` remains green for endpoint auth/validation/not-found/conflict/happy-path closure behavior
 
+### EPIC 2.2b — Implicit end detection (May 4, 2026)
+
+- Added deterministic implicit-end rules with bounded taxonomy:
+  - `auto_terminal_signal` for explicit terminal utterances (`bye`, `goodbye`, `end conversation`)
+  - `inactivity_timeout` when inactivity policy is enabled and threshold exceeded
+- Implemented `implicit-end-detection.service.ts` for reusable policy evaluation with configurable enable/disable and threshold behavior.
+- `SendMessageUseCase` now reuses canonical `EndConversationUseCase` for implicit closure (no duplicated lifecycle state machine).
+- Implicit closure decisions are observable via event log:
+  - `implicit_end_detected`
+  - `implicit_end_closed`
+  - `implicit_end_skipped`
+- Safety behavior:
+  - Already-closed or otherwise non-closable conversations are handled via `implicit_end_skipped` without breaking message flow.
+- Tests added:
+  - `implicit-end-detection.service.test.ts` for deterministic rule behavior and no-op policy
+  - `send-message.use-case.test.ts` coverage for implicit close trigger and non-trigger paths
+
 ### EPIC 5.5 — User Persona System: **complete** (May 2, 2026)
 
 - Added `User` / `UserPersona` domain model and persistence port (`IUserRepository`)
