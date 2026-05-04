@@ -76,6 +76,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Tests added:
   - `implicit-end-detection.service.test.ts` for deterministic rule behavior and no-op policy
   - `send-message.use-case.test.ts` coverage for implicit close trigger and non-trigger paths
+  - `conversation-messages-implicit.stack-e2e.test.ts` for message endpoint auth/validation/not-found/success plus implicit terminal-signal closure
 
 ### EPIC 5.5 — User Persona System: **complete** (May 2, 2026)
 

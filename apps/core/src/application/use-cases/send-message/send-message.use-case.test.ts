@@ -462,6 +462,21 @@ describe('SendMessageUseCase — implicit end detection', () => {
 
     expect(endConversationExecuteMock).not.toHaveBeenCalled()
   })
+
+  it('keeps message flow successful when implicit close is skipped by race/conflict', async () => {
+    const useCase = createUseCase(false, true, true)
+    endConversationExecuteMock.mockRejectedValueOnce(new Error('Conversation is not active.'))
+
+    const output = await useCase.execute({ conversationId: 'conversation_1', userMessage: 'bye' })
+
+    expect(output.conversation.status).toBe('active')
+    expect(appendEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'implicit_end_skipped',
+        severity: 'warning',
+      }),
+    )
+  })
 })
 
 describe('SendMessageUseCase — user persona injection', () => {
