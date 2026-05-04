@@ -152,3 +152,48 @@ The route schema (`sessionConversationParamsSchema`) enforces `minLength: 1` on 
 ## Summary
 
 EPIC 2.2b is complete and correctly implemented. All four phases (lifecycle contract baseline, explicit endpoint, compaction trigger, implicit end detection) are present and tested. The implementation follows all architectural principles. Two low-severity findings exist, both are cosmetic or defense-in-depth patterns consistent with the existing codebase. No blocking issues.
+
+---
+
+## Remediation Outcome
+
+### Changes Made
+
+- **`apps/core/src/api/routes/sessions.ts`**: Introduced local `ExplicitEndReason` type (`'user_end' | 'operator_end' | 'scenario_complete' | 'safety_stop'`) and replaced `EndConversationRequestBody.reason?: ConversationEndReason` with `reason?: ExplicitEndReason`. Removed now-unused `ConversationEndReason` import. A comment documents why implicit reasons are excluded from this type.
+
+### Findings Resolved
+
+- **I1 (Low)** — TS type narrowed to match the JSON schema enum. TypeScript now prevents callers from passing `'inactivity_timeout'` or `'auto_terminal_signal'` through the explicit endpoint at compile time, consistent with the runtime schema enforcement.
+
+### Findings Deferred
+
+- **I2 (Low)** — Redundant ID validation in `EndConversationUseCase.execute()` — accepted as-is. Defense-in-depth, consistent with EPIC 5.5 pattern. No runtime impact.
+
+### Build Gates
+
+- lint: **PASS**
+- typecheck: **PASS**
+- tests: **PASS** (353 tests, 63 test files)
+
+### Final Feature Confidence
+
+| Feature                                              | Proven by                                                                                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Explicit conversation close via API                  | `end-conversation.stack-e2e.test.ts` — auth, 400, 404 (session), 404 (conversation), 409 (conflict), 200                    |
+| Close updates status, endedAt, reason                | `end-conversation.use-case.test.ts` — persisted state assertions                                                            |
+| Memory compaction triggered on close                 | `end-conversation.use-case.test.ts` — `memory_compaction_triggered` + `memory_compaction_succeeded` events via `vi.waitFor` |
+| `Session.memorySummary` persisted                    | `end-conversation.use-case.test.ts` — asserts `memorySummary` value post-waitFor                                            |
+| Compaction failure is non-fatal                      | `end-conversation.use-case.test.ts` — close succeeds, `memory_compaction_failed` emitted, `memorySummary` undefined         |
+| Implicit end via terminal signal                     | `conversation-messages-implicit.stack-e2e.test.ts` — `bye` → status `closed` + `endedAt`                                    |
+| Implicit end reuses canonical close                  | `send-message.use-case.test.ts` — asserts `endConversationExecuteMock` called with `auto_terminal_signal`                   |
+| Implicit close failure non-fatal to message delivery | `send-message.use-case.test.ts` — `implicit_end_skipped` emitted, response still 200                                        |
+| API reason enum enforced at runtime                  | `end-conversation.stack-e2e.test.ts` — `manual_switch` → 400                                                                |
+| API reason enum enforced at compile time             | TypeScript type `ExplicitEndReason` (I1 fix)                                                                                |
+
+### Final Grade
+
+**A**
+
+### Remaining Risks
+
+None. Both findings resolved or consciously accepted.
