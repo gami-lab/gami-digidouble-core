@@ -218,7 +218,7 @@ type SessionSummary = {
   status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string
-  endedAt?: string | null
+  endedAt?: string
 }
 ```
 
@@ -265,7 +265,7 @@ type ConversationSummary = {
   status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string
-  endedAt?: string | null
+  endedAt?: string
 }
 ```
 

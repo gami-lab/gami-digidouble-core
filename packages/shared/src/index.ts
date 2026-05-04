@@ -10,8 +10,16 @@ export { ok, fail } from './api-response.js'
 export type {
   AvatarStatus,
   AvatarSummary,
+  LifecycleStatus,
   ScenarioStatus,
   ScenarioSummary,
   SessionSummary,
   ConversationSummary,
 } from './entity-types.js'
+export type {
+  ConversationStartedBy,
+  SessionMemorySummary,
+  SessionTransitionRecord,
+  AvatarTransitionRecord,
+  LifecycleSummary,
+} from './lifecycle-types.js'

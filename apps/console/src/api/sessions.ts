@@ -1,7 +1,13 @@
 import { coreRequest } from './client'
-import type { ConversationSummary, SessionSummary } from '@gami/shared'
+import type {
+  ConversationSummary,
+  LifecycleStatus,
+  SessionMemorySummary,
+  SessionSummary,
+  SessionTransitionRecord,
+} from '@gami/shared'
 
-export type { SessionSummary, ConversationSummary }
+export type { SessionSummary, ConversationSummary, SessionMemorySummary, SessionTransitionRecord }
 
 export type Message = {
   messageId: string
@@ -20,25 +26,11 @@ export type Message = {
   }
 }
 
-export type SessionMemorySummary = {
-  sessionId: string
-  summary: string
-  updatedAt: string
-}
-
 export type GmStateSummary = {
   currentAvatarId?: string
   progression: string
   topicsCovered: string[]
   interactionCount: number
-}
-
-export type SessionTransitionRecord = {
-  fromAvatarId: string | null
-  toAvatarId: string
-  reason: string | null
-  startedBy: 'user' | 'gm' | 'system' | null
-  transitionedAt: string
 }
 
 export type InspectSessionResponse = {
@@ -198,7 +190,7 @@ export async function getHistory(conversationId: string): Promise<GetHistoryResp
 export type ListSessionsFilter = {
   scenarioId?: string
   userId?: string
-  status?: string
+  status?: LifecycleStatus
 }
 
 type ListSessionsPayload = {

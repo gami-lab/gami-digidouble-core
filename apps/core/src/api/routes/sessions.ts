@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
+import type { LifecycleStatus } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
@@ -62,7 +63,7 @@ type SessionParams = {
 type ListSessionsQuerystring = {
   scenarioId?: string
   userId?: string
-  status?: string
+  status?: LifecycleStatus
 }
 
 const startSessionBodySchema = {
@@ -214,9 +215,7 @@ function registerListSessionsRoute(app: FastifyInstance, useCase: ListSessionsUs
             ? { scenarioId: request.query.scenarioId }
             : {}),
           ...(request.query.userId !== undefined ? { userId: request.query.userId } : {}),
-          ...(request.query.status !== undefined
-            ? { status: request.query.status as 'active' | 'closed' | 'archived' }
-            : {}),
+          ...(request.query.status !== undefined ? { status: request.query.status } : {}),
         })
         return await reply.send(ok<ListSessionsOutput>(output))
       } catch (error) {

@@ -32,6 +32,9 @@ export type AvatarSummary = {
 /** Scenario status union — matches domain Scenario['status']. */
 export type ScenarioStatus = 'draft' | 'active' | 'archived'
 
+/** Canonical lifecycle status for sessions/conversations. */
+export type LifecycleStatus = 'active' | 'closed' | 'archived'
+
 /** Canonical read shape for a Scenario as returned by the Core API. */
 export type ScenarioSummary = {
   scenarioId: string
@@ -49,7 +52,7 @@ export type SessionSummary = {
   scenarioId: string
   activeAvatarId?: string
   unlockedAvatarIds?: string[]
-  status: 'active' | 'closed' | 'archived'
+  status: LifecycleStatus
   startedAt: string
   lastActivityAt: string
   endedAt?: string
@@ -60,7 +63,7 @@ export type ConversationSummary = {
   conversationId: string
   sessionId: string
   avatarId: string
-  status: 'active' | 'closed' | 'archived'
+  status: LifecycleStatus
   startedAt: string
   lastActivityAt: string
   endedAt?: string

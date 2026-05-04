@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** April 30, 2026
+**Last updated:** May 4, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -11,6 +11,17 @@ Update it as epics and features are completed.
 ## Overall Progress
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+
+### EPIC 2.2b — Lifecycle contract baseline (May 4, 2026)
+
+- Canonical lifecycle contracts centralized in `@gami/shared`:
+  - `LifecycleStatus` in `packages/shared/src/entity-types.ts`
+  - `SessionMemorySummary`, `SessionTransitionRecord`, and `AvatarTransitionRecord` in `packages/shared/src/lifecycle-types.ts`
+- Core use-case lifecycle DTOs now reuse shared contracts (`inspect-session`, `get-avatar-transitions`) to avoid duplicated transition record shapes.
+- Console API lifecycle DTOs now reuse shared contracts and tightened filter typing (`ListSessionsFilter.status?: LifecycleStatus`) instead of free-form `string`.
+- Nullability/optionality alignment confirmed for lifecycle summaries: `endedAt` is modeled as optional (`endedAt?: string`) across domain summary mappings and shared response DTOs.
+- `docs/API_CONTRACT.md` lifecycle summaries updated to match implementation (`SessionSummary.endedAt?: string`, `ConversationSummary.endedAt?: string`).
+- Verification: `pnpm --filter @gami/shared build`, `pnpm --filter @gami/core typecheck`, `pnpm --filter @gami/console typecheck` pass.
 
 ### EPIC 5.5 — User Persona System: **complete** (May 2, 2026)
 
