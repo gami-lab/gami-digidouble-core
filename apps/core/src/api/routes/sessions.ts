@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
-import type { ConversationEndReason, EndConversationResponse, LifecycleStatus } from '@gami/shared'
+import type { EndConversationResponse, LifecycleStatus } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IConversationCompactionPort } from '../../application/ports/IConversationCompactionPort.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
@@ -72,8 +72,11 @@ type SessionConversationParams = {
   conversationId: string
 }
 
+// Explicit-only reasons — a subset of ConversationEndReason: implicit reasons (inactivity_timeout, auto_terminal_signal) must not be submitted by callers
+type ExplicitEndReason = 'user_end' | 'operator_end' | 'scenario_complete' | 'safety_stop'
+
 type EndConversationRequestBody = {
-  reason?: ConversationEndReason
+  reason?: ExplicitEndReason
 }
 
 type ListSessionsQuerystring = {
