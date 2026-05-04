@@ -38,6 +38,28 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - unit: `end-conversation.use-case.test.ts`
   - stack-e2e route baseline in `sessions.stack-e2e.test.ts` (auth, validation, not-found, conflict, happy path).
 
+### EPIC 2.2b — Compaction trigger + session memory update (May 4, 2026)
+
+- End-conversation flow now triggers compaction through a dedicated application boundary:
+  - New port: `IConversationCompactionPort`
+  - Default implementation: `MessageHistoryCompactionService` (deterministic message-history summarization)
+- `EndConversationUseCase` now performs close-first semantics, then launches compaction asynchronously:
+  - Conversation close remains reliable (`status`, `endedAt`, `lastActivityAt`, `reason`) even if compaction fails
+  - Successful compaction persists to `Session.memorySummary`
+  - Failures are non-destructive and do not roll back conversation closure
+- Observability/events added for compaction lifecycle on `event_log`:
+  - `memory_compaction_triggered`
+  - `memory_compaction_succeeded`
+  - `memory_compaction_failed`
+- Session persistence contracts extended:
+  - Domain `Session` now includes optional `memorySummary`
+  - `ISessionRepository.SessionUpdate` now supports `memorySummary?: string | null`
+  - In-memory and Postgres session repositories support storing/clearing `memorySummary`
+  - Canonical schema (`infra/postgres/init.sql`) now includes `sessions.memory_summary`
+- Tests:
+  - `end-conversation.use-case.test.ts` validates compaction success persistence, failure fallback robustness, and emitted compaction events
+  - `end-conversation.stack-e2e.test.ts` remains green for endpoint auth/validation/not-found/conflict/happy-path closure behavior
+
 ### EPIC 5.5 — User Persona System: **complete** (May 2, 2026)
 
 - Added `User` / `UserPersona` domain model and persistence port (`IUserRepository`)

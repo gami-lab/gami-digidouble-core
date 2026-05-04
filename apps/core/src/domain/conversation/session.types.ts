@@ -6,6 +6,7 @@ export interface Session {
   activeAvatarId?: string
   unlockedAvatarIds?: string[]
   gmNotes?: string
+  memorySummary?: string
   status: 'active' | 'closed' | 'archived'
   startedAt: string
   lastActivityAt: string

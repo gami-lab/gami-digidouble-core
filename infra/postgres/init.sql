@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   active_avatar_id UUID        REFERENCES avatars(id) ON DELETE SET NULL,
   unlocked_avatar_ids UUID[],
   gm_notes         TEXT,
+  memory_summary   TEXT,
   status           TEXT        NOT NULL DEFAULT 'active',
   started_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_activity_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

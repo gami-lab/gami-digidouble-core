@@ -33,4 +33,6 @@ export type SessionUpdate = {
   unlockedAvatarIds?: Session['unlockedAvatarIds']
   /** null clears persisted gm_notes. */
   gmNotes?: string | null
+  /** null clears persisted memory summary. */
+  memorySummary?: string | null
 }

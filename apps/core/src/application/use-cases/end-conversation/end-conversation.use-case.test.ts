@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { EndConversationUseCase } from './end-conversation.use-case.js'
+import type { IConversationCompactionPort } from '../../ports/IConversationCompactionPort.js'
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
 import { DomainError } from '../../../domain/errors.js'
 
@@ -25,13 +27,46 @@ function makeRepositories() {
       lastActivityAt: '2026-05-01T10:01:00.000Z',
     },
   ])
-  return { sessionRepository, conversationRepository }
+  const eventLogRepository = new InMemoryEventLogRepository()
+  return { sessionRepository, conversationRepository, eventLogRepository }
+}
+
+function createUseCaseWithCompaction(compactionPort: IConversationCompactionPort) {
+  const { sessionRepository, conversationRepository, eventLogRepository } = makeRepositories()
+  return {
+    sessionRepository,
+    conversationRepository,
+    eventLogRepository,
+    useCase: new EndConversationUseCase(
+      sessionRepository,
+      conversationRepository,
+      compactionPort,
+      eventLogRepository,
+    ),
+  }
+}
+
+async function expectCompactionEvents(
+  eventLogRepository: InMemoryEventLogRepository,
+  expectedTypes: string[],
+): Promise<void> {
+  await vi.waitFor(() => {
+    const events = eventLogRepository.getAll().map((event) => event.type)
+    for (const type of expectedTypes) {
+      expect(events).toContain(type)
+    }
+  })
 }
 
 describe('EndConversationUseCase', () => {
-  it('closes an active conversation and schedules compaction', async () => {
-    const { sessionRepository, conversationRepository } = makeRepositories()
-    const useCase = new EndConversationUseCase(sessionRepository, conversationRepository)
+  it('closes an active conversation, compacts, and persists memory summary', async () => {
+    const compactionPort = {
+      compactConversation: vi.fn().mockResolvedValue({
+        summary: 'Compact summary for session_1/conversation_1',
+      }),
+    } satisfies IConversationCompactionPort
+    const { sessionRepository, conversationRepository, eventLogRepository, useCase } =
+      createUseCaseWithCompaction(compactionPort)
 
     const output = await useCase.execute({
       sessionId: 'session_1',
@@ -51,11 +86,21 @@ describe('EndConversationUseCase', () => {
 
     const persistedSession = await sessionRepository.findById('session_1')
     expect(persistedSession?.lastActivityAt).toBe(output.conversation.lastActivityAt)
+    await vi.waitFor(async () => {
+      const updatedSession = await sessionRepository.findById('session_1')
+      expect(updatedSession?.memorySummary).toBe('Compact summary for session_1/conversation_1')
+    })
+    await expectCompactionEvents(eventLogRepository, [
+      'memory_compaction_triggered',
+      'memory_compaction_succeeded',
+    ])
   })
 
   it('defaults reason to operator_end when omitted', async () => {
-    const { sessionRepository, conversationRepository } = makeRepositories()
-    const useCase = new EndConversationUseCase(sessionRepository, conversationRepository)
+    const compactionPort = {
+      compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }),
+    } satisfies IConversationCompactionPort
+    const { conversationRepository, useCase } = createUseCaseWithCompaction(compactionPort)
 
     await useCase.execute({
       sessionId: 'session_1',
@@ -88,10 +133,39 @@ describe('EndConversationUseCase', () => {
         endedAt: '2026-05-01T10:01:00.000Z',
       },
     ])
-    const useCase = new EndConversationUseCase(sessionRepository, conversationRepository)
+    const useCase = new EndConversationUseCase(
+      sessionRepository,
+      conversationRepository,
+      { compactConversation: vi.fn() },
+      new InMemoryEventLogRepository(),
+    )
 
     await expect(
       useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),
     ).rejects.toMatchObject({ code: 'CONFLICT' } satisfies Partial<DomainError>)
+  })
+
+  it('keeps close successful when compaction fails and emits failure event', async () => {
+    const compactionPort = {
+      compactConversation: vi.fn().mockRejectedValue(new Error('compaction down')),
+    } satisfies IConversationCompactionPort
+    const { sessionRepository, eventLogRepository, useCase } =
+      createUseCaseWithCompaction(compactionPort)
+
+    const output = await useCase.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      reason: 'operator_end',
+    })
+
+    expect(output.conversation.status).toBe('closed')
+    await vi.waitFor(async () => {
+      const session = await sessionRepository.findById('session_1')
+      expect(session?.memorySummary).toBeUndefined()
+    })
+    await expectCompactionEvents(eventLogRepository, [
+      'memory_compaction_triggered',
+      'memory_compaction_failed',
+    ])
   })
 })

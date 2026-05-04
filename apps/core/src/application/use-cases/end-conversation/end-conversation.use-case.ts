@@ -1,5 +1,7 @@
 import type { ConversationSummary } from '@gami/shared'
+import type { IConversationCompactionPort } from '../../ports/IConversationCompactionPort.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
+import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { EndConversationInput, EndConversationResponse } from './end-conversation.types.js'
@@ -10,6 +12,8 @@ export class EndConversationUseCase {
   constructor(
     private readonly sessionRepository: ISessionRepository,
     private readonly conversationRepository: IConversationRepository,
+    private readonly compactionPort: IConversationCompactionPort,
+    private readonly eventLogRepository: IEventLogRepository,
   ) {}
 
   async execute(input: EndConversationInput): Promise<EndConversationResponse> {
@@ -50,10 +54,60 @@ export class EndConversationUseCase {
       reason: input.reason ?? DEFAULT_END_REASON,
     })
     await this.sessionRepository.update(sessionId, { lastActivityAt: now })
+    void this.compactSessionMemory(sessionId, conversationId)
 
     return {
       conversation: this.toSummary(updatedConversation),
       compaction: { scheduled: true },
+    }
+  }
+
+  private async compactSessionMemory(sessionId: string, conversationId: string): Promise<void> {
+    const requestId = crypto.randomUUID()
+    await this.appendEventSafe({
+      sessionId,
+      type: 'memory_compaction_triggered',
+      severity: 'info',
+      requestId,
+      payload: { sessionId, conversationId },
+    })
+
+    try {
+      const compacted = await this.compactionPort.compactConversation({ sessionId, conversationId })
+      await this.sessionRepository.update(sessionId, {
+        memorySummary: compacted.summary,
+      })
+      await this.appendEventSafe({
+        sessionId,
+        type: 'memory_compaction_succeeded',
+        severity: 'info',
+        requestId,
+        payload: {
+          sessionId,
+          conversationId,
+          summaryLength: compacted.summary.length,
+        },
+      })
+    } catch (error) {
+      await this.appendEventSafe({
+        sessionId,
+        type: 'memory_compaction_failed',
+        severity: 'error',
+        requestId,
+        payload: {
+          sessionId,
+          conversationId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      })
+    }
+  }
+
+  private async appendEventSafe(args: Parameters<IEventLogRepository['append']>[0]): Promise<void> {
+    try {
+      await this.eventLogRepository.append(args)
+    } catch (error) {
+      console.error('[end-conversation] Event log append failed:', error)
     }
   }
 

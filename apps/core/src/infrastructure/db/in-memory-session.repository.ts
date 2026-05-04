@@ -49,6 +49,11 @@ export class InMemorySessionRepository implements ISessionRepository {
       delete (withoutGmNotes as { gmNotes?: string }).gmNotes
       updated = withoutGmNotes as Session
     }
+    if (Object.hasOwn(updates, 'memorySummary') && updates.memorySummary === null) {
+      const withoutMemorySummary = { ...updated }
+      delete (withoutMemorySummary as { memorySummary?: string }).memorySummary
+      updated = withoutMemorySummary as Session
+    }
     if (Object.hasOwn(updates, 'activeAvatarId') && updates.activeAvatarId === null) {
       const withoutActiveAvatar = { ...updated }
       delete (withoutActiveAvatar as { activeAvatarId?: string }).activeAvatarId

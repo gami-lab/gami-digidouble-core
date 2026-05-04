@@ -2,7 +2,9 @@ import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fasti
 import { fail, ok } from '@gami/shared'
 import type { ConversationEndReason, EndConversationResponse, LifecycleStatus } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
+import type { IConversationCompactionPort } from '../../application/ports/IConversationCompactionPort.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
+import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
@@ -11,6 +13,7 @@ import type { GetAvailableAvatarsOutput } from '../../application/use-cases/get-
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
 import type { GetAvatarTransitionsOutput } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.types.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
+import { MessageHistoryCompactionService } from '../../application/services/message-history-compaction.service.js'
 import { GetSessionUseCase } from '../../application/use-cases/get-session/get-session.use-case.js'
 import type { GetSessionOutput } from '../../application/use-cases/get-session/get-session.types.js'
 import { ListSessionConversationsUseCase } from '../../application/use-cases/list-session-conversations/list-session-conversations.use-case.js'
@@ -29,6 +32,7 @@ import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
@@ -41,6 +45,8 @@ export type SessionsRouteOptions = {
   avatarRepository?: IAvatarRepository
   conversationRepository?: IConversationRepository
   messageRepository?: IMessageRepository
+  eventLogRepository?: IEventLogRepository
+  conversationCompactionPort?: IConversationCompactionPort
 }
 
 type StartSessionRequestBody = {
@@ -152,6 +158,9 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   const conversationRepository =
     options.conversationRepository ?? new InMemoryConversationRepository()
   const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
+  const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
+  const conversationCompactionPort =
+    options.conversationCompactionPort ?? new MessageHistoryCompactionService(messageRepository)
 
   const startSessionUseCase = new StartSessionUseCase(
     sessionRepository,
@@ -192,6 +201,8 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   const endConversationUseCase = new EndConversationUseCase(
     sessionRepository,
     conversationRepository,
+    conversationCompactionPort,
+    eventLogRepository,
   )
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
