@@ -82,4 +82,49 @@ describe('Stack E2E — session/conversation lifecycle', () => {
       conversationId,
     )
   })
+
+  it('implicitly closes conversation on terminal user signal via canonical close pipeline', async () => {
+    const scenarioRes = await postJson('/v1/scenarios', { name: 'Implicit End Scenario' })
+    expect(scenarioRes.status).toBe(201)
+    const scenarioBody = (await scenarioRes.json()) as ApiResponse<{
+      scenario: { scenarioId: string }
+    }>
+    const scenarioId = requireValue(scenarioBody.data?.scenario.scenarioId, 'scenarioId')
+
+    const avatarRes = await postJson(`/v1/scenarios/${scenarioId}/avatars`, {
+      name: 'Avatar B',
+      personaPrompt: 'You are Avatar B.',
+    })
+    expect(avatarRes.status).toBe(201)
+    const avatarBody = (await avatarRes.json()) as ApiResponse<{ avatar: { avatarId: string } }>
+    const avatarId = requireValue(avatarBody.data?.avatar.avatarId, 'avatarId')
+
+    const sessionRes = await postJson('/v1/sessions', {
+      userId: `user_${Date.now().toString()}`,
+      scenarioId,
+    })
+    expect(sessionRes.status).toBe(201)
+    const sessionBody = (await sessionRes.json()) as ApiResponse<{ session: { sessionId: string } }>
+    const sessionId = requireValue(sessionBody.data?.session.sessionId, 'sessionId')
+
+    const conversationRes = await postJson(`/v1/sessions/${sessionId}/conversations`, { avatarId })
+    expect(conversationRes.status).toBe(201)
+    const conversationBody = (await conversationRes.json()) as ApiResponse<{
+      conversation: { conversationId: string }
+    }>
+    const conversationId = requireValue(
+      conversationBody.data?.conversation.conversationId,
+      'conversationId',
+    )
+
+    const sendRes = await postJson(`/v1/conversations/${conversationId}/messages`, {
+      message: { content: 'bye' },
+    })
+    expect(sendRes.status).toBe(200)
+    const sendBody = (await sendRes.json()) as ApiResponse<{
+      conversation: { status: string; endedAt?: string }
+    }>
+    expect(sendBody.data?.conversation.status).toBe('closed')
+    expect(sendBody.data?.conversation.endedAt).toBeTypeOf('string')
+  })
 })
