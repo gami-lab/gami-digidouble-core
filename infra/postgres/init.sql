@@ -61,6 +61,12 @@ CREATE TABLE IF NOT EXISTS sessions (
   ended_at         TIMESTAMPTZ
 );
 
+-- Backward-compatible schema alignment for existing local volumes.
+-- CREATE TABLE IF NOT EXISTS does not add new columns after initial bootstrap.
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS unlocked_avatar_ids UUID[];
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS gm_notes TEXT;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS memory_summary TEXT;
+
 -- ── Game Master States ────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS gm_states (

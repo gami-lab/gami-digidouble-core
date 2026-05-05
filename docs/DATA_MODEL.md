@@ -235,6 +235,7 @@ Using the movie analogy:
 
 - It is **not** a persisted table in Phase A.
 - It is exposed through API (`GET /v1/sessions/{sessionId}/runtime-state`) and SSE event flow.
+- World-processing signals are sourced from an in-process session event publisher (`InMemorySessionEventPublisher`) and are process-scoped (not DB-backed) in Phase A.
 - Keep this model derived/simple to avoid premature event-sourcing complexity.
 
 ---

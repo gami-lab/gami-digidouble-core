@@ -45,6 +45,17 @@ describe('InMemorySessionEventPublisher', () => {
     expect(handler).not.toHaveBeenCalled()
   })
 
+  it('unsubscribe removes empty subscriber set to avoid leaks', () => {
+    const publisher = new InMemorySessionEventPublisher()
+    const unsubscribe = publisher.subscribe('session-1', vi.fn())
+
+    unsubscribe()
+
+    const subscribers = (publisher as unknown as { subscribers: Map<string, Set<unknown>> })
+      .subscribers
+    expect(subscribers.has('session-1')).toBe(false)
+  })
+
   it('session isolation delivers only to matching session subscribers', () => {
     const publisher = new InMemorySessionEventPublisher()
     const handlerA = vi.fn()

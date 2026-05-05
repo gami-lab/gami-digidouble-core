@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** May 4, 2026
+**Last updated:** May 5, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -11,6 +11,18 @@ Update it as epics and features are completed.
 ## Overall Progress
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+
+### EPIC 4.5 — Player Runtime State & World Events: **complete** (2026-05-05)
+
+- Added `RuntimeEvent` and `RuntimeState` to `@gami/shared` (`packages/shared/src/runtime-types.ts`)
+- Defined `ISessionEventPublisher` port with `emit`, `subscribe`, `getLastEvent`, `isProcessing`, `setProcessing`
+- Implemented `InMemorySessionEventPublisher` (in-process session-scoped pub/sub, `Map`-based)
+- Implemented `GetRuntimeStateUseCase` — derives `canSendMessage`, `isProcessing`, `pendingEvent` from live session/conversation state
+- Added `GET /v1/sessions/{sessionId}/runtime-state` — REST snapshot endpoint returning `ApiResponse<RuntimeState>`
+- Added `GET /v1/sessions/{sessionId}/events/stream` — SSE stream endpoint; session-scoped, no cross-session leakage, clean teardown on disconnect
+- Wired `RunGameMasterUseCase` to emit `runtime.processing_started`, `runtime.processing_finished`, `runtime.avatar_unlocked`, `runtime.avatar_suggested`, `runtime.choice_required` via publisher; GM remains fully async and non-blocking
+- Stack-e2e coverage added for both endpoints (auth, 404, happy path)
+- Quality gates confirmed: `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm --filter @gami/core test:coverage` pass
 
 ### EPIC 2.2b — Lifecycle contract baseline (May 4, 2026)
 

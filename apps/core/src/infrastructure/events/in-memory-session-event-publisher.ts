@@ -31,7 +31,11 @@ export class InMemorySessionEventPublisher implements ISessionEventPublisher {
     handlers.add(handler)
 
     return () => {
-      this.subscribers.get(sessionId)?.delete(handler)
+      const handlersForSession = this.subscribers.get(sessionId)
+      handlersForSession?.delete(handler)
+      if (handlersForSession !== undefined && handlersForSession.size === 0) {
+        this.subscribers.delete(sessionId)
+      }
     }
   }
 
