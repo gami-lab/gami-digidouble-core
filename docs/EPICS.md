@@ -714,7 +714,7 @@ The async model remains viable in real conditions.
 
 ---
 
-## EPIC 4.5 — Player Runtime State & World Events
+## EPIC 4.5 — Player Runtime State & World Events ✅ Done
 
 **Purpose**  
 Let clients know when the world/session state has changed after an async GM run.
@@ -1295,10 +1295,6 @@ A hybrid response engine improves quality/cost/latency trade-offs versus pure li
 If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
 
 ## Recommended implementation order
-
-### 4. EPIC 4.5 — Player Runtime State & World Events
-
-Expose runtime state and world events so clients can react to async Game Master changes (conversation end, avatar handoff, session closure) without polling.
 
 ### 5. EPIC 4.2 — Memory Layer v1
 
