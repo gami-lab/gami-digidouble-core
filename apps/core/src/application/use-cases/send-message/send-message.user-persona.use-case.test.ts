@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Session, Conversation, Message } from '../../../domain/conversation/session.types.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { User } from '../../../domain/user/user.types.js'
+import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
 
 const findSessionByIdMock = vi.fn()
@@ -112,9 +113,7 @@ function createUseCase(
     eventLogRepository,
     observability,
     withRunGameMaster
-      ? ({
-          execute: runGameMasterExecuteMock,
-        } as unknown as { execute: (input: unknown) => Promise<void> })
+      ? ({ execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase)
       : null,
     withUserRepository ? userRepository : undefined,
   )
