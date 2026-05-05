@@ -446,6 +446,7 @@ Persistent structured memory about a user.
 Store facts, not transcripts.
 
 This memory is cross-session and user-centric (long-term layer). Facts/events should be compact, structured, and deduplicated when practical.
+Fact extraction is triggered when a conversation is closed and runs asynchronously/non-blocking (fire-and-forget) so close latency is unaffected.
 
 ### Implementation Status (EPIC 4.2)
 

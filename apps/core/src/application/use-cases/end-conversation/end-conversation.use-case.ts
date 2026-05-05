@@ -3,8 +3,11 @@ import type { ConversationSummary } from '@gami/shared'
 import type { IConversationCompactionPort } from '../../ports/IConversationCompactionPort.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
+import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
+import type { IUserFactExtractor } from '../../ports/IUserFactExtractor.js'
+import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { EndConversationInput, EndConversationResponse } from './end-conversation.types.js'
 
@@ -17,6 +20,9 @@ export class EndConversationUseCase {
     private readonly compactionPort: IConversationCompactionPort,
     private readonly eventLogRepository: IEventLogRepository,
     private readonly sessionEventPublisher?: ISessionEventPublisher,
+    private readonly messageRepository?: IMessageRepository,
+    private readonly userFactExtractor?: IUserFactExtractor,
+    private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
   ) {}
 
   async execute(input: EndConversationInput): Promise<EndConversationResponse> {
@@ -59,6 +65,7 @@ export class EndConversationUseCase {
     await this.sessionRepository.update(sessionId, { lastActivityAt: now })
     this.emitSessionClosed(sessionId, conversationId)
     void this.compactSessionMemory(sessionId, conversationId)
+    void this.extractAndPersistUserFacts(session.userId, sessionId, conversationId)
 
     return {
       conversation: this.toSummary(updatedConversation),
@@ -116,6 +123,77 @@ export class EndConversationUseCase {
         requestId,
         payload: {
           sessionId,
+          conversationId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      })
+    }
+  }
+
+  private async extractAndPersistUserFacts(
+    userId: string,
+    sessionId: string,
+    conversationId: string,
+  ): Promise<void> {
+    if (
+      this.messageRepository === undefined ||
+      this.userFactExtractor === undefined ||
+      this.userMemoryFactRepository === undefined
+    ) {
+      return
+    }
+
+    const requestId = crypto.randomUUID()
+    await this.appendEventSafe({
+      sessionId,
+      type: 'user_fact_extraction_triggered',
+      severity: 'info',
+      requestId,
+      payload: { userId, conversationId },
+    })
+
+    try {
+      const messages = await this.messageRepository.findByConversationId(conversationId, {
+        limit: 20,
+      })
+      const facts = await this.userFactExtractor.extract({
+        userId,
+        conversationId,
+        messages: messages.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+      })
+
+      for (const fact of facts) {
+        await this.userMemoryFactRepository.upsert({
+          userId,
+          category: fact.category,
+          key: fact.key,
+          value: fact.value,
+          confidence: fact.confidence ?? null,
+        })
+      }
+
+      await this.appendEventSafe({
+        sessionId,
+        type: 'user_fact_extraction_succeeded',
+        severity: 'info',
+        requestId,
+        payload: {
+          userId,
+          conversationId,
+          factCount: facts.length,
+        },
+      })
+    } catch (error) {
+      await this.appendEventSafe({
+        sessionId,
+        type: 'user_fact_extraction_failed',
+        severity: 'error',
+        requestId,
+        payload: {
+          userId,
           conversationId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
