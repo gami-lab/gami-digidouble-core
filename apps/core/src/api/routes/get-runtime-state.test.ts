@@ -179,4 +179,48 @@ describe('GET /v1/sessions/:sessionId/runtime-state success', () => {
     expect(body.error).toBeNull()
     expect(body.data?.runtimeState.isProcessing).toBe(true)
   })
+
+  it('returns conversationId in HTTP response when active conversation exists', async () => {
+    const app = makeApp({
+      sessions: [makeSession()],
+      conversations: [makeConversation()],
+    })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions/session_1/runtime-state',
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ runtimeState: { conversationId: string } }>>()
+    expect(body.data?.runtimeState.conversationId).toBe('conversation_1')
+  })
+
+  it('returns pendingEvent in HTTP response when publisher has a last event', async () => {
+    const pendingEvent = {
+      eventId: 'evt_1',
+      sessionId: 'session_1',
+      type: 'runtime.avatar_unlocked' as const,
+      occurredAt: '2026-05-05T10:00:00.000Z',
+      payload: { unlockedAvatarIds: ['avatar_2'] },
+    }
+    const app = makeApp({
+      sessions: [makeSession()],
+      conversations: [makeConversation()],
+      publisher: makePublisher({ getLastEvent: () => pendingEvent }),
+    })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions/session_1/runtime-state',
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<
+      ApiResponse<{ runtimeState: { pendingEvent: typeof pendingEvent } }>
+    >()
+    expect(body.data?.runtimeState.pendingEvent).toMatchObject({ eventId: 'evt_1' })
+  })
 })

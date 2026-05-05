@@ -1,7 +1,9 @@
+import crypto from 'node:crypto'
 import type { ConversationSummary } from '@gami/shared'
 import type { IConversationCompactionPort } from '../../ports/IConversationCompactionPort.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
+import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { EndConversationInput, EndConversationResponse } from './end-conversation.types.js'
@@ -14,6 +16,7 @@ export class EndConversationUseCase {
     private readonly conversationRepository: IConversationRepository,
     private readonly compactionPort: IConversationCompactionPort,
     private readonly eventLogRepository: IEventLogRepository,
+    private readonly sessionEventPublisher?: ISessionEventPublisher,
   ) {}
 
   async execute(input: EndConversationInput): Promise<EndConversationResponse> {
@@ -54,11 +57,28 @@ export class EndConversationUseCase {
       reason: input.reason ?? DEFAULT_END_REASON,
     })
     await this.sessionRepository.update(sessionId, { lastActivityAt: now })
+    this.emitSessionClosed(sessionId, conversationId)
     void this.compactSessionMemory(sessionId, conversationId)
 
     return {
       conversation: this.toSummary(updatedConversation),
       compaction: { scheduled: true },
+    }
+  }
+
+  private emitSessionClosed(sessionId: string, conversationId: string): void {
+    if (this.sessionEventPublisher === undefined) return
+    try {
+      this.sessionEventPublisher.emit({
+        eventId: `rev_${crypto.randomUUID()}`,
+        sessionId,
+        conversationId,
+        type: 'runtime.session_closed',
+        occurredAt: new Date().toISOString(),
+        payload: { conversationId },
+      })
+    } catch (error: unknown) {
+      console.warn('[end-conversation] Runtime event emission failed:', error)
     }
   }
 

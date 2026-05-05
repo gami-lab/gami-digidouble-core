@@ -169,3 +169,47 @@ describe('EndConversationUseCase', () => {
     ])
   })
 })
+
+describe('EndConversationUseCase runtime event emission', () => {
+  it('emits runtime.session_closed event when publisher is provided', async () => {
+    const emittedEvents: { type: string; sessionId: string; conversationId?: string }[] = []
+    const publisher = {
+      emit: vi.fn((event: { type: string; sessionId: string; conversationId?: string }) => {
+        emittedEvents.push(event)
+      }),
+      subscribe: vi.fn(),
+      getLastEvent: vi.fn(),
+      isProcessing: vi.fn(),
+      setProcessing: vi.fn(),
+    }
+    const { sessionRepository, conversationRepository } = makeRepositories()
+    const useCase = new EndConversationUseCase(
+      sessionRepository,
+      conversationRepository,
+      { compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }) },
+      new InMemoryEventLogRepository(),
+      publisher,
+    )
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      reason: 'user_end',
+    })
+
+    const closedEvent = emittedEvents.find((e) => e.type === 'runtime.session_closed')
+    expect(closedEvent).toBeDefined()
+    expect(closedEvent?.sessionId).toBe('session_1')
+    expect(closedEvent?.conversationId).toBe('conversation_1')
+  })
+
+  it('does not throw when no publisher is provided', async () => {
+    const { useCase } = createUseCaseWithCompaction({
+      compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }),
+    })
+
+    await expect(
+      useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),
+    ).resolves.toBeDefined()
+  })
+})
