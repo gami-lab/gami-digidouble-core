@@ -22,6 +22,7 @@ export function assemblePersonaPrompt(
     gmNotes?: string
     avatarAwareness?: AvatarAwarenessItem[]
     userPersona?: UserPersona
+    userFacts?: Record<string, string>
   },
 ): string {
   const personaPrompt = requirePersonaPrompt(config.personaPrompt)
@@ -36,6 +37,7 @@ export function assemblePersonaPrompt(
   }
 
   sections.push(...buildUserPersonaContext(opts?.userPersona))
+  sections.push(...buildUserFactsContext(opts?.userFacts))
   sections.push(...buildAdjustments(config.adjustments))
   sections.push(...buildAvatarAwareness(opts?.avatarAwareness))
 
@@ -50,6 +52,16 @@ export function assemblePersonaPrompt(
 function buildUserPersonaContext(userPersona: UserPersona | undefined): string[] {
   if (!hasText(userPersona?.role)) return []
   return [`You are speaking with someone in the role of: ${userPersona.role.trim()}.`]
+}
+
+function buildUserFactsContext(userFacts: Record<string, string> | undefined): string[] {
+  if (userFacts === undefined) return []
+  const entries = Object.entries(userFacts).filter(([key, value]) => hasText(key) && hasText(value))
+  if (entries.length === 0) return []
+
+  return [
+    ['## User Context (remembered facts)', ...entries.map(([k, v]) => `${k}: ${v}`)].join('\n'),
+  ]
 }
 
 function requirePersonaPrompt(personaPrompt: string): string {

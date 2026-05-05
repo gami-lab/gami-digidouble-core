@@ -220,6 +220,7 @@ One session can contain multiple conversations over time.
 
 `active_avatar_id` tracks the current routing focus for session-level orchestration.
 `unlocked_avatar_ids` tracks which avatars are accessible in that specific session.
+At turn time, long-term user facts (`UserMemoryFact`) are fetched (bounded) and injected into the avatar system prompt as lightweight user context.
 
 A Session is the equivalent of one run of the experience.
 
@@ -447,6 +448,7 @@ Store facts, not transcripts.
 
 This memory is cross-session and user-centric (long-term layer). Facts/events should be compact, structured, and deduplicated when practical.
 Fact extraction is triggered when a conversation is closed and runs asynchronously/non-blocking (fire-and-forget) so close latency is unaffected.
+Facts are injected into avatar turn context on message handling via a bounded key/value map (`{ [key]: value }`), aligned with the same long-term memory concept used by Game Master input.
 
 ### Implementation Status (EPIC 4.2)
 

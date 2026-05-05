@@ -257,3 +257,33 @@ describe('assemblePersonaPrompt -> user persona role context', () => {
     expect(styleIndex).toBeGreaterThan(roleIndex)
   })
 })
+
+describe('assemblePersonaPrompt -> user facts context', () => {
+  it('omits user context section when userFacts is empty', () => {
+    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
+
+    const prompt = assemblePersonaPrompt(config, { userFacts: {} })
+
+    expect(prompt).not.toContain('## User Context (remembered facts)')
+  })
+
+  it('includes user context section when userFacts are provided', () => {
+    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
+
+    const prompt = assemblePersonaPrompt(config, {
+      userFacts: { language: 'English', role: 'friend' },
+    })
+
+    expect(prompt).toContain('## User Context (remembered facts)')
+    expect(prompt).toContain('language: English')
+    expect(prompt).toContain('role: friend')
+  })
+
+  it('keeps behavior unchanged when userFacts is not provided', () => {
+    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
+
+    const prompt = assemblePersonaPrompt(config)
+
+    expect(prompt).not.toContain('## User Context (remembered facts)')
+  })
+})

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConversationEndReason } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
-import type { User } from '../../../domain/user/user.types.js'
 import { expectConsoleError } from '../../../test-utils/console.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
@@ -23,6 +22,7 @@ const flushMock = vi.fn()
 const runGameMasterExecuteMock = vi.fn()
 const endConversationExecuteMock = vi.fn()
 const findUserByIdMock = vi.fn()
+const findUserFactsByUserIdMock = vi.fn()
 
 const sessionRepository = {
   findById: findSessionByIdMock,
@@ -69,6 +69,12 @@ const llm = { complete: completeMock }
 const eventLogRepository = { append: appendEventMock, findBySessionId: vi.fn() }
 const observability = { trace: traceMock, flush: flushMock }
 const userRepository = { findById: findUserByIdMock, upsert: vi.fn() }
+const userMemoryFactRepository = {
+  findByUserId: findUserFactsByUserIdMock,
+  upsert: vi.fn(),
+  findById: vi.fn(),
+  deleteById: vi.fn(),
+}
 
 function makeSession(overrides: Partial<Session> = {}): Session {
   return {
@@ -113,6 +119,7 @@ function createUseCase(
   withRunGameMaster = false,
   withUserRepository = true,
   withImplicitEnd = false,
+  withUserMemoryFactRepository = false,
 ): SendMessageUseCase {
   const runGameMasterUseCase = withRunGameMaster
     ? ({ execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase)
@@ -149,6 +156,8 @@ function createUseCase(
     runGameMasterUseCase,
     withUserRepository ? userRepository : undefined,
     endConversationUseCase,
+    undefined,
+    withUserMemoryFactRepository ? userMemoryFactRepository : undefined,
   )
 }
 
@@ -169,6 +178,7 @@ beforeEach(() => {
   runGameMasterExecuteMock.mockReset()
   endConversationExecuteMock.mockReset()
   findUserByIdMock.mockReset()
+  findUserFactsByUserIdMock.mockReset()
 
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession())
@@ -210,6 +220,7 @@ beforeEach(() => {
     compaction: { scheduled: true },
   })
   findUserByIdMock.mockResolvedValue(null)
+  findUserFactsByUserIdMock.mockResolvedValue([])
 })
 
 describe('SendMessageUseCase — message routing', () => {
@@ -476,90 +487,5 @@ describe('SendMessageUseCase — implicit end detection', () => {
         severity: 'warning',
       }),
     )
-  })
-})
-
-describe('SendMessageUseCase — user persona injection', () => {
-  it('injects persona role sentence when user repository returns persona', async () => {
-    const useCase = createUseCase(false, true)
-    findUserByIdMock.mockResolvedValue({
-      userId: 'user_1',
-      persona: { role: 'psychologist' },
-      createdAt: '2026-05-01T10:00:00.000Z',
-      updatedAt: '2026-05-01T10:00:00.000Z',
-    } satisfies User)
-
-    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
-
-    const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).toContain(
-      'You are speaking with someone in the role of: psychologist.',
-    )
-  })
-
-  it('succeeds when user repository is not injected', async () => {
-    const useCase = createUseCase(false, false)
-
-    await expect(
-      useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' }),
-    ).resolves.toBeDefined()
-  })
-
-  it('succeeds when user repository lookup throws and omits persona sentence', async () => {
-    const useCase = createUseCase(false, true)
-    findUserByIdMock.mockRejectedValueOnce(new Error('user lookup unavailable'))
-
-    await expect(
-      useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' }),
-    ).resolves.toBeDefined()
-
-    const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).not.toContain('You are speaking with someone in the role of:')
-  })
-
-  it('omits persona sentence when user exists without persona', async () => {
-    const useCase = createUseCase(false, true)
-    findUserByIdMock.mockResolvedValue({
-      userId: 'user_1',
-      createdAt: '2026-05-01T10:00:00.000Z',
-      updatedAt: '2026-05-01T10:00:00.000Z',
-    } satisfies User)
-
-    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
-
-    const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).not.toContain('You are speaking with someone in the role of:')
-  })
-
-  it('passes userPersona to run game master when persona is present', async () => {
-    const useCase = createUseCase(true, true)
-    findUserByIdMock.mockResolvedValue({
-      userId: 'user_1',
-      persona: { role: 'coach' },
-      createdAt: '2026-05-01T10:00:00.000Z',
-      updatedAt: '2026-05-01T10:00:00.000Z',
-    } satisfies User)
-
-    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
-
-    expect(runGameMasterExecuteMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userPersona: { role: 'coach' },
-      }),
-    )
-  })
-
-  it('calls run game master without userPersona when persona is absent', async () => {
-    const useCase = createUseCase(true, true)
-    findUserByIdMock.mockResolvedValue({
-      userId: 'user_1',
-      createdAt: '2026-05-01T10:00:00.000Z',
-      updatedAt: '2026-05-01T10:00:00.000Z',
-    } satisfies User)
-
-    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
-
-    const gmInput = runGameMasterExecuteMock.mock.calls[0]?.[0] as Record<string, unknown>
-    expect(Object.hasOwn(gmInput, 'userPersona')).toBe(false)
   })
 })

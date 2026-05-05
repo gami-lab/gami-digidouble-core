@@ -10,6 +10,7 @@ import type { IGmStateRepository } from '../application/ports/IGmStateRepository
 import type { IScenarioRepository } from '../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
+import type { IUserMemoryFactRepository } from '../application/ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../application/ports/IUserRepository.js'
 import type { IDependencyProbe } from '../application/ports/IDependencyProbe.js'
 import type { ISessionEventPublisher } from '../application/ports/ISessionEventPublisher.js'
@@ -43,6 +44,7 @@ export interface ServerAdapters {
   sessionRepository?: ISessionRepository
   messageRepository?: IMessageRepository
   userRepository?: IUserRepository
+  userMemoryFactRepository?: IUserMemoryFactRepository
   sessionEventPublisher?: ISessionEventPublisher
   probes?: IDependencyProbe[]
 }

@@ -6,6 +6,7 @@ import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
+import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
@@ -45,6 +46,7 @@ export class SendMessageUseCase {
     private readonly userRepository?: IUserRepository,
     private readonly endConversationUseCase: ConversationCloser | null = null,
     private readonly implicitEndPolicy: ImplicitEndPolicy = DEFAULT_IMPLICIT_END_POLICY,
+    private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -59,10 +61,12 @@ export class SendMessageUseCase {
     await this.loadScenario(session.scenarioId)
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(session.scenarioId)
     const userPersona = await this.loadUserPersona(session.userId)
+    const userFacts = await this.loadUserFacts(session.userId)
     const systemPrompt = assemblePersonaPrompt(avatar, {
       ...(session.gmNotes !== undefined ? { gmNotes: session.gmNotes } : {}),
       avatarAwareness: buildAvatarAwareness(avatar, scenarioAvatars, session.unlockedAvatarIds),
       ...(userPersona !== undefined ? { userPersona } : {}),
+      ...(Object.keys(userFacts).length > 0 ? { userFacts } : {}),
     })
     const historyMessages = await this.buildHistoryMessages(conversation.conversationId)
     const userMessage = await this.persistUserMessage(
@@ -391,6 +395,16 @@ export class SendMessageUseCase {
       return user?.persona
     } catch {
       return undefined
+    }
+  }
+
+  private async loadUserFacts(userId: string): Promise<Record<string, string>> {
+    if (this.userMemoryFactRepository === undefined) return {}
+    try {
+      const facts = await this.userMemoryFactRepository.findByUserId(userId)
+      return Object.fromEntries(facts.slice(0, 10).map((fact) => [fact.key, fact.value]))
+    } catch {
+      return {}
     }
   }
 

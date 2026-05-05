@@ -8,6 +8,7 @@ import type { IMessageRepository } from '../../application/ports/IMessageReposit
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
+import type { IUserMemoryFactRepository } from '../../application/ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
@@ -24,6 +25,7 @@ import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-ev
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
 import type { LlmConfig } from '../../infrastructure/llm/index.js'
@@ -42,6 +44,7 @@ type ConversationsRouteOptions = {
   messageRepository?: IMessageRepository
   runGameMasterUseCase?: RunGameMasterUseCase
   userRepository?: IUserRepository
+  userMemoryFactRepository?: IUserMemoryFactRepository
 }
 
 type ConversationParams = { conversationId: string }
@@ -193,6 +196,7 @@ type ConversationPersistenceDeps = {
   eventLogRepository: IEventLogRepository
   messageRepository: IMessageRepository
   userRepository: IUserRepository
+  userMemoryFactRepository: IUserMemoryFactRepository
 }
 
 function createRouteDependencies(options: ConversationsRouteOptions): RouteDependencies {
@@ -227,6 +231,8 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
         new MessageHistoryCompactionService(repositories.messageRepository),
         repositories.eventLogRepository,
       ),
+      undefined,
+      repositories.userMemoryFactRepository,
     ),
   }
 }
@@ -240,6 +246,8 @@ function resolvePersistenceDeps(options: ConversationsRouteOptions): Conversatio
     eventLogRepository: options.eventLogRepository ?? new InMemoryEventLogRepository(),
     messageRepository: options.messageRepository ?? new InMemoryMessageRepository(),
     userRepository: options.userRepository ?? new InMemoryUserRepository(),
+    userMemoryFactRepository:
+      options.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
   }
 }
 
