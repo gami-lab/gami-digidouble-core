@@ -10,6 +10,17 @@ export interface ISessionEventPublisher {
   emit(event: RuntimeEvent): void
 
   /**
+   * Returns true when a background GM run is currently executing for this session.
+   * Set to true at processing_started, cleared at processing_finished or on error.
+   */
+  isProcessing(sessionId: string): boolean
+
+  /**
+   * Mark processing status for a session.
+   */
+  setProcessing(sessionId: string, value: boolean): void
+
+  /**
    * Subscribe to all runtime events for a given session.
    * Returns an unsubscribe function. The caller MUST call it when done (e.g. on SSE disconnect).
    */

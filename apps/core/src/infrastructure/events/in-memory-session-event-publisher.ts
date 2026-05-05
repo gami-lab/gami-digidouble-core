@@ -7,6 +7,7 @@ import type {
 export class InMemorySessionEventPublisher implements ISessionEventPublisher {
   private readonly subscribers = new Map<string, Set<SessionEventHandler>>()
   private readonly lastEvents = new Map<string, RuntimeEvent>()
+  private readonly processing = new Set<string>()
 
   emit(event: RuntimeEvent): void {
     this.lastEvents.set(event.sessionId, event)
@@ -32,6 +33,18 @@ export class InMemorySessionEventPublisher implements ISessionEventPublisher {
     return () => {
       this.subscribers.get(sessionId)?.delete(handler)
     }
+  }
+
+  isProcessing(sessionId: string): boolean {
+    return this.processing.has(sessionId)
+  }
+
+  setProcessing(sessionId: string, value: boolean): void {
+    if (value) {
+      this.processing.add(sessionId)
+      return
+    }
+    this.processing.delete(sessionId)
   }
 
   getLastEvent(sessionId: string): RuntimeEvent | undefined {

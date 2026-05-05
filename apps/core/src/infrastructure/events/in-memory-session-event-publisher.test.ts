@@ -102,4 +102,34 @@ describe('InMemorySessionEventPublisher', () => {
 
     expect(publisher.getLastEvent('session-1')).toEqual(second)
   })
+
+  it('isProcessing returns true only after setProcessing true', () => {
+    const publisher = new InMemorySessionEventPublisher()
+
+    expect(publisher.isProcessing('session-1')).toBe(false)
+
+    publisher.setProcessing('session-1', true)
+
+    expect(publisher.isProcessing('session-1')).toBe(true)
+  })
+
+  it('setProcessing false clears processing state', () => {
+    const publisher = new InMemorySessionEventPublisher()
+
+    publisher.setProcessing('session-1', true)
+    expect(publisher.isProcessing('session-1')).toBe(true)
+
+    publisher.setProcessing('session-1', false)
+
+    expect(publisher.isProcessing('session-1')).toBe(false)
+  })
+
+  it('processing state is isolated per session', () => {
+    const publisher = new InMemorySessionEventPublisher()
+
+    publisher.setProcessing('session-a', true)
+
+    expect(publisher.isProcessing('session-a')).toBe(true)
+    expect(publisher.isProcessing('session-b')).toBe(false)
+  })
 })

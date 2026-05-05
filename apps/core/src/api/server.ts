@@ -12,12 +12,14 @@ import type { ISessionRepository } from '../application/ports/ISessionRepository
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
 import type { IUserRepository } from '../application/ports/IUserRepository.js'
 import type { IDependencyProbe } from '../application/ports/IDependencyProbe.js'
+import type { ISessionEventPublisher } from '../application/ports/ISessionEventPublisher.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemorySessionRepository } from '../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryUserRepository } from '../infrastructure/db/in-memory-user.repository.js'
+import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memory-session-event-publisher.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
 import { adminMetricsRoute } from './routes/admin-metrics.js'
 import { adminHealthRoute } from './routes/admin-health.js'
@@ -41,6 +43,7 @@ export interface ServerAdapters {
   sessionRepository?: ISessionRepository
   messageRepository?: IMessageRepository
   userRepository?: IUserRepository
+  sessionEventPublisher?: ISessionEventPublisher
   probes?: IDependencyProbe[]
 }
 
@@ -58,12 +61,7 @@ function isFastifyValidationError(
 }
 
 export function createServer(config: Config, adapters: ServerAdapters = {}): FastifyInstance {
-  const resolvedAdapters: ServerAdapters = {
-    ...adapters,
-    eventLogRepository: adapters.eventLogRepository ?? new InMemoryEventLogRepository(),
-    gmStateRepository: adapters.gmStateRepository ?? new InMemoryGmStateRepository(),
-    userRepository: adapters.userRepository ?? new InMemoryUserRepository(),
-  }
+  const resolvedAdapters = resolveServerAdapters(adapters)
 
   const app = Fastify({
     logger: config.nodeEnv !== 'test' ? { level: config.logLevel } : false,
@@ -83,7 +81,12 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
 
   app.register(healthRoute)
   app.register(exchangeRoute, { config, ...resolvedAdapters })
-  app.register(sessionsRoute, { prefix: '/v1/sessions', config, ...resolvedAdapters })
+  app.register(sessionsRoute, {
+    prefix: '/v1/sessions',
+    config,
+    ...resolvedAdapters,
+    sessionEventPublisher: resolvedAdapters.sessionEventPublisher,
+  })
   app.register(conversationsRoute, {
     prefix: '/v1/conversations',
     config,
@@ -103,7 +106,7 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     prefix: '/v1/admin',
     config,
     sessionRepository: resolvedAdapters.sessionRepository ?? new InMemorySessionRepository(),
-    eventLogRepository: resolvedAdapters.eventLogRepository ?? new InMemoryEventLogRepository(),
+    eventLogRepository: resolvedAdapters.eventLogRepository,
   })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',
@@ -112,7 +115,7 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   app.register(usersRoute, {
     prefix: '/v1/users',
     config,
-    userRepository: resolvedAdapters.userRepository ?? new InMemoryUserRepository(),
+    userRepository: resolvedAdapters.userRepository,
   })
   app.register(avatarsRoute, {
     prefix: '/v1/avatars',
@@ -120,6 +123,27 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   })
 
   return app
+}
+
+function resolveServerAdapters(
+  adapters: ServerAdapters,
+): Required<
+  Pick<
+    ServerAdapters,
+    'eventLogRepository' | 'gmStateRepository' | 'userRepository' | 'sessionEventPublisher'
+  >
+> &
+  ServerAdapters {
+  const sessionEventPublisher =
+    adapters.sessionEventPublisher ?? new InMemorySessionEventPublisher()
+
+  return {
+    ...adapters,
+    eventLogRepository: adapters.eventLogRepository ?? new InMemoryEventLogRepository(),
+    gmStateRepository: adapters.gmStateRepository ?? new InMemoryGmStateRepository(),
+    userRepository: adapters.userRepository ?? new InMemoryUserRepository(),
+    sessionEventPublisher,
+  }
 }
 
 function buildScenariosRouteOptions(

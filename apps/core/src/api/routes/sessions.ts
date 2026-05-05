@@ -8,10 +8,13 @@ import type { IEventLogRepository } from '../../application/ports/IEventLogRepos
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
+import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
 import type { GetAvailableAvatarsOutput } from '../../application/use-cases/get-available-avatars/get-available-avatars.types.js'
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
 import type { GetAvatarTransitionsOutput } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.types.js'
+import { GetRuntimeStateUseCase } from '../../application/use-cases/get-runtime-state/get-runtime-state.use-case.js'
+import type { GetRuntimeStateOutput } from '../../application/use-cases/get-runtime-state/get-runtime-state.types.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
 import { MessageHistoryCompactionService } from '../../application/services/message-history-compaction.service.js'
 import { GetSessionUseCase } from '../../application/use-cases/get-session/get-session.use-case.js'
@@ -36,6 +39,7 @@ import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-ev
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-memory-session-event-publisher.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 
 export type SessionsRouteOptions = {
@@ -47,6 +51,7 @@ export type SessionsRouteOptions = {
   messageRepository?: IMessageRepository
   eventLogRepository?: IEventLogRepository
   conversationCompactionPort?: IConversationCompactionPort
+  sessionEventPublisher?: ISessionEventPublisher
 }
 
 type StartSessionRequestBody = {
@@ -162,6 +167,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     options.conversationRepository ?? new InMemoryConversationRepository()
   const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
   const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
+  const sessionEventPublisher = options.sessionEventPublisher ?? new InMemorySessionEventPublisher()
   const conversationCompactionPort =
     options.conversationCompactionPort ?? new MessageHistoryCompactionService(messageRepository)
 
@@ -201,6 +207,11 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     sessionRepository,
     conversationRepository,
   )
+  const getRuntimeStateUseCase = new GetRuntimeStateUseCase(
+    sessionRepository,
+    conversationRepository,
+    sessionEventPublisher,
+  )
   const endConversationUseCase = new EndConversationUseCase(
     sessionRepository,
     conversationRepository,
@@ -219,6 +230,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   registerSwitchAvatarRoute(app, switchAvatarUseCase)
   registerGetAvailableAvatarsRoute(app, getAvailableAvatarsUseCase)
   registerGetAvatarTransitionsRoute(app, getAvatarTransitionsUseCase)
+  registerGetRuntimeStateRoute(app, getRuntimeStateUseCase)
 }
 
 function registerStartSessionRoute(app: FastifyInstance, useCase: StartSessionUseCase): void {
@@ -400,6 +412,27 @@ function registerGetAvatarTransitionsRoute(
         return await reply.send(ok<GetAvatarTransitionsOutput>(output))
       } catch (error) {
         return await mapDomainError(error, reply)
+      }
+    },
+  )
+}
+
+export function registerGetRuntimeStateRoute(
+  app: FastifyInstance,
+  useCase: GetRuntimeStateUseCase,
+): void {
+  app.get<{ Params: SessionParams }>(
+    '/:sessionId/runtime-state',
+    { schema: { params: sessionParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await useCase.execute({ sessionId: request.params.sessionId })
+        return await reply.status(200).send(ok<GetRuntimeStateOutput>(output))
+      } catch (error) {
+        if (error instanceof DomainError && error.code === 'NOT_FOUND') {
+          return await reply.status(404).send(fail('NOT_FOUND', error.message))
+        }
+        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
       }
     },
   )
