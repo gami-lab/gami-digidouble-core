@@ -13,10 +13,12 @@ export interface SessionMemory {
 }
 
 export interface UserFact {
+  id: string
   userId: string
-  /** Identifier for the fact category (e.g. "preferred_language"). */
+  category: string
   key: string
   value: string
+  confidence?: number | null
   createdAt: string
   updatedAt: string
 }

@@ -126,6 +126,20 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ── User Memory Facts ─────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS user_memory_facts (
+  id          TEXT        PRIMARY KEY DEFAULT 'umf_' || gen_random_uuid()::TEXT,
+  user_id     TEXT        NOT NULL,
+  category    TEXT        NOT NULL,
+  key         TEXT        NOT NULL,
+  value       TEXT        NOT NULL,
+  confidence  REAL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, category, key)
+);
+
 -- ── Indexes ───────────────────────────────────────────────────────────────────
 
 CREATE INDEX IF NOT EXISTS idx_avatars_scenario_id   ON avatars(scenario_id);
@@ -137,3 +151,4 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation
 CREATE INDEX IF NOT EXISTS idx_messages_created_at   ON messages(conversation_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_event_log_session_id ON event_log(session_id);
 CREATE INDEX IF NOT EXISTS idx_event_log_type ON event_log(type);
+CREATE INDEX IF NOT EXISTS idx_user_memory_facts_user_id ON user_memory_facts(user_id);

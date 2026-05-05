@@ -447,6 +447,12 @@ Store facts, not transcripts.
 
 This memory is cross-session and user-centric (long-term layer). Facts/events should be compact, structured, and deduplicated when practical.
 
+### Implementation Status (EPIC 4.2)
+
+- **Table:** `user_memory_facts`
+- **Repository:** `PostgresUserMemoryFactRepository`
+- **Status:** Fully implemented. `id` uses `umf_` prefix. `(user_id, category, key)` is unique.
+
 ---
 
 ## 11. KnowledgeSource
