@@ -89,8 +89,14 @@ describe('GetRuntimeStateUseCase message acceptance and processing', () => {
   })
 
   it('returns canSendMessage=false when session has no activeAvatarId', async () => {
-    const sessionWithoutAvatar = { ...baseSession }
-    delete sessionWithoutAvatar.activeAvatarId
+    const sessionWithoutAvatar = {
+      sessionId: baseSession.sessionId,
+      userId: baseSession.userId,
+      scenarioId: baseSession.scenarioId,
+      status: baseSession.status,
+      startedAt: baseSession.startedAt,
+      lastActivityAt: baseSession.lastActivityAt,
+    }
     const findActiveSpy = vi.fn()
     const useCase = new GetRuntimeStateUseCase(
       buildSessionRepository(() => Promise.resolve(sessionWithoutAvatar)) as ISessionRepository,
