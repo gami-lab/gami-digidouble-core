@@ -1563,19 +1563,6 @@ GET /v1/admin/sessions/{sessionId}/memory
 ```ts
 type AdminSessionMemoryResponse = {
   session: SessionMemorySummary
-  avatarMemories: Array<{
-    avatarId: string
-    summary: string
-    updatedAt: string
-  }>
-  userFacts: Array<{
-    id: string
-    category: string
-    key: string
-    value: string
-    confidence?: number | null
-    updatedAt: string
-  }>
 }
 ```
 

@@ -19,8 +19,10 @@ import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemorySessionRepository } from '../infrastructure/db/in-memory-session.repository.js'
+import { InMemoryUserMemoryFactRepository } from '../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../infrastructure/db/in-memory-user.repository.js'
 import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memory-session-event-publisher.js'
+import { adminMemoryRoute } from './routes/admin-memory.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
 import { adminMetricsRoute } from './routes/admin-metrics.js'
 import { adminHealthRoute } from './routes/admin-health.js'
@@ -110,6 +112,13 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     sessionRepository: resolvedAdapters.sessionRepository ?? new InMemorySessionRepository(),
     eventLogRepository: resolvedAdapters.eventLogRepository,
   })
+  app.register(adminMemoryRoute, {
+    prefix: '/v1/admin',
+    config,
+    sessionRepository: resolvedAdapters.sessionRepository ?? new InMemorySessionRepository(),
+    userMemoryFactRepository:
+      resolvedAdapters.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
+  })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',
     ...buildScenariosRouteOptions(config, resolvedAdapters),
@@ -118,6 +127,8 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     prefix: '/v1/users',
     config,
     userRepository: resolvedAdapters.userRepository,
+    userMemoryFactRepository:
+      resolvedAdapters.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
   })
   app.register(avatarsRoute, {
     prefix: '/v1/avatars',

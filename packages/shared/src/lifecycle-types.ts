@@ -12,6 +12,10 @@ export type ConversationEndReason =
 export type SessionMemorySummary = {
   sessionId: string
   summary: string
+  shortTerm?: {
+    exchangeCount: 2
+  }
+  longTermFactCount?: number
   updatedAt: string
 }
 

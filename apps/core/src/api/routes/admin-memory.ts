@@ -1,0 +1,57 @@
+import type { FastifyPluginCallback } from 'fastify'
+import { fail, ok } from '@gami/shared'
+import type { SessionMemorySummary } from '@gami/shared'
+import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
+import type { IUserMemoryFactRepository } from '../../application/ports/IUserMemoryFactRepository.js'
+import { GetSessionMemoryUseCase } from '../../application/use-cases/get-session-memory/get-session-memory.use-case.js'
+import type { Config } from '../../config.js'
+import { DomainError } from '../../domain/errors.js'
+import { authenticateApiKey } from '../hooks/authenticate.js'
+
+export type AdminMemoryRouteOptions = {
+  config: Config
+  sessionRepository: ISessionRepository
+  userMemoryFactRepository?: IUserMemoryFactRepository
+}
+
+type SessionParams = {
+  sessionId: string
+}
+
+const sessionParamsSchema = {
+  type: 'object',
+  required: ['sessionId'],
+  properties: {
+    sessionId: { type: 'string', minLength: 1 },
+  },
+  additionalProperties: false,
+} as const
+
+export const adminMemoryRoute: FastifyPluginCallback<AdminMemoryRouteOptions> = (app, options) => {
+  const getSessionMemoryUseCase = new GetSessionMemoryUseCase(
+    options.sessionRepository,
+    options.userMemoryFactRepository,
+  )
+  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
+
+  app.get<{ Params: SessionParams }>(
+    '/sessions/:sessionId/memory',
+    { schema: { params: sessionParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await getSessionMemoryUseCase.execute({
+          sessionId: request.params.sessionId,
+        })
+        return await reply
+          .status(200)
+          .send(ok<{ session: SessionMemorySummary }>({ session: output.memorySummary }))
+      } catch (error) {
+        if (error instanceof DomainError && error.code === 'NOT_FOUND') {
+          return await reply.status(404).send(fail('NOT_FOUND', error.message))
+        }
+        app.log.error({ err: error }, 'Failed to load session memory summary')
+        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
+      }
+    },
+  )
+}
