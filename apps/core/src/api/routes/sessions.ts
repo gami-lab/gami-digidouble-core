@@ -14,7 +14,6 @@ import type { GetAvailableAvatarsOutput } from '../../application/use-cases/get-
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
 import type { GetAvatarTransitionsOutput } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.types.js'
 import { GetRuntimeStateUseCase } from '../../application/use-cases/get-runtime-state/get-runtime-state.use-case.js'
-import type { GetRuntimeStateOutput } from '../../application/use-cases/get-runtime-state/get-runtime-state.types.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
 import { MessageHistoryCompactionService } from '../../application/services/message-history-compaction.service.js'
 import { GetSessionUseCase } from '../../application/use-cases/get-session/get-session.use-case.js'
@@ -41,6 +40,7 @@ import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-sc
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-memory-session-event-publisher.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
+import { registerRuntimeEventsRoutes } from './runtime-events.js'
 
 export type SessionsRouteOptions = {
   config: Config
@@ -217,6 +217,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     conversationRepository,
     conversationCompactionPort,
     eventLogRepository,
+    sessionEventPublisher,
   )
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
@@ -230,8 +231,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   registerSwitchAvatarRoute(app, switchAvatarUseCase)
   registerGetAvailableAvatarsRoute(app, getAvailableAvatarsUseCase)
   registerGetAvatarTransitionsRoute(app, getAvatarTransitionsUseCase)
-  registerGetRuntimeStateRoute(app, getRuntimeStateUseCase)
-  registerStreamRuntimeEventsRoute(app, sessionRepository, sessionEventPublisher)
+  registerRuntimeEventsRoutes(app, sessionRepository, sessionEventPublisher, getRuntimeStateUseCase)
 }
 
 function registerStartSessionRoute(app: FastifyInstance, useCase: StartSessionUseCase): void {
@@ -414,61 +414,6 @@ function registerGetAvatarTransitionsRoute(
       } catch (error) {
         return await mapDomainError(error, reply)
       }
-    },
-  )
-}
-
-export function registerGetRuntimeStateRoute(
-  app: FastifyInstance,
-  useCase: GetRuntimeStateUseCase,
-): void {
-  app.get<{ Params: SessionParams }>(
-    '/:sessionId/runtime-state',
-    { schema: { params: sessionParamsSchema } },
-    async (request, reply) => {
-      try {
-        const output = await useCase.execute({ sessionId: request.params.sessionId })
-        return await reply.status(200).send(ok<GetRuntimeStateOutput>(output))
-      } catch (error) {
-        if (error instanceof DomainError && error.code === 'NOT_FOUND') {
-          return await reply.status(404).send(fail('NOT_FOUND', error.message))
-        }
-        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
-      }
-    },
-  )
-}
-
-export function registerStreamRuntimeEventsRoute(
-  app: FastifyInstance,
-  sessionRepository: ISessionRepository,
-  publisher: ISessionEventPublisher,
-): void {
-  app.get<{ Params: SessionParams }>(
-    '/:sessionId/events/stream',
-    { config: { rawBody: true }, schema: { params: sessionParamsSchema, response: {} } },
-    async (request, reply) => {
-      const { sessionId } = request.params
-      const session = await sessionRepository.findById(sessionId)
-      if (session === null) {
-        return await reply.status(404).send(fail('NOT_FOUND', `Session '${sessionId}' not found`))
-      }
-
-      reply.raw.setHeader('Content-Type', 'text/event-stream')
-      reply.raw.setHeader('Cache-Control', 'no-cache')
-      reply.raw.setHeader('Connection', 'keep-alive')
-      reply.raw.setHeader('X-Accel-Buffering', 'no')
-      reply.raw.write(': keepalive\n\n')
-
-      // TODO(epic-4-5): add periodic keepalive via setInterval if proxies require it
-      const unsubscribe = publisher.subscribe(sessionId, (event) => {
-        const frame =
-          `event: runtime_event\n` + `id: ${event.eventId}\n` + `data: ${JSON.stringify(event)}\n\n`
-        reply.raw.write(frame)
-      })
-
-      request.raw.on('close', unsubscribe)
-      await reply.hijack()
     },
   )
 }
