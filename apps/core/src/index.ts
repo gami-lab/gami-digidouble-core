@@ -6,6 +6,7 @@ import { getRedisClient, closeRedisClient } from './infrastructure/cache/index.j
 import { LlmProbe, PostgresProbe, RedisProbe } from './infrastructure/health/index.js'
 import { createObservabilityAdapter } from './infrastructure/observability/index.js'
 import { createLlmAdapter } from './infrastructure/llm/index.js'
+import { InMemorySessionEventPublisher } from './infrastructure/events/in-memory-session-event-publisher.js'
 import {
   getDbClient,
   closeDbClient,
@@ -38,6 +39,7 @@ async function main(): Promise<void> {
   const conversationRepository = new PostgresConversationRepository(sql)
   const messageRepository = new PostgresMessageRepository(sql)
   const userRepository = new PostgresUserRepository(sql)
+  const sessionEventPublisher = new InMemorySessionEventPublisher()
   const runGameMasterUseCase = new RunGameMasterUseCase(
     gmStateRepository,
     sessionRepository,
@@ -48,6 +50,7 @@ async function main(): Promise<void> {
     eventLogRepository,
     conversationRepository,
     messageRepository,
+    sessionEventPublisher,
   )
   const probes: IDependencyProbe[] = [
     new PostgresProbe(sql),
@@ -67,6 +70,7 @@ async function main(): Promise<void> {
     messageRepository,
     userRepository,
     runGameMasterUseCase,
+    sessionEventPublisher,
     probes,
   }
   const server = createServer(config, adapters)

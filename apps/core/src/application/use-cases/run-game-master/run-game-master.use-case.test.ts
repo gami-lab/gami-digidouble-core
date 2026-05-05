@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { RuntimeEvent } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
 import { expectConsoleError } from '../../../test-utils/console.js'
@@ -14,6 +15,9 @@ const listAvatarsByScenarioIdMock = vi.fn()
 const completeMock = vi.fn()
 const traceMock = vi.fn()
 const findScenarioByIdMock = vi.fn()
+const findMessagesByConversationIdMock = vi.fn()
+const eventPublisherEmitMock = vi.fn()
+const eventPublisherSetProcessingMock = vi.fn()
 
 const gmStateRepository = { findBySessionId: findBySessionIdMock, save: saveGmStateMock }
 const sessionRepository = {
@@ -41,6 +45,20 @@ const scenarioRepository = {
 }
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
+const messageRepository = {
+  create: vi.fn(),
+  save: vi.fn(),
+  findByConversationId: findMessagesByConversationIdMock,
+  findById: vi.fn(),
+  deleteByConversationId: vi.fn(),
+}
+const sessionEventPublisher = {
+  emit: eventPublisherEmitMock,
+  subscribe: vi.fn(),
+  getLastEvent: vi.fn(),
+  isProcessing: vi.fn(() => false),
+  setProcessing: eventPublisherSetProcessingMock,
+}
 
 function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
   return {
@@ -66,7 +84,10 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   }
 }
 
-function createUseCase(eventLog?: InMemoryEventLogRepository): RunGameMasterUseCase {
+function createUseCase(params?: {
+  eventLog?: InMemoryEventLogRepository
+  withPublisher?: boolean
+}): RunGameMasterUseCase {
   return new RunGameMasterUseCase(
     gmStateRepository,
     sessionRepository,
@@ -74,8 +95,15 @@ function createUseCase(eventLog?: InMemoryEventLogRepository): RunGameMasterUseC
     llm,
     observability,
     scenarioRepository,
-    eventLog,
+    params?.eventLog,
+    undefined,
+    messageRepository,
+    params?.withPublisher === false ? undefined : sessionEventPublisher,
   )
+}
+
+function runtimeEvents(): RuntimeEvent[] {
+  return eventPublisherEmitMock.mock.calls.map((call) => call[0] as RuntimeEvent)
 }
 
 beforeEach(() => {
@@ -87,6 +115,9 @@ beforeEach(() => {
   completeMock.mockReset()
   traceMock.mockReset()
   findScenarioByIdMock.mockReset()
+  findMessagesByConversationIdMock.mockReset()
+  eventPublisherEmitMock.mockReset()
+  eventPublisherSetProcessingMock.mockReset()
 
   findBySessionIdMock.mockResolvedValue(makeState())
   saveGmStateMock.mockResolvedValue(undefined)
@@ -130,6 +161,7 @@ beforeEach(() => {
     latencyMs: 4,
   })
   traceMock.mockResolvedValue(undefined)
+  findMessagesByConversationIdMock.mockResolvedValue([])
 })
 
 describe('RunGameMasterUseCase', () => {
@@ -224,7 +256,7 @@ describe('RunGameMasterUseCase', () => {
 describe('RunGameMasterUseCase — event log', () => {
   it('emits gm_triggered with post-turn reason and safe decision fields', async () => {
     const eventLog = new InMemoryEventLogRepository()
-    const useCase = createUseCase(eventLog)
+    const useCase = createUseCase({ eventLog })
 
     await useCase.execute({
       sessionId: 'session_1',
@@ -245,7 +277,7 @@ describe('RunGameMasterUseCase — event log', () => {
 
   it('enriches gm_triggered payload with latency, token usage, and correlation id', async () => {
     const eventLog = new InMemoryEventLogRepository()
-    const useCase = createUseCase(eventLog)
+    const useCase = createUseCase({ eventLog })
 
     await useCase.execute({
       sessionId: 'session_1',
@@ -264,10 +296,217 @@ describe('RunGameMasterUseCase — event log', () => {
   })
 })
 
+describe('RunGameMasterUseCase — runtime event publication lifecycle', () => {
+  it('runs without publisher dependency', async () => {
+    const useCase = createUseCase({ withPublisher: false })
+
+    await expect(
+      useCase.execute({
+        sessionId: 'session_1',
+        scenarioId: 'scenario_1',
+        avatarId: 'avatar_1',
+        userMessageText: 'hello',
+        turnIndex: 2,
+        correlationId: 'no_publisher',
+      }),
+    ).resolves.toBeUndefined()
+  })
+
+  it('emits processing_started and processing_finished and toggles processing state', async () => {
+    const useCase = createUseCase()
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 2,
+      correlationId: 'processing_1',
+    })
+
+    expect(eventPublisherSetProcessingMock).toHaveBeenNthCalledWith(1, 'session_1', true)
+    expect(eventPublisherSetProcessingMock).toHaveBeenLastCalledWith('session_1', false)
+    expect(runtimeEvents().some((event) => event.type === 'runtime.processing_started')).toBe(true)
+    expect(runtimeEvents().some((event) => event.type === 'runtime.processing_finished')).toBe(true)
+  })
+
+  it('emits processing_finished on error path with success false', async () => {
+    const useCase = createUseCase()
+    listAvatarsByScenarioIdMock.mockRejectedValue(new Error('avatar list failed'))
+
+    await expect(
+      useCase.execute({
+        sessionId: 'session_1',
+        scenarioId: 'scenario_1',
+        avatarId: 'avatar_1',
+        userMessageText: 'hello',
+        turnIndex: 2,
+        correlationId: 'processing_error',
+      }),
+    ).rejects.toThrow('avatar list failed')
+
+    const finished = runtimeEvents().find((event) => event.type === 'runtime.processing_finished')
+    expect(finished).toBeDefined()
+    expect(finished?.payload).toEqual({ success: false })
+    expect(eventPublisherSetProcessingMock).toHaveBeenLastCalledWith('session_1', false)
+  })
+})
+
+describe('RunGameMasterUseCase — runtime event publication unlocks', () => {
+  it('emits runtime.avatar_unlocked when unlocks are produced', async () => {
+    const useCase = createUseCase()
+    listAvatarsByScenarioIdMock.mockResolvedValue([
+      makeAvatar({ avatarId: 'avatar_1', name: 'Ava' }),
+      makeAvatar({ avatarId: 'avatar_2', name: 'Theo' }),
+    ])
+    findSessionByIdMock.mockResolvedValue({
+      sessionId: 'session_1',
+      userId: 'user_1',
+      scenarioId: 'scenario_1',
+      activeAvatarId: 'avatar_1',
+      unlockedAvatarIds: ['avatar_1'],
+      status: 'active',
+      startedAt: '2026-04-18T10:00:00.000Z',
+      lastActivityAt: '2026-04-18T10:00:00.000Z',
+    })
+    completeMock.mockResolvedValue({
+      content: JSON.stringify({
+        avatarId: 'avatar_1',
+        conversationMode: 'continue',
+        unlockAvatarIds: ['avatar_2'],
+        stateUpdate: {
+          progression: 'increase',
+          interactionIncrement: 1,
+        },
+      }),
+      model: 'null-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 4,
+    })
+    findMessagesByConversationIdMock.mockResolvedValue([
+      {
+        messageId: 'msg_1',
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'Can Theo help here?',
+        createdAt: '2026-04-18T10:00:00.000Z',
+      },
+    ])
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'unlock someone',
+      turnIndex: 2,
+      correlationId: 'unlock_1',
+    })
+
+    const unlocked = runtimeEvents().find((event) => event.type === 'runtime.avatar_unlocked')
+    expect(unlocked?.payload).toEqual({ unlockedAvatarIds: ['avatar_2'] })
+  })
+
+  it('does not emit runtime.avatar_unlocked when no unlocks are produced', async () => {
+    const useCase = createUseCase()
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'no unlock',
+      turnIndex: 2,
+      correlationId: 'unlock_0',
+    })
+
+    expect(runtimeEvents().some((event) => event.type === 'runtime.avatar_unlocked')).toBe(false)
+  })
+})
+
+describe('RunGameMasterUseCase — runtime event publication guidance', () => {
+  it('emits runtime.avatar_suggested when suggestedAvatarId is present', async () => {
+    const useCase = createUseCase()
+    completeMock.mockResolvedValue({
+      content: JSON.stringify({
+        avatarId: 'avatar_1',
+        conversationMode: 'continue',
+        suggestedAvatarId: 'avatar_2',
+        suggestedAvatarReason: 'Better context',
+        stateUpdate: {
+          progression: 'increase',
+          interactionIncrement: 1,
+        },
+      }),
+      model: 'null-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 4,
+    })
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'suggest',
+      turnIndex: 2,
+      correlationId: 'suggest_1',
+    })
+
+    const suggested = runtimeEvents().find((event) => event.type === 'runtime.avatar_suggested')
+    expect(suggested?.payload).toEqual({
+      suggestedAvatarId: 'avatar_2',
+      reason: 'Better context',
+    })
+  })
+
+  it('emits runtime.choice_required when recommendedChoices are present', async () => {
+    const useCase = createUseCase()
+    completeMock.mockResolvedValue({
+      content: JSON.stringify({
+        avatarId: 'avatar_1',
+        conversationMode: 'continue',
+        recommendedChoices: [
+          { id: 'c1', label: 'Go deeper' },
+          { id: 'c2', label: 'Switch topic' },
+        ],
+        stateUpdate: {
+          progression: 'increase',
+          interactionIncrement: 1,
+        },
+      }),
+      model: 'null-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 4,
+    })
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'choices',
+      turnIndex: 2,
+      correlationId: 'choice_1',
+    })
+
+    const choiceRequired = runtimeEvents().find((event) => event.type === 'runtime.choice_required')
+    expect(choiceRequired?.payload).toEqual({
+      choices: [
+        { id: 'c1', label: 'Go deeper' },
+        { id: 'c2', label: 'Switch topic' },
+      ],
+    })
+  })
+})
+
 describe('RunGameMasterUseCase — error handling', () => {
   it('does not propagate LlmError, increments state, and emits gm_error', async () => {
     const eventLog = new InMemoryEventLogRepository()
-    const useCase = createUseCase(eventLog)
+    const useCase = createUseCase({ eventLog })
     completeMock.mockRejectedValue(new LlmError('null', 'provider down', 503))
 
     await expectConsoleError(

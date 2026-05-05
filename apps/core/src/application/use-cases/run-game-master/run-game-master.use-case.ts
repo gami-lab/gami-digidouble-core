@@ -1,3 +1,5 @@
+import crypto from 'node:crypto'
+import type { RuntimeEvent } from '@gami/shared'
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
@@ -7,6 +9,7 @@ import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
+import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { buildGameMasterSystemPrompt } from '../../../domain/game-master/gm-prompt.service.js'
 import { reduceGmState } from '../../../domain/game-master/gm-state-reducer.js'
@@ -56,23 +59,46 @@ export class RunGameMasterUseCase {
     private readonly eventLogRepository?: IEventLogRepository,
     private readonly conversationRepository?: IConversationRepository,
     private readonly messageRepository?: IMessageRepository,
+    private readonly sessionEventPublisher?: ISessionEventPublisher,
   ) {}
 
   async execute(input: RunGameMasterInput): Promise<void> {
-    const gmRunStartMs = Date.now()
-    const currentState = await this.loadCurrentState(input.sessionId)
-    const scenarioContext = await this.loadScenarioContext(input.scenarioId)
-    const session = await this.loadSession(input.sessionId)
-    const scenarioAvatars = await this.avatarRepository.listByScenarioId(input.scenarioId)
+    let success = true
+    this.sessionEventPublisher?.setProcessing(input.sessionId, true)
+    this.emitRuntimeEvent({
+      sessionId: input.sessionId,
+      type: 'runtime.processing_started',
+      correlationId: input.correlationId,
+      payload: { triggerReason: 'post_turn_observation', turnIndex: input.turnIndex },
+    })
 
-    await this.handleTriggeredTurn(
-      input,
-      currentState,
-      scenarioContext,
-      session,
-      scenarioAvatars,
-      gmRunStartMs,
-    )
+    const gmRunStartMs = Date.now()
+    try {
+      const currentState = await this.loadCurrentState(input.sessionId)
+      const scenarioContext = await this.loadScenarioContext(input.scenarioId)
+      const session = await this.loadSession(input.sessionId)
+      const scenarioAvatars = await this.avatarRepository.listByScenarioId(input.scenarioId)
+
+      await this.handleTriggeredTurn(
+        input,
+        currentState,
+        scenarioContext,
+        session,
+        scenarioAvatars,
+        gmRunStartMs,
+      )
+    } catch (error: unknown) {
+      success = false
+      throw error
+    } finally {
+      this.sessionEventPublisher?.setProcessing(input.sessionId, false)
+      this.emitRuntimeEvent({
+        sessionId: input.sessionId,
+        type: 'runtime.processing_finished',
+        correlationId: input.correlationId,
+        payload: { success },
+      })
+    }
   }
 
   private async handleTriggeredTurn(
@@ -143,6 +169,8 @@ export class RunGameMasterUseCase {
       output,
       gmInput.recentMessages,
     )
+    this.publishDecisionRuntimeEvents(input, output, unlockedAvatarIds)
+
     const reconciledState: GameMasterState =
       routingResult.switchedAvatarId !== undefined
         ? { ...nextState, currentAvatarId: routingResult.switchedAvatarId }
@@ -325,6 +353,61 @@ export class RunGameMasterUseCase {
         ? { description: scenario.config.worldContext }
         : {}),
       ...(goals.length > 0 ? { goals } : {}),
+    }
+  }
+
+  private publishDecisionRuntimeEvents(
+    input: RunGameMasterInput,
+    output: GameMasterOutput,
+    unlockedAvatarIds: string[],
+  ): void {
+    const baseFields = {
+      sessionId: input.sessionId,
+      ...(input.conversationId !== undefined ? { conversationId: input.conversationId } : {}),
+      correlationId: input.correlationId,
+    }
+
+    if (unlockedAvatarIds.length > 0) {
+      this.emitRuntimeEvent({
+        ...baseFields,
+        type: 'runtime.avatar_unlocked',
+        payload: { unlockedAvatarIds },
+      })
+    }
+
+    if (output.suggestedAvatarId !== undefined) {
+      this.emitRuntimeEvent({
+        ...baseFields,
+        type: 'runtime.avatar_suggested',
+        payload: {
+          suggestedAvatarId: output.suggestedAvatarId,
+          ...(output.suggestedAvatarReason !== undefined
+            ? { reason: output.suggestedAvatarReason }
+            : {}),
+        },
+      })
+    }
+
+    if (output.recommendedChoices !== undefined && output.recommendedChoices.length > 0) {
+      this.emitRuntimeEvent({
+        ...baseFields,
+        type: 'runtime.choice_required',
+        payload: { choices: output.recommendedChoices },
+      })
+    }
+  }
+
+  private emitRuntimeEvent(fields: Omit<RuntimeEvent, 'eventId' | 'occurredAt'>): void {
+    if (this.sessionEventPublisher === undefined) return
+    try {
+      const event: RuntimeEvent = {
+        eventId: `rev_${crypto.randomUUID()}`,
+        occurredAt: new Date().toISOString(),
+        ...fields,
+      }
+      this.sessionEventPublisher.emit(event)
+    } catch (error: unknown) {
+      console.warn('[GM] Runtime event emission failed:', error)
     }
   }
 }

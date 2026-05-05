@@ -52,6 +52,7 @@ function parseBaseOutput(value: Record<string, unknown>): {
 function parseOptionalOutputFields(value: Record<string, unknown>): {
   nextAvatarId?: string
   transitionReason?: string
+  recommendedChoices?: Array<{ id: string; label: string }>
   context?: { notes: string }
   unlockAvatarIds?: string[]
   suggestedAvatarId?: string
@@ -60,11 +61,27 @@ function parseOptionalOutputFields(value: Record<string, unknown>): {
   return {
     ...parseOptionalTextField(value, 'nextAvatarId'),
     ...parseOptionalTextField(value, 'transitionReason'),
+    ...parseOptionalRecommendedChoices(value),
     ...parseOptionalContext(value),
     ...parseOptionalUnlockAvatarIds(value),
     ...parseOptionalTextField(value, 'suggestedAvatarId'),
     ...parseOptionalTextField(value, 'suggestedAvatarReason'),
   }
+}
+
+function parseOptionalRecommendedChoices(value: Record<string, unknown>): {
+  recommendedChoices?: Array<{ id: string; label: string }>
+} {
+  if (!Array.isArray(value['recommendedChoices'])) return {}
+
+  const recommendedChoices = value['recommendedChoices']
+    .map((choice) => {
+      if (!isRecord(choice) || !hasText(choice['id']) || !hasText(choice['label'])) return null
+      return { id: choice['id'].trim(), label: choice['label'].trim() }
+    })
+    .filter((choice): choice is { id: string; label: string } => choice !== null)
+
+  return recommendedChoices.length > 0 ? { recommendedChoices } : {}
 }
 
 function parseOptionalTextField<
