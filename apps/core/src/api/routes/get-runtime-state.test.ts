@@ -218,9 +218,8 @@ describe('GET /v1/sessions/:sessionId/runtime-state success', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const body = response.json<
-      ApiResponse<{ runtimeState: { pendingEvent: typeof pendingEvent } }>
-    >()
+    const body =
+      response.json<ApiResponse<{ runtimeState: { pendingEvent: typeof pendingEvent } }>>()
     expect(body.data?.runtimeState.pendingEvent).toMatchObject({ eventId: 'evt_1' })
   })
 })

@@ -31,10 +31,7 @@ export function registerRuntimeEventsRoutes(
   registerStreamRuntimeEventsRoute(app, sessionRepository, publisher)
 }
 
-function registerGetRuntimeStateRoute(
-  app: FastifyInstance,
-  useCase: GetRuntimeStateUseCase,
-): void {
+function registerGetRuntimeStateRoute(app: FastifyInstance, useCase: GetRuntimeStateUseCase): void {
   app.get<{ Params: SessionParams }>(
     '/:sessionId/runtime-state',
     { schema: { params: sessionParamsSchema } },

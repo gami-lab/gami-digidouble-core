@@ -3,7 +3,10 @@ import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiResponse, RuntimeEvent } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
-import type { ISessionEventPublisher, SessionEventHandler } from '../../application/ports/ISessionEventPublisher.js'
+import type {
+  ISessionEventPublisher,
+  SessionEventHandler,
+} from '../../application/ports/ISessionEventPublisher.js'
 import type { Config } from '../../config.js'
 import type { Session } from '../../domain/conversation/session.types.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
@@ -61,7 +64,10 @@ function makePublisher(overrides: Partial<ISessionEventPublisher> = {}): ISessio
   }
 }
 
-function makeApp(params?: { sessions?: Session[]; publisher?: ISessionEventPublisher }): FastifyInstance {
+function makeApp(params?: {
+  sessions?: Session[]
+  publisher?: ISessionEventPublisher
+}): FastifyInstance {
   const app = createServer(testConfig, {
     sessionRepository: new InMemorySessionRepository(params?.sessions ?? []),
     ...(params?.publisher !== undefined ? { sessionEventPublisher: params.publisher } : {}),
