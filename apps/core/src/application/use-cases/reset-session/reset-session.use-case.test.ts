@@ -7,6 +7,7 @@ import { InMemoryConversationRepository } from '../../../infrastructure/db/in-me
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
+import { InMemoryUserMemoryFactRepository } from '../../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { ResetSessionUseCase } from './reset-session.use-case.js'
 
 function makeSession(overrides: Partial<Session> & Pick<Session, 'sessionId'>): Session {
@@ -194,5 +195,31 @@ describe('ResetSessionUseCase unlock policy behavior', () => {
     const result = await useCase.execute({ sessionId: 'session_1' })
 
     expect(result.session.unlockedAvatarIds).toEqual(['avatar_guide'])
+  })
+})
+
+describe('ResetSessionUseCase memory isolation', () => {
+  it('does not delete cross-session user memory facts', async () => {
+    const userMemoryFactRepository = new InMemoryUserMemoryFactRepository([
+      {
+        id: 'umf_1',
+        userId: 'user_1',
+        category: 'preference',
+        key: 'language',
+        value: 'English',
+        confidence: 0.8,
+        createdAt: '2026-04-21T08:00:00.000Z',
+        updatedAt: '2026-04-21T08:00:00.000Z',
+      },
+    ])
+    const useCase = makeUseCase({
+      sessions: [makeSession({ sessionId: 'session_1', userId: 'user_1' })],
+    })
+
+    await useCase.execute({ sessionId: 'session_1' })
+
+    const facts = await userMemoryFactRepository.findByUserId('user_1')
+    expect(facts).toHaveLength(1)
+    expect(facts[0]?.id).toBe('umf_1')
   })
 })

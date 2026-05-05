@@ -12,6 +12,22 @@ Update it as epics and features are completed.
 
 Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
+### EPIC 4.2 — User Memory Facts v1: **complete** (2026-05-05)
+
+- Added canonical Postgres schema table `user_memory_facts` (`infra/postgres/init.sql`) with `umf_` id prefix, uniqueness on `(user_id, category, key)`, and user index.
+- Implemented `PostgresUserMemoryFactRepository` and in-memory repository with upsert/list/find/delete contracts.
+- Implemented `IUserFactExtractor` + `LlmUserFactExtractor` with bounded parsing and non-throwing failure handling.
+- Wired async/non-blocking fact extraction into `EndConversationUseCase` with event log diagnostics:
+  - `user_fact_extraction_triggered`
+  - `user_fact_extraction_succeeded`
+  - `user_fact_extraction_failed`
+- Wired bounded user-fact context injection into `SendMessageUseCase` and avatar system prompt assembly (`User Context (remembered facts)` section, max 10 facts).
+- Implemented memory API endpoints:
+  - `GET /v1/users/{userId}/memory-facts`
+  - `DELETE /v1/users/{userId}/memory-facts/{factId}`
+  - `GET /v1/admin/sessions/{sessionId}/memory`
+- Added route/unit/integration coverage for repository operations, extraction and injection hardening, endpoint auth/404/happy paths, and stack-e2e coverage for all three new endpoints.
+
 ### EPIC 4.5 — Player Runtime State & World Events: **complete** (2026-05-05)
 
 - Added `RuntimeEvent` and `RuntimeState` to `@gami/shared` (`packages/shared/src/runtime-types.ts`)

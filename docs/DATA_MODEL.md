@@ -449,6 +449,7 @@ Store facts, not transcripts.
 This memory is cross-session and user-centric (long-term layer). Facts/events should be compact, structured, and deduplicated when practical.
 Fact extraction is triggered when a conversation is closed and runs asynchronously/non-blocking (fire-and-forget) so close latency is unaffected.
 Facts are injected into avatar turn context on message handling via a bounded key/value map (`{ [key]: value }`), aligned with the same long-term memory concept used by Game Master input.
+Phase A status: implemented end-to-end (`user_memory_facts` persistence, async extraction trigger on close, and bounded injection into avatar context at turn-time with max 10 facts).
 
 ### Implementation Status (EPIC 4.2)
 

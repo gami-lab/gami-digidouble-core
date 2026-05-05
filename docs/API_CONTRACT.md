@@ -1302,6 +1302,8 @@ Behavior:
 
 ## 14. List User Memory Facts
 
+Status: IMPLEMENTED (EPIC 4.2)
+
 ### Endpoint
 
 ```text
@@ -1327,6 +1329,8 @@ type ListUserMemoryFactsResponse = {
 ---
 
 ## 15. Delete One User Memory Fact
+
+Status: IMPLEMENTED (EPIC 4.2)
 
 ### Endpoint
 
@@ -1551,6 +1555,8 @@ type InspectSessionResponse = {
 ---
 
 ## A5. Get Session Memory
+
+Status: IMPLEMENTED (EPIC 4.2)
 
 ### Endpoint
 
