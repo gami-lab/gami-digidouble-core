@@ -8,12 +8,12 @@
 
 ## Quality Gate Results
 
-| Gate              | Result  | Notes                                          |
-| ----------------- | ------- | ---------------------------------------------- |
-| `pnpm lint`       | ✅ PASS  | No ESLint violations in `@gami/core`           |
-| `pnpm typecheck`  | ✅ PASS  | No TypeScript errors in `@gami/core`           |
-| `pnpm test`       | ✅ PASS  | 390 tests · 67 test files                      |
-| `pnpm test:coverage` | ✅ PASS  | Statements 90.28% · Branches 86.71% · Functions 97.05% · Lines 90.28% (all ≥ 80%) |
+| Gate                 | Result  | Notes                                                                             |
+| -------------------- | ------- | --------------------------------------------------------------------------------- |
+| `pnpm lint`          | ✅ PASS | No ESLint violations in `@gami/core`                                              |
+| `pnpm typecheck`     | ✅ PASS | No TypeScript errors in `@gami/core`                                              |
+| `pnpm test`          | ✅ PASS | 390 tests · 67 test files                                                         |
+| `pnpm test:coverage` | ✅ PASS | Statements 90.28% · Branches 86.71% · Functions 97.05% · Lines 90.28% (all ≥ 80%) |
 
 ---
 
@@ -29,24 +29,24 @@ Solid implementation with clean architecture, passing quality gates, and well-or
 
 ### What was delivered
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| `RuntimeEvent` / `RuntimeState` in `@gami/shared` | ✅ Complete | `packages/shared/src/runtime-types.ts`, exported from `index.ts` |
-| `ISessionEventPublisher` port | ✅ Complete | `application/ports/ISessionEventPublisher.ts` — all five methods present |
-| `InMemorySessionEventPublisher` | ✅ Complete | `infrastructure/events/in-memory-session-event-publisher.ts` |
-| `GetRuntimeStateUseCase` | ✅ Complete | Derives `canSendMessage`, `isProcessing`, `pendingEvent` correctly |
-| `GET /v1/sessions/{sessionId}/runtime-state` | ✅ Complete | Returns `ApiResponse<RuntimeState>` as contracted |
-| `GET /v1/sessions/{sessionId}/events/stream` | ✅ Complete | SSE with session isolation, keepalive frame, teardown on disconnect |
-| GM emits `runtime.processing_started` | ✅ Complete | Set before work starts in `execute()` |
-| GM emits `runtime.processing_finished` | ✅ Complete | Emitted in `finally` block — fires on both success and error paths |
-| GM emits `runtime.avatar_unlocked` | ✅ Complete | Emitted when `unlockedAvatarIds.length > 0` |
-| GM emits `runtime.avatar_suggested` | ✅ Complete | Emitted when `output.suggestedAvatarId !== undefined` |
-| GM emits `runtime.choice_required` | ✅ Complete | Emitted when `recommendedChoices.length > 0` |
-| **GM emits `runtime.session_closed`** | ❌ **Not implemented** | The type is defined in `RuntimeEvent.type` and listed in the DoD, but no code path emits it. The `EndConversationUseCase` does not accept or use the event publisher, and no other path emits this event. |
-| Stack-e2e for both endpoints | ✅ Complete | Auth (401 ×2), 404, and happy-path covered per DoD |
-| SSE teardown on client disconnect | ✅ Complete | `request.raw.on('close', unsubscribe)` |
-| No cross-session leakage | ✅ Complete | Publisher is keyed by `sessionId` |
-| GM non-blocking | ✅ Complete | `setProcessing` is fire-and-forget; event emission wrapped in try/catch |
+| Feature                                           | Status                 | Notes                                                                                                                                                                                                     |
+| ------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RuntimeEvent` / `RuntimeState` in `@gami/shared` | ✅ Complete            | `packages/shared/src/runtime-types.ts`, exported from `index.ts`                                                                                                                                          |
+| `ISessionEventPublisher` port                     | ✅ Complete            | `application/ports/ISessionEventPublisher.ts` — all five methods present                                                                                                                                  |
+| `InMemorySessionEventPublisher`                   | ✅ Complete            | `infrastructure/events/in-memory-session-event-publisher.ts`                                                                                                                                              |
+| `GetRuntimeStateUseCase`                          | ✅ Complete            | Derives `canSendMessage`, `isProcessing`, `pendingEvent` correctly                                                                                                                                        |
+| `GET /v1/sessions/{sessionId}/runtime-state`      | ✅ Complete            | Returns `ApiResponse<RuntimeState>` as contracted                                                                                                                                                         |
+| `GET /v1/sessions/{sessionId}/events/stream`      | ✅ Complete            | SSE with session isolation, keepalive frame, teardown on disconnect                                                                                                                                       |
+| GM emits `runtime.processing_started`             | ✅ Complete            | Set before work starts in `execute()`                                                                                                                                                                     |
+| GM emits `runtime.processing_finished`            | ✅ Complete            | Emitted in `finally` block — fires on both success and error paths                                                                                                                                        |
+| GM emits `runtime.avatar_unlocked`                | ✅ Complete            | Emitted when `unlockedAvatarIds.length > 0`                                                                                                                                                               |
+| GM emits `runtime.avatar_suggested`               | ✅ Complete            | Emitted when `output.suggestedAvatarId !== undefined`                                                                                                                                                     |
+| GM emits `runtime.choice_required`                | ✅ Complete            | Emitted when `recommendedChoices.length > 0`                                                                                                                                                              |
+| **GM emits `runtime.session_closed`**             | ❌ **Not implemented** | The type is defined in `RuntimeEvent.type` and listed in the DoD, but no code path emits it. The `EndConversationUseCase` does not accept or use the event publisher, and no other path emits this event. |
+| Stack-e2e for both endpoints                      | ✅ Complete            | Auth (401 ×2), 404, and happy-path covered per DoD                                                                                                                                                        |
+| SSE teardown on client disconnect                 | ✅ Complete            | `request.raw.on('close', unsubscribe)`                                                                                                                                                                    |
+| No cross-session leakage                          | ✅ Complete            | Publisher is keyed by `sessionId`                                                                                                                                                                         |
+| GM non-blocking                                   | ✅ Complete            | `setProcessing` is fire-and-forget; event emission wrapped in try/catch                                                                                                                                   |
 
 ### DoD gap: `runtime.session_closed`
 
@@ -131,19 +131,19 @@ Verified: `wc -l apps/core/src/api/routes/sessions.ts` → 493 lines. The ESLint
 
 ✅ **Behavioral — strong coverage.**
 
-| Behavior | Tested |
-|----------|--------|
-| Emit with no subscribers stores event | ✅ |
-| Subscribe and receive event | ✅ |
-| Unsubscribe stops delivery | ✅ |
-| Unsubscribe removes empty set (leak guard) | ✅ |
-| Session isolation | ✅ |
-| Multiple subscribers same session | ✅ |
-| `getLastEvent` returns undefined for unknown session | ✅ |
-| `getLastEvent` returns most recent after multiple emits | ✅ |
-| `isProcessing` returns true only after `setProcessing(true)` | ✅ |
-| `setProcessing(false)` clears state | ✅ |
-| Processing state isolated per session | ✅ |
+| Behavior                                                     | Tested |
+| ------------------------------------------------------------ | ------ |
+| Emit with no subscribers stores event                        | ✅     |
+| Subscribe and receive event                                  | ✅     |
+| Unsubscribe stops delivery                                   | ✅     |
+| Unsubscribe removes empty set (leak guard)                   | ✅     |
+| Session isolation                                            | ✅     |
+| Multiple subscribers same session                            | ✅     |
+| `getLastEvent` returns undefined for unknown session         | ✅     |
+| `getLastEvent` returns most recent after multiple emits      | ✅     |
+| `isProcessing` returns true only after `setProcessing(true)` | ✅     |
+| `setProcessing(false)` clears state                          | ✅     |
+| Processing state isolated per session                        | ✅     |
 
 One test accesses private internals (`(publisher as unknown as { subscribers: ... }).subscribers`) to verify cleanup. This is acceptable here given no public inspection API exists and the leak guard is operationally important — but it is the only test in the suite that inspects internal state.
 
@@ -151,18 +151,18 @@ One test accesses private internals (`(publisher as unknown as { subscribers: ..
 
 ✅ **Behavioral — well structured.**
 
-| Behavior | Tested |
-|----------|--------|
-| NOT_FOUND when session missing | ✅ |
-| `canSendMessage=true` for active session + active conversation | ✅ |
-| `canSendMessage=false` for active session + no active conversation | ✅ |
-| `canSendMessage=false` for closed session | ✅ |
-| `isProcessing=true` from publisher | ✅ |
-| `isProcessing=false` from publisher | ✅ |
-| `pendingEvent` present when publisher has last event | ✅ |
-| `pendingEvent` absent when publisher returns undefined | ✅ |
-| `conversationId` present when active conversation exists | ✅ |
-| `conversationId` absent when no active conversation | ✅ |
+| Behavior                                                           | Tested |
+| ------------------------------------------------------------------ | ------ |
+| NOT_FOUND when session missing                                     | ✅     |
+| `canSendMessage=true` for active session + active conversation     | ✅     |
+| `canSendMessage=false` for active session + no active conversation | ✅     |
+| `canSendMessage=false` for closed session                          | ✅     |
+| `isProcessing=true` from publisher                                 | ✅     |
+| `isProcessing=false` from publisher                                | ✅     |
+| `pendingEvent` present when publisher has last event               | ✅     |
+| `pendingEvent` absent when publisher returns undefined             | ✅     |
+| `conversationId` present when active conversation exists           | ✅     |
+| `conversationId` absent when no active conversation                | ✅     |
 
 **Gap:** There is no test for the `session.activeAvatarId === undefined` branch (line 22 in `get-runtime-state.use-case.ts`). When `session.activeAvatarId` is `undefined`, the use case skips `findActiveBySessionId` and sets `activeConversation = null` directly. The existing `canSendMessage=false` test (line 79) exercises `findActiveBySessionId` returning `null` but still calls the repository. The branch where the repository is never called is untested. This is a distinct and consumer-relevant behavior: a newly-started session with no active avatar has `canSendMessage=false` via the `activeAvatarId === undefined` path, not via the repository returning null. A consumer building UI state around this contract needs this branch to be proven.
 
@@ -176,7 +176,7 @@ One test accesses private internals (`(publisher as unknown as { subscribers: ..
 
 ✅ Auth (401 ×2), 404, SSE headers + keepalive frame.
 
-**Gap:** No test proves that an event emitted *after* SSE connection is written to the stream. The route test only verifies the initial keepalive. This means the core subscriber → write → client chain is not proven at the route level. The `InMemorySessionEventPublisher` unit tests prove the subscriber mechanism; the gap is the route writing to `reply.raw` on event receipt. A test that subscribes a publisher, emits an event, and reads the next chunk would close this.
+**Gap:** No test proves that an event emitted _after_ SSE connection is written to the stream. The route test only verifies the initial keepalive. This means the core subscriber → write → client chain is not proven at the route level. The `InMemorySessionEventPublisher` unit tests prove the subscriber mechanism; the gap is the route writing to `reply.raw` on event receipt. A test that subscribes a publisher, emits an event, and reads the next chunk would close this.
 
 **Gap:** No test for the teardown contract at the route level. `request.raw.on('close', unsubscribe)` is the teardown mechanism, but no test triggers a close and verifies the subscriber is removed. This gap means a future refactor of the teardown path (e.g., using `reply.raw.once('finish', ...)` instead) could silently regress without a test failure.
 
@@ -184,15 +184,15 @@ One test accesses private internals (`(publisher as unknown as { subscribers: ..
 
 ✅ **Behavioral — well targeted.**
 
-| Behavior | Tested |
-|----------|--------|
-| Runs without publisher (optional dependency) | ✅ |
-| `processing_started` and `processing_finished` emitted + `setProcessing` toggled | ✅ |
-| `processing_finished` emitted on error path with `success: false` | ✅ |
-| `avatar_unlocked` emitted with correct payload | ✅ |
-| No `avatar_unlocked` emitted when no unlocks | ✅ |
-| `avatar_suggested` emitted with payload | ✅ |
-| `choice_required` emitted with payload | ✅ |
+| Behavior                                                                         | Tested |
+| -------------------------------------------------------------------------------- | ------ |
+| Runs without publisher (optional dependency)                                     | ✅     |
+| `processing_started` and `processing_finished` emitted + `setProcessing` toggled | ✅     |
+| `processing_finished` emitted on error path with `success: false`                | ✅     |
+| `avatar_unlocked` emitted with correct payload                                   | ✅     |
+| No `avatar_unlocked` emitted when no unlocks                                     | ✅     |
+| `avatar_suggested` emitted with payload                                          | ✅     |
+| `choice_required` emitted with payload                                           | ✅     |
 
 **Gap:** No test for `runtime.session_closed` — see §1 functional gap.
 
@@ -228,14 +228,14 @@ One test accesses private internals (`(publisher as unknown as { subscribers: ..
 
 ## 6. Documentation Alignment
 
-| Document | Status |
-|----------|--------|
-| `docs/PROJECT_STATUS.md` | ✅ Updated — EPIC 4.5 marked complete 2026-05-05 with accurate feature list |
-| `docs/API_CONTRACT.md` §4.1 (SSE stream) | ✅ Correct — SSE format, semantics, error mapping all aligned |
-| `docs/API_CONTRACT.md` §4.2 (runtime state) | ✅ Correct — endpoint, response shape, semantics all aligned |
-| `docs/API_CONTRACT.md` Core Types — `RuntimeEvent` | ✅ Type definition matches `@gami/shared` exactly |
-| `docs/API_CONTRACT.md` Core Types — `RuntimeState` | ✅ Type definition matches `@gami/shared` exactly |
-| `docs/ARCHITECTURE.md` | ✅ SSE entry points referenced in layer description |
+| Document                                           | Status                                                                      |
+| -------------------------------------------------- | --------------------------------------------------------------------------- |
+| `docs/PROJECT_STATUS.md`                           | ✅ Updated — EPIC 4.5 marked complete 2026-05-05 with accurate feature list |
+| `docs/API_CONTRACT.md` §4.1 (SSE stream)           | ✅ Correct — SSE format, semantics, error mapping all aligned               |
+| `docs/API_CONTRACT.md` §4.2 (runtime state)        | ✅ Correct — endpoint, response shape, semantics all aligned                |
+| `docs/API_CONTRACT.md` Core Types — `RuntimeEvent` | ✅ Type definition matches `@gami/shared` exactly                           |
+| `docs/API_CONTRACT.md` Core Types — `RuntimeState` | ✅ Type definition matches `@gami/shared` exactly                           |
+| `docs/ARCHITECTURE.md`                             | ✅ SSE entry points referenced in layer description                         |
 
 **Gap:** The `runtime.session_closed` event is documented in `API_CONTRACT.md` `RuntimeEvent.type` union and in the DoD but is not implemented. Either the implementation must be completed or the type and contract must be reduced to reflect Phase A reality.
 
@@ -243,14 +243,14 @@ One test accesses private internals (`(publisher as unknown as { subscribers: ..
 
 ## 7. Structural Maintainability
 
-| Dimension | Assessment |
-|-----------|------------|
-| Type ownership | ✅ `RuntimeEvent` and `RuntimeState` live exclusively in `@gami/shared`. Zero duplication across layers. |
-| Adding a new event type | 3 edits: `runtime-types.ts`, emission site, test. Below the 4-edit threshold. |
-| Replacing the publisher | ✅ `ISessionEventPublisher` port means swapping `InMemorySessionEventPublisher` for a Redis-backed implementation requires no changes to use cases or routes. |
-| `pendingEvent` extensibility | ✅ Uses the `RuntimeEvent` type directly — no separate DTO. Adding fields to `RuntimeEvent` automatically flows into `pendingEvent`. |
-| `sessions.ts` maintainability | ⚠️ At 493/500 lines. Next meaningful route addition triggers an ESLint violation. The SSE + snapshot routes should be extracted before the next feature touches this file. |
-| Publisher memory behaviour | ⚠️ `lastEvents` grows per session and is never evicted. Acceptable for Phase A but must be addressed before sustained production load. |
+| Dimension                       | Assessment                                                                                                                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Type ownership                  | ✅ `RuntimeEvent` and `RuntimeState` live exclusively in `@gami/shared`. Zero duplication across layers.                                                                                                |
+| Adding a new event type         | 3 edits: `runtime-types.ts`, emission site, test. Below the 4-edit threshold.                                                                                                                           |
+| Replacing the publisher         | ✅ `ISessionEventPublisher` port means swapping `InMemorySessionEventPublisher` for a Redis-backed implementation requires no changes to use cases or routes.                                           |
+| `pendingEvent` extensibility    | ✅ Uses the `RuntimeEvent` type directly — no separate DTO. Adding fields to `RuntimeEvent` automatically flows into `pendingEvent`.                                                                    |
+| `sessions.ts` maintainability   | ⚠️ At 493/500 lines. Next meaningful route addition triggers an ESLint violation. The SSE + snapshot routes should be extracted before the next feature touches this file.                              |
+| Publisher memory behaviour      | ⚠️ `lastEvents` grows per session and is never evicted. Acceptable for Phase A but must be addressed before sustained production load.                                                                  |
 | `session_closed` contract drift | ⚠️ The type union promises `session_closed` but no code emits it. This creates a latent contract violation: API clients may code against it today (it is in the documented type) and receive no events. |
 
 ---
@@ -306,39 +306,39 @@ One test accesses private internals (`(publisher as unknown as { subscribers: ..
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `application/use-cases/end-conversation/end-conversation.use-case.ts` | Added optional `ISessionEventPublisher` constructor param; emits `runtime.session_closed` (fire-and-forget with try/catch) immediately after conversation is closed |
-| `infrastructure/events/in-memory-session-event-publisher.ts` | Fixed `lastEvents` memory leak: entry is deleted when the last subscriber unsubscribes |
-| `api/routes/runtime-events.ts` | **New file** — extracts `registerGetRuntimeStateRoute` and `registerStreamRuntimeEventsRoute` into a dedicated module; adds periodic 30 s keepalive via `setInterval` (cleared on disconnect); adds `request.log.info` at SSE connect/disconnect |
-| `api/routes/sessions.ts` | Removed the two exported route functions (now in `runtime-events.ts`); imports `registerRuntimeEventsRoutes`; passes `sessionEventPublisher` to `EndConversationUseCase`; reduced from 493 → 438 lines |
-| `application/use-cases/get-runtime-state/get-runtime-state.use-case.test.ts` | Added test proving `canSendMessage=false` and no `findActiveBySessionId` call when `session.activeAvatarId` is absent |
-| `api/routes/get-runtime-state.test.ts` | Added route-level assertions for `conversationId` and `pendingEvent` in HTTP response shape |
-| `api/routes/stream-runtime-events.test.ts` | Added test proving event frame is written to stream when publisher emits; added teardown test (real HTTP server) proving `unsubscribe` is called on client disconnect |
-| `application/use-cases/end-conversation/end-conversation.use-case.test.ts` | Added two tests: `runtime.session_closed` emitted with correct fields; no throw when publisher is absent |
+| File                                                                         | Change                                                                                                                                                                                                                                           |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `application/use-cases/end-conversation/end-conversation.use-case.ts`        | Added optional `ISessionEventPublisher` constructor param; emits `runtime.session_closed` (fire-and-forget with try/catch) immediately after conversation is closed                                                                              |
+| `infrastructure/events/in-memory-session-event-publisher.ts`                 | Fixed `lastEvents` memory leak: entry is deleted when the last subscriber unsubscribes                                                                                                                                                           |
+| `api/routes/runtime-events.ts`                                               | **New file** — extracts `registerGetRuntimeStateRoute` and `registerStreamRuntimeEventsRoute` into a dedicated module; adds periodic 30 s keepalive via `setInterval` (cleared on disconnect); adds `request.log.info` at SSE connect/disconnect |
+| `api/routes/sessions.ts`                                                     | Removed the two exported route functions (now in `runtime-events.ts`); imports `registerRuntimeEventsRoutes`; passes `sessionEventPublisher` to `EndConversationUseCase`; reduced from 493 → 438 lines                                           |
+| `application/use-cases/get-runtime-state/get-runtime-state.use-case.test.ts` | Added test proving `canSendMessage=false` and no `findActiveBySessionId` call when `session.activeAvatarId` is absent                                                                                                                            |
+| `api/routes/get-runtime-state.test.ts`                                       | Added route-level assertions for `conversationId` and `pendingEvent` in HTTP response shape                                                                                                                                                      |
+| `api/routes/stream-runtime-events.test.ts`                                   | Added test proving event frame is written to stream when publisher emits; added teardown test (real HTTP server) proving `unsubscribe` is called on client disconnect                                                                            |
+| `application/use-cases/end-conversation/end-conversation.use-case.test.ts`   | Added two tests: `runtime.session_closed` emitted with correct fields; no throw when publisher is absent                                                                                                                                         |
 
 ---
 
 ### Findings Resolved
 
-| # | Finding | Resolution |
-|---|---------|------------|
-| Critical 1 | `runtime.session_closed` never emitted | Implemented in `EndConversationUseCase` with optional publisher injection |
-| High 2 | `lastEvents` Map grows indefinitely | Fixed: `lastEvents.delete(sessionId)` called when subscriber set empties |
-| High 3 | No periodic SSE keepalive | Fixed: `setInterval` every 30 s in `runtime-events.ts`, cleared on disconnect |
-| Medium 4 | Missing test: `canSendMessage` via `activeAvatarId === undefined` | Added unit test to `get-runtime-state.use-case.test.ts` |
-| Medium 5 | Missing route test: event frame delivery | Added inject-mode test that captures handler and verifies frame written |
-| Medium 6 | Missing route test: SSE teardown | Added test using real HTTP server + socket destroy |
-| Medium 7 | `sessions.ts` at 493 lines | Extracted to `runtime-events.ts`; sessions.ts now 438 lines |
-| Medium 8 | Unnecessary exported route functions | Removed exports; functions now private inside `runtime-events.ts` |
-| Low 9 | No structured log at SSE connect/disconnect | Added `request.log.info` for `sse.connected` and `sse.disconnected` |
+| #          | Finding                                                           | Resolution                                                                    |
+| ---------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Critical 1 | `runtime.session_closed` never emitted                            | Implemented in `EndConversationUseCase` with optional publisher injection     |
+| High 2     | `lastEvents` Map grows indefinitely                               | Fixed: `lastEvents.delete(sessionId)` called when subscriber set empties      |
+| High 3     | No periodic SSE keepalive                                         | Fixed: `setInterval` every 30 s in `runtime-events.ts`, cleared on disconnect |
+| Medium 4   | Missing test: `canSendMessage` via `activeAvatarId === undefined` | Added unit test to `get-runtime-state.use-case.test.ts`                       |
+| Medium 5   | Missing route test: event frame delivery                          | Added inject-mode test that captures handler and verifies frame written       |
+| Medium 6   | Missing route test: SSE teardown                                  | Added test using real HTTP server + socket destroy                            |
+| Medium 7   | `sessions.ts` at 493 lines                                        | Extracted to `runtime-events.ts`; sessions.ts now 438 lines                   |
+| Medium 8   | Unnecessary exported route functions                              | Removed exports; functions now private inside `runtime-events.ts`             |
+| Low 9      | No structured log at SSE connect/disconnect                       | Added `request.log.info` for `sse.connected` and `sse.disconnected`           |
 
 ---
 
 ### Findings Deferred
 
-| # | Finding | Reason |
-|---|---------|--------|
+| #      | Finding                                               | Reason                                                                           |
+| ------ | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
 | Low 10 | Stack-e2e: no live event frame assertion after GM run | Requires a full GM pipeline trigger in an e2e environment; deferred to next EPIC |
 
 ---
@@ -354,15 +354,15 @@ One test accesses private internals (`(publisher as unknown as { subscribers: ..
 
 ### Final Feature Confidence
 
-| Feature | Evidence |
-|---------|----------|
-| `runtime.session_closed` emitted when conversation ends | Unit test in `end-conversation.use-case.test.ts` |
-| `canSendMessage=false` when no `activeAvatarId` (skips DB call) | Unit test in `get-runtime-state.use-case.test.ts` |
-| `conversationId` and `pendingEvent` present in HTTP response | Route test in `get-runtime-state.test.ts` |
-| Event frame written to SSE stream on publisher emit | Route test in `stream-runtime-events.test.ts` |
-| Subscriber removed on client disconnect | Route test (real HTTP server) in `stream-runtime-events.test.ts` |
-| Proxy-safe keepalive: 30 s periodic frame | Code + structure (stack-e2e confirms initial keepalive) |
-| `lastEvents` evicted when last subscriber leaves | Existing publisher test (leak-guard branch) |
+| Feature                                                         | Evidence                                                         |
+| --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `runtime.session_closed` emitted when conversation ends         | Unit test in `end-conversation.use-case.test.ts`                 |
+| `canSendMessage=false` when no `activeAvatarId` (skips DB call) | Unit test in `get-runtime-state.use-case.test.ts`                |
+| `conversationId` and `pendingEvent` present in HTTP response    | Route test in `get-runtime-state.test.ts`                        |
+| Event frame written to SSE stream on publisher emit             | Route test in `stream-runtime-events.test.ts`                    |
+| Subscriber removed on client disconnect                         | Route test (real HTTP server) in `stream-runtime-events.test.ts` |
+| Proxy-safe keepalive: 30 s periodic frame                       | Code + structure (stack-e2e confirms initial keepalive)          |
+| `lastEvents` evicted when last subscriber leaves                | Existing publisher test (leak-guard branch)                      |
 
 ---
 
