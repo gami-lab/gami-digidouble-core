@@ -231,6 +231,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   registerGetAvailableAvatarsRoute(app, getAvailableAvatarsUseCase)
   registerGetAvatarTransitionsRoute(app, getAvatarTransitionsUseCase)
   registerGetRuntimeStateRoute(app, getRuntimeStateUseCase)
+  registerStreamRuntimeEventsRoute(app, sessionRepository, sessionEventPublisher)
 }
 
 function registerStartSessionRoute(app: FastifyInstance, useCase: StartSessionUseCase): void {
@@ -434,6 +435,40 @@ export function registerGetRuntimeStateRoute(
         }
         return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
       }
+    },
+  )
+}
+
+export function registerStreamRuntimeEventsRoute(
+  app: FastifyInstance,
+  sessionRepository: ISessionRepository,
+  publisher: ISessionEventPublisher,
+): void {
+  app.get<{ Params: SessionParams }>(
+    '/:sessionId/events/stream',
+    { config: { rawBody: true }, schema: { params: sessionParamsSchema, response: {} } },
+    async (request, reply) => {
+      const { sessionId } = request.params
+      const session = await sessionRepository.findById(sessionId)
+      if (session === null) {
+        return await reply.status(404).send(fail('NOT_FOUND', `Session '${sessionId}' not found`))
+      }
+
+      reply.raw.setHeader('Content-Type', 'text/event-stream')
+      reply.raw.setHeader('Cache-Control', 'no-cache')
+      reply.raw.setHeader('Connection', 'keep-alive')
+      reply.raw.setHeader('X-Accel-Buffering', 'no')
+      reply.raw.write(': keepalive\n\n')
+
+      // TODO(epic-4-5): add periodic keepalive via setInterval if proxies require it
+      const unsubscribe = publisher.subscribe(sessionId, (event) => {
+        const frame =
+          `event: runtime_event\n` + `id: ${event.eventId}\n` + `data: ${JSON.stringify(event)}\n\n`
+        reply.raw.write(frame)
+      })
+
+      request.raw.on('close', unsubscribe)
+      await reply.hijack()
     },
   )
 }
