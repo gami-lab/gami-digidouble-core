@@ -550,7 +550,7 @@ Structured multi-avatar navigation increases immersion and learning value more t
 
 ---
 
-## EPIC 4.2 — Memory Layer v1
+## EPIC 4.2 — Memory Layer v1 ✅ Done
 
 **Purpose**  
 Provide continuity within and across sessions.
@@ -1295,10 +1295,6 @@ A hybrid response engine improves quality/cost/latency trade-offs versus pure li
 If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
 
 ## Recommended implementation order
-
-### 5. EPIC 4.2 — Memory Layer v1
-
-Implement the simple memory first: session summary + persistent facts. Do not jump directly to pyramidal memory.
 
 ### 6. EPIC 4.2b — Memory System v2
 
