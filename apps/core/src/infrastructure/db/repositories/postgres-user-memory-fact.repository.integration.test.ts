@@ -3,7 +3,9 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
 import { PostgresUserMemoryFactRepository } from './postgres-user-memory-fact.repository.js'
 
-function defineFindCases(repository: PostgresUserMemoryFactRepository): void {
+let repository!: PostgresUserMemoryFactRepository
+
+function defineFindCases(): void {
   it('findByUserId returns empty array when user has no facts', async () => {
     await expect(repository.findByUserId('missing_user')).resolves.toEqual([])
   })
@@ -55,7 +57,7 @@ function defineFindCases(repository: PostgresUserMemoryFactRepository): void {
   })
 }
 
-function defineUpsertCases(repository: PostgresUserMemoryFactRepository): void {
+function defineUpsertCases(): void {
   it('upsert inserts and findById returns a fact', async () => {
     const created = await repository.upsert({
       userId: 'user_1',
@@ -127,7 +129,7 @@ function defineUpsertCases(repository: PostgresUserMemoryFactRepository): void {
   })
 }
 
-function defineDeleteCases(repository: PostgresUserMemoryFactRepository): void {
+function defineDeleteCases(): void {
   it('deleteById removes existing fact and returns false for unknown id', async () => {
     const created = await repository.upsert({
       userId: 'user_1',
@@ -145,7 +147,6 @@ function defineDeleteCases(repository: PostgresUserMemoryFactRepository): void {
 
 describe.skipIf(!DB_AVAILABLE)('PostgresUserMemoryFactRepository', () => {
   let sql!: Sql
-  let repository!: PostgresUserMemoryFactRepository
 
   beforeAll(() => {
     sql = createTestSql()
@@ -160,7 +161,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresUserMemoryFactRepository', () => {
     await sql.end()
   })
 
-  defineFindCases(repository)
-  defineUpsertCases(repository)
-  defineDeleteCases(repository)
+  defineFindCases()
+  defineUpsertCases()
+  defineDeleteCases()
 })
