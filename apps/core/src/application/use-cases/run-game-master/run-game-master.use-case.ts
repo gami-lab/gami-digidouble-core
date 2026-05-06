@@ -19,6 +19,7 @@ import type {
   GameMasterState,
 } from '../../../domain/game-master/game-master.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
+import type { ContextMessage } from '../../../domain/memory/memory.types.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
 import { safeParseGameMasterOutput } from './run-game-master.helpers.js'
 import {
@@ -270,8 +271,8 @@ export class RunGameMasterUseCase {
     session: Session | null,
     scenarioAvatars: AvatarConfig[],
   ): Promise<GameMasterInput> {
-    const recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }> =
-      await this.loadRecentMessages(input.conversationId)
+    const recentMessages = await this.loadRecentMessages(input.conversationId)
+    const memory = this.buildMemoryContext(recentMessages, session)
 
     return {
       session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
@@ -286,15 +287,14 @@ export class RunGameMasterUseCase {
             : {}),
           ...(scenarioContext.goals !== undefined ? { goals: scenarioContext.goals } : {}),
         },
+        ...(memory !== undefined ? { memory } : {}),
         ...(input.userPersona !== undefined ? { userPersona: input.userPersona } : {}),
         availableAvatars: toGameMasterAvailableAvatars(scenarioAvatars, session),
       },
     }
   }
 
-  private async loadRecentMessages(
-    conversationId: string | undefined,
-  ): Promise<Array<{ role: 'user' | 'avatar' | 'system'; content: string }>> {
+  private async loadRecentMessages(conversationId: string | undefined): Promise<ContextMessage[]> {
     if (conversationId === undefined || this.messageRepository === undefined) return []
     const messages = await this.messageRepository.findByConversationId(conversationId, {
       limit: 12,
@@ -303,6 +303,45 @@ export class RunGameMasterUseCase {
       .slice()
       .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
       .map((message) => ({ role: message.role, content: message.content }))
+  }
+
+  private buildMemoryContext(
+    recentMessages: ContextMessage[],
+    session: Session | null,
+  ): GameMasterInput['context']['memory'] | undefined {
+    const recentExchanges = this.buildRecentExchanges(recentMessages)
+    const workingSummary = hasText(session?.memorySummary)
+      ? session.memorySummary.trim()
+      : undefined
+
+    if (recentExchanges.length === 0 && workingSummary === undefined) {
+      return undefined
+    }
+
+    return {
+      ...(recentExchanges.length > 0 ? { shortTerm: { recentExchanges } } : {}),
+      ...(workingSummary !== undefined ? { workingSummary } : {}),
+    }
+  }
+
+  private buildRecentExchanges(
+    recentMessages: ContextMessage[],
+  ): Array<{ user: string; avatar: string }> {
+    const exchanges: Array<{ user: string; avatar: string }> = []
+    let pendingUserMessage: string | null = null
+
+    for (const message of recentMessages) {
+      if (message.role === 'user') {
+        pendingUserMessage = message.content
+        continue
+      }
+      if (message.role === 'avatar' && pendingUserMessage !== null) {
+        exchanges.push({ user: pendingUserMessage, avatar: message.content })
+        pendingUserMessage = null
+      }
+    }
+
+    return exchanges.slice(-2)
   }
 
   private async persistTriggeredNotes(sessionId: string, output: GameMasterOutput): Promise<void> {

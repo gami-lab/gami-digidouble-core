@@ -1,3 +1,6 @@
+import type { UserPersona } from '../user/user.types.js'
+import type { ContextMessage, GameMasterMemoryContext } from '../memory/memory.types.js'
+
 /**
  * Game Master domain types.
  *
@@ -26,10 +29,7 @@ export interface GameMasterInput {
   userMessage: {
     text: string
   }
-  recentMessages?: Array<{
-    role: 'user' | 'avatar' | 'system'
-    content: string
-  }>
+  recentMessages?: ContextMessage[]
   state: GameMasterState
   context: {
     experience: {
@@ -37,6 +37,7 @@ export interface GameMasterInput {
       description?: string
       goals?: string[]
     }
+    memory?: GameMasterMemoryContext
     userPersona?: UserPersona
     availableAvatars: Array<{
       avatarId: string
@@ -110,4 +111,3 @@ export type GameMasterEvent = {
     outputTokens?: number
   }
 }
-import type { UserPersona } from '../user/user.types.js'

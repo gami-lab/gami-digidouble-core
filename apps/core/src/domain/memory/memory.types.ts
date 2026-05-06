@@ -6,6 +6,13 @@
  *   - User facts: persistent, structured facts extracted from interactions.
  */
 
+export type ContextMessageRole = 'user' | 'avatar' | 'system'
+
+export type ContextMessage = {
+  role: ContextMessageRole
+  content: string
+}
+
 export interface SessionMemory {
   sessionId: string
   summary: string
@@ -21,4 +28,41 @@ export interface UserFact {
   confidence?: number | null
   createdAt: string
   updatedAt: string
+}
+
+export type LongTermMemoryFact = Pick<UserFact, 'category' | 'key' | 'value'>
+
+export type ShortTermMemoryExchange = {
+  user: string
+  avatar: string
+}
+
+export type ShortTermMemoryWindow = {
+  exchangeCount: 2
+  recentExchanges: ShortTermMemoryExchange[]
+}
+
+export type SessionWorkingMemorySummary = Pick<SessionMemory, 'summary' | 'updatedAt'>
+
+export type AvatarWorkingMemorySummary = {
+  avatarId: string
+  summary: string
+  updatedAt: string
+}
+
+export type LayeredMemorySnapshot = {
+  shortTerm?: ShortTermMemoryWindow
+  working?: {
+    session?: SessionWorkingMemorySummary
+    avatar?: AvatarWorkingMemorySummary
+  }
+  longTerm?: {
+    facts: LongTermMemoryFact[]
+  }
+}
+
+export type GameMasterMemoryContext = {
+  shortTerm?: Pick<ShortTermMemoryWindow, 'recentExchanges'>
+  workingSummary?: string
+  longTermFacts?: LongTermMemoryFact[]
 }

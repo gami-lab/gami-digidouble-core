@@ -1,3 +1,9 @@
+import type {
+  ContextMessage,
+  LayeredMemorySnapshot,
+  LongTermMemoryFact,
+} from '../memory/memory.types.js'
+
 /**
  * Context domain types.
  *
@@ -7,11 +13,13 @@
  */
 export interface RuntimeContext {
   /** Recent messages included in the prompt window. */
-  recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>
+  recentMessages: ContextMessage[]
+  /** Canonical layered memory snapshot assembled for this turn. */
+  memory?: LayeredMemorySnapshot
   /** Compacted summary of the session so far. */
   memorySummary?: string
   /** Persistent user facts relevant to this turn. */
-  userFacts?: Record<string, string>
+  userFacts?: Record<LongTermMemoryFact['key'], LongTermMemoryFact['value']>
   /** Scenario world description and objectives. */
   scenarioContext?: string
   /** Retrieved knowledge passages (RAG — EPIC 4.1+). */

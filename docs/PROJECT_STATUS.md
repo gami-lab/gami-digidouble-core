@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** May 5, 2026
+**Last updated:** May 6, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -27,6 +27,20 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `DELETE /v1/users/{userId}/memory-facts/{factId}`
   - `GET /v1/admin/sessions/{sessionId}/memory`
 - Added route/unit/integration coverage for repository operations, extraction and injection hardening, endpoint auth/404/happy paths, and stack-e2e coverage for all three new endpoints.
+
+### EPIC 4.2b — Memory V2 contract cleanup baseline: **complete** (2026-05-06)
+
+- Canonical layered memory contract ownership is now centralized in `apps/core/src/domain/memory/memory.types.ts`.
+- Added explicit domain memory contracts for:
+  - short-term window exchanges
+  - session/avatar working-memory summaries
+  - long-term facts (reused from `UserFact`)
+  - composed layered memory snapshots
+  - GM-facing memory context shape
+- `RuntimeContext` now references canonical memory contracts (`memory` snapshot + typed facts) instead of ad hoc inline memory-only fields.
+- `GameMasterInput` now includes `context.memory` in code, aligned with `docs/GAME_MASTER_CONTRACT.md`.
+- `RunGameMasterUseCase` now assembles `context.memory.shortTerm.recentExchanges` from recent messages and includes `context.memory.workingSummary` from `Session.memorySummary` when present.
+- Shared DTO ownership remains unchanged: `SessionMemorySummary` stays in `@gami/shared` as the admin HTTP contract.
 
 ### EPIC 4.5 — Player Runtime State & World Events: **complete** (2026-05-05)
 

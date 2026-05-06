@@ -436,7 +436,9 @@ The current MVP implementation runs GM as an async observer after each avatar tu
    - `progression: ''`
    - `topicsCovered: []`
    - `interactionCount: 0`
-2. Build `GameMasterInput` (session, recent messages, user message, state, scenario goals, avatar availability context).
+2. Build `GameMasterInput` (session, recent messages, user message, state, scenario goals, avatar availability context, and `context.memory`).
+   - `context.memory.shortTerm.recentExchanges` is derived from bounded recent user/avatar message pairs.
+   - `context.memory.workingSummary` is populated from session working memory summary when available.
 3. Call LLM via `ILlmAdapter.complete()` every post-turn run.
 4. Parse JSON into `GameMasterOutput`.
 5. Validate unlock, suggestion, and switch targets against active scenario avatars and session unlock state.
