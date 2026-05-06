@@ -67,6 +67,22 @@ ALTER TABLE sessions ADD COLUMN IF NOT EXISTS unlocked_avatar_ids UUID[];
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS gm_notes TEXT;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS memory_summary TEXT;
 
+-- ── Working Memory ────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS session_memories (
+  session_id  UUID        PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+  summary     TEXT        NOT NULL,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS avatar_session_memories (
+  session_id  UUID        NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  avatar_id   UUID        NOT NULL REFERENCES avatars(id) ON DELETE CASCADE,
+  summary     TEXT        NOT NULL,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (session_id, avatar_id)
+);
+
 -- ── Game Master States ────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS gm_states (
@@ -152,3 +168,5 @@ CREATE INDEX IF NOT EXISTS idx_messages_created_at   ON messages(conversation_id
 CREATE INDEX IF NOT EXISTS idx_event_log_session_id ON event_log(session_id);
 CREATE INDEX IF NOT EXISTS idx_event_log_type ON event_log(type);
 CREATE INDEX IF NOT EXISTS idx_user_memory_facts_user_id ON user_memory_facts(user_id);
+CREATE INDEX IF NOT EXISTS idx_avatar_session_memories_session_id
+  ON avatar_session_memories(session_id);

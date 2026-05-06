@@ -19,6 +19,13 @@ export interface SessionMemory {
   updatedAt: string
 }
 
+export interface AvatarSessionMemory {
+  sessionId: string
+  avatarId: string
+  summary: string
+  updatedAt: string
+}
+
 export interface UserFact {
   id: string
   userId: string

@@ -42,6 +42,27 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - `RunGameMasterUseCase` now assembles `context.memory.shortTerm.recentExchanges` from recent messages and includes `context.memory.workingSummary` from `Session.memorySummary` when present.
 - Shared DTO ownership remains unchanged: `SessionMemorySummary` stays in `@gami/shared` as the admin HTTP contract.
 
+### EPIC 4.2b — Working memory storage + repository layer: **complete** (2026-05-06)
+
+- Added dedicated working-memory persistence tables in `infra/postgres/init.sql`:
+  - `session_memories` (`session_id` PK, compact `summary`, `updated_at`)
+  - `avatar_session_memories` (`session_id`, `avatar_id` composite PK, compact `summary`, `updated_at`)
+- Added repository ports:
+  - `ISessionMemoryRepository`
+  - `IAvatarSessionMemoryRepository`
+- Added in-memory adapters:
+  - `InMemorySessionMemoryRepository`
+  - `InMemoryAvatarSessionMemoryRepository`
+- Added Postgres adapters:
+  - `PostgresSessionMemoryRepository`
+  - `PostgresAvatarSessionMemoryRepository`
+- Updated session reset behavior to clear:
+  - session-scoped working memory
+  - avatar-scoped working memories for the same session
+  - legacy `sessions.memory_summary` mirror field
+    while preserving long-term `user_memory_facts`.
+- Added repository test coverage for upsert, overwrite, per-avatar isolation, and session cleanup behavior in both in-memory and Postgres implementations.
+
 ### EPIC 4.5 — Player Runtime State & World Events: **complete** (2026-05-05)
 
 - Added `RuntimeEvent` and `RuntimeState` to `@gami/shared` (`packages/shared/src/runtime-types.ts`)

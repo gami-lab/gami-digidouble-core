@@ -10,8 +10,10 @@ import type { IGmStateRepository } from '../application/ports/IGmStateRepository
 import type { IScenarioRepository } from '../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
+import type { ISessionMemoryRepository } from '../application/ports/ISessionMemoryRepository.js'
 import type { IUserMemoryFactRepository } from '../application/ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../application/ports/IUserRepository.js'
+import type { IAvatarSessionMemoryRepository } from '../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IDependencyProbe } from '../application/ports/IDependencyProbe.js'
 import type { ISessionEventPublisher } from '../application/ports/ISessionEventPublisher.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
@@ -45,6 +47,8 @@ export interface ServerAdapters {
   scenarioRepository?: IScenarioRepository
   sessionRepository?: ISessionRepository
   messageRepository?: IMessageRepository
+  sessionMemoryRepository?: ISessionMemoryRepository
+  avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   userRepository?: IUserRepository
   userMemoryFactRepository?: IUserMemoryFactRepository
   sessionEventPublisher?: ISessionEventPublisher

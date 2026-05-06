@@ -7,6 +7,8 @@ import { InMemoryConversationRepository } from '../../../infrastructure/db/in-me
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
+import { InMemorySessionMemoryRepository } from '../../../infrastructure/db/in-memory-session-memory.repository.js'
+import { InMemoryAvatarSessionMemoryRepository } from '../../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryUserMemoryFactRepository } from '../../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { ResetSessionUseCase } from './reset-session.use-case.js'
 
@@ -60,12 +62,16 @@ function makeUseCase({
   avatars = [],
   conversationRepository = new InMemoryConversationRepository(),
   messageRepository = new InMemoryMessageRepository(),
+  sessionMemoryRepository = new InMemorySessionMemoryRepository(),
+  avatarSessionMemoryRepository = new InMemoryAvatarSessionMemoryRepository(),
 }: {
   sessions?: Session[]
   scenarios?: Scenario[]
   avatars?: AvatarConfig[]
   conversationRepository?: InMemoryConversationRepository
   messageRepository?: InMemoryMessageRepository
+  sessionMemoryRepository?: InMemorySessionMemoryRepository
+  avatarSessionMemoryRepository?: InMemoryAvatarSessionMemoryRepository
 } = {}): ResetSessionUseCase {
   return new ResetSessionUseCase(
     new InMemorySessionRepository(sessions),
@@ -73,6 +79,8 @@ function makeUseCase({
     new InMemoryAvatarRepository(avatars),
     conversationRepository,
     messageRepository,
+    sessionMemoryRepository,
+    avatarSessionMemoryRepository,
   )
 }
 
@@ -104,6 +112,7 @@ describe('ResetSessionUseCase baseline behavior', () => {
     expect(result.session.activeAvatarId).toBeUndefined()
     expect(result.session.unlockedAvatarIds).toEqual([])
     expect(result.session.gmNotes).toBeUndefined()
+    expect(result.session.memorySummary).toBeUndefined()
   })
 
   it('deletes all conversations and messages for the session', async () => {
@@ -199,6 +208,62 @@ describe('ResetSessionUseCase unlock policy behavior', () => {
 })
 
 describe('ResetSessionUseCase memory isolation', () => {
+  it('clears session and avatar working memory for the reset session', async () => {
+    const sessionMemoryRepository = new InMemorySessionMemoryRepository([
+      {
+        sessionId: 'session_1',
+        summary: 'Session one memory',
+        updatedAt: '2026-04-21T08:00:00.000Z',
+      },
+      {
+        sessionId: 'session_2',
+        summary: 'Session two memory',
+        updatedAt: '2026-04-21T08:00:00.000Z',
+      },
+    ])
+    const avatarSessionMemoryRepository = new InMemoryAvatarSessionMemoryRepository([
+      {
+        sessionId: 'session_1',
+        avatarId: 'avatar_1',
+        summary: 'Session one avatar one memory',
+        updatedAt: '2026-04-21T08:00:00.000Z',
+      },
+      {
+        sessionId: 'session_1',
+        avatarId: 'avatar_2',
+        summary: 'Session one avatar two memory',
+        updatedAt: '2026-04-21T08:00:00.000Z',
+      },
+      {
+        sessionId: 'session_2',
+        avatarId: 'avatar_1',
+        summary: 'Session two avatar one memory',
+        updatedAt: '2026-04-21T08:00:00.000Z',
+      },
+    ])
+    const useCase = makeUseCase({
+      sessions: [makeSession({ sessionId: 'session_1' })],
+      sessionMemoryRepository,
+      avatarSessionMemoryRepository,
+    })
+
+    await useCase.execute({ sessionId: 'session_1' })
+
+    await expect(sessionMemoryRepository.findBySessionId('session_1')).resolves.toBeNull()
+    await expect(sessionMemoryRepository.findBySessionId('session_2')).resolves.toMatchObject({
+      summary: 'Session two memory',
+    })
+    await expect(
+      avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_1'),
+    ).resolves.toBeNull()
+    await expect(
+      avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_2'),
+    ).resolves.toBeNull()
+    await expect(
+      avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_2', 'avatar_1'),
+    ).resolves.toMatchObject({ summary: 'Session two avatar one memory' })
+  })
+
   it('does not delete cross-session user memory facts', async () => {
     const userMemoryFactRepository = new InMemoryUserMemoryFactRepository([
       {

@@ -365,7 +365,7 @@ This table stores only compacted session-level memory (working memory layer).
 The memory model is pyramidal and bounded:
 
 - Short-term memory: last 2 exchanges (assembled at runtime from `Message`; not persisted here)
-- Working memory: evolving session summary (this table and/or `sessions.memory_summary`)
+- Working memory: evolving session summary (canonical row in `session_memories`; `sessions.memory_summary` kept as backward-compatible mirror/cache during migration)
 - Long-term memory: persisted structured facts/events (`UserMemoryFact`)
 
 This is the shared memory of the session itself:
@@ -377,6 +377,12 @@ This is the shared memory of the session itself:
 Using the analogy:
 
 This is the memory of the movie/playthrough as a whole.
+
+### Implementation Status (EPIC 4.2b)
+
+- **Table:** `session_memories`
+- **Repository:** `PostgresSessionMemoryRepository` (+ in-memory test adapter)
+- **Status:** Implemented. One row per session (`session_id` PK), compact `summary`, `updated_at`.
 
 ---
 
@@ -419,6 +425,12 @@ For MVP, keep it compact:
 - one summary per `(session_id, avatar_id)`
 - no raw transcript duplication
 - no complex episodic memory yet
+
+### Implementation Status (EPIC 4.2b)
+
+- **Table:** `avatar_session_memories`
+- **Repository:** `PostgresAvatarSessionMemoryRepository` (+ in-memory test adapter)
+- **Status:** Implemented. One compact summary row per `(session_id, avatar_id)`.
 
 ---
 

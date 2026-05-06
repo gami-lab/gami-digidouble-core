@@ -2,12 +2,14 @@ import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fasti
 import { fail, ok } from '@gami/shared'
 import type { EndConversationResponse, LifecycleStatus } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
+import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationCompactionPort } from '../../application/ports/IConversationCompactionPort.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
+import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
 import type { GetAvailableAvatarsOutput } from '../../application/use-cases/get-available-avatars/get-available-avatars.types.js'
@@ -38,6 +40,8 @@ import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-ev
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
+import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-memory-session-event-publisher.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import { registerRuntimeEventsRoutes } from './runtime-events.js'
@@ -49,6 +53,8 @@ export type SessionsRouteOptions = {
   avatarRepository?: IAvatarRepository
   conversationRepository?: IConversationRepository
   messageRepository?: IMessageRepository
+  sessionMemoryRepository?: ISessionMemoryRepository
+  avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   eventLogRepository?: IEventLogRepository
   conversationCompactionPort?: IConversationCompactionPort
   sessionEventPublisher?: ISessionEventPublisher
@@ -166,6 +172,8 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   const conversationRepository =
     options.conversationRepository ?? new InMemoryConversationRepository()
   const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
+  const { sessionMemoryRepository, avatarSessionMemoryRepository } =
+    resolveWorkingMemoryRepositories(options)
   const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
   const sessionEventPublisher = options.sessionEventPublisher ?? new InMemorySessionEventPublisher()
   const conversationCompactionPort =
@@ -184,6 +192,8 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     avatarRepository,
     conversationRepository,
     messageRepository,
+    sessionMemoryRepository,
+    avatarSessionMemoryRepository,
   )
   const startConversationUseCase = new StartConversationUseCase(
     sessionRepository,
@@ -232,6 +242,18 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   registerGetAvailableAvatarsRoute(app, getAvailableAvatarsUseCase)
   registerGetAvatarTransitionsRoute(app, getAvatarTransitionsUseCase)
   registerRuntimeEventsRoutes(app, sessionRepository, sessionEventPublisher, getRuntimeStateUseCase)
+}
+
+function resolveWorkingMemoryRepositories(options: SessionsRouteOptions): {
+  sessionMemoryRepository: ISessionMemoryRepository
+  avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
+} {
+  return {
+    sessionMemoryRepository:
+      options.sessionMemoryRepository ?? new InMemorySessionMemoryRepository(),
+    avatarSessionMemoryRepository:
+      options.avatarSessionMemoryRepository ?? new InMemoryAvatarSessionMemoryRepository(),
+  }
 }
 
 function registerStartSessionRoute(app: FastifyInstance, useCase: StartSessionUseCase): void {

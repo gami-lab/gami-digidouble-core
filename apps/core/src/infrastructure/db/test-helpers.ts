@@ -17,5 +17,5 @@ export function createTestSql(): Sql {
 
 export async function truncateAllTables(sql: Sql): Promise<void> {
   // Keep this list aligned with migration table additions for integration cleanup.
-  await sql`TRUNCATE user_memory_facts, event_log, messages, conversations, gm_states, sessions, avatars, scenarios, users CASCADE`
+  await sql`TRUNCATE avatar_session_memories, session_memories, user_memory_facts, event_log, messages, conversations, gm_states, sessions, avatars, scenarios, users CASCADE`
 }

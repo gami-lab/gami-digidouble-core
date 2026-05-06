@@ -1,7 +1,9 @@
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
+import type { IAvatarSessionMemoryRepository } from '../../ports/IAvatarSessionMemoryRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
+import type { ISessionMemoryRepository } from '../../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import { DomainError } from '../../../domain/errors.js'
 import { resolveInitialUnlockedAvatarIds } from '../../../domain/scenario/scenario-policy.service.js'
@@ -14,6 +16,8 @@ export class ResetSessionUseCase {
     private readonly avatarRepository: IAvatarRepository,
     private readonly conversationRepository: IConversationRepository,
     private readonly messageRepository: IMessageRepository,
+    private readonly sessionMemoryRepository?: ISessionMemoryRepository,
+    private readonly avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository,
   ) {}
 
   async execute(input: ResetSessionInput): Promise<ResetSessionOutput> {
@@ -39,6 +43,8 @@ export class ResetSessionUseCase {
       ),
     )
     await this.conversationRepository.deleteBySessionId(input.sessionId)
+    await this.sessionMemoryRepository?.deleteBySessionId(input.sessionId)
+    await this.avatarSessionMemoryRepository?.deleteBySessionId(input.sessionId)
 
     try {
       const updated = await this.sessionRepository.update(input.sessionId, {
@@ -47,6 +53,7 @@ export class ResetSessionUseCase {
           ? { unlockedAvatarIds: initialUnlockedAvatarIds }
           : {}),
         gmNotes: null,
+        memorySummary: null,
         status: 'active',
         lastActivityAt: new Date().toISOString(),
       })
