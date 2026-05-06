@@ -79,6 +79,16 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `memory_refresh_failed`
 - Long-term user-fact extraction on close remains separate and non-blocking.
 
+### EPIC 4.2b — Turn-time Avatar memory context assembly: **complete** (2026-05-06)
+
+- Added dedicated deterministic `AvatarMemoryContextAssembler` used by `SendMessageUseCase` instead of ad hoc fact shaping.
+- Avatar turn prompt now consumes explicit layered memory input:
+  - short-term memory: exactly last 2 user/avatar exchanges
+  - working memory: session summary + active-avatar summary when present
+  - long-term memory: bounded user facts (max 10, repo ordering preserved)
+- Updated persona prompt rendering to a compact layered memory section (`## Memory Context`) with deterministic subsection ordering and omission of empty layers.
+- Memory-read failures degrade gracefully and never fail the avatar turn.
+
 ### EPIC 4.5 — Player Runtime State & World Events: **complete** (2026-05-05)
 
 - Added `RuntimeEvent` and `RuntimeState` to `@gami/shared` (`packages/shared/src/runtime-types.ts`)

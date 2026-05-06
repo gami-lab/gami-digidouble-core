@@ -220,7 +220,13 @@ One session can contain multiple conversations over time.
 
 `active_avatar_id` tracks the current routing focus for session-level orchestration.
 `unlocked_avatar_ids` tracks which avatars are accessible in that specific session.
-At turn time, long-term user facts (`UserMemoryFact`) are fetched (bounded) and injected into the avatar system prompt as lightweight user context.
+At turn time, memory for avatar prompting is assembled deterministically as layered context:
+
+- short-term: last 2 exchanges from conversation messages
+- working: `session_memories` summary + current-avatar row from `avatar_session_memories` when present
+- long-term: bounded `UserMemoryFact` entries (`updatedAt DESC`, capped)
+
+The prompt receives compact rendered sections, not raw transcript replay.
 
 A Session is the equivalent of one run of the experience.
 

@@ -166,7 +166,7 @@ beforeEach(() => {
 })
 
 describe('SendMessageUseCase — user facts injection', () => {
-  it('succeeds when userMemoryFactRepository is not injected and omits user context section', async () => {
+  it('succeeds when userMemoryFactRepository is not injected and omits remembered facts section', async () => {
     const useCase = createUseCase(false)
 
     await expect(
@@ -174,7 +174,7 @@ describe('SendMessageUseCase — user facts injection', () => {
     ).resolves.toBeDefined()
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).not.toContain('## User Context (remembered facts)')
+    expect(llmRequest.systemPrompt).not.toContain('Remembered user facts:')
   })
 
   it('injects user facts from repository into system prompt', async () => {
@@ -187,9 +187,10 @@ describe('SendMessageUseCase — user facts injection', () => {
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).toContain('## User Context (remembered facts)')
-    expect(llmRequest.systemPrompt).toContain('language: English')
-    expect(llmRequest.systemPrompt).toContain('role: friend')
+    expect(llmRequest.systemPrompt).toContain('## Memory Context')
+    expect(llmRequest.systemPrompt).toContain('Remembered user facts:')
+    expect(llmRequest.systemPrompt).toContain('- language: English')
+    expect(llmRequest.systemPrompt).toContain('- role: friend')
   })
 
   it('succeeds when user fact repository throws', async () => {

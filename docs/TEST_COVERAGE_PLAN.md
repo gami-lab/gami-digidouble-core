@@ -96,6 +96,7 @@ Must test:
 
 - short-term memory window policy (exactly last 2 exchanges)
 - session summary creation/update (working memory)
+- avatar-scoped working memory retrieval and isolation from other avatars
 - persistent user fact extraction rules
 - retrieval of relevant facts
 - memory overwrite/update behavior
@@ -118,6 +119,7 @@ Must test:
 
 - recent messages included/excluded correctly (short-term bounded window)
 - memory layers injected correctly (short-term + working + long-term)
+- prompt memory sections omit empty layers and keep deterministic ordering
 - scenario context injected correctly
 - scenario goals/pacing constraints injected correctly
 - knowledge retrieval merged correctly by layer (avatar-memory / world / media)

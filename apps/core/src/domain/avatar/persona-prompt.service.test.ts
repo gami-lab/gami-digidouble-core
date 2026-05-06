@@ -258,32 +258,58 @@ describe('assemblePersonaPrompt -> user persona role context', () => {
   })
 })
 
-describe('assemblePersonaPrompt -> user facts context', () => {
-  it('omits user context section when userFacts is empty', () => {
+describe('assemblePersonaPrompt -> layered memory context', () => {
+  it('omits memory section when memory is empty', () => {
     const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
 
-    const prompt = assemblePersonaPrompt(config, { userFacts: {} })
+    const prompt = assemblePersonaPrompt(config, { memory: {} })
 
-    expect(prompt).not.toContain('## User Context (remembered facts)')
+    expect(prompt).not.toContain('## Memory Context')
   })
 
-  it('includes user context section when userFacts are provided', () => {
+  it('includes layered memory sections when memory is provided', () => {
     const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
 
     const prompt = assemblePersonaPrompt(config, {
-      userFacts: { language: 'English', role: 'friend' },
+      memory: {
+        shortTerm: {
+          exchangeCount: 2,
+          recentExchanges: [{ user: 'Hi', avatar: 'Hello there' }],
+        },
+        working: {
+          session: {
+            summary: 'Session summary',
+            updatedAt: '2026-05-06T10:00:00.000Z',
+          },
+          avatar: {
+            avatarId: 'avatar_1',
+            summary: 'Avatar summary',
+            updatedAt: '2026-05-06T10:00:00.000Z',
+          },
+        },
+        longTerm: {
+          facts: [
+            { category: 'pref', key: 'language', value: 'English' },
+            { category: 'role', key: 'role', value: 'friend' },
+          ],
+        },
+      },
     })
 
-    expect(prompt).toContain('## User Context (remembered facts)')
-    expect(prompt).toContain('language: English')
-    expect(prompt).toContain('role: friend')
+    expect(prompt).toContain('## Memory Context')
+    expect(prompt).toContain('Recent exchanges:')
+    expect(prompt).toContain('Session working memory: Session summary')
+    expect(prompt).toContain('Current avatar memory: Avatar summary')
+    expect(prompt).toContain('Remembered user facts:')
+    expect(prompt).toContain('- language: English')
+    expect(prompt).toContain('- role: friend')
   })
 
-  it('keeps behavior unchanged when userFacts is not provided', () => {
+  it('keeps behavior unchanged when memory is not provided', () => {
     const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
 
     const prompt = assemblePersonaPrompt(config)
 
-    expect(prompt).not.toContain('## User Context (remembered facts)')
+    expect(prompt).not.toContain('## Memory Context')
   })
 })

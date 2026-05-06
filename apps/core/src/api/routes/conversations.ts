@@ -249,6 +249,8 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       undefined,
       repositories.userMemoryFactRepository,
       memoryMaintenance,
+      repositories.sessionMemoryRepository,
+      repositories.avatarSessionMemoryRepository,
     ),
   }
 }

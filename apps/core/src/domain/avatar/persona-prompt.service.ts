@@ -1,4 +1,5 @@
 import type { AvatarConfig } from './avatar.types.js'
+import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
 import type { UserPersona } from '../user/index.js'
 
 const DEFAULT_STYLE_RULE = [
@@ -22,7 +23,7 @@ export function assemblePersonaPrompt(
     gmNotes?: string
     avatarAwareness?: AvatarAwarenessItem[]
     userPersona?: UserPersona
-    userFacts?: Record<string, string>
+    memory?: LayeredMemorySnapshot
   },
 ): string {
   const personaPrompt = requirePersonaPrompt(config.personaPrompt)
@@ -37,7 +38,7 @@ export function assemblePersonaPrompt(
   }
 
   sections.push(...buildUserPersonaContext(opts?.userPersona))
-  sections.push(...buildUserFactsContext(opts?.userFacts))
+  sections.push(...buildMemoryContext(opts?.memory))
   sections.push(...buildAdjustments(config.adjustments))
   sections.push(...buildAvatarAwareness(opts?.avatarAwareness))
 
@@ -54,14 +55,44 @@ function buildUserPersonaContext(userPersona: UserPersona | undefined): string[]
   return [`You are speaking with someone in the role of: ${userPersona.role.trim()}.`]
 }
 
-function buildUserFactsContext(userFacts: Record<string, string> | undefined): string[] {
-  if (userFacts === undefined) return []
-  const entries = Object.entries(userFacts).filter(([key, value]) => hasText(key) && hasText(value))
-  if (entries.length === 0) return []
+function buildMemoryContext(memory: LayeredMemorySnapshot | undefined): string[] {
+  if (memory === undefined) return []
+  const lines: string[] = ['## Memory Context']
+  appendShortTermMemory(lines, memory)
+  appendWorkingMemory(lines, memory)
+  appendLongTermMemory(lines, memory)
 
-  return [
-    ['## User Context (remembered facts)', ...entries.map(([k, v]) => `${k}: ${v}`)].join('\n'),
-  ]
+  return lines.length > 1 ? [lines.join('\n')] : []
+}
+
+function appendShortTermMemory(lines: string[], memory: LayeredMemorySnapshot): void {
+  const recentExchanges = memory.shortTerm?.recentExchanges ?? []
+  if (recentExchanges.length === 0) return
+  lines.push('Recent exchanges:')
+  for (const exchange of recentExchanges) {
+    if (!hasText(exchange.user) || !hasText(exchange.avatar)) continue
+    lines.push(`- User: ${exchange.user}`)
+    lines.push(`  Avatar: ${exchange.avatar}`)
+  }
+}
+
+function appendWorkingMemory(lines: string[], memory: LayeredMemorySnapshot): void {
+  if (hasText(memory.working?.session?.summary)) {
+    lines.push(`Session working memory: ${memory.working.session.summary}`)
+  }
+  if (hasText(memory.working?.avatar?.summary)) {
+    lines.push(`Current avatar memory: ${memory.working.avatar.summary}`)
+  }
+}
+
+function appendLongTermMemory(lines: string[], memory: LayeredMemorySnapshot): void {
+  const facts = memory.longTerm?.facts ?? []
+  const validFacts = facts.filter((fact) => hasText(fact.key) && hasText(fact.value))
+  if (validFacts.length === 0) return
+  lines.push('Remembered user facts:')
+  for (const fact of validFacts) {
+    lines.push(`- ${fact.key}: ${fact.value}`)
+  }
 }
 
 function requirePersonaPrompt(personaPrompt: string): string {

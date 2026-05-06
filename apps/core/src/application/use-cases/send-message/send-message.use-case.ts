@@ -6,9 +6,11 @@ import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
+import type { ISessionMemoryRepository } from '../../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../ports/IUserRepository.js'
+import type { IAvatarSessionMemoryRepository } from '../../ports/IAvatarSessionMemoryRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { buildAvatarAwareness } from '../../../domain/avatar/avatar-awareness.service.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
@@ -22,6 +24,7 @@ import {
   emitTurnCompletedEventNonBlocking,
   traceNonBlocking,
 } from './send-message.observability.js'
+import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
 import {
   DEFAULT_IMPLICIT_END_POLICY,
   detectImplicitEndReason,
@@ -54,6 +57,9 @@ export class SendMessageUseCase {
     private readonly implicitEndPolicy: ImplicitEndPolicy = DEFAULT_IMPLICIT_END_POLICY,
     private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
     private readonly memoryMaintenance?: IMemoryMaintenancePort,
+    private readonly sessionMemoryRepository?: ISessionMemoryRepository,
+    private readonly avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository,
+    private readonly memoryContextAssembler?: AvatarMemoryContextAssembler,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -65,15 +71,10 @@ export class SendMessageUseCase {
     const conversation = await this.loadActiveConversation(input.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
-    await this.loadScenario(session.scenarioId)
-    const scenarioAvatars = await this.avatarRepository.listByScenarioId(session.scenarioId)
-    const userPersona = await this.loadUserPersona(session.userId)
-    const userFacts = await this.loadUserFacts(session.userId)
-    const systemPrompt = assemblePersonaPrompt(avatar, {
-      ...(session.gmNotes !== undefined ? { gmNotes: session.gmNotes } : {}),
-      avatarAwareness: buildAvatarAwareness(avatar, scenarioAvatars, session.unlockedAvatarIds),
-      ...(userPersona !== undefined ? { userPersona } : {}),
-      ...(Object.keys(userFacts).length > 0 ? { userFacts } : {}),
+    const { systemPrompt, userPersona } = await this.buildTurnPromptContext({
+      session,
+      conversation,
+      avatar,
     })
     const historyMessages = await this.buildHistoryMessages(conversation.conversationId)
     const userMessage = await this.persistUserMessage(
@@ -158,6 +159,34 @@ export class SendMessageUseCase {
     }
 
     return output
+  }
+
+  private async buildTurnPromptContext(args: {
+    session: Session
+    conversation: Conversation
+    avatar: AvatarConfig
+  }): Promise<{ systemPrompt: string; userPersona: UserPersona | undefined }> {
+    await this.loadScenario(args.session.scenarioId)
+    const scenarioAvatars = await this.avatarRepository.listByScenarioId(args.session.scenarioId)
+    const userPersona = await this.loadUserPersona(args.session.userId)
+    const memory = await this.loadAvatarMemoryContext({
+      conversationId: args.conversation.conversationId,
+      sessionId: args.session.sessionId,
+      avatarId: args.conversation.avatarId,
+      userId: args.session.userId,
+    })
+
+    const systemPrompt = assemblePersonaPrompt(args.avatar, {
+      ...(args.session.gmNotes !== undefined ? { gmNotes: args.session.gmNotes } : {}),
+      avatarAwareness: buildAvatarAwareness(
+        args.avatar,
+        scenarioAvatars,
+        args.session.unlockedAvatarIds,
+      ),
+      ...(userPersona !== undefined ? { userPersona } : {}),
+      ...(memory !== undefined ? { memory } : {}),
+    })
+    return { systemPrompt, userPersona }
   }
 
   private dispatchBackgroundUpdates(args: {
@@ -394,14 +423,22 @@ export class SendMessageUseCase {
     }
   }
 
-  private async loadUserFacts(userId: string): Promise<Record<string, string>> {
-    if (this.userMemoryFactRepository === undefined) return {}
-    try {
-      const facts = await this.userMemoryFactRepository.findByUserId(userId)
-      return Object.fromEntries(facts.slice(0, 10).map((fact) => [fact.key, fact.value]))
-    } catch {
-      return {}
-    }
+  private async loadAvatarMemoryContext(input: {
+    conversationId: string
+    sessionId: string
+    avatarId: string
+    userId: string
+  }) {
+    const assembler =
+      this.memoryContextAssembler ??
+      new AvatarMemoryContextAssembler(
+        this.messageRepository,
+        this.sessionMemoryRepository,
+        this.avatarSessionMemoryRepository,
+        this.userMemoryFactRepository,
+      )
+
+    return assembler.build(input)
   }
 
   private createMessageId(): string {
