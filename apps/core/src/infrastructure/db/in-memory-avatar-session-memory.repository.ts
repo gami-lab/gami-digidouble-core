@@ -21,6 +21,20 @@ export class InMemoryAvatarSessionMemoryRepository implements IAvatarSessionMemo
     return Promise.resolve(this.memories.get(toKey(sessionId, avatarId)) ?? null)
   }
 
+  listBySessionId(sessionId: string): Promise<AvatarSessionMemory[]> {
+    const memories = Array.from(this.memories.values()).filter(
+      (memory) => memory.sessionId === sessionId,
+    )
+    return Promise.resolve(
+      memories.sort((a, b) => {
+        if (a.updatedAt !== b.updatedAt) {
+          return Date.parse(b.updatedAt) - Date.parse(a.updatedAt)
+        }
+        return a.avatarId.localeCompare(b.avatarId)
+      }),
+    )
+  }
+
   upsert(memory: Omit<AvatarSessionMemory, 'updatedAt'>): Promise<AvatarSessionMemory> {
     const key = toKey(memory.sessionId, memory.avatarId)
     const now = new Date().toISOString()

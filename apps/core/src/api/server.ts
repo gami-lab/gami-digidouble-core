@@ -23,6 +23,8 @@ import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-sta
 import { InMemorySessionRepository } from '../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryUserMemoryFactRepository } from '../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../infrastructure/db/in-memory-user.repository.js'
+import { InMemorySessionMemoryRepository } from '../infrastructure/db/in-memory-session-memory.repository.js'
+import { InMemoryAvatarSessionMemoryRepository } from '../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memory-session-event-publisher.js'
 import { adminMemoryRoute } from './routes/admin-memory.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
@@ -117,11 +119,7 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     eventLogRepository: resolvedAdapters.eventLogRepository,
   })
   app.register(adminMemoryRoute, {
-    prefix: '/v1/admin',
-    config,
-    sessionRepository: resolvedAdapters.sessionRepository ?? new InMemorySessionRepository(),
-    userMemoryFactRepository:
-      resolvedAdapters.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
+    ...buildAdminMemoryRouteOptions(config, resolvedAdapters),
   })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',
@@ -190,5 +188,25 @@ function buildAvatarsRouteOptions(config: Config, adapters: ServerAdapters): Ava
     ...(adapters.sessionRepository !== undefined
       ? { sessionRepository: adapters.sessionRepository }
       : {}),
+  }
+}
+
+function buildAdminMemoryRouteOptions(config: Config, adapters: ServerAdapters) {
+  return {
+    prefix: '/v1/admin',
+    config,
+    sessionRepository: adapters.sessionRepository ?? new InMemorySessionRepository(),
+    sessionMemoryRepository:
+      adapters.sessionMemoryRepository ?? new InMemorySessionMemoryRepository(),
+    avatarSessionMemoryRepository:
+      adapters.avatarSessionMemoryRepository ?? new InMemoryAvatarSessionMemoryRepository(),
+    ...(adapters.conversationRepository !== undefined
+      ? { conversationRepository: adapters.conversationRepository }
+      : {}),
+    ...(adapters.messageRepository !== undefined
+      ? { messageRepository: adapters.messageRepository }
+      : {}),
+    userMemoryFactRepository:
+      adapters.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
   }
 }

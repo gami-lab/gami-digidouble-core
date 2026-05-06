@@ -20,6 +20,7 @@ export type {
   ConversationEndReason,
   ConversationStartedBy,
   SessionMemorySummary,
+  SessionMemoryLayers,
   SessionTransitionRecord,
   AvatarTransitionRecord,
   LifecycleSummary,

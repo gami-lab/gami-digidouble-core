@@ -1,4 +1,5 @@
 import type { SessionMemorySummary } from '@gami/shared'
+import type { ISessionMemoryRepository } from '../../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import { DomainError } from '../../../domain/errors.js'
@@ -8,6 +9,7 @@ export class GetSessionMemoryUseCase {
   constructor(
     private readonly sessionRepository: ISessionRepository,
     private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
+    private readonly sessionMemoryRepository?: ISessionMemoryRepository,
   ) {}
 
   async execute(input: GetSessionMemoryInput): Promise<GetSessionMemoryOutput> {
@@ -16,11 +18,15 @@ export class GetSessionMemoryUseCase {
       throw new DomainError('NOT_FOUND', `Session ${input.sessionId} was not found.`)
     }
 
+    const workingMemory = await this.sessionMemoryRepository?.findBySessionId(session.sessionId)
+    const summaryText = workingMemory?.summary ?? session.memorySummary ?? ''
+    const updatedAt = workingMemory?.updatedAt ?? session.lastActivityAt
+
     const summary: SessionMemorySummary = {
       sessionId: session.sessionId,
-      summary: session.memorySummary ?? '',
+      summary: summaryText,
       shortTerm: { exchangeCount: 2 },
-      updatedAt: session.lastActivityAt,
+      updatedAt,
     }
 
     if (this.userMemoryFactRepository !== undefined) {

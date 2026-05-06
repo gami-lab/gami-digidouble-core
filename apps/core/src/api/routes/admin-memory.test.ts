@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import type { ApiResponse, SessionMemorySummary } from '@gami/shared'
+import type { ApiResponse, SessionMemoryLayers, SessionMemorySummary } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
 import type { Config } from '../../config.js'
 import type { Session } from '../../domain/conversation/session.types.js'
 import type { UserFact } from '../../domain/memory/memory.types.js'
+import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
+import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
+import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { createServer } from '../server.js'
@@ -62,13 +66,149 @@ function makeFact(overrides: Partial<UserFact> = {}): UserFact {
   }
 }
 
-function makeApp(params?: { sessions?: Session[]; facts?: UserFact[] }): FastifyInstance {
-  const app = createServer(testConfig, {
-    sessionRepository: new InMemorySessionRepository(params?.sessions ?? [makeSession()]),
-    userMemoryFactRepository: new InMemoryUserMemoryFactRepository(params?.facts ?? []),
-  })
+function makeApp(params?: {
+  sessions?: Session[]
+  facts?: UserFact[]
+  sessionMemories?: Array<{ sessionId: string; summary: string; updatedAt: string }>
+  avatarMemories?: Array<{
+    sessionId: string
+    avatarId: string
+    summary: string
+    updatedAt: string
+  }>
+  conversationMessages?: Array<{
+    messageId: string
+    conversationId: string
+    role: 'user' | 'avatar' | 'system'
+    content: string
+    createdAt: string
+  }>
+}): FastifyInstance {
+  const app = createServer(testConfig, buildAdapters(params))
   appsToClose.push(app)
   return app
+}
+
+function buildAdapters(params?: {
+  sessions?: Session[]
+  facts?: UserFact[]
+  sessionMemories?: Array<{ sessionId: string; summary: string; updatedAt: string }>
+  avatarMemories?: Array<{
+    sessionId: string
+    avatarId: string
+    summary: string
+    updatedAt: string
+  }>
+  conversationMessages?: Array<{
+    messageId: string
+    conversationId: string
+    role: 'user' | 'avatar' | 'system'
+    content: string
+    createdAt: string
+  }>
+}) {
+  const resolved = resolveParams(params)
+  return {
+    sessionRepository: new InMemorySessionRepository(resolved.sessions),
+    sessionMemoryRepository: new InMemorySessionMemoryRepository(resolved.sessionMemories),
+    avatarSessionMemoryRepository: new InMemoryAvatarSessionMemoryRepository(
+      resolved.avatarMemories,
+    ),
+    conversationRepository: new InMemoryConversationRepository([makeConversation()]),
+    messageRepository: new InMemoryMessageRepository(resolved.conversationMessages),
+    userMemoryFactRepository: new InMemoryUserMemoryFactRepository(resolved.facts),
+  }
+}
+
+function resolveParams({
+  sessions = [makeSession()],
+  facts = [],
+  sessionMemories = [],
+  avatarMemories = [],
+  conversationMessages = [],
+}: {
+  sessions?: Session[]
+  facts?: UserFact[]
+  sessionMemories?: Array<{ sessionId: string; summary: string; updatedAt: string }>
+  avatarMemories?: Array<{
+    sessionId: string
+    avatarId: string
+    summary: string
+    updatedAt: string
+  }>
+  conversationMessages?: Array<{
+    messageId: string
+    conversationId: string
+    role: 'user' | 'avatar' | 'system'
+    content: string
+    createdAt: string
+  }>
+} = {}) {
+  return {
+    sessions,
+    facts,
+    sessionMemories,
+    avatarMemories,
+    conversationMessages,
+  }
+}
+
+function makeConversation() {
+  return {
+    conversationId: 'conversation_1',
+    sessionId: 'session_1',
+    avatarId: 'avatar_1',
+    status: 'active' as const,
+    startedAt: '2026-05-01T10:00:00.000Z',
+    lastActivityAt: '2026-05-01T10:05:00.000Z',
+  }
+}
+
+function makeLayeredMessages() {
+  return [
+    {
+      messageId: 'msg_1',
+      conversationId: 'conversation_1',
+      role: 'user' as const,
+      content: 'u1',
+      createdAt: '2026-05-01T10:01:00.000Z',
+    },
+    {
+      messageId: 'msg_2',
+      conversationId: 'conversation_1',
+      role: 'avatar' as const,
+      content: 'a1',
+      createdAt: '2026-05-01T10:01:01.000Z',
+    },
+    {
+      messageId: 'msg_3',
+      conversationId: 'conversation_1',
+      role: 'user' as const,
+      content: 'u2',
+      createdAt: '2026-05-01T10:02:00.000Z',
+    },
+    {
+      messageId: 'msg_4',
+      conversationId: 'conversation_1',
+      role: 'avatar' as const,
+      content: 'a2',
+      createdAt: '2026-05-01T10:02:01.000Z',
+    },
+    {
+      messageId: 'msg_5',
+      conversationId: 'conversation_1',
+      role: 'user' as const,
+      content: 'u3',
+      createdAt: '2026-05-01T10:03:00.000Z',
+    },
+    {
+      messageId: 'msg_6',
+      conversationId: 'conversation_1',
+      role: 'avatar' as const,
+      content: 'a3',
+      createdAt: '2026-05-01T10:03:01.000Z',
+    },
+  ]
 }
 
 describe('GET /v1/admin/sessions/:sessionId/memory', () => {
@@ -130,6 +270,27 @@ describe('GET /v1/admin/sessions/:sessionId/memory', () => {
     expect(body.data?.session.updatedAt).toBe('2026-05-01T10:05:00.000Z')
   })
 
+  it('derives summary from dedicated session working memory when available', async () => {
+    const response = await makeApp({
+      sessions: [makeSession({ memorySummary: 'Legacy session summary' })],
+      sessionMemories: [
+        {
+          sessionId: 'session_1',
+          summary: 'Dedicated working-memory summary',
+          updatedAt: '2026-05-01T11:00:00.000Z',
+        },
+      ],
+    }).inject({
+      method: 'GET',
+      url: '/v1/admin/sessions/session_1/memory',
+      headers: authHeaders(),
+    })
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ session: SessionMemorySummary }>>()
+    expect(body.data?.session.summary).toBe('Dedicated working-memory summary')
+    expect(body.data?.session.updatedAt).toBe('2026-05-01T11:00:00.000Z')
+  })
+
   it('returns longTermFactCount from seeded facts', async () => {
     const response = await makeApp({
       facts: [makeFact({ id: 'umf_1' }), makeFact({ id: 'umf_2', key: 'role', value: 'friend' })],
@@ -142,5 +303,67 @@ describe('GET /v1/admin/sessions/:sessionId/memory', () => {
     const body = response.json<ApiResponse<{ session: SessionMemorySummary }>>()
     expect(body.error).toBeNull()
     expect(body.data?.session.longTermFactCount).toBe(2)
+  })
+})
+
+describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
+  it('returns 401 without API key', async () => {
+    const response = await makeApp().inject({
+      method: 'GET',
+      url: '/v1/admin/sessions/session_1/memory-layers',
+    })
+    expect(response.statusCode).toBe(401)
+  })
+
+  it('returns 404 for unknown session', async () => {
+    const response = await makeApp({ sessions: [] }).inject({
+      method: 'GET',
+      url: '/v1/admin/sessions/missing/memory-layers',
+      headers: authHeaders(),
+    })
+    expect(response.statusCode).toBe(404)
+  })
+
+  it('returns layered memory without raw transcript replay', async () => {
+    const response = await makeApp({
+      sessionMemories: [
+        {
+          sessionId: 'session_1',
+          summary: 'Session summary',
+          updatedAt: '2026-05-01T10:10:00.000Z',
+        },
+      ],
+      avatarMemories: [
+        {
+          sessionId: 'session_1',
+          avatarId: 'avatar_1',
+          summary: 'Avatar summary',
+          updatedAt: '2026-05-01T10:11:00.000Z',
+        },
+      ],
+      facts: [makeFact()],
+      conversationMessages: makeLayeredMessages(),
+    }).inject({
+      method: 'GET',
+      url: '/v1/admin/sessions/session_1/memory-layers',
+      headers: authHeaders(),
+    })
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ session: SessionMemoryLayers }>>()
+    expect(body.error).toBeNull()
+    expect(body.data?.session.shortTerm.recentExchanges).toEqual([
+      { user: 'u2', avatar: 'a2' },
+      { user: 'u3', avatar: 'a3' },
+    ])
+    expect(body.data?.session.working.session?.summary).toBe('Session summary')
+    expect(body.data?.session.working.avatars).toHaveLength(1)
+    expect(body.data?.session.longTerm.facts).toEqual([
+      {
+        category: 'preference',
+        key: 'language',
+        value: 'English',
+        updatedAt: '2026-05-01T10:00:00.000Z',
+      },
+    ])
   })
 })

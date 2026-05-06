@@ -45,6 +45,7 @@ const sessionMemoryRepository = {
 }
 const avatarSessionMemoryRepository = {
   findBySessionIdAndAvatarId: findAvatarMemoryBySessionAndAvatarMock,
+  listBySessionId: vi.fn(),
   upsert: vi.fn(),
   deleteBySessionIdAndAvatarId: vi.fn(),
   deleteBySessionId: vi.fn(),

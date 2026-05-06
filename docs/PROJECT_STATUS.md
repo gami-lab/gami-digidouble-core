@@ -93,6 +93,19 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Updated persona prompt rendering to a compact layered memory section (`## Memory Context`) with deterministic subsection ordering and omission of empty layers.
 - Memory-read failures degrade gracefully and never fail the avatar turn.
 
+### EPIC 4.2b — Admin memory inspection + hardening sync: **complete** (2026-05-06)
+
+- Kept `GET /v1/admin/sessions/{sessionId}/memory` backward compatible while sourcing summary from dedicated working-memory storage first (`session_memories`) with legacy `sessions.memory_summary` fallback.
+- Added explicit layered inspection endpoint:
+  - `GET /v1/admin/sessions/{sessionId}/memory-layers`
+- Introduced shared API DTO `SessionMemoryLayers` in `@gami/shared` for the layered admin response contract.
+- Layered admin inspection now exposes:
+  - bounded short-term preview (last 2 exchanges)
+  - session working summary
+  - avatar-scoped working summaries for the session
+  - structured long-term user facts
+- Added route/unit and stack-e2e coverage for the new inspection route and updated memory route tests for Memory v2-backed summary derivation.
+
 ### EPIC 4.5 — Player Runtime State & World Events: **complete** (2026-05-05)
 
 - Added `RuntimeEvent` and `RuntimeState` to `@gami/shared` (`packages/shared/src/runtime-types.ts`)

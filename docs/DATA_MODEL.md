@@ -389,6 +389,7 @@ This is the memory of the movie/playthrough as a whole.
 - **Table:** `session_memories`
 - **Repository:** `PostgresSessionMemoryRepository` (+ in-memory test adapter)
 - **Status:** Implemented. One row per session (`session_id` PK), compact `summary`, `updated_at`.
+- **Admin inspection surfaces:** `GET /v1/admin/sessions/{sessionId}/memory` (compact summary, backward compatible) and `GET /v1/admin/sessions/{sessionId}/memory-layers` (explicit layered read model).
 
 ---
 
@@ -437,6 +438,7 @@ For MVP, keep it compact:
 - **Table:** `avatar_session_memories`
 - **Repository:** `PostgresAvatarSessionMemoryRepository` (+ in-memory test adapter)
 - **Status:** Implemented. One compact summary row per `(session_id, avatar_id)`.
+- **Admin inspection exposure:** included in `memory-layers` response under `working.avatars`.
 
 ---
 

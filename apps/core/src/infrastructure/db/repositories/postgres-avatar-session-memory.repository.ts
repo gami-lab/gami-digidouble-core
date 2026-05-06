@@ -40,6 +40,19 @@ export class PostgresAvatarSessionMemoryRepository implements IAvatarSessionMemo
     return row === undefined ? null : rowToAvatarSessionMemory(row)
   }
 
+  async listBySessionId(sessionId: string): Promise<AvatarSessionMemory[]> {
+    const sessionUuid = extractUuid('session_', sessionId)
+    if (sessionUuid === null) return []
+
+    const rows = await this.sql<Array<AvatarSessionMemoryRow>>`
+      SELECT session_id, avatar_id, summary, updated_at
+      FROM avatar_session_memories
+      WHERE session_id = ${sessionUuid}
+      ORDER BY updated_at DESC, avatar_id ASC
+    `
+    return rows.map(rowToAvatarSessionMemory)
+  }
+
   async upsert(memory: Omit<AvatarSessionMemory, 'updatedAt'>): Promise<AvatarSessionMemory> {
     const sessionUuid = stripPrefix('session_', memory.sessionId)
     const avatarUuid = stripPrefix('avatar_', memory.avatarId)

@@ -189,6 +189,7 @@ Must test:
 Must test:
 
 - session found → returns correct message count, memory summary, GM state fields present
+- layered memory route (`GET /v1/admin/sessions/{sessionId}/memory-layers`) returns bounded short-term exchanges (max 2), working layers, and long-term facts in stable envelope shape
 - session not found → 404 with correct error code
 - event list returns entries ordered by `created_at` desc
 - event list correctly filters by `severity`
@@ -199,6 +200,7 @@ Must test:
 Must test:
 
 - reset deletes messages and memory for the correct session; does NOT delete other sessions
+- reset clears session/avatar working memory and preserves long-term `user_memory_facts`
 - reset returns accurate deletion counts
 - reset writes an `AdminActionLog` entry with correct `actionType: 'session.reset'` and `targetId`
 - replay does NOT create a new message row in the DB

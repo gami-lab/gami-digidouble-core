@@ -19,6 +19,36 @@ export type SessionMemorySummary = {
   updatedAt: string
 }
 
+export type SessionMemoryLayers = {
+  sessionId: string
+  shortTerm: {
+    exchangeCount: 2
+    recentExchanges: Array<{
+      user: string
+      avatar: string
+    }>
+  }
+  working: {
+    session?: {
+      summary: string
+      updatedAt: string
+    }
+    avatars: Array<{
+      avatarId: string
+      summary: string
+      updatedAt: string
+    }>
+  }
+  longTerm: {
+    facts: Array<{
+      category: string
+      key: string
+      value: string
+      updatedAt: string
+    }>
+  }
+}
+
 export type SessionTransitionRecord = {
   fromAvatarId: string | null
   toAvatarId: string

@@ -316,6 +316,36 @@ type SessionMemorySummary = {
   longTermFactCount?: number
   updatedAt: string
 }
+
+type SessionMemoryLayers = {
+  sessionId: string
+  shortTerm: {
+    exchangeCount: 2
+    recentExchanges: Array<{
+      user: string
+      avatar: string
+    }>
+  }
+  working: {
+    session?: {
+      summary: string
+      updatedAt: string
+    }
+    avatars: Array<{
+      avatarId: string
+      summary: string
+      updatedAt: string
+    }>
+  }
+  longTerm: {
+    facts: Array<{
+      category: string
+      key: string
+      value: string
+      updatedAt: string
+    }>
+  }
+}
 ```
 
 ## Knowledge Source Summary
@@ -1556,7 +1586,7 @@ type InspectSessionResponse = {
 
 ## A5. Get Session Memory
 
-Status: IMPLEMENTED (EPIC 4.2)
+Status: IMPLEMENTED (EPIC 4.2b-compatible)
 
 ### Endpoint
 
@@ -1572,9 +1602,41 @@ type AdminSessionMemoryResponse = {
 }
 ```
 
+### Semantics
+
+- Backward-compatible compact summary contract.
+- Summary is sourced from dedicated working-memory storage (`session_memories`) when available, with legacy `sessions.memory_summary` as migration fallback.
+
 ---
 
-## A6. Admin: List Session Events
+## A6. Get Session Memory Layers
+
+Status: IMPLEMENTED (EPIC 4.2b)
+
+### Endpoint
+
+```text
+GET /v1/admin/sessions/{sessionId}/memory-layers
+```
+
+### Response
+
+```ts
+type AdminSessionMemoryLayersResponse = {
+  session: SessionMemoryLayers
+}
+```
+
+### Semantics
+
+- Short-term is bounded to exactly last 2 user/avatar exchanges.
+- Working memory exposes session summary and avatar-scoped summaries.
+- Long-term exposes structured user facts.
+- Route is inspection-focused and does not expose raw full transcripts or prompt internals.
+
+---
+
+## A7. Admin: List Session Events
 
 ### Endpoint
 

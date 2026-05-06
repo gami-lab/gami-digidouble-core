@@ -5,6 +5,7 @@ export interface IAvatarSessionMemoryRepository {
     sessionId: string,
     avatarId: string,
   ): Promise<AvatarSessionMemory | null>
+  listBySessionId(sessionId: string): Promise<AvatarSessionMemory[]>
   upsert(memory: Omit<AvatarSessionMemory, 'updatedAt'>): Promise<AvatarSessionMemory>
   deleteBySessionId(sessionId: string): Promise<number>
 }

@@ -102,4 +102,15 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarSessionMemoryRepository', () => {
     await expect(repository.findBySessionIdAndAvatarId(sessionId, avatar1Id)).resolves.toBeNull()
     await expect(repository.findBySessionIdAndAvatarId(sessionId, avatar2Id)).resolves.toBeNull()
   })
+
+  it('listBySessionId returns rows ordered by updatedAt desc', async () => {
+    await repository.upsert({ sessionId, avatarId: avatar1Id, summary: 'Older summary' })
+    await new Promise((resolve) => setTimeout(resolve, 5))
+    await repository.upsert({ sessionId, avatarId: avatar2Id, summary: 'Newer summary' })
+
+    const rows = await repository.listBySessionId(sessionId)
+    expect(rows).toHaveLength(2)
+    expect(rows[0]?.avatarId).toBe(avatar2Id)
+    expect(rows[1]?.avatarId).toBe(avatar1Id)
+  })
 })

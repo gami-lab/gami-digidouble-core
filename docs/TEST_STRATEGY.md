@@ -63,6 +63,7 @@ Required tests:
 - **Health aggregation:** verify that each dependency state (`ok` / `degraded` / `error`) produces the correct top-level status
 - **Dependency probe:** verify that a simulated postgres timeout returns `status: 'degraded'`, not `status: 'ok'`
 - **Session inspector:** verify the shape of returned state — messages, memory, GM state, events — not just that it doesn't crash
+- **Memory inspector:** verify compact and layered admin memory routes (`/memory` and `/memory-layers`) keep stable envelope/shape and bounded short-term behavior
 - **Reset:** verify that reset deletes messages and memory but keeps the session record; verify the audit log entry is created
 - **Replay:** verify that replayed turn does NOT write a new message to the DB
 - **Ingestion retry:** verify that retrying a completed job returns current status rather than creating a duplicate run

@@ -288,3 +288,27 @@ describe('ResetSessionUseCase memory isolation', () => {
     expect(facts[0]?.id).toBe('umf_1')
   })
 })
+
+describe('ResetSessionUseCase long-term memory preservation', () => {
+  it('does not delete long-term user memory facts during reset', async () => {
+    const userMemoryFactRepository = new InMemoryUserMemoryFactRepository([
+      {
+        id: 'umf_1',
+        userId: 'user_1',
+        category: 'preference',
+        key: 'language',
+        value: 'English',
+        confidence: 0.9,
+        createdAt: '2026-04-21T08:00:00.000Z',
+        updatedAt: '2026-04-21T08:00:00.000Z',
+      },
+    ])
+    const useCase = makeUseCase({
+      sessions: [makeSession({ sessionId: 'session_1' })],
+    })
+
+    await useCase.execute({ sessionId: 'session_1' })
+
+    await expect(userMemoryFactRepository.findByUserId('user_1')).resolves.toHaveLength(1)
+  })
+})

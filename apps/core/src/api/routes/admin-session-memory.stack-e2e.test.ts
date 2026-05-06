@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ApiResponse, SessionMemorySummary } from '@gami/shared'
+import type { ApiResponse, SessionMemoryLayers, SessionMemorySummary } from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -82,6 +82,20 @@ describe('GET /v1/admin/sessions/:sessionId/memory — stack auth', () => {
     expect(response.status).toBe(401)
     const body = (await response.json()) as ApiResponse<null>
     expect(body.error?.code).toBe('UNAUTHORIZED')
+  })
+})
+
+describe('GET /v1/admin/sessions/:sessionId/memory-layers — stack auth', () => {
+  it('returns 401 without API key', async () => {
+    const response = await fetch(buildUrl('/v1/admin/sessions/session_1/memory-layers'))
+    expect(response.status).toBe(401)
+  })
+
+  it('returns 401 with wrong API key', async () => {
+    const response = await fetch(buildUrl('/v1/admin/sessions/session_1/memory-layers'), {
+      headers: authHeaders('wrong-secret'),
+    })
+    expect(response.status).toBe(401)
   })
 })
 
@@ -184,5 +198,54 @@ describe('GET /v1/admin/sessions/:sessionId/memory — stack behavior', () => {
     expect(body.error).toBeNull()
     expect(typeof body.data?.session.longTermFactCount).toBe('number')
     expect((body.data?.session.longTermFactCount ?? -1) >= 0).toBe(true)
+  })
+})
+
+describe('GET /v1/admin/sessions/:sessionId/memory-layers — stack behavior', () => {
+  it('returns 404 for unknown sessionId', async () => {
+    const response = await fetch(buildUrl('/v1/admin/sessions/session_missing/memory-layers'), {
+      headers: authHeaders(),
+    })
+    expect(response.status).toBe(404)
+  })
+
+  it('returns layered memory details in ApiResponse envelope', async () => {
+    const seeded = await seedSession()
+    const firstMessage = await fetch(
+      buildUrl(`/v1/conversations/${seeded.conversationId}/messages`),
+      {
+        method: 'POST',
+        headers: {
+          ...authHeaders(),
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ message: { content: 'First memory message' } }),
+      },
+    )
+    expect(firstMessage.status).toBe(200)
+    const secondMessage = await fetch(
+      buildUrl(`/v1/conversations/${seeded.conversationId}/messages`),
+      {
+        method: 'POST',
+        headers: {
+          ...authHeaders(),
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ message: { content: 'Second memory message' } }),
+      },
+    )
+    expect(secondMessage.status).toBe(200)
+
+    const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory-layers`), {
+      headers: authHeaders(),
+    })
+    expect(response.status).toBe(200)
+    const body = (await response.json()) as ApiResponse<{ session: SessionMemoryLayers }>
+    expect(body.error).toBeNull()
+    expect(body.data?.session.sessionId).toBe(seeded.sessionId)
+    expect(body.data?.session.shortTerm.exchangeCount).toBe(2)
+    expect(Array.isArray(body.data?.session.shortTerm.recentExchanges)).toBe(true)
+    expect(Array.isArray(body.data?.session.working.avatars)).toBe(true)
+    expect(Array.isArray(body.data?.session.longTerm.facts)).toBe(true)
   })
 })

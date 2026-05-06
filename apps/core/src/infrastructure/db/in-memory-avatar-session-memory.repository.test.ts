@@ -79,3 +79,43 @@ describe('InMemoryAvatarSessionMemoryRepository', () => {
     })
   })
 })
+
+describe('InMemoryAvatarSessionMemoryRepository list queries', () => {
+  it('listBySessionId returns only session rows ordered by updatedAt desc then avatarId', async () => {
+    const repository = new InMemoryAvatarSessionMemoryRepository([
+      {
+        sessionId: 'session_1',
+        avatarId: 'avatar_2',
+        summary: 'S1/A2',
+        updatedAt: '2026-05-06T08:00:02.000Z',
+      },
+      {
+        sessionId: 'session_1',
+        avatarId: 'avatar_1',
+        summary: 'S1/A1',
+        updatedAt: '2026-05-06T08:00:02.000Z',
+      },
+      {
+        sessionId: 'session_2',
+        avatarId: 'avatar_1',
+        summary: 'S2/A1',
+        updatedAt: '2026-05-06T08:00:03.000Z',
+      },
+    ])
+
+    await expect(repository.listBySessionId('session_1')).resolves.toEqual([
+      {
+        sessionId: 'session_1',
+        avatarId: 'avatar_1',
+        summary: 'S1/A1',
+        updatedAt: '2026-05-06T08:00:02.000Z',
+      },
+      {
+        sessionId: 'session_1',
+        avatarId: 'avatar_2',
+        summary: 'S1/A2',
+        updatedAt: '2026-05-06T08:00:02.000Z',
+      },
+    ])
+  })
+})
