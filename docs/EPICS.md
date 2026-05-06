@@ -468,6 +468,79 @@ Visible orchestration behavior dramatically improves debugging speed, scenario t
 
 - first operational cockpit for observing and tuning guided multi-avatar conversations
 
+---
+
+## EPIC 2.7 — Runtime Inspector & Console v2
+
+**Purpose**
+Make orchestration, memory, and runtime behavior inspectable as the system complexity grows.
+
+**Description**
+Extend the console from a simple admin/testing UI into a runtime inspection and debugging tool for sessions, memory, GM behavior, runtime events, and avatar transitions.
+
+The platform now includes:
+
+- async GM orchestration
+- layered memory
+- runtime SSE events
+- avatar switching
+- unlock progression
+- user persona injection
+
+Operators and developers need visibility into the runtime state to debug and validate system behavior without relying on raw logs or direct database access.
+
+**Hypothesis**
+A dedicated runtime inspector significantly improves debugging speed, orchestration quality, and operational confidence.
+
+**Includes**
+
+- session runtime inspector
+- runtime-state visualization
+- live SSE event stream viewer
+- user persona inspector/editor
+- layered memory inspector:
+  - short-term memory
+  - working memory
+  - long-term facts
+
+- GM decision inspector
+- avatar transition visualization
+- unlock progression visualization
+- assembled context inspection
+- runtime metrics display
+- operational debug actions:
+  - reset session
+  - replay GM
+  - clear memory
+  - trigger memory refresh
+
+**DoD**
+
+- operator can inspect complete runtime session state
+- operator can inspect memory layers independently
+- GM decisions and transitions are explainable
+- runtime events are visible live from the console
+- avatar transitions and unlocks are understandable
+- debugging no longer requires DB inspection
+- operational actions work safely from the console
+
+**What Can Be Tested**
+
+1. send messages and inspect runtime state changes
+2. observe live runtime SSE events
+3. inspect memory updates after conversation closure
+4. inspect GM decisions and avatar transitions
+5. inspect assembled Avatar and GM context
+6. reset session and verify cleanup behavior
+7. replay GM and inspect updated runtime state
+
+**User Increment**
+
+- first fully inspectable orchestration runtime
+- developers and operators can understand system behavior without reading raw logs
+
+---
+
 # Sprint 4 — Orchestration Intelligence
 
 ---
@@ -1299,6 +1372,10 @@ If an EPIC does not leave the system more usable, more testable, more operable, 
 ### 6. EPIC 4.2b — Memory System v2
 
 Once v1 exists, evolve it into short-term / working / long-term memory.
+
+### EPIC 2.7 — Runtime Inspector & Console v2
+
+Make orchestration, memory, and runtime behavior inspectable as the system complexity grows.
 
 ### 7. EPIC 5.1 — Multi-Layer Knowledge & RAG System v1
 
