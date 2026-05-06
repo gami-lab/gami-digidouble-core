@@ -105,7 +105,7 @@ export class AvatarMemoryContextAssembler {
   private toWorkingMemorySnapshot(
     sessionMemory: { summary: string; updatedAt: string } | null,
     avatarMemory: { avatarId: string; summary: string; updatedAt: string } | null,
-  ): LayeredMemorySnapshot['working'] {
+  ): NonNullable<LayeredMemorySnapshot['working']> {
     return {
       ...(sessionMemory !== null
         ? { session: { summary: sessionMemory.summary, updatedAt: sessionMemory.updatedAt } }

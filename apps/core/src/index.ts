@@ -7,6 +7,7 @@ import { LlmProbe, PostgresProbe, RedisProbe } from './infrastructure/health/ind
 import { createObservabilityAdapter } from './infrastructure/observability/index.js'
 import { createLlmAdapter } from './infrastructure/llm/index.js'
 import { InMemorySessionEventPublisher } from './infrastructure/events/in-memory-session-event-publisher.js'
+import { AvatarMemoryContextAssembler } from './application/services/avatar-memory-context-assembler.service.js'
 import {
   getDbClient,
   closeDbClient,
@@ -46,6 +47,12 @@ async function main(): Promise<void> {
   const userRepository = new PostgresUserRepository(sql)
   const userMemoryFactRepository = new PostgresUserMemoryFactRepository(sql)
   const sessionEventPublisher = new InMemorySessionEventPublisher()
+  const memoryContextAssembler = new AvatarMemoryContextAssembler(
+    messageRepository,
+    sessionMemoryRepository,
+    avatarSessionMemoryRepository,
+    userMemoryFactRepository,
+  )
   const runGameMasterUseCase = new RunGameMasterUseCase(
     gmStateRepository,
     sessionRepository,
@@ -57,6 +64,7 @@ async function main(): Promise<void> {
     conversationRepository,
     messageRepository,
     sessionEventPublisher,
+    memoryContextAssembler,
   )
   const probes: IDependencyProbe[] = [
     new PostgresProbe(sql),

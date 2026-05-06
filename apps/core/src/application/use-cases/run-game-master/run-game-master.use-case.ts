@@ -19,8 +19,9 @@ import type {
   GameMasterState,
 } from '../../../domain/game-master/game-master.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
-import type { ContextMessage } from '../../../domain/memory/memory.types.js'
+import type { LayeredMemorySnapshot } from '../../../domain/memory/memory.types.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
+import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
 import { safeParseGameMasterOutput } from './run-game-master.helpers.js'
 import {
   resolveAvatarUnlocks,
@@ -61,6 +62,7 @@ export class RunGameMasterUseCase {
     private readonly conversationRepository?: IConversationRepository,
     private readonly messageRepository?: IMessageRepository,
     private readonly sessionEventPublisher?: ISessionEventPublisher,
+    private readonly memoryContextAssembler?: AvatarMemoryContextAssembler,
   ) {}
 
   async execute(input: RunGameMasterInput): Promise<void> {
@@ -272,7 +274,7 @@ export class RunGameMasterUseCase {
     scenarioAvatars: AvatarConfig[],
   ): Promise<GameMasterInput> {
     const recentMessages = await this.loadRecentMessages(input.conversationId)
-    const memory = this.buildMemoryContext(recentMessages, session)
+    const memory = await this.loadMemoryContext(input, session, recentMessages)
 
     return {
       session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
@@ -294,7 +296,35 @@ export class RunGameMasterUseCase {
     }
   }
 
-  private async loadRecentMessages(conversationId: string | undefined): Promise<ContextMessage[]> {
+  private async loadMemoryContext(
+    input: RunGameMasterInput,
+    session: Session | null,
+    recentMessages: GameMasterInput['recentMessages'],
+  ): Promise<GameMasterInput['context']['memory'] | undefined> {
+    if (
+      this.memoryContextAssembler === undefined ||
+      session === null ||
+      input.conversationId === undefined
+    ) {
+      return this.buildLegacyMemoryContext(recentMessages, session)
+    }
+
+    const memorySnapshot = await this.memoryContextAssembler.build({
+      conversationId: input.conversationId,
+      sessionId: input.sessionId,
+      avatarId: input.avatarId,
+      userId: session.userId,
+    })
+
+    return (
+      this.toGameMasterMemoryContext(memorySnapshot) ??
+      this.buildLegacyMemoryContext(recentMessages, session)
+    )
+  }
+
+  private async loadRecentMessages(
+    conversationId: string | undefined,
+  ): Promise<Array<{ role: 'user' | 'avatar' | 'system'; content: string }>> {
     if (conversationId === undefined || this.messageRepository === undefined) return []
     const messages = await this.messageRepository.findByConversationId(conversationId, {
       limit: 12,
@@ -305,27 +335,43 @@ export class RunGameMasterUseCase {
       .map((message) => ({ role: message.role, content: message.content }))
   }
 
-  private buildMemoryContext(
-    recentMessages: ContextMessage[],
+  private buildLegacyMemoryContext(
+    recentMessages: GameMasterInput['recentMessages'],
     session: Session | null,
   ): GameMasterInput['context']['memory'] | undefined {
-    const recentExchanges = this.buildRecentExchanges(recentMessages)
+    const normalizedRecentMessages = recentMessages ?? []
+    const recentExchanges = this.buildRecentExchanges(normalizedRecentMessages)
     const workingSummary = hasText(session?.memorySummary)
       ? session.memorySummary.trim()
       : undefined
 
-    if (recentExchanges.length === 0 && workingSummary === undefined) {
-      return undefined
-    }
-
+    if (recentExchanges.length === 0 && workingSummary === undefined) return undefined
     return {
       ...(recentExchanges.length > 0 ? { shortTerm: { recentExchanges } } : {}),
       ...(workingSummary !== undefined ? { workingSummary } : {}),
     }
   }
 
+  private toGameMasterMemoryContext(
+    memorySnapshot: LayeredMemorySnapshot | undefined,
+  ): GameMasterInput['context']['memory'] | undefined {
+    if (memorySnapshot === undefined) return undefined
+    const recentExchanges = memorySnapshot.shortTerm?.recentExchanges ?? []
+    const workingSummary = this.buildWorkingSummary(memorySnapshot)
+    const boundedLongTermFacts = this.getBoundedLongTermFacts(memorySnapshot)
+
+    if (!this.hasMemoryLayer(recentExchanges, workingSummary, boundedLongTermFacts))
+      return undefined
+
+    return {
+      ...(recentExchanges.length > 0 ? { shortTerm: { recentExchanges } } : {}),
+      ...(workingSummary !== undefined ? { workingSummary } : {}),
+      ...(boundedLongTermFacts !== undefined ? { longTermFacts: boundedLongTermFacts } : {}),
+    }
+  }
+
   private buildRecentExchanges(
-    recentMessages: ContextMessage[],
+    recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
   ): Array<{ user: string; avatar: string }> {
     const exchanges: Array<{ user: string; avatar: string }> = []
     let pendingUserMessage: string | null = null
@@ -342,6 +388,33 @@ export class RunGameMasterUseCase {
     }
 
     return exchanges.slice(-2)
+  }
+
+  private buildWorkingSummary(memorySnapshot: LayeredMemorySnapshot): string | undefined {
+    const segments: string[] = []
+    if (hasText(memorySnapshot.working?.session?.summary)) {
+      segments.push(memorySnapshot.working.session.summary.trim())
+    }
+    if (hasText(memorySnapshot.working?.avatar?.summary)) {
+      segments.push(
+        `Avatar (${memorySnapshot.working.avatar.avatarId}): ${memorySnapshot.working.avatar.summary.trim()}`,
+      )
+    }
+    return segments.length > 0 ? segments.join('\n') : undefined
+  }
+
+  private getBoundedLongTermFacts(memorySnapshot: LayeredMemorySnapshot) {
+    const facts = memorySnapshot.longTerm?.facts
+    if (!Array.isArray(facts) || facts.length === 0) return undefined
+    return facts.slice(0, 10)
+  }
+
+  private hasMemoryLayer(
+    recentExchanges: Array<{ user: string; avatar: string }>,
+    workingSummary: string | undefined,
+    longTermFacts: Array<{ category: string; key: string; value: string }> | undefined,
+  ): boolean {
+    return recentExchanges.length > 0 || workingSummary !== undefined || longTermFacts !== undefined
   }
 
   private async persistTriggeredNotes(sessionId: string, output: GameMasterOutput): Promise<void> {

@@ -39,7 +39,11 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - GM-facing memory context shape
 - `RuntimeContext` now references canonical memory contracts (`memory` snapshot + typed facts) instead of ad hoc inline memory-only fields.
 - `GameMasterInput` now includes `context.memory` in code, aligned with `docs/GAME_MASTER_CONTRACT.md`.
-- `RunGameMasterUseCase` now assembles `context.memory.shortTerm.recentExchanges` from recent messages and includes `context.memory.workingSummary` from `Session.memorySummary` when present.
+- `RunGameMasterUseCase` now reuses canonical layered-memory assembly for `context.memory` and passes bounded:
+  - `shortTerm.recentExchanges` (last 2 exchanges)
+  - `workingSummary` (session + active avatar summary when available)
+  - `longTermFacts` (bounded structured facts)
+- Legacy `Session.memorySummary` is retained only as fallback/mirror compatibility when canonical repositories are unavailable.
 - Shared DTO ownership remains unchanged: `SessionMemorySummary` stays in `@gami/shared` as the admin HTTP contract.
 
 ### EPIC 4.2b — Working memory storage + repository layer: **complete** (2026-05-06)

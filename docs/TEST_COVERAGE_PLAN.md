@@ -83,6 +83,10 @@ Must test:
 - GM failure isolation and `gm_error` diagnostics
 - transition reason output and history logging for explicit GM switches
 - available-avatar filtering and invalid transition rejection
+- `GameMasterInput.context.memory` includes bounded layered memory when available
+- GM short-term memory contains exactly last 2 exchanges
+- GM long-term facts are structured and bounded
+- missing memory layers are omitted consistently without failing the GM run
 
 This module deserves strong unit coverage — it controls orchestration semantics.
 
