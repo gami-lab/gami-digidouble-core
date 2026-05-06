@@ -1369,10 +1369,6 @@ If an EPIC does not leave the system more usable, more testable, more operable, 
 
 ## Recommended implementation order
 
-### 6. EPIC 4.2b — Memory System v2
-
-Once v1 exists, evolve it into short-term / working / long-term memory.
-
 ### EPIC 2.7 — Runtime Inspector & Console v2
 
 Make orchestration, memory, and runtime behavior inspectable as the system complexity grows.
