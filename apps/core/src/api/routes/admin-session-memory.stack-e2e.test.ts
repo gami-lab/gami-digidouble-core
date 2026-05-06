@@ -4,8 +4,8 @@ import type { ApiResponse, SessionMemorySummary } from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
-const DATABASE_URL =
-  process.env['DATABASE_URL'] ?? 'postgresql://postgres:postgres@localhost:5432/gami_core'
+const STACK_E2E_DATABASE_URL = process.env['STACK_E2E_DATABASE_URL']
+const itIfDb = STACK_E2E_DATABASE_URL === undefined ? it.skip : it
 
 function buildUrl(path: string): string {
   return `${APP_URL}${path}`
@@ -80,7 +80,12 @@ async function seedSession(): Promise<{
 }
 
 async function seedFacts(userId: string, count: number): Promise<void> {
-  const sql = postgres(DATABASE_URL, { max: 1, onnotice: () => {} })
+  const databaseUrl = STACK_E2E_DATABASE_URL
+  if (databaseUrl === undefined) {
+    throw new Error('STACK_E2E_DATABASE_URL is required for DB seeding scenarios')
+  }
+
+  const sql = postgres(databaseUrl, { max: 1, onnotice: () => {} })
   try {
     for (let i = 0; i < count; i += 1) {
       await sql`
@@ -165,7 +170,7 @@ describe('GET /v1/admin/sessions/:sessionId/memory — stack behavior', () => {
     expect(summary.length).toBeGreaterThan(0)
   })
 
-  it('returns longTermFactCount of 3 for session user with seeded facts', async () => {
+  itIfDb('returns longTermFactCount of 3 for session user with seeded facts', async () => {
     const seeded = await seedSession()
     await seedFacts(seeded.userId, 3)
 

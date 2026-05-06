@@ -4,8 +4,8 @@ import type { ApiResponse } from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
-const DATABASE_URL =
-  process.env['DATABASE_URL'] ?? 'postgresql://postgres:postgres@localhost:5432/gami_core'
+const STACK_E2E_DATABASE_URL = process.env['STACK_E2E_DATABASE_URL']
+const itIfDb = STACK_E2E_DATABASE_URL === undefined ? it.skip : it
 
 function buildUrl(path: string): string {
   return `${APP_URL}${path}`
@@ -46,9 +46,14 @@ describe('GET /v1/users/:userId/memory-facts — stack behavior', () => {
     expect(body.data?.facts).toEqual([])
   })
 
-  it('returns seeded facts and confidence null when not set', async () => {
+  itIfDb('returns seeded facts and confidence null when not set', async () => {
+    const databaseUrl = STACK_E2E_DATABASE_URL
+    if (databaseUrl === undefined) {
+      return
+    }
+
     const userId = `e2e_user_${crypto.randomUUID()}`
-    const sql = postgres(DATABASE_URL, { max: 1, onnotice: () => {} })
+    const sql = postgres(databaseUrl, { max: 1, onnotice: () => {} })
     try {
       await sql`
         INSERT INTO user_memory_facts (user_id, category, key, value, confidence)
