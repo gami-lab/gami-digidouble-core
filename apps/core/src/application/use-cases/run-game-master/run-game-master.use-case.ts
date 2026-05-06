@@ -20,6 +20,10 @@ import type {
 } from '../../../domain/game-master/game-master.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
 import type { LayeredMemorySnapshot } from '../../../domain/memory/memory.types.js'
+import {
+  MEMORY_LONG_TERM_FACT_LIMIT,
+  MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
+} from '../../../domain/memory/memory.policy.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
 import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
 import { safeParseGameMasterOutput } from './run-game-master.helpers.js'
@@ -387,7 +391,7 @@ export class RunGameMasterUseCase {
       }
     }
 
-    return exchanges.slice(-2)
+    return exchanges.slice(-MEMORY_SHORT_TERM_EXCHANGE_LIMIT)
   }
 
   private buildWorkingSummary(memorySnapshot: LayeredMemorySnapshot): string | undefined {
@@ -406,7 +410,7 @@ export class RunGameMasterUseCase {
   private getBoundedLongTermFacts(memorySnapshot: LayeredMemorySnapshot) {
     const facts = memorySnapshot.longTerm?.facts
     if (!Array.isArray(facts) || facts.length === 0) return undefined
-    return facts.slice(0, 10)
+    return facts.slice(0, MEMORY_LONG_TERM_FACT_LIMIT)
   }
 
   private hasMemoryLayer(

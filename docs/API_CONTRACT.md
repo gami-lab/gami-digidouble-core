@@ -1631,7 +1631,7 @@ type AdminSessionMemoryLayersResponse = {
 
 - Short-term is bounded to exactly last 2 user/avatar exchanges.
 - Working memory exposes session summary and avatar-scoped summaries.
-- Long-term exposes structured user facts.
+- Long-term exposes structured user facts, ordered by recency and capped to the latest 50 facts by default for operator safety.
 - Route is inspection-focused and does not expose raw full transcripts or prompt internals.
 
 ---

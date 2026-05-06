@@ -5,8 +5,10 @@ import type { IMessageRepository } from '../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../ports/IMemoryMaintenancePort.js'
 import type { ISessionMemoryRepository } from '../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../ports/ISessionRepository.js'
-
-const MAX_SNIPPET_LENGTH = 220
+import {
+  buildAvatarWorkingMemorySummary,
+  buildSessionWorkingMemorySummary,
+} from '../../domain/memory/working-memory-summary.policy.js'
 
 export class MemoryMaintenanceService implements IMemoryMaintenancePort {
   constructor(
@@ -46,8 +48,8 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       const ordered = messages
         .slice()
         .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-      const sessionSummary = buildSessionSummary(ordered)
-      const avatarSummary = buildAvatarSummary(ordered, input.avatarId)
+      const sessionSummary = buildSessionWorkingMemorySummary(ordered)
+      const avatarSummary = buildAvatarWorkingMemorySummary(ordered, input.avatarId)
 
       await this.sessionMemoryRepository.upsert({
         sessionId: input.sessionId,
@@ -101,36 +103,4 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       console.error('[memory-maintenance] Event log append failed:', error)
     }
   }
-}
-
-function buildSessionSummary(messages: Array<{ role: string; content: string }>): string {
-  if (messages.length === 0) {
-    return 'No exchanged messages yet.'
-  }
-  const userCount = messages.filter((message) => message.role === 'user').length
-  const avatarCount = messages.filter((message) => message.role === 'avatar').length
-  const snippets = messages
-    .filter((message) => message.role === 'user' || message.role === 'avatar')
-    .slice(-6)
-    .map((message) => `${message.role}: ${compactText(message.content)}`)
-    .join(' | ')
-  return `Conversation turns: user=${String(userCount)}, avatar=${String(avatarCount)}. Recent context: ${snippets}`
-}
-
-function buildAvatarSummary(
-  messages: Array<{ role: string; content: string }>,
-  avatarId: string,
-): string {
-  const snippets = messages
-    .filter((message) => message.role === 'user' || message.role === 'avatar')
-    .slice(-4)
-    .map((message) => `${message.role}: ${compactText(message.content)}`)
-    .join(' | ')
-  return `Avatar ${avatarId} recent dialogue context: ${snippets.length > 0 ? snippets : 'none'}.`
-}
-
-function compactText(content: string): string {
-  const normalized = content.trim().replace(/\s+/g, ' ')
-  if (normalized.length <= MAX_SNIPPET_LENGTH) return normalized
-  return `${normalized.slice(0, MAX_SNIPPET_LENGTH)}...`
 }

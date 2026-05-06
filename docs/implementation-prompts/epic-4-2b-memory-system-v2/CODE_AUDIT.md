@@ -226,3 +226,48 @@ Minimal steps needed to reach A:
 **Close with debt**
 
 EPIC 4.2b is functionally delivered, architecturally coherent, and build-healthy. Remaining issues are meaningful but tractable maintainability/test-hardening items that should be tracked as follow-up debt rather than blocking closure.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Centralized memory policy constants in `apps/core/src/domain/memory/memory.policy.ts` and replaced duplicated literals in Avatar assembly, Game Master memory shaping, and admin memory-layer assembly.
+- Added direct behavioral unit tests for `GetSessionMemoryUseCase` covering not-found behavior, working-memory precedence, legacy fallback, long-term fact count, and timestamp precedence.
+- Bounded admin long-term memory-layer responses to the latest 50 facts and documented the operator-facing cap.
+- Hardened memory refresh event tests to assert payload contract fields and correlation propagation for success and failure events.
+- Extracted working-memory summary generation into `apps/core/src/domain/memory/working-memory-summary.policy.ts` and added direct domain policy tests for empty-state, bounds, truncation, and formatting behavior.
+
+### Findings Resolved
+
+- Finding 1: Memory policy constants are duplicated across modules.
+- Finding 2: Key memory summary use case has weak direct behavioral test coverage.
+- Finding 3: Admin layered long-term facts are unbounded.
+- Finding 4: Working-memory summarization policy is embedded in `MemoryMaintenanceService` string heuristics.
+- Finding 5: Limited explicit regression tests for memory refresh event quality.
+
+### Findings Deferred
+
+- None.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`All files | 91.41 statements | 86.49 branches | 97.74 functions | 91.41 lines`)
+
+### Final Feature Confidence
+
+- Memory sizing policy is now governed from one canonical domain module.
+- Admin session memory summary behavior is directly proven for precedence, fallback, not-found, fact-count, and timestamp semantics.
+- Admin layered memory responses now stay bounded for high-memory users.
+- Memory refresh observability events are now proven for payload shape and correlation propagation.
+- Working-memory summary generation is now owned by a dedicated domain policy with direct regression coverage.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- No major EPIC-level risks remain beyond normal future policy evolution.

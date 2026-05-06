@@ -52,15 +52,10 @@ function makeService() {
   }
 }
 
-describe('MemoryMaintenanceService', () => {
+describe('MemoryMaintenanceService — persistence and events', () => {
   it('refreshes session and avatar working memory and updates legacy session mirror', async () => {
-    const {
-      service,
-      sessionRepository,
-      sessionMemoryRepository,
-      avatarSessionMemoryRepository,
-      eventLogRepository,
-    } = makeService()
+    const { service, sessionRepository, sessionMemoryRepository, avatarSessionMemoryRepository } =
+      makeService()
 
     await service.execute({
       sessionId: 'session_1',
@@ -75,17 +70,10 @@ describe('MemoryMaintenanceService', () => {
     })
     await expect(
       avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_1'),
-    ).resolves.toMatchObject({
-      sessionId: 'session_1',
-      avatarId: 'avatar_1',
-    })
+    ).resolves.toMatchObject({ sessionId: 'session_1', avatarId: 'avatar_1' })
 
     const session = await sessionRepository.findById('session_1')
     expect(session?.memorySummary).toContain('Conversation turns: user=1, avatar=1.')
-
-    const types = eventLogRepository.getAll().map((event) => event.type)
-    expect(types).toContain('memory_refresh_triggered')
-    expect(types).toContain('memory_refresh_succeeded')
   })
 
   it('updates existing rows on repeated turns rather than creating duplicates', async () => {
@@ -118,8 +106,49 @@ describe('MemoryMaintenanceService', () => {
     expect(secondSessionMemory?.sessionId).toBe(firstSessionMemory?.sessionId)
     expect(secondAvatarMemory?.avatarId).toBe(firstAvatarMemory?.avatarId)
   })
+})
 
-  it('emits memory_refresh_failed and does not throw when refresh persistence fails', async () => {
+describe('MemoryMaintenanceService — event payload contract', () => {
+  it('emits triggered and succeeded events with correct payload fields', async () => {
+    const { service, eventLogRepository } = makeService()
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+      correlationId: 'corr_1',
+    })
+
+    const events = eventLogRepository.getAll()
+    const types = events.map((event) => event.type)
+    expect(types).toContain('memory_refresh_triggered')
+    expect(types).toContain('memory_refresh_succeeded')
+
+    const triggered = events.find((e) => e.type === 'memory_refresh_triggered')
+    expect(triggered?.payload).toMatchObject({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+    expect(triggered?.correlationId).toBe('corr_1')
+
+    const succeeded = events.find((e) => e.type === 'memory_refresh_succeeded')
+    expect(succeeded?.payload).toMatchObject({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+      messageCount: 2,
+    })
+    const succeededPayload = succeeded?.payload
+    expect(typeof succeededPayload?.sessionSummaryLength).toBe('number')
+    expect(typeof succeededPayload?.avatarSummaryLength).toBe('number')
+    expect(succeeded?.correlationId).toBe('corr_1')
+  })
+
+  it('emits memory_refresh_failed with correct payload when persistence fails', async () => {
     const {
       sessionRepository,
       sessionMemoryRepository,
@@ -148,8 +177,18 @@ describe('MemoryMaintenanceService', () => {
       }),
     ).resolves.toBeUndefined()
 
-    const types = eventLogRepository.getAll().map((event) => event.type)
+    const events = eventLogRepository.getAll()
+    const types = events.map((event) => event.type)
     expect(types).toContain('memory_refresh_triggered')
     expect(types).toContain('memory_refresh_failed')
+
+    const failed = events.find((e) => e.type === 'memory_refresh_failed')
+    expect(failed?.payload).toMatchObject({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'conversation_closed',
+      error: 'messages unavailable',
+    })
   })
 })

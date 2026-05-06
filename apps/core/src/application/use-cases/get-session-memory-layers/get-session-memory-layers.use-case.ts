@@ -6,13 +6,15 @@ import type { ISessionMemoryRepository } from '../../ports/ISessionMemoryReposit
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import { DomainError } from '../../../domain/errors.js'
+import {
+  ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT,
+  MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
+  MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
+} from '../../../domain/memory/memory.policy.js'
 import type {
   GetSessionMemoryLayersInput,
   GetSessionMemoryLayersOutput,
 } from './get-session-memory-layers.types.js'
-
-const SHORT_TERM_EXCHANGE_LIMIT = 2
-const SHORT_TERM_MESSAGE_LIMIT = 20
 
 export class GetSessionMemoryLayersUseCase {
   constructor(
@@ -59,7 +61,7 @@ export class GetSessionMemoryLayersUseCase {
         })),
       },
       longTerm: {
-        facts: facts.map((fact) => ({
+        facts: facts.slice(0, ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT).map((fact) => ({
           category: fact.category,
           key: fact.key,
           value: fact.value,
@@ -82,7 +84,7 @@ export class GetSessionMemoryLayersUseCase {
     if (latest === undefined) return []
 
     const messages = await this.messageRepository.findByConversationId(latest.conversationId, {
-      limit: SHORT_TERM_MESSAGE_LIMIT,
+      limit: MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
     })
     const orderedMessages = messages
       .slice()
@@ -101,6 +103,6 @@ export class GetSessionMemoryLayersUseCase {
       }
     }
 
-    return exchanges.slice(-SHORT_TERM_EXCHANGE_LIMIT)
+    return exchanges.slice(-MEMORY_SHORT_TERM_EXCHANGE_LIMIT)
   }
 }

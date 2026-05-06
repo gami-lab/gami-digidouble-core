@@ -6,9 +6,11 @@ import type {
   LayeredMemorySnapshot,
   ShortTermMemoryExchange,
 } from '../../domain/memory/memory.types.js'
-
-const FACT_LIMIT = 10
-const SHORT_TERM_EXCHANGE_LIMIT = 2
+import {
+  MEMORY_LONG_TERM_FACT_LIMIT,
+  MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
+  MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
+} from '../../domain/memory/memory.policy.js'
 
 export class AvatarMemoryContextAssembler {
   constructor(
@@ -49,7 +51,7 @@ export class AvatarMemoryContextAssembler {
   private async loadShortTermExchanges(conversationId: string): Promise<ShortTermMemoryExchange[]> {
     try {
       const messages = await this.messageRepository.findByConversationId(conversationId, {
-        limit: 20,
+        limit: MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
       })
       const ordered = messages
         .slice()
@@ -68,7 +70,7 @@ export class AvatarMemoryContextAssembler {
         }
       }
 
-      return exchanges.slice(-SHORT_TERM_EXCHANGE_LIMIT)
+      return exchanges.slice(-MEMORY_SHORT_TERM_EXCHANGE_LIMIT)
     } catch {
       return []
     }
@@ -128,7 +130,7 @@ export class AvatarMemoryContextAssembler {
     if (this.userMemoryFactRepository === undefined) return []
     try {
       const facts = await this.userMemoryFactRepository.findByUserId(userId)
-      return facts.slice(0, FACT_LIMIT).map((fact) => ({
+      return facts.slice(0, MEMORY_LONG_TERM_FACT_LIMIT).map((fact) => ({
         category: fact.category,
         key: fact.key,
         value: fact.value,
