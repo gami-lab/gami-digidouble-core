@@ -3,6 +3,7 @@ import type { ConversationEndReason } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import { expectConsoleError } from '../../../test-utils/console.js'
+import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
 
@@ -23,6 +24,7 @@ const runGameMasterExecuteMock = vi.fn()
 const endConversationExecuteMock = vi.fn()
 const findUserByIdMock = vi.fn()
 const findUserFactsByUserIdMock = vi.fn()
+const memoryMaintenanceExecuteMock = vi.fn()
 
 const sessionRepository = {
   findById: findSessionByIdMock,
@@ -120,30 +122,11 @@ function createUseCase(
   withUserRepository = true,
   withImplicitEnd = false,
   withUserMemoryFactRepository = false,
+  withMemoryMaintenance = false,
 ): SendMessageUseCase {
-  const runGameMasterUseCase = withRunGameMaster
-    ? ({ execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase)
-    : null
-  const endConversationUseCase = withImplicitEnd
-    ? ({ execute: endConversationExecuteMock } as unknown as {
-        execute: (input: {
-          sessionId: string
-          conversationId: string
-          reason?: ConversationEndReason
-        }) => Promise<{
-          conversation: {
-            conversationId: string
-            sessionId: string
-            avatarId: string
-            status: 'active' | 'closed' | 'archived'
-            startedAt: string
-            lastActivityAt: string
-            endedAt?: string
-          }
-          compaction: { scheduled: true }
-        }>
-      })
-    : null
+  const runGameMasterUseCase = toRunGameMasterUseCase(withRunGameMaster)
+  const endConversationUseCase = toConversationCloser(withImplicitEnd)
+  const memoryMaintenance = toMemoryMaintenance(withMemoryMaintenance)
   return new SendMessageUseCase(
     sessionRepository,
     conversationRepository,
@@ -158,7 +141,40 @@ function createUseCase(
     endConversationUseCase,
     undefined,
     withUserMemoryFactRepository ? userMemoryFactRepository : undefined,
+    memoryMaintenance,
   )
+}
+
+function toRunGameMasterUseCase(enabled: boolean): RunGameMasterUseCase | null {
+  return enabled ? ({ execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase) : null
+}
+
+function toConversationCloser(enabled: boolean): {
+  execute: (input: {
+    sessionId: string
+    conversationId: string
+    reason?: ConversationEndReason
+  }) => Promise<{
+    conversation: {
+      conversationId: string
+      sessionId: string
+      avatarId: string
+      status: 'active' | 'closed' | 'archived'
+      startedAt: string
+      lastActivityAt: string
+      endedAt?: string
+    }
+    compaction: { scheduled: true }
+  }>
+} | null {
+  if (!enabled) return null
+  return {
+    execute: endConversationExecuteMock,
+  }
+}
+
+function toMemoryMaintenance(enabled: boolean): IMemoryMaintenancePort | undefined {
+  return enabled ? ({ execute: memoryMaintenanceExecuteMock } as IMemoryMaintenancePort) : undefined
 }
 
 beforeEach(() => {
@@ -179,6 +195,7 @@ beforeEach(() => {
   endConversationExecuteMock.mockReset()
   findUserByIdMock.mockReset()
   findUserFactsByUserIdMock.mockReset()
+  memoryMaintenanceExecuteMock.mockReset()
 
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession())
@@ -368,6 +385,33 @@ describe('SendMessageUseCase — GM ownership', () => {
     expect(sessionUpdate['unlockedAvatarIds']).toBeUndefined()
     expect(output.session.unlockedAvatarIds).toEqual(['avatar_1'])
     expect(output.avatarMessage.content).not.toContain('I can introduce Theo')
+  })
+})
+
+describe('SendMessageUseCase — memory maintenance', () => {
+  it('triggers async working-memory refresh after completed avatar turn', async () => {
+    const useCase = createUseCase(false, true, false, false, true)
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello memory' })
+
+    expect(memoryMaintenanceExecuteMock).toHaveBeenCalledTimes(1)
+    expect(memoryMaintenanceExecuteMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'session_1',
+        conversationId: 'conversation_1',
+        avatarId: 'avatar_1',
+        trigger: 'post_turn',
+      }),
+    )
+  })
+
+  it('does not block turn success when memory maintenance fails', async () => {
+    const useCase = createUseCase(false, true, false, false, true)
+    memoryMaintenanceExecuteMock.mockRejectedValueOnce(new Error('refresh failed'))
+
+    await expect(
+      useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello memory' }),
+    ).resolves.toBeDefined()
   })
 })
 

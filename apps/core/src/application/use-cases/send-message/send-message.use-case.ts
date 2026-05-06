@@ -3,12 +3,14 @@ import type { IConversationRepository } from '../../ports/IConversationRepositor
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../../ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
+import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import { buildAvatarAwareness } from '../../../domain/avatar/avatar-awareness.service.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
@@ -16,6 +18,10 @@ import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { UserPersona } from '../../../domain/user/user.types.js'
 import type { ConversationEndReason, EndConversationResponse } from '@gami/shared'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
+import {
+  emitTurnCompletedEventNonBlocking,
+  traceNonBlocking,
+} from './send-message.observability.js'
 import {
   DEFAULT_IMPLICIT_END_POLICY,
   detectImplicitEndReason,
@@ -47,6 +53,7 @@ export class SendMessageUseCase {
     private readonly endConversationUseCase: ConversationCloser | null = null,
     private readonly implicitEndPolicy: ImplicitEndPolicy = DEFAULT_IMPLICIT_END_POLICY,
     private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
+    private readonly memoryMaintenance?: IMemoryMaintenancePort,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -89,31 +96,19 @@ export class SendMessageUseCase {
     })
 
     const nextTurnIndex = historyMessages.filter((message) => message.role === 'user').length + 1
-    if (this.runGameMasterUseCase !== null) {
-      void this.runGameMasterUseCase
-        .execute({
-          sessionId: session.sessionId,
-          scenarioId: session.scenarioId,
-          avatarId: conversation.avatarId,
-          conversationId: conversation.conversationId,
-          userMessageText: input.userMessage,
-          turnIndex: nextTurnIndex,
-          correlationId: requestId,
-          ...(userPersona !== undefined ? { userPersona } : {}),
-        })
-        .catch((err: unknown) => {
-          console.error(
-            '[GM] Background execution failed for session:',
-            session.sessionId,
-            'correlationId:',
-            requestId,
-            err,
-          )
-        })
-    }
+    this.dispatchBackgroundUpdates({
+      requestId,
+      sessionId: session.sessionId,
+      scenarioId: session.scenarioId,
+      conversationId: conversation.conversationId,
+      avatarId: conversation.avatarId,
+      userMessage: input.userMessage,
+      turnIndex: nextTurnIndex,
+      userPersona,
+    })
 
     const latencyMs = Date.now() - start
-    this.emitTurnCompletedEventNonBlocking({
+    emitTurnCompletedEventNonBlocking({
       requestId,
       sessionId: session.sessionId,
       conversationId: conversation.conversationId,
@@ -125,8 +120,16 @@ export class SendMessageUseCase {
       outputTokens: response.outputTokens,
       model: response.model,
       hasGm: this.runGameMasterUseCase !== null,
+      eventLogRepository: this.eventLogRepository,
     })
-    this.traceNonBlocking(requestId, session.sessionId, llmRequest, response, latencyMs)
+    traceNonBlocking({
+      requestId,
+      sessionId: session.sessionId,
+      llmRequest,
+      response,
+      latencyMs,
+      observability: this.observability,
+    })
 
     const output = this.buildOutput(
       requestId,
@@ -155,6 +158,69 @@ export class SendMessageUseCase {
     }
 
     return output
+  }
+
+  private dispatchBackgroundUpdates(args: {
+    requestId: string
+    sessionId: string
+    scenarioId: string
+    conversationId: string
+    avatarId: string
+    userMessage: string
+    turnIndex: number
+    userPersona: UserPersona | undefined
+  }): void {
+    this.dispatchRunGameMaster(args)
+    this.dispatchMemoryMaintenance(args)
+  }
+
+  private dispatchRunGameMaster(args: {
+    requestId: string
+    sessionId: string
+    scenarioId: string
+    conversationId: string
+    avatarId: string
+    userMessage: string
+    turnIndex: number
+    userPersona: UserPersona | undefined
+  }): void {
+    if (this.runGameMasterUseCase === null) return
+    void this.runGameMasterUseCase
+      .execute({
+        sessionId: args.sessionId,
+        scenarioId: args.scenarioId,
+        avatarId: args.avatarId,
+        conversationId: args.conversationId,
+        userMessageText: args.userMessage,
+        turnIndex: args.turnIndex,
+        correlationId: args.requestId,
+        ...(args.userPersona !== undefined ? { userPersona: args.userPersona } : {}),
+      })
+      .catch((err: unknown) => {
+        console.error(
+          '[GM] Background execution failed for session:',
+          args.sessionId,
+          'correlationId:',
+          args.requestId,
+          err,
+        )
+      })
+  }
+
+  private dispatchMemoryMaintenance(args: {
+    requestId: string
+    sessionId: string
+    conversationId: string
+    avatarId: string
+  }): void {
+    if (this.memoryMaintenance === undefined) return
+    void this.memoryMaintenance.execute({
+      sessionId: args.sessionId,
+      conversationId: args.conversationId,
+      avatarId: args.avatarId,
+      trigger: 'post_turn',
+      correlationId: args.requestId,
+    })
   }
 
   private buildOutput(
@@ -318,76 +384,6 @@ export class SendMessageUseCase {
     })
   }
 
-  private traceNonBlocking(
-    requestId: string,
-    sessionId: string,
-    llmRequest: {
-      systemPrompt: string
-      messages: Array<{ role: 'user' | 'assistant'; content: string }>
-    },
-    response: { content: string; model: string; inputTokens: number; outputTokens: number },
-    latencyMs: number,
-  ): void {
-    void this.observability
-      .trace({
-        requestId,
-        sessionId,
-        event: 'llm.completion',
-        input: {
-          systemPrompt: llmRequest.systemPrompt,
-          messages: llmRequest.messages,
-        },
-        output: response.content,
-        latencyMs,
-        inputTokens: response.inputTokens,
-        outputTokens: response.outputTokens,
-        metadata: { model: response.model },
-      })
-      .catch((err: unknown) => {
-        console.error('[send-message] Observability trace failed:', err)
-      })
-  }
-
-  private emitTurnCompletedEventNonBlocking(args: {
-    requestId: string
-    sessionId: string
-    conversationId: string
-    turnIndex: number
-    avatarId: string
-    avatarLatencyMs: number
-    totalTurnLatencyMs: number
-    inputTokens: number
-    outputTokens: number
-    model: string
-    hasGm: boolean
-  }): void {
-    const payload = {
-      correlationId: args.requestId,
-      conversationId: args.conversationId,
-      turnIndex: args.turnIndex,
-      avatarId: args.avatarId,
-      avatarLatencyMs: args.avatarLatencyMs,
-      totalTurnLatencyMs: args.totalTurnLatencyMs,
-      inputTokens: args.inputTokens,
-      outputTokens: args.outputTokens,
-      totalTokens: args.inputTokens + args.outputTokens,
-      model: args.model,
-      hasGm: args.hasGm,
-    } as const
-
-    void this.eventLogRepository
-      .append({
-        sessionId: args.sessionId,
-        type: 'turn_completed',
-        severity: 'info',
-        correlationId: args.requestId,
-        payload,
-      })
-      .catch((err: unknown) => {
-        console.error('[send-message] Event log append failed for turn_completed:', err)
-      })
-  }
-
   private async loadUserPersona(userId: string): Promise<UserPersona | undefined> {
     if (this.userRepository === undefined) return undefined
     try {
@@ -489,32 +485,4 @@ export class SendMessageUseCase {
 
 function hasText(value: string): boolean {
   return value.trim().length > 0
-}
-
-function buildAvatarAwareness(
-  currentAvatar: AvatarConfig,
-  scenarioAvatars: AvatarConfig[],
-  unlockedAvatarIds: string[] | undefined,
-): Array<{
-  name: string
-  description?: string
-  scope?: string
-  availability: 'available' | 'locked'
-}> {
-  return scenarioAvatars
-    .filter((avatar) => avatar.status === 'active' && avatar.avatarId !== currentAvatar.avatarId)
-    .map((avatar) => ({
-      name: avatar.name,
-      ...(avatar.description !== undefined ? { description: avatar.description } : {}),
-      ...extractPublicScope(avatar),
-      availability:
-        unlockedAvatarIds === undefined || unlockedAvatarIds.includes(avatar.avatarId)
-          ? 'available'
-          : 'locked',
-    }))
-}
-
-function extractPublicScope(avatar: AvatarConfig): { scope?: string } {
-  const scope = avatar.config['scope']
-  return typeof scope === 'string' && scope.trim().length > 0 ? { scope: scope.trim() } : {}
 }

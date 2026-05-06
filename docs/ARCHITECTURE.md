@@ -94,7 +94,7 @@ Not everything should block user responses.
 Use async processing for:
 
 - Game Master triggers
-- memory compaction
+- memory maintenance refresh (session + avatar working memory)
 - logging flush
 - analytics
 - background evaluations
@@ -391,6 +391,7 @@ Contains:
 
 - short-term memory policy (last 2 exchanges, runtime-assembled)
 - working memory summary (session-level compact summary)
+- async memory maintenance pipeline (`IMemoryMaintenancePort` / `MemoryMaintenanceService`)
 - long-term user facts/events
 - retrieval of relevant memories
 - compaction jobs

@@ -1,9 +1,9 @@
 import crypto from 'node:crypto'
 import type { ConversationSummary } from '@gami/shared'
-import type { IConversationCompactionPort } from '../../ports/IConversationCompactionPort.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
+import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserFactExtractor } from '../../ports/IUserFactExtractor.js'
@@ -17,8 +17,8 @@ export class EndConversationUseCase {
   constructor(
     private readonly sessionRepository: ISessionRepository,
     private readonly conversationRepository: IConversationRepository,
-    private readonly compactionPort: IConversationCompactionPort,
     private readonly eventLogRepository: IEventLogRepository,
+    private readonly memoryMaintenance?: IMemoryMaintenancePort,
     private readonly sessionEventPublisher?: ISessionEventPublisher,
     private readonly messageRepository?: IMessageRepository,
     private readonly userFactExtractor?: IUserFactExtractor,
@@ -64,7 +64,14 @@ export class EndConversationUseCase {
     })
     await this.sessionRepository.update(sessionId, { lastActivityAt: now })
     this.emitSessionClosed(sessionId, conversationId)
-    void this.compactSessionMemory(sessionId, conversationId)
+    if (this.memoryMaintenance !== undefined) {
+      void this.memoryMaintenance.execute({
+        sessionId,
+        conversationId,
+        avatarId: conversation.avatarId,
+        trigger: 'conversation_closed',
+      })
+    }
     void this.extractAndPersistUserFacts(session.userId, sessionId, conversationId)
 
     return {
@@ -86,47 +93,6 @@ export class EndConversationUseCase {
       })
     } catch (error: unknown) {
       console.warn('[end-conversation] Runtime event emission failed:', error)
-    }
-  }
-
-  private async compactSessionMemory(sessionId: string, conversationId: string): Promise<void> {
-    const requestId = crypto.randomUUID()
-    await this.appendEventSafe({
-      sessionId,
-      type: 'memory_compaction_triggered',
-      severity: 'info',
-      requestId,
-      payload: { sessionId, conversationId },
-    })
-
-    try {
-      const compacted = await this.compactionPort.compactConversation({ sessionId, conversationId })
-      await this.sessionRepository.update(sessionId, {
-        memorySummary: compacted.summary,
-      })
-      await this.appendEventSafe({
-        sessionId,
-        type: 'memory_compaction_succeeded',
-        severity: 'info',
-        requestId,
-        payload: {
-          sessionId,
-          conversationId,
-          summaryLength: compacted.summary.length,
-        },
-      })
-    } catch (error) {
-      await this.appendEventSafe({
-        sessionId,
-        type: 'memory_compaction_failed',
-        severity: 'error',
-        requestId,
-        payload: {
-          sessionId,
-          conversationId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-      })
     }
   }
 

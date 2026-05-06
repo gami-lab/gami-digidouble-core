@@ -3,7 +3,6 @@ import { fail, ok } from '@gami/shared'
 import type { EndConversationResponse, LifecycleStatus } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
-import type { IConversationCompactionPort } from '../../application/ports/IConversationCompactionPort.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
@@ -17,7 +16,7 @@ import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-ava
 import type { GetAvatarTransitionsOutput } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.types.js'
 import { GetRuntimeStateUseCase } from '../../application/use-cases/get-runtime-state/get-runtime-state.use-case.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
-import { MessageHistoryCompactionService } from '../../application/services/message-history-compaction.service.js'
+import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
 import { GetSessionUseCase } from '../../application/use-cases/get-session/get-session.use-case.js'
 import type { GetSessionOutput } from '../../application/use-cases/get-session/get-session.types.js'
 import { ListSessionConversationsUseCase } from '../../application/use-cases/list-session-conversations/list-session-conversations.use-case.js'
@@ -56,7 +55,6 @@ export type SessionsRouteOptions = {
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   eventLogRepository?: IEventLogRepository
-  conversationCompactionPort?: IConversationCompactionPort
   sessionEventPublisher?: ISessionEventPublisher
 }
 
@@ -176,8 +174,13 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     resolveWorkingMemoryRepositories(options)
   const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
   const sessionEventPublisher = options.sessionEventPublisher ?? new InMemorySessionEventPublisher()
-  const conversationCompactionPort =
-    options.conversationCompactionPort ?? new MessageHistoryCompactionService(messageRepository)
+  const memoryMaintenance = new MemoryMaintenanceService(
+    messageRepository,
+    sessionRepository,
+    sessionMemoryRepository,
+    avatarSessionMemoryRepository,
+    eventLogRepository,
+  )
 
   const startSessionUseCase = new StartSessionUseCase(
     sessionRepository,
@@ -225,8 +228,8 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   const endConversationUseCase = new EndConversationUseCase(
     sessionRepository,
     conversationRepository,
-    conversationCompactionPort,
     eventLogRepository,
+    memoryMaintenance,
     sessionEventPublisher,
   )
 

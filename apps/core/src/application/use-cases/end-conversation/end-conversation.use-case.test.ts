@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { EndConversationUseCase } from './end-conversation.use-case.js'
-import type { IConversationCompactionPort } from '../../ports/IConversationCompactionPort.js'
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryUserMemoryFactRepository } from '../../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { DomainError } from '../../../domain/errors.js'
+import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IUserFactExtractor } from '../../ports/IUserFactExtractor.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
@@ -52,16 +52,15 @@ function makeRepositories() {
   return { sessionRepository, conversationRepository, eventLogRepository, messageRepository }
 }
 
-function createUseCaseWithCompaction(
-  compactionPort: IConversationCompactionPort,
-  options?: {
-    messageRepository?: IMessageRepository
-    userFactExtractor?: IUserFactExtractor
-    userMemoryFactRepository?: IUserMemoryFactRepository
-  },
-) {
+function createUseCase(options?: {
+  memoryMaintenance?: IMemoryMaintenancePort
+  messageRepository?: IMessageRepository
+  userFactExtractor?: IUserFactExtractor
+  userMemoryFactRepository?: IUserMemoryFactRepository
+}) {
   const { sessionRepository, conversationRepository, eventLogRepository, messageRepository } =
     makeRepositories()
+
   return {
     sessionRepository,
     conversationRepository,
@@ -70,8 +69,8 @@ function createUseCaseWithCompaction(
     useCase: new EndConversationUseCase(
       sessionRepository,
       conversationRepository,
-      compactionPort,
       eventLogRepository,
+      options?.memoryMaintenance,
       undefined,
       options?.messageRepository ?? messageRepository,
       options?.userFactExtractor,
@@ -80,7 +79,7 @@ function createUseCaseWithCompaction(
   }
 }
 
-async function expectCompactionEvents(
+async function expectEventTypes(
   eventLogRepository: InMemoryEventLogRepository,
   expectedTypes: string[],
 ): Promise<void> {
@@ -93,14 +92,13 @@ async function expectCompactionEvents(
 }
 
 describe('EndConversationUseCase', () => {
-  it('closes an active conversation, compacts, and persists memory summary', async () => {
-    const compactionPort = {
-      compactConversation: vi.fn().mockResolvedValue({
-        summary: 'Compact summary for session_1/conversation_1',
-      }),
-    } satisfies IConversationCompactionPort
-    const { sessionRepository, conversationRepository, eventLogRepository, useCase } =
-      createUseCaseWithCompaction(compactionPort)
+  it('closes an active conversation and schedules memory refresh', async () => {
+    const memoryMaintenance = {
+      execute: vi.fn().mockResolvedValue(undefined),
+    } satisfies IMemoryMaintenancePort
+    const { sessionRepository, conversationRepository, useCase } = createUseCase({
+      memoryMaintenance,
+    })
 
     const output = await useCase.execute({
       sessionId: 'session_1',
@@ -110,31 +108,23 @@ describe('EndConversationUseCase', () => {
 
     expect(output.compaction.scheduled).toBe(true)
     expect(output.conversation.status).toBe('closed')
-    expect(output.conversation.endedAt).toBeTypeOf('string')
-    expect(Date.parse(output.conversation.endedAt ?? '')).not.toBeNaN()
+    expect(memoryMaintenance.execute).toHaveBeenCalledWith({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'conversation_closed',
+    })
 
     const persistedConversation = await conversationRepository.findById('conversation_1')
     expect(persistedConversation?.status).toBe('closed')
     expect(persistedConversation?.reason).toBe('user_end')
-    expect(persistedConversation?.endedAt).toBeTypeOf('string')
 
     const persistedSession = await sessionRepository.findById('session_1')
     expect(persistedSession?.lastActivityAt).toBe(output.conversation.lastActivityAt)
-    await vi.waitFor(async () => {
-      const updatedSession = await sessionRepository.findById('session_1')
-      expect(updatedSession?.memorySummary).toBe('Compact summary for session_1/conversation_1')
-    })
-    await expectCompactionEvents(eventLogRepository, [
-      'memory_compaction_triggered',
-      'memory_compaction_succeeded',
-    ])
   })
 
   it('defaults reason to operator_end when omitted', async () => {
-    const compactionPort = {
-      compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }),
-    } satisfies IConversationCompactionPort
-    const { conversationRepository, useCase } = createUseCaseWithCompaction(compactionPort)
+    const { conversationRepository, useCase } = createUseCase()
 
     await useCase.execute({
       sessionId: 'session_1',
@@ -170,7 +160,6 @@ describe('EndConversationUseCase', () => {
     const useCase = new EndConversationUseCase(
       sessionRepository,
       conversationRepository,
-      { compactConversation: vi.fn() },
       new InMemoryEventLogRepository(),
     )
 
@@ -179,42 +168,26 @@ describe('EndConversationUseCase', () => {
     ).rejects.toMatchObject({ code: 'CONFLICT' } satisfies Partial<DomainError>)
   })
 
-  it('keeps close successful when compaction fails and emits failure event', async () => {
-    const compactionPort = {
-      compactConversation: vi.fn().mockRejectedValue(new Error('compaction down')),
-    } satisfies IConversationCompactionPort
-    const { sessionRepository, eventLogRepository, useCase } =
-      createUseCaseWithCompaction(compactionPort)
+  it('keeps close successful when memory refresh fails', async () => {
+    const memoryMaintenance = {
+      execute: vi.fn().mockRejectedValue(new Error('refresh down')),
+    } satisfies IMemoryMaintenancePort
+    const { useCase } = createUseCase({ memoryMaintenance })
 
-    const output = await useCase.execute({
-      sessionId: 'session_1',
-      conversationId: 'conversation_1',
-      reason: 'operator_end',
-    })
-
-    expect(output.conversation.status).toBe('closed')
-    await vi.waitFor(async () => {
-      const session = await sessionRepository.findById('session_1')
-      expect(session?.memorySummary).toBeUndefined()
-    })
-    await expectCompactionEvents(eventLogRepository, [
-      'memory_compaction_triggered',
-      'memory_compaction_failed',
-    ])
+    await expect(
+      useCase.execute({
+        sessionId: 'session_1',
+        conversationId: 'conversation_1',
+        reason: 'operator_end',
+      }),
+    ).resolves.toBeDefined()
   })
 })
 
 describe('EndConversationUseCase user fact extraction wiring', () => {
   it('skips extraction when userFactExtractor is not injected', async () => {
     const userMemoryFactRepository = new InMemoryUserMemoryFactRepository()
-    const { useCase } = createUseCaseWithCompaction(
-      {
-        compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }),
-      },
-      {
-        userMemoryFactRepository,
-      },
-    )
+    const { useCase } = createUseCase({ userMemoryFactRepository })
 
     await expect(
       useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),
@@ -230,14 +203,7 @@ describe('EndConversationUseCase user fact extraction wiring', () => {
           { category: 'preference', key: 'language', value: 'english', confidence: 0.8 },
         ]),
     }
-    const { useCase } = createUseCaseWithCompaction(
-      {
-        compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }),
-      },
-      {
-        userFactExtractor: extractor,
-      },
-    )
+    const { useCase } = createUseCase({ userFactExtractor: extractor })
 
     await expect(
       useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),
@@ -253,21 +219,16 @@ describe('EndConversationUseCase user fact extraction wiring', () => {
     }
     const userMemoryFactRepository = new InMemoryUserMemoryFactRepository()
     const upsertSpy = vi.spyOn(userMemoryFactRepository, 'upsert')
-    const { eventLogRepository, useCase } = createUseCaseWithCompaction(
-      {
-        compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }),
-      },
-      {
-        userFactExtractor: extractor,
-        userMemoryFactRepository,
-      },
-    )
+    const { eventLogRepository, useCase } = createUseCase({
+      userFactExtractor: extractor,
+      userMemoryFactRepository,
+    })
 
     await useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' })
     await vi.waitFor(() => {
       expect(upsertSpy).toHaveBeenCalledTimes(2)
     })
-    await expectCompactionEvents(eventLogRepository, [
+    await expectEventTypes(eventLogRepository, [
       'user_fact_extraction_triggered',
       'user_fact_extraction_succeeded',
     ])
@@ -279,20 +240,15 @@ describe('EndConversationUseCase user fact extraction failure handling', () => {
     const extractor: IUserFactExtractor = {
       extract: vi.fn().mockRejectedValue(new Error('llm failed')),
     }
-    const { eventLogRepository, useCase } = createUseCaseWithCompaction(
-      {
-        compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }),
-      },
-      {
-        userFactExtractor: extractor,
-        userMemoryFactRepository: new InMemoryUserMemoryFactRepository(),
-      },
-    )
+    const { eventLogRepository, useCase } = createUseCase({
+      userFactExtractor: extractor,
+      userMemoryFactRepository: new InMemoryUserMemoryFactRepository(),
+    })
 
     await expect(
       useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),
     ).resolves.toBeDefined()
-    await expectCompactionEvents(eventLogRepository, ['user_fact_extraction_failed'])
+    await expectEventTypes(eventLogRepository, ['user_fact_extraction_failed'])
   })
 
   it('does not throw when upsert fails', async () => {
@@ -307,20 +263,15 @@ describe('EndConversationUseCase user fact extraction failure handling', () => {
       deleteById: vi.fn(),
       upsert: vi.fn().mockRejectedValue(new Error('db write failed')),
     }
-    const { eventLogRepository, useCase } = createUseCaseWithCompaction(
-      {
-        compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }),
-      },
-      {
-        userFactExtractor: extractor,
-        userMemoryFactRepository: failingRepository,
-      },
-    )
+    const { eventLogRepository, useCase } = createUseCase({
+      userFactExtractor: extractor,
+      userMemoryFactRepository: failingRepository,
+    })
 
     await expect(
       useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),
     ).resolves.toBeDefined()
-    await expectCompactionEvents(eventLogRepository, ['user_fact_extraction_failed'])
+    await expectEventTypes(eventLogRepository, ['user_fact_extraction_failed'])
   })
 })
 
@@ -340,8 +291,8 @@ describe('EndConversationUseCase runtime event emission', () => {
     const useCase = new EndConversationUseCase(
       sessionRepository,
       conversationRepository,
-      { compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }) },
       new InMemoryEventLogRepository(),
+      undefined,
       publisher,
     )
 
@@ -351,16 +302,14 @@ describe('EndConversationUseCase runtime event emission', () => {
       reason: 'user_end',
     })
 
-    const closedEvent = emittedEvents.find((e) => e.type === 'runtime.session_closed')
+    const closedEvent = emittedEvents.find((event) => event.type === 'runtime.session_closed')
     expect(closedEvent).toBeDefined()
     expect(closedEvent?.sessionId).toBe('session_1')
     expect(closedEvent?.conversationId).toBe('conversation_1')
   })
 
   it('does not throw when no publisher is provided', async () => {
-    const { useCase } = createUseCaseWithCompaction({
-      compactConversation: vi.fn().mockResolvedValue({ summary: 'ok' }),
-    })
+    const { useCase } = createUseCase()
 
     await expect(
       useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),

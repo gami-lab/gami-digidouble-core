@@ -101,7 +101,9 @@ Must test:
 - memory overwrite/update behavior
 - long conversation compaction boundaries (30+ turns)
 - conversation-end compaction trigger (explicit close and implicit close via switch/reset)
-- async compaction scheduling never blocks avatar response
+- async working-memory refresh scheduling never blocks avatar response
+- `memory_refresh_triggered/succeeded/failed` event emission
+- repeated turns update existing working-memory rows (no duplicate row creation)
 - reset behavior
 
 Risk: memory systems silently degrade quality while appearing to work. Requires both logic tests and conversational regression checks.

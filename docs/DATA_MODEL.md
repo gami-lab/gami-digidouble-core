@@ -599,6 +599,18 @@ Pre-existing event type; payload includes the following performance fields used 
 
 The `StoredEvent.correlationId` links `gm_triggered` events to parent `turn_completed` events (shared request correlation).
 
+### Event family: `memory_refresh_*` (working-memory maintenance lifecycle)
+
+Emitted by `MemoryMaintenanceService` in fire-and-forget mode from turn and close flows.
+
+Event types:
+
+- `memory_refresh_triggered`
+- `memory_refresh_succeeded`
+- `memory_refresh_failed`
+
+Payload includes compact operational fields only (session/conversation/avatar ids, trigger source, summary lengths/message count on success, short error message on failure). No raw transcript payloads are logged.
+
 The `request_id` and `correlation_id` fields are essential for tracing failures across async flows without requiring a full distributed tracing stack.
 
 ---

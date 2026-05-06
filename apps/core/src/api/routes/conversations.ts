@@ -1,12 +1,14 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
+import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
+import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { IUserMemoryFactRepository } from '../../application/ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
@@ -14,7 +16,7 @@ import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-h
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
-import { MessageHistoryCompactionService } from '../../application/services/message-history-compaction.service.js'
+import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
 import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
 import type { SendMessageOutput } from '../../application/use-cases/send-message/send-message.types.js'
 import type { Config } from '../../config.js'
@@ -25,6 +27,8 @@ import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-ev
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
+import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
@@ -45,6 +49,8 @@ type ConversationsRouteOptions = {
   runGameMasterUseCase?: RunGameMasterUseCase
   userRepository?: IUserRepository
   userMemoryFactRepository?: IUserMemoryFactRepository
+  sessionMemoryRepository?: ISessionMemoryRepository
+  avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
 }
 
 type ConversationParams = { conversationId: string }
@@ -197,6 +203,8 @@ type ConversationPersistenceDeps = {
   messageRepository: IMessageRepository
   userRepository: IUserRepository
   userMemoryFactRepository: IUserMemoryFactRepository
+  sessionMemoryRepository: ISessionMemoryRepository
+  avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
 }
 
 function createRouteDependencies(options: ConversationsRouteOptions): RouteDependencies {
@@ -209,6 +217,13 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       langfuseHost: options.config.langfuseHost,
     })
   const repositories = resolvePersistenceDeps(options)
+  const memoryMaintenance = new MemoryMaintenanceService(
+    repositories.messageRepository,
+    repositories.sessionRepository,
+    repositories.sessionMemoryRepository,
+    repositories.avatarSessionMemoryRepository,
+    repositories.eventLogRepository,
+  )
 
   return {
     observabilityAdapter,
@@ -228,11 +243,12 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       new EndConversationUseCase(
         repositories.sessionRepository,
         repositories.conversationRepository,
-        new MessageHistoryCompactionService(repositories.messageRepository),
         repositories.eventLogRepository,
+        memoryMaintenance,
       ),
       undefined,
       repositories.userMemoryFactRepository,
+      memoryMaintenance,
     ),
   }
 }
@@ -248,6 +264,19 @@ function resolvePersistenceDeps(options: ConversationsRouteOptions): Conversatio
     userRepository: options.userRepository ?? new InMemoryUserRepository(),
     userMemoryFactRepository:
       options.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
+    ...resolveWorkingMemoryDeps(options),
+  }
+}
+
+function resolveWorkingMemoryDeps(options: ConversationsRouteOptions): {
+  sessionMemoryRepository: ISessionMemoryRepository
+  avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
+} {
+  return {
+    sessionMemoryRepository:
+      options.sessionMemoryRepository ?? new InMemorySessionMemoryRepository(),
+    avatarSessionMemoryRepository:
+      options.avatarSessionMemoryRepository ?? new InMemoryAvatarSessionMemoryRepository(),
   }
 }
 

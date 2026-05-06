@@ -63,6 +63,22 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
     while preserving long-term `user_memory_facts`.
 - Added repository test coverage for upsert, overwrite, per-avatar isolation, and session cleanup behavior in both in-memory and Postgres implementations.
 
+### EPIC 4.2b — Async memory maintenance pipeline: **complete** (2026-05-06)
+
+- Added dedicated async boundary `IMemoryMaintenancePort` with deterministic implementation `MemoryMaintenanceService`.
+- Wired fire-and-forget working-memory refresh from:
+  - `SendMessageUseCase` after each completed avatar turn (`trigger: post_turn`)
+  - `EndConversationUseCase` after close boundary (`trigger: conversation_closed`)
+- Memory refresh updates:
+  - `session_memories` (session working memory)
+  - `avatar_session_memories` (avatar-scoped working memory)
+  - legacy `sessions.memory_summary` mirror for backward compatibility
+- Added event-log lifecycle diagnostics:
+  - `memory_refresh_triggered`
+  - `memory_refresh_succeeded`
+  - `memory_refresh_failed`
+- Long-term user-fact extraction on close remains separate and non-blocking.
+
 ### EPIC 4.5 — Player Runtime State & World Events: **complete** (2026-05-05)
 
 - Added `RuntimeEvent` and `RuntimeState` to `@gami/shared` (`packages/shared/src/runtime-types.ts`)
