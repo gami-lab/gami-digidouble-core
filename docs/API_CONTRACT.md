@@ -1266,6 +1266,7 @@ type TriggerKnowledgeIngestionResponse = {
 ## 13b. User Persona (U1)
 
 Store and read lightweight user persona used by context assembly.
+Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
 
 Auth: API key required (`x-api-key`).
 
@@ -1537,6 +1538,7 @@ type AdminListSessionsResponse = {
 ## A4. Admin: Inspect Session
 
 Implemented Phase A endpoint for GM Debug Panel state inspection.
+Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
 
 ### Endpoint
 
@@ -1587,6 +1589,7 @@ type InspectSessionResponse = {
 ## A5. Get Session Memory
 
 Status: IMPLEMENTED (EPIC 4.2b-compatible)
+Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
 
 ### Endpoint
 
@@ -1612,6 +1615,7 @@ type AdminSessionMemoryResponse = {
 ## A6. Get Session Memory Layers
 
 Status: IMPLEMENTED (EPIC 4.2b)
+Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
 
 ### Endpoint
 
@@ -1637,6 +1641,8 @@ type AdminSessionMemoryLayersResponse = {
 ---
 
 ## A7. Admin: List Session Events
+
+Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
 
 ### Endpoint
 
@@ -1722,6 +1728,8 @@ type AdminSessionEventsResponse = {
 ---
 
 ## A7. Admin: Session Turn Metrics
+
+Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
 
 ### Endpoint
 

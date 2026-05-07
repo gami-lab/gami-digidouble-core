@@ -1,7 +1,6 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
-import type { SessionMemorySummary } from '@gami/shared'
-import type { SessionMemoryLayers } from '@gami/shared'
+import type { AdminSessionMemoryLayersResponse, AdminSessionMemoryResponse } from '@gami/shared'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
@@ -61,9 +60,11 @@ export const adminMemoryRoute: FastifyPluginCallback<AdminMemoryRouteOptions> = 
         const output = await getSessionMemoryUseCase.execute({
           sessionId: request.params.sessionId,
         })
-        return await reply
-          .status(200)
-          .send(ok<{ session: SessionMemorySummary }>({ session: output.memorySummary }))
+        return await reply.status(200).send(
+          ok<AdminSessionMemoryResponse>({
+            session: output.memorySummary,
+          }),
+        )
       } catch (error) {
         if (error instanceof DomainError && error.code === 'NOT_FOUND') {
           return await reply.status(404).send(fail('NOT_FOUND', error.message))
@@ -82,9 +83,11 @@ export const adminMemoryRoute: FastifyPluginCallback<AdminMemoryRouteOptions> = 
         const output = await getSessionMemoryLayersUseCase.execute({
           sessionId: request.params.sessionId,
         })
-        return await reply
-          .status(200)
-          .send(ok<{ session: SessionMemoryLayers }>({ session: output.memory }))
+        return await reply.status(200).send(
+          ok<AdminSessionMemoryLayersResponse>({
+            session: output.memory,
+          }),
+        )
       } catch (error) {
         if (error instanceof DomainError && error.code === 'NOT_FOUND') {
           return await reply.status(404).send(fail('NOT_FOUND', error.message))

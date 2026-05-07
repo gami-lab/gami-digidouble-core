@@ -1,10 +1,10 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
+import type { AdminSessionTurnMetricsResponse } from '@gami/shared'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { GetTurnMetricsUseCase } from '../../application/use-cases/get-turn-metrics/get-turn-metrics.use-case.js'
 import type { Config } from '../../config.js'
-import type { TurnMetricsReport } from '../../domain/metrics/index.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 
 export type AdminMetricsRouteOptions = {
@@ -45,7 +45,7 @@ export const adminMetricsRoute: FastifyPluginCallback<AdminMetricsRouteOptions> 
       }
 
       const report = await getTurnMetricsUseCase.execute({ sessionId: request.params.sessionId })
-      return await reply.status(200).send(ok<TurnMetricsReport>(report))
+      return await reply.status(200).send(ok<AdminSessionTurnMetricsResponse>(report))
     },
   )
 }

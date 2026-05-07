@@ -3,14 +3,28 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** May 6, 2026
+**Last updated:** May 7, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC 2.7 (Runtime Inspector Contract Cleanup), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+
+### EPIC 2.7 — Runtime Inspector Contract Cleanup: **complete** (2026-05-07)
+
+- Added canonical shared runtime-inspector/admin HTTP DTO ownership in `packages/shared/src/runtime-inspector-types.ts`.
+- Shared contracts now include:
+  - admin session inspect response
+  - admin session events response and event payload unions (`gm_triggered`, `gm_error`, `turn_completed`)
+  - admin memory and memory-layers response wrappers
+  - admin session turn metrics response
+  - user persona API response contracts
+  - prepared runtime-inspector snapshot/admin-action request/response DTOs
+- Core routes and use-case output typing now consume these shared contracts instead of local per-layer duplicates.
+- Console API layer (`apps/console/src/api/sessions.ts`) no longer defines duplicated inspector/event DTOs and imports canonical types from `@gami/shared`.
+- GM Debug panel event rendering now handles union event payloads safely (`turn_completed` vs GM events), matching the admin events contract.
 
 ### EPIC 4.2 — User Memory Facts v1: **complete** (2026-05-05)
 

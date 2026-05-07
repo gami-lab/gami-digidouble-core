@@ -1,8 +1,6 @@
-export type UserPersona = {
-  role?: string
-  tonePreference?: string
-  interactionHints?: string[]
-}
+import type { UserPersona as SharedUserPersona } from '@gami/shared'
+
+export type UserPersona = SharedUserPersona
 
 export type User = {
   userId: string

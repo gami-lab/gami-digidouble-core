@@ -1,9 +1,13 @@
 import { coreRequest } from './client'
 import type {
+  AdminSessionEventsResponse,
+  AdminSessionInspectResponse,
   ConversationEndReason,
   ConversationSummary,
   EndConversationResponse,
+  GmStateSummary,
   LifecycleStatus,
+  SessionEventRecord,
   SessionMemorySummary,
   SessionSummary,
   SessionTransitionRecord,
@@ -11,6 +15,12 @@ import type {
 
 export type { SessionSummary, ConversationSummary, SessionMemorySummary, SessionTransitionRecord }
 export type { ConversationEndReason, EndConversationResponse }
+export type {
+  GmStateSummary,
+  AdminSessionInspectResponse as InspectSessionResponse,
+  SessionEventRecord,
+  AdminSessionEventsResponse as ListSessionEventsResponse,
+}
 
 export type Message = {
   messageId: string
@@ -27,62 +37,6 @@ export type Message = {
     costUsd?: number
     triggerSource?: string
   }
-}
-
-export type GmStateSummary = {
-  currentAvatarId?: string
-  progression: string
-  topicsCovered: string[]
-  interactionCount: number
-}
-
-export type InspectSessionResponse = {
-  inspect: {
-    session: SessionSummary
-    gmState: GmStateSummary | null
-    transitionHistory: SessionTransitionRecord[]
-    unlockedAvatarIds: string[]
-    gmNotes: string | null
-  }
-}
-
-export type SessionEventRecord = {
-  type: 'gm_triggered' | 'gm_error'
-  correlationId: string
-  createdAt: string
-  payload: {
-    triggerReason: string | null
-    turnIndex: number
-    interactionCount: number
-    stateBefore: {
-      currentAvatarId?: string
-      progression: string
-      topicsCovered: string[]
-    }
-    decision?: {
-      avatarId: string
-      conversationMode: 'new' | 'continue'
-      notesInjected: boolean
-      directiveCount: number
-      unlockedAvatarIds?: string[]
-      suggestedAvatarId?: string
-      suggestedAvatarReason?: string
-      switchedAvatarId?: string
-    }
-    stateAfter?: {
-      currentAvatarId?: string
-      progression: string
-      topicsCovered: string[]
-    }
-    latencyMs: number
-    inputTokens?: number
-    outputTokens?: number
-    errorCode?: string
-  }
-}
-
-export type ListSessionEventsResponse = {
-  events: SessionEventRecord[]
 }
 
 export type StartSessionParams = {
@@ -232,14 +186,14 @@ export async function resetSession(sessionId: string): Promise<SessionSummary> {
   return payload.session
 }
 
-export async function inspectSession(sessionId: string): Promise<InspectSessionResponse> {
-  return coreRequest<InspectSessionResponse>('GET', `/v1/admin/sessions/${sessionId}/inspect`)
+export async function inspectSession(sessionId: string): Promise<AdminSessionInspectResponse> {
+  return coreRequest<AdminSessionInspectResponse>('GET', `/v1/admin/sessions/${sessionId}/inspect`)
 }
 
 export async function listSessionEvents(
   sessionId: string,
   opts?: { limit?: number },
-): Promise<ListSessionEventsResponse> {
+): Promise<AdminSessionEventsResponse> {
   const params = new URLSearchParams()
   if (opts?.limit !== undefined) params.set('limit', String(opts.limit))
   const query = params.toString()
@@ -247,5 +201,5 @@ export async function listSessionEvents(
     query.length > 0
       ? `/v1/admin/sessions/${sessionId}/events?${query}`
       : `/v1/admin/sessions/${sessionId}/events`
-  return coreRequest<ListSessionEventsResponse>('GET', path)
+  return coreRequest<AdminSessionEventsResponse>('GET', path)
 }

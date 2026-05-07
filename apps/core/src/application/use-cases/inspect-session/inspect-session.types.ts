@@ -1,5 +1,8 @@
-import type { SessionSummary, SessionTransitionRecord } from '@gami/shared'
-import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
+import type {
+  AdminSessionInspectResponse,
+  SessionSummary,
+  SessionTransitionRecord,
+} from '@gami/shared'
 
 export interface InspectSessionInput {
   sessionId: string
@@ -7,19 +10,8 @@ export interface InspectSessionInput {
 
 export type { SessionSummary }
 
-export type InspectGmState = Pick<
-  GameMasterState,
-  'currentAvatarId' | 'progression' | 'topicsCovered' | 'interactionCount'
->
+export type InspectGmState = AdminSessionInspectResponse['inspect']['gmState']
 
 export type InspectTransitionRecord = SessionTransitionRecord
 
-export interface InspectSessionOutput {
-  inspect: {
-    session: SessionSummary
-    gmState: InspectGmState | null
-    transitionHistory: InspectTransitionRecord[]
-    unlockedAvatarIds: string[]
-    gmNotes: string | null
-  }
-}
+export type InspectSessionOutput = AdminSessionInspectResponse

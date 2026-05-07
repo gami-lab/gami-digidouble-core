@@ -199,10 +199,16 @@ function RecentEvents({ events }: { events: SessionEventRecord[] }): JSX.Element
       {events.length === 0 ? <p style={mutedStyle}>none</p> : null}
       {events.map((event) => (
         <div key={`${event.createdAt}-${event.correlationId}`} style={mutedStyle}>
-          [{new Date(event.createdAt).toLocaleTimeString()}] {event.type}{' '}
-          {event.payload.triggerReason ?? 'none'} {event.payload.latencyMs} ms
+          [{new Date(event.createdAt).toLocaleTimeString()}] {formatEventLine(event)}
         </div>
       ))}
     </div>
   )
+}
+
+function formatEventLine(event: SessionEventRecord): string {
+  if ('totalTurnLatencyMs' in event.payload) {
+    return `${event.type} turn=${event.payload.turnIndex} total=${event.payload.totalTurnLatencyMs} ms`
+  }
+  return `${event.type} ${event.payload.triggerReason ?? 'none'} ${event.payload.latencyMs} ms`
 }

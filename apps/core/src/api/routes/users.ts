@@ -1,14 +1,13 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
+import type { UpsertUserPersonaResponse, UserPersonaResponse } from '@gami/shared'
 import type { IUserMemoryFactRepository } from '../../application/ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
 import { DeleteUserMemoryFactUseCase } from '../../application/use-cases/delete-user-memory-fact/delete-user-memory-fact.use-case.js'
 import type { DeleteUserMemoryFactOutput } from '../../application/use-cases/delete-user-memory-fact/delete-user-memory-fact.types.js'
 import { GetUserPersonaUseCase } from '../../application/use-cases/get-user-persona/get-user-persona.use-case.js'
-import type { GetUserPersonaOutput } from '../../application/use-cases/get-user-persona/get-user-persona.use-case.js'
 import { ListUserMemoryFactsUseCase } from '../../application/use-cases/list-user-memory-facts/list-user-memory-facts.use-case.js'
 import { UpsertUserPersonaUseCase } from '../../application/use-cases/upsert-user-persona/upsert-user-persona.use-case.js'
-import type { UpsertUserPersonaOutput } from '../../application/use-cases/upsert-user-persona/upsert-user-persona.use-case.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import type { UserPersona } from '../../domain/user/index.js'
@@ -80,7 +79,7 @@ export const usersRoute: FastifyPluginCallback<UsersRouteOptions> = (app, option
           userId: request.params.userId,
           persona: request.body as UserPersona,
         })
-        return await reply.status(200).send(ok<UpsertUserPersonaOutput>(output))
+        return await reply.status(200).send(ok<UpsertUserPersonaResponse>(output))
       } catch (error) {
         app.log.error({ err: error }, 'Failed to upsert user persona')
         return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
@@ -96,7 +95,7 @@ export const usersRoute: FastifyPluginCallback<UsersRouteOptions> = (app, option
         const output = await getUserPersonaUseCase.execute({
           userId: request.params.userId,
         })
-        return await reply.status(200).send(ok<GetUserPersonaOutput>(output))
+        return await reply.status(200).send(ok<UserPersonaResponse>(output))
       } catch (error) {
         app.log.error({ err: error }, 'Failed to get user persona')
         return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))

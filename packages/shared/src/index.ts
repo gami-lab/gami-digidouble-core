@@ -27,3 +27,24 @@ export type {
   EndConversationResponse,
 } from './lifecycle-types.js'
 export type { RuntimeEvent, RuntimeState } from './runtime-types.js'
+export type {
+  UserPersona,
+  UserSummary,
+  UserPersonaResponse,
+  UpsertUserPersonaResponse,
+  GmStateSummary,
+  AdminSessionInspectResponse,
+  GmSessionEventPayload,
+  TurnCompletedEventPayload,
+  SessionEventRecord,
+  AdminSessionEventsResponse,
+  AdminSessionMemoryResponse,
+  AdminSessionMemoryLayersResponse,
+  TurnMetrics,
+  TurnMetricsSummary,
+  AdminSessionTurnMetricsResponse,
+  RuntimeInspectorSnapshotResponse,
+  ResetSessionAdminActionRequest,
+  ResetSessionAdminActionResponse,
+  EndConversationAdminActionRequest,
+} from './runtime-inspector-types.js'
