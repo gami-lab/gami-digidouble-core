@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import type { RuntimeEvent } from '@gami/shared'
 import type { RuntimeInspectorViewModel } from '../api'
 import { RuntimeInspectorTabContent, buildPersonaPayload } from './runtime-inspector-tab-content'
+import type { MemoryEvolutionSnapshot } from './memory-evolution'
 
 function makeViewModel(): RuntimeInspectorViewModel {
   return {
@@ -137,6 +138,40 @@ function makeRecentEvent(): RuntimeInspectorViewModel['recentEvents'][number] {
   }
 }
 
+function makeMemoryHistory(snapshot: RuntimeInspectorViewModel): MemoryEvolutionSnapshot[] {
+  return [
+    {
+      snapshotId: 'snapshot_1',
+      capturedAt: '2026-05-07T10:00:00.000Z',
+      turnIndex: 1,
+      conversationId: 'conversation_1',
+      layers: {
+        ...snapshot.memory.layers,
+        longTerm: { facts: [] },
+      },
+    },
+    {
+      snapshotId: 'snapshot_2',
+      capturedAt: '2026-05-07T10:01:00.000Z',
+      turnIndex: 2,
+      conversationId: 'conversation_1',
+      layers: {
+        ...snapshot.memory.layers,
+        longTerm: {
+          facts: [
+            {
+              category: 'goal',
+              key: 'focus',
+              value: 'quality',
+              updatedAt: '2026-05-07T10:01:00.000Z',
+            },
+          ],
+        },
+      },
+    },
+  ]
+}
+
 describe('RuntimeInspectorTabContent', () => {
   it('renders action controls and status text', () => {
     const snapshot = makeViewModel()
@@ -144,6 +179,7 @@ describe('RuntimeInspectorTabContent', () => {
       <RuntimeInspectorTabContent
         tab="actions"
         snapshot={snapshot}
+        memoryHistory={makeMemoryHistory(snapshot)}
         liveEvents={[]}
         actionStatus="Action complete"
         onReplayGm={vi.fn()}
@@ -166,6 +202,7 @@ describe('RuntimeInspectorTabContent', () => {
       <RuntimeInspectorTabContent
         tab="context"
         snapshot={snapshot}
+        memoryHistory={makeMemoryHistory(snapshot)}
         liveEvents={[]}
         actionStatus={null}
         onReplayGm={vi.fn()}
@@ -195,6 +232,7 @@ describe('RuntimeInspectorTabContent', () => {
       <RuntimeInspectorTabContent
         tab="events"
         snapshot={snapshot}
+        memoryHistory={makeMemoryHistory(snapshot)}
         liveEvents={liveEvents}
         actionStatus={null}
         onReplayGm={vi.fn()}
@@ -208,6 +246,30 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('Live stream')
     expect(html).toContain('runtime.processing_started')
     expect(html).toContain('Recent snapshot events')
+  })
+
+  it('renders layered memory state and evolution delta copy', () => {
+    const snapshot = makeViewModel()
+    const html = renderToStaticMarkup(
+      <RuntimeInspectorTabContent
+        tab="memory"
+        snapshot={snapshot}
+        memoryHistory={makeMemoryHistory(snapshot)}
+        liveEvents={[]}
+        actionStatus={null}
+        onReplayGm={vi.fn()}
+        onRefreshMemory={vi.fn()}
+        onClearMemory={vi.fn()}
+        onResetSession={vi.fn()}
+        onUpsertPersona={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    expect(html).toContain('Short-term exchange memory')
+    expect(html).toContain('Working memory')
+    expect(html).toContain('Long-term facts')
+    expect(html).toContain('Memory evolution')
+    expect(html).toContain('New long-term fact extracted')
   })
 })
 

@@ -12,6 +12,7 @@ import {
 import type { RuntimeInspectorViewModel } from '../api'
 import type { RuntimeEvent } from '@gami/shared'
 import { formatApiError } from '../api/error'
+import { buildMemorySnapshot, pushMemorySnapshotHistory } from './memory-evolution'
 import { RuntimeInspectorTabContent } from './runtime-inspector-tab-content'
 import type { InspectorTab } from './runtime-inspector-tab-content'
 
@@ -78,7 +79,7 @@ export function RuntimeInspector({
   title = 'Runtime Inspector',
 }: RuntimeInspectorProps): JSX.Element {
   const [activeTab, setActiveTab] = useState<InspectorTab>(initialTab)
-  const { snapshot, liveEvents, loading, error, reload } = useRuntimeInspectorData(
+  const { snapshot, memoryHistory, liveEvents, loading, error, reload } = useRuntimeInspectorData(
     sessionId,
     refreshTrigger,
   )
@@ -141,6 +142,7 @@ export function RuntimeInspector({
         <RuntimeInspectorTabContent
           tab={activeTab}
           snapshot={snapshot}
+          memoryHistory={memoryHistory}
           liveEvents={liveEvents}
           actionStatus={actionStatus}
           onReplayGm={() => {
@@ -169,12 +171,14 @@ export function RuntimeInspector({
 
 function useRuntimeInspectorData(sessionId: string | null, refreshTrigger: number): {
   snapshot: RuntimeInspectorViewModel | null
+  memoryHistory: ReturnType<typeof pushMemorySnapshotHistory>
   liveEvents: RuntimeEvent[]
   loading: boolean
   error: string | null
   reload: () => Promise<void>
 } {
   const [snapshot, setSnapshot] = useState<RuntimeInspectorViewModel | null>(null)
+  const [memoryHistory, setMemoryHistory] = useState<ReturnType<typeof pushMemorySnapshotHistory>>([])
   const [liveEvents, setLiveEvents] = useState<RuntimeEvent[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -182,6 +186,7 @@ function useRuntimeInspectorData(sessionId: string | null, refreshTrigger: numbe
   const reload = useCallback(async (): Promise<void> => {
     if (sessionId === null) {
       setSnapshot(null)
+      setMemoryHistory([])
       setError(null)
       return
     }
@@ -191,6 +196,9 @@ function useRuntimeInspectorData(sessionId: string | null, refreshTrigger: numbe
     try {
       const data = await loadRuntimeInspectorViewModel(sessionId, { eventsLimit: 20 })
       setSnapshot(data)
+      setMemoryHistory((previous) =>
+        pushMemorySnapshotHistory(previous, buildMemorySnapshot(data.memory.layers, data.recentEvents)),
+      )
     } catch (nextError) {
       setError(formatApiError(nextError, 'Failed to load runtime inspector'))
     } finally {
@@ -205,6 +213,7 @@ function useRuntimeInspectorData(sessionId: string | null, refreshTrigger: numbe
   useEffect(() => {
     if (sessionId === null) {
       setLiveEvents([])
+      setMemoryHistory([])
       return
     }
 
@@ -224,6 +233,7 @@ function useRuntimeInspectorData(sessionId: string | null, refreshTrigger: numbe
 
   return {
     snapshot,
+    memoryHistory,
     liveEvents,
     loading,
     error,

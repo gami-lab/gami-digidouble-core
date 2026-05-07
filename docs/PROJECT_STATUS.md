@@ -52,6 +52,27 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Added tests for section-to-inspector mapping and scenario/session context continuity in `apps/console/src/pages/debug-shell-navigation.test.ts`.
 - Reused existing runtime-inspector API integration and mounted section-specific inspector tabs through one shell entrypoint.
 
+### EPIC 2.8 — Memory evolution workspace: **in progress** (2026-05-07)
+
+- Redesigned the Debugging Shell memory section to explicitly separate:
+  - short-term exchange memory
+  - working memory (session + avatar summaries)
+  - long-term facts
+- Added bounded memory evolution snapshots in console runtime inspector state (max 8 snapshots), derived from existing read-model payloads only.
+- Added explicit per-snapshot delta computation for memory debugging:
+  - short-term added/removed exchanges
+  - working-memory session/avatar summary changes + stale signal
+  - long-term added/removed/changed facts
+- Added operator-facing memory implications copy:
+  - “Working memory stale” when turn progression advances without working-memory updates
+  - “New long-term fact extracted” when fact additions are detected
+- Added focused tests:
+  - `apps/console/src/components/memory-evolution.test.ts`
+  - updated `apps/console/src/components/runtime-inspector-tab-content.test.tsx` for layered memory + evolution behavior
+- API/Data model status:
+  - No endpoint shape changes were required.
+  - `docs/API_CONTRACT.md` and `docs/DATA_MODEL.md` remain accurate for this slice.
+
 ### EPIC 2.7 — Runtime Inspector query composition over existing APIs: **complete** (2026-05-07)
 
 - Added a single typed console-side composition/query layer: `apps/console/src/api/runtime-inspector.ts`.

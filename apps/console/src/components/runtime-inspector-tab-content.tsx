@@ -2,6 +2,8 @@ import { useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
 import type { RuntimeEvent, UserPersona } from '@gami/shared'
 import type { RuntimeInspectorViewModel } from '../api'
+import type { MemoryEvolutionSnapshot } from './memory-evolution'
+import { computeMemoryDelta } from './memory-evolution'
 
 export type InspectorTab =
   | 'overview'
@@ -15,6 +17,7 @@ export type InspectorTab =
 type RuntimeInspectorTabContentProps = {
   tab: InspectorTab
   snapshot: RuntimeInspectorViewModel
+  memoryHistory: MemoryEvolutionSnapshot[]
   liveEvents: RuntimeEvent[]
   actionStatus: string | null
   onReplayGm: () => void
@@ -64,7 +67,7 @@ export function RuntimeInspectorTabContent(props: RuntimeInspectorTabContentProp
     case 'overview':
       return <OverviewTab snapshot={props.snapshot} />
     case 'memory':
-      return <MemoryTab snapshot={props.snapshot} />
+      return <MemoryTab snapshot={props.snapshot} memoryHistory={props.memoryHistory} />
     case 'context':
       return <ContextTab snapshot={props.snapshot} />
     case 'events':
@@ -98,13 +101,83 @@ function OverviewTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX
   )
 }
 
-function MemoryTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
+// eslint-disable-next-line complexity
+function MemoryTab({
+  snapshot,
+  memoryHistory,
+}: {
+  snapshot: RuntimeInspectorViewModel
+  memoryHistory: MemoryEvolutionSnapshot[]
+}): JSX.Element {
+  const lastSnapshot = memoryHistory[memoryHistory.length - 1] ?? null
+  const previousSnapshot =
+    memoryHistory.length >= 2 ? (memoryHistory[memoryHistory.length - 2] ?? null) : null
+  const delta =
+    lastSnapshot !== null ? computeMemoryDelta(previousSnapshot, lastSnapshot) : null
+
   return (
     <div style={{ marginTop: '12px' }}>
-      <Row label="Summary">{snapshot.memory.summary.summary}</Row>
-      <Row label="Short-term exchanges">{String(snapshot.memory.layers.shortTerm.exchangeCount)}</Row>
-      <Row label="Working avatars">{String(snapshot.memory.layers.working.avatars.length)}</Row>
-      <Row label="Long-term facts">{String(snapshot.memory.layers.longTerm.facts.length)}</Row>
+      <strong>Short-term exchange memory</strong>
+      <Row label="Exchange count">{String(snapshot.memory.layers.shortTerm.exchangeCount)}</Row>
+      <Row label="Recent exchanges">{String(snapshot.memory.layers.shortTerm.recentExchanges.length)}</Row>
+      {snapshot.memory.layers.shortTerm.recentExchanges.map((exchange, index) => (
+        <p key={`${exchange.user}-${exchange.avatar}-${String(index)}`} style={{ margin: '4px 0', color: '#374151' }}>
+          U: {exchange.user} / A: {exchange.avatar}
+        </p>
+      ))}
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>Working memory</strong>
+      <Row label="Session summary">{snapshot.memory.layers.working.session?.summary ?? '-'}</Row>
+      <Row label="Avatar summaries">{String(snapshot.memory.layers.working.avatars.length)}</Row>
+      {snapshot.memory.layers.working.avatars.map((avatar) => (
+        <p key={avatar.avatarId} style={{ margin: '4px 0', color: '#374151' }}>
+          {avatar.avatarId}: {avatar.summary}
+        </p>
+      ))}
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>Long-term facts</strong>
+      <Row label="Fact count">{String(snapshot.memory.layers.longTerm.facts.length)}</Row>
+      {snapshot.memory.layers.longTerm.facts.map((fact) => (
+        <p key={`${fact.category}:${fact.key}`} style={{ margin: '4px 0', color: '#374151' }}>
+          {fact.category}/{fact.key}: {fact.value}
+        </p>
+      ))}
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>Memory evolution</strong>
+      {memoryHistory.length === 0 ? (
+        <p style={{ margin: '6px 0', color: '#6b7280' }}>No memory snapshots yet.</p>
+      ) : null}
+      {delta !== null ? (
+        <>
+          <Row
+            label="Progress marker"
+          >{`turn ${String(lastSnapshot?.turnIndex ?? 0)} / ${lastSnapshot?.conversationId ?? '-'}`}</Row>
+          <Row
+            label="Delta summary"
+          >{`short-term +${String(delta.shortTerm.added.length)} -${String(delta.shortTerm.removed.length)}, working +${String(delta.working.avatarAdded.length)} ~${String(delta.working.avatarChanged.length)} -${String(delta.working.avatarRemoved.length)}, long-term +${String(delta.longTerm.added.length)} ~${String(delta.longTerm.changed.length)} -${String(delta.longTerm.removed.length)}`}</Row>
+          {delta.working.stale ? (
+            <p style={{ margin: '6px 0', color: '#b45309' }}>
+              Working memory stale: turn advanced but working summaries did not update.
+            </p>
+          ) : null}
+          {delta.longTerm.added.length > 0 ? (
+            <p style={{ margin: '6px 0', color: '#166534' }}>
+              New long-term fact extracted: {delta.longTerm.added.map((fact) => `${fact.category}:${fact.key}`).join(', ')}
+            </p>
+          ) : null}
+        </>
+      ) : null}
+      <div style={{ marginTop: '8px' }}>
+        {memoryHistory
+          .slice()
+          .reverse()
+          .map((entry) => (
+            <p key={entry.snapshotId} style={{ margin: '4px 0', color: '#4b5563' }}>
+              [{new Date(entry.capturedAt).toLocaleTimeString()}] turn {String(entry.turnIndex ?? 0)} ·
+              short-term {String(entry.layers.shortTerm.exchangeCount)} · facts {String(entry.layers.longTerm.facts.length)}
+            </p>
+          ))}
+      </div>
     </div>
   )
 }
