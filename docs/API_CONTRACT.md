@@ -1901,39 +1901,7 @@ type AdminResetSessionResponse = {
 
 ---
 
-## A9. Replay Last Turn
-
-Re-runs the Avatar call for the last user message without re-storing the user message. Useful for debugging quality issues on a specific turn.
-
-### Endpoint
-
-```text
-POST /v1/admin/sessions/{sessionId}/replay-last-turn
-```
-
-### Response
-
-```ts
-type AdminReplayTurnResponse = {
-  sessionId: string
-  replayedMessage: {
-    content: string
-    model?: string
-    latencyMs?: number
-    inputTokens?: number
-    outputTokens?: number
-  }
-}
-```
-
-### Notes
-
-- The replayed response is **not** stored
-- Runtime admin action audit entries are appended to `event_log` with admin action event types.
-
----
-
-## A9b. Admin Runtime Actions
+## A9. Admin Runtime Actions
 
 Status: IMPLEMENTED (EPIC 2.7)
 Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).

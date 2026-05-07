@@ -20,7 +20,6 @@ vi.mock('./client', () => ({
   coreRequest: vi.fn(),
 }))
 
-// eslint-disable-next-line max-lines-per-function
 describe('sessions runtime inspector action API wrappers', () => {
   beforeEach(() => {
     vi.clearAllMocks()

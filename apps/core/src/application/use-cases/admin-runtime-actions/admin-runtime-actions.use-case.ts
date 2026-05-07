@@ -144,8 +144,8 @@ export class AdminRuntimeActionsUseCase {
       lastActivityAt: new Date().toISOString(),
     })
 
-    const gmNotesCleared = session.gmNotes !== undefined
-    const legacySessionSummaryCleared = session.memorySummary !== undefined
+    const gmNotesCleared = session.gmNotes != null
+    const legacySessionSummaryCleared = session.memorySummary != null
 
     await this.appendAuditEvent({
       sessionId: input.sessionId,

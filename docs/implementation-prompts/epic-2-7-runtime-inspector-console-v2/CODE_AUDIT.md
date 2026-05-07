@@ -111,3 +111,59 @@ Build-health verdict: Good and releasable for dev/internal usage, but not fully 
 ## Final Recommendation
 
 Proceed with EPIC 2.7 as functionally complete and stable for internal/dev usage. Do not classify as A-grade done until the five findings above are closed, with priority on contract drift and clearMemory response correctness.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Removed stale runtime action contract drift by deleting the non-implemented replay-last-turn section and keeping one authoritative admin runtime action section in docs/API_CONTRACT.md.
+- Corrected clear-memory cleared-flag semantics in apps/core/src/application/use-cases/admin-runtime-actions/admin-runtime-actions.use-case.ts:
+  - gmNotesCleared now reflects non-null pre-state notes.
+  - legacySessionSummaryCleared now reflects non-null pre-state legacy summary.
+- Added focused use-case tests in apps/core/src/application/use-cases/admin-runtime-actions/admin-runtime-actions.use-case.test.ts covering:
+  - replay happy path with latest user-turn selection and audit event append
+  - replay conflict when no user turn exists
+  - refresh scheduling and audit event append
+  - clear-memory semantics for pre-cleared and populated states
+- Removed lint-noise by deleting unused eslint disable in apps/console/src/api/sessions.runtime-inspector-actions.test.ts.
+- Reduced Runtime Inspector UI structural complexity by extracting tab/panel logic into apps/console/src/components/runtime-inspector-tab-content.tsx and simplifying apps/console/src/components/RuntimeInspector.tsx orchestration.
+- Added component behavior tests in apps/console/src/components/runtime-inspector-tab-content.test.tsx for:
+  - action tab rendering/status
+  - context fallback rendering behavior
+  - live event rendering
+  - persona payload normalization helper behavior
+
+### Findings Resolved
+
+- Resolved Finding 1 (High): API contract drift for non-existent replay-last-turn endpoint.
+- Resolved Finding 2 (Medium): clearMemory cleared-flag correctness for null/pre-cleared states.
+- Resolved Finding 3 (Medium): missing AdminRuntimeActionsUseCase unit tests.
+- Resolved Finding 4 (Medium): Runtime Inspector complexity/testability gap via extraction and new component tests.
+- Resolved Finding 5 (Low): lint warning from unused eslint-disable directive.
+
+### Findings Deferred
+
+- None.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (core all-files: 91.67% statements, 86.24% branches, 97.91% functions, 91.67% lines)
+
+### Final Feature Confidence
+
+- Admin runtime actions are behaviorally proven at use-case, route, and stack levels, including failure behavior and audit side effects.
+- Clear-memory semantics now reflect truthful pre-state transitions and remain session-scoped.
+- Runtime Inspector console behavior is covered by both API-layer and component behavior tests.
+- Runtime-inspector/admin contract documentation is now aligned to implemented backend surfaces.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- No major delivery blocker remains for EPIC 2.7 scope.
+- Standard regression risk remains for future cross-epic changes; current automated coverage is adequate for this EPIC boundary.
