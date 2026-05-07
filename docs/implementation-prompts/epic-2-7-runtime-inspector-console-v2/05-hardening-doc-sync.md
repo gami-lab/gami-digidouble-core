@@ -9,15 +9,15 @@ still describe the shipped system accurately.
 This prompt is not a dumping ground for unfinished feature work. It is the final hardening and doc
 sync pass after prompts 0–4 are complete.
 
-This pass must also verify that the final implementation stayed DRY: no redundant admin routes, no
-parallel local-vs-shared DTO ownership, and no console support left behind for superseded admin
-contracts.
+This pass must also verify that the final implementation stayed DRY: no unnecessary new admin read
+routes, no parallel local-vs-shared DTO ownership, and no scattered console support left behind for
+inspector data loading.
 
 ## Scope
 
 **In scope:**
 
-- close any missing route, unit, and stack-e2e coverage for the final EPIC 2.7 endpoint surface
+- close any missing unit, route, and stack-e2e coverage for the final EPIC 2.7 surface
 - strengthen contract assertions for the new runtime-inspector and admin-action responses
 - verify console behavior with focused tests for loading, action errors, and live updates
 - update all impacted docs
@@ -47,10 +47,10 @@ contracts.
    - validation coverage where the endpoint has input
    - resource-not-found coverage
 
-2. Also audit what was removed or consolidated:
-   - delete superseded admin routes that no longer serve a real consumer
-   - remove console API clients for superseded routes
-   - update docs so the final admin surface is the only documented one
+2. Also audit what was consolidated:
+   - remove duplicated console DTOs and scattered inspector-loading code paths
+   - verify existing admin read routes were reused where they were already sufficient
+   - only document a new admin read route if one was explicitly introduced and justified
 
 3. Favor consumer-proof assertions:
    - response envelope shape
@@ -87,7 +87,7 @@ contracts.
 - do not use broad brittle snapshots as your main proof
 - do not leave docs stale after API or runtime-action changes
 - do not silently defer required stack-e2e coverage for new routes
-- do not leave superseded admin endpoints documented or wired in the console after consolidation
+- do not leave duplicated console inspector loaders or DTO ownership after consolidation
 - keep this prompt focused on hardening and doc closure, not new product scope
 
 ## Deliverables
@@ -127,7 +127,8 @@ If no doc changes are needed, explicitly verify that the docs are still accurate
 ## Acceptance Criteria
 
 - [ ] every new EPIC 2.7 endpoint has route tests and a matching `*.stack-e2e.test.ts` file
-- [ ] superseded admin routes and duplicated console API clients are removed when no longer needed
+- [ ] duplicated console inspector loaders and duplicated DTO ownership are removed when no longer
+      needed
 - [ ] console tests cover the new inspector’s observable behavior
 - [ ] docs match the final shipped contracts and semantics
 - [ ] `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm test:coverage` pass

@@ -32,14 +32,14 @@ May 6, 2026
 
 ## Prompt Files — Ordered Execution List
 
-| #   | File                                  | Description                                                                        | Depends On |
-| --- | ------------------------------------- | ---------------------------------------------------------------------------------- | ---------- |
-| 0   | `00-contract-cleanup.md`              | Centralize runtime-inspector DTO ownership before new inspector behavior           | —          |
-| 1   | `01-runtime-inspector-query-model.md` | Consolidate fragmented admin read APIs into the cleanest runtime-inspector surface | 0          |
-| 2   | `02-context-inspection-api.md`        | Add safe assembled Avatar + GM context inspection for operators                    | 0          |
-| 3   | `03-admin-runtime-actions.md`         | Add auditable admin actions for GM replay and memory operations                    | 0          |
-| 4   | `04-console-runtime-inspector-v2.md`  | Upgrade the console into a live runtime inspector using the new and existing APIs  | 1, 2, 3    |
-| 5   | `05-hardening-doc-sync.md`            | Close test gaps, stack-e2e coverage, and documentation drift across the full EPIC  | 1–4        |
+| #   | File                                  | Description                                                                                   | Depends On |
+| --- | ------------------------------------- | --------------------------------------------------------------------------------------------- | ---------- |
+| 0   | `00-contract-cleanup.md`              | Centralize runtime-inspector DTO ownership before new inspector behavior                      | —          |
+| 1   | `01-runtime-inspector-query-model.md` | Consolidate inspector contract ownership and compose the runtime view from existing read APIs | 0          |
+| 2   | `02-context-inspection-api.md`        | Add safe assembled Avatar + GM context inspection for operators                               | 0          |
+| 3   | `03-admin-runtime-actions.md`         | Add auditable admin actions for GM replay and memory operations                               | 0          |
+| 4   | `04-console-runtime-inspector-v2.md`  | Upgrade the console into a live runtime inspector using the new and existing APIs             | 1, 2, 3    |
+| 5   | `05-hardening-doc-sync.md`            | Close test gaps, stack-e2e coverage, and documentation drift across the full EPIC             | 1–4        |
 
 ## Dependencies Between Prompts
 
@@ -58,17 +58,17 @@ May 6, 2026
 
 - [ ] Runtime-inspector HTTP contracts have one canonical owner and the console does not redefine
       structurally identical admin DTOs locally.
-- [ ] The console can load a coherent runtime-inspector view for one session without ad hoc API
-      fan-out and without preserving redundant admin read endpoints.
+- [ ] The console can load a coherent runtime-inspector view for one session through one typed
+      console-side query/composition layer over the existing read APIs, without DTO drift.
 - [ ] Operators can inspect runtime state, memory layers, GM state, transition history, unlock
       progression, metrics, and user persona from one runtime-inspector flow.
 - [ ] Operators can inspect safe assembled Avatar and Game Master context without exposing raw
       prompt internals, secrets, provider credentials, or unbounded transcript replay.
 - [ ] Operators can watch live runtime SSE events in the console for the selected session.
 - [ ] Safe operational actions exist for the missing EPIC 2.7 debug actions: - replay GM - clear session-scoped working memory - trigger memory refresh - reset session reuses existing behavior instead of being reimplemented
-- [ ] Every resulting HTTP endpoint introduced or retained by this EPIC has route tests and, when
-      it is new, a matching `*.stack-e2e.test.ts` file covering auth, validation, and not-found
-      behavior.
+- [ ] Existing read endpoints remain DRY and are reused unless a capability is genuinely missing.
+- [ ] Every new HTTP endpoint introduced by this EPIC has route tests and a matching
+      `*.stack-e2e.test.ts` file covering auth, validation, and not-found behavior.
 - [ ] Admin actions are auditable and do not silently mutate cross-session user memory.
 - [ ] `docs/API_CONTRACT.md`, `docs/PROJECT_STATUS.md`, and any other impacted docs remain
       accurate.
@@ -80,7 +80,8 @@ May 6, 2026
   most of the backend primitives.
 - The main missing value is operator coherence: canonical contracts, a minimal clean admin read
   surface, context inspection, auditable actions, and a console that uses them intentionally.
-- Existing admin endpoints are not sacred. If a consolidated runtime-inspector surface fully
-  replaces fragmented reads, remove or retire the superseded routes instead of keeping both.
+- Existing admin endpoints should be reused when they already express the needed capability cleanly.
+- Do not add a new aggregated read endpoint unless the existing read APIs are proven insufficient
+  even after contract cleanup and console-side composition.
 - Keep the admin plane safe. Inspection APIs are allowed to be rich, but they must stay bounded,
   deterministic, and free of secret or provider-specific leakage.

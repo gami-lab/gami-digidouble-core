@@ -14,7 +14,7 @@ contract drift, or missing runtime capabilities.
 **In scope:**
 
 - upgrade the Scenario Test Bench inspector area into a multi-panel runtime inspector
-- consume the final consolidated runtime-inspector read surface from prompt 1
+- consume the typed console-side query/composition layer from prompt 1
 - consume assembled context inspection from prompt 2
 - surface admin runtime actions from prompt 3
 - connect to the existing session-scoped SSE stream for live runtime events
@@ -80,9 +80,9 @@ contract drift, or missing runtime capabilities.
 7. Use canonical shared DTOs from prompt 0. Do not reintroduce local API-contract copies in the
    console.
 
-8. Prefer deleting obsolete console-side API wiring once the final inspector surface exists. The
-   console should not keep support for both superseded and current admin contracts unless the EPIC
-   explicitly leaves a migration phase in place.
+8. Prefer deleting obsolete console-side API wiring once the final inspector composition layer
+   exists. The console should not keep scattered direct endpoint usage and duplicated DTOs when one
+   typed inspector loader can own the flow.
 
 9. Tests:
    - unit/component tests for inspector data loading, action triggering, and error states
@@ -134,5 +134,6 @@ If no doc changes are needed, explicitly verify that the docs are still accurate
 - [ ] live SSE events are visible in the console for the selected session
 - [ ] admin actions are available from the console and surface success/failure states clearly
 - [ ] the console uses canonical shared API DTOs rather than local duplicated contracts
-- [ ] the console does not keep obsolete client support for superseded admin inspector routes
+- [ ] the console does not keep obsolete scattered client wiring or duplicated DTOs for inspector
+      data loading
 - [ ] console tests pass for the touched slice

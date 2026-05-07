@@ -1,4 +1,4 @@
-# Aggregated Runtime Inspector Query Model
+# Runtime Inspector Query Model Over Existing APIs
 
 ## Context
 
@@ -13,34 +13,32 @@ The console currently has inspection primitives, but they are fragmented:
 - session metrics endpoint
 - user persona endpoint
 
-EPIC 2.7 needs a coherent runtime-inspector experience, not another collection of independent API
-calls. The console should be able to load one operator snapshot for a session and render most of
-the inspector from that response.
-
-This does not automatically mean “add one more endpoint.” First decide whether the cleanest DRY
-result is:
-
-- consolidating existing fragmented admin reads into one new runtime-inspector endpoint and
-  removing superseded endpoints, or
-- keeping the existing endpoints and only fixing shared contract ownership if they already provide a
-  clean enough surface for the console
+EPIC 2.7 needs a coherent runtime-inspector experience, not another collection of ad hoc console
+calls. The console should have one typed query/composition layer for runtime inspection, but that
+does not require adding a new backend read endpoint when the existing APIs already cover the needed
+data.
 
 ## Scope
 
 **In scope:**
 
-- choose the smallest clean admin read surface for the runtime inspector
-- if the current set of endpoints is not clean enough, replace fragmented reads with one
-  consolidated endpoint such as `GET /v1/admin/sessions/{sessionId}/runtime-inspector`
-- compose the final read surface from already-implemented read models where possible
+- define one typed console-side query/composition layer for the runtime inspector
+- reuse the existing read APIs where they already provide the needed bounded data:
+  - `GET /v1/admin/sessions/{sessionId}/inspect`
+  - `GET /v1/admin/sessions/{sessionId}/memory`
+  - `GET /v1/admin/sessions/{sessionId}/memory-layers`
+  - `GET /v1/admin/sessions/{sessionId}/events`
+  - `GET /v1/admin/sessions/{sessionId}/metrics`
+  - `GET /v1/sessions/{sessionId}/runtime-state`
+  - `GET /v1/users/{userId}/persona`
+- consolidate contract ownership and eliminate duplicated console DTOs
 - return only bounded, operator-safe data needed for overview/runtime panels
-- add route tests and a stack-e2e file for the new endpoint
 
 **Out of scope:**
 
-- assembled Avatar/GM context inspection (handled in a later prompt)
+- assembled Avatar/GM context inspection endpoint work (handled in a later prompt)
 - admin mutation actions (handled in a later prompt)
-- console UI implementation
+- major console UI implementation
 
 ## Relevant Docs
 
@@ -53,70 +51,60 @@ result is:
 
 ## Implementation Guidance
 
-1. Start with a deletion/consolidation decision, not implementation:
-   - if `inspect` + `memory-layers` + `events` + `metrics` is already clean enough after prompt 0,
-     do not invent another endpoint just for aesthetic reasons
-   - if the current surface still forces wasteful console fan-out or duplicated DTO ownership,
-     replace it with one consolidated runtime-inspector endpoint and remove the superseded admin
-     read routes
+1. Treat this as a reuse-and-composition prompt, not a route-addition prompt.
 
-2. Build a dedicated application use case that composes existing read-model boundaries instead of
-   reimplementing route logic. Reuse existing repositories/use cases wherever practical.
+2. Build one typed query/composition layer at the console boundary that loads the existing runtime
+   inspector inputs and maps them into one coherent console view model.
 
-3. The runtime-inspector response should be operator-oriented and stable. Include the minimum data
-   that the console needs to render an overview panel without further fan-out. A good starting
-   envelope is:
-   - `session`
-   - `runtimeState`
-   - `gm`
-     - `gmState`
-     - `gmNotes`
-     - `transitionHistory`
-     - `unlockedAvatarIds`
-   - `memory`
-     - compact summary
-     - layered memory snapshot
-   - `metrics`
-     - summary block from admin session metrics
-   - `persona`
-   - `availableAvatars`
-   - `recentEvents` (bounded, newest-first)
+3. Use prompt 0 to centralize HTTP DTO ownership in `@gami/shared`, then make the console query
+   layer compose those shared contracts instead of redefining them locally.
 
-4. Reuse existing bounds rather than introducing new ones casually. If you add a new event limit,
-   make it explicit in the contract and keep it small (for example 20 or 50).
+4. A good starting composed view model for the console is:
 
-5. Avoid embedding raw transcript replay. The existing memory and runtime contracts are already
+- `session`
+- `runtimeState`
+- `gm`
+  - `gmState`
+  - `gmNotes`
+  - `transitionHistory`
+  - `unlockedAvatarIds`
+- `memory`
+  - compact summary
+  - layered memory snapshot
+- `metrics`
+  - summary block from admin session metrics
+- `persona`
+- `recentEvents` (bounded, newest-first)
+
+5. If loading order or request fan-out becomes awkward, solve it first with a console-side loader
+   or application service function, not with a new backend endpoint by default.
+
+6. Reuse existing bounds rather than introducing new ones casually.
+
+7. Avoid embedding raw transcript replay. The existing memory and runtime contracts are already
    bounded. Preserve that property.
 
-6. The final runtime-inspector read surface must have one shared HTTP DTO owner in `@gami/shared`.
-   The console should consume that DTO directly.
-
-7. Route requirements:
-   - API key auth required
-   - `404` for missing session
-   - response uses the standard `ApiResponse<T>` envelope used by the codebase
-
 8. Tests:
-   - application/use-case behavior tests for composition and missing optional layers
-   - route tests for auth/not-found/happy path shape
-   - `apps/core/src/api/routes/admin-runtime-inspector.stack-e2e.test.ts` with auth,
-     validation if applicable, not-found, and happy path if seedable
+
+- focused console/API-layer tests for composition and missing optional layers
+- update any touched Core route tests only if shared DTO ownership changed
+- do not add a new route or stack-e2e test in this prompt unless you prove an existing API is
+  insufficient and choose to introduce a new endpoint explicitly
 
 ## Constraints
 
-- do not collapse all inspector logic into the route handler
-- reuse existing read models before adding new repository methods
-- no raw prompt text, provider credentials, or unbounded message history in the response
-- do not let the admin snapshot drift from the shared contract owner introduced in prompt 0
-- do not keep both old and new admin read surfaces unless there is a concrete non-console consumer
-  that still requires the old route
+- do not add a new aggregated admin route unless the existing read APIs are demonstrably
+  insufficient after contract cleanup
+- reuse existing read APIs before adding new repository methods or new routes
+- no raw prompt text, provider credentials, or unbounded message history in the composed view
+- do not let the console query model drift from the shared contract owner introduced in prompt 0
 
 ## Deliverables
 
-- one clean runtime-inspector read surface for the console
-- application use case that composes existing read models cleanly
-- shared response type for the final read surface
-- route tests and stack-e2e coverage for any new resulting endpoint
+- one clean typed console query/composition layer for the runtime inspector
+- shared DTO ownership aligned with the existing read APIs
+- console/API-layer tests for the composed inspector model
+- explicit justification only if a new backend read endpoint is still needed after this slice
 
 ## Mandatory Pre-Implementation Check
 
@@ -140,10 +128,11 @@ If no doc changes are needed, explicitly verify that the docs are still accurate
 
 ## Acceptance Criteria
 
-- [ ] the final admin read surface for the runtime inspector is minimal, DRY, and canonical
-- [ ] the response is bounded, operator-safe, and sufficient for the console overview/runtime
-      panels
-- [ ] any newly introduced endpoint returns `401` on missing/wrong API key and `404` for unknown
-      sessions
-- [ ] any newly introduced endpoint has route tests and a matching `*.stack-e2e.test.ts` file
+- [ ] the runtime inspector uses one typed console-side query/composition layer over the existing
+      read APIs
+- [ ] shared DTO ownership is canonical and the console no longer defines duplicated inspector DTOs
+- [ ] the composed inspector model is bounded, operator-safe, and sufficient for the console
+      overview/runtime panels
+- [ ] a new backend read endpoint is not introduced unless the existing APIs are proven
+      insufficient and that decision is explicitly documented
 - [ ] `pnpm test` passes for the touched slice
