@@ -470,7 +470,7 @@ Visible orchestration behavior dramatically improves debugging speed, scenario t
 
 ---
 
-## EPIC 2.7 — Runtime Inspector & Console v2
+## EPIC 2.7 — Runtime Inspector & Console v2 ✅ Done
 
 **Purpose**
 Make orchestration, memory, and runtime behavior inspectable as the system complexity grows.
@@ -1368,10 +1368,6 @@ A hybrid response engine improves quality/cost/latency trade-offs versus pure li
 If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
 
 ## Recommended implementation order
-
-### EPIC 2.7 — Runtime Inspector & Console v2
-
-Make orchestration, memory, and runtime behavior inspectable as the system complexity grows.
 
 ### 7. EPIC 5.1 — Multi-Layer Knowledge & RAG System v1
 
