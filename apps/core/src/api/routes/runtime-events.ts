@@ -26,9 +26,10 @@ export function registerRuntimeEventsRoutes(
   sessionRepository: ISessionRepository,
   publisher: ISessionEventPublisher,
   getRuntimeStateUseCase: GetRuntimeStateUseCase,
+  corsOrigin: string,
 ): void {
   registerGetRuntimeStateRoute(app, getRuntimeStateUseCase)
-  registerStreamRuntimeEventsRoute(app, sessionRepository, publisher)
+  registerStreamRuntimeEventsRoute(app, sessionRepository, publisher, corsOrigin)
 }
 
 function registerGetRuntimeStateRoute(app: FastifyInstance, useCase: GetRuntimeStateUseCase): void {
@@ -53,6 +54,7 @@ function registerStreamRuntimeEventsRoute(
   app: FastifyInstance,
   sessionRepository: ISessionRepository,
   publisher: ISessionEventPublisher,
+  corsOrigin: string,
 ): void {
   app.get<{ Params: SessionParams }>(
     '/:sessionId/events/stream',
@@ -68,6 +70,7 @@ function registerStreamRuntimeEventsRoute(
       reply.raw.setHeader('Cache-Control', 'no-cache')
       reply.raw.setHeader('Connection', 'keep-alive')
       reply.raw.setHeader('X-Accel-Buffering', 'no')
+      reply.raw.setHeader('Access-Control-Allow-Origin', corsOrigin)
       reply.raw.write(': keepalive\n\n')
 
       request.log.info({ sessionId }, 'sse.connected')

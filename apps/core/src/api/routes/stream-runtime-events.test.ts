@@ -132,6 +132,7 @@ describe('GET /v1/sessions/:sessionId/events/stream sse headers', () => {
 
     expect(response.statusCode).toBe(200)
     expect(response.headers['content-type']).toContain('text/event-stream')
+    expect(response.headers['access-control-allow-origin']).toBe('*')
 
     const stream = response.stream()
     const chunk = await new Promise<string>((resolve) => {
