@@ -41,6 +41,19 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Console `GmDebugPanel` loader now consumes the unified runtime-inspector query model instead of ad hoc endpoint fan-out.
 - Added focused console API-layer tests for composed model behavior and optional/null layer handling.
 
+### EPIC 2.7 — Assembled context inspection API: **complete** (2026-05-07)
+
+- Added admin endpoint `GET /v1/admin/sessions/{sessionId}/context` for bounded assembled-context inspection.
+- Added canonical shared DTO ownership for context inspection in `@gami/shared` (`runtime-inspector-types.ts`).
+- Implemented `GetSessionContextUseCase` that reconstructs safe Avatar and GM context snapshots from existing assembly inputs:
+  - Avatar memory/context assembler layers (short-term, working, long-term)
+  - bounded recent messages
+  - user persona
+  - GM state and available avatars
+  - scenario description/goals metadata
+- Added route tests for auth, not-found, and happy-path shape/safety.
+- Added stack-e2e coverage in `admin-session-context.stack-e2e.test.ts` for auth, not-found, and bounded happy-path envelope.
+
 ### EPIC 4.2 — User Memory Facts v1: **complete** (2026-05-05)
 
 - Added canonical Postgres schema table `user_memory_facts` (`infra/postgres/init.sql`) with `umf_` id prefix, uniqueness on `(user_id, category, key)`, and user index.

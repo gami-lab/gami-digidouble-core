@@ -47,4 +47,8 @@ export type {
   ResetSessionAdminActionRequest,
   ResetSessionAdminActionResponse,
   EndConversationAdminActionRequest,
+  SessionContextScenarioSnapshot,
+  SessionContextAvatarSnapshot,
+  SessionContextGmSnapshot,
+  AdminSessionContextResponse,
 } from './runtime-inspector-types.js'

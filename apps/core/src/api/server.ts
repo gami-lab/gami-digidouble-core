@@ -25,11 +25,16 @@ import { InMemoryUserMemoryFactRepository } from '../infrastructure/db/in-memory
 import { InMemoryUserRepository } from '../infrastructure/db/in-memory-user.repository.js'
 import { InMemorySessionMemoryRepository } from '../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../infrastructure/db/in-memory-avatar-session-memory.repository.js'
+import { InMemoryConversationRepository } from '../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryAvatarRepository } from '../infrastructure/db/in-memory-avatar.repository.js'
+import { InMemoryScenarioRepository } from '../infrastructure/db/in-memory-scenario.repository.js'
+import { InMemoryMessageRepository } from '../infrastructure/db/in-memory-message.repository.js'
 import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memory-session-event-publisher.js'
 import { adminMemoryRoute } from './routes/admin-memory.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
 import { adminMetricsRoute } from './routes/admin-metrics.js'
 import { adminHealthRoute } from './routes/admin-health.js'
+import { adminSessionContextRoute } from './routes/admin-session-context.js'
 import { avatarsRoute, type AvatarsRouteOptions } from './routes/avatars.js'
 import { conversationsRoute } from './routes/conversations.js'
 import { exchangeRoute } from './routes/exchange.js'
@@ -121,6 +126,9 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   app.register(adminMemoryRoute, {
     ...buildAdminMemoryRouteOptions(config, resolvedAdapters),
   })
+  app.register(adminSessionContextRoute, {
+    ...buildAdminSessionContextRouteOptions(config, resolvedAdapters),
+  })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',
     ...buildScenariosRouteOptions(config, resolvedAdapters),
@@ -209,4 +217,37 @@ function buildAdminMemoryRouteOptions(config: Config, adapters: ServerAdapters) 
     userMemoryFactRepository:
       adapters.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
   }
+}
+
+function buildAdminSessionContextRouteOptions(config: Config, adapters: ServerAdapters) {
+  return {
+    prefix: '/v1/admin',
+    config,
+    sessionRepository: withDefault(adapters.sessionRepository, new InMemorySessionRepository()),
+    conversationRepository: withDefault(
+      adapters.conversationRepository,
+      new InMemoryConversationRepository(),
+    ),
+    avatarRepository: withDefault(adapters.avatarRepository, new InMemoryAvatarRepository()),
+    scenarioRepository: withDefault(adapters.scenarioRepository, new InMemoryScenarioRepository()),
+    messageRepository: withDefault(adapters.messageRepository, new InMemoryMessageRepository()),
+    gmStateRepository: withDefault(adapters.gmStateRepository, new InMemoryGmStateRepository()),
+    userRepository: withDefault(adapters.userRepository, new InMemoryUserRepository()),
+    userMemoryFactRepository: withDefault(
+      adapters.userMemoryFactRepository,
+      new InMemoryUserMemoryFactRepository(),
+    ),
+    sessionMemoryRepository: withDefault(
+      adapters.sessionMemoryRepository,
+      new InMemorySessionMemoryRepository(),
+    ),
+    avatarSessionMemoryRepository: withDefault(
+      adapters.avatarSessionMemoryRepository,
+      new InMemoryAvatarSessionMemoryRepository(),
+    ),
+  }
+}
+
+function withDefault<T>(value: T | undefined, fallback: T): T {
+  return value ?? fallback
 }

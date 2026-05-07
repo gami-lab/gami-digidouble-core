@@ -589,3 +589,33 @@ Avatar unlocking is owned by the Game Master.
 4. The GM may return `unlockAvatarIds` when the recent discussion makes a specialist relevant.
 5. Runtime validation ignores inactive avatars, non-scenario IDs, already-unlocked IDs, duplicates, and locked avatars that were not explicitly mentioned in `recentMessages`.
 6. `GET /v1/sessions/{sessionId}/available-avatars` remains the source of truth for what the client can switch to.
+
+# 17. Assembled Context Inspection
+
+To support EPIC 2.7 operator workflows, Core exposes:
+
+- `GET /v1/admin/sessions/{sessionId}/context`
+
+This endpoint provides a bounded, structured snapshot of the same inputs used by Avatar and GM context assembly:
+
+- Avatar-facing context layers:
+  - short-term recent exchanges (bounded)
+  - working memory (session + active avatar summaries when available)
+  - long-term structured facts
+  - user persona
+  - GM notes
+  - scenario metadata (description/goals)
+- GM-facing context layers:
+  - recent messages (bounded)
+  - memory context (`shortTerm`, `workingSummary`, `longTermFacts`)
+  - current GM state
+  - available avatars with availability flags
+  - user persona
+  - scenario metadata (description/goals)
+
+Safety rules remain unchanged:
+
+- No raw provider request/response payloads
+- No credentials or environment secrets
+- No raw full prompt template dumping
+- No unbounded transcript replay

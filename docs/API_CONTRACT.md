@@ -1789,6 +1789,86 @@ type AdminSessionTurnMetricsResponse = {
 
 ---
 
+## A7b. Admin: Assembled Session Context
+
+Status: IMPLEMENTED (EPIC 2.7)
+Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
+
+### Endpoint
+
+```text
+GET /v1/admin/sessions/{sessionId}/context
+```
+
+### Response
+
+```ts
+type AdminSessionContextResponse = {
+  sessionId: string
+  avatarContext: {
+    avatarId?: string
+    recentExchanges: Array<{ user: string; avatar: string }>
+    workingMemory: {
+      session?: { summary: string; updatedAt: string }
+      avatar?: { avatarId: string; summary: string; updatedAt: string }
+    }
+    longTermFacts: Array<{ category: string; key: string; value: string }>
+    userPersona: UserPersona | null
+    gmNotes: string | null
+    scenario: {
+      scenarioId: string
+      name?: string
+      description?: string
+      goals?: string[]
+    }
+  }
+  gmContext: {
+    recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>
+    memory: {
+      shortTerm?: { recentExchanges: Array<{ user: string; avatar: string }> }
+      workingSummary?: string
+      longTermFacts?: Array<{ category: string; key: string; value: string }>
+    }
+    currentState: {
+      currentAvatarId?: string
+      progression: string
+      topicsCovered: string[]
+      interactionCount: number
+    }
+    availableAvatars: Array<{
+      avatarId: string
+      name: string
+      description?: string
+      scope?: string
+      availability?: 'available' | 'locked'
+    }>
+    userPersona: UserPersona | null
+    scenario: {
+      scenarioId: string
+      name?: string
+      description?: string
+      goals?: string[]
+    }
+  }
+}
+```
+
+### Semantics
+
+- Returns bounded, operator-safe context inputs used by Avatar and GM flows.
+- `avatarContext.recentExchanges` is bounded short-term memory (max 2 exchanges).
+- `gmContext.recentMessages` is bounded recent message context (max 12 messages).
+- `workingMemory` / `workingSummary` and `longTermFacts` are derived from layered memory snapshots when available.
+- No provider request/response payloads, raw credentials, or raw full prompt templates are exposed.
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `404` → `NOT_FOUND` (session missing)
+- `500` → `INTERNAL_ERROR`
+
+---
+
 ## A8. Reset Session
 
 Deletes runtime conversation data. Does NOT delete the session record itself.

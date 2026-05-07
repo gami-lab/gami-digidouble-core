@@ -189,6 +189,7 @@ Must test:
 Must test:
 
 - session found → returns correct message count, memory summary, GM state fields present
+- assembled context route (`GET /v1/admin/sessions/{sessionId}/context`) returns bounded Avatar + GM context sections (memory, persona, scenario, available avatars) without prompt/credential leakage
 - layered memory route (`GET /v1/admin/sessions/{sessionId}/memory-layers`) returns bounded short-term exchanges (max 2), working layers, and long-term facts in stable envelope shape
 - session not found → 404 with correct error code
 - event list returns entries ordered by `created_at` desc

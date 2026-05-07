@@ -163,3 +163,74 @@ export type EndConversationAdminActionRequest = {
   conversationId: string
   reason?: ConversationEndReason
 }
+
+export type SessionContextScenarioSnapshot = {
+  scenarioId: string
+  name?: string
+  description?: string
+  goals?: string[]
+}
+
+export type SessionContextAvatarSnapshot = {
+  avatarId?: string
+  recentExchanges: Array<{
+    user: string
+    avatar: string
+  }>
+  workingMemory: {
+    session?: {
+      summary: string
+      updatedAt: string
+    }
+    avatar?: {
+      avatarId: string
+      summary: string
+      updatedAt: string
+    }
+  }
+  longTermFacts: Array<{
+    category: string
+    key: string
+    value: string
+  }>
+  userPersona: UserPersona | null
+  gmNotes: string | null
+  scenario: SessionContextScenarioSnapshot
+}
+
+export type SessionContextGmSnapshot = {
+  recentMessages: Array<{
+    role: 'user' | 'avatar' | 'system'
+    content: string
+  }>
+  memory: {
+    shortTerm?: {
+      recentExchanges: Array<{
+        user: string
+        avatar: string
+      }>
+    }
+    workingSummary?: string
+    longTermFacts?: Array<{
+      category: string
+      key: string
+      value: string
+    }>
+  }
+  currentState: GmStateSummary
+  availableAvatars: Array<{
+    avatarId: string
+    name: string
+    description?: string
+    scope?: string
+    availability?: 'available' | 'locked'
+  }>
+  userPersona: UserPersona | null
+  scenario: SessionContextScenarioSnapshot
+}
+
+export type AdminSessionContextResponse = {
+  sessionId: string
+  avatarContext: SessionContextAvatarSnapshot
+  gmContext: SessionContextGmSnapshot
+}
