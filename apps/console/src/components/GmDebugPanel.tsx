@@ -214,7 +214,7 @@ function RecentEvents({ events }: { events: SessionEventRecord[] }): JSX.Element
 
 function formatEventLine(event: SessionEventRecord): string {
   if ('totalTurnLatencyMs' in event.payload) {
-    return `${event.type} turn=${event.payload.turnIndex} total=${event.payload.totalTurnLatencyMs} ms`
+    return `${event.type} turn=${String(event.payload.turnIndex)} total=${String(event.payload.totalTurnLatencyMs)} ms`
   }
-  return `${event.type} ${event.payload.triggerReason ?? 'none'} ${event.payload.latencyMs} ms`
+  return `${event.type} ${event.payload.triggerReason ?? 'none'} ${String(event.payload.latencyMs)} ms`
 }
