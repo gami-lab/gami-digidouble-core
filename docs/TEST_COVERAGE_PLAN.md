@@ -246,6 +246,9 @@ Must test:
   - `POST /v1/admin/sessions/{sessionId}/memory/refresh`
   - `POST /v1/admin/sessions/{sessionId}/memory/clear`
 - persona editor API wrapper calls `PUT /v1/users/{userId}/persona` and preserves canonical shared DTO usage
+- persona-first session start gate blocks session start until persona is saved/available for selected user
+- GM impact causality trace renders trigger → decision → impact chain from bounded shared event payloads
+- turn profiler renders per-turn latency composition and supports deterministic sort/filter behavior (slowest/latest, GM-only)
 - no console-local duplicated admin DTO contracts; `@gami/shared` remains canonical owner for HTTP-facing inspector/admin DTOs
 
 ---

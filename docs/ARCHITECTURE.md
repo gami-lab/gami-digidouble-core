@@ -612,8 +612,10 @@ Console debugging UI composition is organized as one shell flow:
 - scenario selection
 - debugging shell with one shared scenario/session context
 - sectioned views (`Session Setup`, `Memory`, `GM Impact`, `Turn Profiler`, `Persona`)
+- persona-first pre-session setup in `Session Setup` (required before starting a debug session)
 
 The shell consumes existing API/read models and does not redefine backend DTO contracts.
+Legacy split console debug pages were removed in favor of this single shell path.
 
 ---
 

@@ -6,6 +6,8 @@ type ScenarioSessionLauncherProps = {
   userId: string
   session: SessionSummary | null
   isStarting: boolean
+  canStart?: boolean
+  startBlockedReason?: string | null
   onUserIdChange: Dispatch<SetStateAction<string>>
   onStart: () => void
 }
@@ -26,6 +28,8 @@ export function ScenarioSessionLauncher({
   userId,
   session,
   isStarting,
+  canStart = true,
+  startBlockedReason = null,
   onUserIdChange,
   onStart,
 }: ScenarioSessionLauncherProps): JSX.Element {
@@ -65,8 +69,9 @@ export function ScenarioSessionLauncher({
       <button
         type="button"
         style={{ ...buttonStyle, marginTop: 0, whiteSpace: 'nowrap' }}
-        disabled={isStarting || userId.trim() === ''}
+        disabled={isStarting || userId.trim() === '' || !canStart}
         onClick={onStart}
+        title={startBlockedReason ?? undefined}
       >
         {isStarting ? 'Starting...' : 'Start session'}
       </button>

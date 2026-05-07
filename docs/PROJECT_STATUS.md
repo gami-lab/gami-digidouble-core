@@ -10,7 +10,7 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC 2.7 (Runtime Inspector Contract Cleanup), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC 2.7 (Runtime Inspector Contract Cleanup), EPIC 2.8 (Console Debugging Redesign), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
 ### EPIC 2.7 — Runtime Inspector Contract Cleanup: **complete** (2026-05-07)
 
@@ -26,7 +26,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Console API layer (`apps/console/src/api/sessions.ts`) no longer defines duplicated inspector/event DTOs and imports canonical types from `@gami/shared`.
 - GM Debug panel event rendering now handles union event payloads safely (`turn_completed` vs GM events), matching the admin events contract.
 
-### EPIC 2.8 — Console debugging redesign (contract cleanup + path pruning): **in progress** (2026-05-07)
+### EPIC 2.8 — Console debugging redesign (contract cleanup + path pruning): **complete** (2026-05-07)
 
 - Removed remaining runtime-debug UI branch duplication in console Session page:
   - deleted legacy per-message debug component (`apps/console/src/components/DebugPanel.tsx`)
@@ -38,7 +38,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `docs/implementation-prompts/epic-2-8-console-debugging-redesign/CONSOLE_DEBUG_PATH_INVENTORY.md`
   - kept path, removed path, redirected path, and per-removal rationale are documented.
 
-### EPIC 2.8 — Unified debugging shell + navigation: **in progress** (2026-05-07)
+### EPIC 2.8 — Unified debugging shell + navigation: **complete** (2026-05-07)
 
 - Added a single console debugging shell page (`apps/console/src/pages/DebugShellPage.tsx`) with top-level sections:
   - Session Setup
@@ -52,7 +52,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Added tests for section-to-inspector mapping and scenario/session context continuity in `apps/console/src/pages/debug-shell-navigation.test.ts`.
 - Reused existing runtime-inspector API integration and mounted section-specific inspector tabs through one shell entrypoint.
 
-### EPIC 2.8 — Memory evolution workspace: **in progress** (2026-05-07)
+### EPIC 2.8 — Memory evolution workspace: **complete** (2026-05-07)
 
 - Redesigned the Debugging Shell memory section to explicitly separate:
   - short-term exchange memory
@@ -73,7 +73,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - No endpoint shape changes were required.
   - `docs/API_CONTRACT.md` and `docs/DATA_MODEL.md` remain accurate for this slice.
 
-### EPIC 2.8 — GM impact trace and causality: **in progress** (2026-05-07)
+### EPIC 2.8 — GM impact trace and causality: **complete** (2026-05-07)
 
 - Redesigned GM Impact section rendering to a causality-first trace in console:
   - trigger/context
@@ -96,7 +96,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - no Game Master debug-field shape changes required
   - `docs/API_CONTRACT.md` and `docs/GAME_MASTER_CONTRACT.md` remain accurate for this slice.
 
-### EPIC 2.8 — Turn profiler and latency breakdown: **in progress** (2026-05-07)
+### EPIC 2.8 — Turn profiler and latency breakdown: **complete** (2026-05-07)
 
 - Added a turn-profiler view in the Debugging Shell Turn Profiler section using existing session metrics + recent event timeline data.
 - Extended console runtime-inspector composition model to include canonical per-turn metrics payloads (`metrics.turns`) from existing API responses (no endpoint changes).
@@ -120,6 +120,22 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Contract/testing docs status:
   - no API response shape changes required, so `docs/API_CONTRACT.md` remains accurate
   - testing approach unchanged materially, so `docs/TEST_STRATEGY.md` remains accurate
+
+### EPIC 2.8 — Persona-first flow, cleanup completion, and hardening: **complete** (2026-05-07)
+
+- Moved persona into the primary debug start path (Session Setup, pre-session, required save gate before start).
+- Persona is now visible/editable before session start and persisted through existing user persona APIs.
+- Removed remaining deprecated console leftovers no longer used by the unified debugging shell:
+  - `apps/console/src/pages/ScenarioTestPage.tsx`
+  - `apps/console/src/pages/SessionPage.tsx`
+  - `apps/console/src/pages/session-components.tsx`
+  - `apps/console/src/pages/session-controller.ts`
+  - `apps/console/src/pages/session-state.ts`
+  - `apps/console/src/pages/session-state.test.ts`
+- Added persona-start gating coverage in `apps/console/src/components/ScenarioSessionLauncher.test.tsx`.
+- Hardening:
+  - Full workspace lint/typecheck pass via root turbo scripts.
+  - Workspace test suite pass after stabilizing SSE disconnect route test to avoid environment-specific socket-bind failures.
 
 ### EPIC 2.7 — Runtime Inspector query composition over existing APIs: **complete** (2026-05-07)
 

@@ -541,6 +541,36 @@ A dedicated runtime inspector significantly improves debugging speed, orchestrat
 
 ---
 
+## EPIC 2.8 — Console debugging redesign ✅ Done
+
+**Purpose**
+Consolidate debugging into one coherent operator shell and remove accumulated console drift.
+
+**Description**
+Finalize the console redesign with a single debugging shell and bounded, high-signal debug workspaces:
+
+- `Session Setup` with persona-first pre-session flow
+- `Memory` evolution/delta workspace
+- `GM Impact` causality trace
+- `Turn Profiler` latency composition and filters
+- `Persona` editor
+
+Deprecated split debug paths and duplicate legacy UI branches were removed.
+
+**DoD**
+
+- one primary debug path from scenario selection
+- persona setup is part of the mandatory start flow
+- memory/GM/turn debugging are bounded and contract-driven
+- stale duplicate console debug routes/components are removed
+- lint/typecheck/tests pass for redesigned flow
+
+**User Increment**
+
+- faster, clearer debugging workflow with explicit causality and performance signals
+
+---
+
 # Sprint 4 — Orchestration Intelligence
 
 ---

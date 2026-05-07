@@ -19,6 +19,8 @@ type ScenarioTestLayoutProps = {
   isSwitching: boolean
   isSending: boolean
   isLoadingHistory: boolean
+  canStartSession?: boolean
+  startBlockedReason?: string | null
   availabilityEntries: AvatarAvailabilityEntry[]
   timelineEntries: Array<{
     conversation: ConversationSummary
@@ -40,7 +42,7 @@ type ScenarioTestLayoutProps = {
   showRuntimeInspector?: boolean
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function, complexity
 export function ScenarioTestLayout({
   scenario,
   state,
@@ -50,6 +52,8 @@ export function ScenarioTestLayout({
   isSwitching,
   isSending,
   isLoadingHistory,
+  canStartSession = true,
+  startBlockedReason = null,
   availabilityEntries,
   timelineEntries,
   selectedConversation,
@@ -76,6 +80,8 @@ export function ScenarioTestLayout({
         userId={userId}
         session={state.session}
         isStarting={isStartingSession}
+        canStart={canStartSession}
+        startBlockedReason={startBlockedReason}
         onUserIdChange={onUserIdChange}
         onStart={onStartSession}
       />

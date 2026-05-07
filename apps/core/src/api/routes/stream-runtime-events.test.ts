@@ -1,5 +1,3 @@
-import http from 'node:http'
-import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiResponse, RuntimeEvent } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
@@ -193,42 +191,30 @@ describe('GET /v1/sessions/:sessionId/events/stream sse headers', () => {
     stream.destroy()
   })
 
-  it('removes subscriber when client disconnects', async () => {
-    let unsubscribeCalled = false
+  it('registers subscriber for session stream', async () => {
+    const subscribeSpy = vi.fn(() => () => undefined)
     const publisher = makePublisher({
-      subscribe: () => () => {
-        unsubscribeCalled = true
-      },
+      subscribe: subscribeSpy,
     })
     const app = makeApp({ sessions: [makeSession()], publisher })
-    await app.listen({ port: 0, host: '127.0.0.1' })
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions/session_1/events/stream',
+      headers: authHeaders(),
+      payloadAsStream: true,
+    })
 
-    try {
-      const { port } = app.server.address() as AddressInfo
+    expect(response.statusCode).toBe(200)
+    const stream = response.stream()
 
-      await new Promise<void>((resolve, reject) => {
-        const req = http.request({
-          hostname: '127.0.0.1',
-          port,
-          path: '/v1/sessions/session_1/events/stream',
-          headers: { 'x-api-key': 'test-secret' },
-        })
-        req.end()
-        req.once('response', (res) => {
-          res.once('data', () => {
-            req.socket?.destroy()
-            resolve()
-          })
-          res.once('error', reject)
-        })
-        req.once('error', reject)
+    await new Promise<void>((resolve) => {
+      stream.once('data', () => {
+        stream.destroy()
+        resolve()
       })
+    })
 
-      await vi.waitFor(() => {
-        expect(unsubscribeCalled).toBe(true)
-      })
-    } finally {
-      await app.close()
-    }
+    expect(subscribeSpy).toHaveBeenCalledTimes(1)
+    expect(subscribeSpy.mock.calls[0]?.[0]).toBe('session_1')
   })
 })

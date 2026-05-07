@@ -1,18 +1,23 @@
+/* eslint-disable max-lines */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, JSX, SetStateAction, SyntheticEvent } from 'react'
 import {
   getAvailableAvatars,
+  getUserPersona,
   getHistory,
   listScenarioAvatars,
   listSessionConversations,
   sendMessage,
   startSession,
   switchAvatar,
+  upsertUserPersona,
 } from '../api'
 import type { AvailableAvatarSummary, ConversationSummary, ScenarioSummary } from '../api'
+import type { UserPersona } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { RuntimeInspector } from '../components/RuntimeInspector'
 import { ScenarioTestLayout } from '../components/ScenarioTestLayout'
+import { buildPersonaPayload } from '../components/runtime-inspector-tab-content'
 import { sectionStyle } from './form-styles'
 import {
   createDebugShellContext,
@@ -38,6 +43,7 @@ import type { ScenarioTestState } from './scenario-test-state'
 
 type DebugShellPageProps = { scenario: ScenarioSummary }
 type SetScenarioTestState = Dispatch<SetStateAction<ScenarioTestState>>
+type PersonaDraft = { role: string; tonePreference: string; hintsText: string }
 
 function avatarIds(avatars: AvailableAvatarSummary[]): string[] {
   return avatars.map((avatar) => avatar.avatarId)
@@ -172,7 +178,15 @@ function useScenarioDerivedData(state: ScenarioTestState): {
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+function toPersonaDraft(persona: UserPersona | null): PersonaDraft {
+  return {
+    role: persona?.role ?? '',
+    tonePreference: persona?.tonePreference ?? '',
+    hintsText: (persona?.interactionHints ?? []).join('\n'),
+  }
+}
+
+// eslint-disable-next-line max-lines-per-function, complexity
 export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
   const [shellContext, setShellContext] = useState(() => createDebugShellContext(scenario.scenarioId))
   const [state, setState] = useState<ScenarioTestState>(createInitialScenarioTestState)
@@ -182,6 +196,11 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
   const [isSwitching, setIsSwitching] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [personaDraft, setPersonaDraft] = useState<PersonaDraft>({ role: '', tonePreference: '', hintsText: '' })
+  const [isLoadingPersona, setIsLoadingPersona] = useState(false)
+  const [isSavingPersona, setIsSavingPersona] = useState(false)
+  const [personaReady, setPersonaReady] = useState(false)
+  const [personaStatus, setPersonaStatus] = useState<string | null>(null)
   const turnIndexRef = useRef(0)
 
   const {
@@ -202,7 +221,40 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
     setShellContext((previous) => withDebugShellSession(previous, state.session?.sessionId ?? null))
   }, [state.session?.sessionId])
 
+  useEffect(() => {
+    if (userId.trim() === '') {
+      setPersonaDraft({ role: '', tonePreference: '', hintsText: '' })
+      setPersonaReady(false)
+      setPersonaStatus('Set user id and save persona before starting session.')
+      return
+    }
+
+    setIsLoadingPersona(true)
+    setPersonaStatus(null)
+    void (async () => {
+      try {
+        const response = await getUserPersona(userId.trim())
+        setPersonaDraft(toPersonaDraft(response.persona))
+        setPersonaReady(response.persona !== null)
+        setPersonaStatus(
+          response.persona !== null
+            ? 'Persona loaded for this user.'
+            : 'No persona yet. Save persona before starting session.',
+        )
+      } catch (error) {
+        setPersonaReady(false)
+        setPersonaStatus(formatApiError(error, 'Failed to load persona for this user'))
+      } finally {
+        setIsLoadingPersona(false)
+      }
+    })()
+  }, [userId])
+
   const handleStartSession = useCallback((): void => {
+    if (!personaReady) {
+      setState((prev) => withError(prev, 'Save persona before starting the debugging session.'))
+      return
+    }
     setIsStartingSession(true)
     setState((prev) => withErrorCleared(prev))
     void (async () => {
@@ -214,7 +266,28 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
         setIsStartingSession(false)
       }
     })()
-  }, [scenario.scenarioId, userId])
+  }, [personaReady, scenario.scenarioId, userId])
+
+  const handleSavePersona = useCallback((): void => {
+    if (userId.trim() === '') {
+      setPersonaStatus('User id is required to save persona.')
+      return
+    }
+    setIsSavingPersona(true)
+    setPersonaStatus('Saving persona...')
+    void (async () => {
+      try {
+        await upsertUserPersona(userId.trim(), buildPersonaPayload(personaDraft))
+        setPersonaReady(true)
+        setPersonaStatus('Persona saved. Session setup is unlocked.')
+      } catch (error) {
+        setPersonaReady(false)
+        setPersonaStatus(formatApiError(error, 'Failed to save persona'))
+      } finally {
+        setIsSavingPersona(false)
+      }
+    })()
+  }, [personaDraft, userId])
 
   const handleSwitchAvatar = useCallback(
     (avatarId: string): void => {
@@ -339,31 +412,99 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
       </div>
 
       {activeSection === 'session-setup' ? (
-        <ScenarioTestLayout
-          scenario={scenario}
-          state={state}
-          userId={userId}
-          draftMessage={draftMessage}
-          isStartingSession={isStartingSession}
-          isSwitching={isSwitching}
-          isSending={isSending}
-          isLoadingHistory={isLoadingHistory}
-          availabilityEntries={availabilityEntries}
-          timelineEntries={timelineEntries}
-          selectedConversation={selectedConversation}
-          selectedMessages={selectedMessages}
-          allAvatarsById={allAvatarsById}
-          onUserIdChange={setUserId}
-          onStartSession={handleStartSession}
-          onSwitchAvatar={handleSwitchAvatar}
-          onSendMessage={handleSendMessage}
-          onSendDraft={handleSendDraft}
-          onDraftChange={setDraftMessage}
-          onOpenConversation={handleOpenConversation}
-          onReturnToGuide={handleReturnToGuide}
-          onTestLockedAccess={handleTestLockedAccess}
-          showRuntimeInspector={false}
-        />
+        <>
+          {state.session === null ? (
+            <div
+              style={{
+                border: '1px solid #d1d5db',
+                borderRadius: '10px',
+                padding: '12px',
+                backgroundColor: '#f9fafb',
+                marginBottom: '12px',
+              }}
+            >
+              <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Persona setup (required)</h3>
+              <p style={{ marginTop: 0, color: '#4b5563' }}>
+                Persona is part of the primary debug start flow. Save it before starting session.
+              </p>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                <label>
+                  Role
+                  <input
+                    value={personaDraft.role}
+                    onChange={(event) => {
+                      setPersonaReady(false)
+                      setPersonaDraft((previous) => ({ ...previous, role: event.target.value }))
+                    }}
+                    disabled={isLoadingPersona || isSavingPersona}
+                  />
+                </label>
+                <label>
+                  Tone preference
+                  <input
+                    value={personaDraft.tonePreference}
+                    onChange={(event) => {
+                      setPersonaReady(false)
+                      setPersonaDraft((previous) => ({ ...previous, tonePreference: event.target.value }))
+                    }}
+                    disabled={isLoadingPersona || isSavingPersona}
+                  />
+                </label>
+                <label>
+                  Interaction hints (one per line)
+                  <textarea
+                    rows={4}
+                    value={personaDraft.hintsText}
+                    onChange={(event) => {
+                      setPersonaReady(false)
+                      setPersonaDraft((previous) => ({ ...previous, hintsText: event.target.value }))
+                    }}
+                    disabled={isLoadingPersona || isSavingPersona}
+                  />
+                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                  <button
+                    type="button"
+                    disabled={isLoadingPersona || isSavingPersona || userId.trim() === ''}
+                    onClick={handleSavePersona}
+                  >
+                    {isSavingPersona ? 'Saving...' : 'Save persona'}
+                  </button>
+                  <p style={{ margin: 0, color: personaReady ? '#166534' : '#92400e' }}>
+                    {personaStatus ?? (isLoadingPersona ? 'Loading persona...' : 'Persona not saved yet')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+          <ScenarioTestLayout
+            scenario={scenario}
+            state={state}
+            userId={userId}
+            draftMessage={draftMessage}
+            isStartingSession={isStartingSession}
+            isSwitching={isSwitching}
+            isSending={isSending}
+            isLoadingHistory={isLoadingHistory}
+            canStartSession={personaReady && !isLoadingPersona && !isSavingPersona}
+            startBlockedReason="Save persona first to start debugging session."
+            availabilityEntries={availabilityEntries}
+            timelineEntries={timelineEntries}
+            selectedConversation={selectedConversation}
+            selectedMessages={selectedMessages}
+            allAvatarsById={allAvatarsById}
+            onUserIdChange={setUserId}
+            onStartSession={handleStartSession}
+            onSwitchAvatar={handleSwitchAvatar}
+            onSendMessage={handleSendMessage}
+            onSendDraft={handleSendDraft}
+            onDraftChange={setDraftMessage}
+            onOpenConversation={handleOpenConversation}
+            onReturnToGuide={handleReturnToGuide}
+            onTestLockedAccess={handleTestLockedAccess}
+            showRuntimeInspector={false}
+          />
+        </>
       ) : null}
 
       {activeSection !== 'session-setup' ? (
