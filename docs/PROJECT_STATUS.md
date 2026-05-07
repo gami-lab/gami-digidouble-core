@@ -26,6 +26,18 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Console API layer (`apps/console/src/api/sessions.ts`) no longer defines duplicated inspector/event DTOs and imports canonical types from `@gami/shared`.
 - GM Debug panel event rendering now handles union event payloads safely (`turn_completed` vs GM events), matching the admin events contract.
 
+### EPIC 2.8 — Console debugging redesign (contract cleanup + path pruning): **in progress** (2026-05-07)
+
+- Removed remaining runtime-debug UI branch duplication in console Session page:
+  - deleted legacy per-message debug component (`apps/console/src/components/DebugPanel.tsx`)
+  - removed inline debug rendering from `apps/console/src/pages/session-components.tsx`
+  - added operator redirect text to the official inspector surface
+- Confirmed canonical runtime-inspector/admin DTO ownership remains in `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
+- Tightened console runtime-inspector composition typing to reference canonical shared DTOs directly (`AdminSessionInspectResponse`, `AdminSessionContextResponse`) instead of local inferred aliases.
+- Added debug-path inventory for this slice at:
+  - `docs/implementation-prompts/epic-2-8-console-debugging-redesign/CONSOLE_DEBUG_PATH_INVENTORY.md`
+  - kept path, removed path, redirected path, and per-removal rationale are documented.
+
 ### EPIC 2.7 — Runtime Inspector query composition over existing APIs: **complete** (2026-05-07)
 
 - Added a single typed console-side composition/query layer: `apps/console/src/api/runtime-inspector.ts`.

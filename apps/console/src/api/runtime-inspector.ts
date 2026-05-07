@@ -1,4 +1,6 @@
 import type {
+  AdminSessionContextResponse,
+  AdminSessionInspectResponse,
   AdminSessionMemoryLayersResponse,
   AdminSessionMemoryResponse,
   AdminSessionTurnMetricsResponse,
@@ -26,9 +28,9 @@ export type RuntimeInspectorViewModel = {
   session: SessionSummary
   runtimeState: RuntimeState
   gm: {
-    gmState: NonNullable<Awaited<ReturnType<typeof inspectSession>>['inspect']['gmState']> | null
+    gmState: NonNullable<AdminSessionInspectResponse['inspect']['gmState']> | null
     gmNotes: string | null
-    transitionHistory: Awaited<ReturnType<typeof inspectSession>>['inspect']['transitionHistory']
+    transitionHistory: AdminSessionInspectResponse['inspect']['transitionHistory']
     unlockedAvatarIds: string[]
   }
   memory: {
@@ -39,8 +41,8 @@ export type RuntimeInspectorViewModel = {
     summary: AdminSessionTurnMetricsResponse['summary']
   }
   context: {
-    avatar: Awaited<ReturnType<typeof getSessionContext>>['avatarContext']
-    gm: Awaited<ReturnType<typeof getSessionContext>>['gmContext']
+    avatar: AdminSessionContextResponse['avatarContext']
+    gm: AdminSessionContextResponse['gmContext']
   }
   persona: UserPersona | null
   recentEvents: SessionEventRecord[]

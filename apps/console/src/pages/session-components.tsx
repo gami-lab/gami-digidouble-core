@@ -6,8 +6,6 @@ import type {
   ScenarioSummary,
   SessionSummary,
 } from '../api'
-import { DebugPanel } from '../components/DebugPanel'
-import type { DebugMetadata } from '../components/DebugPanel'
 import { LabeledInput } from '../components/LabeledInput'
 import { buttonStyle, errorStyle, inputStyle, labelStyle, sectionStyle } from './form-styles'
 import type { SessionPageController } from './session-controller'
@@ -418,12 +416,12 @@ function ConversationDetail({
               <strong>{message.role}</strong> · {message.createdAt}
             </div>
             <div>{message.content}</div>
-            {message.role === 'avatar' && message.metadata !== undefined ? (
-              <DebugPanel metadata={toLocalAvatarMetadata(message.metadata)} />
-            ) : null}
           </div>
         ))}
       </div>
+      <p style={{ marginTop: '8px', color: '#6b7280', fontSize: '12px' }}>
+        Runtime debugging is centralized in Scenario Test Bench → Session Runtime Inspector.
+      </p>
 
       <form onSubmit={onSubmit} style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
         <input
@@ -446,13 +444,4 @@ function ConversationDetail({
       </form>
     </>
   )
-}
-
-function toLocalAvatarMetadata(metadata: Message['metadata']): DebugMetadata {
-  const nextMetadata: DebugMetadata = {}
-  if (metadata?.model !== undefined) nextMetadata.model = metadata.model
-  if (metadata?.latencyMs !== undefined) nextMetadata.latencyMs = metadata.latencyMs
-  if (metadata?.inputTokens !== undefined) nextMetadata.inputTokens = metadata.inputTokens
-  if (metadata?.outputTokens !== undefined) nextMetadata.outputTokens = metadata.outputTokens
-  return nextMetadata
 }
