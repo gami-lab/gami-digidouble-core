@@ -11,14 +11,19 @@ export {
 } from './scenarios'
 export { sendMessage } from './messages'
 export { loadRuntimeInspectorViewModel } from './runtime-inspector'
+export { subscribeToRuntimeEvents } from './runtime-events-stream'
 export {
+  clearSessionMemory,
   endConversation,
   getRuntimeState,
+  getSessionContext,
   getSessionMemory,
   getSessionMemoryLayers,
   getSessionMetrics,
   getAvailableAvatars,
   getHistory,
+  refreshSessionMemory,
+  replayGm,
   getSession,
   getUserPersona,
   inspectSession,
@@ -29,6 +34,7 @@ export {
   startConversation,
   startSession,
   switchAvatar,
+  upsertUserPersona,
 } from './sessions'
 
 export type { SendMessageParams, SendMessageResponse } from './messages'
@@ -50,6 +56,7 @@ export type {
   GetSessionMemoryResponse,
   GetSessionMetricsResponse,
   GetUserPersonaResponse,
+  GetSessionContextResponse,
   GmStateSummary,
   InspectSessionResponse,
   ListSessionEventsResponse,
@@ -62,4 +69,8 @@ export type {
   StartConversationParams,
   StartSessionParams,
   SwitchAvatarResponse,
+  ReplayGmResponse,
+  RefreshSessionMemoryResponse,
+  ClearSessionMemoryResponse,
+  UpsertUserPersonaApiResponse,
 } from './sessions'

@@ -59,6 +59,28 @@ const makeRuntimeInspectorViewModel = () => ({
       avgGmLatencyMs: 20,
     },
   },
+  context: {
+    avatar: {
+      recentExchanges: [],
+      workingMemory: {},
+      longTermFacts: [],
+      userPersona: null,
+      gmNotes: null,
+      scenario: { scenarioId: 'scenario_1' },
+    },
+    gm: {
+      recentMessages: [],
+      memory: {},
+      currentState: {
+        progression: 'intro',
+        topicsCovered: [],
+        interactionCount: 3,
+      },
+      availableAvatars: [],
+      userPersona: null,
+      scenario: { scenarioId: 'scenario_1' },
+    },
+  },
   persona: null,
   recentEvents: [
     {

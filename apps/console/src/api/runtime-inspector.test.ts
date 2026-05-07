@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  getSessionContext,
   getRuntimeState,
   getSessionMemory,
   getSessionMemoryLayers,
@@ -13,6 +14,7 @@ import { loadRuntimeInspectorViewModel } from './runtime-inspector'
 vi.mock('./sessions', () => ({
   inspectSession: vi.fn(),
   getRuntimeState: vi.fn(),
+  getSessionContext: vi.fn(),
   getSessionMemory: vi.fn(),
   getSessionMemoryLayers: vi.fn(),
   getSessionMetrics: vi.fn(),
@@ -32,6 +34,7 @@ describe('loadRuntimeInspectorViewModel', () => {
 
     expect(inspectSession).toHaveBeenCalledWith('session_1')
     expect(getRuntimeState).toHaveBeenCalledWith('session_1')
+    expect(getSessionContext).toHaveBeenCalledWith('session_1')
     expect(getSessionMemory).toHaveBeenCalledWith('session_1')
     expect(getSessionMemoryLayers).toHaveBeenCalledWith('session_1')
     expect(getSessionMetrics).toHaveBeenCalledWith('session_1')
@@ -41,6 +44,7 @@ describe('loadRuntimeInspectorViewModel', () => {
     expect(result.gm.gmState).toBeNull()
     expect(result.memory.layers.shortTerm.exchangeCount).toBe(2)
     expect(result.metrics.summary.totalTurns).toBe(1)
+    expect(result.context.gm.currentState.progression).toBe('intro')
     expect(result.persona?.role).toBe('coach')
   })
 
@@ -78,6 +82,30 @@ function arrangeSession1(): void {
     canSendMessage: true,
     isProcessing: false,
     updatedAt: '2026-05-01T10:01:00.000Z',
+  })
+  vi.mocked(getSessionContext).mockResolvedValue({
+    sessionId: 'session_1',
+    avatarContext: {
+      avatarId: 'avatar_1',
+      recentExchanges: [],
+      workingMemory: {},
+      longTermFacts: [],
+      userPersona: { role: 'coach' },
+      gmNotes: null,
+      scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
+    },
+    gmContext: {
+      recentMessages: [],
+      memory: {},
+      currentState: {
+        progression: 'intro',
+        topicsCovered: [],
+        interactionCount: 1,
+      },
+      availableAvatars: [],
+      userPersona: { role: 'coach' },
+      scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
+    },
   })
   vi.mocked(getSessionMemory).mockResolvedValue({
     session: {
@@ -150,6 +178,29 @@ function arrangeSession2(): void {
     canSendMessage: false,
     isProcessing: true,
     updatedAt: '2026-05-01T10:01:00.000Z',
+  })
+  vi.mocked(getSessionContext).mockResolvedValue({
+    sessionId: 'session_2',
+    avatarContext: {
+      recentExchanges: [],
+      workingMemory: {},
+      longTermFacts: [],
+      userPersona: null,
+      gmNotes: 'n',
+      scenario: { scenarioId: 'scenario_1' },
+    },
+    gmContext: {
+      recentMessages: [],
+      memory: {},
+      currentState: {
+        progression: 'intro',
+        topicsCovered: [],
+        interactionCount: 1,
+      },
+      availableAvatars: [],
+      userPersona: null,
+      scenario: { scenarioId: 'scenario_1' },
+    },
   })
   vi.mocked(getSessionMemory).mockResolvedValue({
     session: {

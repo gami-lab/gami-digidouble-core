@@ -1,13 +1,11 @@
 import type { Dispatch, JSX, SetStateAction, SyntheticEvent } from 'react'
-import type { CSSProperties } from 'react'
 import type { AvailableAvatarSummary, ConversationSummary, Message, ScenarioSummary } from '../api'
 import { AvatarAvailabilityPanel } from './AvatarAvailabilityPanel'
 import { ConversationTimeline } from './ConversationTimeline'
-import { GmDebugPanel } from './GmDebugPanel'
 import { GuidedShortcuts, AI_GUIDED_DISCOVERY_SHORTCUTS } from './GuidedShortcuts'
+import { RuntimeInspector } from './RuntimeInspector'
 import { ScenarioChatPanel } from './ScenarioChatPanel'
 import { ScenarioSessionLauncher } from './ScenarioSessionLauncher'
-import { StateInspector } from './StateInspector'
 import { errorStyle, sectionStyle } from '../pages/form-styles'
 import type { ScenarioTestState } from '../pages/scenario-test-state'
 import type { AvatarAvailabilityEntry } from '../pages/scenario-test-state'
@@ -21,8 +19,6 @@ type ScenarioTestLayoutProps = {
   isSwitching: boolean
   isSending: boolean
   isLoadingHistory: boolean
-  showGmPanel: boolean
-  gmRefreshTrigger: number
   availabilityEntries: AvatarAvailabilityEntry[]
   timelineEntries: Array<{
     conversation: ConversationSummary
@@ -31,7 +27,6 @@ type ScenarioTestLayoutProps = {
   }>
   selectedConversation: ConversationSummary | null
   selectedMessages: Message[]
-  availableAvatarsForInspector: AvailableAvatarSummary[]
   allAvatarsById: Map<string, AvailableAvatarSummary>
   onUserIdChange: Dispatch<SetStateAction<string>>
   onStartSession: () => void
@@ -42,50 +37,6 @@ type ScenarioTestLayoutProps = {
   onOpenConversation: (conversation: ConversationSummary) => void
   onReturnToGuide: () => void
   onTestLockedAccess: () => void
-  onToggleGmPanel: () => void
-}
-
-const gmToggleButtonStyle: CSSProperties = {
-  padding: '6px 10px',
-  border: '1px solid #1f2937',
-  borderRadius: '6px',
-  backgroundColor: '#ffffff',
-  color: '#1f2937',
-  cursor: 'pointer',
-  fontSize: '12px',
-}
-
-function GmDebugSection({
-  sessionId,
-  showGmPanel,
-  gmRefreshTrigger,
-  onToggleGmPanel,
-}: {
-  sessionId: string
-  showGmPanel: boolean
-  gmRefreshTrigger: number
-  onToggleGmPanel: () => void
-}): JSX.Element {
-  return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '12px',
-        }}
-      >
-        <h3 style={{ marginTop: 0, marginBottom: '8px' }}>GM Debug</h3>
-        <button type="button" style={gmToggleButtonStyle} onClick={onToggleGmPanel}>
-          {showGmPanel ? 'Hide' : 'Show'}
-        </button>
-      </div>
-      {showGmPanel ? (
-        <GmDebugPanel sessionId={sessionId} refreshTrigger={gmRefreshTrigger} />
-      ) : null}
-    </div>
-  )
 }
 
 // eslint-disable-next-line max-lines-per-function
@@ -98,13 +49,10 @@ export function ScenarioTestLayout({
   isSwitching,
   isSending,
   isLoadingHistory,
-  showGmPanel,
-  gmRefreshTrigger,
   availabilityEntries,
   timelineEntries,
   selectedConversation,
   selectedMessages,
-  availableAvatarsForInspector,
   allAvatarsById,
   onUserIdChange,
   onStartSession,
@@ -115,7 +63,6 @@ export function ScenarioTestLayout({
   onOpenConversation,
   onReturnToGuide,
   onTestLockedAccess,
-  onToggleGmPanel,
 }: ScenarioTestLayoutProps): JSX.Element {
   return (
     <section style={sectionStyle}>
@@ -177,20 +124,12 @@ export function ScenarioTestLayout({
                 />
               </div>
               <div>
-                <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Session Inspector</h3>
-                <StateInspector
-                  session={state.session}
-                  availableAvatars={availableAvatarsForInspector}
-                  allAvatarsById={allAvatarsById}
-                  unlockEvents={state.unlockEvents}
+                <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Session Runtime Inspector</h3>
+                <RuntimeInspector
+                  sessionId={state.session.sessionId}
+                  refreshTrigger={state.conversations.length}
                 />
               </div>
-              <GmDebugSection
-                sessionId={state.session.sessionId}
-                showGmPanel={showGmPanel}
-                gmRefreshTrigger={gmRefreshTrigger}
-                onToggleGmPanel={onToggleGmPanel}
-              />
             </div>
           </div>
           <div style={{ marginTop: '16px' }}>

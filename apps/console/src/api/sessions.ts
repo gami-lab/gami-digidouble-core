@@ -1,5 +1,9 @@
 import { coreRequest } from './client'
 import type {
+  AdminClearMemoryResponse,
+  AdminRefreshMemoryResponse,
+  AdminReplayGmResponse,
+  AdminSessionContextResponse,
   AdminSessionEventsResponse,
   AdminSessionInspectResponse,
   AdminSessionMemoryLayersResponse,
@@ -15,6 +19,8 @@ import type {
   SessionMemorySummary,
   SessionSummary,
   SessionTransitionRecord,
+  UserPersona,
+  UpsertUserPersonaResponse,
   UserPersonaResponse,
 } from '@gami/shared'
 
@@ -30,6 +36,11 @@ export type {
   AdminSessionMemoryLayersResponse as GetSessionMemoryLayersResponse,
   AdminSessionTurnMetricsResponse as GetSessionMetricsResponse,
   UserPersonaResponse as GetUserPersonaResponse,
+  UpsertUserPersonaResponse as UpsertUserPersonaApiResponse,
+  AdminSessionContextResponse as GetSessionContextResponse,
+  AdminReplayGmResponse as ReplayGmResponse,
+  AdminRefreshMemoryResponse as RefreshSessionMemoryResponse,
+  AdminClearMemoryResponse as ClearSessionMemoryResponse,
 }
 
 export type Message = {
@@ -250,4 +261,33 @@ export async function getSessionMetrics(
 
 export async function getUserPersona(userId: string): Promise<UserPersonaResponse> {
   return coreRequest<UserPersonaResponse>('GET', `/v1/users/${userId}/persona`)
+}
+
+export async function upsertUserPersona(
+  userId: string,
+  persona: UserPersona,
+): Promise<UpsertUserPersonaResponse> {
+  return coreRequest<UpsertUserPersonaResponse>('PUT', `/v1/users/${userId}/persona`, persona)
+}
+
+export async function getSessionContext(sessionId: string): Promise<AdminSessionContextResponse> {
+  return coreRequest<AdminSessionContextResponse>('GET', `/v1/admin/sessions/${sessionId}/context`)
+}
+
+export async function replayGm(sessionId: string): Promise<AdminReplayGmResponse> {
+  return coreRequest<AdminReplayGmResponse>('POST', `/v1/admin/sessions/${sessionId}/gm/replay`)
+}
+
+export async function refreshSessionMemory(sessionId: string): Promise<AdminRefreshMemoryResponse> {
+  return coreRequest<AdminRefreshMemoryResponse>(
+    'POST',
+    `/v1/admin/sessions/${sessionId}/memory/refresh`,
+  )
+}
+
+export async function clearSessionMemory(sessionId: string): Promise<AdminClearMemoryResponse> {
+  return coreRequest<AdminClearMemoryResponse>(
+    'POST',
+    `/v1/admin/sessions/${sessionId}/memory/clear`,
+  )
 }

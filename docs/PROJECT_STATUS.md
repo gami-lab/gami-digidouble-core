@@ -75,6 +75,26 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `admin-runtime-actions.test.ts`
   - `admin-runtime-actions.stack-e2e.test.ts`
 
+### EPIC 2.7 — Console Runtime Inspector v2: **complete** (2026-05-07)
+
+- Upgraded Scenario Test Bench inspector area to one coherent runtime inspector workspace component (`apps/console/src/components/RuntimeInspector.tsx`) with tabs for:
+  - overview
+  - memory
+  - context
+  - events
+  - metrics
+  - persona
+  - actions
+- Reused the existing typed console composition layer (`loadRuntimeInspectorViewModel`) and extended it with assembled context (`GET /v1/admin/sessions/{sessionId}/context`).
+- Added console-side API wrappers for EPIC 2.7 action/persona surfaces:
+  - `POST /v1/admin/sessions/{sessionId}/gm/replay`
+  - `POST /v1/admin/sessions/{sessionId}/memory/refresh`
+  - `POST /v1/admin/sessions/{sessionId}/memory/clear`
+  - `PUT /v1/users/{userId}/persona`
+- Added a typed session SSE consumer adapter in the console API layer (`apps/console/src/api/runtime-events-stream.ts`) and surfaced live runtime events in the inspector.
+- Removed fragmented inspector wiring in Scenario Test Bench layout by replacing separate state/GM debug sections with the unified runtime inspector panel.
+- Added focused console API tests for SSE subscription parsing behavior (`runtime-events-stream.test.ts`) and updated runtime-inspector composition tests for assembled context.
+
 ### EPIC 4.2 — User Memory Facts v1: **complete** (2026-05-05)
 
 - Added canonical Postgres schema table `user_memory_facts` (`infra/postgres/init.sql`) with `umf_` id prefix, uniqueness on `(user_id, category, key)`, and user index.

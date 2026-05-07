@@ -8,6 +8,7 @@ import type {
   UserPersona,
 } from '@gami/shared'
 import {
+  getSessionContext,
   getRuntimeState,
   getSessionMemory,
   getSessionMemoryLayers,
@@ -37,6 +38,10 @@ export type RuntimeInspectorViewModel = {
   metrics: {
     summary: AdminSessionTurnMetricsResponse['summary']
   }
+  context: {
+    avatar: Awaited<ReturnType<typeof getSessionContext>>['avatarContext']
+    gm: Awaited<ReturnType<typeof getSessionContext>>['gmContext']
+  }
   persona: UserPersona | null
   recentEvents: SessionEventRecord[]
 }
@@ -50,15 +55,23 @@ export async function loadRuntimeInspectorViewModel(
   const inspect = await inspectSession(sessionId)
   const eventsLimit = options?.eventsLimit ?? DEFAULT_EVENTS_LIMIT
 
-  const [runtimeState, memorySummary, memoryLayers, metrics, personaResponse, eventsResponse] =
-    await Promise.all([
-      getRuntimeState(sessionId),
-      getSessionMemory(sessionId),
-      getSessionMemoryLayers(sessionId),
-      getSessionMetrics(sessionId),
-      getUserPersona(inspect.inspect.session.userId),
-      listSessionEvents(sessionId, { limit: eventsLimit }),
-    ])
+  const [
+    runtimeState,
+    memorySummary,
+    memoryLayers,
+    metrics,
+    personaResponse,
+    eventsResponse,
+    contextResponse,
+  ] = await Promise.all([
+    getRuntimeState(sessionId),
+    getSessionMemory(sessionId),
+    getSessionMemoryLayers(sessionId),
+    getSessionMetrics(sessionId),
+    getUserPersona(inspect.inspect.session.userId),
+    listSessionEvents(sessionId, { limit: eventsLimit }),
+    getSessionContext(sessionId),
+  ])
 
   return {
     session: inspect.inspect.session,
@@ -75,6 +88,10 @@ export async function loadRuntimeInspectorViewModel(
     },
     metrics: {
       summary: metrics.summary,
+    },
+    context: {
+      avatar: contextResponse.avatarContext,
+      gm: contextResponse.gmContext,
     },
     persona: personaResponse.persona,
     recentEvents: eventsResponse.events,
