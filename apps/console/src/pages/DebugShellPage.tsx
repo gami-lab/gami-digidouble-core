@@ -26,6 +26,7 @@ import {
   withDebugShellSection,
   withDebugShellSession,
 } from './debug-shell-navigation'
+import { derivePersonaStartGate } from './debug-shell-persona-gate'
 import {
   createInitialScenarioTestState,
   deriveAvatarAvailabilityEntries,
@@ -381,6 +382,11 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
 
   const activeSection = shellContext.section
   const inspectorTab = sectionRuntimeInspectorTab(activeSection)
+  const personaStartGate = derivePersonaStartGate({
+    personaReady,
+    isLoadingPersona,
+    isSavingPersona,
+  })
 
   return (
     <section style={sectionStyle}>
@@ -486,8 +492,8 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
             isSwitching={isSwitching}
             isSending={isSending}
             isLoadingHistory={isLoadingHistory}
-            canStartSession={personaReady && !isLoadingPersona && !isSavingPersona}
-            startBlockedReason="Save persona first to start debugging session."
+            canStartSession={personaStartGate.canStartSession}
+            startBlockedReason={personaStartGate.startBlockedReason}
             availabilityEntries={availabilityEntries}
             timelineEntries={timelineEntries}
             selectedConversation={selectedConversation}

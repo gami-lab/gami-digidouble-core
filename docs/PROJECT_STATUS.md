@@ -137,6 +137,19 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - Full workspace lint/typecheck pass via root turbo scripts.
   - Workspace test suite pass after stabilizing SSE disconnect route test to avoid environment-specific socket-bind failures.
 
+### EPIC 2.8 — Audit remediation and A-quality closure hardening: **complete** (2026-05-07)
+
+- Resolved audit-critical build gate failure in `apps/core/src/api/routes/stream-runtime-events.test.ts` by replacing tuple-index mock-call assertion with stable behavior assertion (`toHaveBeenCalledWith`).
+- Added explicit persona-start gate policy module and focused tests:
+  - `apps/console/src/pages/debug-shell-persona-gate.ts`
+  - `apps/console/src/pages/debug-shell-persona-gate.test.ts`
+- Wired `DebugShellPage` to use centralized persona gate policy for start enablement and blocked reason messaging.
+- Revalidated mandatory gates after remediation:
+  - `pnpm lint` PASS
+  - `pnpm typecheck` PASS
+  - `pnpm test` PASS
+  - `pnpm test:coverage` PASS
+
 ### EPIC 2.7 — Runtime Inspector query composition over existing APIs: **complete** (2026-05-07)
 
 - Added a single typed console-side composition/query layer: `apps/console/src/api/runtime-inspector.ts`.

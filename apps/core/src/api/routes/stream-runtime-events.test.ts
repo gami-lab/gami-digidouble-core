@@ -215,6 +215,6 @@ describe('GET /v1/sessions/:sessionId/events/stream sse headers', () => {
     })
 
     expect(subscribeSpy).toHaveBeenCalledTimes(1)
-    expect(subscribeSpy.mock.calls[0]?.[0]).toBe('session_1')
+    expect(subscribeSpy).toHaveBeenCalledWith('session_1', expect.any(Function))
   })
 })

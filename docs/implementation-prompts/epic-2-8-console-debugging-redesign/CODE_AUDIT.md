@@ -159,3 +159,52 @@ Minimal steps required:
 **Rework before close**.
 
 Feature work is substantially delivered, but EPIC should not be closed as fully hardened while the required typecheck gate is failing.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Fixed critical typecheck blocker in `apps/core/src/api/routes/stream-runtime-events.test.ts` by replacing brittle tuple-index call inspection with behavior-level subscriber assertion:
+  - `expect(subscribeSpy).toHaveBeenCalledWith('session_1', expect.any(Function))`
+- Added explicit persona start-gate policy module:
+  - `apps/console/src/pages/debug-shell-persona-gate.ts`
+- Added focused behavior tests for persona-start state transitions:
+  - `apps/console/src/pages/debug-shell-persona-gate.test.ts`
+- Updated `DebugShellPage` to consume centralized persona-start gate policy (`canStartSession` + blocked reason) for clearer, testable flow logic.
+- Updated `docs/PROJECT_STATUS.md` with an EPIC 2.8 remediation/hardening closure entry and revalidated gate outcomes.
+
+### Findings Resolved
+
+- Resolved Finding 1 (Critical): core typecheck gate failure in stream runtime events test.
+- Resolved Finding 2 (High): project status documentation now reconciled with actual gate health post-remediation.
+- Resolved Finding 3 (Medium): persona-first start behavior now has explicit policy-level state-transition test coverage.
+
+### Findings Deferred
+
+- Finding 4 (Medium): cross-package gate ownership fragility is process-level and remains an operational consideration (current mandatory workspace gates are green).
+- Finding 5 (Low): implementation-near mapping tests still exist but are now complemented by additional behavior-focused persona-gate coverage.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`pnpm test:coverage` successful)
+
+### Final Feature Confidence
+
+- Unified debugging shell and nav pruning: High
+- Memory evolution workspace: High
+- GM impact causality trace: High
+- Turn profiler latency breakdown: High
+- Persona-first start flow (including start gate state transitions): High
+- Cleanup-first contract/path maintenance: High
+
+### Final Grade
+
+**A**
+
+### Remaining Risks
+
+- No critical or high risks remain for EPIC 2.8 closure after remediation.
+- Normal future-change risk remains around multi-package gate coupling, mitigated by mandatory root gate enforcement and current green build status.
