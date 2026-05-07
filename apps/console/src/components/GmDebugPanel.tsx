@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
-import { inspectSession, listSessionEvents } from '../api'
+import { loadRuntimeInspectorViewModel } from '../api'
 import type { InspectSessionResponse, SessionEventRecord, SessionTransitionRecord } from '../api'
 import { formatApiError } from '../api/error'
 
@@ -8,11 +8,17 @@ export async function loadGmDebugPanelData(sessionId: string): Promise<{
   inspect: InspectSessionResponse['inspect']
   events: SessionEventRecord[]
 }> {
-  const [inspectResult, eventsResult] = await Promise.all([
-    inspectSession(sessionId),
-    listSessionEvents(sessionId, { limit: 20 }),
-  ])
-  return { inspect: inspectResult.inspect, events: eventsResult.events }
+  const snapshot = await loadRuntimeInspectorViewModel(sessionId, { eventsLimit: 20 })
+  return {
+    inspect: {
+      session: snapshot.session,
+      gmState: snapshot.gm.gmState,
+      transitionHistory: snapshot.gm.transitionHistory,
+      unlockedAvatarIds: snapshot.gm.unlockedAvatarIds,
+      gmNotes: snapshot.gm.gmNotes,
+    },
+    events: snapshot.recentEvents,
+  }
 }
 
 type GmDebugPanelProps = {

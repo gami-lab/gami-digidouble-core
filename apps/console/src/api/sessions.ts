@@ -2,24 +2,34 @@ import { coreRequest } from './client'
 import type {
   AdminSessionEventsResponse,
   AdminSessionInspectResponse,
+  AdminSessionMemoryLayersResponse,
+  AdminSessionMemoryResponse,
+  AdminSessionTurnMetricsResponse,
   ConversationEndReason,
   ConversationSummary,
   EndConversationResponse,
   GmStateSummary,
   LifecycleStatus,
+  RuntimeState,
   SessionEventRecord,
   SessionMemorySummary,
   SessionSummary,
   SessionTransitionRecord,
+  UserPersonaResponse,
 } from '@gami/shared'
 
 export type { SessionSummary, ConversationSummary, SessionMemorySummary, SessionTransitionRecord }
 export type { ConversationEndReason, EndConversationResponse }
 export type {
   GmStateSummary,
+  RuntimeState,
   AdminSessionInspectResponse as InspectSessionResponse,
   SessionEventRecord,
   AdminSessionEventsResponse as ListSessionEventsResponse,
+  AdminSessionMemoryResponse as GetSessionMemoryResponse,
+  AdminSessionMemoryLayersResponse as GetSessionMemoryLayersResponse,
+  AdminSessionTurnMetricsResponse as GetSessionMetricsResponse,
+  UserPersonaResponse as GetUserPersonaResponse,
 }
 
 export type Message = {
@@ -202,4 +212,42 @@ export async function listSessionEvents(
       ? `/v1/admin/sessions/${sessionId}/events?${query}`
       : `/v1/admin/sessions/${sessionId}/events`
   return coreRequest<AdminSessionEventsResponse>('GET', path)
+}
+
+type GetRuntimeStatePayload = {
+  runtimeState: RuntimeState
+}
+
+export async function getRuntimeState(sessionId: string): Promise<RuntimeState> {
+  const payload = await coreRequest<GetRuntimeStatePayload>(
+    'GET',
+    `/v1/sessions/${sessionId}/runtime-state`,
+  )
+  return payload.runtimeState
+}
+
+export async function getSessionMemory(sessionId: string): Promise<AdminSessionMemoryResponse> {
+  return coreRequest<AdminSessionMemoryResponse>('GET', `/v1/admin/sessions/${sessionId}/memory`)
+}
+
+export async function getSessionMemoryLayers(
+  sessionId: string,
+): Promise<AdminSessionMemoryLayersResponse> {
+  return coreRequest<AdminSessionMemoryLayersResponse>(
+    'GET',
+    `/v1/admin/sessions/${sessionId}/memory-layers`,
+  )
+}
+
+export async function getSessionMetrics(
+  sessionId: string,
+): Promise<AdminSessionTurnMetricsResponse> {
+  return coreRequest<AdminSessionTurnMetricsResponse>(
+    'GET',
+    `/v1/admin/sessions/${sessionId}/metrics`,
+  )
+}
+
+export async function getUserPersona(userId: string): Promise<UserPersonaResponse> {
+  return coreRequest<UserPersonaResponse>('GET', `/v1/users/${userId}/persona`)
 }

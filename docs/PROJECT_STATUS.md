@@ -26,6 +26,21 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Console API layer (`apps/console/src/api/sessions.ts`) no longer defines duplicated inspector/event DTOs and imports canonical types from `@gami/shared`.
 - GM Debug panel event rendering now handles union event payloads safely (`turn_completed` vs GM events), matching the admin events contract.
 
+### EPIC 2.7 — Runtime Inspector query composition over existing APIs: **complete** (2026-05-07)
+
+- Added a single typed console-side composition/query layer: `apps/console/src/api/runtime-inspector.ts`.
+- The composed runtime inspector model now loads and combines bounded data from existing read APIs only:
+  - `GET /v1/admin/sessions/{sessionId}/inspect`
+  - `GET /v1/admin/sessions/{sessionId}/memory`
+  - `GET /v1/admin/sessions/{sessionId}/memory-layers`
+  - `GET /v1/admin/sessions/{sessionId}/events`
+  - `GET /v1/admin/sessions/{sessionId}/metrics`
+  - `GET /v1/sessions/{sessionId}/runtime-state`
+  - `GET /v1/users/{userId}/persona`
+- No new backend runtime-inspector read route was introduced.
+- Console `GmDebugPanel` loader now consumes the unified runtime-inspector query model instead of ad hoc endpoint fan-out.
+- Added focused console API-layer tests for composed model behavior and optional/null layer handling.
+
 ### EPIC 4.2 — User Memory Facts v1: **complete** (2026-05-05)
 
 - Added canonical Postgres schema table `user_memory_facts` (`infra/postgres/init.sql`) with `umf_` id prefix, uniqueness on `(user_id, category, key)`, and user index.

@@ -10,11 +10,17 @@ export {
   updateScenario,
 } from './scenarios'
 export { sendMessage } from './messages'
+export { loadRuntimeInspectorViewModel } from './runtime-inspector'
 export {
   endConversation,
+  getRuntimeState,
+  getSessionMemory,
+  getSessionMemoryLayers,
+  getSessionMetrics,
   getAvailableAvatars,
   getHistory,
   getSession,
+  getUserPersona,
   inspectSession,
   listSessionConversations,
   listSessionEvents,
@@ -26,6 +32,7 @@ export {
 } from './sessions'
 
 export type { SendMessageParams, SendMessageResponse } from './messages'
+export type { RuntimeInspectorQueryOptions, RuntimeInspectorViewModel } from './runtime-inspector'
 export type {
   AvatarSummary,
   CreateAvatarParams,
@@ -39,11 +46,16 @@ export type {
   EndConversationResponse,
   GetAvailableAvatarsResponse,
   GetHistoryResponse,
+  GetSessionMemoryLayersResponse,
+  GetSessionMemoryResponse,
+  GetSessionMetricsResponse,
+  GetUserPersonaResponse,
   GmStateSummary,
   InspectSessionResponse,
   ListSessionEventsResponse,
   ListSessionsFilter,
   Message,
+  RuntimeState,
   SessionEventRecord,
   SessionSummary,
   SessionTransitionRecord,

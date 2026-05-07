@@ -1,0 +1,82 @@
+import type {
+  AdminSessionMemoryLayersResponse,
+  AdminSessionMemoryResponse,
+  AdminSessionTurnMetricsResponse,
+  RuntimeState,
+  SessionEventRecord,
+  SessionSummary,
+  UserPersona,
+} from '@gami/shared'
+import {
+  getRuntimeState,
+  getSessionMemory,
+  getSessionMemoryLayers,
+  getSessionMetrics,
+  getUserPersona,
+  inspectSession,
+  listSessionEvents,
+} from './sessions'
+
+export type RuntimeInspectorQueryOptions = {
+  eventsLimit?: number
+}
+
+export type RuntimeInspectorViewModel = {
+  session: SessionSummary
+  runtimeState: RuntimeState
+  gm: {
+    gmState: NonNullable<Awaited<ReturnType<typeof inspectSession>>['inspect']['gmState']> | null
+    gmNotes: string | null
+    transitionHistory: Awaited<ReturnType<typeof inspectSession>>['inspect']['transitionHistory']
+    unlockedAvatarIds: string[]
+  }
+  memory: {
+    summary: AdminSessionMemoryResponse['session']
+    layers: AdminSessionMemoryLayersResponse['session']
+  }
+  metrics: {
+    summary: AdminSessionTurnMetricsResponse['summary']
+  }
+  persona: UserPersona | null
+  recentEvents: SessionEventRecord[]
+}
+
+const DEFAULT_EVENTS_LIMIT = 20
+
+export async function loadRuntimeInspectorViewModel(
+  sessionId: string,
+  options?: RuntimeInspectorQueryOptions,
+): Promise<RuntimeInspectorViewModel> {
+  const inspect = await inspectSession(sessionId)
+  const eventsLimit = options?.eventsLimit ?? DEFAULT_EVENTS_LIMIT
+
+  const [runtimeState, memorySummary, memoryLayers, metrics, personaResponse, eventsResponse] =
+    await Promise.all([
+      getRuntimeState(sessionId),
+      getSessionMemory(sessionId),
+      getSessionMemoryLayers(sessionId),
+      getSessionMetrics(sessionId),
+      getUserPersona(inspect.inspect.session.userId),
+      listSessionEvents(sessionId, { limit: eventsLimit }),
+    ])
+
+  return {
+    session: inspect.inspect.session,
+    runtimeState,
+    gm: {
+      gmState: inspect.inspect.gmState,
+      gmNotes: inspect.inspect.gmNotes,
+      transitionHistory: inspect.inspect.transitionHistory,
+      unlockedAvatarIds: [...inspect.inspect.unlockedAvatarIds],
+    },
+    memory: {
+      summary: memorySummary.session,
+      layers: memoryLayers.session,
+    },
+    metrics: {
+      summary: metrics.summary,
+    },
+    persona: personaResponse.persona,
+    recentEvents: eventsResponse.events,
+  }
+}
