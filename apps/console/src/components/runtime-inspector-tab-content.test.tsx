@@ -14,7 +14,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
     metrics: makeMetricsSummary(),
     context: makeContextSummary(),
     persona: null,
-    recentEvents: [makeRecentEvent()],
+    recentEvents: [makeGmEvent(), makeRecentEvent()],
   }
 }
 
@@ -138,6 +138,38 @@ function makeRecentEvent(): RuntimeInspectorViewModel['recentEvents'][number] {
   }
 }
 
+function makeGmEvent(): RuntimeInspectorViewModel['recentEvents'][number] {
+  return {
+    type: 'gm_triggered',
+    correlationId: 'corr_1',
+    createdAt: '2026-05-07T10:00:00.000Z',
+    payload: {
+      triggerReason: 'topic_shift',
+      turnIndex: 1,
+      interactionCount: 2,
+      stateBefore: {
+        progression: 'intro',
+        topicsCovered: [],
+      },
+      decision: {
+        avatarId: 'avatar_2',
+        conversationMode: 'continue',
+        notesInjected: true,
+        directiveCount: 2,
+        unlockedAvatarIds: ['avatar_2'],
+        suggestedAvatarId: 'avatar_2',
+        suggestedAvatarReason: 'user asked architecture question',
+        switchedAvatarId: 'avatar_2',
+      },
+      stateAfter: {
+        progression: 'deep_dive',
+        topicsCovered: ['architecture'],
+      },
+      latencyMs: 123,
+    },
+  }
+}
+
 function makeMemoryHistory(snapshot: RuntimeInspectorViewModel): MemoryEvolutionSnapshot[] {
   return [
     {
@@ -172,6 +204,7 @@ function makeMemoryHistory(snapshot: RuntimeInspectorViewModel): MemoryEvolution
   ]
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('RuntimeInspectorTabContent', () => {
   it('renders action controls and status text', () => {
     const snapshot = makeViewModel()
@@ -246,6 +279,15 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('Live stream')
     expect(html).toContain('runtime.processing_started')
     expect(html).toContain('Recent snapshot events')
+    expect(html).toContain('GM causality trace')
+    expect(html).toContain('Trigger/context')
+    expect(html).toContain('GM decision/action')
+    expect(html).toContain('Resulting impact')
+    expect(html).toContain('Avatar unlocks: avatar_2')
+    expect(html).toContain('Routing suggestion: avatar_2')
+    expect(html).toContain('Directive count: 2')
+    expect(html).toContain('Turn 1')
+    expect(html).toContain('Correlation: corr_1')
   })
 
   it('renders layered memory state and evolution delta copy', () => {

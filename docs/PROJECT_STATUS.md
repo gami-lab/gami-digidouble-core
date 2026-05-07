@@ -73,6 +73,29 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - No endpoint shape changes were required.
   - `docs/API_CONTRACT.md` and `docs/DATA_MODEL.md` remain accurate for this slice.
 
+### EPIC 2.8 — GM impact trace and causality: **in progress** (2026-05-07)
+
+- Redesigned GM Impact section rendering to a causality-first trace in console:
+  - trigger/context
+  - GM decision/action
+  - resulting system/user impact
+- Added bounded GM trace builder in console (`apps/console/src/components/gm-impact-trace.ts`) using existing shared contracts only:
+  - `gm_triggered`, `gm_error`, `turn_completed` events
+  - `correlationId` grouping
+  - `turnIndex` and timeline position correlation
+- Made key impact statements explicit and deterministic:
+  - avatar unlocks
+  - routing/switch suggestions
+  - directives/notes injection
+  - user-flow impact from correlated turn completion
+- Added focused tests for causality mapping and observable rendering:
+  - `apps/console/src/components/gm-impact-trace.test.ts`
+  - updated `apps/console/src/components/runtime-inspector-tab-content.test.tsx`
+- Contract status:
+  - no API contract shape changes required
+  - no Game Master debug-field shape changes required
+  - `docs/API_CONTRACT.md` and `docs/GAME_MASTER_CONTRACT.md` remain accurate for this slice.
+
 ### EPIC 2.7 — Runtime Inspector query composition over existing APIs: **complete** (2026-05-07)
 
 - Added a single typed console-side composition/query layer: `apps/console/src/api/runtime-inspector.ts`.

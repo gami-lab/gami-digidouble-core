@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
 import type { RuntimeEvent, UserPersona } from '@gami/shared'
 import type { RuntimeInspectorViewModel } from '../api'
+import { buildGmImpactTrace } from './gm-impact-trace'
 import type { MemoryEvolutionSnapshot } from './memory-evolution'
 import { computeMemoryDelta } from './memory-evolution'
 
@@ -200,8 +201,51 @@ function EventsTab({
   snapshot: RuntimeInspectorViewModel
   liveEvents: RuntimeEvent[]
 }): JSX.Element {
+  const trace = buildGmImpactTrace(snapshot)
+
   return (
     <div style={{ marginTop: '12px' }}>
+      <strong>GM causality trace</strong>
+      {trace.length === 0 ? (
+        <p style={{ margin: '8px 0' }}>No GM causality entries yet.</p>
+      ) : (
+        trace.map((entry) => (
+          <div
+            key={`${entry.correlationId}-${entry.createdAt}`}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              backgroundColor: '#ffffff',
+              padding: '8px',
+              margin: '8px 0',
+            }}
+          >
+            <p style={{ margin: 0, fontWeight: 600 }}>
+              Turn {String(entry.turnIndex ?? 0)} · timeline {entry.timelinePosition} · {entry.status}
+            </p>
+            <p style={{ margin: '4px 0', color: '#4b5563' }}>Correlation: {entry.correlationId}</p>
+            <p style={{ margin: '4px 0' }}>
+              <strong>Trigger/context:</strong> {entry.triggerContext}
+            </p>
+            <p style={{ margin: '4px 0' }}>
+              <strong>GM decision/action:</strong>
+            </p>
+            {entry.gmDecisionAction.map((line, index) => (
+              <p key={`${entry.correlationId}-decision-${String(index)}`} style={{ margin: '2px 0', color: '#374151' }}>
+                - {line}
+              </p>
+            ))}
+            <p style={{ margin: '4px 0' }}>
+              <strong>Resulting impact:</strong>
+            </p>
+            {entry.resultingImpact.map((line, index) => (
+              <p key={`${entry.correlationId}-impact-${String(index)}`} style={{ margin: '2px 0', color: '#374151' }}>
+                - {line}
+              </p>
+            ))}
+          </div>
+        ))
+      )}
       <strong>Live stream</strong>
       {liveEvents.length === 0 ? <p style={{ margin: '8px 0' }}>No live events yet.</p> : null}
       {liveEvents.map((event) => (
