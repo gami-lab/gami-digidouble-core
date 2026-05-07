@@ -355,8 +355,7 @@ The GM Debug Panel and supporting observability APIs are implemented, tested, an
 - `GET /v1/admin/sessions/{sessionId}/inspect` — returns session summary, GM state snapshot, newest-first transition history, unlocked avatars, and GM notes
 - `GET /v1/admin/sessions/{sessionId}/events` — returns safe GM event records newest-first, supports a positive integer `limit` query param with default 50 / max 200, and filters out non-GM events
 - `admin-sessions.stack-e2e.test.ts` — covers auth, validation, not-found, happy-path response shape, no raw message content in inspect, and GM-only event filtering
-- Console Scenario Test Bench includes a collapsed-by-default GM Debug Panel that auto-refreshes after each message turn and supports manual refresh
-- Panel displays active avatar, unlocked avatars, GM notes, transition history, recent GM events, loading state, and local error state
+- The original standalone GM Debug panel was shipped in EPIC 2.6 and later superseded by EPIC 2.7 Runtime Inspector v2 in the Scenario Test Bench.
 - No sensitive prompt content, raw user message content, credentials, or LLM model names are exposed through the EPIC 2.6 admin endpoints
 - Quality gates confirmed during implementation: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, focused Postgres event-log integration, and focused admin stack-E2E coverage pass
 

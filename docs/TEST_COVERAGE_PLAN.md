@@ -235,6 +235,19 @@ Must test:
 - audit log query filters by `targetType` and `targetId` correctly
 - entries are append-only (no update path exists)
 
+### Console Runtime Inspector Consumer
+
+Must test:
+
+- `loadRuntimeInspectorViewModel` composes inspect + memory + memory-layers + metrics + runtime-state + persona + events + context using existing routes only
+- runtime inspector SSE consumer parses `runtime_event` frames from `GET /v1/sessions/{sessionId}/events/stream` and ignores keepalive frames
+- admin runtime action API wrappers call:
+  - `POST /v1/admin/sessions/{sessionId}/gm/replay`
+  - `POST /v1/admin/sessions/{sessionId}/memory/refresh`
+  - `POST /v1/admin/sessions/{sessionId}/memory/clear`
+- persona editor API wrapper calls `PUT /v1/users/{userId}/persona` and preserves canonical shared DTO usage
+- no console-local duplicated admin DTO contracts; `@gami/shared` remains canonical owner for HTTP-facing inspector/admin DTOs
+
 ---
 
 ## Metrics Module
