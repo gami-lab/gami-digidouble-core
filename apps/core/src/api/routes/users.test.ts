@@ -207,3 +207,20 @@ describe('GET /v1/users/:userId/persona', () => {
     expect(body.error?.code).toBe('INTERNAL_ERROR')
   })
 })
+
+describe('CORS preflight for persona routes', () => {
+  it('allows PUT in preflight response for persona upsert', async () => {
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/v1/users/tester/persona',
+      headers: {
+        origin: 'http://localhost:5173',
+        'access-control-request-method': 'PUT',
+      },
+    })
+
+    expect(response.statusCode).toBe(204)
+    expect(response.headers['access-control-allow-methods']).toContain('PUT')
+  })
+})

@@ -83,7 +83,11 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     logger: config.nodeEnv !== 'test' ? { level: config.logLevel } : false,
   })
 
-  void app.register(cors, { origin: config.corsOrigin })
+  void app.register(cors, {
+    origin: config.corsOrigin,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'x-api-key'],
+  })
 
   app.setErrorHandler((error, _request, reply) => {
     if (isFastifyValidationError(error)) {
