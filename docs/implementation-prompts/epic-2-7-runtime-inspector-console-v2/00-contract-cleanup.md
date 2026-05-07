@@ -22,7 +22,8 @@ models and admin DTOs, so this prompt is mandatory.
 - identify all runtime-inspector HTTP contracts touched by EPIC 2.7
 - centralize canonical ownership for those HTTP-facing DTOs
 - remove obvious duplicated or drifting local copies in the console API layer
-- prepare canonical request/response types for any new inspector or admin-action endpoints
+- prepare canonical request/response types for the final inspector/admin-action surface, whether
+  that surface reuses, replaces, or removes current endpoints
 
 **Out of scope:**
 
@@ -81,8 +82,10 @@ models and admin DTOs, so this prompt is mandatory.
 
 ## Constraints
 
-- do not add new route behavior in this prompt
-- keep backward compatibility for existing implemented endpoints
+- do not add new route behavior in this prompt unless it is strictly required to remove contract
+  duplication
+- do not preserve backward compatibility for admin endpoints by default; prefer one clean owner and
+  one clean contract surface
 - avoid one giant `InspectorPayload` type with unrelated optional fields
 - keep shared types consumer-oriented and API-stable
 - no console-only divergence from `docs/API_CONTRACT.md`
@@ -119,5 +122,6 @@ If no doc changes are needed, explicitly verify that the docs are still accurate
 - [ ] all HTTP-facing runtime-inspector contracts have one clear canonical owner
 - [ ] `apps/console/src/api/sessions.ts` no longer defines duplicated admin-inspector DTOs that
       already belong in `@gami/shared`
-- [ ] existing endpoint behavior remains backward compatible
+- [ ] the final admin contract ownership is cleaner and less duplicated than the current state,
+      even if that requires replacing existing local/dev-only admin endpoint shapes
 - [ ] `pnpm typecheck` passes
