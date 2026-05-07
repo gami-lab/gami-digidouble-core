@@ -96,6 +96,31 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - no Game Master debug-field shape changes required
   - `docs/API_CONTRACT.md` and `docs/GAME_MASTER_CONTRACT.md` remain accurate for this slice.
 
+### EPIC 2.8 — Turn profiler and latency breakdown: **in progress** (2026-05-07)
+
+- Added a turn-profiler view in the Debugging Shell Turn Profiler section using existing session metrics + recent event timeline data.
+- Extended console runtime-inspector composition model to include canonical per-turn metrics payloads (`metrics.turns`) from existing API responses (no endpoint changes).
+- Added per-turn signal breakdown rendering for:
+  - total turn latency
+  - avatar latency
+  - GM latency (optional/null-safe)
+  - overhead latency
+  - token volume indicators (total/input/output + GM tokens when present)
+- Added high-signal filtering/sorting controls:
+  - sort by slowest total latency
+  - sort by slowest avatar latency
+  - sort by latest turn
+  - filter to GM-involved turns only
+- Added correlation-aware alignment where available:
+  - conversation id inferred from `turn_completed` timeline events via `correlationId`
+- Added focused tests:
+  - `apps/console/src/components/turn-profiler.test.ts`
+  - updated `apps/console/src/components/runtime-inspector-tab-content.test.tsx`
+  - updated `apps/console/src/api/runtime-inspector.test.ts`
+- Contract/testing docs status:
+  - no API response shape changes required, so `docs/API_CONTRACT.md` remains accurate
+  - testing approach unchanged materially, so `docs/TEST_STRATEGY.md` remains accurate
+
 ### EPIC 2.7 — Runtime Inspector query composition over existing APIs: **complete** (2026-05-07)
 
 - Added a single typed console-side composition/query layer: `apps/console/src/api/runtime-inspector.ts`.

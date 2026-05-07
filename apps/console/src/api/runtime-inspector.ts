@@ -39,6 +39,7 @@ export type RuntimeInspectorViewModel = {
   }
   metrics: {
     summary: AdminSessionTurnMetricsResponse['summary']
+    turns: AdminSessionTurnMetricsResponse['turns']
   }
   context: {
     avatar: AdminSessionContextResponse['avatarContext']
@@ -90,6 +91,7 @@ export async function loadRuntimeInspectorViewModel(
     },
     metrics: {
       summary: metrics.summary,
+      turns: metrics.turns,
     },
     context: {
       avatar: contextResponse.avatarContext,

@@ -44,6 +44,7 @@ describe('loadRuntimeInspectorViewModel', () => {
     expect(result.gm.gmState).toBeNull()
     expect(result.memory.layers.shortTerm.exchangeCount).toBe(2)
     expect(result.metrics.summary.totalTurns).toBe(1)
+    expect(result.metrics.turns).toHaveLength(1)
     expect(result.context.gm.currentState.progression).toBe('intro')
     expect(result.persona?.role).toBe('coach')
   })
@@ -60,6 +61,7 @@ describe('loadRuntimeInspectorViewModel', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 function arrangeSession1(): void {
   vi.mocked(inspectSession).mockResolvedValue({
     inspect: {
@@ -141,7 +143,20 @@ function arrangeSession1(): void {
       avgOutputTokens: 12,
       avgGmLatencyMs: null,
     },
-    turns: [],
+    turns: [
+      {
+        turnIndex: 1,
+        correlationId: 'corr_1',
+        avatarLatencyMs: 100,
+        totalTurnLatencyMs: 120,
+        overheadMs: 20,
+        inputTokens: 10,
+        outputTokens: 12,
+        totalTokens: 22,
+        model: 'test-model',
+        hasGm: false,
+      },
+    ],
   })
   vi.mocked(getUserPersona).mockResolvedValue({
     persona: { role: 'coach' },

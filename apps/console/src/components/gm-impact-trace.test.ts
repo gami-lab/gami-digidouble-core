@@ -63,6 +63,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
         avgOutputTokens: 20,
         avgGmLatencyMs: 60,
       },
+      turns: [],
     },
     context: {
       avatar: {

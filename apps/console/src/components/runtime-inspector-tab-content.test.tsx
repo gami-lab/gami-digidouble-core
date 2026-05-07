@@ -85,6 +85,20 @@ function makeMetricsSummary(): RuntimeInspectorViewModel['metrics'] {
       avgOutputTokens: 18,
       avgGmLatencyMs: null,
     },
+    turns: [
+      {
+        turnIndex: 1,
+        correlationId: 'corr_1',
+        avatarLatencyMs: 120,
+        totalTurnLatencyMs: 140,
+        overheadMs: 20,
+        inputTokens: 12,
+        outputTokens: 18,
+        totalTokens: 30,
+        model: 'test-model',
+        hasGm: false,
+      },
+    ],
   }
 }
 
@@ -312,6 +326,30 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('Long-term facts')
     expect(html).toContain('Memory evolution')
     expect(html).toContain('New long-term fact extracted')
+  })
+
+  it('renders turn profiler latency and token breakdown safely without GM optional metrics', () => {
+    const snapshot = makeViewModel()
+    const html = renderToStaticMarkup(
+      <RuntimeInspectorTabContent
+        tab="metrics"
+        snapshot={snapshot}
+        memoryHistory={makeMemoryHistory(snapshot)}
+        liveEvents={[]}
+        actionStatus={null}
+        onReplayGm={vi.fn()}
+        onRefreshMemory={vi.fn()}
+        onClearMemory={vi.fn()}
+        onResetSession={vi.fn()}
+        onUpsertPersona={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    expect(html).toContain('Turn profiler')
+    expect(html).toContain('total 140ms')
+    expect(html).toContain('avatar 120ms')
+    expect(html).toContain('gm -')
+    expect(html).toContain('tokens 30 (in 12 / out 18)')
   })
 })
 

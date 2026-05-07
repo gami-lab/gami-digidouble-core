@@ -5,6 +5,12 @@ import type { RuntimeInspectorViewModel } from '../api'
 import { buildGmImpactTrace } from './gm-impact-trace'
 import type { MemoryEvolutionSnapshot } from './memory-evolution'
 import { computeMemoryDelta } from './memory-evolution'
+import {
+  applyTurnProfilerFilter,
+  buildTurnProfilerRows,
+  describeTurnLatency,
+  describeTurnTokens,
+} from './turn-profiler'
 
 export type InspectorTab =
   | 'overview'
@@ -264,12 +270,73 @@ function EventsTab({
 }
 
 function MetricsTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
+  const [gmOnly, setGmOnly] = useState(false)
+  const [sort, setSort] = useState<'slowest-total' | 'slowest-avatar' | 'latest-turn'>(
+    'slowest-total',
+  )
+
+  const rows = buildTurnProfilerRows(snapshot.metrics.turns, snapshot.recentEvents)
+  const visibleRows = applyTurnProfilerFilter(rows, {
+    gmOnly,
+    sort,
+    limit: 20,
+  })
+
   return (
     <div style={{ marginTop: '12px' }}>
       <Row label="Total turns">{String(snapshot.metrics.summary.totalTurns)}</Row>
       <Row label="Turns with GM">{String(snapshot.metrics.summary.turnsWithGm)}</Row>
       <Row label="Avg avatar latency (ms)">{String(snapshot.metrics.summary.avgAvatarLatencyMs)}</Row>
       <Row label="Avg total latency (ms)">{String(snapshot.metrics.summary.avgTotalTurnLatencyMs)}</Row>
+      <strong style={{ display: 'block', marginTop: '12px' }}>Turn profiler</strong>
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px' }}>
+        <label>
+          Sort
+          <select
+            value={sort}
+            onChange={(event) => {
+              setSort(event.target.value as 'slowest-total' | 'slowest-avatar' | 'latest-turn')
+            }}
+          >
+            <option value="slowest-total">Slowest total</option>
+            <option value="slowest-avatar">Slowest avatar</option>
+            <option value="latest-turn">Latest turn</option>
+          </select>
+        </label>
+        <label style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <input
+            type="checkbox"
+            checked={gmOnly}
+            onChange={(event) => {
+              setGmOnly(event.target.checked)
+            }}
+          />
+          GM involved only
+        </label>
+      </div>
+      {visibleRows.length === 0 ? (
+        <p style={{ margin: '8px 0', color: '#6b7280' }}>No turns match the current filter.</p>
+      ) : (
+        visibleRows.map((row) => (
+          <div
+            key={row.correlationId}
+            style={{
+              marginTop: '8px',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              backgroundColor: '#ffffff',
+              padding: '8px',
+            }}
+          >
+            <p style={{ margin: 0, fontWeight: 600 }}>
+              Turn {String(row.turnIndex)} · {row.conversationId ?? 'unknown conversation'} · {row.hasGm ? 'GM' : 'Avatar only'}
+            </p>
+            <p style={{ margin: '4px 0', color: '#374151' }}>{describeTurnLatency(row)}</p>
+            <p style={{ margin: '4px 0', color: '#374151' }}>{describeTurnTokens(row)}</p>
+            <p style={{ margin: '4px 0', color: '#4b5563' }}>Correlation: {row.correlationId}</p>
+          </div>
+        ))
+      )}
     </div>
   )
 }
