@@ -1,19 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
 import { apiUrl } from './env'
-import type { ScenarioSummary, SessionSummary } from './api'
+import type { ScenarioSummary } from './api'
+import { DebugShellPage } from './pages/DebugShellPage'
 import { ScenarioPage } from './pages/ScenarioPage'
-import { ScenarioTestPage } from './pages/ScenarioTestPage'
-import { SessionPage } from './pages/SessionPage'
 import { SessionAdminPage } from './pages/SessionAdminPage'
 
-type Page = 'scenario' | 'session' | 'scenario-test' | 'session-admin'
+type Page = 'scenario' | 'debug-shell' | 'session-admin'
 
-const pageOrder: Page[] = ['scenario', 'session', 'scenario-test', 'session-admin']
+const pageOrder: Page[] = ['scenario', 'debug-shell', 'session-admin']
 
 type TestContext = {
   scenario: ScenarioSummary | null
-  sessionId: string | null
 }
 
 const appContainerStyle: CSSProperties = {
@@ -54,8 +52,7 @@ const breadcrumbInactiveStyle: CSSProperties = {
 
 const breadcrumbItems: Array<{ id: Page; label: string }> = [
   { id: 'scenario', label: 'Scenario' },
-  { id: 'session', label: 'Session + Conversations' },
-  { id: 'scenario-test', label: 'Scenario Test Bench' },
+  { id: 'debug-shell', label: 'Debugging Shell' },
   { id: 'session-admin', label: 'Session Admin' },
 ]
 
@@ -64,7 +61,6 @@ type ScenarioPageWithActionsProps = {
   onScenarioSelected: (s: ScenarioSummary) => void
   onNext: () => void
   onOpenSessionAdmin: () => void
-  onOpenTestBench: () => void
 }
 
 function ScenarioPageWithActions({
@@ -72,7 +68,6 @@ function ScenarioPageWithActions({
   onScenarioSelected,
   onNext,
   onOpenSessionAdmin,
-  onOpenTestBench,
 }: ScenarioPageWithActionsProps): JSX.Element {
   return (
     <>
@@ -100,7 +95,7 @@ function ScenarioPageWithActions({
           </button>
           <button
             type="button"
-            onClick={onOpenTestBench}
+            onClick={onNext}
             style={{
               border: '1px solid #2563eb',
               borderRadius: '8px',
@@ -111,7 +106,7 @@ function ScenarioPageWithActions({
               cursor: 'pointer',
             }}
           >
-            Open Scenario Test Bench
+            Open Debugging Shell
           </button>
         </div>
       ) : null}
@@ -123,9 +118,7 @@ function App(): JSX.Element {
   const [page, setPage] = useState<Page>('scenario')
   const [testContext, setTestContext] = useState<TestContext>({
     scenario: null,
-    sessionId: null,
   })
-  const [knownSessions, setKnownSessions] = useState<SessionSummary[]>([])
 
   useEffect(() => {
     if (page !== 'scenario' && testContext.scenario === null) {
@@ -133,48 +126,23 @@ function App(): JSX.Element {
     }
   }, [page, testContext.scenario])
 
-  const scenarioSessions = useMemo(
-    () => knownSessions.filter((s) => s.scenarioId === testContext.scenario?.scenarioId),
-    [knownSessions, testContext.scenario?.scenarioId],
-  )
-
   const currentBody = useMemo((): JSX.Element => {
     if (page === 'scenario') {
       return (
         <ScenarioPageWithActions
           selectedScenarioId={testContext.scenario?.scenarioId ?? null}
           onScenarioSelected={(scenario) => {
-            setTestContext({ scenario, sessionId: null })
-            setKnownSessions([])
+            setTestContext({ scenario })
           }}
-          onNext={() => { setPage('session') }}
+          onNext={() => { setPage('debug-shell') }}
           onOpenSessionAdmin={() => { setPage('session-admin') }}
-          onOpenTestBench={() => { setPage('scenario-test') }}
         />
       )
     }
     if (testContext.scenario === null) return <p>Redirecting to setup…</p>
-    if (page === 'scenario-test') return <ScenarioTestPage scenario={testContext.scenario} />
-    if (page === 'session-admin') return <SessionAdminPage scenarioId={testContext.scenario.scenarioId} />
-    return (
-      <SessionPage
-        scenario={testContext.scenario}
-        initialAvatar={null}
-        sessionId={testContext.sessionId}
-        knownSessions={scenarioSessions}
-        onSessionIdChange={(sessionId) => {
-          setTestContext((previous) => ({ ...previous, sessionId }))
-        }}
-        onSessionStarted={(session) => {
-          setTestContext((previous) => ({ ...previous, sessionId: session.sessionId }))
-          setKnownSessions((previous) => {
-            if (previous.some((s) => s.sessionId === session.sessionId)) return previous
-            return [session, ...previous]
-          })
-        }}
-      />
-    )
-  }, [page, testContext.scenario, testContext.sessionId, scenarioSessions])
+    if (page === 'debug-shell') return <DebugShellPage scenario={testContext.scenario} />
+    return <SessionAdminPage scenarioId={testContext.scenario.scenarioId} />
+  }, [page, testContext.scenario])
 
   function handleBreadcrumbClick(targetPage: Page): void {
     const targetIndex = pageOrder.indexOf(targetPage)

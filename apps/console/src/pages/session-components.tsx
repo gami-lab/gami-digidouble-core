@@ -420,7 +420,7 @@ function ConversationDetail({
         ))}
       </div>
       <p style={{ marginTop: '8px', color: '#6b7280', fontSize: '12px' }}>
-        Runtime debugging is centralized in Scenario Test Bench → Session Runtime Inspector.
+        Runtime debugging is centralized in Debugging Shell sections.
       </p>
 
       <form onSubmit={onSubmit} style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>

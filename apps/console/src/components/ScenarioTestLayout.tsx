@@ -37,6 +37,7 @@ type ScenarioTestLayoutProps = {
   onOpenConversation: (conversation: ConversationSummary) => void
   onReturnToGuide: () => void
   onTestLockedAccess: () => void
+  showRuntimeInspector?: boolean
 }
 
 // eslint-disable-next-line max-lines-per-function
@@ -63,10 +64,11 @@ export function ScenarioTestLayout({
   onOpenConversation,
   onReturnToGuide,
   onTestLockedAccess,
+  showRuntimeInspector = true,
 }: ScenarioTestLayoutProps): JSX.Element {
   return (
     <section style={sectionStyle}>
-      <h2 style={{ marginTop: 0 }}>AI Guided Discovery - Scenario Test Bench</h2>
+      <h2 style={{ marginTop: 0 }}>Session Setup Workspace</h2>
       <p style={{ color: '#6b7280', marginTop: 0 }}>
         Scenario: <strong>{scenario.name}</strong>
       </p>
@@ -123,13 +125,15 @@ export function ScenarioTestLayout({
                   onDraftChange={onDraftChange}
                 />
               </div>
-              <div>
-                <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Session Runtime Inspector</h3>
-                <RuntimeInspector
-                  sessionId={state.session.sessionId}
-                  refreshTrigger={state.conversations.length}
-                />
-              </div>
+              {showRuntimeInspector ? (
+                <div>
+                  <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Session Runtime Inspector</h3>
+                  <RuntimeInspector
+                    sessionId={state.session.sessionId}
+                    refreshTrigger={state.conversations.length}
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
           <div style={{ marginTop: '16px' }}>

@@ -607,6 +607,14 @@ It consumes Core HTTP APIs and has no direct access to backend domain or infrast
 Architecturally, it sits at the same external-consumer level as any third-party API client.
 Cross-package HTTP DTO ownership for Core/console contracts lives in `packages/shared/src/` (not in console-local API files).
 
+Console debugging UI composition is organized as one shell flow:
+
+- scenario selection
+- debugging shell with one shared scenario/session context
+- sectioned views (`Session Setup`, `Memory`, `GM Impact`, `Turn Profiler`, `Persona`)
+
+The shell consumes existing API/read models and does not redefine backend DTO contracts.
+
 ---
 
 # Port / Adapter Contracts

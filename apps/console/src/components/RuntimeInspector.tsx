@@ -18,6 +18,10 @@ import type { InspectorTab } from './runtime-inspector-tab-content'
 type RuntimeInspectorProps = {
   sessionId: string | null
   refreshTrigger: number
+  initialTab?: InspectorTab
+  tabOrderOverride?: InspectorTab[]
+  showTabNavigation?: boolean
+  title?: string
 }
 
 const tabOrder: InspectorTab[] = [
@@ -65,13 +69,25 @@ const buttonStyle: CSSProperties = {
   cursor: 'pointer',
 }
 
-export function RuntimeInspector({ sessionId, refreshTrigger }: RuntimeInspectorProps): JSX.Element {
-  const [activeTab, setActiveTab] = useState<InspectorTab>('overview')
+export function RuntimeInspector({
+  sessionId,
+  refreshTrigger,
+  initialTab = 'overview',
+  tabOrderOverride,
+  showTabNavigation = true,
+  title = 'Runtime Inspector',
+}: RuntimeInspectorProps): JSX.Element {
+  const [activeTab, setActiveTab] = useState<InspectorTab>(initialTab)
   const { snapshot, liveEvents, loading, error, reload } = useRuntimeInspectorData(
     sessionId,
     refreshTrigger,
   )
   const [actionStatus, setActionStatus] = useState<string | null>(null)
+  const tabs = tabOrderOverride ?? tabOrder
+
+  useEffect(() => {
+    setActiveTab(initialTab)
+  }, [initialTab])
 
   const runAction = useCallback(
     async (action: () => Promise<unknown>, successMessage: string): Promise<void> => {
@@ -95,25 +111,31 @@ export function RuntimeInspector({ sessionId, refreshTrigger }: RuntimeInspector
   return (
     <div style={panelStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-        <strong>Runtime Inspector</strong>
+        <strong>{title}</strong>
         <button type="button" style={buttonStyle} onClick={() => void reload()} disabled={loading}>
           {loading ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
-        {tabOrder.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            style={activeTab === tab ? activeTabButtonStyle : tabButtonStyle}
-            onClick={() => {
-              setActiveTab(tab)
-            }}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      {showTabNavigation ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              style={activeTab === tab ? activeTabButtonStyle : tabButtonStyle}
+              onClick={() => {
+                setActiveTab(tab)
+              }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p style={{ marginTop: '12px', marginBottom: 0, color: '#4b5563' }}>
+          Section focus: <strong>{activeTab}</strong>
+        </p>
+      )}
       {error !== null ? <p style={{ color: '#b91c1c' }}>{error}</p> : null}
       {snapshot !== null ? (
         <RuntimeInspectorTabContent

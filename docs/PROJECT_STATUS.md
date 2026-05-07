@@ -38,6 +38,20 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `docs/implementation-prompts/epic-2-8-console-debugging-redesign/CONSOLE_DEBUG_PATH_INVENTORY.md`
   - kept path, removed path, redirected path, and per-removal rationale are documented.
 
+### EPIC 2.8 — Unified debugging shell + navigation: **in progress** (2026-05-07)
+
+- Added a single console debugging shell page (`apps/console/src/pages/DebugShellPage.tsx`) with top-level sections:
+  - Session Setup
+  - Memory
+  - GM Impact
+  - Turn Profiler
+  - Persona
+- Made Debugging Shell the default debug path from scenario selection in `apps/console/src/App.tsx`.
+- Removed stale duplicated debug navigation surfaces by replacing the previous split flow (`Session + Conversations`, `Scenario Test Bench`) with one shell entry.
+- Added explicit shell navigation/context continuity helpers in `apps/console/src/pages/debug-shell-navigation.ts`.
+- Added tests for section-to-inspector mapping and scenario/session context continuity in `apps/console/src/pages/debug-shell-navigation.test.ts`.
+- Reused existing runtime-inspector API integration and mounted section-specific inspector tabs through one shell entrypoint.
+
 ### EPIC 2.7 — Runtime Inspector query composition over existing APIs: **complete** (2026-05-07)
 
 - Added a single typed console-side composition/query layer: `apps/console/src/api/runtime-inspector.ts`.
