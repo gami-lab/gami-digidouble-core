@@ -51,4 +51,7 @@ export type {
   SessionContextAvatarSnapshot,
   SessionContextGmSnapshot,
   AdminSessionContextResponse,
+  AdminReplayGmResponse,
+  AdminRefreshMemoryResponse,
+  AdminClearMemoryResponse,
 } from './runtime-inspector-types.js'

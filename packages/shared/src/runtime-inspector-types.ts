@@ -234,3 +234,34 @@ export type AdminSessionContextResponse = {
   avatarContext: SessionContextAvatarSnapshot
   gmContext: SessionContextGmSnapshot
 }
+
+export type AdminReplayGmResponse = {
+  sessionId: string
+  action: 'gm.replay'
+  scheduled: true
+  correlationId: string
+  conversationId: string
+  avatarId: string
+  turnIndex: number
+}
+
+export type AdminRefreshMemoryResponse = {
+  sessionId: string
+  action: 'memory.refresh'
+  scheduled: true
+  correlationId: string
+  conversationId: string
+  avatarId: string
+}
+
+export type AdminClearMemoryResponse = {
+  sessionId: string
+  action: 'memory.clear'
+  cleared: {
+    sessionWorkingMemory: boolean
+    avatarWorkingMemoryCount: number
+    gmNotesCleared: boolean
+    legacySessionSummaryCleared: boolean
+    userFactsCleared: false
+  }
+}

@@ -54,6 +54,27 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Added route tests for auth, not-found, and happy-path shape/safety.
 - Added stack-e2e coverage in `admin-session-context.stack-e2e.test.ts` for auth, not-found, and bounded happy-path envelope.
 
+### EPIC 2.7 — Admin runtime actions + audit trail: **complete** (2026-05-07)
+
+- Added new admin runtime action endpoints:
+  - `POST /v1/admin/sessions/{sessionId}/gm/replay`
+  - `POST /v1/admin/sessions/{sessionId}/memory/refresh`
+  - `POST /v1/admin/sessions/{sessionId}/memory/clear`
+- Kept reset behavior on the existing route (`POST /v1/sessions/{sessionId}/reset`) to avoid duplicate reset surfaces.
+- Implemented action orchestration through `AdminRuntimeActionsUseCase` by reusing existing boundaries:
+  - `RunGameMasterUseCase` for replay
+  - `MemoryMaintenanceService`/`IMemoryMaintenancePort` for refresh
+  - existing session/working-memory repositories for safe session-scoped clear
+- Added auditability via append-only `event_log` admin action entries (`admin_action.*`) with structured payload (`actionType`, `targetType`, `targetId` and bounded metadata).
+- Clear-memory semantics are session-scoped and safe:
+  - clears session working memory
+  - clears avatar working memories for the session
+  - clears `sessions.gm_notes` and legacy `sessions.memory_summary`
+  - does **not** delete `user_memory_facts`
+- Added route tests and stack-e2e coverage in:
+  - `admin-runtime-actions.test.ts`
+  - `admin-runtime-actions.stack-e2e.test.ts`
+
 ### EPIC 4.2 — User Memory Facts v1: **complete** (2026-05-05)
 
 - Added canonical Postgres schema table `user_memory_facts` (`infra/postgres/init.sql`) with `umf_` id prefix, uniqueness on `(user_id, category, key)`, and user index.

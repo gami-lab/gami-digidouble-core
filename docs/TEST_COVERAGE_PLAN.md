@@ -203,10 +203,13 @@ Must test:
 - reset deletes messages and memory for the correct session; does NOT delete other sessions
 - reset clears session/avatar working memory and preserves long-term `user_memory_facts`
 - reset returns accurate deletion counts
-- reset writes an `AdminActionLog` entry with correct `actionType: 'session.reset'` and `targetId`
+- reset writes an audit entry with correct `actionType: 'session.reset'` and `targetId`
 - replay does NOT create a new message row in the DB
 - replay returns a non-empty content field (uses NullLlmAdapter in unit tests)
-- replay writes an `AdminActionLog` entry
+- replay writes an audit entry
+- `POST /v1/admin/sessions/{sessionId}/gm/replay` schedules GM replay and writes an audit entry
+- `POST /v1/admin/sessions/{sessionId}/memory/refresh` schedules memory refresh and writes an audit entry
+- `POST /v1/admin/sessions/{sessionId}/memory/clear` clears only session-scoped memory fields and writes an audit entry
 
 ### Ingestion Job Management
 
@@ -228,7 +231,7 @@ Must test:
 
 Must test:
 
-- every admin action (reset, replay, retry) produces one audit log entry
+- every admin action (reset, replay, retry, memory refresh, memory clear, GM replay) produces one audit log entry
 - audit log query filters by `targetType` and `targetId` correctly
 - entries are append-only (no update path exists)
 

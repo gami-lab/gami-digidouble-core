@@ -1895,8 +1895,9 @@ type AdminResetSessionResponse = {
 
 ### Notes
 
-- This action is logged in `AdminActionLog`
-- Audit entry includes actor, target session ID, and timestamp
+- Runtime reset behavior is implemented by the existing session-admin route:
+  - `POST /v1/sessions/{sessionId}/reset`
+- Runtime admin action audit entries are appended to `event_log` with admin action event types.
 
 ---
 
@@ -1928,7 +1929,76 @@ type AdminReplayTurnResponse = {
 ### Notes
 
 - The replayed response is **not** stored
-- This action is logged in `AdminActionLog`
+- Runtime admin action audit entries are appended to `event_log` with admin action event types.
+
+---
+
+## A9b. Admin Runtime Actions
+
+Status: IMPLEMENTED (EPIC 2.7)
+Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
+
+### Endpoints
+
+```text
+POST /v1/admin/sessions/{sessionId}/gm/replay
+POST /v1/admin/sessions/{sessionId}/memory/refresh
+POST /v1/admin/sessions/{sessionId}/memory/clear
+```
+
+### Responses
+
+```ts
+type AdminReplayGmResponse = {
+  sessionId: string
+  action: 'gm.replay'
+  scheduled: true
+  correlationId: string
+  conversationId: string
+  avatarId: string
+  turnIndex: number
+}
+
+type AdminRefreshMemoryResponse = {
+  sessionId: string
+  action: 'memory.refresh'
+  scheduled: true
+  correlationId: string
+  conversationId: string
+  avatarId: string
+}
+
+type AdminClearMemoryResponse = {
+  sessionId: string
+  action: 'memory.clear'
+  cleared: {
+    sessionWorkingMemory: boolean
+    avatarWorkingMemoryCount: number
+    gmNotesCleared: boolean
+    legacySessionSummaryCleared: boolean
+    userFactsCleared: false
+  }
+}
+```
+
+### Semantics
+
+- `gm/replay` reuses existing GM orchestration and schedules a replay from the latest relevant user turn.
+- `memory/refresh` reuses the async memory-maintenance boundary and schedules refresh for the latest relevant conversation/avatar.
+- `memory/clear` is session-scoped only:
+  - clears session working memory
+  - clears avatar working memories for the session
+  - clears `sessions.gm_notes`
+  - clears legacy `sessions.memory_summary`
+  - does **not** delete `user_memory_facts`
+- Every action appends an audit event entry to `event_log` (`admin_action.*` types).
+
+### Error Mapping
+
+- `401` → `UNAUTHORIZED`
+- `404` → `NOT_FOUND` (session missing)
+- `409` → `CONFLICT` (missing session conversation/user turn preconditions for replay/refresh)
+- `500` → `INTERNAL_ERROR`
 
 ---
 

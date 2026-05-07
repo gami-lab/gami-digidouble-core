@@ -675,6 +675,16 @@ Kept as an append-only audit log.
 
 No PII in payload — store IDs and structured metadata only.
 
+### Phase A implementation note
+
+Phase A currently records runtime admin action audit entries in the existing `event_log` table
+using dedicated `admin_action.*` event types (for example `admin_action.gm_replay`,
+`admin_action.memory_refresh`, `admin_action.memory_clear`) with structured payload fields
+(`actionType`, `targetType`, `targetId`, and bounded metadata).
+
+The dedicated `AdminActionLog` table remains a valid evolution target, but is not required for
+current EPIC 2.7 runtime actions.
+
 ---
 
 ## 16. PromptTemplateVariable (Optional)

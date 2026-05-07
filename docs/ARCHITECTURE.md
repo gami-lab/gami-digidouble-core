@@ -479,7 +479,7 @@ Contains:
 - **Dependency health probes** — postgres, redis, LLM provider reachability
 - **Session inspector** — read session state, messages, memory, GM state via admin API
 - **Ingestion job monitor** — status, retry, error detail for knowledge pipeline jobs
-- **Admin actions** — reset session, replay last turn, retry failed job
+- **Admin actions** — reset session, replay GM, trigger memory refresh, clear session memory, retry failed job
 - **Audit log** — who triggered which admin action and when
 - **Metrics overview** — token usage, cost, latency aggregates, error rates
 

@@ -35,6 +35,7 @@ import { adminSessionsRoute } from './routes/admin-sessions.js'
 import { adminMetricsRoute } from './routes/admin-metrics.js'
 import { adminHealthRoute } from './routes/admin-health.js'
 import { adminSessionContextRoute } from './routes/admin-session-context.js'
+import { adminRuntimeActionsRoute } from './routes/admin-runtime-actions.js'
 import { avatarsRoute, type AvatarsRouteOptions } from './routes/avatars.js'
 import { conversationsRoute } from './routes/conversations.js'
 import { exchangeRoute } from './routes/exchange.js'
@@ -128,6 +129,9 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   })
   app.register(adminSessionContextRoute, {
     ...buildAdminSessionContextRouteOptions(config, resolvedAdapters),
+  })
+  app.register(adminRuntimeActionsRoute, {
+    ...buildAdminRuntimeActionsRouteOptions(config, resolvedAdapters),
   })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',
@@ -237,6 +241,32 @@ function buildAdminSessionContextRouteOptions(config: Config, adapters: ServerAd
       adapters.userMemoryFactRepository,
       new InMemoryUserMemoryFactRepository(),
     ),
+    sessionMemoryRepository: withDefault(
+      adapters.sessionMemoryRepository,
+      new InMemorySessionMemoryRepository(),
+    ),
+    avatarSessionMemoryRepository: withDefault(
+      adapters.avatarSessionMemoryRepository,
+      new InMemoryAvatarSessionMemoryRepository(),
+    ),
+  }
+}
+
+function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAdapters) {
+  return {
+    prefix: '/v1/admin',
+    config,
+    sessionRepository: withDefault(adapters.sessionRepository, new InMemorySessionRepository()),
+    conversationRepository: withDefault(
+      adapters.conversationRepository,
+      new InMemoryConversationRepository(),
+    ),
+    messageRepository: withDefault(adapters.messageRepository, new InMemoryMessageRepository()),
+    eventLogRepository: withDefault(adapters.eventLogRepository, new InMemoryEventLogRepository()),
+    ...(adapters.runGameMasterUseCase !== undefined
+      ? { runGameMasterUseCase: adapters.runGameMasterUseCase }
+      : {}),
+    userRepository: withDefault(adapters.userRepository, new InMemoryUserRepository()),
     sessionMemoryRepository: withDefault(
       adapters.sessionMemoryRepository,
       new InMemorySessionMemoryRepository(),
