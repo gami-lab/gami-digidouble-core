@@ -165,9 +165,17 @@ export class SwitchAvatarUseCase {
   }): Promise<void> {
     await hydrateConversationMemoryForNewConversation({
       input,
-      episodicMemoryService: this.episodicMemoryService,
-      conversationWorkingMemoryRepository: this.conversationWorkingMemoryRepository,
-      eventLogRepository: this.eventLogRepository,
+      ...(this.episodicMemoryService !== undefined
+        ? { episodicMemoryService: this.episodicMemoryService }
+        : {}),
+      ...(this.conversationWorkingMemoryRepository !== undefined
+        ? {
+            conversationWorkingMemoryRepository: this.conversationWorkingMemoryRepository,
+          }
+        : {}),
+      ...(this.eventLogRepository !== undefined
+        ? { eventLogRepository: this.eventLogRepository }
+        : {}),
     })
   }
 
