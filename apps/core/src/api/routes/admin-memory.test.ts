@@ -470,4 +470,37 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
       },
     ])
   })
+
+  it('prefers canonical working memory of the latest conversation over the legacy session mirror', async () => {
+    const response = await makeApp({
+      sessions: [makeSession()],
+      sessionMemories: [
+        {
+          sessionId: 'session_1',
+          summary: 'Legacy session mirror',
+          updatedAt: '2026-05-01T10:10:00.000Z',
+        },
+      ],
+      conversationWorkingMemories: [
+        {
+          conversationId: 'conversation_1',
+          sessionId: 'session_1',
+          avatarId: 'avatar_1',
+          summary: 'Canonical active conversation memory',
+          unresolvedThreads: ['follow_up'],
+          candidateFacts: [],
+          updatedAt: '2026-05-01T10:12:00.000Z',
+        },
+      ],
+    }).inject({
+      method: 'GET',
+      url: '/v1/admin/sessions/session_1/memory-layers',
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ session: SessionMemoryLayers }>>()
+    expect(body.data?.session.working.session?.summary).toBe('Canonical active conversation memory')
+    expect(body.data?.session.working.session?.updatedAt).toBe('2026-05-01T10:12:00.000Z')
+  })
 })

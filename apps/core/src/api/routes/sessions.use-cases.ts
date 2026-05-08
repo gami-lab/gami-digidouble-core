@@ -103,6 +103,9 @@ export function createSessionRouteUseCases(deps: {
       deps.avatarRepository,
       deps.conversationRepository,
       memoryMaintenance,
+      episodicMemoryService,
+      deps.conversationWorkingMemoryRepository,
+      deps.eventLogRepository,
     ),
     getAvailableAvatarsUseCase: new GetAvailableAvatarsUseCase(
       deps.sessionRepository,

@@ -57,7 +57,7 @@ export class GetSessionMemoryLayersUseCase {
 
     const [shortTermExchanges, sessionWorkingMemory, avatarMemories, facts] = await Promise.all([
       this.loadShortTermExchanges(session.sessionId),
-      this.sessionMemoryRepository?.findBySessionId(session.sessionId) ?? Promise.resolve(null),
+      this.loadSessionWorkingMemory(session.sessionId),
       this.avatarSessionMemoryRepository?.listBySessionId(session.sessionId) ?? Promise.resolve([]),
       this.userMemoryFactRepository?.findByUserId(session.userId) ?? Promise.resolve([]),
     ])
@@ -128,6 +128,47 @@ export class GetSessionMemoryLayersUseCase {
     }
 
     return exchanges.slice(-MEMORY_SHORT_TERM_EXCHANGE_LIMIT)
+  }
+
+  private async loadSessionWorkingMemory(
+    sessionId: string,
+  ): Promise<{ summary: string; updatedAt: string } | null> {
+    const canonical = await this.loadCanonicalSessionWorkingMemory(sessionId)
+    if (canonical !== null) {
+      return {
+        summary: canonical.summary,
+        updatedAt: canonical.updatedAt,
+      }
+    }
+
+    return this.sessionMemoryRepository?.findBySessionId(sessionId) ?? Promise.resolve(null)
+  }
+
+  private async loadCanonicalSessionWorkingMemory(
+    sessionId: string,
+  ): Promise<{ summary: string; updatedAt: string } | null> {
+    if (
+      this.conversationRepository === undefined ||
+      this.conversationWorkingMemoryRepository === undefined
+    ) {
+      return null
+    }
+
+    const conversations = await this.conversationRepository.listBySessionId(sessionId)
+    const latestConversation = conversations
+      .slice()
+      .sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt))[0]
+    if (latestConversation === undefined) return null
+
+    const workingMemory = await this.conversationWorkingMemoryRepository.findByConversationId(
+      latestConversation.conversationId,
+    )
+    if (workingMemory === null) return null
+
+    return {
+      summary: workingMemory.summary,
+      updatedAt: workingMemory.updatedAt,
+    }
   }
 
   private async buildObservability(session: {

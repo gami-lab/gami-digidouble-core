@@ -125,7 +125,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `session.observability.selection` (sources, selected/rejected counts, top reasons, timestamp)
   - `session.observability.hydration` (hydrated conversation linkage + timestamp)
 - Implemented deterministic selection observability assembly in `GetSessionMemoryLayersUseCase` using canonical `MemorySelectionService` metadata.
-- Added hydration observability signal emission on conversation-start hydration:
+- Added hydration observability signal emission on conversation-start and switch-created conversation hydration:
   - `memory_hydration_succeeded` event now records hydrated conversation ID and source episodic conversation IDs.
 - Wired admin route dependencies to support observability assembly without API sprawl:
   - reused `GET /v1/admin/sessions/{sessionId}/memory-layers`.

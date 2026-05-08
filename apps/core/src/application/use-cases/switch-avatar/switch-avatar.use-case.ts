@@ -1,10 +1,50 @@
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
+import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
+import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { SwitchAvatarInput, SwitchAvatarOutput } from './switch-avatar.types.js'
+
+type EpisodicMemoryService = {
+  generateForClosedConversation(input: {
+    conversationId: string
+    sessionId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+  }): Promise<unknown>
+  hydrateForNewConversation(input: {
+    conversationId: string
+    sessionId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+    queryText?: string
+  }): Promise<{
+    summary: string
+    unresolvedThreads: string[]
+    candidateFacts: Array<{ category: string; key: string; value: string }>
+  }>
+  hydrateForNewConversationWithMetadata?(input: {
+    conversationId: string
+    sessionId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+    queryText?: string
+  }): Promise<{
+    hydration: {
+      summary: string
+      unresolvedThreads: string[]
+      candidateFacts: Array<{ category: string; key: string; value: string }>
+    }
+    selectedConversationIds: string[]
+    consideredConversationIds: string[]
+  }>
+}
 
 export class SwitchAvatarUseCase {
   constructor(
@@ -12,6 +52,9 @@ export class SwitchAvatarUseCase {
     private readonly avatarRepository: IAvatarRepository,
     private readonly conversationRepository: IConversationRepository,
     private readonly memoryMaintenance?: IMemoryMaintenancePort,
+    private readonly episodicMemoryService?: EpisodicMemoryService,
+    private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
+    private readonly eventLogRepository?: IEventLogRepository,
   ) {}
 
   async execute(input: SwitchAvatarInput): Promise<SwitchAvatarOutput> {
@@ -35,6 +78,13 @@ export class SwitchAvatarUseCase {
         .catch((error: unknown) => {
           console.error('[switch-avatar] Background memory refresh failed:', error)
         })
+      void this.generateEpisodicMemory({
+        sessionId,
+        conversationId: previousConversation.conversationId,
+        userId: session.userId,
+        avatarId: previousConversation.avatarId,
+        scenarioId: session.scenarioId,
+      })
     }
 
     const conversation = await this.conversationRepository.create({
@@ -50,6 +100,15 @@ export class SwitchAvatarUseCase {
     await this.sessionRepository.update(sessionId, {
       activeAvatarId: avatarId,
       lastActivityAt: now,
+    })
+
+    await this.hydrateConversationMemory({
+      conversationId: conversation.conversationId,
+      sessionId,
+      userId: session.userId,
+      avatarId,
+      scenarioId: session.scenarioId,
+      ...(session.memorySummary !== undefined ? { queryText: session.memorySummary } : {}),
     })
 
     const updatedSession = await this.sessionRepository.findById(sessionId)
@@ -118,6 +177,72 @@ export class SwitchAvatarUseCase {
       status: 'closed',
       endedAt,
     })
+  }
+
+  private async hydrateConversationMemory(input: {
+    conversationId: string
+    sessionId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+    queryText?: string
+  }): Promise<void> {
+    if (
+      this.episodicMemoryService === undefined ||
+      this.conversationWorkingMemoryRepository === undefined
+    ) {
+      return
+    }
+
+    const hydrationWithMetadata =
+      this.episodicMemoryService.hydrateForNewConversationWithMetadata !== undefined
+        ? await this.episodicMemoryService.hydrateForNewConversationWithMetadata(input)
+        : {
+            hydration: await this.episodicMemoryService.hydrateForNewConversation(input),
+            selectedConversationIds: [] as string[],
+            consideredConversationIds: [] as string[],
+          }
+
+    await this.conversationWorkingMemoryRepository.upsert({
+      conversationId: input.conversationId,
+      sessionId: input.sessionId,
+      avatarId: input.avatarId,
+      summary: hydrationWithMetadata.hydration.summary,
+      unresolvedThreads: hydrationWithMetadata.hydration.unresolvedThreads,
+      candidateFacts: hydrationWithMetadata.hydration.candidateFacts,
+    })
+
+    if (this.eventLogRepository === undefined) return
+    try {
+      await this.eventLogRepository.append({
+        sessionId: input.sessionId,
+        type: 'memory_hydration_succeeded',
+        severity: 'info',
+        payload: {
+          hydratedConversationId: input.conversationId,
+          sourceConversationIds: hydrationWithMetadata.selectedConversationIds,
+          consideredCount: hydrationWithMetadata.consideredConversationIds.length,
+          selectedCount: hydrationWithMetadata.selectedConversationIds.length,
+        },
+      })
+    } catch {
+      // Hydration observability must remain non-blocking for avatar switches.
+    }
+  }
+
+  private async generateEpisodicMemory(input: {
+    sessionId: string
+    conversationId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+  }): Promise<void> {
+    if (this.episodicMemoryService === undefined) return
+    try {
+      await this.episodicMemoryService.generateForClosedConversation(input)
+    } catch (error: unknown) {
+      console.error('[switch-avatar] Background episodic generation failed:', error)
+    }
   }
 
   private toSessionSummary(session: Session) {

@@ -7,7 +7,6 @@ import type { IMemoryMaintenancePort } from '../ports/IMemoryMaintenancePort.js'
 import type { ISessionMemoryRepository } from '../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../ports/ISessionRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../ports/IConversationWorkingMemoryRepository.js'
-import { buildAvatarWorkingMemorySummary } from '../../domain/memory/working-memory-summary.policy.js'
 
 const WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT = `You update a running working memory for a conversation.
 
@@ -84,7 +83,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       }
 
       const rewritten = await this.rewriteWorkingMemory(ordered, priorMemory)
-      const avatarSummary = buildAvatarWorkingMemorySummary(ordered, input.avatarId)
+      const avatarSummary = rewritten.summary
 
       await this.conversationWorkingMemoryRepository.upsert({
         conversationId: input.conversationId,

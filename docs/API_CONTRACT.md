@@ -609,8 +609,10 @@ type SwitchAvatarOutput = {
 
 - Manual switch requires an unlocked avatar when `session.unlockedAvatarIds` is present.
 - Current active conversation is closed if present.
+- Closing the previous conversation schedules bounded memory maintenance and episodic-memory generation for that closed episode.
 - A new conversation is always created, including when switching to the same avatar.
 - New conversation carries `startedBy = 'user'`.
+- New conversation is hydrated from scoped episodic memory (`user + avatar + scenario`) when available, using the switched-to avatar as scope.
 - `reason` defaults to `'manual_switch'` when omitted.
 - `handoffFromConversationId` is set to the previous active conversation when one existed.
 

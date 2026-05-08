@@ -10,6 +10,10 @@ const findActiveBySessionIdMock = vi.fn()
 const createConversationMock = vi.fn()
 const updateConversationMock = vi.fn()
 const memoryMaintenanceExecuteMock = vi.fn()
+const generateForClosedConversationMock = vi.fn()
+const hydrateForNewConversationWithMetadataMock = vi.fn()
+const workingMemoryUpsertMock = vi.fn()
+const appendEventMock = vi.fn()
 
 const sessionRepository = {
   findById: findSessionByIdMock,
@@ -85,7 +89,23 @@ beforeEach(() => {
   createConversationMock.mockReset()
   updateConversationMock.mockReset()
   memoryMaintenanceExecuteMock.mockReset()
+  generateForClosedConversationMock.mockReset()
+  hydrateForNewConversationWithMetadataMock.mockReset()
+  workingMemoryUpsertMock.mockReset()
+  appendEventMock.mockReset()
   memoryMaintenanceExecuteMock.mockResolvedValue(undefined)
+  generateForClosedConversationMock.mockResolvedValue(undefined)
+  hydrateForNewConversationWithMetadataMock.mockResolvedValue({
+    hydration: {
+      summary: 'Hydrated memory for avatar_2',
+      unresolvedThreads: ['follow_up'],
+      candidateFacts: [{ category: 'context', key: 'topic', value: 'ai_bias' }],
+    },
+    selectedConversationIds: ['conversation_prev_avatar_2'],
+    consideredConversationIds: ['conversation_prev_avatar_2'],
+  })
+  workingMemoryUpsertMock.mockResolvedValue(undefined)
+  appendEventMock.mockResolvedValue(undefined)
 
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession({ activeAvatarId: 'avatar_2' }))
@@ -161,6 +181,82 @@ describe('SwitchAvatarUseCase success flows', () => {
     })
     expect(output.previousConversationId).toBeNull()
     expect(memoryMaintenanceExecuteMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('SwitchAvatarUseCase episodic continuity', () => {
+  it('generates episodic memory for the closed conversation and hydrates the new conversation', async () => {
+    findSessionByIdMock
+      .mockResolvedValueOnce(makeSession({ memorySummary: 'Existing session memory' }))
+      .mockResolvedValueOnce(makeSession({ activeAvatarId: 'avatar_2' }))
+    createConversationMock.mockResolvedValueOnce(
+      makeConversation({
+        conversationId: 'conversation_2',
+        avatarId: 'avatar_2',
+      }),
+    )
+
+    const useCase = new SwitchAvatarUseCase(
+      sessionRepository,
+      avatarRepository,
+      conversationRepository,
+      { execute: memoryMaintenanceExecuteMock },
+      {
+        generateForClosedConversation: generateForClosedConversationMock,
+        hydrateForNewConversation: vi.fn(),
+        hydrateForNewConversationWithMetadata: hydrateForNewConversationWithMetadataMock,
+      },
+      {
+        findByConversationId: vi.fn(),
+        upsert: workingMemoryUpsertMock,
+        deleteBySessionId: vi.fn(),
+      },
+      {
+        append: appendEventMock,
+        findBySessionId: vi.fn(),
+      },
+    )
+
+    await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_2' })
+
+    expect(generateForClosedConversationMock).toHaveBeenCalledWith({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      userId: 'user_1',
+      avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
+    })
+    expect(hydrateForNewConversationWithMetadataMock).toHaveBeenCalledWith({
+      conversationId: 'conversation_2',
+      sessionId: 'session_1',
+      userId: 'user_1',
+      avatarId: 'avatar_2',
+      scenarioId: 'scenario_1',
+      queryText: 'Existing session memory',
+    })
+    expect(workingMemoryUpsertMock).toHaveBeenCalledWith({
+      conversationId: 'conversation_2',
+      sessionId: 'session_1',
+      avatarId: 'avatar_2',
+      summary: 'Hydrated memory for avatar_2',
+      unresolvedThreads: ['follow_up'],
+      candidateFacts: [{ category: 'context', key: 'topic', value: 'ai_bias' }],
+    })
+    const hydrationEvent = appendEventMock.mock.calls[0]?.[0] as
+      | {
+          sessionId: string
+          type: string
+          severity: string
+          payload: Record<string, unknown>
+        }
+      | undefined
+    expect(hydrationEvent?.sessionId).toBe('session_1')
+    expect(hydrationEvent?.type).toBe('memory_hydration_succeeded')
+    expect(hydrationEvent?.severity).toBe('info')
+    expect(hydrationEvent?.payload['hydratedConversationId']).toBe('conversation_2')
+    expect(hydrationEvent?.payload['sourceConversationIds']).toEqual(['conversation_prev_avatar_2'])
+    expect(hydrationEvent?.payload['consideredCount']).toBe(1)
+    expect(hydrationEvent?.payload['selectedCount']).toBe(1)
   })
 })
 

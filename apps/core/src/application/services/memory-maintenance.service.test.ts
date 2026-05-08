@@ -123,7 +123,11 @@ describe('MemoryMaintenanceService — persistence and events', () => {
     })
     await expect(
       avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_1'),
-    ).resolves.toMatchObject({ sessionId: 'session_1', avatarId: 'avatar_1' })
+    ).resolves.toMatchObject({
+      sessionId: 'session_1',
+      avatarId: 'avatar_1',
+      summary: 'Conversation turns: user=3, avatar=3.',
+    })
     await expect(
       conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
     ).resolves.toMatchObject({
