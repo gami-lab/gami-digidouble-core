@@ -31,7 +31,7 @@ export type AdminRuntimeActionsRouteOptions = {
   conversationRepository: IConversationRepository
   messageRepository: IMessageRepository
   eventLogRepository: IEventLogRepository
-  llmAdapter?: ILlmAdapter
+  llmAdapter: ILlmAdapter
   runGameMasterUseCase?: RunGameMasterUseCase
   userRepository?: IUserRepository
   sessionMemoryRepository?: ISessionMemoryRepository

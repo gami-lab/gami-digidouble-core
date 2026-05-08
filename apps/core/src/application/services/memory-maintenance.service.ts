@@ -7,7 +7,6 @@ import type { IMemoryMaintenancePort } from '../ports/IMemoryMaintenancePort.js'
 import type { ISessionMemoryRepository } from '../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../ports/ISessionRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../ports/IConversationWorkingMemoryRepository.js'
-import { rewriteConversationWorkingMemory } from '../../domain/memory/conversation-working-memory.policy.js'
 import { buildAvatarWorkingMemorySummary } from '../../domain/memory/working-memory-summary.policy.js'
 
 const WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT = `You update a running working memory for a conversation.
@@ -44,7 +43,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     private readonly avatarSessionMemoryRepository: IAvatarSessionMemoryRepository,
     private readonly conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository,
     private readonly eventLogRepository: IEventLogRepository,
-    private readonly llm?: ILlmAdapter,
+    private readonly llm: ILlmAdapter,
   ) {}
 
   async execute(input: {
@@ -159,23 +158,14 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       candidateFacts: Array<{ category: string; key: string; value: string }>
     } | null,
   ) {
-    if (this.llm === undefined) {
-      return rewriteConversationWorkingMemory(messages, priorMemory)
-    }
-
-    try {
-      const response = await this.llm.complete({
-        systemPrompt: WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: buildCompactionInput(messages, priorMemory) }],
-        maxTokens: 500,
-      })
-      const parsed = parseCompactionOutput(response.content)
-      if (parsed !== null) return parsed
-    } catch (error) {
-      safeWarn('[memory-maintenance] LLM working-memory compaction failed:', error)
-    }
-
-    return rewriteConversationWorkingMemory(messages, priorMemory)
+    const response = await this.llm.complete({
+      systemPrompt: WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: buildCompactionInput(messages, priorMemory) }],
+      maxTokens: 500,
+    })
+    const parsed = parseCompactionOutput(response.content)
+    if (parsed !== null) return parsed
+    throw new Error('[memory-maintenance] LLM returned unparseable compaction output')
   }
 }
 
@@ -291,12 +281,4 @@ function stripMarkdownFences(content: string): string {
   const trimmed = content.trim()
   const match = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(trimmed)
   return match?.[1]?.trim() ?? trimmed
-}
-
-function safeWarn(message: string, error: unknown): void {
-  try {
-    console.warn(message, error)
-  } catch {
-    // Never let diagnostics break memory maintenance flow.
-  }
 }

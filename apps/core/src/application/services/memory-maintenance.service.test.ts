@@ -68,6 +68,20 @@ function makeService() {
   const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository()
   const eventLogRepository = new InMemoryEventLogRepository()
 
+  const defaultLlm: ILlmAdapter = {
+    complete: vi.fn().mockResolvedValue({
+      content: JSON.stringify({
+        summary: 'Conversation turns: user=3, avatar=3.',
+        unresolvedThreads: [],
+        candidateFacts: [],
+      }),
+      model: 'test-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    }),
+  }
+
   return {
     service: new MemoryMaintenanceService(
       messageRepository,
@@ -76,6 +90,7 @@ function makeService() {
       avatarSessionMemoryRepository,
       conversationWorkingMemoryRepository,
       eventLogRepository,
+      defaultLlm,
     ),
     sessionRepository,
     sessionMemoryRepository,
@@ -326,6 +341,17 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       avatarSessionMemoryRepository,
       new InMemoryConversationWorkingMemoryRepository(),
       eventLogRepository,
+      {
+        complete: vi
+          .fn()
+          .mockResolvedValue({
+            content: '{}',
+            model: 'test',
+            inputTokens: 0,
+            outputTokens: 0,
+            latencyMs: 0,
+          }),
+      },
     )
 
     await expect(
@@ -420,6 +446,17 @@ describe('MemoryMaintenanceService — post_turn policy gate', () => {
       avatarSessionMemoryRepository,
       conversationWorkingMemoryRepository,
       eventLogRepository,
+      {
+        complete: vi
+          .fn()
+          .mockResolvedValue({
+            content: '{}',
+            model: 'test',
+            inputTokens: 0,
+            outputTokens: 0,
+            latencyMs: 0,
+          }),
+      },
     )
 
     await service.execute({

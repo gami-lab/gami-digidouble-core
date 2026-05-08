@@ -48,6 +48,7 @@ import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-me
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import { registerRuntimeEventsRoutes } from './runtime-events.js'
 import { createSessionRouteUseCases } from './sessions.use-cases.js'
+import { createLlmAdapter } from '../../infrastructure/llm/index.js'
 
 export type SessionsRouteOptions = {
   config: Config
@@ -209,7 +210,20 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     conversationMemoryRepository,
     eventLogRepository,
     sessionEventPublisher,
-    ...(options.llmAdapter !== undefined ? { llmAdapter: options.llmAdapter } : {}),
+    llmAdapter:
+      options.llmAdapter ??
+      createLlmAdapter({
+        provider: options.config.llmProvider,
+        ...(options.config.openaiApiKey !== undefined
+          ? { openaiApiKey: options.config.openaiApiKey }
+          : {}),
+        ...(options.config.anthropicApiKey !== undefined
+          ? { anthropicApiKey: options.config.anthropicApiKey }
+          : {}),
+        ...(options.config.mistralApiKey !== undefined
+          ? { mistralApiKey: options.config.mistralApiKey }
+          : {}),
+      }),
   })
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))

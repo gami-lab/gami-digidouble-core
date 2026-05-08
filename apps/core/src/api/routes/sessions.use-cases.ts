@@ -50,7 +50,7 @@ export function createSessionRouteUseCases(deps: {
   conversationMemoryRepository: IConversationMemoryRepository
   eventLogRepository: IEventLogRepository
   sessionEventPublisher: ISessionEventPublisher
-  llmAdapter?: ILlmAdapter
+  llmAdapter: ILlmAdapter
 }): SessionRouteUseCases {
   const memoryMaintenance = new MemoryMaintenanceService(
     deps.messageRepository,

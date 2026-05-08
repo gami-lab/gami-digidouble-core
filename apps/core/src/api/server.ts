@@ -33,6 +33,8 @@ import { InMemoryScenarioRepository } from '../infrastructure/db/in-memory-scena
 import { InMemoryMessageRepository } from '../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memory-session-event-publisher.js'
+import { createLlmAdapter } from '../infrastructure/llm/index.js'
+import type { LlmConfig } from '../infrastructure/llm/index.js'
 import { adminMemoryRoute } from './routes/admin-memory.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
 import { adminMetricsRoute } from './routes/admin-metrics.js'
@@ -272,6 +274,7 @@ function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAd
   return {
     prefix: '/v1/admin',
     config,
+    llmAdapter: adapters.llmAdapter ?? createLlmAdapter(resolveServerLlmConfig(config)),
     sessionRepository: withDefault(adapters.sessionRepository, new InMemorySessionRepository()),
     conversationRepository: withDefault(
       adapters.conversationRepository,
@@ -300,4 +303,13 @@ function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAd
 
 function withDefault<T>(value: T | undefined, fallback: T): T {
   return value ?? fallback
+}
+
+function resolveServerLlmConfig(config: Config): LlmConfig {
+  return {
+    provider: config.llmProvider,
+    ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
+    ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
+    ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
+  }
 }
