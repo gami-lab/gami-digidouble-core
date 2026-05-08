@@ -4,6 +4,7 @@ import type { IConversationMemoryRepository } from '../../application/ports/ICon
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
+import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
@@ -49,6 +50,7 @@ export function createSessionRouteUseCases(deps: {
   conversationMemoryRepository: IConversationMemoryRepository
   eventLogRepository: IEventLogRepository
   sessionEventPublisher: ISessionEventPublisher
+  llmAdapter?: ILlmAdapter
 }): SessionRouteUseCases {
   const memoryMaintenance = new MemoryMaintenanceService(
     deps.messageRepository,
@@ -57,6 +59,7 @@ export function createSessionRouteUseCases(deps: {
     deps.avatarSessionMemoryRepository,
     deps.conversationWorkingMemoryRepository,
     deps.eventLogRepository,
+    deps.llmAdapter,
   )
   const episodicMemoryService = new EpisodicMemoryService(
     deps.conversationMemoryRepository,

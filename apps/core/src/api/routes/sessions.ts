@@ -5,6 +5,7 @@ import type { IAvatarRepository } from '../../application/ports/IAvatarRepositor
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
+import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
@@ -55,6 +56,7 @@ export type SessionsRouteOptions = {
   avatarRepository?: IAvatarRepository
   conversationRepository?: IConversationRepository
   messageRepository?: IMessageRepository
+  llmAdapter?: ILlmAdapter
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
@@ -207,6 +209,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     conversationMemoryRepository,
     eventLogRepository,
     sessionEventPublisher,
+    ...(options.llmAdapter !== undefined ? { llmAdapter: options.llmAdapter } : {}),
   })
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))

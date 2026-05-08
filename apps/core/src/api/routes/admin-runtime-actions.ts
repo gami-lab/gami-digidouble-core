@@ -8,6 +8,7 @@ import type {
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
+import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../../application/ports/IMemoryMaintenancePort.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
@@ -30,6 +31,7 @@ export type AdminRuntimeActionsRouteOptions = {
   conversationRepository: IConversationRepository
   messageRepository: IMessageRepository
   eventLogRepository: IEventLogRepository
+  llmAdapter?: ILlmAdapter
   runGameMasterUseCase?: RunGameMasterUseCase
   userRepository?: IUserRepository
   sessionMemoryRepository?: ISessionMemoryRepository
@@ -70,6 +72,7 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
       avatarSessionMemoryRepository,
       conversationWorkingMemoryRepository,
       options.eventLogRepository,
+      options.llmAdapter,
     )
 
   const useCase = new AdminRuntimeActionsUseCase(

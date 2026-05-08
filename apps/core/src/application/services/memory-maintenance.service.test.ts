@@ -5,6 +5,7 @@ import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-mes
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
+import type { ILlmAdapter } from '../ports/ILlmAdapter.js'
 import { MemoryMaintenanceService } from './memory-maintenance.service.js'
 
 function makeService() {
@@ -159,6 +160,109 @@ describe('MemoryMaintenanceService — persistence and events', () => {
     expect(secondSessionMemory?.sessionId).toBe(firstSessionMemory?.sessionId)
     expect(secondAvatarMemory?.avatarId).toBe(firstAvatarMemory?.avatarId)
     expect(secondConversationMemory?.conversationId).toBe(firstConversationMemory?.conversationId)
+  })
+})
+
+describe('MemoryMaintenanceService — LLM compaction', () => {
+  it('uses validated LLM compaction output for working memory when available', async () => {
+    const {
+      sessionRepository,
+      sessionMemoryRepository,
+      avatarSessionMemoryRepository,
+      conversationWorkingMemoryRepository,
+      eventLogRepository,
+    } = makeService()
+    const llmCompleteMock = vi.fn().mockResolvedValue({
+      content: JSON.stringify({
+        summary: 'Compact clinical privacy summary.',
+        unresolvedThreads: ['Need HIPAA-safe workflow template'],
+        candidateFacts: [
+          {
+            category: 'context',
+            key: 'profession',
+            value: 'doctor',
+          },
+        ],
+      }),
+      model: 'test-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    })
+    const llm: ILlmAdapter = {
+      complete: llmCompleteMock,
+    }
+    const service = new MemoryMaintenanceService(
+      new InMemoryMessageRepository([
+        {
+          messageId: 'msg_1',
+          conversationId: 'conversation_1',
+          role: 'user',
+          content: 'I am a doctor using AI for patient files.',
+          createdAt: '2026-05-06T10:00:00.000Z',
+        },
+        {
+          messageId: 'msg_2',
+          conversationId: 'conversation_1',
+          role: 'avatar',
+          content: 'Use privacy-safe redaction workflows.',
+          createdAt: '2026-05-06T10:00:01.000Z',
+        },
+        {
+          messageId: 'msg_3',
+          conversationId: 'conversation_1',
+          role: 'user',
+          content: 'What should I do first?',
+          createdAt: '2026-05-06T10:00:02.000Z',
+        },
+        {
+          messageId: 'msg_4',
+          conversationId: 'conversation_1',
+          role: 'avatar',
+          content: 'Start with a no-PII drafting process.',
+          createdAt: '2026-05-06T10:00:03.000Z',
+        },
+        {
+          messageId: 'msg_5',
+          conversationId: 'conversation_1',
+          role: 'user',
+          content: 'How do I stay compliant?',
+          createdAt: '2026-05-06T10:00:04.000Z',
+        },
+        {
+          messageId: 'msg_6',
+          conversationId: 'conversation_1',
+          role: 'avatar',
+          content: 'Apply role-based access and audit logs.',
+          createdAt: '2026-05-06T10:00:05.000Z',
+        },
+      ]),
+      sessionRepository,
+      sessionMemoryRepository,
+      avatarSessionMemoryRepository,
+      conversationWorkingMemoryRepository,
+      eventLogRepository,
+      llm,
+    )
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+
+    await expect(sessionMemoryRepository.findBySessionId('session_1')).resolves.toMatchObject({
+      summary: 'Compact clinical privacy summary.',
+    })
+    await expect(
+      conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
+    ).resolves.toMatchObject({
+      summary: 'Compact clinical privacy summary.',
+      unresolvedThreads: ['Need HIPAA-safe workflow template'],
+      candidateFacts: [{ category: 'context', key: 'profession', value: 'doctor' }],
+    })
+    expect(llmCompleteMock).toHaveBeenCalledTimes(1)
   })
 })
 

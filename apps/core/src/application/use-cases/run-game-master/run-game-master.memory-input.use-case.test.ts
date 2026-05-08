@@ -244,6 +244,6 @@ describe('RunGameMasterUseCase memory input', () => {
     const first = memory.episodicMemories?.[0]
     expect(memory.episodicMemories?.length).toBeGreaterThan(0)
     expect(first?.conversationId).toBe('conv_past_1')
-    expect(first?.selectionReasons.length).toBeGreaterThan(0)
+    expect(first?.selectionReasons?.length).toBeGreaterThan(0)
   })
 })
