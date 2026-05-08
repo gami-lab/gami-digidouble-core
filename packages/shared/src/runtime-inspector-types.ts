@@ -93,11 +93,31 @@ export type TurnCompletedEventPayload = {
   correlationId?: string
 }
 
+export type MemoryRefreshEventPayload = {
+  sessionId: string
+  conversationId: string
+  avatarId: string
+  trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
+  sessionSummaryLength?: number
+  avatarSummaryLength?: number
+  messageCount?: number
+  unresolvedThreadCount?: number
+  candidateFactCount?: number
+  exchangeCount?: number
+  error?: string
+}
+
 export type SessionEventRecord = {
-  type: 'gm_triggered' | 'gm_error' | 'turn_completed'
+  type:
+    | 'gm_triggered'
+    | 'gm_error'
+    | 'turn_completed'
+    | 'memory_refresh_triggered'
+    | 'memory_refresh_succeeded'
+    | 'memory_refresh_failed'
   correlationId: string
   createdAt: string
-  payload: GmSessionEventPayload | TurnCompletedEventPayload
+  payload: GmSessionEventPayload | TurnCompletedEventPayload | MemoryRefreshEventPayload
 }
 
 export type AdminSessionEventsResponse = {

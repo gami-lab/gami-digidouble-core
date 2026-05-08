@@ -42,6 +42,7 @@ export type {
   GmStateSummary,
   AdminSessionInspectResponse,
   GmSessionEventPayload,
+  MemoryRefreshEventPayload,
   TurnCompletedEventPayload,
   SessionEventRecord,
   AdminSessionEventsResponse,

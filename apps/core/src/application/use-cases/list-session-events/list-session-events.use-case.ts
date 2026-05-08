@@ -6,6 +6,7 @@ import type {
   GmSessionEventPayload,
   ListSessionEventsInput,
   ListSessionEventsOutput,
+  MemoryRefreshEventPayload,
   SessionEventRecord,
   TurnCompletedEventPayload,
 } from './list-session-events.types.js'
@@ -39,23 +40,42 @@ function resolveLimit(limit: number | undefined): number {
   return Math.min(limit ?? DEFAULT_LIMIT, MAX_LIMIT)
 }
 
+const MEMORY_REFRESH_TYPES = new Set([
+  'memory_refresh_triggered',
+  'memory_refresh_succeeded',
+  'memory_refresh_failed',
+])
+
+const ALLOWED_EVENT_TYPES = new Set([
+  'gm_triggered',
+  'gm_error',
+  'turn_completed',
+  ...MEMORY_REFRESH_TYPES,
+])
+
 function toSafeSessionEvent(event: StoredEvent): SessionEventRecord[] {
-  if (event.type !== 'gm_triggered' && event.type !== 'gm_error' && event.type !== 'turn_completed')
-    return []
+  if (!ALLOWED_EVENT_TYPES.has(event.type)) return []
   if (event.correlationId === undefined || event.createdAt === undefined) return []
-  const payload =
-    event.type === 'turn_completed'
-      ? toSafeTurnCompletedPayload(event.payload)
-      : toSafePayload(event.payload)
+
+  const payload = resolvePayload(event)
+  if (payload === null) return []
 
   return [
     {
-      type: event.type,
+      type: event.type as SessionEventRecord['type'],
       correlationId: event.correlationId,
       createdAt: event.createdAt,
       payload,
     },
   ]
+}
+
+function resolvePayload(
+  event: StoredEvent,
+): GmSessionEventPayload | TurnCompletedEventPayload | MemoryRefreshEventPayload | null {
+  if (MEMORY_REFRESH_TYPES.has(event.type)) return toSafeMemoryRefreshPayload(event.payload)
+  if (event.type === 'turn_completed') return toSafeTurnCompletedPayload(event.payload)
+  return toSafePayload(event.payload)
 }
 
 function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload {
@@ -80,6 +100,43 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
     ...(outputTokens !== undefined ? { outputTokens } : {}),
     ...(errorCode !== undefined ? { errorCode } : {}),
   }
+}
+
+function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRefreshEventPayload {
+  const base: MemoryRefreshEventPayload = {
+    sessionId: readString(payload['sessionId']),
+    conversationId: readString(payload['conversationId']),
+    avatarId: readString(payload['avatarId']),
+    trigger: readMemoryTrigger(payload['trigger']),
+  }
+  const sessionSummaryLength = readOptionalNumber(payload['sessionSummaryLength'])
+  const avatarSummaryLength = readOptionalNumber(payload['avatarSummaryLength'])
+  const messageCount = readOptionalNumber(payload['messageCount'])
+  const unresolvedThreadCount = readOptionalNumber(payload['unresolvedThreadCount'])
+  const candidateFactCount = readOptionalNumber(payload['candidateFactCount'])
+  const exchangeCount = readOptionalNumber(payload['exchangeCount'])
+  const error = readOptionalString(payload['error'])
+  return {
+    ...base,
+    ...(sessionSummaryLength !== undefined ? { sessionSummaryLength } : {}),
+    ...(avatarSummaryLength !== undefined ? { avatarSummaryLength } : {}),
+    ...(messageCount !== undefined ? { messageCount } : {}),
+    ...(unresolvedThreadCount !== undefined ? { unresolvedThreadCount } : {}),
+    ...(candidateFactCount !== undefined ? { candidateFactCount } : {}),
+    ...(exchangeCount !== undefined ? { exchangeCount } : {}),
+    ...(error !== undefined ? { error } : {}),
+  }
+}
+
+function readMemoryTrigger(value: unknown): MemoryRefreshEventPayload['trigger'] {
+  if (
+    value === 'post_turn' ||
+    value === 'conversation_closed' ||
+    value === 'avatar_switch' ||
+    value === 'admin_trigger'
+  )
+    return value
+  return 'post_turn'
 }
 
 function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompletedEventPayload {
