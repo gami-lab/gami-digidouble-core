@@ -15,7 +15,6 @@ const findMessagesByConversationIdMock = vi.fn()
 const saveMessageMock = vi.fn()
 const completeMock = vi.fn()
 const appendEventMock = vi.fn()
-const traceMock = vi.fn()
 const runGameMasterExecuteMock = vi.fn()
 const findUserByIdMock = vi.fn()
 
@@ -57,7 +56,6 @@ const messageRepository = {
 }
 const llm = { complete: completeMock }
 const eventLogRepository = { append: appendEventMock, findBySessionId: vi.fn() }
-const observability = { trace: traceMock, flush: vi.fn() }
 const userRepository = { findById: findUserByIdMock, upsert: vi.fn() }
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -111,7 +109,6 @@ function createUseCase(
     messageRepository,
     llm,
     eventLogRepository,
-    observability,
     withRunGameMaster
       ? ({ execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase)
       : null,
@@ -129,7 +126,6 @@ beforeEach(() => {
   findMessagesByConversationIdMock.mockReset()
   saveMessageMock.mockReset()
   completeMock.mockReset()
-  traceMock.mockReset()
   appendEventMock.mockReset()
   runGameMasterExecuteMock.mockReset()
   findUserByIdMock.mockReset()
@@ -156,7 +152,6 @@ beforeEach(() => {
     outputTokens: 20,
     latencyMs: 5,
   })
-  traceMock.mockResolvedValue(undefined)
   appendEventMock.mockResolvedValue(undefined)
   runGameMasterExecuteMock.mockResolvedValue(undefined)
   findUserByIdMock.mockResolvedValue(null)

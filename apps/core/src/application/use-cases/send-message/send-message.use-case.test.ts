@@ -18,8 +18,6 @@ const findMessagesByConversationIdMock = vi.fn()
 const saveMessageMock = vi.fn()
 const completeMock = vi.fn()
 const appendEventMock = vi.fn()
-const traceMock = vi.fn()
-const flushMock = vi.fn()
 const runGameMasterExecuteMock = vi.fn()
 const endConversationExecuteMock = vi.fn()
 const findUserByIdMock = vi.fn()
@@ -69,7 +67,6 @@ const messageRepository = {
 
 const llm = { complete: completeMock }
 const eventLogRepository = { append: appendEventMock, findBySessionId: vi.fn() }
-const observability = { trace: traceMock, flush: flushMock }
 const userRepository = { findById: findUserByIdMock, upsert: vi.fn() }
 const userMemoryFactRepository = {
   findByUserId: findUserFactsByUserIdMock,
@@ -135,7 +132,6 @@ function createUseCase(
     messageRepository,
     llm,
     eventLogRepository,
-    observability,
     runGameMasterUseCase,
     withUserRepository ? userRepository : undefined,
     endConversationUseCase,
@@ -188,8 +184,6 @@ beforeEach(() => {
   findMessagesByConversationIdMock.mockReset()
   saveMessageMock.mockReset()
   completeMock.mockReset()
-  traceMock.mockReset()
-  flushMock.mockReset()
   appendEventMock.mockReset()
   runGameMasterExecuteMock.mockReset()
   endConversationExecuteMock.mockReset()
@@ -220,8 +214,6 @@ beforeEach(() => {
     outputTokens: 20,
     latencyMs: 5,
   })
-  traceMock.mockResolvedValue(undefined)
-  flushMock.mockResolvedValue(undefined)
   appendEventMock.mockResolvedValue(undefined)
   runGameMasterExecuteMock.mockResolvedValue(undefined)
   endConversationExecuteMock.mockResolvedValue({
@@ -268,23 +260,30 @@ describe('SendMessageUseCase — message routing', () => {
   })
 })
 
-describe('SendMessageUseCase — observability payload', () => {
-  it('traces system prompt and user prompt messages for llm completions', async () => {
+describe('SendMessageUseCase — llm request payload', () => {
+  it('passes system prompt, messages, and trace context to the llm adapter', async () => {
     const useCase = createUseCase()
 
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello tracing' })
-    await new Promise((resolve) => setTimeout(resolve, 0))
 
-    const traceArg = traceMock.mock.calls[0]?.[0] as {
-      input?: {
-        systemPrompt?: string
-        messages?: Array<{ role: string; content: string }>
+    const llmArg = completeMock.mock.calls[0]?.[0] as {
+      systemPrompt?: string
+      messages?: Array<{ role: string; content: string }>
+      trace?: {
+        requestId?: string
+        sessionId?: string
+        metadata?: Record<string, unknown>
       }
-      metadata?: Record<string, unknown>
     }
-    expect(traceArg.input?.systemPrompt).toContain('You are Ava.')
-    expect(traceArg.input?.messages).toEqual([{ role: 'user', content: 'Hello tracing' }])
-    expect(traceArg.metadata?.['model']).toBe('null-model')
+    expect(llmArg.systemPrompt).toContain('You are Ava.')
+    expect(llmArg.messages).toEqual([{ role: 'user', content: 'Hello tracing' }])
+    expect(typeof llmArg.trace?.requestId).toBe('string')
+    expect(llmArg.trace?.sessionId).toBe('session_1')
+    expect(llmArg.trace?.metadata).toMatchObject({
+      surface: 'send_message',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+    })
   })
 
   it('emits turn_completed event payload in a non-blocking path', async () => {

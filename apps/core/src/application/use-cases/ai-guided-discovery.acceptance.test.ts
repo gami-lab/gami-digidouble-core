@@ -82,7 +82,6 @@ function createHarness(unlockTarget: UnlockTarget = null) {
       messageRepository,
       avatarLlm,
       eventLogRepository,
-      observability,
       runGameMaster,
     ),
     switchAvatar: new SwitchAvatarUseCase(

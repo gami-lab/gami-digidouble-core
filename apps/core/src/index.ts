@@ -29,12 +29,15 @@ import {
 async function main(): Promise<void> {
   const config = loadConfig()
   const observability = createObservabilityAdapter(config)
-  const llmAdapter = createLlmAdapter({
-    provider: config.llmProvider,
-    ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
-    ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
-    ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
-  })
+  const llmAdapter = createLlmAdapter(
+    {
+      provider: config.llmProvider,
+      ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
+      ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
+      ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
+    },
+    observability,
+  )
   const sql = getDbClient(config.databaseUrl)
   const redisClient = getRedisClient(config.redisUrl)
   const scenarioRepository = new PostgresScenarioRepository(sql)

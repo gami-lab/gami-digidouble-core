@@ -1,14 +1,10 @@
 import type { ILlmAdapter } from '../../ports/ILlmAdapter.js'
-import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { SendRawMessageInput, SendRawMessageOutput } from './send-raw-message.types.js'
 
 const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant.'
 
 export class SendRawMessageUseCase {
-  constructor(
-    private readonly llm: ILlmAdapter,
-    private readonly observability: IObservabilityAdapter,
-  ) {}
+  constructor(private readonly llm: ILlmAdapter) {}
 
   async execute(input: SendRawMessageInput): Promise<SendRawMessageOutput> {
     const requestId = crypto.randomUUID()
@@ -17,29 +13,15 @@ export class SendRawMessageUseCase {
     const llmRequest = {
       systemPrompt: input.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
       messages: [{ role: 'user' as const, content: input.userMessage }],
+      trace: {
+        requestId,
+        metadata: { surface: 'send_raw_message' },
+      },
     }
 
     const response = await this.llm.complete(llmRequest)
 
     const latencyMs = Date.now() - start
-
-    void this.observability
-      .trace({
-        requestId,
-        event: 'llm.completion',
-        input: {
-          systemPrompt: llmRequest.systemPrompt,
-          messages: llmRequest.messages,
-        },
-        output: response.content,
-        latencyMs,
-        inputTokens: response.inputTokens,
-        outputTokens: response.outputTokens,
-        metadata: { model: response.model },
-      })
-      .catch((err: unknown) => {
-        console.error('[send-raw-message] Observability trace failed:', err)
-      })
 
     return {
       requestId,

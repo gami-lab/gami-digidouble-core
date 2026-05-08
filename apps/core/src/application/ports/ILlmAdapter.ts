@@ -12,6 +12,14 @@ export interface LlmRequest {
   model?: string
   /** Optional max output tokens hint for provider adapters. */
   maxTokens?: number
+  /** Optional observability context consumed by the observed adapter wrapper. */
+  trace?: {
+    requestId?: string
+    sessionId?: string
+    event?: string
+    errorEvent?: string
+    metadata?: Record<string, unknown>
+  }
 }
 
 export interface LlmResponse {

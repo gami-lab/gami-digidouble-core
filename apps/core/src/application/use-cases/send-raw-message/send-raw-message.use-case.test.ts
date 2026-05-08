@@ -8,18 +8,13 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LlmRequest, LlmResponse } from '../../ports/ILlmAdapter.js'
-import type { TraceEvent } from '../../ports/IObservabilityAdapter.js'
 import { SendRawMessageUseCase } from './send-raw-message.use-case.js'
-import { expectConsoleError } from '../../../test-utils/console.js'
 
 // ── Test doubles ─────────────────────────────────────────────────────────────
 
 const completeMock = vi.fn()
-const traceMock = vi.fn()
-const flushMock = vi.fn()
 
 const llm = { complete: completeMock }
-const observability = { trace: traceMock, flush: flushMock }
 
 function makeDefaultResponse(overrides: Partial<LlmResponse> = {}): LlmResponse {
   return {
@@ -39,12 +34,8 @@ describe('SendRawMessageUseCase', () => {
 
   beforeEach(() => {
     completeMock.mockReset()
-    traceMock.mockReset()
-    flushMock.mockReset()
     completeMock.mockResolvedValue(makeDefaultResponse())
-    traceMock.mockResolvedValue(undefined)
-    flushMock.mockResolvedValue(undefined)
-    useCase = new SendRawMessageUseCase(llm, observability)
+    useCase = new SendRawMessageUseCase(llm)
   })
 
   it('returns a valid SendRawMessageOutput on the happy path', async () => {
@@ -72,33 +63,12 @@ describe('SendRawMessageUseCase', () => {
     expect(a.requestId).not.toBe(b.requestId)
   })
 
-  it('calls observability.trace() exactly once per execute()', async () => {
-    await useCase.execute({ userMessage: 'ping' })
-    await new Promise((r) => setTimeout(r, 0))
-    expect(traceMock).toHaveBeenCalledOnce()
-  })
-
-  it('passes requestId and token counts to the trace event', async () => {
+  it('passes requestId to the LLM trace context', async () => {
     const output = await useCase.execute({ userMessage: 'ping' })
-    await new Promise((r) => setTimeout(r, 0))
 
-    const traceArg = traceMock.mock.calls[0]?.[0] as TraceEvent
-    expect(traceArg.requestId).toBe(output.requestId)
-    expect(traceArg.inputTokens).toBe(output.inputTokens)
-    expect(traceArg.outputTokens).toBe(output.outputTokens)
-    expect(traceArg.event).toBe('llm.completion')
-  })
-
-  it('passes system and user prompts as trace input and reply as trace output', async () => {
-    await useCase.execute({ userMessage: 'Tell me a joke.' })
-    await new Promise((r) => setTimeout(r, 0))
-
-    const traceArg = traceMock.mock.calls[0]?.[0] as TraceEvent
-    expect(traceArg.input).toEqual({
-      systemPrompt: 'You are a helpful assistant.',
-      messages: [{ role: 'user', content: 'Tell me a joke.' }],
-    })
-    expect(traceArg.output).toBe('Hello from the model.')
+    const llmArg = completeMock.mock.calls[0]?.[0] as LlmRequest
+    expect(llmArg.trace?.requestId).toBe(output.requestId)
+    expect(llmArg.trace?.metadata).toEqual({ surface: 'send_raw_message' })
   })
 
   it('passes the default system prompt when none is provided', async () => {
@@ -121,15 +91,6 @@ describe('SendRawMessageUseCase', () => {
     const llmArg = completeMock.mock.calls[0]?.[0] as LlmRequest
     expect(llmArg.messages).toHaveLength(1)
     expect(llmArg.messages[0]).toEqual({ role: 'user', content: 'Tell me a joke.' })
-  })
-
-  it('does not crash when observability.trace() rejects', async () => {
-    traceMock.mockRejectedValue(new Error('Langfuse down'))
-    const result = await expectConsoleError(
-      () => useCase.execute({ userMessage: 'Hi' }),
-      /Observability trace failed.*Langfuse down/,
-    )
-    expect(result).toBeDefined()
   })
 
   it('propagates LLM errors to the caller', async () => {

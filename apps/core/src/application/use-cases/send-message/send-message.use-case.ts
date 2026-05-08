@@ -4,7 +4,6 @@ import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../../ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
-import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
@@ -21,10 +20,7 @@ import type { UserPersona } from '../../../domain/user/user.types.js'
 import type { ConversationEndReason, EndConversationResponse } from '@gami/shared'
 import type { SelectedMemoryPayload } from '../../../domain/memory/memory.types.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
-import {
-  emitTurnCompletedEventNonBlocking,
-  traceNonBlocking,
-} from './send-message.observability.js'
+import { emitTurnCompletedEventNonBlocking } from './send-message.observability.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import {
   DEFAULT_IMPLICIT_END_POLICY,
@@ -51,7 +47,6 @@ export class SendMessageUseCase {
     private readonly messageRepository: IMessageRepository,
     private readonly llm: ILlmAdapter,
     private readonly eventLogRepository: IEventLogRepository,
-    private readonly observability: IObservabilityAdapter,
     private readonly runGameMasterUseCase: RunGameMasterUseCase | null = null,
     private readonly userRepository?: IUserRepository,
     private readonly endConversationUseCase: ConversationCloser | null = null,
@@ -86,6 +81,15 @@ export class SendMessageUseCase {
     const llmRequest = {
       systemPrompt,
       messages: [...historyMessages, { role: 'user' as const, content: userMessage.content }],
+      trace: {
+        requestId,
+        sessionId: session.sessionId,
+        metadata: {
+          surface: 'send_message',
+          conversationId: conversation.conversationId,
+          avatarId: conversation.avatarId,
+        },
+      },
     }
     const response = await this.llm.complete(llmRequest)
     const avatarMessage = await this.persistAvatarMessage(conversation.conversationId, {
@@ -126,15 +130,6 @@ export class SendMessageUseCase {
       hasGm: this.runGameMasterUseCase !== null,
       eventLogRepository: this.eventLogRepository,
     })
-    traceNonBlocking({
-      requestId,
-      sessionId: session.sessionId,
-      llmRequest,
-      response,
-      latencyMs,
-      observability: this.observability,
-    })
-
     const output = this.buildOutput(
       requestId,
       conversation,

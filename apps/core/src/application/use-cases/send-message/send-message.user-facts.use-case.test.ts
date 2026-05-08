@@ -14,7 +14,6 @@ const findMessagesByConversationIdMock = vi.fn()
 const saveMessageMock = vi.fn()
 const completeMock = vi.fn()
 const appendEventMock = vi.fn()
-const traceMock = vi.fn()
 const findUserByIdMock = vi.fn()
 const findUserFactsByUserIdMock = vi.fn()
 
@@ -56,7 +55,6 @@ const messageRepository = {
 }
 const llm = { complete: completeMock }
 const eventLogRepository = { append: appendEventMock, findBySessionId: vi.fn() }
-const observability = { trace: traceMock, flush: vi.fn() }
 const userRepository = { findById: findUserByIdMock, upsert: vi.fn() }
 const userMemoryFactRepository = {
   findByUserId: findUserFactsByUserIdMock,
@@ -113,7 +111,6 @@ function createUseCase(withUserMemoryFactRepository: boolean): SendMessageUseCas
     messageRepository,
     llm,
     eventLogRepository,
-    observability,
     null,
     userRepository,
     null,
@@ -132,7 +129,6 @@ beforeEach(() => {
   findMessagesByConversationIdMock.mockReset()
   saveMessageMock.mockReset()
   completeMock.mockReset()
-  traceMock.mockReset()
   appendEventMock.mockReset()
   findUserByIdMock.mockReset()
   findUserFactsByUserIdMock.mockReset()
@@ -159,7 +155,6 @@ beforeEach(() => {
     outputTokens: 20,
     latencyMs: 5,
   })
-  traceMock.mockResolvedValue(undefined)
   appendEventMock.mockResolvedValue(undefined)
   findUserByIdMock.mockResolvedValue(null)
   findUserFactsByUserIdMock.mockResolvedValue([])

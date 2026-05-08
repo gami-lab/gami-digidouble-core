@@ -217,7 +217,6 @@ type ConversationPersistenceDeps = {
 }
 
 function createRouteDependencies(options: ConversationsRouteOptions): RouteDependencies {
-  const llmAdapter = options.llmAdapter ?? createLlmAdapter(buildLlmConfig(options.config))
   const observabilityAdapter =
     options.observabilityAdapter ??
     createObservabilityAdapter({
@@ -225,6 +224,8 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       langfuseSecretKey: options.config.langfuseSecretKey,
       langfuseHost: options.config.langfuseHost,
     })
+  const llmAdapter =
+    options.llmAdapter ?? createLlmAdapter(buildLlmConfig(options.config), observabilityAdapter)
   const repositories = resolvePersistenceDeps(options)
   const memoryMaintenance = new MemoryMaintenanceService(
     repositories.messageRepository,
@@ -250,7 +251,6 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       repositories.messageRepository,
       llmAdapter,
       repositories.eventLogRepository,
-      observabilityAdapter,
       options.runGameMasterUseCase ?? null,
       repositories.userRepository,
       new EndConversationUseCase(

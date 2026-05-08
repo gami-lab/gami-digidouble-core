@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import type { ConversationWorkingMemory } from '../../domain/memory/memory.types.js'
 import type { IEventLogRepository } from '../ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../ports/IMessageRepository.js'
@@ -65,9 +66,8 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       const messages = await this.messageRepository.findByConversationId(input.conversationId, {
         limit: 10,
       })
-      const priorMemory = await this.conversationWorkingMemoryRepository.findByConversationId(
-        input.conversationId,
-      )
+      const priorMemory: ConversationWorkingMemory | null =
+        await this.conversationWorkingMemoryRepository.findByConversationId(input.conversationId)
       const ordered = messages
         .slice()
         .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
@@ -76,7 +76,13 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
         return
       }
 
-      const rewritten = await this.rewriteWorkingMemory(ordered, priorMemory)
+      const rewritten = await this.rewriteWorkingMemory(ordered, priorMemory, {
+        requestId,
+        sessionId: input.sessionId,
+        conversationId: input.conversationId,
+        avatarId: input.avatarId,
+        trigger: input.trigger,
+      })
 
       await this.conversationWorkingMemoryRepository.upsert({
         conversationId: input.conversationId,
@@ -138,13 +144,34 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       unresolvedThreads: string[]
       candidateFacts: Array<{ category: string; key: string; value: string }>
     } | null,
+    context: {
+      requestId: string
+      sessionId: string
+      conversationId: string
+      avatarId: string
+      trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
+    },
   ) {
-    const response = await this.llm.complete({
+    const llmRequest = {
       systemPrompt: WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: buildCompactionInput(messages, priorMemory) }],
+      messages: [{ role: 'user' as const, content: buildCompactionInput(messages, priorMemory) }],
       maxTokens: 500,
-    })
+      trace: {
+        requestId: context.requestId,
+        sessionId: context.sessionId,
+        event: 'memory.maintenance.compaction',
+        errorEvent: 'memory.maintenance.llm_error',
+        metadata: {
+          conversationId: context.conversationId,
+          avatarId: context.avatarId,
+          trigger: context.trigger,
+        },
+      },
+    }
+    const response = await this.llm.complete(llmRequest)
+
     const parsed = parseCompactionOutput(response.content)
+
     if (parsed !== null) return parsed
     throw new Error('[memory-maintenance] LLM returned unparseable compaction output')
   }

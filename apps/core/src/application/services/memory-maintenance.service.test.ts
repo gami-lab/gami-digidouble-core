@@ -8,6 +8,64 @@ import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructur
 import type { ILlmAdapter } from '../ports/ILlmAdapter.js'
 import { MemoryMaintenanceService } from './memory-maintenance.service.js'
 
+const compactionMessages = [
+  {
+    messageId: 'msg_1',
+    conversationId: 'conversation_1',
+    role: 'user' as const,
+    content: 'I am a doctor using AI for patient files.',
+    createdAt: '2026-05-06T10:00:00.000Z',
+  },
+  {
+    messageId: 'msg_2',
+    conversationId: 'conversation_1',
+    role: 'avatar' as const,
+    content: 'Use privacy-safe redaction workflows.',
+    createdAt: '2026-05-06T10:00:01.000Z',
+  },
+  {
+    messageId: 'msg_3',
+    conversationId: 'conversation_1',
+    role: 'user' as const,
+    content: 'What should I do first?',
+    createdAt: '2026-05-06T10:00:02.000Z',
+  },
+  {
+    messageId: 'msg_4',
+    conversationId: 'conversation_1',
+    role: 'avatar' as const,
+    content: 'Start with a no-PII drafting process.',
+    createdAt: '2026-05-06T10:00:03.000Z',
+  },
+  {
+    messageId: 'msg_5',
+    conversationId: 'conversation_1',
+    role: 'user' as const,
+    content: 'How do I stay compliant?',
+    createdAt: '2026-05-06T10:00:04.000Z',
+  },
+  {
+    messageId: 'msg_6',
+    conversationId: 'conversation_1',
+    role: 'avatar' as const,
+    content: 'Apply role-based access and audit logs.',
+    createdAt: '2026-05-06T10:00:05.000Z',
+  },
+]
+
+function createCompactionService(args: {
+  llm: ILlmAdapter
+  conversationWorkingMemoryRepository: InMemoryConversationWorkingMemoryRepository
+  eventLogRepository: InMemoryEventLogRepository
+}): MemoryMaintenanceService {
+  return new MemoryMaintenanceService(
+    new InMemoryMessageRepository(compactionMessages),
+    args.conversationWorkingMemoryRepository,
+    args.eventLogRepository,
+    args.llm,
+  )
+}
+
 function makeService() {
   const messageRepository = new InMemoryMessageRepository([
     {
@@ -81,7 +139,6 @@ function makeService() {
       latencyMs: 5,
     }),
   }
-
   return {
     service: new MemoryMaintenanceService(
       messageRepository,
@@ -181,55 +238,11 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
     const llm: ILlmAdapter = {
       complete: llmCompleteMock,
     }
-    const service = new MemoryMaintenanceService(
-      new InMemoryMessageRepository([
-        {
-          messageId: 'msg_1',
-          conversationId: 'conversation_1',
-          role: 'user',
-          content: 'I am a doctor using AI for patient files.',
-          createdAt: '2026-05-06T10:00:00.000Z',
-        },
-        {
-          messageId: 'msg_2',
-          conversationId: 'conversation_1',
-          role: 'avatar',
-          content: 'Use privacy-safe redaction workflows.',
-          createdAt: '2026-05-06T10:00:01.000Z',
-        },
-        {
-          messageId: 'msg_3',
-          conversationId: 'conversation_1',
-          role: 'user',
-          content: 'What should I do first?',
-          createdAt: '2026-05-06T10:00:02.000Z',
-        },
-        {
-          messageId: 'msg_4',
-          conversationId: 'conversation_1',
-          role: 'avatar',
-          content: 'Start with a no-PII drafting process.',
-          createdAt: '2026-05-06T10:00:03.000Z',
-        },
-        {
-          messageId: 'msg_5',
-          conversationId: 'conversation_1',
-          role: 'user',
-          content: 'How do I stay compliant?',
-          createdAt: '2026-05-06T10:00:04.000Z',
-        },
-        {
-          messageId: 'msg_6',
-          conversationId: 'conversation_1',
-          role: 'avatar',
-          content: 'Apply role-based access and audit logs.',
-          createdAt: '2026-05-06T10:00:05.000Z',
-        },
-      ]),
+    const service = createCompactionService({
+      llm,
       conversationWorkingMemoryRepository,
       eventLogRepository,
-      llm,
-    )
+    })
 
     await service.execute({
       sessionId: 'session_1',

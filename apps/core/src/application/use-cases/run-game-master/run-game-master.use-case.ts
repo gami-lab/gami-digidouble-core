@@ -31,7 +31,6 @@ import {
   emitTriggeredGameMasterTurn,
   handleInvalidGameMasterOutput,
   incrementInteractionAndSave,
-  traceSafe,
 } from './run-game-master.events.js'
 
 const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
@@ -220,6 +219,17 @@ export class RunGameMasterUseCase {
     const llmRequest = {
       systemPrompt: buildGameMasterSystemPrompt(),
       messages: [{ role: 'user' as const, content: JSON.stringify(gmInput) }],
+      trace: {
+        requestId: input.correlationId,
+        sessionId: input.sessionId,
+        event: 'gm.llm_completion',
+        errorEvent: 'gm.llm_error',
+        metadata: {
+          triggerReason,
+          conversationId: input.conversationId,
+          turnIndex: input.turnIndex,
+        },
+      },
     }
 
     try {
@@ -235,16 +245,6 @@ export class RunGameMasterUseCase {
         triggerReason,
         latencyMs: Date.now() - gmRunStartMs,
         errorCode: 'llm_error',
-      })
-      await traceSafe(this.observability, {
-        requestId: input.correlationId,
-        sessionId: input.sessionId,
-        event: 'gm.llm_error',
-        input: {
-          triggerReason,
-          llmRequest,
-        },
-        latencyMs: Date.now() - llmStart,
       })
       return null
     }

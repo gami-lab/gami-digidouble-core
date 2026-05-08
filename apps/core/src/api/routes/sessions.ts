@@ -13,6 +13,7 @@ import type { ISessionMemoryRepository } from '../../application/ports/ISessionM
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
+import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
 import type { GetAvailableAvatarsOutput } from '../../application/use-cases/get-available-avatars/get-available-avatars.types.js'
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
@@ -49,6 +50,7 @@ import { authenticateApiKey } from '../hooks/authenticate.js'
 import { registerRuntimeEventsRoutes } from './runtime-events.js'
 import { createSessionRouteUseCases } from './sessions.use-cases.js'
 import { createLlmAdapter } from '../../infrastructure/llm/index.js'
+import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
 
 export type SessionsRouteOptions = {
   config: Config
@@ -58,6 +60,7 @@ export type SessionsRouteOptions = {
   conversationRepository?: IConversationRepository
   messageRepository?: IMessageRepository
   llmAdapter?: ILlmAdapter
+  observabilityAdapter?: IObservabilityAdapter
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
@@ -173,6 +176,13 @@ const listSessionsQuerySchema = {
 
 export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, options) => {
   const dependencies = resolveRouteDependencies(options)
+  const observabilityAdapter =
+    options.observabilityAdapter ??
+    createObservabilityAdapter({
+      langfusePublicKey: options.config.langfusePublicKey,
+      langfuseSecretKey: options.config.langfuseSecretKey,
+      langfuseHost: options.config.langfuseHost,
+    })
   const {
     sessionRepository,
     scenarioRepository,
@@ -212,18 +222,21 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     sessionEventPublisher,
     llmAdapter:
       options.llmAdapter ??
-      createLlmAdapter({
-        provider: options.config.llmProvider,
-        ...(options.config.openaiApiKey !== undefined
-          ? { openaiApiKey: options.config.openaiApiKey }
-          : {}),
-        ...(options.config.anthropicApiKey !== undefined
-          ? { anthropicApiKey: options.config.anthropicApiKey }
-          : {}),
-        ...(options.config.mistralApiKey !== undefined
-          ? { mistralApiKey: options.config.mistralApiKey }
-          : {}),
-      }),
+      createLlmAdapter(
+        {
+          provider: options.config.llmProvider,
+          ...(options.config.openaiApiKey !== undefined
+            ? { openaiApiKey: options.config.openaiApiKey }
+            : {}),
+          ...(options.config.anthropicApiKey !== undefined
+            ? { anthropicApiKey: options.config.anthropicApiKey }
+            : {}),
+          ...(options.config.mistralApiKey !== undefined
+            ? { mistralApiKey: options.config.mistralApiKey }
+            : {}),
+        },
+        observabilityAdapter,
+      ),
   })
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))

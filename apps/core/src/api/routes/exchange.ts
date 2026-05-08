@@ -45,7 +45,6 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
       : {}),
   }
 
-  const llmAdapter = options.llmAdapter ?? createLlmAdapter(llmConfig)
   const observabilityAdapter =
     options.observabilityAdapter ??
     createObservabilityAdapter({
@@ -53,6 +52,7 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
       langfuseSecretKey: options.config.langfuseSecretKey,
       langfuseHost: options.config.langfuseHost,
     })
+  const llmAdapter = options.llmAdapter ?? createLlmAdapter(llmConfig, observabilityAdapter)
 
   // Flush buffered observability events (e.g. Langfuse) when the server shuts down.
   app.addHook('onClose', async () => {
@@ -66,7 +66,7 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
       preHandler: authenticateApiKey(options.config.apiKeySecret),
     },
     async (request, reply) => {
-      const useCase = new SendRawMessageUseCase(llmAdapter, observabilityAdapter)
+      const useCase = new SendRawMessageUseCase(llmAdapter)
       try {
         const output = await useCase.execute({
           userMessage: request.body.message,

@@ -274,7 +274,9 @@ function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAd
   return {
     prefix: '/v1/admin',
     config,
-    llmAdapter: adapters.llmAdapter ?? createLlmAdapter(resolveServerLlmConfig(config)),
+    llmAdapter:
+      adapters.llmAdapter ??
+      createLlmAdapter(resolveServerLlmConfig(config), adapters.observabilityAdapter),
     sessionRepository: withDefault(adapters.sessionRepository, new InMemorySessionRepository()),
     conversationRepository: withDefault(
       adapters.conversationRepository,
