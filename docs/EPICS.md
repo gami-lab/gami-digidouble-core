@@ -741,6 +741,82 @@ Hierarchical memory reduces hallucinations and improves continuity.
 
 ---
 
+## EPIC 4.2c — Memory System v3 (Working + Episodic Memory)
+
+**Purpose**
+Implement the actual target memory behavior defined in `MEMORY_SYSTEM_SPEC.md`.
+
+**Description**
+The current implementation does not correctly implement the intended memory model.
+
+Working memory, episodic memory, hydration, and continuity behavior are incomplete and do not yet produce the expected conversational continuity.
+
+This EPIC rewrites the memory system around the architecture defined in `MEMORY_SYSTEM_SPEC.md`.
+
+The goal is to implement:
+
+- bounded short-term memory
+- rewritten conversation working memory
+- durable episodic memory
+- conversation hydration
+- GM memory access and observability
+
+This EPIC replaces the current partial memory implementation.
+
+**Hypothesis**
+Conversation continuity requires structured bounded memory evolution, not transcript replay and not isolated summaries/facts.
+
+**Includes**
+
+- bounded short-term memory assembly
+- rewritten conversation working memory lifecycle
+- periodic working memory refresh
+- conversation-close episodic memory generation
+- `conversation_memories` persistence
+- episodic memory retrieval
+- hydration at conversation creation
+- episodic-memory-based fact extraction
+- GM episodic memory access
+- memory selection observability
+- hydration observability
+- memory debugging tooling
+- removal of obsolete/conflicting memory logic
+
+**DoD**
+
+- short-term memory remains bounded
+- working memory is continuously rewritten
+- long conversations work without transcript replay
+- closed conversations generate episodic memories
+- new conversations hydrate from previous memories
+- avatars remember previous interactions naturally
+- GM can use episodic memories
+- memory selection becomes observable
+- memory refresh failures remain isolated
+- implementation aligns with `MEMORY_SYSTEM_SPEC.md`
+
+**What Can Be Tested**
+
+1. inspect short-term memory bounds
+2. verify periodic working memory refresh
+3. verify bounded memory after long conversations
+4. close conversation → episodic memory created
+5. start new conversation → hydration occurs
+6. verify avatar continuity across conversations
+7. verify GM episodic memory usage
+8. inspect hydration and memory selection reasoning
+9. simulate memory refresh failures
+
+**User Increment**
+
+- avatars remember previous discussions coherently
+- long discussions remain bounded and understandable
+- conversations feel continuous across sessions
+- GM orchestration becomes memory-aware
+- operators can inspect and debug memory behavior reliably
+
+---
+
 ## EPIC 4.1b — Game Master Context Awareness Upgrade
 
 **Purpose**
