@@ -124,6 +124,10 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Extended admin memory-layers inspection contract with additive observability payloads:
   - `session.observability.selection` (sources, selected/rejected counts, top reasons, timestamp)
   - `session.observability.hydration` (hydrated conversation linkage + timestamp)
+- Refined admin memory-layers projection to align with active-avatar continuity:
+  - short-term now reflects the active conversation only and is bounded to the last 3 exchanges
+  - working memory now exposes the currently active hydrated conversation as the only active working-memory surface
+  - long-term inspection now groups closed episodic memories by avatar in addition to structured user facts
 - Implemented deterministic selection observability assembly in `GetSessionMemoryLayersUseCase` using canonical `MemorySelectionService` metadata.
 - Added hydration observability signal emission on conversation-start and switch-created conversation hydration:
   - `memory_hydration_succeeded` event now records hydrated conversation ID and source episodic conversation IDs.

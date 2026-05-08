@@ -13,7 +13,6 @@ import { MemorySelectionService } from '../../services/memory-selection.service.
 import { DomainError } from '../../../domain/errors.js'
 import {
   ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT,
-  MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
   MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
 } from '../../../domain/memory/memory.policy.js'
 import type {
@@ -23,6 +22,7 @@ import type {
 
 export class GetSessionMemoryLayersUseCase {
   private readonly selectionService?: MemorySelectionService
+  private static readonly ADMIN_SHORT_TERM_EXCHANGE_LIMIT = 3
 
   constructor(
     private readonly sessionRepository: ISessionRepository,
@@ -55,20 +55,59 @@ export class GetSessionMemoryLayersUseCase {
       throw new DomainError('NOT_FOUND', `Session ${input.sessionId} was not found.`)
     }
 
-    const [shortTermExchanges, sessionWorkingMemory, avatarMemories, facts] = await Promise.all([
-      this.loadShortTermExchanges(session.sessionId),
-      this.loadSessionWorkingMemory(session.sessionId),
-      this.avatarSessionMemoryRepository?.listBySessionId(session.sessionId) ?? Promise.resolve([]),
-      this.userMemoryFactRepository?.findByUserId(session.userId) ?? Promise.resolve([]),
-    ])
+    const activeConversation = await this.loadActiveConversation(session.sessionId)
+
+    const [shortTermExchanges, currentWorkingMemory, facts, longTermAvatarMemories] =
+      await Promise.all([
+        this.loadShortTermExchanges(activeConversation?.conversationId),
+        this.loadCurrentWorkingMemory(activeConversation?.conversationId),
+        this.userMemoryFactRepository?.findByUserId(session.userId) ?? Promise.resolve([]),
+        this.loadLongTermAvatarMemories(session.sessionId),
+      ])
+
+    const sessionWorkingMemory =
+      currentWorkingMemory !== null
+        ? {
+            summary: currentWorkingMemory.summary,
+            updatedAt: currentWorkingMemory.updatedAt,
+          }
+        : null
+    const activeAvatarSummary =
+      currentWorkingMemory !== null
+        ? [
+            {
+              avatarId: currentWorkingMemory.avatarId,
+              summary: currentWorkingMemory.summary,
+              updatedAt: currentWorkingMemory.updatedAt,
+            },
+          ]
+        : []
 
     const memory: SessionMemoryLayers = {
       sessionId: session.sessionId,
+      ...(activeConversation !== null
+        ? {
+            activeAvatarId: activeConversation.avatarId,
+            activeConversationId: activeConversation.conversationId,
+          }
+        : {}),
       shortTerm: {
-        exchangeCount: 2,
+        exchangeCount: GetSessionMemoryLayersUseCase.ADMIN_SHORT_TERM_EXCHANGE_LIMIT,
         recentExchanges: shortTermExchanges,
       },
       working: {
+        ...(currentWorkingMemory !== null
+          ? {
+              current: {
+                conversationId: currentWorkingMemory.conversationId,
+                avatarId: currentWorkingMemory.avatarId,
+                summary: currentWorkingMemory.summary,
+                unresolvedThreads: currentWorkingMemory.unresolvedThreads,
+                candidateFacts: currentWorkingMemory.candidateFacts,
+                updatedAt: currentWorkingMemory.updatedAt,
+              },
+            }
+          : {}),
         ...(sessionWorkingMemory !== null
           ? {
               session: {
@@ -77,13 +116,10 @@ export class GetSessionMemoryLayersUseCase {
               },
             }
           : {}),
-        avatars: avatarMemories.map((memoryRow) => ({
-          avatarId: memoryRow.avatarId,
-          summary: memoryRow.summary,
-          updatedAt: memoryRow.updatedAt,
-        })),
+        avatars: activeAvatarSummary,
       },
       longTerm: {
+        avatars: longTermAvatarMemories,
         facts: facts.slice(0, ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT).map((fact) => ({
           category: fact.category,
           key: fact.key,
@@ -98,16 +134,11 @@ export class GetSessionMemoryLayersUseCase {
   }
 
   private async loadShortTermExchanges(
-    sessionId: string,
+    conversationId: string | undefined,
   ): Promise<SharedShortTermMemoryExchange[]> {
-    if (this.conversationRepository === undefined || this.messageRepository === undefined) return []
-    const conversations = await this.conversationRepository.listBySessionId(sessionId)
-    const latest = conversations
-      .slice()
-      .sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt))[0]
-    if (latest === undefined) return []
+    if (conversationId === undefined || this.messageRepository === undefined) return []
 
-    const messages = await this.messageRepository.findByConversationId(latest.conversationId, {
+    const messages = await this.messageRepository.findByConversationId(conversationId, {
       limit: MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
     })
     const orderedMessages = messages
@@ -127,48 +158,97 @@ export class GetSessionMemoryLayersUseCase {
       }
     }
 
-    return exchanges.slice(-MEMORY_SHORT_TERM_EXCHANGE_LIMIT)
+    return exchanges.slice(-GetSessionMemoryLayersUseCase.ADMIN_SHORT_TERM_EXCHANGE_LIMIT)
   }
 
-  private async loadSessionWorkingMemory(
-    sessionId: string,
-  ): Promise<{ summary: string; updatedAt: string } | null> {
-    const canonical = await this.loadCanonicalSessionWorkingMemory(sessionId)
-    if (canonical !== null) {
-      return {
-        summary: canonical.summary,
-        updatedAt: canonical.updatedAt,
+  private async loadCurrentWorkingMemory(
+    conversationId: string | undefined,
+  ): Promise<
+    | {
+        conversationId: string
+        avatarId: string
+        summary: string
+        unresolvedThreads: string[]
+        candidateFacts: Array<{ category: string; key: string; value: string }>
+        updatedAt: string
       }
-    }
-
-    return this.sessionMemoryRepository?.findBySessionId(sessionId) ?? Promise.resolve(null)
-  }
-
-  private async loadCanonicalSessionWorkingMemory(
-    sessionId: string,
-  ): Promise<{ summary: string; updatedAt: string } | null> {
+    | null
+  > {
     if (
-      this.conversationRepository === undefined ||
+      conversationId === undefined ||
       this.conversationWorkingMemoryRepository === undefined
     ) {
       return null
     }
 
-    const conversations = await this.conversationRepository.listBySessionId(sessionId)
-    const latestConversation = conversations
-      .slice()
-      .sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt))[0]
-    if (latestConversation === undefined) return null
+    return this.conversationWorkingMemoryRepository.findByConversationId(conversationId)
+  }
 
-    const workingMemory = await this.conversationWorkingMemoryRepository.findByConversationId(
-      latestConversation.conversationId,
-    )
-    if (workingMemory === null) return null
+  private async loadActiveConversation(sessionId: string) {
+    if (this.conversationRepository === undefined) return null
+    return this.conversationRepository.findActiveBySessionId(sessionId)
+  }
 
-    return {
-      summary: workingMemory.summary,
-      updatedAt: workingMemory.updatedAt,
+  private async loadLongTermAvatarMemories(sessionId: string) {
+    if (
+      this.conversationRepository === undefined ||
+      this.conversationMemoryRepository === undefined
+    ) {
+      return []
     }
+
+    const conversationMemoryRepository = this.conversationMemoryRepository
+    const conversations = await this.conversationRepository.listBySessionId(sessionId)
+    const episodicMemories = await Promise.all(
+      conversations.map(async (conversation) => {
+        const memory = await conversationMemoryRepository.findByConversationId(
+          conversation.conversationId,
+        )
+        if (memory === null) return null
+        return {
+          avatarId: conversation.avatarId,
+          conversationId: memory.conversationId,
+          summary: memory.summary,
+          keyDiscoveries: memory.keyDiscoveries,
+          unresolvedTopics: memory.unresolvedTopics,
+          factCandidates: memory.factCandidates,
+          createdAt: memory.createdAt,
+        }
+      }),
+    )
+
+    const grouped = new Map<
+      string,
+      Array<{
+        conversationId: string
+        summary: string
+        keyDiscoveries: string[]
+        unresolvedTopics: string[]
+        factCandidates: Array<{ category: string; key: string; value: string }>
+        createdAt: string
+      }>
+    >()
+
+    for (const memory of episodicMemories) {
+      if (memory === null) continue
+      const entries = grouped.get(memory.avatarId) ?? []
+      entries.push({
+        conversationId: memory.conversationId,
+        summary: memory.summary,
+        keyDiscoveries: memory.keyDiscoveries,
+        unresolvedTopics: memory.unresolvedTopics,
+        factCandidates: memory.factCandidates,
+        createdAt: memory.createdAt,
+      })
+      grouped.set(memory.avatarId, entries)
+    }
+
+    return [...grouped.entries()]
+      .map(([avatarId, memories]) => ({
+        avatarId,
+        memories: memories.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+      }))
+      .sort((a, b) => a.avatarId.localeCompare(b.avatarId))
   }
 
   private async buildObservability(session: {

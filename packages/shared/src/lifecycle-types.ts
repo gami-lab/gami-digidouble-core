@@ -1,7 +1,9 @@
 import type { LifecycleStatus } from './entity-types.js'
 import type {
+  SharedLongTermAvatarMemory,
   SharedLongTermMemoryFact,
   SharedShortTermMemorySnapshot,
+  SharedWorkingMemoryCurrent,
   SharedWorkingMemoryAvatarSummary,
   SharedWorkingMemorySessionSummary,
 } from './memory-contract-types.js'
@@ -25,12 +27,16 @@ export type SessionMemorySummary = {
 
 export type SessionMemoryLayers = {
   sessionId: string
+  activeAvatarId?: string
+  activeConversationId?: string
   shortTerm: SharedShortTermMemorySnapshot
   working: {
+    current?: SharedWorkingMemoryCurrent
     session?: SharedWorkingMemorySessionSummary
     avatars: SharedWorkingMemoryAvatarSummary[]
   }
   longTerm: {
+    avatars: SharedLongTermAvatarMemory[]
     facts: Array<SharedLongTermMemoryFact & { updatedAt: string }>
   }
   observability?: {

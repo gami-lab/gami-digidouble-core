@@ -1646,15 +1646,36 @@ type AdminSessionMemoryLayersResponse = {
 
 type SessionMemoryLayers = {
   sessionId: string
+  activeAvatarId?: string
+  activeConversationId?: string
   shortTerm: {
-    exchangeCount: 2
+    exchangeCount: number
     recentExchanges: Array<{ user: string; avatar: string }>
   }
   working: {
+    current?: {
+      conversationId: string
+      avatarId: string
+      summary: string
+      unresolvedThreads: string[]
+      candidateFacts: Array<{ category: string; key: string; value: string }>
+      updatedAt: string
+    }
     session?: { summary: string; updatedAt: string }
     avatars: Array<{ avatarId: string; summary: string; updatedAt: string }>
   }
   longTerm: {
+    avatars: Array<{
+      avatarId: string
+      memories: Array<{
+        conversationId: string
+        summary: string
+        keyDiscoveries: string[]
+        unresolvedTopics: string[]
+        factCandidates: Array<{ category: string; key: string; value: string }>
+        createdAt: string
+      }>
+    }>
     facts: Array<{ category: string; key: string; value: string; updatedAt: string }>
   }
   observability?: {
@@ -1677,9 +1698,12 @@ type SessionMemoryLayers = {
 
 ### Semantics
 
-- Short-term is bounded to exactly last 2 user/avatar exchanges.
-- Working memory exposes session summary and avatar-scoped summaries.
-- Long-term exposes structured user facts, ordered by recency and capped to the latest 50 facts by default for operator safety.
+- `activeAvatarId` / `activeConversationId` identify the currently selected active conversation when one exists.
+- Short-term is bounded to the last 3 user/avatar exchanges of the active conversation only.
+- Working memory exposes the current active conversation working memory immediately after hydration, regardless of whether the conversation was created by explicit start or avatar switch.
+- `working.avatars` is restricted to the currently active avatar only; closed conversations are not reported as active working memory.
+- `longTerm.avatars` groups durable episodic memories by avatar for all closed conversations in the session.
+- `longTerm.facts` continues to expose structured user facts, ordered by recency and capped to the latest 50 facts by default for operator safety.
 - `observability.selection` exposes deterministic memory-selection diagnostics:
   - source conversation IDs considered
   - selected vs rejected counts

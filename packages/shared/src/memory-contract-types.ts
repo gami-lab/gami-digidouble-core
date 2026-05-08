@@ -12,7 +12,7 @@ export type SharedShortTermMemoryExchange = {
 }
 
 export type SharedShortTermMemorySnapshot = {
-  exchangeCount: 2
+  exchangeCount: number
   recentExchanges: SharedShortTermMemoryExchange[]
 }
 
@@ -27,8 +27,29 @@ export type SharedWorkingMemoryAvatarSummary = {
   updatedAt: string
 }
 
+export type SharedWorkingMemoryCurrent = {
+  conversationId: string
+  avatarId: string
+  summary: string
+  unresolvedThreads: string[]
+  candidateFacts: SharedLongTermMemoryFact[]
+  updatedAt: string
+}
+
 export type SharedLongTermMemoryFact = {
   category: string
   key: string
   value: string
+}
+
+export type SharedLongTermAvatarMemory = {
+  avatarId: string
+  memories: Array<{
+    conversationId: string
+    summary: string
+    keyDiscoveries: string[]
+    unresolvedTopics: string[]
+    factCandidates: SharedLongTermMemoryFact[]
+    createdAt: string
+  }>
 }

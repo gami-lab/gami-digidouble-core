@@ -12,7 +12,9 @@ export type MemoryEvolutionSnapshot = {
   layers: SessionMemoryLayers
 }
 
-export type MemoryFact = SessionMemoryLayers['longTerm']['facts'][number]
+export type LongTermAvatarMemory = SessionMemoryLayers['longTerm']['avatars'][number]['memories'][number] & {
+  avatarId: string
+}
 
 export type MemoryEvolutionDelta = {
   shortTerm: {
@@ -27,8 +29,8 @@ export type MemoryEvolutionDelta = {
     stale: boolean
   }
   longTerm: {
-    added: MemoryFact[]
-    removed: MemoryFact[]
+    added: LongTermAvatarMemory[]
+    removed: LongTermAvatarMemory[]
     changed: Array<{ key: string; from: string; to: string }>
   }
 }
@@ -42,7 +44,7 @@ export function buildMemorySnapshot(
   const latestTurn = getLatestTurnEvent(recentEvents)
 
   return {
-    snapshotId: `${latestTurn?.correlationId ?? 'memory'}:${layers.sessionId}:${layers.working.session?.updatedAt ?? String(layers.shortTerm.exchangeCount)}`,
+    snapshotId: `${latestTurn?.correlationId ?? 'memory'}:${layers.sessionId}:${layers.working.current?.updatedAt ?? layers.working.session?.updatedAt ?? String(layers.shortTerm.exchangeCount)}`,
     capturedAt: new Date().toISOString(),
     turnIndex: latestTurn?.turnIndex ?? null,
     conversationId: latestTurn?.conversationId ?? null,
@@ -84,7 +86,7 @@ export function computeMemoryDelta(
         stale: false,
       },
       longTerm: {
-        added: [...current.layers.longTerm.facts],
+        added: [...flattenLongTermMemories(current.layers)],
         removed: [],
         changed: [],
       },
@@ -180,31 +182,31 @@ function computeWorkingDelta(previous: MemoryEvolutionSnapshot, current: MemoryE
 
 function computeLongTermDelta(previous: MemoryEvolutionSnapshot, current: MemoryEvolutionSnapshot) {
   const previousFactsByKey = new Map(
-    previous.layers.longTerm.facts.map((fact) => [serializeFactKey(fact), fact]),
+    flattenLongTermMemories(previous.layers).map((memory) => [serializeLongTermKey(memory), memory]),
   )
   const currentFactsByKey = new Map(
-    current.layers.longTerm.facts.map((fact) => [serializeFactKey(fact), fact]),
+    flattenLongTermMemories(current.layers).map((memory) => [serializeLongTermKey(memory), memory]),
   )
 
   return {
-    added: current.layers.longTerm.facts.filter(
-      (fact) => !previousFactsByKey.has(serializeFactKey(fact)),
+    added: flattenLongTermMemories(current.layers).filter(
+      (memory) => !previousFactsByKey.has(serializeLongTermKey(memory)),
     ),
-    removed: previous.layers.longTerm.facts.filter(
-      (fact) => !currentFactsByKey.has(serializeFactKey(fact)),
+    removed: flattenLongTermMemories(previous.layers).filter(
+      (memory) => !currentFactsByKey.has(serializeLongTermKey(memory)),
     ),
-    changed: current.layers.longTerm.facts
-      .filter((fact) => {
-        const previousFact = previousFactsByKey.get(serializeFactKey(fact))
-        return previousFact !== undefined && previousFact.value !== fact.value
+    changed: flattenLongTermMemories(current.layers)
+      .filter((memory) => {
+        const previousFact = previousFactsByKey.get(serializeLongTermKey(memory))
+        return previousFact !== undefined && previousFact.summary !== memory.summary
       })
-      .map((fact) => {
-        const key = serializeFactKey(fact)
+      .map((memory) => {
+        const key = serializeLongTermKey(memory)
         const previousFact = previousFactsByKey.get(key)
         return {
           key,
-          from: previousFact?.value ?? '',
-          to: fact.value,
+          from: previousFact?.summary ?? '',
+          to: memory.summary,
         }
       }),
   }
@@ -214,8 +216,17 @@ function serializeExchange(exchange: { user: string; avatar: string }): string {
   return `${exchange.user}::${exchange.avatar}`
 }
 
-function serializeFactKey(fact: MemoryFact): string {
-  return `${fact.category}:${fact.key}`
+function serializeLongTermKey(memory: LongTermAvatarMemory): string {
+  return `${memory.avatarId}:${memory.conversationId}`
+}
+
+function flattenLongTermMemories(layers: SessionMemoryLayers): LongTermAvatarMemory[] {
+  return layers.longTerm.avatars.flatMap((avatar) =>
+    avatar.memories.map((memory) => ({
+      avatarId: avatar.avatarId,
+      ...memory,
+    })),
+  )
 }
 
 function areMemorySnapshotsEquivalent(

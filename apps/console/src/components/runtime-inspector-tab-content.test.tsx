@@ -56,18 +56,49 @@ function makeMemorySummary(): RuntimeInspectorViewModel['memory'] {
     },
     layers: {
       sessionId: 'session_1',
+      activeAvatarId: 'avatar_1',
+      activeConversationId: 'conversation_1',
       shortTerm: {
         exchangeCount: 2,
         recentExchanges: [{ user: 'u', avatar: 'a' }],
       },
       working: {
+        current: {
+          conversationId: 'conversation_1',
+          avatarId: 'avatar_1',
+          summary: 'active working summary',
+          unresolvedThreads: ['follow_up'],
+          candidateFacts: [{ category: 'goal', key: 'focus', value: 'quality' }],
+          updatedAt: '2026-05-07T10:00:00.000Z',
+        },
         session: {
           summary: 'session summary',
           updatedAt: '2026-05-07T10:00:00.000Z',
         },
-        avatars: [],
+        avatars: [
+          {
+            avatarId: 'avatar_1',
+            summary: 'active working summary',
+            updatedAt: '2026-05-07T10:00:00.000Z',
+          },
+        ],
       },
       longTerm: {
+        avatars: [
+          {
+            avatarId: 'avatar_1',
+            memories: [
+              {
+                conversationId: 'conversation_old_1',
+                summary: 'older memory',
+                keyDiscoveries: ['k1'],
+                unresolvedTopics: ['u1'],
+                factCandidates: [],
+                createdAt: '2026-05-07T09:00:00.000Z',
+              },
+            ],
+          },
+        ],
         facts: [],
       },
     },
@@ -193,7 +224,7 @@ function makeMemoryHistory(snapshot: RuntimeInspectorViewModel): MemoryEvolution
       conversationId: 'conversation_1',
       layers: {
         ...snapshot.memory.layers,
-        longTerm: { facts: [] },
+        longTerm: { avatars: [], facts: [] },
       },
     },
     {
@@ -204,6 +235,21 @@ function makeMemoryHistory(snapshot: RuntimeInspectorViewModel): MemoryEvolution
       layers: {
         ...snapshot.memory.layers,
         longTerm: {
+          avatars: [
+            {
+              avatarId: 'avatar_1',
+              memories: [
+                {
+                  conversationId: 'conversation_old_1',
+                  summary: 'older memory',
+                  keyDiscoveries: ['k1'],
+                  unresolvedTopics: ['u1'],
+                  factCandidates: [],
+                  createdAt: '2026-05-07T10:01:00.000Z',
+                },
+              ],
+            },
+          ],
           facts: [
             {
               category: 'goal',
@@ -323,9 +369,11 @@ describe('RuntimeInspectorTabContent', () => {
 
     expect(html).toContain('Short-term exchange memory')
     expect(html).toContain('Working memory')
-    expect(html).toContain('Long-term facts')
+    expect(html).toContain('Long-term avatar memories')
     expect(html).toContain('Memory evolution')
-    expect(html).toContain('New long-term fact extracted')
+    expect(html).toContain('active working summary')
+    expect(html).toContain('conversation_old_1: older memory')
+    expect(html).toContain('New long-term avatar memory stored')
   })
 
   it('renders turn profiler latency and token breakdown safely without GM optional metrics', () => {

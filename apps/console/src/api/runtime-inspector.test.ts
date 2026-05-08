@@ -127,6 +127,7 @@ function arrangeSession1(): void {
         avatars: [],
       },
       longTerm: {
+        avatars: [],
         facts: [],
       },
     },
@@ -229,7 +230,7 @@ function arrangeSession2(): void {
       sessionId: 'session_2',
       shortTerm: { exchangeCount: 2, recentExchanges: [] },
       working: { avatars: [] },
-      longTerm: { facts: [] },
+      longTerm: { avatars: [], facts: [] },
     },
   })
   vi.mocked(getSessionMetrics).mockResolvedValue({

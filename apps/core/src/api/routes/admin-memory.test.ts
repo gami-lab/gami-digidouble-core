@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { ApiResponse, SessionMemoryLayers, SessionMemorySummary } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
 import type { Config } from '../../config.js'
+import type { Conversation } from '../../domain/conversation/session.types.js'
 import type { Session } from '../../domain/conversation/session.types.js'
 import type { UserFact } from '../../domain/memory/memory.types.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
@@ -71,6 +72,15 @@ function makeFact(overrides: Partial<UserFact> = {}): UserFact {
 
 function makeApp(params?: {
   sessions?: Session[]
+  conversations?: Array<{
+    conversationId: string
+    sessionId: string
+    avatarId: string
+    status: 'active' | 'closed' | 'archived'
+    startedAt: string
+    lastActivityAt: string
+    endedAt?: string
+  }>
   facts?: UserFact[]
   sessionMemories?: Array<{ sessionId: string; summary: string; updatedAt: string }>
   avatarMemories?: Array<{
@@ -122,6 +132,15 @@ function makeApp(params?: {
 
 function buildAdapters(params?: {
   sessions?: Session[]
+  conversations?: Array<{
+    conversationId: string
+    sessionId: string
+    avatarId: string
+    status: 'active' | 'closed' | 'archived'
+    startedAt: string
+    lastActivityAt: string
+    endedAt?: string
+  }>
   facts?: UserFact[]
   sessionMemories?: Array<{ sessionId: string; summary: string; updatedAt: string }>
   avatarMemories?: Array<{
@@ -177,7 +196,7 @@ function buildAdapters(params?: {
     avatarSessionMemoryRepository: new InMemoryAvatarSessionMemoryRepository(
       resolved.avatarMemories,
     ),
-    conversationRepository: new InMemoryConversationRepository([makeConversation()]),
+    conversationRepository: new InMemoryConversationRepository(resolved.conversations),
     messageRepository: new InMemoryMessageRepository(resolved.conversationMessages),
     conversationWorkingMemoryRepository: new InMemoryConversationWorkingMemoryRepository(
       resolved.conversationWorkingMemories,
@@ -192,6 +211,7 @@ function buildAdapters(params?: {
 
 function resolveParams({
   sessions = [makeSession()],
+  conversations = [makeConversation()],
   facts = [],
   sessionMemories = [],
   avatarMemories = [],
@@ -201,6 +221,15 @@ function resolveParams({
   events = [],
 }: {
   sessions?: Session[]
+  conversations?: Array<{
+    conversationId: string
+    sessionId: string
+    avatarId: string
+    status: 'active' | 'closed' | 'archived'
+    startedAt: string
+    lastActivityAt: string
+    endedAt?: string
+  }>
   facts?: UserFact[]
   sessionMemories?: Array<{ sessionId: string; summary: string; updatedAt: string }>
   avatarMemories?: Array<{
@@ -247,6 +276,7 @@ function resolveParams({
 } = {}) {
   return {
     sessions,
+    conversations,
     facts,
     sessionMemories,
     avatarMemories,
@@ -257,7 +287,14 @@ function resolveParams({
   }
 }
 
-function makeConversation() {
+function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
+  return {
+    ...makeConversationBase(),
+    ...overrides,
+  }
+}
+
+function makeConversationBase(): Conversation {
   return {
     conversationId: 'conversation_1',
     sessionId: 'session_1',
@@ -311,6 +348,20 @@ function makeLayeredMessages() {
       role: 'avatar' as const,
       content: 'a3',
       createdAt: '2026-05-01T10:03:01.000Z',
+    },
+    {
+      messageId: 'msg_7',
+      conversationId: 'conversation_1',
+      role: 'user' as const,
+      content: 'u4',
+      createdAt: '2026-05-01T10:04:00.000Z',
+    },
+    {
+      messageId: 'msg_8',
+      conversationId: 'conversation_1',
+      role: 'avatar' as const,
+      content: 'a4',
+      createdAt: '2026-05-01T10:04:01.000Z',
     },
   ]
 }
@@ -430,23 +481,43 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
 
   it('returns layered memory without raw transcript replay', async () => {
     const response = await makeApp({
-      sessionMemories: [
+      facts: [makeFact()],
+      conversationMessages: makeLayeredMessages(),
+      conversationWorkingMemories: [
         {
-          sessionId: 'session_1',
-          summary: 'Session summary',
-          updatedAt: '2026-05-01T10:10:00.000Z',
-        },
-      ],
-      avatarMemories: [
-        {
+          conversationId: 'conversation_1',
           sessionId: 'session_1',
           avatarId: 'avatar_1',
-          summary: 'Avatar summary',
+          summary: 'Active avatar working memory',
+          unresolvedThreads: ['follow_up_topic'],
+          candidateFacts: [{ category: 'context', key: 'topic', value: 'memory' }],
           updatedAt: '2026-05-01T10:11:00.000Z',
         },
       ],
-      facts: [makeFact()],
-      conversationMessages: makeLayeredMessages(),
+      conversationMemories: [
+        {
+          conversationId: 'conversation_old_1',
+          sessionId: 'session_1',
+          userId: 'user_1',
+          avatarId: 'avatar_1',
+          scenarioId: 'scenario_1',
+          summary: 'Older avatar_1 memory',
+          keyDiscoveries: ['k1'],
+          unresolvedTopics: ['u1'],
+          factCandidates: [],
+          createdAt: '2026-05-01T09:00:00.000Z',
+        },
+      ],
+      conversations: [
+        makeConversation(),
+        makeConversation({
+          conversationId: 'conversation_old_1',
+          avatarId: 'avatar_1',
+          status: 'closed',
+          endedAt: '2026-05-01T09:05:00.000Z',
+          lastActivityAt: '2026-05-01T09:05:00.000Z',
+        }),
+      ],
     }).inject({
       method: 'GET',
       url: '/v1/admin/sessions/session_1/memory-layers',
@@ -455,12 +526,45 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<{ session: SessionMemoryLayers }>>()
     expect(body.error).toBeNull()
+    expect(body.data?.session.activeAvatarId).toBe('avatar_1')
+    expect(body.data?.session.activeConversationId).toBe('conversation_1')
     expect(body.data?.session.shortTerm.recentExchanges).toEqual([
       { user: 'u2', avatar: 'a2' },
       { user: 'u3', avatar: 'a3' },
+      { user: 'u4', avatar: 'a4' },
     ])
-    expect(body.data?.session.working.session?.summary).toBe('Session summary')
-    expect(body.data?.session.working.avatars).toHaveLength(1)
+    expect(body.data?.session.shortTerm.exchangeCount).toBe(3)
+    expect(body.data?.session.working.current).toEqual({
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      summary: 'Active avatar working memory',
+      unresolvedThreads: ['follow_up_topic'],
+      candidateFacts: [{ category: 'context', key: 'topic', value: 'memory' }],
+      updatedAt: '2026-05-01T10:11:00.000Z',
+    })
+    expect(body.data?.session.working.session?.summary).toBe('Active avatar working memory')
+    expect(body.data?.session.working.avatars).toEqual([
+      {
+        avatarId: 'avatar_1',
+        summary: 'Active avatar working memory',
+        updatedAt: '2026-05-01T10:11:00.000Z',
+      },
+    ])
+    expect(body.data?.session.longTerm.avatars).toEqual([
+      {
+        avatarId: 'avatar_1',
+        memories: [
+          {
+            conversationId: 'conversation_old_1',
+            summary: 'Older avatar_1 memory',
+            keyDiscoveries: ['k1'],
+            unresolvedTopics: ['u1'],
+            factCandidates: [],
+            createdAt: '2026-05-01T09:00:00.000Z',
+          },
+        ],
+      },
+    ])
     expect(body.data?.session.longTerm.facts).toEqual([
       {
         category: 'preference',
@@ -502,5 +606,6 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
     const body = response.json<ApiResponse<{ session: SessionMemoryLayers }>>()
     expect(body.data?.session.working.session?.summary).toBe('Canonical active conversation memory')
     expect(body.data?.session.working.session?.updatedAt).toBe('2026-05-01T10:12:00.000Z')
+    expect(body.data?.session.working.current?.summary).toBe('Canonical active conversation memory')
   })
 })

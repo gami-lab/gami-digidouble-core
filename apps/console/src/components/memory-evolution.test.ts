@@ -9,11 +9,21 @@ import {
 function makeLayers(overrides?: Partial<SessionMemoryLayers>): SessionMemoryLayers {
   return {
     sessionId: 'session_1',
+    activeAvatarId: 'avatar_1',
+    activeConversationId: 'conversation_1',
     shortTerm: {
       exchangeCount: 2,
       recentExchanges: [{ user: 'u1', avatar: 'a1' }],
     },
     working: {
+      current: {
+        conversationId: 'conversation_1',
+        avatarId: 'avatar_1',
+        summary: 'session summary',
+        unresolvedThreads: [],
+        candidateFacts: [],
+        updatedAt: '2026-05-07T10:00:00.000Z',
+      },
       session: {
         summary: 'session summary',
         updatedAt: '2026-05-07T10:00:00.000Z',
@@ -23,6 +33,21 @@ function makeLayers(overrides?: Partial<SessionMemoryLayers>): SessionMemoryLaye
       ],
     },
     longTerm: {
+      avatars: [
+        {
+          avatarId: 'avatar_1',
+          memories: [
+            {
+              conversationId: 'conversation_old_1',
+              summary: 'archived memory',
+              keyDiscoveries: ['k1'],
+              unresolvedTopics: ['u1'],
+              factCandidates: [],
+              createdAt: '2026-05-07T10:00:00.000Z',
+            },
+          ],
+        },
+      ],
       facts: [
         {
           category: 'preference',
@@ -84,6 +109,14 @@ describe('memory-evolution', () => {
           recentExchanges: [{ user: 'u2', avatar: 'a2' }],
         },
         working: {
+          current: {
+            conversationId: 'conversation_1',
+            avatarId: 'avatar_1',
+            summary: 'session summary updated',
+            unresolvedThreads: [],
+            candidateFacts: [],
+            updatedAt: '2026-05-07T10:01:00.000Z',
+          },
           session: {
             summary: 'session summary updated',
             updatedAt: '2026-05-07T10:01:00.000Z',
@@ -97,6 +130,34 @@ describe('memory-evolution', () => {
           ],
         },
         longTerm: {
+          avatars: [
+            {
+              avatarId: 'avatar_1',
+              memories: [
+                {
+                  conversationId: 'conversation_old_1',
+                  summary: 'archived memory updated',
+                  keyDiscoveries: ['k1'],
+                  unresolvedTopics: ['u1'],
+                  factCandidates: [],
+                  createdAt: '2026-05-07T10:00:00.000Z',
+                },
+              ],
+            },
+            {
+              avatarId: 'avatar_2',
+              memories: [
+                {
+                  conversationId: 'conversation_old_2',
+                  summary: 'new archived memory',
+                  keyDiscoveries: ['k2'],
+                  unresolvedTopics: ['u2'],
+                  factCandidates: [],
+                  createdAt: '2026-05-07T10:01:00.000Z',
+                },
+              ],
+            },
+          ],
           facts: [
             {
               category: 'preference',

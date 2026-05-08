@@ -49,6 +49,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
           avatars: [],
         },
         longTerm: {
+          avatars: [],
           facts: [],
         },
       },

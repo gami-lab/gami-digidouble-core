@@ -138,20 +138,34 @@ function MemoryTab({
       ))}
 
       <strong style={{ display: 'block', marginTop: '12px' }}>Working memory</strong>
-      <Row label="Session summary">{snapshot.memory.layers.working.session?.summary ?? '-'}</Row>
-      <Row label="Avatar summaries">{String(snapshot.memory.layers.working.avatars.length)}</Row>
-      {snapshot.memory.layers.working.avatars.map((avatar) => (
-        <p key={avatar.avatarId} style={{ margin: '4px 0', color: '#374151' }}>
-          {avatar.avatarId}: {avatar.summary}
-        </p>
-      ))}
+      <Row label="Active avatar">{snapshot.memory.layers.activeAvatarId ?? '-'}</Row>
+      <Row label="Working summary">{snapshot.memory.layers.working.current?.summary ?? '-'}</Row>
+      <Row label="Unresolved threads">
+        {String(snapshot.memory.layers.working.current?.unresolvedThreads.length ?? 0)}
+      </Row>
+      <Row label="Candidate facts">
+        {String(snapshot.memory.layers.working.current?.candidateFacts.length ?? 0)}
+      </Row>
 
-      <strong style={{ display: 'block', marginTop: '12px' }}>Long-term facts</strong>
-      <Row label="Fact count">{String(snapshot.memory.layers.longTerm.facts.length)}</Row>
-      {snapshot.memory.layers.longTerm.facts.map((fact) => (
-        <p key={`${fact.category}:${fact.key}`} style={{ margin: '4px 0', color: '#374151' }}>
-          {fact.category}/{fact.key}: {fact.value}
-        </p>
+      <strong style={{ display: 'block', marginTop: '12px' }}>Long-term avatar memories</strong>
+      <Row label="Avatar count">{String(snapshot.memory.layers.longTerm.avatars.length)}</Row>
+      <Row label="Memory count">
+        {String(
+          snapshot.memory.layers.longTerm.avatars.reduce(
+            (total, avatar) => total + avatar.memories.length,
+            0,
+          ),
+        )}
+      </Row>
+      {snapshot.memory.layers.longTerm.avatars.map((avatar) => (
+        <div key={avatar.avatarId} style={{ margin: '8px 0' }}>
+          <strong>{avatar.avatarId}</strong>
+          {avatar.memories.map((memory) => (
+            <p key={memory.conversationId} style={{ margin: '4px 0', color: '#374151' }}>
+              {memory.conversationId}: {memory.summary}
+            </p>
+          ))}
+        </div>
       ))}
 
       <strong style={{ display: 'block', marginTop: '12px' }}>Memory evolution</strong>
@@ -169,8 +183,10 @@ function MemoryTab({
           ) : null}
           {delta.longTerm.added.length > 0 ? (
             <p style={{ margin: '6px 0', color: '#166534' }}>
-              New long-term fact extracted:{' '}
-              {delta.longTerm.added.map((fact) => `${fact.category}:${fact.key}`).join(', ')}
+              New long-term avatar memory stored:{' '}
+              {delta.longTerm.added
+                .map((memory) => `${memory.avatarId}:${memory.conversationId}`)
+                .join(', ')}
             </p>
           ) : null}
         </>
@@ -184,7 +200,12 @@ function MemoryTab({
               [{new Date(entry.capturedAt).toLocaleTimeString()}] turn{' '}
               {String(entry.turnIndex ?? 0)} · short-term{' '}
               {String(entry.layers.shortTerm.exchangeCount)} · facts{' '}
-              {String(entry.layers.longTerm.facts.length)}
+              {String(
+                entry.layers.longTerm.avatars.reduce(
+                  (total, avatar) => total + avatar.memories.length,
+                  0,
+                ),
+              )}
             </p>
           ))}
       </div>
