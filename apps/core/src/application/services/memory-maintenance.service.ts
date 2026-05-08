@@ -1,11 +1,8 @@
 import crypto from 'node:crypto'
-import type { IAvatarSessionMemoryRepository } from '../ports/IAvatarSessionMemoryRepository.js'
 import type { IEventLogRepository } from '../ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../ports/IMemoryMaintenancePort.js'
-import type { ISessionMemoryRepository } from '../ports/ISessionMemoryRepository.js'
-import type { ISessionRepository } from '../ports/ISessionRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../ports/IConversationWorkingMemoryRepository.js'
 
 const WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT = `You update a running working memory for a conversation.
@@ -37,9 +34,6 @@ const ALLOWED_FACT_CATEGORIES = new Set([
 export class MemoryMaintenanceService implements IMemoryMaintenancePort {
   constructor(
     private readonly messageRepository: IMessageRepository,
-    private readonly sessionRepository: ISessionRepository,
-    private readonly sessionMemoryRepository: ISessionMemoryRepository,
-    private readonly avatarSessionMemoryRepository: IAvatarSessionMemoryRepository,
     private readonly conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository,
     private readonly eventLogRepository: IEventLogRepository,
     private readonly llm: ILlmAdapter,
@@ -83,7 +77,6 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       }
 
       const rewritten = await this.rewriteWorkingMemory(ordered, priorMemory)
-      const avatarSummary = rewritten.summary
 
       await this.conversationWorkingMemoryRepository.upsert({
         conversationId: input.conversationId,
@@ -93,16 +86,6 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
         unresolvedThreads: rewritten.unresolvedThreads,
         candidateFacts: rewritten.candidateFacts,
       })
-      await this.sessionMemoryRepository.upsert({
-        sessionId: input.sessionId,
-        summary: rewritten.summary,
-      })
-      await this.avatarSessionMemoryRepository.upsert({
-        sessionId: input.sessionId,
-        avatarId: input.avatarId,
-        summary: avatarSummary,
-      })
-      await this.sessionRepository.update(input.sessionId, { memorySummary: rewritten.summary })
 
       await this.appendEventSafe({
         sessionId: input.sessionId,
@@ -115,8 +98,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
           conversationId: input.conversationId,
           avatarId: input.avatarId,
           trigger: input.trigger,
-          sessionSummaryLength: rewritten.summary.length,
-          avatarSummaryLength: avatarSummary.length,
+          workingSummaryLength: rewritten.summary.length,
           messageCount: ordered.length,
           unresolvedThreadCount: rewritten.unresolvedThreads.length,
           candidateFactCount: rewritten.candidateFacts.length,

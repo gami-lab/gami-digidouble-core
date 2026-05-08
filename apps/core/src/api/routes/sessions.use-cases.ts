@@ -54,9 +54,6 @@ export function createSessionRouteUseCases(deps: {
 }): SessionRouteUseCases {
   const memoryMaintenance = new MemoryMaintenanceService(
     deps.messageRepository,
-    deps.sessionRepository,
-    deps.sessionMemoryRepository,
-    deps.avatarSessionMemoryRepository,
     deps.conversationWorkingMemoryRepository,
     deps.eventLogRepository,
     deps.llmAdapter,

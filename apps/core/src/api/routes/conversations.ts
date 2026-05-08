@@ -228,9 +228,6 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
   const repositories = resolvePersistenceDeps(options)
   const memoryMaintenance = new MemoryMaintenanceService(
     repositories.messageRepository,
-    repositories.sessionRepository,
-    repositories.sessionMemoryRepository,
-    repositories.avatarSessionMemoryRepository,
     repositories.conversationWorkingMemoryRepository,
     repositories.eventLogRepository,
     llmAdapter,

@@ -67,9 +67,6 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
     options.memoryMaintenance ??
     new MemoryMaintenanceService(
       options.messageRepository,
-      options.sessionRepository,
-      sessionMemoryRepository,
-      avatarSessionMemoryRepository,
       conversationWorkingMemoryRepository,
       options.eventLogRepository,
       options.llmAdapter,
