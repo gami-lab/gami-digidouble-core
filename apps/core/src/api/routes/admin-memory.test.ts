@@ -70,121 +70,83 @@ function makeFact(overrides: Partial<UserFact> = {}): UserFact {
   }
 }
 
-function makeApp(params?: {
+type SeedConversation = {
+  conversationId: string
+  sessionId: string
+  avatarId: string
+  status: 'active' | 'closed' | 'archived'
+  startedAt: string
+  lastActivityAt: string
+  endedAt?: string
+}
+
+type SeedSessionMemory = { sessionId: string; summary: string; updatedAt: string }
+
+type SeedAvatarMemory = {
+  sessionId: string
+  avatarId: string
+  summary: string
+  updatedAt: string
+}
+
+type SeedConversationMessage = {
+  messageId: string
+  conversationId: string
+  role: 'user' | 'avatar' | 'system'
+  content: string
+  createdAt: string
+}
+
+type SeedConversationMemory = {
+  conversationId: string
+  sessionId: string
+  userId: string
+  avatarId: string
+  scenarioId: string
+  summary: string
+  keyDiscoveries: string[]
+  unresolvedTopics: string[]
+  factCandidates: Array<{ category: string; key: string; value: string }>
+  createdAt: string
+}
+
+type SeedConversationWorkingMemory = {
+  conversationId: string
+  sessionId: string
+  avatarId: string
+  summary: string
+  unresolvedThreads: string[]
+  candidateFacts: Array<{ category: string; key: string; value: string }>
+  updatedAt: string
+}
+
+type SeedEvent = {
+  sessionId?: string
+  type: string
+  severity: 'info' | 'warning' | 'error'
+  payload: Record<string, unknown>
+  createdAt?: string
+}
+
+type AppSeedParams = {
   sessions?: Session[]
-  conversations?: Array<{
-    conversationId: string
-    sessionId: string
-    avatarId: string
-    status: 'active' | 'closed' | 'archived'
-    startedAt: string
-    lastActivityAt: string
-    endedAt?: string
-  }>
+  conversations?: SeedConversation[]
   facts?: UserFact[]
-  sessionMemories?: Array<{ sessionId: string; summary: string; updatedAt: string }>
-  avatarMemories?: Array<{
-    sessionId: string
-    avatarId: string
-    summary: string
-    updatedAt: string
-  }>
-  conversationMessages?: Array<{
-    messageId: string
-    conversationId: string
-    role: 'user' | 'avatar' | 'system'
-    content: string
-    createdAt: string
-  }>
-  conversationMemories?: Array<{
-    conversationId: string
-    sessionId: string
-    userId: string
-    avatarId: string
-    scenarioId: string
-    summary: string
-    keyDiscoveries: string[]
-    unresolvedTopics: string[]
-    factCandidates: Array<{ category: string; key: string; value: string }>
-    createdAt: string
-  }>
-  conversationWorkingMemories?: Array<{
-    conversationId: string
-    sessionId: string
-    avatarId: string
-    summary: string
-    unresolvedThreads: string[]
-    candidateFacts: Array<{ category: string; key: string; value: string }>
-    updatedAt: string
-  }>
-  events?: Array<{
-    sessionId?: string
-    type: string
-    severity: 'info' | 'warning' | 'error'
-    payload: Record<string, unknown>
-    createdAt?: string
-  }>
-}): FastifyInstance {
+  sessionMemories?: SeedSessionMemory[]
+  avatarMemories?: SeedAvatarMemory[]
+  conversationMessages?: SeedConversationMessage[]
+  conversationMemories?: SeedConversationMemory[]
+  conversationWorkingMemories?: SeedConversationWorkingMemory[]
+  events?: SeedEvent[]
+}
+
+function makeApp(params?: AppSeedParams): FastifyInstance {
   const app = createServer(testConfig, buildAdapters(params))
   appsToClose.push(app)
   return app
 }
 
-function buildAdapters(params?: {
-  sessions?: Session[]
-  conversations?: Array<{
-    conversationId: string
-    sessionId: string
-    avatarId: string
-    status: 'active' | 'closed' | 'archived'
-    startedAt: string
-    lastActivityAt: string
-    endedAt?: string
-  }>
-  facts?: UserFact[]
-  sessionMemories?: Array<{ sessionId: string; summary: string; updatedAt: string }>
-  avatarMemories?: Array<{
-    sessionId: string
-    avatarId: string
-    summary: string
-    updatedAt: string
-  }>
-  conversationMessages?: Array<{
-    messageId: string
-    conversationId: string
-    role: 'user' | 'avatar' | 'system'
-    content: string
-    createdAt: string
-  }>
-  conversationMemories?: Array<{
-    conversationId: string
-    sessionId: string
-    userId: string
-    avatarId: string
-    scenarioId: string
-    summary: string
-    keyDiscoveries: string[]
-    unresolvedTopics: string[]
-    factCandidates: Array<{ category: string; key: string; value: string }>
-    createdAt: string
-  }>
-  conversationWorkingMemories?: Array<{
-    conversationId: string
-    sessionId: string
-    avatarId: string
-    summary: string
-    unresolvedThreads: string[]
-    candidateFacts: Array<{ category: string; key: string; value: string }>
-    updatedAt: string
-  }>
-  events?: Array<{
-    sessionId?: string
-    type: string
-    severity: 'info' | 'warning' | 'error'
-    payload: Record<string, unknown>
-    createdAt?: string
-  }>
-}) {
+function buildAdapters(params?: AppSeedParams) {
   const resolved = resolveParams(params)
   const eventLogRepository = new InMemoryEventLogRepository()
   for (const event of resolved.events) {
@@ -209,82 +171,19 @@ function buildAdapters(params?: {
   }
 }
 
-function resolveParams({
-  sessions = [makeSession()],
-  conversations = [makeConversation()],
-  facts = [],
-  sessionMemories = [],
-  avatarMemories = [],
-  conversationMessages = [],
-  conversationMemories = [],
-  conversationWorkingMemories = [],
-  events = [],
-}: {
-  sessions?: Session[]
-  conversations?: Array<{
-    conversationId: string
-    sessionId: string
-    avatarId: string
-    status: 'active' | 'closed' | 'archived'
-    startedAt: string
-    lastActivityAt: string
-    endedAt?: string
-  }>
-  facts?: UserFact[]
-  sessionMemories?: Array<{ sessionId: string; summary: string; updatedAt: string }>
-  avatarMemories?: Array<{
-    sessionId: string
-    avatarId: string
-    summary: string
-    updatedAt: string
-  }>
-  conversationMessages?: Array<{
-    messageId: string
-    conversationId: string
-    role: 'user' | 'avatar' | 'system'
-    content: string
-    createdAt: string
-  }>
-  conversationMemories?: Array<{
-    conversationId: string
-    sessionId: string
-    userId: string
-    avatarId: string
-    scenarioId: string
-    summary: string
-    keyDiscoveries: string[]
-    unresolvedTopics: string[]
-    factCandidates: Array<{ category: string; key: string; value: string }>
-    createdAt: string
-  }>
-  conversationWorkingMemories?: Array<{
-    conversationId: string
-    sessionId: string
-    avatarId: string
-    summary: string
-    unresolvedThreads: string[]
-    candidateFacts: Array<{ category: string; key: string; value: string }>
-    updatedAt: string
-  }>
-  events?: Array<{
-    sessionId?: string
-    type: string
-    severity: 'info' | 'warning' | 'error'
-    payload: Record<string, unknown>
-    createdAt?: string
-  }>
-} = {}) {
-  return {
-    sessions,
-    conversations,
-    facts,
-    sessionMemories,
-    avatarMemories,
-    conversationMessages,
-    conversationMemories,
-    conversationWorkingMemories,
-    events,
+function resolveParams(params: AppSeedParams = {}) {
+  const defaults: Required<AppSeedParams> = {
+    sessions: [makeSession()],
+    conversations: [makeConversation()],
+    facts: [],
+    sessionMemories: [],
+    avatarMemories: [],
+    conversationMessages: [],
+    conversationMemories: [],
+    conversationWorkingMemories: [],
+    events: [],
   }
+  return { ...defaults, ...params }
 }
 
 function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
@@ -364,6 +263,103 @@ function makeLayeredMessages() {
       createdAt: '2026-05-01T10:04:01.000Z',
     },
   ]
+}
+
+function makeLayeredMemoryApp(): FastifyInstance {
+  return makeApp({
+    facts: [makeFact()],
+    conversationMessages: makeLayeredMessages(),
+    conversationWorkingMemories: [
+      {
+        conversationId: 'conversation_1',
+        sessionId: 'session_1',
+        avatarId: 'avatar_1',
+        summary: 'Active avatar working memory',
+        unresolvedThreads: ['follow_up_topic'],
+        candidateFacts: [{ category: 'context', key: 'topic', value: 'memory' }],
+        updatedAt: '2026-05-01T10:11:00.000Z',
+      },
+    ],
+    conversationMemories: [
+      {
+        conversationId: 'conversation_old_1',
+        sessionId: 'session_1',
+        userId: 'user_1',
+        avatarId: 'avatar_1',
+        scenarioId: 'scenario_1',
+        summary: 'Older avatar_1 memory',
+        keyDiscoveries: ['k1'],
+        unresolvedTopics: ['u1'],
+        factCandidates: [],
+        createdAt: '2026-05-01T09:00:00.000Z',
+      },
+    ],
+    conversations: [
+      makeConversation(),
+      makeConversation({
+        conversationId: 'conversation_old_1',
+        avatarId: 'avatar_1',
+        status: 'closed',
+        endedAt: '2026-05-01T09:05:00.000Z',
+        lastActivityAt: '2026-05-01T09:05:00.000Z',
+      }),
+    ],
+  })
+}
+
+function expectLayeredMemoryResponse(session: SessionMemoryLayers | undefined): void {
+  expect(session).toBeDefined()
+  if (session === undefined) {
+    throw new Error('Expected memory session payload to be present')
+  }
+
+  expect(session.activeAvatarId).toBe('avatar_1')
+  expect(session.activeConversationId).toBe('conversation_1')
+  expect(session.shortTerm.recentExchanges).toEqual([
+    { user: 'u2', avatar: 'a2' },
+    { user: 'u3', avatar: 'a3' },
+    { user: 'u4', avatar: 'a4' },
+  ])
+  expect(session.shortTerm.exchangeCount).toBe(3)
+  expect(session.working.current).toEqual({
+    conversationId: 'conversation_1',
+    avatarId: 'avatar_1',
+    summary: 'Active avatar working memory',
+    unresolvedThreads: ['follow_up_topic'],
+    candidateFacts: [{ category: 'context', key: 'topic', value: 'memory' }],
+    updatedAt: '2026-05-01T10:11:00.000Z',
+  })
+  expect(session.working.session?.summary).toBe('Active avatar working memory')
+  expect(session.working.avatars).toEqual([
+    {
+      avatarId: 'avatar_1',
+      summary: 'Active avatar working memory',
+      updatedAt: '2026-05-01T10:11:00.000Z',
+    },
+  ])
+  expect(session.longTerm.avatars).toEqual([
+    {
+      avatarId: 'avatar_1',
+      memories: [
+        {
+          conversationId: 'conversation_old_1',
+          summary: 'Older avatar_1 memory',
+          keyDiscoveries: ['k1'],
+          unresolvedTopics: ['u1'],
+          factCandidates: [],
+          createdAt: '2026-05-01T09:00:00.000Z',
+        },
+      ],
+    },
+  ])
+  expect(session.longTerm.facts).toEqual([
+    {
+      category: 'preference',
+      key: 'language',
+      value: 'English',
+      updatedAt: '2026-05-01T10:00:00.000Z',
+    },
+  ])
 }
 
 describe('GET /v1/admin/sessions/:sessionId/memory', () => {
@@ -480,45 +476,7 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
   })
 
   it('returns layered memory without raw transcript replay', async () => {
-    const response = await makeApp({
-      facts: [makeFact()],
-      conversationMessages: makeLayeredMessages(),
-      conversationWorkingMemories: [
-        {
-          conversationId: 'conversation_1',
-          sessionId: 'session_1',
-          avatarId: 'avatar_1',
-          summary: 'Active avatar working memory',
-          unresolvedThreads: ['follow_up_topic'],
-          candidateFacts: [{ category: 'context', key: 'topic', value: 'memory' }],
-          updatedAt: '2026-05-01T10:11:00.000Z',
-        },
-      ],
-      conversationMemories: [
-        {
-          conversationId: 'conversation_old_1',
-          sessionId: 'session_1',
-          userId: 'user_1',
-          avatarId: 'avatar_1',
-          scenarioId: 'scenario_1',
-          summary: 'Older avatar_1 memory',
-          keyDiscoveries: ['k1'],
-          unresolvedTopics: ['u1'],
-          factCandidates: [],
-          createdAt: '2026-05-01T09:00:00.000Z',
-        },
-      ],
-      conversations: [
-        makeConversation(),
-        makeConversation({
-          conversationId: 'conversation_old_1',
-          avatarId: 'avatar_1',
-          status: 'closed',
-          endedAt: '2026-05-01T09:05:00.000Z',
-          lastActivityAt: '2026-05-01T09:05:00.000Z',
-        }),
-      ],
-    }).inject({
+    const response = await makeLayeredMemoryApp().inject({
       method: 'GET',
       url: '/v1/admin/sessions/session_1/memory-layers',
       headers: authHeaders(),
@@ -526,53 +484,7 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<{ session: SessionMemoryLayers }>>()
     expect(body.error).toBeNull()
-    expect(body.data?.session.activeAvatarId).toBe('avatar_1')
-    expect(body.data?.session.activeConversationId).toBe('conversation_1')
-    expect(body.data?.session.shortTerm.recentExchanges).toEqual([
-      { user: 'u2', avatar: 'a2' },
-      { user: 'u3', avatar: 'a3' },
-      { user: 'u4', avatar: 'a4' },
-    ])
-    expect(body.data?.session.shortTerm.exchangeCount).toBe(3)
-    expect(body.data?.session.working.current).toEqual({
-      conversationId: 'conversation_1',
-      avatarId: 'avatar_1',
-      summary: 'Active avatar working memory',
-      unresolvedThreads: ['follow_up_topic'],
-      candidateFacts: [{ category: 'context', key: 'topic', value: 'memory' }],
-      updatedAt: '2026-05-01T10:11:00.000Z',
-    })
-    expect(body.data?.session.working.session?.summary).toBe('Active avatar working memory')
-    expect(body.data?.session.working.avatars).toEqual([
-      {
-        avatarId: 'avatar_1',
-        summary: 'Active avatar working memory',
-        updatedAt: '2026-05-01T10:11:00.000Z',
-      },
-    ])
-    expect(body.data?.session.longTerm.avatars).toEqual([
-      {
-        avatarId: 'avatar_1',
-        memories: [
-          {
-            conversationId: 'conversation_old_1',
-            summary: 'Older avatar_1 memory',
-            keyDiscoveries: ['k1'],
-            unresolvedTopics: ['u1'],
-            factCandidates: [],
-            createdAt: '2026-05-01T09:00:00.000Z',
-          },
-        ],
-      },
-    ])
-    expect(body.data?.session.longTerm.facts).toEqual([
-      {
-        category: 'preference',
-        key: 'language',
-        value: 'English',
-        updatedAt: '2026-05-01T10:00:00.000Z',
-      },
-    ])
+    expectLayeredMemoryResponse(body.data?.session)
   })
 
   it('prefers canonical working memory of the latest conversation over the legacy session mirror', async () => {

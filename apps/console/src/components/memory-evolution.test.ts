@@ -81,6 +81,80 @@ function makeTurnEvent(turnIndex: number): SessionEventRecord {
   }
 }
 
+function makeUpdatedLayers(): SessionMemoryLayers {
+  return makeLayers({
+    shortTerm: {
+      exchangeCount: 2,
+      recentExchanges: [{ user: 'u2', avatar: 'a2' }],
+    },
+    working: {
+      current: {
+        conversationId: 'conversation_1',
+        avatarId: 'avatar_1',
+        summary: 'session summary updated',
+        unresolvedThreads: [],
+        candidateFacts: [],
+        updatedAt: '2026-05-07T10:01:00.000Z',
+      },
+      session: {
+        summary: 'session summary updated',
+        updatedAt: '2026-05-07T10:01:00.000Z',
+      },
+      avatars: [
+        {
+          avatarId: 'avatar_1',
+          summary: 'avatar summary updated',
+          updatedAt: '2026-05-07T10:01:00.000Z',
+        },
+      ],
+    },
+    longTerm: {
+      avatars: [
+        {
+          avatarId: 'avatar_1',
+          memories: [
+            {
+              conversationId: 'conversation_old_1',
+              summary: 'archived memory updated',
+              keyDiscoveries: ['k1'],
+              unresolvedTopics: ['u1'],
+              factCandidates: [],
+              createdAt: '2026-05-07T10:00:00.000Z',
+            },
+          ],
+        },
+        {
+          avatarId: 'avatar_2',
+          memories: [
+            {
+              conversationId: 'conversation_old_2',
+              summary: 'new archived memory',
+              keyDiscoveries: ['k2'],
+              unresolvedTopics: ['u2'],
+              factCandidates: [],
+              createdAt: '2026-05-07T10:01:00.000Z',
+            },
+          ],
+        },
+      ],
+      facts: [
+        {
+          category: 'preference',
+          key: 'tone',
+          value: 'direct',
+          updatedAt: '2026-05-07T10:01:00.000Z',
+        },
+        {
+          category: 'goal',
+          key: 'objective',
+          value: 'improve memory',
+          updatedAt: '2026-05-07T10:01:00.000Z',
+        },
+      ],
+    },
+  })
+}
+
 describe('memory-evolution', () => {
   it('builds snapshot with latest turn marker from events', () => {
     const snapshot = buildMemorySnapshot(makeLayers(), [makeTurnEvent(2), makeTurnEvent(1)])
@@ -103,77 +177,7 @@ describe('memory-evolution', () => {
       capturedAt: '2026-05-07T10:01:00.000Z',
       turnIndex: 2,
       conversationId: 'conversation_1',
-      layers: makeLayers({
-        shortTerm: {
-          exchangeCount: 2,
-          recentExchanges: [{ user: 'u2', avatar: 'a2' }],
-        },
-        working: {
-          current: {
-            conversationId: 'conversation_1',
-            avatarId: 'avatar_1',
-            summary: 'session summary updated',
-            unresolvedThreads: [],
-            candidateFacts: [],
-            updatedAt: '2026-05-07T10:01:00.000Z',
-          },
-          session: {
-            summary: 'session summary updated',
-            updatedAt: '2026-05-07T10:01:00.000Z',
-          },
-          avatars: [
-            {
-              avatarId: 'avatar_1',
-              summary: 'avatar summary updated',
-              updatedAt: '2026-05-07T10:01:00.000Z',
-            },
-          ],
-        },
-        longTerm: {
-          avatars: [
-            {
-              avatarId: 'avatar_1',
-              memories: [
-                {
-                  conversationId: 'conversation_old_1',
-                  summary: 'archived memory updated',
-                  keyDiscoveries: ['k1'],
-                  unresolvedTopics: ['u1'],
-                  factCandidates: [],
-                  createdAt: '2026-05-07T10:00:00.000Z',
-                },
-              ],
-            },
-            {
-              avatarId: 'avatar_2',
-              memories: [
-                {
-                  conversationId: 'conversation_old_2',
-                  summary: 'new archived memory',
-                  keyDiscoveries: ['k2'],
-                  unresolvedTopics: ['u2'],
-                  factCandidates: [],
-                  createdAt: '2026-05-07T10:01:00.000Z',
-                },
-              ],
-            },
-          ],
-          facts: [
-            {
-              category: 'preference',
-              key: 'tone',
-              value: 'direct',
-              updatedAt: '2026-05-07T10:01:00.000Z',
-            },
-            {
-              category: 'goal',
-              key: 'objective',
-              value: 'improve memory',
-              updatedAt: '2026-05-07T10:01:00.000Z',
-            },
-          ],
-        },
-      }),
+      layers: makeUpdatedLayers(),
     }
 
     const delta = computeMemoryDelta(previous, current)

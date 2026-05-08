@@ -12,9 +12,10 @@ export type MemoryEvolutionSnapshot = {
   layers: SessionMemoryLayers
 }
 
-export type LongTermAvatarMemory = SessionMemoryLayers['longTerm']['avatars'][number]['memories'][number] & {
-  avatarId: string
-}
+export type LongTermAvatarMemory =
+  SessionMemoryLayers['longTerm']['avatars'][number]['memories'][number] & {
+    avatarId: string
+  }
 
 export type MemoryEvolutionDelta = {
   shortTerm: {
@@ -42,14 +43,25 @@ export function buildMemorySnapshot(
   recentEvents: SessionEventRecord[],
 ): MemoryEvolutionSnapshot {
   const latestTurn = getLatestTurnEvent(recentEvents)
+  const marker = getSnapshotMarker(layers)
 
   return {
-    snapshotId: `${latestTurn?.correlationId ?? 'memory'}:${layers.sessionId}:${layers.working.current?.updatedAt ?? layers.working.session?.updatedAt ?? String(layers.shortTerm.exchangeCount)}`,
+    snapshotId: `${latestTurn?.correlationId ?? 'memory'}:${layers.sessionId}:${marker}`,
     capturedAt: new Date().toISOString(),
     turnIndex: latestTurn?.turnIndex ?? null,
     conversationId: latestTurn?.conversationId ?? null,
     layers,
   }
+}
+
+function getSnapshotMarker(layers: SessionMemoryLayers): string {
+  if (layers.working.current?.updatedAt !== undefined) {
+    return layers.working.current.updatedAt
+  }
+  if (layers.working.session?.updatedAt !== undefined) {
+    return layers.working.session.updatedAt
+  }
+  return String(layers.shortTerm.exchangeCount)
 }
 
 export function pushMemorySnapshotHistory(
@@ -182,7 +194,10 @@ function computeWorkingDelta(previous: MemoryEvolutionSnapshot, current: MemoryE
 
 function computeLongTermDelta(previous: MemoryEvolutionSnapshot, current: MemoryEvolutionSnapshot) {
   const previousFactsByKey = new Map(
-    flattenLongTermMemories(previous.layers).map((memory) => [serializeLongTermKey(memory), memory]),
+    flattenLongTermMemories(previous.layers).map((memory) => [
+      serializeLongTermKey(memory),
+      memory,
+    ]),
   )
   const currentFactsByKey = new Map(
     flattenLongTermMemories(current.layers).map((memory) => [serializeLongTermKey(memory), memory]),

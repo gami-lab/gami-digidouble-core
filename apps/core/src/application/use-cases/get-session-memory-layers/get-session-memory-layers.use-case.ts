@@ -65,23 +65,7 @@ export class GetSessionMemoryLayersUseCase {
         this.loadLongTermAvatarMemories(session.sessionId),
       ])
 
-    const sessionWorkingMemory =
-      currentWorkingMemory !== null
-        ? {
-            summary: currentWorkingMemory.summary,
-            updatedAt: currentWorkingMemory.updatedAt,
-          }
-        : null
-    const activeAvatarSummary =
-      currentWorkingMemory !== null
-        ? [
-            {
-              avatarId: currentWorkingMemory.avatarId,
-              summary: currentWorkingMemory.summary,
-              updatedAt: currentWorkingMemory.updatedAt,
-            },
-          ]
-        : []
+    const workingLayer = this.buildWorkingLayer(currentWorkingMemory)
 
     const memory: SessionMemoryLayers = {
       sessionId: session.sessionId,
@@ -95,29 +79,7 @@ export class GetSessionMemoryLayersUseCase {
         exchangeCount: GetSessionMemoryLayersUseCase.ADMIN_SHORT_TERM_EXCHANGE_LIMIT,
         recentExchanges: shortTermExchanges,
       },
-      working: {
-        ...(currentWorkingMemory !== null
-          ? {
-              current: {
-                conversationId: currentWorkingMemory.conversationId,
-                avatarId: currentWorkingMemory.avatarId,
-                summary: currentWorkingMemory.summary,
-                unresolvedThreads: currentWorkingMemory.unresolvedThreads,
-                candidateFacts: currentWorkingMemory.candidateFacts,
-                updatedAt: currentWorkingMemory.updatedAt,
-              },
-            }
-          : {}),
-        ...(sessionWorkingMemory !== null
-          ? {
-              session: {
-                summary: sessionWorkingMemory.summary,
-                updatedAt: sessionWorkingMemory.updatedAt,
-              },
-            }
-          : {}),
-        avatars: activeAvatarSummary,
-      },
+      working: workingLayer,
       longTerm: {
         avatars: longTermAvatarMemories,
         facts: facts.slice(0, ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT).map((fact) => ({
@@ -131,6 +93,43 @@ export class GetSessionMemoryLayersUseCase {
     }
 
     return { memory }
+  }
+
+  private buildWorkingLayer(
+    currentWorkingMemory: {
+      conversationId: string
+      avatarId: string
+      summary: string
+      unresolvedThreads: string[]
+      candidateFacts: Array<{ category: string; key: string; value: string }>
+      updatedAt: string
+    } | null,
+  ): SessionMemoryLayers['working'] {
+    if (currentWorkingMemory === null) {
+      return { avatars: [] }
+    }
+
+    return {
+      current: {
+        conversationId: currentWorkingMemory.conversationId,
+        avatarId: currentWorkingMemory.avatarId,
+        summary: currentWorkingMemory.summary,
+        unresolvedThreads: currentWorkingMemory.unresolvedThreads,
+        candidateFacts: currentWorkingMemory.candidateFacts,
+        updatedAt: currentWorkingMemory.updatedAt,
+      },
+      session: {
+        summary: currentWorkingMemory.summary,
+        updatedAt: currentWorkingMemory.updatedAt,
+      },
+      avatars: [
+        {
+          avatarId: currentWorkingMemory.avatarId,
+          summary: currentWorkingMemory.summary,
+          updatedAt: currentWorkingMemory.updatedAt,
+        },
+      ],
+    }
   }
 
   private async loadShortTermExchanges(
@@ -161,23 +160,15 @@ export class GetSessionMemoryLayersUseCase {
     return exchanges.slice(-GetSessionMemoryLayersUseCase.ADMIN_SHORT_TERM_EXCHANGE_LIMIT)
   }
 
-  private async loadCurrentWorkingMemory(
-    conversationId: string | undefined,
-  ): Promise<
-    | {
-        conversationId: string
-        avatarId: string
-        summary: string
-        unresolvedThreads: string[]
-        candidateFacts: Array<{ category: string; key: string; value: string }>
-        updatedAt: string
-      }
-    | null
-  > {
-    if (
-      conversationId === undefined ||
-      this.conversationWorkingMemoryRepository === undefined
-    ) {
+  private async loadCurrentWorkingMemory(conversationId: string | undefined): Promise<{
+    conversationId: string
+    avatarId: string
+    summary: string
+    unresolvedThreads: string[]
+    candidateFacts: Array<{ category: string; key: string; value: string }>
+    updatedAt: string
+  } | null> {
+    if (conversationId === undefined || this.conversationWorkingMemoryRepository === undefined) {
       return null
     }
 
