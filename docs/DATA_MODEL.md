@@ -464,7 +464,7 @@ For MVP, keep it compact:
 
 - one summary per `(session_id, avatar_id)`
 - no raw transcript duplication
-- no complex episodic memory yet
+- episodic continuity now persists in `conversation_memories` (EPIC 4.2c)
 
 ### Implementation Status (EPIC 4.2b)
 
@@ -472,6 +472,37 @@ For MVP, keep it compact:
 - **Repository:** `PostgresAvatarSessionMemoryRepository` (+ in-memory test adapter)
 - **Status:** Implemented. One compact summary row per `(session_id, avatar_id)`.
 - **Admin inspection exposure:** included in `memory-layers` response under `working.avatars`.
+
+---
+
+## 10b. ConversationMemory (Episodic)
+
+Durable episodic memory generated exactly once per closed conversation.
+
+### Fields
+
+- conversation_id
+- session_id
+- user_id
+- avatar_id
+- scenario_id
+- summary
+- key_discoveries
+- unresolved_topics
+- fact_candidates
+- created_at
+
+### Notes
+
+- Scope for retrieval/hydration: `user_id + avatar_id + scenario_id`.
+- One row per conversation (`conversation_id` primary key) to keep episodic entries immutable in normal operation.
+- Episodes are generated from bounded conversation working memory (and bounded message fallback), never from transcript replay at hydration time.
+
+### Implementation Status (EPIC 4.2c)
+
+- **Table:** `conversation_memories`
+- **Repository:** `PostgresConversationMemoryRepository` (+ in-memory test adapter)
+- **Status:** Implemented for close-generation + new-conversation hydration.
 
 ---
 
@@ -650,6 +681,14 @@ Event types:
 - `memory_refresh_triggered`
 - `memory_refresh_succeeded`
 - `memory_refresh_failed`
+
+### Event family: `episodic_memory_generation_*` (conversation-close episodic lifecycle)
+
+Emitted by `EndConversationUseCase` around asynchronous episodic generation.
+
+- `episodic_memory_generation_triggered`
+- `episodic_memory_generation_succeeded`
+- `episodic_memory_generation_failed`
 
 Payload includes compact operational fields only (session/conversation/avatar ids, trigger source, summary lengths/message count on success, short error message on failure). No raw transcript payloads are logged.
 

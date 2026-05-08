@@ -10,6 +10,7 @@ import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IUserFactExtractor } from '../../ports/IUserFactExtractor.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
+import { expectConsoleError } from '../../../test-utils/console.js'
 
 function makeRepositories() {
   const sessionRepository = new InMemorySessionRepository([
@@ -57,6 +58,15 @@ function createUseCase(options?: {
   messageRepository?: IMessageRepository
   userFactExtractor?: IUserFactExtractor
   userMemoryFactRepository?: IUserMemoryFactRepository
+  episodicMemoryService?: {
+    generateForClosedConversation(input: {
+      conversationId: string
+      sessionId: string
+      userId: string
+      avatarId: string
+      scenarioId: string
+    }): Promise<unknown>
+  }
 }) {
   const { sessionRepository, conversationRepository, eventLogRepository, messageRepository } =
     makeRepositories()
@@ -75,6 +85,7 @@ function createUseCase(options?: {
       options?.messageRepository ?? messageRepository,
       options?.userFactExtractor,
       options?.userMemoryFactRepository,
+      options?.episodicMemoryService,
     ),
   }
 }
@@ -174,13 +185,38 @@ describe('EndConversationUseCase', () => {
     } satisfies IMemoryMaintenancePort
     const { useCase } = createUseCase({ memoryMaintenance })
 
-    await expect(
-      useCase.execute({
-        sessionId: 'session_1',
-        conversationId: 'conversation_1',
-        reason: 'operator_end',
-      }),
-    ).resolves.toBeDefined()
+    await expectConsoleError(
+      async () =>
+        await useCase.execute({
+          sessionId: 'session_1',
+          conversationId: 'conversation_1',
+          reason: 'operator_end',
+        }),
+      /\[end-conversation\] Background memory refresh failed:/,
+    )
+  })
+})
+
+describe('EndConversationUseCase episodic generation', () => {
+  it('generates one episodic memory per closed conversation', async () => {
+    const generateForClosedConversation = vi.fn().mockResolvedValue(undefined)
+    const { eventLogRepository, useCase } = createUseCase({
+      episodicMemoryService: { generateForClosedConversation },
+    })
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      reason: 'operator_end',
+    })
+
+    await vi.waitFor(() => {
+      expect(generateForClosedConversation).toHaveBeenCalledTimes(1)
+    })
+    await expectEventTypes(eventLogRepository, [
+      'episodic_memory_generation_triggered',
+      'episodic_memory_generation_succeeded',
+    ])
   })
 })
 

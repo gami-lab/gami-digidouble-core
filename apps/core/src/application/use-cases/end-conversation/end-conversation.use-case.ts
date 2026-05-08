@@ -23,6 +23,15 @@ export class EndConversationUseCase {
     private readonly messageRepository?: IMessageRepository,
     private readonly userFactExtractor?: IUserFactExtractor,
     private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
+    private readonly episodicMemoryService?: {
+      generateForClosedConversation(input: {
+        conversationId: string
+        sessionId: string
+        userId: string
+        avatarId: string
+        scenarioId: string
+      }): Promise<unknown>
+    },
   ) {}
 
   async execute(input: EndConversationInput): Promise<EndConversationResponse> {
@@ -77,6 +86,13 @@ export class EndConversationUseCase {
         })
     }
     void this.extractAndPersistUserFacts(session.userId, sessionId, conversationId)
+    void this.generateEpisodicMemory({
+      sessionId,
+      conversationId,
+      userId: session.userId,
+      avatarId: conversation.avatarId,
+      scenarioId: session.scenarioId,
+    })
 
     return {
       conversation: this.toSummary(updatedConversation),
@@ -176,6 +192,51 @@ export class EndConversationUseCase {
       await this.eventLogRepository.append(args)
     } catch (error) {
       console.error('[end-conversation] Event log append failed:', error)
+    }
+  }
+
+  private async generateEpisodicMemory(input: {
+    sessionId: string
+    conversationId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+  }): Promise<void> {
+    if (this.episodicMemoryService === undefined) return
+    const requestId = crypto.randomUUID()
+    await this.appendEventSafe({
+      sessionId: input.sessionId,
+      type: 'episodic_memory_generation_triggered',
+      severity: 'info',
+      requestId,
+      payload: {
+        conversationId: input.conversationId,
+        avatarId: input.avatarId,
+      },
+    })
+    try {
+      await this.episodicMemoryService.generateForClosedConversation(input)
+      await this.appendEventSafe({
+        sessionId: input.sessionId,
+        type: 'episodic_memory_generation_succeeded',
+        severity: 'info',
+        requestId,
+        payload: {
+          conversationId: input.conversationId,
+          avatarId: input.avatarId,
+        },
+      })
+    } catch (error) {
+      await this.appendEventSafe({
+        sessionId: input.sessionId,
+        type: 'episodic_memory_generation_failed',
+        severity: 'error',
+        requestId,
+        payload: {
+          conversationId: input.conversationId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      })
     }
   }
 

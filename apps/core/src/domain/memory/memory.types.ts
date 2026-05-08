@@ -40,6 +40,23 @@ export interface ConversationWorkingMemory {
   updatedAt: string
 }
 
+export interface ConversationMemory {
+  conversationId: string
+  sessionId: string
+  userId: string
+  avatarId: string
+  scenarioId: string
+  summary: string
+  keyDiscoveries: string[]
+  unresolvedTopics: string[]
+  factCandidates: Array<{
+    category: string
+    key: string
+    value: string
+  }>
+  createdAt: string
+}
+
 export interface UserFact {
   id: string
   userId: string

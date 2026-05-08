@@ -75,6 +75,28 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `pnpm -w -r typecheck` PASS
   - targeted unit tests PASS (memory maintenance, switch-avatar trigger, admin runtime actions, new conversation-memory repository)
 
+### EPIC 4.2c — Episodic persistence and hydration: **in progress** (2026-05-08)
+
+- Added durable episodic memory persistence model:
+  - new table: `conversation_memories`
+  - new repositories: in-memory + Postgres (`PostgresConversationMemoryRepository`)
+- Implemented conversation-close episodic generation hook in `EndConversationUseCase`:
+  - exactly one episodic entry per closed conversation (`conversation_id` uniqueness + idempotent create)
+  - bounded payload includes summary, key discoveries, unresolved topics, and fact candidates
+  - observability events:
+    - `episodic_memory_generation_triggered`
+    - `episodic_memory_generation_succeeded`
+    - `episodic_memory_generation_failed`
+- Implemented deterministic episodic retrieval + hydration flow for new conversation start:
+  - scope: `userId + avatarId + scenarioId`
+  - selection policy: relevance + recency (deterministic ordering)
+  - synthesized hydration summary used to seed initial conversation working memory
+  - no transcript replay dependency during hydration
+- Added reset cleanup coverage for episodic rows (`conversation_memories`) through session reset path.
+- Validation status for this slice:
+  - `pnpm -w -r typecheck` PASS
+  - targeted unit tests PASS (episodic policy/service, start hydration, end generation, in-memory episodic repository)
+
 ### EPIC 2.8 — Console debugging redesign (contract cleanup + path pruning): **complete** (2026-05-07)
 
 - Removed remaining runtime-debug UI branch duplication in console Session page:

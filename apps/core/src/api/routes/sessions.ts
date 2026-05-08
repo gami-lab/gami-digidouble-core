@@ -11,13 +11,12 @@ import type { ISessionRepository } from '../../application/ports/ISessionReposit
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
+import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
 import type { GetAvailableAvatarsOutput } from '../../application/use-cases/get-available-avatars/get-available-avatars.types.js'
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
 import type { GetAvatarTransitionsOutput } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.types.js'
-import { GetRuntimeStateUseCase } from '../../application/use-cases/get-runtime-state/get-runtime-state.use-case.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
-import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
 import { GetSessionUseCase } from '../../application/use-cases/get-session/get-session.use-case.js'
 import type { GetSessionOutput } from '../../application/use-cases/get-session/get-session.types.js'
 import { ListSessionConversationsUseCase } from '../../application/use-cases/list-session-conversations/list-session-conversations.use-case.js'
@@ -43,9 +42,11 @@ import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-ses
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
+import { InMemoryConversationMemoryRepository } from '../../infrastructure/db/in-memory-conversation-memory.repository.js'
 import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-memory-session-event-publisher.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import { registerRuntimeEventsRoutes } from './runtime-events.js'
+import { createSessionRouteUseCases } from './sessions.use-cases.js'
 
 export type SessionsRouteOptions = {
   config: Config
@@ -57,6 +58,7 @@ export type SessionsRouteOptions = {
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
+  conversationMemoryRepository?: IConversationMemoryRepository
   eventLogRepository?: IEventLogRepository
   sessionEventPublisher?: ISessionEventPublisher
 }
@@ -167,36 +169,8 @@ const listSessionsQuerySchema = {
 } as const
 
 export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, options) => {
-  const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
-  const scenarioRepository = options.scenarioRepository ?? new InMemoryScenarioRepository()
-  const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
-  const conversationRepository =
-    options.conversationRepository ?? new InMemoryConversationRepository()
-  const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
+  const dependencies = resolveRouteDependencies(options)
   const {
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
-    conversationWorkingMemoryRepository,
-  } = resolveWorkingMemoryRepositories(options)
-  const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
-  const sessionEventPublisher = options.sessionEventPublisher ?? new InMemorySessionEventPublisher()
-  const memoryMaintenance = new MemoryMaintenanceService(
-    messageRepository,
-    sessionRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
-    conversationWorkingMemoryRepository,
-    eventLogRepository,
-  )
-
-  const startSessionUseCase = new StartSessionUseCase(
-    sessionRepository,
-    scenarioRepository,
-    avatarRepository,
-  )
-  const getSessionUseCase = new GetSessionUseCase(sessionRepository)
-  const listSessionsUseCase = new ListSessionsUseCase(sessionRepository)
-  const resetSessionUseCase = new ResetSessionUseCase(
     sessionRepository,
     scenarioRepository,
     avatarRepository,
@@ -205,42 +179,35 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     sessionMemoryRepository,
     avatarSessionMemoryRepository,
     conversationWorkingMemoryRepository,
-  )
-  const startConversationUseCase = new StartConversationUseCase(
-    sessionRepository,
-    avatarRepository,
-    conversationRepository,
-  )
-  const listSessionConversationsUseCase = new ListSessionConversationsUseCase(
-    sessionRepository,
-    conversationRepository,
-  )
-  const switchAvatarUseCase = new SwitchAvatarUseCase(
-    sessionRepository,
-    avatarRepository,
-    conversationRepository,
-    memoryMaintenance,
-  )
-  const getAvailableAvatarsUseCase = new GetAvailableAvatarsUseCase(
-    sessionRepository,
-    avatarRepository,
-  )
-  const getAvatarTransitionsUseCase = new GetAvatarTransitionsUseCase(
-    sessionRepository,
-    conversationRepository,
-  )
-  const getRuntimeStateUseCase = new GetRuntimeStateUseCase(
-    sessionRepository,
-    conversationRepository,
-    sessionEventPublisher,
-  )
-  const endConversationUseCase = new EndConversationUseCase(
-    sessionRepository,
-    conversationRepository,
+    conversationMemoryRepository,
     eventLogRepository,
-    memoryMaintenance,
     sessionEventPublisher,
-  )
+  } = dependencies
+  const {
+    startSessionUseCase,
+    getSessionUseCase,
+    listSessionsUseCase,
+    resetSessionUseCase,
+    startConversationUseCase,
+    listSessionConversationsUseCase,
+    switchAvatarUseCase,
+    getAvailableAvatarsUseCase,
+    getAvatarTransitionsUseCase,
+    getRuntimeStateUseCase,
+    endConversationUseCase,
+  } = createSessionRouteUseCases({
+    sessionRepository,
+    scenarioRepository,
+    avatarRepository,
+    conversationRepository,
+    messageRepository,
+    sessionMemoryRepository,
+    avatarSessionMemoryRepository,
+    conversationWorkingMemoryRepository,
+    conversationMemoryRepository,
+    eventLogRepository,
+    sessionEventPublisher,
+  })
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
   registerStartSessionRoute(app, startSessionUseCase)
@@ -262,10 +229,42 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   )
 }
 
+function resolveRouteDependencies(options: SessionsRouteOptions) {
+  const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
+  const scenarioRepository = options.scenarioRepository ?? new InMemoryScenarioRepository()
+  const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
+  const conversationRepository =
+    options.conversationRepository ?? new InMemoryConversationRepository()
+  const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
+  const {
+    sessionMemoryRepository,
+    avatarSessionMemoryRepository,
+    conversationWorkingMemoryRepository,
+    conversationMemoryRepository,
+  } = resolveWorkingMemoryRepositories(options)
+  const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
+  const sessionEventPublisher = options.sessionEventPublisher ?? new InMemorySessionEventPublisher()
+
+  return {
+    sessionRepository,
+    scenarioRepository,
+    avatarRepository,
+    conversationRepository,
+    messageRepository,
+    sessionMemoryRepository,
+    avatarSessionMemoryRepository,
+    conversationWorkingMemoryRepository,
+    conversationMemoryRepository,
+    eventLogRepository,
+    sessionEventPublisher,
+  }
+}
+
 function resolveWorkingMemoryRepositories(options: SessionsRouteOptions): {
   sessionMemoryRepository: ISessionMemoryRepository
   avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
+  conversationMemoryRepository: IConversationMemoryRepository
 } {
   return {
     sessionMemoryRepository:
@@ -275,6 +274,8 @@ function resolveWorkingMemoryRepositories(options: SessionsRouteOptions): {
     conversationWorkingMemoryRepository:
       options.conversationWorkingMemoryRepository ??
       new InMemoryConversationWorkingMemoryRepository(),
+    conversationMemoryRepository:
+      options.conversationMemoryRepository ?? new InMemoryConversationMemoryRepository(),
   }
 }
 

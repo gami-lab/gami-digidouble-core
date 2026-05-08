@@ -815,6 +815,15 @@ Conversation continuity requires structured bounded memory evolution, not transc
 - GM orchestration becomes memory-aware
 - operators can inspect and debug memory behavior reliably
 
+**Progress update (May 8, 2026)**
+
+- Implemented slices:
+  - contract cleanup and canonical ownership
+  - conversation working-memory lifecycle + trigger policy
+  - episodic memory persistence (`conversation_memories`) + close-generation + start hydration baseline
+- Remaining in this EPIC:
+  - GM episodic-memory consumption and selection observability/debug surfaces
+
 ---
 
 ## EPIC 4.1b — Game Master Context Awareness Upgrade

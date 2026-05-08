@@ -562,6 +562,11 @@ type StartConversationResponse = {
 }
 ```
 
+### Notes
+
+- Conversation start hydrates initial bounded working memory from scoped episodic memory (`user + avatar + scenario`) when available.
+- Hydration does not replay raw transcripts.
+
 ### Error Mapping
 
 - `401` → `UNAUTHORIZED`
@@ -720,6 +725,8 @@ type EndConversationResponse = {
 - Conversation closure can also happen implicitly.
 - This endpoint is additive and does not change existing send-message flow.
 - Compaction is asynchronous and must not block response latency.
+- Episodic memory generation is launched asynchronously on close and is isolated from response success.
+- At most one episodic entry is persisted per closed conversation (`conversation_id` uniqueness).
 - `reason` defaults to `'operator_end'` when omitted.
 - Idempotency policy: calling this endpoint for an already-closed conversation returns `409 CONFLICT`.
 - Implicit closure reasons are bounded to:

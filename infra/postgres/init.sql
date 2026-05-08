@@ -120,6 +120,19 @@ CREATE TABLE IF NOT EXISTS conversation_working_memories (
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS conversation_memories (
+  conversation_id     UUID        PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+  session_id          UUID        NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  user_id             TEXT        NOT NULL,
+  avatar_id           UUID        NOT NULL REFERENCES avatars(id) ON DELETE CASCADE,
+  scenario_id         UUID        NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+  summary             TEXT        NOT NULL,
+  key_discoveries     TEXT[]      NOT NULL DEFAULT '{}',
+  unresolved_topics   TEXT[]      NOT NULL DEFAULT '{}',
+  fact_candidates     JSONB       NOT NULL DEFAULT '[]'::JSONB,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ── Messages ──────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -183,3 +196,5 @@ CREATE INDEX IF NOT EXISTS idx_avatar_session_memories_session_id
   ON avatar_session_memories(session_id);
 CREATE INDEX IF NOT EXISTS idx_conversation_working_memories_session_id
   ON conversation_working_memories(session_id);
+CREATE INDEX IF NOT EXISTS idx_conversation_memories_scope
+  ON conversation_memories(user_id, avatar_id, scenario_id, created_at DESC);

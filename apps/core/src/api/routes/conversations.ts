@@ -13,6 +13,7 @@ import type { ISessionRepository } from '../../application/ports/ISessionReposit
 import type { IUserMemoryFactRepository } from '../../application/ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
+import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
@@ -31,6 +32,8 @@ import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-ses
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
+import { InMemoryConversationMemoryRepository } from '../../infrastructure/db/in-memory-conversation-memory.repository.js'
+import { EpisodicMemoryService } from '../../application/services/episodic-memory.service.js'
 import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
@@ -54,6 +57,7 @@ type ConversationsRouteOptions = {
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
+  conversationMemoryRepository?: IConversationMemoryRepository
 }
 
 type ConversationParams = { conversationId: string }
@@ -209,6 +213,7 @@ type ConversationPersistenceDeps = {
   sessionMemoryRepository: ISessionMemoryRepository
   avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
+  conversationMemoryRepository: IConversationMemoryRepository
 }
 
 function createRouteDependencies(options: ConversationsRouteOptions): RouteDependencies {
@@ -228,6 +233,11 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     repositories.avatarSessionMemoryRepository,
     repositories.conversationWorkingMemoryRepository,
     repositories.eventLogRepository,
+  )
+  const episodicMemoryService = new EpisodicMemoryService(
+    repositories.conversationMemoryRepository,
+    repositories.conversationWorkingMemoryRepository,
+    repositories.messageRepository,
   )
 
   return {
@@ -250,6 +260,11 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
         repositories.conversationRepository,
         repositories.eventLogRepository,
         memoryMaintenance,
+        undefined,
+        repositories.messageRepository,
+        undefined,
+        repositories.userMemoryFactRepository,
+        episodicMemoryService,
       ),
       undefined,
       repositories.userMemoryFactRepository,
@@ -279,6 +294,7 @@ function resolveWorkingMemoryDeps(options: ConversationsRouteOptions): {
   sessionMemoryRepository: ISessionMemoryRepository
   avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
+  conversationMemoryRepository: IConversationMemoryRepository
 } {
   return {
     sessionMemoryRepository:
@@ -288,6 +304,8 @@ function resolveWorkingMemoryDeps(options: ConversationsRouteOptions): {
     conversationWorkingMemoryRepository:
       options.conversationWorkingMemoryRepository ??
       new InMemoryConversationWorkingMemoryRepository(),
+    conversationMemoryRepository:
+      options.conversationMemoryRepository ?? new InMemoryConversationMemoryRepository(),
   }
 }
 

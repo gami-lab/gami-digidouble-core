@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { StartConversationUseCase } from './start-conversation.use-case.js'
 
 const findSessionByIdMock = vi.fn()
@@ -142,5 +143,30 @@ describe('StartConversationUseCase', () => {
     await expect(
       useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
+
+  it('hydrates initial working memory from episodic memories on conversation start', async () => {
+    const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository()
+    const hydrateForNewConversation = vi.fn().mockResolvedValue({
+      summary: 'Hydrated summary',
+      unresolvedThreads: ['Need benchmark'],
+      candidateFacts: [{ category: 'conversation_signal', key: 'k1', value: 'Need benchmark' }],
+    })
+    const useCase = new StartConversationUseCase(
+      sessionRepository,
+      avatarRepository,
+      conversationRepository,
+      conversationWorkingMemoryRepository,
+      { hydrateForNewConversation },
+    )
+
+    await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' })
+
+    expect(hydrateForNewConversation).toHaveBeenCalledTimes(1)
+    await expect(
+      conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
+    ).resolves.toMatchObject({
+      summary: 'Hydrated summary',
+    })
   })
 })
