@@ -196,6 +196,12 @@ export type GameMasterInput = {
 `context.userPersona` is optional and carries lightweight information about who the user is
 (for example, role) so GM routing and pacing can adapt without coupling the GM to persistence.
 
+Contract ownership note:
+
+- GM input/output domain types: `apps/core/src/domain/game-master/game-master.types.ts`
+- GM memory sub-shape source (internal): `apps/core/src/domain/memory/memory.types.ts` (`GameMasterMemoryContext`)
+- HTTP-facing DTO memory fragments remain owned by `@gami/shared`.
+
 ---
 
 # 5. Game Master Output (Minimal)

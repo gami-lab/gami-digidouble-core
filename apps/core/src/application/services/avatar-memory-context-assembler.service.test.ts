@@ -89,7 +89,6 @@ describe('AvatarMemoryContextAssembler long-term facts', () => {
       category: 'pref',
       key: `k${String(index)}`,
       value: `v${String(index)}`,
-      confidence: null,
       createdAt: '2026-05-06T10:00:00.000Z',
       updatedAt: `2026-05-06T10:00:${String(index).padStart(2, '0')}.000Z`,
     }))

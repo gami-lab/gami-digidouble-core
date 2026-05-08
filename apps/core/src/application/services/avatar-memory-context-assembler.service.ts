@@ -4,6 +4,7 @@ import type { ISessionMemoryRepository } from '../ports/ISessionMemoryRepository
 import type { IUserMemoryFactRepository } from '../ports/IUserMemoryFactRepository.js'
 import type {
   LayeredMemorySnapshot,
+  LongTermMemoryFact,
   ShortTermMemoryExchange,
 } from '../../domain/memory/memory.types.js'
 import {
@@ -124,9 +125,7 @@ export class AvatarMemoryContextAssembler {
     }
   }
 
-  private async loadLongTermFacts(
-    userId: string,
-  ): Promise<Array<{ category: string; key: string; value: string }>> {
+  private async loadLongTermFacts(userId: string): Promise<LongTermMemoryFact[]> {
     if (this.userMemoryFactRepository === undefined) return []
     try {
       const facts = await this.userMemoryFactRepository.findByUserId(userId)

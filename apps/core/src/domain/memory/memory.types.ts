@@ -32,7 +32,7 @@ export interface UserFact {
   category: string
   key: string
   value: string
-  confidence?: number | null
+  confidence?: number
   createdAt: string
   updatedAt: string
 }

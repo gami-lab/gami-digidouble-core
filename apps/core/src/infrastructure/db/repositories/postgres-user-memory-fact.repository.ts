@@ -72,7 +72,7 @@ export class PostgresUserMemoryFactRepository implements IUserMemoryFactReposito
       category: row.category,
       key: row.key,
       value: row.value,
-      ...(row.confidence === null ? { confidence: null } : { confidence: row.confidence }),
+      ...(row.confidence !== null ? { confidence: row.confidence } : {}),
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
     }

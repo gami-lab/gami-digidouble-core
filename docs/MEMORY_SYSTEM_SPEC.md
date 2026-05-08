@@ -27,6 +27,17 @@ This specification complements:
 - `GAME_MASTER_CONTRACT.md`
 - `PRINCIPLES.md`
 
+## Contract Ownership Map
+
+- Domain/internal memory contracts owner:
+  - `apps/core/src/domain/memory/memory.types.ts`
+- Shared HTTP/admin DTO contracts owner:
+  - `packages/shared/src/memory-contract-types.ts`
+  - composed by `packages/shared/src/lifecycle-types.ts` and `packages/shared/src/runtime-inspector-types.ts`
+- Nullability rule:
+  - internal/domain optional fields use `undefined`
+  - explicit `null` is reserved for API contracts that intentionally require `null`
+
 ---
 
 # 1. Core Mental Model

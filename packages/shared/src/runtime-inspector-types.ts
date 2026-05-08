@@ -3,6 +3,12 @@ import type {
   SessionMemoryLayers,
   SessionMemorySummary,
 } from './lifecycle-types.js'
+import type {
+  SharedLongTermMemoryFact,
+  SharedShortTermMemoryExchange,
+  SharedWorkingMemoryAvatarSummary,
+  SharedWorkingMemorySessionSummary,
+} from './memory-contract-types.js'
 import type { RuntimeState } from './runtime-types.js'
 import type { SessionSummary } from './entity-types.js'
 
@@ -173,26 +179,12 @@ export type SessionContextScenarioSnapshot = {
 
 export type SessionContextAvatarSnapshot = {
   avatarId?: string
-  recentExchanges: Array<{
-    user: string
-    avatar: string
-  }>
+  recentExchanges: SharedShortTermMemoryExchange[]
   workingMemory: {
-    session?: {
-      summary: string
-      updatedAt: string
-    }
-    avatar?: {
-      avatarId: string
-      summary: string
-      updatedAt: string
-    }
+    session?: SharedWorkingMemorySessionSummary
+    avatar?: SharedWorkingMemoryAvatarSummary
   }
-  longTermFacts: Array<{
-    category: string
-    key: string
-    value: string
-  }>
+  longTermFacts: SharedLongTermMemoryFact[]
   userPersona: UserPersona | null
   gmNotes: string | null
   scenario: SessionContextScenarioSnapshot
@@ -205,17 +197,10 @@ export type SessionContextGmSnapshot = {
   }>
   memory: {
     shortTerm?: {
-      recentExchanges: Array<{
-        user: string
-        avatar: string
-      }>
+      recentExchanges: SharedShortTermMemoryExchange[]
     }
     workingSummary?: string
-    longTermFacts?: Array<{
-      category: string
-      key: string
-      value: string
-    }>
+    longTermFacts?: SharedLongTermMemoryFact[]
   }
   currentState: GmStateSummary
   availableAvatars: Array<{

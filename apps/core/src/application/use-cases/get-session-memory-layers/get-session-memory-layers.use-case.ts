@@ -1,4 +1,5 @@
 import type { SessionMemoryLayers } from '@gami/shared'
+import type { SharedShortTermMemoryExchange } from '@gami/shared'
 import type { IAvatarSessionMemoryRepository } from '../../ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
@@ -75,7 +76,7 @@ export class GetSessionMemoryLayersUseCase {
 
   private async loadShortTermExchanges(
     sessionId: string,
-  ): Promise<Array<{ user: string; avatar: string }>> {
+  ): Promise<SharedShortTermMemoryExchange[]> {
     if (this.conversationRepository === undefined || this.messageRepository === undefined) return []
     const conversations = await this.conversationRepository.listBySessionId(sessionId)
     const latest = conversations
@@ -89,7 +90,7 @@ export class GetSessionMemoryLayersUseCase {
     const orderedMessages = messages
       .slice()
       .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-    const exchanges: Array<{ user: string; avatar: string }> = []
+    const exchanges: SharedShortTermMemoryExchange[] = []
     let pendingUserMessage: string | null = null
 
     for (const message of orderedMessages) {

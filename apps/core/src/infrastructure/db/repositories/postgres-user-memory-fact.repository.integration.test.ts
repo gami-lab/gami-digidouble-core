@@ -23,7 +23,6 @@ function defineFindCases(): void {
       category: 'constraint',
       key: 'timezone',
       value: 'UTC+1',
-      confidence: null,
     })
 
     const facts = await repository.findByUserId('user_1')

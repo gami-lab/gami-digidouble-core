@@ -348,6 +348,11 @@ type SessionMemoryLayers = {
 }
 ```
 
+Memory contract ownership:
+
+- Domain/internal memory contracts: `apps/core/src/domain/memory/memory.types.ts`
+- HTTP DTO contracts (this API document): `packages/shared/src/memory-contract-types.ts`, `packages/shared/src/lifecycle-types.ts`, `packages/shared/src/runtime-inspector-types.ts`
+
 ## Knowledge Source Summary
 
 ```ts id="8tpxe0"
@@ -1351,7 +1356,7 @@ type ListUserMemoryFactsResponse = {
     category: string
     key: string
     value: string
-    confidence?: number | null
+    confidence?: number
     updatedAt: string
   }>
 }

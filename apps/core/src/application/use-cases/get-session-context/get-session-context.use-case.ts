@@ -9,6 +9,7 @@ import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../../domain/errors.js'
+import type { LayeredMemorySnapshot } from '../../../domain/memory/memory.types.js'
 import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
 import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master.avatar-unlocks.js'
 import type {
@@ -191,16 +192,7 @@ function normalizeGoals(config: { objectives?: string[]; goals?: string[] }): st
   ]
 }
 
-function toAvatarWorkingMemory(
-  memorySnapshot:
-    | {
-        working?: {
-          session?: { summary: string; updatedAt: string }
-          avatar?: { avatarId: string; summary: string; updatedAt: string }
-        }
-      }
-    | undefined,
-) {
+function toAvatarWorkingMemory(memorySnapshot: LayeredMemorySnapshot | undefined) {
   return {
     ...(memorySnapshot?.working?.session !== undefined
       ? { session: memorySnapshot.working.session }
@@ -211,26 +203,12 @@ function toAvatarWorkingMemory(
   }
 }
 
-function toWorkingSummary(
-  memorySnapshot:
-    | {
-        working?: {
-          session?: { summary: string; updatedAt: string }
-          avatar?: { avatarId: string; summary: string; updatedAt: string }
-        }
-      }
-    | undefined,
-) {
+function toWorkingSummary(memorySnapshot: LayeredMemorySnapshot | undefined) {
   if (memorySnapshot === undefined) return undefined
   return toWorkingSummaryFromSnapshot(memorySnapshot)
 }
 
-function toWorkingSummaryFromSnapshot(memorySnapshot: {
-  working?: {
-    session?: { summary: string; updatedAt: string }
-    avatar?: { avatarId: string; summary: string; updatedAt: string }
-  }
-}) {
+function toWorkingSummaryFromSnapshot(memorySnapshot: LayeredMemorySnapshot) {
   const segments: string[] = []
   if (hasText(memorySnapshot.working?.session?.summary)) {
     segments.push(memorySnapshot.working.session.summary.trim())

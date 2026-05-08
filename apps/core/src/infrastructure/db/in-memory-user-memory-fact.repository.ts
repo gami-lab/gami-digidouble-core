@@ -35,14 +35,14 @@ export class InMemoryUserMemoryFactRepository implements IUserMemoryFactReposito
             category: fact.category,
             key: fact.key,
             value: fact.value,
-            confidence: fact.confidence ?? null,
+            ...(fact.confidence !== undefined ? { confidence: fact.confidence } : {}),
             createdAt: now,
             updatedAt: now,
           }
         : {
             ...existing,
             value: fact.value,
-            confidence: fact.confidence ?? null,
+            ...(fact.confidence !== undefined ? { confidence: fact.confidence } : {}),
             updatedAt: now,
           }
 

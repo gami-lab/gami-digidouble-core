@@ -28,6 +28,13 @@ export type {
 } from './lifecycle-types.js'
 export type { RuntimeEvent, RuntimeState } from './runtime-types.js'
 export type {
+  SharedShortTermMemoryExchange,
+  SharedShortTermMemorySnapshot,
+  SharedWorkingMemorySessionSummary,
+  SharedWorkingMemoryAvatarSummary,
+  SharedLongTermMemoryFact,
+} from './memory-contract-types.js'
+export type {
   UserPersona,
   UserSummary,
   UserPersonaResponse,

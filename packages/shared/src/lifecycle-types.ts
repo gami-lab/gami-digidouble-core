@@ -1,4 +1,10 @@
 import type { LifecycleStatus } from './entity-types.js'
+import type {
+  SharedLongTermMemoryFact,
+  SharedShortTermMemorySnapshot,
+  SharedWorkingMemoryAvatarSummary,
+  SharedWorkingMemorySessionSummary,
+} from './memory-contract-types.js'
 
 export type ConversationStartedBy = 'user' | 'gm' | 'system'
 export type ConversationEndReason =
@@ -12,40 +18,20 @@ export type ConversationEndReason =
 export type SessionMemorySummary = {
   sessionId: string
   summary: string
-  shortTerm?: {
-    exchangeCount: 2
-  }
+  shortTerm?: Pick<SharedShortTermMemorySnapshot, 'exchangeCount'>
   longTermFactCount?: number
   updatedAt: string
 }
 
 export type SessionMemoryLayers = {
   sessionId: string
-  shortTerm: {
-    exchangeCount: 2
-    recentExchanges: Array<{
-      user: string
-      avatar: string
-    }>
-  }
+  shortTerm: SharedShortTermMemorySnapshot
   working: {
-    session?: {
-      summary: string
-      updatedAt: string
-    }
-    avatars: Array<{
-      avatarId: string
-      summary: string
-      updatedAt: string
-    }>
+    session?: SharedWorkingMemorySessionSummary
+    avatars: SharedWorkingMemoryAvatarSummary[]
   }
   longTerm: {
-    facts: Array<{
-      category: string
-      key: string
-      value: string
-      updatedAt: string
-    }>
+    facts: Array<SharedLongTermMemoryFact & { updatedAt: string }>
   }
 }
 

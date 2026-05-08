@@ -476,6 +476,7 @@ Phase A status: implemented end-to-end (`user_memory_facts` persistence, async e
 - **Table:** `user_memory_facts`
 - **Repository:** `PostgresUserMemoryFactRepository`
 - **Status:** Fully implemented. `id` uses `umf_` prefix. `(user_id, category, key)` is unique.
+- **Nullability mapping:** DB `confidence` remains nullable; core domain contracts expose `confidence?: number` (undefined when DB value is null).
 
 ---
 

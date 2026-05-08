@@ -137,7 +137,7 @@ export class EndConversationUseCase {
           category: fact.category,
           key: fact.key,
           value: fact.value,
-          confidence: fact.confidence ?? null,
+          ...(fact.confidence !== undefined ? { confidence: fact.confidence } : {}),
         })
       }
 

@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** May 7, 2026
+**Last updated:** May 8, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -25,6 +25,27 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Core routes and use-case output typing now consume these shared contracts instead of local per-layer duplicates.
 - Console API layer (`apps/console/src/api/sessions.ts`) no longer defines duplicated inspector/event DTOs and imports canonical types from `@gami/shared`.
 - GM Debug panel event rendering now handles union event payloads safely (`turn_completed` vs GM events), matching the admin events contract.
+
+### EPIC 4.2c — Contract cleanup and canonical memory ownership: **in progress** (2026-05-08)
+
+- Ran a contract-drift pass across core domain memory types, shared HTTP DTO contracts, admin/runtime-inspector contracts, GM input context memory shape, and console query/view models.
+- Added canonical shared memory DTO fragments in `packages/shared/src/memory-contract-types.ts` and reused them from:
+  - `packages/shared/src/lifecycle-types.ts`
+  - `packages/shared/src/runtime-inspector-types.ts`
+- Kept ownership boundary explicit:
+  - Domain/internal memory contracts remain in `apps/core/src/domain/memory/memory.types.ts`
+  - HTTP/shared DTO contracts remain in `packages/shared/src/**`
+- Removed internal nullability drift for user facts:
+  - `UserFact.confidence` is now `confidence?: number` (internal optional/undefined)
+  - DB nullable values now map to omitted `confidence` in core domain objects.
+- Refactored touched core call sites to canonical types (no local inline memory-shape aliases in touched modules):
+  - `GetSessionContextUseCase`
+  - `RunGameMasterUseCase`
+  - `GetSessionMemoryLayersUseCase`
+  - `AvatarMemoryContextAssembler`
+- Validation status for this slice:
+  - `pnpm -w -r typecheck` PASS
+  - targeted core tests for memory/context/GM typing contracts PASS
 
 ### EPIC 2.8 — Console debugging redesign (contract cleanup + path pruning): **complete** (2026-05-07)
 

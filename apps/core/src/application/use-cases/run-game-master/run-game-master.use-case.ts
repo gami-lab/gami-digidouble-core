@@ -19,7 +19,11 @@ import type {
   GameMasterState,
 } from '../../../domain/game-master/game-master.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
-import type { LayeredMemorySnapshot } from '../../../domain/memory/memory.types.js'
+import type {
+  LayeredMemorySnapshot,
+  LongTermMemoryFact,
+  ShortTermMemoryExchange,
+} from '../../../domain/memory/memory.types.js'
 import {
   MEMORY_LONG_TERM_FACT_LIMIT,
   MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
@@ -376,8 +380,8 @@ export class RunGameMasterUseCase {
 
   private buildRecentExchanges(
     recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
-  ): Array<{ user: string; avatar: string }> {
-    const exchanges: Array<{ user: string; avatar: string }> = []
+  ): ShortTermMemoryExchange[] {
+    const exchanges: ShortTermMemoryExchange[] = []
     let pendingUserMessage: string | null = null
 
     for (const message of recentMessages) {
@@ -414,9 +418,9 @@ export class RunGameMasterUseCase {
   }
 
   private hasMemoryLayer(
-    recentExchanges: Array<{ user: string; avatar: string }>,
+    recentExchanges: ShortTermMemoryExchange[],
     workingSummary: string | undefined,
-    longTermFacts: Array<{ category: string; key: string; value: string }> | undefined,
+    longTermFacts: LongTermMemoryFact[] | undefined,
   ): boolean {
     return recentExchanges.length > 0 || workingSummary !== undefined || longTermFacts !== undefined
   }
