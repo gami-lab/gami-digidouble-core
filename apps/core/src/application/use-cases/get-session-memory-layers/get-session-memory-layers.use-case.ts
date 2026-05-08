@@ -22,6 +22,8 @@ import type {
 } from './get-session-memory-layers.types.js'
 
 export class GetSessionMemoryLayersUseCase {
+  private readonly selectionService?: MemorySelectionService
+
   constructor(
     private readonly sessionRepository: ISessionRepository,
     private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
@@ -32,7 +34,20 @@ export class GetSessionMemoryLayersUseCase {
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly conversationMemoryRepository?: IConversationMemoryRepository,
     private readonly eventLogRepository?: IEventLogRepository,
-  ) {}
+  ) {
+    if (
+      messageRepository !== undefined &&
+      conversationWorkingMemoryRepository !== undefined &&
+      conversationMemoryRepository !== undefined
+    ) {
+      this.selectionService = new MemorySelectionService(
+        messageRepository,
+        conversationWorkingMemoryRepository,
+        conversationMemoryRepository,
+        userMemoryFactRepository,
+      )
+    }
+  }
 
   async execute(input: GetSessionMemoryLayersInput): Promise<GetSessionMemoryLayersOutput> {
     const session = await this.sessionRepository.findById(input.sessionId)
@@ -139,7 +154,7 @@ export class GetSessionMemoryLayersUseCase {
     if (
       this.conversationRepository === undefined ||
       this.messageRepository === undefined ||
-      this.conversationMemoryRepository === undefined
+      this.selectionService === undefined
     ) {
       return undefined
     }
@@ -157,12 +172,7 @@ export class GetSessionMemoryLayersUseCase {
       .slice()
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
       .find((message) => message.role === 'user')?.content
-    const selection = await new MemorySelectionService(
-      this.messageRepository,
-      this.conversationWorkingMemoryRepository,
-      this.conversationMemoryRepository,
-      this.userMemoryFactRepository,
-    ).selectWithObservability({
+    const selection = await this.selectionService.selectWithObservability({
       conversationId: activeConversation.conversationId,
       userId: session.userId,
       avatarId: activeConversation.avatarId,

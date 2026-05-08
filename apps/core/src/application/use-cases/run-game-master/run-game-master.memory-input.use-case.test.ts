@@ -58,6 +58,35 @@ const userMemoryFactRepository = {
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
 
+type GmMemory = {
+  shortTerm?: { recentExchanges: Array<{ user: string; avatar: string }> }
+  workingMemory?: { summary: string; unresolvedThreads: string[] }
+  episodicMemories?: Array<{ conversationId: string; selectionReasons?: string[] }>
+  longTermFacts?: Array<{ category: string; key: string; value: string }>
+}
+
+function readGmMemory(): GmMemory {
+  const rawContent =
+    (completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }).messages[0]
+      ?.content ?? '{}'
+  return (JSON.parse(rawContent) as { context: { memory: GmMemory } }).context.memory
+}
+
+function makeEpisodicMemory() {
+  return {
+    conversationId: 'conv_past_1',
+    sessionId: 'session_1',
+    userId: 'user_1',
+    avatarId: 'avatar_1',
+    scenarioId: 'scenario_1',
+    summary: 'Previously discussed onboarding.',
+    keyDiscoveries: ['Needs onboarding'],
+    unresolvedTopics: ['Follow up on onboarding'],
+    factCandidates: [],
+    createdAt: '2026-04-01T10:00:00.000Z',
+  }
+}
+
 function createUseCase(): RunGameMasterUseCase {
   const memorySelection = new MemorySelectionService(
     messageRepository,
@@ -180,15 +209,7 @@ describe('RunGameMasterUseCase memory input', () => {
       correlationId: 'request_memory_layers',
     })
 
-    const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
-    const memory = (
-      JSON.parse(request.messages[0]?.content ?? '{}') as { context: { memory: unknown } }
-    ).context.memory as {
-      shortTerm?: { recentExchanges: Array<{ user: string; avatar: string }> }
-      workingMemory?: { summary: string; unresolvedThreads: string[] }
-      episodicMemories?: Array<{ conversationId: string }>
-      longTermFacts?: Array<{ category: string; key: string; value: string }>
-    }
+    const memory = readGmMemory()
 
     expect(memory.shortTerm?.recentExchanges).toEqual([
       { user: 'U2', avatar: 'A2' },
@@ -202,5 +223,27 @@ describe('RunGameMasterUseCase memory input', () => {
     expect(memory.longTermFacts).toEqual([
       { category: 'preference', key: 'tone', value: 'concise' },
     ])
+  })
+
+  it('injects bounded episodic memories with selection reasons when episodic candidates are present', async () => {
+    const useCase = createUseCase()
+    findMessagesByConversationIdMock.mockResolvedValue([])
+    findConversationWorkingMemoryByConversationIdMock.mockResolvedValue(null)
+    listConversationMemoriesByScopeMock.mockResolvedValue([makeEpisodicMemory()])
+    findFactsByUserIdMock.mockResolvedValue([])
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      conversationId: 'conversation_1',
+      userMessageText: 'onboarding',
+      turnIndex: 1,
+      correlationId: 'request_episodic',
+    })
+    const memory = readGmMemory()
+    const first = memory.episodicMemories?.[0]
+    expect(memory.episodicMemories?.length).toBeGreaterThan(0)
+    expect(first?.conversationId).toBe('conv_past_1')
+    expect(first?.selectionReasons.length).toBeGreaterThan(0)
   })
 })

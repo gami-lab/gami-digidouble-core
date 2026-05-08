@@ -248,5 +248,10 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers — stack behavior', (
     expect(Array.isArray(body.data?.session.working.avatars)).toBe(true)
     expect(Array.isArray(body.data?.session.longTerm.facts)).toBe(true)
     expect(body.data?.session.observability).toBeDefined()
+    const sel = body.data?.session.observability?.selection
+    if (sel !== undefined) {
+      expect(typeof sel.selectedCount).toBe('number')
+      expect(Array.isArray(sel.topSelectionReasons)).toBe(true)
+    }
   })
 })

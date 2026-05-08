@@ -164,3 +164,47 @@ Implementation-coupled tests:
 **Close with debt**.
 
 EPIC 4.2c is functionally strong and operationally stable, but key user-observable continuity proof should be strengthened before declaring A-quality closure.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Centralized episodic retrieval and selection limits in `memory.policy.ts` and removed service-local duplication.
+- Refactored `GetSessionMemoryLayersUseCase` to construct and reuse a single `MemorySelectionService` dependency instead of instantiating it inline during observability assembly.
+- Expanded GM memory-input coverage to prove episodic memory inclusion with bounded selection reasons.
+- Added a cross-conversation continuity test proving: closed conversation working memory becomes episodic memory, and a later conversation is hydrated from that stored episodic context.
+- Strengthened stack-level memory-layers assertions to verify observability selection payload fields, not just object presence.
+
+### Findings Resolved
+
+- Finding 1: Resolved
+- Finding 2: Resolved
+- Finding 3: Resolved
+- Finding 4: Resolved
+- Finding 5: Resolved
+
+### Findings Deferred
+
+- None.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS
+
+### Final Feature Confidence
+
+- Cross-conversation continuity is now behaviorally proven through a real service-level flow using stored episodic memory and hydrated working memory.
+- GM episodic memory usage is now explicitly proven in the input payload contract.
+- Admin memory-layer observability now has stronger regression protection for selection payload shape.
+- Memory limit policy is now centralized, reducing drift risk between domain policy and application services.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- The strongest continuity proof is still service-level rather than full avatar-response API output verification, but the previously unproven cross-conversation state transition is now covered by a stable behavior test that exercises the real memory path end-to-end within the application boundary.

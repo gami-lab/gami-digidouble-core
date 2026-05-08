@@ -9,9 +9,10 @@ import {
   buildHydrationSummary,
   selectRelevantConversationMemories,
 } from '../../domain/memory/episodic-memory.policy.js'
-
-const EPISODIC_RETRIEVAL_LIMIT = 12
-const EPISODIC_SELECTION_LIMIT = 3
+import {
+  MEMORY_EPISODIC_RETRIEVAL_LIMIT,
+  MEMORY_EPISODIC_SELECTION_LIMIT,
+} from '../../domain/memory/memory.policy.js'
 
 export class EpisodicMemoryService {
   constructor(
@@ -78,13 +79,13 @@ export class EpisodicMemoryService {
       userId: input.userId,
       avatarId: input.avatarId,
       scenarioId: input.scenarioId,
-      limit: EPISODIC_RETRIEVAL_LIMIT,
+      limit: MEMORY_EPISODIC_RETRIEVAL_LIMIT,
     })
 
     const selected = selectRelevantConversationMemories(
       scoped,
       input.queryText ?? '',
-      EPISODIC_SELECTION_LIMIT,
+      MEMORY_EPISODIC_SELECTION_LIMIT,
     )
     const summary = buildHydrationSummary(selected)
     const unresolvedThreads = unique(
