@@ -109,20 +109,18 @@ function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRef
     avatarId: readString(payload['avatarId']),
     trigger: readMemoryTrigger(payload['trigger']),
   }
-  const sessionSummaryLength = readOptionalNumber(payload['sessionSummaryLength'])
-  const avatarSummaryLength = readOptionalNumber(payload['avatarSummaryLength'])
+  const workingSummary = readOptionalString(payload['workingSummary'])
   const messageCount = readOptionalNumber(payload['messageCount'])
-  const unresolvedThreadCount = readOptionalNumber(payload['unresolvedThreadCount'])
-  const candidateFactCount = readOptionalNumber(payload['candidateFactCount'])
+  const unresolvedThreads = readOptionalStringArray(payload['unresolvedThreads'])
+  const candidateFacts = readOptionalCandidateFacts(payload['candidateFacts'])
   const exchangeCount = readOptionalNumber(payload['exchangeCount'])
   const error = readOptionalString(payload['error'])
   return {
     ...base,
-    ...(sessionSummaryLength !== undefined ? { sessionSummaryLength } : {}),
-    ...(avatarSummaryLength !== undefined ? { avatarSummaryLength } : {}),
+    ...(workingSummary !== undefined ? { workingSummary } : {}),
     ...(messageCount !== undefined ? { messageCount } : {}),
-    ...(unresolvedThreadCount !== undefined ? { unresolvedThreadCount } : {}),
-    ...(candidateFactCount !== undefined ? { candidateFactCount } : {}),
+    ...(unresolvedThreads !== undefined ? { unresolvedThreads } : {}),
+    ...(candidateFacts !== undefined ? { candidateFacts } : {}),
     ...(exchangeCount !== undefined ? { exchangeCount } : {}),
     ...(error !== undefined ? { error } : {}),
   }
@@ -198,6 +196,28 @@ function readStringOrNull(value: unknown): string | null {
 
 function readOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined
+}
+
+function readOptionalStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+function readOptionalCandidateFacts(
+  value: unknown,
+): Array<{ category: string; key: string; value: string }> | undefined {
+  if (!Array.isArray(value)) return undefined
+
+  const facts: Array<{ category: string; key: string; value: string }> = []
+  for (const item of value) {
+    if (!isRecord(item)) continue
+    const category = readOptionalString(item['category'])
+    const key = readOptionalString(item['key'])
+    const factValue = readOptionalString(item['value'])
+    if (category === undefined || key === undefined || factValue === undefined) continue
+    facts.push({ category, key, value: factValue })
+  }
+  return facts
 }
 
 function readOptionalStringField<

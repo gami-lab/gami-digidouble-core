@@ -289,7 +289,9 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       exchangeCount: 3,
     })
     const succeededPayload = succeeded?.payload
-    expect(typeof succeededPayload?.workingSummaryLength).toBe('number')
+    expect(typeof succeededPayload?.workingSummary).toBe('string')
+    expect(Array.isArray(succeededPayload?.unresolvedThreads)).toBe(true)
+    expect(Array.isArray(succeededPayload?.candidateFacts)).toBe(true)
     expect(succeeded?.correlationId).toBe('corr_1')
   })
 

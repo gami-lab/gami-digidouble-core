@@ -98,10 +98,10 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
           conversationId: input.conversationId,
           avatarId: input.avatarId,
           trigger: input.trigger,
-          workingSummaryLength: rewritten.summary.length,
+          workingSummary: rewritten.summary,
           messageCount: ordered.length,
-          unresolvedThreadCount: rewritten.unresolvedThreads.length,
-          candidateFactCount: rewritten.candidateFacts.length,
+          unresolvedThreads: rewritten.unresolvedThreads,
+          candidateFacts: rewritten.candidateFacts,
           exchangeCount,
         },
       })

@@ -257,6 +257,62 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
   })
 })
 
+describe('ListSessionEventsUseCase — memory refresh mapping', () => {
+  it('maps memory_refresh_succeeded payload with full memory fields', async () => {
+    const { useCase } = createUseCase({
+      events: [
+        makeEvent({
+          type: 'memory_refresh_succeeded',
+          payload: {
+            sessionId: 'session_1',
+            conversationId: 'conversation_1',
+            avatarId: 'avatar_1',
+            trigger: 'post_turn',
+            workingSummary: 'User is planning a pilot and wants clear first steps.',
+            messageCount: 6,
+            unresolvedThreads: ['Which metric to optimize first'],
+            candidateFacts: [
+              {
+                category: 'goal',
+                key: 'pilot_validation',
+                value: 'Validate first value in one session',
+              },
+            ],
+            exchangeCount: 3,
+          },
+        }),
+      ],
+    })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.events).toEqual([
+      {
+        type: 'memory_refresh_succeeded',
+        correlationId: 'corr_1',
+        createdAt: '2026-04-28T10:05:00.000Z',
+        payload: {
+          sessionId: 'session_1',
+          conversationId: 'conversation_1',
+          avatarId: 'avatar_1',
+          trigger: 'post_turn',
+          workingSummary: 'User is planning a pilot and wants clear first steps.',
+          messageCount: 6,
+          unresolvedThreads: ['Which metric to optimize first'],
+          candidateFacts: [
+            {
+              category: 'goal',
+              key: 'pilot_validation',
+              value: 'Validate first value in one session',
+            },
+          ],
+          exchangeCount: 3,
+        },
+      },
+    ])
+  })
+})
+
 describe('ListSessionEventsUseCase — limits and errors', () => {
   it('uses default limit and clamps oversized limits', async () => {
     const { useCase, findBySessionIdMock } = createUseCase()

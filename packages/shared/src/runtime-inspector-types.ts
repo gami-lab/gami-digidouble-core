@@ -98,11 +98,10 @@ export type MemoryRefreshEventPayload = {
   conversationId: string
   avatarId: string
   trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
-  sessionSummaryLength?: number
-  avatarSummaryLength?: number
+  workingSummary?: string
   messageCount?: number
-  unresolvedThreadCount?: number
-  candidateFactCount?: number
+  unresolvedThreads?: string[]
+  candidateFacts?: Array<{ category: string; key: string; value: string }>
   exchangeCount?: number
   error?: string
 }
