@@ -92,7 +92,7 @@ describe('EpisodicMemoryService', () => {
       new InMemoryMessageRepository([]),
     )
 
-    const hydration = await service.hydrateForNewConversation({
+    const hydrationWithMetadata = await service.hydrateForNewConversationWithMetadata({
       conversationId: 'conversation_3',
       sessionId: 'session_3',
       userId: 'user_1',
@@ -100,6 +100,7 @@ describe('EpisodicMemoryService', () => {
       scenarioId: 'scenario_1',
       queryText: 'Need latency benchmark',
     })
+    const hydration = hydrationWithMetadata.hydration
 
     expect(hydration.summary).toContain('Hydration context:')
     expect(hydration.summary).toContain('latency architecture')

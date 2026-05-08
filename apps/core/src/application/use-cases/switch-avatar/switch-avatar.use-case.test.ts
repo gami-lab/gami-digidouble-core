@@ -203,7 +203,6 @@ describe('SwitchAvatarUseCase episodic continuity', () => {
       { execute: memoryMaintenanceExecuteMock },
       {
         generateForClosedConversation: generateForClosedConversationMock,
-        hydrateForNewConversation: vi.fn(),
         hydrateForNewConversationWithMetadata: hydrateForNewConversationWithMetadataMock,
       },
       {

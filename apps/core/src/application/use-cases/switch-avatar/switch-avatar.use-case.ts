@@ -6,6 +6,10 @@ import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
+import {
+  hydrateConversationMemoryForNewConversation,
+  type EpisodicMemoryHydrationService,
+} from '../shared/hydrate-conversation-memory.js'
 import type { SwitchAvatarInput, SwitchAvatarOutput } from './switch-avatar.types.js'
 
 type EpisodicMemoryService = {
@@ -16,35 +20,7 @@ type EpisodicMemoryService = {
     avatarId: string
     scenarioId: string
   }): Promise<unknown>
-  hydrateForNewConversation(input: {
-    conversationId: string
-    sessionId: string
-    userId: string
-    avatarId: string
-    scenarioId: string
-    queryText?: string
-  }): Promise<{
-    summary: string
-    unresolvedThreads: string[]
-    candidateFacts: Array<{ category: string; key: string; value: string }>
-  }>
-  hydrateForNewConversationWithMetadata?(input: {
-    conversationId: string
-    sessionId: string
-    userId: string
-    avatarId: string
-    scenarioId: string
-    queryText?: string
-  }): Promise<{
-    hydration: {
-      summary: string
-      unresolvedThreads: string[]
-      candidateFacts: Array<{ category: string; key: string; value: string }>
-    }
-    selectedConversationIds: string[]
-    consideredConversationIds: string[]
-  }>
-}
+} & EpisodicMemoryHydrationService
 
 export class SwitchAvatarUseCase {
   constructor(
@@ -187,47 +163,12 @@ export class SwitchAvatarUseCase {
     scenarioId: string
     queryText?: string
   }): Promise<void> {
-    if (
-      this.episodicMemoryService === undefined ||
-      this.conversationWorkingMemoryRepository === undefined
-    ) {
-      return
-    }
-
-    const hydrationWithMetadata =
-      this.episodicMemoryService.hydrateForNewConversationWithMetadata !== undefined
-        ? await this.episodicMemoryService.hydrateForNewConversationWithMetadata(input)
-        : {
-            hydration: await this.episodicMemoryService.hydrateForNewConversation(input),
-            selectedConversationIds: [] as string[],
-            consideredConversationIds: [] as string[],
-          }
-
-    await this.conversationWorkingMemoryRepository.upsert({
-      conversationId: input.conversationId,
-      sessionId: input.sessionId,
-      avatarId: input.avatarId,
-      summary: hydrationWithMetadata.hydration.summary,
-      unresolvedThreads: hydrationWithMetadata.hydration.unresolvedThreads,
-      candidateFacts: hydrationWithMetadata.hydration.candidateFacts,
+    await hydrateConversationMemoryForNewConversation({
+      input,
+      episodicMemoryService: this.episodicMemoryService,
+      conversationWorkingMemoryRepository: this.conversationWorkingMemoryRepository,
+      eventLogRepository: this.eventLogRepository,
     })
-
-    if (this.eventLogRepository === undefined) return
-    try {
-      await this.eventLogRepository.append({
-        sessionId: input.sessionId,
-        type: 'memory_hydration_succeeded',
-        severity: 'info',
-        payload: {
-          hydratedConversationId: input.conversationId,
-          sourceConversationIds: hydrationWithMetadata.selectedConversationIds,
-          consideredCount: hydrationWithMetadata.consideredConversationIds.length,
-          selectedCount: hydrationWithMetadata.selectedConversationIds.length,
-        },
-      })
-    } catch {
-      // Hydration observability must remain non-blocking for avatar switches.
-    }
   }
 
   private async generateEpisodicMemory(input: {

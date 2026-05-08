@@ -4,6 +4,10 @@ import type { IConversationWorkingMemoryRepository } from '../../ports/IConversa
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import { DomainError } from '../../../domain/errors.js'
+import {
+  hydrateConversationMemoryForNewConversation,
+  type EpisodicMemoryHydrationService,
+} from '../shared/hydrate-conversation-memory.js'
 import type { StartConversationInput, StartConversationOutput } from './start-conversation.types.js'
 
 export class StartConversationUseCase {
@@ -12,36 +16,7 @@ export class StartConversationUseCase {
     private readonly avatarRepository: IAvatarRepository,
     private readonly conversationRepository: IConversationRepository,
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
-    private readonly episodicMemoryService?: {
-      hydrateForNewConversation(input: {
-        conversationId: string
-        sessionId: string
-        userId: string
-        avatarId: string
-        scenarioId: string
-        queryText?: string
-      }): Promise<{
-        summary: string
-        unresolvedThreads: string[]
-        candidateFacts: Array<{ category: string; key: string; value: string }>
-      }>
-      hydrateForNewConversationWithMetadata?(input: {
-        conversationId: string
-        sessionId: string
-        userId: string
-        avatarId: string
-        scenarioId: string
-        queryText?: string
-      }): Promise<{
-        hydration: {
-          summary: string
-          unresolvedThreads: string[]
-          candidateFacts: Array<{ category: string; key: string; value: string }>
-        }
-        selectedConversationIds: string[]
-        consideredConversationIds: string[]
-      }>
-    },
+    private readonly episodicMemoryService?: EpisodicMemoryHydrationService,
     private readonly eventLogRepository?: IEventLogRepository,
   ) {}
 
@@ -123,57 +98,11 @@ export class StartConversationUseCase {
     scenarioId: string
     queryText?: string
   }): Promise<void> {
-    if (
-      this.episodicMemoryService === undefined ||
-      this.conversationWorkingMemoryRepository === undefined
-    ) {
-      return
-    }
-    const hydrationWithMetadata =
-      this.episodicMemoryService.hydrateForNewConversationWithMetadata !== undefined
-        ? await this.episodicMemoryService.hydrateForNewConversationWithMetadata(input)
-        : {
-            hydration: await this.episodicMemoryService.hydrateForNewConversation(input),
-            selectedConversationIds: [] as string[],
-            consideredConversationIds: [] as string[],
-          }
-    const hydration = hydrationWithMetadata.hydration
-    await this.conversationWorkingMemoryRepository.upsert({
-      conversationId: input.conversationId,
-      sessionId: input.sessionId,
-      avatarId: input.avatarId,
-      summary: hydration.summary,
-      unresolvedThreads: hydration.unresolvedThreads,
-      candidateFacts: hydration.candidateFacts,
+    await hydrateConversationMemoryForNewConversation({
+      input,
+      episodicMemoryService: this.episodicMemoryService,
+      conversationWorkingMemoryRepository: this.conversationWorkingMemoryRepository,
+      eventLogRepository: this.eventLogRepository,
     })
-    await this.appendHydrationEvent(input, hydrationWithMetadata)
-  }
-
-  private async appendHydrationEvent(
-    input: {
-      conversationId: string
-      sessionId: string
-    },
-    metadata: {
-      selectedConversationIds: string[]
-      consideredConversationIds: string[]
-    },
-  ): Promise<void> {
-    if (this.eventLogRepository === undefined) return
-    try {
-      await this.eventLogRepository.append({
-        sessionId: input.sessionId,
-        type: 'memory_hydration_succeeded',
-        severity: 'info',
-        payload: {
-          hydratedConversationId: input.conversationId,
-          sourceConversationIds: metadata.selectedConversationIds,
-          consideredCount: metadata.consideredConversationIds.length,
-          selectedCount: metadata.selectedConversationIds.length,
-        },
-      })
-    } catch {
-      // Hydration observability must remain non-blocking for conversation creation.
-    }
   }
 }

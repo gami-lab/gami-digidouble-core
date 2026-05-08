@@ -51,18 +51,6 @@ export class EpisodicMemoryService {
     })
   }
 
-  async hydrateForNewConversation(input: {
-    conversationId: string
-    sessionId: string
-    userId: string
-    avatarId: string
-    scenarioId: string
-    queryText?: string
-  }): Promise<ConversationWorkingMemoryRefreshOutput> {
-    const result = await this.hydrateForNewConversationWithMetadata(input)
-    return result.hydration
-  }
-
   async hydrateForNewConversationWithMetadata(input: {
     conversationId: string
     sessionId: string

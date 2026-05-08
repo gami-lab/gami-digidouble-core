@@ -149,23 +149,27 @@ describe('StartConversationUseCase', () => {
 
   it('hydrates initial working memory from episodic memories on conversation start', async () => {
     const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository()
-    const hydrateForNewConversation = vi.fn().mockResolvedValue({
-      summary: 'Hydrated summary',
-      unresolvedThreads: ['Need benchmark'],
-      candidateFacts: [{ category: 'conversation_signal', key: 'k1', value: 'Need benchmark' }],
+    const hydrateForNewConversationWithMetadata = vi.fn().mockResolvedValue({
+      hydration: {
+        summary: 'Hydrated summary',
+        unresolvedThreads: ['Need benchmark'],
+        candidateFacts: [{ category: 'conversation_signal', key: 'k1', value: 'Need benchmark' }],
+      },
+      selectedConversationIds: ['conversation_legacy_1'],
+      consideredConversationIds: ['conversation_legacy_1', 'conversation_legacy_2'],
     })
     const useCase = new StartConversationUseCase(
       sessionRepository,
       avatarRepository,
       conversationRepository,
       conversationWorkingMemoryRepository,
-      { hydrateForNewConversation },
+      { hydrateForNewConversationWithMetadata },
       { append: appendEventMock, findBySessionId: vi.fn() },
     )
 
     await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' })
 
-    expect(hydrateForNewConversation).toHaveBeenCalledTimes(1)
+    expect(hydrateForNewConversationWithMetadata).toHaveBeenCalledTimes(1)
     await expect(
       conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
     ).resolves.toMatchObject({
