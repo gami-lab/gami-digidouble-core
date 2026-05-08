@@ -5,6 +5,7 @@ import type { RuntimeInspectorViewModel } from '../api'
 import { buildGmImpactTrace } from './gm-impact-trace'
 import type { MemoryEvolutionSnapshot } from './memory-evolution'
 import { computeMemoryDelta } from './memory-evolution'
+import { MemoryObservabilitySection } from './runtime-inspector-memory-observability'
 import {
   applyTurnProfilerFilter,
   buildTurnProfilerRows,
@@ -108,7 +109,6 @@ function OverviewTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX
   )
 }
 
-// eslint-disable-next-line complexity
 function MemoryTab({
   snapshot,
   memoryHistory,
@@ -123,40 +123,50 @@ function MemoryTab({
 
   return (
     <div style={{ marginTop: '12px' }}>
+      {renderShortTermMemory(snapshot)}
+      {renderWorkingMemory(snapshot)}
+      {renderLongTermMemory(snapshot)}
+      {renderMemoryEvolution(memoryHistory, delta, lastSnapshot)}
+      <MemoryObservabilitySection layers={snapshot.memory.layers} />
+    </div>
+  )
+}
+
+function renderShortTermMemory(snapshot: RuntimeInspectorViewModel): JSX.Element {
+  return (
+    <>
       <strong>Short-term exchange memory</strong>
       <Row label="Exchange count">{String(snapshot.memory.layers.shortTerm.exchangeCount)}</Row>
       <Row label="Recent exchanges">
         {String(snapshot.memory.layers.shortTerm.recentExchanges.length)}
       </Row>
       {snapshot.memory.layers.shortTerm.recentExchanges.map((exchange, index) => (
-        <p
-          key={`${exchange.user}-${exchange.avatar}-${String(index)}`}
-          style={{ margin: '4px 0', color: '#374151' }}
-        >
+        <p key={`${exchange.user}-${exchange.avatar}-${String(index)}`} style={{ margin: '4px 0', color: '#374151' }}>
           U: {exchange.user} / A: {exchange.avatar}
         </p>
       ))}
+    </>
+  )
+}
 
+function renderWorkingMemory(snapshot: RuntimeInspectorViewModel): JSX.Element {
+  return (
+    <>
       <strong style={{ display: 'block', marginTop: '12px' }}>Working memory</strong>
       <Row label="Active avatar">{snapshot.memory.layers.activeAvatarId ?? '-'}</Row>
       <Row label="Working summary">{snapshot.memory.layers.working.current?.summary ?? '-'}</Row>
-      <Row label="Unresolved threads">
-        {String(snapshot.memory.layers.working.current?.unresolvedThreads.length ?? 0)}
-      </Row>
-      <Row label="Candidate facts">
-        {String(snapshot.memory.layers.working.current?.candidateFacts.length ?? 0)}
-      </Row>
+      <Row label="Unresolved threads">{String(snapshot.memory.layers.working.current?.unresolvedThreads.length ?? 0)}</Row>
+      <Row label="Candidate facts">{String(snapshot.memory.layers.working.current?.candidateFacts.length ?? 0)}</Row>
+    </>
+  )
+}
 
+function renderLongTermMemory(snapshot: RuntimeInspectorViewModel): JSX.Element {
+  return (
+    <>
       <strong style={{ display: 'block', marginTop: '12px' }}>Long-term avatar memories</strong>
       <Row label="Avatar count">{String(snapshot.memory.layers.longTerm.avatars.length)}</Row>
-      <Row label="Memory count">
-        {String(
-          snapshot.memory.layers.longTerm.avatars.reduce(
-            (total, avatar) => total + avatar.memories.length,
-            0,
-          ),
-        )}
-      </Row>
+      <Row label="Memory count">{String(snapshot.memory.layers.longTerm.avatars.reduce((total, avatar) => total + avatar.memories.length, 0))}</Row>
       {snapshot.memory.layers.longTerm.avatars.map((avatar) => (
         <div key={avatar.avatarId} style={{ margin: '8px 0' }}>
           <strong>{avatar.avatarId}</strong>
@@ -167,69 +177,39 @@ function MemoryTab({
           ))}
         </div>
       ))}
+    </>
+  )
+}
 
+function renderMemoryEvolution(
+  memoryHistory: MemoryEvolutionSnapshot[],
+  delta: ReturnType<typeof computeMemoryDelta> | null,
+  lastSnapshot: MemoryEvolutionSnapshot | null,
+): JSX.Element {
+  return (
+    <>
       <strong style={{ display: 'block', marginTop: '12px' }}>Memory evolution</strong>
-      {memoryHistory.length === 0 ? (
-        <p style={{ margin: '6px 0', color: '#6b7280' }}>No memory snapshots yet.</p>
-      ) : null}
+      {memoryHistory.length === 0 ? <p style={{ margin: '6px 0', color: '#6b7280' }}>No memory snapshots yet.</p> : null}
       {delta !== null ? (
         <>
           <Row label="Progress marker">{`turn ${String(lastSnapshot?.turnIndex ?? 0)} / ${lastSnapshot?.conversationId ?? '-'}`}</Row>
           <Row label="Delta summary">{`short-term +${String(delta.shortTerm.added.length)} -${String(delta.shortTerm.removed.length)}, working +${String(delta.working.avatarAdded.length)} ~${String(delta.working.avatarChanged.length)} -${String(delta.working.avatarRemoved.length)}, long-term +${String(delta.longTerm.added.length)} ~${String(delta.longTerm.changed.length)} -${String(delta.longTerm.removed.length)}`}</Row>
-          {delta.working.stale ? (
-            <p style={{ margin: '6px 0', color: '#b45309' }}>
-              Working memory stale: turn advanced but working summaries did not update.
-            </p>
-          ) : null}
+          {delta.working.stale ? <p style={{ margin: '6px 0', color: '#b45309' }}>Working memory stale: turn advanced but working summaries did not update.</p> : null}
           {delta.longTerm.added.length > 0 ? (
             <p style={{ margin: '6px 0', color: '#166534' }}>
-              New long-term avatar memory stored:{' '}
-              {delta.longTerm.added
-                .map((memory) => `${memory.avatarId}:${memory.conversationId}`)
-                .join(', ')}
+              New long-term avatar memory stored: {delta.longTerm.added.map((memory) => `${memory.avatarId}:${memory.conversationId}`).join(', ')}
             </p>
           ) : null}
         </>
       ) : null}
       <div style={{ marginTop: '8px' }}>
-        {memoryHistory
-          .slice()
-          .reverse()
-          .map((entry) => (
-            <p key={entry.snapshotId} style={{ margin: '4px 0', color: '#4b5563' }}>
-              [{new Date(entry.capturedAt).toLocaleTimeString()}] turn{' '}
-              {String(entry.turnIndex ?? 0)} · short-term{' '}
-              {String(entry.layers.shortTerm.exchangeCount)} · facts{' '}
-              {String(
-                entry.layers.longTerm.avatars.reduce(
-                  (total, avatar) => total + avatar.memories.length,
-                  0,
-                ),
-              )}
-            </p>
-          ))}
+        {memoryHistory.slice().reverse().map((entry) => (
+          <p key={entry.snapshotId} style={{ margin: '4px 0', color: '#4b5563' }}>
+            [{new Date(entry.capturedAt).toLocaleTimeString()}] turn {String(entry.turnIndex ?? 0)} · short-term {String(entry.layers.shortTerm.exchangeCount)} · facts {String(entry.layers.longTerm.avatars.reduce((total, avatar) => total + avatar.memories.length, 0))}
+          </p>
+        ))}
       </div>
-
-      <strong style={{ display: 'block', marginTop: '12px' }}>Selection observability</strong>
-      <Row label="Selected vs rejected">{`${String(snapshot.memory.layers.observability?.selection?.selectedCount ?? 0)} / ${String(snapshot.memory.layers.observability?.selection?.rejectedCount ?? 0)}`}</Row>
-      <Row label="Top reasons">
-        {snapshot.memory.layers.observability?.selection?.topSelectionReasons.join(', ') || '-'}
-      </Row>
-      <Row label="Selection sources">
-        {snapshot.memory.layers.observability?.selection?.sourceConversationIds.join(', ') || '-'}
-      </Row>
-
-      <strong style={{ display: 'block', marginTop: '12px' }}>Hydration observability</strong>
-      <Row label="Hydrated conversation">
-        {snapshot.memory.layers.observability?.hydration?.hydratedConversationId ?? '-'}
-      </Row>
-      <Row label="Hydration sources">
-        {snapshot.memory.layers.observability?.hydration?.sourceConversationIds.join(', ') || '-'}
-      </Row>
-      <Row label="Hydrated at">
-        {snapshot.memory.layers.observability?.hydration?.hydratedAt ?? '-'}
-      </Row>
-    </div>
+    </>
   )
 }
 
