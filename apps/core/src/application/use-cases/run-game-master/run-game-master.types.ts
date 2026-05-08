@@ -1,4 +1,5 @@
 import type { UserPersona } from '../../../domain/user/user.types.js'
+import type { SelectedMemoryPayload } from '../../../domain/memory/memory.types.js'
 
 export type RunGameMasterInput = {
   sessionId: string
@@ -9,4 +10,5 @@ export type RunGameMasterInput = {
   turnIndex: number
   correlationId: string
   userPersona?: UserPersona
+  selectedMemory?: SelectedMemoryPayload
 }

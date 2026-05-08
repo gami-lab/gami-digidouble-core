@@ -6,11 +6,11 @@ import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
-import type { ISessionMemoryRepository } from '../../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../ports/IUserRepository.js'
-import type { IAvatarSessionMemoryRepository } from '../../ports/IAvatarSessionMemoryRepository.js'
+import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
+import type { IConversationMemoryRepository } from '../../ports/IConversationMemoryRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { buildAvatarAwareness } from '../../../domain/avatar/avatar-awareness.service.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
@@ -19,18 +19,19 @@ import { DomainError } from '../../../domain/errors.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { UserPersona } from '../../../domain/user/user.types.js'
 import type { ConversationEndReason, EndConversationResponse } from '@gami/shared'
+import type { SelectedMemoryPayload } from '../../../domain/memory/memory.types.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import {
   emitTurnCompletedEventNonBlocking,
   traceNonBlocking,
 } from './send-message.observability.js'
-import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
+import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import {
   DEFAULT_IMPLICIT_END_POLICY,
-  detectImplicitEndReason,
   type ImplicitEndPolicy,
 } from '../../services/implicit-end-detection.service.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
+import { tryImplicitClose } from './send-message.implicit-close.js'
 
 const MESSAGE_HISTORY_LIMIT = 20
 type ConversationCloser = {
@@ -57,9 +58,9 @@ export class SendMessageUseCase {
     private readonly implicitEndPolicy: ImplicitEndPolicy = DEFAULT_IMPLICIT_END_POLICY,
     private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
     private readonly memoryMaintenance?: IMemoryMaintenancePort,
-    private readonly sessionMemoryRepository?: ISessionMemoryRepository,
-    private readonly avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository,
-    private readonly memoryContextAssembler?: AvatarMemoryContextAssembler,
+    private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
+    private readonly conversationMemoryRepository?: IConversationMemoryRepository,
+    private readonly memorySelectionService?: MemorySelectionService,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -71,10 +72,11 @@ export class SendMessageUseCase {
     const conversation = await this.loadActiveConversation(input.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
-    const { systemPrompt, userPersona } = await this.buildTurnPromptContext({
+    const { systemPrompt, userPersona, selectedMemory } = await this.buildTurnPromptContext({
       session,
       conversation,
       avatar,
+      userMessage: input.userMessage,
     })
     const historyMessages = await this.buildHistoryMessages(conversation.conversationId)
     const userMessage = await this.persistUserMessage(
@@ -106,6 +108,7 @@ export class SendMessageUseCase {
       userMessage: input.userMessage,
       turnIndex: nextTurnIndex,
       userPersona,
+      ...(selectedMemory !== undefined ? { selectedMemory } : {}),
     })
 
     const latencyMs = Date.now() - start
@@ -142,7 +145,10 @@ export class SendMessageUseCase {
       now,
     )
 
-    const implicitEnd = await this.tryImplicitClose({
+    const implicitEnd = await tryImplicitClose({
+      endConversationUseCase: this.endConversationUseCase,
+      eventLogRepository: this.eventLogRepository,
+      implicitEndPolicy: this.implicitEndPolicy,
       requestId,
       sessionId: session.sessionId,
       conversationId: conversation.conversationId,
@@ -165,16 +171,26 @@ export class SendMessageUseCase {
     session: Session
     conversation: Conversation
     avatar: AvatarConfig
-  }): Promise<{ systemPrompt: string; userPersona: UserPersona | undefined }> {
+    userMessage: string
+  }): Promise<{
+    systemPrompt: string
+    userPersona: UserPersona | undefined
+    selectedMemory?: SelectedMemoryPayload
+  }> {
     await this.loadScenario(args.session.scenarioId)
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(args.session.scenarioId)
     const userPersona = await this.loadUserPersona(args.session.userId)
-    const memory = await this.loadAvatarMemoryContext({
+    const selectedMemory = await this.loadSelectedMemory({
       conversationId: args.conversation.conversationId,
-      sessionId: args.session.sessionId,
       avatarId: args.conversation.avatarId,
       userId: args.session.userId,
+      scenarioId: args.session.scenarioId,
+      userMessageText: args.userMessage,
     })
+    const memory =
+      selectedMemory !== undefined
+        ? this.getMemorySelectionService().toAvatarMemorySnapshot(selectedMemory)
+        : undefined
 
     const systemPrompt = assemblePersonaPrompt(args.avatar, {
       ...(args.session.gmNotes !== undefined ? { gmNotes: args.session.gmNotes } : {}),
@@ -186,7 +202,11 @@ export class SendMessageUseCase {
       ...(userPersona !== undefined ? { userPersona } : {}),
       ...(memory !== undefined ? { memory } : {}),
     })
-    return { systemPrompt, userPersona }
+    return {
+      systemPrompt,
+      userPersona,
+      ...(selectedMemory !== undefined ? { selectedMemory } : {}),
+    }
   }
 
   private dispatchBackgroundUpdates(args: {
@@ -198,6 +218,7 @@ export class SendMessageUseCase {
     userMessage: string
     turnIndex: number
     userPersona: UserPersona | undefined
+    selectedMemory?: SelectedMemoryPayload
   }): void {
     this.dispatchRunGameMaster(args)
     this.dispatchMemoryMaintenance(args)
@@ -212,6 +233,7 @@ export class SendMessageUseCase {
     userMessage: string
     turnIndex: number
     userPersona: UserPersona | undefined
+    selectedMemory?: SelectedMemoryPayload
   }): void {
     if (this.runGameMasterUseCase === null) return
     void this.runGameMasterUseCase
@@ -224,6 +246,7 @@ export class SendMessageUseCase {
         turnIndex: args.turnIndex,
         correlationId: args.requestId,
         ...(args.userPersona !== undefined ? { userPersona: args.userPersona } : {}),
+        ...(args.selectedMemory !== undefined ? { selectedMemory: args.selectedMemory } : {}),
       })
       .catch((err: unknown) => {
         console.error(
@@ -243,17 +266,17 @@ export class SendMessageUseCase {
     avatarId: string
   }): void {
     if (this.memoryMaintenance === undefined) return
-    void this.memoryMaintenance
-      .execute({
+    void Promise.resolve(
+      this.memoryMaintenance.execute({
         sessionId: args.sessionId,
         conversationId: args.conversationId,
         avatarId: args.avatarId,
         trigger: 'post_turn',
         correlationId: args.requestId,
-      })
-      .catch((error: unknown) => {
-        console.error('[memory-maintenance] Background refresh failed:', error)
-      })
+      }),
+    ).catch((error: unknown) => {
+      console.error('[memory-maintenance] Background refresh failed:', error)
+    })
   }
 
   private buildOutput(
@@ -427,22 +450,31 @@ export class SendMessageUseCase {
     }
   }
 
-  private async loadAvatarMemoryContext(input: {
+  private async loadSelectedMemory(input: {
     conversationId: string
-    sessionId: string
     avatarId: string
     userId: string
+    scenarioId: string
+    userMessageText: string
   }) {
-    const assembler =
-      this.memoryContextAssembler ??
-      new AvatarMemoryContextAssembler(
+    try {
+      const selected = await this.getMemorySelectionService().select(input)
+      return hasSelectedMemoryContent(selected) ? selected : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  private getMemorySelectionService(): MemorySelectionService {
+    return (
+      this.memorySelectionService ??
+      new MemorySelectionService(
         this.messageRepository,
-        this.sessionMemoryRepository,
-        this.avatarSessionMemoryRepository,
+        this.conversationWorkingMemoryRepository,
+        this.conversationMemoryRepository,
         this.userMemoryFactRepository,
       )
-
-    return assembler.build(input)
+    )
   }
 
   private createMessageId(): string {
@@ -452,78 +484,17 @@ export class SendMessageUseCase {
   private nowIso(): string {
     return new Date().toISOString()
   }
-
-  private async tryImplicitClose(args: {
-    requestId: string
-    sessionId: string
-    conversationId: string
-    userMessage: string
-    lastActivityAtBeforeTurn: string
-    now: string
-  }) {
-    if (this.endConversationUseCase === null) return null
-
-    const reason = detectImplicitEndReason({
-      userMessage: args.userMessage,
-      lastActivityAt: args.lastActivityAtBeforeTurn,
-      now: args.now,
-      policy: this.implicitEndPolicy,
-    })
-    if (reason === null) return null
-
-    await this.appendEventSafe({
-      sessionId: args.sessionId,
-      type: 'implicit_end_detected',
-      severity: 'info',
-      requestId: args.requestId,
-      payload: {
-        conversationId: args.conversationId,
-        reason,
-      },
-    })
-
-    try {
-      const closed = await this.endConversationUseCase.execute({
-        sessionId: args.sessionId,
-        conversationId: args.conversationId,
-        reason,
-      })
-      await this.appendEventSafe({
-        sessionId: args.sessionId,
-        type: 'implicit_end_closed',
-        severity: 'info',
-        requestId: args.requestId,
-        payload: {
-          conversationId: args.conversationId,
-          reason,
-        },
-      })
-      return closed
-    } catch (error) {
-      await this.appendEventSafe({
-        sessionId: args.sessionId,
-        type: 'implicit_end_skipped',
-        severity: 'warning',
-        requestId: args.requestId,
-        payload: {
-          conversationId: args.conversationId,
-          reason,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-      })
-      return null
-    }
-  }
-
-  private async appendEventSafe(args: Parameters<IEventLogRepository['append']>[0]): Promise<void> {
-    try {
-      await this.eventLogRepository.append(args)
-    } catch (error) {
-      console.error('[send-message] Event log append failed:', error)
-    }
-  }
 }
 
 function hasText(value: string): boolean {
   return value.trim().length > 0
+}
+
+function hasSelectedMemoryContent(selected: SelectedMemoryPayload): boolean {
+  return (
+    selected.shortTermExchanges.length > 0 ||
+    selected.workingMemory !== undefined ||
+    selected.episodicMemories.length > 0 ||
+    selected.longTermFacts.length > 0
+  )
 }

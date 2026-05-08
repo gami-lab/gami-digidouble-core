@@ -11,6 +11,9 @@ export const MEMORY_SHORT_TERM_EXCHANGE_LIMIT = 2
 /** Maximum long-term facts injected into Avatar/GM context per turn. */
 export const MEMORY_LONG_TERM_FACT_LIMIT = 10
 
+/** Maximum episodic memories selected for turn-time context. */
+export const MEMORY_EPISODIC_SELECTION_LIMIT = 3
+
 /** Default cap for long-term facts returned in admin inspection responses. */
 export const ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT = 50
 

@@ -102,6 +102,20 @@ export type LayeredMemorySnapshot = {
 export type GameMasterMemoryContext = {
   shortTerm?: Pick<ShortTermMemoryWindow, 'recentExchanges'>
   workingSummary?: string
+  workingMemory?: {
+    summary: string
+    unresolvedThreads: string[]
+  }
+  episodicMemories?: Array<{
+    memoryId: string
+    conversationId: string
+    summary: string
+    keyDiscoveries: string[]
+    unresolvedTopics: string[]
+    createdAt: string
+    selectionReasons: string[]
+    score: number
+  }>
   longTermFacts?: LongTermMemoryFact[]
 }
 
@@ -109,3 +123,33 @@ export type ConversationWorkingMemoryRefreshOutput = Pick<
   ConversationWorkingMemory,
   'summary' | 'unresolvedThreads' | 'candidateFacts'
 >
+
+export type MemorySelectionReason =
+  | 'recency'
+  | 'relevance'
+  | 'continuity'
+  | 'unresolved_topic'
+  | 'working_memory'
+
+export type SelectedEpisodicMemory = {
+  memoryId: string
+  conversationId: string
+  summary: string
+  keyDiscoveries: string[]
+  unresolvedTopics: string[]
+  createdAt: string
+  score: number
+  selectionReasons: MemorySelectionReason[]
+}
+
+export type SelectedMemoryPayload = {
+  shortTermExchanges: ShortTermMemoryExchange[]
+  workingMemory?: {
+    summary: string
+    unresolvedThreads: string[]
+    updatedAt: string
+    selectionReasons: MemorySelectionReason[]
+  }
+  episodicMemories: SelectedEpisodicMemory[]
+  longTermFacts: LongTermMemoryFact[]
+}

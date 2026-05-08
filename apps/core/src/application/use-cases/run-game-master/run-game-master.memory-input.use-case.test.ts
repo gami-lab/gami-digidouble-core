@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
+import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
 const findBySessionIdMock = vi.fn()
@@ -8,8 +8,8 @@ const findSessionByIdMock = vi.fn()
 const updateSessionMock = vi.fn()
 const listAvatarsByScenarioIdMock = vi.fn()
 const findMessagesByConversationIdMock = vi.fn()
-const findSessionMemoryBySessionIdMock = vi.fn()
-const findAvatarMemoryBySessionAndAvatarMock = vi.fn()
+const findConversationWorkingMemoryByConversationIdMock = vi.fn()
+const listConversationMemoriesByScopeMock = vi.fn()
 const findFactsByUserIdMock = vi.fn()
 const completeMock = vi.fn()
 const traceMock = vi.fn()
@@ -38,16 +38,15 @@ const messageRepository = {
   findById: vi.fn(),
   deleteByConversationId: vi.fn(),
 }
-const sessionMemoryRepository = {
-  findBySessionId: findSessionMemoryBySessionIdMock,
+const conversationWorkingMemoryRepository = {
+  findByConversationId: findConversationWorkingMemoryByConversationIdMock,
   upsert: vi.fn(),
   deleteBySessionId: vi.fn(),
 }
-const avatarSessionMemoryRepository = {
-  findBySessionIdAndAvatarId: findAvatarMemoryBySessionAndAvatarMock,
-  listBySessionId: vi.fn(),
-  upsert: vi.fn(),
-  deleteBySessionIdAndAvatarId: vi.fn(),
+const conversationMemoryRepository = {
+  findByConversationId: vi.fn(),
+  create: vi.fn(),
+  listByScope: listConversationMemoriesByScopeMock,
   deleteBySessionId: vi.fn(),
 }
 const userMemoryFactRepository = {
@@ -60,10 +59,10 @@ const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
 
 function createUseCase(): RunGameMasterUseCase {
-  const assembler = new AvatarMemoryContextAssembler(
+  const memorySelection = new MemorySelectionService(
     messageRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
+    conversationWorkingMemoryRepository,
+    conversationMemoryRepository,
     userMemoryFactRepository,
   )
   return new RunGameMasterUseCase(
@@ -77,7 +76,7 @@ function createUseCase(): RunGameMasterUseCase {
     undefined,
     messageRepository,
     undefined,
-    assembler,
+    memorySelection,
   )
 }
 
@@ -88,8 +87,8 @@ beforeEach(() => {
   updateSessionMock.mockReset()
   listAvatarsByScenarioIdMock.mockReset()
   findMessagesByConversationIdMock.mockReset()
-  findSessionMemoryBySessionIdMock.mockReset()
-  findAvatarMemoryBySessionAndAvatarMock.mockReset()
+  findConversationWorkingMemoryByConversationIdMock.mockReset()
+  listConversationMemoriesByScopeMock.mockReset()
   findFactsByUserIdMock.mockReset()
   completeMock.mockReset()
   traceMock.mockReset()
@@ -148,17 +147,16 @@ describe('RunGameMasterUseCase memory input', () => {
       { role: 'user', content: 'U3', createdAt: '2026-04-18T10:00:05.000Z' },
       { role: 'avatar', content: 'A3', createdAt: '2026-04-18T10:00:06.000Z' },
     ])
-    findSessionMemoryBySessionIdMock.mockResolvedValue({
-      sessionId: 'session_1',
-      summary: 'Session working summary',
-      updatedAt: '2026-04-18T10:00:06.000Z',
-    })
-    findAvatarMemoryBySessionAndAvatarMock.mockResolvedValue({
+    findConversationWorkingMemoryByConversationIdMock.mockResolvedValue({
+      conversationId: 'conversation_1',
       sessionId: 'session_1',
       avatarId: 'avatar_1',
-      summary: 'Avatar working summary',
+      summary: 'Session working summary',
+      unresolvedThreads: ['Follow up on budget'],
+      candidateFacts: [],
       updatedAt: '2026-04-18T10:00:06.000Z',
     })
+    listConversationMemoriesByScopeMock.mockResolvedValue([])
     findFactsByUserIdMock.mockResolvedValue([
       {
         id: 'fact_1',
@@ -187,7 +185,8 @@ describe('RunGameMasterUseCase memory input', () => {
       JSON.parse(request.messages[0]?.content ?? '{}') as { context: { memory: unknown } }
     ).context.memory as {
       shortTerm?: { recentExchanges: Array<{ user: string; avatar: string }> }
-      workingSummary?: string
+      workingMemory?: { summary: string; unresolvedThreads: string[] }
+      episodicMemories?: Array<{ conversationId: string }>
       longTermFacts?: Array<{ category: string; key: string; value: string }>
     }
 
@@ -195,9 +194,11 @@ describe('RunGameMasterUseCase memory input', () => {
       { user: 'U2', avatar: 'A2' },
       { user: 'U3', avatar: 'A3' },
     ])
-    expect(memory.workingSummary).toBe(
-      'Session working summary\nAvatar (avatar_1): Avatar working summary',
-    )
+    expect(memory.workingMemory).toEqual({
+      summary: 'Session working summary',
+      unresolvedThreads: ['Follow up on budget'],
+    })
+    expect(memory.episodicMemories).toBeUndefined()
     expect(memory.longTermFacts).toEqual([
       { category: 'preference', key: 'tone', value: 'concise' },
     ])

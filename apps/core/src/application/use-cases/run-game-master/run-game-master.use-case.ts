@@ -19,17 +19,8 @@ import type {
   GameMasterState,
 } from '../../../domain/game-master/game-master.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
-import type {
-  LayeredMemorySnapshot,
-  LongTermMemoryFact,
-  ShortTermMemoryExchange,
-} from '../../../domain/memory/memory.types.js'
-import {
-  MEMORY_LONG_TERM_FACT_LIMIT,
-  MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
-} from '../../../domain/memory/memory.policy.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
-import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
+import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import { safeParseGameMasterOutput } from './run-game-master.helpers.js'
 import {
   resolveAvatarUnlocks,
@@ -70,7 +61,7 @@ export class RunGameMasterUseCase {
     private readonly conversationRepository?: IConversationRepository,
     private readonly messageRepository?: IMessageRepository,
     private readonly sessionEventPublisher?: ISessionEventPublisher,
-    private readonly memoryContextAssembler?: AvatarMemoryContextAssembler,
+    private readonly memorySelectionService?: MemorySelectionService,
   ) {}
 
   async execute(input: RunGameMasterInput): Promise<void> {
@@ -282,7 +273,7 @@ export class RunGameMasterUseCase {
     scenarioAvatars: AvatarConfig[],
   ): Promise<GameMasterInput> {
     const recentMessages = await this.loadRecentMessages(input.conversationId)
-    const memory = await this.loadMemoryContext(input, session, recentMessages)
+    const memory = await this.loadMemoryContext(input, session)
 
     return {
       session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
@@ -307,27 +298,31 @@ export class RunGameMasterUseCase {
   private async loadMemoryContext(
     input: RunGameMasterInput,
     session: Session | null,
-    recentMessages: GameMasterInput['recentMessages'],
   ): Promise<GameMasterInput['context']['memory'] | undefined> {
-    if (
-      this.memoryContextAssembler === undefined ||
-      session === null ||
-      input.conversationId === undefined
-    ) {
-      return this.buildLegacyMemoryContext(recentMessages, session)
+    if (input.selectedMemory !== undefined) {
+      return this.getMemorySelectionServiceForFallback().toGameMasterMemoryContext(
+        input.selectedMemory,
+      )
     }
-
-    const memorySnapshot = await this.memoryContextAssembler.build({
-      conversationId: input.conversationId,
-      sessionId: input.sessionId,
-      avatarId: input.avatarId,
-      userId: session.userId,
-    })
-
-    return (
-      this.toGameMasterMemoryContext(memorySnapshot) ??
-      this.buildLegacyMemoryContext(recentMessages, session)
-    )
+    if (
+      session === null ||
+      input.conversationId === undefined ||
+      this.messageRepository === undefined
+    ) {
+      return undefined
+    }
+    try {
+      const selectedMemory = await this.getMemorySelectionService().select({
+        conversationId: input.conversationId,
+        userId: session.userId,
+        avatarId: input.avatarId,
+        scenarioId: input.scenarioId,
+        userMessageText: input.userMessageText,
+      })
+      return this.getMemorySelectionService().toGameMasterMemoryContext(selectedMemory)
+    } catch {
+      return undefined
+    }
   }
 
   private async loadRecentMessages(
@@ -343,86 +338,32 @@ export class RunGameMasterUseCase {
       .map((message) => ({ role: message.role, content: message.content }))
   }
 
-  private buildLegacyMemoryContext(
-    recentMessages: GameMasterInput['recentMessages'],
-    session: Session | null,
-  ): GameMasterInput['context']['memory'] | undefined {
-    const normalizedRecentMessages = recentMessages ?? []
-    const recentExchanges = this.buildRecentExchanges(normalizedRecentMessages)
-    const workingSummary = hasText(session?.memorySummary)
-      ? session.memorySummary.trim()
-      : undefined
-
-    if (recentExchanges.length === 0 && workingSummary === undefined) return undefined
-    return {
-      ...(recentExchanges.length > 0 ? { shortTerm: { recentExchanges } } : {}),
-      ...(workingSummary !== undefined ? { workingSummary } : {}),
-    }
-  }
-
-  private toGameMasterMemoryContext(
-    memorySnapshot: LayeredMemorySnapshot | undefined,
-  ): GameMasterInput['context']['memory'] | undefined {
-    if (memorySnapshot === undefined) return undefined
-    const recentExchanges = memorySnapshot.shortTerm?.recentExchanges ?? []
-    const workingSummary = this.buildWorkingSummary(memorySnapshot)
-    const boundedLongTermFacts = this.getBoundedLongTermFacts(memorySnapshot)
-
-    if (!this.hasMemoryLayer(recentExchanges, workingSummary, boundedLongTermFacts))
-      return undefined
-
-    return {
-      ...(recentExchanges.length > 0 ? { shortTerm: { recentExchanges } } : {}),
-      ...(workingSummary !== undefined ? { workingSummary } : {}),
-      ...(boundedLongTermFacts !== undefined ? { longTermFacts: boundedLongTermFacts } : {}),
-    }
-  }
-
-  private buildRecentExchanges(
-    recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
-  ): ShortTermMemoryExchange[] {
-    const exchanges: ShortTermMemoryExchange[] = []
-    let pendingUserMessage: string | null = null
-
-    for (const message of recentMessages) {
-      if (message.role === 'user') {
-        pendingUserMessage = message.content
-        continue
-      }
-      if (message.role === 'avatar' && pendingUserMessage !== null) {
-        exchanges.push({ user: pendingUserMessage, avatar: message.content })
-        pendingUserMessage = null
-      }
-    }
-
-    return exchanges.slice(-MEMORY_SHORT_TERM_EXCHANGE_LIMIT)
-  }
-
-  private buildWorkingSummary(memorySnapshot: LayeredMemorySnapshot): string | undefined {
-    const segments: string[] = []
-    if (hasText(memorySnapshot.working?.session?.summary)) {
-      segments.push(memorySnapshot.working.session.summary.trim())
-    }
-    if (hasText(memorySnapshot.working?.avatar?.summary)) {
-      segments.push(
-        `Avatar (${memorySnapshot.working.avatar.avatarId}): ${memorySnapshot.working.avatar.summary.trim()}`,
+  private getMemorySelectionService(): MemorySelectionService {
+    return (
+      this.memorySelectionService ??
+      new MemorySelectionService(
+        this.messageRepository as IMessageRepository,
+        undefined,
+        undefined,
+        undefined,
       )
-    }
-    return segments.length > 0 ? segments.join('\n') : undefined
+    )
   }
 
-  private getBoundedLongTermFacts(memorySnapshot: LayeredMemorySnapshot) {
-    const facts = memorySnapshot.longTerm?.facts
-    if (!Array.isArray(facts) || facts.length === 0) return undefined
-    return facts.slice(0, MEMORY_LONG_TERM_FACT_LIMIT)
-  }
-
-  private hasMemoryLayer(
-    recentExchanges: ShortTermMemoryExchange[],
-    workingSummary: string | undefined,
-    longTermFacts: LongTermMemoryFact[] | undefined,
-  ): boolean {
-    return recentExchanges.length > 0 || workingSummary !== undefined || longTermFacts !== undefined
+  private getMemorySelectionServiceForFallback(): MemorySelectionService {
+    return (
+      this.memorySelectionService ??
+      new MemorySelectionService(
+        {
+          save: () => Promise.reject(new Error('not_implemented')),
+          findByConversationId: () => Promise.resolve([]),
+          deleteByConversationId: () => Promise.resolve(0),
+        } satisfies IMessageRepository,
+        undefined,
+        undefined,
+        undefined,
+      )
+    )
   }
 
   private async persistTriggeredNotes(sessionId: string, output: GameMasterOutput): Promise<void> {

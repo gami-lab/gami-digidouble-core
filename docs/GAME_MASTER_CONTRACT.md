@@ -163,6 +163,22 @@ export type GameMasterInput = {
         }>
       }
       workingSummary?: string
+      workingMemory?: {
+        summary: string
+        unresolvedThreads: string[]
+      }
+      episodicMemories?: Array<{
+        memoryId: string
+        conversationId: string
+        summary: string
+        keyDiscoveries: string[]
+        unresolvedTopics: string[]
+        createdAt: string
+        selectionReasons: Array<
+          'recency' | 'relevance' | 'continuity' | 'unresolved_topic' | 'working_memory'
+        >
+        score: number
+      }>
       longTermFacts?: Array<{
         category: string
         key: string
@@ -443,10 +459,12 @@ The current MVP implementation runs GM as an async observer after each avatar tu
    - `topicsCovered: []`
    - `interactionCount: 0`
 2. Build `GameMasterInput` (session, recent messages, user message, state, scenario goals, avatar availability context, and `context.memory`).
+   - `context.memory` is assembled by one shared deterministic selection service used by Avatar + GM.
    - `context.memory.shortTerm.recentExchanges` is derived from bounded recent user/avatar message pairs (exactly the last 2 exchanges).
-   - `context.memory.workingSummary` is composed from session working memory and active-avatar working memory when available.
+   - `context.memory.workingMemory` carries the conversation-scoped working summary + unresolved threads.
+   - `context.memory.episodicMemories` carries bounded selected prior episodes with deterministic scoring and selection reasons.
    - `context.memory.longTermFacts` is populated from bounded structured user facts.
-   - Memory-layer assembly is shared with Avatar turn context assembly to keep layer ownership and bounds consistent.
+   - `context.memory.workingSummary` remains as a compatibility mirror of `workingMemory.summary`.
 3. Call LLM via `ILlmAdapter.complete()` every post-turn run.
 4. Parse JSON into `GameMasterOutput`.
 5. Validate unlock, suggestion, and switch targets against active scenario avatars and session unlock state.
@@ -613,7 +631,7 @@ This endpoint provides a bounded, structured snapshot of the same inputs used by
   - scenario metadata (description/goals)
 - GM-facing context layers:
   - recent messages (bounded)
-  - memory context (`shortTerm`, `workingSummary`, `longTermFacts`)
+  - memory context (`shortTerm`, `workingMemory`, `episodicMemories`, `longTermFacts`)
   - current GM state
   - available avatars with availability flags
   - user persona

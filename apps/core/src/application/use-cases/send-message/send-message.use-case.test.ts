@@ -409,9 +409,12 @@ describe('SendMessageUseCase — memory maintenance', () => {
     const useCase = createUseCase(false, true, false, false, true)
     memoryMaintenanceExecuteMock.mockRejectedValueOnce(new Error('refresh failed'))
 
-    await expect(
-      useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello memory' }),
-    ).resolves.toBeDefined()
+    await expectConsoleError(async () => {
+      await expect(
+        useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello memory' }),
+      ).resolves.toBeDefined()
+      await Promise.resolve()
+    }, /memory-maintenance/)
   })
 })
 
@@ -487,6 +490,23 @@ describe('SendMessageUseCase — validation and GM integration', () => {
         userMessageText: 'Hello',
       }),
     )
+  })
+
+  it('passes selected memory payload to run game master when available', async () => {
+    const useCase = createUseCase(true, true, false, true)
+    findMessagesByConversationIdMock.mockResolvedValue([
+      { role: 'user', content: 'Need help', createdAt: '2026-05-08T10:00:00.000Z' },
+      { role: 'avatar', content: 'Sure', createdAt: '2026-05-08T10:00:01.000Z' },
+    ])
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    const gmInput = runGameMasterExecuteMock.mock.calls[0]?.[0] as {
+      selectedMemory?: { shortTermExchanges: Array<{ user: string; avatar: string }> }
+    }
+    expect(gmInput.selectedMemory?.shortTermExchanges).toEqual([
+      { user: 'Need help', avatar: 'Sure' },
+    ])
   })
 })
 

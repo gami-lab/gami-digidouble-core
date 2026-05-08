@@ -97,6 +97,28 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `pnpm -w -r typecheck` PASS
   - targeted unit tests PASS (episodic policy/service, start hydration, end generation, in-memory episodic repository)
 
+### EPIC 4.2c — Memory selection policy and GM integration: **in progress** (2026-05-08)
+
+- Added canonical deterministic memory selection policy + shared assembly service:
+  - `apps/core/src/domain/memory/memory-selection.policy.ts`
+  - `apps/core/src/application/services/memory-selection.service.ts`
+- Selection policy now scores bounded episodic candidates using deterministic factors:
+  - recency
+  - relevance to current user turn
+  - continuity (scope)
+  - unresolved-topic overlap
+- Introduced one shared selected-memory payload consumed by both runtime paths:
+  - Avatar turn prompt assembly (`SendMessageUseCase`)
+  - GM input assembly (`RunGameMasterUseCase`)
+- Updated GM memory context contract to explicitly include:
+  - `workingMemory`
+  - `episodicMemories` with selection reasons + score
+  - bounded `longTermFacts`
+  - compatibility mirror `workingSummary`
+- Removed duplicated in-use-case memory assembly logic from `RunGameMasterUseCase`; assembly now routes through the shared selection service.
+- Validation status for this slice:
+  - targeted memory-selection + send-message + GM memory-input tests PASS
+
 ### EPIC 2.8 — Console debugging redesign (contract cleanup + path pruning): **complete** (2026-05-07)
 
 - Removed remaining runtime-debug UI branch duplication in console Session page:

@@ -95,6 +95,7 @@ Use async processing for:
 
 - Game Master triggers
 - memory maintenance refresh (session + avatar working memory)
+- deterministic memory selection assembly (shared payload for Avatar + GM)
 - logging flush
 - analytics
 - background evaluations
