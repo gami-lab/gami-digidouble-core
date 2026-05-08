@@ -247,3 +247,43 @@ describe('RunGameMasterUseCase memory input', () => {
     expect(first?.selectionReasons?.length).toBeGreaterThan(0)
   })
 })
+
+describe('RunGameMasterUseCase trace context', () => {
+  it('attaches wrapper trace context for centralized gm llm observability', async () => {
+    const useCase = createUseCase()
+    findMessagesByConversationIdMock.mockResolvedValue([])
+    findConversationWorkingMemoryByConversationIdMock.mockResolvedValue(null)
+    listConversationMemoriesByScopeMock.mockResolvedValue([])
+    findFactsByUserIdMock.mockResolvedValue([])
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      conversationId: 'conversation_1',
+      userMessageText: 'hello',
+      turnIndex: 2,
+      correlationId: 'corr_trace_ctx',
+    })
+
+    const request = completeMock.mock.calls[0]?.[0] as {
+      trace?: {
+        requestId?: string
+        sessionId?: string
+        event?: string
+        errorEvent?: string
+        metadata?: Record<string, unknown>
+      }
+    }
+
+    expect(request.trace).toEqual(
+      expect.objectContaining({
+        requestId: 'corr_trace_ctx',
+        sessionId: 'session_1',
+        event: 'gm.llm_completion',
+        errorEvent: 'gm.llm_error',
+      }),
+    )
+    expect(request.trace?.metadata?.['triggerReason']).toBe('post_turn_observation')
+  })
+})

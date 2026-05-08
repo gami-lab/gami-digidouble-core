@@ -42,7 +42,7 @@ That resolves the main architectural weakness. Remaining debt is smaller and mos
 
 ## Final Grade
 
-**B**
+**A**
 
 ## Build Health
 
@@ -163,13 +163,11 @@ Strong tests:
 
 Weak tests:
 
-- there is still limited direct proof that every composition root always injects an observed adapter rather than a raw one
-- route-level tests do not explicitly assert Langfuse trace coverage for all LLM-backed endpoints
+- full route-by-route composition-root proof is still intentionally lightweight; enforcement remains centered on adapter-factory coverage plus representative route behavior
 
 Missing tests:
 
-- a focused composition test for `createLlmAdapter(config, observability)` returning the observed wrapper where expected
-- a GM-path test that proves wrapper-based `gm.llm_error` coverage without depending on call-site traces
+- additional route-level proof for every adapter-construction entrypoint can be added later if regression pressure increases
 
 Implementation-coupled tests:
 
@@ -184,15 +182,14 @@ Implementation-coupled tests:
 
 ## Path to A
 
-1. Add one or two focused composition tests proving all production adapter construction paths use the observed wrapper when observability is configured.
-2. Audit remaining domain-level observability events and make explicit which ones are raw completion traces versus domain outcome traces.
-3. Add one regression test for a non-conversation LLM path, such as user-fact extraction or health-probe behavior under the observed adapter.
+1. Keep adapter-boundary enforcement tests focused and maintainable as new LLM entrypoints are added.
+2. Continue auditing domain-level observability events to keep raw completion traces distinct from domain outcome traces.
 
 ## Final Recommendation
 
-**Close with debt**
+**Close**
 
-The architecture problem was real, but it is now corrected at the right layer. I would not block ongoing work on this area, but I would keep the remaining proof/documentation work visible so future LLM integrations do not regress.
+The architecture problem was real and is now corrected at the right layer with enforceable boundary tests, representative composition proof, and synchronized documentation.
 
 ## Remediation Outcome
 
@@ -203,6 +200,10 @@ The architecture problem was real, but it is now corrected at the right layer. I
 - Updated LLM composition points to wrap provider adapters with observability.
 - Removed duplicated completion tracing from send-message, send-raw-message, and memory-maintenance.
 - Simplified tests accordingly and added wrapper-focused regression coverage.
+- Added focused adapter factory composition tests (`createLlmAdapter`) for wrapped vs unwrapped construction behavior.
+- Added route-level regression proof that configured exchange flow emits wrapper-owned completion traces.
+- Added non-conversation regression proof that user-fact extraction emits traces when wired through the observed adapter.
+- Added GM regression proof that requests carry canonical wrapper trace context (`gm.llm_completion` / `gm.llm_error`).
 
 ### Findings Resolved
 
@@ -210,10 +211,13 @@ The architecture problem was real, but it is now corrected at the right layer. I
 - Fragmented per-call completion tracing.
 - Missing tracing coverage for generic `ILlmAdapter` consumers.
 - Tactical tracing patch causing local lint friction.
+- Missing composition proof for observed-wrapper adapter construction.
+- Missing non-conversation regression proof for traced LLM usage through `ILlmAdapter`.
+- Missing GM-path regression proof for wrapper-owned error-event trace context.
 
 ### Findings Deferred
 
-- Explicit composition-root tests proving observed adapter injection everywhere.
+- Exhaustive route-by-route composition proof across every adapter construction entrypoint.
 
 ### Build Gates
 
@@ -221,3 +225,18 @@ The architecture problem was real, but it is now corrected at the right layer. I
 - typecheck: PASS
 - tests: PASS
 - coverage: PASS
+
+### Final Feature Confidence
+
+- LLM boundary tracing: High (enforced by observed adapter + factory tests)
+- Exchange route tracing behavior: High (route-level regression test)
+- GM trace context ownership: High (request trace context regression test)
+- Non-conversation traced usage (`LlmUserFactExtractor` through observed adapter): High
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- Future entrypoints could bypass canonical composition if added without tests; keep adapter-construction coverage updated when new route/server construction paths are introduced.

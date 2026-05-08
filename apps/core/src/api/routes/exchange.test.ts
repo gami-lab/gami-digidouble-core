@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { SendRawMessageOutput } from '../../application/use-cases/send-raw-message/send-raw-message.types.js'
+import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { Config } from '../../config.js'
 import { LlmError, NullLlmAdapter } from '../../infrastructure/llm/index.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
@@ -30,6 +31,10 @@ function makeApp(llmReply = 'null adapter response', model = 'null') {
     observabilityAdapter: new NullObservabilityAdapter(),
   })
 }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('POST /v1/exchange — auth and validation', () => {
   it('returns 200 with standard envelope when request is valid', async () => {
@@ -163,5 +168,33 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<SendRawMessageOutput>>()
     expect(body.data?.reply).toBe('Arr pir8!')
+  })
+
+  it('emits observability traces when route creates the adapter from config', async () => {
+    const trace = vi.fn<IObservabilityAdapter['trace']>().mockResolvedValue(undefined)
+    const observability: IObservabilityAdapter = {
+      trace,
+      flush: vi.fn().mockResolvedValue(undefined),
+    }
+    const app = createServer(testConfig, {
+      observabilityAdapter: observability,
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/exchange',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { message: 'hello' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(trace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'llm.completion',
+      }),
+    )
+
+    const firstTraceEvent = trace.mock.calls[0]?.[0]
+    expect(firstTraceEvent?.metadata?.['surface']).toBe('send_raw_message')
   })
 })

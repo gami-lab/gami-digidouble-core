@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ILlmAdapter, LlmRequest, LlmResponse } from '../../application/ports/ILlmAdapter.js'
+import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import { LlmUserFactExtractor } from './llm-user-fact-extractor.js'
+import { ObservedLlmAdapter } from './observed.adapter.js'
 
 function createLlm(content: string): ILlmAdapter {
   return {
@@ -89,5 +91,26 @@ describe('LlmUserFactExtractor', () => {
     const extractor = new LlmUserFactExtractor(llm)
 
     await expect(extractor.extract(input)).resolves.toEqual([])
+  })
+
+  it('emits a trace when extractor uses an observed adapter', async () => {
+    const base = createLlm('[{"category":"identity","key":"language","value":"english"}]')
+    const observabilityTrace = vi.fn().mockResolvedValue(undefined)
+    const observability: IObservabilityAdapter = {
+      trace: observabilityTrace,
+      flush: vi.fn().mockResolvedValue(undefined),
+    }
+    const extractor = new LlmUserFactExtractor(new ObservedLlmAdapter(base, observability))
+
+    await expect(extractor.extract(input)).resolves.toEqual([
+      { category: 'identity', key: 'language', value: 'english' },
+    ])
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(observabilityTrace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'llm.completion',
+      }),
+    )
   })
 })
