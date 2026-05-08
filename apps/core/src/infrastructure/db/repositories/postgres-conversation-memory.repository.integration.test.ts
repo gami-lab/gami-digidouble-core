@@ -1,5 +1,5 @@
 import type { Sql } from 'postgres'
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
 import { PostgresAvatarRepository } from './postgres-avatar.repository.js'
 import { PostgresConversationMemoryRepository } from './postgres-conversation-memory.repository.js'
@@ -28,7 +28,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationMemoryRepository', () => {
     conversationRepo = new PostgresConversationRepository(sql)
   })
 
-  afterEach(async () => {
+  beforeEach(async () => {
     await truncateAllTables(sql)
     const scenario = await scenarioRepo.create({ name: 'Episodic harness', status: 'active' })
     scenarioId = scenario.scenarioId
@@ -47,6 +47,10 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationMemoryRepository', () => {
       startedBy: 'user',
     })
     conversationId = conversation.conversationId
+  })
+
+  afterEach(async () => {
+    await truncateAllTables(sql)
   })
 
   afterAll(async () => {
