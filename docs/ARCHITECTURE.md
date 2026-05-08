@@ -463,6 +463,8 @@ Contains:
 - structured error events
 - adapter abstraction for swappable backends
 
+LLM completion tracing is enforced at the LLM boundary via the observed adapter wrapper (`ObservedLlmAdapter`) composed by `createLlmAdapter(...)`. Application use cases pass optional trace context on `LlmRequest`; they do not own baseline completion/error trace emission.
+
 **Scope boundary:** Observability covers instrumentation only.
 It does not cover admin actions, session inspection, or recovery tools.
 Those belong to the Operations module.

@@ -175,18 +175,18 @@ Implementation-coupled tests:
 
 - the removed send-raw-message observability assertions were implementation-coupled because they tested local trace calls rather than guaranteed tracing behavior at the adapter boundary
 
-## Documentation Gaps
+## Documentation Updates
 
-- docs/ARCHITECTURE.md should explicitly state that LLM observability is enforced by the observed adapter wrapper at composition time.
-- docs/PROJECT_STATUS.md should note that LLM tracing is now centralized rather than call-site-specific.
-- If there is an operations runbook for Langfuse, it should distinguish raw completion traces from domain-level traces such as `gm.triggered`.
+- `docs/ARCHITECTURE.md` now explicitly states that LLM observability is enforced by the observed adapter wrapper at composition time.
+- `docs/PROJECT_STATUS.md` now records centralized LLM tracing ownership at the adapter boundary.
+- `docs/TECH_STACK.md` now documents wrapper-based baseline Langfuse completion/error emission and `createLlmAdapter(config, observability)` composition.
+- If there is an operations runbook for Langfuse, keep raw completion traces distinguished from domain-level traces such as `gm.triggered`.
 
 ## Path to A
 
 1. Add one or two focused composition tests proving all production adapter construction paths use the observed wrapper when observability is configured.
-2. Document the observed LLM wrapper in architecture/operations docs so the pattern remains canonical.
-3. Audit remaining domain-level observability events and make explicit which ones are raw completion traces versus domain outcome traces.
-4. Add one regression test for a non-conversation LLM path, such as user-fact extraction or health-probe behavior under the observed adapter.
+2. Audit remaining domain-level observability events and make explicit which ones are raw completion traces versus domain outcome traces.
+3. Add one regression test for a non-conversation LLM path, such as user-fact extraction or health-probe behavior under the observed adapter.
 
 ## Final Recommendation
 
@@ -214,7 +214,6 @@ The architecture problem was real, but it is now corrected at the right layer. I
 ### Findings Deferred
 
 - Explicit composition-root tests proving observed adapter injection everywhere.
-- Documentation updates for the new canonical wrapper pattern.
 
 ### Build Gates
 

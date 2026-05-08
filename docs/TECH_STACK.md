@@ -248,6 +248,12 @@ Current implementation baseline (EPIC 1.2):
 - first non-session loop exposed via `POST /v1/exchange`
 - every successful call returns and traces `model`, `inputTokens`, `outputTokens`, and `latencyMs`
 
+Current implementation hardening (2026-05-08):
+
+- baseline completion/error tracing is centralized at the LLM adapter boundary through `ObservedLlmAdapter`
+- composition roots build adapters through `createLlmAdapter(config, observability)` so tracing does not depend on per-use-case instrumentation
+- use cases provide optional request-scoped trace context on `LlmRequest.trace` for session/correlation metadata
+
 ---
 
 ## 7. LLM Providers (Initial)
@@ -470,6 +476,8 @@ This is now explicitly the roadmap baseline, and it directly addresses the main 
 ### Scope
 
 **Langfuse covers LLM traces only.**
+
+Baseline completion/error Langfuse emission is guaranteed by the observed LLM adapter wrapper, not by duplicated use-case trace calls.
 
 It captures:
 
