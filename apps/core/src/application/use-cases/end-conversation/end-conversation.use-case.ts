@@ -65,12 +65,16 @@ export class EndConversationUseCase {
     await this.sessionRepository.update(sessionId, { lastActivityAt: now })
     this.emitSessionClosed(sessionId, conversationId)
     if (this.memoryMaintenance !== undefined) {
-      void this.memoryMaintenance.execute({
-        sessionId,
-        conversationId,
-        avatarId: conversation.avatarId,
-        trigger: 'conversation_closed',
-      })
+      void this.memoryMaintenance
+        .execute({
+          sessionId,
+          conversationId,
+          avatarId: conversation.avatarId,
+          trigger: 'conversation_closed',
+        })
+        .catch((error: unknown) => {
+          console.error('[end-conversation] Background memory refresh failed:', error)
+        })
     }
     void this.extractAndPersistUserFacts(session.userId, sessionId, conversationId)
 

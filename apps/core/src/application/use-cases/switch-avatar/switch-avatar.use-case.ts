@@ -1,5 +1,6 @@
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
+import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
@@ -10,6 +11,7 @@ export class SwitchAvatarUseCase {
     private readonly sessionRepository: ISessionRepository,
     private readonly avatarRepository: IAvatarRepository,
     private readonly conversationRepository: IConversationRepository,
+    private readonly memoryMaintenance?: IMemoryMaintenancePort,
   ) {}
 
   async execute(input: SwitchAvatarInput): Promise<SwitchAvatarOutput> {
@@ -22,6 +24,18 @@ export class SwitchAvatarUseCase {
     const now = new Date().toISOString()
 
     await this.closePreviousConversation(previousConversation?.conversationId, now)
+    if (previousConversation !== null) {
+      void this.memoryMaintenance
+        ?.execute({
+          sessionId,
+          conversationId: previousConversation.conversationId,
+          avatarId: previousConversation.avatarId,
+          trigger: 'avatar_switch',
+        })
+        .catch((error: unknown) => {
+          console.error('[switch-avatar] Background memory refresh failed:', error)
+        })
+    }
 
     const conversation = await this.conversationRepository.create({
       sessionId,

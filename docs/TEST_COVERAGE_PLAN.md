@@ -99,7 +99,8 @@ This module deserves strong unit coverage — it controls orchestration semantic
 Must test:
 
 - short-term memory window policy (exactly last 2 exchanges)
-- session summary creation/update (working memory)
+- conversation-scoped working-memory rewrite persistence (summary + unresolved threads + candidate facts)
+- session/avatar compatibility summary mirror updates for admin/runtime surfaces
 - avatar-scoped working memory retrieval and isolation from other avatars
 - persistent user fact extraction rules
 - retrieval of relevant facts
@@ -107,6 +108,11 @@ Must test:
 - long conversation compaction boundaries (30+ turns)
 - conversation-end compaction trigger (explicit close and implicit close via switch/reset)
 - async working-memory refresh scheduling never blocks avatar response
+- refresh policy trigger coverage:
+  - every 3 exchanges
+  - conversation close
+  - avatar switch
+  - admin trigger
 - `memory_refresh_triggered/succeeded/failed` event emission
 - repeated turns update existing working-memory rows (no duplicate row creation)
 - reset behavior

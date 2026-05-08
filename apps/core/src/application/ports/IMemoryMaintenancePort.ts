@@ -1,4 +1,8 @@
-export type MemoryRefreshTrigger = 'post_turn' | 'conversation_closed'
+export type MemoryRefreshTrigger =
+  | 'post_turn'
+  | 'conversation_closed'
+  | 'avatar_switch'
+  | 'admin_trigger'
 
 export interface IMemoryMaintenancePort {
   execute(input: {

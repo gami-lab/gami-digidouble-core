@@ -10,6 +10,7 @@ import type { IScenarioRepository } from '../../application/ports/IScenarioRepos
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
+import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
 import type { GetAvailableAvatarsOutput } from '../../application/use-cases/get-available-avatars/get-available-avatars.types.js'
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
@@ -41,6 +42,7 @@ import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-sc
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-memory-session-event-publisher.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import { registerRuntimeEventsRoutes } from './runtime-events.js'
@@ -54,6 +56,7 @@ export type SessionsRouteOptions = {
   messageRepository?: IMessageRepository
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
+  conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   eventLogRepository?: IEventLogRepository
   sessionEventPublisher?: ISessionEventPublisher
 }
@@ -170,8 +173,11 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   const conversationRepository =
     options.conversationRepository ?? new InMemoryConversationRepository()
   const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
-  const { sessionMemoryRepository, avatarSessionMemoryRepository } =
-    resolveWorkingMemoryRepositories(options)
+  const {
+    sessionMemoryRepository,
+    avatarSessionMemoryRepository,
+    conversationWorkingMemoryRepository,
+  } = resolveWorkingMemoryRepositories(options)
   const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
   const sessionEventPublisher = options.sessionEventPublisher ?? new InMemorySessionEventPublisher()
   const memoryMaintenance = new MemoryMaintenanceService(
@@ -179,6 +185,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     sessionRepository,
     sessionMemoryRepository,
     avatarSessionMemoryRepository,
+    conversationWorkingMemoryRepository,
     eventLogRepository,
   )
 
@@ -197,6 +204,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     messageRepository,
     sessionMemoryRepository,
     avatarSessionMemoryRepository,
+    conversationWorkingMemoryRepository,
   )
   const startConversationUseCase = new StartConversationUseCase(
     sessionRepository,
@@ -211,6 +219,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     sessionRepository,
     avatarRepository,
     conversationRepository,
+    memoryMaintenance,
   )
   const getAvailableAvatarsUseCase = new GetAvailableAvatarsUseCase(
     sessionRepository,
@@ -256,12 +265,16 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
 function resolveWorkingMemoryRepositories(options: SessionsRouteOptions): {
   sessionMemoryRepository: ISessionMemoryRepository
   avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
+  conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
 } {
   return {
     sessionMemoryRepository:
       options.sessionMemoryRepository ?? new InMemorySessionMemoryRepository(),
     avatarSessionMemoryRepository:
       options.avatarSessionMemoryRepository ?? new InMemoryAvatarSessionMemoryRepository(),
+    conversationWorkingMemoryRepository:
+      options.conversationWorkingMemoryRepository ??
+      new InMemoryConversationWorkingMemoryRepository(),
   }
 }
 

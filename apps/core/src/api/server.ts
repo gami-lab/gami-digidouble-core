@@ -16,6 +16,7 @@ import type { IUserRepository } from '../application/ports/IUserRepository.js'
 import type { IAvatarSessionMemoryRepository } from '../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IDependencyProbe } from '../application/ports/IDependencyProbe.js'
 import type { ISessionEventPublisher } from '../application/ports/ISessionEventPublisher.js'
+import type { IConversationWorkingMemoryRepository } from '../application/ports/IConversationWorkingMemoryRepository.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
@@ -29,6 +30,7 @@ import { InMemoryConversationRepository } from '../infrastructure/db/in-memory-c
 import { InMemoryAvatarRepository } from '../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryScenarioRepository } from '../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemoryMessageRepository } from '../infrastructure/db/in-memory-message.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memory-session-event-publisher.js'
 import { adminMemoryRoute } from './routes/admin-memory.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
@@ -57,6 +59,7 @@ export interface ServerAdapters {
   messageRepository?: IMessageRepository
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
+  conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   userRepository?: IUserRepository
   userMemoryFactRepository?: IUserMemoryFactRepository
   sessionEventPublisher?: ISessionEventPublisher
@@ -278,6 +281,10 @@ function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAd
     avatarSessionMemoryRepository: withDefault(
       adapters.avatarSessionMemoryRepository,
       new InMemoryAvatarSessionMemoryRepository(),
+    ),
+    conversationWorkingMemoryRepository: withDefault(
+      adapters.conversationWorkingMemoryRepository,
+      new InMemoryConversationWorkingMemoryRepository(),
     ),
   }
 }

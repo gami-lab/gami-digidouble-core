@@ -11,14 +11,14 @@ describe('working-memory-summary policy', () => {
 
   it('builds a session summary from the latest six user/avatar messages', () => {
     const summary = buildSessionWorkingMemorySummary([
-      { role: 'system', content: 'ignored' },
-      { role: 'user', content: 'one' },
-      { role: 'avatar', content: 'two' },
-      { role: 'user', content: 'three' },
-      { role: 'avatar', content: 'four' },
-      { role: 'user', content: 'five' },
-      { role: 'avatar', content: 'six' },
-      { role: 'user', content: 'seven' },
+      { role: 'system', content: 'ignored', createdAt: '2026-05-01T10:00:00.000Z' },
+      { role: 'user', content: 'one', createdAt: '2026-05-01T10:00:01.000Z' },
+      { role: 'avatar', content: 'two', createdAt: '2026-05-01T10:00:02.000Z' },
+      { role: 'user', content: 'three', createdAt: '2026-05-01T10:00:03.000Z' },
+      { role: 'avatar', content: 'four', createdAt: '2026-05-01T10:00:04.000Z' },
+      { role: 'user', content: 'five', createdAt: '2026-05-01T10:00:05.000Z' },
+      { role: 'avatar', content: 'six', createdAt: '2026-05-01T10:00:06.000Z' },
+      { role: 'user', content: 'seven', createdAt: '2026-05-01T10:00:07.000Z' },
     ])
 
     expect(summary).toContain('Conversation turns: user=4, avatar=3.')
@@ -32,11 +32,11 @@ describe('working-memory-summary policy', () => {
   it('builds an avatar summary from the latest four user/avatar messages', () => {
     const summary = buildAvatarWorkingMemorySummary(
       [
-        { role: 'user', content: 'one' },
-        { role: 'avatar', content: 'two' },
-        { role: 'user', content: 'three' },
-        { role: 'avatar', content: 'four' },
-        { role: 'user', content: 'five' },
+        { role: 'user', content: 'one', createdAt: '2026-05-01T10:00:01.000Z' },
+        { role: 'avatar', content: 'two', createdAt: '2026-05-01T10:00:02.000Z' },
+        { role: 'user', content: 'three', createdAt: '2026-05-01T10:00:03.000Z' },
+        { role: 'avatar', content: 'four', createdAt: '2026-05-01T10:00:04.000Z' },
+        { role: 'user', content: 'five', createdAt: '2026-05-01T10:00:05.000Z' },
       ],
       'avatar_1',
     )
@@ -58,6 +58,7 @@ describe('working-memory-summary policy', () => {
         {
           role: 'user',
           content: `  ${'x'.repeat(230)}\n\nnext line  `,
+          createdAt: '2026-05-01T10:00:01.000Z',
         },
       ],
       'avatar_1',

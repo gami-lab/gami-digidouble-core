@@ -12,6 +12,7 @@ import type { ISessionMemoryRepository } from '../../application/ports/ISessionM
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { IUserMemoryFactRepository } from '../../application/ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
+import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
@@ -29,6 +30,7 @@ import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-sc
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
@@ -51,6 +53,7 @@ type ConversationsRouteOptions = {
   userMemoryFactRepository?: IUserMemoryFactRepository
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
+  conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
 }
 
 type ConversationParams = { conversationId: string }
@@ -205,6 +208,7 @@ type ConversationPersistenceDeps = {
   userMemoryFactRepository: IUserMemoryFactRepository
   sessionMemoryRepository: ISessionMemoryRepository
   avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
+  conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
 }
 
 function createRouteDependencies(options: ConversationsRouteOptions): RouteDependencies {
@@ -222,6 +226,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     repositories.sessionRepository,
     repositories.sessionMemoryRepository,
     repositories.avatarSessionMemoryRepository,
+    repositories.conversationWorkingMemoryRepository,
     repositories.eventLogRepository,
   )
 
@@ -273,12 +278,16 @@ function resolvePersistenceDeps(options: ConversationsRouteOptions): Conversatio
 function resolveWorkingMemoryDeps(options: ConversationsRouteOptions): {
   sessionMemoryRepository: ISessionMemoryRepository
   avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
+  conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
 } {
   return {
     sessionMemoryRepository:
       options.sessionMemoryRepository ?? new InMemorySessionMemoryRepository(),
     avatarSessionMemoryRepository:
       options.avatarSessionMemoryRepository ?? new InMemoryAvatarSessionMemoryRepository(),
+    conversationWorkingMemoryRepository:
+      options.conversationWorkingMemoryRepository ??
+      new InMemoryConversationWorkingMemoryRepository(),
   }
 }
 

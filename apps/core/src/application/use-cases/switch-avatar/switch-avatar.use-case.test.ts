@@ -9,6 +9,7 @@ const findAvatarByIdMock = vi.fn()
 const findActiveBySessionIdMock = vi.fn()
 const createConversationMock = vi.fn()
 const updateConversationMock = vi.fn()
+const memoryMaintenanceExecuteMock = vi.fn()
 
 const sessionRepository = {
   findById: findSessionByIdMock,
@@ -83,6 +84,8 @@ beforeEach(() => {
   findActiveBySessionIdMock.mockReset()
   createConversationMock.mockReset()
   updateConversationMock.mockReset()
+  memoryMaintenanceExecuteMock.mockReset()
+  memoryMaintenanceExecuteMock.mockResolvedValue(undefined)
 
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession({ activeAvatarId: 'avatar_2' }))
@@ -102,6 +105,7 @@ describe('SwitchAvatarUseCase success flows', () => {
       sessionRepository,
       avatarRepository,
       conversationRepository,
+      { execute: memoryMaintenanceExecuteMock },
     )
 
     const output = await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_2' })
@@ -128,6 +132,12 @@ describe('SwitchAvatarUseCase success flows', () => {
     expect(output.previousConversationId).toBe('conversation_1')
     expect(output.session.activeAvatarId).toBe('avatar_2')
     expect(output.conversation.avatarId).toBe('avatar_2')
+    expect(memoryMaintenanceExecuteMock).toHaveBeenCalledWith({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'avatar_switch',
+    })
   })
 
   it('creates a new conversation without closing when there is no active conversation', async () => {
@@ -137,6 +147,7 @@ describe('SwitchAvatarUseCase success flows', () => {
       sessionRepository,
       avatarRepository,
       conversationRepository,
+      { execute: memoryMaintenanceExecuteMock },
     )
 
     const output = await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_2' })
@@ -149,8 +160,11 @@ describe('SwitchAvatarUseCase success flows', () => {
       reason: 'manual_switch',
     })
     expect(output.previousConversationId).toBeNull()
+    expect(memoryMaintenanceExecuteMock).not.toHaveBeenCalled()
   })
+})
 
+describe('SwitchAvatarUseCase success flows (additional)', () => {
   it('keeps caller reason when provided', async () => {
     const useCase = new SwitchAvatarUseCase(
       sessionRepository,

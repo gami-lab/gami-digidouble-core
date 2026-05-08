@@ -371,7 +371,7 @@ This table stores only compacted session-level memory (working memory layer).
 The memory model is pyramidal and bounded:
 
 - Short-term memory: last 2 exchanges (assembled at runtime from `Message`; not persisted here)
-- Working memory: evolving session summary (canonical row in `session_memories`; `sessions.memory_summary` kept as backward-compatible mirror/cache during migration)
+- Working memory: conversation-scoped canonical memory (`conversation_working_memories`) with compatibility summary mirrors in `session_memories`; `sessions.memory_summary` remains backward-compatible mirror/cache
 - Long-term memory: persisted structured facts/events (`UserMemoryFact`)
 
 This is the shared memory of the session itself:
@@ -393,7 +393,40 @@ This is the memory of the movie/playthrough as a whole.
 
 ---
 
-## 9. AvatarSessionMemory
+## 9. ConversationWorkingMemory
+
+Conversation-scoped rewritten working memory for one bounded dialogue episode.
+
+### Fields
+
+- conversation_id
+- session_id
+- avatar_id
+- summary
+- unresolved_threads
+- candidate_facts
+- updated_at
+
+### Notes
+
+- Canonical working-memory owner for lifecycle refreshes.
+- Rewritten (not appended) on refresh.
+- Refresh triggers:
+  - every 3 exchanges (`post_turn` policy gate)
+  - conversation close
+  - avatar switch
+  - explicit admin refresh trigger
+- Built from bounded messages; no transcript replay dependency.
+
+### Implementation Status (EPIC 4.2c)
+
+- **Table:** `conversation_working_memories`
+- **Repository:** `PostgresConversationWorkingMemoryRepository` (+ in-memory test adapter)
+- **Status:** Implemented. One row per conversation (`conversation_id` PK), rewritten summary + unresolved threads + candidate facts.
+
+---
+
+## 10. AvatarSessionMemory
 
 Compact working memory for one avatar inside one session.
 
@@ -442,7 +475,7 @@ For MVP, keep it compact:
 
 ---
 
-## 10. UserMemoryFact
+## 11. UserMemoryFact
 
 Persistent structured memory about a user.
 
@@ -610,7 +643,7 @@ The `StoredEvent.correlationId` links `gm_triggered` events to parent `turn_comp
 
 ### Event family: `memory_refresh_*` (working-memory maintenance lifecycle)
 
-Emitted by `MemoryMaintenanceService` in fire-and-forget mode from turn and close flows.
+Emitted by `MemoryMaintenanceService` in fire-and-forget mode from turn/close/switch/admin-trigger flows.
 
 Event types:
 

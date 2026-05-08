@@ -243,13 +243,17 @@ export class SendMessageUseCase {
     avatarId: string
   }): void {
     if (this.memoryMaintenance === undefined) return
-    void this.memoryMaintenance.execute({
-      sessionId: args.sessionId,
-      conversationId: args.conversationId,
-      avatarId: args.avatarId,
-      trigger: 'post_turn',
-      correlationId: args.requestId,
-    })
+    void this.memoryMaintenance
+      .execute({
+        sessionId: args.sessionId,
+        conversationId: args.conversationId,
+        avatarId: args.avatarId,
+        trigger: 'post_turn',
+        correlationId: args.requestId,
+      })
+      .catch((error: unknown) => {
+        console.error('[memory-maintenance] Background refresh failed:', error)
+      })
   }
 
   private buildOutput(

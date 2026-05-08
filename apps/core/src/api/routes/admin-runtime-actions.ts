@@ -13,6 +13,7 @@ import type { IMemoryMaintenancePort } from '../../application/ports/IMemoryMain
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
+import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
 import { AdminRuntimeActionsUseCase } from '../../application/use-cases/admin-runtime-actions/admin-runtime-actions.use-case.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
@@ -21,6 +22,7 @@ import { DomainError } from '../../domain/errors.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 
 export type AdminRuntimeActionsRouteOptions = {
   config: Config
@@ -32,6 +34,7 @@ export type AdminRuntimeActionsRouteOptions = {
   userRepository?: IUserRepository
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
+  conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   memoryMaintenance?: IMemoryMaintenancePort
 }
 
@@ -56,6 +59,8 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
     options.sessionMemoryRepository ?? new InMemorySessionMemoryRepository()
   const avatarSessionMemoryRepository =
     options.avatarSessionMemoryRepository ?? new InMemoryAvatarSessionMemoryRepository()
+  const conversationWorkingMemoryRepository =
+    options.conversationWorkingMemoryRepository ?? new InMemoryConversationWorkingMemoryRepository()
   const memoryMaintenance =
     options.memoryMaintenance ??
     new MemoryMaintenanceService(
@@ -63,6 +68,7 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
       options.sessionRepository,
       sessionMemoryRepository,
       avatarSessionMemoryRepository,
+      conversationWorkingMemoryRepository,
       options.eventLogRepository,
     )
 
@@ -73,6 +79,7 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
     options.eventLogRepository,
     sessionMemoryRepository,
     avatarSessionMemoryRepository,
+    conversationWorkingMemoryRepository,
     memoryMaintenance,
     options.runGameMasterUseCase,
     options.userRepository,

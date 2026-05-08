@@ -7,6 +7,7 @@ import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-
 import { InMemorySessionMemoryRepository } from '../../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryUserRepository } from '../../../infrastructure/db/in-memory-user.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import { AdminRuntimeActionsUseCase } from './admin-runtime-actions.use-case.js'
 
@@ -19,6 +20,17 @@ function buildUseCase() {
   const sessionMemoryRepository = new InMemorySessionMemoryRepository([fixtures.sessionMemory])
   const avatarSessionMemoryRepository = new InMemoryAvatarSessionMemoryRepository([
     fixtures.avatarSessionMemory,
+  ])
+  const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository([
+    {
+      conversationId: 'conversation_1',
+      sessionId: 'session_1',
+      avatarId: 'avatar_1',
+      summary: 'Conversation summary',
+      unresolvedThreads: ['Need pricing'],
+      candidateFacts: [{ category: 'conversation_signal', key: 'thread_1', value: 'Need pricing' }],
+      updatedAt: '2026-05-07T10:03:00.000Z',
+    },
   ])
   const runGameMasterExecute = vi.fn().mockResolvedValue(undefined)
   const runGameMasterUseCase = { execute: runGameMasterExecute }
@@ -35,6 +47,7 @@ function buildUseCase() {
     eventLogRepository,
     sessionMemoryRepository,
     avatarSessionMemoryRepository,
+    conversationWorkingMemoryRepository,
     memoryMaintenance,
     runGameMasterUseCase as never,
     userRepository,
@@ -198,7 +211,7 @@ describe('AdminRuntimeActionsUseCase refresh', () => {
         sessionId: 'session_1',
         conversationId: 'conversation_1',
         avatarId: 'avatar_1',
-        trigger: 'post_turn',
+        trigger: 'admin_trigger',
       }),
     )
 
@@ -226,6 +239,7 @@ describe('AdminRuntimeActionsUseCase clear', () => {
       new InMemoryEventLogRepository(),
       new InMemorySessionMemoryRepository([]),
       new InMemoryAvatarSessionMemoryRepository([]),
+      new InMemoryConversationWorkingMemoryRepository([]),
     )
 
     const output = await useCase.clearMemory({ sessionId: 'session_2' })

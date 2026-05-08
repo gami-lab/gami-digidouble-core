@@ -26,6 +26,20 @@ export interface AvatarSessionMemory {
   updatedAt: string
 }
 
+export interface ConversationWorkingMemory {
+  conversationId: string
+  sessionId: string
+  avatarId: string
+  summary: string
+  unresolvedThreads: string[]
+  candidateFacts: Array<{
+    category: string
+    key: string
+    value: string
+  }>
+  updatedAt: string
+}
+
 export interface UserFact {
   id: string
   userId: string
@@ -73,3 +87,8 @@ export type GameMasterMemoryContext = {
   workingSummary?: string
   longTermFacts?: LongTermMemoryFact[]
 }
+
+export type ConversationWorkingMemoryRefreshOutput = Pick<
+  ConversationWorkingMemory,
+  'summary' | 'unresolvedThreads' | 'candidateFacts'
+>

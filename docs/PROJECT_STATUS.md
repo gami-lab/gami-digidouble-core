@@ -47,6 +47,34 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `pnpm -w -r typecheck` PASS
   - targeted core tests for memory/context/GM typing contracts PASS
 
+### EPIC 4.2c — Conversation working-memory lifecycle: **in progress** (2026-05-08)
+
+- Added canonical conversation-scoped working-memory persistence:
+  - new table: `conversation_working_memories`
+  - new repositories: in-memory + Postgres (`PostgresConversationWorkingMemoryRepository`)
+- Extended memory maintenance lifecycle policy and triggers:
+  - every 3 exchanges (`post_turn` policy gate)
+  - conversation close
+  - avatar switch
+  - explicit admin trigger
+- Extended async fire-and-forget maintenance boundary without blocking avatar response:
+  - `IMemoryMaintenancePort` trigger union now includes `avatar_switch` and `admin_trigger`
+  - non-blocking callers now explicitly isolate refresh failures (`send-message`, `end-conversation`, `switch-avatar`, admin refresh)
+- Implemented rewrite pipeline contract for conversation working memory:
+  - rewritten `summary`
+  - `unresolvedThreads`
+  - `candidateFacts` (for later episodic stage)
+- Kept backward-compatible admin/session memory surfaces by continuing compatibility summary updates to:
+  - `session_memories`
+  - `avatar_session_memories`
+  - legacy `sessions.memory_summary` mirror
+- Operational hooks updated:
+  - admin memory refresh now uses trigger `admin_trigger`
+  - avatar switch now schedules refresh for the closed conversation via trigger `avatar_switch`
+- Validation status for this slice:
+  - `pnpm -w -r typecheck` PASS
+  - targeted unit tests PASS (memory maintenance, switch-avatar trigger, admin runtime actions, new conversation-memory repository)
+
 ### EPIC 2.8 — Console debugging redesign (contract cleanup + path pruning): **complete** (2026-05-07)
 
 - Removed remaining runtime-debug UI branch duplication in console Session page:

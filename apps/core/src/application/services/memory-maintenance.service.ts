@@ -5,10 +5,9 @@ import type { IMessageRepository } from '../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../ports/IMemoryMaintenancePort.js'
 import type { ISessionMemoryRepository } from '../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../ports/ISessionRepository.js'
-import {
-  buildAvatarWorkingMemorySummary,
-  buildSessionWorkingMemorySummary,
-} from '../../domain/memory/working-memory-summary.policy.js'
+import type { IConversationWorkingMemoryRepository } from '../ports/IConversationWorkingMemoryRepository.js'
+import { rewriteConversationWorkingMemory } from '../../domain/memory/conversation-working-memory.policy.js'
+import { buildAvatarWorkingMemorySummary } from '../../domain/memory/working-memory-summary.policy.js'
 
 export class MemoryMaintenanceService implements IMemoryMaintenancePort {
   constructor(
@@ -16,6 +15,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     private readonly sessionRepository: ISessionRepository,
     private readonly sessionMemoryRepository: ISessionMemoryRepository,
     private readonly avatarSessionMemoryRepository: IAvatarSessionMemoryRepository,
+    private readonly conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository,
     private readonly eventLogRepository: IEventLogRepository,
   ) {}
 
@@ -23,7 +23,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     sessionId: string
     conversationId: string
     avatarId: string
-    trigger: 'post_turn' | 'conversation_closed'
+    trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
     correlationId?: string
   }): Promise<void> {
     const requestId = crypto.randomUUID()
@@ -48,19 +48,32 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       const ordered = messages
         .slice()
         .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-      const sessionSummary = buildSessionWorkingMemorySummary(ordered)
+      const exchangeCount = countExchanges(ordered)
+      if (input.trigger === 'post_turn' && exchangeCount % 3 !== 0) {
+        return
+      }
+
+      const rewritten = rewriteConversationWorkingMemory(ordered)
       const avatarSummary = buildAvatarWorkingMemorySummary(ordered, input.avatarId)
 
+      await this.conversationWorkingMemoryRepository.upsert({
+        conversationId: input.conversationId,
+        sessionId: input.sessionId,
+        avatarId: input.avatarId,
+        summary: rewritten.summary,
+        unresolvedThreads: rewritten.unresolvedThreads,
+        candidateFacts: rewritten.candidateFacts,
+      })
       await this.sessionMemoryRepository.upsert({
         sessionId: input.sessionId,
-        summary: sessionSummary,
+        summary: rewritten.summary,
       })
       await this.avatarSessionMemoryRepository.upsert({
         sessionId: input.sessionId,
         avatarId: input.avatarId,
         summary: avatarSummary,
       })
-      await this.sessionRepository.update(input.sessionId, { memorySummary: sessionSummary })
+      await this.sessionRepository.update(input.sessionId, { memorySummary: rewritten.summary })
 
       await this.appendEventSafe({
         sessionId: input.sessionId,
@@ -73,9 +86,12 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
           conversationId: input.conversationId,
           avatarId: input.avatarId,
           trigger: input.trigger,
-          sessionSummaryLength: sessionSummary.length,
+          sessionSummaryLength: rewritten.summary.length,
           avatarSummaryLength: avatarSummary.length,
           messageCount: ordered.length,
+          unresolvedThreadCount: rewritten.unresolvedThreads.length,
+          candidateFactCount: rewritten.candidateFacts.length,
+          exchangeCount,
         },
       })
     } catch (error) {
@@ -103,4 +119,22 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       console.error('[memory-maintenance] Event log append failed:', error)
     }
   }
+}
+
+function countExchanges(
+  messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
+): number {
+  let exchanges = 0
+  let pendingUser = false
+  for (const message of messages) {
+    if (message.role === 'user') {
+      pendingUser = true
+      continue
+    }
+    if (message.role === 'avatar' && pendingUser) {
+      exchanges += 1
+      pendingUser = false
+    }
+  }
+  return exchanges
 }

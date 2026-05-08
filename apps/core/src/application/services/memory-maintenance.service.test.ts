@@ -4,6 +4,7 @@ import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-ev
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { MemoryMaintenanceService } from './memory-maintenance.service.js'
 
 function makeService() {
@@ -22,6 +23,34 @@ function makeService() {
       content: 'Start with a small concrete step.',
       createdAt: '2026-05-06T10:00:01.000Z',
     },
+    {
+      messageId: 'msg_3',
+      conversationId: 'conversation_1',
+      role: 'user',
+      content: 'Can you give me an example?',
+      createdAt: '2026-05-06T10:00:02.000Z',
+    },
+    {
+      messageId: 'msg_4',
+      conversationId: 'conversation_1',
+      role: 'avatar',
+      content: 'Build one short scenario and test it.',
+      createdAt: '2026-05-06T10:00:03.000Z',
+    },
+    {
+      messageId: 'msg_5',
+      conversationId: 'conversation_1',
+      role: 'user',
+      content: 'What should I measure first?',
+      createdAt: '2026-05-06T10:00:04.000Z',
+    },
+    {
+      messageId: 'msg_6',
+      conversationId: 'conversation_1',
+      role: 'avatar',
+      content: 'Track time-to-first-value and drop-off.',
+      createdAt: '2026-05-06T10:00:05.000Z',
+    },
   ])
   const sessionRepository = new InMemorySessionRepository([
     {
@@ -35,6 +64,7 @@ function makeService() {
   ])
   const sessionMemoryRepository = new InMemorySessionMemoryRepository()
   const avatarSessionMemoryRepository = new InMemoryAvatarSessionMemoryRepository()
+  const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository()
   const eventLogRepository = new InMemoryEventLogRepository()
 
   return {
@@ -43,19 +73,26 @@ function makeService() {
       sessionRepository,
       sessionMemoryRepository,
       avatarSessionMemoryRepository,
+      conversationWorkingMemoryRepository,
       eventLogRepository,
     ),
     sessionRepository,
     sessionMemoryRepository,
     avatarSessionMemoryRepository,
+    conversationWorkingMemoryRepository,
     eventLogRepository,
   }
 }
 
 describe('MemoryMaintenanceService — persistence and events', () => {
   it('refreshes session and avatar working memory and updates legacy session mirror', async () => {
-    const { service, sessionRepository, sessionMemoryRepository, avatarSessionMemoryRepository } =
-      makeService()
+    const {
+      service,
+      sessionRepository,
+      sessionMemoryRepository,
+      avatarSessionMemoryRepository,
+      conversationWorkingMemoryRepository,
+    } = makeService()
 
     await service.execute({
       sessionId: 'session_1',
@@ -71,13 +108,25 @@ describe('MemoryMaintenanceService — persistence and events', () => {
     await expect(
       avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_1'),
     ).resolves.toMatchObject({ sessionId: 'session_1', avatarId: 'avatar_1' })
+    await expect(
+      conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
+    ).resolves.toMatchObject({
+      conversationId: 'conversation_1',
+      sessionId: 'session_1',
+      avatarId: 'avatar_1',
+    })
 
     const session = await sessionRepository.findById('session_1')
-    expect(session?.memorySummary).toContain('Conversation turns: user=1, avatar=1.')
+    expect(session?.memorySummary).toContain('Conversation turns: user=3, avatar=3.')
   })
 
   it('updates existing rows on repeated turns rather than creating duplicates', async () => {
-    const { service, sessionMemoryRepository, avatarSessionMemoryRepository } = makeService()
+    const {
+      service,
+      sessionMemoryRepository,
+      avatarSessionMemoryRepository,
+      conversationWorkingMemoryRepository,
+    } = makeService()
 
     await service.execute({
       sessionId: 'session_1',
@@ -90,6 +139,8 @@ describe('MemoryMaintenanceService — persistence and events', () => {
       'session_1',
       'avatar_1',
     )
+    const firstConversationMemory =
+      await conversationWorkingMemoryRepository.findByConversationId('conversation_1')
 
     await service.execute({
       sessionId: 'session_1',
@@ -102,9 +153,12 @@ describe('MemoryMaintenanceService — persistence and events', () => {
       'session_1',
       'avatar_1',
     )
+    const secondConversationMemory =
+      await conversationWorkingMemoryRepository.findByConversationId('conversation_1')
 
     expect(secondSessionMemory?.sessionId).toBe(firstSessionMemory?.sessionId)
     expect(secondAvatarMemory?.avatarId).toBe(firstAvatarMemory?.avatarId)
+    expect(secondConversationMemory?.conversationId).toBe(firstConversationMemory?.conversationId)
   })
 })
 
@@ -140,7 +194,8 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
       trigger: 'post_turn',
-      messageCount: 2,
+      messageCount: 6,
+      exchangeCount: 3,
     })
     const succeededPayload = succeeded?.payload
     expect(typeof succeededPayload?.sessionSummaryLength).toBe('number')
@@ -165,6 +220,7 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       sessionRepository,
       sessionMemoryRepository,
       avatarSessionMemoryRepository,
+      new InMemoryConversationWorkingMemoryRepository(),
       eventLogRepository,
     )
 
@@ -190,5 +246,60 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       trigger: 'conversation_closed',
       error: 'messages unavailable',
     })
+  })
+})
+
+describe('MemoryMaintenanceService — post_turn policy gate', () => {
+  it('skips post_turn refresh when exchange count is not a multiple of 3', async () => {
+    const messageRepository = new InMemoryMessageRepository([
+      {
+        messageId: 'msg_1',
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'one',
+        createdAt: '2026-05-06T10:00:00.000Z',
+      },
+      {
+        messageId: 'msg_2',
+        conversationId: 'conversation_1',
+        role: 'avatar',
+        content: 'one',
+        createdAt: '2026-05-06T10:00:01.000Z',
+      },
+    ])
+    const sessionRepository = new InMemorySessionRepository([
+      {
+        sessionId: 'session_1',
+        userId: 'user_1',
+        scenarioId: 'scenario_1',
+        status: 'active',
+        startedAt: '2026-05-06T09:59:00.000Z',
+        lastActivityAt: '2026-05-06T10:00:01.000Z',
+      },
+    ])
+    const sessionMemoryRepository = new InMemorySessionMemoryRepository()
+    const avatarSessionMemoryRepository = new InMemoryAvatarSessionMemoryRepository()
+    const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository()
+    const eventLogRepository = new InMemoryEventLogRepository()
+    const service = new MemoryMaintenanceService(
+      messageRepository,
+      sessionRepository,
+      sessionMemoryRepository,
+      avatarSessionMemoryRepository,
+      conversationWorkingMemoryRepository,
+      eventLogRepository,
+    )
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+
+    await expect(sessionMemoryRepository.findBySessionId('session_1')).resolves.toBeNull()
+    await expect(
+      conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
+    ).resolves.toBeNull()
   })
 })

@@ -7,6 +7,7 @@ import {
 export type WorkingMemorySummaryMessage = {
   role: string
   content: string
+  createdAt: string
 }
 
 export function buildSessionWorkingMemorySummary(messages: WorkingMemorySummaryMessage[]): string {

@@ -7,6 +7,7 @@ import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.
 import type { ISessionMemoryRepository } from '../../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserRepository } from '../../ports/IUserRepository.js'
+import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { DomainError } from '../../../domain/errors.js'
 import type {
@@ -28,6 +29,7 @@ export class AdminRuntimeActionsUseCase {
     private readonly eventLogRepository: IEventLogRepository,
     private readonly sessionMemoryRepository?: ISessionMemoryRepository,
     private readonly avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository,
+    private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly memoryMaintenance?: IMemoryMaintenancePort,
     private readonly runGameMasterUseCase?: RunGameMasterUseCase,
     private readonly userRepository?: IUserRepository,
@@ -101,7 +103,7 @@ export class AdminRuntimeActionsUseCase {
         sessionId: input.sessionId,
         conversationId: conversation.conversationId,
         avatarId: conversation.avatarId,
-        trigger: 'post_turn',
+        trigger: 'admin_trigger',
         correlationId,
       })
       .catch((error: unknown) => {
@@ -137,6 +139,8 @@ export class AdminRuntimeActionsUseCase {
       (await this.sessionMemoryRepository?.deleteBySessionId(input.sessionId)) ?? false
     const deletedAvatarMemories =
       (await this.avatarSessionMemoryRepository?.deleteBySessionId(input.sessionId)) ?? 0
+    const deletedConversationWorkingMemories =
+      (await this.conversationWorkingMemoryRepository?.deleteBySessionId(input.sessionId)) ?? 0
 
     await this.sessionRepository.update(input.sessionId, {
       gmNotes: null,
@@ -156,6 +160,7 @@ export class AdminRuntimeActionsUseCase {
         targetId: input.sessionId,
         sessionWorkingMemory: deletedSessionMemory,
         avatarWorkingMemoryCount: deletedAvatarMemories,
+        conversationWorkingMemoryCount: deletedConversationWorkingMemories,
         gmNotesCleared,
         legacySessionSummaryCleared,
         userFactsCleared: false,

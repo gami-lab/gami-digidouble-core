@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS avatar_session_memories (
   PRIMARY KEY (session_id, avatar_id)
 );
 
+
 -- ── Game Master States ────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS gm_states (
@@ -107,6 +108,16 @@ CREATE TABLE IF NOT EXISTS conversations (
   started_by                  TEXT,
   reason                      TEXT,
   handoff_from_conversation_id UUID       REFERENCES conversations(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS conversation_working_memories (
+  conversation_id     UUID        PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+  session_id          UUID        NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  avatar_id           UUID        NOT NULL REFERENCES avatars(id) ON DELETE CASCADE,
+  summary             TEXT        NOT NULL,
+  unresolved_threads  TEXT[]      NOT NULL DEFAULT '{}',
+  candidate_facts     JSONB       NOT NULL DEFAULT '[]'::JSONB,
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ── Messages ──────────────────────────────────────────────────────────────────
@@ -170,3 +181,5 @@ CREATE INDEX IF NOT EXISTS idx_event_log_type ON event_log(type);
 CREATE INDEX IF NOT EXISTS idx_user_memory_facts_user_id ON user_memory_facts(user_id);
 CREATE INDEX IF NOT EXISTS idx_avatar_session_memories_session_id
   ON avatar_session_memories(session_id);
+CREATE INDEX IF NOT EXISTS idx_conversation_working_memories_session_id
+  ON conversation_working_memories(session_id);

@@ -390,7 +390,8 @@ Owns persistence of useful memory.
 Contains:
 
 - short-term memory policy (last 2 exchanges, runtime-assembled)
-- working memory summary (session-level compact summary)
+- conversation working memory (conversation-scoped, rewritten/bounded summary)
+- compatibility session/avatar summaries for existing admin/runtime surfaces
 - async memory maintenance pipeline (`IMemoryMaintenancePort` / `MemoryMaintenanceService`)
 - long-term user facts/events
 - retrieval of relevant memories
@@ -408,7 +409,7 @@ Builds runtime context for each turn.
 Combines:
 
 - short-term memory (last 2 exchanges)
-- working memory summary
+- working memory summary (derived from latest conversation working-memory refresh)
 - long-term user facts/events
 - user facts
 - scenario config
