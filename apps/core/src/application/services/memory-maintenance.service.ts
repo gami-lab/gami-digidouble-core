@@ -10,13 +10,17 @@ import type { IConversationWorkingMemoryRepository } from '../ports/IConversatio
 import { rewriteConversationWorkingMemory } from '../../domain/memory/conversation-working-memory.policy.js'
 import { buildAvatarWorkingMemorySummary } from '../../domain/memory/working-memory-summary.policy.js'
 
-const WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT = `You compact conversation memory for runtime continuity.
+const WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT = `You update a running working memory for a conversation.
+
+You will receive:
+- PRIOR MEMORY: the existing compacted memory from earlier exchanges (may be empty on first run).
+- RECENT EXCHANGES: the most recent messages that have not yet been integrated.
 
 Rules:
 - Return JSON only, with shape { summary, unresolvedThreads, candidateFacts }.
-- summary must be concise and bounded (max ~700 chars), not a transcript dump.
-- unresolvedThreads: 0-6 concise unresolved user threads.
-- candidateFacts: 0-8 objects with { category, key, value }.
+- summary must integrate prior memory with new information, bounded to ~700 chars. Never drop key facts from prior memory unless superseded.
+- unresolvedThreads: 0-6 concise unresolved user threads (carry forward unresolved ones from prior memory).
+- candidateFacts: 0-8 objects with { category, key, value } (merge and deduplicate with prior facts, update values if superseded).
 - category must be one of: conversation_signal, preference, constraint, goal, identity, context.
 - key must be compact lowercase snake_case.
 - value must be concise and grounded in the conversation.
@@ -67,8 +71,11 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
 
     try {
       const messages = await this.messageRepository.findByConversationId(input.conversationId, {
-        limit: 20,
+        limit: 10,
       })
+      const priorMemory = await this.conversationWorkingMemoryRepository.findByConversationId(
+        input.conversationId,
+      )
       const ordered = messages
         .slice()
         .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
@@ -77,7 +84,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
         return
       }
 
-      const rewritten = await this.rewriteWorkingMemory(ordered)
+      const rewritten = await this.rewriteWorkingMemory(ordered, priorMemory)
       const avatarSummary = buildAvatarWorkingMemorySummary(ordered, input.avatarId)
 
       await this.conversationWorkingMemoryRepository.upsert({
@@ -146,15 +153,20 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
 
   private async rewriteWorkingMemory(
     messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
+    priorMemory: {
+      summary: string
+      unresolvedThreads: string[]
+      candidateFacts: Array<{ category: string; key: string; value: string }>
+    } | null,
   ) {
     if (this.llm === undefined) {
-      return rewriteConversationWorkingMemory(messages)
+      return rewriteConversationWorkingMemory(messages, priorMemory)
     }
 
     try {
       const response = await this.llm.complete({
         systemPrompt: WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: buildCompactionTranscript(messages) }],
+        messages: [{ role: 'user', content: buildCompactionInput(messages, priorMemory) }],
         maxTokens: 500,
       })
       const parsed = parseCompactionOutput(response.content)
@@ -163,7 +175,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       safeWarn('[memory-maintenance] LLM working-memory compaction failed:', error)
     }
 
-    return rewriteConversationWorkingMemory(messages)
+    return rewriteConversationWorkingMemory(messages, priorMemory)
   }
 }
 
@@ -185,10 +197,35 @@ function countExchanges(
   return exchanges
 }
 
-function buildCompactionTranscript(
+function buildCompactionInput(
   messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
+  priorMemory: {
+    summary: string
+    unresolvedThreads: string[]
+    candidateFacts: Array<{ category: string; key: string; value: string }>
+  } | null,
 ): string {
-  return messages.map((message) => `${message.role}: ${message.content.trim()}`).join('\n')
+  const parts: string[] = []
+
+  if (priorMemory !== null) {
+    parts.push('--- PRIOR MEMORY ---')
+    parts.push(`Summary: ${priorMemory.summary}`)
+    if (priorMemory.unresolvedThreads.length > 0) {
+      parts.push(`Unresolved threads: ${priorMemory.unresolvedThreads.join('; ')}`)
+    }
+    if (priorMemory.candidateFacts.length > 0) {
+      const facts = priorMemory.candidateFacts
+        .map((f) => `  [${f.category}] ${f.key}: ${f.value}`)
+        .join('\n')
+      parts.push(`Known facts:\n${facts}`)
+    }
+    parts.push('')
+  }
+
+  parts.push('--- RECENT EXCHANGES ---')
+  parts.push(messages.map((m) => `${m.role}: ${m.content.trim()}`).join('\n'))
+
+  return parts.join('\n')
 }
 
 function parseCompactionOutput(content: string): {

@@ -353,6 +353,34 @@ describe('MemoryMaintenanceService — event payload contract', () => {
   })
 })
 
+describe('MemoryMaintenanceService — prior memory continuity', () => {
+  it('incorporates prior working memory summary when refreshing', async () => {
+    const { service, sessionMemoryRepository, conversationWorkingMemoryRepository } = makeService()
+
+    // First refresh — seeds the working memory
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+    const firstMemory =
+      await conversationWorkingMemoryRepository.findByConversationId('conversation_1')
+    expect(firstMemory).not.toBeNull()
+
+    // Second refresh — should build on the prior memory, not discard it
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+    const secondMemory = await sessionMemoryRepository.findBySessionId('session_1')
+    // The second summary should contain material from the first (prior memory preserved)
+    expect(secondMemory?.summary).toContain(firstMemory?.summary)
+  })
+})
+
 describe('MemoryMaintenanceService — post_turn policy gate', () => {
   it('skips post_turn refresh when exchange count is not a multiple of 3', async () => {
     const messageRepository = new InMemoryMessageRepository([
