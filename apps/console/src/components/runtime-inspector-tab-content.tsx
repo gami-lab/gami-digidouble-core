@@ -119,16 +119,20 @@ function MemoryTab({
   const lastSnapshot = memoryHistory[memoryHistory.length - 1] ?? null
   const previousSnapshot =
     memoryHistory.length >= 2 ? (memoryHistory[memoryHistory.length - 2] ?? null) : null
-  const delta =
-    lastSnapshot !== null ? computeMemoryDelta(previousSnapshot, lastSnapshot) : null
+  const delta = lastSnapshot !== null ? computeMemoryDelta(previousSnapshot, lastSnapshot) : null
 
   return (
     <div style={{ marginTop: '12px' }}>
       <strong>Short-term exchange memory</strong>
       <Row label="Exchange count">{String(snapshot.memory.layers.shortTerm.exchangeCount)}</Row>
-      <Row label="Recent exchanges">{String(snapshot.memory.layers.shortTerm.recentExchanges.length)}</Row>
+      <Row label="Recent exchanges">
+        {String(snapshot.memory.layers.shortTerm.recentExchanges.length)}
+      </Row>
       {snapshot.memory.layers.shortTerm.recentExchanges.map((exchange, index) => (
-        <p key={`${exchange.user}-${exchange.avatar}-${String(index)}`} style={{ margin: '4px 0', color: '#374151' }}>
+        <p
+          key={`${exchange.user}-${exchange.avatar}-${String(index)}`}
+          style={{ margin: '4px 0', color: '#374151' }}
+        >
           U: {exchange.user} / A: {exchange.avatar}
         </p>
       ))}
@@ -156,12 +160,8 @@ function MemoryTab({
       ) : null}
       {delta !== null ? (
         <>
-          <Row
-            label="Progress marker"
-          >{`turn ${String(lastSnapshot?.turnIndex ?? 0)} / ${lastSnapshot?.conversationId ?? '-'}`}</Row>
-          <Row
-            label="Delta summary"
-          >{`short-term +${String(delta.shortTerm.added.length)} -${String(delta.shortTerm.removed.length)}, working +${String(delta.working.avatarAdded.length)} ~${String(delta.working.avatarChanged.length)} -${String(delta.working.avatarRemoved.length)}, long-term +${String(delta.longTerm.added.length)} ~${String(delta.longTerm.changed.length)} -${String(delta.longTerm.removed.length)}`}</Row>
+          <Row label="Progress marker">{`turn ${String(lastSnapshot?.turnIndex ?? 0)} / ${lastSnapshot?.conversationId ?? '-'}`}</Row>
+          <Row label="Delta summary">{`short-term +${String(delta.shortTerm.added.length)} -${String(delta.shortTerm.removed.length)}, working +${String(delta.working.avatarAdded.length)} ~${String(delta.working.avatarChanged.length)} -${String(delta.working.avatarRemoved.length)}, long-term +${String(delta.longTerm.added.length)} ~${String(delta.longTerm.changed.length)} -${String(delta.longTerm.removed.length)}`}</Row>
           {delta.working.stale ? (
             <p style={{ margin: '6px 0', color: '#b45309' }}>
               Working memory stale: turn advanced but working summaries did not update.
@@ -169,7 +169,8 @@ function MemoryTab({
           ) : null}
           {delta.longTerm.added.length > 0 ? (
             <p style={{ margin: '6px 0', color: '#166534' }}>
-              New long-term fact extracted: {delta.longTerm.added.map((fact) => `${fact.category}:${fact.key}`).join(', ')}
+              New long-term fact extracted:{' '}
+              {delta.longTerm.added.map((fact) => `${fact.category}:${fact.key}`).join(', ')}
             </p>
           ) : null}
         </>
@@ -180,31 +181,33 @@ function MemoryTab({
           .reverse()
           .map((entry) => (
             <p key={entry.snapshotId} style={{ margin: '4px 0', color: '#4b5563' }}>
-              [{new Date(entry.capturedAt).toLocaleTimeString()}] turn {String(entry.turnIndex ?? 0)} ·
-              short-term {String(entry.layers.shortTerm.exchangeCount)} · facts {String(entry.layers.longTerm.facts.length)}
+              [{new Date(entry.capturedAt).toLocaleTimeString()}] turn{' '}
+              {String(entry.turnIndex ?? 0)} · short-term{' '}
+              {String(entry.layers.shortTerm.exchangeCount)} · facts{' '}
+              {String(entry.layers.longTerm.facts.length)}
             </p>
           ))}
       </div>
 
       <strong style={{ display: 'block', marginTop: '12px' }}>Selection observability</strong>
-      <Row
-        label="Selected vs rejected"
-      >{`${String(snapshot.memory.layers.observability?.selection?.selectedCount ?? 0)} / ${String(snapshot.memory.layers.observability?.selection?.rejectedCount ?? 0)}`}</Row>
-      <Row
-        label="Top reasons"
-      >{snapshot.memory.layers.observability?.selection?.topSelectionReasons.join(', ') || '-'}</Row>
-      <Row
-        label="Selection sources"
-      >{snapshot.memory.layers.observability?.selection?.sourceConversationIds.join(', ') || '-'}</Row>
+      <Row label="Selected vs rejected">{`${String(snapshot.memory.layers.observability?.selection?.selectedCount ?? 0)} / ${String(snapshot.memory.layers.observability?.selection?.rejectedCount ?? 0)}`}</Row>
+      <Row label="Top reasons">
+        {snapshot.memory.layers.observability?.selection?.topSelectionReasons.join(', ') || '-'}
+      </Row>
+      <Row label="Selection sources">
+        {snapshot.memory.layers.observability?.selection?.sourceConversationIds.join(', ') || '-'}
+      </Row>
 
       <strong style={{ display: 'block', marginTop: '12px' }}>Hydration observability</strong>
-      <Row
-        label="Hydrated conversation"
-      >{snapshot.memory.layers.observability?.hydration?.hydratedConversationId ?? '-'}</Row>
-      <Row
-        label="Hydration sources"
-      >{snapshot.memory.layers.observability?.hydration?.sourceConversationIds.join(', ') || '-'}</Row>
-      <Row label="Hydrated at">{snapshot.memory.layers.observability?.hydration?.hydratedAt ?? '-'}</Row>
+      <Row label="Hydrated conversation">
+        {snapshot.memory.layers.observability?.hydration?.hydratedConversationId ?? '-'}
+      </Row>
+      <Row label="Hydration sources">
+        {snapshot.memory.layers.observability?.hydration?.sourceConversationIds.join(', ') || '-'}
+      </Row>
+      <Row label="Hydrated at">
+        {snapshot.memory.layers.observability?.hydration?.hydratedAt ?? '-'}
+      </Row>
     </div>
   )
 }
@@ -213,7 +216,9 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
   return (
     <div style={{ marginTop: '12px' }}>
       <Row label="Avatar context avatarId">{snapshot.context.avatar.avatarId ?? '-'}</Row>
-      <Row label="Avatar recent exchanges">{String(snapshot.context.avatar.recentExchanges.length)}</Row>
+      <Row label="Avatar recent exchanges">
+        {String(snapshot.context.avatar.recentExchanges.length)}
+      </Row>
       <Row label="GM recent messages">{String(snapshot.context.gm.recentMessages.length)}</Row>
       <Row label="Scenario">{snapshot.context.gm.scenario.name ?? snapshot.session.scenarioId}</Row>
     </div>
@@ -247,7 +252,8 @@ function EventsTab({
             }}
           >
             <p style={{ margin: 0, fontWeight: 600 }}>
-              Turn {String(entry.turnIndex ?? 0)} · timeline {entry.timelinePosition} · {entry.status}
+              Turn {String(entry.turnIndex ?? 0)} · timeline {entry.timelinePosition} ·{' '}
+              {entry.status}
             </p>
             <p style={{ margin: '4px 0', color: '#4b5563' }}>Correlation: {entry.correlationId}</p>
             <p style={{ margin: '4px 0' }}>
@@ -257,7 +263,10 @@ function EventsTab({
               <strong>GM decision/action:</strong>
             </p>
             {entry.gmDecisionAction.map((line, index) => (
-              <p key={`${entry.correlationId}-decision-${String(index)}`} style={{ margin: '2px 0', color: '#374151' }}>
+              <p
+                key={`${entry.correlationId}-decision-${String(index)}`}
+                style={{ margin: '2px 0', color: '#374151' }}
+              >
                 - {line}
               </p>
             ))}
@@ -265,7 +274,10 @@ function EventsTab({
               <strong>Resulting impact:</strong>
             </p>
             {entry.resultingImpact.map((line, index) => (
-              <p key={`${entry.correlationId}-impact-${String(index)}`} style={{ margin: '2px 0', color: '#374151' }}>
+              <p
+                key={`${entry.correlationId}-impact-${String(index)}`}
+                style={{ margin: '2px 0', color: '#374151' }}
+              >
                 - {line}
               </p>
             ))}
@@ -281,7 +293,10 @@ function EventsTab({
       ))}
       <strong>Recent snapshot events</strong>
       {snapshot.recentEvents.map((event) => (
-        <div key={`${event.correlationId}-${event.createdAt}`} style={{ margin: '6px 0', color: '#374151' }}>
+        <div
+          key={`${event.correlationId}-${event.createdAt}`}
+          style={{ margin: '6px 0', color: '#374151' }}
+        >
           [{new Date(event.createdAt).toLocaleTimeString()}] {event.type}
         </div>
       ))}
@@ -306,8 +321,12 @@ function MetricsTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
     <div style={{ marginTop: '12px' }}>
       <Row label="Total turns">{String(snapshot.metrics.summary.totalTurns)}</Row>
       <Row label="Turns with GM">{String(snapshot.metrics.summary.turnsWithGm)}</Row>
-      <Row label="Avg avatar latency (ms)">{String(snapshot.metrics.summary.avgAvatarLatencyMs)}</Row>
-      <Row label="Avg total latency (ms)">{String(snapshot.metrics.summary.avgTotalTurnLatencyMs)}</Row>
+      <Row label="Avg avatar latency (ms)">
+        {String(snapshot.metrics.summary.avgAvatarLatencyMs)}
+      </Row>
+      <Row label="Avg total latency (ms)">
+        {String(snapshot.metrics.summary.avgTotalTurnLatencyMs)}
+      </Row>
       <strong style={{ display: 'block', marginTop: '12px' }}>Turn profiler</strong>
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px' }}>
         <label>
@@ -349,7 +368,8 @@ function MetricsTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
             }}
           >
             <p style={{ margin: 0, fontWeight: 600 }}>
-              Turn {String(row.turnIndex)} · {row.conversationId ?? 'unknown conversation'} · {row.hasGm ? 'GM' : 'Avatar only'}
+              Turn {String(row.turnIndex)} · {row.conversationId ?? 'unknown conversation'} ·{' '}
+              {row.hasGm ? 'GM' : 'Avatar only'}
             </p>
             <p style={{ margin: '4px 0', color: '#374151' }}>{describeTurnLatency(row)}</p>
             <p style={{ margin: '4px 0', color: '#374151' }}>{describeTurnTokens(row)}</p>

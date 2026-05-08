@@ -169,7 +169,10 @@ export function RuntimeInspector({
   )
 }
 
-function useRuntimeInspectorData(sessionId: string | null, refreshTrigger: number): {
+function useRuntimeInspectorData(
+  sessionId: string | null,
+  refreshTrigger: number,
+): {
   snapshot: RuntimeInspectorViewModel | null
   memoryHistory: ReturnType<typeof pushMemorySnapshotHistory>
   liveEvents: RuntimeEvent[]
@@ -178,7 +181,9 @@ function useRuntimeInspectorData(sessionId: string | null, refreshTrigger: numbe
   reload: () => Promise<void>
 } {
   const [snapshot, setSnapshot] = useState<RuntimeInspectorViewModel | null>(null)
-  const [memoryHistory, setMemoryHistory] = useState<ReturnType<typeof pushMemorySnapshotHistory>>([])
+  const [memoryHistory, setMemoryHistory] = useState<ReturnType<typeof pushMemorySnapshotHistory>>(
+    [],
+  )
   const [liveEvents, setLiveEvents] = useState<RuntimeEvent[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -197,7 +202,10 @@ function useRuntimeInspectorData(sessionId: string | null, refreshTrigger: numbe
       const data = await loadRuntimeInspectorViewModel(sessionId, { eventsLimit: 20 })
       setSnapshot(data)
       setMemoryHistory((previous) =>
-        pushMemorySnapshotHistory(previous, buildMemorySnapshot(data.memory.layers, data.recentEvents)),
+        pushMemorySnapshotHistory(
+          previous,
+          buildMemorySnapshot(data.memory.layers, data.recentEvents),
+        ),
       )
     } catch (nextError) {
       setError(formatApiError(nextError, 'Failed to load runtime inspector'))

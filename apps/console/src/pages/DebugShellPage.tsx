@@ -189,7 +189,9 @@ function toPersonaDraft(persona: UserPersona | null): PersonaDraft {
 
 // eslint-disable-next-line max-lines-per-function, complexity
 export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
-  const [shellContext, setShellContext] = useState(() => createDebugShellContext(scenario.scenarioId))
+  const [shellContext, setShellContext] = useState(() =>
+    createDebugShellContext(scenario.scenarioId),
+  )
   const [state, setState] = useState<ScenarioTestState>(createInitialScenarioTestState)
   const [userId, setUserId] = useState('tester')
   const [draftMessage, setDraftMessage] = useState('')
@@ -197,7 +199,11 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
   const [isSwitching, setIsSwitching] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
-  const [personaDraft, setPersonaDraft] = useState<PersonaDraft>({ role: '', tonePreference: '', hintsText: '' })
+  const [personaDraft, setPersonaDraft] = useState<PersonaDraft>({
+    role: '',
+    tonePreference: '',
+    hintsText: '',
+  })
   const [isLoadingPersona, setIsLoadingPersona] = useState(false)
   const [isSavingPersona, setIsSavingPersona] = useState(false)
   const [personaReady, setPersonaReady] = useState(false)
@@ -347,22 +353,19 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
     [draftMessage, handleSendMessage],
   )
 
-  const handleOpenConversation = useCallback(
-    (conversation: ConversationSummary): void => {
-      setIsLoadingHistory(true)
-      setState((prev) => withErrorCleared(prev))
-      void (async () => {
-        try {
-          await openConversationFlow(conversation.conversationId, setState)
-        } catch (error) {
-          setState((prev) => withError(prev, formatApiError(error, 'Failed to load history')))
-        } finally {
-          setIsLoadingHistory(false)
-        }
-      })()
-    },
-    [],
-  )
+  const handleOpenConversation = useCallback((conversation: ConversationSummary): void => {
+    setIsLoadingHistory(true)
+    setState((prev) => withErrorCleared(prev))
+    void (async () => {
+      try {
+        await openConversationFlow(conversation.conversationId, setState)
+      } catch (error) {
+        setState((prev) => withError(prev, formatApiError(error, 'Failed to load history')))
+      } finally {
+        setIsLoadingHistory(false)
+      }
+    })()
+  }, [])
 
   const handleReturnToGuide = useCallback((): void => {
     const firstAvailable = state.availableAvatarIds[0]
@@ -372,12 +375,16 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
   }, [handleSwitchAvatar, state.availableAvatarIds, state.session?.activeAvatarId])
 
   const handleTestLockedAccess = useCallback((): void => {
-    const locked = state.allScenarioAvatars.find((a) => !state.availableAvatarIds.includes(a.avatarId))
+    const locked = state.allScenarioAvatars.find(
+      (a) => !state.availableAvatarIds.includes(a.avatarId),
+    )
     if (locked && state.session) {
       handleSwitchAvatar(locked.avatarId)
       return
     }
-    setState((prev) => withError(prev, 'No locked avatars found. All avatars may already be unlocked.'))
+    setState((prev) =>
+      withError(prev, 'No locked avatars found. All avatars may already be unlocked.'),
+    )
   }, [handleSwitchAvatar, state.allScenarioAvatars, state.availableAvatarIds, state.session])
 
   const activeSection = shellContext.section
@@ -451,7 +458,10 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
                     value={personaDraft.tonePreference}
                     onChange={(event) => {
                       setPersonaReady(false)
-                      setPersonaDraft((previous) => ({ ...previous, tonePreference: event.target.value }))
+                      setPersonaDraft((previous) => ({
+                        ...previous,
+                        tonePreference: event.target.value,
+                      }))
                     }}
                     disabled={isLoadingPersona || isSavingPersona}
                   />
@@ -463,7 +473,10 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
                     value={personaDraft.hintsText}
                     onChange={(event) => {
                       setPersonaReady(false)
-                      setPersonaDraft((previous) => ({ ...previous, hintsText: event.target.value }))
+                      setPersonaDraft((previous) => ({
+                        ...previous,
+                        hintsText: event.target.value,
+                      }))
                     }}
                     disabled={isLoadingPersona || isSavingPersona}
                   />
@@ -477,7 +490,8 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
                     {isSavingPersona ? 'Saving...' : 'Save persona'}
                   </button>
                   <p style={{ margin: 0, color: personaReady ? '#166534' : '#92400e' }}>
-                    {personaStatus ?? (isLoadingPersona ? 'Loading persona...' : 'Persona not saved yet')}
+                    {personaStatus ??
+                      (isLoadingPersona ? 'Loading persona...' : 'Persona not saved yet')}
                   </p>
                 </div>
               </div>
@@ -537,7 +551,10 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
               initialTab={inspectorTab ?? 'overview'}
               tabOrderOverride={inspectorTab === null ? ['overview'] : [inspectorTab]}
               showTabNavigation={false}
-              title={DEBUG_SHELL_SECTIONS.find((item) => item.id === activeSection)?.label ?? 'Runtime Inspector'}
+              title={
+                DEBUG_SHELL_SECTIONS.find((item) => item.id === activeSection)?.label ??
+                'Runtime Inspector'
+              }
             />
           </div>
         </div>
