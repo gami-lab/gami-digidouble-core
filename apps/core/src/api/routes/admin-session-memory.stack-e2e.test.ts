@@ -247,5 +247,6 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers — stack behavior', (
     expect(Array.isArray(body.data?.session.shortTerm.recentExchanges)).toBe(true)
     expect(Array.isArray(body.data?.session.working.avatars)).toBe(true)
     expect(Array.isArray(body.data?.session.longTerm.facts)).toBe(true)
+    expect(body.data?.session.observability).toBeDefined()
   })
 })

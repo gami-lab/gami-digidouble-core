@@ -119,6 +119,21 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Validation status for this slice:
   - targeted memory-selection + send-message + GM memory-input tests PASS
 
+### EPIC 4.2c — Memory observability and debug surface: **in progress** (2026-05-08)
+
+- Extended admin memory-layers inspection contract with additive observability payloads:
+  - `session.observability.selection` (sources, selected/rejected counts, top reasons, timestamp)
+  - `session.observability.hydration` (hydrated conversation linkage + timestamp)
+- Implemented deterministic selection observability assembly in `GetSessionMemoryLayersUseCase` using canonical `MemorySelectionService` metadata.
+- Added hydration observability signal emission on conversation-start hydration:
+  - `memory_hydration_succeeded` event now records hydrated conversation ID and source episodic conversation IDs.
+- Wired admin route dependencies to support observability assembly without API sprawl:
+  - reused `GET /v1/admin/sessions/{sessionId}/memory-layers`.
+- Console runtime inspector memory tab now renders selection and hydration observability fields.
+- Validation status for this slice:
+  - `pnpm -w -r typecheck` PASS
+  - targeted tests PASS (`admin-memory`, `start-conversation`, runtime-inspector tab rendering)
+
 ### EPIC 2.8 — Console debugging redesign (contract cleanup + path pruning): **complete** (2026-05-07)
 
 - Removed remaining runtime-debug UI branch duplication in console Session page:

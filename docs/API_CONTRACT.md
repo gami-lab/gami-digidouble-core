@@ -1626,7 +1626,7 @@ type AdminSessionMemoryResponse = {
 
 ## A6. Get Session Memory Layers
 
-Status: IMPLEMENTED (EPIC 4.2b)
+Status: IMPLEMENTED (EPIC 4.2b, EPIC 4.2c observability extensions)
 Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
 
 ### Endpoint
@@ -1641,6 +1641,36 @@ GET /v1/admin/sessions/{sessionId}/memory-layers
 type AdminSessionMemoryLayersResponse = {
   session: SessionMemoryLayers
 }
+
+type SessionMemoryLayers = {
+  sessionId: string
+  shortTerm: {
+    exchangeCount: 2
+    recentExchanges: Array<{ user: string; avatar: string }>
+  }
+  working: {
+    session?: { summary: string; updatedAt: string }
+    avatars: Array<{ avatarId: string; summary: string; updatedAt: string }>
+  }
+  longTerm: {
+    facts: Array<{ category: string; key: string; value: string; updatedAt: string }>
+  }
+  observability?: {
+    selection?: {
+      sourceConversationIds: string[]
+      selectedConversationIds: string[]
+      selectedCount: number
+      rejectedCount: number
+      topSelectionReasons: string[]
+      evaluatedAt: string
+    }
+    hydration?: {
+      hydratedConversationId: string
+      sourceConversationIds: string[]
+      hydratedAt: string
+    }
+  }
+}
 ```
 
 ### Semantics
@@ -1648,6 +1678,15 @@ type AdminSessionMemoryLayersResponse = {
 - Short-term is bounded to exactly last 2 user/avatar exchanges.
 - Working memory exposes session summary and avatar-scoped summaries.
 - Long-term exposes structured user facts, ordered by recency and capped to the latest 50 facts by default for operator safety.
+- `observability.selection` exposes deterministic memory-selection diagnostics:
+  - source conversation IDs considered
+  - selected vs rejected counts
+  - top selection reasons
+  - evaluation timestamp
+- `observability.hydration` exposes the latest hydration linkage for the session when available:
+  - hydrated conversation ID
+  - hydration source conversation IDs
+  - hydration timestamp
 - Route is inspection-focused and does not expose raw full transcripts or prompt internals.
 
 ---

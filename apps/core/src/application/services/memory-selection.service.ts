@@ -33,6 +33,26 @@ export class MemorySelectionService {
     scenarioId: string
     userMessageText: string
   }): Promise<SelectedMemoryPayload> {
+    const { selected } = await this.selectWithObservability(input)
+    return selected
+  }
+
+  async selectWithObservability(input: {
+    conversationId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+    userMessageText: string
+  }): Promise<{
+    selected: SelectedMemoryPayload
+    observability: {
+      sourceConversationIds: string[]
+      selectedConversationIds: string[]
+      selectedCount: number
+      rejectedCount: number
+      topSelectionReasons: string[]
+    }
+  }> {
     const [shortTermExchanges, workingMemory, episodicMemories, longTermFacts] = await Promise.all([
       this.loadShortTermExchanges(input.conversationId),
       this.loadWorkingMemory(input.conversationId),
@@ -40,15 +60,27 @@ export class MemorySelectionService {
       this.loadLongTermFacts(input.userId),
     ])
 
+    const selectedEpisodes = this.selectEpisodicMemories(
+      episodicMemories,
+      input.userMessageText,
+      workingMemory?.unresolvedThreads ?? [],
+    )
+    const topSelectionReasons = this.getTopSelectionReasons(selectedEpisodes)
+
     return {
-      shortTermExchanges,
-      ...(workingMemory !== undefined ? { workingMemory } : {}),
-      episodicMemories: this.selectEpisodicMemories(
-        episodicMemories,
-        input.userMessageText,
-        workingMemory?.unresolvedThreads ?? [],
-      ),
-      longTermFacts,
+      selected: {
+        shortTermExchanges,
+        ...(workingMemory !== undefined ? { workingMemory } : {}),
+        episodicMemories: selectedEpisodes,
+        longTermFacts,
+      },
+      observability: {
+        sourceConversationIds: episodicMemories.map((memory) => memory.conversationId),
+        selectedConversationIds: selectedEpisodes.map((memory) => memory.conversationId),
+        selectedCount: selectedEpisodes.length,
+        rejectedCount: Math.max(0, episodicMemories.length - selectedEpisodes.length),
+        topSelectionReasons,
+      },
     }
   }
 
@@ -223,5 +255,19 @@ export class MemorySelectionService {
     } catch {
       return []
     }
+  }
+
+  private getTopSelectionReasons(
+    selectedEpisodes: SelectedMemoryPayload['episodicMemories'],
+  ): string[] {
+    const counts = new Map<string, number>()
+    for (const episode of selectedEpisodes) {
+      for (const reason of episode.selectionReasons) {
+        counts.set(reason, (counts.get(reason) ?? 0) + 1)
+      }
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([reason]) => reason)
   }
 }

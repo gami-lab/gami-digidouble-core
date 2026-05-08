@@ -227,6 +227,13 @@ function buildAdminMemoryRouteOptions(config: Config, adapters: ServerAdapters) 
     ...(adapters.messageRepository !== undefined
       ? { messageRepository: adapters.messageRepository }
       : {}),
+    ...(adapters.conversationWorkingMemoryRepository !== undefined
+      ? { conversationWorkingMemoryRepository: adapters.conversationWorkingMemoryRepository }
+      : {}),
+    ...(adapters.conversationMemoryRepository !== undefined
+      ? { conversationMemoryRepository: adapters.conversationMemoryRepository }
+      : {}),
+    eventLogRepository: withDefault(adapters.eventLogRepository, new InMemoryEventLogRepository()),
     userMemoryFactRepository:
       adapters.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
   }

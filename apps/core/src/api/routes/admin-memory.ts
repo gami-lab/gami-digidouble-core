@@ -2,7 +2,10 @@ import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
 import type { AdminSessionMemoryLayersResponse, AdminSessionMemoryResponse } from '@gami/shared'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
+import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
+import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
+import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
@@ -21,6 +24,9 @@ export type AdminMemoryRouteOptions = {
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationRepository?: IConversationRepository
   messageRepository?: IMessageRepository
+  conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
+  conversationMemoryRepository?: IConversationMemoryRepository
+  eventLogRepository?: IEventLogRepository
 }
 
 type SessionParams = {
@@ -49,6 +55,9 @@ export const adminMemoryRoute: FastifyPluginCallback<AdminMemoryRouteOptions> = 
     options.avatarSessionMemoryRepository,
     options.conversationRepository,
     options.messageRepository,
+    options.conversationWorkingMemoryRepository,
+    options.conversationMemoryRepository,
+    options.eventLogRepository,
   )
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 

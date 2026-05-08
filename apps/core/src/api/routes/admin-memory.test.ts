@@ -5,7 +5,10 @@ import type { Config } from '../../config.js'
 import type { Session } from '../../domain/conversation/session.types.js'
 import type { UserFact } from '../../domain/memory/memory.types.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
+import { InMemoryConversationMemoryRepository } from '../../infrastructure/db/in-memory-conversation-memory.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
+import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
@@ -83,6 +86,34 @@ function makeApp(params?: {
     content: string
     createdAt: string
   }>
+  conversationMemories?: Array<{
+    conversationId: string
+    sessionId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+    summary: string
+    keyDiscoveries: string[]
+    unresolvedTopics: string[]
+    factCandidates: Array<{ category: string; key: string; value: string }>
+    createdAt: string
+  }>
+  conversationWorkingMemories?: Array<{
+    conversationId: string
+    sessionId: string
+    avatarId: string
+    summary: string
+    unresolvedThreads: string[]
+    candidateFacts: Array<{ category: string; key: string; value: string }>
+    updatedAt: string
+  }>
+  events?: Array<{
+    sessionId?: string
+    type: string
+    severity: 'info' | 'warning' | 'error'
+    payload: Record<string, unknown>
+    createdAt?: string
+  }>
 }): FastifyInstance {
   const app = createServer(testConfig, buildAdapters(params))
   appsToClose.push(app)
@@ -106,8 +137,40 @@ function buildAdapters(params?: {
     content: string
     createdAt: string
   }>
+  conversationMemories?: Array<{
+    conversationId: string
+    sessionId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+    summary: string
+    keyDiscoveries: string[]
+    unresolvedTopics: string[]
+    factCandidates: Array<{ category: string; key: string; value: string }>
+    createdAt: string
+  }>
+  conversationWorkingMemories?: Array<{
+    conversationId: string
+    sessionId: string
+    avatarId: string
+    summary: string
+    unresolvedThreads: string[]
+    candidateFacts: Array<{ category: string; key: string; value: string }>
+    updatedAt: string
+  }>
+  events?: Array<{
+    sessionId?: string
+    type: string
+    severity: 'info' | 'warning' | 'error'
+    payload: Record<string, unknown>
+    createdAt?: string
+  }>
 }) {
   const resolved = resolveParams(params)
+  const eventLogRepository = new InMemoryEventLogRepository()
+  for (const event of resolved.events) {
+    void eventLogRepository.append(event)
+  }
   return {
     sessionRepository: new InMemorySessionRepository(resolved.sessions),
     sessionMemoryRepository: new InMemorySessionMemoryRepository(resolved.sessionMemories),
@@ -116,6 +179,13 @@ function buildAdapters(params?: {
     ),
     conversationRepository: new InMemoryConversationRepository([makeConversation()]),
     messageRepository: new InMemoryMessageRepository(resolved.conversationMessages),
+    conversationWorkingMemoryRepository: new InMemoryConversationWorkingMemoryRepository(
+      resolved.conversationWorkingMemories,
+    ),
+    conversationMemoryRepository: new InMemoryConversationMemoryRepository(
+      resolved.conversationMemories,
+    ),
+    eventLogRepository,
     userMemoryFactRepository: new InMemoryUserMemoryFactRepository(resolved.facts),
   }
 }
@@ -126,6 +196,9 @@ function resolveParams({
   sessionMemories = [],
   avatarMemories = [],
   conversationMessages = [],
+  conversationMemories = [],
+  conversationWorkingMemories = [],
+  events = [],
 }: {
   sessions?: Session[]
   facts?: UserFact[]
@@ -143,6 +216,34 @@ function resolveParams({
     content: string
     createdAt: string
   }>
+  conversationMemories?: Array<{
+    conversationId: string
+    sessionId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+    summary: string
+    keyDiscoveries: string[]
+    unresolvedTopics: string[]
+    factCandidates: Array<{ category: string; key: string; value: string }>
+    createdAt: string
+  }>
+  conversationWorkingMemories?: Array<{
+    conversationId: string
+    sessionId: string
+    avatarId: string
+    summary: string
+    unresolvedThreads: string[]
+    candidateFacts: Array<{ category: string; key: string; value: string }>
+    updatedAt: string
+  }>
+  events?: Array<{
+    sessionId?: string
+    type: string
+    severity: 'info' | 'warning' | 'error'
+    payload: Record<string, unknown>
+    createdAt?: string
+  }>
 } = {}) {
   return {
     sessions,
@@ -150,6 +251,9 @@ function resolveParams({
     sessionMemories,
     avatarMemories,
     conversationMessages,
+    conversationMemories,
+    conversationWorkingMemories,
+    events,
   }
 }
 

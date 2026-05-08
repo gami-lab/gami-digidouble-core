@@ -8,6 +8,7 @@ const findSessionByIdMock = vi.fn()
 const updateSessionMock = vi.fn()
 const findAvatarByIdMock = vi.fn()
 const createConversationMock = vi.fn()
+const appendEventMock = vi.fn()
 
 const sessionRepository = {
   findById: findSessionByIdMock,
@@ -79,6 +80,7 @@ beforeEach(() => {
   updateSessionMock.mockReset()
   findAvatarByIdMock.mockReset()
   createConversationMock.mockReset()
+  appendEventMock.mockReset()
 
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession())
@@ -158,6 +160,7 @@ describe('StartConversationUseCase', () => {
       conversationRepository,
       conversationWorkingMemoryRepository,
       { hydrateForNewConversation },
+      { append: appendEventMock, findBySessionId: vi.fn() },
     )
 
     await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' })
@@ -168,5 +171,11 @@ describe('StartConversationUseCase', () => {
     ).resolves.toMatchObject({
       summary: 'Hydrated summary',
     })
+    expect(appendEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'memory_hydration_succeeded',
+        sessionId: 'session_1',
+      }),
+    )
   })
 })

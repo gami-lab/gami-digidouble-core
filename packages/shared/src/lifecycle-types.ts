@@ -33,6 +33,21 @@ export type SessionMemoryLayers = {
   longTerm: {
     facts: Array<SharedLongTermMemoryFact & { updatedAt: string }>
   }
+  observability?: {
+    selection?: {
+      sourceConversationIds: string[]
+      selectedConversationIds: string[]
+      selectedCount: number
+      rejectedCount: number
+      topSelectionReasons: string[]
+      evaluatedAt: string
+    }
+    hydration?: {
+      hydratedConversationId: string
+      sourceConversationIds: string[]
+      hydratedAt: string
+    }
+  }
 }
 
 export type SessionTransitionRecord = {

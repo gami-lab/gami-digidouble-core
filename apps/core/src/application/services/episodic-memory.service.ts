@@ -58,6 +58,22 @@ export class EpisodicMemoryService {
     scenarioId: string
     queryText?: string
   }): Promise<ConversationWorkingMemoryRefreshOutput> {
+    const result = await this.hydrateForNewConversationWithMetadata(input)
+    return result.hydration
+  }
+
+  async hydrateForNewConversationWithMetadata(input: {
+    conversationId: string
+    sessionId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+    queryText?: string
+  }): Promise<{
+    hydration: ConversationWorkingMemoryRefreshOutput
+    selectedConversationIds: string[]
+    consideredConversationIds: string[]
+  }> {
     const scoped = await this.conversationMemoryRepository.listByScope({
       userId: input.userId,
       avatarId: input.avatarId,
@@ -79,7 +95,11 @@ export class EpisodicMemoryService {
       8,
     )
 
-    return { summary, unresolvedThreads, candidateFacts: factCandidates }
+    return {
+      hydration: { summary, unresolvedThreads, candidateFacts: factCandidates },
+      selectedConversationIds: selected.map((memory) => memory.conversationId),
+      consideredConversationIds: scoped.map((memory) => memory.conversationId),
+    }
   }
 
   private async buildFallbackWorkingMemory(

@@ -185,6 +185,26 @@ function MemoryTab({
             </p>
           ))}
       </div>
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>Selection observability</strong>
+      <Row
+        label="Selected vs rejected"
+      >{`${String(snapshot.memory.layers.observability?.selection?.selectedCount ?? 0)} / ${String(snapshot.memory.layers.observability?.selection?.rejectedCount ?? 0)}`}</Row>
+      <Row
+        label="Top reasons"
+      >{snapshot.memory.layers.observability?.selection?.topSelectionReasons.join(', ') || '-'}</Row>
+      <Row
+        label="Selection sources"
+      >{snapshot.memory.layers.observability?.selection?.sourceConversationIds.join(', ') || '-'}</Row>
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>Hydration observability</strong>
+      <Row
+        label="Hydrated conversation"
+      >{snapshot.memory.layers.observability?.hydration?.hydratedConversationId ?? '-'}</Row>
+      <Row
+        label="Hydration sources"
+      >{snapshot.memory.layers.observability?.hydration?.sourceConversationIds.join(', ') || '-'}</Row>
+      <Row label="Hydrated at">{snapshot.memory.layers.observability?.hydration?.hydratedAt ?? '-'}</Row>
     </div>
   )
 }
