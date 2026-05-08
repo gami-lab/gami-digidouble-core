@@ -114,8 +114,14 @@ Must test:
   - avatar switch
   - admin trigger
 - `memory_refresh_triggered/succeeded/failed` event emission
+- hydration linkage event emission (`memory_hydration_succeeded`) with conversation/source identifiers
 - repeated turns update existing working-memory rows (no duplicate row creation)
 - reset behavior
+- admin memory-layers observability payload shape:
+  - selection sources
+  - selected vs rejected counts
+  - top selection reasons
+  - hydration linkage metadata
 
 Risk: memory systems silently degrade quality while appearing to work. Requires both logic tests and conversational regression checks.
 

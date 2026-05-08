@@ -817,12 +817,14 @@ Conversation continuity requires structured bounded memory evolution, not transc
 
 **Progress update (May 8, 2026)**
 
+- EPIC 4.2c is complete.
 - Implemented slices:
   - contract cleanup and canonical ownership
   - conversation working-memory lifecycle + trigger policy
   - episodic memory persistence (`conversation_memories`) + close-generation + start hydration baseline
-- Remaining in this EPIC:
-  - GM episodic-memory consumption and selection observability/debug surfaces
+  - GM episodic-memory consumption + deterministic selection policy
+  - memory selection and hydration observability/debug surfaces
+  - hardening/test-closure/doc-sync gates
 
 ---
 

@@ -10,7 +10,7 @@ Update it as epics and features are completed.
 
 ## Overall Progress
 
-Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC 2.7 (Runtime Inspector Contract Cleanup), EPIC 2.8 (Console Debugging Redesign), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
+Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC 2.4, EPIC 2.5 (Admin CRUD Completion + Console Integration), EPIC 2.6 (GM Debug Panel v1 + Observability APIs), EPIC 2.7 (Runtime Inspector Contract Cleanup), EPIC 2.8 (Console Debugging Redesign), EPIC O1 (Health & Dependency Monitoring), EPIC 4.1 (Async Game Master v1), EPIC 4.2c (Memory System v3), EPIC 4.3 (Performance Baseline), EPIC 4.4 (Multi-Avatar Navigation v1), and all associated tests and hardening are complete.**
 
 ### EPIC 2.7 — Runtime Inspector Contract Cleanup: **complete** (2026-05-07)
 
@@ -26,7 +26,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Console API layer (`apps/console/src/api/sessions.ts`) no longer defines duplicated inspector/event DTOs and imports canonical types from `@gami/shared`.
 - GM Debug panel event rendering now handles union event payloads safely (`turn_completed` vs GM events), matching the admin events contract.
 
-### EPIC 4.2c — Contract cleanup and canonical memory ownership: **in progress** (2026-05-08)
+### EPIC 4.2c — Contract cleanup and canonical memory ownership: **complete** (2026-05-08)
 
 - Ran a contract-drift pass across core domain memory types, shared HTTP DTO contracts, admin/runtime-inspector contracts, GM input context memory shape, and console query/view models.
 - Added canonical shared memory DTO fragments in `packages/shared/src/memory-contract-types.ts` and reused them from:
@@ -47,7 +47,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `pnpm -w -r typecheck` PASS
   - targeted core tests for memory/context/GM typing contracts PASS
 
-### EPIC 4.2c — Conversation working-memory lifecycle: **in progress** (2026-05-08)
+### EPIC 4.2c — Conversation working-memory lifecycle: **complete** (2026-05-08)
 
 - Added canonical conversation-scoped working-memory persistence:
   - new table: `conversation_working_memories`
@@ -75,7 +75,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `pnpm -w -r typecheck` PASS
   - targeted unit tests PASS (memory maintenance, switch-avatar trigger, admin runtime actions, new conversation-memory repository)
 
-### EPIC 4.2c — Episodic persistence and hydration: **in progress** (2026-05-08)
+### EPIC 4.2c — Episodic persistence and hydration: **complete** (2026-05-08)
 
 - Added durable episodic memory persistence model:
   - new table: `conversation_memories`
@@ -97,7 +97,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `pnpm -w -r typecheck` PASS
   - targeted unit tests PASS (episodic policy/service, start hydration, end generation, in-memory episodic repository)
 
-### EPIC 4.2c — Memory selection policy and GM integration: **in progress** (2026-05-08)
+### EPIC 4.2c — Memory selection policy and GM integration: **complete** (2026-05-08)
 
 - Added canonical deterministic memory selection policy + shared assembly service:
   - `apps/core/src/domain/memory/memory-selection.policy.ts`
@@ -119,7 +119,7 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Validation status for this slice:
   - targeted memory-selection + send-message + GM memory-input tests PASS
 
-### EPIC 4.2c — Memory observability and debug surface: **in progress** (2026-05-08)
+### EPIC 4.2c — Memory observability and debug surface: **complete** (2026-05-08)
 
 - Extended admin memory-layers inspection contract with additive observability payloads:
   - `session.observability.selection` (sources, selected/rejected counts, top reasons, timestamp)
@@ -133,6 +133,20 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Validation status for this slice:
   - `pnpm -w -r typecheck` PASS
   - targeted tests PASS (`admin-memory`, `start-conversation`, runtime-inspector tab rendering)
+
+### EPIC 4.2c — Hardening, test closure, and documentation sync: **complete** (2026-05-08)
+
+- Closed remaining integration-test reliability gap for episodic persistence by fixing fixture lifecycle in:
+  - `postgres-conversation-memory.repository.integration.test.ts`
+- Revalidated mandatory quality gates:
+  - `pnpm lint` PASS
+  - `pnpm typecheck` PASS
+  - `pnpm test` PASS
+  - `pnpm test:coverage` PASS
+- Verified stack-e2e coverage requirements for EPIC 4.2c endpoint surface:
+  - No net-new public/admin endpoints introduced in this EPIC.
+  - Existing memory/admin endpoints retain stack-e2e coverage (`/memory`, `/memory-layers`, admin runtime actions).
+- Synced EPIC documentation and contract references across API, data model, GM contract, and coverage planning docs.
 
 ### EPIC 2.8 — Console debugging redesign (contract cleanup + path pruning): **complete** (2026-05-07)
 

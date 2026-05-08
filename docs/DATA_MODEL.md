@@ -692,6 +692,17 @@ Emitted by `EndConversationUseCase` around asynchronous episodic generation.
 
 Payload includes compact operational fields only (session/conversation/avatar ids, trigger source, summary lengths/message count on success, short error message on failure). No raw transcript payloads are logged.
 
+### Event: `memory_hydration_succeeded` (conversation-start hydration linkage)
+
+Emitted by `StartConversationUseCase` after successful episodic hydration persistence into conversation working memory.
+
+Payload fields:
+
+- `hydratedConversationId` — newly created conversation id
+- `sourceConversationIds` — selected episodic-memory conversation ids used for hydration
+- `consideredCount` — number of scoped episodic candidates evaluated
+- `selectedCount` — number of episodic candidates selected
+
 The `request_id` and `correlation_id` fields are essential for tracing failures across async flows without requiring a full distributed tracing stack.
 
 ---
