@@ -342,15 +342,13 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       new InMemoryConversationWorkingMemoryRepository(),
       eventLogRepository,
       {
-        complete: vi
-          .fn()
-          .mockResolvedValue({
-            content: '{}',
-            model: 'test',
-            inputTokens: 0,
-            outputTokens: 0,
-            latencyMs: 0,
-          }),
+        complete: vi.fn().mockResolvedValue({
+          content: '{}',
+          model: 'test',
+          inputTokens: 0,
+          outputTokens: 0,
+          latencyMs: 0,
+        }),
       },
     )
 
@@ -447,15 +445,13 @@ describe('MemoryMaintenanceService — post_turn policy gate', () => {
       conversationWorkingMemoryRepository,
       eventLogRepository,
       {
-        complete: vi
-          .fn()
-          .mockResolvedValue({
-            content: '{}',
-            model: 'test',
-            inputTokens: 0,
-            outputTokens: 0,
-            latencyMs: 0,
-          }),
+        complete: vi.fn().mockResolvedValue({
+          content: '{}',
+          model: 'test',
+          inputTokens: 0,
+          outputTokens: 0,
+          latencyMs: 0,
+        }),
       },
     )
 
