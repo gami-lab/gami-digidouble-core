@@ -194,7 +194,6 @@ export class RunGameMasterUseCase {
       llmLatencyMs,
       llmRequest,
       llmResponse,
-      observability: this.observability,
       ...(this.eventLogRepository !== undefined
         ? { eventLogRepository: this.eventLogRepository }
         : {}),

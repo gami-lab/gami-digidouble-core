@@ -105,7 +105,6 @@ export async function emitTriggeredGameMasterTurn(args: {
     inputTokens: number
     outputTokens: number
   }
-  observability: IObservabilityAdapter
   eventLogRepository?: IEventLogRepository
 }): Promise<void> {
   await emitEventSafe(args.eventLogRepository, {
@@ -126,21 +125,6 @@ export async function emitTriggeredGameMasterTurn(args: {
       correlationId: args.input.correlationId,
       totalLatencyMs: Date.now() - args.gmRunStartMs,
     },
-  })
-  await traceSafe(args.observability, {
-    requestId: args.input.correlationId,
-    sessionId: args.input.sessionId,
-    event: 'gm.triggered',
-    input: {
-      triggerReason: args.triggerReason,
-      turnIndex: args.input.turnIndex,
-      llmRequest: args.llmRequest,
-    },
-    output: args.output,
-    latencyMs: Date.now() - args.llmStart,
-    inputTokens: args.llmResponse.inputTokens,
-    outputTokens: args.llmResponse.outputTokens,
-    metadata: { model: args.llmResponse.model },
   })
 }
 

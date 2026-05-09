@@ -127,7 +127,14 @@ describe('RunGameMasterUseCase — defensive error paths', () => {
     expect(saveGmStateMock).toHaveBeenCalledOnce()
   })
 
-  it('traceSafe failure does not propagate on triggered turn', async () => {
+  it('traceSafe failure does not propagate on invalid output path', async () => {
+    completeMock.mockResolvedValueOnce({
+      content: '{invalid_json',
+      model: 'null-model',
+      inputTokens: 5,
+      outputTokens: 5,
+      latencyMs: 1,
+    })
     traceMock.mockRejectedValue(new Error('langfuse down'))
     const useCase = createUseCase()
 
