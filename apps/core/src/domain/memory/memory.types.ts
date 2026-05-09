@@ -100,8 +100,6 @@ export type LayeredMemorySnapshot = {
 }
 
 export type GameMasterMemoryContext = {
-  shortTerm?: Pick<ShortTermMemoryWindow, 'recentExchanges'>
-  workingSummary?: string
   workingMemory?: {
     summary: string
     unresolvedThreads: string[]

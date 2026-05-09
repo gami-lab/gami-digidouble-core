@@ -157,6 +157,13 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
         content: 'Can Theo explain the technical side?',
         createdAt: '2026-04-20T10:00:00.000Z',
       },
+      {
+        messageId: 'msg_1b',
+        conversationId: 'conversation_1',
+        role: 'avatar',
+        content: 'Yes, Theo can help with technical details.',
+        createdAt: '2026-04-20T10:00:01.000Z',
+      },
     ])
     mockGmOutput({
       avatarId: 'avatar_1',
@@ -202,6 +209,13 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
         role: 'user',
         content: 'Please continue with the current guide.',
         createdAt: '2026-04-20T10:01:00.000Z',
+      },
+      {
+        messageId: 'msg_2b',
+        conversationId: 'conversation_1',
+        role: 'avatar',
+        content: 'Sure, we can continue.',
+        createdAt: '2026-04-20T10:01:01.000Z',
       },
     ])
     mockGmOutput({

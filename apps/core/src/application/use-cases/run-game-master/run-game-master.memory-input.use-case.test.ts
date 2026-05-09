@@ -59,10 +59,18 @@ const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
 
 type GmMemory = {
-  shortTerm?: { recentExchanges: Array<{ user: string; avatar: string }> }
   workingMemory?: { summary: string; unresolvedThreads: string[] }
   episodicMemories?: Array<{ conversationId: string; selectionReasons?: string[] }>
   longTermFacts?: Array<{ category: string; key: string; value: string }>
+}
+
+type GmRecentMessage = { role: 'user' | 'avatar' | 'system'; content: string }
+
+function readRecentMessages(): GmRecentMessage[] {
+  const rawContent =
+    (completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }).messages[0]
+      ?.content ?? '{}'
+  return (JSON.parse(rawContent) as { recentMessages?: GmRecentMessage[] }).recentMessages ?? []
 }
 
 function readGmMemory(): GmMemory {
@@ -166,9 +174,11 @@ beforeEach(() => {
 })
 
 describe('RunGameMasterUseCase memory input', () => {
-  it('injects bounded short-term, working, and long-term memory', async () => {
+  it('injects bounded recent exchanges plus working-memory context with deduplicated memory payload', async () => {
     const useCase = createUseCase()
     findMessagesByConversationIdMock.mockResolvedValue([
+      { role: 'user', content: 'U0', createdAt: '2026-04-18T10:00:00.000Z' },
+      { role: 'avatar', content: 'A0', createdAt: '2026-04-18T10:00:00.500Z' },
       { role: 'user', content: 'U1', createdAt: '2026-04-18T10:00:01.000Z' },
       { role: 'avatar', content: 'A1', createdAt: '2026-04-18T10:00:02.000Z' },
       { role: 'user', content: 'U2', createdAt: '2026-04-18T10:00:03.000Z' },
@@ -210,11 +220,23 @@ describe('RunGameMasterUseCase memory input', () => {
     })
 
     const memory = readGmMemory()
+    const recentMessages = readRecentMessages()
 
-    expect(memory.shortTerm?.recentExchanges).toEqual([
-      { user: 'U2', avatar: 'A2' },
-      { user: 'U3', avatar: 'A3' },
+    expect(recentMessages).toEqual([
+      { role: 'user', content: 'U1' },
+      { role: 'avatar', content: 'A1' },
+      { role: 'user', content: 'U2' },
+      { role: 'avatar', content: 'A2' },
+      { role: 'user', content: 'U3' },
+      { role: 'avatar', content: 'A3' },
+      {
+        role: 'system',
+        content:
+          'Avatar working memory summary: Session working summary\nUnresolved threads: Follow up on budget',
+      },
     ])
+    expect(memory).not.toHaveProperty('shortTerm')
+    expect(memory).not.toHaveProperty('workingSummary')
     expect(memory.workingMemory).toEqual({
       summary: 'Session working summary',
       unresolvedThreads: ['Follow up on budget'],
@@ -245,6 +267,66 @@ describe('RunGameMasterUseCase memory input', () => {
     expect(memory.episodicMemories?.length).toBeGreaterThan(0)
     expect(first?.conversationId).toBe('conv_past_1')
     expect(first?.selectionReasons?.length).toBeGreaterThan(0)
+  })
+})
+
+describe('RunGameMasterUseCase output normalization', () => {
+  it('normalizes avatar name references to IDs before persisting state', async () => {
+    const useCase = createUseCase()
+    findMessagesByConversationIdMock.mockResolvedValue([])
+    findConversationWorkingMemoryByConversationIdMock.mockResolvedValue(null)
+    listConversationMemoriesByScopeMock.mockResolvedValue([])
+    findFactsByUserIdMock.mockResolvedValue([])
+    listAvatarsByScenarioIdMock.mockResolvedValue([
+      {
+        avatarId: 'avatar_1',
+        scenarioId: 'scenario_1',
+        name: 'Eva',
+        status: 'active',
+        personaPrompt: 'You are Eva.',
+        config: {},
+        createdAt: '2026-04-20T10:00:00.000Z',
+        updatedAt: '2026-04-20T10:00:00.000Z',
+      },
+      {
+        avatarId: 'avatar_2',
+        scenarioId: 'scenario_1',
+        name: 'Theo',
+        status: 'active',
+        personaPrompt: 'You are Theo.',
+        config: {},
+        createdAt: '2026-04-20T10:00:00.000Z',
+        updatedAt: '2026-04-20T10:00:00.000Z',
+      },
+    ])
+    completeMock.mockResolvedValueOnce({
+      content: JSON.stringify({
+        avatarId: 'Eva',
+        conversationMode: 'continue',
+        suggestedAvatarId: 'Theo',
+        stateUpdate: {
+          activeAvatarId: 'Eva',
+          interactionIncrement: 1,
+        },
+      }),
+      model: 'null-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 4,
+    })
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      conversationId: 'conversation_1',
+      userMessageText: 'switch to ethics',
+      turnIndex: 2,
+      correlationId: 'corr_name_to_id',
+    })
+
+    const persistedState = saveMock.mock.calls[0]?.[1] as { currentAvatarId?: string } | undefined
+    expect(persistedState?.currentAvatarId).toBe('avatar_1')
   })
 })
 

@@ -112,12 +112,8 @@ export class MemorySelectionService {
 
   toGameMasterMemoryContext(payload: SelectedMemoryPayload): GameMasterMemoryContext | undefined {
     const memory: GameMasterMemoryContext = {
-      ...(payload.shortTermExchanges.length > 0
-        ? { shortTerm: { recentExchanges: payload.shortTermExchanges } }
-        : {}),
       ...(payload.workingMemory !== undefined
         ? {
-            workingSummary: payload.workingMemory.summary,
             workingMemory: {
               summary: payload.workingMemory.summary,
               unresolvedThreads: payload.workingMemory.unresolvedThreads,

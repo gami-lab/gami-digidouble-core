@@ -392,6 +392,13 @@ describe('RunGameMasterUseCase — runtime event publication unlocks', () => {
         content: 'Can Theo help here?',
         createdAt: '2026-04-18T10:00:00.000Z',
       },
+      {
+        messageId: 'msg_2',
+        conversationId: 'conversation_1',
+        role: 'avatar',
+        content: 'Theo can probably help.',
+        createdAt: '2026-04-18T10:00:01.000Z',
+      },
     ])
 
     await useCase.execute({
@@ -428,6 +435,10 @@ describe('RunGameMasterUseCase — runtime event publication unlocks', () => {
 describe('RunGameMasterUseCase — runtime event publication guidance', () => {
   it('emits runtime.avatar_suggested when suggestedAvatarId is present', async () => {
     const useCase = createUseCase()
+    listAvatarsByScenarioIdMock.mockResolvedValue([
+      makeAvatar({ avatarId: 'avatar_1', name: 'Ava' }),
+      makeAvatar({ avatarId: 'avatar_2', name: 'Theo' }),
+    ])
     completeMock.mockResolvedValue({
       content: JSON.stringify({
         avatarId: 'avatar_1',

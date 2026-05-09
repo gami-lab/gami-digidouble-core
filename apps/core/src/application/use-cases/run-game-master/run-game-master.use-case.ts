@@ -23,6 +23,11 @@ import type { RunGameMasterInput } from './run-game-master.types.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import { safeParseGameMasterOutput } from './run-game-master.helpers.js'
 import {
+  normalizeGameMasterOutput,
+  toRecentExchangeMessages,
+  toWorkingMemoryPromptContext,
+} from './run-game-master.normalization.js'
+import {
   resolveAvatarUnlocks,
   toGameMasterAvailableAvatars,
 } from './run-game-master.avatar-unlocks.js'
@@ -38,6 +43,7 @@ const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
   topicsCovered: [],
   interactionCount: 0,
 }
+const GM_RECENT_EXCHANGE_LIMIT = 3
 
 type ScenarioContext = {
   description?: string
@@ -132,27 +138,22 @@ export class RunGameMasterUseCase {
 
     const { llmRequest, llmResponse, llmLatencyMs } = llmCallResult
 
-    const output = safeParseGameMasterOutput(llmResponse.content)
-    if (output === null) {
-      await handleInvalidGameMasterOutput({
-        input,
-        currentState,
-        triggerReason,
-        llmRequest,
-        llmResponse,
-        llmStart,
-        gmRunStartMs,
-        gmStateRepository: this.gmStateRepository,
-        observability: this.observability,
-        ...(this.eventLogRepository !== undefined
-          ? { eventLogRepository: this.eventLogRepository }
-          : {}),
-      })
+    const normalizedOutput = await this.parseAndNormalizeOutput({
+      input,
+      currentState,
+      triggerReason,
+      llmRequest,
+      llmResponse,
+      llmStart,
+      gmRunStartMs,
+      scenarioAvatars,
+    })
+    if (normalizedOutput === null) {
       return
     }
 
-    const sanitizedStateUpdate = { ...output.stateUpdate }
-    if (output.conversationMode === 'new') {
+    const sanitizedStateUpdate = { ...normalizedOutput.stateUpdate }
+    if (normalizedOutput.conversationMode === 'new') {
       delete sanitizedStateUpdate.activeAvatarId
     }
     const nextState = reduceGmState(currentState, sanitizedStateUpdate)
@@ -161,29 +162,29 @@ export class RunGameMasterUseCase {
       currentState,
       session,
       scenarioAvatars,
-      output,
+      normalizedOutput,
     )
     const unlockedAvatarIds = await this.applyAvatarUnlocks(
       input,
       session,
       scenarioAvatars,
-      output,
+      normalizedOutput,
       gmInput.recentMessages,
     )
-    this.publishDecisionRuntimeEvents(input, output, unlockedAvatarIds)
+    this.publishDecisionRuntimeEvents(input, normalizedOutput, unlockedAvatarIds)
 
     const reconciledState: GameMasterState =
       routingResult.switchedAvatarId !== undefined
         ? { ...nextState, currentAvatarId: routingResult.switchedAvatarId }
         : nextState
     await this.gmStateRepository.save(input.sessionId, reconciledState)
-    await this.persistTriggeredNotes(input.sessionId, output)
+    await this.persistTriggeredNotes(input.sessionId, normalizedOutput)
 
     await emitTriggeredGameMasterTurn({
       input,
       currentState,
       reconciledState,
-      output,
+      output: normalizedOutput,
       unlockedAvatarIds,
       ...(routingResult.switchedAvatarId !== undefined
         ? { switchedAvatarId: routingResult.switchedAvatarId }
@@ -198,6 +199,39 @@ export class RunGameMasterUseCase {
         ? { eventLogRepository: this.eventLogRepository }
         : {}),
     })
+  }
+
+  private async parseAndNormalizeOutput(args: {
+    input: RunGameMasterInput
+    currentState: GameMasterState
+    triggerReason: string
+    llmRequest: { systemPrompt: string; messages: Array<{ role: 'user'; content: string }> }
+    llmResponse: LlmResponse
+    llmStart: number
+    gmRunStartMs: number
+    scenarioAvatars: AvatarConfig[]
+  }): Promise<GameMasterOutput | null> {
+    const parsed = safeParseGameMasterOutput(args.llmResponse.content)
+    const normalized =
+      parsed !== null ? normalizeGameMasterOutput(parsed, args.scenarioAvatars) : null
+
+    if (normalized !== null) return normalized
+
+    await handleInvalidGameMasterOutput({
+      input: args.input,
+      currentState: args.currentState,
+      triggerReason: args.triggerReason,
+      llmRequest: args.llmRequest,
+      llmResponse: args.llmResponse,
+      llmStart: args.llmStart,
+      gmRunStartMs: args.gmRunStartMs,
+      gmStateRepository: this.gmStateRepository,
+      observability: this.observability,
+      ...(this.eventLogRepository !== undefined
+        ? { eventLogRepository: this.eventLogRepository }
+        : {}),
+    })
+    return null
   }
 
   private async callLlm(
@@ -271,8 +305,8 @@ export class RunGameMasterUseCase {
     session: Session | null,
     scenarioAvatars: AvatarConfig[],
   ): Promise<GameMasterInput> {
-    const recentMessages = await this.loadRecentMessages(input.conversationId)
     const memory = await this.loadMemoryContext(input, session)
+    const recentMessages = await this.loadRecentMessages(input.conversationId, memory)
 
     return {
       session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
@@ -326,15 +360,29 @@ export class RunGameMasterUseCase {
 
   private async loadRecentMessages(
     conversationId: string | undefined,
+    memory: GameMasterInput['context']['memory'],
   ): Promise<Array<{ role: 'user' | 'avatar' | 'system'; content: string }>> {
     if (conversationId === undefined || this.messageRepository === undefined) return []
     const messages = await this.messageRepository.findByConversationId(conversationId, {
-      limit: 12,
+      limit: 24,
     })
-    return messages
-      .slice()
-      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-      .map((message) => ({ role: message.role, content: message.content }))
+    const recentMessages = toRecentExchangeMessages(
+      messages
+        .slice()
+        .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+        .map((message) => ({ role: message.role, content: message.content })),
+      GM_RECENT_EXCHANGE_LIMIT,
+    )
+
+    if (memory?.workingMemory === undefined) return recentMessages
+
+    return [
+      ...recentMessages,
+      {
+        role: 'system',
+        content: toWorkingMemoryPromptContext(memory.workingMemory),
+      },
+    ]
   }
 
   private getMemorySelectionService(): MemorySelectionService {
