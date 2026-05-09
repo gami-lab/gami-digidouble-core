@@ -218,6 +218,46 @@ describe('EndConversationUseCase episodic generation', () => {
       'episodic_memory_generation_succeeded',
     ])
   })
+
+  it('waits for conversation-close memory refresh before generating episodic memory', async () => {
+    let resolveRefresh: (() => void) | undefined
+    const refreshStarted = vi.fn()
+    const memoryMaintenance = {
+      execute: vi.fn().mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            refreshStarted()
+            resolveRefresh = resolve
+          }),
+      ),
+    } satisfies IMemoryMaintenancePort
+    const generateForClosedConversation = vi.fn().mockResolvedValue(undefined)
+    const { useCase } = createUseCase({
+      memoryMaintenance,
+      episodicMemoryService: { generateForClosedConversation },
+    })
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      reason: 'operator_end',
+    })
+
+    expect(refreshStarted).toHaveBeenCalledTimes(1)
+    expect(generateForClosedConversation).not.toHaveBeenCalled()
+
+    resolveRefresh?.()
+
+    await vi.waitFor(() => {
+      expect(generateForClosedConversation).toHaveBeenCalledWith({
+        sessionId: 'session_1',
+        conversationId: 'conversation_1',
+        userId: 'user_1',
+        avatarId: 'avatar_1',
+        scenarioId: 'scenario_1',
+      })
+    })
+  })
 })
 
 describe('EndConversationUseCase user fact extraction wiring', () => {

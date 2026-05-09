@@ -73,31 +73,42 @@ export class EndConversationUseCase {
     })
     await this.sessionRepository.update(sessionId, { lastActivityAt: now })
     this.emitSessionClosed(sessionId, conversationId)
-    if (this.memoryMaintenance !== undefined) {
-      void this.memoryMaintenance
-        .execute({
-          sessionId,
-          conversationId,
-          avatarId: conversation.avatarId,
-          trigger: 'conversation_closed',
-        })
-        .catch((error: unknown) => {
-          console.error('[end-conversation] Background memory refresh failed:', error)
-        })
-    }
-    void this.extractAndPersistUserFacts(session.userId, sessionId, conversationId)
-    void this.generateEpisodicMemory({
+    void this.runBackgroundClosePipeline({
       sessionId,
       conversationId,
       userId: session.userId,
       avatarId: conversation.avatarId,
       scenarioId: session.scenarioId,
     })
+    void this.extractAndPersistUserFacts(session.userId, sessionId, conversationId)
 
     return {
       conversation: this.toSummary(updatedConversation),
       compaction: { scheduled: true },
     }
+  }
+
+  private async runBackgroundClosePipeline(input: {
+    sessionId: string
+    conversationId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+  }): Promise<void> {
+    if (this.memoryMaintenance !== undefined) {
+      try {
+        await this.memoryMaintenance.execute({
+          sessionId: input.sessionId,
+          conversationId: input.conversationId,
+          avatarId: input.avatarId,
+          trigger: 'conversation_closed',
+        })
+      } catch (error: unknown) {
+        console.error('[end-conversation] Background memory refresh failed:', error)
+      }
+    }
+
+    await this.generateEpisodicMemory(input)
   }
 
   private emitSessionClosed(sessionId: string, conversationId: string): void {

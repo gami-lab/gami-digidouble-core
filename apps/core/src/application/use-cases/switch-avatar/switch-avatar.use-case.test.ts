@@ -81,6 +81,28 @@ function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
   }
 }
 
+function createUseCaseWithEpisodicDependencies() {
+  return new SwitchAvatarUseCase(
+    sessionRepository,
+    avatarRepository,
+    conversationRepository,
+    { execute: memoryMaintenanceExecuteMock },
+    {
+      generateForClosedConversation: generateForClosedConversationMock,
+      hydrateForNewConversationWithMetadata: hydrateForNewConversationWithMetadataMock,
+    },
+    {
+      findByConversationId: vi.fn(),
+      upsert: workingMemoryUpsertMock,
+      deleteBySessionId: vi.fn(),
+    },
+    {
+      append: appendEventMock,
+      findBySessionId: vi.fn(),
+    },
+  )
+}
+
 beforeEach(() => {
   findSessionByIdMock.mockReset()
   updateSessionMock.mockReset()
@@ -196,25 +218,7 @@ describe('SwitchAvatarUseCase episodic continuity', () => {
       }),
     )
 
-    const useCase = new SwitchAvatarUseCase(
-      sessionRepository,
-      avatarRepository,
-      conversationRepository,
-      { execute: memoryMaintenanceExecuteMock },
-      {
-        generateForClosedConversation: generateForClosedConversationMock,
-        hydrateForNewConversationWithMetadata: hydrateForNewConversationWithMetadataMock,
-      },
-      {
-        findByConversationId: vi.fn(),
-        upsert: workingMemoryUpsertMock,
-        deleteBySessionId: vi.fn(),
-      },
-      {
-        append: appendEventMock,
-        findBySessionId: vi.fn(),
-      },
-    )
+    const useCase = createUseCaseWithEpisodicDependencies()
 
     await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_2' })
 
@@ -256,6 +260,40 @@ describe('SwitchAvatarUseCase episodic continuity', () => {
     expect(hydrationEvent?.payload['sourceConversationIds']).toEqual(['conversation_prev_avatar_2'])
     expect(hydrationEvent?.payload['consideredCount']).toBe(1)
     expect(hydrationEvent?.payload['selectedCount']).toBe(1)
+  })
+
+  it('waits for avatar-switch memory refresh before generating episodic memory', async () => {
+    let resolveRefresh: (() => void) | undefined
+    memoryMaintenanceExecuteMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRefresh = resolve
+        }),
+    )
+
+    const useCase = createUseCaseWithEpisodicDependencies()
+
+    await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_2' })
+
+    expect(memoryMaintenanceExecuteMock).toHaveBeenCalledWith({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'avatar_switch',
+    })
+    expect(generateForClosedConversationMock).not.toHaveBeenCalled()
+
+    resolveRefresh?.()
+
+    await vi.waitFor(() => {
+      expect(generateForClosedConversationMock).toHaveBeenCalledWith({
+        sessionId: 'session_1',
+        conversationId: 'conversation_1',
+        userId: 'user_1',
+        avatarId: 'avatar_1',
+        scenarioId: 'scenario_1',
+      })
+    })
   })
 })
 

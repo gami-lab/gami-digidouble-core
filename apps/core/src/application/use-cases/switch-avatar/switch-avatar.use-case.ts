@@ -44,17 +44,7 @@ export class SwitchAvatarUseCase {
 
     await this.closePreviousConversation(previousConversation?.conversationId, now)
     if (previousConversation !== null) {
-      void this.memoryMaintenance
-        ?.execute({
-          sessionId,
-          conversationId: previousConversation.conversationId,
-          avatarId: previousConversation.avatarId,
-          trigger: 'avatar_switch',
-        })
-        .catch((error: unknown) => {
-          console.error('[switch-avatar] Background memory refresh failed:', error)
-        })
-      void this.generateEpisodicMemory({
+      void this.runBackgroundClosePipeline({
         sessionId,
         conversationId: previousConversation.conversationId,
         userId: session.userId,
@@ -177,6 +167,29 @@ export class SwitchAvatarUseCase {
         ? { eventLogRepository: this.eventLogRepository }
         : {}),
     })
+  }
+
+  private async runBackgroundClosePipeline(input: {
+    sessionId: string
+    conversationId: string
+    userId: string
+    avatarId: string
+    scenarioId: string
+  }): Promise<void> {
+    if (this.memoryMaintenance !== undefined) {
+      try {
+        await this.memoryMaintenance.execute({
+          sessionId: input.sessionId,
+          conversationId: input.conversationId,
+          avatarId: input.avatarId,
+          trigger: 'avatar_switch',
+        })
+      } catch (error: unknown) {
+        console.error('[switch-avatar] Background memory refresh failed:', error)
+      }
+    }
+
+    await this.generateEpisodicMemory(input)
   }
 
   private async generateEpisodicMemory(input: {
