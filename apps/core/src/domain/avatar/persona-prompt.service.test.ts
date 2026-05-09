@@ -297,7 +297,8 @@ describe('assemblePersonaPrompt -> layered memory context', () => {
     })
 
     expect(prompt).toContain('## Memory Context')
-    expect(prompt).toContain('Recent exchanges:')
+    expect(prompt).not.toContain('Recent exchanges:')
+    expect(prompt).not.toContain('- User: Hi')
     expect(prompt).toContain('Session working memory: Session summary')
     expect(prompt).toContain('Current avatar memory: Avatar summary')
     expect(prompt).toContain('Remembered user facts:')

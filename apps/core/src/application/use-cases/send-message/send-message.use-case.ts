@@ -28,8 +28,15 @@ import {
 } from '../../services/implicit-end-detection.service.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
 import { tryImplicitClose } from './send-message.implicit-close.js'
+import {
+  hasSelectedMemoryContent,
+  hasText,
+  toLlmDialogueMessages,
+  toRecentExchanges,
+} from './send-message.helpers.js'
 
-const MESSAGE_HISTORY_LIMIT = 20
+const MESSAGE_HISTORY_FETCH_LIMIT = 30
+const MESSAGE_HISTORY_EXCHANGE_LIMIT = 3
 type ConversationCloser = {
   execute(input: {
     sessionId: string
@@ -73,24 +80,24 @@ export class SendMessageUseCase {
       avatar,
       userMessage: input.userMessage,
     })
-    const historyMessages = await this.buildHistoryMessages(conversation.conversationId)
+    const priorUserTurnCount = await this.loadRecentUserTurnCount(conversation.conversationId)
+    const historyMessages = await this.buildHistoryMessages(
+      conversation.conversationId,
+      selectedMemory,
+    )
     const userMessage = await this.persistUserMessage(
       conversation.conversationId,
       input.userMessage,
     )
-    const llmRequest = {
+    const llmRequest = this.buildLlmRequest({
+      requestId,
+      sessionId: session.sessionId,
+      conversationId: conversation.conversationId,
+      avatarId: conversation.avatarId,
       systemPrompt,
-      messages: [...historyMessages, { role: 'user' as const, content: userMessage.content }],
-      trace: {
-        requestId,
-        sessionId: session.sessionId,
-        metadata: {
-          surface: 'send_message',
-          conversationId: conversation.conversationId,
-          avatarId: conversation.avatarId,
-        },
-      },
-    }
+      historyMessages,
+      userMessage: userMessage.content,
+    })
     const response = await this.llm.complete(llmRequest)
     const avatarMessage = await this.persistAvatarMessage(conversation.conversationId, {
       ...response,
@@ -102,7 +109,7 @@ export class SendMessageUseCase {
       ...(session.gmNotes !== undefined ? { gmNotes: null } : {}),
     })
 
-    const nextTurnIndex = historyMessages.filter((message) => message.role === 'user').length + 1
+    const nextTurnIndex = priorUserTurnCount + 1
     this.dispatchBackgroundUpdates({
       requestId,
       sessionId: session.sessionId,
@@ -201,6 +208,30 @@ export class SendMessageUseCase {
       systemPrompt,
       userPersona,
       ...(selectedMemory !== undefined ? { selectedMemory } : {}),
+    }
+  }
+
+  private buildLlmRequest(args: {
+    requestId: string
+    sessionId: string
+    conversationId: string
+    avatarId: string
+    systemPrompt: string
+    historyMessages: Array<{ role: 'user' | 'assistant'; content: string }>
+    userMessage: string
+  }) {
+    return {
+      systemPrompt: args.systemPrompt,
+      messages: [...args.historyMessages, { role: 'user' as const, content: args.userMessage }],
+      trace: {
+        requestId: args.requestId,
+        sessionId: args.sessionId,
+        metadata: {
+          surface: 'send_message',
+          conversationId: args.conversationId,
+          avatarId: args.avatarId,
+        },
+      },
     }
   }
 
@@ -375,28 +406,30 @@ export class SendMessageUseCase {
 
   private async buildHistoryMessages(
     conversationId: string,
+    selectedMemory: SelectedMemoryPayload | undefined,
   ): Promise<Array<{ role: 'user' | 'assistant'; content: string }>> {
+    const selectedShortTerm = selectedMemory?.shortTermExchanges ?? []
+    if (selectedShortTerm.length >= MESSAGE_HISTORY_EXCHANGE_LIMIT) {
+      return toLlmDialogueMessages(selectedShortTerm.slice(-MESSAGE_HISTORY_EXCHANGE_LIMIT))
+    }
+
     const history = await this.messageRepository.findByConversationId(conversationId, {
-      limit: MESSAGE_HISTORY_LIMIT,
+      limit: MESSAGE_HISTORY_FETCH_LIMIT,
     })
     const recentHistory = history
       .slice()
       .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-      .slice(-MESSAGE_HISTORY_LIMIT)
+      .slice(-MESSAGE_HISTORY_FETCH_LIMIT)
 
-    return recentHistory.reduce<Array<{ role: 'user' | 'assistant'; content: string }>>(
-      (messages, message) => {
-        if (message.role === 'user') {
-          messages.push({ role: 'user', content: message.content })
-          return messages
-        }
-        if (message.role === 'avatar') {
-          messages.push({ role: 'assistant', content: message.content })
-        }
-        return messages
-      },
-      [],
-    )
+    const recentExchanges = toRecentExchanges(recentHistory, MESSAGE_HISTORY_EXCHANGE_LIMIT)
+    return toLlmDialogueMessages(recentExchanges)
+  }
+
+  private async loadRecentUserTurnCount(conversationId: string): Promise<number> {
+    const history = await this.messageRepository.findByConversationId(conversationId, {
+      limit: MESSAGE_HISTORY_FETCH_LIMIT,
+    })
+    return history.filter((message) => message.role === 'user').length
   }
 
   private persistUserMessage(conversationId: string, content: string): Promise<Message> {
@@ -479,17 +512,4 @@ export class SendMessageUseCase {
   private nowIso(): string {
     return new Date().toISOString()
   }
-}
-
-function hasText(value: string): boolean {
-  return value.trim().length > 0
-}
-
-function hasSelectedMemoryContent(selected: SelectedMemoryPayload): boolean {
-  return (
-    selected.shortTermExchanges.length > 0 ||
-    selected.workingMemory !== undefined ||
-    selected.episodicMemories.length > 0 ||
-    selected.longTermFacts.length > 0
-  )
 }

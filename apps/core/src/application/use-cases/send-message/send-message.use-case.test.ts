@@ -248,7 +248,7 @@ describe('SendMessageUseCase — message routing', () => {
 
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
 
-    expect(findMessagesByConversationIdMock).toHaveBeenCalledWith('conversation_1', { limit: 20 })
+    expect(findMessagesByConversationIdMock).toHaveBeenCalledWith('conversation_1', { limit: 30 })
     expect(saveMessageMock.mock.calls[0]?.[0]).toMatchObject({
       conversationId: 'conversation_1',
       role: 'user',

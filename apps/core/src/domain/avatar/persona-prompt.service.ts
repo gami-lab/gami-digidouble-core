@@ -58,22 +58,10 @@ function buildUserPersonaContext(userPersona: UserPersona | undefined): string[]
 function buildMemoryContext(memory: LayeredMemorySnapshot | undefined): string[] {
   if (memory === undefined) return []
   const lines: string[] = ['## Memory Context']
-  appendShortTermMemory(lines, memory)
   appendWorkingMemory(lines, memory)
   appendLongTermMemory(lines, memory)
 
   return lines.length > 1 ? [lines.join('\n')] : []
-}
-
-function appendShortTermMemory(lines: string[], memory: LayeredMemorySnapshot): void {
-  const recentExchanges = memory.shortTerm?.recentExchanges ?? []
-  if (recentExchanges.length === 0) return
-  lines.push('Recent exchanges:')
-  for (const exchange of recentExchanges) {
-    if (!hasText(exchange.user) || !hasText(exchange.avatar)) continue
-    lines.push(`- User: ${exchange.user}`)
-    lines.push(`  Avatar: ${exchange.avatar}`)
-  }
 }
 
 function appendWorkingMemory(lines: string[], memory: LayeredMemorySnapshot): void {
