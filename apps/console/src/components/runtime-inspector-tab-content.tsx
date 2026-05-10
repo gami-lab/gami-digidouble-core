@@ -142,7 +142,10 @@ function renderShortTermMemory(snapshot: RuntimeInspectorViewModel): JSX.Element
         {String(snapshot.memory.layers.shortTerm.recentExchanges.length)}
       </Row>
       {snapshot.memory.layers.shortTerm.recentExchanges.map((exchange, index) => (
-        <p key={`${exchange.user}-${exchange.avatar}-${String(index)}`} style={{ margin: '4px 0', color: '#374151' }}>
+        <p
+          key={`${exchange.user}-${exchange.avatar}-${String(index)}`}
+          style={{ margin: '4px 0', color: '#374151' }}
+        >
           U: {exchange.user} / A: {exchange.avatar}
         </p>
       ))}
@@ -156,8 +159,12 @@ function renderWorkingMemory(snapshot: RuntimeInspectorViewModel): JSX.Element {
       <strong style={{ display: 'block', marginTop: '12px' }}>Working memory</strong>
       <Row label="Active avatar">{snapshot.memory.layers.activeAvatarId ?? '-'}</Row>
       <Row label="Working summary">{snapshot.memory.layers.working.current?.summary ?? '-'}</Row>
-      <Row label="Unresolved threads">{String(snapshot.memory.layers.working.current?.unresolvedThreads.length ?? 0)}</Row>
-      <Row label="Candidate facts">{String(snapshot.memory.layers.working.current?.candidateFacts.length ?? 0)}</Row>
+      <Row label="Unresolved threads">
+        {String(snapshot.memory.layers.working.current?.unresolvedThreads.length ?? 0)}
+      </Row>
+      <Row label="Candidate facts">
+        {String(snapshot.memory.layers.working.current?.candidateFacts.length ?? 0)}
+      </Row>
     </>
   )
 }
@@ -167,7 +174,14 @@ function renderLongTermMemory(snapshot: RuntimeInspectorViewModel): JSX.Element 
     <>
       <strong style={{ display: 'block', marginTop: '12px' }}>Long-term avatar memories</strong>
       <Row label="Avatar count">{String(snapshot.memory.layers.longTerm.avatars.length)}</Row>
-      <Row label="Memory count">{String(snapshot.memory.layers.longTerm.avatars.reduce((total, avatar) => total + avatar.memories.length, 0))}</Row>
+      <Row label="Memory count">
+        {String(
+          snapshot.memory.layers.longTerm.avatars.reduce(
+            (total, avatar) => total + avatar.memories.length,
+            0,
+          ),
+        )}
+      </Row>
       {snapshot.memory.layers.longTerm.avatars.map((avatar) => (
         <div key={avatar.avatarId} style={{ margin: '8px 0' }}>
           <strong>{avatar.avatarId}</strong>
@@ -190,25 +204,45 @@ function renderMemoryEvolution(
   return (
     <>
       <strong style={{ display: 'block', marginTop: '12px' }}>Memory evolution</strong>
-      {memoryHistory.length === 0 ? <p style={{ margin: '6px 0', color: '#6b7280' }}>No memory snapshots yet.</p> : null}
+      {memoryHistory.length === 0 ? (
+        <p style={{ margin: '6px 0', color: '#6b7280' }}>No memory snapshots yet.</p>
+      ) : null}
       {delta !== null ? (
         <>
           <Row label="Progress marker">{`turn ${String(lastSnapshot?.turnIndex ?? 0)} / ${lastSnapshot?.conversationId ?? '-'}`}</Row>
           <Row label="Delta summary">{`short-term +${String(delta.shortTerm.added.length)} -${String(delta.shortTerm.removed.length)}, working +${String(delta.working.avatarAdded.length)} ~${String(delta.working.avatarChanged.length)} -${String(delta.working.avatarRemoved.length)}, long-term +${String(delta.longTerm.added.length)} ~${String(delta.longTerm.changed.length)} -${String(delta.longTerm.removed.length)}`}</Row>
-          {delta.working.stale ? <p style={{ margin: '6px 0', color: '#b45309' }}>Working memory stale: turn advanced but working summaries did not update.</p> : null}
+          {delta.working.stale ? (
+            <p style={{ margin: '6px 0', color: '#b45309' }}>
+              Working memory stale: turn advanced but working summaries did not update.
+            </p>
+          ) : null}
           {delta.longTerm.added.length > 0 ? (
             <p style={{ margin: '6px 0', color: '#166534' }}>
-              New long-term avatar memory stored: {delta.longTerm.added.map((memory) => `${memory.avatarId}:${memory.conversationId}`).join(', ')}
+              New long-term avatar memory stored:{' '}
+              {delta.longTerm.added
+                .map((memory) => `${memory.avatarId}:${memory.conversationId}`)
+                .join(', ')}
             </p>
           ) : null}
         </>
       ) : null}
       <div style={{ marginTop: '8px' }}>
-        {memoryHistory.slice().reverse().map((entry) => (
-          <p key={entry.snapshotId} style={{ margin: '4px 0', color: '#4b5563' }}>
-            [{new Date(entry.capturedAt).toLocaleTimeString()}] turn {String(entry.turnIndex ?? 0)} · short-term {String(entry.layers.shortTerm.exchangeCount)} · facts {String(entry.layers.longTerm.avatars.reduce((total, avatar) => total + avatar.memories.length, 0))}
-          </p>
-        ))}
+        {memoryHistory
+          .slice()
+          .reverse()
+          .map((entry) => (
+            <p key={entry.snapshotId} style={{ margin: '4px 0', color: '#4b5563' }}>
+              [{new Date(entry.capturedAt).toLocaleTimeString()}] turn{' '}
+              {String(entry.turnIndex ?? 0)} · short-term{' '}
+              {String(entry.layers.shortTerm.exchangeCount)} · facts{' '}
+              {String(
+                entry.layers.longTerm.avatars.reduce(
+                  (total, avatar) => total + avatar.memories.length,
+                  0,
+                ),
+              )}
+            </p>
+          ))}
       </div>
     </>
   )
@@ -492,9 +526,7 @@ export function buildPersonaPayload(draft: PersonaDraft): UserPersona {
 
   return {
     ...(draft.name.trim().length > 0 ? { name: draft.name.trim() } : {}),
-    ...(draft.roleInWorld.trim().length > 0
-      ? { roleInWorld: draft.roleInWorld.trim() }
-      : {}),
+    ...(draft.roleInWorld.trim().length > 0 ? { roleInWorld: draft.roleInWorld.trim() } : {}),
     ...(relationships.length > 0 ? { avatarRelationships: relationships } : {}),
     ...(draft.dialogGuidance.trim().length > 0
       ? { dialogGuidance: draft.dialogGuidance.trim() }
