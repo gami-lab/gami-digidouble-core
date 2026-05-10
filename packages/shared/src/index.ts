@@ -26,7 +26,7 @@ export type {
   LifecycleSummary,
   EndConversationResponse,
 } from './lifecycle-types.js'
-export type { RuntimeEvent, RuntimeState } from './runtime-types.js'
+export type { RuntimeEvent, RuntimeState, GetRuntimeStateResponse } from './runtime-types.js'
 export type {
   SharedShortTermMemoryExchange,
   SharedShortTermMemorySnapshot,

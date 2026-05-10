@@ -1,4 +1,5 @@
 import type {
+  AdminSessionEventsResponse,
   GmSessionEventPayload,
   MemoryRefreshEventPayload,
   SessionEventRecord,
@@ -16,6 +17,4 @@ export interface ListSessionEventsInput {
   limit?: number
 }
 
-export interface ListSessionEventsOutput {
-  events: SessionEventRecord[]
-}
+export type ListSessionEventsOutput = AdminSessionEventsResponse

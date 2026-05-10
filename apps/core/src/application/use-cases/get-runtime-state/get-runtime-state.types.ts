@@ -1,9 +1,7 @@
-import type { RuntimeState } from '@gami/shared'
+import type { GetRuntimeStateResponse } from '@gami/shared'
 
 export type GetRuntimeStateInput = {
   sessionId: string
 }
 
-export type GetRuntimeStateOutput = {
-  runtimeState: RuntimeState
-}
+export type GetRuntimeStateOutput = GetRuntimeStateResponse

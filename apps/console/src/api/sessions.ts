@@ -12,6 +12,7 @@ import type {
   ConversationEndReason,
   ConversationSummary,
   EndConversationResponse,
+  GetRuntimeStateResponse,
   GmStateSummary,
   LifecycleStatus,
   RuntimeState,
@@ -29,18 +30,18 @@ export type { ConversationEndReason, EndConversationResponse }
 export type {
   GmStateSummary,
   RuntimeState,
-  AdminSessionInspectResponse as InspectSessionResponse,
+  AdminSessionInspectResponse,
   SessionEventRecord,
-  AdminSessionEventsResponse as ListSessionEventsResponse,
-  AdminSessionMemoryResponse as GetSessionMemoryResponse,
-  AdminSessionMemoryLayersResponse as GetSessionMemoryLayersResponse,
-  AdminSessionTurnMetricsResponse as GetSessionMetricsResponse,
-  UserPersonaResponse as GetUserPersonaResponse,
-  UpsertUserPersonaResponse as UpsertUserPersonaApiResponse,
-  AdminSessionContextResponse as GetSessionContextResponse,
-  AdminReplayGmResponse as ReplayGmResponse,
-  AdminRefreshMemoryResponse as RefreshSessionMemoryResponse,
-  AdminClearMemoryResponse as ClearSessionMemoryResponse,
+  AdminSessionEventsResponse,
+  AdminSessionMemoryResponse,
+  AdminSessionMemoryLayersResponse,
+  AdminSessionTurnMetricsResponse,
+  UserPersonaResponse,
+  UpsertUserPersonaResponse,
+  AdminSessionContextResponse,
+  AdminReplayGmResponse,
+  AdminRefreshMemoryResponse,
+  AdminClearMemoryResponse,
 }
 
 export type Message = {
@@ -225,12 +226,8 @@ export async function listSessionEvents(
   return coreRequest<AdminSessionEventsResponse>('GET', path)
 }
 
-type GetRuntimeStatePayload = {
-  runtimeState: RuntimeState
-}
-
 export async function getRuntimeState(sessionId: string): Promise<RuntimeState> {
-  const payload = await coreRequest<GetRuntimeStatePayload>(
+  const payload = await coreRequest<GetRuntimeStateResponse>(
     'GET',
     `/v1/sessions/${sessionId}/runtime-state`,
   )

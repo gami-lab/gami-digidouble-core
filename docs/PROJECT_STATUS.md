@@ -3,7 +3,7 @@
 This document tracks the current implementation state of Gami DigiDouble Core.
 Update it as epics and features are completed.
 
-**Last updated:** May 8, 2026
+**Last updated:** May 10, 2026
 **Current phase:** Phase A — MVP (April–July 2026)
 
 ---
@@ -19,6 +19,16 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Removed duplicated per-use-case completion tracing from send-message, send-raw-message, and memory-maintenance; these flows now pass request-scoped trace metadata through `LlmRequest.trace`.
 - Added wrapper-focused tests (`observed.adapter.test.ts`) and updated related use-case tests to validate request trace context rather than local observability side effects.
 - Documentation synchronized in architecture and stack references for the canonical wrapper pattern.
+
+### EPIC 3.2 — Inspector contract ownership collapse (pre-implementation cleanup): **complete** (2026-05-10)
+
+- Re-audited inspector HTTP surfaces and canonicalized shared ownership for console/core contracts.
+- Removed console-local alias DTO wrappers in `apps/console/src/api/sessions.ts` and `apps/console/src/api/index.ts` so console now re-exports canonical shared contract names directly.
+- Added canonical shared runtime-state response envelope type (`GetRuntimeStateResponse`) in `packages/shared/src/runtime-types.ts` and reused it in both core route typing and console client typing.
+- Collapsed duplicate admin-events output typing by binding `ListSessionEventsOutput` directly to `AdminSessionEventsResponse`.
+- Kept `GET /v1/admin/sessions/{sessionId}/context` because it remains a distinct bounded context-inspection surface (not a thin compatibility wrapper).
+- Validation status for this slice:
+  - `pnpm typecheck` PASS
 
 ### EPIC 2.7 — Runtime Inspector Contract Cleanup: **complete** (2026-05-07)
 

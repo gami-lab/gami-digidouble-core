@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import { fail, ok } from '@gami/shared'
+import type { GetRuntimeStateResponse } from '@gami/shared'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import { GetRuntimeStateUseCase } from '../../application/use-cases/get-runtime-state/get-runtime-state.use-case.js'
-import type { GetRuntimeStateOutput } from '../../application/use-cases/get-runtime-state/get-runtime-state.types.js'
 import { DomainError } from '../../domain/errors.js'
 
 type SessionParams = {
@@ -39,7 +39,7 @@ function registerGetRuntimeStateRoute(app: FastifyInstance, useCase: GetRuntimeS
     async (request, reply) => {
       try {
         const output = await useCase.execute({ sessionId: request.params.sessionId })
-        return await reply.status(200).send(ok<GetRuntimeStateOutput>(output))
+        return await reply.status(200).send(ok<GetRuntimeStateResponse>(output))
       } catch (error) {
         if (error instanceof DomainError && error.code === 'NOT_FOUND') {
           return await reply.status(404).send(fail('NOT_FOUND', error.message))

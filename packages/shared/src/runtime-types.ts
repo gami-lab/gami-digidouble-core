@@ -22,3 +22,7 @@ export type RuntimeState = {
   pendingEvent?: RuntimeEvent
   updatedAt: string
 }
+
+export type GetRuntimeStateResponse = {
+  runtimeState: RuntimeState
+}

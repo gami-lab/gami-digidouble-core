@@ -1,13 +1,12 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
+import type { AdminSessionEventsResponse, AdminSessionInspectResponse } from '@gami/shared'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../../application/ports/IGmStateRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { InspectSessionUseCase } from '../../application/use-cases/inspect-session/inspect-session.use-case.js'
-import type { InspectSessionOutput } from '../../application/use-cases/inspect-session/inspect-session.types.js'
 import { ListSessionEventsUseCase } from '../../application/use-cases/list-session-events/list-session-events.use-case.js'
-import type { ListSessionEventsOutput } from '../../application/use-cases/list-session-events/list-session-events.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
@@ -80,7 +79,7 @@ function registerInspectSessionRoute(app: FastifyInstance, useCase: InspectSessi
     async (request, reply) => {
       try {
         const output = await useCase.execute({ sessionId: request.params.sessionId })
-        return await reply.send(ok<InspectSessionOutput>(output))
+        return await reply.send(ok<AdminSessionInspectResponse>(output))
       } catch (error) {
         return await mapDomainError(error, reply)
       }
@@ -101,7 +100,7 @@ function registerListSessionEventsRoute(
           sessionId: request.params.sessionId,
           ...(request.query.limit !== undefined ? { limit: request.query.limit } : {}),
         })
-        return await reply.send(ok<ListSessionEventsOutput>(output))
+        return await reply.send(ok<AdminSessionEventsResponse>(output))
       } catch (error) {
         return await mapDomainError(error, reply)
       }
