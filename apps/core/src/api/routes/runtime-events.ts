@@ -4,20 +4,11 @@ import type { GetRuntimeStateResponse } from '@gami/shared'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import { GetRuntimeStateUseCase } from '../../application/use-cases/get-runtime-state/get-runtime-state.use-case.js'
-import { DomainError } from '../../domain/errors.js'
-
-type SessionParams = {
-  sessionId: string
-}
-
-const sessionParamsSchema = {
-  type: 'object',
-  required: ['sessionId'],
-  properties: {
-    sessionId: { type: 'string', minLength: 1 },
-  },
-  additionalProperties: false,
-} as const
+import {
+  mapInspectorDomainError,
+  sessionParamsSchema,
+  type SessionParams,
+} from './inspector-route-utils.js'
 
 const KEEPALIVE_INTERVAL_MS = 30_000
 
@@ -41,10 +32,7 @@ function registerGetRuntimeStateRoute(app: FastifyInstance, useCase: GetRuntimeS
         const output = await useCase.execute({ sessionId: request.params.sessionId })
         return await reply.status(200).send(ok<GetRuntimeStateResponse>(output))
       } catch (error) {
-        if (error instanceof DomainError && error.code === 'NOT_FOUND') {
-          return await reply.status(404).send(fail('NOT_FOUND', error.message))
-        }
-        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
+        return await mapInspectorDomainError(error, reply)
       }
     },
   )

@@ -1,5 +1,5 @@
 import type { FastifyPluginCallback } from 'fastify'
-import { fail, ok } from '@gami/shared'
+import { ok } from '@gami/shared'
 import type { AdminSessionMemoryLayersResponse, AdminSessionMemoryResponse } from '@gami/shared'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
@@ -13,8 +13,12 @@ import type { IUserMemoryFactRepository } from '../../application/ports/IUserMem
 import { GetSessionMemoryUseCase } from '../../application/use-cases/get-session-memory/get-session-memory.use-case.js'
 import { GetSessionMemoryLayersUseCase } from '../../application/use-cases/get-session-memory-layers/get-session-memory-layers.use-case.js'
 import type { Config } from '../../config.js'
-import { DomainError } from '../../domain/errors.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
+import {
+  mapInspectorDomainError,
+  sessionParamsSchema,
+  type SessionParams,
+} from './inspector-route-utils.js'
 
 export type AdminMemoryRouteOptions = {
   config: Config
@@ -28,19 +32,6 @@ export type AdminMemoryRouteOptions = {
   conversationMemoryRepository?: IConversationMemoryRepository
   eventLogRepository?: IEventLogRepository
 }
-
-type SessionParams = {
-  sessionId: string
-}
-
-const sessionParamsSchema = {
-  type: 'object',
-  required: ['sessionId'],
-  properties: {
-    sessionId: { type: 'string', minLength: 1 },
-  },
-  additionalProperties: false,
-} as const
 
 export const adminMemoryRoute: FastifyPluginCallback<AdminMemoryRouteOptions> = (app, options) => {
   const getSessionMemoryUseCase = new GetSessionMemoryUseCase(
@@ -75,11 +66,9 @@ export const adminMemoryRoute: FastifyPluginCallback<AdminMemoryRouteOptions> = 
           }),
         )
       } catch (error) {
-        if (error instanceof DomainError && error.code === 'NOT_FOUND') {
-          return await reply.status(404).send(fail('NOT_FOUND', error.message))
-        }
-        app.log.error({ err: error }, 'Failed to load session memory summary')
-        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
+        return await mapInspectorDomainError(error, reply, {
+          internalLogMessage: 'Failed to load session memory summary',
+        })
       }
     },
   )
@@ -98,11 +87,9 @@ export const adminMemoryRoute: FastifyPluginCallback<AdminMemoryRouteOptions> = 
           }),
         )
       } catch (error) {
-        if (error instanceof DomainError && error.code === 'NOT_FOUND') {
-          return await reply.status(404).send(fail('NOT_FOUND', error.message))
-        }
-        app.log.error({ err: error }, 'Failed to load session memory layers')
-        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
+        return await mapInspectorDomainError(error, reply, {
+          internalLogMessage: 'Failed to load session memory layers',
+        })
       }
     },
   )

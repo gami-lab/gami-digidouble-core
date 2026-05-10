@@ -1,5 +1,5 @@
 import type { FastifyPluginCallback } from 'fastify'
-import { fail, ok } from '@gami/shared'
+import { ok } from '@gami/shared'
 import type { AdminSessionContextResponse } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
@@ -12,10 +12,14 @@ import type { IUserRepository } from '../../application/ports/IUserRepository.js
 import { AvatarMemoryContextAssembler } from '../../application/services/avatar-memory-context-assembler.service.js'
 import { GetSessionContextUseCase } from '../../application/use-cases/get-session-context/get-session-context.use-case.js'
 import type { Config } from '../../config.js'
-import { DomainError } from '../../domain/errors.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
+import {
+  mapInspectorDomainError,
+  sessionParamsSchema,
+  type SessionParams,
+} from './inspector-route-utils.js'
 
 export type AdminSessionContextRouteOptions = {
   config: Config
@@ -30,19 +34,6 @@ export type AdminSessionContextRouteOptions = {
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
 }
-
-type SessionParams = {
-  sessionId: string
-}
-
-const sessionParamsSchema = {
-  type: 'object',
-  required: ['sessionId'],
-  properties: {
-    sessionId: { type: 'string', minLength: 1 },
-  },
-  additionalProperties: false,
-} as const
 
 export const adminSessionContextRoute: FastifyPluginCallback<AdminSessionContextRouteOptions> = (
   app,
@@ -75,11 +66,9 @@ export const adminSessionContextRoute: FastifyPluginCallback<AdminSessionContext
         const output = await useCase.execute({ sessionId: request.params.sessionId })
         return await reply.status(200).send(ok<AdminSessionContextResponse>(output))
       } catch (error) {
-        if (error instanceof DomainError && error.code === 'NOT_FOUND') {
-          return await reply.status(404).send(fail('NOT_FOUND', error.message))
-        }
-        app.log.error({ err: error }, 'Failed to load session context')
-        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
+        return await mapInspectorDomainError(error, reply, {
+          internalLogMessage: 'Failed to load session context',
+        })
       }
     },
   )

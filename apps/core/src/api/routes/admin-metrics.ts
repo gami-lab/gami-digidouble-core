@@ -6,25 +6,13 @@ import type { ISessionRepository } from '../../application/ports/ISessionReposit
 import { GetTurnMetricsUseCase } from '../../application/use-cases/get-turn-metrics/get-turn-metrics.use-case.js'
 import type { Config } from '../../config.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
+import { sessionParamsSchema, type SessionParams } from './inspector-route-utils.js'
 
 export type AdminMetricsRouteOptions = {
   config: Config
   sessionRepository: ISessionRepository
   eventLogRepository: IEventLogRepository
 }
-
-type SessionParams = {
-  sessionId: string
-}
-
-const sessionParamsSchema = {
-  type: 'object',
-  required: ['sessionId'],
-  properties: {
-    sessionId: { type: 'string', minLength: 1 },
-  },
-  additionalProperties: false,
-} as const
 
 export const adminMetricsRoute: FastifyPluginCallback<AdminMetricsRouteOptions> = (
   app,

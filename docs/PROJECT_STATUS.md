@@ -30,6 +30,22 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
 - Validation status for this slice:
   - `pnpm typecheck` PASS
 
+### EPIC 3.2 — Backend inspector surface consolidation: **complete** (2026-05-10)
+
+- Consolidated backend inspector route internals onto one shared mapping/error path helper:
+  - `apps/core/src/api/routes/inspector-route-utils.ts`
+- Reused shared session params schema and shared domain-error mapping across:
+  - `admin-sessions`
+  - `admin-memory`
+  - `admin-metrics` (schema reuse)
+  - `admin-session-context`
+  - `runtime-events` runtime-state path
+- Kept `GET /v1/admin/sessions/{sessionId}/context` as a canonical, distinct assembled-context surface (not removed as compatibility wrapper).
+- No new inspector endpoints were added and response shapes remained unchanged.
+- Validation status for this slice:
+  - targeted backend inspector route tests PASS (41 tests)
+  - `pnpm --filter @gami/core typecheck` PASS
+
 ### EPIC 2.7 — Runtime Inspector Contract Cleanup: **complete** (2026-05-07)
 
 - Added canonical shared runtime-inspector/admin HTTP DTO ownership in `packages/shared/src/runtime-inspector-types.ts`.
