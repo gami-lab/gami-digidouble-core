@@ -419,6 +419,8 @@ describe('GET /v1/admin/sessions/:sessionId/memory', () => {
     expect(body.data?.session.summary).toBe('Compacted memory summary')
     expect(body.data?.session.shortTerm).toEqual({ exchangeCount: 2 })
     expect(body.data?.session.updatedAt).toBe('2026-05-01T10:05:00.000Z')
+    expect(response.body).not.toContain('OPENAI_API_KEY')
+    expect(response.body).not.toContain('anthropicApiKey')
   })
 
   it('derives summary from dedicated session working memory when available', async () => {
@@ -485,6 +487,8 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
     const body = response.json<ApiResponse<{ session: SessionMemoryLayers }>>()
     expect(body.error).toBeNull()
     expectLayeredMemoryResponse(body.data?.session)
+    expect(response.body).not.toContain('You are a helpful guide')
+    expect(response.body).not.toContain('OPENAI_API_KEY')
   })
 
   it('prefers canonical working memory of the latest conversation over the legacy session mirror', async () => {

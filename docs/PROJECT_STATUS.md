@@ -60,6 +60,17 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - `pnpm --filter @gami/console lint` PASS
   - `pnpm --filter @gami/console test` PASS (36 tests)
 
+### EPIC 3.2 — Inspector test matrix hardening: **complete** (2026-05-10)
+
+- Added console navigation contract test to enforce one inspector path in app-level flow (no parallel debug-shell breadcrumb path in canonical operator navigation).
+- Strengthened inspector redaction assertions on surviving routes:
+  - admin memory unit route tests
+  - admin session context stack-e2e
+  - admin session memory-layers stack-e2e
+- Hardened checks now explicitly verify that inspector payloads do not leak raw persona prompt text or credential-shaped fields.
+- Validation status for this slice:
+  - full `pnpm test` PASS
+
 ### EPIC 2.7 — Runtime Inspector Contract Cleanup: **complete** (2026-05-07)
 
 - Added canonical shared runtime-inspector/admin HTTP DTO ownership in `packages/shared/src/runtime-inspector-types.ts`.

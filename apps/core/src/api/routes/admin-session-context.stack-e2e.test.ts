@@ -105,11 +105,14 @@ describe('GET /v1/admin/sessions/:sessionId/context — stack happy path', () =>
       headers: authHeaders(),
     })
     expect(response.status).toBe(200)
-    const body = (await response.json()) as ApiResponse<AdminSessionContextResponse>
+    const text = await response.text()
+    const body = JSON.parse(text) as ApiResponse<AdminSessionContextResponse>
     expect(body.error).toBeNull()
     expect(body.data?.sessionId).toBe(seeded.sessionId)
     expect(Array.isArray(body.data?.avatarContext.recentExchanges)).toBe(true)
     expect(Array.isArray(body.data?.gmContext.recentMessages)).toBe(true)
     expect(Array.isArray(body.data?.gmContext.availableAvatars)).toBe(true)
+    expect(text).not.toContain('You are a helpful guide.')
+    expect(text).not.toContain('OPENAI_API_KEY')
   })
 })

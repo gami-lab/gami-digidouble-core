@@ -268,7 +268,10 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers — stack behavior', (
       headers: authHeaders(),
     })
     expect(response.status).toBe(200)
-    const body = (await response.json()) as ApiResponse<{ session: SessionMemoryLayers }>
+    const text = await response.text()
+    const body = JSON.parse(text) as ApiResponse<{ session: SessionMemoryLayers }>
     assertMemoryLayersEnvelope(body, seeded.sessionId)
+    expect(text).not.toContain('You are a helpful guide.')
+    expect(text).not.toContain('OPENAI_API_KEY')
   })
 })
