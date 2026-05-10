@@ -502,6 +502,11 @@ The Core exposes two API surfaces:
 
 These surfaces must stay clearly separated in routing and responsibility.
 
+Console boundary (Phase A, final EPIC 3.2):
+
+- Console is a consumer-only layer over canonical Core routes.
+- Operator flow is a single `Session Inspector` path (session list -> selected session detail) and must not introduce parallel compatibility read paths.
+
 ---
 
 # Request Flow (Normal Message)

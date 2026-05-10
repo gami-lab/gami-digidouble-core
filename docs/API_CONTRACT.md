@@ -1529,24 +1529,14 @@ No separate endpoint in Phase A implementation.
 ### Endpoint
 
 ```text
-GET /v1/admin/sessions
+No dedicated admin list endpoint in Phase A.
+Use `GET /v1/sessions` for session listing.
 ```
 
-### Query Parameters
+### Notes
 
-- `status` (optional): `active` | `closed` | `archived`
-- `scenarioId` (optional)
-- `limit` (optional, default 50, max 200)
-- `offset` (optional, default 0)
-
-### Response
-
-```ts
-type AdminListSessionsResponse = {
-  sessions: SessionSummary[]
-  total: number
-}
-```
+- Session-list filtering is provided by the public session list contract.
+- Inspector/admin routes start at `GET /v1/admin/sessions/{sessionId}/...`.
 
 ---
 
@@ -1944,6 +1934,28 @@ type AdminSessionContextResponse = {
 - `401` → `UNAUTHORIZED`
 - `404` → `NOT_FOUND` (session missing)
 - `500` → `INTERNAL_ERROR`
+
+---
+
+## A7c. Canonical Inspector Surface (Final EPIC 3.2)
+
+The final inspector read surface is intentionally bounded and does not include compatibility aliases or split wrappers.
+
+```text
+GET /v1/admin/sessions/{sessionId}/inspect
+GET /v1/admin/sessions/{sessionId}/events
+GET /v1/admin/sessions/{sessionId}/memory
+GET /v1/admin/sessions/{sessionId}/memory-layers
+GET /v1/admin/sessions/{sessionId}/metrics
+GET /v1/admin/sessions/{sessionId}/context
+GET /v1/sessions/{sessionId}/runtime-state
+GET /v1/sessions/{sessionId}/events/stream
+```
+
+Canonical shared DTO owners:
+
+- Admin inspector DTOs: `packages/shared/src/runtime-inspector-types.ts`
+- Runtime-state snapshot DTO: `packages/shared/src/runtime-types.ts` (`GetRuntimeStateResponse`)
 
 ---
 

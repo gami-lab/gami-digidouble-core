@@ -442,7 +442,6 @@ Visible orchestration behavior dramatically improves debugging speed, scenario t
 - recent GM events display
 - `GET /v1/admin/sessions/{sessionId}/inspect`
 - `GET /v1/admin/sessions/{sessionId}/events`
-- optional `GET /v1/admin/sessions/{sessionId}/gm-state`
 - admin-safe event filtering
 - no sensitive prompt/credential leakage
 
@@ -741,7 +740,7 @@ Hierarchical memory reduces hallucinations and improves continuity.
 
 ---
 
-## EPIC 4.2c — Memory System v3 (Working + Episodic Memory)
+## EPIC 4.2c — Memory System v3 (Working + Episodic Memory) ✅ Done
 
 **Purpose**
 Implement the actual target memory behavior defined in `MEMORY_SYSTEM_SPEC.md`.
