@@ -46,6 +46,20 @@ Phase A is in progress. **EPIC 1.1, EPIC 1.2, EPIC 2.1, EPIC 2.2, EPIC 2.3, EPIC
   - targeted backend inspector route tests PASS (41 tests)
   - `pnpm --filter @gami/core typecheck` PASS
 
+### EPIC 3.2 — Console session-inspector flow unification: **complete** (2026-05-10)
+
+- Removed overlapping console inspector entry points in top-level navigation:
+  - App flow now keeps one inspector path (`Scenario -> Session Inspector`) instead of parallel `Debugging Shell` vs `Session Admin` choices.
+- Consolidated operator flow on `SessionAdminPage`:
+  - session list with explicit `Inspect` action
+  - canonical `RuntimeInspector` detail for selected session
+  - conversation selector + message history panel for selected session
+- Kept inspector data composition canonical through `loadRuntimeInspectorViewModel` + existing shared DTO-backed API methods; no new backend routes and no compatibility fallback branches introduced.
+- Validation status for this slice:
+  - `pnpm --filter @gami/console typecheck` PASS
+  - `pnpm --filter @gami/console lint` PASS
+  - `pnpm --filter @gami/console test` PASS (36 tests)
+
 ### EPIC 2.7 — Runtime Inspector Contract Cleanup: **complete** (2026-05-07)
 
 - Added canonical shared runtime-inspector/admin HTTP DTO ownership in `packages/shared/src/runtime-inspector-types.ts`.
