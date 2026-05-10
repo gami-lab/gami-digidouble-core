@@ -47,7 +47,7 @@ describe('episodic-memory policy', () => {
       makeMemory({ summary: 'Episode A' }),
       makeMemory({ conversationId: 'conversation_2', summary: 'Episode B' }),
     ])
-    expect(summary).toContain('Hydration context:')
+    expect(summary).not.toContain('Hydration context:')
     expect(summary).toContain('Episode A')
     expect(summary).toContain('Episode B')
   })

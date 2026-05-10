@@ -102,7 +102,7 @@ describe('EpisodicMemoryService', () => {
     })
     const hydration = hydrationWithMetadata.hydration
 
-    expect(hydration.summary).toContain('Hydration context:')
+    expect(hydration.summary).not.toContain('Hydration context:')
     expect(hydration.summary).toContain('latency architecture')
     expect(hydration.unresolvedThreads).toContain('Need benchmark')
     expect(hydration.summary).not.toContain('Other user memory')

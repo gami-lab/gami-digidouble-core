@@ -34,7 +34,7 @@ export function buildHydrationSummary(memories: ConversationMemory[]): string {
         : 'Unresolved: none.'
     return `${memory.summary} ${discoveries} ${unresolved}`
   })
-  return `Hydration context: ${parts.join(' ')}`
+  return parts.join(' ')
 }
 
 function tokenize(input: string): Set<string> {
