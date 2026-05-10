@@ -167,9 +167,10 @@ type UserRef = {
 
 ```ts
 type UserPersona = {
-  role?: string
-  tonePreference?: string
-  interactionHints?: string[]
+  name?: string
+  roleInWorld?: string
+  avatarRelationships?: string[]
+  dialogGuidance?: string
 }
 ```
 

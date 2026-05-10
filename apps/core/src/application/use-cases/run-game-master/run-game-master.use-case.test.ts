@@ -223,14 +223,14 @@ describe('RunGameMasterUseCase', () => {
       userMessageText: 'hello',
       turnIndex: 2,
       correlationId: 'request_persona',
-      userPersona: { role: 'friend' },
+      userPersona: { name: 'Lina', roleInWorld: 'friend' },
     })
 
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
     const gmInput = JSON.parse(request.messages[0]?.content ?? '{}') as {
-      context: { userPersona?: { role?: string } }
+      context: { userPersona?: { roleInWorld?: string } }
     }
-    expect(gmInput.context.userPersona?.role).toBe('friend')
+    expect(gmInput.context.userPersona?.roleInWorld).toBe('friend')
   })
 
   it('does not inject empty userPersona when input has none', async () => {

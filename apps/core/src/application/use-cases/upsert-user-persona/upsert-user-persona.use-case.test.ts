@@ -7,7 +7,7 @@ describe('UpsertUserPersonaUseCase', () => {
   it('upserts persona and returns updated user', async () => {
     const user: User = {
       userId: 'user_1',
-      persona: { role: 'mentor', interactionHints: ['concise'] },
+      persona: { name: 'Maya', roleInWorld: 'student', avatarRelationships: ['Friend of Eva'] },
       createdAt: '2026-05-01T10:00:00.000Z',
       updatedAt: '2026-05-01T10:01:00.000Z',
     }
@@ -21,12 +21,13 @@ describe('UpsertUserPersonaUseCase', () => {
 
     const output = await useCase.execute({
       userId: 'user_1',
-      persona: { role: 'mentor', interactionHints: ['concise'] },
+      persona: { name: 'Maya', roleInWorld: 'student', avatarRelationships: ['Friend of Eva'] },
     })
 
     expect(upsertMock).toHaveBeenCalledWith('user_1', {
-      role: 'mentor',
-      interactionHints: ['concise'],
+      name: 'Maya',
+      roleInWorld: 'student',
+      avatarRelationships: ['Friend of Eva'],
     })
     expect(output).toEqual({ user })
   })

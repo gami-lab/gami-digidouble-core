@@ -150,9 +150,10 @@ export type GameMasterInput = {
 
   context: {
     userPersona?: {
-      role?: string
-      tonePreference?: string
-      interactionHints?: string[]
+      name?: string
+      roleInWorld?: string
+      avatarRelationships?: string[]
+      dialogGuidance?: string
     }
 
     memory?: {

@@ -118,7 +118,7 @@ function makeFixtures() {
     },
     user: {
       userId: 'user_1',
-      persona: { role: 'coach' },
+      persona: { name: 'Maya', roleInWorld: 'student' },
       createdAt: '2026-05-07T10:00:00.000Z',
       updatedAt: '2026-05-07T10:00:00.000Z',
     },
@@ -145,7 +145,7 @@ describe('AdminRuntimeActionsUseCase replay', () => {
         avatarId: 'avatar_1',
         userMessageText: 'Replay this turn',
         turnIndex: 2,
-        userPersona: { role: 'coach' },
+        userPersona: { name: 'Maya', roleInWorld: 'student' },
       }),
     )
 

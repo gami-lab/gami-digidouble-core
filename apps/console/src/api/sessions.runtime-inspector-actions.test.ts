@@ -105,16 +105,17 @@ describe('sessions runtime inspector action API wrappers', () => {
     const personaPayload: UpsertUserPersonaResponse = {
       user: {
         userId: 'user_1',
-        persona: { role: 'coach' },
+        persona: { name: 'Maya', roleInWorld: 'student' },
         createdAt: '2026-05-07T10:00:00.000Z',
         updatedAt: '2026-05-07T10:00:00.000Z',
       },
     }
 
     const personaInput: UserPersona = {
-      role: 'coach',
-      tonePreference: 'concise',
-      interactionHints: ['ask one question'],
+      name: 'Maya',
+      roleInWorld: 'student',
+      avatarRelationships: ['Friend of Eva'],
+      dialogGuidance: 'Ask one focused question.',
     }
 
     vi.mocked(coreRequest)
@@ -127,6 +128,6 @@ describe('sessions runtime inspector action API wrappers', () => {
     expect(coreRequest).toHaveBeenNthCalledWith(1, 'GET', '/v1/admin/sessions/session_1/context')
     expect(coreRequest).toHaveBeenNthCalledWith(2, 'PUT', '/v1/users/user_1/persona', personaInput)
     expect(context.gmContext.currentState.progression).toBe('intro')
-    expect(updatedPersona.user.persona?.role).toBe('coach')
+    expect(updatedPersona.user.persona?.name).toBe('Maya')
   })
 })

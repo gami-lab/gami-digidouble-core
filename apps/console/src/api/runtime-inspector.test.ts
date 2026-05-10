@@ -46,7 +46,7 @@ describe('loadRuntimeInspectorViewModel', () => {
     expect(result.metrics.summary.totalTurns).toBe(1)
     expect(result.metrics.turns).toHaveLength(1)
     expect(result.context.gm.currentState.progression).toBe('intro')
-    expect(result.persona?.role).toBe('coach')
+    expect(result.persona?.name).toBe('Maya')
   })
 
   it('uses default event limit and preserves optional null layers', async () => {
@@ -92,7 +92,7 @@ function arrangeSession1(): void {
       recentExchanges: [],
       workingMemory: {},
       longTermFacts: [],
-      userPersona: { role: 'coach' },
+      userPersona: { name: 'Maya', roleInWorld: 'student' },
       gmNotes: null,
       scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
     },
@@ -105,7 +105,7 @@ function arrangeSession1(): void {
         interactionCount: 1,
       },
       availableAvatars: [],
-      userPersona: { role: 'coach' },
+      userPersona: { name: 'Maya', roleInWorld: 'student' },
       scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
     },
   })
@@ -160,7 +160,7 @@ function arrangeSession1(): void {
     ],
   })
   vi.mocked(getUserPersona).mockResolvedValue({
-    persona: { role: 'coach' },
+    persona: { name: 'Maya', roleInWorld: 'student' },
   })
   vi.mocked(listSessionEvents).mockResolvedValue({
     events: [],

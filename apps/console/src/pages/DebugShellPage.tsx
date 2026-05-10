@@ -44,7 +44,12 @@ import type { ScenarioTestState } from './scenario-test-state'
 
 type DebugShellPageProps = { scenario: ScenarioSummary }
 type SetScenarioTestState = Dispatch<SetStateAction<ScenarioTestState>>
-type PersonaDraft = { role: string; tonePreference: string; hintsText: string }
+type PersonaDraft = {
+  name: string
+  roleInWorld: string
+  relationshipsText: string
+  dialogGuidance: string
+}
 
 function avatarIds(avatars: AvailableAvatarSummary[]): string[] {
   return avatars.map((avatar) => avatar.avatarId)
@@ -181,9 +186,10 @@ function useScenarioDerivedData(state: ScenarioTestState): {
 
 function toPersonaDraft(persona: UserPersona | null): PersonaDraft {
   return {
-    role: persona?.role ?? '',
-    tonePreference: persona?.tonePreference ?? '',
-    hintsText: (persona?.interactionHints ?? []).join('\n'),
+    name: persona?.name ?? '',
+    roleInWorld: persona?.roleInWorld ?? '',
+    relationshipsText: (persona?.avatarRelationships ?? []).join('\n'),
+    dialogGuidance: persona?.dialogGuidance ?? '',
   }
 }
 
@@ -200,9 +206,10 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
   const [isSending, setIsSending] = useState(false)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [personaDraft, setPersonaDraft] = useState<PersonaDraft>({
-    role: '',
-    tonePreference: '',
-    hintsText: '',
+    name: '',
+    roleInWorld: '',
+    relationshipsText: '',
+    dialogGuidance: '',
   })
   const [isLoadingPersona, setIsLoadingPersona] = useState(false)
   const [isSavingPersona, setIsSavingPersona] = useState(false)
@@ -230,7 +237,7 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
 
   useEffect(() => {
     if (userId.trim() === '') {
-      setPersonaDraft({ role: '', tonePreference: '', hintsText: '' })
+      setPersonaDraft({ name: '', roleInWorld: '', relationshipsText: '', dialogGuidance: '' })
       setPersonaReady(false)
       setPersonaStatus('Set user id and save persona before starting session.')
       return
@@ -442,40 +449,55 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
               </p>
               <div style={{ display: 'grid', gap: '8px' }}>
                 <label>
-                  Role
+                  Name
                   <input
-                    value={personaDraft.role}
+                    value={personaDraft.name}
                     onChange={(event) => {
                       setPersonaReady(false)
-                      setPersonaDraft((previous) => ({ ...previous, role: event.target.value }))
+                      setPersonaDraft((previous) => ({ ...previous, name: event.target.value }))
                     }}
                     disabled={isLoadingPersona || isSavingPersona}
                   />
                 </label>
                 <label>
-                  Tone preference
+                  Role in world
                   <input
-                    value={personaDraft.tonePreference}
+                    value={personaDraft.roleInWorld}
                     onChange={(event) => {
                       setPersonaReady(false)
                       setPersonaDraft((previous) => ({
                         ...previous,
-                        tonePreference: event.target.value,
+                        roleInWorld: event.target.value,
                       }))
                     }}
                     disabled={isLoadingPersona || isSavingPersona}
                   />
                 </label>
                 <label>
-                  Interaction hints (one per line)
+                  Avatar relationships (one per line)
                   <textarea
                     rows={4}
-                    value={personaDraft.hintsText}
+                    value={personaDraft.relationshipsText}
                     onChange={(event) => {
                       setPersonaReady(false)
                       setPersonaDraft((previous) => ({
                         ...previous,
-                        hintsText: event.target.value,
+                        relationshipsText: event.target.value,
+                      }))
+                    }}
+                    disabled={isLoadingPersona || isSavingPersona}
+                  />
+                </label>
+                <label>
+                  Dialog guidance
+                  <textarea
+                    rows={4}
+                    value={personaDraft.dialogGuidance}
+                    onChange={(event) => {
+                      setPersonaReady(false)
+                      setPersonaDraft((previous) => ({
+                        ...previous,
+                        dialogGuidance: event.target.value,
                       }))
                     }}
                     disabled={isLoadingPersona || isSavingPersona}

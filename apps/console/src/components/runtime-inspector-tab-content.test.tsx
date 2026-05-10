@@ -402,25 +402,28 @@ describe('RuntimeInspectorTabContent', () => {
 })
 
 describe('buildPersonaPayload', () => {
-  it('trims fields and splits hints while dropping empty lines', () => {
+  it('trims fields and splits relationships while dropping empty lines', () => {
     const payload = buildPersonaPayload({
-      role: ' coach ',
-      tonePreference: ' concise ',
-      hintsText: '  ask one thing  \n\n keep it brief\n',
+      name: ' Maya ',
+      roleInWorld: ' student ',
+      relationshipsText: '  Friend of Eva  \n\n Brother of Tom\n',
+      dialogGuidance: ' Keep things concise. ',
     })
 
     expect(payload).toEqual({
-      role: 'coach',
-      tonePreference: 'concise',
-      interactionHints: ['ask one thing', 'keep it brief'],
+      name: 'Maya',
+      roleInWorld: 'student',
+      avatarRelationships: ['Friend of Eva', 'Brother of Tom'],
+      dialogGuidance: 'Keep things concise.',
     })
   })
 
   it('returns an empty payload when all fields are blank', () => {
     const payload = buildPersonaPayload({
-      role: ' ',
-      tonePreference: '',
-      hintsText: '\n   \n',
+      name: ' ',
+      roleInWorld: '',
+      relationshipsText: '\n   \n',
+      dialogGuidance: '   ',
     })
 
     expect(payload).toEqual({})

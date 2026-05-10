@@ -61,9 +61,10 @@ describe('PUT /v1/users/:userId/persona', () => {
       url: '/v1/users/user_1/persona',
       headers: authHeaders(),
       payload: {
-        role: 'mentor',
-        tonePreference: 'direct',
-        interactionHints: ['concise'],
+        name: 'Sam',
+        roleInWorld: 'mentor',
+        avatarRelationships: ['Friend of Eva'],
+        dialogGuidance: 'Use practical examples',
       },
     })
 
@@ -80,7 +81,7 @@ describe('PUT /v1/users/:userId/persona', () => {
       method: 'PUT',
       url: '/v1/users/user_1/persona',
       headers: authHeaders(),
-      payload: { role: 'mentor', interactionHints: ['concise'] },
+      payload: { name: 'Sam', roleInWorld: 'mentor', avatarRelationships: ['Friend of Eva'] },
     })
     expect(first.statusCode).toBe(200)
 
@@ -88,14 +89,15 @@ describe('PUT /v1/users/:userId/persona', () => {
       method: 'PUT',
       url: '/v1/users/user_1/persona',
       headers: authHeaders(),
-      payload: { role: 'architect', tonePreference: 'warm' },
+      payload: { name: 'Lina', roleInWorld: 'architect', dialogGuidance: 'Be direct' },
     })
     expect(second.statusCode).toBe(200)
     const secondBody =
-      second.json<ApiResponse<{ user: { persona?: { role?: string; tonePreference?: string } } }>>()
+      second.json<ApiResponse<{ user: { persona?: { name?: string; roleInWorld?: string } } }>>()
     expect(secondBody.data?.user.persona).toEqual({
-      role: 'architect',
-      tonePreference: 'warm',
+      name: 'Lina',
+      roleInWorld: 'architect',
+      dialogGuidance: 'Be direct',
     })
   })
 
@@ -144,7 +146,7 @@ describe('PUT /v1/users/:userId/persona', () => {
       method: 'PUT',
       url: '/v1/users/user_1/persona',
       headers: authHeaders(),
-      payload: { role: 'mentor' },
+      payload: { name: 'Sam' },
     })
 
     expect(response.statusCode).toBe(500)
@@ -161,7 +163,7 @@ describe('GET /v1/users/:userId/persona', () => {
       method: 'PUT',
       url: '/v1/users/user_1/persona',
       headers: authHeaders(),
-      payload: { role: 'mentor', interactionHints: ['concise'] },
+      payload: { name: 'Sam', roleInWorld: 'mentor', avatarRelationships: ['Friend of Eva'] },
     })
     expect(put.statusCode).toBe(200)
 
@@ -172,11 +174,12 @@ describe('GET /v1/users/:userId/persona', () => {
     })
     expect(get.statusCode).toBe(200)
     const body =
-      get.json<ApiResponse<{ persona: { role?: string; interactionHints?: string[] } }>>()
+      get.json<ApiResponse<{ persona: { name?: string; avatarRelationships?: string[] } }>>()
     expect(body.error).toBeNull()
     expect(body.data?.persona).toEqual({
-      role: 'mentor',
-      interactionHints: ['concise'],
+      name: 'Sam',
+      roleInWorld: 'mentor',
+      avatarRelationships: ['Friend of Eva'],
     })
   })
 

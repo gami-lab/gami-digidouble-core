@@ -13,7 +13,7 @@ describe('PUT /v1/users/:userId/persona — stack auth and validation', () => {
     const response = await fetch(buildUrl('/v1/users/e2e_user/persona'), {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ role: 'mentor' }),
+      body: JSON.stringify({ name: 'Sam' }),
     })
     expect(response.status).toBe(401)
   })
@@ -25,7 +25,7 @@ describe('PUT /v1/users/:userId/persona — stack auth and validation', () => {
         'x-api-key': 'wrong-key',
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ role: 'mentor' }),
+      body: JSON.stringify({ name: 'Sam' }),
     })
     expect(response.status).toBe(401)
   })
@@ -37,7 +37,7 @@ describe('PUT /v1/users/:userId/persona — stack auth and validation', () => {
         'x-api-key': API_KEY,
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ interactionHints: 'invalid' }),
+      body: JSON.stringify({ avatarRelationships: 'invalid' }),
     })
     expect(response.status).toBe(400)
   })
@@ -66,9 +66,10 @@ describe('PUT + GET /v1/users/:userId/persona — stack roundtrip', () => {
   it('upserts persona then reads it back', async () => {
     const userId = `e2e_user_${crypto.randomUUID()}`
     const persona = {
-      role: 'mentor',
-      tonePreference: 'warm',
-      interactionHints: ['practical', 'concise'],
+      name: 'Sam Carter',
+      roleInWorld: 'mentor',
+      avatarRelationships: ['Friend of Eva', 'Brother of Tom'],
+      dialogGuidance: 'Use practical and concise explanations.',
     }
 
     const putResponse = await fetch(buildUrl(`/v1/users/${userId}/persona`), {

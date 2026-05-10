@@ -59,9 +59,10 @@ Keep minimal until stronger auth or tenancy is required.
 
 `persona` is intentionally lightweight and optional. Suggested shape:
 
-- `role` (e.g. friend, coach, psychologist)
-- `tonePreference` (e.g. direct, warm, concise)
-- `interactionHints?: string[]` (optional short hints)
+- `name` (display name used for dialog orientation)
+- `roleInWorld` (e.g. student, teacher, police officer, tourist)
+- `avatarRelationships?: string[]` (optional freeform relation hints tied to avatars)
+- `dialogGuidance?: string` (optional open text describing communication preferences)
 
 Persona is consumed by the Context module at assembly time. It is not duplicated across session, conversation, or message rows.
 

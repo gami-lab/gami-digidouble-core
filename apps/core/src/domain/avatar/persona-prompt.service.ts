@@ -51,8 +51,26 @@ export function assemblePersonaPrompt(
 }
 
 function buildUserPersonaContext(userPersona: UserPersona | undefined): string[] {
-  if (!hasText(userPersona?.role)) return []
-  return [`You are speaking with someone in the role of: ${userPersona.role.trim()}.`]
+  if (userPersona === undefined) return []
+
+  const lines: string[] = ['## User Persona']
+  if (hasText(userPersona.name)) {
+    lines.push(`Name: ${userPersona.name.trim()}`)
+  }
+  if (hasText(userPersona.roleInWorld)) {
+    lines.push(`Role in this world: ${userPersona.roleInWorld.trim()}`)
+  }
+  const relationships = (userPersona.avatarRelationships ?? [])
+    .map((relationship) => relationship.trim())
+    .filter((relationship) => relationship.length > 0)
+  if (relationships.length > 0) {
+    lines.push(`Potential avatar relationships: ${relationships.join('; ')}`)
+  }
+  if (hasText(userPersona.dialogGuidance)) {
+    lines.push(`Dialog guidance: ${userPersona.dialogGuidance.trim()}`)
+  }
+
+  return lines.length > 1 ? [lines.join('\n')] : []
 }
 
 function buildMemoryContext(memory: LayeredMemorySnapshot | undefined): string[] {

@@ -21,20 +21,20 @@ describe.skipIf(!DB_AVAILABLE)('PostgresUserRepository', () => {
   })
 
   it('upsert creates a new user and findById returns it', async () => {
-    const created = await userRepository.upsert('user_1', { role: 'friend' })
+    const created = await userRepository.upsert('user_1', { name: 'Sam' })
     const found = await userRepository.findById('user_1')
 
     expect(created.userId).toBe('user_1')
-    expect(created.persona).toEqual({ role: 'friend' })
+    expect(created.persona).toEqual({ name: 'Sam' })
     expect(found).toEqual(created)
   })
 
   it('upsert replaces persona and advances updatedAt', async () => {
-    const first = await userRepository.upsert('user_1', { role: 'friend' })
-    const second = await userRepository.upsert('user_1', { role: 'coach' })
+    const first = await userRepository.upsert('user_1', { name: 'Sam' })
+    const second = await userRepository.upsert('user_1', { name: 'Maya' })
 
     expect(second.userId).toBe('user_1')
-    expect(second.persona).toEqual({ role: 'coach' })
+    expect(second.persona).toEqual({ name: 'Maya' })
     expect(Date.parse(second.updatedAt)).toBeGreaterThanOrEqual(Date.parse(first.updatedAt))
   })
 
@@ -45,16 +45,16 @@ describe.skipIf(!DB_AVAILABLE)('PostgresUserRepository', () => {
     expect(found?.persona).toEqual({})
   })
 
-  it('round-trips role and tonePreference fields', async () => {
+  it('round-trips name and roleInWorld fields', async () => {
     await userRepository.upsert('user_roundtrip', {
-      role: 'friend',
-      tonePreference: 'warm',
+      name: 'Maya',
+      roleInWorld: 'student',
     })
     const found = await userRepository.findById('user_roundtrip')
 
     expect(found?.persona).toEqual({
-      role: 'friend',
-      tonePreference: 'warm',
+      name: 'Maya',
+      roleInWorld: 'student',
     })
   })
 
@@ -62,12 +62,12 @@ describe.skipIf(!DB_AVAILABLE)('PostgresUserRepository', () => {
     await expect(userRepository.findById('missing_user')).resolves.toBeNull()
   })
 
-  it('round-trips interactionHints arrays', async () => {
+  it('round-trips avatarRelationships arrays', async () => {
     await userRepository.upsert('user_hints', {
-      interactionHints: ['hint1', 'hint2'],
+      avatarRelationships: ['Friend of Eva', 'Brother of Tom'],
     })
     const found = await userRepository.findById('user_hints')
 
-    expect(found?.persona).toEqual({ interactionHints: ['hint1', 'hint2'] })
+    expect(found?.persona).toEqual({ avatarRelationships: ['Friend of Eva', 'Brother of Tom'] })
   })
 })

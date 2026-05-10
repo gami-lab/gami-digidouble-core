@@ -51,7 +51,7 @@ const userFactParamsSchema = {
 // additionalProperties:false. The persona shape is designed to grow incrementally — adding a
 // new optional field only requires updating this Set and one conditional, rather than
 // coordinating schema changes across route and type definitions.
-const allowedPersonaKeys = new Set(['role', 'tonePreference', 'interactionHints'])
+const allowedPersonaKeys = new Set(['name', 'roleInWorld', 'avatarRelationships', 'dialogGuidance'])
 
 export const usersRoute: FastifyPluginCallback<UsersRouteOptions> = (app, options) => {
   const userRepository = options.userRepository
@@ -179,10 +179,14 @@ function validatePersonaBody(body: unknown): string | null {
   if (hasUnknownPersonaKey(persona)) {
     return 'Invalid request body'
   }
-  if (!isOptionalString(persona['role']) || !isOptionalString(persona['tonePreference'])) {
+  if (
+    !isOptionalString(persona['name']) ||
+    !isOptionalString(persona['roleInWorld']) ||
+    !isOptionalString(persona['dialogGuidance'])
+  ) {
     return 'Invalid request body'
   }
-  if (!isOptionalStringArray(persona['interactionHints'])) {
+  if (!isOptionalStringArray(persona['avatarRelationships'])) {
     return 'Invalid request body'
   }
   return null

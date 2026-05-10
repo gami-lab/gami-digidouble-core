@@ -6,9 +6,9 @@ function makeUser(overrides: Partial<User> = {}): User {
   return {
     userId: 'user_1',
     persona: {
-      role: 'coach',
-      tonePreference: 'warm',
-      interactionHints: ['concise'],
+      name: 'Maya',
+      roleInWorld: 'student',
+      avatarRelationships: ['Friend of Eva'],
     },
     createdAt: '2026-05-01T08:00:00.000Z',
     updatedAt: '2026-05-01T08:00:00.000Z',
@@ -34,13 +34,14 @@ describe('InMemoryUserRepository', () => {
     const repository = new InMemoryUserRepository()
 
     const created = await repository.upsert('user_1', {
-      role: 'mentor',
-      tonePreference: 'direct',
-      interactionHints: ['practical'],
+      name: 'Sam',
+      roleInWorld: 'mentor',
+      avatarRelationships: ['Friend of Ava'],
     })
     const updated = await repository.upsert('user_1', {
-      role: 'architect',
-      interactionHints: ['detailed'],
+      name: 'Lina',
+      roleInWorld: 'architect',
+      dialogGuidance: 'Be direct and concise',
     })
 
     expect(created.userId).toBe('user_1')
@@ -50,8 +51,9 @@ describe('InMemoryUserRepository', () => {
     expect(updated.createdAt).toBe(created.createdAt)
     expect(updated.updatedAt >= created.updatedAt).toBe(true)
     expect(updated.persona).toEqual({
-      role: 'architect',
-      interactionHints: ['detailed'],
+      name: 'Lina',
+      roleInWorld: 'architect',
+      dialogGuidance: 'Be direct and concise',
     })
   })
 })

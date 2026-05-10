@@ -147,7 +147,7 @@ function makeGmState() {
 function makeUser() {
   return {
     userId: 'user_1',
-    persona: { role: 'coach' },
+    persona: { name: 'Maya', roleInWorld: 'student' },
     createdAt: '2026-05-01T10:00:00.000Z',
     updatedAt: '2026-05-01T10:00:00.000Z',
   }
@@ -195,7 +195,7 @@ describe('GetSessionContextUseCase', () => {
     expect(output.avatarContext.longTermFacts).toEqual([
       { category: 'preference', key: 'style', value: 'concise' },
     ])
-    expect(output.avatarContext.userPersona).toEqual({ role: 'coach' })
+    expect(output.avatarContext.userPersona).toEqual({ name: 'Maya', roleInWorld: 'student' })
     expect(output.gmContext.currentState.progression).toBe('intro')
     expect(output.gmContext.availableAvatars.length).toBe(2)
     expect(output.gmContext.memory.shortTerm?.recentExchanges).toEqual([

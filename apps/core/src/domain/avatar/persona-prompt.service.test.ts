@@ -164,21 +164,30 @@ describe('assemblePersonaPrompt -> dialog style defaults', () => {
   })
 })
 
-describe('assemblePersonaPrompt -> user persona role context', () => {
-  it('includes role sentence when userPersona.role is provided', () => {
+describe('assemblePersonaPrompt -> user persona context', () => {
+  it('includes rich persona section when user persona fields are provided', () => {
     const config = makeAvatarConfig({
       personaPrompt: 'You are a helpful guide.',
       tone: 'warm',
     })
 
     const prompt = assemblePersonaPrompt(config, {
-      userPersona: { role: 'psychologist' },
+      userPersona: {
+        name: 'Maya',
+        roleInWorld: 'student',
+        avatarRelationships: ['Friend of Eva', 'Brother of Tom'],
+        dialogGuidance: 'Use clear and concise language.',
+      },
     })
 
-    expect(prompt).toContain('You are speaking with someone in the role of: psychologist.')
+    expect(prompt).toContain('## User Persona')
+    expect(prompt).toContain('Name: Maya')
+    expect(prompt).toContain('Role in this world: student')
+    expect(prompt).toContain('Potential avatar relationships: Friend of Eva; Brother of Tom')
+    expect(prompt).toContain('Dialog guidance: Use clear and concise language.')
   })
 
-  it('omits role sentence when userPersona is empty', () => {
+  it('omits user persona section when userPersona is empty', () => {
     const config = makeAvatarConfig({
       personaPrompt: 'You are a helpful guide.',
       tone: 'warm',
@@ -188,46 +197,33 @@ describe('assemblePersonaPrompt -> user persona role context', () => {
       userPersona: {},
     })
 
-    expect(prompt).not.toContain('You are speaking with someone in the role of:')
+    expect(prompt).not.toContain('## User Persona')
   })
 
-  it('omits role sentence when role is an empty string', () => {
+  it('omits user persona section when persona fields are blank', () => {
     const config = makeAvatarConfig({
       personaPrompt: 'You are a helpful guide.',
       tone: 'warm',
     })
 
     const prompt = assemblePersonaPrompt(config, {
-      userPersona: { role: '' },
+      userPersona: { name: '  ', roleInWorld: '' },
     })
 
-    expect(prompt).not.toContain('You are speaking with someone in the role of:')
+    expect(prompt).not.toContain('## User Persona')
   })
 
-  it('omits role sentence when role is whitespace-only', () => {
+  it('omits user persona section when relationships are blank', () => {
     const config = makeAvatarConfig({
       personaPrompt: 'You are a helpful guide.',
       tone: 'warm',
     })
 
     const prompt = assemblePersonaPrompt(config, {
-      userPersona: { role: '   ' },
+      userPersona: { avatarRelationships: ['  ', ''] },
     })
 
-    expect(prompt).not.toContain('You are speaking with someone in the role of:')
-  })
-
-  it('does not emit persona sentence when tonePreference is set without role', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are a helpful guide.',
-      tone: 'warm',
-    })
-
-    const prompt = assemblePersonaPrompt(config, {
-      userPersona: { tonePreference: 'direct' },
-    })
-
-    expect(prompt).not.toContain('You are speaking with someone in the role of:')
+    expect(prompt).not.toContain('## User Persona')
   })
 
   it('keeps behavior unchanged when userPersona is not provided', () => {
@@ -238,19 +234,19 @@ describe('assemblePersonaPrompt -> user persona role context', () => {
 
     const prompt = assemblePersonaPrompt(config)
 
-    expect(prompt).not.toContain('You are speaking with someone in the role of:')
+    expect(prompt).not.toContain('## User Persona')
   })
 
-  it('places role sentence before default style rule', () => {
+  it('places persona section before default style rule', () => {
     const config = makeAvatarConfig({
       personaPrompt: 'You are a helpful guide.',
       tone: 'warm',
     })
 
     const prompt = assemblePersonaPrompt(config, {
-      userPersona: { role: 'psychologist' },
+      userPersona: { name: 'Maya' },
     })
-    const roleIndex = prompt.indexOf('You are speaking with someone in the role of: psychologist.')
+    const roleIndex = prompt.indexOf('## User Persona')
     const styleIndex = prompt.indexOf('Stay in character')
 
     expect(roleIndex).toBeGreaterThanOrEqual(0)

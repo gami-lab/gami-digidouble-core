@@ -7,7 +7,7 @@ describe('GetUserPersonaUseCase', () => {
     const repository: IUserRepository = {
       findById: vi.fn().mockResolvedValue({
         userId: 'user_1',
-        persona: { role: 'coach', tonePreference: 'warm' },
+        persona: { name: 'Maya', roleInWorld: 'student' },
         createdAt: '2026-05-01T10:00:00.000Z',
         updatedAt: '2026-05-01T10:00:00.000Z',
       }),
@@ -16,7 +16,7 @@ describe('GetUserPersonaUseCase', () => {
     const useCase = new GetUserPersonaUseCase(repository)
 
     const output = await useCase.execute({ userId: 'user_1' })
-    expect(output).toEqual({ persona: { role: 'coach', tonePreference: 'warm' } })
+    expect(output).toEqual({ persona: { name: 'Maya', roleInWorld: 'student' } })
   })
 
   it('returns null persona when user exists without persona', async () => {

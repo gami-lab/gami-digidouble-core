@@ -109,7 +109,7 @@ function makeApp() {
     userRepository: new InMemoryUserRepository([
       {
         userId: 'user_1',
-        persona: { role: 'coach' },
+        persona: { name: 'Maya', roleInWorld: 'student' },
         createdAt: '2026-05-01T10:00:00.000Z',
         updatedAt: '2026-05-01T10:00:00.000Z',
       },

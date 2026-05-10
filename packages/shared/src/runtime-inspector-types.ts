@@ -13,9 +13,10 @@ import type { RuntimeState } from './runtime-types.js'
 import type { SessionSummary } from './entity-types.js'
 
 export type UserPersona = {
-  role?: string
-  tonePreference?: string
-  interactionHints?: string[]
+  name?: string
+  roleInWorld?: string
+  avatarRelationships?: string[]
+  dialogGuidance?: string
 }
 
 export type UserSummary = {

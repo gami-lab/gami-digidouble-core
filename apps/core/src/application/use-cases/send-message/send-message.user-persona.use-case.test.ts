@@ -158,11 +158,16 @@ beforeEach(() => {
 })
 
 describe('SendMessageUseCase — user persona injection', () => {
-  it('injects persona role sentence when user repository returns persona', async () => {
+  it('injects rich persona context when user repository returns persona', async () => {
     const useCase = createUseCase(false, true)
     findUserByIdMock.mockResolvedValue({
       userId: 'user_1',
-      persona: { role: 'psychologist' },
+      persona: {
+        name: 'Maya',
+        roleInWorld: 'student',
+        avatarRelationships: ['Friend of Eva'],
+        dialogGuidance: 'Prefers concise answers',
+      },
       createdAt: '2026-05-01T10:00:00.000Z',
       updatedAt: '2026-05-01T10:00:00.000Z',
     } satisfies User)
@@ -170,9 +175,11 @@ describe('SendMessageUseCase — user persona injection', () => {
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).toContain(
-      'You are speaking with someone in the role of: psychologist.',
-    )
+    expect(llmRequest.systemPrompt).toContain('## User Persona')
+    expect(llmRequest.systemPrompt).toContain('Name: Maya')
+    expect(llmRequest.systemPrompt).toContain('Role in this world: student')
+    expect(llmRequest.systemPrompt).toContain('Potential avatar relationships: Friend of Eva')
+    expect(llmRequest.systemPrompt).toContain('Dialog guidance: Prefers concise answers')
   })
 
   it('succeeds when user repository is not injected', async () => {
@@ -183,7 +190,7 @@ describe('SendMessageUseCase — user persona injection', () => {
     ).resolves.toBeDefined()
   })
 
-  it('succeeds when user repository lookup throws and omits persona sentence', async () => {
+  it('succeeds when user repository lookup throws and omits persona section', async () => {
     const useCase = createUseCase(false, true)
     findUserByIdMock.mockRejectedValueOnce(new Error('user lookup unavailable'))
 
@@ -192,10 +199,10 @@ describe('SendMessageUseCase — user persona injection', () => {
     ).resolves.toBeDefined()
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).not.toContain('You are speaking with someone in the role of:')
+    expect(llmRequest.systemPrompt).not.toContain('## User Persona')
   })
 
-  it('omits persona sentence when user exists without persona', async () => {
+  it('omits persona section when user exists without persona', async () => {
     const useCase = createUseCase(false, true)
     findUserByIdMock.mockResolvedValue({
       userId: 'user_1',
@@ -206,14 +213,19 @@ describe('SendMessageUseCase — user persona injection', () => {
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).not.toContain('You are speaking with someone in the role of:')
+    expect(llmRequest.systemPrompt).not.toContain('## User Persona')
   })
 
   it('passes userPersona to run game master when persona is present', async () => {
     const useCase = createUseCase(true, true)
     findUserByIdMock.mockResolvedValue({
       userId: 'user_1',
-      persona: { role: 'coach' },
+      persona: {
+        name: 'Maya',
+        roleInWorld: 'student',
+        avatarRelationships: ['Friend of Eva'],
+        dialogGuidance: 'Prefers concise answers',
+      },
       createdAt: '2026-05-01T10:00:00.000Z',
       updatedAt: '2026-05-01T10:00:00.000Z',
     } satisfies User)
@@ -222,7 +234,12 @@ describe('SendMessageUseCase — user persona injection', () => {
 
     expect(runGameMasterExecuteMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        userPersona: { role: 'coach' },
+        userPersona: {
+          name: 'Maya',
+          roleInWorld: 'student',
+          avatarRelationships: ['Friend of Eva'],
+          dialogGuidance: 'Prefers concise answers',
+        },
       }),
     )
   })

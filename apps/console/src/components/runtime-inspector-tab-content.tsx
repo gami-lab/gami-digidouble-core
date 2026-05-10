@@ -36,9 +36,10 @@ type RuntimeInspectorTabContentProps = {
 }
 
 type PersonaDraft = {
-  role: string
-  tonePreference: string
-  hintsText: string
+  name: string
+  roleInWorld: string
+  relationshipsText: string
+  dialogGuidance: string
 }
 
 const rowStyle: CSSProperties = {
@@ -424,9 +425,10 @@ function PersonaEditor({
   onSave: (persona: UserPersona) => Promise<void>
 }): JSX.Element {
   const [draft, setDraft] = useState<PersonaDraft>({
-    role: persona?.role ?? '',
-    tonePreference: persona?.tonePreference ?? '',
-    hintsText: (persona?.interactionHints ?? []).join('\n'),
+    name: persona?.name ?? '',
+    roleInWorld: persona?.roleInWorld ?? '',
+    relationshipsText: (persona?.avatarRelationships ?? []).join('\n'),
+    dialogGuidance: persona?.dialogGuidance ?? '',
   })
 
   return (
@@ -438,29 +440,39 @@ function PersonaEditor({
       }}
     >
       <label>
-        Role
+        Name
         <input
-          value={draft.role}
+          value={draft.name}
           onChange={(event) => {
-            setDraft((prev) => ({ ...prev, role: event.target.value }))
+            setDraft((prev) => ({ ...prev, name: event.target.value }))
           }}
         />
       </label>
       <label>
-        Tone
+        Role in world
         <input
-          value={draft.tonePreference}
+          value={draft.roleInWorld}
           onChange={(event) => {
-            setDraft((prev) => ({ ...prev, tonePreference: event.target.value }))
+            setDraft((prev) => ({ ...prev, roleInWorld: event.target.value }))
           }}
         />
       </label>
       <label>
-        Hints (one per line)
+        Avatar relationships (one per line)
         <textarea
-          value={draft.hintsText}
+          value={draft.relationshipsText}
           onChange={(event) => {
-            setDraft((prev) => ({ ...prev, hintsText: event.target.value }))
+            setDraft((prev) => ({ ...prev, relationshipsText: event.target.value }))
+          }}
+          rows={4}
+        />
+      </label>
+      <label>
+        Dialog guidance
+        <textarea
+          value={draft.dialogGuidance}
+          onChange={(event) => {
+            setDraft((prev) => ({ ...prev, dialogGuidance: event.target.value }))
           }}
           rows={4}
         />
@@ -473,17 +485,20 @@ function PersonaEditor({
 }
 
 export function buildPersonaPayload(draft: PersonaDraft): UserPersona {
-  const hints = draft.hintsText
+  const relationships = draft.relationshipsText
     .split('\n')
     .map((item) => item.trim())
     .filter((item) => item.length > 0)
 
   return {
-    ...(draft.role.trim().length > 0 ? { role: draft.role.trim() } : {}),
-    ...(draft.tonePreference.trim().length > 0
-      ? { tonePreference: draft.tonePreference.trim() }
+    ...(draft.name.trim().length > 0 ? { name: draft.name.trim() } : {}),
+    ...(draft.roleInWorld.trim().length > 0
+      ? { roleInWorld: draft.roleInWorld.trim() }
       : {}),
-    ...(hints.length > 0 ? { interactionHints: hints } : {}),
+    ...(relationships.length > 0 ? { avatarRelationships: relationships } : {}),
+    ...(draft.dialogGuidance.trim().length > 0
+      ? { dialogGuidance: draft.dialogGuidance.trim() }
+      : {}),
   }
 }
 
