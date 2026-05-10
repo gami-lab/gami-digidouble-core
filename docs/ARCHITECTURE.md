@@ -20,84 +20,16 @@ This architecture is intentionally pragmatic.
 
 # Core Design Principles
 
-## 1. Modular Monolith First
+1. **Modular monolith first** — one deployable app with clean internal module boundaries
+2. **Clean boundaries** — explicit interfaces, small modules, testable domain logic; no speculative abstractions
+3. **Replaceable infrastructure** — LLM, DB, cache, observability, embeddings accessed only through abstraction layers
+4. **Headless core** — exposes APIs and events; no frontend assumptions
+5. **Async where valuable** — GM triggers, memory maintenance, logging flush; block only when it improves the current exchange
 
-We start with one deployable application.
-
-Why:
-
-- fastest delivery path for a small team
-- easier debugging
-- simpler local development
-- simpler refactoring
-
-Internal boundaries must be clean enough that modules could later be extracted if justified.
+See `PRINCIPLES.md` for full engineering philosophy.
 
 ---
 
-## 2. Clean Boundaries Over Fancy Patterns
-
-Use architecture to reduce coupling, not to impress.
-
-We prefer:
-
-- explicit interfaces
-- simple services
-- small modules
-- testable business logic
-- clear ownership
-
-We avoid:
-
-- unnecessary layers
-- speculative abstractions
-- framework-driven architecture
-
----
-
-## 3. Replaceable Infrastructure
-
-Business logic must not depend directly on vendors.
-
-We use abstraction layers for:
-
-- LLM providers
-- database access
-- logging / observability
-- cache / queue (when needed)
-- embeddings provider
-
-This allows change without rewriting core logic.
-
----
-
-## 4. Headless Core
-
-The Core is not the frontend.
-
-It exposes APIs and events.
-
-External layers may include:
-
-- back-office
-- player UI
-- voice systems
-- media systems
-- future SDKs
-
----
-
-## 5. Async Where Valuable
-
-Not everything should block user responses.
-
-Use async processing for:
-
-- Game Master triggers
-- memory maintenance refresh (session + avatar working memory)
-- deterministic memory selection assembly (shared payload for Avatar + GM)
-- logging flush
-- analytics
 - background evaluations
 
 ---
@@ -235,8 +167,6 @@ Examples:
 - Langfuse logger
 - Redis cache adapter
 - Dependency health probes
-
-Persistence is now wired to production PostgreSQL through `postgres` (postgres.js). The DB client singleton lives in `infrastructure/db/client.ts`, and concrete repositories are implemented in `infrastructure/db/repositories/` (`PostgresScenarioRepository`, `PostgresAvatarRepository`, `PostgresSessionRepository`, `PostgresMessageRepository`). In-memory repository stubs remain available for unit tests and are injected through `ServerAdapters`; `createServer` does not instantiate test stubs by itself.
 
 Replaceable without touching domain logic.
 
@@ -613,18 +543,7 @@ Keep folders boring and predictable.
 
 `apps/console/` is a front-end consumer layer, not part of the backend 4-layer architecture.
 It consumes Core HTTP APIs and has no direct access to backend domain or infrastructure modules.
-Architecturally, it sits at the same external-consumer level as any third-party API client.
-Cross-package HTTP DTO ownership for Core/console contracts lives in `packages/shared/src/` (not in console-local API files).
-
-Console debugging UI composition is organized as one shell flow:
-
-- scenario selection
-- debugging shell with one shared scenario/session context
-- sectioned views (`Session Setup`, `Memory`, `GM Impact`, `Turn Profiler`, `Persona`)
-- persona-first pre-session setup in `Session Setup` (required before starting a debug session)
-
-The shell consumes existing API/read models and does not redefine backend DTO contracts.
-Legacy split console debug pages were removed in favor of this single shell path.
+Cross-package HTTP DTO ownership for Core/console contracts lives in `packages/shared/src/`.
 
 ---
 
@@ -658,112 +577,7 @@ searchKnowledge(query)
 
 Business code depends on these ports only.
 
----
-
-# Database Strategy
-
-Use PostgreSQL as source of truth.
-
-Use pgvector for embeddings.
-
-Use JSONB for flexible evolving fields:
-
-- scenario config
-- metadata
-- event payloads
-
-Prefer relational columns for stable concepts.
-
----
-
-# Redis Strategy
-
-Use only where useful.
-
-Initial uses:
-
-- hot session cache
-- pub/sub for async signals
-- rate limiting later
-- short-lived locks if needed
-
-If Redis adds no value, keep usage minimal.
-
----
-
-# Logging / Observability Strategy
-
-Never call vendor SDKs directly from domain logic.
-
-Use Logger Port.
-
-Track:
-
-- request ids
-- latency
-- model used
-- token usage
-- costs
-- failures
-- trigger frequency
-
-This allows replacing tools later.
-
-Current implementation baseline (EPIC 1.2):
-
-- `POST /v1/exchange` records one trace per request (`llm.completion`)
-- trace payload includes request id, latency, token usage, and model metadata
-- process shutdown path flushes the same observability adapter instance used during requests
-
----
-
-# LLM Strategy
-
-All providers accessed through one internal abstraction.
-
-Capabilities:
-
-- provider selection
-- retries
-- timeouts
-- fallback model
-- structured JSON mode
-- streaming mode
-
-Use different models by role when useful:
-
-- Avatar model
-- Game Master model
-- background evaluator later
-
----
-
-# Testing Strategy
-
-## Unit Tests
-
-For:
-
-- domain services
-- Game Master decisions
-- memory logic
-- context builders
-
-## Integration Tests
-
-For:
-
-- API endpoints
-- repository implementations
-- LLM adapters (mocked or sandbox)
-
-## End-to-End Tests
-
-For:
-
-- full conversation flows
-- scenario setup
-- back-office critical paths
+For technology choices (DB, Redis, observability, LLM providers), see `TECH_STACK.md`.
 
 ---
 

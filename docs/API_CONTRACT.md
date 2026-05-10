@@ -22,12 +22,7 @@ Architecture semantics are defined in:
 
 # Design Principles
 
-- API-first
-- stable JSON contracts
-- headless core
-- additive evolution
-- bounded payloads
-- versioned endpoints (`/v1`)
+API-first, stable JSON contracts, headless core, additive evolution, bounded payloads, versioned endpoints (`/v1`). See `PRINCIPLES.md` for engineering philosophy.
 
 ---
 
@@ -201,22 +196,6 @@ type RuntimeState = {
   updatedAt: string
 }
 ```
-
----
-
-# Session Semantics
-
-- Session = durable experience container
-- Conversation = bounded avatar interaction episode
-- Messages belong to conversations
-- Avatar switches create new conversations
-- Context assembly is bounded
-- Full transcript replay is not part of normal runtime assembly
-
-See:
-
-- `MEMORY_SYSTEM_SPEC.md`
-- `GAME_MASTER_CONTRACT.md`
 
 ---
 

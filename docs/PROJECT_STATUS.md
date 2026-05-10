@@ -35,89 +35,11 @@ The system is now a fully operational conversational runtime with:
 - operational observability
 - production-grade persistence
 
----
-
-# 2. Current Architecture
-
-## Core Runtime Model
-
-The platform follows a Director–Actor architecture:
-
-- Avatar = interaction surface
-- Game Master = asynchronous orchestrator
-- Context = memory + persona + scenario + knowledge
-
-The Game Master executes asynchronously after avatar turns and never blocks user interaction.
+See `ARCHITECTURE.md` for the current architecture, `MEMORY_SYSTEM_SPEC.md` for memory design, and `TECH_STACK.md` for the technology stack.
 
 ---
 
-## Memory Architecture
-
-The memory system is layered:
-
-### Short-Term Memory
-
-- bounded recent exchanges
-- injected directly into prompts
-
-### Working Memory
-
-- continuously rewritten summaries
-- active conversation continuity
-
-### Episodic Memory
-
-- generated at conversation closure
-- retrieved during hydration
-- reused across conversations
-
-### User Facts
-
-- structured long-term memory
-- persistent across sessions
-
----
-
-## Runtime Observability
-
-Operators can inspect runtime behavior through:
-
-- runtime inspector
-- GM trace view
-- memory inspection
-- metrics dashboard
-- SSE runtime streams
-- replay/reset actions
-- session inspection
-
-No direct database access is required for debugging.
-
----
-
-## Technical Foundation
-
-Core stack:
-
-- TypeScript
-- pnpm + Turborepo
-- Fastify
-- PostgreSQL
-- pgvector
-- Redis
-- Docker
-- shared contract package (`@gami/shared`)
-
-Architecture principles:
-
-- API-first
-- strict typing
-- deterministic runtime boundaries
-- provider isolation
-- observability-first design
-
----
-
-# 3. EPIC Status
+# 2. EPIC Status
 
 ---
 
@@ -467,7 +389,7 @@ Completed on: 2026-05-02
 
 ---
 
-# 4. Current Public API Surface
+# 3. Current Public API Surface
 
 ## Sessions & Conversations
 
@@ -521,7 +443,7 @@ Completed on: 2026-05-02
 
 ---
 
-# 5. Timeline
+# 4. Timeline
 
 | Date       | Milestone                                             |
 | ---------- | ----------------------------------------------------- |
@@ -546,7 +468,7 @@ Completed on: 2026-05-02
 
 ---
 
-# 6. Current Focus
+# 5. Current Focus
 
 Current implementation focus:
 
@@ -560,7 +482,7 @@ Current implementation focus:
 
 ---
 
-# 7. Architectural Direction
+# 6. Architectural Direction
 
 The project is evolving toward:
 

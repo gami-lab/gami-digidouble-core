@@ -56,48 +56,15 @@ Its job is only to:
 
 ---
 
-# 2. Design Principles (MVP)
+# 2. Design Principles
 
-## 2.1 Minimal control
+- **Minimal control** — if the Avatar can handle it alone, let it
+- **No over-structuring** — avoid complex strategies, emotional modeling, deep classification
+- **Context, not behavior** — GM provides context; Avatar decides how to respond
+- **Minimal state** — keep only what is needed for progression, repetition avoidance, and interaction tracking
+- **Reasoning-owned routing** — semantic decisions (unlocks, suggestions, switches) belong to GM reasoning, not keyword thresholds
 
-The Game Master should interfere as little as possible.
-
-If the Avatar can handle something alone → let it.
-
-## 2.2 No over-structuring
-
-Avoid:
-
-- complex strategies
-- emotional modeling
-- deep classification
-
-## 2.3 Context, not behavior
-
-The Game Master provides context.
-
-The Avatar decides how to behave.
-
-The GM consumes assembled context layers, not full raw history replay.
-
-## 2.4 Minimal state
-
-Only keep what is strictly needed to:
-
-- maintain progression
-- avoid repetition
-- track interaction
-
-## 2.5 Reasoning-owned routing
-
-The GM combines:
-
-- **reasoning input** from full conversation context
-- **policy input** only for hard safety constraints such as active avatars and session unlock state
-
-Semantic decisions such as avatar unlocks, suggestions, and switches belong to GM reasoning, not keyword lists or threshold gates.
-
----
+See `PRINCIPLES.md` for full engineering philosophy.
 
 ---
 
@@ -496,33 +463,20 @@ The Avatar prompt assembler appends these notes on the next turn as:
 
 ---
 
-# 13. Evolution Path (Later)
-
-Only add complexity when needed:
-
-- richer state (engagement, emotion)
-- retrieval (RAG)
-- multi-step strategies
-- system actions
-
-Not before.
-
----
-
 # Final Rule
 
 If the Avatar can handle it →
-👉 **The Game Master should not exist for that decision.**
+**The Game Master should not exist for that decision.**
 
 The GM is here to **route and lightly guide**, not to control everything.
 
 ---
 
-# 14. Diagnostic Trace (Admin Visibility)
+# 13. Diagnostic Trace (Admin Visibility)
 
 Every GM decision must emit a structured event to the `EventLog` so operators can inspect why it triggered and what it decided.
 
-Admin inspection endpoint `GET /v1/admin/sessions/{sessionId}/events` is **implemented** (EPIC 2.6). See `docs/API_CONTRACT.md` for full contract.
+See `API_CONTRACT.md` for the full events endpoint contract (`GET /v1/admin/sessions/{sessionId}/events`).
 
 The EventLog repository exposes both append and session-scoped read operations:
 
@@ -594,7 +548,7 @@ type GameMasterEvent = {
 
 ---
 
-# 15. Avatar Switch Flow
+# 14. Avatar Switch Flow
 
 Avatar switching is owned by the Game Master and validated by the runtime:
 
@@ -604,7 +558,7 @@ Avatar switching is owned by the Game Master and validated by the runtime:
 4. Runtime accepts a switch only when `nextAvatarId` is an active avatar in the scenario and is already unlocked or unlocked by the same valid GM output.
 5. If valid, the current conversation is closed, a new GM-started conversation is created, and session active avatar is updated.
 
-# 16. Avatar Unlock Flow
+# 15. Avatar Unlock Flow
 
 Avatar unlocking is owned by the Game Master.
 
@@ -615,30 +569,33 @@ Avatar unlocking is owned by the Game Master.
 5. Runtime validation ignores inactive avatars, non-scenario IDs, already-unlocked IDs, duplicates, and locked avatars that were not explicitly mentioned in `recentMessages`.
 6. `GET /v1/sessions/{sessionId}/available-avatars` remains the source of truth for what the client can switch to.
 
-# 17. Assembled Context Inspection
+# 16. Assembled Context Inspection
 
 To support EPIC 2.7 operator workflows, Core exposes:
 
 - `GET /v1/admin/sessions/{sessionId}/context`
 
-This endpoint provides a bounded, structured snapshot of the same inputs used by Avatar and GM context assembly:
+This endpoint provides a bounded, structured snapshot of the same inputs used by Avatar and GM context assembly.
 
-- Avatar-facing context layers:
-  - short-term recent exchanges (bounded)
-  - working memory (session + active avatar summaries when available)
-  - long-term structured facts
-  - user persona
-  - GM notes
-  - scenario metadata (description/goals)
-- GM-facing context layers:
-  - recent messages (bounded)
-  - memory context (`shortTerm`, `workingMemory`, `episodicMemories`, `longTermFacts`)
-  - current GM state
-  - available avatars with availability flags
-  - user persona
-  - scenario metadata (description/goals)
+Avatar-facing context:
 
-Safety rules remain unchanged:
+- short-term recent exchanges (bounded)
+- working memory (session + active avatar summaries when available)
+- long-term structured facts
+- user persona
+- GM notes
+- scenario metadata (description/goals)
+
+GM-facing context:
+
+- recent messages (bounded)
+- memory context (`shortTerm`, `workingMemory`, `episodicMemories`, `longTermFacts`)
+- current GM state
+- available avatars with availability flags
+- user persona
+- scenario metadata (description/goals)
+
+Safety rules:
 
 - No raw provider request/response payloads
 - No credentials or environment secrets

@@ -110,7 +110,7 @@ This is a working document — decisions can evolve, but the current direction i
 - lightweight
 - fast
 - strong TypeScript support
-- good fit for REST + WebSocket in a headless core
+- good fit for REST + SSE in a headless core
 
 ### Scope
 
@@ -127,7 +127,7 @@ Expected early responsibilities:
 ### Validation
 
 - request overhead
-- WebSocket support
+- SSE support
 - clean contract design
 - local DX for fast iteration
 
@@ -211,7 +211,6 @@ This is now one of the strongest architectural decisions in the roadmap:
 ### Choice
 
 - **Direct provider SDKs by default**
-- optional use of **Vercel AI SDK** only if it simplifies streaming/provider handling without taking over architecture
 - **thin internal wrapper is mandatory**
 
 ### Wrapper Responsibilities
@@ -241,18 +240,6 @@ The updated roadmap explicitly reinforces **systematic wrappers** for LLM, loggi
 - structured output reliability for GM
 - robust timeout / fallback handling
 - streaming works consistently across providers
-
-Current implementation baseline (EPIC 1.2):
-
-- provider wrapper implemented and active for `openai`, `anthropic`, `mistral`, and deterministic `null`
-- first non-session loop exposed via `POST /v1/exchange`
-- every successful call returns and traces `model`, `inputTokens`, `outputTokens`, and `latencyMs`
-
-Current implementation hardening (2026-05-08):
-
-- baseline completion/error tracing is centralized at the LLM adapter boundary through `ObservedLlmAdapter`
-- composition roots build adapters through `createLlmAdapter(config, observability)` so tracing does not depend on per-use-case instrumentation
-- use cases provide optional request-scoped trace context on `LlmRequest.trace` for session/correlation metadata
 
 ---
 
@@ -527,7 +514,7 @@ Beyond LLM traces, the platform needs operational visibility across the whole sy
 | Concern                  | Tool / Approach                                                            |
 | ------------------------ | -------------------------------------------------------------------------- |
 | Structured logs          | JSON stdout (Pino / Fastify built-in) — already in place                   |
-| Health endpoints         | `GET /health` (flat), `GET /v1/admin/dependencies` (rich)                  |
+| Health endpoints         | `GET /health` (flat), `GET /v1/admin/health` (rich)                        |
 | Admin inspection API     | Fastify admin routes — `/v1/admin/*`                                       |
 | Metrics overview         | Lightweight in-DB aggregation (session count, error rate, latency P50/P95) |
 | Dashboards               | Grafana or embedded back-office charts — Phase A simple                    |
@@ -552,51 +539,28 @@ Beyond LLM traces, the platform needs operational visibility across the whole sy
 
 ### Choice
 
-- **WebSocket**
-- fallback / simpler cases: **SSE** if needed
+- **SSE** (`text/event-stream`)
 
 ### Why
 
-The roadmap explicitly calls for:
-
-- REST API + **WebSocket** for streaming
-- low perceived latency through streamed responses
+SSE provides simple, stable server-to-client runtime event streaming without WebSocket session complexity.
 
 ### Validation
 
 - perceived latency improvement
 - frontend compatibility
-- simplicity vs SSE tradeoff
+- reconnect/keepalive reliability
 
 ---
 
 ## 14. Admin UI / Back-office (Phase A)
 
-### Manual Test Console bootstrap (EPIC 2.4)
-
-Current delivered frontend package for internal manual API validation:
+### Choice
 
 - **Vite**
 - **React**
 - **TypeScript (strict)**
-- minimal styling only (no design system/framework at bootstrap stage)
-
-Rules for this package:
-
-- package location: `apps/console`
-- consume Core only through HTTP API contracts (starts with `GET /health`)
-- environment-driven Core connection (`VITE_API_URL`, `VITE_API_KEY`)
-- keep scope minimal (no scenario/session UI during bootstrap prompt)
-
-### Choice
-
-- **Next.js (App Router)**
-- **React**
-- **TypeScript (strict)**
-- **Tailwind CSS**
-- **shadcn/ui** for UI primitives
-- **TanStack Query** for server state and mutations
-- **Zod** for client-side form validation aligned with API contracts
+- minimal styling (no mandatory design framework)
 
 ### Scope
 
@@ -606,16 +570,12 @@ It is also the future home for editable policy configuration (goals, pacing, tra
 
 ### Rules
 
-- The admin UI is a **separate app in the monorepo**
+- The admin UI is `apps/console` in the monorepo
 - It consumes the Core only through **HTTP admin/public API contracts**
 - **No direct database access** from the UI
 - **No business logic duplication** in the UI
 - Keep the UI thin: orchestration and runtime logic stay in the Core
-- Prefer simple server-state patterns over frontend complexity
-
-### Monorepo Placement
-
-- `apps/backoffice` or `apps/admin`
+- Environment-driven Core connection (`VITE_API_URL`, `VITE_API_KEY`)
 
 ### Why
 

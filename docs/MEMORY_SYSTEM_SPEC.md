@@ -64,50 +64,12 @@ The memory system is inspired more by human memory behavior than by transcript a
 
 # 2. Design Principles
 
-## 2.1 Bounded Context Always
+- **Bounded context** — never replay full transcript history; context must remain bounded regardless of duration
+- **Memory is reconstructed** — compact and useful, not archival; minor inaccuracies are acceptable
+- **Async by default** — memory maintenance must not delay avatar responses
+- **Observability is mandatory** — memory decisions must be inspectable
 
-The system must never depend on replaying full conversation history.
-
-Context must remain bounded regardless of discussion duration.
-
----
-
-## 2.2 Memory Is Reconstructed
-
-Memory is not a perfect archive.
-
-Memory is a compact reconstruction of important information.
-
-Minor inaccuracies are acceptable and natural.
-
----
-
-## 2.3 Context Over Storage
-
-The value of memory is not persistence itself.
-
-The value comes from:
-
-- selecting useful information
-- preserving continuity
-- removing noise
-- helping reasoning
-
----
-
-## 2.4 Async By Default
-
-Memory maintenance should happen asynchronously whenever possible.
-
-Avatar response latency is more important than immediate memory refresh.
-
----
-
-## 2.5 Observability Is Mandatory
-
-Memory systems silently degrading while appearing functional is a major risk.
-
-All important memory decisions must therefore be inspectable and observable.
+See `PRINCIPLES.md` for full engineering philosophy.
 
 ---
 
@@ -481,137 +443,31 @@ No raw free-form LLM output enters persistence directly.
 
 ---
 
-# 10. Long-Term Memory Data Model
+# 10. Entity Definitions
 
-A dedicated long-term memory entity is required.
+Memory entity schema belongs in `DATA_MODEL.md`.
 
-Suggested entity:
+Key entities:
 
-```ts
-type ConversationMemory = {
-  id: string
+| Entity                          | Purpose                                           |
+| ------------------------------- | ------------------------------------------------- |
+| `conversation_working_memories` | active conversation-scoped working memory         |
+| `conversation_memories`         | long-term episodic memory per closed conversation |
+| `user_memory_facts`             | stable extracted user facts                       |
+| `avatar_session_memories`       | avatar-scoped session memory                      |
 
-  userId: string
-  scenarioId: string
-  avatarId: string
-
-  sessionId: string
-  conversationId: string
-
-  summary: string
-
-  facts: Array<{
-    category: string
-    key: string
-    value: string
-  }>
-
-  unresolvedThreads?: string[]
-
-  relevanceTags?: string[]
-
-  createdAt: string
-  updatedAt: string
-}
-```
-
-This complements:
-
-- `user_memory_facts`
-
-The distinction is:
-
-| Entity                  | Purpose                                  |
-| ----------------------- | ---------------------------------------- |
-| `user_memory_facts`     | stable extracted user facts              |
-| `conversation_memories` | episodic memory of previous interactions |
+The distinction between `user_memory_facts` (stable structured facts) and `conversation_memories` (episodic memory of previous interactions) is intentional — they serve different retrieval purposes.
 
 ---
 
-# 11. Debugging Requirements
+# 11. Non-Goals
 
-The console memory inspector must display:
-
-- current short-term exchanges
-- current conversation working memory
-- selected long-term memories
-- hydration sources
-- memory refresh events
-- memory evolution diffs
-- stale memory warnings
-- extracted facts
-- dropped information
-- GM memory selection reasoning
-
-The operator must understand:
-
-- what the system remembers
-- why it remembers it
-- how memory influenced orchestration
-
----
-
-# 12. Acceptance Tests
-
----
-
-## 12.1 Short-Term Memory
-
-Given a long conversation
-When the Avatar answers
-Then only the last 2–3 exchanges are injected verbatim.
-
----
-
-## 12.2 Working Memory
-
-Given a 30+ turn conversation
-When periodic refresh occurs
-Then the conversation working memory remains bounded and coherent.
-
----
-
-## 12.3 Conversation Closure
-
-Given a conversation is closed
-When memory compaction completes
-Then one episodic memory exists for that conversation.
-
----
-
-## 12.4 New Conversation Continuity
-
-Given previous conversations exist with the same avatar
-When a new conversation starts
-Then the Avatar remembers previous interactions naturally.
-
----
-
-## 12.5 GM Memory Access
-
-Given previous discussions already covered a topic
-When the GM runs
-Then GM context includes relevant episodic memory.
-
----
-
-## 12.6 Memory Failure Isolation
-
-Given memory refresh fails
-When the Avatar answers
-Then the Avatar response still succeeds and the failure is logged.
-
----
-
-# 13. Non-Goals
-
-This version of the system does NOT attempt to implement:
+This version does NOT attempt:
 
 - perfect memory fidelity
 - emotional simulation
-- human-level autobiographical memory
 - infinite recall
 - vector-only memory architecture
 - memory quality scoring inside runtime orchestration
 
-These may evolve later if justified by real usage.
+Coverage expectations and acceptance scenarios are in `TEST_COVERAGE_PLAN.md`.

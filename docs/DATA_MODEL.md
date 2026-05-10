@@ -29,22 +29,6 @@ Runtime behavior and orchestration semantics are defined in:
 
 ---
 
-# Core Principles
-
-- PostgreSQL is the source of truth
-- JSONB is allowed for evolving configuration structures
-- Core relationships remain relational
-- Runtime state should remain bounded
-- Derived state should not be persisted unnecessarily
-- Every operational entity must be resettable/deletable
-- Store only data required by:
-  - runtime behavior
-  - operations
-  - observability
-  - learning systems
-
----
-
 # Entity Overview
 
 | Entity                          | Purpose                               |
