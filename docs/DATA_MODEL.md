@@ -1,404 +1,286 @@
 # DATA_MODEL.md
 
-## Purpose
+# Purpose
 
-Define the current minimal data model for the MVP Core.
+Define the current persistent data model for Gami DigiDouble Core.
 
-This model favors:
+The model favors:
 
 - simplicity
-- fast iteration
 - operational clarity
 - low migration cost
+- explicit ownership
+- bounded runtime state
 - future evolution
 
-Use YAGNI and KISS:
+This document defines:
 
-- store only what we use
-- avoid premature entities
-- prefer explicit structures
-- evolve when real needs appear
+- persisted entities
+- relationships
+- ownership rules
+- reset semantics
+- indexing strategy
+
+Runtime behavior and orchestration semantics are defined in:
+
+- `ARCHITECTURE.md`
+- `MEMORY_SYSTEM_SPEC.md`
+- `GAME_MASTER_CONTRACT.md`
 
 ---
 
-## Core Principles
+# Core Principles
 
 - PostgreSQL is the source of truth
-- JSONB is acceptable for flexible configuration
-- Session memory and persistent memory are different concerns
-- Avatar memory inside a session is a first-class concern
-- Derived data can be recomputed when practical
-- Every important entity must be deletable/resettable
+- JSONB is allowed for evolving configuration structures
+- Core relationships remain relational
+- Runtime state should remain bounded
+- Derived state should not be persisted unnecessarily
+- Every operational entity must be resettable/deletable
+- Store only data required by:
+  - runtime behavior
+  - operations
+  - observability
+  - learning systems
 
 ---
 
-# Main Entities
+# Entity Overview
+
+| Entity                          | Purpose                               |
+| ------------------------------- | ------------------------------------- |
+| `users`                         | User identity and lightweight persona |
+| `scenarios`                     | Experience configuration              |
+| `avatars`                       | Actors available in a scenario        |
+| `sessions`                      | Durable user run container            |
+| `conversations`                 | One bounded avatar interaction        |
+| `messages`                      | Conversation messages                 |
+| `gm_states`                     | Persisted Game Master runtime state   |
+| `session_memories`              | Session-level compact memory          |
+| `conversation_working_memories` | Active conversation working memory    |
+| `avatar_session_memories`       | Avatar-scoped session memory          |
+| `conversation_memories`         | Long-term episodic memories           |
+| `user_memory_facts`             | Persistent user facts                 |
+| `knowledge_sources`             | Registered knowledge assets           |
+| `knowledge_chunks`              | Retrieval chunks                      |
+| `event_log`                     | Runtime observability events          |
+| `ingestion_jobs`                | Knowledge ingestion tracking          |
+| `admin_action_log`              | Operator audit trail                  |
+| `prompt_template_variables`     | Optional reusable prompt variables    |
 
 ---
 
-## 1. User
+# Entities
 
-Represents a person or external identity using the system.
+---
 
-### Fields
+# 1. User
+
+Represents a user or external identity.
+
+## Fields
 
 - id
+- external_id
+- email
+- persona (JSONB)
+- metadata (JSONB)
 - created_at
 - updated_at
 
-### Optional
+## Persona Shape
 
-- external_id
-- email
-- metadata (JSONB)
-- persona (JSONB)
+```ts id="94v5ra"
+type UserPersona = {
+  name?: string
+  roleInWorld?: string
+  avatarRelationships?: string[]
+  dialogGuidance?: string
+}
+```
 
-### Notes
+## Notes
 
-Keep minimal until stronger auth or tenancy is required.
-
-`persona` is intentionally lightweight and optional. Suggested shape:
-
-- `name` (display name used for dialog orientation)
-- `roleInWorld` (e.g. student, teacher, police officer, tourist)
-- `avatarRelationships?: string[]` (optional freeform relation hints tied to avatars)
-- `dialogGuidance?: string` (optional open text describing communication preferences)
-
-Persona is consumed by the Context module at assembly time. It is not duplicated across session, conversation, or message rows.
-
-### Implementation Status (EPIC 5.5)
-
-- **Table:** `users`
-- **Repository:** `PostgresUserRepository`
-- **Status:** Fully implemented. `persona` is a JSONB column; all fields optional.
-- **Column note:** `id` is `TEXT` (not UUID) — mirrors `sessions.user_id TEXT`.
+- Persona is optional
+- Persona is assembled into runtime context
+- Persona is not duplicated into sessions or messages
 
 ---
 
-## 2. Scenario
+# 2. Scenario
 
-Defines a runnable experience configuration.
+Defines a runnable experience.
 
-### Fields
+## Fields
 
 - id
 - name
-- status (draft / active / archived)
+- status (`draft | active | archived`)
 - config (JSONB)
 - created_at
 - updated_at
 
-### Implementation Alignment (TypeScript)
+## Notes
 
-- `Scenario` includes: `scenarioId`, `name`, `status`, `config`, `createdAt`, `updatedAt`.
-- `status` is constrained to `'draft' | 'active' | 'archived'`.
-- `config` is a typed object (`ScenarioConfig`) carrying scenario runtime settings.
+A scenario owns:
 
-### Implementation Status (EPIC 2.3)
+- avatars
+- knowledge sources
+- runtime configuration
 
-- **Table:** `scenarios`
-- **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
-- **Repository:** `PostgresScenarioRepository`
-- **Status:** Fully implemented.
-- **Column note:** `updated_at` is automatically refreshed to `NOW()` on every `UPDATE` via the repository's `update()` method (`SET updated_at = NOW()` in the SQL statement), including partial updates via `PATCH /v1/scenarios/{scenarioId}`.
-
-### Typical Config
-
-- world context
-- objectives
-- goals
-- avatar availability policy (`initialAvatarIds`, optional `unlockableAvatarIds`)
-- UI hints
-- runtime defaults
-
-### Notes
-
-Scenario config is data, not code.
-
-A Scenario owns:
-
-- its avatars
-- its knowledge sources
-- its rules/configuration
-
-The Scenario is the container of the experience.
+Scenario configuration is data, not code.
 
 ---
 
-## 3. Avatar
+# 3. Avatar
 
-Represents an actor available in one scenario.
+Represents one actor inside a scenario.
 
-An Avatar is now a first-class object.
-
-### Fields
+## Fields
 
 - id
 - scenario_id
 - name
-- status (draft / active / archived)
-- description (nullable)
-- tone (nullable)
-- persona_prompt (required, non-null)
-- config (JSONB, required, extensible)
+- status (`draft | active | archived`)
+- description
+- tone
+- persona_prompt
+- config (JSONB)
 - created_at
 - updated_at
 
-### Implementation Alignment (TypeScript)
+## Notes
 
-- `AvatarConfig` keeps runtime-first naming (`avatarId`) while still carrying database-sourced timestamps for API responses and auditing use cases.
-
-### Implementation Status (EPIC 2.3)
-
-- **Table:** `avatars`
-- **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
-- **Repository:** `PostgresAvatarRepository`
-- **Status:** Fully implemented. The `adjustments` field (runtime-only, from `AvatarConfig`) is not persisted in Phase A and remains in-memory only. Add a `TEXT[]` column via a future migration if persistence is required.
-- **Column note:** `updated_at` is automatically refreshed to `NOW()` on every `UPDATE` via the repository's `update()` method (`SET updated_at = NOW()` in the SQL statement), including partial updates via `PATCH /v1/avatars/{avatarId}`.
-
-### Typical Config
-
-- speaking style details
-- role in the experience
-- response constraints
-- allowed knowledge scope
-- optional voice / media references
-- optional UI hints
-
-### Notes
-
-An Avatar belongs to exactly one Scenario.
-
-This keeps the model simple for now:
-
-- no shared avatar library
-- no cross-scenario avatar reuse
-- no separate actor catalog yet
-
-If shared avatars become a real product need later, we can evolve toward:
-
-- reusable Avatar templates
-- ScenarioAvatar binding table
-
-For MVP, one Avatar = one actor defined inside one Scenario.
-
-**Phase A deletion safety rule:** avatar deletion is rejected while the owning scenario has active sessions.
+- One avatar belongs to exactly one scenario
+- Cross-scenario reuse is intentionally unsupported in Phase A
 
 ---
 
-## 4. Session
+# 4. Session
 
-Represents one user run through one scenario.
+Represents one user run inside one scenario.
 
-### Fields
+## Fields
 
 - id
 - user_id
 - scenario_id
-- active_avatar_id (nullable, FK → Avatar)
-- unlocked_avatar_ids (nullable UUID[], session-scoped available avatars)
-- gm_notes (nullable, director guidance for next avatar turn)
-- memory_summary (nullable, compact working-memory summary for the session)
-- status (active / closed / archived)
+- active_avatar_id
+- unlocked_avatar_ids
+- gm_notes
+- memory_summary
+- status (`active | closed | archived`)
 - started_at
 - last_activity_at
-- ended_at (nullable)
+- ended_at
 
-### Implementation Status (EPIC 2.3)
+## Notes
 
-- **Table:** `sessions`
-- **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
-- **Repository:** `PostgresSessionRepository`
-- **Status:** Fully implemented.
-- **Column note:** `active_avatar_id` is nullable and persisted for GM-driven default avatar routing. Cleared to `NULL` on session reset.
-- **Column note:** `unlocked_avatar_ids` stores per-session avatar unlock progression when scenario policy enables locked specialists. Initial values come from scenario availability policy; later additions are owned by the async Game Master. Cleared to the scenario's initial unlocked avatars on session reset.
-- **Column note:** `gm_notes` stores latest Game Master guidance injected into the next avatar system prompt. Cleared to `NULL` on session reset.
-- **Column note:** `memory_summary` stores compact working memory for fast context hydration; it is bounded and updated asynchronously, then cleared on session reset.
-
-### Notes
-
-One session can contain multiple conversations over time.
-
-`active_avatar_id` tracks the current routing focus for session-level orchestration.
-`unlocked_avatar_ids` tracks which avatars are accessible in that specific session.
-At turn time, memory for avatar prompting is assembled deterministically as layered context:
-
-- short-term: last 2 exchanges from conversation messages
-- working: `session_memories` summary + current-avatar row from `avatar_session_memories` when present
-- long-term: bounded `UserMemoryFact` entries (`updatedAt DESC`, capped to 10 for turn-time prompt assembly and 50 for admin inspection payloads)
-
-The prompt receives compact rendered sections, not raw transcript replay.
-
-A Session is the equivalent of one run of the experience.
-
-Using the movie analogy:
-
-- Scenario = the production setup
-- Avatar = an actor in that production
-- Session = one concrete movie/playthrough container
-
-### Derived runtime state (EPIC 4.5)
-
-`session_runtime_state` is derived at read time from session/conversation status plus async world-processing signals.
-
-- It is **not** a persisted table in Phase A.
-- It is exposed through API (`GET /v1/sessions/{sessionId}/runtime-state`) and SSE event flow.
-- World-processing signals are sourced from an in-process session event publisher (`InMemorySessionEventPublisher`) and are process-scoped (not DB-backed) in Phase A.
-- Keep this model derived/simple to avoid premature event-sourcing complexity.
+- One session contains multiple conversations
+- Session is the durable runtime container
+- Runtime context is assembled from bounded memory layers
+- `memory_summary` is a compatibility cache/mirror
+- Runtime state is derived, not persisted
 
 ---
 
-## 5. Conversation
+# 5. Conversation
 
-Represents one bounded dialogue episode with one avatar inside one session.
+Represents one bounded dialogue episode with one avatar.
 
-### Fields
+## Fields
 
 - id
 - session_id
 - avatar_id
-- status (active / closed / archived)
+- status (`active | closed | archived`)
+- started_by
+- reason
+- handoff_from_conversation_id
 - started_at
 - last_activity_at
-- ended_at (nullable)
+- ended_at
 
-### Optional
+## Notes
 
-- started_by (user / gm / system)
-- reason (nullable)
-- handoff_from_conversation_id (nullable)
-
-### Notes
-
-- Switching avatar creates a new conversation.
-- Returning later to the same avatar also creates a new conversation.
-- Conversation history is isolated per conversation.
-- Session memory continuity should happen through SessionMemory / AvatarSessionMemory, not by raw transcript continuation by default.
-- Conversation closure (`status = closed` + `ended_at`) is the trigger boundary for conversation → memory compaction. Compaction is async and must not block the response path.
-
-**Phase A deletion safety rule:** scenario deletion is rejected while dependent avatars or sessions still exist.
+- Avatar switches create new conversations
+- Conversation closure is the memory-compaction boundary
+- Transcript replay is not the primary continuity mechanism
 
 ---
 
-## 6. Message
+# 6. Message
 
-Represents one message in a conversation.
+Represents one message inside a conversation.
 
-### Fields
+## Fields
 
 - id
 - conversation_id
-- role (user / avatar / system)
+- role (`user | avatar | system`)
 - content
+- metadata (JSONB)
 - created_at
 
-### Optional
+## Metadata Examples
 
-- metadata (JSONB)
-
-### Implementation Status (EPIC 2.3)
-
-- **Table:** `messages`
-- **Migration:** `apps/core/src/infrastructure/db/migrations/001_initial_schema.sql`
-- **Repository:** `PostgresMessageRepository`
-- **Status:** Fully implemented.
-
-### Metadata Shape (JSONB)
-
-Current `MessageMetadata` fields:
-
-- `model?`
-- `latencyMs?`
-- `inputTokens?`
-- `outputTokens?`
-- `totalTokens?`
-- `costUsd?`
-- `triggerSource?`
-
-### Notes
-
-Use one table for all messages.
-
-The speaking avatar is derived from the parent conversation.
-
-Avoid separate Exchange tables unless clearly needed later.
+- model
+- latencyMs
+- token counts
+- cost
+- trigger source
 
 ---
 
-## 7. GameMasterState (`gm_states`)
+# 7. Game Master State
 
-Lightweight persisted per-session Game Master state used to keep progression continuity across turns and server restarts.
+Persisted lightweight GM runtime state.
 
-### Fields
+Table: `gm_states`
 
-- session_id (PK, FK → Session, ON DELETE CASCADE)
-- current_avatar_id (nullable)
+## Fields
+
+- session_id
+- current_avatar_id
 - progression
-- topics_covered (`TEXT[]`)
+- topics_covered
 - interaction_count
 - updated_at
 
-### Notes
+## Notes
 
-- Exactly one row per session (`session_id` is both PK and FK).
-- Deleting a session cascades and removes its GM state row.
-- Stores only the minimal `GameMasterState` persistence shape.
-
-### Implementation Status (EPIC 4.1)
-
-- **Table:** `gm_states`
-- **Schema source:** `infra/postgres/init.sql`
-- **Repository:** `PostgresGmStateRepository`
-- **Status:** Fully implemented.
+- One row per session
+- Stores bounded orchestration continuity only
 
 ---
 
-## 8. SessionMemory
+# 8. Session Memory
 
-Compact working memory for an active session.
+Compact session-level memory.
 
-### Fields
+Table: `session_memories`
+
+## Fields
 
 - session_id
 - summary
 - updated_at
 
-### Notes
+## Notes
 
-Recent raw messages come from Message table.
-
-This table stores only compacted session-level memory (working memory layer).
-
-The memory model is pyramidal and bounded:
-
-- Short-term memory: last 2 exchanges (assembled at runtime from `Message`; not persisted here)
-- Working memory: conversation-scoped canonical memory (`conversation_working_memories`) with compatibility summary mirrors in `session_memories`; `sessions.memory_summary` remains backward-compatible mirror/cache
-- Long-term memory: persisted structured facts/events (`UserMemoryFact`)
-
-This is the shared memory of the session itself:
-
-- what happened globally
-- what the overall interaction has covered
-- what the system may need regardless of a specific avatar
-
-Using the analogy:
-
-This is the memory of the movie/playthrough as a whole.
-
-### Implementation Status (EPIC 4.2b)
-
-- **Table:** `session_memories`
-- **Repository:** `PostgresSessionMemoryRepository` (+ in-memory test adapter)
-- **Status:** Implemented. One row per session (`session_id` PK), compact `summary`, `updated_at`.
-- **Admin inspection surfaces:** `GET /v1/admin/sessions/{sessionId}/memory` (compact summary, backward compatible) and `GET /v1/admin/sessions/{sessionId}/memory-layers` (explicit layered read model).
+- Stores compact session continuity
+- Does not store transcripts
+- One row per session
 
 ---
 
-## 9. ConversationWorkingMemory
+# 9. Conversation Working Memory
 
-Conversation-scoped rewritten working memory for one bounded dialogue episode.
+Active conversation-scoped working memory.
 
-### Fields
+Table: `conversation_working_memories`
+
+## Fields
 
 - conversation_id
 - session_id
@@ -408,79 +290,41 @@ Conversation-scoped rewritten working memory for one bounded dialogue episode.
 - candidate_facts
 - updated_at
 
-### Notes
+## Notes
 
-- Canonical working-memory owner for lifecycle refreshes.
-- Rewritten (not appended) on refresh.
-- Refresh triggers:
-  - every 3 exchanges (`post_turn` policy gate)
-  - conversation close
-  - avatar switch
-  - explicit admin refresh trigger
-- Built from bounded messages; no transcript replay dependency.
-
-### Implementation Status (EPIC 4.2c)
-
-- **Table:** `conversation_working_memories`
-- **Repository:** `PostgresConversationWorkingMemoryRepository` (+ in-memory test adapter)
-- **Status:** Implemented. One row per conversation (`conversation_id` PK), rewritten summary + unresolved threads + candidate facts.
+- Canonical active working memory
+- Rewritten periodically
+- One row per conversation
 
 ---
 
-## 10. AvatarSessionMemory
+# 10. Avatar Session Memory
 
-Compact working memory for one avatar inside one session.
+Avatar-scoped session memory.
 
-### Fields
+Table: `avatar_session_memories`
+
+## Fields
 
 - session_id
 - avatar_id
 - summary
 - updated_at
 
-### Notes
+## Notes
 
-This stores what happened for a specific avatar in a specific session.
-
-Examples:
-
-- what this avatar already told the user
-- what this avatar has learned in the conversation
-- emotional or narrative continuity if later needed
-- unresolved threads from this avatar’s point of view
-
-This is intentionally separate from `SessionMemory`.
-
-Why:
-
-- session memory = global memory of the experience
-- avatar session memory = subjective memory of one actor in that experience
-
-This follows the Director / Actor analogy:
-
-- SessionMemory = shared movie memory
-- AvatarSessionMemory = actor memory for that movie
-
-For MVP, keep it compact:
-
-- one summary per `(session_id, avatar_id)`
-- no raw transcript duplication
-- episodic continuity now persists in `conversation_memories` (EPIC 4.2c)
-
-### Implementation Status (EPIC 4.2b)
-
-- **Table:** `avatar_session_memories`
-- **Repository:** `PostgresAvatarSessionMemoryRepository` (+ in-memory test adapter)
-- **Status:** Implemented. One compact summary row per `(session_id, avatar_id)`.
-- **Admin inspection exposure:** included in `memory-layers` response under `working.avatars`.
+- Stores avatar-specific continuity
+- One row per `(session_id, avatar_id)`
 
 ---
 
-## 10b. ConversationMemory (Episodic)
+# 11. Conversation Memory
 
-Durable episodic memory generated exactly once per closed conversation.
+Long-term episodic memory.
 
-### Fields
+Table: `conversation_memories`
+
+## Fields
 
 - conversation_id
 - session_id
@@ -493,96 +337,72 @@ Durable episodic memory generated exactly once per closed conversation.
 - fact_candidates
 - created_at
 
-### Notes
+## Notes
 
-- Scope for retrieval/hydration: `user_id + avatar_id + scenario_id`.
-- One row per conversation (`conversation_id` primary key) to keep episodic entries immutable in normal operation.
-- Episodes are generated from bounded conversation working memory (and bounded message fallback), never from transcript replay at hydration time.
-
-### Implementation Status (EPIC 4.2c)
-
-- **Table:** `conversation_memories`
-- **Repository:** `PostgresConversationMemoryRepository` (+ in-memory test adapter)
-- **Status:** Implemented for close-generation + new-conversation hydration.
+- One row per closed conversation
+- Retrieval scope:
+  - user_id
+  - avatar_id
+  - scenario_id
 
 ---
 
-## 11. UserMemoryFact
+# 12. User Memory Fact
 
-Persistent structured memory about a user.
+Persistent structured user memory.
 
-### Fields
+Table: `user_memory_facts`
+
+## Fields
 
 - id
 - user_id
 - category
 - key
 - value
-- confidence (nullable)
+- confidence
 - updated_at
 
-### Examples
+## Notes
 
-- preference / language / goal
-- known topic interest
-- recurring constraint
-
-### Notes
-
-Store facts, not transcripts.
-
-This memory is cross-session and user-centric (long-term layer). Facts/events should be compact, structured, and deduplicated when practical.
-Fact extraction is triggered when a conversation is closed and runs asynchronously/non-blocking (fire-and-forget) so close latency is unaffected.
-Facts are injected into avatar turn context on message handling via a bounded key/value map (`{ [key]: value }`), aligned with the same long-term memory concept used by Game Master input.
-Phase A status: implemented end-to-end (`user_memory_facts` persistence, async extraction trigger on close, bounded injection into avatar and Game Master context at turn-time with max 10 facts, and bounded admin inspection exposure with max 50 facts).
-
-### Implementation Status (EPIC 4.2)
-
-- **Table:** `user_memory_facts`
-- **Repository:** `PostgresUserMemoryFactRepository`
-- **Status:** Fully implemented. `id` uses `umf_` prefix. `(user_id, category, key)` is unique.
-- **Nullability mapping:** DB `confidence` remains nullable; core domain contracts expose `confidence?: number` (undefined when DB value is null).
+- Stores facts, not transcripts
+- Cross-session long-term memory
+- Deduplicated when practical
 
 ---
 
-## 11. KnowledgeSource
+# 13. Knowledge Source
 
-A document or external source attached to a scenario.
+Knowledge attached to a scenario.
 
-### Fields
+Table: `knowledge_sources`
+
+## Fields
 
 - id
 - scenario_id
 - name
-- type (pdf / text / markdown / url / media)
+- type (`pdf | text | markdown | url | media`)
 - uri_or_path
-- status (pending / ready / error)
+- status (`pending | ready | error`)
 - metadata (JSONB)
 - created_at
 
-### Notes
+## Notes
 
-Content files may live outside the Core.
+Knowledge sources belong to scenarios.
 
-The Core stores references + metadata.
-
-Knowledge sources belong to the Scenario, not to a specific avatar.
-
-An avatar may later use only part of the scenario knowledge, controlled by config.
-
-Multi-layer RAG stays simple by extending `type` + `metadata`, not by new core tables:
-
-- Avatar memory RAG: `type = 'text' | 'markdown'`, `metadata.layer = 'avatar-memory'`, optional `metadata.avatarId`
-- Scenario/world RAG: `metadata.layer = 'world'`
-- Media RAG: `type = 'media'`, `metadata.layer = 'media'`, optional media descriptors (mime, duration, tags)
+Multi-layer retrieval uses metadata rather than additional tables.
 
 ---
 
-## 12. KnowledgeChunk
+# 14. Knowledge Chunk
 
-Searchable chunk used for retrieval.
+Retrieval chunk.
 
-### Fields
+Table: `knowledge_chunks`
+
+## Fields
 
 - id
 - source_id
@@ -590,205 +410,97 @@ Searchable chunk used for retrieval.
 - embedding
 - metadata (JSONB)
 
-### Notes
+## Notes
 
 Stored in PostgreSQL + pgvector.
 
 ---
 
-## 13. EventLog
+# 15. Event Log
 
-Operational events useful for debugging and metrics.
+Operational runtime events.
 
-### Fields
+Table: `event_log`
+
+## Fields
 
 - id
-- session_id (nullable)
+- session_id
 - type
 - payload (JSONB)
+- severity
+- request_id
+- correlation_id
 - created_at
-- **request_id** (nullable) — correlates with the originating HTTP request
-- **correlation_id** (nullable) — groups events across async boundaries (e.g. one turn → GM trigger → memory update)
-- **severity** — `info` | `warning` | `error`
 
-### Optional payload examples
+## Notes
 
-- avatar_id
-- gm decision
-- retrieval used
-- fallback used
-- llm error details
-- state update info
+Used for:
 
-### Examples
+- runtime debugging
+- observability
+- metrics
+- async flow tracing
 
-- gm_triggered
-- turn_completed
-- retrieval_used
-- llm_error
-- fallback_used
-- session_started
-- avatar_switched
-- avatar_memory_updated
-
-### Notes
-
-Use only events that are actually useful.
-
-### Implementation Status (EPIC 4.1)
-
-- **Table:** `event_log` created in `infra/postgres/init.sql` with indexes on `session_id` and `type`
-- **Port:** `IEventLogRepository` in `apps/core/src/application/ports/IEventLogRepository.ts`
-- **In-memory:** `InMemoryEventLogRepository` in `apps/core/src/infrastructure/db/in-memory-event-log.repository.ts`
-- **Postgres:** `PostgresEventLogRepository` in `apps/core/src/infrastructure/db/repositories/postgres-event-log.repository.ts`
-- **Domain type:** `GameMasterEvent` added to `apps/core/src/domain/game-master/game-master.types.ts`
-- **Status:** Fully implemented. Used for GM diagnostics and turn timing events (`gm_triggered`, `gm_error`, `turn_completed`).
-- `SendMessageUseCase` appends `turn_completed` for each successful avatar turn (includes latency and token metrics in payload)
-- GM emits `gm_triggered` after successful post-turn evaluation and `gm_error` for safe GM failures via `RunGameMasterUseCase`; `gm_triggered` payload includes latency/tokens plus mirrored `correlationId` for query joins
-
-### Event: `turn_completed`
-
-Emitted by `SendMessageUseCase` after each successful avatar turn using fire-and-forget event append semantics.
-
-Payload fields:
-
-- `conversationId` — string
-- `turnIndex` — number (1-based count of user turns in the conversation)
-- `avatarId` — string
-- `avatarLatencyMs` — number (avatar LLM call wall clock from `ILlmAdapter.complete`)
-- `totalTurnLatencyMs` — number (full `SendMessageUseCase` wall clock)
-- `inputTokens` — number
-- `outputTokens` — number
-- `totalTokens` — number
-- `model` — string
-- `hasGm` — boolean (whether a GM background run was dispatched)
-
-### Event: `gm_triggered` (enriched)
-
-Pre-existing event type; payload includes the following performance fields used by EPIC 4.3 metrics:
-
-- `latencyMs` — number (GM LLM call wall clock)
-- `inputTokens` — number
-- `outputTokens` — number
-
-The `StoredEvent.correlationId` links `gm_triggered` events to parent `turn_completed` events (shared request correlation).
-
-### Event family: `memory_refresh_*` (working-memory maintenance lifecycle)
-
-Emitted by `MemoryMaintenanceService` in fire-and-forget mode from turn/close/switch/admin-trigger flows.
-
-Event types:
-
-- `memory_refresh_triggered`
-- `memory_refresh_succeeded`
-- `memory_refresh_failed`
-
-### Event family: `episodic_memory_generation_*` (conversation-close episodic lifecycle)
-
-Emitted by `EndConversationUseCase` around asynchronous episodic generation.
-
-- `episodic_memory_generation_triggered`
-- `episodic_memory_generation_succeeded`
-- `episodic_memory_generation_failed`
-
-Payload includes compact operational fields only (session/conversation/avatar ids, trigger source, summary lengths/message count on success, short error message on failure). No raw transcript payloads are logged.
-
-### Event: `memory_hydration_succeeded` (conversation-start hydration linkage)
-
-Emitted by `StartConversationUseCase` after successful episodic hydration persistence into conversation working memory.
-
-Payload fields:
-
-- `hydratedConversationId` — newly created conversation id
-- `sourceConversationIds` — selected episodic-memory conversation ids used for hydration
-- `consideredCount` — number of scoped episodic candidates evaluated
-- `selectedCount` — number of episodic candidates selected
-
-The `request_id` and `correlation_id` fields are essential for tracing failures across async flows without requiring a full distributed tracing stack.
+No raw transcript payloads should be logged.
 
 ---
 
-## 14. IngestionJob
+# 16. Ingestion Job
 
-Tracks the lifecycle of a knowledge source ingestion job.
+Knowledge ingestion lifecycle tracking.
 
-Required for operator visibility into the knowledge pipeline status.
+Table: `ingestion_jobs`
 
-### Fields
+## Fields
 
 - id
-- source_id (FK → KnowledgeSource)
-- status — `pending` | `running` | `completed` | `failed`
-- attempts (int, default 0)
-- started_at (nullable)
-- completed_at (nullable)
-- error_message (nullable)
+- source_id
+- status
+- attempts
+- started_at
+- completed_at
+- error_message
 - created_at
-
-### Notes
-
-One job per ingestion attempt.
-
-On failure, the status moves to `failed` and `error_message` stores the reason.
-Retry creates a new job row (or increments `attempts`) depending on the retry strategy chosen.
-
-Admin API exposes these rows directly for inspection and manual retry.
 
 ---
 
-## 15. AdminActionLog
+# 17. Admin Action Log
 
-Audit trail of all admin actions taken through the admin API.
+Operator audit trail.
 
-Provides accountability and debugging context for operator interventions.
+Table: `admin_action_log`
 
-### Fields
+## Fields
 
 - id
-- actor — the API key identifier or operator label that performed the action
-- action_type — e.g. `session.reset`, `session.replay`, `job.retry`, `scenario.archive`
-- target_type — `session` | `job` | `scenario` | `source`
-- target_id — the ID of the affected entity
-- payload (JSONB, nullable) — parameters passed to the action
+- actor
+- action_type
+- target_type
+- target_id
+- payload (JSONB)
 - created_at
 
-### Notes
+## Notes
 
-Never delete from this table.
-
-Kept as an append-only audit log.
-
-No PII in payload — store IDs and structured metadata only.
-
-### Phase A implementation note
-
-Phase A currently records runtime admin action audit entries in the existing `event_log` table
-using dedicated `admin_action.*` event types (for example `admin_action.gm_replay`,
-`admin_action.memory_refresh`, `admin_action.memory_clear`) with structured payload fields
-(`actionType`, `targetType`, `targetId`, and bounded metadata).
-
-The dedicated `AdminActionLog` table remains a valid evolution target, but is not required for
-current EPIC 2.7 runtime actions.
+- Append-only
+- No PII in payloads
 
 ---
 
-## 16. PromptTemplateVariable (Optional)
+# 18. Prompt Template Variable
 
-Reusable scenario-level variables injected into prompt/template fragments.
+Optional reusable prompt variables.
 
-### Fields
+Table: `prompt_template_variables`
+
+## Fields
 
 - id
 - scenario_id
 - key
 - value
 - updated_at
-
-### Notes
-
-Keep optional for MVP.
-
-Use only when repeated prompt/template fragments need explicit editable variables instead of hidden prompt edits.
 
 ---
 
@@ -801,53 +513,56 @@ Use only when repeated prompt/template fragments need explicit editable variable
 - Scenario → KnowledgeSources (1:N)
 - Session → Conversations (1:N)
 - Session → GameMasterState (1:1)
-- Conversation → Messages (1:N)
 - Session → SessionMemory (1:1)
 - Session → AvatarSessionMemories (1:N)
+- Conversation → Messages (1:N)
+- Conversation → ConversationWorkingMemory (1:1)
+- Conversation → ConversationMemory (1:1)
 - Avatar → Conversations (1:N)
-- Avatar → AvatarSessionMemories (1:N)
 - KnowledgeSource → KnowledgeChunks (1:N)
 - KnowledgeSource → IngestionJobs (1:N)
 - Session → EventLogs (1:N)
-- Scenario → PromptTemplateVariables (1:N, optional)
 
 ---
 
-# What Lives in JSONB
+# Derived Runtime State
 
-Use JSONB when structure may evolve quickly:
+The following runtime state is derived and not persisted directly:
+
+- session runtime state
+- SSE runtime stream state
+- processing state
+- pending runtime events
+
+Derived runtime state is assembled from:
+
+- sessions
+- conversations
+- async world-processing signals
+- runtime event streams
+
+---
+
+# JSONB Usage Rules
+
+JSONB is allowed for evolving structures:
 
 - scenario config
 - avatar config
 - message metadata
-- source metadata
+- knowledge metadata
 - event payloads
-- prompt/template variables when scenario-authoring needs reusable placeholders (if not modeled relationally)
+- prompt variables
 
-Do **not** hide core relational data inside JSONB.
+Core relational ownership must never be hidden inside JSONB.
 
-In particular, do not hide:
+Never hide:
 
-- avatar ownership
 - session ownership
-- conversation/session relations
-- message/conversation relations
-- avatar/session memory relations
-
----
-
-# What We Intentionally Avoid (For Now)
-
-- shared avatar library across scenarios
-- separate Storyworld table
-- separate Place table
-- node graph tables
-- emotional state tables
-- multi-tenant billing tables
-- prompt versioning tables
-- raw analytics warehouse
-
-These can be introduced when usage justifies them.
+- avatar ownership
+- conversation ownership
+- message relationships
+- memory relationships
 
 ---
 
@@ -859,38 +574,38 @@ Deletes:
 
 - conversations
 - messages
-- session memory
-- avatar session memories
-- session events
+- memories
+- runtime events
 
-Clears on the session record (fields set to null / empty):
+Clears:
 
-- `activeAvatarId` → `null`
-- `unlockedAvatarIds` → `[]`
-- `gmNotes` → `null`
+- active_avatar_id
+- unlocked_avatar_ids
+- gm_notes
 
-Resets on the session record:
+Resets:
 
-- `status` → `'active'`
-- `lastActivityAt` → current timestamp
+- status → `active`
+- last_activity_at
 
 Keeps:
 
-- user
-- scenario
+- users
+- scenarios
 - avatars
 - knowledge sources
 - user memory facts
+
+---
 
 ## Reset User
 
 Deletes:
 
 - sessions
-- session memories
-- avatar session memories through sessions
+- memories
 - user memory facts
-- related logs
+- logs
 
 Keeps:
 
@@ -900,48 +615,79 @@ Keeps:
 
 ---
 
-# Suggested Indexes (Minimal)
+# Suggested Indexes
 
-- sessions(user_id, last_activity_at)
-- sessions(scenario_id, last_activity_at)
-- conversations(session_id, started_at)
-- conversations(session_id, avatar_id, started_at)
-- avatars(scenario_id, status)
-- messages(conversation_id, created_at)
-- avatar_session_memories(session_id, avatar_id)
-- user_memory_facts(user_id, category)
-- knowledge_sources(scenario_id)
-- knowledge_chunks(source_id)
-- event_log(session_id)
-- event_log(type)
+## Sessions
 
-Add unique indexes where relevant:
+- `(user_id, last_activity_at)`
+- `(scenario_id, last_activity_at)`
 
-- avatar_session_memories(session_id, avatar_id)
+## Conversations
 
-Vector index added when chunk volume justifies it.
+- `(session_id, started_at)`
+- `(session_id, avatar_id, started_at)`
+
+## Messages
+
+- `(conversation_id, created_at)`
+
+## Avatars
+
+- `(scenario_id, status)`
+
+## Memory
+
+- `avatar_session_memories(session_id, avatar_id)` UNIQUE
+- `user_memory_facts(user_id, category)`
+
+## Knowledge
+
+- `knowledge_sources(scenario_id)`
+- `knowledge_chunks(source_id)`
+
+## Events
+
+- `event_log(session_id)`
+- `event_log(type)`
 
 ---
 
-# Evolution Path (Later)
+# Phase A Non-Goals
 
-Introduce only when needed:
+Not modeled in Phase A:
 
-- shared Avatar templates across scenarios
-- ScenarioAvatar binding table
-- Place / location model
-- Purpose / Frame model
-- node / graph runtime state
-- multi-avatar orchestration state tables
-- tenant isolation
-- evaluation results tables
-- billing / quotas
-- dedicated analytics store
+- shared avatar library
+- multi-tenant billing
+- story graph tables
+- emotional state tables
+- prompt versioning
+- analytics warehouse
+- orchestration graph persistence
+
+---
+
+# Evolution Rules
+
+Introduce new entities only when justified by:
+
+- runtime complexity
+- operational need
+- retrieval quality
+- orchestration requirements
+- scalability constraints
+
+Prefer extending existing bounded models before introducing new top-level entities.
 
 ---
 
 # Final Rule
 
-If data is not used by product logic, operations, or learning:
+If data is not used by:
 
-**do not store it**
+- runtime behavior
+- operations
+- observability
+- retrieval
+- learning systems
+
+then it should not be stored.
