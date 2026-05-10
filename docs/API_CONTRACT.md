@@ -1,56 +1,33 @@
 # API_CONTRACT.md
 
-## Purpose
+# Purpose
 
-Define the first version of the public API contract for the MVP Core.
+Define the public HTTP API contract for Gami DigiDouble Core Phase A.
 
-This contract is designed for Phase A:
+This document defines:
 
-- text in / text out
-- API-first
-- headless core
-- back-office compatible
-- easy to evolve
+- public endpoints
+- admin endpoints
+- DTO contracts
+- validation rules
+- response/error formats
 
-The goal is not to model every future capability now.
+Architecture semantics are defined in:
 
-The goal is to define a clean, stable, minimal API that supports:
-
-- starting a session
-- sending messages
-- streaming responses
-- reading history
-- configuring scenarios
-- registering knowledge sources
-- inspecting basic runtime state
+- `ARCHITECTURE.md`
+- `GAME_MASTER_CONTRACT.md`
+- `MEMORY_SYSTEM_SPEC.md`
 
 ---
 
 # Design Principles
 
-## 1. API First
-
-Everything the Core does must be reachable through explicit contracts.
-
-## 2. Minimal Surface
-
-Only expose what Phase A needs.
-
-## 3. Stable Shapes
-
-Prefer predictable JSON objects over overly clever polymorphism.
-
-## 4. Headless by Default
-
-The API describes orchestration behavior, not UI behavior.
-
-## 5. Structured Metadata
-
-Responses may include metadata, but metadata must never make the core payload hard to use.
-
-## 6. Versioned from Day 1
-
-All endpoints live under `/v1`.
+- API-first
+- stable JSON contracts
+- headless core
+- additive evolution
+- bounded payloads
+- versioned endpoints (`/v1`)
 
 ---
 
@@ -62,60 +39,39 @@ All endpoints live under `/v1`.
 /v1
 ```
 
-## Content Type
+## Content Types
 
 ```text
 application/json
-```
-
-Streaming endpoints may additionally use:
-
-```text
 text/event-stream
 ```
 
 ## Authentication
 
-Phase A uses simple API key authentication.
-
-### Header
-
 ```text
 x-api-key: <API_KEY>
 ```
 
-## Timestamps
+## Conventions
 
-All timestamps are ISO 8601 strings in UTC.
-
-## IDs
-
-All IDs are opaque strings.
-
-Examples:
-
-- `user_...`
-- `scenario_...`
-- `session_...`
-- `msg_...`
-- `source_...`
-
-No client should infer meaning from IDs.
+- timestamps are ISO-8601 UTC
+- IDs are opaque strings
+- all non-streaming responses use `ApiResponse<T>`
 
 ---
 
-# Common Response Envelope
+# Common Contracts
 
-Use a simple envelope for non-streaming responses.
+## ApiResponse
 
-```ts id="z94aos"
+```ts
 type ApiResponse<T> = {
-  data: T
-  error: null | {
-    code: string
+  data: T | null
+  error: {
+    code: ErrorCode
     message: string
     details?: unknown
-  }
+  } | null
   meta?: {
     requestId?: string
     timestamp?: string
@@ -123,47 +79,26 @@ type ApiResponse<T> = {
 }
 ```
 
-Successful responses set:
+## ErrorCode
 
-- `error = null`
-
-Failed responses set:
-
-- `data = null`
-- `error != null`
-
----
-
-# Common Error Codes
-
-```ts id="h7kflt"
+```ts
 type ErrorCode =
   | 'UNAUTHORIZED'
   | 'VALIDATION_ERROR'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
-  | 'INVALID_INPUT'
   | 'CONFLICT'
   | 'RATE_LIMITED'
   | 'EXTERNAL_SERVICE_ERROR'
-  | 'PROVIDER_ERROR'
   | 'TIMEOUT'
   | 'INTERNAL_ERROR'
 ```
 
 ---
 
-# Core Types
+# Core DTOs
 
-## User Reference
-
-```ts id="cjjlwm"
-type UserRef = {
-  userId: string
-}
-```
-
-## User Persona
+## UserPersona
 
 ```ts
 type UserPersona = {
@@ -174,9 +109,9 @@ type UserPersona = {
 }
 ```
 
-## Scenario Summary
+## ScenarioSummary
 
-```ts id="e3su3b"
+```ts
 type ScenarioSummary = {
   scenarioId: string
   name: string
@@ -185,11 +120,9 @@ type ScenarioSummary = {
   createdAt: string
   updatedAt: string
 }
-
-`config` is a JSON object in all scenario responses and must never be returned as a JSON-encoded string.
 ```
 
-## Avatar Summary
+## AvatarSummary
 
 ```ts
 type AvatarSummary = {
@@ -207,9 +140,9 @@ type AvatarSummary = {
 }
 ```
 
-## Session Summary
+## SessionSummary
 
-```ts id="744oc5"
+```ts
 type SessionSummary = {
   sessionId: string
   userId: string
@@ -223,40 +156,7 @@ type SessionSummary = {
 }
 ```
 
-## Runtime Event
-
-```ts
-type RuntimeEvent = {
-  eventId: string
-  sessionId: string
-  conversationId?: string
-  type:
-    | 'runtime.processing_started'
-    | 'runtime.processing_finished'
-    | 'runtime.avatar_unlocked'
-    | 'runtime.avatar_suggested'
-    | 'runtime.choice_required'
-    | 'runtime.session_closed'
-  occurredAt: string
-  correlationId?: string
-  payload: Record<string, unknown>
-}
-```
-
-## Runtime State
-
-```ts
-type RuntimeState = {
-  sessionId: string
-  conversationId?: string
-  canSendMessage: boolean
-  isProcessing: boolean
-  pendingEvent?: RuntimeEvent
-  updatedAt: string
-}
-```
-
-## Conversation Summary
+## ConversationSummary
 
 ```ts
 type ConversationSummary = {
@@ -270,23 +170,9 @@ type ConversationSummary = {
 }
 ```
 
-## Avatar Transition Record
-
-```ts
-type AvatarTransitionRecord = {
-  toConversationId: string
-  toAvatarId: string
-  fromConversationId: string | null
-  fromAvatarId: string | null
-  reason: string | null
-  startedBy: 'user' | 'gm' | 'system' | null
-  transitionedAt: string
-}
-```
-
 ## Message
 
-```ts id="1esb1v"
+```ts
 type Message = {
   messageId: string
   conversationId: string
@@ -300,122 +186,51 @@ type Message = {
     outputTokens?: number
     totalTokens?: number
     costUsd?: number
-    triggerSource?: string
   }
 }
 ```
 
-## Session Memory Summary
+## RuntimeState
 
-```ts id="qndh2r"
-type SessionMemorySummary = {
+```ts
+type RuntimeState = {
   sessionId: string
-  summary: string
-  shortTerm?: {
-    exchangeCount: 2
-  }
-  longTermFactCount?: number
+  conversationId?: string
+  canSendMessage: boolean
+  isProcessing: boolean
   updatedAt: string
 }
-
-type SessionMemoryLayers = {
-  sessionId: string
-  shortTerm: {
-    exchangeCount: 2
-    recentExchanges: Array<{
-      user: string
-      avatar: string
-    }>
-  }
-  working: {
-    session?: {
-      summary: string
-      updatedAt: string
-    }
-    avatars: Array<{
-      avatarId: string
-      summary: string
-      updatedAt: string
-    }>
-  }
-  longTerm: {
-    facts: Array<{
-      category: string
-      key: string
-      value: string
-      updatedAt: string
-    }>
-  }
-}
-```
-
-Memory contract ownership:
-
-- Domain/internal memory contracts: `apps/core/src/domain/memory/memory.types.ts`
-- HTTP DTO contracts (this API document): `packages/shared/src/memory-contract-types.ts`, `packages/shared/src/lifecycle-types.ts`, `packages/shared/src/runtime-inspector-types.ts`
-
-## Knowledge Source Summary
-
-```ts id="8tpxe0"
-type KnowledgeSourceSummary = {
-  sourceId: string
-  scenarioId: string
-  name: string
-  type: 'pdf' | 'text' | 'markdown' | 'url' | 'media'
-  status: 'pending' | 'ready' | 'error'
-  uriOrPath: string
-  createdAt: string
-  metadata?: Record<string, unknown> & {
-    layer?: 'avatar-memory' | 'world' | 'media'
-    avatarId?: string
-  }
-}
 ```
 
 ---
 
-# Session + Conversation API
+# Session Semantics
 
-## 0. Raw Exchange (EPIC 1.2)
+- Session = durable experience container
+- Conversation = bounded avatar interaction episode
+- Messages belong to conversations
+- Avatar switches create new conversations
+- Context assembly is bounded
+- Full transcript replay is not part of normal runtime assembly
 
-Minimal non-session endpoint used to validate the first HTTP → use case → LLM loop.
+See:
 
-### Endpoint
-
-```text
-POST /v1/exchange
-```
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `400` → `VALIDATION_ERROR`
-- `502` → `EXTERNAL_SERVICE_ERROR`
-- `500` → `INTERNAL_ERROR`
+- `MEMORY_SYSTEM_SPEC.md`
+- `GAME_MASTER_CONTRACT.md`
 
 ---
 
-## Core semantics
-
-- **Session** = one user run inside one scenario (durable container)
-- **Conversation** = one bounded dialogue episode with one avatar inside a session
-- **Message** always belongs to a **conversation**
-- Switching avatar creates a new conversation
-- Returning later to the same avatar also creates a new conversation
-- Runtime context is assembled from bounded inputs (short-term, working memory, long-term facts, scenario, retrieval, GM notes, optional user persona), not full transcript replay.
-- Send-message targets conversationId and does **not** accept avatarId
+# Public API
 
 ---
 
-## 1. Create Session
+# Sessions
 
-### Endpoint
+## Create Session
 
 ```text
 POST /v1/sessions
 ```
-
-### Request
 
 ```ts
 type CreateSessionRequest = {
@@ -424,130 +239,53 @@ type CreateSessionRequest = {
 }
 ```
 
-### Response
-
 ```ts
 type CreateSessionResponse = {
   session: SessionSummary
 }
 ```
 
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `400` → `VALIDATION_ERROR`
-- `404` → `NOT_FOUND` (scenario missing)
-- `500` → `INTERNAL_ERROR`
-
 ---
 
-## 2. Get Session
-
-### Endpoint
+## Get Session
 
 ```text
 GET /v1/sessions/{sessionId}
 ```
 
-### Response
-
-```ts
-type GetSessionResponse = {
-  session: SessionSummary
-}
-```
-
 ---
 
-## 2.1 List Sessions
-
-### Endpoint
+## List Sessions
 
 ```text
 GET /v1/sessions
 ```
 
-### Query Parameters
+Query params:
 
-All parameters are optional.
-
-| Parameter    | Type                               | Description                 |
-| ------------ | ---------------------------------- | --------------------------- |
-| `scenarioId` | string                             | Filter sessions by scenario |
-| `userId`     | string                             | Filter sessions by user     |
-| `status`     | `active` \| `closed` \| `archived` | Filter sessions by status   |
-
-### Response
-
-```ts
-type ListSessionsResponse = {
-  sessions: SessionSummary[]
-}
-```
-
-Sessions are ordered by `lastActivityAt DESC` (most recently active first). Phase A returns the full result set without pagination.
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `400` → `VALIDATION_ERROR` (invalid status filter value)
-- `500` → `INTERNAL_ERROR`
+- `scenarioId`
+- `userId`
+- `status`
 
 ---
 
-## 2.2 Reset Session
-
-### Endpoint
+## Reset Session
 
 ```text
 POST /v1/sessions/{sessionId}/reset
 ```
 
-### Semantics
-
-A reset is a hard reset to a clean slate. The session record is **not deleted**, only its runtime state is cleared:
-
-- All **messages** for all conversations in the session are deleted
-- All **conversations** for the session are deleted
-- `activeAvatarId` is cleared to `null`
-- `unlockedAvatarIds` is reset to `[]`
-- `gmNotes` is cleared to `null`
-- `status` is reset to `'active'` (even if previously `'closed'`)
-- `lastActivityAt` is refreshed to now
-
-The session's `userId` and `scenarioId` binding is preserved.
-
-### Request
-
-No request body required.
-
-### Response
-
-```ts
-type ResetSessionResponse = {
-  session: SessionSummary
-}
-```
-
-Returns the updated session record (`200 OK`).
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `404` → `NOT_FOUND` (session not found)
-- `500` → `INTERNAL_ERROR`
+Resets runtime state while preserving session identity.
 
 ---
 
-## 3. Start Conversation in Session
+# Conversations
 
-### Endpoint
+## Start Conversation
 
 ```text
 POST /v1/sessions/{sessionId}/conversations
 ```
-
-### Request
 
 ```ts
 type StartConversationRequest = {
@@ -555,156 +293,28 @@ type StartConversationRequest = {
 }
 ```
 
-### Response
-
-```ts
-type StartConversationResponse = {
-  conversation: ConversationSummary
-}
-```
-
-### Notes
-
-- Conversation start hydrates initial bounded working memory from scoped episodic memory (`user + avatar + scenario`) when available.
-- Hydration does not replay raw transcripts.
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `400` → `VALIDATION_ERROR`
-- `403` → `FORBIDDEN` (avatar locked for this session)
-- `404` → `NOT_FOUND` (session or avatar missing)
-- `409` → `CONFLICT` (session not active)
-- `500` → `INTERNAL_ERROR`
-
 ---
 
-## 3.5 Manual Avatar Switch in Session
-
-### Endpoint
+## Switch Avatar
 
 ```text
 POST /v1/sessions/{sessionId}/switch-avatar
 ```
 
-### Request
-
 ```ts
 type SwitchAvatarRequest = {
   avatarId: string
-  reason?: string // optional free-text reason label, max 200 chars
+  reason?: string
 }
 ```
-
-### Response
-
-```ts
-type SwitchAvatarOutput = {
-  session: SessionSummary
-  conversation: ConversationSummary
-  previousConversationId: string | null
-}
-```
-
-### Semantics
-
-- Manual switch requires an unlocked avatar when `session.unlockedAvatarIds` is present.
-- Current active conversation is closed if present.
-- Closing the previous conversation schedules bounded memory maintenance and episodic-memory generation for that closed episode.
-- A new conversation is always created, including when switching to the same avatar.
-- New conversation carries `startedBy = 'user'`.
-- New conversation is hydrated from scoped episodic memory (`user + avatar + scenario`) when available, using the switched-to avatar as scope.
-- `reason` defaults to `'manual_switch'` when omitted.
-- `handoffFromConversationId` is set to the previous active conversation when one existed.
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `400` → `VALIDATION_ERROR`
-- `403` → `FORBIDDEN` (avatar locked for this session)
-- `404` → `NOT_FOUND` (session or avatar missing)
-- `409` → `CONFLICT` (session not active)
-- `500` → `INTERNAL_ERROR`
 
 ---
 
-## 3.6 Get Available Avatars in Session
-
-### Endpoint
-
-```text
-GET /v1/sessions/{sessionId}/available-avatars
-```
-
-### Response
-
-```ts
-type GetAvailableAvatarsOutput = {
-  sessionId: string
-  currentAvatarId: string | null
-  avatars: AvatarSummary[]
-}
-```
-
-### Semantics
-
-- `avatars` contains only avatars with `status = 'active'` in the session's scenario.
-- When `session.unlockedAvatarIds` exists, `avatars` is additionally filtered to that unlocked set.
-- Legacy sessions without `unlockedAvatarIds` return all active scenario avatars.
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `404` → `NOT_FOUND` (session missing)
-- `500` → `INTERNAL_ERROR`
-
----
-
-## 3.7 Get Avatar Transitions in Session
-
-### Endpoint
-
-```text
-GET /v1/sessions/{sessionId}/avatar-transitions
-```
-
-### Response
-
-```ts
-type GetAvatarTransitionsOutput = {
-  sessionId: string
-  transitions: AvatarTransitionRecord[]
-}
-```
-
-### Semantics
-
-- Returns transitions ordered by `transitionedAt ASC`.
-- When there are no conversations in the session, returns `transitions: []`.
-- The first conversation transition always has:
-  - `fromConversationId = null`
-  - `fromAvatarId = null`
-  - `reason = 'session_start'`
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `404` → `NOT_FOUND` (session missing)
-- `500` → `INTERNAL_ERROR`
-
----
-
-## 3.8 End Conversation in Session
-
-Explicitly close a conversation and schedule async memory compaction for that boundary.
-
-### Endpoint
+## End Conversation
 
 ```text
 POST /v1/sessions/{sessionId}/conversations/{conversationId}/end
 ```
-
-### Request
 
 ```ts
 type EndConversationRequest = {
@@ -712,142 +322,13 @@ type EndConversationRequest = {
 }
 ```
 
-### Response
-
-```ts
-type EndConversationResponse = {
-  conversation: ConversationSummary
-  compaction: {
-    scheduled: true
-  }
-}
-```
-
-### Notes
-
-- Conversation closure can also happen implicitly.
-- This endpoint is additive and does not change existing send-message flow.
-- Compaction is asynchronous and must not block response latency.
-- Episodic memory generation is launched asynchronously on close and is isolated from response success.
-- At most one episodic entry is persisted per closed conversation (`conversation_id` uniqueness).
-- `reason` defaults to `'operator_end'` when omitted.
-- Idempotency policy: calling this endpoint for an already-closed conversation returns `409 CONFLICT`.
-- Implicit closure reasons are bounded to:
-  - `auto_terminal_signal` (detected terminal user utterance)
-  - `inactivity_timeout` (policy-enabled inactivity threshold)
-
-### Error Mapping
-
-- `400` → `VALIDATION_ERROR` (invalid or unsupported `reason`)
-- `401` → `UNAUTHORIZED`
-- `404` → `NOT_FOUND` (session missing, or conversation not in session)
-- `409` → `CONFLICT` (session not active, or conversation not active)
-
 ---
 
-## 4. List Session Conversations
-
-### Endpoint
-
-```text
-GET /v1/sessions/{sessionId}/conversations
-```
-
-### Response
-
-```ts
-type ListSessionConversationsResponse = {
-  conversations: ConversationSummary[]
-}
-```
-
----
-
-## 4.1 Stream Session Runtime Events (SSE)
-
-### Endpoint
-
-```text
-GET /v1/sessions/{sessionId}/events/stream
-```
-
-### Content Type
-
-```text
-text/event-stream
-```
-
-### SSE Message Format
-
-```text
-event: runtime_event
-id: <eventId>
-data: {"sessionId":"...","type":"runtime.avatar_unlocked","occurredAt":"...","payload":{...}}
-
-```
-
-Heartbeat frame (optional keepalive):
-
-```text
-: keepalive
-
-```
-
-### Semantics
-
-- Stream is scoped to one session.
-- Server emits `runtime_event` frames only for that session.
-- Event ordering is best-effort by emission time.
-- No historical replay in Phase A; stream starts from connect time.
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `404` → `NOT_FOUND` (session missing)
-- `500` → `INTERNAL_ERROR`
-
----
-
-## 4.2 Get Session Runtime State
-
-### Endpoint
-
-```text
-GET /v1/sessions/{sessionId}/runtime-state
-```
-
-### Response
-
-```ts
-type GetSessionRuntimeStateResponse = {
-  runtimeState: RuntimeState
-}
-```
-
-### Semantics
-
-- Returns derived runtime state for one session.
-- `canSendMessage` is `false` when session/conversation is not message-accepting.
-- `isProcessing` reflects in-flight async world orchestration.
-- `pendingEvent` is optional and present only when the client should surface a world update before next user action.
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `404` → `NOT_FOUND` (session missing)
-- `500` → `INTERNAL_ERROR`
-
----
-
-## 5. Send Message to Conversation
-
-### Endpoint
+## Send Message
 
 ```text
 POST /v1/conversations/{conversationId}/messages
 ```
-
-### Request
 
 ```ts
 type SendMessageRequest = {
@@ -857,1426 +338,341 @@ type SendMessageRequest = {
 }
 ```
 
-### Response
-
 ```ts
 type SendMessageResponse = {
   conversation: ConversationSummary
   session: SessionSummary
   userMessage: Message
   avatarMessage: Message
-  debug: {
-    requestId: string
-    model: string
-    latencyMs: number
-    inputTokens: number
-    outputTokens: number
-  }
 }
 ```
 
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `400` → `VALIDATION_ERROR`
-- `404` → `NOT_FOUND` (conversation missing)
-- `409` → `CONFLICT` (conversation or session not active)
-- `502` → `EXTERNAL_SERVICE_ERROR`
-- `500` → `INTERNAL_ERROR`
-
-> **Game Master integration:** If the Game Master has stored guidance notes for this session (set asynchronously after a previous turn), they are appended to the Avatar's assembled system prompt before the LLM call. This is transparent to API consumers — the envelope shape is unchanged.
->
-> **Implicit end integration:** After a successful turn, deterministic implicit-end rules may close the same conversation through the canonical close pipeline. When this occurs, response `conversation.status` can be `closed` with `endedAt` populated.
-
 ---
 
-## 6. Get Conversation History
-
-### Endpoint
+## Conversation History
 
 ```text
 GET /v1/conversations/{conversationId}/history
 ```
 
-### Response
+---
 
-```ts
-type GetConversationHistoryResponse = {
-  conversation: ConversationSummary
-  messages: Message[]
-}
+# Runtime
+
+## Runtime State
+
+```text
+GET /v1/sessions/{sessionId}/runtime-state
 ```
 
 ---
 
-# Scenario API
+## Runtime Events (SSE)
 
-## 7. List Scenarios
+```text
+GET /v1/sessions/{sessionId}/events/stream
+```
 
-### Endpoint
+Content-Type:
+
+```text
+text/event-stream
+```
+
+---
+
+# Scenarios
+
+## List Scenarios
 
 ```text
 GET /v1/scenarios
 ```
 
-### Response
-
-```ts id="9g19yq"
-type ListScenariosResponse = {
-  scenarios: ScenarioSummary[]
-}
-```
-
-### Behavior
-
-- Returns `200 OK` with `scenarios: []` when no scenarios exist.
-- Ordering is deterministic: `createdAt DESC` (newest first).
-- Each scenario includes its persisted `config` object.
-
 ---
 
-## 8. Create Scenario
-
-### Endpoint
+## Create Scenario
 
 ```text
 POST /v1/scenarios
 ```
 
-### Request
-
-```ts id="re7n8a"
-type CreateScenarioRequest = {
-  name: string
-  status?: 'draft' | 'active' | 'archived'
-  config?: Record<string, unknown>
-}
-```
-
-### Response
-
-```ts id="wab0ne"
-type CreateScenarioResponse = {
-  scenario: ScenarioSummary
-}
-```
-
-### Sprint 2 implementation notes
-
-- `POST /v1/scenarios` returns `201 Created` on success.
-- `status` defaults to `draft` when omitted.
-
 ---
 
-## 9. Get Scenario
-
-### Endpoint
+## Get Scenario
 
 ```text
 GET /v1/scenarios/{scenarioId}
 ```
 
-### Response
-
-```ts id="bjlwm4"
-type GetScenarioResponse = {
-  scenario: ScenarioSummary
-}
-```
-
 ---
 
-## 9.5. Create Avatar for Scenario
-
-### Endpoint
-
-```text
-POST /v1/scenarios/{scenarioId}/avatars
-```
-
-### Request
-
-```ts
-type CreateAvatarRequest = {
-  name: string
-  personaPrompt: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  config?: Record<string, unknown>
-  status?: 'draft' | 'active' | 'archived'
-}
-```
-
-### Response
-
-```ts
-type CreateAvatarResponse = {
-  avatar: AvatarSummary
-}
-```
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED` (missing/invalid API key)
-- `400` → `VALIDATION_ERROR` (schema or domain validation failure)
-- `404` → `NOT_FOUND` (scenario not found)
-- `500` → `INTERNAL_ERROR` (unexpected failure)
-
----
-
-## 9.6. List Avatars for Scenario
-
-### Endpoint
-
-```text
-GET /v1/scenarios/{scenarioId}/avatars
-```
-
-### Response
-
-```ts
-type ListScenarioAvatarsResponse = {
-  avatars: AvatarSummary[]
-}
-```
-
-### Behavior
-
-- Returns `404 NOT_FOUND` when the scenario does not exist.
-- Returns `200 OK` with `avatars: []` when the scenario exists but has no avatars.
-- Ordering is deterministic: `createdAt DESC` (newest first).
-- Each avatar includes its persisted `config` object.
-
----
-
-## 9.7. Delete Avatar
-
-### Endpoint
-
-```text
-DELETE /v1/avatars/{avatarId}
-```
-
-### Response
-
-```ts
-type DeleteAvatarResponse = {
-  avatarId: string
-  deleted: true
-}
-```
-
-### Error Mapping
-
-- `404` → `NOT_FOUND` (avatar not found)
-- `409` → `CONFLICT` (avatar deletion blocked by active sessions in its scenario)
-
----
-
-## 9.7b. Update Avatar
-
-### Endpoint
-
-```text
-PATCH /v1/avatars/{avatarId}
-```
-
-### Request
-
-Partial update — only fields present in the request body are written. Fields absent from the body are left unchanged. `scenarioId` is immutable and is not accepted.
-
-```ts
-type PatchAvatarRequest = {
-  name?: string
-  personaPrompt?: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  config?: Record<string, unknown>
-  status?: 'draft' | 'active' | 'archived'
-}
-```
-
-At least one field must be present in the body; an empty `{}` body is rejected.
-
-### Response
-
-```ts
-type PatchAvatarResponse = {
-  avatar: AvatarSummary
-}
-```
-
-`updatedAt` is always refreshed when the update succeeds.
-
-### Error Mapping
-
-- `400` → `VALIDATION_ERROR` (empty body — no fields provided)
-- `404` → `NOT_FOUND` (avatar not found)
-
----
-
-## 9.8. Delete Scenario
-
-### Endpoint
-
-```text
-DELETE /v1/scenarios/{scenarioId}
-```
-
-### Response
-
-```ts
-type DeleteScenarioResponse = {
-  scenarioId: string
-  deleted: true
-}
-```
-
-### Deletion Rule (Phase A)
-
-- Scenario deletion is **rejected** with `409 CONFLICT` if the scenario still has **any avatars** or **any sessions**.
-- No force-delete semantics are supported in this slice.
-
-### Error Mapping
-
-- `404` → `NOT_FOUND` (scenario not found)
-- `409` → `CONFLICT` (dependent avatars or sessions exist)
-
----
-
-## 10. Update Scenario
-
-### Endpoint
+## Update Scenario
 
 ```text
 PATCH /v1/scenarios/{scenarioId}
 ```
 
-### Request
+---
 
-Partial update — only fields present in the request body are written. Fields absent from the body are left unchanged.
+## Delete Scenario
 
-```ts id="pvwq0y"
-type UpdateScenarioRequest = {
-  name?: string
-  status?: 'draft' | 'active' | 'archived'
-  config?: Record<string, unknown>
-}
+```text
+DELETE /v1/scenarios/{scenarioId}
 ```
-
-At least one field must be provided. An empty body `{}` returns `400 VALIDATION_ERROR`.
-
-### Response
-
-```ts id="rfsx9e"
-type UpdateScenarioResponse = {
-  scenario: ScenarioSummary
-}
-```
-
-### Notes
-
-- `updatedAt` is always refreshed on a successful update.
-- `config` is fully replaced when provided — it is not deep-merged.
-- `PATCH` with an unknown `scenarioId` returns `404 NOT_FOUND`.
-
-### Error Mapping
-
-- `400` → `VALIDATION_ERROR` (empty body — no updatable fields provided)
-- `404` → `NOT_FOUND` (scenario not found)
 
 ---
 
-# Knowledge API
+# Avatars
 
-## 11. Register Knowledge Source
+## Create Avatar
 
-Register a document, URL, text block, or media metadata for a scenario.
+```text
+POST /v1/scenarios/{scenarioId}/avatars
+```
 
-### Endpoint
+---
+
+## List Scenario Avatars
+
+```text
+GET /v1/scenarios/{scenarioId}/avatars
+```
+
+---
+
+## Update Avatar
+
+```text
+PATCH /v1/avatars/{avatarId}
+```
+
+---
+
+## Delete Avatar
+
+```text
+DELETE /v1/avatars/{avatarId}
+```
+
+---
+
+# Knowledge
+
+## Register Knowledge Source
 
 ```text
 POST /v1/knowledge-sources
 ```
 
-### Request
-
-```ts id="9eszkj"
-type RegisterKnowledgeSourceRequest = {
-  scenarioId: string
-  name: string
-  type: 'pdf' | 'text' | 'markdown' | 'url' | 'media'
-  uriOrPath: string
-  metadata?: Record<string, unknown>
-}
-```
-
-### Response
-
-```ts id="f8kpph"
-type RegisterKnowledgeSourceResponse = {
-  source: KnowledgeSourceSummary
-}
-```
-
-### Notes
-
-This endpoint registers the source.
-
-Ingestion may happen asynchronously.
-
 ---
 
-## 12. List Scenario Knowledge Sources
-
-### Endpoint
+## List Knowledge Sources
 
 ```text
 GET /v1/scenarios/{scenarioId}/knowledge-sources
 ```
 
-### Response
-
-```ts id="namarv"
-type ListScenarioKnowledgeSourcesResponse = {
-  sources: KnowledgeSourceSummary[]
-}
-```
-
 ---
 
-## 13. Trigger Knowledge Ingestion
-
-### Endpoint
+## Trigger Ingestion
 
 ```text
 POST /v1/knowledge-sources/{sourceId}/ingest
 ```
 
-### Request
-
-```ts id="v1su4c"
-type TriggerKnowledgeIngestionRequest = {
-  options?: {
-    force?: boolean
-  }
-}
-```
-
-### Response
-
-```ts id="n92ozv"
-type TriggerKnowledgeIngestionResponse = {
-  sourceId: string
-  status: 'pending' | 'ready' | 'error'
-}
-```
-
 ---
 
-# User Memory API
+# User Persona
 
-## 13b. User Persona (U1)
-
-Store and read lightweight user persona used by context assembly.
-Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
-
-Auth: API key required (`x-api-key`).
-
-### 13b.1 Upsert User Persona
-
-#### Endpoint
+## Upsert Persona
 
 ```text
 PUT /v1/users/{userId}/persona
 ```
 
-#### Request
+---
 
-```ts
-type PutUserPersonaRequest = UserPersona
-```
-
-All fields are optional; empty object `{}` is valid.
-
-#### Response
-
-```ts
-type PutUserPersonaResponse = {
-  user: {
-    userId: string
-    persona?: UserPersona
-    createdAt: string
-    updatedAt: string
-  }
-}
-```
-
-#### Error mapping
-
-- `401` → `UNAUTHORIZED`
-- `400` → `VALIDATION_ERROR`
-- `500` → `INTERNAL_ERROR`
-
-### 13b.2 Get User Persona
-
-#### Endpoint
+## Get Persona
 
 ```text
 GET /v1/users/{userId}/persona
 ```
 
-#### Response
+---
 
-```ts
-type GetUserPersonaResponse = {
-  persona: UserPersona | null
-}
-```
+# User Memory Facts
 
-Behavior:
-
-- returns `200` with `persona: null` when user record does not exist yet
-- never returns `404` for unknown `userId`
-
-#### Error mapping
-
-- `401` → `UNAUTHORIZED`
-- `500` → `INTERNAL_ERROR`
-
-## 14. List User Memory Facts
-
-Status: IMPLEMENTED (EPIC 4.2)
-
-### Endpoint
+## List Facts
 
 ```text
 GET /v1/users/{userId}/memory-facts
 ```
 
-### Response
-
-```ts id="f5ry8e"
-type ListUserMemoryFactsResponse = {
-  facts: Array<{
-    id: string
-    userId: string
-    category: string
-    key: string
-    value: string
-    confidence?: number
-    updatedAt: string
-  }>
-}
-```
-
 ---
 
-## 15. Delete One User Memory Fact
-
-Status: IMPLEMENTED (EPIC 4.2)
-
-### Endpoint
+## Delete Fact
 
 ```text
 DELETE /v1/users/{userId}/memory-facts/{factId}
 ```
 
-### Response
-
-```ts id="gajtsb"
-type DeleteUserMemoryFactResponse = {
-  factId: string
-  deleted: true
-}
-```
-
 ---
 
-# Observability / Admin API
+# Metrics
 
-## 16. Get Session Events
-
-Deprecated draft section. The implemented Phase A endpoint is `GET /v1/admin/sessions/{sessionId}/events`; see Admin / Operations API A6 for the authoritative contract.
-
----
-
-## 17. Get Basic Metrics
-
-### Endpoint
+## Metrics Summary
 
 ```text
 GET /v1/metrics/summary
 ```
 
-### Response
+---
 
-```ts id="n75j3b"
-type GetMetricsSummaryResponse = {
-  totals: {
-    sessions: number
-    messages: number
-    totalTokens?: number
-    totalCostUsd?: number
-  }
-  latency: {
-    p50Ms?: number
-    p95Ms?: number
-    p99Ms?: number
-  }
-  errors: {
-    total: number
-    byCode: Record<string, number>
-  }
-}
+# Admin API
+
+All admin endpoints are under:
+
+```text
+/v1/admin/*
 ```
 
-### Notes
-
-This is intentionally simple.
-
-Detailed observability remains in the logging system.
-
 ---
 
-# Admin / Operations API
+# Health
 
-All admin endpoints live under `/v1/admin/`.
-
-**Access:** same `x-api-key` header as the public API. In Phase B+, admin routes may require additional guards (IP allowlist, admin role).
-
-**Principle:** these endpoints are not for end-user clients. They exist for the back-office, operators, and internal tooling. They may expose internal state that should never surface in public API responses.
-
----
-
-## A1. Platform Health (rich)
-
-### Endpoint
+## Platform Health
 
 ```text
 GET /v1/admin/health
 ```
 
-### Request
-
-```text
-GET /v1/admin/health
-x-api-key: <API_KEY>
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "status": "healthy | degraded",
-    "checkedAt": "<ISO 8601 UTC>",
-    "dependencies": [
-      {
-        "name": "postgres | redis | llm",
-        "status": "healthy | degraded | unknown",
-        "latencyMs": 4,
-        "message": "connect ECONNREFUSED"
-      }
-    ]
-  },
-  "error": null
-}
-```
-
-### HTTP status
-
-Always `200 OK` for successful authenticated requests, including degraded dependency states. Operators must inspect `data.status` and `data.dependencies`.
-
-### Auth
-
-Auth failures return `401 UNAUTHORIZED`.
-
-### Notes
-
-- Overall `status` is `'healthy'` only when all dependency probes return `'healthy'`; otherwise it is `'degraded'`.
-- Individual probe failures do not change the HTTP status; they appear in `dependencies[].status`.
-- `latencyMs` is the probe round-trip time in milliseconds (when available).
-
 ---
 
-## A2. Dependency Health
+# Inspector
 
-### Endpoint
-
-```text
-Merged into `GET /v1/admin/health`
-```
-
-### Response
-
-```ts
-No separate endpoint in Phase A implementation.
-```
-
-### Notes
-
-- Postgres probe uses a lightweight query.
-- Redis probe uses `PING`.
-- LLM probe uses a minimal low-cost completion call.
-
----
-
-## A3. List Sessions
-
-### Endpoint
-
-```text
-No dedicated admin list endpoint in Phase A.
-Use `GET /v1/sessions` for session listing.
-```
-
-### Notes
-
-- Session-list filtering is provided by the public session list contract.
-- Inspector/admin routes start at `GET /v1/admin/sessions/{sessionId}/...`.
-
----
-
-## A4. Admin: Inspect Session
-
-Implemented Phase A endpoint for GM Debug Panel state inspection.
-Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
-
-### Endpoint
+## Inspect Session
 
 ```text
 GET /v1/admin/sessions/{sessionId}/inspect
 ```
 
-### Response
-
-```ts
-type InspectSessionResponse = {
-  inspect: {
-    session: SessionSummary
-    gmState: {
-      currentAvatarId?: string
-      progression: string
-      topicsCovered: string[]
-      interactionCount: number
-    } | null
-    transitionHistory: Array<{
-      fromAvatarId: string | null
-      toAvatarId: string
-      reason: string | null
-      startedBy: 'user' | 'gm' | 'system' | null
-      transitionedAt: string
-    }>
-    unlockedAvatarIds: string[]
-    gmNotes: string | null
-  }
-}
-```
-
-### Semantics
-
-- `gmState` is `null` until the Game Master has run for the session.
-- `transitionHistory` is derived from the session's conversation sequence and returned newest-first.
-- Raw message content, prompt text, credentials, and LLM model names are never included.
-- `gmNotes` is safe to surface because it is director guidance, not raw user input.
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `404` → `NOT_FOUND` (session missing)
-- `500` → `INTERNAL_ERROR`
-
 ---
 
-## A5. Get Session Memory
-
-Status: IMPLEMENTED (EPIC 4.2b-compatible)
-Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
-
-### Endpoint
-
-```text
-GET /v1/admin/sessions/{sessionId}/memory
-```
-
-### Response
-
-```ts
-type AdminSessionMemoryResponse = {
-  session: SessionMemorySummary
-}
-```
-
-### Semantics
-
-- Backward-compatible compact summary contract.
-- Summary is sourced from dedicated working-memory storage (`session_memories`) when available, with legacy `sessions.memory_summary` as migration fallback.
-
----
-
-## A6. Get Session Memory Layers
-
-Status: IMPLEMENTED (EPIC 4.2b, EPIC 4.2c observability extensions)
-Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
-
-### Endpoint
-
-```text
-GET /v1/admin/sessions/{sessionId}/memory-layers
-```
-
-### Response
-
-```ts
-type AdminSessionMemoryLayersResponse = {
-  session: SessionMemoryLayers
-}
-
-type SessionMemoryLayers = {
-  sessionId: string
-  activeAvatarId?: string
-  activeConversationId?: string
-  shortTerm: {
-    exchangeCount: number
-    recentExchanges: Array<{ user: string; avatar: string }>
-  }
-  working: {
-    current?: {
-      conversationId: string
-      avatarId: string
-      summary: string
-      unresolvedThreads: string[]
-      candidateFacts: Array<{ category: string; key: string; value: string }>
-      updatedAt: string
-    }
-    session?: { summary: string; updatedAt: string }
-    avatars: Array<{ avatarId: string; summary: string; updatedAt: string }>
-  }
-  longTerm: {
-    avatars: Array<{
-      avatarId: string
-      memories: Array<{
-        conversationId: string
-        summary: string
-        keyDiscoveries: string[]
-        unresolvedTopics: string[]
-        factCandidates: Array<{ category: string; key: string; value: string }>
-        createdAt: string
-      }>
-    }>
-    facts: Array<{ category: string; key: string; value: string; updatedAt: string }>
-  }
-  observability?: {
-    selection?: {
-      sourceConversationIds: string[]
-      selectedConversationIds: string[]
-      selectedCount: number
-      rejectedCount: number
-      topSelectionReasons: string[]
-      evaluatedAt: string
-    }
-    hydration?: {
-      hydratedConversationId: string
-      sourceConversationIds: string[]
-      hydratedAt: string
-    }
-  }
-}
-```
-
-### Semantics
-
-- `activeAvatarId` / `activeConversationId` identify the currently selected active conversation when one exists.
-- Short-term is bounded to the last 3 user/avatar exchanges of the active conversation only.
-- Working memory exposes the current active conversation working memory immediately after hydration, regardless of whether the conversation was created by explicit start or avatar switch.
-- `working.avatars` is restricted to the currently active avatar only; closed conversations are not reported as active working memory.
-- `longTerm.avatars` groups durable episodic memories by avatar for all closed conversations in the session.
-- `longTerm.facts` continues to expose structured user facts, ordered by recency and capped to the latest 50 facts by default for operator safety.
-- `observability.selection` exposes deterministic memory-selection diagnostics:
-  - source conversation IDs considered
-  - selected vs rejected counts
-  - top selection reasons
-  - evaluation timestamp
-- `observability.hydration` exposes the latest hydration linkage for the session when available:
-  - hydrated conversation ID
-  - hydration source conversation IDs
-  - hydration timestamp
-- Route is inspection-focused and does not expose raw full transcripts or prompt internals.
-
----
-
-## A7. Admin: List Session Events
-
-Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
-
-### Endpoint
+## Session Events
 
 ```text
 GET /v1/admin/sessions/{sessionId}/events
 ```
 
-### Query Parameters
-
-| Parameter | Type    | Default | Max | Description                    |
-| --------- | ------- | ------- | --- | ------------------------------ |
-| `limit`   | integer | `50`    | 200 | Max number of events to return |
-
-### Response
-
-```ts
-type AdminSessionEventsResponse = {
-  events: Array<{
-    type: 'gm_triggered' | 'gm_error' | 'turn_completed'
-    correlationId: string
-    createdAt: string
-    payload:
-      | {
-          triggerReason: string | null
-          turnIndex: number
-          interactionCount: number
-          stateBefore: {
-            currentAvatarId?: string
-            progression: string
-            topicsCovered: string[]
-          }
-          decision?: {
-            avatarId: string
-            conversationMode: 'new' | 'continue'
-            notesInjected: boolean
-            directiveCount: number
-            unlockedAvatarIds?: string[]
-            suggestedAvatarId?: string
-            suggestedAvatarReason?: string
-            switchedAvatarId?: string
-          }
-          stateAfter?: {
-            currentAvatarId?: string
-            progression: string
-            topicsCovered: string[]
-          }
-          latencyMs: number
-          inputTokens?: number
-          outputTokens?: number
-          errorCode?: string
-        }
-      | {
-          conversationId: string
-          turnIndex: number
-          avatarId: string
-          avatarLatencyMs: number
-          totalTurnLatencyMs: number
-          inputTokens: number
-          outputTokens: number
-          totalTokens: number
-          model: string
-          hasGm: boolean
-          correlationId?: string
-        }
-  }>
-}
-```
-
-### Semantics
-
-- Returns `gm_triggered`, `gm_error`, and `turn_completed` events.
-- Results are ordered newest-first.
-- Unknown/unsupported event types are silently excluded.
-- Raw user message content, prompt text, credentials, and LLM model names are never included.
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `400` → `VALIDATION_ERROR` (invalid `limit`)
-- `404` → `NOT_FOUND` (session missing)
-- `500` → `INTERNAL_ERROR`
-
 ---
 
-## A7. Admin: Session Turn Metrics
-
-Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
-
-### Endpoint
-
-```text
-GET /v1/admin/sessions/{sessionId}/metrics
-```
-
-### Auth
-
-- API key required in header: `x-api-key: <API_KEY>`
-
-### Response
-
-```ts
-type AdminSessionTurnMetricsResponse = {
-  sessionId: string
-  checkedAt: string
-  summary: {
-    totalTurns: number
-    turnsWithGm: number
-    avgAvatarLatencyMs: number
-    avgTotalTurnLatencyMs: number
-    avgInputTokens: number
-    avgOutputTokens: number
-    avgGmLatencyMs: number | null
-  }
-  turns: Array<{
-    turnIndex: number
-    correlationId: string
-    avatarLatencyMs: number
-    totalTurnLatencyMs: number
-    overheadMs: number
-    inputTokens: number
-    outputTokens: number
-    totalTokens: number
-    model: string
-    hasGm: boolean
-    gmLatencyMs?: number
-    gmInputTokens?: number
-    gmOutputTokens?: number
-  }>
-}
-```
-
-### Semantics
-
-- Returns `200` for authenticated requests when session exists, including sessions with zero turns.
-- `summary.avgGmLatencyMs` remains `null` when no turns have associated GM metrics.
-- `turns` is ordered by `turnIndex` ascending.
-- Turns that pre-date EPIC 4.3 and do not have `turn_completed` events are not included.
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `404` → `NOT_FOUND` (session missing)
-- `500` → `INTERNAL_ERROR`
-
----
-
-## A7b. Admin: Assembled Session Context
-
-Status: IMPLEMENTED (EPIC 2.7)
-Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
-
-### Endpoint
+## Session Context
 
 ```text
 GET /v1/admin/sessions/{sessionId}/context
 ```
 
-### Response
+---
 
-```ts
-type AdminSessionContextResponse = {
-  sessionId: string
-  avatarContext: {
-    avatarId?: string
-    recentExchanges: Array<{ user: string; avatar: string }>
-    workingMemory: {
-      session?: { summary: string; updatedAt: string }
-      avatar?: { avatarId: string; summary: string; updatedAt: string }
-    }
-    longTermFacts: Array<{ category: string; key: string; value: string }>
-    userPersona: UserPersona | null
-    gmNotes: string | null
-    scenario: {
-      scenarioId: string
-      name?: string
-      description?: string
-      goals?: string[]
-    }
-  }
-  gmContext: {
-    recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>
-    memory: {
-      shortTerm?: { recentExchanges: Array<{ user: string; avatar: string }> }
-      workingSummary?: string
-      longTermFacts?: Array<{ category: string; key: string; value: string }>
-    }
-    currentState: {
-      currentAvatarId?: string
-      progression: string
-      topicsCovered: string[]
-      interactionCount: number
-    }
-    availableAvatars: Array<{
-      avatarId: string
-      name: string
-      description?: string
-      scope?: string
-      availability?: 'available' | 'locked'
-    }>
-    userPersona: UserPersona | null
-    scenario: {
-      scenarioId: string
-      name?: string
-      description?: string
-      goals?: string[]
-    }
-  }
-}
+## Session Metrics
+
+```text
+GET /v1/admin/sessions/{sessionId}/metrics
 ```
-
-### Semantics
-
-- Returns bounded, operator-safe context inputs used by Avatar and GM flows.
-- `avatarContext.recentExchanges` is bounded short-term memory (max 2 exchanges).
-- `gmContext.recentMessages` is bounded recent message context (max 12 messages).
-- `workingMemory` / `workingSummary` and `longTermFacts` are derived from layered memory snapshots when available.
-- No provider request/response payloads, raw credentials, or raw full prompt templates are exposed.
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `404` → `NOT_FOUND` (session missing)
-- `500` → `INTERNAL_ERROR`
 
 ---
 
-## A7c. Canonical Inspector Surface (Final EPIC 3.2)
-
-The final inspector read surface is intentionally bounded and does not include compatibility aliases or split wrappers.
+## Session Memory
 
 ```text
-GET /v1/admin/sessions/{sessionId}/inspect
-GET /v1/admin/sessions/{sessionId}/events
 GET /v1/admin/sessions/{sessionId}/memory
-GET /v1/admin/sessions/{sessionId}/memory-layers
-GET /v1/admin/sessions/{sessionId}/metrics
-GET /v1/admin/sessions/{sessionId}/context
-GET /v1/sessions/{sessionId}/runtime-state
-GET /v1/sessions/{sessionId}/events/stream
 ```
-
-Canonical shared DTO owners:
-
-- Admin inspector DTOs: `packages/shared/src/runtime-inspector-types.ts`
-- Runtime-state snapshot DTO: `packages/shared/src/runtime-types.ts` (`GetRuntimeStateResponse`)
 
 ---
 
-## A8. Reset Session
-
-Deletes runtime conversation data. Does NOT delete the session record itself.
-
-### Endpoint
+## Session Memory Layers
 
 ```text
-POST /v1/admin/sessions/{sessionId}/reset
+GET /v1/admin/sessions/{sessionId}/memory-layers
 ```
-
-### Response
-
-```ts
-type AdminResetSessionResponse = {
-  sessionId: string
-  deleted: {
-    messages: number
-    sessionMemory: boolean
-    avatarMemories: number
-    events: number
-  }
-}
-```
-
-### Notes
-
-- Runtime reset behavior is implemented by the existing session-admin route:
-  - `POST /v1/sessions/{sessionId}/reset`
-- Runtime admin action audit entries are appended to `event_log` with admin action event types.
 
 ---
 
-## A9. Admin Runtime Actions
+# Runtime Actions
 
-Status: IMPLEMENTED (EPIC 2.7)
-Canonical DTO owner: `@gami/shared` (`packages/shared/src/runtime-inspector-types.ts`).
-
-### Endpoints
+## Replay GM
 
 ```text
 POST /v1/admin/sessions/{sessionId}/gm/replay
-POST /v1/admin/sessions/{sessionId}/memory/refresh
-POST /v1/admin/sessions/{sessionId}/memory/clear
 ```
-
-### Responses
-
-```ts
-type AdminReplayGmResponse = {
-  sessionId: string
-  action: 'gm.replay'
-  scheduled: true
-  correlationId: string
-  conversationId: string
-  avatarId: string
-  turnIndex: number
-}
-
-type AdminRefreshMemoryResponse = {
-  sessionId: string
-  action: 'memory.refresh'
-  scheduled: true
-  correlationId: string
-  conversationId: string
-  avatarId: string
-}
-
-type AdminClearMemoryResponse = {
-  sessionId: string
-  action: 'memory.clear'
-  cleared: {
-    sessionWorkingMemory: boolean
-    avatarWorkingMemoryCount: number
-    gmNotesCleared: boolean
-    legacySessionSummaryCleared: boolean
-    userFactsCleared: false
-  }
-}
-```
-
-### Semantics
-
-- `gm/replay` reuses existing GM orchestration and schedules a replay from the latest relevant user turn.
-- `memory/refresh` reuses the async memory-maintenance boundary and schedules refresh for the latest relevant conversation/avatar.
-- `memory/clear` is session-scoped only:
-  - clears session working memory
-  - clears avatar working memories for the session
-  - clears `sessions.gm_notes`
-  - clears legacy `sessions.memory_summary`
-  - does **not** delete `user_memory_facts`
-- Every action appends an audit event entry to `event_log` (`admin_action.*` types).
-
-### Error Mapping
-
-- `401` → `UNAUTHORIZED`
-- `404` → `NOT_FOUND` (session missing)
-- `409` → `CONFLICT` (missing session conversation/user turn preconditions for replay/refresh)
-- `500` → `INTERNAL_ERROR`
 
 ---
 
-## A10. List Ingestion Jobs
+## Refresh Memory
 
-### Endpoint
+```text
+POST /v1/admin/sessions/{sessionId}/memory/refresh
+```
+
+---
+
+## Clear Session Memory
+
+```text
+POST /v1/admin/sessions/{sessionId}/memory/clear
+```
+
+---
+
+# Jobs
+
+## List Jobs
 
 ```text
 GET /v1/admin/jobs
 ```
 
-### Query Parameters
-
-- `status` (optional): `pending` | `running` | `completed` | `failed`
-- `sourceId` (optional)
-- `limit` (optional, default 50)
-
-### Response
-
-```ts
-type AdminListJobsResponse = {
-  jobs: Array<{
-    id: string
-    sourceId: string
-    status: 'pending' | 'running' | 'completed' | 'failed'
-    attempts: number
-    startedAt?: string
-    completedAt?: string
-    errorMessage?: string
-    createdAt: string
-  }>
-  total: number
-}
-```
-
 ---
 
-## A11. Retry Ingestion Job
-
-### Endpoint
+## Retry Job
 
 ```text
 POST /v1/admin/jobs/{jobId}/retry
 ```
 
-### Response
-
-```ts
-type AdminRetryJobResponse = {
-  jobId: string
-  status: 'pending' | 'running'
-}
-```
-
-### Notes
-
-- Idempotent: if the job is already pending/running, returns current status without creating a duplicate
-- This action is logged in `AdminActionLog`
-
 ---
 
-## A12. Metrics Overview
+# Audit & Errors
 
-### Endpoint
-
-```text
-GET /v1/admin/metrics/overview
-```
-
-### Query Parameters
-
-- `since` (optional): ISO 8601 datetime, defaults to last 24h
-
-### Response
-
-```ts
-type AdminMetricsOverviewResponse = {
-  period: {
-    from: string
-    to: string
-  }
-  sessions: {
-    total: number
-    active: number
-  }
-  messages: {
-    total: number
-  }
-  tokens: {
-    input?: number
-    output?: number
-    total?: number
-    estimatedCostUsd?: number
-  }
-  latency: {
-    p50Ms?: number
-    p95Ms?: number
-  }
-  errors: {
-    total: number
-    byCode: Record<string, number>
-  }
-}
-```
-
----
-
-## A13. Recent Errors
-
-### Endpoint
+## Recent Errors
 
 ```text
 GET /v1/admin/errors
 ```
 
-### Query Parameters
-
-- `limit` (optional, default 50)
-
-### Response
-
-```ts
-type AdminErrorsResponse = {
-  errors: Array<{
-    id: string
-    type: string
-    sessionId?: string
-    requestId?: string
-    createdAt: string
-    payload?: Record<string, unknown>
-  }>
-}
-```
-
 ---
 
-## A14. Audit Log
-
-### Endpoint
+## Audit Log
 
 ```text
 GET /v1/admin/audit-log
 ```
 
-### Query Parameters
-
-- `targetType` (optional): `session` | `job` | `scenario` | `source`
-- `targetId` (optional)
-- `limit` (optional, default 50)
-- `offset` (optional, default 0)
-
-### Response
-
-```ts
-type AdminAuditLogResponse = {
-  entries: Array<{
-    id: string
-    actor: string
-    actionType: string
-    targetType: string
-    targetId: string
-    payload?: Record<string, unknown>
-    createdAt: string
-  }>
-  total: number
-}
-```
-
 ---
 
-# Game Master / Internal Runtime Shapes
+# Validation Rules
 
-These are not necessarily public endpoints, but they define stable internal contract shapes that influence API payloads.
+## Message Content
 
-## Game Master State
+- required
+- trimmed non-empty
+- bounded max size
 
-```ts id="9xjlwm"
-type GameMasterState = {
-  currentAvatarId?: string
-  progression: string
-  topicsCovered: string[]
-  interactionCount: number
-  transitionHistory?: Array<{
-    fromAvatarId?: string
-    toAvatarId: string
-    reason?: string
-    atTurn: number
-  }>
-}
-```
+## Config Objects
 
-## Game Master Output
-
-```ts id="vvjlyw"
-type GameMasterOutput = {
-  avatarId: string
-  nextAvatarId?: string
-  transitionReason?: string
-  recommendedChoices?: Array<{
-    id: string
-    label: string
-  }>
-  contentTrigger?: string
-  unlockAvatarIds?: string[]
-  suggestedAvatarId?: string
-  suggestedAvatarReason?: string
-  conversationMode: 'new' | 'continue'
-  context?: {
-    notes?: string
-  }
-  stateUpdate: {
-    progression?: 'none' | 'increase'
-    topicCovered?: string
-    activeAvatarId?: string
-    interactionIncrement: 1
-  }
-}
-```
-
-These shapes should stay aligned with `GAME_MASTER_CONTRACT.md`.
+- always JSON objects
+- never JSON-encoded strings
 
 ---
 
@@ -2284,99 +680,70 @@ These shapes should stay aligned with `GAME_MASTER_CONTRACT.md`.
 
 ## Success
 
-- `200 OK` for reads and successful actions
-- `201 Created` for creates
-- `202 Accepted` for async jobs accepted
-- `204 No Content` only when no response body is useful
+- `200 OK`
+- `201 Created`
+- `202 Accepted`
+- `204 No Content`
 
 ## Errors
 
-- `400 Bad Request` → invalid input
-- `401 Unauthorized` → missing/invalid API key
-- `403 Forbidden` → known but not allowed
-- `404 Not Found` → missing entity
-- `409 Conflict` → invalid state transition or conflicting state
-- `429 Too Many Requests` → throttling
-- `500 Internal Server Error` → unexpected failure
-- `502/503/504` → upstream / provider issues where relevant
+- `400 Bad Request`
+- `401 Unauthorized`
+- `403 Forbidden`
+- `404 Not Found`
+- `409 Conflict`
+- `429 Too Many Requests`
+- `500 Internal Server Error`
+- `502/503/504 Upstream Errors`
 
 ---
 
-# Validation Rules
+# Contract Ownership
 
-## Minimal Input Validation
+## Shared DTOs
 
-### Message content
+```text
+packages/shared/src/*
+```
 
-- required
-- non-empty after trimming
-- maximum size configurable
+## Domain Contracts
 
-### Source registration
+```text
+apps/core/src/domain/*
+```
 
-- `scenarioId` required
-- `type` required
-- `uriOrPath` required
+## Memory Contracts
+
+```text
+apps/core/src/domain/memory/*
+packages/shared/src/memory-contract-types.ts
+```
+
+## Runtime Inspector Contracts
+
+```text
+packages/shared/src/runtime-inspector-types.ts
+```
 
 ---
 
-# Non-Goals for v1
+# Non Goals
 
-Do not include yet:
+Not part of Phase A:
 
-- multi-avatar active orchestration endpoints
-- voice upload endpoints
-- media trigger APIs for frontend playback
+- voice APIs
+- media playback orchestration
 - tenant management
-- user auth flows beyond API key
-- prompt management endpoints
-- benchmark control endpoints
-- fine-grained GM manual controls
-
-These can be added later without breaking the basic surface.
+- fine-grained GM controls
+- raw prompt management
+- benchmark APIs
 
 ---
 
 # Evolution Rules
 
-When extending the API:
-
-1. Prefer additive changes
-2. Do not break existing field meanings
-3. Keep core payloads stable
-4. Introduce new endpoints rather than overloading old ones
-5. Keep public contracts thinner than internal implementation details
-
----
-
-# Minimal MVP Endpoint Set
-
-If we need the absolute minimum set to start implementation, it is:
-
-- `POST /v1/sessions`
-- `GET /v1/sessions/{sessionId}`
-- `POST /v1/sessions/{sessionId}/conversations`
-- `POST /v1/sessions/{sessionId}/switch-avatar`
-- `GET /v1/sessions/{sessionId}/available-avatars`
-- `GET /v1/sessions/{sessionId}/avatar-transitions`
-- `GET /v1/sessions/{sessionId}/conversations`
-- `POST /v1/conversations/{conversationId}/messages`
-- `GET /v1/conversations/{conversationId}/history`
-- `GET /v1/scenarios`
-- `POST /v1/scenarios`
-- `POST /v1/scenarios/{scenarioId}/avatars`
-- `GET /v1/scenarios/{scenarioId}/avatars`
-- `DELETE /v1/avatars/{avatarId}`
-- `DELETE /v1/scenarios/{scenarioId}`
-- `PUT /v1/scenarios/{scenarioId}`
-- `PATCH /v1/scenarios/{scenarioId}`
-- `POST /v1/knowledge-sources`
-- `POST /v1/knowledge-sources/{sourceId}/ingest`
-
-Everything else is useful, but not required to begin.
-
----
-
-# Final Rule
-
-If an endpoint exists before there is a concrete Phase A use case for it, it probably should not exist yet.
+- additive changes preferred
+- avoid changing field meanings
+- keep payloads stable
+- prefer new endpoints over polymorphic overloads
+- public contracts remain thinner than internal architecture
