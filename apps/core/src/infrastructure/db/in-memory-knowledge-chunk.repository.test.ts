@@ -47,4 +47,19 @@ describe('InMemoryKnowledgeChunkRepository', () => {
     expect(remaining).toHaveLength(1)
     expect(remaining[0]?.chunkId).toBe('knowledge_chunk_3')
   })
+
+  it('listBySourceIds returns chunks from provided source ids only', async () => {
+    const repository = new InMemoryKnowledgeChunkRepository([
+      makeChunk({ chunkId: 'knowledge_chunk_1', sourceId: 'knowledge_source_1', chunkIndex: 1 }),
+      makeChunk({ chunkId: 'knowledge_chunk_2', sourceId: 'knowledge_source_2', chunkIndex: 0 }),
+      makeChunk({ chunkId: 'knowledge_chunk_3', sourceId: 'knowledge_source_1', chunkIndex: 0 }),
+    ])
+
+    const selected = await repository.listBySourceIds(['knowledge_source_1'])
+
+    expect(selected.map((chunk) => chunk.chunkId)).toEqual([
+      'knowledge_chunk_3',
+      'knowledge_chunk_1',
+    ])
+  })
 })

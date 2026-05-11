@@ -11,5 +11,6 @@ export type CreateKnowledgeChunkParams = {
 export interface IKnowledgeChunkRepository {
   create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk>
   listBySourceId(sourceId: string): Promise<KnowledgeChunk[]>
+  listBySourceIds(sourceIds: string[]): Promise<KnowledgeChunk[]>
   deleteBySourceId(sourceId: string): Promise<number>
 }

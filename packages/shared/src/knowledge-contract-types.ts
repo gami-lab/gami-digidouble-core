@@ -52,6 +52,7 @@ export type RetrievedKnowledgeItemDto = {
   knowledgeType: KnowledgeType
   content: string
   score?: number
+  reason?: string
   metadata?: Record<string, unknown>
 }
 

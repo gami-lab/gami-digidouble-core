@@ -64,4 +64,28 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     expect(deleted).toBe(2)
     expect(remaining).toHaveLength(0)
   })
+
+  it('listBySourceIds returns chunks from selected sources only', async () => {
+    await seedSource()
+    const scenario = await scenarioRepo.create({ name: 'Chunk scenario 2', status: 'active' })
+    const secondSource = await sourceRepo.create({
+      scenarioId: scenario.scenarioId,
+      name: 'Chunk source 2',
+      knowledgeType: 'media',
+      format: 'media',
+      uriOrPath: '/tmp/media.png',
+    })
+
+    await chunkRepo.create({ sourceId, content: 'World chunk', chunkIndex: 0 })
+    await chunkRepo.create({
+      sourceId: secondSource.sourceId,
+      content: 'Media chunk',
+      chunkIndex: 0,
+    })
+
+    const selected = await chunkRepo.listBySourceIds([secondSource.sourceId])
+
+    expect(selected).toHaveLength(1)
+    expect(selected[0]?.sourceId).toBe(secondSource.sourceId)
+  })
 })

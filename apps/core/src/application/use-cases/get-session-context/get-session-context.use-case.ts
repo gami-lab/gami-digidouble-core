@@ -11,6 +11,7 @@ import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { LayeredMemorySnapshot } from '../../../domain/memory/memory.types.js'
 import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
+import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master.avatar-unlocks.js'
 import type {
   GetSessionContextInput,
@@ -34,6 +35,7 @@ export class GetSessionContextUseCase {
     private readonly gmStateRepository: IGmStateRepository,
     private readonly userRepository?: IUserRepository,
     private readonly memoryContextAssembler?: AvatarMemoryContextAssembler,
+    private readonly typedRetrievalService?: TypedRetrievalService,
   ) {}
 
   async execute(input: GetSessionContextInput): Promise<GetSessionContextOutput> {
@@ -72,6 +74,7 @@ export class GetSessionContextUseCase {
       activeConversation?.conversationId,
     )
     const recentMessages = await this.loadContextRecentMessages(activeConversation?.conversationId)
+    const retrieval = await this.loadTypedRetrieval(session, recentMessages)
 
     return {
       scenario,
@@ -81,6 +84,7 @@ export class GetSessionContextUseCase {
       userPersona,
       memorySnapshot,
       recentMessages,
+      retrieval,
     }
   }
 
@@ -110,6 +114,23 @@ export class GetSessionContextUseCase {
     return this.loadRecentMessages(conversationId)
   }
 
+  private async loadTypedRetrieval(
+    session: Session,
+    recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
+  ) {
+    if (this.typedRetrievalService === undefined) return undefined
+    const query = buildRetrievalQuery(recentMessages)
+    if (query.length === 0) return undefined
+
+    return this.typedRetrievalService.retrieve({
+      scenarioId: session.scenarioId,
+      sessionId: session.sessionId,
+      userId: session.userId,
+      query,
+      limitPerType: 3,
+    })
+  }
+
   private buildAvatarContext(
     session: Session,
     contextData: Awaited<ReturnType<GetSessionContextUseCase['loadContextData']>>,
@@ -121,6 +142,7 @@ export class GetSessionContextUseCase {
       recentExchanges: contextData.memorySnapshot?.shortTerm?.recentExchanges ?? [],
       workingMemory: toAvatarWorkingMemory(contextData.memorySnapshot),
       longTermFacts: contextData.memorySnapshot?.longTerm?.facts ?? [],
+      ...toAvatarKnowledge(contextData.retrieval),
       userPersona: contextData.userPersona,
       gmNotes: session.gmNotes ?? null,
       scenario,
@@ -144,6 +166,15 @@ export class GetSessionContextUseCase {
           ? { longTermFacts: contextData.memorySnapshot.longTerm.facts }
           : {}),
       },
+      ...(contextData.retrieval !== undefined
+        ? {
+            knowledge: {
+              memory: contextData.retrieval.memory,
+              world: contextData.retrieval.world,
+              media: contextData.retrieval.media,
+            },
+          }
+        : {}),
       currentState: contextData.gmState ?? DEFAULT_GM_STATE,
       availableAvatars: toGameMasterAvailableAvatars(contextData.scenarioAvatars, session),
       userPersona: contextData.userPersona,
@@ -171,6 +202,28 @@ export class GetSessionContextUseCase {
       return null
     }
   }
+}
+
+function toAvatarKnowledge(
+  retrieval: Awaited<ReturnType<TypedRetrievalService['retrieve']>> | undefined,
+): Pick<GetSessionContextOutput['avatarContext'], 'knowledge'> | Record<string, never> {
+  if (retrieval === undefined) return {}
+  return {
+    knowledge: {
+      retrievedItems: [...retrieval.memory, ...retrieval.world, ...retrieval.media],
+    },
+  }
+}
+
+function buildRetrievalQuery(
+  recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
+): string {
+  const userMessages = recentMessages.filter((message) => message.role === 'user')
+  return userMessages
+    .slice(-2)
+    .map((message) => message.content.trim())
+    .join(' ')
+    .trim()
 }
 
 function toScenarioSnapshot(session: Session, scenario: Scenario | null) {

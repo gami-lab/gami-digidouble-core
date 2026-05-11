@@ -85,7 +85,7 @@ See `PRINCIPLES.md` for full engineering philosophy.
 4. GM fires asynchronously after every completed avatar turn — non-blocking; errors are caught and logged, never propagate to the user response
 5. GM LLM is called with recent messages, current state, scenario goals, active avatar, and avatar availability context
    - recent messages are bounded and provided as short-term context (not full replay)
-   - working memory, long-term facts/events, RAG snippets, and optional user persona are included via context
+   - working memory, long-term facts/events, typed RAG sections (`memory`, `world`, `media`), and optional user persona are included via context
 6. GM output is parsed and validated
 7. State is reduced, guidance notes are stored into `sessions.gm_notes` for the next turn, and valid avatar unlocks are persisted to `sessions.unlocked_avatar_ids`
 8. Runtime events are emitted from GM decisions (unlocks, suggestions, world-processing state changes) through the system event publisher

@@ -68,6 +68,7 @@ Required tests:
 - **Reset:** verify that reset deletes messages and memory but keeps the session record; verify the audit log entry is created
 - **Replay:** verify that replayed turn does NOT write a new message to the DB
 - **Ingestion retry:** verify that retrying a completed job returns current status rather than creating a duplicate run
+- **Typed retrieval:** verify domain separation (`memory` / `world` / `media`), deterministic ranking under fixed fixtures, and trace metadata (`sourceId`, `chunkId`, `score`, `reason`)
 - **Audit log:** verify that every admin action writes an entry with the correct `actionType`, `targetType`, and `targetId`
 - **Auth:** verify that admin endpoints require a valid API key (same as public API in Phase A)
 - **No sensitive data leakage:** verify that session event payloads and admin responses do not expose raw prompt content or credential values

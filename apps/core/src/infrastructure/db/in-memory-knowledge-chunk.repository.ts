@@ -33,6 +33,17 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
     return Promise.resolve(chunks)
   }
 
+  listBySourceIds(sourceIds: string[]): Promise<KnowledgeChunk[]> {
+    const sourceSet = new Set(sourceIds)
+    const chunks = [...this.chunks.values()]
+      .filter((chunk) => sourceSet.has(chunk.sourceId))
+      .sort((a, b) => {
+        if (a.sourceId === b.sourceId) return a.chunkIndex - b.chunkIndex
+        return a.sourceId.localeCompare(b.sourceId)
+      })
+    return Promise.resolve(chunks)
+  }
+
   deleteBySourceId(sourceId: string): Promise<number> {
     const toDelete = [...this.chunks.values()].filter((chunk) => chunk.sourceId === sourceId)
     for (const chunk of toDelete) {

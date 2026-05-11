@@ -66,5 +66,22 @@ export interface RetrievedKnowledgeItem {
   knowledgeType: KnowledgeType
   content: string
   score?: number
+  reason?: string
   metadata?: Record<string, unknown>
+}
+
+export interface TypedRetrievalResult {
+  memory: RetrievedKnowledgeItem[]
+  world: RetrievedKnowledgeItem[]
+  media: RetrievedKnowledgeItem[]
+  trace: {
+    query: string
+    perType: Record<
+      KnowledgeType,
+      {
+        sourceIds: string[]
+        selectedChunkIds: string[]
+      }
+    >
+  }
 }

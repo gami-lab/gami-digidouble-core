@@ -704,6 +704,13 @@ packages/shared/src/memory-contract-types.ts
 packages/shared/src/runtime-inspector-types.ts
 ```
 
+## Knowledge/Retrieval Contracts
+
+```text
+apps/core/src/domain/knowledge/knowledge.types.ts
+packages/shared/src/knowledge-contract-types.ts
+```
+
 ---
 
 # Non Goals

@@ -78,6 +78,22 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
     return rows.map((row) => rowToKnowledgeChunk(normalizeEmbeddingRow(row)))
   }
 
+  async listBySourceIds(sourceIds: string[]): Promise<KnowledgeChunk[]> {
+    const uuids = sourceIds
+      .map((sourceId) => extractUuid('knowledge_source_', sourceId))
+      .filter((sourceId): sourceId is string => sourceId !== null)
+    if (uuids.length === 0) return []
+
+    const rows = await this.sql<KnowledgeChunkDbRow[]>`
+      SELECT id, source_id, content, chunk_index, embedding::text, metadata, created_at
+      FROM knowledge_chunks
+      WHERE source_id IN ${this.sql(uuids)}
+      ORDER BY source_id ASC, chunk_index ASC
+    `
+
+    return rows.map((row) => rowToKnowledgeChunk(normalizeEmbeddingRow(row)))
+  }
+
   async deleteBySourceId(sourceId: string): Promise<number> {
     const sourceUuid = extractUuid('knowledge_source_', sourceId)
     if (sourceUuid === null) return 0

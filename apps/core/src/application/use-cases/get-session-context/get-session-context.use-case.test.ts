@@ -11,7 +11,10 @@ import { InMemoryUserMemoryFactRepository } from '../../../infrastructure/db/in-
 import { InMemoryUserRepository } from '../../../infrastructure/db/in-memory-user.repository.js'
 import { InMemorySessionMemoryRepository } from '../../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
+import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
+import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { GetSessionContextUseCase } from './get-session-context.use-case.js'
+import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 
 function createUseCase() {
   const sessionRepository = new InMemorySessionRepository([makeSession()])
@@ -33,6 +36,7 @@ function createUseCase() {
     avatarSessionMemoryRepository,
     userMemoryFactRepository,
   )
+  const typedRetrievalService = buildTypedRetrievalService()
 
   return new GetSessionContextUseCase(
     sessionRepository,
@@ -43,7 +47,34 @@ function createUseCase() {
     gmStateRepository,
     userRepository,
     memoryAssembler,
+    typedRetrievalService,
   )
+}
+
+function buildTypedRetrievalService(): TypedRetrievalService {
+  const sourceRepo = new InMemoryKnowledgeSourceRepository([
+    {
+      sourceId: 'knowledge_source_world',
+      scenarioId: 'scenario_1',
+      name: 'World brief',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/world.md',
+      status: 'ready',
+      createdAt: '2026-05-01T10:00:00.000Z',
+      updatedAt: '2026-05-01T10:00:00.000Z',
+    },
+  ])
+  const chunkRepo = new InMemoryKnowledgeChunkRepository([
+    {
+      chunkId: 'knowledge_chunk_world_1',
+      sourceId: 'knowledge_source_world',
+      content: 'u1 scenario world setup guidance for onboarding',
+      chunkIndex: 0,
+      createdAt: '2026-05-01T10:00:00.000Z',
+    },
+  ])
+  return new TypedRetrievalService(sourceRepo, chunkRepo)
 }
 
 function makeSession() {
@@ -206,6 +237,8 @@ describe('GetSessionContextUseCase', () => {
     expect(output.gmContext.memory.longTermFacts).toEqual([
       { category: 'preference', key: 'style', value: 'concise' },
     ])
+    expect(output.avatarContext.knowledge?.retrievedItems.length).toBeGreaterThan(0)
+    expect(output.gmContext.knowledge?.world.length).toBeGreaterThan(0)
   })
 
   it('returns null/empty optional layers when conversation and persona are absent', async () => {

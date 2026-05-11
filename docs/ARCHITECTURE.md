@@ -365,6 +365,7 @@ Contains:
 - vector search
 - source metadata
 - ingestion job lifecycle (`queued -> running -> completed | failed`) with retry
+- type-specific retrieval pipelines (`memory`, `world`, `media`) with deterministic merge output
 
 ---
 
