@@ -9,7 +9,7 @@ import { HashEmbeddingAdapter } from '../../../infrastructure/knowledge/hash-emb
 import { KnowledgeIngestionService } from '../../services/knowledge/knowledge-ingestion.service.js'
 import { RetryIngestionJobUseCase } from './retry-ingestion-job.use-case.js'
 
-describe('RetryIngestionJobUseCase', () => {
+describe('RetryIngestionJobUseCase — retry scheduling', () => {
   it('creates a queued retry job for failed jobs', async () => {
     const sourceRepo = new InMemoryKnowledgeSourceRepository()
     const source = await sourceRepo.create({
@@ -56,6 +56,60 @@ describe('RetryIngestionJobUseCase', () => {
     expect(executeSpy).toHaveBeenCalledTimes(1)
   })
 
+  it('reuses active retry jobs instead of creating duplicates', async () => {
+    const sourceRepo = new InMemoryKnowledgeSourceRepository()
+    const source = await sourceRepo.create({
+      scenarioId: 'scenario_1',
+      name: 'Retry source',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/retry.txt',
+    })
+
+    const jobRepo = new InMemoryIngestionJobRepository([
+      {
+        ingestionJobId: 'ingestion_job_failed',
+        sourceId: source.sourceId,
+        status: 'failed',
+        attempts: 1,
+        createdAt: '2026-05-11T10:00:00.000Z',
+        updatedAt: '2026-05-11T10:00:00.000Z',
+        errorMessage: 'boom',
+      },
+      {
+        ingestionJobId: 'ingestion_job_active',
+        sourceId: source.sourceId,
+        status: 'running',
+        attempts: 1,
+        createdAt: '2026-05-11T10:10:00.000Z',
+        updatedAt: '2026-05-11T10:10:00.000Z',
+      },
+    ])
+
+    const service = new KnowledgeIngestionService(
+      sourceRepo,
+      new InMemoryKnowledgeChunkRepository(),
+      jobRepo,
+      new InMemoryKnowledgeSourceContentLoader(),
+      new HashEmbeddingAdapter(),
+      new InMemoryEventLogRepository(),
+    )
+    const executeSpy = vi.spyOn(service, 'execute')
+
+    const useCase = new RetryIngestionJobUseCase(jobRepo, service)
+    const output = await useCase.execute({ ingestionJobId: 'ingestion_job_failed' })
+
+    expect(output).toEqual({
+      previousIngestionJobId: 'ingestion_job_failed',
+      retryIngestionJobId: 'ingestion_job_active',
+      sourceId: source.sourceId,
+      status: 'running',
+    })
+    expect(executeSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('RetryIngestionJobUseCase — validation', () => {
   it('rejects retry for non-failed jobs', async () => {
     const jobRepo = new InMemoryIngestionJobRepository([
       {

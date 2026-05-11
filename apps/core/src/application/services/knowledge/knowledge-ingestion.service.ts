@@ -5,7 +5,7 @@ import type { IIngestionJobRepository } from '../../ports/IIngestionJobRepositor
 import type { IKnowledgeChunkRepository } from '../../ports/IKnowledgeChunkRepository.js'
 import type { IKnowledgeSourceContentLoader } from '../../ports/IKnowledgeSourceContentLoader.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
-import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
+import type { KnowledgeChunk, KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 
 export type IngestionExecutionInput = {
   sourceId: string
@@ -117,20 +117,43 @@ export class KnowledgeIngestionService {
         ? []
         : await this.embeddingAdapter.embed(chunkSeeds.map((chunk) => chunk.content))
 
+    const previousChunks = await this.chunkRepository.listBySourceId(source.sourceId)
     await this.chunkRepository.deleteBySourceId(source.sourceId)
-    for (const [index, chunk] of chunkSeeds.entries()) {
+    try {
+      for (const [index, chunk] of chunkSeeds.entries()) {
+        await this.chunkRepository.create({
+          sourceId: source.sourceId,
+          content: chunk.content,
+          chunkIndex: chunk.chunkIndex,
+          ...(embeddings[index] !== undefined ? { embedding: embeddings[index] } : {}),
+          metadata: {
+            ...chunk.metadata,
+            ingestionJobId: jobId,
+          },
+        })
+      }
+    } catch (error) {
+      await this.restorePreviousChunks(source.sourceId, previousChunks)
+      throw error
+    }
+
+    return chunkSeeds.length
+  }
+
+  private async restorePreviousChunks(
+    sourceId: string,
+    previousChunks: KnowledgeChunk[],
+  ): Promise<void> {
+    await this.chunkRepository.deleteBySourceId(sourceId)
+    for (const chunk of previousChunks) {
       await this.chunkRepository.create({
-        sourceId: source.sourceId,
+        sourceId,
         content: chunk.content,
         chunkIndex: chunk.chunkIndex,
-        ...(embeddings[index] !== undefined ? { embedding: embeddings[index] } : {}),
-        metadata: {
-          ...chunk.metadata,
-          ingestionJobId: jobId,
-        },
+        ...(chunk.embedding !== undefined ? { embedding: chunk.embedding } : {}),
+        ...(chunk.metadata !== undefined ? { metadata: chunk.metadata } : {}),
       })
     }
-    return chunkSeeds.length
   }
 
   private async completeJob(args: {

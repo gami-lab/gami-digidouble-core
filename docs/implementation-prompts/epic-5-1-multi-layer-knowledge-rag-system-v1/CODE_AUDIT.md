@@ -131,3 +131,47 @@ Minimal steps needed to reach A:
 ## Final Recommendation
 
 Close with debt
+
+## Remediation Outcome
+
+### Changes Made
+
+- Hardened ingestion replacement safety by restoring the previous chunk set when a replacement write fails mid-run.
+- Made retry ingestion idempotent by reusing an existing active retry job for the same source instead of creating duplicates.
+- Tightened memory retrieval by enforcing scope matching before scoring/ranking.
+- Extracted retrieval response truncation into a dedicated presenter helper to make the boundary rule explicit and reusable.
+- Strengthened stack-e2e knowledge route assertions to require successful ingestion behavior and evidence from retrieved source content.
+- Added/updated tests for rollback restoration, retry idempotency behavior, retrieval presentation shaping, and scope filtering.
+
+### Findings Resolved
+
+- Resolved Finding 1 (High): ingestion chunk-loss risk on replacement failure.
+- Resolved Finding 2 (High): non-idempotent retry behavior creating duplicate jobs.
+- Resolved Finding 3 (Medium): soft-only memory scope handling in typed retrieval.
+- Resolved Finding 4 (Medium): stack-e2e happy path not asserting completed ingestion behavior.
+- Resolved Finding 5 (Low): route-local truncation logic now centralized in presenter.
+
+### Findings Deferred
+
+- None.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- test: PASS
+- test:coverage: PASS
+
+### Final Feature Confidence
+
+- Overall confidence: High.
+- Remaining uncertainty is limited to future scale/volume behavior (not correctness regressions) and should be tracked with ongoing coverage/perf work.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- Coverage still highlights generally low-tested modules outside this remediation scope (for example, some health/domain index surfaces), but these do not block EPIC 5.1 corrected behavior.
+- Long-run operational resilience (large-document ingestion throughput, backpressure behavior) should continue under dedicated performance epics.

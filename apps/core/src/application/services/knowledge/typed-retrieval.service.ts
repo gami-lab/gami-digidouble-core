@@ -67,7 +67,10 @@ export class TypedRetrievalService {
     }
 
     const chunks = await this.chunkRepository.listBySourceIds(sourceIds)
-    const scored = chunks
+    const scopedChunks =
+      type === 'memory' ? chunks.filter((chunk) => isInMemoryScope(chunk, input)) : chunks
+
+    const scored = scopedChunks
       .map((chunk) => ({ chunk, score: scoreChunk(type, chunk, input.query, input) }))
       .filter((entry) => entry.score > 0)
       .sort((a, b) => {
@@ -85,6 +88,30 @@ export class TypedRetrievalService {
       ),
     }
   }
+}
+
+function isInMemoryScope(chunk: KnowledgeChunk, input: TypedRetrievalInput): boolean {
+  const hasScope =
+    input.userId !== undefined ||
+    input.sessionId !== undefined ||
+    input.conversationId !== undefined
+  if (!hasScope) return true
+
+  if (!metadataMatches(chunk.metadata, 'userId', input.userId)) return false
+  if (!metadataMatches(chunk.metadata, 'sessionId', input.sessionId)) return false
+  if (!metadataMatches(chunk.metadata, 'conversationId', input.conversationId)) return false
+
+  return true
+}
+
+function metadataMatches(
+  metadata: Record<string, unknown> | undefined,
+  key: string,
+  expected: string | undefined,
+): boolean {
+  if (expected === undefined) return true
+  if (metadata === undefined) return false
+  return metadata[key] === expected
 }
 
 function toRetrievedItem(

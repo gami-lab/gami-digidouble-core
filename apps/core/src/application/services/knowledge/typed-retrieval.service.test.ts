@@ -40,6 +40,12 @@ async function seed() {
     metadata: { userId: 'user_1', sessionId: 'session_1' },
   })
   await chunkRepo.create({
+    sourceId: memory.sourceId,
+    chunkIndex: 1,
+    content: 'User dislikes verbose spending projections and asks budget shortcuts',
+    metadata: { userId: 'user_2', sessionId: 'session_2' },
+  })
+  await chunkRepo.create({
     sourceId: world.sourceId,
     chunkIndex: 0,
     content: 'The world includes a strict budget rule for travelers',
@@ -97,5 +103,20 @@ describe('TypedRetrievalService', () => {
       expect(worldSourceIds.has(sourceId)).toBe(false)
       expect(mediaSourceIds.has(sourceId)).toBe(false)
     }
+  })
+
+  it('hard-filters memory chunks when user/session scope is provided', async () => {
+    const { sourceRepo, chunkRepo } = await seed()
+    const service = new TypedRetrievalService(sourceRepo, chunkRepo)
+
+    const result = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'budget',
+      userId: 'user_1',
+      sessionId: 'session_1',
+    })
+
+    expect(result.memory).toHaveLength(1)
+    expect(result.memory[0]?.metadata).toMatchObject({ userId: 'user_1', sessionId: 'session_1' })
   })
 })

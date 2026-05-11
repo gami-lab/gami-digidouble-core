@@ -7,5 +7,5 @@ export type RetryIngestionJobOutput = {
   previousIngestionJobId: string
   retryIngestionJobId: string
   sourceId: string
-  status: 'queued'
+  status: 'queued' | 'running'
 }

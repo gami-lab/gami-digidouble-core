@@ -140,7 +140,7 @@ describe('Stack E2E — knowledge routes — happy path', () => {
     const ingestionJobId = triggerBody.data.ingestionJob.ingestionJobId
 
     const finalJob = await waitForJob(ingestionJobId)
-    expect(['completed', 'failed']).toContain(finalJob.status)
+    expect(finalJob.status).toBe('completed')
 
     const retrievalRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
       method: 'POST',
@@ -156,6 +156,12 @@ describe('Stack E2E — knowledge routes — happy path', () => {
       data: { retrieval: { world: Array<{ content: string }> } }
     }
     expect(Array.isArray(retrievalBody.data.retrieval.world)).toBe(true)
+    expect(retrievalBody.data.retrieval.world.length).toBeGreaterThan(0)
+    expect(
+      retrievalBody.data.retrieval.world.some((item) =>
+        item.content.toLowerCase().includes('timeline'),
+      ),
+    ).toBe(true)
     for (const item of retrievalBody.data.retrieval.world) {
       expect(item.content.length).toBeLessThanOrEqual(803)
     }

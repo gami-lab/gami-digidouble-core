@@ -29,6 +29,7 @@ import { TriggerIngestionUseCase } from '../../application/use-cases/trigger-ing
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
+import { presentKnowledgeRetrieval } from './knowledge-retrieval.presenter.js'
 
 export type KnowledgeRouteOptions = {
   config: Config
@@ -259,14 +260,7 @@ function registerRetrievalRoute(app: FastifyInstance, useCases: UseCases): void 
       const startedAt = Date.now()
       try {
         const output = await useCases.getTypedRetrievalUseCase.execute(request.body)
-        const bounded = {
-          retrieval: {
-            ...output.retrieval,
-            memory: output.retrieval.memory.map(boundRetrievedItem),
-            world: output.retrieval.world.map(boundRetrievedItem),
-            media: output.retrieval.media.map(boundRetrievedItem),
-          },
-        }
+        const bounded = presentKnowledgeRetrieval(output.retrieval)
         await appendKnowledgeEvent(useCases, {
           type: 'knowledge_retrieval_completed',
           severity: 'info',
@@ -301,18 +295,6 @@ function registerRetrievalRoute(app: FastifyInstance, useCases: UseCases): void 
       }
     },
   )
-}
-
-function boundRetrievedItem<T extends { content: string }>(item: T): T {
-  return {
-    ...item,
-    content: truncateContent(item.content, 800),
-  }
-}
-
-function truncateContent(value: string, maxLength: number): string {
-  if (value.length <= maxLength) return value
-  return `${value.slice(0, maxLength)}...`
 }
 
 async function appendKnowledgeEvent(

@@ -21,6 +21,16 @@ export class RetryIngestionJobUseCase {
       throw new DomainError('CONFLICT', 'Only failed ingestion jobs can be retried.')
     }
 
+    const existingRetry = await this.findActiveRetryForSource(job.sourceId)
+    if (existingRetry !== null) {
+      return {
+        previousIngestionJobId: job.ingestionJobId,
+        retryIngestionJobId: existingRetry.ingestionJobId,
+        sourceId: existingRetry.sourceId,
+        status: existingRetry.status,
+      }
+    }
+
     const retry = await this.ingestionJobRepository.create({
       sourceId: job.sourceId,
       status: 'queued',
@@ -42,6 +52,21 @@ export class RetryIngestionJobUseCase {
       retryIngestionJobId: retry.ingestionJobId,
       sourceId: retry.sourceId,
       status: 'queued',
+    }
+  }
+
+  private async findActiveRetryForSource(
+    sourceId: string,
+  ): Promise<{ ingestionJobId: string; sourceId: string; status: 'queued' | 'running' } | null> {
+    const jobs = await this.ingestionJobRepository.listBySourceId(sourceId)
+    const active = jobs.find((entry) => entry.status === 'queued' || entry.status === 'running')
+    if (active === undefined) return null
+    if (active.status !== 'queued' && active.status !== 'running') return null
+
+    return {
+      ingestionJobId: active.ingestionJobId,
+      sourceId: active.sourceId,
+      status: active.status,
     }
   }
 }
