@@ -968,7 +968,7 @@ Early monitoring reduces downtime and blind debugging.
 
 ---
 
-## EPIC 3.2 — Session Inspector v1
+## EPIC 3.2 — Session Inspector v1 ✅ Done
 
 **Purpose**  
 Allow operators to inspect live behavior safely.
@@ -1504,10 +1504,6 @@ After Context Engine + Avatar v2, upgrade the GM to use the same memory/RAG/pers
 ### 11. EPIC 5.4 — Guided Progression Engine v1
 
 Do this after GM context awareness, because progression depends on better memory, context, and scenario state.
-
-### 12. EPIC 3.2 — Session Inspector v1
-
-At this point, the system has enough complex state that inspection becomes essential: memory, context payloads, RAG results, GM decisions.
 
 ### 13. EPIC 3.3 — Replay & Recovery Tools
 
