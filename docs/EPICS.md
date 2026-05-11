@@ -1042,7 +1042,7 @@ Fast recovery loops improve iteration speed dramatically.
 
 ---
 
-## EPIC 5.1 — Multi-Layer Knowledge & RAG System v1
+## EPIC 5.1 — Multi-Layer Knowledge & RAG System v1 ✅ Done
 
 Status update (May 11, 2026):
 
@@ -1491,10 +1491,6 @@ A hybrid response engine improves quality/cost/latency trade-offs versus pure li
 If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
 
 ## Recommended implementation order
-
-### 7. EPIC 5.1 — Multi-Layer Knowledge & RAG System v1
-
-Now build RAG, because memory and world/media retrieval need a retrieval infrastructure.
 
 ### 8. EPIC 5.2 — Context Engine v2
 
