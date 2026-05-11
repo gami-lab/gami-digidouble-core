@@ -18,6 +18,11 @@ import type { IDependencyProbe } from '../application/ports/IDependencyProbe.js'
 import type { ISessionEventPublisher } from '../application/ports/ISessionEventPublisher.js'
 import type { IConversationWorkingMemoryRepository } from '../application/ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../application/ports/IConversationMemoryRepository.js'
+import type { IKnowledgeSourceRepository } from '../application/ports/IKnowledgeSourceRepository.js'
+import type { IKnowledgeChunkRepository } from '../application/ports/IKnowledgeChunkRepository.js'
+import type { IIngestionJobRepository } from '../application/ports/IIngestionJobRepository.js'
+import type { IKnowledgeSourceContentLoader } from '../application/ports/IKnowledgeSourceContentLoader.js'
+import type { IEmbeddingAdapter } from '../application/ports/IEmbeddingAdapter.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
@@ -48,6 +53,12 @@ import { healthRoute } from './routes/health.js'
 import { sessionsRoute } from './routes/sessions.js'
 import { scenariosRoute, type ScenariosRouteOptions } from './routes/scenarios.js'
 import { usersRoute } from './routes/users.js'
+import { knowledgeRoute } from './routes/knowledge.js'
+import { InMemoryKnowledgeSourceRepository } from '../infrastructure/db/in-memory-knowledge-source.repository.js'
+import { InMemoryKnowledgeChunkRepository } from '../infrastructure/db/in-memory-knowledge-chunk.repository.js'
+import { InMemoryIngestionJobRepository } from '../infrastructure/db/in-memory-ingestion-job.repository.js'
+import { InMemoryKnowledgeSourceContentLoader } from '../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
+import { HashEmbeddingAdapter } from '../infrastructure/knowledge/hash-embedding.adapter.js'
 
 export interface ServerAdapters {
   llmAdapter?: ILlmAdapter
@@ -68,6 +79,11 @@ export interface ServerAdapters {
   userMemoryFactRepository?: IUserMemoryFactRepository
   sessionEventPublisher?: ISessionEventPublisher
   probes?: IDependencyProbe[]
+  knowledgeSourceRepository?: IKnowledgeSourceRepository
+  knowledgeChunkRepository?: IKnowledgeChunkRepository
+  ingestionJobRepository?: IIngestionJobRepository
+  knowledgeSourceContentLoader?: IKnowledgeSourceContentLoader
+  embeddingAdapter?: IEmbeddingAdapter
 }
 
 type FastifyValidationError = {
@@ -159,8 +175,26 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     prefix: '/v1/avatars',
     ...buildAvatarsRouteOptions(config, resolvedAdapters),
   })
+  registerKnowledgeRoute(app, config, resolvedAdapters)
 
   return app
+}
+
+function registerKnowledgeRoute(
+  app: FastifyInstance,
+  config: Config,
+  adapters: ServerAdapters,
+): void {
+  app.register(knowledgeRoute, {
+    config,
+    sourceRepository: adapters.knowledgeSourceRepository ?? new InMemoryKnowledgeSourceRepository(),
+    chunkRepository: adapters.knowledgeChunkRepository ?? new InMemoryKnowledgeChunkRepository(),
+    ingestionJobRepository: adapters.ingestionJobRepository ?? new InMemoryIngestionJobRepository(),
+    sourceContentLoader:
+      adapters.knowledgeSourceContentLoader ?? new InMemoryKnowledgeSourceContentLoader(),
+    embeddingAdapter: adapters.embeddingAdapter ?? new HashEmbeddingAdapter(),
+    eventLogRepository: withDefault(adapters.eventLogRepository, new InMemoryEventLogRepository()),
+  })
 }
 
 function resolveServerAdapters(

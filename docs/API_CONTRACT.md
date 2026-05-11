@@ -462,6 +462,30 @@ POST /v1/knowledge-sources/{sourceId}/ingest
 
 ---
 
+## List Ingestion Jobs For Source
+
+```text
+GET /v1/knowledge-sources/{sourceId}/ingestion-jobs
+```
+
+---
+
+## Get Ingestion Job
+
+```text
+GET /v1/ingestion-jobs/{ingestionJobId}
+```
+
+---
+
+## Query Typed Retrieval (Admin/Debug)
+
+```text
+POST /v1/admin/knowledge/retrieval
+```
+
+---
+
 # User Persona
 
 ## Upsert Persona

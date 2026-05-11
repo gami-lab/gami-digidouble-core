@@ -389,6 +389,28 @@ Completed on: 2026-05-02
 
 ---
 
+## EPIC 5.1 — Knowledge Substrate, Ingestion, Retrieval, And API Surfaces
+
+Status: 🚧 In Progress
+Started on: 2026-05-11
+
+### Includes delivered in current slices
+
+- canonical knowledge/retrieval contract ownership (`domain` + `shared DTOs`)
+- persistence schema and repositories for knowledge sources, chunks, and ingestion jobs
+- typed ingestion lifecycle (`queued -> running -> completed|failed`) with retry entrypoints
+- type-specific retrieval (`memory|world|media`) with deterministic merge and trace metadata
+- API endpoints:
+  - `POST /v1/knowledge-sources`
+  - `GET /v1/scenarios/{scenarioId}/knowledge-sources`
+  - `POST /v1/knowledge-sources/{sourceId}/ingest`
+  - `GET /v1/knowledge-sources/{sourceId}/ingestion-jobs`
+  - `GET /v1/ingestion-jobs/{ingestionJobId}`
+  - `POST /v1/admin/knowledge/retrieval`
+- stack-e2e baseline coverage for auth, validation, and not-found paths on knowledge routes
+
+---
+
 # 3. Current Public API Surface
 
 ## Sessions & Conversations
@@ -440,6 +462,17 @@ Completed on: 2026-05-02
 
 - `GET /health`
 - `GET /v1/admin/health`
+
+---
+
+## Knowledge
+
+- `POST /v1/knowledge-sources`
+- `GET /v1/scenarios/{scenarioId}/knowledge-sources`
+- `POST /v1/knowledge-sources/{sourceId}/ingest`
+- `GET /v1/knowledge-sources/{sourceId}/ingestion-jobs`
+- `GET /v1/ingestion-jobs/{ingestionJobId}`
+- `POST /v1/admin/knowledge/retrieval`
 
 ---
 

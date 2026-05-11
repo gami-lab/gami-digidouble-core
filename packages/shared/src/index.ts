@@ -46,6 +46,17 @@ export type {
   SharedContextScenarioSnapshot,
   SharedAvatarContextKnowledgeInjection,
   SharedGmContextKnowledgeInjection,
+  CreateKnowledgeSourceRequest,
+  CreateKnowledgeSourceResponse,
+  ListKnowledgeSourcesQuery,
+  ListKnowledgeSourcesResponse,
+  TriggerIngestionRequest,
+  TriggerIngestionResponse,
+  GetIngestionJobResponse,
+  ListIngestionJobsResponse,
+  QueryKnowledgeRetrievalRequest,
+  TypedKnowledgeRetrievalDto,
+  QueryKnowledgeRetrievalResponse,
 } from './knowledge-contract-types.js'
 export type {
   UserPersona,

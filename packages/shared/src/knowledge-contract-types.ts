@@ -72,3 +72,75 @@ export type SharedGmContextKnowledgeInjection = {
   world: RetrievedKnowledgeItemDto[]
   media: RetrievedKnowledgeItemDto[]
 }
+
+/**
+ * Canonical shared API DTOs for EPIC 5.1 knowledge endpoints.
+ * Keep API-facing request/response contracts here to avoid route-local copies.
+ */
+export type CreateKnowledgeSourceRequest = {
+  scenarioId: string
+  name: string
+  knowledgeType: KnowledgeType
+  format: KnowledgeSourceFormat
+  uriOrPath: string
+  metadata?: Record<string, unknown>
+}
+
+export type CreateKnowledgeSourceResponse = {
+  source: KnowledgeSourceDto
+}
+
+export type ListKnowledgeSourcesQuery = {
+  knowledgeType?: KnowledgeType
+  status?: KnowledgeSourceStatus
+}
+
+export type ListKnowledgeSourcesResponse = {
+  sources: KnowledgeSourceDto[]
+}
+
+export type TriggerIngestionRequest = {
+  correlationId?: string
+}
+
+export type TriggerIngestionResponse = {
+  ingestionJob: IngestionJobDto
+  scheduled: boolean
+}
+
+export type GetIngestionJobResponse = {
+  ingestionJob: IngestionJobDto
+}
+
+export type ListIngestionJobsResponse = {
+  jobs: IngestionJobDto[]
+}
+
+export type QueryKnowledgeRetrievalRequest = {
+  scenarioId: string
+  query: string
+  sessionId?: string
+  userId?: string
+  conversationId?: string
+  limitPerType?: number
+}
+
+export type TypedKnowledgeRetrievalDto = {
+  memory: RetrievedKnowledgeItemDto[]
+  world: RetrievedKnowledgeItemDto[]
+  media: RetrievedKnowledgeItemDto[]
+  trace: {
+    query: string
+    perType: Record<
+      KnowledgeType,
+      {
+        sourceIds: string[]
+        selectedChunkIds: string[]
+      }
+    >
+  }
+}
+
+export type QueryKnowledgeRetrievalResponse = {
+  retrieval: TypedKnowledgeRetrievalDto
+}
