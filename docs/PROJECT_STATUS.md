@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: May 10, 2026
+Last updated: May 11, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -473,6 +473,10 @@ Completed on: 2026-05-02
 Current implementation focus:
 
 - multi-layer RAG system
+- EPIC 5.1 contract ownership baseline completed:
+- canonical domain contracts for source/chunk/ingestion/retrieval in `apps/core/src/domain/knowledge/knowledge.types.ts`
+- canonical shared HTTP DTO fragments in `packages/shared/src/knowledge-contract-types.ts`
+- shared context injection DTO ownership aligned via `packages/shared/src/runtime-inspector-types.ts`
 - context intelligence
 - GM context assembly evolution
 - media-aware retrieval

@@ -3,6 +3,7 @@ import type {
   LayeredMemorySnapshot,
   LongTermMemoryFact,
 } from '../memory/memory.types.js'
+import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 
 /**
  * Context domain types.
@@ -22,8 +23,8 @@ export interface RuntimeContext {
   userFacts?: Record<LongTermMemoryFact['key'], LongTermMemoryFact['value']>
   /** Scenario world description and objectives. */
   scenarioContext?: string
-  /** Retrieved knowledge passages (RAG — EPIC 4.1+). */
-  retrievedKnowledge?: string[]
+  /** Retrieved knowledge passages (RAG — EPIC 5.1+). */
+  retrievedKnowledge?: RetrievedKnowledgeItem[]
   /** Optional directive from the Game Master for this turn. */
   gmDirective?: string
 }

@@ -35,6 +35,19 @@ export type {
   SharedLongTermMemoryFact,
 } from './memory-contract-types.js'
 export type {
+  KnowledgeType,
+  KnowledgeSourceFormat,
+  KnowledgeSourceStatus,
+  IngestionJobStatus,
+  KnowledgeSourceDto,
+  KnowledgeChunkDto,
+  IngestionJobDto,
+  RetrievedKnowledgeItemDto,
+  SharedContextScenarioSnapshot,
+  SharedAvatarContextKnowledgeInjection,
+  SharedGmContextKnowledgeInjection,
+} from './knowledge-contract-types.js'
+export type {
   UserPersona,
   UserSummary,
   UserPersonaResponse,

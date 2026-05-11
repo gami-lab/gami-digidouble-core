@@ -366,7 +366,8 @@ Table: `knowledge_sources`
 - id
 - scenario_id
 - name
-- type (`pdf | text | markdown | url | media`)
+- knowledge_type (`memory | world | media`)
+- format (`pdf | text | markdown | url | media`)
 - uri_or_path
 - status (`pending | ready | error`)
 - metadata (JSONB)

@@ -9,6 +9,11 @@ import type {
   SharedWorkingMemoryAvatarSummary,
   SharedWorkingMemorySessionSummary,
 } from './memory-contract-types.js'
+import type {
+  SharedAvatarContextKnowledgeInjection,
+  SharedContextScenarioSnapshot,
+  SharedGmContextKnowledgeInjection,
+} from './knowledge-contract-types.js'
 import type { RuntimeState } from './runtime-types.js'
 import type { SessionSummary } from './entity-types.js'
 
@@ -190,12 +195,7 @@ export type EndConversationAdminActionRequest = {
   reason?: ConversationEndReason
 }
 
-export type SessionContextScenarioSnapshot = {
-  scenarioId: string
-  name?: string
-  description?: string
-  goals?: string[]
-}
+export type SessionContextScenarioSnapshot = SharedContextScenarioSnapshot
 
 export type SessionContextAvatarSnapshot = {
   avatarId?: string
@@ -205,6 +205,7 @@ export type SessionContextAvatarSnapshot = {
     avatar?: SharedWorkingMemoryAvatarSummary
   }
   longTermFacts: SharedLongTermMemoryFact[]
+  knowledge?: SharedAvatarContextKnowledgeInjection
   userPersona: UserPersona | null
   gmNotes: string | null
   scenario: SessionContextScenarioSnapshot
@@ -222,6 +223,7 @@ export type SessionContextGmSnapshot = {
     workingSummary?: string
     longTermFacts?: SharedLongTermMemoryFact[]
   }
+  knowledge?: SharedGmContextKnowledgeInjection
   currentState: GmStateSummary
   availableAvatars: Array<{
     avatarId: string
