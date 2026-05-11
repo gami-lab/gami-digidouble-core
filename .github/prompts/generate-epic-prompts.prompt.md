@@ -77,6 +77,7 @@ Always align with:
 - `docs/DATA_MODEL.md`
 - `docs/API_CONTRACT.md`
 - `docs/GAME_MASTER_CONTRACT.md`
+- `docs/MEMORY_SYSTEM_SPEC.md`
 - `docs/TEST_STRATEGY.md`
 - `docs/EPICS.md`
 - `docs/PROJECT_STATUS.md`
