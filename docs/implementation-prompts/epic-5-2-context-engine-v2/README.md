@@ -38,7 +38,7 @@ The implementation must keep context selection deterministic, token-budget aware
 
 - [ ] Canonical ownership exists for all Context Engine contracts with no duplicated API-facing shapes.
 - [ ] Context assembly is deterministic and explains precedence across memory, RAG, scenario, GM directives, and persona.
-- [ ] Token budget rules are explicit, testable, and enforced consistently.
+- [ ] Token budget rules are explicit, testable, and applied consistently as selection telemetry (no hard trimming).
 - [ ] Avatar and GM context assembly consume one shared Context Engine pipeline instead of parallel ad-hoc composition.
 - [ ] Context observability/admin surfaces expose assembled context without leaking sensitive prompt or credential data.
 - [ ] If any new HTTP endpoint is added, a matching `*.stack-e2e.test.ts` file exists with auth/validation/not-found coverage.

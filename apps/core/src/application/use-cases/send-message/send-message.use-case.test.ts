@@ -491,6 +491,14 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     expect(assembledContext).toHaveProperty('avatar')
     expect(assembledContext).toHaveProperty('gm')
     expect(assembledContext).toHaveProperty('trace')
+    const gmContext = assembledContext['gm'] as {
+      recentMessages: Array<{ role: string; content: string }>
+    }
+    const trace = assembledContext['trace'] as {
+      selection: { trimmed: unknown[] }
+    }
+    expect(gmContext.recentMessages).toEqual([{ role: 'user', content: 'Hello' }])
+    expect(trace.selection.trimmed).toEqual([])
   })
 
   it('passes selected memory payload to run game master when available', async () => {

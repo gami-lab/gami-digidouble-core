@@ -27,7 +27,6 @@ import { safeParseGameMasterOutput } from './run-game-master.helpers.js'
 import {
   normalizeGameMasterOutput,
   toRecentExchangeMessages,
-  toWorkingMemoryPromptContext,
 } from './run-game-master.normalization.js'
 import { resolveAvatarUnlocks } from './run-game-master.avatar-unlocks.js'
 import { resolveAssembledGmContext } from './run-game-master.context-engine.js'
@@ -304,7 +303,7 @@ export class RunGameMasterUseCase {
     scenarioAvatars: AvatarConfig[],
   ): Promise<GameMasterInput> {
     const memory = await this.loadMemoryContext(input, session)
-    const recentMessages = await this.loadRecentMessages(input.conversationId, memory)
+    const recentMessages = await this.loadRecentMessages(input.conversationId)
     const assembledGmContext = resolveAssembledGmContext({
       input,
       session,
@@ -374,29 +373,18 @@ export class RunGameMasterUseCase {
 
   private async loadRecentMessages(
     conversationId: string | undefined,
-    memory: GameMasterInput['context']['memory'],
   ): Promise<Array<{ role: 'user' | 'avatar' | 'system'; content: string }>> {
     if (conversationId === undefined || this.messageRepository === undefined) return []
     const messages = await this.messageRepository.findByConversationId(conversationId, {
       limit: 24,
     })
-    const recentMessages = toRecentExchangeMessages(
+    return toRecentExchangeMessages(
       messages
         .slice()
         .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
         .map((message) => ({ role: message.role, content: message.content })),
       GM_RECENT_EXCHANGE_LIMIT,
     )
-
-    if (memory?.workingMemory === undefined) return recentMessages
-
-    return [
-      ...recentMessages,
-      {
-        role: 'system',
-        content: toWorkingMemoryPromptContext(memory.workingMemory),
-      },
-    ]
   }
 
   private getMemorySelectionService(): MemorySelectionService {

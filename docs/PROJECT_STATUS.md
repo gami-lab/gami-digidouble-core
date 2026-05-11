@@ -263,8 +263,8 @@ Completed on: 2026-04-29
 
 ## EPIC 5.2 — Context Engine v2
 
-Status: 🟡 In progress
-Started on: 2026-05-11
+Status: ✅ Complete
+Completed on: 2026-05-11
 
 ### Current slice completed
 
@@ -277,7 +277,7 @@ Started on: 2026-05-11
 - dedicated deterministic Context Engine module introduced with explicit input/output/trace contracts
 - session context assembly routed through one Context Engine pass for both Avatar and GM projections
 - baseline unit coverage added for deterministic assembly behavior and contract composition
-- deterministic precedence policy and token-budget trimming added to Context Engine
+- deterministic precedence policy with token-budget selection telemetry added to Context Engine (no hard trimming)
 - machine-readable selection/trimming trace added for debugging of kept/trimmed segments
 - deterministic conflict resolution added for long-term fact keys and retrieval chunk-id duplicates
 - send-message avatar prompt assembly now routes through Context Engine output mapping
@@ -285,7 +285,9 @@ Started on: 2026-05-11
 - avatar and gm context paths share one assembly contract while preserving async non-blocking GM execution
 - admin session-context inspection now exposes bounded explainable `contextTrace` metadata (kept/trimmed/policy)
 - context trace mapping is canonicalized through shared DTO ownership with explicit boundary redaction/allowlisting
-- regression hardening completed for precedence, trimming, layer exclusion deltas, projection consistency, and trace structure
+- regression hardening completed for precedence, non-trimming selection behavior, layer exclusion deltas, projection consistency, and trace structure
+- gm recent-messages path simplified to keep chronological exchanges only (working memory remains in context.memory)
+- shared runtime inspector trace contracts now use bounded segment-id typing to reduce drift
 - quality gates validated for this slice: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:coverage`
 
 ### Key Decisions

@@ -22,17 +22,6 @@ export function toRecentExchangeMessages(
   return exchanges.slice(-exchangeLimit).flat()
 }
 
-export function toWorkingMemoryPromptContext(memory: {
-  summary: string
-  unresolvedThreads: string[]
-}): string {
-  const summary = memory.summary.trim()
-  const unresolvedThreads = memory.unresolvedThreads.filter((thread) => thread.trim().length > 0)
-  return unresolvedThreads.length > 0
-    ? `Avatar working memory summary: ${summary}\nUnresolved threads: ${unresolvedThreads.join('; ')}`
-    : `Avatar working memory summary: ${summary}`
-}
-
 export function normalizeGameMasterOutput(
   output: GameMasterOutput,
   scenarioAvatars: AvatarConfig[],

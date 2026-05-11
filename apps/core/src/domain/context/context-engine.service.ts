@@ -29,7 +29,7 @@ export class ContextEngine {
 
   assemble(input: ContextEngineInput): ContextEngineOutput {
     const normalized = normalizeInput(input)
-    const draft = buildBaseOutput(input, normalized)
+    const draft = buildBaseOutput(input)
     const candidates = buildCandidates(input, normalized)
     const selection = applyBudgetAndSelection(draft, candidates, this.policy)
 
@@ -48,10 +48,7 @@ function normalizeInput(input: ContextEngineInput) {
   }
 }
 
-function buildBaseOutput(
-  input: ContextEngineInput,
-  normalized: ReturnType<typeof normalizeInput>,
-): MutableOutput {
+function buildBaseOutput(input: ContextEngineInput): MutableOutput {
   return {
     avatar: {
       ...(input.activeAvatarId !== undefined ? { avatarId: input.activeAvatarId } : {}),
@@ -69,15 +66,6 @@ function buildBaseOutput(
       availableAvatars: input.availableAvatars,
       userPersona: input.extensions.userPersona,
       scenario: input.scenario,
-      ...(normalized.retrieval !== undefined
-        ? {
-            knowledge: {
-              memory: normalized.retrieval.memory,
-              world: normalized.retrieval.world,
-              media: normalized.retrieval.media,
-            },
-          }
-        : {}),
     },
   }
 }
@@ -259,6 +247,27 @@ function pushRetrievalSegmentCandidate(
       draft.avatar.knowledge = { retrievedItems: [...existing, ...items] }
     },
   })
+  candidates.push({
+    projection: 'gm',
+    segmentId,
+    tokenEstimate,
+    apply: (draft) => {
+      draft.gm.knowledge = {
+        memory: [
+          ...(draft.gm.knowledge?.memory ?? []),
+          ...(segmentId === 'typedRetrievalMemory' ? items : []),
+        ],
+        world: [
+          ...(draft.gm.knowledge?.world ?? []),
+          ...(segmentId === 'typedRetrievalWorld' ? items : []),
+        ],
+        media: [
+          ...(draft.gm.knowledge?.media ?? []),
+          ...(segmentId === 'typedRetrievalMedia' ? items : []),
+        ],
+      }
+    },
+  })
 }
 
 function pushRecentMessageCandidate(
@@ -295,30 +304,12 @@ function applyBudgetAndSelection(
   candidates: CandidateSegment[],
   policy: ContextEnginePolicy,
 ): ContextEngineOutput['trace']['selection'] {
-  const budgets = {
-    avatar: policy.tokenBudget.avatarMaxTokens,
-    gm: policy.tokenBudget.gmMaxTokens,
-  }
-  const used = { avatar: 0, gm: 0 }
   const kept: ContextEngineOutput['trace']['selection']['kept'] = []
   const trimmed: ContextEngineOutput['trace']['selection']['trimmed'] = []
 
   for (const candidate of stableSortCandidates(candidates, policy)) {
     const isProtected = policy.protectedSegments.includes(candidate.segmentId)
-    const canFit =
-      used[candidate.projection] + candidate.tokenEstimate <= budgets[candidate.projection]
-    if (!isProtected && !canFit) {
-      trimmed.push({
-        projection: candidate.projection,
-        segmentId: candidate.segmentId,
-        tokenEstimate: candidate.tokenEstimate,
-        reason: 'budget_exceeded',
-      })
-      continue
-    }
-
     candidate.apply(draft)
-    used[candidate.projection] += candidate.tokenEstimate
     kept.push({
       projection: candidate.projection,
       segmentId: candidate.segmentId,
@@ -343,9 +334,9 @@ function buildTrace(
       avatarProjection: [
         'policy-driven-precedence',
         'single-pass-assembly',
-        'deterministic-trimming',
+        'deterministic-selection',
       ],
-      gmProjection: ['policy-driven-precedence', 'single-pass-assembly', 'deterministic-trimming'],
+      gmProjection: ['policy-driven-precedence', 'single-pass-assembly', 'deterministic-selection'],
     },
     selection,
   }

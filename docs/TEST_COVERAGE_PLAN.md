@@ -142,7 +142,7 @@ Must test:
 - GM directives injected correctly
 - user persona injected correctly when present and omitted cleanly when absent
 - handoff context injected during avatar transitions
-- context trimming when over budget
+- context selection telemetry remains deterministic under constrained token budgets (no hard trimming)
 - precedence rules when inputs conflict
 - deterministic assembly order and stable output shape for same inputs
 

@@ -125,7 +125,7 @@ describe('ContextEngine baseline', () => {
     expect(output.trace.selectedInputs.recentMessageCount).toBe(0)
   })
 
-  it('applies deterministic precedence trimming with protected segments', () => {
+  it('keeps deterministic precedence without hard trimming under tiny budgets', () => {
     const tinyBudgetPolicy: ContextEnginePolicy = {
       tokenBudget: {
         avatarMaxTokens: 8,
@@ -151,15 +151,15 @@ describe('ContextEngine baseline', () => {
 
     expect(output.avatar.gmNotes).toBe('Focus on concrete steps.')
     expect(output.avatar.scenario.scenarioId).toBe('scenario_1')
-    expect(output.avatar.recentExchanges).toEqual([])
-    expect(output.avatar.longTermFacts).toEqual([])
-    expect(output.avatar.knowledge).toBeUndefined()
-    expect(
-      output.trace.selection.trimmed.some((item) => item.segmentId === 'shortTermMemory'),
-    ).toBe(true)
-    expect(
-      output.trace.selection.trimmed.some((item) => item.segmentId === 'typedRetrievalMemory'),
-    ).toBe(true)
+    expect(output.avatar.recentExchanges).toEqual([{ user: 'u1', avatar: 'a1' }])
+    expect(output.avatar.longTermFacts).toEqual([
+      { category: 'preference', key: 'style', value: 'concise' },
+    ])
+    expect(output.avatar.knowledge?.retrievedItems).toHaveLength(3)
+    expect(output.gm.knowledge?.memory).toHaveLength(1)
+    expect(output.gm.knowledge?.world).toHaveLength(1)
+    expect(output.gm.knowledge?.media).toHaveLength(1)
+    expect(output.trace.selection.trimmed).toEqual([])
     expect(
       output.trace.selection.kept.some(
         (item) => item.segmentId === 'gmDirective' && item.reason === 'protected',

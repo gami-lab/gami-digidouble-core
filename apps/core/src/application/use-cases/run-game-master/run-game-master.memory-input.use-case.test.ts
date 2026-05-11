@@ -229,11 +229,6 @@ describe('RunGameMasterUseCase memory input', () => {
       { role: 'avatar', content: 'A2' },
       { role: 'user', content: 'U3' },
       { role: 'avatar', content: 'A3' },
-      {
-        role: 'system',
-        content:
-          'Avatar working memory summary: Session working summary\nUnresolved threads: Follow up on budget',
-      },
     ])
     expect(memory).not.toHaveProperty('shortTerm')
     expect(memory).not.toHaveProperty('workingSummary')

@@ -236,6 +236,18 @@ export type SessionContextGmSnapshot = {
   scenario: SessionContextScenarioSnapshot
 }
 
+export type SessionContextSegmentId =
+  | 'gmDirective'
+  | 'scenario'
+  | 'userPersona'
+  | 'shortTermMemory'
+  | 'workingMemory'
+  | 'longTermFacts'
+  | 'typedRetrievalMemory'
+  | 'typedRetrievalWorld'
+  | 'typedRetrievalMedia'
+  | 'recentMessages'
+
 export type SessionContextTrace = {
   deterministic: true
   policy: {
@@ -243,8 +255,8 @@ export type SessionContextTrace = {
       avatarMaxTokens: number
       gmMaxTokens: number
     }
-    protectedSegments: string[]
-    precedence: string[]
+    protectedSegments: SessionContextSegmentId[]
+    precedence: SessionContextSegmentId[]
   }
   selectedInputs: {
     hasActiveAvatar: boolean
@@ -267,13 +279,13 @@ export type SessionContextTrace = {
   selection: {
     kept: Array<{
       projection: 'avatar' | 'gm'
-      segmentId: string
+      segmentId: SessionContextSegmentId
       tokenEstimate: number
       reason: 'protected' | 'within_budget'
     }>
     trimmed: Array<{
       projection: 'avatar' | 'gm'
-      segmentId: string
+      segmentId: SessionContextSegmentId
       tokenEstimate: number
       reason: 'budget_exceeded'
     }>

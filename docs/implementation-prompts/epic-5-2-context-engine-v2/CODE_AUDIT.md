@@ -174,3 +174,50 @@ Rationale:
 - Core EPIC value is delivered and operationally usable.
 - Build health is green.
 - Remaining debt is meaningful but bounded and can be addressed in a short hardening pass.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Refactored Context Engine retrieval handling so Avatar and GM projections both receive retrieval segments through one candidate-selection pipeline.
+- Removed hard budget trimming enforcement while preserving deterministic ordering and explicit selection telemetry in `contextTrace`.
+- Simplified GM input composition by removing synthetic working-memory `system` message injection from recent message assembly; recent messages are now chronological exchanges only.
+- Tightened shared runtime inspector trace typing by introducing a bounded `SessionContextSegmentId` union in shared contracts.
+- Strengthened behavior-oriented tests for context assembly and GM/send-message integration outcomes.
+- Updated EPIC 5.2 README and coverage-plan wording to reflect non-trimming token-budget semantics.
+- Updated project status to mark EPIC 5.2 complete and synchronized implementation notes.
+
+### Findings Resolved
+
+- Resolved: GM retrieval budget bypass inconsistency (retrieval now flows through one projection-consistent candidate path).
+- Resolved: partial parallel composition in GM input path (removed ad-hoc synthetic recent-message augmentation).
+- Resolved: shared trace contract segment drift risk (bounded segment-id typing added).
+- Resolved: weak shape-only integration confidence (tests now assert consumer-visible assembled-context behavior, not only object shape).
+- Resolved: EPIC 5.2 status/documentation misalignment (project status synced to complete).
+
+### Findings Deferred
+
+- None.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`pnpm test:coverage`)
+
+### Final Feature Confidence
+
+- Deterministic context assembly order and traceability are proven for Avatar and GM projections.
+- Retrieval context inclusion is projection-consistent and contract-safe across domain/application/API boundaries.
+- GM runtime input now preserves clean separation between chronological recent messages and structured memory context.
+- Admin session-context trace remains bounded, typed, and redaction-safe.
+- Full quality gates pass with updated behavior and tests.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- No critical or high architectural/test risks remain for EPIC 5.2 scope.
