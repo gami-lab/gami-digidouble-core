@@ -1111,7 +1111,7 @@ Structured knowledge retrieval improves relevance, reduces noise, and enables ri
 
 ---
 
-## EPIC 5.2 — Context Engine v2 (Core Orchestrator)
+## EPIC 5.2 — Context Engine v2 (Core Orchestrator) ✅ Done
 
 **Purpose**
 Make context assembly the central intelligence of the system.
@@ -1499,10 +1499,6 @@ A hybrid response engine improves quality/cost/latency trade-offs versus pure li
 If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
 
 ## Recommended implementation order
-
-### 8. EPIC 5.2 — Context Engine v2
-
-This should come **after persona + memory + RAG**, because its job is to assemble them. It becomes the integration layer.
 
 ### 9. EPIC 2.1b — Avatar Agent v2
 
