@@ -144,3 +144,50 @@ Implementation-coupled tests:
 Close EPIC now.
 
 The inspector cleanup is complete, the build is green, and the remaining issues are normal maintenance debt rather than delivery blockers.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Added a dedicated [`GetSessionUseCase`](apps/core/src/application/use-cases/get-session/get-session.use-case.test.ts) behavior spec that covers full-field output, optional-field omission, and the not-found path.
+- Extended [`ResetSessionUseCase`](apps/core/src/application/use-cases/reset-session/reset-session.use-case.test.ts) coverage to prove the scenario-not-found branch and cleanup of conversation working memory plus episodic memories.
+
+### Findings Resolved
+
+- The adjacent low-coverage gap around session lookup is now behaviorally covered.
+- The reset-session cleanup boundary now proves both working-memory and episodic-memory deletion behavior.
+- The audit-adjacent risk that important operator-facing flows were only weakly proven is reduced.
+
+### Findings Deferred
+
+- Broader monorepo branch coverage remains uneven in some adapter-heavy areas outside the EPIC surface.
+- Documentation drift risk remains a maintenance concern for future inspector work, though the current docs are aligned.
+- The interrupted-terminal workflow artifact is operational noise, not a code defect.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS, report generated
+
+### Final Feature Confidence
+
+- Session inspector route: High
+- Shared DTO ownership: High
+- Runtime events stream: High
+- Session context inspection: High
+- Session memory views: High
+- Session metrics: High
+- Console inspector composition: High
+- Session lookup behavior: High
+- Reset-session memory cleanup: High
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- Some non-EPIC runtime and adapter branches still have room for coverage improvement.
+- Future inspector work must preserve the single canonical path and shared DTO ownership rule.

@@ -4,6 +4,8 @@ import type { Session } from '../../../domain/conversation/session.types.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryConversationMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-memory.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
@@ -56,15 +58,7 @@ function makeAvatar({
   }
 }
 
-function makeUseCase({
-  sessions = [],
-  scenarios = [makeScenario()],
-  avatars = [],
-  conversationRepository = new InMemoryConversationRepository(),
-  messageRepository = new InMemoryMessageRepository(),
-  sessionMemoryRepository = new InMemorySessionMemoryRepository(),
-  avatarSessionMemoryRepository = new InMemoryAvatarSessionMemoryRepository(),
-}: {
+type UseCaseFactoryOptions = {
   sessions?: Session[]
   scenarios?: Scenario[]
   avatars?: AvatarConfig[]
@@ -72,16 +66,162 @@ function makeUseCase({
   messageRepository?: InMemoryMessageRepository
   sessionMemoryRepository?: InMemorySessionMemoryRepository
   avatarSessionMemoryRepository?: InMemoryAvatarSessionMemoryRepository
-} = {}): ResetSessionUseCase {
+  conversationWorkingMemoryRepository?: InMemoryConversationWorkingMemoryRepository
+  conversationMemoryRepository?: InMemoryConversationMemoryRepository
+}
+
+function makeUseCase(options: UseCaseFactoryOptions = {}): ResetSessionUseCase {
+  const config = {
+    sessions: [] as Session[],
+    scenarios: [makeScenario()] as Scenario[],
+    avatars: [] as AvatarConfig[],
+    conversationRepository: new InMemoryConversationRepository(),
+    messageRepository: new InMemoryMessageRepository(),
+    sessionMemoryRepository: new InMemorySessionMemoryRepository(),
+    avatarSessionMemoryRepository: new InMemoryAvatarSessionMemoryRepository(),
+    ...options,
+  }
+
   return new ResetSessionUseCase(
-    new InMemorySessionRepository(sessions),
-    new InMemoryScenarioRepository(scenarios),
-    new InMemoryAvatarRepository(avatars),
-    conversationRepository,
-    messageRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
+    new InMemorySessionRepository(config.sessions),
+    new InMemoryScenarioRepository(config.scenarios),
+    new InMemoryAvatarRepository(config.avatars),
+    config.conversationRepository,
+    config.messageRepository,
+    config.sessionMemoryRepository,
+    config.avatarSessionMemoryRepository,
+    config.conversationWorkingMemoryRepository,
+    config.conversationMemoryRepository,
   )
+}
+
+function makeSessionMemoryRepository() {
+  return new InMemorySessionMemoryRepository([
+    {
+      sessionId: 'session_1',
+      summary: 'Session one memory',
+      updatedAt: '2026-04-21T08:00:00.000Z',
+    },
+    {
+      sessionId: 'session_2',
+      summary: 'Session two memory',
+      updatedAt: '2026-04-21T08:00:00.000Z',
+    },
+  ])
+}
+
+function makeAvatarSessionMemoryRepository() {
+  return new InMemoryAvatarSessionMemoryRepository([
+    {
+      sessionId: 'session_1',
+      avatarId: 'avatar_1',
+      summary: 'Session one avatar one memory',
+      updatedAt: '2026-04-21T08:00:00.000Z',
+    },
+    {
+      sessionId: 'session_1',
+      avatarId: 'avatar_2',
+      summary: 'Session one avatar two memory',
+      updatedAt: '2026-04-21T08:00:00.000Z',
+    },
+    {
+      sessionId: 'session_2',
+      avatarId: 'avatar_1',
+      summary: 'Session two avatar one memory',
+      updatedAt: '2026-04-21T08:00:00.000Z',
+    },
+  ])
+}
+
+async function expectSessionWorkingMemoryCleared(
+  sessionMemoryRepository: InMemorySessionMemoryRepository,
+  avatarSessionMemoryRepository: InMemoryAvatarSessionMemoryRepository,
+) {
+  await expect(sessionMemoryRepository.findBySessionId('session_1')).resolves.toBeNull()
+  await expect(sessionMemoryRepository.findBySessionId('session_2')).resolves.toMatchObject({
+    summary: 'Session two memory',
+  })
+  await expect(
+    avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_1'),
+  ).resolves.toBeNull()
+  await expect(
+    avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_2'),
+  ).resolves.toBeNull()
+  await expect(
+    avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_2', 'avatar_1'),
+  ).resolves.toMatchObject({ summary: 'Session two avatar one memory' })
+}
+
+function makeConversationWorkingMemoryRepository() {
+  return new InMemoryConversationWorkingMemoryRepository([
+    {
+      conversationId: 'conversation_1',
+      sessionId: 'session_1',
+      avatarId: 'avatar_1',
+      summary: 'Session one working memory',
+      unresolvedThreads: ['thread-1'],
+      candidateFacts: [],
+      updatedAt: '2026-04-21T08:00:00.000Z',
+    },
+    {
+      conversationId: 'conversation_2',
+      sessionId: 'session_2',
+      avatarId: 'avatar_1',
+      summary: 'Session two working memory',
+      unresolvedThreads: ['thread-2'],
+      candidateFacts: [],
+      updatedAt: '2026-04-21T08:00:00.000Z',
+    },
+  ])
+}
+
+function makeConversationMemoryRepository() {
+  return new InMemoryConversationMemoryRepository([
+    {
+      conversationId: 'conversation_1',
+      sessionId: 'session_1',
+      userId: 'user_1',
+      avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
+      summary: 'Session one episodic memory',
+      keyDiscoveries: [],
+      unresolvedTopics: [],
+      factCandidates: [],
+      createdAt: '2026-04-21T08:00:00.000Z',
+    },
+    {
+      conversationId: 'conversation_2',
+      sessionId: 'session_2',
+      userId: 'user_2',
+      avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
+      summary: 'Session two episodic memory',
+      keyDiscoveries: [],
+      unresolvedTopics: [],
+      factCandidates: [],
+      createdAt: '2026-04-21T08:00:00.000Z',
+    },
+  ])
+}
+
+async function expectConversationMemoryCleared(
+  conversationWorkingMemoryRepository: InMemoryConversationWorkingMemoryRepository,
+  conversationMemoryRepository: InMemoryConversationMemoryRepository,
+) {
+  await expect(
+    conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
+  ).resolves.toBeNull()
+  await expect(
+    conversationWorkingMemoryRepository.findByConversationId('conversation_2'),
+  ).resolves.toMatchObject({ summary: 'Session two working memory' })
+  await expect(
+    conversationMemoryRepository.findByConversationId('conversation_1'),
+  ).resolves.toBeNull()
+  await expect(
+    conversationMemoryRepository.findByConversationId('conversation_2'),
+  ).resolves.toMatchObject({
+    summary: 'Session two episodic memory',
+  })
 }
 
 describe('ResetSessionUseCase baseline behavior', () => {
@@ -165,6 +305,17 @@ describe('ResetSessionUseCase baseline behavior', () => {
 
     expect(result.session.lastActivityAt >= beforeReset).toBe(true)
   })
+
+  it('throws NOT_FOUND when the session scenario does not exist', async () => {
+    const useCase = makeUseCase({
+      sessions: [makeSession({ sessionId: 'session_1', scenarioId: 'scenario_missing' })],
+      scenarios: [],
+    })
+
+    await expect(useCase.execute({ sessionId: 'session_1' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
+  })
 })
 
 describe('ResetSessionUseCase unlock policy behavior', () => {
@@ -209,38 +360,8 @@ describe('ResetSessionUseCase unlock policy behavior', () => {
 
 describe('ResetSessionUseCase memory isolation', () => {
   it('clears session and avatar working memory for the reset session', async () => {
-    const sessionMemoryRepository = new InMemorySessionMemoryRepository([
-      {
-        sessionId: 'session_1',
-        summary: 'Session one memory',
-        updatedAt: '2026-04-21T08:00:00.000Z',
-      },
-      {
-        sessionId: 'session_2',
-        summary: 'Session two memory',
-        updatedAt: '2026-04-21T08:00:00.000Z',
-      },
-    ])
-    const avatarSessionMemoryRepository = new InMemoryAvatarSessionMemoryRepository([
-      {
-        sessionId: 'session_1',
-        avatarId: 'avatar_1',
-        summary: 'Session one avatar one memory',
-        updatedAt: '2026-04-21T08:00:00.000Z',
-      },
-      {
-        sessionId: 'session_1',
-        avatarId: 'avatar_2',
-        summary: 'Session one avatar two memory',
-        updatedAt: '2026-04-21T08:00:00.000Z',
-      },
-      {
-        sessionId: 'session_2',
-        avatarId: 'avatar_1',
-        summary: 'Session two avatar one memory',
-        updatedAt: '2026-04-21T08:00:00.000Z',
-      },
-    ])
+    const sessionMemoryRepository = makeSessionMemoryRepository()
+    const avatarSessionMemoryRepository = makeAvatarSessionMemoryRepository()
     const useCase = makeUseCase({
       sessions: [makeSession({ sessionId: 'session_1' })],
       sessionMemoryRepository,
@@ -249,19 +370,42 @@ describe('ResetSessionUseCase memory isolation', () => {
 
     await useCase.execute({ sessionId: 'session_1' })
 
-    await expect(sessionMemoryRepository.findBySessionId('session_1')).resolves.toBeNull()
-    await expect(sessionMemoryRepository.findBySessionId('session_2')).resolves.toMatchObject({
-      summary: 'Session two memory',
+    await expectSessionWorkingMemoryCleared(sessionMemoryRepository, avatarSessionMemoryRepository)
+  })
+
+  it('clears conversation working memory and episodic memory for the reset session', async () => {
+    const conversationWorkingMemoryRepository = makeConversationWorkingMemoryRepository()
+    const conversationMemoryRepository = makeConversationMemoryRepository()
+    const useCase = makeUseCase({
+      sessions: [makeSession({ sessionId: 'session_1' })],
+      conversationRepository: new InMemoryConversationRepository([
+        {
+          conversationId: 'conversation_1',
+          sessionId: 'session_1',
+          avatarId: 'avatar_1',
+          status: 'active',
+          startedAt: '2026-04-21T08:00:00.000Z',
+          lastActivityAt: '2026-04-21T08:00:00.000Z',
+        },
+        {
+          conversationId: 'conversation_2',
+          sessionId: 'session_2',
+          avatarId: 'avatar_1',
+          status: 'active',
+          startedAt: '2026-04-21T08:00:00.000Z',
+          lastActivityAt: '2026-04-21T08:00:00.000Z',
+        },
+      ]),
+      conversationWorkingMemoryRepository,
+      conversationMemoryRepository,
     })
-    await expect(
-      avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_1'),
-    ).resolves.toBeNull()
-    await expect(
-      avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_2'),
-    ).resolves.toBeNull()
-    await expect(
-      avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_2', 'avatar_1'),
-    ).resolves.toMatchObject({ summary: 'Session two avatar one memory' })
+
+    await useCase.execute({ sessionId: 'session_1' })
+
+    await expectConversationMemoryCleared(
+      conversationWorkingMemoryRepository,
+      conversationMemoryRepository,
+    )
   })
 
   it('does not delete cross-session user memory facts', async () => {
