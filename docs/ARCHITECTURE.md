@@ -364,6 +364,7 @@ Contains:
 - embeddings
 - vector search
 - source metadata
+- ingestion job lifecycle (`queued -> running -> completed | failed`) with retry
 
 ---
 

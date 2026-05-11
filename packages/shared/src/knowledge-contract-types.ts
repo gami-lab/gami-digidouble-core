@@ -12,7 +12,7 @@ export type KnowledgeSourceFormat = 'pdf' | 'text' | 'markdown' | 'url' | 'media
 
 export type KnowledgeSourceStatus = 'pending' | 'ready' | 'error'
 
-export type IngestionJobStatus = 'pending' | 'running' | 'succeeded' | 'failed'
+export type IngestionJobStatus = 'queued' | 'running' | 'completed' | 'failed'
 
 export type KnowledgeSourceDto = {
   sourceId: string

@@ -50,7 +50,7 @@ export class PostgresIngestionJobRepository implements IIngestionJobRepository {
       )
       VALUES (
         ${sourceUuid},
-        ${params.status ?? 'pending'},
+        ${params.status ?? 'queued'},
         ${params.attempts ?? 0},
         ${params.startedAt ?? null}::timestamptz,
         ${params.completedAt ?? null}::timestamptz,

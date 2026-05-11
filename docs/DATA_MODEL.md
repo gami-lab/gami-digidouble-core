@@ -443,7 +443,7 @@ Table: `ingestion_jobs`
 
 - id
 - source_id
-- status (`pending | running | succeeded | failed`)
+- status (`queued | running | completed | failed`)
 - attempts
 - started_at
 - completed_at

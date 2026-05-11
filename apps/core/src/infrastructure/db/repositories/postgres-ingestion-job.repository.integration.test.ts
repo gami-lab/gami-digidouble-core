@@ -42,13 +42,13 @@ describe.skipIf(!DB_AVAILABLE)('PostgresIngestionJobRepository', () => {
   it('creates and finds ingestion jobs', async () => {
     await seedSource()
 
-    const created = await jobRepo.create({ sourceId, status: 'pending' })
+    const created = await jobRepo.create({ sourceId, status: 'queued' })
     const found = await jobRepo.findById(created.ingestionJobId)
 
     expect(found).toMatchObject({
       ingestionJobId: created.ingestionJobId,
       sourceId,
-      status: 'pending',
+      status: 'queued',
       attempts: 0,
     })
   })
@@ -56,7 +56,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresIngestionJobRepository', () => {
   it('updates status and attempts', async () => {
     await seedSource()
 
-    const created = await jobRepo.create({ sourceId, status: 'pending' })
+    const created = await jobRepo.create({ sourceId, status: 'queued' })
     const updated = await jobRepo.updateStatus(created.ingestionJobId, {
       status: 'running',
       attempts: 1,
@@ -71,13 +71,13 @@ describe.skipIf(!DB_AVAILABLE)('PostgresIngestionJobRepository', () => {
   it('lists source jobs newest first', async () => {
     await seedSource()
 
-    await jobRepo.create({ sourceId, status: 'pending' })
+    await jobRepo.create({ sourceId, status: 'queued' })
     await jobRepo.create({ sourceId, status: 'running' })
 
     const jobs = await jobRepo.listBySourceId(sourceId)
 
     expect(jobs).toHaveLength(2)
     expect(jobs[0]?.status).toBe('running')
-    expect(jobs[1]?.status).toBe('pending')
+    expect(jobs[1]?.status).toBe('queued')
   })
 })

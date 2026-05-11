@@ -17,7 +17,7 @@ export class InMemoryIngestionJobRepository implements IIngestionJobRepository {
     const job: IngestionJob = {
       ingestionJobId: `ingestion_job_${crypto.randomUUID()}`,
       sourceId: params.sourceId,
-      status: params.status ?? 'pending',
+      status: params.status ?? 'queued',
       attempts: params.attempts ?? 0,
       createdAt: now,
       updatedAt: now,

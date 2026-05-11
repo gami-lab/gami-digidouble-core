@@ -77,14 +77,14 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
 CREATE TABLE IF NOT EXISTS ingestion_jobs (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   source_id       UUID        NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
-  status          TEXT        NOT NULL DEFAULT 'pending',
+  status          TEXT        NOT NULL DEFAULT 'queued',
   attempts        INT         NOT NULL DEFAULT 0,
   started_at      TIMESTAMPTZ,
   completed_at    TIMESTAMPTZ,
   error_message   TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CHECK (status IN ('pending', 'running', 'succeeded', 'failed'))
+  CHECK (status IN ('queued', 'running', 'completed', 'failed'))
 );
 
 -- ── Sessions ──────────────────────────────────────────────────────────────────

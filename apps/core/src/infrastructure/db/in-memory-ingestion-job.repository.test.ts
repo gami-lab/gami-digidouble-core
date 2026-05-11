@@ -6,7 +6,7 @@ function makeJob(overrides: Partial<IngestionJob> = {}): IngestionJob {
   return {
     ingestionJobId: 'ingestion_job_1',
     sourceId: 'knowledge_source_1',
-    status: 'pending',
+    status: 'queued',
     attempts: 0,
     createdAt: '2026-05-11T08:00:00.000Z',
     updatedAt: '2026-05-11T08:00:00.000Z',
@@ -21,7 +21,7 @@ describe('InMemoryIngestionJobRepository', () => {
     const created = await repository.create({ sourceId: 'knowledge_source_1' })
 
     expect(created.ingestionJobId.startsWith('ingestion_job_')).toBe(true)
-    expect(created.status).toBe('pending')
+    expect(created.status).toBe('queued')
     expect(created.attempts).toBe(0)
   })
 
