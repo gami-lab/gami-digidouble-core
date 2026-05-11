@@ -7,9 +7,9 @@ import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
+import { ContextEngine } from '../../../domain/context/context-engine.service.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../../domain/errors.js'
-import type { LayeredMemorySnapshot } from '../../../domain/memory/memory.types.js'
 import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
 import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master.avatar-unlocks.js'
@@ -36,16 +36,34 @@ export class GetSessionContextUseCase {
     private readonly userRepository?: IUserRepository,
     private readonly memoryContextAssembler?: AvatarMemoryContextAssembler,
     private readonly typedRetrievalService?: TypedRetrievalService,
+    private readonly contextEngine: ContextEngine = new ContextEngine(),
   ) {}
 
   async execute(input: GetSessionContextInput): Promise<GetSessionContextOutput> {
     const session = await this.loadSessionOrThrow(input.sessionId)
     const contextData = await this.loadContextData(session)
     const scenarioSnapshot = toScenarioSnapshot(session, contextData.scenario)
+    const assembled = this.contextEngine.assemble({
+      sessionId: session.sessionId,
+      ...(contextData.activeConversation?.avatarId !== undefined
+        ? { activeAvatarId: contextData.activeConversation.avatarId }
+        : {}),
+      recentMessages: contextData.recentMessages,
+      scenario: scenarioSnapshot,
+      availableAvatars: toGameMasterAvailableAvatars(contextData.scenarioAvatars, session),
+      gmState: contextData.gmState ?? DEFAULT_GM_STATE,
+      extensions: {
+        memory: contextData.memorySnapshot,
+        retrieval: contextData.retrieval,
+        userPersona: contextData.userPersona,
+        gmDirective: session.gmNotes ?? null,
+      },
+    })
+
     return {
       sessionId: session.sessionId,
-      avatarContext: this.buildAvatarContext(session, contextData, scenarioSnapshot),
-      gmContext: this.buildGmContext(session, contextData, scenarioSnapshot),
+      avatarContext: assembled.avatar,
+      gmContext: assembled.gm,
     }
   }
 
@@ -131,57 +149,6 @@ export class GetSessionContextUseCase {
     })
   }
 
-  private buildAvatarContext(
-    session: Session,
-    contextData: Awaited<ReturnType<GetSessionContextUseCase['loadContextData']>>,
-    scenario: ReturnType<typeof toScenarioSnapshot>,
-  ): GetSessionContextOutput['avatarContext'] {
-    const avatarId = contextData.activeConversation?.avatarId
-    return {
-      ...(avatarId !== undefined ? { avatarId } : {}),
-      recentExchanges: contextData.memorySnapshot?.shortTerm?.recentExchanges ?? [],
-      workingMemory: toAvatarWorkingMemory(contextData.memorySnapshot),
-      longTermFacts: contextData.memorySnapshot?.longTerm?.facts ?? [],
-      ...toAvatarKnowledge(contextData.retrieval),
-      userPersona: contextData.userPersona,
-      gmNotes: session.gmNotes ?? null,
-      scenario,
-    }
-  }
-
-  private buildGmContext(
-    session: Session,
-    contextData: Awaited<ReturnType<GetSessionContextUseCase['loadContextData']>>,
-    scenario: ReturnType<typeof toScenarioSnapshot>,
-  ): GetSessionContextOutput['gmContext'] {
-    const workingSummary = toWorkingSummary(contextData.memorySnapshot)
-    return {
-      recentMessages: contextData.recentMessages,
-      memory: {
-        ...(contextData.memorySnapshot?.shortTerm?.recentExchanges !== undefined
-          ? { shortTerm: { recentExchanges: contextData.memorySnapshot.shortTerm.recentExchanges } }
-          : {}),
-        ...(workingSummary !== undefined ? { workingSummary } : {}),
-        ...(contextData.memorySnapshot?.longTerm?.facts !== undefined
-          ? { longTermFacts: contextData.memorySnapshot.longTerm.facts }
-          : {}),
-      },
-      ...(contextData.retrieval !== undefined
-        ? {
-            knowledge: {
-              memory: contextData.retrieval.memory,
-              world: contextData.retrieval.world,
-              media: contextData.retrieval.media,
-            },
-          }
-        : {}),
-      currentState: contextData.gmState ?? DEFAULT_GM_STATE,
-      availableAvatars: toGameMasterAvailableAvatars(contextData.scenarioAvatars, session),
-      userPersona: contextData.userPersona,
-      scenario,
-    }
-  }
-
   private async loadRecentMessages(conversationId: string) {
     const messages = await this.messageRepository.findByConversationId(conversationId, {
       limit: GM_RECENT_MESSAGES_LIMIT,
@@ -201,17 +168,6 @@ export class GetSessionContextUseCase {
     } catch {
       return null
     }
-  }
-}
-
-function toAvatarKnowledge(
-  retrieval: Awaited<ReturnType<TypedRetrievalService['retrieve']>> | undefined,
-): Pick<GetSessionContextOutput['avatarContext'], 'knowledge'> | Record<string, never> {
-  if (retrieval === undefined) return {}
-  return {
-    knowledge: {
-      retrievedItems: [...retrieval.memory, ...retrieval.world, ...retrieval.media],
-    },
   }
 }
 
@@ -243,38 +199,4 @@ function normalizeGoals(config: { objectives?: string[]; goals?: string[] }): st
     ...(Array.isArray(config.objectives) ? config.objectives : []),
     ...(Array.isArray(config.goals) ? config.goals : []),
   ]
-}
-
-function toAvatarWorkingMemory(memorySnapshot: LayeredMemorySnapshot | undefined) {
-  return {
-    ...(memorySnapshot?.working?.session !== undefined
-      ? { session: memorySnapshot.working.session }
-      : {}),
-    ...(memorySnapshot?.working?.avatar !== undefined
-      ? { avatar: memorySnapshot.working.avatar }
-      : {}),
-  }
-}
-
-function toWorkingSummary(memorySnapshot: LayeredMemorySnapshot | undefined) {
-  if (memorySnapshot === undefined) return undefined
-  return toWorkingSummaryFromSnapshot(memorySnapshot)
-}
-
-function toWorkingSummaryFromSnapshot(memorySnapshot: LayeredMemorySnapshot) {
-  const segments: string[] = []
-  if (hasText(memorySnapshot.working?.session?.summary)) {
-    segments.push(memorySnapshot.working.session.summary.trim())
-  }
-  if (hasText(memorySnapshot.working?.avatar?.summary)) {
-    segments.push(
-      `Avatar (${memorySnapshot.working.avatar.avatarId}): ${memorySnapshot.working.avatar.summary.trim()}`,
-    )
-  }
-
-  return segments.length > 0 ? segments.join('\n') : undefined
-}
-
-function hasText(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0
 }

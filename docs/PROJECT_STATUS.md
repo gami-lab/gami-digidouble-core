@@ -274,6 +274,9 @@ Started on: 2026-05-11
 - explicit API boundary mapper added for session context route
 - use-case output ownership moved from shared DTO typing to internal domain contract
 - duplicate inline scenario-context shape removed from GM use case in favor of context-domain type
+- dedicated deterministic Context Engine module introduced with explicit input/output/trace contracts
+- session context assembly routed through one Context Engine pass for both Avatar and GM projections
+- baseline unit coverage added for deterministic assembly behavior and contract composition
 
 ### Key Decisions
 
