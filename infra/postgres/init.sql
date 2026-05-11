@@ -45,6 +45,48 @@ CREATE TABLE IF NOT EXISTS avatars (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ── Knowledge ────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS knowledge_sources (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  scenario_id     UUID        NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+  name            TEXT        NOT NULL,
+  knowledge_type  TEXT        NOT NULL,
+  format          TEXT        NOT NULL,
+  uri_or_path     TEXT        NOT NULL,
+  status          TEXT        NOT NULL DEFAULT 'pending',
+  metadata        JSONB       NOT NULL DEFAULT '{}',
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (knowledge_type IN ('memory', 'world', 'media')),
+  CHECK (format IN ('pdf', 'text', 'markdown', 'url', 'media')),
+  CHECK (status IN ('pending', 'ready', 'error'))
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_chunks (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id       UUID        NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
+  content         TEXT        NOT NULL,
+  chunk_index     INT         NOT NULL,
+  embedding       VECTOR,
+  metadata        JSONB       NOT NULL DEFAULT '{}',
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (source_id, chunk_index)
+);
+
+CREATE TABLE IF NOT EXISTS ingestion_jobs (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id       UUID        NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
+  status          TEXT        NOT NULL DEFAULT 'pending',
+  attempts        INT         NOT NULL DEFAULT 0,
+  started_at      TIMESTAMPTZ,
+  completed_at    TIMESTAMPTZ,
+  error_message   TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (status IN ('pending', 'running', 'succeeded', 'failed'))
+);
+
 -- ── Sessions ──────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -183,6 +225,16 @@ CREATE TABLE IF NOT EXISTS user_memory_facts (
 -- ── Indexes ───────────────────────────────────────────────────────────────────
 
 CREATE INDEX IF NOT EXISTS idx_avatars_scenario_id   ON avatars(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_sources_scope
+  ON knowledge_sources(scenario_id, knowledge_type, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_chunk
+  ON knowledge_chunks(source_id, chunk_index);
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding
+  ON knowledge_chunks USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100)
+  WHERE embedding IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_source_status
+  ON ingestion_jobs(source_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_scenario_id  ON sessions(scenario_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_active_avatar_id ON sessions(active_avatar_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON conversations(session_id);

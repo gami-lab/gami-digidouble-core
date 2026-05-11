@@ -477,6 +477,9 @@ Current implementation focus:
 - canonical domain contracts for source/chunk/ingestion/retrieval in `apps/core/src/domain/knowledge/knowledge.types.ts`
 - canonical shared HTTP DTO fragments in `packages/shared/src/knowledge-contract-types.ts`
 - shared context injection DTO ownership aligned via `packages/shared/src/runtime-inspector-types.ts`
+- EPIC 5.1 persistence foundation in progress:
+- idempotent PostgreSQL knowledge tables (`knowledge_sources`, `knowledge_chunks`, `ingestion_jobs`) with retrieval/ingestion indexes in `infra/postgres/init.sql`
+- repository ports and adapters implemented for in-memory and Postgres storage in `apps/core/src/application/ports` and `apps/core/src/infrastructure/db`
 - context intelligence
 - GM context assembly evolution
 - media-aware retrieval

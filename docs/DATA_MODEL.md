@@ -392,8 +392,10 @@ Table: `knowledge_chunks`
 - id
 - source_id
 - content
-- embedding
+- chunk_index
+- embedding (pgvector)
 - metadata (JSONB)
+- created_at
 
 ## Notes
 
@@ -441,12 +443,13 @@ Table: `ingestion_jobs`
 
 - id
 - source_id
-- status
+- status (`pending | running | succeeded | failed`)
 - attempts
 - started_at
 - completed_at
 - error_message
 - created_at
+- updated_at
 
 ---
 

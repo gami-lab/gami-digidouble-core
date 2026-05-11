@@ -32,6 +32,7 @@ export interface KnowledgeSource {
   uriOrPath: string
   status: KnowledgeSourceStatus
   createdAt: string
+  updatedAt: string
   metadata?: Record<string, unknown>
 }
 
@@ -41,6 +42,8 @@ export interface KnowledgeChunk {
   content: string
   /** Index of the chunk within the source document. */
   chunkIndex: number
+  /** Embedding vector for retrieval (when available). */
+  embedding?: number[]
   createdAt: string
   metadata?: Record<string, unknown>
 }
@@ -51,6 +54,7 @@ export interface IngestionJob {
   status: IngestionJobStatus
   attempts: number
   createdAt: string
+  updatedAt: string
   startedAt?: string
   completedAt?: string
   errorMessage?: string
