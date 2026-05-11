@@ -277,6 +277,9 @@ Started on: 2026-05-11
 - dedicated deterministic Context Engine module introduced with explicit input/output/trace contracts
 - session context assembly routed through one Context Engine pass for both Avatar and GM projections
 - baseline unit coverage added for deterministic assembly behavior and contract composition
+- deterministic precedence policy and token-budget trimming added to Context Engine
+- machine-readable selection/trimming trace added for debugging of kept/trimmed segments
+- deterministic conflict resolution added for long-term fact keys and retrieval chunk-id duplicates
 
 ### Key Decisions
 

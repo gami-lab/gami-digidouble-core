@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { ContextEngine } from './context-engine.service.js'
 import type { ContextEngineInput } from './context-engine.types.js'
+import type { ContextEnginePolicy } from './context-engine.policy.js'
+import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
+import type { TypedRetrievalResult } from '../knowledge/knowledge.types.js'
 
 function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineInput {
   return {
@@ -70,7 +73,17 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
   }
 }
 
-describe('ContextEngine', () => {
+function requireMemory(input: ContextEngineInput): LayeredMemorySnapshot {
+  if (input.extensions.memory === undefined) throw new Error('Expected memory fixture')
+  return input.extensions.memory
+}
+
+function requireRetrieval(input: ContextEngineInput): TypedRetrievalResult {
+  if (input.extensions.retrieval === undefined) throw new Error('Expected retrieval fixture')
+  return input.extensions.retrieval
+}
+
+describe('ContextEngine baseline', () => {
   it('assembles avatar and gm projections from one deterministic input', () => {
     const engine = new ContextEngine()
     const input = makeInput()
@@ -85,6 +98,7 @@ describe('ContextEngine', () => {
     expect(output.gm.knowledge?.world[0]?.chunkId).toBe('chunk_2')
     expect(output.trace.deterministic).toBe(true)
     expect(output.trace.selectedInputs.retrievalCounts).toEqual({ memory: 1, world: 1, media: 1 })
+    expect(output.trace.selection.trimmed).toEqual([])
   })
 
   it('stays deterministic with missing optional extensions', () => {
@@ -109,5 +123,96 @@ describe('ContextEngine', () => {
     expect(output.trace.selectedInputs.hasUserPersona).toBe(false)
     expect(output.trace.selectedInputs.hasGmDirective).toBe(false)
     expect(output.trace.selectedInputs.recentMessageCount).toBe(0)
+  })
+
+  it('applies deterministic precedence trimming with protected segments', () => {
+    const tinyBudgetPolicy: ContextEnginePolicy = {
+      tokenBudget: {
+        avatarMaxTokens: 8,
+        gmMaxTokens: 8,
+      },
+      protectedSegments: ['gmDirective', 'scenario'],
+      precedence: [
+        'gmDirective',
+        'scenario',
+        'userPersona',
+        'shortTermMemory',
+        'workingMemory',
+        'longTermFacts',
+        'typedRetrievalMemory',
+        'typedRetrievalWorld',
+        'typedRetrievalMedia',
+        'recentMessages',
+      ],
+    }
+
+    const engine = new ContextEngine(tinyBudgetPolicy)
+    const output = engine.assemble(makeInput())
+
+    expect(output.avatar.gmNotes).toBe('Focus on concrete steps.')
+    expect(output.avatar.scenario.scenarioId).toBe('scenario_1')
+    expect(output.avatar.recentExchanges).toEqual([])
+    expect(output.avatar.longTermFacts).toEqual([])
+    expect(output.avatar.knowledge).toBeUndefined()
+    expect(
+      output.trace.selection.trimmed.some((item) => item.segmentId === 'shortTermMemory'),
+    ).toBe(true)
+    expect(
+      output.trace.selection.trimmed.some((item) => item.segmentId === 'typedRetrievalMemory'),
+    ).toBe(true)
+    expect(
+      output.trace.selection.kept.some(
+        (item) => item.segmentId === 'gmDirective' && item.reason === 'protected',
+      ),
+    ).toBe(true)
+  })
+})
+
+describe('ContextEngine policy', () => {
+  it('resolves conflicts deterministically by deduping long-term facts and retrieval chunk ids', () => {
+    const engine = new ContextEngine()
+    const input = makeInput()
+    const memory = requireMemory(input)
+    const retrieval = requireRetrieval(input)
+    input.extensions.memory = {
+      ...memory,
+      longTerm: {
+        facts: [
+          { category: 'preference', key: 'style', value: 'concise' },
+          { category: 'Preference', key: 'Style', value: 'verbose' },
+        ],
+      },
+    }
+    input.extensions.retrieval = {
+      ...retrieval,
+      memory: [
+        ...retrieval.memory,
+        {
+          sourceId: 'source_dup',
+          chunkId: 'chunk_2',
+          knowledgeType: 'memory',
+          content: 'memory duplicate of world chunk id',
+        },
+      ],
+      world: [
+        ...retrieval.world,
+        {
+          sourceId: 'source_dup_2',
+          chunkId: 'chunk_2',
+          knowledgeType: 'world',
+          content: 'world duplicate',
+        },
+      ],
+    }
+
+    const output = engine.assemble(input)
+
+    expect(output.avatar.longTermFacts).toEqual([
+      { category: 'preference', key: 'style', value: 'concise' },
+    ])
+    const avatarChunkIds = output.avatar.knowledge?.retrievedItems.map((item) => item.chunkId) ?? []
+    expect(avatarChunkIds).toEqual(['chunk_1', 'chunk_2', 'chunk_3'])
+    expect(output.gm.knowledge?.memory.map((item) => item.chunkId)).toContain('chunk_2')
+    expect(output.gm.knowledge?.world).toEqual([])
   })
 })

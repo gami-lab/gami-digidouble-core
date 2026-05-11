@@ -2,6 +2,7 @@ import type { GameMasterState } from '../game-master/game-master.types.js'
 import type { TypedRetrievalResult } from '../knowledge/knowledge.types.js'
 import type { LayeredMemorySnapshot, ContextMessage } from '../memory/memory.types.js'
 import type { UserPersona } from '../user/user.types.js'
+import type { ContextSegmentId } from './context-engine.policy.js'
 import type {
   ContextScenarioSnapshot,
   GmContextSnapshot,
@@ -25,6 +26,14 @@ export type ContextEngineInput = {
 
 export type ContextEngineTrace = {
   deterministic: true
+  policy: {
+    tokenBudget: {
+      avatarMaxTokens: number
+      gmMaxTokens: number
+    }
+    protectedSegments: ContextSegmentId[]
+    precedence: ContextSegmentId[]
+  }
   selectedInputs: {
     hasActiveAvatar: boolean
     recentMessageCount: number
@@ -42,6 +51,20 @@ export type ContextEngineTrace = {
   rationale: {
     avatarProjection: string[]
     gmProjection: string[]
+  }
+  selection: {
+    kept: Array<{
+      projection: 'avatar' | 'gm'
+      segmentId: ContextSegmentId
+      tokenEstimate: number
+      reason: 'protected' | 'within_budget'
+    }>
+    trimmed: Array<{
+      projection: 'avatar' | 'gm'
+      segmentId: ContextSegmentId
+      tokenEstimate: number
+      reason: 'budget_exceeded'
+    }>
   }
 }
 
