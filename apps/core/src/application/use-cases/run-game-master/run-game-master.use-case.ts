@@ -11,6 +11,7 @@ import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import type { ContextScenarioSnapshot } from '../../../domain/context/session-context.types.js'
 import { buildGameMasterSystemPrompt } from '../../../domain/game-master/gm-prompt.service.js'
 import { reduceGmState } from '../../../domain/game-master/gm-state-reducer.js'
 import type {
@@ -45,10 +46,7 @@ const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
 }
 const GM_RECENT_EXCHANGE_LIMIT = 3
 
-type ScenarioContext = {
-  description?: string
-  goals?: string[]
-}
+type ScenarioContext = Pick<ContextScenarioSnapshot, 'description' | 'goals'>
 
 type AvatarRoutingResult = {
   switchedAvatarId?: string

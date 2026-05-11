@@ -1,4 +1,4 @@
-import type { GmStateSummary, UserPersona } from '@gami/shared'
+import type { UserPersona } from '../../../domain/user/user.types.js'
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
@@ -19,7 +19,7 @@ import type {
 } from './get-session-context.types.js'
 
 const GM_RECENT_MESSAGES_LIMIT = 12
-const DEFAULT_GM_STATE: GmStateSummary = {
+const DEFAULT_GM_STATE = {
   progression: '',
   topicsCovered: [],
   interactionCount: 0,

@@ -15,6 +15,7 @@ import type { Config } from '../../config.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
+import { toAdminSessionContextResponse } from './mappers/session-context.mapper.js'
 import {
   mapInspectorDomainError,
   sessionParamsSchema,
@@ -64,7 +65,9 @@ export const adminSessionContextRoute: FastifyPluginCallback<AdminSessionContext
     async (request, reply) => {
       try {
         const output = await useCase.execute({ sessionId: request.params.sessionId })
-        return await reply.status(200).send(ok<AdminSessionContextResponse>(output))
+        return await reply
+          .status(200)
+          .send(ok<AdminSessionContextResponse>(toAdminSessionContextResponse(output)))
       } catch (error) {
         return await mapInspectorDomainError(error, reply, {
           internalLogMessage: 'Failed to load session context',

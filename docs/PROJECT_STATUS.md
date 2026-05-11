@@ -259,6 +259,22 @@ Completed on: 2026-04-29
 - AI Guided Discovery reference scenario
 - runtime GM observability
 
+---
+
+## EPIC 5.2 — Context Engine v2
+
+Status: 🟡 In progress
+Started on: 2026-05-11
+
+### Current slice completed
+
+- context contract ownership map added
+- internal context snapshot contracts centralized in `domain/context`
+- API/shared context DTO ownership preserved in `packages/shared`
+- explicit API boundary mapper added for session context route
+- use-case output ownership moved from shared DTO typing to internal domain contract
+- duplicate inline scenario-context shape removed from GM use case in favor of context-domain type
+
 ### Key Decisions
 
 - GM never blocks avatar responses
