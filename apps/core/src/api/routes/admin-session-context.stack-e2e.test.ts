@@ -107,12 +107,38 @@ describe('GET /v1/admin/sessions/:sessionId/context — stack happy path', () =>
     expect(response.status).toBe(200)
     const text = await response.text()
     const body = JSON.parse(text) as ApiResponse<AdminSessionContextResponse>
-    expect(body.error).toBeNull()
-    expect(body.data?.sessionId).toBe(seeded.sessionId)
-    expect(Array.isArray(body.data?.avatarContext.recentExchanges)).toBe(true)
-    expect(Array.isArray(body.data?.gmContext.recentMessages)).toBe(true)
-    expect(Array.isArray(body.data?.gmContext.availableAvatars)).toBe(true)
-    expect(text).not.toContain('You are a helpful guide.')
-    expect(text).not.toContain('OPENAI_API_KEY')
+    assertStackContextBody(body, seeded.sessionId)
+    assertStackContextRedaction(text)
   })
 })
+
+function assertStackContextBody(
+  body: ApiResponse<AdminSessionContextResponse>,
+  sessionId: string,
+): void {
+  assertStackContextCoreShape(body, sessionId)
+  assertStackContextTraceBounds(body)
+}
+
+function assertStackContextCoreShape(
+  body: ApiResponse<AdminSessionContextResponse>,
+  sessionId: string,
+): void {
+  expect(body.error).toBeNull()
+  expect(body.data?.sessionId).toBe(sessionId)
+  expect(Array.isArray(body.data?.avatarContext.recentExchanges)).toBe(true)
+  expect(Array.isArray(body.data?.gmContext.recentMessages)).toBe(true)
+  expect(Array.isArray(body.data?.gmContext.availableAvatars)).toBe(true)
+}
+
+function assertStackContextTraceBounds(body: ApiResponse<AdminSessionContextResponse>): void {
+  expect(body.data?.contextTrace?.deterministic).toBe(true)
+  expect((body.data?.contextTrace?.selection.kept.length ?? 0) <= 24).toBe(true)
+  expect((body.data?.contextTrace?.selection.trimmed.length ?? 0) <= 24).toBe(true)
+}
+
+function assertStackContextRedaction(rawBody: string): void {
+  expect(rawBody).not.toContain('You are a helpful guide.')
+  expect(rawBody).not.toContain('OPENAI_API_KEY')
+  expect(rawBody).not.toContain('systemPrompt')
+}

@@ -220,23 +220,54 @@ describe('GET /v1/admin/sessions/:sessionId/context', () => {
     })
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<AdminSessionContextResponse>>()
-    expect(body.error).toBeNull()
-    expect(body.data?.sessionId).toBe('session_1')
-    expect(body.data?.avatarContext.recentExchanges).toEqual([{ user: 'hello', avatar: 'hi' }])
-    expect(body.data?.avatarContext.longTermFacts).toEqual([
-      { category: 'preference', key: 'style', value: 'concise' },
-    ])
-    expect(body.data?.avatarContext.userPersona).toEqual({
-      name: 'Maya',
-      roleInWorld: 'student',
-    })
-    expect(body.data?.gmContext.currentState.progression).toBe('intro')
-    expect(body.data?.gmContext.recentMessages).toEqual([
-      { role: 'user', content: 'hello' },
-      { role: 'avatar', content: 'hi' },
-    ])
-    expect(body.data?.gmContext.memory.workingSummary).toContain('Session summary')
-    expect(response.body).not.toContain('personaPrompt')
-    expect(response.body).not.toContain('OPENAI_API_KEY')
+    assertContextBody(body)
+    assertContextResponseRedaction(response.body)
   })
 })
+
+function assertContextBody(body: ApiResponse<AdminSessionContextResponse>): void {
+  assertCoreContextShape(body)
+  assertContextTraceBounds(body)
+}
+
+function assertCoreContextShape(body: ApiResponse<AdminSessionContextResponse>): void {
+  expect(body.error).toBeNull()
+  expect(body.data?.sessionId).toBe('session_1')
+  expect(body.data?.avatarContext.recentExchanges).toEqual([{ user: 'hello', avatar: 'hi' }])
+  expect(body.data?.avatarContext.longTermFacts).toEqual([
+    { category: 'preference', key: 'style', value: 'concise' },
+  ])
+  expect(body.data?.avatarContext.userPersona).toEqual({
+    name: 'Maya',
+    roleInWorld: 'student',
+  })
+  expect(body.data?.gmContext.currentState.progression).toBe('intro')
+  expect(body.data?.gmContext.recentMessages).toEqual([
+    { role: 'user', content: 'hello' },
+    { role: 'avatar', content: 'hi' },
+  ])
+  expect(body.data?.gmContext.memory.workingSummary).toContain('Session summary')
+}
+
+function assertContextTraceBounds(body: ApiResponse<AdminSessionContextResponse>): void {
+  assertContextTraceSelectionBounds(body)
+  assertContextTracePolicyBounds(body)
+}
+
+function assertContextTraceSelectionBounds(body: ApiResponse<AdminSessionContextResponse>): void {
+  expect(body.data?.contextTrace?.deterministic).toBe(true)
+  expect(body.data?.contextTrace?.selection.kept.length).toBeLessThanOrEqual(24)
+  expect(body.data?.contextTrace?.selection.trimmed.length).toBeLessThanOrEqual(24)
+}
+
+function assertContextTracePolicyBounds(body: ApiResponse<AdminSessionContextResponse>): void {
+  expect(body.data?.contextTrace?.policy.precedence.length).toBeLessThanOrEqual(16)
+  expect(body.data?.contextTrace?.policy.protectedSegments.length).toBeLessThanOrEqual(16)
+}
+
+function assertContextResponseRedaction(rawBody: string): void {
+  expect(rawBody).not.toContain('personaPrompt')
+  expect(rawBody).not.toContain('OPENAI_API_KEY')
+  expect(rawBody).not.toContain('systemPrompt')
+  expect(rawBody).not.toContain('apiKeySecret')
+}

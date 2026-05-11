@@ -82,6 +82,7 @@ export type {
   SessionContextScenarioSnapshot,
   SessionContextAvatarSnapshot,
   SessionContextGmSnapshot,
+  SessionContextTrace,
   AdminSessionContextResponse,
   AdminReplayGmResponse,
   AdminRefreshMemoryResponse,

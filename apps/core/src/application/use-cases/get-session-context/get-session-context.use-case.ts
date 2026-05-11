@@ -64,6 +64,7 @@ export class GetSessionContextUseCase {
       sessionId: session.sessionId,
       avatarContext: assembled.avatar,
       gmContext: assembled.gm,
+      contextTrace: assembled.trace,
     }
   }
 

@@ -582,6 +582,12 @@ GET /v1/admin/sessions/{sessionId}/events
 GET /v1/admin/sessions/{sessionId}/context
 ```
 
+Response notes:
+
+- Returns `ApiResponse<AdminSessionContextResponse>`
+- Includes `contextTrace` explainability metadata (policy, selected inputs, kept/trimmed segment summaries)
+- Trace payload is bounded and redacted to avoid leaking raw prompt/provider internals
+
 ---
 
 ## Session Metrics

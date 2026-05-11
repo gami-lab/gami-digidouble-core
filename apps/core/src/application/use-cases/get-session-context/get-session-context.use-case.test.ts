@@ -239,6 +239,8 @@ describe('GetSessionContextUseCase', () => {
     ])
     expect(output.avatarContext.knowledge?.retrievedItems.length).toBeGreaterThan(0)
     expect(output.gmContext.knowledge?.world.length).toBeGreaterThan(0)
+    expect(output.contextTrace.deterministic).toBe(true)
+    expect(output.contextTrace.selection.kept.length).toBeGreaterThan(0)
   })
 
   it('returns null/empty optional layers when conversation and persona are absent', async () => {
@@ -274,6 +276,7 @@ describe('GetSessionContextUseCase', () => {
       interactionCount: 0,
     })
     expect(output.gmContext.memory).toEqual({})
+    expect(output.contextTrace.deterministic).toBe(true)
   })
 
   it('throws NOT_FOUND when session is missing', async () => {

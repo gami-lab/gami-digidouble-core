@@ -1,4 +1,4 @@
-import type { AdminSessionContextResponse } from '@gami/shared'
+import type { AdminSessionContextResponse, SessionContextTrace } from '@gami/shared'
 import type { SessionContextSnapshot } from '../../../domain/context/session-context.types.js'
 
 /**
@@ -15,5 +15,56 @@ export function toAdminSessionContextResponse(
     sessionId: snapshot.sessionId,
     avatarContext: snapshot.avatarContext,
     gmContext: snapshot.gmContext,
+    contextTrace: toSessionContextTrace(snapshot),
+  }
+}
+
+const MAX_TRACE_SEGMENTS = 24
+const MAX_POLICY_SEGMENTS = 16
+
+function toSessionContextTrace(snapshot: SessionContextSnapshot): SessionContextTrace {
+  const trace = snapshot.contextTrace
+  return {
+    deterministic: true,
+    policy: {
+      tokenBudget: {
+        avatarMaxTokens: trace.policy.tokenBudget.avatarMaxTokens,
+        gmMaxTokens: trace.policy.tokenBudget.gmMaxTokens,
+      },
+      protectedSegments: trace.policy.protectedSegments.slice(0, MAX_POLICY_SEGMENTS),
+      precedence: trace.policy.precedence.slice(0, MAX_POLICY_SEGMENTS),
+    },
+    selectedInputs: {
+      hasActiveAvatar: trace.selectedInputs.hasActiveAvatar,
+      recentMessageCount: trace.selectedInputs.recentMessageCount,
+      shortTermExchangeCount: trace.selectedInputs.shortTermExchangeCount,
+      hasWorkingMemory: trace.selectedInputs.hasWorkingMemory,
+      longTermFactCount: trace.selectedInputs.longTermFactCount,
+      retrievalCounts: {
+        memory: trace.selectedInputs.retrievalCounts.memory,
+        world: trace.selectedInputs.retrievalCounts.world,
+        media: trace.selectedInputs.retrievalCounts.media,
+      },
+      hasUserPersona: trace.selectedInputs.hasUserPersona,
+      hasGmDirective: trace.selectedInputs.hasGmDirective,
+    },
+    rationale: {
+      avatarProjection: [...trace.rationale.avatarProjection],
+      gmProjection: [...trace.rationale.gmProjection],
+    },
+    selection: {
+      kept: trace.selection.kept.slice(0, MAX_TRACE_SEGMENTS).map((entry) => ({
+        projection: entry.projection,
+        segmentId: entry.segmentId,
+        tokenEstimate: entry.tokenEstimate,
+        reason: entry.reason,
+      })),
+      trimmed: trace.selection.trimmed.slice(0, MAX_TRACE_SEGMENTS).map((entry) => ({
+        projection: entry.projection,
+        segmentId: entry.segmentId,
+        tokenEstimate: entry.tokenEstimate,
+        reason: entry.reason,
+      })),
+    },
   }
 }

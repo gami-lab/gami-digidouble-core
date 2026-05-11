@@ -8,6 +8,7 @@ import type {
 } from '../memory/memory.types.js'
 import type { GameMasterState } from '../game-master/game-master.types.js'
 import type { UserPersona } from '../user/user.types.js'
+import type { ContextEngineTrace } from './context-engine.types.js'
 
 /**
  * Canonical internal Context Engine snapshot contracts.
@@ -70,4 +71,5 @@ export type SessionContextSnapshot = {
   sessionId: string
   avatarContext: AvatarContextSnapshot
   gmContext: GmContextSnapshot
+  contextTrace: ContextEngineTrace
 }

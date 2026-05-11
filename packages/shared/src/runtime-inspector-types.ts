@@ -236,10 +236,55 @@ export type SessionContextGmSnapshot = {
   scenario: SessionContextScenarioSnapshot
 }
 
+export type SessionContextTrace = {
+  deterministic: true
+  policy: {
+    tokenBudget: {
+      avatarMaxTokens: number
+      gmMaxTokens: number
+    }
+    protectedSegments: string[]
+    precedence: string[]
+  }
+  selectedInputs: {
+    hasActiveAvatar: boolean
+    recentMessageCount: number
+    shortTermExchangeCount: number
+    hasWorkingMemory: boolean
+    longTermFactCount: number
+    retrievalCounts: {
+      memory: number
+      world: number
+      media: number
+    }
+    hasUserPersona: boolean
+    hasGmDirective: boolean
+  }
+  rationale: {
+    avatarProjection: string[]
+    gmProjection: string[]
+  }
+  selection: {
+    kept: Array<{
+      projection: 'avatar' | 'gm'
+      segmentId: string
+      tokenEstimate: number
+      reason: 'protected' | 'within_budget'
+    }>
+    trimmed: Array<{
+      projection: 'avatar' | 'gm'
+      segmentId: string
+      tokenEstimate: number
+      reason: 'budget_exceeded'
+    }>
+  }
+}
+
 export type AdminSessionContextResponse = {
   sessionId: string
   avatarContext: SessionContextAvatarSnapshot
   gmContext: SessionContextGmSnapshot
+  contextTrace?: SessionContextTrace
 }
 
 export type AdminReplayGmResponse = {

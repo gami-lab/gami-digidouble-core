@@ -283,6 +283,8 @@ Started on: 2026-05-11
 - send-message avatar prompt assembly now routes through Context Engine output mapping
 - run-game-master context input now consumes Context Engine gm projection (or preassembled context from turn path)
 - avatar and gm context paths share one assembly contract while preserving async non-blocking GM execution
+- admin session-context inspection now exposes bounded explainable `contextTrace` metadata (kept/trimmed/policy)
+- context trace mapping is canonicalized through shared DTO ownership with explicit boundary redaction/allowlisting
 
 ### Key Decisions
 
