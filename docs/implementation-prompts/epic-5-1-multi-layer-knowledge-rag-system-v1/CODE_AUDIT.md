@@ -2,15 +2,13 @@
 
 ## Scope audited
 
-Audited the generated implementation prompt pack in `docs/implementation-prompts/epic-5-1-multi-layer-knowledge-rag-system-v1/`, including `README.md`, `00-contract-cleanup.md`, `01-knowledge-domain-and-persistence.md`, `02-ingestion-pipeline-and-job-lifecycle.md`, `03-retrieval-pipelines-by-type.md`, `04-api-contracts-and-stack-e2e.md`, and `05-console-integration-hardening-doc-sync.md`.
-
-Also checked alignment against `docs/VISION.md`, `docs/PRINCIPLES.md`, `docs/ARCHITECTURE.md`, `docs/TECH_STACK.md`, `docs/DATA_MODEL.md`, `docs/API_CONTRACT.md`, `docs/TEST_STRATEGY.md`, `docs/TEST_COVERAGE_PLAN.md`, `docs/EPICS.md`, and `docs/PROJECT_STATUS.md`.
+Audited the actual EPIC 5.1 code surface in `apps/core`, including the knowledge API route, ingestion service, typed retrieval service, knowledge use cases, repositories, domain contracts, and stack-e2e coverage. Also checked the relevant project docs for alignment: `docs/VISION.md`, `docs/PRINCIPLES.md`, `docs/ARCHITECTURE.md`, `docs/TECH_STACK.md`, `docs/DATA_MODEL.md`, `docs/API_CONTRACT.md`, `docs/TEST_STRATEGY.md`, `docs/TEST_COVERAGE_PLAN.md`, `docs/EPICS.md`, and `docs/PROJECT_STATUS.md`.
 
 ## Executive Summary
 
-The prompt pack is structurally solid and aligned with the repository's architecture, testing discipline, and docs-first workflow. It correctly introduces a 00 contract-cleanup slice, enforces mandatory docs updates, and hard-requires stack-e2e coverage for new APIs.
+The code delivers the core EPIC shape: typed knowledge sources, ingestion jobs, chunk persistence, typed retrieval, and a public/admin API surface. The architecture is generally clean and follows the modular-monolith split well.
 
-The main risk is not code quality but execution ambiguity: the pack defines the right slices, but some of the new knowledge/API surfaces are still described at a high level. That is acceptable for a prompt pack, but it means the eventual implementation agent will need to make a few local design choices about route inventory, shared contract ownership, and coverage-doc updates.
+The main concerns are operational correctness and proof quality. Ingestion can delete existing chunks before a replacement run succeeds, retry handling is not idempotent, memory retrieval is too loosely scoped for the EPIC’s memory promise, and the stack-e2e happy path does not actually require ingestion to succeed. These are meaningful weaknesses for a knowledge system because they can hide data loss or false confidence.
 
 ## Final Grade
 
@@ -25,113 +23,110 @@ B
 
 ## Feature Confidence Matrix
 
-| Feature                              | Expected Behavior                                                                     | Evidence                                                                                                               | Confidence (High/Medium/Low) | Notes                                                                      |
-| ------------------------------------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------- |
-| Contract cleanup before feature work | EPIC starts with ownership cleanup and duplicate-shape audit                          | `00-contract-cleanup.md` explicitly mandates pre-implementation contract audit and canonical ownership                 | High                         | Good sequencing and clear anti-drift rule                                  |
-| Knowledge persistence foundation     | New knowledge entities and schema are implemented before ingestion/retrieval behavior | `01-knowledge-domain-and-persistence.md` defines domain/schema/repository slice                                        | High                         | Clear separation of persistence from behavior                              |
-| Ingestion pipeline                   | Sources can be registered, chunked, embedded, and tracked by job state                | `02-ingestion-pipeline-and-job-lifecycle.md` covers lifecycle and retry behavior                                       | Medium                       | Good scope, but source formats and job boundaries remain a little abstract |
-| Type-specific retrieval              | Retrieval is separated into `memory`, `world`, and `media` outputs                    | `03-retrieval-pipelines-by-type.md` requires typed pipelines and deterministic merge                                   | High                         | Strong alignment with EPIC objective                                       |
-| API contracts and stack-e2e          | New endpoints have explicit validation and required stack-e2e coverage                | `04-api-contracts-and-stack-e2e.md` hard-requires auth, validation, not-found, and TODO-skipped happy path when needed | High                         | This is the strongest slice in the pack                                    |
-| Console/admin hardening and doc sync | Console integration, observability, and final docs update are completed               | `05-console-integration-hardening-doc-sync.md` closes the EPIC with doc sync                                           | Medium                       | Good closure slice, but doc targets could be more explicit                 |
+| Feature                       | Expected Behavior                                                             | Evidence                                                                                                                                                                                                 | Confidence | Notes                                           |
+| ----------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------- |
+| Knowledge source registration | Source creation validates input and persists canonical source DTOs            | [knowledge.ts](apps/core/src/api/routes/knowledge.ts#L134) and [create-knowledge-source.use-case.ts](apps/core/src/application/use-cases/create-knowledge-source/create-knowledge-source.use-case.ts#L1) | High       | Good route/use-case separation                  |
+| Ingestion lifecycle           | Source ingestion creates jobs, updates status, and emits observability events | [knowledge-ingestion.service.ts](apps/core/src/application/services/knowledge/knowledge-ingestion.service.ts#L84)                                                                                        | Medium     | Core flow exists, but failure safety is weak    |
+| Typed retrieval               | Retrieval returns separate memory/world/media sections with trace metadata    | [typed-retrieval.service.ts](apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L27)                                                                                                | High       | Domain separation is explicit                   |
+| Knowledge API contract        | API exposes source, job, and retrieval endpoints with auth and validation     | [knowledge.ts](apps/core/src/api/routes/knowledge.ts#L253)                                                                                                                                               | High       | Contract surface is clear                       |
+| Stack-e2e protection          | Auth, validation, and not-found cases are covered for new endpoints           | [knowledge.stack-e2e.test.ts](apps/core/src/api/routes/knowledge.stack-e2e.test.ts#L1)                                                                                                                   | Medium     | Baseline exists, but the happy path is too weak |
 
 ## Strengths
 
-- The pack follows the repository's preferred vertical-slice shape and includes a dedicated cleanup phase.
-- Every prompt includes the mandatory pre-implementation contract check and final documentation update step.
-- The API slice correctly enforces the stack-e2e rule for every new endpoint.
-- The sequencing is sensible: persistence first, ingestion second, retrieval third, API surface fourth, console/hardening last.
-- The pack is aligned with the project's modular-monolith and explicit-contract principles.
+- The code respects the modular-monolith layers reasonably well: routes stay thin, application services own behavior, and infrastructure adapters own persistence.
+- The shared contract package is used for API-facing knowledge DTOs instead of route-local shapes, which reduces drift.
+- The typed retrieval service is deterministic and separates memory, world, and media outputs instead of flattening everything into one bucket.
+- Repository adapters exist for both in-memory and Postgres execution paths, which keeps tests fast while still validating real storage behavior.
+- The knowledge route includes admin-safe observability events and payload bounding for retrieval responses.
 
 ## Findings
 
-### 1. Coverage-doc update is not explicitly required in the final slice
+### 1. Ingestion can erase prior chunks before the replacement run succeeds
+
+- Severity: High
+- Category: Data safety / operational correctness
+- Problem: `KnowledgeIngestionService` deletes all chunks for a source before creating the new set, but there is no transaction or staging step around delete-and-replace.
+- Why it matters: If embedding, content loading, or chunk creation fails after the delete, the source can be left with no chunks even though a previous successful ingestion existed. That is data loss, not just a failed refresh.
+- Evidence: [knowledge-ingestion.service.ts](apps/core/src/application/services/knowledge/knowledge-ingestion.service.ts#L112-L133)
+- Recommendation: Make replacement atomic. Either stage new chunks and swap only after success, or wrap the delete/create sequence in a transaction so a failed run cannot wipe prior knowledge.
+
+### 2. Retry ingestion is not idempotent
+
+- Severity: High
+- Category: Operational correctness / duplicate work
+- Problem: Retrying a failed job always creates a brand-new queued job, with no check for an already-created retry or any linkage back to the original failure.
+- Why it matters: Repeated retry clicks or concurrent operator actions can generate multiple jobs for the same source, creating duplicate work and confusing job history.
+- Evidence: [retry-ingestion-job.use-case.ts](apps/core/src/application/use-cases/retry-ingestion-job/retry-ingestion-job.use-case.ts#L15-L45)
+- Recommendation: Make retries idempotent by reusing an existing pending/running retry when present, or by storing an explicit retry linkage and refusing duplicate retries for the same failed job.
+
+### 3. Memory retrieval is only softly scoped, not truly filtered
 
 - Severity: Medium
-- Category: Documentation alignment / test strategy drift
-- Problem: The pack requires `docs/PROJECT_STATUS.md` and example docs to be updated, but it does not explicitly call out `docs/TEST_COVERAGE_PLAN.md` in the closing slice even though EPIC 5.1 introduces new API routes and mandatory stack-e2e tests.
-- Why it matters: This repo treats test coverage planning as a first-class contract. If new endpoint/test tiers are added without updating coverage planning, future contributors can miss required suites or misunderstand what belongs in CI.
-- Evidence: `05-console-integration-hardening-doc-sync.md` lists examples including `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`, `docs/ARCHITECTURE.md`, `docs/TEST_STRATEGY.md`, and `docs/EPICS.md`, but not `docs/TEST_COVERAGE_PLAN.md`.
-- Recommendation: Add `docs/TEST_COVERAGE_PLAN.md` to the mandatory doc review list for this EPIC, or explicitly state why it is unaffected.
+- Category: Retrieval correctness / context safety
+- Problem: The retrieval service boosts memory chunks when user/session/conversation metadata matches, but it still queries every ready memory source in the scenario and can surface unrelated memory chunks whenever token overlap exists.
+- Why it matters: EPIC 5.1 promises avatar memory as personal history and past interactions. Soft boosts are not enough to keep unrelated memory out of the result set, especially once the scenario has multiple memory sources.
+- Evidence: [typed-retrieval.service.ts](apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L57-L87) and [typed-retrieval.service.ts](apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L117-L140)
+- Recommendation: Add explicit scope filters or source-level ownership constraints for memory retrieval before ranking, not just after ranking.
 
-### 2. Route inventory is described by behavior, not by concrete file-level deliverables
+### 4. Stack-e2e happy path does not prove ingestion success
 
 - Severity: Medium
-- Category: Execution ambiguity
-- Problem: The API prompt names the endpoint behaviors but does not enumerate exact route file names or a minimal route matrix. That leaves room for the implementing agent to choose shapes that could diverge from the project's route conventions.
-- Why it matters: New API surfaces are the highest-risk area for contract drift. A concrete file inventory reduces the chance of inconsistent route naming or duplicated endpoint ownership.
-- Evidence: `04-api-contracts-and-stack-e2e.md` lists required behaviors but not a concrete per-route file plan.
-- Recommendation: Expand the API slice with a route table mapping each endpoint to expected route file(s) and corresponding `*.stack-e2e.test.ts` file(s).
+- Category: Test quality / false confidence
+- Problem: The stack-e2e test accepts either completed or failed ingestion as a pass condition, so the supposed happy path can succeed even when ingestion never completes successfully.
+- Why it matters: This weakens the one test that should prove the end-to-end knowledge loop. It can hide broken ingestion while still leaving the suite green.
+- Evidence: [knowledge.stack-e2e.test.ts](apps/core/src/api/routes/knowledge.stack-e2e.test.ts#L84-L160)
+- Recommendation: Require completed status in the happy path and assert that retrieval returns content tied to the ingested source, not just a bounded string length.
 
-### 3. Knowledge-type semantics are correct but still slightly overloaded between source format and retrieval domain
-
-- Severity: Low
-- Category: Domain modeling clarity
-- Problem: The pack distinguishes `knowledgeType` (`memory | world | media`) from source format, but the persistence slice still leaves room for confusion between ingestion format and retrieval domain.
-- Why it matters: This is a common source of future field drift; if the same field is used for both document type and retrieval type, later changes become expensive.
-- Evidence: `01-knowledge-domain-and-persistence.md` notes the distinction, but it does not prescribe a concrete schema naming convention for both concepts.
-- Recommendation: In implementation, enforce separate fields and names for file/media format versus semantic knowledge domain, and document them in `docs/DATA_MODEL.md`.
-
-### 4. The cleanup prompt is necessary, but it could be more explicit about shared-contract ownership targets
+### 5. Retrieval response bounding lives in the route layer as hidden presentation logic
 
 - Severity: Low
-- Category: Contract ownership clarity
-- Problem: `00-contract-cleanup.md` instructs the agent to audit duplicates and canonical ownership, but it does not name likely shared owners up front beyond general domain/shared boundaries.
-- Why it matters: Ambiguity here can slow the first slice and increase the chance that new DTOs are added in the wrong layer.
-- Evidence: The prompt references canonical ownership in broad terms but does not point to a likely shared package owner for HTTP-facing knowledge DTOs.
-- Recommendation: Add a brief ownership map in the prompt or README so the implementing agent can immediately place response DTOs in the intended shared module.
-
-### 5. The final slice depends on console integration before the backend contract is fully concretized
-
-- Severity: Low
-- Category: Sequencing risk
-- Problem: The closing prompt mixes console integration, hardening, and doc sync, which is fine, but the readme does not explicitly state that console work is optional if the core API surface already satisfies operator needs.
-- Why it matters: If the backend implementation lands cleanly, the console slice could become too broad and delay closure unnecessarily.
-- Evidence: `05-console-integration-hardening-doc-sync.md` combines multiple concerns in one final slice.
-- Recommendation: If implementation pressure rises, split console integration from final hardening/doc sync so the EPIC can still close with minimal operational surface.
+- Category: Maintainability / contract clarity
+- Problem: The knowledge retrieval route truncates returned content to 800 characters inside the controller instead of through a shared serializer or DTO rule.
+- Why it matters: This creates a hidden presentation rule in the route layer. If another consumer needs the same safety rule, it can easily drift or be forgotten.
+- Evidence: [knowledge.ts](apps/core/src/api/routes/knowledge.ts#L253-L315)
+- Recommendation: Move response bounding into a shared helper or documented DTO policy so the rule is explicit and reusable.
 
 ## Architecture Review
 
-The pack respects the repository's modular-monolith structure and avoids asking for speculative framework additions. It keeps domain/persistence, ingestion, retrieval, API, and console concerns in separate slices. The 00 cleanup step is the right safeguard for this EPIC because knowledge retrieval is exactly the kind of area where duplicated DTOs and field drift tend to accumulate.
+The overall architecture is solid. The route layer delegates into application use cases and services, and the repositories stay behind explicit ports. Shared API contracts are canonicalized rather than duplicated in route-local response shapes, which is the right direction for this codebase.
 
-The largest architectural risk is contract drift during implementation, not the prompt pack itself. The pack appropriately anticipates that risk by requiring canonical ownership checks and shared DTO reuse.
+The main architectural weakness is not layer violation but boundary safety. Ingestion replacement is not atomic, retry semantics are not stable under repeated operator action, and retrieval scoping is not strong enough for the memory use case. Those are maintainability and correctness problems, not layering problems.
 
 ## Test Review
 
-Strong tests required by the pack:
+Strong tests:
 
-- Mandatory `*.stack-e2e.test.ts` coverage for every new endpoint.
-- Auth, validation, and not-found behavior explicitly required.
-- Deterministic tests for retrieval selection and repository behavior.
-- Integration tests for Postgres-backed persistence.
+- The typed retrieval unit test proves separate memory/world/media output sections and verifies that type filtering prevents cross-domain mixing.
+- The repository integration tests validate Postgres persistence for knowledge sources and the ingestion job lifecycle.
+- The route validation tests cover auth and schema failures for the new knowledge API surface.
 
-Weak tests / gaps:
+Weak tests:
 
-- No explicit requirement to update `docs/TEST_COVERAGE_PLAN.md`.
-- The API slice requires stack-e2e tests but does not enumerate the exact route-by-route file matrix.
-- The pack does not explicitly require consumer-facing contract tests for typed retrieval payloads beyond general unit/integration coverage.
+- The stack-e2e happy path does not require completed ingestion, so it can pass when the core pipeline fails.
+- There is no test proving that ingestion replacement preserves the previous chunk set on failure.
+- There is no test proving retry idempotency for repeated retries of the same failed job.
+- There is no test proving memory retrieval is actually scoped tightly enough to avoid unrelated memory results.
 
-Implementation-coupled tests to avoid:
+Implementation-coupled tests:
 
-- Tests that only assert route handlers call a use case.
-- Tests that only inspect mock invocation counts.
-- Tests that validate only internal ingestion steps without proving externally observable job state or retrieval output.
+- The stack-e2e assertion that retrieved content length is bounded to roughly the current route cap is tied to the controller’s truncation policy rather than a consumer-observed contract.
 
 ## Documentation Gaps
 
-- `docs/TEST_COVERAGE_PLAN.md` should be explicitly reviewed during final doc sync.
-- `docs/DATA_MODEL.md` will likely need a precise schema entry for knowledge source format versus semantic knowledge domain.
-- `docs/API_CONTRACT.md` will need concrete DTOs and endpoint list additions once implementation lands.
-- `docs/ARCHITECTURE.md` may need a small knowledge-module update if new ports/services are added.
+- `docs/API_CONTRACT.md` should be updated with the knowledge endpoints, request/response DTOs, and any response bounding rules.
+- `docs/DATA_MODEL.md` should reflect the knowledge source/chunk/job persistence model and any scope fields required for memory retrieval.
+- `docs/TEST_COVERAGE_PLAN.md` should explicitly call out the new knowledge module coverage expectations, especially retry idempotency and ingestion failure safety.
+- `docs/PROJECT_STATUS.md` should be updated to record the knowledge/RAG implementation status and any remaining debt.
 
 ## Path to A
 
-Minimal steps to raise this from B to A:
+Minimal steps needed to reach A:
 
-1. Add `docs/TEST_COVERAGE_PLAN.md` to the mandatory final doc review list.
-2. Expand the API prompt with a small route table mapping endpoint behavior to file-level deliverables and stack-e2e filenames.
-3. Tighten the persistence prompt with a clearer schema naming convention separating source format from semantic knowledge domain.
-4. Add a short ownership map for canonical shared DTO placement in `00-contract-cleanup.md`.
-5. Keep the final slice narrow enough that console integration can be deferred if backend/API hardening already closes the EPIC.
+1. Make ingestion replacement atomic so a failed run cannot delete the last good chunk set.
+2. Add retry idempotency and explicit retry linkage for ingestion jobs.
+3. Tighten memory retrieval scoping so unrelated memory data cannot bleed into results.
+4. Strengthen the stack-e2e happy path to require successful ingestion and source-tied retrieval evidence.
+5. Move response bounding into a shared serializer/helper and update the docs that define the contract.
 
 ## Final Recommendation
 
