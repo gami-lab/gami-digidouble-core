@@ -481,14 +481,16 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
 
     expect(runGameMasterExecuteMock).toHaveBeenCalledTimes(1)
-    expect(runGameMasterExecuteMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionId: 'session_1',
-        scenarioId: 'scenario_1',
-        avatarId: 'avatar_1',
-        userMessageText: 'Hello',
-      }),
-    )
+    const gmInput = runGameMasterExecuteMock.mock.calls[0]?.[0] as Record<string, unknown>
+    expect(gmInput['sessionId']).toBe('session_1')
+    expect(gmInput['scenarioId']).toBe('scenario_1')
+    expect(gmInput['avatarId']).toBe('avatar_1')
+    expect(gmInput['userMessageText']).toBe('Hello')
+    const assembledContext = gmInput['assembledContext'] as Record<string, unknown>
+    expect(assembledContext).toBeDefined()
+    expect(assembledContext).toHaveProperty('avatar')
+    expect(assembledContext).toHaveProperty('gm')
+    expect(assembledContext).toHaveProperty('trace')
   })
 
   it('passes selected memory payload to run game master when available', async () => {

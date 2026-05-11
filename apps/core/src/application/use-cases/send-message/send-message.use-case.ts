@@ -13,6 +13,7 @@ import type { IConversationMemoryRepository } from '../../ports/IConversationMem
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { buildAvatarAwareness } from '../../../domain/avatar/avatar-awareness.service.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
+import { ContextEngine } from '../../../domain/context/context-engine.service.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
@@ -34,6 +35,13 @@ import {
   toLlmDialogueMessages,
   toRecentExchanges,
 } from './send-message.helpers.js'
+import type { ContextEngineOutput } from '../../../domain/context/context-engine.types.js'
+import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master.avatar-unlocks.js'
+import {
+  toLayeredSnapshotFromAvatarContext,
+  toScenarioSnapshot,
+} from './send-message.context-engine.js'
+import { buildSendMessageLlmRequest } from './send-message.llm-request.js'
 
 const MESSAGE_HISTORY_FETCH_LIMIT = 30
 const MESSAGE_HISTORY_EXCHANGE_LIMIT = 3
@@ -74,12 +82,13 @@ export class SendMessageUseCase {
     const conversation = await this.loadActiveConversation(input.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
-    const { systemPrompt, userPersona, selectedMemory } = await this.buildTurnPromptContext({
-      session,
-      conversation,
-      avatar,
-      userMessage: input.userMessage,
-    })
+    const { systemPrompt, userPersona, selectedMemory, assembledContext } =
+      await this.buildTurnPromptContext({
+        session,
+        conversation,
+        avatar,
+        userMessage: input.userMessage,
+      })
     const priorUserTurnCount = await this.loadRecentUserTurnCount(conversation.conversationId)
     const historyMessages = await this.buildHistoryMessages(
       conversation.conversationId,
@@ -89,7 +98,7 @@ export class SendMessageUseCase {
       conversation.conversationId,
       input.userMessage,
     )
-    const llmRequest = this.buildLlmRequest({
+    const llmRequest = buildSendMessageLlmRequest({
       requestId,
       sessionId: session.sessionId,
       conversationId: conversation.conversationId,
@@ -119,6 +128,7 @@ export class SendMessageUseCase {
       userMessage: input.userMessage,
       turnIndex: nextTurnIndex,
       userPersona,
+      assembledContext,
       ...(selectedMemory !== undefined ? { selectedMemory } : {}),
     })
 
@@ -178,8 +188,9 @@ export class SendMessageUseCase {
     systemPrompt: string
     userPersona: UserPersona | undefined
     selectedMemory?: SelectedMemoryPayload
+    assembledContext: ContextEngineOutput
   }> {
-    await this.loadScenario(args.session.scenarioId)
+    const scenario = await this.loadScenario(args.session.scenarioId)
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(args.session.scenarioId)
     const userPersona = await this.loadUserPersona(args.session.userId)
     const selectedMemory = await this.loadSelectedMemory({
@@ -193,45 +204,48 @@ export class SendMessageUseCase {
       selectedMemory !== undefined
         ? this.getMemorySelectionService().toAvatarMemorySnapshot(selectedMemory)
         : undefined
+    const contextEngine = new ContextEngine()
+    const assembledContext = contextEngine.assemble({
+      sessionId: args.session.sessionId,
+      activeAvatarId: args.conversation.avatarId,
+      recentMessages: [],
+      scenario: toScenarioSnapshot(args.session, scenario),
+      availableAvatars: toGameMasterAvailableAvatars(scenarioAvatars, args.session),
+      gmState: {
+        progression: '',
+        topicsCovered: [],
+        interactionCount: 0,
+      },
+      extensions: {
+        memory,
+        retrieval: undefined,
+        userPersona: userPersona ?? null,
+        gmDirective: args.session.gmNotes ?? null,
+      },
+    })
 
     const systemPrompt = assemblePersonaPrompt(args.avatar, {
-      ...(args.session.gmNotes !== undefined ? { gmNotes: args.session.gmNotes } : {}),
       avatarAwareness: buildAvatarAwareness(
         args.avatar,
         scenarioAvatars,
         args.session.unlockedAvatarIds,
       ),
-      ...(userPersona !== undefined ? { userPersona } : {}),
-      ...(memory !== undefined ? { memory } : {}),
+      ...(assembledContext.avatar.gmNotes !== null
+        ? { gmNotes: assembledContext.avatar.gmNotes }
+        : {}),
+      ...(assembledContext.avatar.userPersona !== null
+        ? { userPersona: assembledContext.avatar.userPersona }
+        : {}),
+      ...(() => {
+        const snapshot = toLayeredSnapshotFromAvatarContext(assembledContext)
+        return snapshot !== undefined ? { memory: snapshot } : {}
+      })(),
     })
     return {
       systemPrompt,
       userPersona,
+      assembledContext,
       ...(selectedMemory !== undefined ? { selectedMemory } : {}),
-    }
-  }
-
-  private buildLlmRequest(args: {
-    requestId: string
-    sessionId: string
-    conversationId: string
-    avatarId: string
-    systemPrompt: string
-    historyMessages: Array<{ role: 'user' | 'assistant'; content: string }>
-    userMessage: string
-  }) {
-    return {
-      systemPrompt: args.systemPrompt,
-      messages: [...args.historyMessages, { role: 'user' as const, content: args.userMessage }],
-      trace: {
-        requestId: args.requestId,
-        sessionId: args.sessionId,
-        metadata: {
-          surface: 'send_message',
-          conversationId: args.conversationId,
-          avatarId: args.avatarId,
-        },
-      },
     }
   }
 
@@ -244,6 +258,7 @@ export class SendMessageUseCase {
     userMessage: string
     turnIndex: number
     userPersona: UserPersona | undefined
+    assembledContext: ContextEngineOutput
     selectedMemory?: SelectedMemoryPayload
   }): void {
     this.dispatchRunGameMaster(args)
@@ -259,6 +274,7 @@ export class SendMessageUseCase {
     userMessage: string
     turnIndex: number
     userPersona: UserPersona | undefined
+    assembledContext: ContextEngineOutput
     selectedMemory?: SelectedMemoryPayload
   }): void {
     if (this.runGameMasterUseCase === null) return
@@ -272,6 +288,7 @@ export class SendMessageUseCase {
         turnIndex: args.turnIndex,
         correlationId: args.requestId,
         ...(args.userPersona !== undefined ? { userPersona: args.userPersona } : {}),
+        assembledContext: args.assembledContext,
         ...(args.selectedMemory !== undefined ? { selectedMemory: args.selectedMemory } : {}),
       })
       .catch((err: unknown) => {

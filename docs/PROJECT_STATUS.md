@@ -280,6 +280,9 @@ Started on: 2026-05-11
 - deterministic precedence policy and token-budget trimming added to Context Engine
 - machine-readable selection/trimming trace added for debugging of kept/trimmed segments
 - deterministic conflict resolution added for long-term fact keys and retrieval chunk-id duplicates
+- send-message avatar prompt assembly now routes through Context Engine output mapping
+- run-game-master context input now consumes Context Engine gm projection (or preassembled context from turn path)
+- avatar and gm context paths share one assembly contract while preserving async non-blocking GM execution
 
 ### Key Decisions
 

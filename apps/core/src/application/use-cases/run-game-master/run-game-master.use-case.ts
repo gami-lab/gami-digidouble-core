@@ -11,6 +11,7 @@ import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import { ContextEngine } from '../../../domain/context/context-engine.service.js'
 import type { ContextScenarioSnapshot } from '../../../domain/context/session-context.types.js'
 import { buildGameMasterSystemPrompt } from '../../../domain/game-master/gm-prompt.service.js'
 import { reduceGmState } from '../../../domain/game-master/gm-state-reducer.js'
@@ -28,10 +29,8 @@ import {
   toRecentExchangeMessages,
   toWorkingMemoryPromptContext,
 } from './run-game-master.normalization.js'
-import {
-  resolveAvatarUnlocks,
-  toGameMasterAvailableAvatars,
-} from './run-game-master.avatar-unlocks.js'
+import { resolveAvatarUnlocks } from './run-game-master.avatar-unlocks.js'
+import { resolveAssembledGmContext } from './run-game-master.context-engine.js'
 import {
   emitGameMasterError,
   emitTriggeredGameMasterTurn,
@@ -65,6 +64,7 @@ export class RunGameMasterUseCase {
     private readonly messageRepository?: IMessageRepository,
     private readonly sessionEventPublisher?: ISessionEventPublisher,
     private readonly memorySelectionService?: MemorySelectionService,
+    private readonly contextEngine: ContextEngine = new ContextEngine(),
   ) {}
 
   async execute(input: RunGameMasterInput): Promise<void> {
@@ -305,23 +305,39 @@ export class RunGameMasterUseCase {
   ): Promise<GameMasterInput> {
     const memory = await this.loadMemoryContext(input, session)
     const recentMessages = await this.loadRecentMessages(input.conversationId, memory)
+    const assembledGmContext = resolveAssembledGmContext({
+      input,
+      session,
+      currentState,
+      scenarioAvatars,
+      scenarioContext,
+      recentMessages,
+      contextEngine: this.contextEngine,
+      memorySelectionService: this.getMemorySelectionServiceForFallback(),
+    })
 
     return {
       session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
       userMessage: { text: input.userMessageText },
-      ...(recentMessages.length > 0 ? { recentMessages } : {}),
+      ...(assembledGmContext.recentMessages.length > 0
+        ? { recentMessages: assembledGmContext.recentMessages }
+        : {}),
       state: currentState,
       context: {
         experience: {
           scenarioId: input.scenarioId,
-          ...(scenarioContext.description !== undefined
-            ? { description: scenarioContext.description }
+          ...(assembledGmContext.scenario.description !== undefined
+            ? { description: assembledGmContext.scenario.description }
             : {}),
-          ...(scenarioContext.goals !== undefined ? { goals: scenarioContext.goals } : {}),
+          ...(assembledGmContext.scenario.goals !== undefined
+            ? { goals: assembledGmContext.scenario.goals }
+            : {}),
         },
         ...(memory !== undefined ? { memory } : {}),
-        ...(input.userPersona !== undefined ? { userPersona: input.userPersona } : {}),
-        availableAvatars: toGameMasterAvailableAvatars(scenarioAvatars, session),
+        ...(assembledGmContext.userPersona !== null
+          ? { userPersona: assembledGmContext.userPersona }
+          : {}),
+        availableAvatars: assembledGmContext.availableAvatars,
       },
     }
   }
