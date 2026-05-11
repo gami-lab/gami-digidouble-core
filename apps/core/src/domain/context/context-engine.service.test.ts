@@ -215,4 +215,42 @@ describe('ContextEngine policy', () => {
     expect(output.gm.knowledge?.memory.map((item) => item.chunkId)).toContain('chunk_2')
     expect(output.gm.knowledge?.world).toEqual([])
   })
+
+  it('changes output deterministically when a single context layer is removed', () => {
+    const engine = new ContextEngine()
+    const withRetrieval = makeInput()
+    const withoutRetrieval = makeInput()
+    withoutRetrieval.extensions = { ...withoutRetrieval.extensions, retrieval: undefined }
+
+    const withOutput = engine.assemble(withRetrieval)
+    const withoutOutput = engine.assemble(withoutRetrieval)
+
+    expect(withOutput.avatar.knowledge?.retrievedItems.length).toBe(3)
+    expect(withoutOutput.avatar.knowledge).toBeUndefined()
+    expect(withOutput.gm.knowledge?.memory.length).toBeGreaterThan(0)
+    expect(withoutOutput.gm.knowledge).toBeUndefined()
+    expect(withOutput.trace.selectedInputs.retrievalCounts).toEqual({
+      memory: 1,
+      world: 1,
+      media: 1,
+    })
+    expect(withoutOutput.trace.selectedInputs.retrievalCounts).toEqual({
+      memory: 0,
+      world: 0,
+      media: 0,
+    })
+  })
+
+  it('keeps avatar and gm projections consistent from one shared assembly pass', () => {
+    const engine = new ContextEngine()
+    const output = engine.assemble(makeInput())
+
+    const avatarFacts = output.avatar.longTermFacts
+    const gmFacts = output.gm.memory.longTermFacts ?? []
+    expect(gmFacts).toEqual(avatarFacts)
+    expect(output.gm.scenario.scenarioId).toBe(output.avatar.scenario.scenarioId)
+    expect(output.trace.policy.tokenBudget.avatarMaxTokens).toBeGreaterThan(0)
+    expect(output.trace.selection.kept.every((entry) => entry.tokenEstimate >= 0)).toBe(true)
+    expect(Array.isArray(output.trace.selection.trimmed)).toBe(true)
+  })
 })

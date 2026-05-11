@@ -285,6 +285,8 @@ Started on: 2026-05-11
 - avatar and gm context paths share one assembly contract while preserving async non-blocking GM execution
 - admin session-context inspection now exposes bounded explainable `contextTrace` metadata (kept/trimmed/policy)
 - context trace mapping is canonicalized through shared DTO ownership with explicit boundary redaction/allowlisting
+- regression hardening completed for precedence, trimming, layer exclusion deltas, projection consistency, and trace structure
+- quality gates validated for this slice: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:coverage`
 
 ### Key Decisions
 

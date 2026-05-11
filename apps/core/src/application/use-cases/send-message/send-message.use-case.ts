@@ -42,6 +42,7 @@ import {
   toScenarioSnapshot,
 } from './send-message.context-engine.js'
 import { buildSendMessageLlmRequest } from './send-message.llm-request.js'
+import { buildSendMessageOutput } from './send-message.output.js'
 
 const MESSAGE_HISTORY_FETCH_LIMIT = 30
 const MESSAGE_HISTORY_EXCHANGE_LIMIT = 3
@@ -147,7 +148,7 @@ export class SendMessageUseCase {
       hasGm: this.runGameMasterUseCase !== null,
       eventLogRepository: this.eventLogRepository,
     })
-    const output = this.buildOutput(
+    const output = buildSendMessageOutput({
       requestId,
       conversation,
       updatedSession,
@@ -155,7 +156,7 @@ export class SendMessageUseCase {
       avatarMessage,
       response,
       now,
-    )
+    })
 
     const implicitEnd = await tryImplicitClose({
       endConversationUseCase: this.endConversationUseCase,
@@ -208,7 +209,7 @@ export class SendMessageUseCase {
     const assembledContext = contextEngine.assemble({
       sessionId: args.session.sessionId,
       activeAvatarId: args.conversation.avatarId,
-      recentMessages: [],
+      recentMessages: [{ role: 'user', content: args.userMessage }],
       scenario: toScenarioSnapshot(args.session, scenario),
       availableAvatars: toGameMasterAvailableAvatars(scenarioAvatars, args.session),
       gmState: {
@@ -320,58 +321,6 @@ export class SendMessageUseCase {
     ).catch((error: unknown) => {
       console.error('[memory-maintenance] Background refresh failed:', error)
     })
-  }
-
-  private buildOutput(
-    requestId: string,
-    conversation: Conversation,
-    updatedSession: Session,
-    userMessage: Message,
-    avatarMessage: Message,
-    response: { model: string; inputTokens: number; outputTokens: number; latencyMs: number },
-    now: string,
-  ): SendMessageOutput {
-    return {
-      requestId,
-      conversationId: conversation.conversationId,
-      conversation: {
-        conversationId: conversation.conversationId,
-        sessionId: conversation.sessionId,
-        avatarId: conversation.avatarId,
-        status: conversation.status,
-        startedAt: conversation.startedAt,
-        lastActivityAt: now,
-        ...(conversation.endedAt !== undefined ? { endedAt: conversation.endedAt } : {}),
-      },
-      session: {
-        sessionId: updatedSession.sessionId,
-        userId: updatedSession.userId,
-        scenarioId: updatedSession.scenarioId,
-        ...(updatedSession.activeAvatarId !== undefined
-          ? { activeAvatarId: updatedSession.activeAvatarId }
-          : {}),
-        ...(updatedSession.unlockedAvatarIds !== undefined
-          ? { unlockedAvatarIds: updatedSession.unlockedAvatarIds }
-          : {}),
-        status: updatedSession.status,
-        startedAt: updatedSession.startedAt,
-        lastActivityAt: now,
-      },
-      userMessage: {
-        messageId: userMessage.messageId,
-        content: userMessage.content,
-        createdAt: userMessage.createdAt,
-      },
-      avatarMessage: {
-        messageId: avatarMessage.messageId,
-        content: avatarMessage.content,
-        createdAt: avatarMessage.createdAt,
-        model: response.model,
-        inputTokens: response.inputTokens,
-        outputTokens: response.outputTokens,
-        latencyMs: response.latencyMs,
-      },
-    }
   }
 
   private validateInput(input: SendMessageInput): void {

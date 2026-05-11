@@ -1,5 +1,9 @@
 # DATA_MODEL.md
 
+> Context Engine observability note (EPIC 5.2):
+> `contextTrace` exposed by admin session-context inspection is a bounded, computed runtime artifact.
+> It is intentionally not persisted as a database entity in Phase A.
+
 # Purpose
 
 Define the current persistent data model for Gami DigiDouble Core.

@@ -414,6 +414,7 @@ Contains:
 
 - **Dependency health probes** — postgres, redis, LLM provider reachability
 - **Session inspector** — read session state, messages, memory, GM state via admin API
+  - includes bounded Context Engine trace metadata (`contextTrace`) for explainable kept/trimmed context decisions
 - **Ingestion job monitor** — status, retry, error detail for knowledge pipeline jobs
 - **Knowledge operator surface** — source registration, ingestion trigger, and typed retrieval inspection from the Session Admin flow
 - **Admin actions** — reset session, replay GM, trigger memory refresh, clear session memory, retry failed job

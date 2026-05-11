@@ -1185,6 +1185,14 @@ Context quality has a greater impact on system behavior than model choice.
 
 - more coherent, stable, and controllable conversations
 
+**Implementation Status (May 11, 2026)**
+
+- deterministic Context Engine contracts and assembly are implemented in core
+- precedence, conflict resolution, and token budgeting are implemented with explainable trace output
+- Avatar and GM context paths are integrated through shared Context Engine assembly contracts
+- admin session-context inspection exposes bounded `contextTrace` via shared DTO contracts
+- residual risk: context scoring/precedence quality tuning remains policy-level iteration work, not contract work
+
 ---
 
 ## EPIC 5.3 — Streaming UX Layer

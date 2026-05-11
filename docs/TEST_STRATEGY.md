@@ -63,6 +63,7 @@ Required tests:
 - **Health aggregation:** verify that each dependency state (`ok` / `degraded` / `error`) produces the correct top-level status
 - **Dependency probe:** verify that a simulated postgres timeout returns `status: 'degraded'`, not `status: 'ok'`
 - **Session inspector:** verify the shape of returned state — messages, memory, GM state, events — not just that it doesn't crash
+- **Context trace observability:** verify admin session-context responses include bounded `contextTrace` (policy, selected inputs, kept/trimmed summaries) and do not leak prompt/provider-sensitive fields
 - **Memory inspector:** verify compact and layered admin memory routes (`/memory` and `/memory-layers`) keep stable envelope/shape and bounded short-term behavior
 - **Inspector surface discipline:** verify only the canonical inspector route set is used (no compatibility aliases), and ensure console navigation keeps one inspector path
 - **Reset:** verify that reset deletes messages and memory but keeps the session record; verify the audit log entry is created
