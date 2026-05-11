@@ -10,6 +10,14 @@ export {
   updateScenario,
 } from './scenarios'
 export { sendMessage } from './messages'
+export {
+  createKnowledgeSource,
+  getIngestionJob,
+  listIngestionJobs,
+  listKnowledgeSources,
+  queryKnowledgeRetrieval,
+  triggerIngestion,
+} from './knowledge'
 export { loadRuntimeInspectorViewModel } from './runtime-inspector'
 export { subscribeToRuntimeEvents } from './runtime-events-stream'
 export {
@@ -39,6 +47,18 @@ export {
 
 export type { SendMessageParams, SendMessageResponse } from './messages'
 export type { RuntimeInspectorQueryOptions, RuntimeInspectorViewModel } from './runtime-inspector'
+export type {
+  CreateKnowledgeSourceRequest,
+  CreateKnowledgeSourceResponse,
+  GetIngestionJobResponse,
+  ListIngestionJobsResponse,
+  ListKnowledgeSourcesQuery,
+  ListKnowledgeSourcesResponse,
+  QueryKnowledgeRetrievalRequest,
+  QueryKnowledgeRetrievalResponse,
+  TriggerIngestionRequest,
+  TriggerIngestionResponse,
+} from '@gami/shared'
 export type {
   AvatarSummary,
   CreateAvatarParams,

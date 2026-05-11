@@ -7,6 +7,7 @@ import { formatApiError } from '../api/error'
 import { RuntimeInspector } from '../components/RuntimeInspector'
 import { buttonStyle, errorStyle, labelStyle, sectionStyle } from './form-styles'
 import type { ConversationSummary, Message } from '../api'
+import { KnowledgeOperationsPanel } from './session-admin-knowledge'
 
 type StatusFilter = 'all' | 'active' | 'closed' | 'archived'
 
@@ -237,6 +238,13 @@ export function SessionAdminPage({ scenarioId }: SessionAdminPageProps): JSX.Ele
               refreshTrigger={refreshTrigger}
               title="Session Inspector"
             />
+            <KnowledgeOperationsPanel
+              scenarioId={
+                sessions.find((session) => session.sessionId === selectedSessionId)?.scenarioId ?? null
+              }
+              sessionId={selectedSessionId}
+              conversationId={selectedConversationId}
+            />
             <div style={{ marginTop: '12px' }}>
               <strong>Messages</strong>
               <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -317,6 +325,7 @@ export async function loadSessions(
     setIsLoading(false)
   }
 }
+
 
 export async function performResetSession(
   sessionId: string,

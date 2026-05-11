@@ -138,6 +138,16 @@ function makeContextSummary(): RuntimeInspectorViewModel['context'] {
     avatar: {
       avatarId: 'avatar_1',
       recentExchanges: [{ user: 'u', avatar: 'a' }],
+      knowledge: {
+        retrievedItems: [
+          {
+            sourceId: 'source_1',
+            chunkId: 'chunk_1',
+            knowledgeType: 'world',
+            content: 'A'.repeat(200),
+          },
+        ],
+      },
       workingMemory: {},
       longTermFacts: [],
       userPersona: null,
@@ -148,6 +158,11 @@ function makeContextSummary(): RuntimeInspectorViewModel['context'] {
     },
     gm: {
       recentMessages: [{ role: 'user', content: 'hello' }],
+      knowledge: {
+        memory: [],
+        world: [{ sourceId: 'source_1', chunkId: 'chunk_1', knowledgeType: 'world', content: 'lore' }],
+        media: [],
+      },
       memory: {},
       currentState: {
         progression: 'intro',
@@ -308,6 +323,8 @@ describe('RuntimeInspectorTabContent', () => {
 
     expect(html).toContain('Scenario')
     expect(html).toContain('scenario_1')
+    expect(html).toContain('Avatar knowledge items')
+    expect(html).toContain('GM memory/world/media')
   })
 
   it('renders live runtime events in events tab', () => {

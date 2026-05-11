@@ -408,6 +408,8 @@ Started on: 2026-05-11
   - `GET /v1/ingestion-jobs/{ingestionJobId}`
   - `POST /v1/admin/knowledge/retrieval`
 - stack-e2e baseline coverage for auth, validation, and not-found paths on knowledge routes
+- Session Admin console workflow for knowledge source registration, ingestion trigger/status inspection, and retrieval diagnostics
+- retrieval debug payload hardening (bounded content) plus retrieval lifecycle observability events
 
 ---
 

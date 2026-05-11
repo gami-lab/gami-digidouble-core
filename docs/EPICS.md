@@ -1044,6 +1044,13 @@ Fast recovery loops improve iteration speed dramatically.
 
 ## EPIC 5.1 — Multi-Layer Knowledge & RAG System v1
 
+Status update (May 11, 2026):
+
+- contracts, persistence, ingestion lifecycle, and typed retrieval pipelines implemented
+- API surfaces implemented (`/v1/knowledge-sources`, ingestion job endpoints, admin retrieval query)
+- Session Admin console integration implemented for source registration, ingestion trigger/status, and retrieval inspection
+- stack-e2e and console regression coverage added for operator workflow baseline
+
 **Purpose**
 Enable the system to use structured knowledge across different domains in a consistent and scalable way.
 

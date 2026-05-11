@@ -484,6 +484,12 @@ GET /v1/ingestion-jobs/{ingestionJobId}
 POST /v1/admin/knowledge/retrieval
 ```
 
+Notes:
+
+- admin/debug endpoint only (API-key protected in Phase A)
+- response remains typed (`memory`/`world`/`media` + trace metadata)
+- retrieved `content` is bounded/truncated for safe debug inspection payloads
+
 ---
 
 # User Persona

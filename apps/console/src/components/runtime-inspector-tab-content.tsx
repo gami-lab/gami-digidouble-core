@@ -249,6 +249,8 @@ function renderMemoryEvolution(
 }
 
 function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
+  const avatarKnowledge = snapshot.context.avatar.knowledge?.retrievedItems ?? []
+  const gmKnowledge = snapshot.context.gm.knowledge
   return (
     <div style={{ marginTop: '12px' }}>
       <Row label="Avatar context avatarId">{snapshot.context.avatar.avatarId ?? '-'}</Row>
@@ -257,6 +259,17 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
       </Row>
       <Row label="GM recent messages">{String(snapshot.context.gm.recentMessages.length)}</Row>
       <Row label="Scenario">{snapshot.context.gm.scenario.name ?? snapshot.session.scenarioId}</Row>
+      <Row label="Avatar knowledge items">{String(avatarKnowledge.length)}</Row>
+      <Row label="GM memory/world/media">
+        {gmKnowledge === undefined
+          ? '0 / 0 / 0'
+          : `${String(gmKnowledge.memory.length)} / ${String(gmKnowledge.world.length)} / ${String(gmKnowledge.media.length)}`}
+      </Row>
+      {avatarKnowledge.slice(0, 3).map((item) => (
+        <p key={`${item.sourceId}-${item.chunkId}`} style={{ margin: '4px 0', color: '#374151' }}>
+          [{item.knowledgeType}] {truncateText(item.content, 160)}
+        </p>
+      ))}
     </div>
   )
 }
@@ -460,4 +473,9 @@ function Row({ label, children }: { label: string; children: string }): JSX.Elem
       <span style={valueStyle}>{children}</span>
     </div>
   )
+}
+
+function truncateText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value
+  return `${value.slice(0, maxLength)}…`
 }

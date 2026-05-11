@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
+import crypto from 'node:crypto'
 import type {
   CreateKnowledgeSourceRequest,
   CreateKnowledgeSourceResponse,
@@ -50,6 +51,7 @@ type UseCases = {
   getIngestionJobUseCase: GetIngestionJobUseCase
   getTypedRetrievalUseCase: GetTypedRetrievalUseCase
   sourceRepository: IKnowledgeSourceRepository
+  eventLogRepository: IEventLogRepository
 }
 
 const sourceBodySchema = {
@@ -150,6 +152,7 @@ function buildUseCases(options: KnowledgeRouteOptions): UseCases {
       new TypedRetrievalService(options.sourceRepository, options.chunkRepository),
     ),
     sourceRepository: options.sourceRepository,
+    eventLogRepository: options.eventLogRepository,
   }
 }
 
@@ -252,14 +255,75 @@ function registerRetrievalRoute(app: FastifyInstance, useCases: UseCases): void 
     '/v1/admin/knowledge/retrieval',
     { schema: { body: retrievalBodySchema } },
     async (request, reply) => {
+      const requestId = crypto.randomUUID()
+      const startedAt = Date.now()
       try {
         const output = await useCases.getTypedRetrievalUseCase.execute(request.body)
-        return await reply.send(ok<QueryKnowledgeRetrievalResponse>(output))
+        const bounded = {
+          retrieval: {
+            ...output.retrieval,
+            memory: output.retrieval.memory.map(boundRetrievedItem),
+            world: output.retrieval.world.map(boundRetrievedItem),
+            media: output.retrieval.media.map(boundRetrievedItem),
+          },
+        }
+        await appendKnowledgeEvent(useCases, {
+          type: 'knowledge_retrieval_completed',
+          severity: 'info',
+          requestId,
+          payload: {
+            scenarioId: request.body.scenarioId,
+            sessionId: request.body.sessionId,
+            conversationId: request.body.conversationId,
+            counts: {
+              memory: bounded.retrieval.memory.length,
+              world: bounded.retrieval.world.length,
+              media: bounded.retrieval.media.length,
+            },
+            durationMs: Date.now() - startedAt,
+          },
+        })
+        return await reply.send(ok<QueryKnowledgeRetrievalResponse>(bounded))
       } catch (error) {
+        await appendKnowledgeEvent(useCases, {
+          type: 'knowledge_retrieval_failed',
+          severity: 'error',
+          requestId,
+          payload: {
+            scenarioId: request.body.scenarioId,
+            sessionId: request.body.sessionId,
+            conversationId: request.body.conversationId,
+            durationMs: Date.now() - startedAt,
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          },
+        })
         return await handleError(error, reply)
       }
     },
   )
+}
+
+function boundRetrievedItem<T extends { content: string }>(item: T): T {
+  return {
+    ...item,
+    content: truncateContent(item.content, 800),
+  }
+}
+
+function truncateContent(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value
+  return `${value.slice(0, maxLength)}...`
+}
+
+async function appendKnowledgeEvent(
+  useCases: UseCases,
+  args: Parameters<IEventLogRepository['append']>[0],
+): Promise<void> {
+  try {
+    await useCases.eventLogRepository.append(args)
+  } catch {
+    // Avoid coupling admin-debug endpoint availability to observability writes.
+  }
 }
 
 async function handleError(error: unknown, reply: FastifyReply): Promise<FastifyReply> {
