@@ -96,6 +96,18 @@ export type TurnCompletedEventPayload = {
   totalTokens: number
   model: string
   hasGm: boolean
+  contextSelection?: {
+    shortTermExchangeCount: number
+    hasWorkingMemory: boolean
+    longTermFactCount: number
+    retrievalCounts: {
+      memory: number
+      world: number
+      media: number
+    }
+    hasUserPersona: boolean
+    hasGmDirective: boolean
+  }
   correlationId?: string
 }
 

@@ -363,3 +363,75 @@ describe('SendMessageUseCase — prompt assembly v2 context influence', () => {
     expect(llmRequest.systemPrompt).toContain('Ships dock at tidefall in this harbor.')
   })
 })
+
+describe('SendMessageUseCase — context selection observability', () => {
+  it('emits non-sensitive context selection metadata in turn_completed event payload', async () => {
+    const useCase = createUseCase(false, true, true)
+    findMessagesByConversationIdMock.mockResolvedValue([
+      {
+        messageId: 'message_prev',
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'How do tides affect docking?',
+        createdAt: '2026-05-06T10:00:00.000Z',
+      },
+      {
+        messageId: 'message_prev_2',
+        conversationId: 'conversation_1',
+        role: 'avatar',
+        content: 'Use the tide chart.',
+        createdAt: '2026-05-06T10:00:01.000Z',
+      },
+    ])
+    findUserByIdMock.mockResolvedValue({
+      userId: 'user_1',
+      persona: { name: 'Maya' },
+      createdAt: '2026-05-01T10:00:00.000Z',
+      updatedAt: '2026-05-01T10:00:00.000Z',
+    } satisfies User)
+    retrieveTypedContextMock.mockResolvedValue({
+      memory: [
+        {
+          sourceId: 'source_1',
+          chunkId: 'chunk_1',
+          knowledgeType: 'memory',
+          content: 'User prefers concise checklists.',
+        },
+      ],
+      world: [],
+      media: [],
+      trace: {
+        query: 'How do tides affect docking?',
+        perType: {
+          memory: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
+          world: { sourceIds: [], selectedChunkIds: [] },
+          media: { sourceIds: [], selectedChunkIds: [] },
+        },
+      },
+    })
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'What should I do?' })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const event = appendEventMock.mock.calls[0]?.[0] as {
+      payload: {
+        contextSelection?: {
+          shortTermExchangeCount: number
+          hasWorkingMemory: boolean
+          longTermFactCount: number
+          retrievalCounts: { memory: number; world: number; media: number }
+          hasUserPersona: boolean
+          hasGmDirective: boolean
+        }
+      }
+    }
+    expect(event.payload.contextSelection).toEqual({
+      shortTermExchangeCount: 1,
+      hasWorkingMemory: false,
+      longTermFactCount: 0,
+      retrievalCounts: { memory: 1, world: 0, media: 0 },
+      hasUserPersona: true,
+      hasGmDirective: false,
+    })
+  })
+})

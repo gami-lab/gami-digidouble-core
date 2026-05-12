@@ -117,6 +117,8 @@ Status: 🚧 In progress
 - system prompt injection now includes bounded persona, short-term exchanges, working memory, long-term facts, and typed retrieval snippets
 - send-message path now loads typed retrieval via `TypedRetrievalService` and injects it through context assembly (no ad-hoc prompt builder)
 - deterministic unit coverage added for persona-driven prompt deltas and typed-retrieval prompt inclusion
+- send-message flow now enriches Avatar context end-to-end from memory selection + typed retrieval with stable fallbacks when layers are absent
+- turn-completed observability payload now includes non-sensitive context-selection metadata (counts/flags only; no raw prompt or sensitive content)
 
 ---
 

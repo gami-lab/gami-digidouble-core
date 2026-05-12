@@ -12,6 +12,18 @@ export function emitTurnCompletedEventNonBlocking(args: {
   outputTokens: number
   model: string
   hasGm: boolean
+  contextSelection: {
+    shortTermExchangeCount: number
+    hasWorkingMemory: boolean
+    longTermFactCount: number
+    retrievalCounts: {
+      memory: number
+      world: number
+      media: number
+    }
+    hasUserPersona: boolean
+    hasGmDirective: boolean
+  }
   eventLogRepository: IEventLogRepository
 }): void {
   const payload = {
@@ -26,6 +38,7 @@ export function emitTurnCompletedEventNonBlocking(args: {
     totalTokens: args.inputTokens + args.outputTokens,
     model: args.model,
     hasGm: args.hasGm,
+    contextSelection: args.contextSelection,
   } as const
 
   void args.eventLogRepository

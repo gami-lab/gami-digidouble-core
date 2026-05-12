@@ -44,6 +44,7 @@ import {
 } from './send-message.context-engine.js'
 import { buildSendMessageLlmRequest } from './send-message.llm-request.js'
 import { buildSendMessageOutput } from './send-message.output.js'
+import { toContextSelectionMetadata } from './send-message.context-selection.js'
 
 const MESSAGE_HISTORY_FETCH_LIMIT = 30
 const MESSAGE_HISTORY_EXCHANGE_LIMIT = 3
@@ -148,6 +149,7 @@ export class SendMessageUseCase {
       outputTokens: response.outputTokens,
       model: response.model,
       hasGm: this.runGameMasterUseCase !== null,
+      contextSelection: toContextSelectionMetadata(assembledContext),
       eventLogRepository: this.eventLogRepository,
     })
     const output = buildSendMessageOutput({

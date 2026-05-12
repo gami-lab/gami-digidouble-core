@@ -138,6 +138,7 @@ function readMemoryTrigger(value: unknown): MemoryRefreshEventPayload['trigger']
 }
 
 function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompletedEventPayload {
+  const contextSelection = readOptionalContextSelection(payload['contextSelection'])
   return {
     conversationId: readString(payload['conversationId']),
     turnIndex: readNumber(payload['turnIndex']),
@@ -149,7 +150,27 @@ function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompl
     totalTokens: readNumber(payload['totalTokens']),
     model: readString(payload['model']),
     hasGm: readBoolean(payload['hasGm']),
+    ...(contextSelection !== undefined ? { contextSelection } : {}),
     ...readOptionalStringField(payload, 'correlationId'),
+  }
+}
+
+function readOptionalContextSelection(
+  value: unknown,
+): TurnCompletedEventPayload['contextSelection'] | undefined {
+  if (!isRecord(value)) return undefined
+  const retrievalCountsValue = isRecord(value['retrievalCounts']) ? value['retrievalCounts'] : {}
+  return {
+    shortTermExchangeCount: readNumber(value['shortTermExchangeCount']),
+    hasWorkingMemory: readBoolean(value['hasWorkingMemory']),
+    longTermFactCount: readNumber(value['longTermFactCount']),
+    retrievalCounts: {
+      memory: readNumber(retrievalCountsValue['memory']),
+      world: readNumber(retrievalCountsValue['world']),
+      media: readNumber(retrievalCountsValue['media']),
+    },
+    hasUserPersona: readBoolean(value['hasUserPersona']),
+    hasGmDirective: readBoolean(value['hasGmDirective']),
   }
 }
 
