@@ -35,6 +35,11 @@ export type AvatarContextSnapshot = {
   longTermFacts: LongTermMemoryFact[]
   knowledge?: {
     retrievedItems: RetrievedKnowledgeItem[]
+    typedSections?: {
+      memory: RetrievedKnowledgeItem[]
+      world: RetrievedKnowledgeItem[]
+      media: RetrievedKnowledgeItem[]
+    }
   }
   userPersona: UserPersona | null
   gmNotes: string | null

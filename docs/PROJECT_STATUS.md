@@ -112,6 +112,7 @@ Status: 🚧 In progress
 - imports normalized to shared canonical contracts across `apps/core`, `apps/console`, and `packages/shared`
 - nullability policy preserved: `undefined` for internal optional fields, explicit `null` only where API contract requires it
 - quality gates validated for this slice: `pnpm lint`, `pnpm typecheck`, `pnpm test`
+- avatar-context contracts now expose canonical additive typed retrieval sections (`memory|world|media`) alongside merged retrieval items to reduce domain/shared/console drift
 
 ---
 

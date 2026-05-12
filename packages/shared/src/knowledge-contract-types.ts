@@ -65,13 +65,16 @@ export type SharedContextScenarioSnapshot = {
 
 export type SharedAvatarContextKnowledgeInjection = {
   retrievedItems: RetrievedKnowledgeItemDto[]
+  typedSections?: SharedTypedKnowledgeSections
 }
 
-export type SharedGmContextKnowledgeInjection = {
+export type SharedTypedKnowledgeSections = {
   memory: RetrievedKnowledgeItemDto[]
   world: RetrievedKnowledgeItemDto[]
   media: RetrievedKnowledgeItemDto[]
 }
+
+export type SharedGmContextKnowledgeInjection = SharedTypedKnowledgeSections
 
 /**
  * Canonical shared API DTOs for EPIC 5.1 knowledge endpoints.

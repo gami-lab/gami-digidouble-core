@@ -747,6 +747,12 @@ apps/core/src/domain/knowledge/knowledge.types.ts
 packages/shared/src/knowledge-contract-types.ts
 ```
 
+## Conversation Contracts
+
+```text
+packages/shared/src/conversation-contract-types.ts
+```
+
 ---
 
 # Non Goals

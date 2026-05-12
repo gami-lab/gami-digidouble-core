@@ -83,6 +83,103 @@ function requireRetrieval(input: ContextEngineInput): TypedRetrievalResult {
   return input.extensions.retrieval
 }
 
+function expectedTypedSections() {
+  return {
+    memory: [
+      {
+        sourceId: 'source_1',
+        chunkId: 'chunk_1',
+        knowledgeType: 'memory',
+        content: 'memory item',
+      },
+    ],
+    world: [
+      {
+        sourceId: 'source_2',
+        chunkId: 'chunk_2',
+        knowledgeType: 'world',
+        content: 'world',
+      },
+    ],
+    media: [
+      {
+        sourceId: 'source_3',
+        chunkId: 'chunk_3',
+        knowledgeType: 'media',
+        content: 'media',
+      },
+    ],
+  }
+}
+
+function assertBaselineAvatarKnowledge(output: ReturnType<ContextEngine['assemble']>): void {
+  expect(output.avatar.knowledge?.retrievedItems).toHaveLength(3)
+  expect(output.avatar.knowledge?.typedSections).toEqual(expectedTypedSections())
+}
+
+function assertBaselineRetrievalCounts(output: ReturnType<ContextEngine['assemble']>): void {
+  expect(output.trace.selectedInputs.retrievalCounts).toEqual({ memory: 1, world: 1, media: 1 })
+}
+
+function applyConflictingMemoryAndRetrieval(input: ContextEngineInput): void {
+  const memory = requireMemory(input)
+  const retrieval = requireRetrieval(input)
+  input.extensions.memory = {
+    ...memory,
+    longTerm: {
+      facts: [
+        { category: 'preference', key: 'style', value: 'concise' },
+        { category: 'Preference', key: 'Style', value: 'verbose' },
+      ],
+    },
+  }
+  input.extensions.retrieval = {
+    ...retrieval,
+    memory: [
+      ...retrieval.memory,
+      {
+        sourceId: 'source_dup',
+        chunkId: 'chunk_2',
+        knowledgeType: 'memory',
+        content: 'memory duplicate of world chunk id',
+      },
+    ],
+    world: [
+      ...retrieval.world,
+      {
+        sourceId: 'source_dup_2',
+        chunkId: 'chunk_2',
+        knowledgeType: 'world',
+        content: 'world duplicate',
+      },
+    ],
+  }
+}
+
+function assertDeterministicConflictResolution(
+  output: ReturnType<ContextEngine['assemble']>,
+): void {
+  expect(output.avatar.longTermFacts).toEqual([
+    { category: 'preference', key: 'style', value: 'concise' },
+  ])
+  assertDeterministicTypedSections(output)
+  expect(output.gm.knowledge?.memory.map((item) => item.chunkId)).toContain('chunk_2')
+  expect(output.gm.knowledge?.world).toEqual([])
+}
+
+function assertDeterministicTypedSections(output: ReturnType<ContextEngine['assemble']>): void {
+  const avatarChunkIds = output.avatar.knowledge?.retrievedItems.map((item) => item.chunkId) ?? []
+  expect(avatarChunkIds).toEqual(['chunk_1', 'chunk_2', 'chunk_3'])
+  expect(output.avatar.knowledge?.typedSections?.memory.map((item) => item.chunkId)).toEqual([
+    'chunk_1',
+    'chunk_2',
+  ])
+  expect(output.avatar.knowledge?.typedSections?.world).toEqual([])
+  expect(output.avatar.knowledge?.typedSections?.media.map((item) => item.chunkId)).toEqual([
+    'chunk_3',
+  ])
+}
+
 describe('ContextEngine baseline', () => {
   it('assembles avatar and gm projections from one deterministic input', () => {
     const engine = new ContextEngine()
@@ -91,13 +188,13 @@ describe('ContextEngine baseline', () => {
 
     expect(output.avatar.avatarId).toBe('avatar_1')
     expect(output.avatar.recentExchanges).toEqual([{ user: 'u1', avatar: 'a1' }])
-    expect(output.avatar.knowledge?.retrievedItems).toHaveLength(3)
+    assertBaselineAvatarKnowledge(output)
     expect(output.gm.currentState.progression).toBe('intro')
     expect(output.gm.memory.workingSummary).toContain('Session summary')
     expect(output.gm.memory.workingSummary).toContain('Avatar (avatar_1): Avatar summary')
     expect(output.gm.knowledge?.world[0]?.chunkId).toBe('chunk_2')
     expect(output.trace.deterministic).toBe(true)
-    expect(output.trace.selectedInputs.retrievalCounts).toEqual({ memory: 1, world: 1, media: 1 })
+    assertBaselineRetrievalCounts(output)
     expect(output.trace.selection.trimmed).toEqual([])
   })
 
@@ -155,7 +252,10 @@ describe('ContextEngine baseline', () => {
     expect(output.avatar.longTermFacts).toEqual([
       { category: 'preference', key: 'style', value: 'concise' },
     ])
-    expect(output.avatar.knowledge?.retrievedItems).toHaveLength(3)
+    assertBaselineAvatarKnowledge(output)
+    expect(output.avatar.knowledge?.typedSections?.memory).toHaveLength(1)
+    expect(output.avatar.knowledge?.typedSections?.world).toHaveLength(1)
+    expect(output.avatar.knowledge?.typedSections?.media).toHaveLength(1)
     expect(output.gm.knowledge?.memory).toHaveLength(1)
     expect(output.gm.knowledge?.world).toHaveLength(1)
     expect(output.gm.knowledge?.media).toHaveLength(1)
@@ -172,48 +272,10 @@ describe('ContextEngine policy', () => {
   it('resolves conflicts deterministically by deduping long-term facts and retrieval chunk ids', () => {
     const engine = new ContextEngine()
     const input = makeInput()
-    const memory = requireMemory(input)
-    const retrieval = requireRetrieval(input)
-    input.extensions.memory = {
-      ...memory,
-      longTerm: {
-        facts: [
-          { category: 'preference', key: 'style', value: 'concise' },
-          { category: 'Preference', key: 'Style', value: 'verbose' },
-        ],
-      },
-    }
-    input.extensions.retrieval = {
-      ...retrieval,
-      memory: [
-        ...retrieval.memory,
-        {
-          sourceId: 'source_dup',
-          chunkId: 'chunk_2',
-          knowledgeType: 'memory',
-          content: 'memory duplicate of world chunk id',
-        },
-      ],
-      world: [
-        ...retrieval.world,
-        {
-          sourceId: 'source_dup_2',
-          chunkId: 'chunk_2',
-          knowledgeType: 'world',
-          content: 'world duplicate',
-        },
-      ],
-    }
+    applyConflictingMemoryAndRetrieval(input)
 
     const output = engine.assemble(input)
-
-    expect(output.avatar.longTermFacts).toEqual([
-      { category: 'preference', key: 'style', value: 'concise' },
-    ])
-    const avatarChunkIds = output.avatar.knowledge?.retrievedItems.map((item) => item.chunkId) ?? []
-    expect(avatarChunkIds).toEqual(['chunk_1', 'chunk_2', 'chunk_3'])
-    expect(output.gm.knowledge?.memory.map((item) => item.chunkId)).toContain('chunk_2')
-    expect(output.gm.knowledge?.world).toEqual([])
+    assertDeterministicConflictResolution(output)
   })
 
   it('changes output deterministically when a single context layer is removed', () => {
@@ -229,11 +291,7 @@ describe('ContextEngine policy', () => {
     expect(withoutOutput.avatar.knowledge).toBeUndefined()
     expect(withOutput.gm.knowledge?.memory.length).toBeGreaterThan(0)
     expect(withoutOutput.gm.knowledge).toBeUndefined()
-    expect(withOutput.trace.selectedInputs.retrievalCounts).toEqual({
-      memory: 1,
-      world: 1,
-      media: 1,
-    })
+    assertBaselineRetrievalCounts(withOutput)
     expect(withoutOutput.trace.selectedInputs.retrievalCounts).toEqual({
       memory: 0,
       world: 0,

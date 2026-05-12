@@ -69,6 +69,7 @@ Last updated: May 12, 2026
 - Avatar context snapshot:
   - Internal: `AvatarContextSnapshot`
   - API-facing: `SessionContextAvatarSnapshot`
+  - Retrieval sections: `knowledge.typedSections.memory|world|media` are canonical and additive (merged `retrievedItems` remains for compatibility)
 - GM context snapshot:
   - Internal: `GmContextSnapshot`
   - API-facing: `SessionContextGmSnapshot`

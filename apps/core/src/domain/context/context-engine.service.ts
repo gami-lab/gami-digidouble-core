@@ -243,8 +243,7 @@ function pushRetrievalSegmentCandidate(
     segmentId,
     tokenEstimate,
     apply: (draft) => {
-      const existing = draft.avatar.knowledge?.retrievedItems ?? []
-      draft.avatar.knowledge = { retrievedItems: [...existing, ...items] }
+      applyAvatarKnowledgeSegment(draft, segmentId, items)
     },
   })
   candidates.push({
@@ -268,6 +267,45 @@ function pushRetrievalSegmentCandidate(
       }
     },
   })
+}
+
+function applyAvatarKnowledgeSegment(
+  draft: MutableOutput,
+  segmentId: 'typedRetrievalMemory' | 'typedRetrievalWorld' | 'typedRetrievalMedia',
+  items: RetrievedKnowledgeItem[],
+): void {
+  const current = draft.avatar.knowledge
+  const retrievedItems: RetrievedKnowledgeItem[] = []
+  const typedSections = {
+    memory: [] as RetrievedKnowledgeItem[],
+    world: [] as RetrievedKnowledgeItem[],
+    media: [] as RetrievedKnowledgeItem[],
+  }
+
+  if (current !== undefined) {
+    retrievedItems.push(...current.retrievedItems)
+    if (current.typedSections !== undefined) {
+      typedSections.memory.push(...current.typedSections.memory)
+      typedSections.world.push(...current.typedSections.world)
+      typedSections.media.push(...current.typedSections.media)
+    }
+  }
+
+  retrievedItems.push(...items)
+  const targetSection = toTypedSectionKey(segmentId)
+  typedSections[targetSection].push(...items)
+  draft.avatar.knowledge = {
+    retrievedItems,
+    typedSections,
+  }
+}
+
+function toTypedSectionKey(
+  segmentId: 'typedRetrievalMemory' | 'typedRetrievalWorld' | 'typedRetrievalMedia',
+): 'memory' | 'world' | 'media' {
+  if (segmentId === 'typedRetrievalMemory') return 'memory'
+  if (segmentId === 'typedRetrievalWorld') return 'world'
+  return 'media'
 }
 
 function pushRecentMessageCandidate(

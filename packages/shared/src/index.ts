@@ -55,6 +55,7 @@ export type {
   RetrievedKnowledgeItemDto,
   SharedContextScenarioSnapshot,
   SharedAvatarContextKnowledgeInjection,
+  SharedTypedKnowledgeSections,
   SharedGmContextKnowledgeInjection,
   CreateKnowledgeSourceRequest,
   CreateKnowledgeSourceResponse,
