@@ -68,11 +68,28 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
   source_id       UUID        NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
   content         TEXT        NOT NULL,
   chunk_index     INT         NOT NULL,
-  embedding       VECTOR,
+  embedding       VECTOR(16),
   metadata        JSONB       NOT NULL DEFAULT '{}',
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (source_id, chunk_index)
 );
+
+-- Ensure the embedding column keeps a fixed dimension required by ivfflat.
+DO $$
+BEGIN
+  BEGIN
+    ALTER TABLE knowledge_chunks
+      ALTER COLUMN embedding TYPE VECTOR(16)
+      USING CASE
+        WHEN embedding IS NULL THEN NULL
+        ELSE embedding::vector(16)
+      END;
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE WARNING 'Could not enforce VECTOR(16) on knowledge_chunks.embedding: %', SQLERRM;
+  END;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS ingestion_jobs (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -229,10 +246,24 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_sources_scope
   ON knowledge_sources(scenario_id, knowledge_type, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_chunk
   ON knowledge_chunks(source_id, chunk_index);
-CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding
-  ON knowledge_chunks USING ivfflat (embedding vector_cosine_ops)
-  WITH (lists = 100)
-  WHERE embedding IS NOT NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_attribute
+    WHERE attrelid = 'knowledge_chunks'::regclass
+      AND attname = 'embedding'
+      AND atttypmod > 0
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding
+      ON knowledge_chunks USING ivfflat (embedding vector_cosine_ops)
+      WITH (lists = 100)
+      WHERE embedding IS NOT NULL;
+  ELSE
+    RAISE WARNING 'Skipping idx_knowledge_chunks_embedding: embedding has no fixed dimensions.';
+  END IF;
+END;
+$$;
 CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_source_status
   ON ingestion_jobs(source_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_scenario_id  ON sessions(scenario_id);
