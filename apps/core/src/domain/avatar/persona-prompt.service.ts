@@ -1,6 +1,7 @@
 import type { AvatarConfig } from './avatar.types.js'
 import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
 import type { UserPersona } from '../user/index.js'
+import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 
 const DEFAULT_STYLE_RULE = [
   'Stay in character and keep responses concise.',
@@ -24,6 +25,11 @@ export function assemblePersonaPrompt(
     avatarAwareness?: AvatarAwarenessItem[]
     userPersona?: UserPersona
     memory?: LayeredMemorySnapshot
+    retrieval?: {
+      memory: RetrievedKnowledgeItem[]
+      world: RetrievedKnowledgeItem[]
+      media: RetrievedKnowledgeItem[]
+    }
   },
 ): string {
   const personaPrompt = requirePersonaPrompt(config.personaPrompt)
@@ -37,8 +43,10 @@ export function assemblePersonaPrompt(
     sections.push(`Your tone is ${config.tone.trim()}.`)
   }
 
+  // Deterministic precedence for adaptive context: persona -> memory -> retrieval snippets.
   sections.push(...buildUserPersonaContext(opts?.userPersona))
   sections.push(...buildMemoryContext(opts?.memory))
+  sections.push(...buildRetrievalContext(opts?.retrieval))
   sections.push(...buildAdjustments(config.adjustments))
   sections.push(...buildAvatarAwareness(opts?.avatarAwareness))
 
@@ -76,10 +84,21 @@ function buildUserPersonaContext(userPersona: UserPersona | undefined): string[]
 function buildMemoryContext(memory: LayeredMemorySnapshot | undefined): string[] {
   if (memory === undefined) return []
   const lines: string[] = ['## Memory Context']
+  appendShortTermMemory(lines, memory)
   appendWorkingMemory(lines, memory)
   appendLongTermMemory(lines, memory)
 
   return lines.length > 1 ? [lines.join('\n')] : []
+}
+
+function appendShortTermMemory(lines: string[], memory: LayeredMemorySnapshot): void {
+  const exchanges = memory.shortTerm?.recentExchanges ?? []
+  if (exchanges.length === 0) return
+  lines.push('Recent exchange window:')
+  for (const exchange of exchanges.slice(-2)) {
+    if (hasText(exchange.user)) lines.push(`- User: ${compactText(exchange.user, 180)}`)
+    if (hasText(exchange.avatar)) lines.push(`- You: ${compactText(exchange.avatar, 180)}`)
+  }
 }
 
 function appendWorkingMemory(lines: string[], memory: LayeredMemorySnapshot): void {
@@ -99,6 +118,33 @@ function appendLongTermMemory(lines: string[], memory: LayeredMemorySnapshot): v
   for (const fact of validFacts) {
     lines.push(`- ${fact.key}: ${fact.value}`)
   }
+}
+
+function buildRetrievalContext(
+  retrieval:
+    | {
+        memory: RetrievedKnowledgeItem[]
+        world: RetrievedKnowledgeItem[]
+        media: RetrievedKnowledgeItem[]
+      }
+    | undefined,
+): string[] {
+  if (retrieval === undefined) return []
+
+  const memoryLines = formatRetrievalSection('Memory retrieval', retrieval.memory)
+  const worldLines = formatRetrievalSection('World retrieval', retrieval.world)
+  const mediaLines = formatRetrievalSection('Media retrieval', retrieval.media)
+  const lines = ['## Retrieved Context', ...memoryLines, ...worldLines, ...mediaLines]
+  return lines.length > 1 ? [lines.join('\n')] : []
+}
+
+function formatRetrievalSection(label: string, items: RetrievedKnowledgeItem[]): string[] {
+  if (items.length === 0) return []
+  const lines = [`${label}:`]
+  for (const item of items.slice(0, 2)) {
+    lines.push(`- ${compactText(item.content, 200)}`)
+  }
+  return lines
 }
 
 function requirePersonaPrompt(personaPrompt: string): string {
@@ -148,4 +194,9 @@ function hasText(value: string | undefined): value is string {
 
 function escapeForRegExp(value: string): string {
   return value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function compactText(value: string, maxLength: number): string {
+  const compact = value.trim().replaceAll(/\s+/g, ' ')
+  return compact.length <= maxLength ? compact : `${compact.slice(0, maxLength)}...`
 }

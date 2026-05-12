@@ -293,8 +293,9 @@ describe('assemblePersonaPrompt -> layered memory context', () => {
     })
 
     expect(prompt).toContain('## Memory Context')
-    expect(prompt).not.toContain('Recent exchanges:')
-    expect(prompt).not.toContain('- User: Hi')
+    expect(prompt).toContain('Recent exchange window:')
+    expect(prompt).toContain('- User: Hi')
+    expect(prompt).toContain('- You: Hello there')
     expect(prompt).toContain('Session working memory: Session summary')
     expect(prompt).toContain('Current avatar memory: Avatar summary')
     expect(prompt).toContain('Remembered user facts:')
@@ -308,5 +309,48 @@ describe('assemblePersonaPrompt -> layered memory context', () => {
     const prompt = assemblePersonaPrompt(config)
 
     expect(prompt).not.toContain('## Memory Context')
+  })
+})
+
+describe('assemblePersonaPrompt -> typed retrieval context', () => {
+  it('includes bounded typed retrieval snippets when provided', () => {
+    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
+
+    const prompt = assemblePersonaPrompt(config, {
+      retrieval: {
+        memory: [
+          {
+            sourceId: 'source_1',
+            chunkId: 'chunk_1',
+            knowledgeType: 'memory',
+            content: 'The user prefers concise examples.',
+          },
+        ],
+        world: [
+          {
+            sourceId: 'source_2',
+            chunkId: 'chunk_2',
+            knowledgeType: 'world',
+            content: 'In this world, ships dock at tidefall.',
+          },
+        ],
+        media: [
+          {
+            sourceId: 'source_3',
+            chunkId: 'chunk_3',
+            knowledgeType: 'media',
+            content: 'Reference frame: lantern map sketch.',
+          },
+        ],
+      },
+    })
+
+    expect(prompt).toContain('## Retrieved Context')
+    expect(prompt).toContain('Memory retrieval:')
+    expect(prompt).toContain('- The user prefers concise examples.')
+    expect(prompt).toContain('World retrieval:')
+    expect(prompt).toContain('- In this world, ships dock at tidefall.')
+    expect(prompt).toContain('Media retrieval:')
+    expect(prompt).toContain('- Reference frame: lantern map sketch.')
   })
 })

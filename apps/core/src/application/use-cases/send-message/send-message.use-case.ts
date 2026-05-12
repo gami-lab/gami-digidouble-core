@@ -23,6 +23,7 @@ import type { SelectedMemoryPayload } from '../../../domain/memory/memory.types.
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { emitTurnCompletedEventNonBlocking } from './send-message.observability.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
+import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import {
   DEFAULT_IMPLICIT_END_POLICY,
   type ImplicitEndPolicy,
@@ -72,6 +73,7 @@ export class SendMessageUseCase {
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly conversationMemoryRepository?: IConversationMemoryRepository,
     private readonly memorySelectionService?: MemorySelectionService,
+    private readonly typedRetrievalService?: TypedRetrievalService,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -206,6 +208,7 @@ export class SendMessageUseCase {
         ? this.getMemorySelectionService().toAvatarMemorySnapshot(selectedMemory)
         : undefined
     const contextEngine = new ContextEngine()
+    const retrieval = await this.loadTypedRetrieval(args.session, args.conversation.conversationId)
     const assembledContext = contextEngine.assemble({
       sessionId: args.session.sessionId,
       activeAvatarId: args.conversation.avatarId,
@@ -219,7 +222,7 @@ export class SendMessageUseCase {
       },
       extensions: {
         memory,
-        retrieval: undefined,
+        retrieval,
         userPersona: userPersona ?? null,
         gmDirective: args.session.gmNotes ?? null,
       },
@@ -241,6 +244,9 @@ export class SendMessageUseCase {
         const snapshot = toLayeredSnapshotFromAvatarContext(assembledContext)
         return snapshot !== undefined ? { memory: snapshot } : {}
       })(),
+      ...(assembledContext.avatar.knowledge?.typedSections !== undefined
+        ? { retrieval: assembledContext.avatar.knowledge.typedSections }
+        : {}),
     })
     return {
       systemPrompt,
@@ -248,6 +254,31 @@ export class SendMessageUseCase {
       assembledContext,
       ...(selectedMemory !== undefined ? { selectedMemory } : {}),
     }
+  }
+
+  private async loadTypedRetrieval(session: Session, conversationId: string) {
+    if (this.typedRetrievalService === undefined) return undefined
+    const recentMessages = await this.messageRepository.findByConversationId(conversationId, {
+      limit: 12,
+    })
+    const query = recentMessages
+      .slice()
+      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+      .filter((message) => message.role === 'user')
+      .slice(-2)
+      .map((message) => message.content.trim())
+      .join(' ')
+      .trim()
+    if (!hasText(query)) return undefined
+
+    return this.typedRetrievalService.retrieve({
+      scenarioId: session.scenarioId,
+      sessionId: session.sessionId,
+      userId: session.userId,
+      conversationId,
+      query,
+      limitPerType: 3,
+    })
   }
 
   private dispatchBackgroundUpdates(args: {

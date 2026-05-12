@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Session, Conversation, Message } from '../../../domain/conversation/session.types.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { User } from '../../../domain/user/user.types.js'
+import type { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
 
@@ -17,6 +18,7 @@ const completeMock = vi.fn()
 const appendEventMock = vi.fn()
 const runGameMasterExecuteMock = vi.fn()
 const findUserByIdMock = vi.fn()
+const retrieveTypedContextMock = vi.fn()
 
 const sessionRepository = {
   findById: findSessionByIdMock,
@@ -100,6 +102,7 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
 function createUseCase(
   withRunGameMaster: boolean,
   withUserRepository: boolean,
+  withTypedRetrieval = false,
 ): SendMessageUseCase {
   return new SendMessageUseCase(
     sessionRepository,
@@ -113,6 +116,16 @@ function createUseCase(
       ? ({ execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase)
       : null,
     withUserRepository ? userRepository : undefined,
+    null,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    withTypedRetrieval
+      ? ({ retrieve: retrieveTypedContextMock } as unknown as TypedRetrievalService)
+      : undefined,
   )
 }
 
@@ -129,6 +142,7 @@ beforeEach(() => {
   appendEventMock.mockReset()
   runGameMasterExecuteMock.mockReset()
   findUserByIdMock.mockReset()
+  retrieveTypedContextMock.mockReset()
 
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession())
@@ -155,6 +169,19 @@ beforeEach(() => {
   appendEventMock.mockResolvedValue(undefined)
   runGameMasterExecuteMock.mockResolvedValue(undefined)
   findUserByIdMock.mockResolvedValue(null)
+  retrieveTypedContextMock.mockResolvedValue({
+    memory: [],
+    world: [],
+    media: [],
+    trace: {
+      query: 'q',
+      perType: {
+        memory: { sourceIds: [], selectedChunkIds: [] },
+        world: { sourceIds: [], selectedChunkIds: [] },
+        media: { sourceIds: [], selectedChunkIds: [] },
+      },
+    },
+  })
 })
 
 describe('SendMessageUseCase — user persona injection', () => {
@@ -256,5 +283,83 @@ describe('SendMessageUseCase — user persona injection', () => {
 
     const gmInput = runGameMasterExecuteMock.mock.calls[0]?.[0] as Record<string, unknown>
     expect(Object.hasOwn(gmInput, 'userPersona')).toBe(false)
+  })
+})
+
+describe('SendMessageUseCase — prompt assembly v2 context influence', () => {
+  it('changes assembled system prompt deterministically when persona changes', async () => {
+    const useCase = createUseCase(false, true)
+    findUserByIdMock.mockResolvedValueOnce({
+      userId: 'user_1',
+      persona: { name: 'Maya', roleInWorld: 'student' },
+      createdAt: '2026-05-01T10:00:00.000Z',
+      updatedAt: '2026-05-01T10:00:00.000Z',
+    } satisfies User)
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+    const withPersonaPrompt = (completeMock.mock.calls[0]?.[0] as { systemPrompt: string })
+      .systemPrompt
+
+    findUserByIdMock.mockResolvedValueOnce({
+      userId: 'user_1',
+      persona: { name: 'Lina', roleInWorld: 'mentor' },
+      createdAt: '2026-05-01T10:00:00.000Z',
+      updatedAt: '2026-05-01T10:00:00.000Z',
+    } satisfies User)
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+    const changedPersonaPrompt = (completeMock.mock.calls[1]?.[0] as { systemPrompt: string })
+      .systemPrompt
+
+    expect(withPersonaPrompt).not.toBe(changedPersonaPrompt)
+    expect(withPersonaPrompt).toContain('Name: Maya')
+    expect(changedPersonaPrompt).toContain('Name: Lina')
+  })
+
+  it('injects typed retrieval context into prompt through canonical context assembly', async () => {
+    const useCase = createUseCase(false, true, true)
+    findMessagesByConversationIdMock.mockResolvedValue([
+      {
+        messageId: 'message_prev',
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'How do tides affect docking?',
+        createdAt: '2026-05-06T10:00:00.000Z',
+      },
+    ])
+    retrieveTypedContextMock.mockResolvedValue({
+      memory: [
+        {
+          sourceId: 'source_1',
+          chunkId: 'chunk_1',
+          knowledgeType: 'memory',
+          content: 'User prefers concrete checklists.',
+        },
+      ],
+      world: [
+        {
+          sourceId: 'source_2',
+          chunkId: 'chunk_2',
+          knowledgeType: 'world',
+          content: 'Ships dock at tidefall in this harbor.',
+        },
+      ],
+      media: [],
+      trace: {
+        query: 'How do tides affect docking?',
+        perType: {
+          memory: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
+          world: { sourceIds: ['source_2'], selectedChunkIds: ['chunk_2'] },
+          media: { sourceIds: [], selectedChunkIds: [] },
+        },
+      },
+    })
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'What should I do?' })
+
+    const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
+    expect(llmRequest.systemPrompt).toContain('## Retrieved Context')
+    expect(llmRequest.systemPrompt).toContain('Memory retrieval:')
+    expect(llmRequest.systemPrompt).toContain('User prefers concrete checklists.')
+    expect(llmRequest.systemPrompt).toContain('World retrieval:')
+    expect(llmRequest.systemPrompt).toContain('Ships dock at tidefall in this harbor.')
   })
 })

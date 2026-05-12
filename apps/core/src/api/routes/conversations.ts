@@ -15,11 +15,14 @@ import type { IUserMemoryFactRepository } from '../../application/ports/IUserMem
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
+import type { IKnowledgeChunkRepository } from '../../application/ports/IKnowledgeChunkRepository.js'
+import type { IKnowledgeSourceRepository } from '../../application/ports/IKnowledgeSourceRepository.js'
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
 import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
+import { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
 import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
 import type { SendMessageOutput } from '../../application/use-cases/send-message/send-message.types.js'
 import type { Config } from '../../config.js'
@@ -34,6 +37,8 @@ import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memo
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { InMemoryConversationMemoryRepository } from '../../infrastructure/db/in-memory-conversation-memory.repository.js'
+import { InMemoryKnowledgeChunkRepository } from '../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
+import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { EpisodicMemoryService } from '../../application/services/episodic-memory.service.js'
 import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
@@ -59,6 +64,8 @@ type ConversationsRouteOptions = {
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   conversationMemoryRepository?: IConversationMemoryRepository
+  knowledgeSourceRepository?: IKnowledgeSourceRepository
+  knowledgeChunkRepository?: IKnowledgeChunkRepository
 }
 
 type ConversationParams = { conversationId: string }
@@ -165,6 +172,8 @@ type ConversationPersistenceDeps = {
   avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
   conversationMemoryRepository: IConversationMemoryRepository
+  knowledgeSourceRepository: IKnowledgeSourceRepository
+  knowledgeChunkRepository: IKnowledgeChunkRepository
 }
 
 function createRouteDependencies(options: ConversationsRouteOptions): RouteDependencies {
@@ -188,6 +197,10 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     repositories.conversationMemoryRepository,
     repositories.conversationWorkingMemoryRepository,
     repositories.messageRepository,
+  )
+  const typedRetrievalService = new TypedRetrievalService(
+    repositories.knowledgeSourceRepository,
+    repositories.knowledgeChunkRepository,
   )
 
   return {
@@ -220,6 +233,8 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       memoryMaintenance,
       repositories.conversationWorkingMemoryRepository,
       repositories.conversationMemoryRepository,
+      undefined,
+      typedRetrievalService,
     ),
   }
 }
@@ -235,7 +250,20 @@ function resolvePersistenceDeps(options: ConversationsRouteOptions): Conversatio
     userRepository: options.userRepository ?? new InMemoryUserRepository(),
     userMemoryFactRepository:
       options.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
+    ...resolveKnowledgeDeps(options),
     ...resolveWorkingMemoryDeps(options),
+  }
+}
+
+function resolveKnowledgeDeps(options: ConversationsRouteOptions): {
+  knowledgeSourceRepository: IKnowledgeSourceRepository
+  knowledgeChunkRepository: IKnowledgeChunkRepository
+} {
+  return {
+    knowledgeSourceRepository:
+      options.knowledgeSourceRepository ?? new InMemoryKnowledgeSourceRepository(),
+    knowledgeChunkRepository:
+      options.knowledgeChunkRepository ?? new InMemoryKnowledgeChunkRepository(),
   }
 }
 

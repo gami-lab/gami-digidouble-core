@@ -113,6 +113,10 @@ Status: 🚧 In progress
 - nullability policy preserved: `undefined` for internal optional fields, explicit `null` only where API contract requires it
 - quality gates validated for this slice: `pnpm lint`, `pnpm typecheck`, `pnpm test`
 - avatar-context contracts now expose canonical additive typed retrieval sections (`memory|world|media`) alongside merged retrieval items to reduce domain/shared/console drift
+- avatar prompt assembly v2 now uses one deterministic canonical path (`SendMessageUseCase` -> `ContextEngine` -> `assemblePersonaPrompt`)
+- system prompt injection now includes bounded persona, short-term exchanges, working memory, long-term facts, and typed retrieval snippets
+- send-message path now loads typed retrieval via `TypedRetrievalService` and injects it through context assembly (no ad-hoc prompt builder)
+- deterministic unit coverage added for persona-driven prompt deltas and typed-retrieval prompt inclusion
 
 ---
 
