@@ -1,5 +1,4 @@
-import type { ConversationSummary } from '@gami/shared'
-import type { Message } from '../../../domain/conversation/session.types.js'
+import type { ConversationSummary, Message } from '@gami/shared'
 
 export interface GetHistoryInput {
   conversationId: string

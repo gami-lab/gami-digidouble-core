@@ -1,35 +1,10 @@
 import { coreRequest } from './client'
-import type { ConversationSummary, Message, SessionSummary } from './sessions'
+import type { SendMessageResponse } from '@gami/shared'
+export type { SendMessageResponse }
 
 export type SendMessageParams = {
   message: {
     content: string
-  }
-}
-
-type AvatarMessageMetadata = {
-  model: string
-  latencyMs: number
-  inputTokens: number
-  outputTokens: number
-  totalTokens?: number
-  costUsd?: number
-  triggerSource?: string
-}
-
-export type SendMessageResponse = {
-  conversation: ConversationSummary
-  session: SessionSummary
-  userMessage: Message
-  avatarMessage: Message & {
-    metadata: AvatarMessageMetadata
-  }
-  debug: {
-    requestId: string
-    model: string
-    latencyMs: number
-    inputTokens: number
-    outputTokens: number
   }
 }
 

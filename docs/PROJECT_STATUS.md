@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: May 11, 2026
+Last updated: May 12, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -97,6 +97,21 @@ Completed on: 2026-04-22
 - `POST /v1/conversations/{conversationId}/messages`
 - observability integration
 - conversation validation
+
+---
+
+## EPIC 2.1b — Avatar Agent v2 (Memory + Persona + RAG Awareness)
+
+Status: 🚧 In progress
+
+### Current slice completed
+
+- contract cleanup baseline completed before Avatar v2 feature work
+- canonical shared ownership established for session/conversation HTTP DTOs in `packages/shared/src/conversation-contract-types.ts`
+- duplicated local API contract types removed from core route and console adapters (`send-message`, `history`, `available-avatars`, `switch-avatar`)
+- imports normalized to shared canonical contracts across `apps/core`, `apps/console`, and `packages/shared`
+- nullability policy preserved: `undefined` for internal optional fields, explicit `null` only where API contract requires it
+- quality gates validated for this slice: `pnpm lint`, `pnpm typecheck`, `pnpm test`
 
 ---
 

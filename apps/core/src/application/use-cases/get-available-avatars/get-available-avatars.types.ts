@@ -1,25 +1,9 @@
-import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import type { AvailableAvatarSummary, GetAvailableAvatarsResponse } from '@gami/shared'
 
 export interface GetAvailableAvatarsInput {
   sessionId: string
 }
 
-export type AvatarSummary = Pick<
-  AvatarConfig,
-  | 'avatarId'
-  | 'scenarioId'
-  | 'name'
-  | 'status'
-  | 'personaPrompt'
-  | 'tone'
-  | 'description'
-  | 'adjustments'
-  | 'createdAt'
-  | 'updatedAt'
->
+export type AvatarSummary = AvailableAvatarSummary
 
-export interface GetAvailableAvatarsOutput {
-  sessionId: string
-  currentAvatarId: string | null
-  avatars: AvatarSummary[]
-}
+export type GetAvailableAvatarsOutput = GetAvailableAvatarsResponse

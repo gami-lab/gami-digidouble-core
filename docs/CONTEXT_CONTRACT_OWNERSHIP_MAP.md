@@ -4,7 +4,7 @@
 
 Define canonical ownership for Context Engine contracts (EPIC 5.2) to prevent drift across `apps/core`, `apps/console`, and `packages/shared`.
 
-Last updated: May 11, 2026
+Last updated: May 12, 2026
 
 ---
 
@@ -33,6 +33,22 @@ Last updated: May 11, 2026
 - Used by:
   - Core API routes
   - Console API client and runtime inspector UI
+
+### API / Shared Conversation DTO Contracts (public/session)
+
+- Owner: `packages/shared/src/conversation-contract-types.ts`
+- Contracts:
+  - `Message`
+  - `MessageMetadata`
+  - `AvatarMessageMetadata`
+  - `SendMessageResponse`
+  - `GetHistoryResponse`
+  - `AvailableAvatarSummary`
+  - `GetAvailableAvatarsResponse`
+  - `SwitchAvatarResponse`
+- Used by:
+  - Core conversation/session routes and use-case output typing
+  - Console session/message API client wrappers
 
 ### Boundary Mapping
 
@@ -70,3 +86,4 @@ Last updated: May 11, 2026
 - Do not return shared DTO types directly from domain/internal modules.
 - If a new context contract is internal-only, define it in `domain/context`.
 - If a new context contract crosses app boundaries, define it in `packages/shared` and map at API boundaries.
+- If a new session/conversation HTTP contract crosses app boundaries, define it in `packages/shared/src/conversation-contract-types.ts`.

@@ -9,17 +9,22 @@ import type {
   AdminSessionMemoryLayersResponse,
   AdminSessionMemoryResponse,
   AdminSessionTurnMetricsResponse,
+  AvailableAvatarSummary,
   ConversationEndReason,
   ConversationSummary,
   EndConversationResponse,
+  GetAvailableAvatarsResponse,
+  GetHistoryResponse,
   GetRuntimeStateResponse,
   GmStateSummary,
   LifecycleStatus,
+  Message,
   RuntimeState,
   SessionEventRecord,
   SessionMemorySummary,
   SessionSummary,
   SessionTransitionRecord,
+  SwitchAvatarResponse,
   UserPersona,
   UpsertUserPersonaResponse,
   UserPersonaResponse,
@@ -27,6 +32,13 @@ import type {
 
 export type { SessionSummary, ConversationSummary, SessionMemorySummary, SessionTransitionRecord }
 export type { ConversationEndReason, EndConversationResponse }
+export type {
+  Message,
+  AvailableAvatarSummary,
+  GetAvailableAvatarsResponse,
+  SwitchAvatarResponse,
+  GetHistoryResponse,
+}
 export type {
   GmStateSummary,
   RuntimeState,
@@ -44,23 +56,6 @@ export type {
   AdminClearMemoryResponse,
 }
 
-export type Message = {
-  messageId: string
-  conversationId: string
-  role: 'user' | 'avatar' | 'system'
-  content: string
-  createdAt: string
-  metadata?: {
-    model?: string
-    latencyMs?: number
-    inputTokens?: number
-    outputTokens?: number
-    totalTokens?: number
-    costUsd?: number
-    triggerSource?: string
-  }
-}
-
 export type StartSessionParams = {
   userId: string
   scenarioId: string
@@ -72,12 +67,6 @@ type StartSessionPayload = {
 
 type GetSessionPayload = {
   session: SessionSummary
-}
-
-export type GetHistoryResponse = {
-  conversation: ConversationSummary
-  messages: Message[]
-  memory?: SessionMemorySummary
 }
 
 export type StartConversationParams = {
@@ -112,30 +101,6 @@ export async function startConversation(
     params,
   )
   return payload.conversation
-}
-
-export type AvailableAvatarSummary = {
-  avatarId: string
-  scenarioId: string
-  name: string
-  status: string
-  personaPrompt: string
-  tone?: string
-  description?: string
-  createdAt: string
-  updatedAt: string
-}
-
-export type GetAvailableAvatarsResponse = {
-  sessionId: string
-  currentAvatarId: string | null
-  avatars: AvailableAvatarSummary[]
-}
-
-export type SwitchAvatarResponse = {
-  session: SessionSummary
-  conversation: ConversationSummary
-  previousConversationId: string | null
 }
 
 export async function getAvailableAvatars(sessionId: string): Promise<GetAvailableAvatarsResponse> {

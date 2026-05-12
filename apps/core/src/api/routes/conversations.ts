@@ -1,5 +1,6 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
+import type { SendMessageResponse } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
@@ -64,56 +65,6 @@ type ConversationParams = { conversationId: string }
 
 type SendMessageBody = {
   message: { content: string }
-}
-
-type SendMessageResponse = {
-  conversation: {
-    conversationId: string
-    sessionId: string
-    avatarId: string
-    status: 'active' | 'closed' | 'archived'
-    startedAt: string
-    lastActivityAt: string
-    endedAt?: string
-  }
-  session: {
-    sessionId: string
-    userId: string
-    scenarioId: string
-    activeAvatarId?: string
-    unlockedAvatarIds?: string[]
-    status: 'active' | 'closed' | 'archived'
-    startedAt: string
-    lastActivityAt: string
-  }
-  userMessage: {
-    messageId: string
-    conversationId: string
-    role: 'user'
-    content: string
-    createdAt: string
-  }
-  avatarMessage: {
-    messageId: string
-    conversationId: string
-    role: 'avatar'
-    content: string
-    createdAt: string
-    metadata: {
-      model: string
-      latencyMs: number
-      inputTokens: number
-      outputTokens: number
-      totalTokens: number
-    }
-  }
-  debug: {
-    requestId: string
-    model: string
-    latencyMs: number
-    inputTokens: number
-    outputTokens: number
-  }
 }
 
 const conversationParamsSchema = {

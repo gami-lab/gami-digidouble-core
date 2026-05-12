@@ -1,6 +1,10 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
-import type { EndConversationResponse, LifecycleStatus } from '@gami/shared'
+import type {
+  EndConversationResponse,
+  GetAvailableAvatarsResponse,
+  LifecycleStatus,
+} from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
@@ -15,7 +19,6 @@ import type { IConversationWorkingMemoryRepository } from '../../application/por
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
-import type { GetAvailableAvatarsOutput } from '../../application/use-cases/get-available-avatars/get-available-avatars.types.js'
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
 import type { GetAvatarTransitionsOutput } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.types.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
@@ -467,7 +470,7 @@ function registerGetAvailableAvatarsRoute(
     async (request, reply) => {
       try {
         const output = await useCase.execute({ sessionId: request.params.sessionId })
-        return await reply.send(ok<GetAvailableAvatarsOutput>(output))
+        return await reply.send(ok<GetAvailableAvatarsResponse>(output))
       } catch (error) {
         return await mapDomainError(error, reply)
       }

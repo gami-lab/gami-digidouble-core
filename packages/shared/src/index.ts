@@ -26,6 +26,16 @@ export type {
   LifecycleSummary,
   EndConversationResponse,
 } from './lifecycle-types.js'
+export type {
+  MessageMetadata,
+  Message,
+  AvatarMessageMetadata,
+  SendMessageResponse,
+  GetHistoryResponse,
+  AvailableAvatarSummary,
+  GetAvailableAvatarsResponse,
+  SwitchAvatarResponse,
+} from './conversation-contract-types.js'
 export type { RuntimeEvent, RuntimeState, GetRuntimeStateResponse } from './runtime-types.js'
 export type {
   SharedShortTermMemoryExchange,
