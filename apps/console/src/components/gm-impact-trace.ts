@@ -98,6 +98,12 @@ function toTraceEntry(
     impacts.push(
       `User-flow impact: completed turn ${String(turnPayload.turnIndex)} on avatar ${turnPayload.avatarId}`,
     )
+    if (turnPayload.contextSelection) {
+      const selected = turnPayload.contextSelection
+      impacts.push(
+        `Context selection: short-term ${String(selected.shortTermExchangeCount)}, long-term ${String(selected.longTermFactCount)}, retrieval ${String(selected.retrievalCounts.memory)}/${String(selected.retrievalCounts.world)}/${String(selected.retrievalCounts.media)}`,
+      )
+    }
   } else {
     impacts.push('User-flow impact: turn completion not observed in snapshot window')
   }

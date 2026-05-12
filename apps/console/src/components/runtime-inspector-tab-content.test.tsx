@@ -175,6 +175,35 @@ function makeContextSummary(): RuntimeInspectorViewModel['context'] {
         scenarioId: 'scenario_1',
       },
     },
+    trace: {
+      deterministic: true,
+      policy: {
+        tokenBudget: {
+          avatarMaxTokens: 1200,
+          gmMaxTokens: 900,
+        },
+        protectedSegments: ['scenario'],
+        precedence: ['gmDirective', 'scenario', 'userPersona'],
+      },
+      selectedInputs: {
+        hasActiveAvatar: true,
+        recentMessageCount: 2,
+        shortTermExchangeCount: 1,
+        hasWorkingMemory: false,
+        longTermFactCount: 0,
+        retrievalCounts: { memory: 0, world: 1, media: 0 },
+        hasUserPersona: false,
+        hasGmDirective: false,
+      },
+      rationale: {
+        avatarProjection: [],
+        gmProjection: [],
+      },
+      selection: {
+        kept: [{ projection: 'avatar', segmentId: 'scenario', tokenEstimate: 18, reason: 'protected' }],
+        trimmed: [],
+      },
+    },
   }
 }
 
@@ -325,6 +354,9 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('scenario_1')
     expect(html).toContain('Avatar knowledge items')
     expect(html).toContain('GM memory/world/media')
+    expect(html).toContain('Trace deterministic')
+    expect(html).toContain('Trace kept/trimmed')
+    expect(html).toContain('Trace retrieval memory/world/media')
   })
 
   it('renders live runtime events in events tab', () => {

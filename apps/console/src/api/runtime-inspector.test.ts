@@ -46,6 +46,7 @@ describe('loadRuntimeInspectorViewModel', () => {
     expect(result.metrics.summary.totalTurns).toBe(1)
     expect(result.metrics.turns).toHaveLength(1)
     expect(result.context.gm.currentState.progression).toBe('intro')
+    expect(result.context.trace?.deterministic).toBe(true)
     expect(result.persona?.name).toBe('Maya')
   })
 
@@ -107,6 +108,37 @@ function arrangeSession1(): void {
       availableAvatars: [],
       userPersona: { name: 'Maya', roleInWorld: 'student' },
       scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
+    },
+    contextTrace: {
+      deterministic: true,
+      policy: {
+        tokenBudget: {
+          avatarMaxTokens: 1200,
+          gmMaxTokens: 900,
+        },
+        protectedSegments: ['scenario'],
+        precedence: ['gmDirective', 'scenario', 'userPersona'],
+      },
+      selectedInputs: {
+        hasActiveAvatar: true,
+        recentMessageCount: 2,
+        shortTermExchangeCount: 1,
+        hasWorkingMemory: true,
+        longTermFactCount: 0,
+        retrievalCounts: { memory: 1, world: 1, media: 0 },
+        hasUserPersona: true,
+        hasGmDirective: false,
+      },
+      rationale: {
+        avatarProjection: ['bounded'],
+        gmProjection: ['deterministic'],
+      },
+      selection: {
+        kept: [
+          { projection: 'avatar', segmentId: 'scenario', tokenEstimate: 44, reason: 'protected' },
+        ],
+        trimmed: [],
+      },
     },
   })
   vi.mocked(getSessionMemory).mockResolvedValue({

@@ -251,6 +251,7 @@ function renderMemoryEvolution(
 function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
   const avatarKnowledge = snapshot.context.avatar.knowledge?.retrievedItems ?? []
   const gmKnowledge = snapshot.context.gm.knowledge
+  const trace = snapshot.context.trace
   return (
     <div style={{ marginTop: '12px' }}>
       <Row label="Avatar context avatarId">{snapshot.context.avatar.avatarId ?? '-'}</Row>
@@ -264,6 +265,17 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
         {gmKnowledge === undefined
           ? '0 / 0 / 0'
           : `${String(gmKnowledge.memory.length)} / ${String(gmKnowledge.world.length)} / ${String(gmKnowledge.media.length)}`}
+      </Row>
+      <Row label="Trace deterministic">{trace?.deterministic === true ? 'true' : 'false'}</Row>
+      <Row label="Trace kept/trimmed">
+        {trace === undefined
+          ? '0 / 0'
+          : `${String(trace.selection.kept.length)} / ${String(trace.selection.trimmed.length)}`}
+      </Row>
+      <Row label="Trace retrieval memory/world/media">
+        {trace === undefined
+          ? '0 / 0 / 0'
+          : `${String(trace.selectedInputs.retrievalCounts.memory)} / ${String(trace.selectedInputs.retrievalCounts.world)} / ${String(trace.selectedInputs.retrievalCounts.media)}`}
       </Row>
       {avatarKnowledge.slice(0, 3).map((item) => (
         <p key={`${item.sourceId}-${item.chunkId}`} style={{ margin: '4px 0', color: '#374151' }}>

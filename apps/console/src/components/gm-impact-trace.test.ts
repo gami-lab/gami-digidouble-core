@@ -87,6 +87,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
         userPersona: null,
         scenario: { scenarioId: 'scenario_1' },
       },
+      trace: undefined,
     },
     persona: null,
     recentEvents: [
@@ -134,6 +135,18 @@ function makeViewModel(): RuntimeInspectorViewModel {
           totalTokens: 30,
           model: 'test-model',
           hasGm: true,
+          contextSelection: {
+            shortTermExchangeCount: 2,
+            hasWorkingMemory: true,
+            longTermFactCount: 1,
+            retrievalCounts: {
+              memory: 1,
+              world: 2,
+              media: 0,
+            },
+            hasUserPersona: false,
+            hasGmDirective: true,
+          },
         },
       },
     ],
@@ -155,6 +168,9 @@ describe('buildGmImpactTrace', () => {
     expect(first.resultingImpact.join(' ')).toContain('Routing suggestion: avatar_2')
     expect(first.resultingImpact.join(' ')).toContain('GM notes/directives injected into context')
     expect(first.resultingImpact.join(' ')).toContain('User-flow impact: completed turn 1')
+    expect(first.resultingImpact.join(' ')).toContain(
+      'Context selection: short-term 2, long-term 1, retrieval 1/2/0',
+    )
     expect(first.status).toBe('applied')
   })
 })

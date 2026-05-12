@@ -310,6 +310,7 @@ Completed on: 2026-05-11
 - regression hardening completed for precedence, non-trimming selection behavior, layer exclusion deltas, projection consistency, and trace structure
 - gm recent-messages path simplified to keep chronological exchanges only (working memory remains in context.memory)
 - shared runtime inspector trace contracts now use bounded segment-id typing to reduce drift
+- console runtime inspector now consumes canonical `contextTrace` contracts and surfaces bounded trace/context-selection diagnostics
 - quality gates validated for this slice: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:coverage`
 
 ### Key Decisions

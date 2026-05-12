@@ -44,6 +44,7 @@ export type RuntimeInspectorViewModel = {
   context: {
     avatar: AdminSessionContextResponse['avatarContext']
     gm: AdminSessionContextResponse['gmContext']
+    trace: AdminSessionContextResponse['contextTrace']
   }
   persona: UserPersona | null
   recentEvents: SessionEventRecord[]
@@ -96,6 +97,7 @@ export async function loadRuntimeInspectorViewModel(
     context: {
       avatar: contextResponse.avatarContext,
       gm: contextResponse.gmContext,
+      trace: contextResponse.contextTrace,
     },
     persona: personaResponse.persona,
     recentEvents: eventsResponse.events,
