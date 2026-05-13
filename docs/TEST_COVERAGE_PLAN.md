@@ -296,16 +296,16 @@ Must test:
 
 Coverage expectations by module:
 
-| Module path                                                | Required coverage                                                                   |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `domain/user/user.types.ts`                                | Types only; no runtime logic (N/A for behavioral unit assertions)                   |
-| `application/use-cases/upsert-user-persona/`               | Unit tests for create/update flow and input hardening paths                         |
-| `application/use-cases/get-user-persona/`                  | Unit tests for found/missing user and missing persona                               |
-| `api/routes/users.ts`                                      | Route tests for auth, validation, idempotent write/read, unknown user null behavior |
-| `infrastructure/db/repositories/postgres-user.repository`  | Integration tests for upsert/find behavior and JSONB persona round-trip             |
-| `domain/avatar/persona-prompt.service.ts`                  | Unit tests for persona role sentence inclusion and boundary cases                   |
-| `application/use-cases/send-message/send-message.use-case` | Unit tests for persona injection and graceful degradation                           |
-| `application/use-cases/run-game-master/run-game-master`    | Unit tests for persona threading into GM input JSON                                 |
+| Module path                                                | Required coverage                                                                                                                            |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain/user/user.types.ts`                                | Types only; no runtime logic (N/A for behavioral unit assertions)                                                                            |
+| `application/use-cases/upsert-user-persona/`               | Unit tests for create/update flow and input hardening paths                                                                                  |
+| `application/use-cases/get-user-persona/`                  | Unit tests for found/missing user and missing persona                                                                                        |
+| `api/routes/users.ts`                                      | Route tests for auth, validation, idempotent write/read, unknown user null behavior                                                          |
+| `infrastructure/db/repositories/postgres-user.repository`  | Integration tests for upsert/find behavior and JSONB persona round-trip                                                                      |
+| `domain/avatar/persona-prompt.service.ts`                  | Unit tests for persona role sentence inclusion and boundary cases                                                                            |
+| `application/use-cases/send-message/send-message.use-case` | Unit tests for persona + typed-retrieval context assembly, graceful degradation, and non-sensitive `contextSelection` observability payloads |
+| `application/use-cases/run-game-master/run-game-master`    | Unit tests for persona threading into GM input JSON                                                                                          |
 
 Must test:
 

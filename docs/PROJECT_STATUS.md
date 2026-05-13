@@ -102,7 +102,8 @@ Completed on: 2026-04-22
 
 ## EPIC 2.1b — Avatar Agent v2 (Memory + Persona + RAG Awareness)
 
-Status: 🚧 In progress
+Status: ✅ Complete
+Completed on: 2026-05-13
 
 ### Current slice completed
 
@@ -119,6 +120,10 @@ Status: 🚧 In progress
 - deterministic unit coverage added for persona-driven prompt deltas and typed-retrieval prompt inclusion
 - send-message flow now enriches Avatar context end-to-end from memory selection + typed retrieval with stable fallbacks when layers are absent
 - turn-completed observability payload now includes non-sensitive context-selection metadata (counts/flags only; no raw prompt or sensitive content)
+- runtime inspector and console now consume canonical shared `contextTrace` contracts and expose bounded trace diagnostics for operators
+- stack-e2e coverage exists for the Avatar-v2-added inspector endpoint (`GET /v1/admin/sessions/{sessionId}/context`) across auth, not-found, and happy-path envelope/shape
+- final hardening gates validated for deterministic and contract-safe behavior: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm --filter @gami/core test:coverage`
+- environment-gated suites (`test:integration-e2e`, `test:stack-e2e`) remain part of CI/nightly execution and require reachable DB/stack runtime
 
 ---
 
