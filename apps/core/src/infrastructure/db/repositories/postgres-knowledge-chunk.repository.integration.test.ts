@@ -39,17 +39,31 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     sourceId = source.sourceId
   }
 
+  function vector16(first: number, second: number): number[] {
+    return [first, second, ...Array.from({ length: 14 }, () => 0)]
+  }
+
   it('creates and lists chunks ordered by chunk index', async () => {
     await seedSource()
 
-    await chunkRepo.create({ sourceId, content: 'Chunk 2', chunkIndex: 2, embedding: [0.2, 0.3] })
-    await chunkRepo.create({ sourceId, content: 'Chunk 0', chunkIndex: 0, embedding: [0.1, 0.0] })
+    await chunkRepo.create({
+      sourceId,
+      content: 'Chunk 2',
+      chunkIndex: 2,
+      embedding: vector16(0.2, 0.3),
+    })
+    await chunkRepo.create({
+      sourceId,
+      content: 'Chunk 0',
+      chunkIndex: 0,
+      embedding: vector16(0.1, 0.0),
+    })
 
     const chunks = await chunkRepo.listBySourceId(sourceId)
 
     expect(chunks).toHaveLength(2)
     expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual([0, 2])
-    expect(chunks[0]?.embedding).toEqual([0.1, 0])
+    expect(chunks[0]?.embedding).toEqual(vector16(0.1, 0))
   })
 
   it('deleteBySourceId returns deleted row count', async () => {
