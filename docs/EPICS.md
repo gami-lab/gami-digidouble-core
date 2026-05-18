@@ -870,6 +870,123 @@ Better context → better orchestration decisions.
 
 ---
 
+## EPIC 4.1c — Multi-Model Runtime Configuration
+
+**Purpose**
+Allow the platform to use different LLM providers/models depending on runtime responsibility while preserving provider abstraction and deterministic orchestration behavior.
+
+**Description**
+Introduce configurable role-based model selection across the Core.
+
+The system currently supports multiple providers through wrappers, but model selection remains mostly static.
+
+This EPIC adds:
+
+- global default provider/model configuration
+- role-specific overrides
+- avatar-specific overrides
+- runtime model resolution
+- operational editing through the Console
+- runtime observability of effective model usage
+
+Supported runtime roles:
+
+- Avatar speaking
+- Game Master orchestration
+- Memory compaction / memory maintenance
+
+Resolution order:
+
+1. avatar override
+2. role override
+3. global default
+
+This EPIC remains intentionally configuration-driven.
+
+It does NOT introduce:
+
+- automatic model routing
+- benchmarking systems
+- dynamic quality scoring
+- AI-driven provider selection
+
+The architecture already separates:
+
+- speaking
+- orchestration
+- memory maintenance
+
+This EPIC extends that separation into configurable runtime infrastructure.
+
+**Hypothesis**
+Different runtime responsibilities benefit from different models:
+
+- Avatar → expressive conversational model
+- GM → cheaper/faster reasoning model
+- Memory → low-cost summarization model
+
+Role-based allocation improves:
+
+- latency
+- cost efficiency
+- experimentation speed
+- provider independence
+
+without increasing orchestration complexity.
+
+**Includes**
+
+- global runtime model configuration
+- per-role provider/model overrides
+- per-avatar provider/model overrides
+- deterministic model resolution service
+- API contract updates
+- persistence support
+- admin CRUD support
+- console editing support
+- runtime inspector integration
+- observability metadata updates
+- backward-compatible defaults
+- validation of invalid providers/models
+
+**DoD**
+
+- platform supports one global default model
+- GM can use a different model than Avatar
+- memory compaction can use a different model than Avatar
+- avatars can override the default Avatar model
+- effective runtime model selection is deterministic
+- runtime inspector exposes effective provider/model
+- observability captures provider/model per runtime role
+- invalid configuration is rejected cleanly
+- existing sessions continue working without migration issues
+- all APIs remain backward compatible
+- console supports editing and reset-to-default flows
+
+**What Can Be Tested**
+
+1. set global default model → all roles inherit it
+2. configure GM override → GM uses different model
+3. configure memory override → memory compaction uses different model
+4. configure avatar override → avatar uses dedicated model
+5. remove override → inheritance restored
+6. invalid provider/model rejected with validation error
+7. runtime inspector shows effective resolved model
+8. observability events include provider/model metadata
+9. restart server → configuration persists
+10. existing avatars without config continue functioning
+
+**User Increment**
+
+- first fully configurable multi-model orchestration runtime
+- practical provider experimentation without code changes
+- operational optimization of latency and cost by runtime responsibility
+- stronger provider independence aligned with Core architecture
+
+Relevant references:
+
+---
+
 ## EPIC 4.3 — Performance Baseline ✅ Done
 
 **Purpose**  
