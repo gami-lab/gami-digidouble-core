@@ -43,6 +43,7 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
     ...(options.config.mistralApiKey !== undefined
       ? { mistralApiKey: options.config.mistralApiKey }
       : {}),
+    ...(options.config.xaiApiKey !== undefined ? { xaiApiKey: options.config.xaiApiKey } : {}),
   }
 
   const observabilityAdapter =

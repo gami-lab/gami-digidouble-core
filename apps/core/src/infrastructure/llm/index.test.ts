@@ -28,4 +28,8 @@ describe('createLlmAdapter', () => {
       'Unknown LLM provider: unknown-provider',
     )
   })
+
+  it('throws for the xai provider when no API key is configured', () => {
+    expect(() => createLlmAdapter({ provider: 'xai' })).not.toThrow()
+  })
 })

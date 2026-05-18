@@ -5,6 +5,7 @@ import { MistralAdapter } from './mistral.adapter.js'
 import { NullLlmAdapter } from './null.adapter.js'
 import { ObservedLlmAdapter } from './observed.adapter.js'
 import { OpenAiAdapter } from './openai.adapter.js'
+import { XaiAdapter } from './xai.adapter.js'
 
 export { LlmError } from './llm.error.js'
 export { LlmUserFactExtractor } from './llm-user-fact-extractor.js'
@@ -16,6 +17,7 @@ export interface LlmConfig {
   openaiApiKey?: string
   anthropicApiKey?: string
   mistralApiKey?: string
+  xaiApiKey?: string
 }
 
 export function createLlmAdapter(
@@ -34,6 +36,8 @@ function createBaseLlmAdapter(config: LlmConfig): ILlmAdapter {
       return new AnthropicAdapter(config.anthropicApiKey ?? '')
     case 'mistral':
       return new MistralAdapter(config.mistralApiKey ?? '')
+    case 'xai':
+      return new XaiAdapter(config.xaiApiKey ?? '')
     case 'null':
       return new NullLlmAdapter()
     default:

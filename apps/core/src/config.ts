@@ -16,6 +16,7 @@ export interface Config {
   openaiApiKey: string | undefined
   anthropicApiKey: string | undefined
   mistralApiKey: string | undefined
+  xaiApiKey: string | undefined
   langfusePublicKey: string | undefined
   langfuseSecretKey: string | undefined
   langfuseHost: string | undefined
@@ -43,6 +44,7 @@ export function loadConfig(): Config {
     openaiApiKey: process.env['OPENAI_API_KEY'],
     anthropicApiKey: process.env['ANTHROPIC_API_KEY'],
     mistralApiKey: process.env['MISTRAL_API_KEY'],
+    xaiApiKey: process.env['XAI_API_KEY'],
     langfusePublicKey: process.env['LANGFUSE_PUBLIC_KEY'],
     langfuseSecretKey: process.env['LANGFUSE_SECRET_KEY'],
     langfuseHost: process.env['LANGFUSE_BASE_URL'],

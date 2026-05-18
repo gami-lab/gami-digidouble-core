@@ -1,0 +1,74 @@
+import OpenAI from 'openai'
+import type { ILlmAdapter, LlmRequest, LlmResponse } from '../../application/ports/ILlmAdapter.js'
+import { LlmError } from './llm.error.js'
+
+const DEFAULT_MODEL = 'grok-3'
+const BASE_URL = 'https://api.x.ai/v1'
+const REQUEST_TIMEOUT_MS = 30_000
+
+export class XaiAdapter implements ILlmAdapter {
+  private readonly client: OpenAI
+
+  constructor(
+    apiKey: string,
+    private readonly defaultModel = DEFAULT_MODEL,
+  ) {
+    this.client = new OpenAI({ apiKey, baseURL: BASE_URL, timeout: REQUEST_TIMEOUT_MS })
+  }
+
+  async complete(request: LlmRequest): Promise<LlmResponse> {
+    const model = request.model ?? this.defaultModel
+    const start = Date.now()
+
+    let completion: OpenAI.ChatCompletion
+
+    try {
+      const maxTokens = request.maxTokens
+      completion = await this.client.chat.completions.create({
+        model,
+        messages: buildMessages(request),
+        ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
+      })
+    } catch (err) {
+      throw wrapXaiError(err)
+    }
+
+    return extractResponse(completion, Date.now() - start)
+  }
+}
+
+function buildMessages(request: LlmRequest): OpenAI.ChatCompletionMessageParam[] {
+  const system: OpenAI.ChatCompletionMessageParam = {
+    role: 'system',
+    content: request.systemPrompt,
+  }
+  const turns: OpenAI.ChatCompletionMessageParam[] = request.messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }))
+  return [system, ...turns]
+}
+
+function extractResponse(completion: OpenAI.ChatCompletion, latencyMs: number): LlmResponse {
+  const choice = completion.choices[0]
+  if (choice === undefined) {
+    throw new LlmError('xai', 'No choices returned by the API')
+  }
+  const content = choice.message.content ?? ''
+  const usage = completion.usage
+  return {
+    content,
+    model: completion.model,
+    inputTokens: usage?.prompt_tokens ?? 0,
+    outputTokens: usage?.completion_tokens ?? 0,
+    latencyMs,
+  }
+}
+
+function wrapXaiError(err: unknown): LlmError {
+  if (err instanceof OpenAI.APIError) {
+    return new LlmError('xai', err.message, err.status as number | undefined)
+  }
+  const message = err instanceof Error ? err.message : String(err)
+  return new LlmError('xai', message)
+}

@@ -347,5 +347,6 @@ function resolveServerLlmConfig(config: Config): LlmConfig {
     ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
     ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
     ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
+    ...(config.xaiApiKey !== undefined ? { xaiApiKey: config.xaiApiKey } : {}),
   }
 }
