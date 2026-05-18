@@ -68,7 +68,7 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
       selectedSessionId,
       setSelectedSessionId,
     )
-  }, [refreshTrigger, scenario.scenarioId, selectedSessionId])
+  }, [refreshTrigger, scenario.scenarioId])
 
   useEffect(() => {
     if (selectedSessionId === null) {
@@ -108,7 +108,7 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
   )
 
   const handleShellSessionChanged = (sessionId: string | null): void => {
-    if (sessionId === null) return
+    if (sessionId === null || sessionId === selectedSessionId) return
     setSelectedSessionId(sessionId)
     setRefreshTrigger((previous) => previous + 1)
   }
