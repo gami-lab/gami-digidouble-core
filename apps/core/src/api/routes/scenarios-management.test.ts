@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
-import type { Config } from '../../config.js'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Session } from '../../domain/conversation/session.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
@@ -8,24 +7,7 @@ import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avat
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   return {
@@ -74,7 +56,7 @@ function makeApp({
   avatars?: AvatarConfig[]
   sessions?: Session[]
 } = {}) {
-  return createServer(testConfig, {
+  return createServer(TEST_CONFIG, {
     scenarioRepository: new InMemoryScenarioRepository(scenarios),
     avatarRepository: new InMemoryAvatarRepository(avatars),
     sessionRepository: new InMemorySessionRepository(sessions),

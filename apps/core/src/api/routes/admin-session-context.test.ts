@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ApiResponse, AdminSessionContextResponse } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
-import type { Config } from '../../config.js'
 import { createServer } from '../server.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
@@ -13,24 +12,7 @@ import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.r
 import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -43,7 +25,7 @@ function authHeaders(apiKey = 'test-secret'): { 'x-api-key': string } {
 }
 
 function makeApp(): FastifyInstance {
-  const app = createServer(testConfig, buildAdapters())
+  const app = createServer(TEST_CONFIG, buildAdapters())
   appsToClose.push(app)
   return app
 }
@@ -193,7 +175,7 @@ describe('GET /v1/admin/sessions/:sessionId/context', () => {
   })
 
   it('returns 404 for unknown session', async () => {
-    const app = createServer(testConfig, {
+    const app = createServer(TEST_CONFIG, {
       sessionRepository: new InMemorySessionRepository([]),
       conversationRepository: new InMemoryConversationRepository([]),
       avatarRepository: new InMemoryAvatarRepository([]),

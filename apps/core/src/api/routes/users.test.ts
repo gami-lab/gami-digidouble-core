@@ -1,27 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
-import type { Config } from '../../config.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { createServer } from '../server.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -34,7 +16,7 @@ function authHeaders(apiKey = 'test-secret'): { 'x-api-key': string } {
 }
 
 function makeApp(): FastifyInstance {
-  const app = createServer(testConfig, {
+  const app = createServer(TEST_CONFIG, {
     userRepository: new InMemoryUserRepository(),
   })
   appsToClose.push(app)
@@ -46,7 +28,7 @@ function makeFailingApp(): FastifyInstance {
     findById: () => Promise.reject(new Error('read failed')),
     upsert: () => Promise.reject(new Error('write failed')),
   }
-  const app = createServer(testConfig, {
+  const app = createServer(TEST_CONFIG, {
     userRepository: failingRepo,
   })
   appsToClose.push(app)

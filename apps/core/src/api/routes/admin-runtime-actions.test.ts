@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
-import type { Config } from '../../config.js'
 import { createServer } from '../server.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
@@ -13,24 +12,7 @@ import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memo
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -50,7 +32,7 @@ function makeApp() {
     execute: runGameMasterExecute,
   } as unknown as RunGameMasterUseCase
 
-  const app = createServer(testConfig, {
+  const app = createServer(TEST_CONFIG, {
     scenarioRepository: new InMemoryScenarioRepository([
       {
         scenarioId: 'scenario_1',

@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
 import type { StoredEvent } from '../../application/ports/IEventLogRepository.js'
-import type { Config } from '../../config.js'
 import type { Message, Session } from '../../domain/conversation/session.types.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
@@ -12,24 +11,7 @@ import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-mes
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -99,7 +81,7 @@ function makeApp(params?: { sessions?: Session[]; events?: StoredEvent[] }): Fas
   }
 
   return registerApp(
-    createServer(testConfig, {
+    createServer(TEST_CONFIG, {
       scenarioRepository: new InMemoryScenarioRepository([
         {
           scenarioId: 'scenario_1',

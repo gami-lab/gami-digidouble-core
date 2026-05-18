@@ -1,29 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse, AvatarSummary } from '@gami/shared'
-import type { Config } from '../../config.js'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Session } from '../../domain/conversation/session.types.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   return {
@@ -57,7 +39,7 @@ function makeApp(
     sessions: [],
   },
 ) {
-  return createServer(testConfig, {
+  return createServer(TEST_CONFIG, {
     avatarRepository: new InMemoryAvatarRepository(avatars),
     sessionRepository: new InMemorySessionRepository(sessions),
   })

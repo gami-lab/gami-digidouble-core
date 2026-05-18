@@ -1,31 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
-import type { Config } from '../../config.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -43,7 +25,7 @@ function makeApp(params?: {
   avatars?: ConstructorParameters<typeof InMemoryAvatarRepository>[0]
   sessions?: ConstructorParameters<typeof InMemorySessionRepository>[0]
 }): FastifyInstance {
-  return createServer(testConfig, {
+  return createServer(TEST_CONFIG, {
     scenarioRepository: new InMemoryScenarioRepository(params?.scenarios ?? []),
     avatarRepository: new InMemoryAvatarRepository(params?.avatars ?? []),
     sessionRepository: new InMemorySessionRepository(params?.sessions ?? []),

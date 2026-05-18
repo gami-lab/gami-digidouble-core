@@ -2,27 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import type { ApiResponse } from '@gami/shared'
 import type { IDependencyProbe } from '../../application/ports/IDependencyProbe.js'
-import type { Config } from '../../config.js'
 import type { HealthReport } from '../../domain/health/index.js'
 import { createServer } from '../server.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -55,7 +37,7 @@ class HealthyProbe implements IDependencyProbe {
 }
 
 function makeApp(probes: IDependencyProbe[]): FastifyInstance {
-  const app = createServer(testConfig, { probes })
+  const app = createServer(TEST_CONFIG, { probes })
   appsToClose.push(app)
   return app
 }

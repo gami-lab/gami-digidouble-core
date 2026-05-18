@@ -2,31 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { SendRawMessageOutput } from '../../application/use-cases/send-raw-message/send-raw-message.types.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
-import type { Config } from '../../config.js'
 import { LlmError, NullLlmAdapter } from '../../infrastructure/llm/index.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 function makeApp(llmReply = 'null adapter response', model = 'null') {
-  return createServer(testConfig, {
+  return createServer(TEST_CONFIG, {
     llmAdapter: new NullLlmAdapter(llmReply, model),
     observabilityAdapter: new NullObservabilityAdapter(),
   })
@@ -117,7 +99,7 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
     const failingLlm = {
       complete: vi.fn().mockRejectedValue(new LlmError('openai', 'Provider timeout', 504)),
     }
-    const app = createServer(testConfig, {
+    const app = createServer(TEST_CONFIG, {
       llmAdapter: failingLlm,
       observabilityAdapter: new NullObservabilityAdapter(),
     })
@@ -139,7 +121,7 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
     const crashingLlm = {
       complete: vi.fn().mockRejectedValue(new Error('Unexpected crash')),
     }
-    const app = createServer(testConfig, {
+    const app = createServer(TEST_CONFIG, {
       llmAdapter: crashingLlm,
       observabilityAdapter: new NullObservabilityAdapter(),
     })
@@ -176,7 +158,7 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
       trace,
       flush: vi.fn().mockResolvedValue(undefined),
     }
-    const app = createServer(testConfig, {
+    const app = createServer(TEST_CONFIG, {
       observabilityAdapter: observability,
     })
 

@@ -2,31 +2,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
 import type { StoredEvent } from '../../application/ports/IEventLogRepository.js'
-import type { Config } from '../../config.js'
 import type { Conversation, Session } from '../../domain/conversation/session.types.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -101,7 +83,7 @@ function makeApp(params?: {
     void eventLogRepository.append(event)
   }
 
-  const app = createServer(testConfig, {
+  const app = createServer(TEST_CONFIG, {
     sessionRepository: new InMemorySessionRepository(params?.sessions ?? [makeSession()]),
     gmStateRepository: new InMemoryGmStateRepository([
       {

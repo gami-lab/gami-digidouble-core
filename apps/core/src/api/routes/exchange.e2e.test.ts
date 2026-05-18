@@ -14,23 +14,18 @@ import type { ApiResponse } from '@gami/shared'
 import type { SendRawMessageOutput } from '../../application/use-cases/send-raw-message/send-raw-message.types.js'
 import type { Config } from '../../config.js'
 import { createServer } from '../server.js'
+import { TEST_CONFIG } from './test-config.js'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
-    port: 3000,
-    host: '0.0.0.0',
-    nodeEnv: 'test',
-    logLevel: 'silent',
-    databaseUrl: 'postgresql://test',
-    redisUrl: 'redis://test',
+    ...TEST_CONFIG,
     apiKeySecret: 'e2e-secret',
-    corsOrigin: '*',
-    llmProvider: overrides.llmProvider ?? 'null',
     openaiApiKey: process.env['OPENAI_API_KEY'],
     anthropicApiKey: process.env['ANTHROPIC_API_KEY'],
     mistralApiKey: process.env['MISTRAL_API_KEY'],
+    xaiApiKey: process.env['XAI_API_KEY'],
     langfusePublicKey: process.env['LANGFUSE_PUBLIC_KEY'],
     langfuseSecretKey: process.env['LANGFUSE_SECRET_KEY'],
     langfuseHost: process.env['LANGFUSE_BASE_URL'],

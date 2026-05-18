@@ -1,30 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createServer } from '../server.js'
-import type { Config } from '../../config.js'
 import type { ApiResponse } from '@gami/shared'
 import type { ServerAdapters } from '../server.js'
-
-const testConfig: Config = {
-  port: 3000,
-  host: '0.0.0.0',
-  nodeEnv: 'test',
-  logLevel: 'silent',
-  databaseUrl: 'postgresql://test',
-  redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
-  corsOrigin: '*',
-  llmProvider: 'null',
-  openaiApiKey: undefined,
-  anthropicApiKey: undefined,
-  mistralApiKey: undefined,
-  langfusePublicKey: undefined,
-  langfuseSecretKey: undefined,
-  langfuseHost: undefined,
-}
+import { TEST_CONFIG } from './test-config.js'
 
 describe('GET /health', () => {
   it('returns 200 with ok status and standard envelope', async () => {
-    const app = createServer(testConfig)
+    const app = createServer(TEST_CONFIG)
 
     const response = await app.inject({ method: 'GET', url: '/health' })
 
@@ -55,7 +37,7 @@ describe('GET /health', () => {
       probes: [{ probe: vi.fn(failIfCalled) }],
     }
 
-    const app = createServer(testConfig, adapters)
+    const app = createServer(TEST_CONFIG, adapters)
 
     const response = await app.inject({ method: 'GET', url: '/health' })
 
