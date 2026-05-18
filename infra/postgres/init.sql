@@ -239,6 +239,14 @@ CREATE TABLE IF NOT EXISTS user_memory_facts (
   UNIQUE (user_id, category, key)
 );
 
+-- ── Model Config ──────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS model_config (
+  id          INTEGER     PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  config      JSONB       NOT NULL,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ── Indexes ───────────────────────────────────────────────────────────────────
 
 CREATE INDEX IF NOT EXISTS idx_avatars_scenario_id   ON avatars(scenario_id);

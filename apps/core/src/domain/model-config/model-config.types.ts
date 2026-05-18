@@ -20,6 +20,19 @@ export interface ModelConfig {
 
 export type AvatarLlmOverride = ModelOverride
 
+export function isProviderName(value: string): value is ProviderName {
+  switch (value) {
+    case 'openai':
+    case 'anthropic':
+    case 'mistral':
+    case 'xai':
+    case 'null':
+      return true
+    default:
+      return false
+  }
+}
+
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   globalDefault: { provider: 'null', model: '' },
   roleOverrides: {},

@@ -98,4 +98,5 @@ export type {
   AdminReplayGmResponse,
   AdminRefreshMemoryResponse,
   AdminClearMemoryResponse,
+  ModelConfigResponse,
 } from './runtime-inspector-types.js'

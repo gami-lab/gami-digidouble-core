@@ -305,6 +305,20 @@ Completed on: 2026-05-18
 - avatar-level `llmOverride` representation as optional provider/model override input
 - deterministic unit coverage for global default, role override, avatar override, non-avatar ignore, and `null` provider branches
 
+### Prompt 02 — Persistence Layer & Admin API
+
+Status: ✅ Complete
+Completed on: 2026-05-18
+
+### Includes
+
+- single-row `model_config` persistence table (`id = 1` constraint) in canonical Postgres init schema
+- `IModelConfigRepository` application port and Postgres adapter (`get` + `upsert`)
+- shared `ModelConfigResponse` DTO exported from `@gami/shared`
+- admin endpoints `GET /v1/admin/model-config` and `PUT /v1/admin/model-config`
+- strict request validation for provider names, model non-empty strings, and unknown-field rejection
+- stack-e2e route coverage for auth, validation, default fallback, write, and read-after-write behavior
+
 ---
 
 ## EPIC 5.2 — Context Engine v2

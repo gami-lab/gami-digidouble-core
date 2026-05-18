@@ -23,6 +23,7 @@ import type { IKnowledgeChunkRepository } from '../application/ports/IKnowledgeC
 import type { IIngestionJobRepository } from '../application/ports/IIngestionJobRepository.js'
 import type { IKnowledgeSourceContentLoader } from '../application/ports/IKnowledgeSourceContentLoader.js'
 import type { IEmbeddingAdapter } from '../application/ports/IEmbeddingAdapter.js'
+import type { IModelConfigRepository } from '../application/ports/IModelConfigRepository.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
@@ -57,8 +58,10 @@ import { knowledgeRoute } from './routes/knowledge.js'
 import { InMemoryKnowledgeSourceRepository } from '../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { InMemoryKnowledgeChunkRepository } from '../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryIngestionJobRepository } from '../infrastructure/db/in-memory-ingestion-job.repository.js'
+import { InMemoryModelConfigRepository } from '../infrastructure/db/in-memory-model-config.repository.js'
 import { InMemoryKnowledgeSourceContentLoader } from '../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
 import { HashEmbeddingAdapter } from '../infrastructure/knowledge/hash-embedding.adapter.js'
+import { adminModelConfigRoute } from './routes/admin-model-config.js'
 
 export interface ServerAdapters {
   llmAdapter?: ILlmAdapter
@@ -84,6 +87,7 @@ export interface ServerAdapters {
   ingestionJobRepository?: IIngestionJobRepository
   knowledgeSourceContentLoader?: IKnowledgeSourceContentLoader
   embeddingAdapter?: IEmbeddingAdapter
+  modelConfigRepository?: IModelConfigRepository
 }
 
 type FastifyValidationError = {
@@ -159,6 +163,14 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   })
   app.register(adminRuntimeActionsRoute, {
     ...buildAdminRuntimeActionsRouteOptions(config, resolvedAdapters),
+  })
+  app.register(adminModelConfigRoute, {
+    prefix: '/v1/admin',
+    config,
+    modelConfigRepository: withDefault(
+      resolvedAdapters.modelConfigRepository,
+      new InMemoryModelConfigRepository(),
+    ),
   })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',

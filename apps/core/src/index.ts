@@ -27,6 +27,7 @@ import {
   PostgresKnowledgeSourceRepository,
   PostgresKnowledgeChunkRepository,
   PostgresIngestionJobRepository,
+  PostgresModelConfigRepository,
 } from './infrastructure/db/index.js'
 import { InMemoryKnowledgeSourceContentLoader } from './infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
 import { HashEmbeddingAdapter } from './infrastructure/knowledge/hash-embedding.adapter.js'
@@ -60,6 +61,7 @@ async function main(): Promise<void> {
   const userRepository = new PostgresUserRepository(sql)
   const userMemoryFactRepository = new PostgresUserMemoryFactRepository(sql)
   const knowledgeAdapters = buildKnowledgeAdapters(sql)
+  const modelConfigRepository = new PostgresModelConfigRepository(sql)
   const sessionEventPublisher = new InMemorySessionEventPublisher()
   const memorySelectionService = new MemorySelectionService(
     messageRepository,
@@ -103,6 +105,7 @@ async function main(): Promise<void> {
     userRepository,
     userMemoryFactRepository,
     ...knowledgeAdapters,
+    modelConfigRepository,
     runGameMasterUseCase,
     sessionEventPublisher,
     probes,

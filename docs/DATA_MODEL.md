@@ -53,6 +53,7 @@ Runtime behavior and orchestration semantics are defined in:
 | `knowledge_chunks`              | Retrieval chunks                      |
 | `event_log`                     | Runtime observability events          |
 | `ingestion_jobs`                | Knowledge ingestion tracking          |
+| `model_config`                  | Runtime model routing configuration   |
 | `admin_action_log`              | Operator audit trail                  |
 | `prompt_template_variables`     | Optional reusable prompt variables    |
 
@@ -418,6 +419,26 @@ Table: `event_log`
 - id
 - session_id
 - type
+
+---
+
+# 16. Model Config
+
+Single-row runtime model configuration store.
+
+Table: `model_config`
+
+## Fields
+
+- id (`CHECK (id = 1)`)
+- config (JSONB)
+- updated_at
+
+## Notes
+
+- Enforces one row for the active runtime model configuration
+- `config` stores the canonical `ModelConfig` payload (global default + role overrides)
+- Operators update via admin API without redeploy
 - payload (JSONB)
 - severity
 - request_id

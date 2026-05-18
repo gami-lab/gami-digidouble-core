@@ -341,3 +341,13 @@ export type AdminClearMemoryResponse = {
     userFactsCleared: false
   }
 }
+
+export type ModelConfigResponse = {
+  globalDefault: { provider: string; model: string }
+  roleOverrides: {
+    avatar?: { provider?: string; model?: string }
+    gameMaster?: { provider?: string; model?: string }
+    memory?: { provider?: string; model?: string }
+  }
+  updatedAt: string
+}

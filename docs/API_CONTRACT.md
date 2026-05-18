@@ -558,6 +558,69 @@ GET /v1/admin/health
 
 ---
 
+# Model Configuration
+
+## Get Model Config
+
+```text
+GET /v1/admin/model-config
+```
+
+```ts
+type ModelConfigResponse = {
+  globalDefault: { provider: string; model: string }
+  roleOverrides: {
+    avatar?: { provider?: string; model?: string }
+    gameMaster?: { provider?: string; model?: string }
+    memory?: { provider?: string; model?: string }
+  }
+  updatedAt: string
+}
+```
+
+Response:
+
+```ts
+ApiResponse<{ modelConfig: ModelConfigResponse }>
+```
+
+Always returns `200` with effective config (falls back to default when no DB row exists).
+
+## Update Model Config
+
+```text
+PUT /v1/admin/model-config
+```
+
+Request:
+
+```ts
+type UpdateModelConfigRequest = {
+  globalDefault: { provider: string; model: string }
+  roleOverrides?: {
+    avatar?: { provider?: string; model?: string }
+    gameMaster?: { provider?: string; model?: string }
+    memory?: { provider?: string; model?: string }
+  }
+}
+```
+
+Validation:
+
+- provider fields must be one of `openai | anthropic | mistral | xai | null`
+- model fields must be non-empty strings when provided
+- unknown fields are rejected
+
+Response:
+
+```ts
+ApiResponse<{ modelConfig: ModelConfigResponse }>
+```
+
+Validation failures return `400` with `VALIDATION_ERROR`.
+
+---
+
 # Inspector
 
 ## Inspect Session
