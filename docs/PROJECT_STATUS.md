@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: May 12, 2026
+Last updated: May 18, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -285,6 +285,25 @@ Completed on: 2026-04-29
 - event-driven orchestration
 - AI Guided Discovery reference scenario
 - runtime GM observability
+
+---
+
+## EPIC 4.1c — Multi-Model Runtime Config
+
+Status: 🚧 In Progress
+
+### Prompt 01 — Model Config Domain & Resolution Service
+
+Status: ✅ Complete
+Completed on: 2026-05-18
+
+### Includes
+
+- canonical domain model-config types (`ModelRole`, `ProviderName`, `ModelConfig`, overrides)
+- canonical `DEFAULT_MODEL_CONFIG` domain fallback constant
+- pure `ModelResolutionService.resolve()` role-based precedence resolution logic
+- avatar-level `llmOverride` representation as optional provider/model override input
+- deterministic unit coverage for global default, role override, avatar override, non-avatar ignore, and `null` provider branches
 
 ---
 

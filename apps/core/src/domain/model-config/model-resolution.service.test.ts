@@ -1,0 +1,138 @@
+import { describe, expect, it } from 'vitest'
+import type { ModelConfig } from './model-config.types.js'
+import { ModelResolutionService } from './model-resolution.service.js'
+
+const baseConfig: ModelConfig = {
+  globalDefault: {
+    provider: 'openai',
+    model: 'gpt-4.1-mini',
+  },
+  roleOverrides: {},
+  updatedAt: '2026-01-01T00:00:00.000Z',
+}
+
+describe('ModelResolutionService.resolve -> no overrides', () => {
+  it('returns global default for avatar, gameMaster, and memory', () => {
+    expect(ModelResolutionService.resolve('avatar', baseConfig)).toEqual({
+      provider: 'openai',
+      model: 'gpt-4.1-mini',
+    })
+
+    expect(ModelResolutionService.resolve('gameMaster', baseConfig)).toEqual({
+      provider: 'openai',
+      model: 'gpt-4.1-mini',
+    })
+
+    expect(ModelResolutionService.resolve('memory', baseConfig)).toEqual({
+      provider: 'openai',
+      model: 'gpt-4.1-mini',
+    })
+  })
+})
+
+describe('ModelResolutionService.resolve -> role overrides', () => {
+  it('applies gameMaster role override while avatar stays on global default', () => {
+    const config: ModelConfig = {
+      ...baseConfig,
+      roleOverrides: {
+        gameMaster: {
+          provider: 'anthropic',
+          model: 'claude-3-7-sonnet',
+        },
+      },
+    }
+
+    expect(ModelResolutionService.resolve('gameMaster', config)).toEqual({
+      provider: 'anthropic',
+      model: 'claude-3-7-sonnet',
+    })
+
+    expect(ModelResolutionService.resolve('avatar', config)).toEqual({
+      provider: 'openai',
+      model: 'gpt-4.1-mini',
+    })
+  })
+})
+
+describe('ModelResolutionService.resolve -> avatar overrides', () => {
+  it('uses avatar override provider and falls back model to lower precedence', () => {
+    const config: ModelConfig = {
+      ...baseConfig,
+      roleOverrides: {
+        avatar: {
+          provider: 'mistral',
+          model: 'mistral-large',
+        },
+      },
+    }
+
+    expect(
+      ModelResolutionService.resolve('avatar', config, {
+        provider: 'xai',
+      }),
+    ).toEqual({
+      provider: 'xai',
+      model: 'mistral-large',
+    })
+  })
+
+  it('uses avatar override model and falls back provider to lower precedence', () => {
+    const config: ModelConfig = {
+      ...baseConfig,
+      roleOverrides: {
+        avatar: {
+          provider: 'anthropic',
+        },
+      },
+    }
+
+    expect(
+      ModelResolutionService.resolve('avatar', config, {
+        model: 'claude-3-5-haiku',
+      }),
+    ).toEqual({
+      provider: 'anthropic',
+      model: 'claude-3-5-haiku',
+    })
+  })
+
+  it('ignores avatar override for non-avatar roles', () => {
+    const config: ModelConfig = {
+      ...baseConfig,
+      roleOverrides: {
+        gameMaster: {
+          provider: 'mistral',
+          model: 'mistral-small',
+        },
+      },
+    }
+
+    expect(
+      ModelResolutionService.resolve('gameMaster', config, {
+        provider: 'xai',
+        model: 'grok-3',
+      }),
+    ).toEqual({
+      provider: 'mistral',
+      model: 'mistral-small',
+    })
+  })
+})
+
+describe('ModelResolutionService.resolve -> null provider default', () => {
+  it('resolves null provider and empty model from global default without error', () => {
+    const config: ModelConfig = {
+      globalDefault: {
+        provider: 'null',
+        model: '',
+      },
+      roleOverrides: {},
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+
+    expect(ModelResolutionService.resolve('memory', config)).toEqual({
+      provider: 'null',
+      model: '',
+    })
+  })
+})
