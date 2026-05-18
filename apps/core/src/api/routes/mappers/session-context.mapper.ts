@@ -23,7 +23,19 @@ const MAX_TRACE_SEGMENTS = 24
 const MAX_POLICY_SEGMENTS = 16
 
 function toSessionContextTrace(snapshot: SessionContextSnapshot): SessionContextTrace {
-  const trace = snapshot.contextTrace
+  const typedSnapshot = snapshot as SessionContextSnapshot & {
+    contextTrace: {
+      selection: {
+        kept: Array<{
+          segmentId: SessionContextTrace['selection']['kept'][number]['segmentId']
+        }>
+        trimmed: Array<{
+          reason: SessionContextTrace['selection']['trimmed'][number]['reason']
+        }>
+      }
+    }
+  }
+  const trace = typedSnapshot.contextTrace
   return {
     deterministic: true,
     policy: {

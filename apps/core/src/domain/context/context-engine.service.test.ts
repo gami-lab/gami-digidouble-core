@@ -222,7 +222,7 @@ describe('ContextEngine baseline', () => {
     expect(output.trace.selectedInputs.recentMessageCount).toBe(0)
   })
 
-  it('keeps deterministic precedence without hard trimming under tiny budgets', () => {
+  it('trims non-protected segments deterministically under tiny budgets', () => {
     const tinyBudgetPolicy: ContextEnginePolicy = {
       tokenBudget: {
         avatarMaxTokens: 8,
@@ -248,18 +248,21 @@ describe('ContextEngine baseline', () => {
 
     expect(output.avatar.gmNotes).toBe('Focus on concrete steps.')
     expect(output.avatar.scenario.scenarioId).toBe('scenario_1')
-    expect(output.avatar.recentExchanges).toEqual([{ user: 'u1', avatar: 'a1' }])
-    expect(output.avatar.longTermFacts).toEqual([
-      { category: 'preference', key: 'style', value: 'concise' },
-    ])
-    assertBaselineAvatarKnowledge(output)
-    expect(output.avatar.knowledge?.typedSections?.memory).toHaveLength(1)
-    expect(output.avatar.knowledge?.typedSections?.world).toHaveLength(1)
-    expect(output.avatar.knowledge?.typedSections?.media).toHaveLength(1)
-    expect(output.gm.knowledge?.memory).toHaveLength(1)
-    expect(output.gm.knowledge?.world).toHaveLength(1)
-    expect(output.gm.knowledge?.media).toHaveLength(1)
-    expect(output.trace.selection.trimmed).toEqual([])
+    expect(output.avatar.recentExchanges).toEqual([])
+    expect(output.avatar.longTermFacts).toEqual([])
+    expect(output.avatar.knowledge).toBeUndefined()
+    expect(output.gm.knowledge).toBeUndefined()
+    expect(output.trace.selection.trimmed.length).toBeGreaterThan(0)
+    expect(
+      output.trace.selection.trimmed.some(
+        (item) => item.segmentId === 'typedRetrievalMemory' && item.projection === 'avatar',
+      ),
+    ).toBe(true)
+    expect(
+      output.trace.selection.trimmed.some(
+        (item) => item.segmentId === 'shortTermMemory' && item.projection === 'gm',
+      ),
+    ).toBe(true)
     expect(
       output.trace.selection.kept.some(
         (item) => item.segmentId === 'gmDirective' && item.reason === 'protected',

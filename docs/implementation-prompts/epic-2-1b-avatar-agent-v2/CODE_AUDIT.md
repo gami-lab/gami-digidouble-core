@@ -168,3 +168,50 @@ Minimal steps to reach A:
 ## Final Recommendation
 
 Close with debt
+
+## Remediation Outcome
+
+### Changes Made
+
+- Enforced deterministic context budget handling in `ContextEngine` with protected-segment precedence and explicit trimmed-segment trace output.
+- Updated context-engine tests to assert overflow behavior with deterministic retention/trimming outcomes instead of telemetry-only assertions.
+- Introduced context assembler dependency injection in `SendMessageUseCase` (defaulting to `ContextEngine`) to remove hard-wired construction.
+- Added compile-time mapper conformance guard pattern in session context mapper to reduce silent drift risk between internal and shared contracts.
+- Added focused API-level regression coverage proving user persona changes are observable in assembled system prompt through conversation route wiring.
+- Added dedicated test coverage file for context assembler injection behavior in send-message use-case.
+- Updated project docs to reflect enforced budget behavior and expected coverage assertions.
+
+### Findings Resolved
+
+- Resolved: Token budget policy is now enforced by selection logic.
+- Resolved: Context budget tests no longer codify non-enforcement behavior.
+- Resolved: Context engine construction is no longer hard-wired in `SendMessageUseCase`.
+- Resolved: API-level behavioral proof now exists for persona adaptation through route contracts.
+
+### Findings Deferred
+
+- Deferred (reduced risk, not eliminated): Internal/shared context contract mirroring still exists structurally; compile-time conformance guard was added, but full shared primitive unification was intentionally deferred to avoid scope expansion.
+
+### Build Gates
+
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS
+- `pnpm test`: PASS
+- `pnpm test:coverage`: PASS
+
+### Final Feature Confidence
+
+- Canonical prompt assembly path: High
+- Persona-aware response shaping: High
+- Memory/typed retrieval integration: High
+- Runtime inspector alignment: High
+- Contract drift resilience: Medium-High
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- Shared/internal context model duplication still needs a broader consolidation pass in a later EPIC to minimize long-term mapper maintenance overhead.
+- Coverage remains intentionally uneven in unrelated modules; this remediation targeted EPIC 2.1b correctness and contract confidence only.

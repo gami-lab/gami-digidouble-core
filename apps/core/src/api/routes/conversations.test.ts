@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { Config } from '../../config.js'
+import type { ILlmAdapter, LlmRequest } from '../../application/ports/ILlmAdapter.js'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../domain/conversation/session.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
+import type { User } from '../../domain/user/user.types.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { NullLlmAdapter } from '../../infrastructure/llm/index.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
@@ -98,22 +101,73 @@ function makeApp({
   sessions = [makeSession()],
   conversations = [makeConversation()],
   messages = [],
+  llmAdapter,
+  users = [],
 }: {
   scenarios?: Scenario[]
   avatars?: AvatarConfig[]
   sessions?: Session[]
   conversations?: Conversation[]
   messages?: Message[]
+  llmAdapter?: ILlmAdapter
+  users?: User[]
 } = {}) {
   return createServer(testConfig, {
-    llmAdapter: new NullLlmAdapter('Avatar reply', 'null-model'),
+    llmAdapter: llmAdapter ?? new NullLlmAdapter('Avatar reply', 'null-model'),
     observabilityAdapter: new NullObservabilityAdapter(),
     scenarioRepository: new InMemoryScenarioRepository(scenarios),
     avatarRepository: new InMemoryAvatarRepository(avatars),
     sessionRepository: new InMemorySessionRepository(sessions),
     conversationRepository: new InMemoryConversationRepository(conversations),
     messageRepository: new InMemoryMessageRepository(messages),
+    userRepository: new InMemoryUserRepository(users),
   })
+}
+
+class CapturingLlmAdapter implements ILlmAdapter {
+  public readonly calls: LlmRequest[] = []
+
+  complete(request: LlmRequest) {
+    this.calls.push(request)
+    return Promise.resolve({
+      content: 'Avatar reply',
+      model: 'null-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    })
+  }
+}
+
+function makeUser(name: string, roleInWorld: string): User {
+  return {
+    userId: 'user_1',
+    persona: { name, roleInWorld },
+    createdAt: '2026-04-18T10:00:00.000Z',
+    updatedAt: '2026-04-18T10:00:00.000Z',
+  }
+}
+
+async function sendMessageAndCapturePrompt(persona: {
+  name: string
+  roleInWorld: string
+}): Promise<string | undefined> {
+  const llm = new CapturingLlmAdapter()
+  const app = makeApp({
+    llmAdapter: llm,
+    users: [makeUser(persona.name, persona.roleInWorld)],
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/v1/conversations/conversation_1/messages',
+    headers: { 'x-api-key': 'test-secret' },
+    payload: { message: { content: 'How should I proceed?' } },
+  })
+
+  expect(response.statusCode).toBe(200)
+  expect(response.json<ApiResponse<unknown>>().error).toBeNull()
+  return llm.calls[0]?.systemPrompt
 }
 
 describe('session API', () => {
@@ -247,6 +301,23 @@ describe('conversation message/history API', () => {
     })
     expect(sendResponse.statusCode).toBe(404)
     expect(historyResponse.statusCode).toBe(404)
+  })
+
+  it('applies user persona through route wiring and changes observable system prompt context', async () => {
+    const studentPrompt = await sendMessageAndCapturePrompt({
+      name: 'Maya',
+      roleInWorld: 'student',
+    })
+    expect(studentPrompt).toContain('Name: Maya')
+    expect(studentPrompt).toContain('Role in this world: student')
+
+    const mentorPrompt = await sendMessageAndCapturePrompt({
+      name: 'Lina',
+      roleInWorld: 'mentor',
+    })
+    expect(mentorPrompt).toContain('Name: Lina')
+    expect(mentorPrompt).toContain('Role in this world: mentor')
+    expect(studentPrompt).not.toBe(mentorPrompt)
   })
 })
 

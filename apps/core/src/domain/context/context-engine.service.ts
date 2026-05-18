@@ -55,8 +55,8 @@ function buildBaseOutput(input: ContextEngineInput): MutableOutput {
       recentExchanges: EMPTY_EXCHANGES,
       workingMemory: {},
       longTermFacts: EMPTY_FACTS,
-      userPersona: input.extensions.userPersona,
-      gmNotes: input.extensions.gmDirective,
+      userPersona: null,
+      gmNotes: null,
       scenario: input.scenario,
     },
     gm: {
@@ -64,7 +64,7 @@ function buildBaseOutput(input: ContextEngineInput): MutableOutput {
       memory: {},
       currentState: input.gmState,
       availableAvatars: input.availableAvatars,
-      userPersona: input.extensions.userPersona,
+      userPersona: null,
       scenario: input.scenario,
     },
   }
@@ -109,16 +109,21 @@ function pushScenarioCandidate(candidates: CandidateSegment[], input: ContextEng
 
 function pushGmDirectiveCandidate(candidates: CandidateSegment[], input: ContextEngineInput): void {
   if (!hasText(input.extensions.gmDirective)) return
+  const directive = input.extensions.gmDirective.trim()
   const tokenEstimate = estimateTokens(input.extensions.gmDirective)
   candidates.push({
     projection: 'avatar',
     segmentId: 'gmDirective',
     tokenEstimate,
-    apply: () => {},
+    apply: (draft) => {
+      draft.avatar.gmNotes = directive
+    },
   })
 }
 
 function pushUserPersonaCandidate(candidates: CandidateSegment[], input: ContextEngineInput): void {
+  if (input.extensions.userPersona === null) return
+  const persona = input.extensions.userPersona
   const personaText = toPersonaText(input.extensions.userPersona)
   if (personaText.length === 0) return
   const tokenEstimate = estimateTokens(personaText)
@@ -126,13 +131,17 @@ function pushUserPersonaCandidate(candidates: CandidateSegment[], input: Context
     projection: 'avatar',
     segmentId: 'userPersona',
     tokenEstimate,
-    apply: () => {},
+    apply: (draft) => {
+      draft.avatar.userPersona = persona
+    },
   })
   candidates.push({
     projection: 'gm',
     segmentId: 'userPersona',
     tokenEstimate,
-    apply: () => {},
+    apply: (draft) => {
+      draft.gm.userPersona = persona
+    },
   })
 }
 
@@ -344,10 +353,25 @@ function applyBudgetAndSelection(
 ): ContextEngineOutput['trace']['selection'] {
   const kept: ContextEngineOutput['trace']['selection']['kept'] = []
   const trimmed: ContextEngineOutput['trace']['selection']['trimmed'] = []
+  const budgetUsed: Record<ContextProjection, number> = {
+    avatar: 0,
+    gm: 0,
+  }
 
   for (const candidate of stableSortCandidates(candidates, policy)) {
     const isProtected = policy.protectedSegments.includes(candidate.segmentId)
+    if (!isProtected && exceedsProjectionBudget(budgetUsed, candidate, policy)) {
+      trimmed.push({
+        projection: candidate.projection,
+        segmentId: candidate.segmentId,
+        tokenEstimate: candidate.tokenEstimate,
+        reason: 'budget_exceeded',
+      })
+      continue
+    }
+
     candidate.apply(draft)
+    budgetUsed[candidate.projection] += candidate.tokenEstimate
     kept.push({
       projection: candidate.projection,
       segmentId: candidate.segmentId,
@@ -357,6 +381,18 @@ function applyBudgetAndSelection(
   }
 
   return { kept, trimmed }
+}
+
+function exceedsProjectionBudget(
+  budgetUsed: Record<ContextProjection, number>,
+  candidate: CandidateSegment,
+  policy: ContextEnginePolicy,
+): boolean {
+  const maxBudget =
+    candidate.projection === 'avatar'
+      ? policy.tokenBudget.avatarMaxTokens
+      : policy.tokenBudget.gmMaxTokens
+  return budgetUsed[candidate.projection] + candidate.tokenEstimate > maxBudget
 }
 
 function buildTrace(

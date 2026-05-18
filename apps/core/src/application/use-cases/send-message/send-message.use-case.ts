@@ -48,6 +48,11 @@ import { toContextSelectionMetadata } from './send-message.context-selection.js'
 
 const MESSAGE_HISTORY_FETCH_LIMIT = 30
 const MESSAGE_HISTORY_EXCHANGE_LIMIT = 3
+
+type ContextAssembler = {
+  assemble(input: Parameters<ContextEngine['assemble']>[0]): ContextEngineOutput
+}
+
 type ConversationCloser = {
   execute(input: {
     sessionId: string
@@ -75,6 +80,7 @@ export class SendMessageUseCase {
     private readonly conversationMemoryRepository?: IConversationMemoryRepository,
     private readonly memorySelectionService?: MemorySelectionService,
     private readonly typedRetrievalService?: TypedRetrievalService,
+    private readonly contextAssembler: ContextAssembler = new ContextEngine(),
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -209,9 +215,8 @@ export class SendMessageUseCase {
       selectedMemory !== undefined
         ? this.getMemorySelectionService().toAvatarMemorySnapshot(selectedMemory)
         : undefined
-    const contextEngine = new ContextEngine()
     const retrieval = await this.loadTypedRetrieval(args.session, args.conversation.conversationId)
-    const assembledContext = contextEngine.assemble({
+    const assembledContext = this.contextAssembler.assemble({
       sessionId: args.session.sessionId,
       activeAvatarId: args.conversation.avatarId,
       recentMessages: [{ role: 'user', content: args.userMessage }],
