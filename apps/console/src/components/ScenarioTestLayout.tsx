@@ -2,8 +2,6 @@ import type { Dispatch, JSX, SetStateAction, SyntheticEvent } from 'react'
 import type { AvailableAvatarSummary, ConversationSummary, Message, ScenarioSummary } from '../api'
 import { AvatarAvailabilityPanel } from './AvatarAvailabilityPanel'
 import { ConversationTimeline } from './ConversationTimeline'
-import { GuidedShortcuts, AI_GUIDED_DISCOVERY_SHORTCUTS } from './GuidedShortcuts'
-import { RuntimeInspector } from './RuntimeInspector'
 import { ScenarioChatPanel } from './ScenarioChatPanel'
 import { ScenarioSessionLauncher } from './ScenarioSessionLauncher'
 import { errorStyle, sectionStyle } from '../pages/form-styles'
@@ -33,16 +31,11 @@ type ScenarioTestLayoutProps = {
   onUserIdChange: Dispatch<SetStateAction<string>>
   onStartSession: () => void
   onSwitchAvatar: (avatarId: string) => void
-  onSendMessage: (message: string) => void
   onSendDraft: (event: SyntheticEvent<HTMLFormElement>) => void
   onDraftChange: Dispatch<SetStateAction<string>>
   onOpenConversation: (conversation: ConversationSummary) => void
-  onReturnToGuide: () => void
-  onTestLockedAccess: () => void
-  showRuntimeInspector?: boolean
 }
 
-// eslint-disable-next-line max-lines-per-function, complexity
 export function ScenarioTestLayout({
   scenario,
   state,
@@ -62,17 +55,13 @@ export function ScenarioTestLayout({
   onUserIdChange,
   onStartSession,
   onSwitchAvatar,
-  onSendMessage,
   onSendDraft,
   onDraftChange,
   onOpenConversation,
-  onReturnToGuide,
-  onTestLockedAccess,
-  showRuntimeInspector = true,
 }: ScenarioTestLayoutProps): JSX.Element {
   return (
     <section style={sectionStyle}>
-      <h2 style={{ marginTop: 0 }}>Session Setup Workspace</h2>
+      <h2 style={{ marginTop: 0 }}>Session Runner</h2>
       <p style={{ color: '#6b7280', marginTop: 0 }}>
         Scenario: <strong>{scenario.name}</strong>
       </p>
@@ -131,27 +120,7 @@ export function ScenarioTestLayout({
                   onDraftChange={onDraftChange}
                 />
               </div>
-              {showRuntimeInspector ? (
-                <div>
-                  <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Session Runtime Inspector</h3>
-                  <RuntimeInspector
-                    sessionId={state.session.sessionId}
-                    refreshTrigger={state.conversations.length}
-                  />
-                </div>
-              ) : null}
             </div>
-          </div>
-          <div style={{ marginTop: '16px' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Quick Test Actions</h3>
-            <GuidedShortcuts
-              shortcuts={AI_GUIDED_DISCOVERY_SHORTCUTS}
-              isSending={isSending || isSwitching}
-              hasActiveConversation={state.selectedConversationId !== null}
-              onSendShortcut={onSendMessage}
-              onReturnToGuide={onReturnToGuide}
-              onTestLockedAccess={onTestLockedAccess}
-            />
           </div>
         </>
       ) : null}

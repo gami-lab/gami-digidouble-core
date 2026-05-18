@@ -177,7 +177,13 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
 
       <div style={{ marginTop: '12px' }}>
         {activeTab === 'run' ? (
-          <DebugShellPage scenario={scenario} onSessionChanged={handleShellSessionChanged} />
+          <DebugShellPage
+            scenario={scenario}
+            selectedSessionId={selectedSessionId}
+            selectedConversationId={selectedConversationId}
+            onSessionChanged={handleShellSessionChanged}
+            onConversationChanged={setSelectedConversationId}
+          />
         ) : null}
 
         {activeTab === 'knowledge' ? (

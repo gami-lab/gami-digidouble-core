@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, JSX, SetStateAction, SyntheticEvent } from 'react'
 import {
   getAvailableAvatars,
+  getSession,
   getUserPersona,
   getHistory,
   listScenarioAvatars,
@@ -15,17 +16,9 @@ import {
 import type { AvailableAvatarSummary, ConversationSummary, ScenarioSummary } from '../api'
 import type { UserPersona } from '@gami/shared'
 import { formatApiError } from '../api/error'
-import { RuntimeInspector } from '../components/RuntimeInspector'
 import { ScenarioTestLayout } from '../components/ScenarioTestLayout'
 import { buildPersonaPayload } from '../components/runtime-inspector-tab-content'
 import { sectionStyle } from './form-styles'
-import {
-  createDebugShellContext,
-  DEBUG_SHELL_SECTIONS,
-  sectionRuntimeInspectorTab,
-  withDebugShellSection,
-  withDebugShellSession,
-} from './debug-shell-navigation'
 import { derivePersonaStartGate } from './debug-shell-persona-gate'
 import {
   createInitialScenarioTestState,
@@ -44,7 +37,10 @@ import type { ScenarioTestState } from './scenario-test-state'
 
 type DebugShellPageProps = {
   scenario: ScenarioSummary
+  selectedSessionId?: string | null
+  selectedConversationId?: string | null
   onSessionChanged?: (sessionId: string | null) => void
+  onConversationChanged?: (conversationId: string | null) => void
 }
 type SetScenarioTestState = Dispatch<SetStateAction<ScenarioTestState>>
 type PersonaDraft = {
@@ -84,6 +80,43 @@ async function startSessionFlow(
     conversations,
   }))
   turnIndexRef.current = 0
+}
+
+async function loadExistingSessionFlow(
+  sessionId: string,
+  preferredConversationId: string | null,
+  setState: SetScenarioTestState,
+  setUserId: Dispatch<SetStateAction<string>>,
+  turnIndexRef: { current: number },
+): Promise<void> {
+  const session = await getSession(sessionId)
+  const available = await getAvailableAvatars(sessionId)
+  const conversations = await listSessionConversations(sessionId)
+  const targetConversationId =
+    preferredConversationId !== null &&
+    conversations.some((conversation) => conversation.conversationId === preferredConversationId)
+      ? preferredConversationId
+      : (conversations[0]?.conversationId ?? null)
+
+  let messagesByConversationId: ScenarioTestState['messagesByConversationId'] = {}
+
+  if (targetConversationId !== null) {
+    const history = await getHistory(targetConversationId)
+    messagesByConversationId = {
+      [targetConversationId]: history.messages,
+    }
+    turnIndexRef.current = history.messages.filter((message) => message.role === 'user').length
+  } else {
+    turnIndexRef.current = 0
+  }
+
+  setUserId(session.userId)
+  setState((prev) => ({
+    ...withSessionStarted(prev, session, avatarIds(available.avatars)),
+    conversations,
+    selectedConversationId: targetConversationId,
+    messagesByConversationId,
+  }))
 }
 
 async function switchAvatarFlow(
@@ -197,10 +230,13 @@ function toPersonaDraft(persona: UserPersona | null): PersonaDraft {
 }
 
 // eslint-disable-next-line max-lines-per-function, complexity
-export function DebugShellPage({ scenario, onSessionChanged }: DebugShellPageProps): JSX.Element {
-  const [shellContext, setShellContext] = useState(() =>
-    createDebugShellContext(scenario.scenarioId),
-  )
+export function DebugShellPage({
+  scenario,
+  selectedSessionId = null,
+  selectedConversationId = null,
+  onSessionChanged,
+  onConversationChanged,
+}: DebugShellPageProps): JSX.Element {
   const [state, setState] = useState<ScenarioTestState>(createInitialScenarioTestState)
   const [userId, setUserId] = useState('tester')
   const [draftMessage, setDraftMessage] = useState('')
@@ -229,18 +265,60 @@ export function DebugShellPage({ scenario, onSessionChanged }: DebugShellPagePro
   } = useScenarioDerivedData(state)
 
   useEffect(() => {
-    setShellContext(createDebugShellContext(scenario.scenarioId))
     setState(createInitialScenarioTestState())
     void loadScenarioAvatars(scenario.scenarioId, setState)
   }, [scenario.scenarioId])
 
   useEffect(() => {
-    setShellContext((previous) => withDebugShellSession(previous, state.session?.sessionId ?? null))
-  }, [state.session?.sessionId])
-
-  useEffect(() => {
     onSessionChanged?.(state.session?.sessionId ?? null)
   }, [onSessionChanged, state.session?.sessionId])
+
+  useEffect(() => {
+    onConversationChanged?.(state.selectedConversationId ?? null)
+  }, [onConversationChanged, state.selectedConversationId])
+
+  useEffect(() => {
+    if (selectedSessionId === null) {
+      setState((prev) => ({
+        ...createInitialScenarioTestState(),
+        allScenarioAvatars: prev.allScenarioAvatars,
+      }))
+      return
+    }
+
+    setState((prev) => withErrorCleared(prev))
+    void (async () => {
+      try {
+        await loadExistingSessionFlow(
+          selectedSessionId,
+          selectedConversationId,
+          setState,
+          setUserId,
+          turnIndexRef,
+        )
+      } catch (error) {
+        setState((prev) => withError(prev, formatApiError(error, 'Failed to load session')))
+      }
+    })()
+  }, [selectedConversationId, selectedSessionId])
+
+  useEffect(() => {
+    if (
+      selectedSessionId === null ||
+      state.session?.sessionId !== selectedSessionId ||
+      selectedConversationId === null ||
+      state.selectedConversationId === selectedConversationId
+    ) {
+      return
+    }
+
+    void openConversationFlow(selectedConversationId, setState)
+  }, [
+    selectedConversationId,
+    selectedSessionId,
+    state.selectedConversationId,
+    state.session?.sessionId,
+  ])
 
   useEffect(() => {
     if (userId.trim() === '') {
@@ -381,28 +459,6 @@ export function DebugShellPage({ scenario, onSessionChanged }: DebugShellPagePro
     })()
   }, [])
 
-  const handleReturnToGuide = useCallback((): void => {
-    const firstAvailable = state.availableAvatarIds[0]
-    if (firstAvailable && firstAvailable !== state.session?.activeAvatarId) {
-      handleSwitchAvatar(firstAvailable)
-    }
-  }, [handleSwitchAvatar, state.availableAvatarIds, state.session?.activeAvatarId])
-
-  const handleTestLockedAccess = useCallback((): void => {
-    const locked = state.allScenarioAvatars.find(
-      (a) => !state.availableAvatarIds.includes(a.avatarId),
-    )
-    if (locked && state.session) {
-      handleSwitchAvatar(locked.avatarId)
-      return
-    }
-    setState((prev) =>
-      withError(prev, 'No locked avatars found. All avatars may already be unlocked.'),
-    )
-  }, [handleSwitchAvatar, state.allScenarioAvatars, state.availableAvatarIds, state.session])
-
-  const activeSection = shellContext.section
-  const inspectorTab = sectionRuntimeInspectorTab(activeSection)
   const personaStartGate = derivePersonaStartGate({
     personaReady,
     isLoadingPersona,
@@ -411,183 +467,119 @@ export function DebugShellPage({ scenario, onSessionChanged }: DebugShellPagePro
 
   return (
     <section style={sectionStyle}>
-      <h2 style={{ marginTop: 0 }}>Debugging Shell</h2>
+      <h2 style={{ marginTop: 0 }}>Run and Debug</h2>
       <p style={{ color: '#6b7280', marginTop: 0 }}>
         Scenario: <strong>{scenario.name}</strong>
       </p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-        {DEBUG_SHELL_SECTIONS.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 10px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              color: activeSection === section.id ? '#ffffff' : '#111827',
-              backgroundColor: activeSection === section.id ? '#111827' : '#ffffff',
-            }}
-            onClick={() => {
-              setShellContext((previous) => withDebugShellSection(previous, section.id))
-            }}
-          >
-            {section.label}
-          </button>
-        ))}
-      </div>
-
-      {activeSection === 'session-setup' ? (
-        <>
-          {state.session === null ? (
-            <div
-              style={{
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                padding: '12px',
-                backgroundColor: '#f9fafb',
-                marginBottom: '12px',
-              }}
-            >
-              <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Persona setup (required)</h3>
-              <p style={{ marginTop: 0, color: '#4b5563' }}>
-                Persona is part of the primary debug start flow. Save it before starting session.
-              </p>
-              <div style={{ display: 'grid', gap: '8px' }}>
-                <label>
-                  Name
-                  <input
-                    value={personaDraft.name}
-                    onChange={(event) => {
-                      setPersonaReady(false)
-                      setPersonaDraft((previous) => ({ ...previous, name: event.target.value }))
-                    }}
-                    disabled={isLoadingPersona || isSavingPersona}
-                  />
-                </label>
-                <label>
-                  Role in world
-                  <input
-                    value={personaDraft.roleInWorld}
-                    onChange={(event) => {
-                      setPersonaReady(false)
-                      setPersonaDraft((previous) => ({
-                        ...previous,
-                        roleInWorld: event.target.value,
-                      }))
-                    }}
-                    disabled={isLoadingPersona || isSavingPersona}
-                  />
-                </label>
-                <label>
-                  Avatar relationships (one per line)
-                  <textarea
-                    rows={4}
-                    value={personaDraft.relationshipsText}
-                    onChange={(event) => {
-                      setPersonaReady(false)
-                      setPersonaDraft((previous) => ({
-                        ...previous,
-                        relationshipsText: event.target.value,
-                      }))
-                    }}
-                    disabled={isLoadingPersona || isSavingPersona}
-                  />
-                </label>
-                <label>
-                  Dialog guidance
-                  <textarea
-                    rows={4}
-                    value={personaDraft.dialogGuidance}
-                    onChange={(event) => {
-                      setPersonaReady(false)
-                      setPersonaDraft((previous) => ({
-                        ...previous,
-                        dialogGuidance: event.target.value,
-                      }))
-                    }}
-                    disabled={isLoadingPersona || isSavingPersona}
-                  />
-                </label>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
-                  <button
-                    type="button"
-                    disabled={isLoadingPersona || isSavingPersona || userId.trim() === ''}
-                    onClick={handleSavePersona}
-                  >
-                    {isSavingPersona ? 'Saving...' : 'Save persona'}
-                  </button>
-                  <p style={{ margin: 0, color: personaReady ? '#166534' : '#92400e' }}>
-                    {personaStatus ??
-                      (isLoadingPersona ? 'Loading persona...' : 'Persona not saved yet')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : null}
-          <ScenarioTestLayout
-            scenario={scenario}
-            state={state}
-            userId={userId}
-            draftMessage={draftMessage}
-            isStartingSession={isStartingSession}
-            isSwitching={isSwitching}
-            isSending={isSending}
-            isLoadingHistory={isLoadingHistory}
-            canStartSession={personaStartGate.canStartSession}
-            startBlockedReason={personaStartGate.startBlockedReason}
-            availabilityEntries={availabilityEntries}
-            timelineEntries={timelineEntries}
-            selectedConversation={selectedConversation}
-            selectedMessages={selectedMessages}
-            allAvatarsById={allAvatarsById}
-            onUserIdChange={setUserId}
-            onStartSession={handleStartSession}
-            onSwitchAvatar={handleSwitchAvatar}
-            onSendMessage={handleSendMessage}
-            onSendDraft={handleSendDraft}
-            onDraftChange={setDraftMessage}
-            onOpenConversation={handleOpenConversation}
-            onReturnToGuide={handleReturnToGuide}
-            onTestLockedAccess={handleTestLockedAccess}
-            showRuntimeInspector={false}
-          />
-        </>
-      ) : null}
-
-      {activeSection !== 'session-setup' ? (
-        <div>
-          {shellContext.sessionId === null ? (
-            <div
-              style={{
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                backgroundColor: '#f9fafb',
-                padding: '12px',
-              }}
-            >
-              <p style={{ margin: 0 }}>
-                No active session yet. Use <strong>Session Setup</strong> to start a session, then
-                return to this section.
+      {state.session === null ? (
+        <div
+          style={{
+            border: '1px solid #d1d5db',
+            borderRadius: '10px',
+            padding: '12px',
+            backgroundColor: '#f9fafb',
+            marginBottom: '12px',
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Persona setup (required)</h3>
+          <p style={{ marginTop: 0, color: '#4b5563' }}>
+            Save persona before starting a new session. Selecting an existing session resumes it.
+          </p>
+          <div style={{ display: 'grid', gap: '8px' }}>
+            <label>
+              Name
+              <input
+                value={personaDraft.name}
+                onChange={(event) => {
+                  setPersonaReady(false)
+                  setPersonaDraft((previous) => ({ ...previous, name: event.target.value }))
+                }}
+                disabled={isLoadingPersona || isSavingPersona}
+              />
+            </label>
+            <label>
+              Role in world
+              <input
+                value={personaDraft.roleInWorld}
+                onChange={(event) => {
+                  setPersonaReady(false)
+                  setPersonaDraft((previous) => ({
+                    ...previous,
+                    roleInWorld: event.target.value,
+                  }))
+                }}
+                disabled={isLoadingPersona || isSavingPersona}
+              />
+            </label>
+            <label>
+              Avatar relationships (one per line)
+              <textarea
+                rows={4}
+                value={personaDraft.relationshipsText}
+                onChange={(event) => {
+                  setPersonaReady(false)
+                  setPersonaDraft((previous) => ({
+                    ...previous,
+                    relationshipsText: event.target.value,
+                  }))
+                }}
+                disabled={isLoadingPersona || isSavingPersona}
+              />
+            </label>
+            <label>
+              Dialog guidance
+              <textarea
+                rows={4}
+                value={personaDraft.dialogGuidance}
+                onChange={(event) => {
+                  setPersonaReady(false)
+                  setPersonaDraft((previous) => ({
+                    ...previous,
+                    dialogGuidance: event.target.value,
+                  }))
+                }}
+                disabled={isLoadingPersona || isSavingPersona}
+              />
+            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+              <button
+                type="button"
+                disabled={isLoadingPersona || isSavingPersona || userId.trim() === ''}
+                onClick={handleSavePersona}
+              >
+                {isSavingPersona ? 'Saving...' : 'Save persona'}
+              </button>
+              <p style={{ margin: 0, color: personaReady ? '#166534' : '#92400e' }}>
+                {personaStatus ??
+                  (isLoadingPersona ? 'Loading persona...' : 'Persona not saved yet')}
               </p>
             </div>
-          ) : null}
-          <div style={{ marginTop: '12px' }}>
-            <RuntimeInspector
-              sessionId={shellContext.sessionId}
-              refreshTrigger={state.conversations.length}
-              initialTab={inspectorTab ?? 'overview'}
-              tabOrderOverride={inspectorTab === null ? ['overview'] : [inspectorTab]}
-              showTabNavigation={false}
-              title={
-                DEBUG_SHELL_SECTIONS.find((item) => item.id === activeSection)?.label ??
-                'Runtime Inspector'
-              }
-            />
           </div>
         </div>
       ) : null}
+      <ScenarioTestLayout
+        scenario={scenario}
+        state={state}
+        userId={userId}
+        draftMessage={draftMessage}
+        isStartingSession={isStartingSession}
+        isSwitching={isSwitching}
+        isSending={isSending}
+        isLoadingHistory={isLoadingHistory}
+        canStartSession={personaStartGate.canStartSession}
+        startBlockedReason={personaStartGate.startBlockedReason}
+        availabilityEntries={availabilityEntries}
+        timelineEntries={timelineEntries}
+        selectedConversation={selectedConversation}
+        selectedMessages={selectedMessages}
+        allAvatarsById={allAvatarsById}
+        onUserIdChange={setUserId}
+        onStartSession={handleStartSession}
+        onSwitchAvatar={handleSwitchAvatar}
+        onSendDraft={handleSendDraft}
+        onDraftChange={setDraftMessage}
+        onOpenConversation={handleOpenConversation}
+      />
     </section>
   )
 }

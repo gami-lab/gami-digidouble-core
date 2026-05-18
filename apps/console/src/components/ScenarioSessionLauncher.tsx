@@ -37,10 +37,10 @@ export function ScenarioSessionLauncher({
     return (
       <div style={activeSessionStyle}>
         <span>
-          Session active - <strong>{session.sessionId}</strong>
+          Selected session - <strong>{session.sessionId}</strong>
         </span>
         <button type="button" style={{ ...buttonStyle, marginTop: 0 }} onClick={onStart}>
-          Reset &amp; new session
+          Start new session
         </button>
       </div>
     )
@@ -73,7 +73,7 @@ export function ScenarioSessionLauncher({
         onClick={onStart}
         title={startBlockedReason ?? undefined}
       >
-        {isStarting ? 'Starting...' : 'Run and investigate session'}
+        {isStarting ? 'Starting...' : 'Start new session'}
       </button>
     </div>
   )

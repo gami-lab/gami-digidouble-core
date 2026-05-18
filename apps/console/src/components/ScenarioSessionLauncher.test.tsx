@@ -16,7 +16,7 @@ describe('ScenarioSessionLauncher', () => {
       />,
     )
 
-    expect(html).toContain('Run and investigate session')
+    expect(html).toContain('Start new session')
     expect(html).toContain('disabled')
     expect(html).toContain('Save persona first')
   })
