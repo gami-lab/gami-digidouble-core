@@ -3,14 +3,47 @@ import type { IModelConfigRepository } from '../../../application/ports/IModelCo
 import type { ModelConfig } from '../../../domain/model-config/index.js'
 
 interface ModelConfigRow {
-  config: ModelConfig
+  config: unknown
   updated_at: Date
 }
 
-function rowToModelConfig(row: ModelConfigRow): ModelConfig {
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
+}
+
+function parseConfigPayload(payload: unknown): ModelConfig {
+  const parsed = typeof payload === 'string' ? (JSON.parse(payload) as unknown) : payload
+  const config = asRecord(parsed)
+  const globalDefault = config === null ? null : asRecord(config['globalDefault'])
+  const roleOverrides = config === null ? null : asRecord(config['roleOverrides'])
+  const updatedAt = config === null ? null : config['updatedAt']
+
+  if (
+    globalDefault === null ||
+    typeof globalDefault['provider'] !== 'string' ||
+    typeof globalDefault['model'] !== 'string' ||
+    roleOverrides === null ||
+    typeof updatedAt !== 'string'
+  ) {
+    throw new Error('Invalid model_config payload in database.')
+  }
+
   return {
-    globalDefault: row.config.globalDefault,
-    roleOverrides: row.config.roleOverrides,
+    globalDefault: {
+      provider: globalDefault['provider'] as ModelConfig['globalDefault']['provider'],
+      model: globalDefault['model'],
+    },
+    roleOverrides: roleOverrides as ModelConfig['roleOverrides'],
+    updatedAt,
+  }
+}
+
+function rowToModelConfig(row: ModelConfigRow): ModelConfig {
+  const parsedConfig = parseConfigPayload(row.config)
+
+  return {
+    globalDefault: parsedConfig.globalDefault,
+    roleOverrides: parsedConfig.roleOverrides,
     updatedAt: row.updated_at.toISOString(),
   }
 }
