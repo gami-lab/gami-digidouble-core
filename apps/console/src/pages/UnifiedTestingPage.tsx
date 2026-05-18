@@ -389,7 +389,7 @@ function SessionResetAction({ session, onReset }: SessionResetActionProps): JSX.
   )
 }
 
-async function loadScenarioSessions(
+export async function loadScenarioSessions(
   scenarioId: string,
   setSessions: (sessions: SessionSummary[]) => void,
   setIsLoading: (isLoading: boolean) => void,
@@ -422,7 +422,7 @@ async function loadScenarioSessions(
   }
 }
 
-async function performResetSession(
+export async function performResetSession(
   sessionId: string,
   onReset: (updated: SessionSummary) => void,
   setIsResetting: (isResetting: boolean) => void,

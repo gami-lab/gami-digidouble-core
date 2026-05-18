@@ -1,12 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
-import { listSessions, resetSession, startSession } from '../api/sessions'
-import { loadSessions, performResetSession, performStartSession } from './SessionAdminPage'
+import { listSessions, resetSession } from '../api/sessions'
+import { loadScenarioSessions, performResetSession } from './UnifiedTestingPage'
 
 vi.mock('../api/sessions', () => ({
   listSessions: vi.fn(),
   resetSession: vi.fn(),
-  startSession: vi.fn(),
 }))
 
 describe('session admin actions', () => {
@@ -30,13 +29,22 @@ describe('session admin actions', () => {
 
     const setSessions = vi.fn()
     const setIsLoading = vi.fn()
-    const setListError = vi.fn()
+    const setError = vi.fn()
+    const setSelectedSessionId = vi.fn()
 
-    await loadSessions('scenario_1', setSessions, setIsLoading, setListError)
+    await loadScenarioSessions(
+      'scenario_1',
+      setSessions,
+      setIsLoading,
+      setError,
+      null,
+      setSelectedSessionId,
+    )
 
     expect(listSessions).toHaveBeenCalledWith({ scenarioId: 'scenario_1' })
     expect(setSessions).toHaveBeenCalledWith(sessions)
-    expect(setListError).toHaveBeenCalledWith(null)
+    expect(setError).toHaveBeenCalledWith(null)
+    expect(setSelectedSessionId).toHaveBeenCalledWith('session_1')
     expect(setIsLoading).toHaveBeenNthCalledWith(1, true)
     expect(setIsLoading).toHaveBeenLastCalledWith(false)
   })
@@ -54,34 +62,5 @@ describe('session admin actions', () => {
     expect(setResetError).toHaveBeenCalledWith('Session not found.')
     expect(setIsResetting).toHaveBeenNthCalledWith(1, true)
     expect(setIsResetting).toHaveBeenLastCalledWith(false)
-  })
-
-  it('creates a session and reports it to selection callback', async () => {
-    const created = {
-      sessionId: 'session_new',
-      userId: 'tester',
-      scenarioId: 'scenario_1',
-      status: 'active' as const,
-      startedAt: '2026-05-13T10:00:00.000Z',
-      lastActivityAt: '2026-05-13T10:00:00.000Z',
-    }
-    vi.mocked(startSession).mockResolvedValue(created)
-
-    const setIsStarting = vi.fn()
-    const setStartError = vi.fn()
-    const onStarted = vi.fn()
-
-    await performStartSession(
-      { userId: 'tester', scenarioId: 'scenario_1' },
-      setIsStarting,
-      setStartError,
-      onStarted,
-    )
-
-    expect(startSession).toHaveBeenCalledWith({ userId: 'tester', scenarioId: 'scenario_1' })
-    expect(onStarted).toHaveBeenCalledWith(created)
-    expect(setStartError).toHaveBeenCalledWith(null)
-    expect(setIsStarting).toHaveBeenNthCalledWith(1, true)
-    expect(setIsStarting).toHaveBeenLastCalledWith(false)
   })
 })
