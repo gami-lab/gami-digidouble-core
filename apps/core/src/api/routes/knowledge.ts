@@ -120,7 +120,7 @@ const retrievalBodySchema = {
 } as const
 
 export const knowledgeRoute: FastifyPluginCallback<KnowledgeRouteOptions> = (app, options) => {
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
+  app.addHook('preValidation', authenticateApiKey(options.config.apiKeySecret))
   const useCases = buildUseCases(options)
   registerCreateSourceRoute(app, useCases)
   registerListSourcesRoute(app, useCases)
