@@ -42,7 +42,10 @@ import {
 } from './scenario-test-state'
 import type { ScenarioTestState } from './scenario-test-state'
 
-type DebugShellPageProps = { scenario: ScenarioSummary }
+type DebugShellPageProps = {
+  scenario: ScenarioSummary
+  onSessionChanged?: (sessionId: string | null) => void
+}
 type SetScenarioTestState = Dispatch<SetStateAction<ScenarioTestState>>
 type PersonaDraft = {
   name: string
@@ -194,7 +197,7 @@ function toPersonaDraft(persona: UserPersona | null): PersonaDraft {
 }
 
 // eslint-disable-next-line max-lines-per-function, complexity
-export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
+export function DebugShellPage({ scenario, onSessionChanged }: DebugShellPageProps): JSX.Element {
   const [shellContext, setShellContext] = useState(() =>
     createDebugShellContext(scenario.scenarioId),
   )
@@ -234,6 +237,10 @@ export function DebugShellPage({ scenario }: DebugShellPageProps): JSX.Element {
   useEffect(() => {
     setShellContext((previous) => withDebugShellSession(previous, state.session?.sessionId ?? null))
   }, [state.session?.sessionId])
+
+  useEffect(() => {
+    onSessionChanged?.(state.session?.sessionId ?? null)
+  }, [onSessionChanged, state.session?.sessionId])
 
   useEffect(() => {
     if (userId.trim() === '') {

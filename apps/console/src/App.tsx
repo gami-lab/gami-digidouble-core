@@ -3,12 +3,11 @@ import type { CSSProperties, JSX } from 'react'
 import { apiUrl } from './env'
 import type { ScenarioSummary } from './api'
 import { ScenarioPage } from './pages/ScenarioPage'
-import { DebugShellPage } from './pages/DebugShellPage'
-import { SessionAdminPage } from './pages/SessionAdminPage'
+import { UnifiedTestingPage } from './pages/UnifiedTestingPage'
 
-type Page = 'scenario' | 'debug-shell' | 'session-admin'
+type Page = 'scenario' | 'unified-testing'
 
-const pageOrder: Page[] = ['scenario', 'debug-shell', 'session-admin']
+const pageOrder: Page[] = ['scenario', 'unified-testing']
 
 type TestContext = {
   scenario: ScenarioSummary | null
@@ -52,35 +51,32 @@ const breadcrumbInactiveStyle: CSSProperties = {
 
 const breadcrumbItems: Array<{ id: Page; label: string }> = [
   { id: 'scenario', label: 'Scenario' },
-  { id: 'debug-shell', label: 'Debugging Shell' },
-  { id: 'session-admin', label: 'Session Inspector' },
+  { id: 'unified-testing', label: 'Unified Session Runner' },
 ]
 
 type ScenarioPageWithActionsProps = {
   selectedScenarioId: string | null
   onScenarioSelected: (s: ScenarioSummary) => void
-  onOpenDebugShell: () => void
-  onOpenSessionInspector: () => void
+  onOpenUnifiedTesting: () => void
 }
 
 function ScenarioPageWithActions({
   selectedScenarioId,
   onScenarioSelected,
-  onOpenDebugShell,
-  onOpenSessionInspector,
+  onOpenUnifiedTesting,
 }: ScenarioPageWithActionsProps): JSX.Element {
   return (
     <>
       <ScenarioPage
         selectedScenarioId={selectedScenarioId}
         onScenarioSelected={onScenarioSelected}
-        onNext={onOpenDebugShell}
+        onNext={onOpenUnifiedTesting}
       />
       {selectedScenarioId !== null ? (
         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
           <button
             type="button"
-            onClick={onOpenDebugShell}
+            onClick={onOpenUnifiedTesting}
             style={{
               border: '1px solid #2563eb',
               borderRadius: '8px',
@@ -91,22 +87,7 @@ function ScenarioPageWithActions({
               cursor: 'pointer',
             }}
           >
-            Run and investigate session
-          </button>
-          <button
-            type="button"
-            onClick={onOpenSessionInspector}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontWeight: 600,
-              color: '#111827',
-              backgroundColor: '#ffffff',
-              cursor: 'pointer',
-            }}
-          >
-            Open Session Inspector
+            Open unified session runner
           </button>
         </div>
       ) : null}
@@ -134,19 +115,14 @@ function App(): JSX.Element {
           onScenarioSelected={(scenario) => {
             setTestContext({ scenario })
           }}
-          onOpenDebugShell={() => {
-            setPage('debug-shell')
+          onOpenUnifiedTesting={() => {
+            setPage('unified-testing')
           }}
-          onOpenSessionInspector={() => { setPage('session-admin') }}
         />
       )
     }
-    if (page === 'debug-shell') {
-      if (testContext.scenario === null) return <p>Redirecting to setup…</p>
-      return <DebugShellPage scenario={testContext.scenario} />
-    }
     if (testContext.scenario === null) return <p>Redirecting to setup…</p>
-    return <SessionAdminPage scenarioId={testContext.scenario.scenarioId} />
+    return <UnifiedTestingPage scenario={testContext.scenario} />
   }, [page, testContext.scenario])
 
   function handleBreadcrumbClick(targetPage: Page): void {
