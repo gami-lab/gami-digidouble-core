@@ -3,11 +3,12 @@ import type { CSSProperties, JSX } from 'react'
 import { apiUrl } from './env'
 import type { ScenarioSummary } from './api'
 import { ScenarioPage } from './pages/ScenarioPage'
+import { DebugShellPage } from './pages/DebugShellPage'
 import { SessionAdminPage } from './pages/SessionAdminPage'
 
-type Page = 'scenario' | 'session-admin'
+type Page = 'scenario' | 'debug-shell' | 'session-admin'
 
-const pageOrder: Page[] = ['scenario', 'session-admin']
+const pageOrder: Page[] = ['scenario', 'debug-shell', 'session-admin']
 
 type TestContext = {
   scenario: ScenarioSummary | null
@@ -51,18 +52,21 @@ const breadcrumbInactiveStyle: CSSProperties = {
 
 const breadcrumbItems: Array<{ id: Page; label: string }> = [
   { id: 'scenario', label: 'Scenario' },
+  { id: 'debug-shell', label: 'Debugging Shell' },
   { id: 'session-admin', label: 'Session Inspector' },
 ]
 
 type ScenarioPageWithActionsProps = {
   selectedScenarioId: string | null
   onScenarioSelected: (s: ScenarioSummary) => void
+  onOpenDebugShell: () => void
   onOpenSessionInspector: () => void
 }
 
 function ScenarioPageWithActions({
   selectedScenarioId,
   onScenarioSelected,
+  onOpenDebugShell,
   onOpenSessionInspector,
 }: ScenarioPageWithActionsProps): JSX.Element {
   return (
@@ -70,13 +74,13 @@ function ScenarioPageWithActions({
       <ScenarioPage
         selectedScenarioId={selectedScenarioId}
         onScenarioSelected={onScenarioSelected}
-        onNext={onOpenSessionInspector}
+        onNext={onOpenDebugShell}
       />
       {selectedScenarioId !== null ? (
         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
           <button
             type="button"
-            onClick={onOpenSessionInspector}
+            onClick={onOpenDebugShell}
             style={{
               border: '1px solid #2563eb',
               borderRadius: '8px',
@@ -84,6 +88,21 @@ function ScenarioPageWithActions({
               fontWeight: 600,
               color: '#1d4ed8',
               backgroundColor: '#eff6ff',
+              cursor: 'pointer',
+            }}
+          >
+            Run and investigate session
+          </button>
+          <button
+            type="button"
+            onClick={onOpenSessionInspector}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              fontWeight: 600,
+              color: '#111827',
+              backgroundColor: '#ffffff',
               cursor: 'pointer',
             }}
           >
@@ -115,9 +134,16 @@ function App(): JSX.Element {
           onScenarioSelected={(scenario) => {
             setTestContext({ scenario })
           }}
+          onOpenDebugShell={() => {
+            setPage('debug-shell')
+          }}
           onOpenSessionInspector={() => { setPage('session-admin') }}
         />
       )
+    }
+    if (page === 'debug-shell') {
+      if (testContext.scenario === null) return <p>Redirecting to setup…</p>
+      return <DebugShellPage scenario={testContext.scenario} />
     }
     if (testContext.scenario === null) return <p>Redirecting to setup…</p>
     return <SessionAdminPage scenarioId={testContext.scenario.scenarioId} />

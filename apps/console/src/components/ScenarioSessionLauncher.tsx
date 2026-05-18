@@ -73,7 +73,7 @@ export function ScenarioSessionLauncher({
         onClick={onStart}
         title={startBlockedReason ?? undefined}
       >
-        {isStarting ? 'Starting...' : 'Start session'}
+        {isStarting ? 'Starting...' : 'Run and investigate session'}
       </button>
     </div>
   )

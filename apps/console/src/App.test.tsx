@@ -3,12 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import App from './App'
 
 describe('App inspector navigation', () => {
-  it('exposes a single session inspector path and no debug-shell breadcrumb', () => {
+  it('exposes debug-shell and session inspector navigation paths', () => {
     const html = renderToStaticMarkup(<App />)
 
     expect(html).toContain('Scenario')
+    expect(html).toContain('Debugging Shell')
     expect(html).toContain('Session Inspector')
-    expect(html).not.toContain('Debugging Shell')
   })
 })
-

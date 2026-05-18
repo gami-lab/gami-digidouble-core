@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
-import { getHistory, listSessionConversations, listSessions, resetSession } from '../api/sessions'
+import {
+  getHistory,
+  listSessionConversations,
+  listSessions,
+  resetSession,
+  startSession,
+} from '../api/sessions'
 import type { SessionSummary } from '../api/sessions'
 import { ApiError } from '../api/client'
 import { formatApiError } from '../api/error'
 import { RuntimeInspector } from '../components/RuntimeInspector'
-import { buttonStyle, errorStyle, labelStyle, sectionStyle } from './form-styles'
+import { buttonStyle, errorStyle, inputStyle, labelStyle, sectionStyle } from './form-styles'
 import type { ConversationSummary, Message } from '../api'
 import { KnowledgeOperationsPanel } from './session-admin-knowledge'
 
@@ -67,6 +73,9 @@ type SessionAdminPageProps = {
 // eslint-disable-next-line max-lines-per-function, complexity
 export function SessionAdminPage({ scenarioId }: SessionAdminPageProps): JSX.Element {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
+  const [newSessionUserId, setNewSessionUserId] = useState('tester')
+  const [isStartingSession, setIsStartingSession] = useState(false)
+  const [startSessionError, setStartSessionError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [isLoading, setIsLoading] = useState(false)
   const [listError, setListError] = useState<string | null>(null)
@@ -176,6 +185,62 @@ export function SessionAdminPage({ scenarioId }: SessionAdminPageProps): JSX.Ele
         >
           Refresh
         </button>
+      </div>
+      <div style={{ marginTop: '12px', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+        <p style={{ marginTop: 0, marginBottom: '8px', color: '#374151', fontWeight: 600 }}>
+          Create and inspect a new session
+        </p>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ ...labelStyle, marginTop: 0 }} htmlFor="session-admin-user-id">
+              User ID
+            </label>
+            <input
+              id="session-admin-user-id"
+              type="text"
+              value={newSessionUserId}
+              style={{ ...inputStyle, marginTop: 0 }}
+              onChange={(event) => {
+                setNewSessionUserId(event.target.value)
+              }}
+              disabled={isStartingSession}
+            />
+          </div>
+          <button
+            type="button"
+            style={{ ...buttonStyle, marginTop: 0 }}
+            disabled={
+              isStartingSession ||
+              newSessionUserId.trim() === '' ||
+              scenarioId === undefined ||
+              scenarioId === null
+            }
+            onClick={() => {
+              if (scenarioId === undefined || scenarioId === null) return
+              void performStartSession(
+                {
+                  userId: newSessionUserId.trim(),
+                  scenarioId,
+                },
+                setIsStartingSession,
+                setStartSessionError,
+                (session) => {
+                  setSessions((previous) => [session, ...previous])
+                  setSelectedSessionId(session.sessionId)
+                  setRefreshTrigger((previous) => previous + 1)
+                },
+              )
+            }}
+          >
+            {isStartingSession ? 'Creating session…' : 'Run and investigate session'}
+          </button>
+        </div>
+        {scenarioId === undefined || scenarioId === null ? (
+          <p style={{ ...errorStyle, marginTop: '8px' }}>
+            Select a scenario first to create a session.
+          </p>
+        ) : null}
+        {startSessionError !== null ? <p style={errorStyle}>{startSessionError}</p> : null}
       </div>
 
       {isLoading ? <p>Loading sessions…</p> : null}
@@ -306,6 +371,24 @@ export function SessionAdminPage({ scenarioId }: SessionAdminPageProps): JSX.Ele
       </div>
     </section>
   )
+}
+
+export async function performStartSession(
+  params: { userId: string; scenarioId: string },
+  setIsStarting: (v: boolean) => void,
+  setStartError: (v: string | null) => void,
+  onStarted: (session: SessionSummary) => void,
+): Promise<void> {
+  setStartError(null)
+  setIsStarting(true)
+  try {
+    const session = await startSession(params)
+    onStarted(session)
+  } catch (error) {
+    setStartError(formatApiError(error, 'UNKNOWN_ERROR: Failed to create session'))
+  } finally {
+    setIsStarting(false)
+  }
 }
 
 export async function loadSessions(
