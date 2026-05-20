@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function */
 import { loadConfig } from './config.js'
 import { createServer } from './api/server.js'
 import type { IDependencyProbe } from './application/ports/IDependencyProbe.js'
@@ -38,6 +37,8 @@ import {
 import { InMemoryKnowledgeSourceContentLoader } from './infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
 import { HashEmbeddingAdapter } from './infrastructure/knowledge/hash-embedding.adapter.js'
 
+type CoreRepositories = ReturnType<typeof buildCoreRepositories>
+
 async function main(): Promise<void> {
   const config = loadConfig()
   const observability = createObservabilityAdapter(config)
@@ -48,42 +49,25 @@ async function main(): Promise<void> {
   )
   const sql = getDbClient(config.databaseUrl)
   const redisClient = getRedisClient(config.redisUrl)
-  const scenarioRepository = new PostgresScenarioRepository(sql)
-  const gmStateRepository = new PostgresGmStateRepository(sql)
-  const sessionRepository = new PostgresSessionRepository(sql)
-  const avatarRepository = new PostgresAvatarRepository(sql)
-  const eventLogRepository = new PostgresEventLogRepository(sql)
-  const conversationRepository = new PostgresConversationRepository(sql)
-  const messageRepository = new PostgresMessageRepository(sql)
-  const sessionMemoryRepository = new PostgresSessionMemoryRepository(sql)
-  const avatarSessionMemoryRepository = new PostgresAvatarSessionMemoryRepository(sql)
-  const conversationWorkingMemoryRepository = new PostgresConversationWorkingMemoryRepository(sql)
-  const conversationMemoryRepository = new PostgresConversationMemoryRepository(sql)
-  const userRepository = new PostgresUserRepository(sql)
-  const userMemoryFactRepository = new PostgresUserMemoryFactRepository(sql)
+  const repositories = buildCoreRepositories(sql)
   const knowledgeAdapters = buildKnowledgeAdapters(sql)
-  const modelConfigRepository = new PostgresModelConfigRepository(sql)
+  const modelConfigRepository = repositories.modelConfigRepository
   const runtimeModelConfigFallback: ModelConfig = {
     ...DEFAULT_MODEL_CONFIG,
     globalDefault: { provider: resolveProviderName(config.llmProvider), model: '' },
   }
   const sessionEventPublisher = new InMemorySessionEventPublisher()
-  const memorySelectionService = new MemorySelectionService(
-    messageRepository,
-    conversationWorkingMemoryRepository,
-    conversationMemoryRepository,
-    userMemoryFactRepository,
-  )
+  const memorySelectionService = buildMemorySelectionService(repositories)
   const runGameMasterUseCase = new RunGameMasterUseCase(
-    gmStateRepository,
-    sessionRepository,
-    avatarRepository,
+    repositories.gmStateRepository,
+    repositories.sessionRepository,
+    repositories.avatarRepository,
     llmAdapter,
     observability,
-    scenarioRepository,
-    eventLogRepository,
-    conversationRepository,
-    messageRepository,
+    repositories.scenarioRepository,
+    repositories.eventLogRepository,
+    repositories.conversationRepository,
+    repositories.messageRepository,
     sessionEventPublisher,
     memorySelectionService,
     undefined,
@@ -100,21 +84,8 @@ async function main(): Promise<void> {
   const adapters = {
     llmAdapter,
     observabilityAdapter: observability,
-    scenarioRepository,
-    avatarRepository,
-    eventLogRepository,
-    gmStateRepository,
-    sessionRepository,
-    conversationRepository,
-    messageRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
-    conversationWorkingMemoryRepository,
-    conversationMemoryRepository,
-    userRepository,
-    userMemoryFactRepository,
+    ...repositories,
     ...knowledgeAdapters,
-    modelConfigRepository,
     llmAdapterRegistry,
     modelConfigFallback: runtimeModelConfigFallback,
     runGameMasterUseCase,
@@ -154,6 +125,34 @@ function buildLlmConfig(config: ReturnType<typeof loadConfig>) {
     ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
     ...(config.xaiApiKey !== undefined ? { xaiApiKey: config.xaiApiKey } : {}),
   }
+}
+
+function buildCoreRepositories(sql: ReturnType<typeof getDbClient>) {
+  return {
+    scenarioRepository: new PostgresScenarioRepository(sql),
+    gmStateRepository: new PostgresGmStateRepository(sql),
+    sessionRepository: new PostgresSessionRepository(sql),
+    avatarRepository: new PostgresAvatarRepository(sql),
+    eventLogRepository: new PostgresEventLogRepository(sql),
+    conversationRepository: new PostgresConversationRepository(sql),
+    messageRepository: new PostgresMessageRepository(sql),
+    sessionMemoryRepository: new PostgresSessionMemoryRepository(sql),
+    avatarSessionMemoryRepository: new PostgresAvatarSessionMemoryRepository(sql),
+    userMemoryFactRepository: new PostgresUserMemoryFactRepository(sql),
+    userRepository: new PostgresUserRepository(sql),
+    conversationWorkingMemoryRepository: new PostgresConversationWorkingMemoryRepository(sql),
+    conversationMemoryRepository: new PostgresConversationMemoryRepository(sql),
+    modelConfigRepository: new PostgresModelConfigRepository(sql),
+  }
+}
+
+function buildMemorySelectionService(repositories: CoreRepositories): MemorySelectionService {
+  return new MemorySelectionService(
+    repositories.messageRepository,
+    repositories.conversationWorkingMemoryRepository,
+    repositories.conversationMemoryRepository,
+    repositories.userMemoryFactRepository,
+  )
 }
 
 function buildLlmAdaptersByProvider(
