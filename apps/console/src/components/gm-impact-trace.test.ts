@@ -33,6 +33,11 @@ function makeViewModel(): RuntimeInspectorViewModel {
       ],
       unlockedAvatarIds: ['avatar_2'],
     },
+    effectiveModels: {
+      avatar: { provider: 'openai', model: 'gpt-4.1-mini' },
+      gameMaster: { provider: 'mistral', model: 'mistral-small-latest' },
+      memory: { provider: 'xai', model: 'grok-2-mini' },
+    },
     memory: {
       summary: {
         sessionId: 'session_1',

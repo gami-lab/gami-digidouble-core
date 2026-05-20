@@ -48,6 +48,7 @@ describe('loadRuntimeInspectorViewModel', () => {
     expect(result.context.gm.currentState.progression).toBe('intro')
     expect(result.context.trace?.deterministic).toBe(true)
     expect(result.persona?.name).toBe('Maya')
+    expect(result.effectiveModels.avatar.provider).toBe('openai')
   })
 
   it('uses default event limit and preserves optional null layers', async () => {
@@ -78,6 +79,11 @@ function arrangeSession1(): void {
       transitionHistory: [],
       unlockedAvatarIds: ['avatar_1'],
       gmNotes: null,
+      effectiveModels: {
+        avatar: { provider: 'openai', model: 'gpt-4.1-mini' },
+        gameMaster: { provider: 'mistral', model: 'mistral-small-latest' },
+        memory: { provider: 'xai', model: 'grok-2-mini' },
+      },
     },
   })
   vi.mocked(getRuntimeState).mockResolvedValue({
@@ -219,6 +225,11 @@ function arrangeSession2(): void {
       transitionHistory: [],
       unlockedAvatarIds: [],
       gmNotes: 'n',
+      effectiveModels: {
+        avatar: { provider: 'null', model: '' },
+        gameMaster: { provider: 'null', model: '' },
+        memory: { provider: 'null', model: '' },
+      },
     },
   })
   vi.mocked(getRuntimeState).mockResolvedValue({

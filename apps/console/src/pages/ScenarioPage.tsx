@@ -1,6 +1,8 @@
+/* eslint-disable max-lines, max-lines-per-function */
 import { useEffect, useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
 import { createAvatar, createScenario, listScenarioAvatars, listScenarios } from '../api'
+import { PROVIDER_OPTIONS } from '../api/provider-options'
 import { formatApiError } from '../api/error'
 import type { AvatarSummary, ScenarioStatus, ScenarioSummary } from '../api/scenarios'
 import { LabeledInput } from '../components/LabeledInput'
@@ -28,6 +30,8 @@ type AvatarFormValues = {
   personaPrompt: string
   tone: string
   description: string
+  llmProviderOverride: string
+  llmModelOverride: string
 }
 
 export function ScenarioPage({
@@ -118,6 +122,8 @@ function useAvatarSection(selectedScenarioId: string | null): AvatarSectionProps
     personaPrompt: '',
     tone: '',
     description: '',
+    llmProviderOverride: '',
+    llmModelOverride: '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -142,7 +148,14 @@ function useAvatarSection(selectedScenarioId: string | null): AvatarSectionProps
       setSubmitError,
       setIsSubmitting,
       () => {
-        setValues({ name: '', personaPrompt: '', tone: '', description: '' })
+        setValues({
+          name: '',
+          personaPrompt: '',
+          tone: '',
+          description: '',
+          llmProviderOverride: '',
+          llmModelOverride: '',
+        })
       },
       async () => loadAvatars(selectedScenarioId, setAvatars, setIsLoading, setListError),
     )
@@ -374,6 +387,7 @@ function AvatarForm({
   onValuesChange,
   onSubmit,
 }: AvatarFormProps): JSX.Element {
+  const [isOverrideExpanded, setIsOverrideExpanded] = useState(false)
   return (
     <form onSubmit={onSubmit}>
       <fieldset style={{ margin: 0, padding: 0, border: 'none' }} disabled={isSubmitting}>
@@ -422,6 +436,46 @@ function AvatarForm({
           style={inputStyle}
           labelStyle={labelStyle}
         />
+
+        <details
+          open={isOverrideExpanded}
+          onToggle={(event) => {
+            setIsOverrideExpanded(event.currentTarget.open)
+          }}
+          style={{ marginTop: '8px' }}
+        >
+          <summary style={{ cursor: 'pointer', color: '#374151', fontWeight: 600 }}>
+            Model Override (optional)
+          </summary>
+          <label style={labelStyle} htmlFor="avatar-llm-provider-override">
+            Provider override
+          </label>
+          <select
+            id="avatar-llm-provider-override"
+            style={inputStyle}
+            value={values.llmProviderOverride}
+            onChange={(event) => {
+              onValuesChange({ ...values, llmProviderOverride: event.target.value })
+            }}
+          >
+            <option value="">inherit</option>
+            {PROVIDER_OPTIONS.map((provider) => (
+              <option key={provider} value={provider}>
+                {provider}
+              </option>
+            ))}
+          </select>
+          <LabeledInput
+            id="avatar-llm-model-override"
+            label="Model override"
+            value={values.llmModelOverride}
+            onChange={(llmModelOverride) => {
+              onValuesChange({ ...values, llmModelOverride })
+            }}
+            style={inputStyle}
+            labelStyle={labelStyle}
+          />
+        </details>
 
         <button
           type="submit"
@@ -483,6 +537,17 @@ async function submitAvatar(
       personaPrompt: values.personaPrompt,
       ...(values.tone.trim().length > 0 ? { tone: values.tone } : {}),
       ...(values.description.trim().length > 0 ? { description: values.description } : {}),
+      ...(() => {
+        const provider = values.llmProviderOverride.trim()
+        const model = values.llmModelOverride.trim()
+        if (provider.length === 0 && model.length === 0) return { llmOverride: null }
+        return {
+          llmOverride: {
+            ...(provider.length > 0 ? { provider } : {}),
+            ...(model.length > 0 ? { model } : {}),
+          },
+        }
+      })(),
     })
     onSuccess()
     await onAfterSubmit()

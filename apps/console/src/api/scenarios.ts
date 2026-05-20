@@ -1,5 +1,11 @@
 import { coreRequest } from './client'
-import type { AvatarSummary, ScenarioStatus, ScenarioSummary } from '@gami/shared'
+import type {
+  AvatarSummary,
+  CreateAvatarRequest,
+  ScenarioStatus,
+  ScenarioSummary,
+  UpdateAvatarRequest,
+} from '@gami/shared'
 
 export type { AvatarSummary, ScenarioStatus, ScenarioSummary }
 
@@ -13,15 +19,7 @@ type CreateScenarioPayload = {
   scenario: ScenarioSummary
 }
 
-export type CreateAvatarParams = {
-  name: string
-  personaPrompt: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  config?: Record<string, unknown>
-  status?: AvatarSummary['status']
-}
+export type CreateAvatarParams = CreateAvatarRequest
 
 type CreateAvatarPayload = {
   avatar: AvatarSummary
@@ -104,9 +102,7 @@ export async function deleteScenario(scenarioId: string): Promise<void> {
 
 export async function updateAvatar(
   avatarId: string,
-  updates: Partial<
-    Pick<AvatarSummary, 'name' | 'personaPrompt' | 'tone' | 'description' | 'status'>
-  >,
+  updates: UpdateAvatarRequest,
 ): Promise<AvatarSummary> {
   const payload = await coreRequest<UpdateAvatarPayload>(
     'PATCH',

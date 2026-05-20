@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import { loadConfig } from './config.js'
 import { createServer } from './api/server.js'
 import type { IDependencyProbe } from './application/ports/IDependencyProbe.js'

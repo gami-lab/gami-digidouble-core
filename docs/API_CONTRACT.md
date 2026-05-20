@@ -665,6 +665,25 @@ Validation failures return `400` with `VALIDATION_ERROR`.
 GET /v1/admin/sessions/{sessionId}/inspect
 ```
 
+Response:
+
+```ts
+ApiResponse<{
+  inspect: {
+    session: SessionSummary
+    gmState: GmStateSummary | null
+    transitionHistory: SessionTransitionRecord[]
+    unlockedAvatarIds: string[]
+    gmNotes: string | null
+    effectiveModels: {
+      avatar: { provider: string; model: string }
+      gameMaster: { provider: string; model: string }
+      memory: { provider: string; model: string }
+    }
+  }
+}>
+```
+
 ---
 
 ## Session Events

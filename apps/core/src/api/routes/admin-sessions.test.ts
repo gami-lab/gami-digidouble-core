@@ -157,6 +157,7 @@ describe('GET /v1/admin/sessions/:sessionId/inspect', () => {
     expect(response.json<ApiResponse<null>>().error?.code).toBe('NOT_FOUND')
   })
 
+  // eslint-disable-next-line complexity
   it('returns the inspect snapshot without message or prompt content', async () => {
     const app = makeApp()
 
@@ -174,6 +175,11 @@ describe('GET /v1/admin/sessions/:sessionId/inspect', () => {
           gmNotes: string | null
           unlockedAvatarIds: string[]
           transitionHistory: unknown[]
+          effectiveModels: {
+            avatar: { provider: string; model: string }
+            gameMaster: { provider: string; model: string }
+            memory: { provider: string; model: string }
+          }
         }
       }>
     >()
@@ -186,6 +192,13 @@ describe('GET /v1/admin/sessions/:sessionId/inspect', () => {
     })
     expect(body.data?.inspect.unlockedAvatarIds).toEqual(['avatar_1', 'avatar_2'])
     expect(body.data?.inspect.gmNotes).toBe('Nudge toward the ethics specialist.')
+    expect(typeof body.data?.inspect.effectiveModels).toBe('object')
+    expect(typeof body.data?.inspect.effectiveModels.avatar.provider).toBe('string')
+    expect(typeof body.data?.inspect.effectiveModels.avatar.model).toBe('string')
+    expect(typeof body.data?.inspect.effectiveModels.gameMaster.provider).toBe('string')
+    expect(typeof body.data?.inspect.effectiveModels.gameMaster.model).toBe('string')
+    expect(typeof body.data?.inspect.effectiveModels.memory.provider).toBe('string')
+    expect(typeof body.data?.inspect.effectiveModels.memory.model).toBe('string')
     expect(body.data?.inspect.transitionHistory).toEqual([
       {
         fromAvatarId: 'avatar_1',

@@ -42,6 +42,7 @@ export class ApiError extends Error {
   constructor(
     public readonly code: string,
     message: string,
+    public readonly details?: unknown,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -83,7 +84,7 @@ export async function coreRequest<T>(method: HttpMethod, path: string, body?: un
   // so the envelope error field is the authoritative signal. The response.ok guard below
   // is a final safety net for any unexpected status/envelope combination.
   if (payload.error !== null) {
-    throw new ApiError(payload.error.code, payload.error.message)
+    throw new ApiError(payload.error.code, payload.error.message, payload.error.details)
   }
 
   if (!response.ok) {

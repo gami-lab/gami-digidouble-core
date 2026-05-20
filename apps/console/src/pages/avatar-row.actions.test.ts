@@ -40,6 +40,8 @@ describe('avatar-row actions', () => {
         personaPrompt: 'Focused prompt',
         tone: 'calm',
         description: 'desc',
+        llmProviderOverride: '',
+        llmModelOverride: '',
       },
       onSaved,
       setSubmitError,
@@ -51,6 +53,7 @@ describe('avatar-row actions', () => {
       personaPrompt: 'Focused prompt',
       tone: 'calm',
       description: 'desc',
+      llmOverride: null,
     })
     expect(onSaved).toHaveBeenCalledWith(updated)
     expect(setSubmitError).toHaveBeenCalledWith(null)

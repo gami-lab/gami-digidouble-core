@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
+import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
+import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
@@ -41,6 +43,8 @@ function createRepositories(params?: {
   sessionRepository: ISessionRepository
   gmStateRepository: IGmStateRepository
   conversationRepository: IConversationRepository
+  avatarRepository: IAvatarRepository
+  modelConfigRepository: IModelConfigRepository
 } {
   const gmState = Object.hasOwn(params ?? {}, 'gmState')
     ? params?.gmState
@@ -74,6 +78,34 @@ function createRepositories(params?: {
       deleteBySessionId: vi.fn(),
       update: vi.fn(),
     },
+    avatarRepository: {
+      findById: vi.fn().mockResolvedValue({
+        avatarId: 'avatar_2',
+        scenarioId: 'scenario_1',
+        name: 'Avatar',
+        status: 'active',
+        personaPrompt: 'Prompt',
+        llmOverride: { provider: 'anthropic', model: 'claude-3-5-haiku' },
+        config: {},
+        createdAt: '2026-04-28T09:01:00.000Z',
+        updatedAt: '2026-04-28T09:01:00.000Z',
+      }),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      listByScenarioId: vi.fn(),
+    },
+    modelConfigRepository: {
+      get: vi.fn().mockResolvedValue({
+        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+        roleOverrides: {
+          gameMaster: { provider: 'mistral', model: 'mistral-small-latest' },
+          memory: { provider: 'xai', model: 'grok-2-mini' },
+        },
+        updatedAt: '2026-05-20T00:00:00.000Z',
+      }),
+      upsert: vi.fn(),
+    },
   }
 }
 
@@ -83,6 +115,8 @@ function createUseCaseFromRepositories(params?: Parameters<typeof createReposito
     r.sessionRepository,
     r.gmStateRepository,
     r.conversationRepository,
+    r.avatarRepository,
+    r.modelConfigRepository,
   )
 }
 
@@ -129,6 +163,11 @@ describe('InspectSessionUseCase', () => {
     })
     expect(output.inspect.unlockedAvatarIds).toEqual(['avatar_1', 'avatar_2'])
     expect(output.inspect.gmNotes).toBe('Guide the next turn toward reflection.')
+    expect(output.inspect.effectiveModels).toEqual({
+      avatar: { provider: 'anthropic', model: 'claude-3-5-haiku' },
+      gameMaster: { provider: 'mistral', model: 'mistral-small-latest' },
+      memory: { provider: 'xai', model: 'grok-2-mini' },
+    })
     expect(output.inspect.transitionHistory).toEqual([
       {
         fromAvatarId: 'avatar_1',
@@ -165,6 +204,7 @@ describe('InspectSessionUseCase', () => {
     expect(output.inspect.gmState).toBeNull()
     expect(output.inspect.unlockedAvatarIds).toEqual([])
     expect(output.inspect.gmNotes).toBeNull()
+    expect(output.inspect.effectiveModels.avatar.provider).toBe('openai')
   })
 
   it('throws NOT_FOUND when the session does not exist', async () => {

@@ -1,7 +1,10 @@
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
+import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
+import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
+import { DEFAULT_MODEL_CONFIG, ModelResolutionService } from '../../../domain/model-config/index.js'
 import { DomainError } from '../../../domain/errors.js'
 import type {
   InspectSessionInput,
@@ -15,6 +18,8 @@ export class InspectSessionUseCase {
     private readonly sessionRepository: ISessionRepository,
     private readonly gmStateRepository: IGmStateRepository,
     private readonly conversationRepository: IConversationRepository,
+    private readonly avatarRepository: IAvatarRepository,
+    private readonly modelConfigRepository: IModelConfigRepository,
   ) {}
 
   async execute(input: InspectSessionInput): Promise<InspectSessionOutput> {
@@ -23,10 +28,15 @@ export class InspectSessionUseCase {
       throw new DomainError('NOT_FOUND', `Session ${input.sessionId} was not found.`)
     }
 
-    const [gmState, conversations] = await Promise.all([
+    const [gmState, conversations, modelConfig, activeAvatar] = await Promise.all([
       this.gmStateRepository.findBySessionId(input.sessionId),
       this.conversationRepository.listBySessionId(input.sessionId),
+      this.modelConfigRepository.get(),
+      session.activeAvatarId === undefined
+        ? Promise.resolve(null)
+        : this.avatarRepository.findById(session.activeAvatarId),
     ])
+    const resolvedConfig = modelConfig ?? DEFAULT_MODEL_CONFIG
 
     return {
       inspect: {
@@ -35,6 +45,15 @@ export class InspectSessionUseCase {
         transitionHistory: toTransitionHistory(conversations),
         unlockedAvatarIds: session.unlockedAvatarIds ?? [],
         gmNotes: session.gmNotes ?? null,
+        effectiveModels: {
+          avatar: ModelResolutionService.resolve(
+            'avatar',
+            resolvedConfig,
+            activeAvatar?.llmOverride,
+          ),
+          gameMaster: ModelResolutionService.resolve('gameMaster', resolvedConfig),
+          memory: ModelResolutionService.resolve('memory', resolvedConfig),
+        },
       },
     }
   }

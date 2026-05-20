@@ -8,11 +8,12 @@ import { listSessions, resetSession } from '../api/sessions'
 import type { SessionSummary } from '../api/sessions'
 import { RuntimeInspector } from '../components/RuntimeInspector'
 import { DebugShellPage } from './DebugShellPage'
+import { ModelConfigPanel } from './ModelConfigPanel'
 import { buttonStyle, errorStyle, labelStyle, sectionStyle } from './form-styles'
 import { KnowledgeOperationsPanel } from './session-admin-knowledge'
 
 type StatusFilter = 'all' | 'active' | 'closed' | 'archived'
-type UnifiedTab = 'run' | 'knowledge' | 'inspector'
+type UnifiedTab = 'run' | 'knowledge' | 'inspector' | 'model-config'
 
 type UnifiedTestingPageProps = {
   scenario: ScenarioSummary
@@ -43,6 +44,7 @@ const tabs: Array<{ id: UnifiedTab; label: string }> = [
   { id: 'run', label: 'Run and Debug' },
   { id: 'knowledge', label: 'Knowledge Ops' },
   { id: 'inspector', label: 'Runtime Inspector' },
+  { id: 'model-config', label: 'Model Configuration' },
 ]
 
 // eslint-disable-next-line max-lines-per-function, complexity
@@ -222,6 +224,7 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
             />
           )
         ) : null}
+        {activeTab === 'model-config' ? <ModelConfigPanel /> : null}
       </div>
     </section>
   )

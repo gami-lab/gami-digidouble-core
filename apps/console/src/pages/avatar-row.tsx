@@ -1,6 +1,8 @@
+/* eslint-disable max-lines-per-function, complexity */
 import { useState } from 'react'
 import type { ComponentProps, CSSProperties, JSX } from 'react'
 import { ApiError } from '../api/client'
+import { PROVIDER_OPTIONS } from '../api/provider-options'
 import { updateAvatar, deleteAvatar } from '../api/scenarios'
 import type { AvatarSummary } from '../api/scenarios'
 import { formatApiError } from '../api/error'
@@ -109,6 +111,8 @@ type AvatarEditValues = {
   personaPrompt: string
   tone: string
   description: string
+  llmProviderOverride: string
+  llmModelOverride: string
 }
 
 type AvatarEditFormProps = {
@@ -123,9 +127,12 @@ export function AvatarEditForm({ avatar, onSaved, onCancel }: AvatarEditFormProp
     personaPrompt: avatar.personaPrompt,
     tone: avatar.tone ?? '',
     description: avatar.description ?? '',
+    llmProviderOverride: avatar.llmOverride?.provider ?? '',
+    llmModelOverride: avatar.llmOverride?.model ?? '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isOverrideExpanded, setIsOverrideExpanded] = useState(false)
 
   const handleSubmit = (event: FormSubmitEvent): void => {
     event.preventDefault()
@@ -179,6 +186,45 @@ export function AvatarEditForm({ avatar, onSaved, onCancel }: AvatarEditFormProp
             style={inputStyle}
             labelStyle={labelStyle}
           />
+          <details
+            open={isOverrideExpanded}
+            onToggle={(event) => {
+              setIsOverrideExpanded(event.currentTarget.open)
+            }}
+            style={{ marginTop: '8px' }}
+          >
+            <summary style={{ cursor: 'pointer', color: '#374151', fontWeight: 600 }}>
+              Model Override (optional)
+            </summary>
+            <label style={labelStyle} htmlFor={`edit-avatar-provider-${avatar.avatarId}`}>
+              Provider override
+            </label>
+            <select
+              id={`edit-avatar-provider-${avatar.avatarId}`}
+              style={inputStyle}
+              value={values.llmProviderOverride}
+              onChange={(event) => {
+                setValues((v) => ({ ...v, llmProviderOverride: event.target.value }))
+              }}
+            >
+              <option value="">inherit</option>
+              {PROVIDER_OPTIONS.map((provider) => (
+                <option key={provider} value={provider}>
+                  {provider}
+                </option>
+              ))}
+            </select>
+            <LabeledInput
+              id={`edit-avatar-model-${avatar.avatarId}`}
+              label="Model override"
+              value={values.llmModelOverride}
+              onChange={(llmModelOverride) => {
+                setValues((v) => ({ ...v, llmModelOverride }))
+              }}
+              style={inputStyle}
+              labelStyle={labelStyle}
+            />
+          </details>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               type="submit"
@@ -215,6 +261,17 @@ export async function performUpdateAvatar(
       personaPrompt: values.personaPrompt,
       ...(values.tone.trim().length > 0 ? { tone: values.tone } : {}),
       ...(values.description.trim().length > 0 ? { description: values.description } : {}),
+      ...(() => {
+        const provider = values.llmProviderOverride.trim()
+        const model = values.llmModelOverride.trim()
+        if (provider.length === 0 && model.length === 0) return { llmOverride: null }
+        return {
+          llmOverride: {
+            ...(provider.length > 0 ? { provider } : {}),
+            ...(model.length > 0 ? { model } : {}),
+          },
+        }
+      })(),
     })
     onSaved(updated)
   } catch (error) {

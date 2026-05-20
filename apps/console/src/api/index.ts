@@ -10,6 +10,7 @@ export {
   updateScenario,
 } from './scenarios'
 export { sendMessage } from './messages'
+export { getModelConfig, updateModelConfig } from './model-config'
 export {
   createKnowledgeSource,
   getIngestionJob,
@@ -47,6 +48,7 @@ export {
 
 export type { SendMessageParams, SendMessageResponse } from './messages'
 export type { RuntimeInspectorQueryOptions, RuntimeInspectorViewModel } from './runtime-inspector'
+export type { UpdateModelConfigRequest } from './model-config'
 export type {
   CreateKnowledgeSourceRequest,
   CreateKnowledgeSourceResponse,

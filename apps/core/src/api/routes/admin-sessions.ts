@@ -4,13 +4,17 @@ import type { AdminSessionEventsResponse, AdminSessionInspectResponse } from '@g
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../../application/ports/IGmStateRepository.js'
+import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
+import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import { InspectSessionUseCase } from '../../application/use-cases/inspect-session/inspect-session.use-case.js'
 import { ListSessionEventsUseCase } from '../../application/use-cases/list-session-events/list-session-events.use-case.js'
 import type { Config } from '../../config.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
+import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
+import { InMemoryModelConfigRepository } from '../../infrastructure/db/in-memory-model-config.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import {
@@ -25,6 +29,8 @@ export type AdminSessionsRouteOptions = {
   gmStateRepository?: IGmStateRepository
   conversationRepository?: IConversationRepository
   eventLogRepository?: IEventLogRepository
+  avatarRepository?: IAvatarRepository
+  modelConfigRepository?: IModelConfigRepository
 }
 
 type SessionEventsQuerystring = {
@@ -48,10 +54,14 @@ export const adminSessionsRoute: FastifyPluginCallback<AdminSessionsRouteOptions
   const conversationRepository =
     options.conversationRepository ?? new InMemoryConversationRepository()
   const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
+  const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
+  const modelConfigRepository = options.modelConfigRepository ?? new InMemoryModelConfigRepository()
   const inspectSessionUseCase = new InspectSessionUseCase(
     sessionRepository,
     gmStateRepository,
     conversationRepository,
+    avatarRepository,
+    modelConfigRepository,
   )
   const listSessionEventsUseCase = new ListSessionEventsUseCase(
     sessionRepository,

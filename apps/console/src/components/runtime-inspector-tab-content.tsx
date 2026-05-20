@@ -106,6 +106,10 @@ function OverviewTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX
       <Row label="Can send message">{String(snapshot.runtimeState.canSendMessage)}</Row>
       <Row label="GM progression">{snapshot.gm.gmState?.progression ?? '-'}</Row>
       <Row label="Unlocked avatars">{snapshot.gm.unlockedAvatarIds.join(', ') || 'none'}</Row>
+      <strong style={{ display: 'block', marginTop: '12px' }}>Effective models</strong>
+      <Row label="Avatar">{`${snapshot.effectiveModels.avatar.provider} / ${snapshot.effectiveModels.avatar.model}`}</Row>
+      <Row label="Game Master">{`${snapshot.effectiveModels.gameMaster.provider} / ${snapshot.effectiveModels.gameMaster.model}`}</Row>
+      <Row label="Memory">{`${snapshot.effectiveModels.memory.provider} / ${snapshot.effectiveModels.memory.model}`}</Row>
     </div>
   )
 }

@@ -59,6 +59,11 @@ export type AdminSessionInspectResponse = {
     }>
     unlockedAvatarIds: string[]
     gmNotes: string | null
+    effectiveModels: {
+      avatar: { provider: string; model: string }
+      gameMaster: { provider: string; model: string }
+      memory: { provider: string; model: string }
+    }
   }
 }
 

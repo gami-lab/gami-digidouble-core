@@ -202,6 +202,7 @@ describe('GET /v1/admin/sessions/:id/events — validation', () => {
 })
 
 describe('GET /v1/admin/sessions/:id/inspect — happy path', () => {
+  // eslint-disable-next-line complexity
   it('returns an admin-safe inspect snapshot', async () => {
     const response = await makeApp().inject({
       method: 'GET',
@@ -210,14 +211,31 @@ describe('GET /v1/admin/sessions/:id/inspect — happy path', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const body =
-      response.json<
-        ApiResponse<{ inspect: { session: Session; gmState: null; transitionHistory: unknown[] } }>
-      >()
+    const body = response.json<
+      ApiResponse<{
+        inspect: {
+          session: Session
+          gmState: null
+          transitionHistory: unknown[]
+          effectiveModels: {
+            avatar: { provider: string; model: string }
+            gameMaster: { provider: string; model: string }
+            memory: { provider: string; model: string }
+          }
+        }
+      }>
+    >()
     expect(body.error).toBeNull()
     expect(body.data?.inspect.session.sessionId).toBe('session_1')
     expect(body.data?.inspect.gmState).toBeNull()
     expect(Array.isArray(body.data?.inspect.transitionHistory)).toBe(true)
+    expect(typeof body.data?.inspect.effectiveModels).toBe('object')
+    expect(typeof body.data?.inspect.effectiveModels.avatar.provider).toBe('string')
+    expect(typeof body.data?.inspect.effectiveModels.avatar.model).toBe('string')
+    expect(typeof body.data?.inspect.effectiveModels.gameMaster.provider).toBe('string')
+    expect(typeof body.data?.inspect.effectiveModels.gameMaster.model).toBe('string')
+    expect(typeof body.data?.inspect.effectiveModels.memory.provider).toBe('string')
+    expect(typeof body.data?.inspect.effectiveModels.memory.model).toBe('string')
     expect(response.body).not.toContain('raw secret user message')
     expect(response.body).not.toContain('"content"')
   })

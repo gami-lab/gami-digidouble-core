@@ -346,6 +346,20 @@ Completed on: 2026-05-20
 - env-compatible null-row fallback via runtime default (`LLM_PROVIDER` + empty model) to preserve existing deployments
 - targeted unit coverage for role-specific resolution, avatar override behavior, and null-config fallback paths
 
+### Prompt 05 — Console Editing & Inspector Integration
+
+Status: ✅ Complete
+Completed on: 2026-05-20
+
+### Includes
+
+- console model configuration panel for global default and per-role overrides with read/save flow
+- avatar create/edit forms now expose optional `llmOverride` fields with clear-on-empty behavior
+- runtime inspector UI now displays read-only per-role effective model snapshot
+- admin session inspect response extended with computed `effectiveModels` from model resolution service
+- shared runtime inspector contract updated additively for `effectiveModels`
+- inspect route tests and stack-e2e assertions updated for `effectiveModels` response shape
+
 ---
 
 ## EPIC 5.2 — Context Engine v2

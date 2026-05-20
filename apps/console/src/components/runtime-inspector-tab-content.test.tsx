@@ -10,6 +10,11 @@ function makeViewModel(): RuntimeInspectorViewModel {
     session: makeSessionSummary(),
     runtimeState: makeRuntimeState(),
     gm: makeGmSummary(),
+    effectiveModels: {
+      avatar: { provider: 'openai', model: 'gpt-4.1-mini' },
+      gameMaster: { provider: 'mistral', model: 'mistral-small-latest' },
+      memory: { provider: 'xai', model: 'grok-2-mini' },
+    },
     memory: makeMemorySummary(),
     metrics: makeMetricsSummary(),
     context: makeContextSummary(),
@@ -310,6 +315,29 @@ function makeMemoryHistory(snapshot: RuntimeInspectorViewModel): MemoryEvolution
 
 // eslint-disable-next-line max-lines-per-function
 describe('RuntimeInspectorTabContent', () => {
+  it('renders effective models in overview tab', () => {
+    const snapshot = makeViewModel()
+    const html = renderToStaticMarkup(
+      <RuntimeInspectorTabContent
+        tab="overview"
+        snapshot={snapshot}
+        memoryHistory={makeMemoryHistory(snapshot)}
+        liveEvents={[]}
+        actionStatus={null}
+        onReplayGm={vi.fn()}
+        onRefreshMemory={vi.fn()}
+        onClearMemory={vi.fn()}
+        onResetSession={vi.fn()}
+        onUpsertPersona={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    expect(html).toContain('Effective models')
+    expect(html).toContain('openai / gpt-4.1-mini')
+    expect(html).toContain('mistral / mistral-small-latest')
+    expect(html).toContain('xai / grok-2-mini')
+  })
+
   it('renders action controls and status text', () => {
     const snapshot = makeViewModel()
     const html = renderToStaticMarkup(

@@ -33,6 +33,7 @@ export type RuntimeInspectorViewModel = {
     transitionHistory: AdminSessionInspectResponse['inspect']['transitionHistory']
     unlockedAvatarIds: string[]
   }
+  effectiveModels: AdminSessionInspectResponse['inspect']['effectiveModels']
   memory: {
     summary: AdminSessionMemoryResponse['session']
     layers: AdminSessionMemoryLayersResponse['session']
@@ -86,6 +87,7 @@ export async function loadRuntimeInspectorViewModel(
       transitionHistory: inspect.inspect.transitionHistory,
       unlockedAvatarIds: [...inspect.inspect.unlockedAvatarIds],
     },
+    effectiveModels: inspect.inspect.effectiveModels,
     memory: {
       summary: memorySummary.session,
       layers: memoryLayers.session,
