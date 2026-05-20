@@ -1228,6 +1228,82 @@ Structured knowledge retrieval improves relevance, reduces noise, and enables ri
 
 ---
 
+## EPIC 5.1b — Avatar-Scoped Knowledge Visibility
+
+**Purpose**
+Prevent knowledge leakage between avatars while preserving shared world coherence and GM omniscience.
+
+**Description**
+Extend the multi-layer knowledge system with lightweight avatar-scoped visibility rules.
+
+The current RAG architecture already separates:
+
+- memory
+- world
+- media
+
+However, retrieval currently does not distinguish which avatar is allowed to access which knowledge.
+
+This EPIC introduces visibility metadata allowing:
+
+- private avatar memories
+- shared memories between selected avatars
+- avatar-specific world knowledge
+- avatar-specific media references
+
+The Context Engine becomes responsible for filtering retrieved knowledge according to the active avatar.
+
+The Game Master remains unrestricted and can access all knowledge layers.
+
+This EPIC intentionally avoids:
+
+- complex ACL systems
+- narrative ontologies
+- graph relationships
+- dedicated event/place entities
+
+The goal is simple narrative privacy and perspective separation.
+
+**Hypothesis**
+Avatar-scoped retrieval improves character coherence and prevents immersion-breaking knowledge leakage.
+
+**Includes**
+
+- avatar visibility metadata on knowledge sources/chunks
+- retrieval filtering by active avatar
+- unrestricted GM retrieval access
+- Context Engine filtering integration
+- retrieval observability updates
+- admin inspection visibility support
+- backward-compatible default visibility behavior
+- console visibility editing support
+
+**DoD**
+
+- avatars only retrieve knowledge visible to them
+- shared world knowledge remains accessible
+- GM can retrieve all knowledge regardless of visibility
+- retrieval filtering is deterministic and inspectable
+- existing knowledge sources remain compatible
+- runtime inspector explains why knowledge was selected or excluded
+
+**What Can Be Tested**
+
+1. Max cannot retrieve Ava private memory
+2. shared memories are visible only to allowed avatars
+3. public world knowledge remains visible to all avatars
+4. GM retrieves all knowledge successfully
+5. media retrieval respects avatar visibility
+6. avatar switching changes retrieval scope correctly
+
+**User Increment**
+
+- avatars behave like distinct individuals with separate knowledge and memories
+- private memories and secrets become possible
+- shared-world storytelling remains coherent without character leakage
+
+---
+
 ## EPIC 5.2 — Context Engine v2 (Core Orchestrator) ✅ Done
 
 **Purpose**
