@@ -4,7 +4,7 @@ import type {
   ProviderName,
   RoleOverrides,
 } from '../../../domain/model-config/index.js'
-import { isProviderName } from '../../../domain/model-config/index.js'
+import { isProviderName, PROVIDER_NAMES } from '../../../domain/model-config/index.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
 
@@ -44,14 +44,10 @@ function assertNonEmptyModel(model: string, field: string): void {
 
 function validateProvider(provider: string, field: string): ProviderName {
   if (!isProviderName(provider)) {
-    throw new DomainError(
-      'INVALID_INPUT',
-      `${field} must be one of openai|anthropic|mistral|xai|null`,
-      {
-        field,
-        provider,
-      },
-    )
+    throw new DomainError('INVALID_INPUT', `${field} must be one of ${PROVIDER_NAMES.join('|')}`, {
+      field,
+      provider,
+    })
   }
 
   return provider
@@ -78,6 +74,9 @@ function toModelOverride(
 
 function toRoleOverrides(input: UpdateModelConfigInput['roleOverrides']): RoleOverrides {
   if (input === undefined) return {}
+  if (Array.isArray(input)) {
+    throw new DomainError('INVALID_INPUT', 'roleOverrides must be an object')
+  }
 
   return {
     ...(input.avatar !== undefined

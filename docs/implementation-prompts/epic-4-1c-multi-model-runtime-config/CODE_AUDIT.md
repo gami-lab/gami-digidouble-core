@@ -168,3 +168,51 @@ Relevant docs already updated:
 Close with debt.
 
 The EPIC is functionally substantial and operationally usable, but the identified drift and test-depth gaps should be scheduled immediately in follow-up hardening before relying on this area for rapid provider iteration at scale.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Added `xaiApiKey` handling in sessions route local LLM config assembly: [apps/core/src/api/routes/sessions.ts](apps/core/src/api/routes/sessions.ts).
+- Aligned admin model-config GET fallback wiring with runtime-injected fallback path by passing fallback through server route options and use case injection: [apps/core/src/api/server.ts](apps/core/src/api/server.ts), [apps/core/src/api/routes/admin-model-config.ts](apps/core/src/api/routes/admin-model-config.ts), [apps/core/src/application/use-cases/get-model-config/get-model-config.use-case.ts](apps/core/src/application/use-cases/get-model-config/get-model-config.use-case.ts).
+- Added focused use-case tests for model-config read/write behavior: [apps/core/src/application/use-cases/get-model-config/get-model-config.use-case.test.ts](apps/core/src/application/use-cases/get-model-config/get-model-config.use-case.test.ts), [apps/core/src/application/use-cases/update-model-config/update-model-config.use-case.test.ts](apps/core/src/application/use-cases/update-model-config/update-model-config.use-case.test.ts).
+- Completed PUT admin model-config auth matrix with explicit wrong-key case and added fallback parity assertion: [apps/core/src/api/routes/admin-model-config.stack-e2e.test.ts](apps/core/src/api/routes/admin-model-config.stack-e2e.test.ts).
+- Added focused ModelConfig panel mapping tests and exported pure helper mappers: [apps/console/src/pages/ModelConfigPanel.tsx](apps/console/src/pages/ModelConfigPanel.tsx), [apps/console/src/pages/ModelConfigPanel.test.ts](apps/console/src/pages/ModelConfigPanel.test.ts).
+- Reduced provider-list drift in core by introducing shared `PROVIDER_NAMES` in domain model-config types and consuming it in core validation paths: [apps/core/src/domain/model-config/model-config.types.ts](apps/core/src/domain/model-config/model-config.types.ts), [apps/core/src/api/routes/avatars.ts](apps/core/src/api/routes/avatars.ts), [apps/core/src/api/routes/scenarios.ts](apps/core/src/api/routes/scenarios.ts), [apps/core/src/application/use-cases/update-model-config/update-model-config.use-case.ts](apps/core/src/application/use-cases/update-model-config/update-model-config.use-case.ts), [apps/core/src/index.ts](apps/core/src/index.ts).
+
+### Findings Resolved
+
+- Resolved: Sessions route XAI omission.
+- Resolved: GET model-config fallback parity at server/use-case wiring level.
+- Resolved: Missing unit tests for get-model-config and update-model-config use cases.
+- Resolved: Missing PUT wrong-key auth case in admin model-config stack-e2e.
+- Resolved: Missing focused console tests for model-config mapping behavior.
+
+### Findings Deferred
+
+- Deferred (partial): Provider source-of-truth duplication across core and console is reduced but not fully unified into a single cross-package exported contract yet.
+
+### Build Gates
+
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS
+- `pnpm test`: PASS
+
+### Final Feature Confidence
+
+- Deterministic model resolution: High
+- Persistent runtime model config: High
+- Admin model-config API: High
+- Runtime role-based adapter selection: High
+- Avatar-level override behavior: High
+- Inspector effective models: High
+- Console model configuration UX: Medium-High
+
+### Final Grade
+
+B+
+
+### Remaining Risks
+
+- Provider option ownership still spans core and console modules; future provider additions can still require multi-file updates.
+- Sessions route still performs local LLM config assembly; a shared builder would further reduce drift risk.

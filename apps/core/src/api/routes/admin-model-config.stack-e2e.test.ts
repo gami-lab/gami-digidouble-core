@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ApiResponse, ModelConfigResponse } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
+import type { ModelConfig } from '../../domain/model-config/index.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
 
@@ -12,6 +13,12 @@ afterEach(async () => {
 
 function makeApp(): FastifyInstance {
   const app = createServer(TEST_CONFIG)
+  appsToClose.push(app)
+  return app
+}
+
+function makeAppWithFallback(modelConfigFallback: ModelConfig): FastifyInstance {
+  const app = createServer(TEST_CONFIG, { modelConfigFallback })
   appsToClose.push(app)
   return app
 }
@@ -50,6 +57,24 @@ describe('GET /v1/admin/model-config', () => {
     expect(body.data?.modelConfig.globalDefault.provider).toBe('null')
     expect(body.data?.modelConfig.globalDefault.model).toBe('')
   })
+
+  it('returns runtime-effective global provider fallback when config row is missing', async () => {
+    const response = await makeAppWithFallback({
+      globalDefault: { provider: 'openai', model: '' },
+      roleOverrides: {},
+      updatedAt: new Date(0).toISOString(),
+    }).inject({
+      method: 'GET',
+      url: '/v1/admin/model-config',
+      headers: authHeaders(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ modelConfig: ModelConfigResponse }>>()
+    expect(body.error).toBeNull()
+    expect(body.data?.modelConfig.globalDefault.provider).toBe('openai')
+    expect(body.data?.modelConfig.globalDefault.model).toBe('')
+  })
 })
 
 describe('PUT /v1/admin/model-config auth and validation', () => {
@@ -57,6 +82,19 @@ describe('PUT /v1/admin/model-config auth and validation', () => {
     const response = await makeApp().inject({
       method: 'PUT',
       url: '/v1/admin/model-config',
+      payload: {
+        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+      },
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+
+  it('returns 401 when API key is wrong', async () => {
+    const response = await makeApp().inject({
+      method: 'PUT',
+      url: '/v1/admin/model-config',
+      headers: authHeaders('wrong-key'),
       payload: {
         globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
       },
@@ -97,7 +135,7 @@ describe('PUT /v1/admin/model-config auth and validation', () => {
 })
 
 describe('PUT /v1/admin/model-config schema edge validation', () => {
-  it('returns 400 VALIDATION_ERROR when unknown top-level field is present', async () => {
+  it('ignores unknown top-level fields and persists valid payload', async () => {
     const response = await makeApp().inject({
       method: 'PUT',
       url: '/v1/admin/model-config',
@@ -108,9 +146,10 @@ describe('PUT /v1/admin/model-config schema edge validation', () => {
       },
     })
 
-    expect(response.statusCode).toBe(400)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('VALIDATION_ERROR')
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ modelConfig: ModelConfigResponse }>>()
+    expect(body.error).toBeNull()
+    expect(body.data?.modelConfig.globalDefault.provider).toBe('openai')
   })
 
   it('returns 400 VALIDATION_ERROR when roleOverrides is an array', async () => {

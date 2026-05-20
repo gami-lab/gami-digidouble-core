@@ -16,6 +16,15 @@ type ModelConfigForm = {
   roleOverrides: Record<RoleKey, ModelOverrideForm>
 }
 
+export type UpdateModelConfigRequestBody = {
+  globalDefault: { provider: string; model: string }
+  roleOverrides: {
+    avatar?: { provider?: string; model?: string }
+    gameMaster?: { provider?: string; model?: string }
+    memory?: { provider?: string; model?: string }
+  }
+}
+
 const roleLabels: Record<RoleKey, string> = {
   avatar: 'Avatar',
   gameMaster: 'Game Master',
@@ -46,7 +55,7 @@ export function ModelConfigPanel(): JSX.Element {
     setError(null)
     void getModelConfig()
       .then((config) => {
-        setForm(toForm(config))
+        setForm(toModelConfigForm(config))
       })
       .catch((nextError: unknown) => {
         setError(formatApiError(nextError, 'Failed to load model configuration'))
@@ -61,9 +70,9 @@ export function ModelConfigPanel(): JSX.Element {
     setError(null)
     setSuccess(null)
     setIsSaving(true)
-    void updateModelConfig(toRequest(form))
+    void updateModelConfig(toUpdateModelConfigRequest(form))
       .then((config) => {
-        setForm(toForm(config))
+        setForm(toModelConfigForm(config))
         setSuccess('Saved model configuration.')
       })
       .catch((nextError: unknown) => {
@@ -232,7 +241,7 @@ export function ModelConfigPanel(): JSX.Element {
   )
 }
 
-function toForm(config: ModelConfigResponse): ModelConfigForm {
+export function toModelConfigForm(config: ModelConfigResponse): ModelConfigForm {
   return {
     globalDefault: { ...config.globalDefault },
     roleOverrides: {
@@ -252,19 +261,8 @@ function toForm(config: ModelConfigResponse): ModelConfigForm {
   }
 }
 
-function toRequest(form: ModelConfigForm): {
-  globalDefault: { provider: string; model: string }
-  roleOverrides: {
-    avatar?: { provider?: string; model?: string }
-    gameMaster?: { provider?: string; model?: string }
-    memory?: { provider?: string; model?: string }
-  }
-} {
-  const roleOverrides: {
-    avatar?: { provider?: string; model?: string }
-    gameMaster?: { provider?: string; model?: string }
-    memory?: { provider?: string; model?: string }
-  } = {}
+export function toUpdateModelConfigRequest(form: ModelConfigForm): UpdateModelConfigRequestBody {
+  const roleOverrides: UpdateModelConfigRequestBody['roleOverrides'] = {}
   const avatarOverride = toOverride(form.roleOverrides.avatar)
   const gameMasterOverride = toOverride(form.roleOverrides.gameMaster)
   const memoryOverride = toOverride(form.roleOverrides.memory)
@@ -291,7 +289,7 @@ function toOverride(override: ModelOverrideForm): { provider?: string; model?: s
   }
 }
 
-function formatValidationDetails(details: unknown): string {
+export function formatValidationDetails(details: unknown): string {
   if (typeof details === 'string') return details
   return JSON.stringify(details)
 }

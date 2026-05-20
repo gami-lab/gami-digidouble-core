@@ -243,6 +243,9 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
           ...(options.config.mistralApiKey !== undefined
             ? { mistralApiKey: options.config.mistralApiKey }
             : {}),
+          ...(options.config.xaiApiKey !== undefined
+            ? { xaiApiKey: options.config.xaiApiKey }
+            : {}),
         },
         observabilityAdapter,
       ),

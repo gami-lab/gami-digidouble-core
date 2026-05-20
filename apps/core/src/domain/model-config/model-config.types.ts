@@ -1,6 +1,8 @@
 export type ModelRole = 'avatar' | 'gameMaster' | 'memory'
 
-export type ProviderName = 'openai' | 'anthropic' | 'mistral' | 'xai' | 'null'
+export const PROVIDER_NAMES = ['openai', 'anthropic', 'mistral', 'xai', 'null'] as const
+
+export type ProviderName = (typeof PROVIDER_NAMES)[number]
 
 export interface ModelOverride {
   provider?: ProviderName
@@ -21,16 +23,7 @@ export interface ModelConfig {
 export type AvatarLlmOverride = ModelOverride
 
 export function isProviderName(value: string): value is ProviderName {
-  switch (value) {
-    case 'openai':
-    case 'anthropic':
-    case 'mistral':
-    case 'xai':
-    case 'null':
-      return true
-    default:
-      return false
-  }
+  return PROVIDER_NAMES.includes(value as ProviderName)
 }
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {

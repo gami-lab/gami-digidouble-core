@@ -7,10 +7,14 @@ export type GetModelConfigOutput = {
 }
 
 export class GetModelConfigUseCase {
-  constructor(private readonly modelConfigRepository: IModelConfigRepository) {}
+  constructor(
+    private readonly modelConfigRepository: IModelConfigRepository,
+    private readonly modelConfigFallback?: ModelConfig,
+  ) {}
 
   async execute(): Promise<GetModelConfigOutput> {
-    const modelConfig = (await this.modelConfigRepository.get()) ?? DEFAULT_MODEL_CONFIG
+    const modelConfig =
+      (await this.modelConfigRepository.get()) ?? this.modelConfigFallback ?? DEFAULT_MODEL_CONFIG
     return { modelConfig }
   }
 }

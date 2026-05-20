@@ -4,6 +4,7 @@ import type { IDependencyProbe } from './application/ports/IDependencyProbe.js'
 import { RunGameMasterUseCase } from './application/use-cases/run-game-master/run-game-master.use-case.js'
 import {
   DEFAULT_MODEL_CONFIG,
+  isProviderName,
   type ModelConfig,
   type ProviderName,
 } from './domain/model-config/index.js'
@@ -180,16 +181,7 @@ function buildLlmAdaptersByProvider(
 }
 
 function resolveProviderName(value: string): ProviderName {
-  if (
-    value === 'openai' ||
-    value === 'anthropic' ||
-    value === 'mistral' ||
-    value === 'xai' ||
-    value === 'null'
-  ) {
-    return value
-  }
-  return 'null'
+  return isProviderName(value) ? value : 'null'
 }
 
 function buildKnowledgeAdapters(sql: ReturnType<typeof getDbClient>) {

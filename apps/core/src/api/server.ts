@@ -175,6 +175,9 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
       resolvedAdapters.modelConfigRepository,
       new InMemoryModelConfigRepository(),
     ),
+    ...(resolvedAdapters.modelConfigFallback !== undefined
+      ? { modelConfigFallback: resolvedAdapters.modelConfigFallback }
+      : {}),
   })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',

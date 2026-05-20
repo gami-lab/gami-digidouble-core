@@ -10,7 +10,7 @@ import type { UpdateAvatarInput } from '../../application/use-cases/update-avata
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import type { ProviderName } from '../../domain/model-config/index.js'
-import { isProviderName } from '../../domain/model-config/index.js'
+import { isProviderName, PROVIDER_NAMES } from '../../domain/model-config/index.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
@@ -158,7 +158,7 @@ function validateLlmOverride(value: PatchAvatarBody['llmOverride']): string | nu
   if (value === undefined || value === null) return null
 
   if (value.provider !== undefined && !isProviderName(value.provider)) {
-    return 'llmOverride.provider must be one of: openai, anthropic, mistral, xai, null'
+    return `llmOverride.provider must be one of: ${PROVIDER_NAMES.join(', ')}`
   }
   if (value.model !== undefined && value.model.trim().length === 0) {
     return 'llmOverride.model must be a non-empty string when provided'

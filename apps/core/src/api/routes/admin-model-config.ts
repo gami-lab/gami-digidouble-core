@@ -14,6 +14,7 @@ import { authenticateApiKey } from '../hooks/authenticate.js'
 export type AdminModelConfigRouteOptions = {
   config: Config
   modelConfigRepository: IModelConfigRepository
+  modelConfigFallback?: ModelConfig
 }
 
 type UpdateModelConfigBody = UpdateModelConfigInput
@@ -65,7 +66,10 @@ export const adminModelConfigRoute: FastifyPluginCallback<AdminModelConfigRouteO
   app,
   options,
 ) => {
-  const getModelConfigUseCase = new GetModelConfigUseCase(options.modelConfigRepository)
+  const getModelConfigUseCase = new GetModelConfigUseCase(
+    options.modelConfigRepository,
+    options.modelConfigFallback,
+  )
   const updateModelConfigUseCase = new UpdateModelConfigUseCase(options.modelConfigRepository)
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
