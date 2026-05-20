@@ -1,3 +1,5 @@
+import type { AvatarLlmOverride } from '../model-config/index.js'
+
 export type AvatarStatus = 'draft' | 'active' | 'archived'
 
 /**
@@ -36,6 +38,8 @@ export interface AvatarConfig {
   description?: string
   /** Ordered list of persona style adjustments appended to the assembled system prompt. */
   adjustments?: string[]
+  /** Optional per-avatar model override sourced from config.llmOverride JSONB. */
+  llmOverride?: AvatarLlmOverride
   /** JSONB-backed extensible configuration for voice, UI hints, knowledge scope, etc. */
   config: Record<string, unknown>
   createdAt: string

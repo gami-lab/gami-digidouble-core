@@ -6,6 +6,8 @@ import type {
 } from '../../../application/ports/IAvatarRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../../domain/errors.js'
+import type { AvatarLlmOverride } from '../../../domain/model-config/index.js'
+import { isProviderName } from '../../../domain/model-config/index.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
 interface AvatarRow {
@@ -22,7 +24,53 @@ interface AvatarRow {
   updated_at: Date
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
+}
+
+function readAvatarLlmOverride(config: Record<string, unknown>): AvatarLlmOverride | undefined {
+  const raw = asRecord(config['llmOverride'])
+  if (raw === null) return undefined
+
+  const provider = raw['provider']
+  const model = raw['model']
+  const hasProvider = typeof provider === 'string' && isProviderName(provider)
+  const hasModel = typeof model === 'string' && model.trim().length > 0
+
+  if (!hasProvider && !hasModel) return undefined
+
+  return {
+    ...(hasProvider ? { provider } : {}),
+    ...(hasModel ? { model: model.trim() } : {}),
+  }
+}
+
+function applyLlmOverride(
+  config: Record<string, unknown>,
+  llmOverride: AvatarLlmOverride | null | undefined,
+): Record<string, unknown> {
+  if (llmOverride === undefined) return config
+
+  const nextConfig = { ...config }
+  const hasProvider = llmOverride !== null && llmOverride.provider !== undefined
+  const hasModel = llmOverride !== null && llmOverride.model !== undefined
+
+  if (llmOverride === null || (!hasProvider && !hasModel)) {
+    delete nextConfig['llmOverride']
+    return nextConfig
+  }
+
+  nextConfig['llmOverride'] = {
+    ...(hasProvider ? { provider: llmOverride.provider } : {}),
+    ...(hasModel ? { model: llmOverride.model } : {}),
+  }
+
+  return nextConfig
+}
+
 function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
+  const llmOverride = readAvatarLlmOverride(row.config)
+
   return {
     avatarId: `avatar_${row.id}`,
     scenarioId: `scenario_${row.scenario_id}`,
@@ -32,6 +80,7 @@ function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
     ...(row.tone !== null ? { tone: row.tone } : {}),
     ...(row.description !== null ? { description: row.description } : {}),
     ...(row.adjustments !== null ? { adjustments: row.adjustments } : {}),
+    ...(llmOverride !== undefined ? { llmOverride } : {}),
     config: row.config,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -77,6 +126,8 @@ export class PostgresAvatarRepository implements IAvatarRepository {
 
   async create(params: CreateAvatarParams): Promise<AvatarConfig> {
     const scenarioUuid = stripPrefix('scenario_', params.scenarioId)
+    const mergedConfig = applyLlmOverride(params.config ?? {}, params.llmOverride)
+
     const [row] = await this.sql<[AvatarRow]>`
       INSERT INTO avatars (
         scenario_id, name, status,
@@ -90,7 +141,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
         ${params.tone ?? null},
         ${params.description ?? null},
         ${params.adjustments ?? null},
-        ${this.sql.json((params.config ?? {}) as JSONValue)}
+        ${this.sql.json(mergedConfig as JSONValue)}
       )
       RETURNING
         id, scenario_id, name, status,
@@ -142,7 +193,26 @@ export class PostgresAvatarRepository implements IAvatarRepository {
       throw new DomainError('NOT_FOUND', 'Avatar not found')
     }
 
-    const { setClauses, values } = buildUpdateSetClauses(updates)
+    let nextConfig: Record<string, unknown> | undefined = updates.config
+
+    if (updates.llmOverride !== undefined) {
+      const [row] = await this.sql<[Pick<AvatarRow, 'config'>?]>`
+        SELECT config
+        FROM avatars
+        WHERE id = ${uuid}
+      `
+      if (row === undefined) {
+        throw new DomainError('NOT_FOUND', 'Avatar not found')
+      }
+
+      nextConfig = applyLlmOverride(nextConfig ?? row.config, updates.llmOverride)
+    }
+
+    const { setClauses, values } = buildUpdateSetClauses({
+      ...updates,
+      ...(nextConfig !== undefined ? { config: nextConfig } : {}),
+    })
+
     values.push(uuid)
     const whereParam = `$${String(values.length)}`
 

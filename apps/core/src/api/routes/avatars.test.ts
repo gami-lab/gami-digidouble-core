@@ -184,3 +184,61 @@ describe('PATCH /v1/avatars/:avatarId', () => {
     expect(avatar?.updatedAt).toBeDefined()
   })
 })
+
+describe('PATCH /v1/avatars/:avatarId llmOverride', () => {
+  it('returns 400 when llmOverride.provider is invalid', async () => {
+    const response = await makeApp({
+      avatars: [makeAvatar({ avatarId: 'avatar_1' })],
+    }).inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { llmOverride: { provider: 'invalid-provider' } },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 400 when llmOverride.model is empty', async () => {
+    const response = await makeApp({
+      avatars: [makeAvatar({ avatarId: 'avatar_1' })],
+    }).inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { llmOverride: { model: '   ' } },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('sets and clears llmOverride', async () => {
+    const app = makeApp({
+      avatars: [makeAvatar({ avatarId: 'avatar_1', config: { routeKey: 'guide' } })],
+    })
+
+    const setResponse = await app.inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { llmOverride: { provider: 'openai' } },
+    })
+    expect(setResponse.statusCode).toBe(200)
+    const setBody = setResponse.json<ApiResponse<{ avatar: AvatarSummary }>>()
+    expect(setBody.data?.avatar.llmOverride?.provider).toBe('openai')
+
+    const clearResponse = await app.inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { llmOverride: null },
+    })
+    expect(clearResponse.statusCode).toBe(200)
+    const clearBody = clearResponse.json<ApiResponse<{ avatar: AvatarSummary }>>()
+    expect(clearBody.data?.avatar.llmOverride).toBeUndefined()
+  })
+})

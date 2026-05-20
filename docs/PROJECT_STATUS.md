@@ -319,6 +319,19 @@ Completed on: 2026-05-18
 - strict request validation for provider names, model non-empty strings, and unknown-field rejection
 - stack-e2e route coverage for auth, validation, default fallback, write, and read-after-write behavior
 
+### Prompt 03 — Per-Avatar Model Override
+
+Status: ✅ Complete
+Completed on: 2026-05-19
+
+### Includes
+
+- optional `llmOverride` surfaced in shared `AvatarSummary` and avatar request DTOs
+- avatar domain/runtime type now carries optional per-avatar override metadata
+- avatar create/update API paths accept, validate, persist, and clear `llmOverride`
+- `config.llmOverride` persistence via avatar repository JSONB mapping (no schema migration)
+- stack-e2e and route test coverage for set, invalid-provider, invalid-model, clear, and readback
+
 ---
 
 ## EPIC 5.2 — Context Engine v2

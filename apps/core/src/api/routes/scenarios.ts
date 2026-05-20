@@ -24,6 +24,8 @@ import { UpdateScenarioUseCase } from '../../application/use-cases/update-scenar
 import type { UpdateScenarioOutput } from '../../application/use-cases/update-scenario/update-scenario.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
+import type { ProviderName } from '../../domain/model-config/index.js'
+import { isProviderName } from '../../domain/model-config/index.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
@@ -78,6 +80,7 @@ type CreateAvatarRequestBody = {
   tone?: string
   description?: string
   adjustments?: string[]
+  llmOverride?: { provider?: string; model?: string } | null
   config?: Record<string, unknown>
   status?: AvatarSummary['status']
 }
@@ -134,6 +137,19 @@ const createAvatarBodySchema = {
     adjustments: {
       type: 'array',
       items: { type: 'string' },
+    },
+    llmOverride: {
+      anyOf: [
+        { type: 'null' },
+        {
+          type: 'object',
+          properties: {
+            provider: { type: 'string' },
+            model: { type: 'string' },
+          },
+          additionalProperties: false,
+        },
+      ],
     },
     config: { type: 'object' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
@@ -207,6 +223,11 @@ function registerCreateAvatarRoute(app: FastifyInstance, useCase: CreateAvatarUs
     },
     async (request, reply) => {
       try {
+        const validationError = validateLlmOverride(request.body.llmOverride)
+        if (validationError !== null) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
+        }
+
         const output = await useCase.execute(
           mapCreateAvatarInput(request.params.scenarioId, request.body),
         )
@@ -332,6 +353,7 @@ function mapCreateAvatarInput(
   scenarioId: string,
   body: CreateAvatarRequestBody,
 ): CreateAvatarInput {
+  const normalizedLlmOverride = normalizeLlmOverride(body.llmOverride)
   return {
     scenarioId,
     name: body.name,
@@ -339,6 +361,7 @@ function mapCreateAvatarInput(
     ...(body.tone !== undefined ? { tone: body.tone } : {}),
     ...(body.description !== undefined ? { description: body.description } : {}),
     ...(body.adjustments !== undefined ? { adjustments: body.adjustments } : {}),
+    ...(normalizedLlmOverride !== undefined ? { llmOverride: normalizedLlmOverride } : {}),
     ...(body.config !== undefined ? { config: body.config } : {}),
     ...(body.status !== undefined ? { status: body.status } : {}),
   }
@@ -346,6 +369,33 @@ function mapCreateAvatarInput(
 
 function mapCreateAvatarResponse(output: CreateAvatarOutput): CreateAvatarResponse {
   return { avatar: output.avatar }
+}
+
+function validateLlmOverride(value: CreateAvatarRequestBody['llmOverride']): string | null {
+  if (value === undefined || value === null) return null
+
+  if (value.provider !== undefined && !isProviderName(value.provider)) {
+    return 'llmOverride.provider must be one of: openai, anthropic, mistral, xai, null'
+  }
+  if (value.model !== undefined && value.model.trim().length === 0) {
+    return 'llmOverride.model must be a non-empty string when provided'
+  }
+
+  return null
+}
+
+function normalizeLlmOverride(
+  llmOverride: CreateAvatarRequestBody['llmOverride'],
+): CreateAvatarInput['llmOverride'] {
+  if (llmOverride === undefined) return undefined
+  if (llmOverride === null) return null
+
+  return {
+    ...(llmOverride.provider !== undefined
+      ? { provider: llmOverride.provider as ProviderName }
+      : {}),
+    ...(llmOverride.model !== undefined ? { model: llmOverride.model.trim() } : {}),
+  }
 }
 
 function mapUpdateResponse(output: UpdateScenarioOutput): UpdateScenarioResponse {

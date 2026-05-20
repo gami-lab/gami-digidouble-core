@@ -1,4 +1,5 @@
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
+import type { AvatarLlmOverride } from '../../domain/model-config/index.js'
 
 /** Port: avatar read/write access for runtime conversation flows. */
 export interface IAvatarRepository {
@@ -16,6 +17,7 @@ export interface CreateAvatarParams {
   tone?: string
   description?: string
   adjustments?: string[]
+  llmOverride?: AvatarLlmOverride | null
   config?: Record<string, unknown>
   status?: AvatarConfig['status']
 }
@@ -26,6 +28,7 @@ export type UpdateAvatarParams = {
   tone?: string
   description?: string
   adjustments?: string[]
+  llmOverride?: AvatarLlmOverride | null
   config?: Record<string, unknown>
   status?: AvatarConfig['status']
 }

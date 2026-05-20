@@ -142,6 +142,9 @@ Represents one actor inside a scenario.
 
 - One avatar belongs to exactly one scenario
 - Cross-scenario reuse is intentionally unsupported in Phase A
+- `config.llmOverride` optionally stores per-avatar model override:
+  - `provider?: 'openai' | 'anthropic' | 'mistral' | 'xai' | 'null'`
+  - `model?: string`
 
 ---
 

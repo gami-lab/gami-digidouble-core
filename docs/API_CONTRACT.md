@@ -129,6 +129,10 @@ type AvatarSummary = {
   tone?: string
   description?: string
   adjustments?: string[]
+  llmOverride?: {
+    provider?: string
+    model?: string
+  }
   config: Record<string, unknown>
   createdAt: string
   updatedAt: string
@@ -410,6 +414,22 @@ DELETE /v1/scenarios/{scenarioId}
 POST /v1/scenarios/{scenarioId}/avatars
 ```
 
+```ts
+type CreateAvatarRequest = {
+  name: string
+  personaPrompt: string
+  tone?: string
+  description?: string
+  adjustments?: string[]
+  llmOverride?: {
+    provider?: string
+    model?: string
+  } | null
+  config?: Record<string, unknown>
+  status?: 'draft' | 'active' | 'archived'
+}
+```
+
 ---
 
 ## List Scenario Avatars
@@ -424,6 +444,22 @@ GET /v1/scenarios/{scenarioId}/avatars
 
 ```text
 PATCH /v1/avatars/{avatarId}
+```
+
+```ts
+type UpdateAvatarRequest = {
+  name?: string
+  personaPrompt?: string
+  tone?: string
+  description?: string
+  adjustments?: string[]
+  llmOverride?: {
+    provider?: string
+    model?: string
+  } | null
+  config?: Record<string, unknown>
+  status?: 'draft' | 'active' | 'archived'
+}
 ```
 
 ---

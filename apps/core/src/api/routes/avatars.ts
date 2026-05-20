@@ -9,6 +9,8 @@ import { UpdateAvatarUseCase } from '../../application/use-cases/update-avatar/u
 import type { UpdateAvatarInput } from '../../application/use-cases/update-avatar/update-avatar.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
+import type { ProviderName } from '../../domain/model-config/index.js'
+import { isProviderName } from '../../domain/model-config/index.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
@@ -29,6 +31,7 @@ type PatchAvatarBody = {
   tone?: string
   description?: string
   adjustments?: string[]
+  llmOverride?: { provider?: string; model?: string } | null
   config?: Record<string, unknown>
   status?: AvatarSummary['status']
 }
@@ -54,6 +57,19 @@ const patchAvatarBodySchema = {
     tone: { type: 'string' },
     description: { type: 'string' },
     adjustments: { type: 'array', items: { type: 'string' } },
+    llmOverride: {
+      anyOf: [
+        { type: 'null' },
+        {
+          type: 'object',
+          properties: {
+            provider: { type: 'string' },
+            model: { type: 'string' },
+          },
+          additionalProperties: false,
+        },
+      ],
+    },
     config: { type: 'object' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
   },
@@ -94,6 +110,11 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
     { schema: { params: avatarIdParamsSchema, body: patchAvatarBodySchema } },
     async (request, reply) => {
       try {
+        const validationError = validateLlmOverride(request.body.llmOverride)
+        if (validationError !== null) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
+        }
+
         const output = await updateAvatarUseCase.execute(
           buildUpdateAvatarInput(request.params.avatarId, request.body),
         )
@@ -114,7 +135,8 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
 }
 
 function buildUpdateAvatarInput(avatarId: string, body: PatchAvatarBody): UpdateAvatarInput {
-  const { name, personaPrompt, tone, description, adjustments, config, status } = body
+  const { name, personaPrompt, tone, description, adjustments, llmOverride, config, status } = body
+  const normalizedLlmOverride = normalizeLlmOverride(llmOverride)
   return {
     avatarId,
     ...(name !== undefined ? { name } : {}),
@@ -122,6 +144,7 @@ function buildUpdateAvatarInput(avatarId: string, body: PatchAvatarBody): Update
     ...(tone !== undefined ? { tone } : {}),
     ...(description !== undefined ? { description } : {}),
     ...(adjustments !== undefined ? { adjustments } : {}),
+    ...(normalizedLlmOverride !== undefined ? { llmOverride: normalizedLlmOverride } : {}),
     ...(config !== undefined ? { config } : {}),
     ...(status !== undefined ? { status } : {}),
   }
@@ -129,4 +152,31 @@ function buildUpdateAvatarInput(avatarId: string, body: PatchAvatarBody): Update
 
 function mapUpdateAvatarResponse(output: { avatar: AvatarSummary }): PatchAvatarResponse {
   return { avatar: output.avatar }
+}
+
+function validateLlmOverride(value: PatchAvatarBody['llmOverride']): string | null {
+  if (value === undefined || value === null) return null
+
+  if (value.provider !== undefined && !isProviderName(value.provider)) {
+    return 'llmOverride.provider must be one of: openai, anthropic, mistral, xai, null'
+  }
+  if (value.model !== undefined && value.model.trim().length === 0) {
+    return 'llmOverride.model must be a non-empty string when provided'
+  }
+
+  return null
+}
+
+function normalizeLlmOverride(
+  llmOverride: PatchAvatarBody['llmOverride'],
+): UpdateAvatarInput['llmOverride'] {
+  if (llmOverride === undefined) return undefined
+  if (llmOverride === null) return null
+
+  return {
+    ...(llmOverride.provider !== undefined
+      ? { provider: llmOverride.provider as ProviderName }
+      : {}),
+    ...(llmOverride.model !== undefined ? { model: llmOverride.model.trim() } : {}),
+  }
 }

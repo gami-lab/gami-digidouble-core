@@ -9,7 +9,10 @@ export type { ApiResponse, ApiError, ResponseMeta, ErrorCode } from './api-respo
 export { ok, fail } from './api-response.js'
 export type {
   AvatarStatus,
+  AvatarLlmOverride,
   AvatarSummary,
+  CreateAvatarRequest,
+  UpdateAvatarRequest,
   LifecycleStatus,
   ScenarioStatus,
   ScenarioSummary,

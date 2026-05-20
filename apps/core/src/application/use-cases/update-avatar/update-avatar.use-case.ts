@@ -3,13 +3,14 @@ import { DomainError } from '../../../domain/errors.js'
 import type { UpdateAvatarInput, UpdateAvatarOutput } from './update-avatar.types.js'
 
 function buildUpdates(input: UpdateAvatarInput): UpdateAvatarParams {
-  const { name, personaPrompt, tone, description, adjustments, config, status } = input
+  const { name, personaPrompt, tone, description, adjustments, llmOverride, config, status } = input
   return {
     ...(name !== undefined ? { name } : {}),
     ...(personaPrompt !== undefined ? { personaPrompt } : {}),
     ...(tone !== undefined ? { tone } : {}),
     ...(description !== undefined ? { description } : {}),
     ...(adjustments !== undefined ? { adjustments } : {}),
+    ...(llmOverride !== undefined ? { llmOverride } : {}),
     ...(config !== undefined ? { config } : {}),
     ...(status !== undefined ? { status } : {}),
   }

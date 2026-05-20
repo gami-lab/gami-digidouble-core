@@ -29,6 +29,7 @@ export class CreateAvatarUseCase {
       ...(input.tone !== undefined ? { tone: input.tone } : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
       ...(input.adjustments !== undefined ? { adjustments: input.adjustments } : {}),
+      ...(input.llmOverride !== undefined ? { llmOverride: input.llmOverride } : {}),
       ...(input.config !== undefined ? { config: input.config } : {}),
     })
 
@@ -71,6 +72,7 @@ function mapAvatarOutput(avatar: Awaited<ReturnType<IAvatarRepository['create']>
     ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
     ...(avatar.description !== undefined ? { description: avatar.description } : {}),
     ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
+    ...(avatar.llmOverride !== undefined ? { llmOverride: avatar.llmOverride } : {}),
     config: avatar.config,
     createdAt: avatar.createdAt,
     updatedAt: avatar.updatedAt,

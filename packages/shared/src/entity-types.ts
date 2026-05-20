@@ -14,6 +14,11 @@
 /** Avatar status union — matches domain AvatarStatus. */
 export type AvatarStatus = 'draft' | 'active' | 'archived'
 
+export type AvatarLlmOverride = {
+  provider?: string
+  model?: string
+}
+
 /** Canonical read shape for an Avatar as returned by the Core API. */
 export type AvatarSummary = {
   avatarId: string
@@ -24,9 +29,32 @@ export type AvatarSummary = {
   tone?: string
   description?: string
   adjustments?: string[]
+  llmOverride?: AvatarLlmOverride
   config: Record<string, unknown>
   createdAt: string
   updatedAt: string
+}
+
+export type CreateAvatarRequest = {
+  name: string
+  personaPrompt: string
+  tone?: string
+  description?: string
+  adjustments?: string[]
+  llmOverride?: AvatarLlmOverride | null
+  config?: Record<string, unknown>
+  status?: AvatarStatus
+}
+
+export type UpdateAvatarRequest = {
+  name?: string
+  personaPrompt?: string
+  tone?: string
+  description?: string
+  adjustments?: string[]
+  llmOverride?: AvatarLlmOverride | null
+  config?: Record<string, unknown>
+  status?: AvatarStatus
 }
 
 /** Scenario status union — matches domain Scenario['status']. */
