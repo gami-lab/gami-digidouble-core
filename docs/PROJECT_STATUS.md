@@ -591,6 +591,7 @@ Completed on: 2026-05-11
 | 2026-05-10 | EPIC 3.2 — Inspector Consolidation & Contract Cleanup |
 | 2026-05-11 | EPIC 5.1 — Knowledge Substrate, Ingestion, Retrieval  |
 | 2026-05-11 | EPIC 5.2 — Context Engine v2                          |
+| 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration         |
 
 ---
 
