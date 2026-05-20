@@ -279,7 +279,9 @@ export function toUpdateModelConfigRequest(form: ModelConfigForm): UpdateModelCo
   }
 }
 
-function toOverride(override: ModelOverrideForm): { provider?: string; model?: string } | undefined {
+function toOverride(
+  override: ModelOverrideForm,
+): { provider?: string; model?: string } | undefined {
   const provider = override.provider.trim()
   const model = override.model.trim()
   if (provider.length === 0 && model.length === 0) return undefined
