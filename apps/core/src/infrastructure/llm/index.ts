@@ -22,6 +22,24 @@ export interface LlmConfig {
   xaiApiKey?: string
 }
 
+export interface LlmConfigInput {
+  llmProvider: string
+  openaiApiKey?: string | undefined
+  anthropicApiKey?: string | undefined
+  mistralApiKey?: string | undefined
+  xaiApiKey?: string | undefined
+}
+
+export function buildLlmConfig(input: LlmConfigInput): LlmConfig {
+  return {
+    provider: input.llmProvider,
+    ...(input.openaiApiKey !== undefined ? { openaiApiKey: input.openaiApiKey } : {}),
+    ...(input.anthropicApiKey !== undefined ? { anthropicApiKey: input.anthropicApiKey } : {}),
+    ...(input.mistralApiKey !== undefined ? { mistralApiKey: input.mistralApiKey } : {}),
+    ...(input.xaiApiKey !== undefined ? { xaiApiKey: input.xaiApiKey } : {}),
+  }
+}
+
 export function createLlmAdapter(
   config: LlmConfig,
   observability?: IObservabilityAdapter,

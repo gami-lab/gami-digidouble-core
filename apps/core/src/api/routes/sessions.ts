@@ -54,7 +54,7 @@ import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-me
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import { registerRuntimeEventsRoutes } from './runtime-events.js'
 import { createSessionRouteUseCases } from './sessions.use-cases.js'
-import { createLlmAdapter } from '../../infrastructure/llm/index.js'
+import { buildLlmConfig, createLlmAdapter } from '../../infrastructure/llm/index.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 
@@ -230,25 +230,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     eventLogRepository,
     sessionEventPublisher,
     llmAdapter:
-      options.llmAdapter ??
-      createLlmAdapter(
-        {
-          provider: options.config.llmProvider,
-          ...(options.config.openaiApiKey !== undefined
-            ? { openaiApiKey: options.config.openaiApiKey }
-            : {}),
-          ...(options.config.anthropicApiKey !== undefined
-            ? { anthropicApiKey: options.config.anthropicApiKey }
-            : {}),
-          ...(options.config.mistralApiKey !== undefined
-            ? { mistralApiKey: options.config.mistralApiKey }
-            : {}),
-          ...(options.config.xaiApiKey !== undefined
-            ? { xaiApiKey: options.config.xaiApiKey }
-            : {}),
-        },
-        observabilityAdapter,
-      ),
+      options.llmAdapter ?? createLlmAdapter(buildLlmConfig(options.config), observabilityAdapter),
     ...(options.modelConfigRepository !== undefined
       ? { modelConfigRepository: options.modelConfigRepository }
       : {}),

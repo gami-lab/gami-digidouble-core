@@ -11,7 +11,11 @@ import {
 import { getRedisClient, closeRedisClient } from './infrastructure/cache/index.js'
 import { LlmProbe, PostgresProbe, RedisProbe } from './infrastructure/health/index.js'
 import { createObservabilityAdapter } from './infrastructure/observability/index.js'
-import { createLlmAdapter, DefaultLlmAdapterRegistry } from './infrastructure/llm/index.js'
+import {
+  buildLlmConfig,
+  createLlmAdapter,
+  DefaultLlmAdapterRegistry,
+} from './infrastructure/llm/index.js'
 import { InMemorySessionEventPublisher } from './infrastructure/events/in-memory-session-event-publisher.js'
 import { MemorySelectionService } from './application/services/memory-selection.service.js'
 import {
@@ -115,16 +119,6 @@ async function main(): Promise<void> {
     server.log.error(err)
     await server.close()
     process.exit(1)
-  }
-}
-
-function buildLlmConfig(config: ReturnType<typeof loadConfig>) {
-  return {
-    provider: config.llmProvider,
-    ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
-    ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
-    ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
-    ...(config.xaiApiKey !== undefined ? { xaiApiKey: config.xaiApiKey } : {}),
   }
 }
 

@@ -174,6 +174,7 @@ The EPIC is functionally substantial and operationally usable, but the identifie
 ### Changes Made
 
 - Added `xaiApiKey` handling in sessions route local LLM config assembly: [apps/core/src/api/routes/sessions.ts](apps/core/src/api/routes/sessions.ts).
+- Introduced shared LLM config assembly helper and reused it in sessions route and bootstrap to reduce drift risk: [apps/core/src/infrastructure/llm/index.ts](apps/core/src/infrastructure/llm/index.ts), [apps/core/src/api/routes/sessions.ts](apps/core/src/api/routes/sessions.ts), [apps/core/src/index.ts](apps/core/src/index.ts).
 - Aligned admin model-config GET fallback wiring with runtime-injected fallback path by passing fallback through server route options and use case injection: [apps/core/src/api/server.ts](apps/core/src/api/server.ts), [apps/core/src/api/routes/admin-model-config.ts](apps/core/src/api/routes/admin-model-config.ts), [apps/core/src/application/use-cases/get-model-config/get-model-config.use-case.ts](apps/core/src/application/use-cases/get-model-config/get-model-config.use-case.ts).
 - Added focused use-case tests for model-config read/write behavior: [apps/core/src/application/use-cases/get-model-config/get-model-config.use-case.test.ts](apps/core/src/application/use-cases/get-model-config/get-model-config.use-case.test.ts), [apps/core/src/application/use-cases/update-model-config/update-model-config.use-case.test.ts](apps/core/src/application/use-cases/update-model-config/update-model-config.use-case.test.ts).
 - Completed PUT admin model-config auth matrix with explicit wrong-key case and added fallback parity assertion: [apps/core/src/api/routes/admin-model-config.stack-e2e.test.ts](apps/core/src/api/routes/admin-model-config.stack-e2e.test.ts).
@@ -183,6 +184,7 @@ The EPIC is functionally substantial and operationally usable, but the identifie
 ### Findings Resolved
 
 - Resolved: Sessions route XAI omission.
+- Resolved: Sessions route local LLM config assembly drift by introducing a shared builder.
 - Resolved: GET model-config fallback parity at server/use-case wiring level.
 - Resolved: Missing unit tests for get-model-config and update-model-config use cases.
 - Resolved: Missing PUT wrong-key auth case in admin model-config stack-e2e.
@@ -215,4 +217,3 @@ B+
 ### Remaining Risks
 
 - Provider option ownership still spans core and console modules; future provider additions can still require multi-file updates.
-- Sessions route still performs local LLM config assembly; a shared builder would further reduce drift risk.
