@@ -1,3 +1,4 @@
+/* eslint-disable max-lines, max-lines-per-function */
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
@@ -10,6 +11,7 @@ import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepos
 import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../ports/IConversationMemoryRepository.js'
+import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { buildAvatarAwareness } from '../../../domain/avatar/avatar-awareness.service.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
@@ -23,6 +25,10 @@ import type { SelectedMemoryPayload } from '../../../domain/memory/memory.types.
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { emitTurnCompletedEventNonBlocking } from './send-message.observability.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
+import {
+  logResolvedLlmCall,
+  resolveRoleLlmCall,
+} from '../../services/model-resolution-runtime.service.js'
 import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import {
   DEFAULT_IMPLICIT_END_POLICY,
@@ -37,6 +43,8 @@ import {
   toRecentExchanges,
 } from './send-message.helpers.js'
 import type { ContextEngineOutput } from '../../../domain/context/context-engine.types.js'
+import type { ModelConfig } from '../../../domain/model-config/index.js'
+import type { LlmAdapterRegistry } from '../../../infrastructure/llm/llm-adapter-registry.js'
 import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master.avatar-unlocks.js'
 import {
   toLayeredSnapshotFromAvatarContext,
@@ -81,6 +89,9 @@ export class SendMessageUseCase {
     private readonly memorySelectionService?: MemorySelectionService,
     private readonly typedRetrievalService?: TypedRetrievalService,
     private readonly contextAssembler: ContextAssembler = new ContextEngine(),
+    private readonly modelConfigRepository?: IModelConfigRepository,
+    private readonly llmAdapterRegistry?: LlmAdapterRegistry,
+    private readonly modelConfigFallback?: ModelConfig,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -108,6 +119,14 @@ export class SendMessageUseCase {
       conversation.conversationId,
       input.userMessage,
     )
+    const resolvedLlm = await resolveRoleLlmCall({
+      role: 'avatar',
+      legacyAdapter: this.llm,
+      modelConfigRepository: this.modelConfigRepository,
+      llmAdapterRegistry: this.llmAdapterRegistry,
+      modelConfigFallback: this.modelConfigFallback,
+      avatarOverride: avatar.llmOverride,
+    })
     const llmRequest = buildSendMessageLlmRequest({
       requestId,
       sessionId: session.sessionId,
@@ -116,8 +135,16 @@ export class SendMessageUseCase {
       systemPrompt,
       historyMessages,
       userMessage: userMessage.content,
+      ...(resolvedLlm.model !== undefined ? { model: resolvedLlm.model } : {}),
+      effectiveProvider: resolvedLlm.provider,
+      effectiveModel: resolvedLlm.effectiveModel,
     })
-    const response = await this.llm.complete(llmRequest)
+    logResolvedLlmCall({
+      role: 'avatar',
+      effectiveProvider: resolvedLlm.provider,
+      effectiveModel: resolvedLlm.effectiveModel,
+    })
+    const response = await resolvedLlm.adapter.complete(llmRequest)
     const avatarMessage = await this.persistAvatarMessage(conversation.conversationId, {
       ...response,
     })

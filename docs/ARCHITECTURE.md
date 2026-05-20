@@ -581,6 +581,8 @@ searchKnowledge(query)
 
 Business code depends on these ports only.
 
+Runtime provider/model choice is role-based at the application layer. Each LLM-calling use case resolves an effective `{ provider, model }` through `ModelResolutionService` (avatar override → role override → global default), then fetches the concrete adapter from `LlmAdapterRegistry` in infrastructure. The observed adapter wrapper remains the single tracing boundary, and each request carries `effectiveProvider`/`effectiveModel` metadata for operations.
+
 For technology choices (DB, Redis, observability, LLM providers), see `TECH_STACK.md`.
 
 ---

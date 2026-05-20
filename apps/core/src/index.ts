@@ -2,10 +2,15 @@ import { loadConfig } from './config.js'
 import { createServer } from './api/server.js'
 import type { IDependencyProbe } from './application/ports/IDependencyProbe.js'
 import { RunGameMasterUseCase } from './application/use-cases/run-game-master/run-game-master.use-case.js'
+import {
+  DEFAULT_MODEL_CONFIG,
+  type ModelConfig,
+  type ProviderName,
+} from './domain/model-config/index.js'
 import { getRedisClient, closeRedisClient } from './infrastructure/cache/index.js'
 import { LlmProbe, PostgresProbe, RedisProbe } from './infrastructure/health/index.js'
 import { createObservabilityAdapter } from './infrastructure/observability/index.js'
-import { createLlmAdapter } from './infrastructure/llm/index.js'
+import { createLlmAdapter, DefaultLlmAdapterRegistry } from './infrastructure/llm/index.js'
 import { InMemorySessionEventPublisher } from './infrastructure/events/in-memory-session-event-publisher.js'
 import { MemorySelectionService } from './application/services/memory-selection.service.js'
 import {
@@ -35,15 +40,10 @@ import { HashEmbeddingAdapter } from './infrastructure/knowledge/hash-embedding.
 async function main(): Promise<void> {
   const config = loadConfig()
   const observability = createObservabilityAdapter(config)
-  const llmAdapter = createLlmAdapter(
-    {
-      provider: config.llmProvider,
-      ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
-      ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
-      ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
-      ...(config.xaiApiKey !== undefined ? { xaiApiKey: config.xaiApiKey } : {}),
-    },
-    observability,
+  const llmConfig = buildLlmConfig(config)
+  const llmAdapter = createLlmAdapter(llmConfig, observability)
+  const llmAdapterRegistry = new DefaultLlmAdapterRegistry(
+    buildLlmAdaptersByProvider(config, observability),
   )
   const sql = getDbClient(config.databaseUrl)
   const redisClient = getRedisClient(config.redisUrl)
@@ -62,6 +62,10 @@ async function main(): Promise<void> {
   const userMemoryFactRepository = new PostgresUserMemoryFactRepository(sql)
   const knowledgeAdapters = buildKnowledgeAdapters(sql)
   const modelConfigRepository = new PostgresModelConfigRepository(sql)
+  const runtimeModelConfigFallback: ModelConfig = {
+    ...DEFAULT_MODEL_CONFIG,
+    globalDefault: { provider: resolveProviderName(config.llmProvider), model: '' },
+  }
   const sessionEventPublisher = new InMemorySessionEventPublisher()
   const memorySelectionService = new MemorySelectionService(
     messageRepository,
@@ -81,6 +85,10 @@ async function main(): Promise<void> {
     messageRepository,
     sessionEventPublisher,
     memorySelectionService,
+    undefined,
+    modelConfigRepository,
+    llmAdapterRegistry,
+    runtimeModelConfigFallback,
   )
   const probes: IDependencyProbe[] = [
     new PostgresProbe(sql),
@@ -106,6 +114,8 @@ async function main(): Promise<void> {
     userMemoryFactRepository,
     ...knowledgeAdapters,
     modelConfigRepository,
+    llmAdapterRegistry,
+    modelConfigFallback: runtimeModelConfigFallback,
     runGameMasterUseCase,
     sessionEventPublisher,
     probes,
@@ -133,6 +143,53 @@ async function main(): Promise<void> {
     await server.close()
     process.exit(1)
   }
+}
+
+function buildLlmConfig(config: ReturnType<typeof loadConfig>) {
+  return {
+    provider: config.llmProvider,
+    ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
+    ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
+    ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
+    ...(config.xaiApiKey !== undefined ? { xaiApiKey: config.xaiApiKey } : {}),
+  }
+}
+
+function buildLlmAdaptersByProvider(
+  config: ReturnType<typeof loadConfig>,
+  observability: ReturnType<typeof createObservabilityAdapter>,
+): Partial<Record<ProviderName, ReturnType<typeof createLlmAdapter>>> {
+  const llmConfig = buildLlmConfig(config)
+  const adapters: Partial<Record<ProviderName, ReturnType<typeof createLlmAdapter>>> = {
+    null: createLlmAdapter({ ...llmConfig, provider: 'null' }, observability),
+  }
+
+  if (config.openaiApiKey !== undefined && config.openaiApiKey.trim().length > 0) {
+    adapters.openai = createLlmAdapter({ ...llmConfig, provider: 'openai' }, observability)
+  }
+  if (config.anthropicApiKey !== undefined && config.anthropicApiKey.trim().length > 0) {
+    adapters.anthropic = createLlmAdapter({ ...llmConfig, provider: 'anthropic' }, observability)
+  }
+  if (config.mistralApiKey !== undefined && config.mistralApiKey.trim().length > 0) {
+    adapters.mistral = createLlmAdapter({ ...llmConfig, provider: 'mistral' }, observability)
+  }
+  if (config.xaiApiKey !== undefined && config.xaiApiKey.trim().length > 0) {
+    adapters.xai = createLlmAdapter({ ...llmConfig, provider: 'xai' }, observability)
+  }
+  return adapters
+}
+
+function resolveProviderName(value: string): ProviderName {
+  if (
+    value === 'openai' ||
+    value === 'anthropic' ||
+    value === 'mistral' ||
+    value === 'xai' ||
+    value === 'null'
+  ) {
+    return value
+  }
+  return 'null'
 }
 
 function buildKnowledgeAdapters(sql: ReturnType<typeof getDbClient>) {

@@ -17,6 +17,7 @@ import type { IConversationWorkingMemoryRepository } from '../../application/por
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
 import type { IKnowledgeChunkRepository } from '../../application/ports/IKnowledgeChunkRepository.js'
 import type { IKnowledgeSourceRepository } from '../../application/ports/IKnowledgeSourceRepository.js'
+import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
@@ -26,6 +27,7 @@ import { TypedRetrievalService } from '../../application/services/knowledge/type
 import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
 import type { SendMessageOutput } from '../../application/use-cases/send-message/send-message.types.js'
 import type { Config } from '../../config.js'
+import type { ModelConfig } from '../../domain/model-config/index.js'
 import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
@@ -44,6 +46,7 @@ import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-mem
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
 import type { LlmConfig } from '../../infrastructure/llm/index.js'
+import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 
@@ -66,6 +69,9 @@ type ConversationsRouteOptions = {
   conversationMemoryRepository?: IConversationMemoryRepository
   knowledgeSourceRepository?: IKnowledgeSourceRepository
   knowledgeChunkRepository?: IKnowledgeChunkRepository
+  modelConfigRepository?: IModelConfigRepository
+  llmAdapterRegistry?: LlmAdapterRegistry
+  modelConfigFallback?: ModelConfig
 }
 
 type ConversationParams = { conversationId: string }
@@ -192,6 +198,9 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     repositories.conversationWorkingMemoryRepository,
     repositories.eventLogRepository,
     llmAdapter,
+    options.modelConfigRepository,
+    options.llmAdapterRegistry,
+    options.modelConfigFallback,
   )
   const episodicMemoryService = new EpisodicMemoryService(
     repositories.conversationMemoryRepository,
@@ -235,6 +244,10 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       repositories.conversationMemoryRepository,
       undefined,
       typedRetrievalService,
+      undefined,
+      options.modelConfigRepository,
+      options.llmAdapterRegistry,
+      options.modelConfigFallback,
     ),
   }
 }

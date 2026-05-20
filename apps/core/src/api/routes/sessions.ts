@@ -18,6 +18,7 @@ import type { ISessionEventPublisher } from '../../application/ports/ISessionEve
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
+import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
 import type { GetAvatarTransitionsOutput } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.types.js'
@@ -37,6 +38,7 @@ import type { StartSessionOutput } from '../../application/use-cases/start-sessi
 import { SwitchAvatarUseCase } from '../../application/use-cases/switch-avatar/switch-avatar.use-case.js'
 import type { SwitchAvatarOutput } from '../../application/use-cases/switch-avatar/switch-avatar.types.js'
 import type { Config } from '../../config.js'
+import type { ModelConfig } from '../../domain/model-config/index.js'
 import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
@@ -54,6 +56,7 @@ import { registerRuntimeEventsRoutes } from './runtime-events.js'
 import { createSessionRouteUseCases } from './sessions.use-cases.js'
 import { createLlmAdapter } from '../../infrastructure/llm/index.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
+import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 
 export type SessionsRouteOptions = {
   config: Config
@@ -70,6 +73,9 @@ export type SessionsRouteOptions = {
   conversationMemoryRepository?: IConversationMemoryRepository
   eventLogRepository?: IEventLogRepository
   sessionEventPublisher?: ISessionEventPublisher
+  modelConfigRepository?: IModelConfigRepository
+  llmAdapterRegistry?: LlmAdapterRegistry
+  modelConfigFallback?: ModelConfig
 }
 
 type StartSessionRequestBody = {
@@ -240,6 +246,15 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
         },
         observabilityAdapter,
       ),
+    ...(options.modelConfigRepository !== undefined
+      ? { modelConfigRepository: options.modelConfigRepository }
+      : {}),
+    ...(options.llmAdapterRegistry !== undefined
+      ? { llmAdapterRegistry: options.llmAdapterRegistry }
+      : {}),
+    ...(options.modelConfigFallback !== undefined
+      ? { modelConfigFallback: options.modelConfigFallback }
+      : {}),
   })
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))

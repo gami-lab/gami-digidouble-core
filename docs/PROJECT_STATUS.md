@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: May 18, 2026
+Last updated: May 20, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -331,6 +331,20 @@ Completed on: 2026-05-19
 - avatar create/update API paths accept, validate, persist, and clear `llmOverride`
 - `config.llmOverride` persistence via avatar repository JSONB mapping (no schema migration)
 - stack-e2e and route test coverage for set, invalid-provider, invalid-model, clear, and readback
+
+### Prompt 04 — Runtime Wiring & Observability
+
+Status: ✅ Complete
+Completed on: 2026-05-20
+
+### Includes
+
+- `LlmAdapterRegistry` infrastructure wiring with one observed adapter per configured provider
+- runtime model resolution integrated into Avatar (`SendMessageUseCase`), Game Master (`RunGameMasterUseCase`), and memory compaction (`MemoryMaintenanceService`)
+- request-level resolved provider/model selection on each call using persisted config with per-request DB read and no cross-request cache
+- effective trace metadata (`effectiveProvider`, `effectiveModel`) added to all resolved LLM calls
+- env-compatible null-row fallback via runtime default (`LLM_PROVIDER` + empty model) to preserve existing deployments
+- targeted unit coverage for role-specific resolution, avatar override behavior, and null-config fallback paths
 
 ---
 

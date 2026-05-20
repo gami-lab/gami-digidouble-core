@@ -5,6 +5,10 @@ import type { ILlmAdapter } from '../ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../ports/IMemoryMaintenancePort.js'
 import type { IConversationWorkingMemoryRepository } from '../ports/IConversationWorkingMemoryRepository.js'
+import type { IModelConfigRepository } from '../ports/IModelConfigRepository.js'
+import type { ModelConfig } from '../../domain/model-config/index.js'
+import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
+import { logResolvedLlmCall, resolveRoleLlmCall } from './model-resolution-runtime.service.js'
 
 const WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT = `You update a running working memory for a conversation.
 
@@ -38,6 +42,9 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     private readonly conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository,
     private readonly eventLogRepository: IEventLogRepository,
     private readonly llm: ILlmAdapter,
+    private readonly modelConfigRepository?: IModelConfigRepository,
+    private readonly llmAdapterRegistry?: LlmAdapterRegistry,
+    private readonly modelConfigFallback?: ModelConfig,
   ) {}
 
   async execute(input: {
@@ -152,9 +159,11 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
     },
   ) {
+    const resolvedLlm = await this.resolveMemoryLlmCall()
     const llmRequest = {
       systemPrompt: WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT,
       messages: [{ role: 'user' as const, content: buildCompactionInput(messages, priorMemory) }],
+      ...(resolvedLlm.model !== undefined ? { model: resolvedLlm.model } : {}),
       maxTokens: 500,
       trace: {
         requestId: context.requestId,
@@ -165,15 +174,38 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
           conversationId: context.conversationId,
           avatarId: context.avatarId,
           trigger: context.trigger,
+          effectiveProvider: resolvedLlm.provider,
+          effectiveModel: resolvedLlm.effectiveModel,
         },
       },
     }
-    const response = await this.llm.complete(llmRequest)
+    logResolvedLlmCall({
+      role: 'memory',
+      effectiveProvider: resolvedLlm.provider,
+      effectiveModel: resolvedLlm.effectiveModel,
+    })
+    const response = await resolvedLlm.adapter.complete(llmRequest)
 
     const parsed = parseCompactionOutput(response.content)
 
     if (parsed !== null) return parsed
     throw new Error('[memory-maintenance] LLM returned unparseable compaction output')
+  }
+
+  private async resolveMemoryLlmCall(): Promise<{
+    adapter: ILlmAdapter
+    provider: string
+    model?: string
+    effectiveModel: string
+  }> {
+    return await resolveRoleLlmCall({
+      role: 'memory',
+      legacyAdapter: this.llm,
+      modelConfigRepository: this.modelConfigRepository,
+      llmAdapterRegistry: this.llmAdapterRegistry,
+      modelConfigFallback: this.modelConfigFallback,
+      avatarOverride: undefined,
+    })
   }
 }
 

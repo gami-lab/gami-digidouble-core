@@ -24,6 +24,7 @@ import type { IIngestionJobRepository } from '../application/ports/IIngestionJob
 import type { IKnowledgeSourceContentLoader } from '../application/ports/IKnowledgeSourceContentLoader.js'
 import type { IEmbeddingAdapter } from '../application/ports/IEmbeddingAdapter.js'
 import type { IModelConfigRepository } from '../application/ports/IModelConfigRepository.js'
+import type { ModelConfig } from '../domain/model-config/index.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
@@ -41,6 +42,7 @@ import { InMemoryConversationWorkingMemoryRepository } from '../infrastructure/d
 import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memory-session-event-publisher.js'
 import { createLlmAdapter } from '../infrastructure/llm/index.js'
 import type { LlmConfig } from '../infrastructure/llm/index.js'
+import type { LlmAdapterRegistry } from '../infrastructure/llm/llm-adapter-registry.js'
 import { adminMemoryRoute } from './routes/admin-memory.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
 import { adminMetricsRoute } from './routes/admin-metrics.js'
@@ -88,6 +90,8 @@ export interface ServerAdapters {
   knowledgeSourceContentLoader?: IKnowledgeSourceContentLoader
   embeddingAdapter?: IEmbeddingAdapter
   modelConfigRepository?: IModelConfigRepository
+  llmAdapterRegistry?: LlmAdapterRegistry
+  modelConfigFallback?: ModelConfig
 }
 
 type FastifyValidationError = {
@@ -346,6 +350,15 @@ function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAd
       adapters.conversationWorkingMemoryRepository,
       new InMemoryConversationWorkingMemoryRepository(),
     ),
+    ...(adapters.modelConfigRepository !== undefined
+      ? { modelConfigRepository: adapters.modelConfigRepository }
+      : {}),
+    ...(adapters.llmAdapterRegistry !== undefined
+      ? { llmAdapterRegistry: adapters.llmAdapterRegistry }
+      : {}),
+    ...(adapters.modelConfigFallback !== undefined
+      ? { modelConfigFallback: adapters.modelConfigFallback }
+      : {}),
   }
 }
 

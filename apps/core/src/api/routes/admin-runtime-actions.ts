@@ -24,6 +24,9 @@ import { authenticateApiKey } from '../hooks/authenticate.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
+import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
+import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
+import type { ModelConfig } from '../../domain/model-config/index.js'
 
 export type AdminRuntimeActionsRouteOptions = {
   config: Config
@@ -38,6 +41,9 @@ export type AdminRuntimeActionsRouteOptions = {
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   memoryMaintenance?: IMemoryMaintenancePort
+  modelConfigRepository?: IModelConfigRepository
+  llmAdapterRegistry?: LlmAdapterRegistry
+  modelConfigFallback?: ModelConfig
 }
 
 type SessionParams = {
@@ -70,6 +76,9 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
       conversationWorkingMemoryRepository,
       options.eventLogRepository,
       options.llmAdapter,
+      options.modelConfigRepository,
+      options.llmAdapterRegistry,
+      options.modelConfigFallback,
     )
 
   const useCase = new AdminRuntimeActionsUseCase(

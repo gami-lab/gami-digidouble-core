@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import crypto from 'node:crypto'
 import type { RuntimeEvent } from '@gami/shared'
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
@@ -7,6 +8,7 @@ import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { ILlmAdapter, LlmResponse } from '../../ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
+import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
@@ -23,6 +25,10 @@ import type {
 import type { Session } from '../../../domain/conversation/session.types.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
+import {
+  logResolvedLlmCall,
+  resolveRoleLlmCall,
+} from '../../services/model-resolution-runtime.service.js'
 import { safeParseGameMasterOutput } from './run-game-master.helpers.js'
 import {
   normalizeGameMasterOutput,
@@ -36,6 +42,8 @@ import {
   handleInvalidGameMasterOutput,
   incrementInteractionAndSave,
 } from './run-game-master.events.js'
+import type { ModelConfig } from '../../../domain/model-config/index.js'
+import type { LlmAdapterRegistry } from '../../../infrastructure/llm/llm-adapter-registry.js'
 
 const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
   progression: '',
@@ -64,6 +72,9 @@ export class RunGameMasterUseCase {
     private readonly sessionEventPublisher?: ISessionEventPublisher,
     private readonly memorySelectionService?: MemorySelectionService,
     private readonly contextEngine: ContextEngine = new ContextEngine(),
+    private readonly modelConfigRepository?: IModelConfigRepository,
+    private readonly llmAdapterRegistry?: LlmAdapterRegistry,
+    private readonly modelConfigFallback?: ModelConfig,
   ) {}
 
   async execute(input: RunGameMasterInput): Promise<void> {
@@ -246,9 +257,11 @@ export class RunGameMasterUseCase {
     llmResponse: LlmResponse
     llmLatencyMs: number
   } | null> {
+    const resolvedLlm = await this.resolveGameMasterLlmCall()
     const llmRequest = {
       systemPrompt: buildGameMasterSystemPrompt(),
       messages: [{ role: 'user' as const, content: JSON.stringify(gmInput) }],
+      ...(resolvedLlm.model !== undefined ? { model: resolvedLlm.model } : {}),
       trace: {
         requestId: input.correlationId,
         sessionId: input.sessionId,
@@ -258,13 +271,20 @@ export class RunGameMasterUseCase {
           triggerReason,
           conversationId: input.conversationId,
           turnIndex: input.turnIndex,
+          effectiveProvider: resolvedLlm.provider,
+          effectiveModel: resolvedLlm.effectiveModel,
         },
       },
     }
 
     try {
+      logResolvedLlmCall({
+        role: 'gameMaster',
+        effectiveProvider: resolvedLlm.provider,
+        effectiveModel: resolvedLlm.effectiveModel,
+      })
       const llmCallStart = Date.now()
-      const llmResponse = await this.llm.complete(llmRequest)
+      const llmResponse = await resolvedLlm.adapter.complete(llmRequest)
       return { llmRequest, llmResponse, llmLatencyMs: Date.now() - llmCallStart }
     } catch (err: unknown) {
       console.error('[GM] LLM call failed:', err)
@@ -278,6 +298,22 @@ export class RunGameMasterUseCase {
       })
       return null
     }
+  }
+
+  private async resolveGameMasterLlmCall(): Promise<{
+    adapter: ILlmAdapter
+    provider: string
+    model?: string
+    effectiveModel: string
+  }> {
+    return await resolveRoleLlmCall({
+      role: 'gameMaster',
+      legacyAdapter: this.llm,
+      modelConfigRepository: this.modelConfigRepository,
+      llmAdapterRegistry: this.llmAdapterRegistry,
+      modelConfigFallback: this.modelConfigFallback,
+      avatarOverride: undefined,
+    })
   }
 
   private async loadCurrentState(sessionId: string): Promise<GameMasterState> {

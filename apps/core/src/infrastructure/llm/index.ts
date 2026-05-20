@@ -11,6 +11,8 @@ export { LlmError } from './llm.error.js'
 export { LlmUserFactExtractor } from './llm-user-fact-extractor.js'
 export { NullLlmAdapter } from './null.adapter.js'
 export { ObservedLlmAdapter } from './observed.adapter.js'
+export { DefaultLlmAdapterRegistry } from './llm-adapter-registry.js'
+export type { LlmAdapterRegistry } from './llm-adapter-registry.js'
 
 export interface LlmConfig {
   provider: string

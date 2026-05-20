@@ -10,6 +10,7 @@ import type { IScenarioRepository } from '../../application/ports/IScenarioRepos
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
+import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import { EpisodicMemoryService } from '../../application/services/episodic-memory.service.js'
 import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
@@ -23,6 +24,8 @@ import { ResetSessionUseCase } from '../../application/use-cases/reset-session/r
 import { StartConversationUseCase } from '../../application/use-cases/start-conversation/start-conversation.use-case.js'
 import { StartSessionUseCase } from '../../application/use-cases/start-session/start-session.use-case.js'
 import { SwitchAvatarUseCase } from '../../application/use-cases/switch-avatar/switch-avatar.use-case.js'
+import type { ModelConfig } from '../../domain/model-config/index.js'
+import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 
 export type SessionRouteUseCases = {
   startSessionUseCase: StartSessionUseCase
@@ -51,12 +54,18 @@ export function createSessionRouteUseCases(deps: {
   eventLogRepository: IEventLogRepository
   sessionEventPublisher: ISessionEventPublisher
   llmAdapter: ILlmAdapter
+  modelConfigRepository?: IModelConfigRepository
+  llmAdapterRegistry?: LlmAdapterRegistry
+  modelConfigFallback?: ModelConfig
 }): SessionRouteUseCases {
   const memoryMaintenance = new MemoryMaintenanceService(
     deps.messageRepository,
     deps.conversationWorkingMemoryRepository,
     deps.eventLogRepository,
     deps.llmAdapter,
+    deps.modelConfigRepository,
+    deps.llmAdapterRegistry,
+    deps.modelConfigFallback,
   )
   const episodicMemoryService = new EpisodicMemoryService(
     deps.conversationMemoryRepository,
