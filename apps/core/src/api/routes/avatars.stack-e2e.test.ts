@@ -363,6 +363,15 @@ describe('Stack E2E — avatar llmOverride flow', () => {
     const invalidProviderBody = (await patchInvalidProviderRes.json()) as ApiResponse<null>
     expect(invalidProviderBody.error?.code).toBe('VALIDATION_ERROR')
 
+    const patchEmptyProviderRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({ llmOverride: { provider: '' } }),
+    })
+    expect(patchEmptyProviderRes.status).toBe(400)
+    const emptyProviderBody = (await patchEmptyProviderRes.json()) as ApiResponse<null>
+    expect(emptyProviderBody.error?.code).toBe('VALIDATION_ERROR')
+
     const patchInvalidModelRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },

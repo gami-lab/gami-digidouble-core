@@ -52,7 +52,7 @@ describe('GET /v1/admin/model-config', () => {
   })
 })
 
-describe('PUT /v1/admin/model-config', () => {
+describe('PUT /v1/admin/model-config auth and validation', () => {
   it('returns 401 when API key is missing', async () => {
     const response = await makeApp().inject({
       method: 'PUT',
@@ -94,7 +94,75 @@ describe('PUT /v1/admin/model-config', () => {
     const body = response.json<ApiResponse<null>>()
     expect(body.error?.code).toBe('VALIDATION_ERROR')
   })
+})
 
+describe('PUT /v1/admin/model-config schema edge validation', () => {
+  it('returns 400 VALIDATION_ERROR when unknown top-level field is present', async () => {
+    const response = await makeApp().inject({
+      method: 'PUT',
+      url: '/v1/admin/model-config',
+      headers: authHeaders(),
+      payload: {
+        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+        unknownField: 'nope',
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 400 VALIDATION_ERROR when roleOverrides is an array', async () => {
+    const response = await makeApp().inject({
+      method: 'PUT',
+      url: '/v1/admin/model-config',
+      headers: authHeaders(),
+      payload: {
+        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+        roleOverrides: [],
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 400 VALIDATION_ERROR when role override provider is null', async () => {
+    const response = await makeApp().inject({
+      method: 'PUT',
+      url: '/v1/admin/model-config',
+      headers: authHeaders(),
+      payload: {
+        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+        roleOverrides: { avatar: { provider: null } },
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 400 VALIDATION_ERROR for model strings longer than 200 chars', async () => {
+    const response = await makeApp().inject({
+      method: 'PUT',
+      url: '/v1/admin/model-config',
+      headers: authHeaders(),
+      payload: {
+        globalDefault: { provider: 'openai', model: 'x'.repeat(201) },
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+    expect(body.error?.message).toContain('at most 200 characters')
+  })
+})
+
+describe('PUT /v1/admin/model-config persistence', () => {
   it('stores config and GET returns updated config', async () => {
     const app = makeApp()
 

@@ -24,11 +24,21 @@ export type UpdateModelConfigOutput = {
   modelConfig: ModelConfig
 }
 
+const MAX_MODEL_LENGTH = 200
+
 function assertNonEmptyModel(model: string, field: string): void {
-  if (model.trim().length === 0) {
+  const normalized = model.trim()
+  if (normalized.length === 0) {
     throw new DomainError('INVALID_INPUT', `${field} must be a non-empty string`, {
       field,
     })
+  }
+  if (normalized.length > MAX_MODEL_LENGTH) {
+    throw new DomainError(
+      'INVALID_INPUT',
+      `${field} must be at most ${String(MAX_MODEL_LENGTH)} characters`,
+      { field, maxLength: MAX_MODEL_LENGTH },
+    )
   }
 }
 

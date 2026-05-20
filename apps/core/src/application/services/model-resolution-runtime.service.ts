@@ -6,8 +6,29 @@ import {
   type AvatarLlmOverride,
   type ModelConfig,
   type ModelRole,
+  type ProviderName,
 } from '../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
+import { LlmError } from '../../infrastructure/llm/llm.error.js'
+
+function resolveAdapterOrThrow(
+  llmAdapterRegistry: LlmAdapterRegistry,
+  provider: ProviderName,
+  role: ModelRole,
+): ILlmAdapter {
+  try {
+    return llmAdapterRegistry.get(provider)
+  } catch (error) {
+    if (error instanceof LlmError && error.statusCode === 503) {
+      throw new LlmError(
+        provider,
+        `Provider '${provider}' is configured for role '${role}' but no API key is available.`,
+        503,
+      )
+    }
+    throw error
+  }
+}
 
 export async function resolveRoleLlmCall(args: {
   role: ModelRole
@@ -27,7 +48,7 @@ export async function resolveRoleLlmCall(args: {
   const normalizedModel = resolved.model.trim().length > 0 ? resolved.model.trim() : undefined
 
   return {
-    adapter: args.llmAdapterRegistry.get(resolved.provider),
+    adapter: resolveAdapterOrThrow(args.llmAdapterRegistry, resolved.provider, args.role),
     provider: resolved.provider,
     ...(normalizedModel !== undefined ? { model: normalizedModel } : {}),
     effectiveModel: normalizedModel ?? 'adapter_default',

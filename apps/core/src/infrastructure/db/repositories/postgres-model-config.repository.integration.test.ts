@@ -47,4 +47,20 @@ describe.skipIf(!DB_AVAILABLE)('PostgresModelConfigRepository', () => {
     >`SELECT COUNT(*)::TEXT AS count FROM model_config`
     expect(Number(rows[0]?.count ?? '0')).toBe(1)
   })
+
+  it('persists config across repository re-instantiation', async () => {
+    await repository.upsert({
+      globalDefault: { provider: 'mistral', model: 'mistral-large-latest' },
+      roleOverrides: { memory: { model: 'mistral-medium-latest' } },
+      updatedAt: '2026-05-20T00:00:00.000Z',
+    })
+
+    const restartedRepository = new PostgresModelConfigRepository(sql)
+    const loaded = await restartedRepository.get()
+
+    expect(loaded).not.toBeNull()
+    expect(loaded?.globalDefault.provider).toBe('mistral')
+    expect(loaded?.globalDefault.model).toBe('mistral-large-latest')
+    expect(loaded?.roleOverrides.memory?.model).toBe('mistral-medium-latest')
+  })
 })

@@ -288,77 +288,33 @@ Completed on: 2026-04-29
 
 ---
 
-## EPIC 4.1c — Multi-Model Runtime Config
-
-Status: 🚧 In Progress
-
-### Prompt 01 — Model Config Domain & Resolution Service
-
-Status: ✅ Complete
-Completed on: 2026-05-18
-
-### Includes
-
-- canonical domain model-config types (`ModelRole`, `ProviderName`, `ModelConfig`, overrides)
-- canonical `DEFAULT_MODEL_CONFIG` domain fallback constant
-- pure `ModelResolutionService.resolve()` role-based precedence resolution logic
-- avatar-level `llmOverride` representation as optional provider/model override input
-- deterministic unit coverage for global default, role override, avatar override, non-avatar ignore, and `null` provider branches
-
-### Prompt 02 — Persistence Layer & Admin API
-
-Status: ✅ Complete
-Completed on: 2026-05-18
-
-### Includes
-
-- single-row `model_config` persistence table (`id = 1` constraint) in canonical Postgres init schema
-- `IModelConfigRepository` application port and Postgres adapter (`get` + `upsert`)
-- shared `ModelConfigResponse` DTO exported from `@gami/shared`
-- admin endpoints `GET /v1/admin/model-config` and `PUT /v1/admin/model-config`
-- strict request validation for provider names, model non-empty strings, and unknown-field rejection
-- stack-e2e route coverage for auth, validation, default fallback, write, and read-after-write behavior
-
-### Prompt 03 — Per-Avatar Model Override
-
-Status: ✅ Complete
-Completed on: 2026-05-19
-
-### Includes
-
-- optional `llmOverride` surfaced in shared `AvatarSummary` and avatar request DTOs
-- avatar domain/runtime type now carries optional per-avatar override metadata
-- avatar create/update API paths accept, validate, persist, and clear `llmOverride`
-- `config.llmOverride` persistence via avatar repository JSONB mapping (no schema migration)
-- stack-e2e and route test coverage for set, invalid-provider, invalid-model, clear, and readback
-
-### Prompt 04 — Runtime Wiring & Observability
+## EPIC 4.1c — Multi-Model Runtime Configuration
 
 Status: ✅ Complete
 Completed on: 2026-05-20
 
 ### Includes
 
-- `LlmAdapterRegistry` infrastructure wiring with one observed adapter per configured provider
-- runtime model resolution integrated into Avatar (`SendMessageUseCase`), Game Master (`RunGameMasterUseCase`), and memory compaction (`MemoryMaintenanceService`)
-- request-level resolved provider/model selection on each call using persisted config with per-request DB read and no cross-request cache
-- effective trace metadata (`effectiveProvider`, `effectiveModel`) added to all resolved LLM calls
-- env-compatible null-row fallback via runtime default (`LLM_PROVIDER` + empty model) to preserve existing deployments
-- targeted unit coverage for role-specific resolution, avatar override behavior, and null-config fallback paths
+- `ModelConfig` domain type, `ModelRole`, `ProviderName` canonical types
+- `ModelResolutionService` — three-level deterministic resolution
+- `model_config` single-row persistence table
+- `GET /v1/admin/model-config` and `PUT /v1/admin/model-config` admin endpoints
+- Per-avatar `llmOverride` in `avatar.config` JSONB
+- `AvatarSummary.llmOverride` in shared DTO
+- `LlmAdapterRegistry` — per-provider adapter map
+- Role-based LLM adapter selection in `SendMessageUseCase`, `RunGameMasterUseCase`, memory compaction use cases
+- `effectiveProvider` + `effectiveModel` in observability trace metadata
+- `effectiveModels` in admin session inspect response
+- Console model config editor (global default + role overrides)
+- Console avatar form `llmOverride` fields
+- Runtime inspector `effectiveModels` display
 
-### Prompt 05 — Console Editing & Inspector Integration
+### Key Decisions
 
-Status: ✅ Complete
-Completed on: 2026-05-20
-
-### Includes
-
-- console model configuration panel for global default and per-role overrides with read/save flow
-- avatar create/edit forms now expose optional `llmOverride` fields with clear-on-empty behavior
-- runtime inspector UI now displays read-only per-role effective model snapshot
-- admin session inspect response extended with computed `effectiveModels` from model resolution service
-- shared runtime inspector contract updated additively for `effectiveModels`
-- inspect route tests and stack-e2e assertions updated for `effectiveModels` response shape
+- Avatar overrides stored in `avatar.config.llmOverride` JSONB — no new DB column
+- `model_config` uses single-row constraint (CHECK id = 1)
+- Resolution falls back to env `LLM_PROVIDER` when no DB row exists
+- No automatic model routing — configuration-driven only
 
 ---
 

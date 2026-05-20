@@ -442,11 +442,6 @@ Table: `model_config`
 - Enforces one row for the active runtime model configuration
 - `config` stores the canonical `ModelConfig` payload (global default + role overrides)
 - Operators update via admin API without redeploy
-- payload (JSONB)
-- severity
-- request_id
-- correlation_id
-- created_at
 
 ## Notes
 

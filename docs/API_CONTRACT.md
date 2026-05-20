@@ -430,6 +430,12 @@ type CreateAvatarRequest = {
 }
 ```
 
+Validation:
+
+- if `llmOverride.provider` is present, it must be one of `openai | anthropic | mistral | xai | null`
+- if `llmOverride.model` is present, it must be a non-empty string after trimming
+- sending `llmOverride: null` clears the stored override
+
 ---
 
 ## List Scenario Avatars
@@ -645,6 +651,7 @@ Validation:
 
 - provider fields must be one of `openai | anthropic | mistral | xai | null`
 - model fields must be non-empty strings when provided
+- `globalDefault.model` must be non-empty and at most 200 chars after trimming
 - unknown fields are rejected
 
 Response:
