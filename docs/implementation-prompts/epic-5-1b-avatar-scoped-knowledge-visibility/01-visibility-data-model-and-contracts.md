@@ -1,25 +1,34 @@
 # Title
 
-Add Visibility Metadata To Knowledge Model And Contracts
+Add Avatar Visibility Metadata To Knowledge Model And Contracts
 
 # Context
 
-EPIC 5.1b requires avatar-scoped knowledge visibility while preserving existing knowledge ingestion/retrieval behavior and backward compatibility. This requires explicit visibility metadata in canonical persistence and contract layers.
+EPIC 5.1b requires avatar-scoped knowledge visibility while preserving existing ingestion/retrieval behavior and backward compatibility.
+
+The system already separates knowledge into:
+
+- `memory`
+- `world`
+- `media`
+
+This slice introduces lightweight visibility metadata so knowledge can be restricted to specific avatars without introducing complex ACL or narrative entity systems.
 
 # Scope
 
 Implement now:
 
-- define visibility model for knowledge sources/chunks with backward-compatible defaults
-- add data model changes and migrations needed to persist visibility metadata
+- define lightweight avatar visibility metadata for knowledge sources/chunks
+- add persistence changes and migrations required to store visibility metadata
 - extend domain contracts and repositories to read/write visibility metadata
-- extend API/shared contracts for create/update/read flows where visibility is exposed
+- extend shared/API contracts for create/update/read flows where visibility is exposed
 
 Out of scope:
 
 - retrieval filtering logic
 - Context Engine behavior changes
 - console UI implementation
+- chunk-level visibility override strategies beyond simple inheritance
 
 # Relevant Docs
 
@@ -34,27 +43,36 @@ Out of scope:
 
 # Implementation Guidance
 
-- keep visibility model lightweight and deterministic (for example: public/shared/private semantics represented through explicit metadata)
-- do not build a generic ACL engine; store only fields required for EPIC 5.1b behavior
-- ensure existing rows and old payloads remain valid through default visibility behavior
-- update repository query contracts to carry visibility metadata end to end
-- if endpoint schemas are changed, update shared DTOs first, then route validation/schema mapping
-- include migration tests or repository integration tests validating defaults on legacy records
+- keep visibility model lightweight and deterministic
+- canonical MVP model:
+  - `visibleToAvatarIds?: string[]`
+
+- interpretation:
+  - undefined or empty → visible to all avatars
+  - populated array → visible only to listed avatars
+
+- Game Master visibility rules are handled in later slices
+- avoid generic ACL systems, ownership hierarchies, or graph relationships
+- visibility should be defined canonically at source level
+- chunk-level overrides should remain optional and discouraged in MVP
+- ensure existing rows and payloads remain valid through deterministic default visibility behavior
+- update repository query contracts end-to-end
+- if endpoint schemas change, update shared DTOs first
 
 # Constraints
 
-- preserve backward compatibility for existing knowledge endpoints and data
+- preserve backward compatibility
 - no cross-layer shortcuts
 - KISS, YAGNI, DRY
 - TypeScript strict mode only
-- explicit contracts and deterministic defaults
+- deterministic defaults only
 
 # Deliverables
 
-- migration(s) adding visibility metadata to canonical persistence model
-- updated domain/repository contracts for visibility fields
-- shared/API contract updates for visibility representation
-- tests covering default visibility compatibility and serialization
+- migration(s) adding avatar visibility metadata
+- updated domain/repository contracts
+- shared/API contract updates
+- tests covering default and explicit visibility behavior
 
 # Mandatory Pre-Implementation Check
 
@@ -71,7 +89,7 @@ Before coding:
 After implementation, review and update:
 
 - `docs/PROJECT_STATUS.md`
-- any outdated impacted docs
+- impacted documentation
 
 Examples:
 
@@ -80,12 +98,12 @@ Examples:
 - `docs/ARCHITECTURE.md`
 - `docs/TEST_STRATEGY.md`
 
-If no doc changes are needed, explicitly verify that docs are still accurate.
+If no doc changes are needed, explicitly verify docs remain accurate.
 
 # Acceptance Criteria
 
-- [ ] Canonical data model persists visibility metadata with deterministic defaults.
-- [ ] Existing knowledge records remain valid without manual backfill operations.
-- [ ] API/shared contracts and validation are aligned and drift-free.
-- [ ] Repository and contract tests cover default and explicit visibility cases.
-- [ ] `docs/PROJECT_STATUS.md` and impacted model/contract docs are updated.
+- [ ] Knowledge visibility metadata persists with deterministic defaults.
+- [ ] Existing knowledge records remain valid without backfill.
+- [ ] API/shared contracts remain aligned and drift-free.
+- [ ] Repository and contract tests cover default and explicit visibility behavior.
+- [ ] `docs/PROJECT_STATUS.md` and impacted docs are updated.

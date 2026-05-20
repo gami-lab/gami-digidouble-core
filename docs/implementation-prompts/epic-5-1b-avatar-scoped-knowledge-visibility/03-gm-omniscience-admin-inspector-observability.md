@@ -4,22 +4,27 @@ Preserve GM Omniscience And Add Visibility Diagnostics
 
 # Context
 
-EPIC 5.1b requires asymmetric behavior: avatars are filtered, Game Master is unrestricted. Operators must be able to inspect visibility outcomes and reason about inclusion/exclusion safely.
+EPIC 5.1b requires asymmetric visibility behavior:
+
+- avatars are filtered
+- Game Master is unrestricted
+
+Operators must be able to inspect visibility decisions safely and deterministically.
 
 # Scope
 
 Implement now:
 
-- ensure GM retrieval/context paths bypass avatar visibility restrictions while still using typed retrieval contracts
-- update admin inspection and retrieval diagnostics payloads to expose visibility metadata and exclusion reasons in bounded form
-- align observability events/metrics so visibility filtering can be audited without exposing sensitive source content
-- ensure API/admin DTOs remain canonical and shared
+- ensure GM retrieval/context paths bypass avatar visibility filtering
+- expose bounded visibility diagnostics in admin/runtime inspection flows
+- align observability metadata with visibility filtering decisions
+- preserve canonical shared DTO ownership
 
 Out of scope:
 
 - console form/edit flows
-- new retrieval ranking strategies
-- non-essential endpoint redesign
+- retrieval ranking redesign
+- endpoint redesign unrelated to visibility diagnostics
 
 # Relevant Docs
 
@@ -33,25 +38,26 @@ Out of scope:
 
 # Implementation Guidance
 
-- keep GM non-blocking execution unchanged
-- treat GM as omniscient by contract: visibility filters apply to avatar-facing context only
-- if admin endpoint response shapes change, update shared DTO ownership first
-- include deterministic integration tests for inspector/admin diagnostics and redaction boundaries
-- if this slice introduces any new endpoint, create a same-slice `*.stack-e2e.test.ts` file following route naming convention and mandatory coverage rules
+- GM visibility is unrestricted by contract
+- avatar visibility filtering applies only to avatar-facing context assembly
+- keep GM async/non-blocking behavior unchanged
+- diagnostics must expose bounded inclusion/exclusion reasoning without leaking sensitive content
+- if API/admin DTOs change, update shared contract ownership first
+- preserve existing API envelope and error conventions
 
 # Constraints
 
-- respect existing API envelope and error code conventions
-- no exposure of raw private knowledge content in diagnostics payloads
-- no cross-layer DTO duplication
+- no raw private knowledge leakage in diagnostics
+- no DTO duplication across layers
 - strict typing only
+- avoid unrelated observability redesign
 
 # Deliverables
 
-- GM retrieval path explicitly unrestricted relative to avatar visibility
-- inspector/admin diagnostics exposing visibility-aware metadata
-- observability updates for visibility filtering/exclusions
-- tests proving GM omniscience + avatar filtering asymmetry
+- unrestricted GM retrieval path
+- visibility-aware runtime/admin diagnostics
+- observability metadata for visibility decisions
+- tests proving avatar filtering + GM omniscience asymmetry
 
 # Mandatory Pre-Implementation Check
 
@@ -68,7 +74,7 @@ Before coding:
 After implementation, review and update:
 
 - `docs/PROJECT_STATUS.md`
-- any outdated impacted docs
+- impacted documentation
 
 Examples:
 
@@ -77,12 +83,12 @@ Examples:
 - `docs/ARCHITECTURE.md`
 - `docs/TEST_STRATEGY.md`
 
-If no doc changes are needed, explicitly verify that docs are still accurate.
+If no doc changes are needed, explicitly verify docs remain accurate.
 
 # Acceptance Criteria
 
-- [ ] GM context retrieval is unrestricted and verified by tests.
+- [ ] GM retrieval remains unrestricted and verified by tests.
 - [ ] Avatar visibility filtering remains enforced.
-- [ ] Inspector/admin diagnostics clearly explain inclusion/exclusion without sensitive leakage.
-- [ ] Any new endpoint includes mandatory `*.stack-e2e.test.ts` coverage.
-- [ ] `docs/PROJECT_STATUS.md` is updated for this slice.
+- [ ] Diagnostics explain inclusion/exclusion decisions safely.
+- [ ] Visibility metadata does not leak sensitive knowledge content.
+- [ ] `docs/PROJECT_STATUS.md` reflects this slice.

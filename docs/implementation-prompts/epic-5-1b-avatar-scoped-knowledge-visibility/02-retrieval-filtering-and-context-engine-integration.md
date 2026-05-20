@@ -4,22 +4,24 @@ Implement Avatar-Scoped Retrieval Filtering In Context Assembly
 
 # Context
 
-EPIC 5.1b requires runtime filtering so avatars only see allowed knowledge while retaining deterministic typed retrieval (`memory`, `world`, `media`). This behavior belongs in retrieval and context assembly, not in API handlers.
+EPIC 5.1b requires runtime filtering so avatars only access allowed knowledge while preserving deterministic typed retrieval (`memory`, `world`, `media`).
+
+Visibility filtering belongs in retrieval and context assembly, not in API handlers or prompt instructions.
 
 # Scope
 
 Implement now:
 
-- apply visibility filtering in typed retrieval flow using active avatar identity
+- apply avatar visibility filtering in typed retrieval flow using active avatar identity
 - propagate visibility-aware retrieval outputs into Context Engine inputs and trace metadata
-- ensure avatar projection excludes knowledge not visible to active avatar
-- ensure avatar switching changes retrieval scope deterministically
+- ensure avatar context assembly excludes non-visible knowledge
+- ensure avatar switching updates retrieval scope deterministically
 
 Out of scope:
 
-- Game Master omniscience logic (handled in next slice)
-- admin inspector endpoint additions beyond fields needed by this slice
+- Game Master omniscience logic
 - console editing UI
+- new retrieval ranking strategies
 
 # Relevant Docs
 
@@ -34,28 +36,31 @@ Out of scope:
 
 # Implementation Guidance
 
-- apply filtering before final context assembly so excluded knowledge never reaches avatar prompt composition
-- keep selection deterministic: same inputs must produce same keep/exclude decisions
-- include explainable trace fields such as `visibilityDecision` or equivalent bounded metadata, without leaking sensitive chunk content
-- preserve existing type-based retrieval precedence and budget behavior
-- add focused unit tests for:
-  - private memory exclusion across avatars
-  - shared visibility inclusion for allowed avatars
-  - public visibility behavior
-  - media visibility filtering symmetry with text retrieval
+- apply filtering before final context assembly
+- excluded knowledge must never reach:
+  - avatar prompt composition
+  - context traces
+  - observability payloads
+  - runtime inspector payloads
+
+- keep selection deterministic
+- preserve existing typed retrieval precedence and token budget behavior
+- keep retrieval filtering independent from ranking logic
+- include bounded explainability metadata without leaking sensitive content
 
 # Constraints
 
 - no direct provider calls from business logic
 - keep async GM behavior unchanged
 - no speculative policy framework
-- strict typing, no `any`
-- avoid modifying unrelated retrieval ranking logic
+- strict typing only
+- avoid unrelated retrieval/ranking changes
 
 # Deliverables
 
-- visibility-aware retrieval filtering in core application/domain flow
-- context trace enrichment for visibility keep/exclude reasoning
+- visibility-aware retrieval filtering
+- Context Engine visibility integration
+- bounded visibility explainability metadata
 - deterministic unit coverage for avatar-scoped retrieval behavior
 
 # Mandatory Pre-Implementation Check
@@ -73,7 +78,7 @@ Before coding:
 After implementation, review and update:
 
 - `docs/PROJECT_STATUS.md`
-- any outdated impacted docs
+- impacted documentation
 
 Examples:
 
@@ -82,12 +87,13 @@ Examples:
 - `docs/MEMORY_SYSTEM_SPEC.md`
 - `docs/TEST_STRATEGY.md`
 
-If no doc changes are needed, explicitly verify that docs are still accurate.
+If no doc changes are needed, explicitly verify docs remain accurate.
 
 # Acceptance Criteria
 
-- [ ] Avatar retrieval excludes non-visible chunks/sources deterministically.
-- [ ] Avatar switching updates visibility scope without cross-avatar leakage.
-- [ ] Context trace exposes bounded explainability for visibility decisions.
-- [ ] Existing retrieval type behavior remains intact except visibility filtering.
+- [ ] Avatar retrieval excludes non-visible knowledge deterministically.
+- [ ] Avatar switching updates visibility scope without leakage.
+- [ ] Non-visible knowledge never reaches avatar-facing context assembly.
+- [ ] Context trace exposes bounded explainability metadata.
+- [ ] Existing retrieval behavior remains intact except visibility filtering.
 - [ ] `docs/PROJECT_STATUS.md` reflects this slice.
