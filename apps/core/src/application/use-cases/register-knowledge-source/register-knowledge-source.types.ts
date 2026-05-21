@@ -1,9 +1,11 @@
 import type {
+  IngestionJob,
   KnowledgeSourceFormat,
-  KnowledgeSourceStatus,
+  KnowledgeSource,
   KnowledgeType,
 } from '../../../domain/knowledge/knowledge.types.js'
 
+// Ownership: internal source/job entities come from domain knowledge contracts.
 export type RegisterKnowledgeSourceInput = {
   scenarioId: string
   name: string
@@ -16,28 +18,7 @@ export type RegisterKnowledgeSourceInput = {
 }
 
 export type RegisterKnowledgeSourceOutput = {
-  source: {
-    sourceId: string
-    scenarioId: string
-    name: string
-    knowledgeType: KnowledgeType
-    format: KnowledgeSourceFormat
-    uriOrPath: string
-    status: KnowledgeSourceStatus
-    createdAt: string
-    updatedAt: string
-    metadata?: Record<string, unknown>
-  }
-  ingestionJob: {
-    ingestionJobId: string
-    sourceId: string
-    status: 'queued' | 'running' | 'completed' | 'failed'
-    attempts: number
-    createdAt: string
-    updatedAt: string
-    startedAt?: string
-    completedAt?: string
-    errorMessage?: string
-  }
+  source: KnowledgeSource
+  ingestionJob: IngestionJob
   ingestionScheduled: boolean
 }

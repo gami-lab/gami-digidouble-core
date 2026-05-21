@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: May 20, 2026
+Last updated: May 21, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -499,6 +499,25 @@ Completed on: 2026-05-11
 - stack-e2e baseline coverage for auth, validation, and not-found paths on knowledge routes
 - Session Admin console workflow for knowledge source registration, ingestion trigger/status inspection, and retrieval diagnostics
 - retrieval debug payload hardening (bounded content) plus retrieval lifecycle observability events
+
+---
+
+## EPIC 5.1b — Avatar-Scoped Knowledge Visibility
+
+Status: 🔄 In progress
+
+### Current slice completed (contract cleanup)
+
+- touched contract inventory completed across avatar/scenario/session-context, knowledge source/chunk, retrieval, and inspector/admin surfaces
+- canonical ownership reaffirmed:
+  - domain-internal contracts in `apps/core/src/domain/*`
+  - API/shared DTO contracts in `packages/shared/src/*`
+- duplicate route/use-case-local request/response fragments reduced before visibility-field work:
+  - `CreateKnowledgeSourceInput` now reuses `CreateKnowledgeSourceRequest` from shared contracts
+  - `GetTypedRetrievalInput` now reuses `QueryKnowledgeRetrievalRequest` and output now reuses `TypedKnowledgeRetrievalDto`
+  - `RegisterKnowledgeSourceOutput` now reuses canonical domain `KnowledgeSource` and `IngestionJob` entities instead of inline copies
+- compact ownership notes added in touched use-case contract files to make boundary ownership explicit
+- strict typecheck validated (`pnpm -w typecheck`) with no functional behavior changes introduced
 
 ---
 

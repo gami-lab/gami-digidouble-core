@@ -1,14 +1,8 @@
-import type { TypedRetrievalResult } from '../../../domain/knowledge/knowledge.types.js'
+import type { QueryKnowledgeRetrievalRequest, TypedKnowledgeRetrievalDto } from '@gami/shared'
 
-export type GetTypedRetrievalInput = {
-  scenarioId: string
-  query: string
-  sessionId?: string
-  userId?: string
-  conversationId?: string
-  limitPerType?: number
-}
+// Ownership: admin retrieval HTTP contracts come from @gami/shared.
+export type GetTypedRetrievalInput = QueryKnowledgeRetrievalRequest
 
 export type GetTypedRetrievalOutput = {
-  retrieval: TypedRetrievalResult
+  retrieval: TypedKnowledgeRetrievalDto
 }

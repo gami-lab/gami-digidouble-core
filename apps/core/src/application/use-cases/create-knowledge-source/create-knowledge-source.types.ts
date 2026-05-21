@@ -1,13 +1,7 @@
-import type { KnowledgeSourceDto } from '@gami/shared'
+import type { CreateKnowledgeSourceRequest, KnowledgeSourceDto } from '@gami/shared'
 
-export type CreateKnowledgeSourceInput = {
-  scenarioId: string
-  name: string
-  knowledgeType: 'memory' | 'world' | 'media'
-  format: 'pdf' | 'text' | 'markdown' | 'url' | 'media'
-  uriOrPath: string
-  metadata?: Record<string, unknown>
-}
+// Ownership: API-facing request/response fragments come from @gami/shared.
+export type CreateKnowledgeSourceInput = CreateKnowledgeSourceRequest
 
 export type CreateKnowledgeSourceOutput = {
   source: KnowledgeSourceDto
