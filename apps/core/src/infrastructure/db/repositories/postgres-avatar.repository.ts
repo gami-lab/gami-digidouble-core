@@ -19,13 +19,29 @@ interface AvatarRow {
   tone: string | null
   description: string | null
   adjustments: string[] | null
-  config: Record<string, unknown>
+  config: unknown
   created_at: Date
   updated_at: Date
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
+}
+
+function normalizeAvatarConfig(config: unknown): Record<string, unknown> {
+  const record = asRecord(config)
+  if (record !== null) return record
+
+  if (typeof config === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(config)
+      return asRecord(parsed) ?? {}
+    } catch {
+      return {}
+    }
+  }
+
+  return {}
 }
 
 function readAvatarLlmOverride(config: Record<string, unknown>): AvatarLlmOverride | undefined {
@@ -69,7 +85,8 @@ function applyLlmOverride(
 }
 
 function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
-  const llmOverride = readAvatarLlmOverride(row.config)
+  const config = normalizeAvatarConfig(row.config)
+  const llmOverride = readAvatarLlmOverride(config)
 
   return {
     avatarId: `avatar_${row.id}`,
@@ -81,7 +98,7 @@ function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
     ...(row.description !== null ? { description: row.description } : {}),
     ...(row.adjustments !== null ? { adjustments: row.adjustments } : {}),
     ...(llmOverride !== undefined ? { llmOverride } : {}),
-    config: row.config,
+    config,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }
@@ -89,10 +106,10 @@ function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
 
 function buildUpdateSetClauses(updates: UpdateAvatarParams): {
   setClauses: string[]
-  values: string[]
+  values: unknown[]
 } {
   const setClauses: string[] = ['updated_at = NOW()']
-  const values: string[] = []
+  const values: unknown[] = []
 
   const fields: Array<[string, string | undefined]> = [
     ['name', updates.name],
@@ -115,7 +132,7 @@ function buildUpdateSetClauses(updates: UpdateAvatarParams): {
   }
   if (updates.config !== undefined) {
     values.push(JSON.stringify(updates.config))
-    setClauses.push(`config = $${String(values.length)}`)
+    setClauses.push(`config = $${String(values.length)}::jsonb`)
   }
 
   return { setClauses, values }
@@ -205,7 +222,10 @@ export class PostgresAvatarRepository implements IAvatarRepository {
         throw new DomainError('NOT_FOUND', 'Avatar not found')
       }
 
-      nextConfig = applyLlmOverride(nextConfig ?? row.config, updates.llmOverride)
+      nextConfig = applyLlmOverride(
+        nextConfig ?? normalizeAvatarConfig(row.config),
+        updates.llmOverride,
+      )
     }
 
     const { setClauses, values } = buildUpdateSetClauses({
@@ -225,7 +245,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
         persona_prompt, tone, description, adjustments, config, created_at, updated_at
     `
 
-    const rows = await this.sql.unsafe<AvatarRow[]>(query, values)
+    const rows = await this.sql.unsafe<AvatarRow[]>(query, values as string[])
     const row = rows[0]
     if (row === undefined) {
       throw new DomainError('NOT_FOUND', 'Avatar not found')
