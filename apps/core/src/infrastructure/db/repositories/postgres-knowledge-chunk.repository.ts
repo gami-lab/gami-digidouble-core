@@ -13,6 +13,7 @@ type KnowledgeChunkDbRow = {
   chunk_index: number
   embedding: unknown
   metadata: unknown
+  visible_to_avatar_ids: string[] | null
   created_at: Date
 }
 
@@ -22,7 +23,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function normalizeVisibleToAvatarIds(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const normalized = value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((avatarId) => avatarId.trim())
+    .filter((avatarId) => avatarId.length > 0)
+  return normalized.length > 0 ? normalized : undefined
+}
+
 function rowToKnowledgeChunk(row: KnowledgeChunkRow): KnowledgeChunk {
+  const visibleToAvatarIds = normalizeVisibleToAvatarIds(row.visible_to_avatar_ids)
   return {
     chunkId: `knowledge_chunk_${row.id}`,
     sourceId: `knowledge_source_${row.source_id}`,
@@ -30,6 +41,7 @@ function rowToKnowledgeChunk(row: KnowledgeChunkRow): KnowledgeChunk {
     chunkIndex: row.chunk_index,
     ...(row.embedding !== null ? { embedding: [...row.embedding] } : {}),
     ...(isRecord(row.metadata) ? { metadata: row.metadata } : {}),
+    ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
     createdAt: row.created_at.toISOString(),
   }
 }
@@ -39,6 +51,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
 
   async create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk> {
     const sourceUuid = stripPrefix('knowledge_source_', params.sourceId)
+    const visibleToAvatarIds = normalizeVisibleToAvatarIds(params.visibleToAvatarIds)
 
     const embeddingExpression =
       params.embedding === undefined
@@ -46,15 +59,16 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
         : this.sql`${JSON.stringify(params.embedding)}::vector`
 
     const [row] = await this.sql<[KnowledgeChunkDbRow?]>`
-      INSERT INTO knowledge_chunks (source_id, content, chunk_index, embedding, metadata)
+      INSERT INTO knowledge_chunks (source_id, content, chunk_index, embedding, metadata, visible_to_avatar_ids)
       VALUES (
         ${sourceUuid},
         ${params.content},
         ${params.chunkIndex},
         ${embeddingExpression},
-        ${this.sql.json((params.metadata ?? {}) as JSONValue)}
+        ${this.sql.json((params.metadata ?? {}) as JSONValue)},
+        ${visibleToAvatarIds ?? null}
       )
-      RETURNING id, source_id, content, chunk_index, embedding::text, metadata, created_at
+      RETURNING id, source_id, content, chunk_index, embedding::text, metadata, visible_to_avatar_ids, created_at
     `
 
     if (row === undefined) {
@@ -69,7 +83,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
     if (sourceUuid === null) return []
 
     const rows = await this.sql<KnowledgeChunkDbRow[]>`
-      SELECT id, source_id, content, chunk_index, embedding::text, metadata, created_at
+      SELECT id, source_id, content, chunk_index, embedding::text, metadata, visible_to_avatar_ids, created_at
       FROM knowledge_chunks
       WHERE source_id = ${sourceUuid}
       ORDER BY chunk_index ASC
@@ -85,7 +99,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
     if (uuids.length === 0) return []
 
     const rows = await this.sql<KnowledgeChunkDbRow[]>`
-      SELECT id, source_id, content, chunk_index, embedding::text, metadata, created_at
+      SELECT id, source_id, content, chunk_index, embedding::text, metadata, visible_to_avatar_ids, created_at
       FROM knowledge_chunks
       WHERE source_id IN ${this.sql(uuids)}
       ORDER BY source_id ASC, chunk_index ASC

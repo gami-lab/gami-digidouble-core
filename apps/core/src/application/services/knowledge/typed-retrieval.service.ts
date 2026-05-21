@@ -127,6 +127,9 @@ function toRetrievedItem(
     content: chunk.content,
     score: Number(score.toFixed(4)),
     reason,
+    ...(chunk.visibleToAvatarIds !== undefined
+      ? { visibleToAvatarIds: chunk.visibleToAvatarIds }
+      : {}),
     ...(chunk.metadata !== undefined ? { metadata: chunk.metadata } : {}),
   }
 }

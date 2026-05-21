@@ -84,6 +84,7 @@ describe('KnowledgeIngestionService — completion flow', () => {
       format: 'text',
       uriOrPath: '/tmp/rules.txt',
       metadata: { inlineText: 'A\n\nB\n\nC' },
+      visibleToAvatarIds: ['avatar_memory_1'],
     })
     const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
 
@@ -116,6 +117,7 @@ describe('KnowledgeIngestionService — completion flow', () => {
     expect(updatedSource?.status).toBe('ready')
     expect(chunks).toHaveLength(1)
     expect(chunks[0]?.embedding?.length).toBe(16)
+    expect(chunks[0]?.visibleToAvatarIds).toEqual(['avatar_memory_1'])
   })
 })
 

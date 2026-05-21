@@ -42,6 +42,9 @@ export class ListKnowledgeSourcesUseCase {
         format: source.format,
         uriOrPath: source.uriOrPath,
         status: source.status,
+        ...(source.visibleToAvatarIds !== undefined
+          ? { visibleToAvatarIds: source.visibleToAvatarIds }
+          : {}),
         createdAt: source.createdAt,
         ...(source.metadata !== undefined ? { metadata: source.metadata } : {}),
       })),

@@ -13,6 +13,7 @@ export type RegisterKnowledgeSourceInput = {
   format: KnowledgeSourceFormat
   uriOrPath: string
   metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
   triggerIngestion?: boolean
   correlationId?: string
 }

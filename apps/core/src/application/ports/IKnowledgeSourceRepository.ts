@@ -12,6 +12,7 @@ export type CreateKnowledgeSourceParams = {
   format: KnowledgeSourceFormat
   uriOrPath: string
   metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
 }
 
 export type ListKnowledgeSourcesFilters = {

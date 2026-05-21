@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS knowledge_sources (
   uri_or_path     TEXT        NOT NULL,
   status          TEXT        NOT NULL DEFAULT 'pending',
   metadata        JSONB       NOT NULL DEFAULT '{}',
+  visible_to_avatar_ids TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (knowledge_type IN ('memory', 'world', 'media')),
@@ -70,9 +71,14 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
   chunk_index     INT         NOT NULL,
   embedding       VECTOR(16),
   metadata        JSONB       NOT NULL DEFAULT '{}',
+  visible_to_avatar_ids TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (source_id, chunk_index)
 );
+
+-- Backward-compatible schema alignment for existing local volumes.
+ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[];
+ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[];
 
 -- Ensure the embedding column keeps a fixed dimension required by ivfflat.
 DO $$

@@ -486,6 +486,11 @@ DELETE /v1/avatars/{avatarId}
 POST /v1/knowledge-sources
 ```
 
+Request contract note:
+
+- optional `visibleToAvatarIds?: string[]`
+- omitted or empty array means visible to all avatars (default/backward-compatible)
+
 ---
 
 ## List Knowledge Sources
@@ -531,6 +536,7 @@ Notes:
 - admin/debug endpoint only (API-key protected in Phase A)
 - response remains typed (`memory`/`world`/`media` + trace metadata)
 - retrieved `content` is bounded/truncated for safe debug inspection payloads
+- retrieval items may expose `visibleToAvatarIds` metadata for visibility observability
 
 ---
 

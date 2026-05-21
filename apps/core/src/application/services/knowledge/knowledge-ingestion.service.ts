@@ -126,6 +126,9 @@ export class KnowledgeIngestionService {
           content: chunk.content,
           chunkIndex: chunk.chunkIndex,
           ...(embeddings[index] !== undefined ? { embedding: embeddings[index] } : {}),
+          ...(source.visibleToAvatarIds !== undefined
+            ? { visibleToAvatarIds: source.visibleToAvatarIds }
+            : {}),
           metadata: {
             ...chunk.metadata,
             ingestionJobId: jobId,

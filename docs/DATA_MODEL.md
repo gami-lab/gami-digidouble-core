@@ -379,6 +379,7 @@ Table: `knowledge_sources`
 - uri_or_path
 - status (`pending | ready | error`)
 - metadata (JSONB)
+- visible_to_avatar_ids (TEXT[] nullable)
 - created_at
 
 ## Notes
@@ -386,6 +387,11 @@ Table: `knowledge_sources`
 Knowledge sources belong to scenarios.
 
 Multi-layer retrieval uses metadata rather than additional tables.
+
+Visibility rule (EPIC 5.1b MVP):
+
+- `visible_to_avatar_ids` null or empty => visible to all avatars
+- populated list => visible only to those avatar IDs
 
 ---
 
@@ -403,11 +409,14 @@ Table: `knowledge_chunks`
 - chunk_index
 - embedding (pgvector)
 - metadata (JSONB)
+- visible_to_avatar_ids (TEXT[] nullable)
 - created_at
 
 ## Notes
 
 Stored in PostgreSQL + pgvector.
+
+Chunk-level visibility remains optional and should normally inherit from source-level visibility.
 
 ---
 

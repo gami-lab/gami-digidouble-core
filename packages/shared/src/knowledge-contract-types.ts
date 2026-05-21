@@ -23,6 +23,7 @@ export type KnowledgeSourceDto = {
   uriOrPath: string
   status: KnowledgeSourceStatus
   metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
   createdAt: string
 }
 
@@ -32,6 +33,7 @@ export type KnowledgeChunkDto = {
   content: string
   chunkIndex: number
   metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
   createdAt: string
 }
 
@@ -54,6 +56,7 @@ export type RetrievedKnowledgeItemDto = {
   score?: number
   reason?: string
   metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
 }
 
 export type SharedContextScenarioSnapshot = {
@@ -87,6 +90,7 @@ export type CreateKnowledgeSourceRequest = {
   format: KnowledgeSourceFormat
   uriOrPath: string
   metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
 }
 
 export type CreateKnowledgeSourceResponse = {

@@ -27,6 +27,9 @@ export class CreateKnowledgeSourceUseCase {
       format: input.format,
       uriOrPath,
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+      ...(input.visibleToAvatarIds !== undefined
+        ? { visibleToAvatarIds: input.visibleToAvatarIds }
+        : {}),
     })
 
     return {
@@ -38,6 +41,9 @@ export class CreateKnowledgeSourceUseCase {
         format: source.format,
         uriOrPath: source.uriOrPath,
         status: source.status,
+        ...(source.visibleToAvatarIds !== undefined
+          ? { visibleToAvatarIds: source.visibleToAvatarIds }
+          : {}),
         createdAt: source.createdAt,
         ...(source.metadata !== undefined ? { metadata: source.metadata } : {}),
       },

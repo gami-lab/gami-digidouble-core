@@ -64,6 +64,28 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     expect(chunks).toHaveLength(2)
     expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual([0, 2])
     expect(chunks[0]?.embedding).toEqual(vector16(0.1, 0))
+    expect(chunks[0]?.visibleToAvatarIds).toBeUndefined()
+  })
+
+  it('persists explicit visibleToAvatarIds and keeps empty list as default visibility', async () => {
+    await seedSource()
+
+    await chunkRepo.create({
+      sourceId,
+      content: 'Private chunk',
+      chunkIndex: 0,
+      visibleToAvatarIds: ['avatar_1', 'avatar_2'],
+    })
+    await chunkRepo.create({
+      sourceId,
+      content: 'Public chunk',
+      chunkIndex: 1,
+      visibleToAvatarIds: [],
+    })
+
+    const chunks = await chunkRepo.listBySourceId(sourceId)
+    expect(chunks[0]?.visibleToAvatarIds).toEqual(['avatar_1', 'avatar_2'])
+    expect(chunks[1]?.visibleToAvatarIds).toBeUndefined()
   })
 
   it('deleteBySourceId returns deleted row count', async () => {

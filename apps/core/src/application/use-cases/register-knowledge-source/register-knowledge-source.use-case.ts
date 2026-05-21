@@ -47,6 +47,9 @@ export class RegisterKnowledgeSourceUseCase {
       format: input.format,
       uriOrPath,
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+      ...(input.visibleToAvatarIds !== undefined
+        ? { visibleToAvatarIds: input.visibleToAvatarIds }
+        : {}),
     })
 
     const job = await this.ingestionJobRepository.create({

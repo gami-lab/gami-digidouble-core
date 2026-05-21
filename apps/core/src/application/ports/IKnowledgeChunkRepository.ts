@@ -6,6 +6,7 @@ export type CreateKnowledgeChunkParams = {
   chunkIndex: number
   embedding?: number[]
   metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
 }
 
 export interface IKnowledgeChunkRepository {

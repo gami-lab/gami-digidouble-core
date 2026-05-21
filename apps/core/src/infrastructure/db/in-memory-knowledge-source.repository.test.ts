@@ -33,6 +33,31 @@ describe('InMemoryKnowledgeSourceRepository', () => {
     expect(created.status).toBe('pending')
     expect(created.knowledgeType).toBe('world')
     expect(created.format).toBe('text')
+    expect(created.visibleToAvatarIds).toBeUndefined()
+  })
+
+  it('stores explicit visibleToAvatarIds and normalizes empty lists to default visibility', async () => {
+    const repository = new InMemoryKnowledgeSourceRepository()
+
+    const visible = await repository.create({
+      scenarioId: 'scenario_1',
+      name: 'Private lore',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/private.txt',
+      visibleToAvatarIds: ['avatar_a', ' avatar_b '],
+    })
+    const publicByEmpty = await repository.create({
+      scenarioId: 'scenario_1',
+      name: 'Public lore',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/public.txt',
+      visibleToAvatarIds: [],
+    })
+
+    expect(visible.visibleToAvatarIds).toEqual(['avatar_a', 'avatar_b'])
+    expect(publicByEmpty.visibleToAvatarIds).toBeUndefined()
   })
 
   it('listByScenario supports knowledgeType and status filtering', async () => {

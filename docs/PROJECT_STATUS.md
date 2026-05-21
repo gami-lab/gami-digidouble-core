@@ -519,6 +519,20 @@ Status: 🔄 In progress
 - compact ownership notes added in touched use-case contract files to make boundary ownership explicit
 - strict typecheck validated (`pnpm -w typecheck`) with no functional behavior changes introduced
 
+### Current slice completed (visibility metadata model + persistence)
+
+- lightweight avatar visibility metadata added to knowledge source/chunk contracts:
+  - canonical field: `visibleToAvatarIds?: string[]`
+  - deterministic default/backward-compatible interpretation: undefined or empty => visible to all avatars
+- persistence schema updated for existing and new environments:
+  - `knowledge_sources.visible_to_avatar_ids TEXT[]` (nullable)
+  - `knowledge_chunks.visible_to_avatar_ids TEXT[]` (nullable)
+  - `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` alignment for existing local volumes
+- domain and repository contracts extended end-to-end to read/write visibility metadata without retrieval filtering behavior changes
+- shared/API contracts extended for create/read flows and retrieval debug payloads where visibility is exposed
+- ingestion now propagates source-level visibility metadata to created chunks by default inheritance
+- repository and service coverage added for default visibility and explicit visibility round-trip behavior (in-memory + postgres)
+
 ---
 
 # 3. Current Public API Surface

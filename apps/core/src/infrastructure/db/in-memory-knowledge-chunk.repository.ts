@@ -4,6 +4,16 @@ import type {
 } from '../../application/ports/IKnowledgeChunkRepository.js'
 import type { KnowledgeChunk } from '../../domain/knowledge/knowledge.types.js'
 
+function normalizeVisibleToAvatarIds(
+  visibleToAvatarIds: string[] | undefined,
+): string[] | undefined {
+  if (visibleToAvatarIds === undefined) return undefined
+  const normalized = visibleToAvatarIds
+    .map((avatarId) => avatarId.trim())
+    .filter((avatarId) => avatarId.length > 0)
+  return normalized.length > 0 ? normalized : undefined
+}
+
 export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkRepository {
   private readonly chunks: Map<string, KnowledgeChunk>
 
@@ -12,6 +22,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
   }
 
   create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk> {
+    const visibleToAvatarIds = normalizeVisibleToAvatarIds(params.visibleToAvatarIds)
     const chunk: KnowledgeChunk = {
       chunkId: `knowledge_chunk_${crypto.randomUUID()}`,
       sourceId: params.sourceId,
@@ -19,6 +30,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
       chunkIndex: params.chunkIndex,
       ...(params.embedding !== undefined ? { embedding: [...params.embedding] } : {}),
       ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
+      ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
       createdAt: new Date().toISOString(),
     }
 

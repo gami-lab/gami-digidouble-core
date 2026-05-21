@@ -120,13 +120,15 @@ describe('Stack E2E — knowledge routes — happy path', () => {
         format: 'text',
         uriOrPath: '/tmp/world-lore.txt',
         metadata: { inlineText: 'Kingdom history and timeline.' },
+        visibleToAvatarIds: ['avatar_world_1'],
       }),
     })
     expect(createSourceRes.status).toBe(201)
     const createSourceBody = (await createSourceRes.json()) as {
-      data: { source: { sourceId: string } }
+      data: { source: { sourceId: string; visibleToAvatarIds?: string[] } }
     }
     const sourceId = createSourceBody.data.source.sourceId
+    expect(createSourceBody.data.source.visibleToAvatarIds).toEqual(['avatar_world_1'])
 
     const triggerRes = await fetch(`${APP_URL}/v1/knowledge-sources/${sourceId}/ingest`, {
       method: 'POST',

@@ -36,10 +36,12 @@ describe('RegisterKnowledgeSourceUseCase', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '  /tmp/source.txt  ',
+      visibleToAvatarIds: ['avatar_a', 'avatar_b'],
       triggerIngestion: true,
     })
 
     expect(output.source.name).toBe('Source name')
+    expect(output.source.visibleToAvatarIds).toEqual(['avatar_a', 'avatar_b'])
     expect(output.ingestionJob.status).toBe('queued')
     expect(output.ingestionScheduled).toBe(true)
     expect(executeSpy).toHaveBeenCalledTimes(1)

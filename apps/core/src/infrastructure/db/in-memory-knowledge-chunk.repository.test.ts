@@ -31,6 +31,28 @@ describe('InMemoryKnowledgeChunkRepository', () => {
 
     expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual([0, 1, 2])
     expect(chunks[0]?.embedding).toEqual([0.1, 0.2])
+    expect(chunks[0]?.visibleToAvatarIds).toBeUndefined()
+  })
+
+  it('stores explicit visibleToAvatarIds and normalizes empty lists to default visibility', async () => {
+    const repository = new InMemoryKnowledgeChunkRepository()
+    const sourceId = 'knowledge_source_1'
+
+    const visible = await repository.create({
+      sourceId,
+      content: 'Visible to selected avatars',
+      chunkIndex: 0,
+      visibleToAvatarIds: ['avatar_1', ' avatar_2 '],
+    })
+    const publicByEmpty = await repository.create({
+      sourceId,
+      content: 'Visible to all',
+      chunkIndex: 1,
+      visibleToAvatarIds: [],
+    })
+
+    expect(visible.visibleToAvatarIds).toEqual(['avatar_1', 'avatar_2'])
+    expect(publicByEmpty.visibleToAvatarIds).toBeUndefined()
   })
 
   it('deleteBySourceId removes only matching source chunks', async () => {

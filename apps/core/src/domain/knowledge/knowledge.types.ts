@@ -34,6 +34,11 @@ export interface KnowledgeSource {
   createdAt: string
   updatedAt: string
   metadata?: Record<string, unknown>
+  /**
+   * Avatar visibility scope for EPIC 5.1b.
+   * Undefined or empty => visible to all avatars.
+   */
+  visibleToAvatarIds?: string[]
 }
 
 export interface KnowledgeChunk {
@@ -46,6 +51,11 @@ export interface KnowledgeChunk {
   embedding?: number[]
   createdAt: string
   metadata?: Record<string, unknown>
+  /**
+   * Optional chunk-level override.
+   * Undefined or empty => inherit/default to visible to all.
+   */
+  visibleToAvatarIds?: string[]
 }
 
 export interface IngestionJob {
@@ -68,6 +78,7 @@ export interface RetrievedKnowledgeItem {
   score?: number
   reason?: string
   metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
 }
 
 export interface TypedRetrievalResult {

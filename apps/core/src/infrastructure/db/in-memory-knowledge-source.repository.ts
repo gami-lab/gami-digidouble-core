@@ -5,6 +5,16 @@ import type {
 } from '../../application/ports/IKnowledgeSourceRepository.js'
 import type { KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
 
+function normalizeVisibleToAvatarIds(
+  visibleToAvatarIds: string[] | undefined,
+): string[] | undefined {
+  if (visibleToAvatarIds === undefined) return undefined
+  const normalized = visibleToAvatarIds
+    .map((avatarId) => avatarId.trim())
+    .filter((avatarId) => avatarId.length > 0)
+  return normalized.length > 0 ? normalized : undefined
+}
+
 export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceRepository {
   private readonly sources: Map<string, KnowledgeSource>
 
@@ -14,6 +24,7 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
 
   create(params: CreateKnowledgeSourceParams): Promise<KnowledgeSource> {
     const now = new Date().toISOString()
+    const visibleToAvatarIds = normalizeVisibleToAvatarIds(params.visibleToAvatarIds)
     const source: KnowledgeSource = {
       sourceId: `knowledge_source_${crypto.randomUUID()}`,
       scenarioId: params.scenarioId,
@@ -25,6 +36,7 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
       createdAt: now,
       updatedAt: now,
       ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
+      ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
     }
 
     this.sources.set(source.sourceId, source)

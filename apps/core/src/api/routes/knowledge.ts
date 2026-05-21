@@ -65,6 +65,10 @@ const sourceBodySchema = {
     format: { type: 'string', enum: ['pdf', 'text', 'markdown', 'url', 'media'] },
     uriOrPath: { type: 'string', minLength: 1 },
     metadata: { type: 'object' },
+    visibleToAvatarIds: {
+      type: 'array',
+      items: { type: 'string', minLength: 1 },
+    },
   },
   additionalProperties: false,
 } as const
