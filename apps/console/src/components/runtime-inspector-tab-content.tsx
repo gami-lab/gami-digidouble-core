@@ -5,6 +5,14 @@ import type { RuntimeInspectorViewModel } from '../api'
 import { buildGmImpactTrace } from './gm-impact-trace'
 import type { MemoryEvolutionSnapshot } from './memory-evolution'
 import { computeMemoryDelta } from './memory-evolution'
+import {
+  formatGmKnowledgeCounts,
+  formatTraceKeptTrimmed,
+  formatTraceRetrievalCounts,
+  formatTraceVisibilityExcludedCounts,
+  formatTraceVisibilityGmRetrievalCounts,
+  formatVisibility,
+} from './runtime-inspector-context-formatters'
 import { buildPersonaPayload, PersonaEditor } from './runtime-inspector-persona'
 import { MemoryObservabilitySection } from './runtime-inspector-memory-observability'
 import {
@@ -256,7 +264,16 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
   const avatarKnowledge = snapshot.context.avatar.knowledge?.retrievedItems ?? []
   const gmKnowledge = snapshot.context.gm.knowledge
   const trace = snapshot.context.trace
-  const visibility = trace?.selectedInputs.visibility
+  const gmCounts = formatGmKnowledgeCounts(gmKnowledge)
+  const traceDeterministic = trace?.deterministic === true ? 'true' : 'false'
+  const traceKeptTrimmed = formatTraceKeptTrimmed(trace)
+  const traceRetrievalCounts = formatTraceRetrievalCounts(trace)
+  const traceVisibilityExcluded = formatTraceVisibilityExcludedCounts(trace)
+  const traceVisibilityGmUnrestricted = trace?.selectedInputs.visibility?.gmUnrestricted === true
+    ? 'true'
+    : 'false'
+  const traceVisibilityGmRetrieval = formatTraceVisibilityGmRetrievalCounts(trace)
+
   return (
     <div style={{ marginTop: '12px' }}>
       <Row label="Avatar context avatarId">{snapshot.context.avatar.avatarId ?? '-'}</Row>
@@ -266,34 +283,14 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
       <Row label="GM recent messages">{String(snapshot.context.gm.recentMessages.length)}</Row>
       <Row label="Scenario">{snapshot.context.gm.scenario.name ?? snapshot.session.scenarioId}</Row>
       <Row label="Avatar knowledge items">{String(avatarKnowledge.length)}</Row>
-      <Row label="GM memory/world/media">
-        {gmKnowledge === undefined
-          ? '0 / 0 / 0'
-          : `${String(gmKnowledge.memory.length)} / ${String(gmKnowledge.world.length)} / ${String(gmKnowledge.media.length)}`}
-      </Row>
-      <Row label="Trace deterministic">{trace?.deterministic === true ? 'true' : 'false'}</Row>
-      <Row label="Trace kept/trimmed">
-        {trace === undefined
-          ? '0 / 0'
-          : `${String(trace.selection.kept.length)} / ${String(trace.selection.trimmed.length)}`}
-      </Row>
-      <Row label="Trace retrieval memory/world/media">
-        {trace === undefined
-          ? '0 / 0 / 0'
-          : `${String(trace.selectedInputs.retrievalCounts.memory)} / ${String(trace.selectedInputs.retrievalCounts.world)} / ${String(trace.selectedInputs.retrievalCounts.media)}`}
-      </Row>
-      <Row label="Trace visibility excluded memory/world/media">
-        {visibility === undefined
-          ? '0 / 0 / 0'
-          : `${String(visibility.excludedCounts.memory)} / ${String(visibility.excludedCounts.world)} / ${String(visibility.excludedCounts.media)}`}
-      </Row>
-      <Row label="Trace visibility GM unrestricted">
-        {visibility?.gmUnrestricted === true ? 'true' : 'false'}
-      </Row>
+      <Row label="GM memory/world/media">{gmCounts}</Row>
+      <Row label="Trace deterministic">{traceDeterministic}</Row>
+      <Row label="Trace kept/trimmed">{traceKeptTrimmed}</Row>
+      <Row label="Trace retrieval memory/world/media">{traceRetrievalCounts}</Row>
+      <Row label="Trace visibility excluded memory/world/media">{traceVisibilityExcluded}</Row>
+      <Row label="Trace visibility GM unrestricted">{traceVisibilityGmUnrestricted}</Row>
       <Row label="Trace visibility GM retrieval memory/world/media">
-        {visibility?.gmRetrievalCounts === undefined
-          ? '0 / 0 / 0'
-          : `${String(visibility.gmRetrievalCounts.memory)} / ${String(visibility.gmRetrievalCounts.world)} / ${String(visibility.gmRetrievalCounts.media)}`}
+        {traceVisibilityGmRetrieval}
       </Row>
       {avatarKnowledge.slice(0, 3).map((item) => (
         <p key={`${item.sourceId}-${item.chunkId}`} style={{ margin: '4px 0', color: '#374151' }}>
@@ -303,11 +300,6 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
       ))}
     </div>
   )
-}
-
-function formatVisibility(visibleToAvatarIds: string[] | undefined): string {
-  if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0) return 'all'
-  return visibleToAvatarIds.join('|')
 }
 
 function EventsTab({
