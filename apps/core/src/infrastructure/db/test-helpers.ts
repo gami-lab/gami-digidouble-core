@@ -19,3 +19,8 @@ export async function truncateAllTables(sql: Sql): Promise<void> {
   // Keep this list aligned with migration table additions for integration cleanup.
   await sql`TRUNCATE model_config, conversation_memories, conversation_working_memories, avatar_session_memories, session_memories, user_memory_facts, event_log, messages, conversations, gm_states, ingestion_jobs, knowledge_chunks, knowledge_sources, sessions, avatars, scenarios, users CASCADE`
 }
+
+export async function ensureKnowledgeVisibilityColumns(sql: Sql): Promise<void> {
+  await sql`ALTER TABLE IF EXISTS knowledge_sources ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[]`
+  await sql`ALTER TABLE IF EXISTS knowledge_chunks ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[]`
+}

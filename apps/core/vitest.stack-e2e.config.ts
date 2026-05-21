@@ -20,6 +20,7 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.stack-e2e.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
+    globalSetup: ['./vitest.stack-e2e.global-setup.ts'],
     // Real network calls to a running container can be slow
     testTimeout: 60_000,
     hookTimeout: 15_000,

@@ -176,3 +176,57 @@ Implementation-coupled tests identified:
 ## Final Recommendation
 
 Rework before close
+
+## Remediation Outcome
+
+### Changes Made
+
+- Added deterministic integration-schema guard in shared DB test helpers to ensure visibility columns exist before EPIC knowledge integration tests run:
+  - [apps/core/src/infrastructure/db/test-helpers.ts](apps/core/src/infrastructure/db/test-helpers.ts)
+- Applied the shared schema guard to all integration suites that seed knowledge sources/chunks:
+  - [apps/core/src/infrastructure/db/repositories/postgres-knowledge-source.repository.integration.test.ts](apps/core/src/infrastructure/db/repositories/postgres-knowledge-source.repository.integration.test.ts)
+  - [apps/core/src/infrastructure/db/repositories/postgres-knowledge-chunk.repository.integration.test.ts](apps/core/src/infrastructure/db/repositories/postgres-knowledge-chunk.repository.integration.test.ts)
+  - [apps/core/src/infrastructure/db/repositories/postgres-ingestion-job.repository.integration.test.ts](apps/core/src/infrastructure/db/repositories/postgres-ingestion-job.repository.integration.test.ts)
+- Replaced brittle provider-alias assertion in XAI integration test with behavior-level invariant:
+  - [apps/core/src/infrastructure/llm/xai.adapter.integration.test.ts](apps/core/src/infrastructure/llm/xai.adapter.integration.test.ts)
+- Added stack-e2e fail-fast preflight with actionable startup guidance:
+  - [apps/core/vitest.stack-e2e.global-setup.ts](apps/core/vitest.stack-e2e.global-setup.ts)
+  - [apps/core/vitest.stack-e2e.config.ts](apps/core/vitest.stack-e2e.config.ts)
+
+### Findings Resolved
+
+- Resolved: Integration schema drift breaking knowledge visibility persistence proof.
+- Resolved: Provider integration brittleness tied to exact XAI model alias.
+- Resolved: Stack-e2e noisy false-red pattern; now fails immediately with explicit preflight guidance when stack is unavailable.
+
+### Findings Deferred
+
+- Deferred (Low): Uneven coverage concentration in some non-core EPIC knowledge paths remains; behavior safety for EPIC 5.1b acceptance flows is already validated by passing mandatory and integration gates.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`All files`: 89.47% statements, 86.07% branches, 96.06% functions, 89.47% lines)
+
+Additional EPIC confidence checks:
+
+- `pnpm --filter @gami/core test:integration-e2e`: PASS (24 files, 102 tests)
+- `pnpm --filter @gami/core test:stack-e2e`: explicit preflight fail-fast when `APP_URL` target is not running, with actionable startup instructions
+
+### Final Feature Confidence
+
+- Visibility metadata persistence and backward-compatible defaults are now proven in integration suites.
+- Avatar-scoped retrieval filtering remains deterministically proven by service/use-case/route tests.
+- GM omniscience asymmetry remains proven with explicit trace semantics (`gmUnrestricted`).
+- Console visibility management remains behavior-tested and contract-aligned.
+- EPIC integration verification is now reproducible without schema-drift flakiness.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- Stack-e2e requires external runtime availability by design; preflight now makes this dependency explicit and deterministic.

@@ -1,9 +1,18 @@
 import type { Sql } from 'postgres'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
+import {
+  DB_AVAILABLE,
+  createTestSql,
+  ensureKnowledgeVisibilityColumns,
+  truncateAllTables,
+} from '../test-helpers.js'
 import { PostgresKnowledgeChunkRepository } from './postgres-knowledge-chunk.repository.js'
 import { PostgresKnowledgeSourceRepository } from './postgres-knowledge-source.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
+
+function vector16(first: number, second: number): number[] {
+  return [first, second, ...Array.from({ length: 14 }, () => 0)]
+}
 
 describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
   let sql: Sql
@@ -12,8 +21,9 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
   let chunkRepo: PostgresKnowledgeChunkRepository
   let sourceId: string
 
-  beforeAll(() => {
+  beforeAll(async () => {
     sql = createTestSql()
+    await ensureKnowledgeVisibilityColumns(sql)
     scenarioRepo = new PostgresScenarioRepository(sql)
     sourceRepo = new PostgresKnowledgeSourceRepository(sql)
     chunkRepo = new PostgresKnowledgeChunkRepository(sql)
@@ -37,10 +47,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       uriOrPath: '/tmp/chunks.txt',
     })
     sourceId = source.sourceId
-  }
-
-  function vector16(first: number, second: number): number[] {
-    return [first, second, ...Array.from({ length: 14 }, () => 0)]
   }
 
   it('creates and lists chunks ordered by chunk index', async () => {
