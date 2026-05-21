@@ -150,6 +150,7 @@ function makeContextSummary(): RuntimeInspectorViewModel['context'] {
             chunkId: 'chunk_1',
             knowledgeType: 'world',
             content: 'A'.repeat(200),
+            visibleToAvatarIds: ['avatar_1'],
           },
         ],
       },
@@ -197,6 +198,12 @@ function makeContextSummary(): RuntimeInspectorViewModel['context'] {
         hasWorkingMemory: false,
         longTermFactCount: 0,
         retrievalCounts: { memory: 0, world: 1, media: 0 },
+        visibility: {
+          activeAvatarId: 'avatar_1',
+          excludedCounts: { memory: 1, world: 2, media: 0 },
+          gmRetrievalCounts: { memory: 2, world: 3, media: 1 },
+          gmUnrestricted: true,
+        },
         hasUserPersona: false,
         hasGmDirective: false,
       },
@@ -385,6 +392,10 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('Trace deterministic')
     expect(html).toContain('Trace kept/trimmed')
     expect(html).toContain('Trace retrieval memory/world/media')
+    expect(html).toContain('Trace visibility excluded memory/world/media')
+    expect(html).toContain('Trace visibility GM unrestricted')
+    expect(html).toContain('Trace visibility GM retrieval memory/world/media')
+    expect(html).toContain('[visibility:avatar_1]')
   })
 
   it('renders live runtime events in events tab', () => {

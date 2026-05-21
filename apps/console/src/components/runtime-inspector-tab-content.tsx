@@ -256,6 +256,7 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
   const avatarKnowledge = snapshot.context.avatar.knowledge?.retrievedItems ?? []
   const gmKnowledge = snapshot.context.gm.knowledge
   const trace = snapshot.context.trace
+  const visibility = trace?.selectedInputs.visibility
   return (
     <div style={{ marginTop: '12px' }}>
       <Row label="Avatar context avatarId">{snapshot.context.avatar.avatarId ?? '-'}</Row>
@@ -281,13 +282,32 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
           ? '0 / 0 / 0'
           : `${String(trace.selectedInputs.retrievalCounts.memory)} / ${String(trace.selectedInputs.retrievalCounts.world)} / ${String(trace.selectedInputs.retrievalCounts.media)}`}
       </Row>
+      <Row label="Trace visibility excluded memory/world/media">
+        {visibility === undefined
+          ? '0 / 0 / 0'
+          : `${String(visibility.excludedCounts.memory)} / ${String(visibility.excludedCounts.world)} / ${String(visibility.excludedCounts.media)}`}
+      </Row>
+      <Row label="Trace visibility GM unrestricted">
+        {visibility?.gmUnrestricted === true ? 'true' : 'false'}
+      </Row>
+      <Row label="Trace visibility GM retrieval memory/world/media">
+        {visibility?.gmRetrievalCounts === undefined
+          ? '0 / 0 / 0'
+          : `${String(visibility.gmRetrievalCounts.memory)} / ${String(visibility.gmRetrievalCounts.world)} / ${String(visibility.gmRetrievalCounts.media)}`}
+      </Row>
       {avatarKnowledge.slice(0, 3).map((item) => (
         <p key={`${item.sourceId}-${item.chunkId}`} style={{ margin: '4px 0', color: '#374151' }}>
-          [{item.knowledgeType}] {truncateText(item.content, 160)}
+          [{item.knowledgeType}] [visibility:{formatVisibility(item.visibleToAvatarIds)}]{' '}
+          {truncateText(item.content, 160)}
         </p>
       ))}
     </div>
   )
+}
+
+function formatVisibility(visibleToAvatarIds: string[] | undefined): string {
+  if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0) return 'all'
+  return visibleToAvatarIds.join('|')
 }
 
 function EventsTab({

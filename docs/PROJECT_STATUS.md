@@ -556,6 +556,14 @@ Status: 🔄 In progress
 - turn-completed observability context-selection metadata aligned with visibility decisions (counts/flags only, no raw hidden content)
 - tests added/updated to verify avatar filtering enforcement and GM omniscient retrieval asymmetry
 
+### Current slice completed (console visibility management)
+
+- Session Admin knowledge operations now support visibility metadata input for source registration using canonical shared DTOs
+- console source/retrieval summaries now surface visibility state with backward-compatible default handling (`all avatars` when unset)
+- retrieval diagnostics probe in console now supports optional active avatar scope input for operator validation workflows
+- runtime inspector context tab now renders bounded visibility diagnostics (`excludedCounts`, `gmRetrievalCounts`, `gmUnrestricted`) and item visibility tags
+- console tests updated for visibility form validation, API payload mapping, and diagnostics rendering
+
 ---
 
 # 3. Current Public API Surface

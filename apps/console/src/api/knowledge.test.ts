@@ -44,6 +44,7 @@ describe('knowledge API wrappers - source operations', () => {
       knowledgeType: 'world',
       format: 'markdown',
       uriOrPath: '/docs/lore.md',
+      visibleToAvatarIds: ['avatar_1'],
     })
     const listed = await listKnowledgeSources('scenario_1', { knowledgeType: 'world' })
 
@@ -53,6 +54,7 @@ describe('knowledge API wrappers - source operations', () => {
       knowledgeType: 'world',
       format: 'markdown',
       uriOrPath: '/docs/lore.md',
+      visibleToAvatarIds: ['avatar_1'],
     })
     expect(coreRequest).toHaveBeenNthCalledWith(
       2,
@@ -138,6 +140,7 @@ describe('knowledge API wrappers - retrieval operations', () => {
       scenarioId: 'scenario_1',
       query: 'hero backstory',
       sessionId: 'session_1',
+      activeAvatarId: 'avatar_1',
       limitPerType: 3,
     })
 
@@ -145,6 +148,7 @@ describe('knowledge API wrappers - retrieval operations', () => {
       scenarioId: 'scenario_1',
       query: 'hero backstory',
       sessionId: 'session_1',
+      activeAvatarId: 'avatar_1',
       limitPerType: 3,
     })
     expect(result.retrieval.trace.query).toBe('q')
