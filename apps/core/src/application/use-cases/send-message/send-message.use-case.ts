@@ -242,7 +242,11 @@ export class SendMessageUseCase {
       selectedMemory !== undefined
         ? this.getMemorySelectionService().toAvatarMemorySnapshot(selectedMemory)
         : undefined
-    const retrieval = await this.loadTypedRetrieval(args.session, args.conversation.conversationId)
+    const retrieval = await this.loadTypedRetrieval(
+      args.session,
+      args.conversation.conversationId,
+      args.conversation.avatarId,
+    )
     const assembledContext = this.contextAssembler.assemble({
       sessionId: args.session.sessionId,
       activeAvatarId: args.conversation.avatarId,
@@ -290,7 +294,7 @@ export class SendMessageUseCase {
     }
   }
 
-  private async loadTypedRetrieval(session: Session, conversationId: string) {
+  private async loadTypedRetrieval(session: Session, conversationId: string, avatarId: string) {
     if (this.typedRetrievalService === undefined) return undefined
     const recentMessages = await this.messageRepository.findByConversationId(conversationId, {
       limit: 12,
@@ -310,6 +314,7 @@ export class SendMessageUseCase {
       sessionId: session.sessionId,
       userId: session.userId,
       conversationId,
+      activeAvatarId: avatarId,
       query,
       limitPerType: 3,
     })

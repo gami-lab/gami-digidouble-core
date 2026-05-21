@@ -92,6 +92,11 @@ export interface TypedRetrievalResult {
       {
         sourceIds: string[]
         selectedChunkIds: string[]
+        visibility?: {
+          activeAvatarId?: string
+          consideredChunkCount: number
+          excludedChunkCount: number
+        }
       }
     >
   }

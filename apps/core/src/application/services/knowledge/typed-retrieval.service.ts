@@ -14,6 +14,7 @@ export type TypedRetrievalInput = {
   sessionId?: string
   userId?: string
   conversationId?: string
+  activeAvatarId?: string
   query: string
   limitPerType?: number
 }
@@ -40,14 +41,17 @@ export class TypedRetrievalService {
           memory: {
             sourceIds: memory.sourceIds,
             selectedChunkIds: memory.items.map((item) => item.chunkId),
+            visibility: memory.visibility,
           },
           world: {
             sourceIds: world.sourceIds,
             selectedChunkIds: world.items.map((item) => item.chunkId),
+            visibility: world.visibility,
           },
           media: {
             sourceIds: media.sourceIds,
             selectedChunkIds: media.items.map((item) => item.chunkId),
+            visibility: media.visibility,
           },
         },
       },
@@ -62,13 +66,33 @@ export class TypedRetrievalService {
     })
 
     const sourceIds = sources.map((source) => source.sourceId)
+    const sourceVisibilityById = new Map(
+      sources.map((source) => [source.sourceId, source.visibleToAvatarIds] as const),
+    )
     if (sourceIds.length === 0) {
-      return { sourceIds: [], items: [] as RetrievedKnowledgeItem[] }
+      return {
+        sourceIds: [],
+        items: [] as RetrievedKnowledgeItem[],
+        visibility: {
+          ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
+          consideredChunkCount: 0,
+          excludedChunkCount: 0,
+        },
+      }
     }
 
     const chunks = await this.chunkRepository.listBySourceIds(sourceIds)
+    const avatarVisibleChunks = chunks.filter((chunk) =>
+      isAvatarVisible(
+        chunk.visibleToAvatarIds ?? sourceVisibilityById.get(chunk.sourceId),
+        input.activeAvatarId,
+      ),
+    )
+    const excludedByVisibilityCount = chunks.length - avatarVisibleChunks.length
     const scopedChunks =
-      type === 'memory' ? chunks.filter((chunk) => isInMemoryScope(chunk, input)) : chunks
+      type === 'memory'
+        ? avatarVisibleChunks.filter((chunk) => isInMemoryScope(chunk, input))
+        : avatarVisibleChunks
 
     const scored = scopedChunks
       .map((chunk) => ({ chunk, score: scoreChunk(type, chunk, input.query, input) }))
@@ -86,8 +110,33 @@ export class TypedRetrievalService {
       items: scored.map((entry) =>
         toRetrievedItem(type, entry.chunk, entry.score, explainScore(type, entry.chunk, input)),
       ),
+      visibility: {
+        ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
+        consideredChunkCount: chunks.length,
+        excludedChunkCount: excludedByVisibilityCount,
+      },
     }
   }
+}
+
+function isAvatarVisible(
+  visibleToAvatarIds: string[] | undefined,
+  activeAvatarId: string | undefined,
+): boolean {
+  const normalized = normalizeVisibleToAvatarIds(visibleToAvatarIds)
+  if (normalized === undefined) return true
+  if (activeAvatarId === undefined) return false
+  return normalized.includes(activeAvatarId)
+}
+
+function normalizeVisibleToAvatarIds(
+  visibleToAvatarIds: string[] | undefined,
+): string[] | undefined {
+  if (visibleToAvatarIds === undefined) return undefined
+  const normalized = visibleToAvatarIds
+    .map((avatarId) => avatarId.trim())
+    .filter((avatarId) => avatarId.length > 0)
+  return normalized.length > 0 ? normalized : undefined
 }
 
 function isInMemoryScope(chunk: KnowledgeChunk, input: TypedRetrievalInput): boolean {

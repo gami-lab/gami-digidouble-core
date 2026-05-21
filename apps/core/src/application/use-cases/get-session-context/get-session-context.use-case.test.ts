@@ -77,6 +77,52 @@ function buildTypedRetrievalService(): TypedRetrievalService {
   return new TypedRetrievalService(sourceRepo, chunkRepo)
 }
 
+function buildVisibilityTypedRetrievalService(): TypedRetrievalService {
+  const sourceRepo = new InMemoryKnowledgeSourceRepository([
+    {
+      sourceId: 'knowledge_source_avatar_1',
+      scenarioId: 'scenario_1',
+      name: 'Avatar one world',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/world-1.md',
+      status: 'ready',
+      visibleToAvatarIds: ['avatar_1'],
+      createdAt: '2026-05-01T10:00:00.000Z',
+      updatedAt: '2026-05-01T10:00:00.000Z',
+    },
+    {
+      sourceId: 'knowledge_source_avatar_2',
+      scenarioId: 'scenario_1',
+      name: 'Avatar two world',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/world-2.md',
+      status: 'ready',
+      visibleToAvatarIds: ['avatar_2'],
+      createdAt: '2026-05-01T10:00:00.000Z',
+      updatedAt: '2026-05-01T10:00:00.000Z',
+    },
+  ])
+  const chunkRepo = new InMemoryKnowledgeChunkRepository([
+    {
+      chunkId: 'knowledge_chunk_avatar_1',
+      sourceId: 'knowledge_source_avatar_1',
+      content: 'u1 avatar one visible world clue',
+      chunkIndex: 0,
+      createdAt: '2026-05-01T10:00:00.000Z',
+    },
+    {
+      chunkId: 'knowledge_chunk_avatar_2',
+      sourceId: 'knowledge_source_avatar_2',
+      content: 'u1 avatar two visible world clue',
+      chunkIndex: 0,
+      createdAt: '2026-05-01T10:00:00.000Z',
+    },
+  ])
+  return new TypedRetrievalService(sourceRepo, chunkRepo)
+}
+
 function makeSession() {
   return {
     sessionId: 'session_1',
@@ -91,7 +137,7 @@ function makeSession() {
   }
 }
 
-function makeConversation() {
+function makeConversation(overrides: Record<string, unknown> = {}) {
   return {
     conversationId: 'conversation_1',
     sessionId: 'session_1',
@@ -99,6 +145,7 @@ function makeConversation() {
     status: 'active' as const,
     startedAt: '2026-05-01T10:00:00.000Z',
     lastActivityAt: '2026-05-01T10:10:00.000Z',
+    ...overrides,
   }
 }
 
@@ -292,5 +339,52 @@ describe('GetSessionContextUseCase', () => {
     await expect(useCase.execute({ sessionId: 'missing' })).rejects.toEqual(
       new DomainError('NOT_FOUND', 'Session missing was not found.'),
     )
+  })
+})
+
+describe('GetSessionContextUseCase visibility scope', () => {
+  it('updates avatar retrieval scope deterministically when active avatar changes', async () => {
+    const scenarioRepository = new InMemoryScenarioRepository([makeScenario()])
+    const avatarRepository = new InMemoryAvatarRepository(makeAvatars())
+    const messageRepository = new InMemoryMessageRepository(makeMessages())
+    const gmStateRepository = new InMemoryGmStateRepository([makeGmState()])
+    const sessionRepository = new InMemorySessionRepository([makeSession()])
+
+    const useCaseAvatarOne = new GetSessionContextUseCase(
+      sessionRepository,
+      new InMemoryConversationRepository([makeConversation({ avatarId: 'avatar_1' })]),
+      avatarRepository,
+      scenarioRepository,
+      messageRepository,
+      gmStateRepository,
+      new InMemoryUserRepository([makeUser()]),
+      undefined,
+      buildVisibilityTypedRetrievalService(),
+    )
+    const useCaseAvatarTwo = new GetSessionContextUseCase(
+      sessionRepository,
+      new InMemoryConversationRepository([makeConversation({ avatarId: 'avatar_2' })]),
+      avatarRepository,
+      scenarioRepository,
+      messageRepository,
+      gmStateRepository,
+      new InMemoryUserRepository([makeUser()]),
+      undefined,
+      buildVisibilityTypedRetrievalService(),
+    )
+
+    const avatarOneOutput = await useCaseAvatarOne.execute({ sessionId: 'session_1' })
+    const avatarTwoOutput = await useCaseAvatarTwo.execute({ sessionId: 'session_1' })
+    const avatarOneWorldChunkIds =
+      avatarOneOutput.avatarContext.knowledge?.typedSections?.world.map((item) => item.chunkId) ??
+      []
+    const avatarTwoWorldChunkIds =
+      avatarTwoOutput.avatarContext.knowledge?.typedSections?.world.map((item) => item.chunkId) ??
+      []
+
+    expect(avatarOneWorldChunkIds).toEqual(['knowledge_chunk_avatar_1'])
+    expect(avatarTwoWorldChunkIds).toEqual(['knowledge_chunk_avatar_2'])
+    expect(avatarOneOutput.contextTrace.selectedInputs.visibility?.activeAvatarId).toBe('avatar_1')
+    expect(avatarTwoOutput.contextTrace.selectedInputs.visibility?.activeAvatarId).toBe('avatar_2')
   })
 })

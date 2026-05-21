@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import type { LongTermMemoryFact } from '../memory/memory.types.js'
 import type { ContextEngineInput, ContextEngineOutput } from './context-engine.types.js'
@@ -430,6 +431,7 @@ function buildTracePolicy(policy: ContextEnginePolicy): ContextEngineOutput['tra
 function buildTraceSelectedInputs(
   input: ContextEngineInput,
 ): ContextEngineOutput['trace']['selectedInputs'] {
+  const visibility = buildTraceVisibility(input)
   return {
     hasActiveAvatar: input.activeAvatarId !== undefined,
     recentMessageCount: input.recentMessages.length,
@@ -437,6 +439,7 @@ function buildTraceSelectedInputs(
     hasWorkingMemory: input.extensions.memory?.working !== undefined,
     longTermFactCount: input.extensions.memory?.longTerm?.facts.length ?? 0,
     retrievalCounts: buildTraceRetrievalCounts(input),
+    ...(visibility !== undefined ? { visibility } : {}),
     hasUserPersona: input.extensions.userPersona !== null,
     hasGmDirective: hasText(input.extensions.gmDirective),
   }
@@ -450,6 +453,35 @@ function buildTraceRetrievalCounts(
     world: input.extensions.retrieval?.world.length ?? 0,
     media: input.extensions.retrieval?.media.length ?? 0,
   }
+}
+
+// Keep this helper explicit for trace explainability while preserving deterministic defaults.
+// eslint-disable-next-line complexity
+function buildTraceVisibility(
+  input: ContextEngineInput,
+): ContextEngineOutput['trace']['selectedInputs']['visibility'] | undefined {
+  const trace = input.extensions.retrieval?.trace
+  if (trace === undefined) return undefined
+  const perTypeVisibility = [
+    trace.perType.memory.visibility,
+    trace.perType.world.visibility,
+    trace.perType.media.visibility,
+  ]
+  const activeAvatarId = firstDefinedAvatarId(perTypeVisibility) ?? input.activeAvatarId
+  return {
+    ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
+    excludedCounts: {
+      memory: trace.perType.memory.visibility?.excludedChunkCount ?? 0,
+      world: trace.perType.world.visibility?.excludedChunkCount ?? 0,
+      media: trace.perType.media.visibility?.excludedChunkCount ?? 0,
+    },
+  }
+}
+
+function firstDefinedAvatarId(
+  visibilities: Array<{ activeAvatarId?: string } | undefined>,
+): string | undefined {
+  return visibilities.map((visibility) => visibility?.activeAvatarId).find(hasText)
 }
 
 function dedupeLongTermFacts(facts: LongTermMemoryFact[]): LongTermMemoryFact[] {

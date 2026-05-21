@@ -93,7 +93,11 @@ export class GetSessionContextUseCase {
       activeConversation?.conversationId,
     )
     const recentMessages = await this.loadContextRecentMessages(activeConversation?.conversationId)
-    const retrieval = await this.loadTypedRetrieval(session, recentMessages)
+    const retrieval = await this.loadTypedRetrieval(
+      session,
+      recentMessages,
+      activeConversation?.avatarId,
+    )
 
     return {
       scenario,
@@ -136,6 +140,7 @@ export class GetSessionContextUseCase {
   private async loadTypedRetrieval(
     session: Session,
     recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
+    activeAvatarId: string | undefined,
   ) {
     if (this.typedRetrievalService === undefined) return undefined
     const query = buildRetrievalQuery(recentMessages)
@@ -145,6 +150,7 @@ export class GetSessionContextUseCase {
       scenarioId: session.scenarioId,
       sessionId: session.sessionId,
       userId: session.userId,
+      ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
       query,
       limitPerType: 3,
     })

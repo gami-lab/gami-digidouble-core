@@ -110,6 +110,14 @@ export type TurnCompletedEventPayload = {
       world: number
       media: number
     }
+    visibility?: {
+      activeAvatarId?: string
+      excludedCounts: {
+        memory: number
+        world: number
+        media: number
+      }
+    }
     hasUserPersona: boolean
     hasGmDirective: boolean
   }
@@ -285,6 +293,14 @@ export type SessionContextTrace = {
       memory: number
       world: number
       media: number
+    }
+    visibility?: {
+      activeAvatarId?: string
+      excludedCounts: {
+        memory: number
+        world: number
+        media: number
+      }
     }
     hasUserPersona: boolean
     hasGmDirective: boolean

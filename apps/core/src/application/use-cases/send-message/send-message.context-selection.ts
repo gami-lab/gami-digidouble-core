@@ -9,6 +9,14 @@ export function toContextSelectionMetadata(assembledContext: ContextEngineOutput
     world: number
     media: number
   }
+  visibility?: {
+    activeAvatarId?: string
+    excludedCounts: {
+      memory: number
+      world: number
+      media: number
+    }
+  }
   hasUserPersona: boolean
   hasGmDirective: boolean
 } {
@@ -18,6 +26,7 @@ export function toContextSelectionMetadata(assembledContext: ContextEngineOutput
     hasWorkingMemory: selected.hasWorkingMemory,
     longTermFactCount: selected.longTermFactCount,
     retrievalCounts: selected.retrievalCounts,
+    ...(selected.visibility !== undefined ? { visibility: selected.visibility } : {}),
     hasUserPersona: selected.hasUserPersona,
     hasGmDirective: selected.hasGmDirective,
   }

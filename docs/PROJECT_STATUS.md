@@ -533,6 +533,17 @@ Status: 🔄 In progress
 - ingestion now propagates source-level visibility metadata to created chunks by default inheritance
 - repository and service coverage added for default visibility and explicit visibility round-trip behavior (in-memory + postgres)
 
+### Current slice completed (avatar-scoped retrieval filtering in context assembly)
+
+- typed retrieval now applies deterministic avatar visibility filtering via active avatar identity before context assembly
+- send-message and session-context flows now pass active avatar identity into typed retrieval so avatar switching deterministically updates retrieval scope
+- non-visible knowledge is excluded before avatar prompt/context composition and does not reach avatar-facing context payloads
+- bounded visibility explainability metadata added:
+  - typed retrieval trace per type (`consideredChunkCount`, `excludedChunkCount`)
+  - context trace selected-input visibility exclusion counters
+  - turn-completed context selection observability visibility counters
+- deterministic unit coverage added for avatar-scoped filtering behavior and avatar-switch scope transitions
+
 ---
 
 # 3. Current Public API Surface

@@ -71,6 +71,7 @@ Required tests:
 - **Replay:** verify that replayed turn does NOT write a new message to the DB
 - **Ingestion retry:** verify that retrying a completed job returns current status rather than creating a duplicate run
 - **Typed retrieval:** verify domain separation (`memory` / `world` / `media`), deterministic ranking under fixed fixtures, and trace metadata (`sourceId`, `chunkId`, `score`, `reason`)
+- **Avatar-scoped visibility:** verify deterministic exclusion of non-visible knowledge per active avatar, avatar-switch scope updates, and bounded visibility explainability counters in retrieval/context traces
 - **Knowledge API operator flow:** verify stack-e2e coverage for auth, validation, not-found, and happy-path source->ingestion->retrieval flow
 - **Console operator adapters:** verify `apps/console` knowledge API wrappers and Session Admin knowledge action helpers reuse shared DTOs and map operator-facing errors
 - **Audit log:** verify that every admin action writes an entry with the correct `actionType`, `targetType`, and `targetId`

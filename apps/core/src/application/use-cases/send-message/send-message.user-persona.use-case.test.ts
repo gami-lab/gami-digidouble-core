@@ -420,6 +420,10 @@ describe('SendMessageUseCase — context selection observability', () => {
           hasWorkingMemory: boolean
           longTermFactCount: number
           retrievalCounts: { memory: number; world: number; media: number }
+          visibility?: {
+            activeAvatarId?: string
+            excludedCounts: { memory: number; world: number; media: number }
+          }
           hasUserPersona: boolean
           hasGmDirective: boolean
         }
@@ -430,6 +434,10 @@ describe('SendMessageUseCase — context selection observability', () => {
       hasWorkingMemory: false,
       longTermFactCount: 0,
       retrievalCounts: { memory: 1, world: 0, media: 0 },
+      visibility: {
+        activeAvatarId: 'avatar_1',
+        excludedCounts: { memory: 0, world: 0, media: 0 },
+      },
       hasUserPersona: true,
       hasGmDirective: false,
     })

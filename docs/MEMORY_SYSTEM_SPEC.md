@@ -346,6 +346,7 @@ The system should record:
 - why they were selected
 - how they influenced GM reasoning
 - how they influenced avatar context assembly
+- typed retrieval inputs may be avatar-scoped; non-visible knowledge is excluded before avatar context assembly with bounded exclusion counts in context traces
 
 This becomes part of GM observability.
 

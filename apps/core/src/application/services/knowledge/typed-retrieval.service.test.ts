@@ -83,6 +83,7 @@ describe('TypedRetrievalService', () => {
 
     expect(result.trace.perType.memory.sourceIds.length).toBeGreaterThan(0)
     expect(result.trace.perType.media.selectedChunkIds.length).toBe(1)
+    expect(result.trace.perType.memory.visibility?.excludedChunkCount).toBe(0)
     expect(result.memory[0]?.reason).toContain('token-overlap')
   })
 
@@ -118,5 +119,43 @@ describe('TypedRetrievalService', () => {
 
     expect(result.memory).toHaveLength(1)
     expect(result.memory[0]?.metadata).toMatchObject({ userId: 'user_1', sessionId: 'session_1' })
+  })
+
+  it('filters non-visible knowledge by active avatar deterministically', async () => {
+    const sourceRepo = new InMemoryKnowledgeSourceRepository()
+    const chunkRepo = new InMemoryKnowledgeChunkRepository()
+
+    const world = await sourceRepo.create({
+      scenarioId: 'scenario_1',
+      name: 'Avatar scoped world',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/world.md',
+      visibleToAvatarIds: ['avatar_1'],
+    })
+    await sourceRepo.updateStatus(world.sourceId, 'ready')
+    await chunkRepo.create({
+      sourceId: world.sourceId,
+      chunkIndex: 0,
+      content: 'visible only to avatar one',
+      visibleToAvatarIds: ['avatar_1'],
+    })
+
+    const service = new TypedRetrievalService(sourceRepo, chunkRepo)
+    const forAvatarOne = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'visible',
+      activeAvatarId: 'avatar_1',
+    })
+    const forAvatarTwo = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'visible',
+      activeAvatarId: 'avatar_2',
+    })
+
+    expect(forAvatarOne.world).toHaveLength(1)
+    expect(forAvatarTwo.world).toHaveLength(0)
+    expect(forAvatarTwo.trace.perType.world.visibility?.activeAvatarId).toBe('avatar_2')
+    expect(forAvatarTwo.trace.perType.world.visibility?.excludedChunkCount).toBe(1)
   })
 })

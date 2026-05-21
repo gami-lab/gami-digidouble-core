@@ -118,6 +118,7 @@ const retrievalBodySchema = {
     sessionId: { type: 'string', minLength: 1 },
     userId: { type: 'string', minLength: 1 },
     conversationId: { type: 'string', minLength: 1 },
+    activeAvatarId: { type: 'string', minLength: 1 },
     limitPerType: { type: 'integer', minimum: 1, maximum: 20 },
   },
   additionalProperties: false,

@@ -129,6 +129,7 @@ export type QueryKnowledgeRetrievalRequest = {
   sessionId?: string
   userId?: string
   conversationId?: string
+  activeAvatarId?: string
   limitPerType?: number
 }
 
@@ -143,6 +144,11 @@ export type TypedKnowledgeRetrievalDto = {
       {
         sourceIds: string[]
         selectedChunkIds: string[]
+        visibility?: {
+          activeAvatarId?: string
+          consideredChunkCount: number
+          excludedChunkCount: number
+        }
       }
     >
   }

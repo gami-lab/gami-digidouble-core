@@ -160,6 +160,11 @@ function readOptionalContextSelection(
 ): TurnCompletedEventPayload['contextSelection'] | undefined {
   if (!isRecord(value)) return undefined
   const retrievalCountsValue = isRecord(value['retrievalCounts']) ? value['retrievalCounts'] : {}
+  const visibilityValue = isRecord(value['visibility']) ? value['visibility'] : null
+  const excludedCountsValue =
+    visibilityValue !== null && isRecord(visibilityValue['excludedCounts'])
+      ? visibilityValue['excludedCounts']
+      : {}
   return {
     shortTermExchangeCount: readNumber(value['shortTermExchangeCount']),
     hasWorkingMemory: readBoolean(value['hasWorkingMemory']),
@@ -169,6 +174,20 @@ function readOptionalContextSelection(
       world: readNumber(retrievalCountsValue['world']),
       media: readNumber(retrievalCountsValue['media']),
     },
+    ...(visibilityValue !== null
+      ? {
+          visibility: {
+            ...(typeof visibilityValue['activeAvatarId'] === 'string'
+              ? { activeAvatarId: visibilityValue['activeAvatarId'] }
+              : {}),
+            excludedCounts: {
+              memory: readNumber(excludedCountsValue['memory']),
+              world: readNumber(excludedCountsValue['world']),
+              media: readNumber(excludedCountsValue['media']),
+            },
+          },
+        }
+      : {}),
     hasUserPersona: readBoolean(value['hasUserPersona']),
     hasGmDirective: readBoolean(value['hasGmDirective']),
   }

@@ -57,6 +57,20 @@ function toSessionContextTrace(snapshot: SessionContextSnapshot): SessionContext
         world: trace.selectedInputs.retrievalCounts.world,
         media: trace.selectedInputs.retrievalCounts.media,
       },
+      ...(trace.selectedInputs.visibility !== undefined
+        ? {
+            visibility: {
+              ...(trace.selectedInputs.visibility.activeAvatarId !== undefined
+                ? { activeAvatarId: trace.selectedInputs.visibility.activeAvatarId }
+                : {}),
+              excludedCounts: {
+                memory: trace.selectedInputs.visibility.excludedCounts.memory,
+                world: trace.selectedInputs.visibility.excludedCounts.world,
+                media: trace.selectedInputs.visibility.excludedCounts.media,
+              },
+            },
+          }
+        : {}),
       hasUserPersona: trace.selectedInputs.hasUserPersona,
       hasGmDirective: trace.selectedInputs.hasGmDirective,
     },

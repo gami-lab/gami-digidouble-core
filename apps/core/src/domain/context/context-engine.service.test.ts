@@ -119,6 +119,11 @@ function assertBaselineAvatarKnowledge(output: ReturnType<ContextEngine['assembl
 
 function assertBaselineRetrievalCounts(output: ReturnType<ContextEngine['assemble']>): void {
   expect(output.trace.selectedInputs.retrievalCounts).toEqual({ memory: 1, world: 1, media: 1 })
+  expect(output.trace.selectedInputs.visibility?.excludedCounts).toEqual({
+    memory: 0,
+    world: 0,
+    media: 0,
+  })
 }
 
 function applyConflictingMemoryAndRetrieval(input: ContextEngineInput): void {

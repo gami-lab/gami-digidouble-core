@@ -537,6 +537,8 @@ Notes:
 - response remains typed (`memory`/`world`/`media` + trace metadata)
 - retrieved `content` is bounded/truncated for safe debug inspection payloads
 - retrieval items may expose `visibleToAvatarIds` metadata for visibility observability
+- optional `activeAvatarId` request field applies avatar-scoped visibility filtering before context assembly
+- retrieval trace may include bounded visibility explainability counts (`consideredChunkCount`, `excludedChunkCount`) per type
 
 ---
 
