@@ -539,6 +539,7 @@ Notes:
 - retrieval items may expose `visibleToAvatarIds` metadata for visibility observability
 - optional `activeAvatarId` request field applies avatar-scoped visibility filtering before context assembly
 - retrieval trace may include bounded visibility explainability counts (`consideredChunkCount`, `excludedChunkCount`) per type
+- GM/runtime context diagnostics may include bounded `gmRetrievalCounts` with `gmUnrestricted=true` to show omniscient retrieval scope without exposing raw hidden content
 
 ---
 

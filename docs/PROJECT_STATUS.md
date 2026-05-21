@@ -544,6 +544,18 @@ Status: 🔄 In progress
   - turn-completed context selection observability visibility counters
 - deterministic unit coverage added for avatar-scoped filtering behavior and avatar-switch scope transitions
 
+### Current slice completed (GM omniscience + visibility diagnostics)
+
+- context assembly now uses asymmetric retrieval channels:
+  - avatar channel: visibility-filtered by active avatar
+  - GM channel: unrestricted visibility for orchestration omniscience
+- runtime/admin visibility diagnostics expanded with bounded counters:
+  - avatar exclusion counts per retrieval type
+  - GM retrieval counts per retrieval type
+  - explicit `gmUnrestricted` marker
+- turn-completed observability context-selection metadata aligned with visibility decisions (counts/flags only, no raw hidden content)
+- tests added/updated to verify avatar filtering enforcement and GM omniscient retrieval asymmetry
+
 ---
 
 # 3. Current Public API Surface

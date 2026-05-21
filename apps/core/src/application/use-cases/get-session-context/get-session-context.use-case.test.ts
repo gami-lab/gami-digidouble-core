@@ -123,6 +123,26 @@ function buildVisibilityTypedRetrievalService(): TypedRetrievalService {
   return new TypedRetrievalService(sourceRepo, chunkRepo)
 }
 
+function buildVisibilityScopedUseCase(avatarId: 'avatar_1' | 'avatar_2'): GetSessionContextUseCase {
+  return new GetSessionContextUseCase(
+    new InMemorySessionRepository([makeSession()]),
+    new InMemoryConversationRepository([makeConversation({ avatarId })]),
+    new InMemoryAvatarRepository(makeAvatars()),
+    new InMemoryScenarioRepository([makeScenario()]),
+    new InMemoryMessageRepository(makeMessages()),
+    new InMemoryGmStateRepository([makeGmState()]),
+    new InMemoryUserRepository([makeUser()]),
+    undefined,
+    buildVisibilityTypedRetrievalService(),
+  )
+}
+
+function worldChunkIdsFromAvatarContext(
+  output: Awaited<ReturnType<GetSessionContextUseCase['execute']>>,
+) {
+  return output.avatarContext.knowledge?.typedSections?.world.map((item) => item.chunkId) ?? []
+}
+
 function makeSession() {
   return {
     sessionId: 'session_1',
@@ -344,47 +364,28 @@ describe('GetSessionContextUseCase', () => {
 
 describe('GetSessionContextUseCase visibility scope', () => {
   it('updates avatar retrieval scope deterministically when active avatar changes', async () => {
-    const scenarioRepository = new InMemoryScenarioRepository([makeScenario()])
-    const avatarRepository = new InMemoryAvatarRepository(makeAvatars())
-    const messageRepository = new InMemoryMessageRepository(makeMessages())
-    const gmStateRepository = new InMemoryGmStateRepository([makeGmState()])
-    const sessionRepository = new InMemorySessionRepository([makeSession()])
-
-    const useCaseAvatarOne = new GetSessionContextUseCase(
-      sessionRepository,
-      new InMemoryConversationRepository([makeConversation({ avatarId: 'avatar_1' })]),
-      avatarRepository,
-      scenarioRepository,
-      messageRepository,
-      gmStateRepository,
-      new InMemoryUserRepository([makeUser()]),
-      undefined,
-      buildVisibilityTypedRetrievalService(),
-    )
-    const useCaseAvatarTwo = new GetSessionContextUseCase(
-      sessionRepository,
-      new InMemoryConversationRepository([makeConversation({ avatarId: 'avatar_2' })]),
-      avatarRepository,
-      scenarioRepository,
-      messageRepository,
-      gmStateRepository,
-      new InMemoryUserRepository([makeUser()]),
-      undefined,
-      buildVisibilityTypedRetrievalService(),
-    )
+    const useCaseAvatarOne = buildVisibilityScopedUseCase('avatar_1')
+    const useCaseAvatarTwo = buildVisibilityScopedUseCase('avatar_2')
 
     const avatarOneOutput = await useCaseAvatarOne.execute({ sessionId: 'session_1' })
     const avatarTwoOutput = await useCaseAvatarTwo.execute({ sessionId: 'session_1' })
-    const avatarOneWorldChunkIds =
-      avatarOneOutput.avatarContext.knowledge?.typedSections?.world.map((item) => item.chunkId) ??
-      []
-    const avatarTwoWorldChunkIds =
-      avatarTwoOutput.avatarContext.knowledge?.typedSections?.world.map((item) => item.chunkId) ??
-      []
+    const avatarOneWorldChunkIds = worldChunkIdsFromAvatarContext(avatarOneOutput)
+    const avatarTwoWorldChunkIds = worldChunkIdsFromAvatarContext(avatarTwoOutput)
 
     expect(avatarOneWorldChunkIds).toEqual(['knowledge_chunk_avatar_1'])
     expect(avatarTwoWorldChunkIds).toEqual(['knowledge_chunk_avatar_2'])
     expect(avatarOneOutput.contextTrace.selectedInputs.visibility?.activeAvatarId).toBe('avatar_1')
     expect(avatarTwoOutput.contextTrace.selectedInputs.visibility?.activeAvatarId).toBe('avatar_2')
+    expect(avatarOneOutput.contextTrace.selectedInputs.visibility?.gmUnrestricted).toBe(true)
+    expect(avatarOneOutput.contextTrace.selectedInputs.visibility?.gmRetrievalCounts).toEqual({
+      memory: 0,
+      world: 2,
+      media: 0,
+    })
+    expect(avatarTwoOutput.contextTrace.selectedInputs.visibility?.gmRetrievalCounts).toEqual({
+      memory: 0,
+      world: 2,
+      media: 0,
+    })
   })
 })

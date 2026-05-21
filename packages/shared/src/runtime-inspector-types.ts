@@ -117,6 +117,12 @@ export type TurnCompletedEventPayload = {
         world: number
         media: number
       }
+      gmRetrievalCounts?: {
+        memory: number
+        world: number
+        media: number
+      }
+      gmUnrestricted?: true
     }
     hasUserPersona: boolean
     hasGmDirective: boolean
@@ -301,6 +307,12 @@ export type SessionContextTrace = {
         world: number
         media: number
       }
+      gmRetrievalCounts?: {
+        memory: number
+        world: number
+        media: number
+      }
+      gmUnrestricted?: true
     }
     hasUserPersona: boolean
     hasGmDirective: boolean

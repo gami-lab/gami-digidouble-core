@@ -15,6 +15,7 @@ export type TypedRetrievalInput = {
   userId?: string
   conversationId?: string
   activeAvatarId?: string
+  bypassVisibilityFilter?: boolean
   query: string
   limitPerType?: number
 }
@@ -86,6 +87,7 @@ export class TypedRetrievalService {
       isAvatarVisible(
         chunk.visibleToAvatarIds ?? sourceVisibilityById.get(chunk.sourceId),
         input.activeAvatarId,
+        input.bypassVisibilityFilter === true,
       ),
     )
     const excludedByVisibilityCount = chunks.length - avatarVisibleChunks.length
@@ -122,7 +124,9 @@ export class TypedRetrievalService {
 function isAvatarVisible(
   visibleToAvatarIds: string[] | undefined,
   activeAvatarId: string | undefined,
+  bypassVisibilityFilter: boolean,
 ): boolean {
+  if (bypassVisibilityFilter) return true
   const normalized = normalizeVisibleToAvatarIds(visibleToAvatarIds)
   if (normalized === undefined) return true
   if (activeAvatarId === undefined) return false

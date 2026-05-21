@@ -247,6 +247,12 @@ export class SendMessageUseCase {
       args.conversation.conversationId,
       args.conversation.avatarId,
     )
+    const retrievalForGm = await this.loadTypedRetrieval(
+      args.session,
+      args.conversation.conversationId,
+      undefined,
+      true,
+    )
     const assembledContext = this.contextAssembler.assemble({
       sessionId: args.session.sessionId,
       activeAvatarId: args.conversation.avatarId,
@@ -261,6 +267,7 @@ export class SendMessageUseCase {
       extensions: {
         memory,
         retrieval,
+        ...(retrievalForGm !== undefined ? { retrievalForGm } : {}),
         userPersona: userPersona ?? null,
         gmDirective: args.session.gmNotes ?? null,
       },
@@ -294,7 +301,12 @@ export class SendMessageUseCase {
     }
   }
 
-  private async loadTypedRetrieval(session: Session, conversationId: string, avatarId: string) {
+  private async loadTypedRetrieval(
+    session: Session,
+    conversationId: string,
+    avatarId: string | undefined,
+    bypassVisibilityFilter = false,
+  ) {
     if (this.typedRetrievalService === undefined) return undefined
     const recentMessages = await this.messageRepository.findByConversationId(conversationId, {
       limit: 12,
@@ -314,7 +326,8 @@ export class SendMessageUseCase {
       sessionId: session.sessionId,
       userId: session.userId,
       conversationId,
-      activeAvatarId: avatarId,
+      ...(avatarId !== undefined ? { activeAvatarId: avatarId } : {}),
+      ...(bypassVisibilityFilter ? { bypassVisibilityFilter: true } : {}),
       query,
       limitPerType: 3,
     })

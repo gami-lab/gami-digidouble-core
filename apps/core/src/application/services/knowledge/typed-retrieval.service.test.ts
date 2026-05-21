@@ -152,9 +152,15 @@ describe('TypedRetrievalService', () => {
       query: 'visible',
       activeAvatarId: 'avatar_2',
     })
+    const forGm = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'visible',
+      bypassVisibilityFilter: true,
+    })
 
     expect(forAvatarOne.world).toHaveLength(1)
     expect(forAvatarTwo.world).toHaveLength(0)
+    expect(forGm.world).toHaveLength(1)
     expect(forAvatarTwo.trace.perType.world.visibility?.activeAvatarId).toBe('avatar_2')
     expect(forAvatarTwo.trace.perType.world.visibility?.excludedChunkCount).toBe(1)
   })

@@ -45,7 +45,8 @@ export class ContextEngine {
 function normalizeInput(input: ContextEngineInput) {
   return {
     longTermFacts: dedupeLongTermFacts(input.extensions.memory?.longTerm?.facts ?? EMPTY_FACTS),
-    retrieval: dedupeRetrieval(input.extensions.retrieval),
+    avatarRetrieval: dedupeRetrieval(input.extensions.retrieval),
+    gmRetrieval: dedupeRetrieval(input.extensions.retrievalForGm ?? input.extensions.retrieval),
   }
 }
 
@@ -84,7 +85,8 @@ function buildCandidates(
   pushShortTermCandidates(candidates, memory?.shortTerm?.recentExchanges ?? EMPTY_EXCHANGES)
   pushWorkingMemoryCandidates(candidates, memory)
   pushLongTermFactCandidates(candidates, normalized.longTermFacts)
-  pushRetrievalCandidates(candidates, normalized.retrieval)
+  pushAvatarRetrievalCandidates(candidates, normalized.avatarRetrieval)
+  pushGmRetrievalCandidates(candidates, normalized.gmRetrieval)
   pushRecentMessageCandidate(candidates, input.recentMessages)
 
   return candidates
@@ -231,17 +233,27 @@ function pushLongTermFactCandidates(
   })
 }
 
-function pushRetrievalCandidates(
+function pushAvatarRetrievalCandidates(
   candidates: CandidateSegment[],
   retrieval: ReturnType<typeof dedupeRetrieval>,
 ): void {
   if (retrieval === undefined) return
-  pushRetrievalSegmentCandidate(candidates, 'typedRetrievalMemory', retrieval.memory)
-  pushRetrievalSegmentCandidate(candidates, 'typedRetrievalWorld', retrieval.world)
-  pushRetrievalSegmentCandidate(candidates, 'typedRetrievalMedia', retrieval.media)
+  pushAvatarRetrievalSegmentCandidate(candidates, 'typedRetrievalMemory', retrieval.memory)
+  pushAvatarRetrievalSegmentCandidate(candidates, 'typedRetrievalWorld', retrieval.world)
+  pushAvatarRetrievalSegmentCandidate(candidates, 'typedRetrievalMedia', retrieval.media)
 }
 
-function pushRetrievalSegmentCandidate(
+function pushGmRetrievalCandidates(
+  candidates: CandidateSegment[],
+  retrieval: ReturnType<typeof dedupeRetrieval>,
+): void {
+  if (retrieval === undefined) return
+  pushGmRetrievalSegmentCandidate(candidates, 'typedRetrievalMemory', retrieval.memory)
+  pushGmRetrievalSegmentCandidate(candidates, 'typedRetrievalWorld', retrieval.world)
+  pushGmRetrievalSegmentCandidate(candidates, 'typedRetrievalMedia', retrieval.media)
+}
+
+function pushAvatarRetrievalSegmentCandidate(
   candidates: CandidateSegment[],
   segmentId: 'typedRetrievalMemory' | 'typedRetrievalWorld' | 'typedRetrievalMedia',
   items: RetrievedKnowledgeItem[],
@@ -256,6 +268,15 @@ function pushRetrievalSegmentCandidate(
       applyAvatarKnowledgeSegment(draft, segmentId, items)
     },
   })
+}
+
+function pushGmRetrievalSegmentCandidate(
+  candidates: CandidateSegment[],
+  segmentId: 'typedRetrievalMemory' | 'typedRetrievalWorld' | 'typedRetrievalMedia',
+  items: RetrievedKnowledgeItem[],
+): void {
+  if (items.length === 0) return
+  const tokenEstimate = estimateTokens(items.map((item) => item.content).join(' '))
   candidates.push({
     projection: 'gm',
     segmentId,
@@ -475,6 +496,16 @@ function buildTraceVisibility(
       world: trace.perType.world.visibility?.excludedChunkCount ?? 0,
       media: trace.perType.media.visibility?.excludedChunkCount ?? 0,
     },
+    ...(input.extensions.retrievalForGm !== undefined
+      ? {
+          gmRetrievalCounts: {
+            memory: input.extensions.retrievalForGm.memory.length,
+            world: input.extensions.retrievalForGm.world.length,
+            media: input.extensions.retrievalForGm.media.length,
+          },
+          gmUnrestricted: true,
+        }
+      : {}),
   }
 }
 

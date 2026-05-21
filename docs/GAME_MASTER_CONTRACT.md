@@ -585,6 +585,7 @@ Avatar-facing context:
 - user persona
 - GM notes
 - scenario metadata (description/goals)
+- typed retrieval visibility is asymmetric: avatar-facing retrieval may be filtered by active avatar visibility, while GM retrieval remains unrestricted (omniscient) for orchestration decisions
 
 GM-facing context:
 

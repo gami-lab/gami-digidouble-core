@@ -19,6 +19,7 @@ export type ContextEngineInput = {
   extensions: {
     memory: LayeredMemorySnapshot | undefined
     retrieval: TypedRetrievalResult | undefined
+    retrievalForGm?: TypedRetrievalResult
     userPersona: UserPersona | null
     gmDirective: string | null
   }
@@ -52,6 +53,12 @@ export type ContextEngineTrace = {
         world: number
         media: number
       }
+      gmRetrievalCounts?: {
+        memory: number
+        world: number
+        media: number
+      }
+      gmUnrestricted?: true
     }
     hasUserPersona: boolean
     hasGmDirective: boolean

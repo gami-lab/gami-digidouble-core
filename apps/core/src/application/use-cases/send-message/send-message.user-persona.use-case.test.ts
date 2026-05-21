@@ -423,6 +423,8 @@ describe('SendMessageUseCase — context selection observability', () => {
           visibility?: {
             activeAvatarId?: string
             excludedCounts: { memory: number; world: number; media: number }
+            gmRetrievalCounts?: { memory: number; world: number; media: number }
+            gmUnrestricted?: true
           }
           hasUserPersona: boolean
           hasGmDirective: boolean
@@ -437,6 +439,8 @@ describe('SendMessageUseCase — context selection observability', () => {
       visibility: {
         activeAvatarId: 'avatar_1',
         excludedCounts: { memory: 0, world: 0, media: 0 },
+        gmRetrievalCounts: { memory: 1, world: 0, media: 0 },
+        gmUnrestricted: true,
       },
       hasUserPersona: true,
       hasGmDirective: false,

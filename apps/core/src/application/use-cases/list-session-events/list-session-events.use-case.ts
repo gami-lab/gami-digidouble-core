@@ -160,11 +160,7 @@ function readOptionalContextSelection(
 ): TurnCompletedEventPayload['contextSelection'] | undefined {
   if (!isRecord(value)) return undefined
   const retrievalCountsValue = isRecord(value['retrievalCounts']) ? value['retrievalCounts'] : {}
-  const visibilityValue = isRecord(value['visibility']) ? value['visibility'] : null
-  const excludedCountsValue =
-    visibilityValue !== null && isRecord(visibilityValue['excludedCounts'])
-      ? visibilityValue['excludedCounts']
-      : {}
+  const visibility = readOptionalVisibilitySelection(value['visibility'])
   return {
     shortTermExchangeCount: readNumber(value['shortTermExchangeCount']),
     hasWorkingMemory: readBoolean(value['hasWorkingMemory']),
@@ -174,22 +170,39 @@ function readOptionalContextSelection(
       world: readNumber(retrievalCountsValue['world']),
       media: readNumber(retrievalCountsValue['media']),
     },
-    ...(visibilityValue !== null
+    ...(visibility !== undefined ? { visibility } : {}),
+    hasUserPersona: readBoolean(value['hasUserPersona']),
+    hasGmDirective: readBoolean(value['hasGmDirective']),
+  }
+}
+
+function readOptionalVisibilitySelection(
+  value: unknown,
+): NonNullable<TurnCompletedEventPayload['contextSelection']>['visibility'] | undefined {
+  if (!isRecord(value)) return undefined
+  const excludedCountsValue = isRecord(value['excludedCounts']) ? value['excludedCounts'] : {}
+  const gmRetrievalCountsValue = isRecord(value['gmRetrievalCounts'])
+    ? value['gmRetrievalCounts']
+    : undefined
+  return {
+    ...(typeof value['activeAvatarId'] === 'string'
+      ? { activeAvatarId: value['activeAvatarId'] }
+      : {}),
+    excludedCounts: {
+      memory: readNumber(excludedCountsValue['memory']),
+      world: readNumber(excludedCountsValue['world']),
+      media: readNumber(excludedCountsValue['media']),
+    },
+    ...(value['gmUnrestricted'] === true ? { gmUnrestricted: true } : {}),
+    ...(gmRetrievalCountsValue !== undefined
       ? {
-          visibility: {
-            ...(typeof visibilityValue['activeAvatarId'] === 'string'
-              ? { activeAvatarId: visibilityValue['activeAvatarId'] }
-              : {}),
-            excludedCounts: {
-              memory: readNumber(excludedCountsValue['memory']),
-              world: readNumber(excludedCountsValue['world']),
-              media: readNumber(excludedCountsValue['media']),
-            },
+          gmRetrievalCounts: {
+            memory: readNumber(gmRetrievalCountsValue['memory']),
+            world: readNumber(gmRetrievalCountsValue['world']),
+            media: readNumber(gmRetrievalCountsValue['media']),
           },
         }
       : {}),
-    hasUserPersona: readBoolean(value['hasUserPersona']),
-    hasGmDirective: readBoolean(value['hasGmDirective']),
   }
 }
 

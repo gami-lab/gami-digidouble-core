@@ -16,6 +16,12 @@ export function toContextSelectionMetadata(assembledContext: ContextEngineOutput
       world: number
       media: number
     }
+    gmRetrievalCounts?: {
+      memory: number
+      world: number
+      media: number
+    }
+    gmUnrestricted?: true
   }
   hasUserPersona: boolean
   hasGmDirective: boolean

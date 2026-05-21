@@ -68,6 +68,18 @@ function toSessionContextTrace(snapshot: SessionContextSnapshot): SessionContext
                 world: trace.selectedInputs.visibility.excludedCounts.world,
                 media: trace.selectedInputs.visibility.excludedCounts.media,
               },
+              ...(trace.selectedInputs.visibility.gmRetrievalCounts !== undefined
+                ? {
+                    gmRetrievalCounts: {
+                      memory: trace.selectedInputs.visibility.gmRetrievalCounts.memory,
+                      world: trace.selectedInputs.visibility.gmRetrievalCounts.world,
+                      media: trace.selectedInputs.visibility.gmRetrievalCounts.media,
+                    },
+                  }
+                : {}),
+              ...(trace.selectedInputs.visibility.gmUnrestricted === true
+                ? { gmUnrestricted: true as const }
+                : {}),
             },
           }
         : {}),

@@ -55,6 +55,9 @@ export class GetSessionContextUseCase {
       extensions: {
         memory: contextData.memorySnapshot,
         retrieval: contextData.retrieval,
+        ...(contextData.retrievalForGm !== undefined
+          ? { retrievalForGm: contextData.retrievalForGm }
+          : {}),
         userPersona: contextData.userPersona,
         gmDirective: session.gmNotes ?? null,
       },
@@ -98,6 +101,7 @@ export class GetSessionContextUseCase {
       recentMessages,
       activeConversation?.avatarId,
     )
+    const retrievalForGm = await this.loadTypedRetrieval(session, recentMessages, undefined, true)
 
     return {
       scenario,
@@ -108,6 +112,7 @@ export class GetSessionContextUseCase {
       memorySnapshot,
       recentMessages,
       retrieval,
+      retrievalForGm,
     }
   }
 
@@ -141,6 +146,7 @@ export class GetSessionContextUseCase {
     session: Session,
     recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
     activeAvatarId: string | undefined,
+    bypassVisibilityFilter = false,
   ) {
     if (this.typedRetrievalService === undefined) return undefined
     const query = buildRetrievalQuery(recentMessages)
@@ -151,6 +157,7 @@ export class GetSessionContextUseCase {
       sessionId: session.sessionId,
       userId: session.userId,
       ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
+      ...(bypassVisibilityFilter ? { bypassVisibilityFilter: true } : {}),
       query,
       limitPerType: 3,
     })

@@ -365,6 +365,7 @@ Contains:
 - vector search
 - source metadata
 - avatar-scoped visibility filtering is applied in typed retrieval services before Context Engine assembly (not in route handlers or prompt text)
+- GM context assembly consumes an unrestricted retrieval channel to preserve Director omniscience, while avatar context consumes visibility-filtered retrieval
 - ingestion job lifecycle (`queued -> running -> completed | failed`) with retry
 - type-specific retrieval pipelines (`memory`, `world`, `media`) with deterministic merge output
 
