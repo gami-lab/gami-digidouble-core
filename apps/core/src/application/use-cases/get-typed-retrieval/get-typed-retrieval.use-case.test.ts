@@ -18,6 +18,18 @@ function buildUseCase(): GetTypedRetrievalUseCase {
       createdAt: '2026-05-11T10:00:00.000Z',
       updatedAt: '2026-05-11T10:00:00.000Z',
     },
+    {
+      sourceId: 'knowledge_source_world_avatar_1',
+      scenarioId: 'scenario_1',
+      name: 'Avatar one world',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/world.md',
+      status: 'ready',
+      visibleToAvatarIds: ['avatar_1'],
+      createdAt: '2026-05-11T10:00:00.000Z',
+      updatedAt: '2026-05-11T10:00:00.000Z',
+    },
   ])
   const chunkRepo = new InMemoryKnowledgeChunkRepository([
     {
@@ -27,6 +39,13 @@ function buildUseCase(): GetTypedRetrievalUseCase {
       chunkIndex: 0,
       createdAt: '2026-05-11T10:00:00.000Z',
       metadata: { userId: 'user_1' },
+    },
+    {
+      chunkId: 'knowledge_chunk_world_avatar_1',
+      sourceId: 'knowledge_source_world_avatar_1',
+      content: 'restricted world lore',
+      chunkIndex: 0,
+      createdAt: '2026-05-11T10:00:00.000Z',
     },
   ])
   return new GetTypedRetrievalUseCase(new TypedRetrievalService(sourceRepo, chunkRepo))
@@ -53,5 +72,25 @@ describe('GetTypedRetrievalUseCase', () => {
     await expect(useCase.execute({ scenarioId: ' ', query: 'budget' })).rejects.toEqual(
       expect.objectContaining<Partial<DomainError>>({ code: 'VALIDATION_ERROR' }),
     )
+  })
+
+  it('forwards activeAvatarId to enforce avatar visibility filtering', async () => {
+    const useCase = buildUseCase()
+
+    const visible = await useCase.execute({
+      scenarioId: 'scenario_1',
+      query: 'restricted',
+      activeAvatarId: 'avatar_1',
+    })
+    const hidden = await useCase.execute({
+      scenarioId: 'scenario_1',
+      query: 'restricted',
+      activeAvatarId: 'avatar_2',
+    })
+
+    expect(visible.retrieval.world).toHaveLength(1)
+    expect(hidden.retrieval.world).toHaveLength(0)
+    expect(hidden.retrieval.trace.perType.world.visibility?.activeAvatarId).toBe('avatar_2')
+    expect(hidden.retrieval.trace.perType.world.visibility?.excludedChunkCount).toBe(1)
   })
 })

@@ -504,7 +504,8 @@ Completed on: 2026-05-11
 
 ## EPIC 5.1b — Avatar-Scoped Knowledge Visibility
 
-Status: 🔄 In progress
+Status: ✅ Complete
+Completed on: 2026-05-21
 
 ### Current slice completed (contract cleanup)
 
@@ -563,6 +564,17 @@ Status: 🔄 In progress
 - retrieval diagnostics probe in console now supports optional active avatar scope input for operator validation workflows
 - runtime inspector context tab now renders bounded visibility diagnostics (`excludedCounts`, `gmRetrievalCounts`, `gmUnrestricted`) and item visibility tags
 - console tests updated for visibility form validation, API payload mapping, and diagnostics rendering
+
+### Current slice completed (hardening, coverage closure, and doc sync)
+
+- fixed admin typed retrieval scope wiring so `activeAvatarId` from canonical shared request contracts is forwarded end-to-end into typed retrieval filtering
+- added deterministic regression tests for admin retrieval avatar-scope behavior:
+  - use-case coverage proving `activeAvatarId` filtering is enforced
+  - stack-e2e knowledge route coverage proving avatar-scope retrieval behavior via HTTP path
+- revalidated visibility safety invariants in touched suites:
+  - avatar privacy filtering remains deterministic
+  - GM visibility remains unrestricted with bounded diagnostics only
+- confirmed no new EPIC 5.1b endpoint surfaces were introduced beyond existing knowledge/admin routes; mandatory auth/validation/not-found stack-e2e baselines remain on those routes
 
 ---
 

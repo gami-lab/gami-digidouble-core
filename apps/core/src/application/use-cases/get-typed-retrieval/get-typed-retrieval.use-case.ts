@@ -25,6 +25,7 @@ export class GetTypedRetrievalUseCase {
       ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
       ...(input.userId !== undefined ? { userId: input.userId } : {}),
       ...(input.conversationId !== undefined ? { conversationId: input.conversationId } : {}),
+      ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
       ...(input.limitPerType !== undefined ? { limitPerType: input.limitPerType } : {}),
     })
 

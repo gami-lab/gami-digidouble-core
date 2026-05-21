@@ -96,59 +96,71 @@ async function waitForJob(ingestionJobId: string): Promise<{ status: string }> {
   throw new Error(`Timed out waiting for job ${ingestionJobId}`)
 }
 
+async function seedReadyWorldKnowledgeSource(args: {
+  visibleToAvatarIds?: string[]
+  inlineText: string
+}): Promise<{ scenarioId: string }> {
+  const now = Date.now().toString()
+  const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ name: `Knowledge scenario ${now}` }),
+  })
+  expect(createScenarioRes.status).toBe(201)
+  const scenarioBody = (await createScenarioRes.json()) as {
+    data: { scenario: { scenarioId: string } }
+  }
+  const scenarioId = scenarioBody.data.scenario.scenarioId
+
+  const createSourceRes = await fetch(`${APP_URL}/v1/knowledge-sources`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({
+      scenarioId,
+      name: 'World lore',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/world-lore.txt',
+      metadata: { inlineText: args.inlineText },
+      ...(args.visibleToAvatarIds !== undefined
+        ? { visibleToAvatarIds: args.visibleToAvatarIds }
+        : {}),
+    }),
+  })
+  expect(createSourceRes.status).toBe(201)
+  const createSourceBody = (await createSourceRes.json()) as {
+    data: { source: { sourceId: string } }
+  }
+  const sourceId = createSourceBody.data.source.sourceId
+
+  const triggerRes = await fetch(`${APP_URL}/v1/knowledge-sources/${sourceId}/ingest`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({}),
+  })
+  expect(triggerRes.status).toBe(202)
+  const triggerBody = (await triggerRes.json()) as {
+    data: { ingestionJob: { ingestionJobId: string } }
+  }
+
+  const finalJob = await waitForJob(triggerBody.data.ingestionJob.ingestionJobId)
+  expect(finalJob.status).toBe('completed')
+
+  return { scenarioId }
+}
+
 describe('Stack E2E — knowledge routes — happy path', () => {
   it('creates source, triggers ingestion, and queries retrieval', async () => {
-    const now = Date.now().toString()
-    const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ name: `Knowledge scenario ${now}` }),
+    const seeded = await seedReadyWorldKnowledgeSource({
+      visibleToAvatarIds: ['avatar_world_1'],
+      inlineText: 'Kingdom history and timeline.',
     })
-    expect(createScenarioRes.status).toBe(201)
-    const scenarioBody = (await createScenarioRes.json()) as {
-      data: { scenario: { scenarioId: string } }
-    }
-    const actualScenarioId = scenarioBody.data.scenario.scenarioId
-
-    const createSourceRes = await fetch(`${APP_URL}/v1/knowledge-sources`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        scenarioId: actualScenarioId,
-        name: 'World lore',
-        knowledgeType: 'world',
-        format: 'text',
-        uriOrPath: '/tmp/world-lore.txt',
-        metadata: { inlineText: 'Kingdom history and timeline.' },
-        visibleToAvatarIds: ['avatar_world_1'],
-      }),
-    })
-    expect(createSourceRes.status).toBe(201)
-    const createSourceBody = (await createSourceRes.json()) as {
-      data: { source: { sourceId: string; visibleToAvatarIds?: string[] } }
-    }
-    const sourceId = createSourceBody.data.source.sourceId
-    expect(createSourceBody.data.source.visibleToAvatarIds).toEqual(['avatar_world_1'])
-
-    const triggerRes = await fetch(`${APP_URL}/v1/knowledge-sources/${sourceId}/ingest`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({}),
-    })
-    expect(triggerRes.status).toBe(202)
-    const triggerBody = (await triggerRes.json()) as {
-      data: { ingestionJob: { ingestionJobId: string } }
-    }
-    const ingestionJobId = triggerBody.data.ingestionJob.ingestionJobId
-
-    const finalJob = await waitForJob(ingestionJobId)
-    expect(finalJob.status).toBe('completed')
 
     const retrievalRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
-        scenarioId: actualScenarioId,
+        scenarioId: seeded.scenarioId,
         query: 'timeline',
         limitPerType: 3,
       }),
@@ -167,5 +179,43 @@ describe('Stack E2E — knowledge routes — happy path', () => {
     for (const item of retrievalBody.data.retrieval.world) {
       expect(item.content.length).toBeLessThanOrEqual(803)
     }
+  })
+
+  it('applies activeAvatarId visibility filtering deterministically', async () => {
+    const seeded = await seedReadyWorldKnowledgeSource({
+      visibleToAvatarIds: ['avatar_world_1'],
+      inlineText: 'Avatar one private timeline marker.',
+    })
+
+    const visibleRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        scenarioId: seeded.scenarioId,
+        query: 'timeline marker',
+        activeAvatarId: 'avatar_world_1',
+      }),
+    })
+    expect(visibleRes.status).toBe(200)
+    const visibleBody = (await visibleRes.json()) as {
+      data: { retrieval: { world: Array<{ chunkId: string }> } }
+    }
+
+    const hiddenRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        scenarioId: seeded.scenarioId,
+        query: 'timeline marker',
+        activeAvatarId: 'avatar_world_2',
+      }),
+    })
+    expect(hiddenRes.status).toBe(200)
+    const hiddenBody = (await hiddenRes.json()) as {
+      data: { retrieval: { world: Array<{ chunkId: string }> } }
+    }
+
+    expect(visibleBody.data.retrieval.world.length).toBeGreaterThan(0)
+    expect(hiddenBody.data.retrieval.world).toEqual([])
   })
 })
