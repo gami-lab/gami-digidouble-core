@@ -308,8 +308,6 @@ export function DebugShellPage({
         setState((prev) => withError(prev, formatApiError(error, 'Failed to load session')))
       }
     })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // selectedConversationId is only an initial hint — conversation changes are handled by the effect below
   }, [selectedSessionId])
 
   useEffect(() => {
@@ -323,8 +321,6 @@ export function DebugShellPage({
     }
 
     void openConversationFlow(selectedConversationId, setState)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // stateRef is a ref (not reactive) — state guards are read via stateRef.current
   }, [selectedConversationId, selectedSessionId])
 
   useEffect(() => {
