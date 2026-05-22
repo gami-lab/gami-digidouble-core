@@ -128,9 +128,15 @@ async function switchAvatarFlow(
 ): Promise<void> {
   const result = await switchAvatar(sessionId, avatarId)
   const available = await getAvailableAvatars(sessionId)
+  const history = await getHistory(result.conversation.conversationId)
   setState((prev) =>
     withAvailableAvatarsRefreshed(
-      withConversationAdded(prev, result.conversation, result.session, true),
+      withConversationHistoryLoaded(
+        withConversationAdded(prev, result.conversation, result.session, true),
+        result.conversation.conversationId,
+        history.messages,
+        result.conversation,
+      ),
       avatarIds(available.avatars),
       result.session,
       prev.availableAvatarIds,
