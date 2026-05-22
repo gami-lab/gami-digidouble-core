@@ -4,6 +4,7 @@ import type { CSSProperties, JSX } from 'react'
 import type { ModelConfigResponse } from '@gami/shared'
 import { ApiError } from '../api'
 import { getModelConfig, updateModelConfig } from '../api'
+import { getModelPresetOptions } from '../api/model-presets'
 import { PROVIDER_OPTIONS } from '../api/provider-options'
 import { formatApiError } from '../api/error'
 import { buttonStyle, errorStyle, inputStyle, labelStyle, sectionStyle } from './form-styles'
@@ -87,6 +88,9 @@ export function ModelConfigPanel(): JSX.Element {
       })
   }
 
+  const globalModelOptions =
+    form === null ? [] : getModelPresetOptions(form.globalDefault.provider, form.globalDefault.model)
+
   return (
     <section style={sectionStyle}>
       <h3 style={{ marginTop: 0 }}>Model Configuration</h3>
@@ -109,10 +113,18 @@ export function ModelConfigPanel(): JSX.Element {
               setForm((prev) =>
                 prev === null
                   ? prev
-                  : {
-                      ...prev,
-                      globalDefault: { ...prev.globalDefault, provider: event.target.value },
-                    },
+                  : (() => {
+                      const provider = event.target.value
+                      const nextModelOptions = getModelPresetOptions(provider, prev.globalDefault.model)
+                      const model =
+                        nextModelOptions.some((option) => option.value === prev.globalDefault.model)
+                          ? prev.globalDefault.model
+                          : ''
+                      return {
+                        ...prev,
+                        globalDefault: { provider, model },
+                      }
+                    })(),
               )
             }}
           >
@@ -125,7 +137,7 @@ export function ModelConfigPanel(): JSX.Element {
           <label style={labelStyle} htmlFor="global-model">
             Global model
           </label>
-          <input
+          <select
             id="global-model"
             style={inputStyle}
             value={form.globalDefault.model}
@@ -139,7 +151,14 @@ export function ModelConfigPanel(): JSX.Element {
                     },
               )
             }}
-          />
+          >
+            <option value="">inherit</option>
+            {globalModelOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
 
           <table style={roleTableStyle}>
             <thead>
@@ -162,16 +181,30 @@ export function ModelConfigPanel(): JSX.Element {
                         setForm((prev) =>
                           prev === null
                             ? prev
-                            : {
-                                ...prev,
-                                roleOverrides: {
-                                  ...prev.roleOverrides,
-                                  [role]: {
-                                    ...prev.roleOverrides[role],
-                                    provider: event.target.value,
+                            : (() => {
+                                const provider = event.target.value
+                                const nextModelOptions = getModelPresetOptions(
+                                  provider,
+                                  prev.roleOverrides[role].model,
+                                )
+                                const model =
+                                  nextModelOptions.some(
+                                    (option) => option.value === prev.roleOverrides[role].model,
+                                  )
+                                    ? prev.roleOverrides[role].model
+                                    : ''
+                                return {
+                                  ...prev,
+                                  roleOverrides: {
+                                    ...prev.roleOverrides,
+                                    [role]: {
+                                      ...prev.roleOverrides[role],
+                                      provider,
+                                      model,
+                                    },
                                   },
-                                },
-                              },
+                                }
+                              })(),
                         )
                       }}
                     >
@@ -184,7 +217,7 @@ export function ModelConfigPanel(): JSX.Element {
                     </select>
                   </td>
                   <td style={cellStyle}>
-                    <input
+                    <select
                       style={inputStyle}
                       value={form.roleOverrides[role].model}
                       onChange={(event) => {
@@ -203,8 +236,17 @@ export function ModelConfigPanel(): JSX.Element {
                               },
                         )
                       }}
-                      placeholder="inherit"
-                    />
+                    >
+                      <option value="">inherit</option>
+                      {getModelPresetOptions(
+                        form.roleOverrides[role].provider,
+                        form.roleOverrides[role].model,
+                      ).map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td style={cellStyle}>
                     <button

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
 import { createAvatar, listScenarioAvatars } from '../api'
+import { getModelPresetOptions } from '../api/model-presets'
 import { PROVIDER_OPTIONS } from '../api/provider-options'
 import { formatApiError } from '../api/error'
 import type { AvatarSummary } from '../api/scenarios'
@@ -136,6 +137,7 @@ type AvatarFormProps = {
 
 function AvatarForm({ values, isSubmitting, submitError, onValuesChange, onSubmit }: AvatarFormProps): JSX.Element {
   const [isOverrideExpanded, setIsOverrideExpanded] = useState(false)
+
   return (
     <form onSubmit={onSubmit}>
       <fieldset style={{ margin: 0, padding: 0, border: 'none' }} disabled={isSubmitting}>
@@ -184,45 +186,12 @@ function AvatarForm({ values, isSubmitting, submitError, onValuesChange, onSubmi
           style={inputStyle}
           labelStyle={labelStyle}
         />
-        <details
-          open={isOverrideExpanded}
-          onToggle={(event) => {
-            setIsOverrideExpanded(event.currentTarget.open)
-          }}
-          style={{ marginTop: '8px' }}
-        >
-          <summary style={{ cursor: 'pointer', color: '#374151', fontWeight: 600 }}>
-            Model Override (optional)
-          </summary>
-          <label style={labelStyle} htmlFor="avatar-llm-provider-override">
-            Provider override
-          </label>
-          <select
-            id="avatar-llm-provider-override"
-            style={inputStyle}
-            value={values.llmProviderOverride}
-            onChange={(event) => {
-              onValuesChange({ ...values, llmProviderOverride: event.target.value })
-            }}
-          >
-            <option value="">inherit</option>
-            {PROVIDER_OPTIONS.map((provider) => (
-              <option key={provider} value={provider}>
-                {provider}
-              </option>
-            ))}
-          </select>
-          <LabeledInput
-            id="avatar-llm-model-override"
-            label="Model override"
-            value={values.llmModelOverride}
-            onChange={(llmModelOverride) => {
-              onValuesChange({ ...values, llmModelOverride })
-            }}
-            style={inputStyle}
-            labelStyle={labelStyle}
-          />
-        </details>
+        <ModelOverrideFields
+          values={values}
+          isOverrideExpanded={isOverrideExpanded}
+          setIsOverrideExpanded={setIsOverrideExpanded}
+          onValuesChange={onValuesChange}
+        />
 
         <button
           type="submit"
@@ -235,6 +204,78 @@ function AvatarForm({ values, isSubmitting, submitError, onValuesChange, onSubmi
         {submitError !== null ? <p style={errorStyle}>{submitError}</p> : null}
       </fieldset>
     </form>
+  )
+}
+
+type ModelOverrideFieldsProps = {
+  values: AvatarFormValues
+  isOverrideExpanded: boolean
+  setIsOverrideExpanded: (isOpen: boolean) => void
+  onValuesChange: (values: AvatarFormValues) => void
+}
+
+function ModelOverrideFields({
+  values,
+  isOverrideExpanded,
+  setIsOverrideExpanded,
+  onValuesChange,
+}: ModelOverrideFieldsProps): JSX.Element {
+  const modelOptions = getModelPresetOptions(values.llmProviderOverride, values.llmModelOverride)
+
+  return (
+    <details
+      open={isOverrideExpanded}
+      onToggle={(event) => {
+        setIsOverrideExpanded(event.currentTarget.open)
+      }}
+      style={{ marginTop: '8px' }}
+    >
+      <summary style={{ cursor: 'pointer', color: '#374151', fontWeight: 600 }}>
+        Model Override (optional)
+      </summary>
+      <label style={labelStyle} htmlFor="avatar-llm-provider-override">
+        Provider override
+      </label>
+      <select
+        id="avatar-llm-provider-override"
+        style={inputStyle}
+        value={values.llmProviderOverride}
+        onChange={(event) => {
+          const llmProviderOverride = event.target.value
+          const nextModelOptions = getModelPresetOptions(llmProviderOverride, values.llmModelOverride)
+          const llmModelOverride =
+            nextModelOptions.some((option) => option.value === values.llmModelOverride)
+              ? values.llmModelOverride
+              : ''
+          onValuesChange({ ...values, llmProviderOverride, llmModelOverride })
+        }}
+      >
+        <option value="">inherit</option>
+        {PROVIDER_OPTIONS.map((provider) => (
+          <option key={provider} value={provider}>
+            {provider}
+          </option>
+        ))}
+      </select>
+      <label style={labelStyle} htmlFor="avatar-llm-model-override">
+        Model override
+      </label>
+      <select
+        id="avatar-llm-model-override"
+        style={inputStyle}
+        value={values.llmModelOverride}
+        onChange={(event) => {
+          onValuesChange({ ...values, llmModelOverride: event.target.value })
+        }}
+      >
+        <option value="">inherit</option>
+        {modelOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </details>
   )
 }
 

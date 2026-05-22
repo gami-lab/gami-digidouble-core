@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import type { ComponentProps, CSSProperties, JSX } from 'react'
 import { ApiError } from '../api/client'
+import { getModelPresetOptions } from '../api/model-presets'
 import { PROVIDER_OPTIONS } from '../api/provider-options'
 import { updateAvatar, deleteAvatar } from '../api/scenarios'
 import type { AvatarSummary } from '../api/scenarios'
@@ -133,6 +134,7 @@ export function AvatarEditForm({ avatar, onSaved, onCancel }: AvatarEditFormProp
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isOverrideExpanded, setIsOverrideExpanded] = useState(false)
+  const modelOptions = getModelPresetOptions(values.llmProviderOverride, values.llmModelOverride)
 
   const handleSubmit = (event: FormSubmitEvent): void => {
     event.preventDefault()
@@ -204,7 +206,15 @@ export function AvatarEditForm({ avatar, onSaved, onCancel }: AvatarEditFormProp
               style={inputStyle}
               value={values.llmProviderOverride}
               onChange={(event) => {
-                setValues((v) => ({ ...v, llmProviderOverride: event.target.value }))
+                const llmProviderOverride = event.target.value
+                setValues((v) => {
+                  const nextModelOptions = getModelPresetOptions(llmProviderOverride, v.llmModelOverride)
+                  const llmModelOverride =
+                    nextModelOptions.some((option) => option.value === v.llmModelOverride)
+                      ? v.llmModelOverride
+                      : ''
+                  return { ...v, llmProviderOverride, llmModelOverride }
+                })
               }}
             >
               <option value="">inherit</option>
@@ -214,16 +224,24 @@ export function AvatarEditForm({ avatar, onSaved, onCancel }: AvatarEditFormProp
                 </option>
               ))}
             </select>
-            <LabeledInput
+            <label style={labelStyle} htmlFor={`edit-avatar-model-${avatar.avatarId}`}>
+              Model override
+            </label>
+            <select
               id={`edit-avatar-model-${avatar.avatarId}`}
-              label="Model override"
-              value={values.llmModelOverride}
-              onChange={(llmModelOverride) => {
-                setValues((v) => ({ ...v, llmModelOverride }))
-              }}
               style={inputStyle}
-              labelStyle={labelStyle}
-            />
+              value={values.llmModelOverride}
+              onChange={(event) => {
+                setValues((v) => ({ ...v, llmModelOverride: event.target.value }))
+              }}
+            >
+              <option value="">inherit</option>
+              {modelOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </details>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
