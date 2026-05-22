@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
 import type { ConversationSummary, ScenarioSummary } from '../api'
 import { listSessionConversations } from '../api'
@@ -109,11 +109,11 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
     [selectedSessionId, sessions],
   )
 
-  const handleShellSessionChanged = (sessionId: string | null): void => {
+  const handleShellSessionChanged = useCallback((sessionId: string | null): void => {
     if (sessionId === null || sessionId === selectedSessionId) return
     setSelectedSessionId(sessionId)
     setRefreshTrigger((previous) => previous + 1)
-  }
+  }, [selectedSessionId])
 
   return (
     <section style={sectionStyle}>

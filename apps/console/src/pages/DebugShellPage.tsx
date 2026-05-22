@@ -306,7 +306,9 @@ export function DebugShellPage({
         setState((prev) => withError(prev, formatApiError(error, 'Failed to load session')))
       }
     })()
-  }, [selectedConversationId, selectedSessionId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // selectedConversationId is only an initial hint — conversation changes are handled by the effect below
+  }, [selectedSessionId])
 
   useEffect(() => {
     if (
