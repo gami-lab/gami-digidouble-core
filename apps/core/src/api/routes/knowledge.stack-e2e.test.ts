@@ -152,7 +152,6 @@ async function seedReadyWorldKnowledgeSource(args: {
 describe('Stack E2E — knowledge routes — happy path', () => {
   it('creates source, triggers ingestion, and queries retrieval', async () => {
     const seeded = await seedReadyWorldKnowledgeSource({
-      visibleToAvatarIds: ['avatar_world_1'],
       inlineText: 'Kingdom history and timeline.',
     })
 
