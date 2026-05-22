@@ -261,6 +261,8 @@ export function DebugShellPage({
   const [personaReady, setPersonaReady] = useState(false)
   const [personaStatus, setPersonaStatus] = useState<string | null>(null)
   const turnIndexRef = useRef(0)
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   const {
     allAvatarsById,
@@ -313,20 +315,17 @@ export function DebugShellPage({
   useEffect(() => {
     if (
       selectedSessionId === null ||
-      state.session?.sessionId !== selectedSessionId ||
+      stateRef.current.session?.sessionId !== selectedSessionId ||
       selectedConversationId === null ||
-      state.selectedConversationId === selectedConversationId
+      stateRef.current.selectedConversationId === selectedConversationId
     ) {
       return
     }
 
     void openConversationFlow(selectedConversationId, setState)
-  }, [
-    selectedConversationId,
-    selectedSessionId,
-    state.selectedConversationId,
-    state.session?.sessionId,
-  ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // stateRef is a ref (not reactive) — state guards are read via stateRef.current
+  }, [selectedConversationId, selectedSessionId])
 
   useEffect(() => {
     if (userId.trim() === '') {
