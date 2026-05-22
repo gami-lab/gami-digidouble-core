@@ -10,6 +10,8 @@ const PROVIDER_MODEL_PRESETS: Record<(typeof PROVIDER_OPTIONS)[number], ModelPre
   openai: [
     { value: 'gpt-5.5', label: 'gpt-5.5 (frontier)' },
     { value: 'gpt-5.4', label: 'gpt-5.4 (balanced)' },
+    { value: 'gpt-4o', label: 'gpt-4o (fast & cheap)' },
+    { value: 'gpt-4o-mini', label: 'gpt-4o-mini (faster & cheaper)' },
     { value: 'gpt-5.4-mini', label: 'gpt-5.4-mini (fast)' },
     { value: 'gpt-5.4-nano', label: 'gpt-5.4-nano (lowest cost)' },
   ],
