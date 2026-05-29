@@ -17,7 +17,9 @@
 
 services:
   postgres:
-    image: pgvector/pgvector:pg17
+    build:
+      context: ./infra/postgres
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -25,13 +27,28 @@ services:
       POSTGRES_DB: gami_core
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d gami_core']
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  db-init:
+    build:
+      context: ./infra/postgres
+      dockerfile: Dockerfile
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - sh
+      - -lc
+      - >-
+        psql postgresql://postgres:postgres@postgres:5432/gami_core
+        -v ON_ERROR_STOP=1
+        -f /schema/init.sql
 
   redis:
     image: redis:7-alpine
@@ -73,6 +90,8 @@ services:
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
     depends_on:
+      db-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
