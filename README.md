@@ -70,7 +70,7 @@ User message → API validation → Load session/scenario
 | LLM Providers   | OpenAI, Anthropic, Mistral (via internal abstraction) |
 | Observability   | Langfuse (self-hosted)                                |
 | Streaming       | WebSocket + SSE fallback                              |
-| Deployment      | Docker Compose (app + PostgreSQL + Redis)             |
+| Deployment      | Docker Compose (app + PostgreSQL + Redis) / Coolify   |
 | Back-office     | Next.js (TypeScript)                                  |
 
 ---
@@ -125,7 +125,7 @@ pnpm infra:up
 pnpm dev
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full onboarding guide, quality commands, and workflow conventions.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full onboarding guide, quality commands, workflow conventions, and deployment notes.
 
 ---
 

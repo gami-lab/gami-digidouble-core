@@ -98,6 +98,31 @@ docker compose -f docker-compose.e2e.yml down -v
 
 The `docker-compose.e2e.yml` stack uses a fixed `API_KEY_SECRET` (`e2e-stack-secret`) already known by the test suite. LLM provider keys and Langfuse credentials are injected from the shell environment when available; by default `LLM_PROVIDER=null` so the suite runs without any real provider.
 
+### Coolify Full Stack (`docker-compose.coolify.yml`)
+
+```bash
+# Deploy the production stack in Coolify
+# Use `docker-compose.coolify.yml` as the Compose file in the Coolify project.
+```
+
+Required Coolify env vars:
+
+- `API_KEY_SECRET`
+
+Optional Coolify env vars:
+
+- `CORS_ORIGIN`
+- `LLM_PROVIDER`
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `MISTRAL_API_KEY`
+- `XAI_API_KEY`
+- `LANGFUSE_PUBLIC_KEY`
+- `LANGFUSE_SECRET_KEY`
+- `LANGFUSE_BASE_URL`
+
+The stack includes PostgreSQL and Redis as internal services, so the app connects to them through the Compose network and does not need external database or cache services.
+
 ## Daily Workflow
 
 ```bash
