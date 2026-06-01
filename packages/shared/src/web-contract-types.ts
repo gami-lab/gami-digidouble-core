@@ -141,3 +141,11 @@ export type UpsertUserPersonaApiResponse = UpsertUserPersonaResponse
 export type EndConversationApiResponse = EndConversationResponse
 
 export type UpdateAvatarRequestBody = UpdateAvatarRequest
+
+export type LocalWebIdentity = {
+  version: 1
+  userId: string
+  persona: UserPersona
+  createdAt: string
+  updatedAt: string
+}

@@ -135,4 +135,5 @@ export type {
   UpsertUserPersonaApiResponse,
   EndConversationApiResponse,
   UpdateAvatarRequestBody,
+  LocalWebIdentity,
 } from './web-contract-types.js'

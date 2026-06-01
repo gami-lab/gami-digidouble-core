@@ -90,6 +90,7 @@ A single app would couple unrelated concerns:
 ### Current layout
 
 - `apps/core` — backend API, production deployment target
+- `apps/web` — public user frontend (Phase A implementation in progress)
 - `apps/console` — debug/manual test console, local only
 
 ### Target layout

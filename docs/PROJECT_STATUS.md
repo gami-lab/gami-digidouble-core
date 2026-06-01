@@ -591,6 +591,23 @@ Status: 🚧 In Progress
   - `SessionSummary.activeAvatarId` remains optional (`undefined` when absent)
   - explicit `null` remains limited to contracts that intentionally use it (`currentAvatarId`, persona payloads, lifecycle transitions, and related admin/runtime payloads)
 
+### Current slice completed (web shell + local identity baseline)
+
+- new `apps/web` workspace package scaffolded with monorepo-standard scripts (`dev`, `build`, `typecheck`, `lint`, `test`, `preview`) and Vite + React + strict TypeScript setup
+- onboarding flow implemented for browser-owned identity creation:
+  - required `userId`
+  - optional canonical `UserPersona` fields (`name`, `roleInWorld`, `avatarRelationships`, `dialogGuidance`)
+- identity state model is explicit and deterministic:
+  - `onboarding` mode (identity creation)
+  - `active` mode (identity loaded and ready)
+- local persistence implemented with stable versioned contract ownership in shared types:
+  - `LocalWebIdentity` now owned by `packages/shared/src/web-contract-types.ts`
+  - local storage key fixed to `gami.web.identity.v1`
+- restore-on-load and reset flows implemented:
+  - identity is rehydrated from local storage on startup
+  - reset clears persisted identity and returns app to onboarding mode
+- deterministic unit coverage added for identity normalization, storage round-trip, invalid payload handling, and reset behavior
+
 ---
 
 # 3. Current Public API Surface
@@ -683,6 +700,7 @@ Status: 🚧 In Progress
 | 2026-05-11 | EPIC 5.1 — Knowledge Substrate, Ingestion, Retrieval  |
 | 2026-05-11 | EPIC 5.2 — Context Engine v2                          |
 | 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration         |
+| 2026-06-01 | EPIC 7.1 — Web shell + local identity slice           |
 
 ---
 
@@ -695,6 +713,7 @@ Current implementation focus:
 - media-aware retrieval
 - advanced orchestration intelligence
 - retrieval observability
+- public web app baseline (identity and shell)
 
 ---
 
