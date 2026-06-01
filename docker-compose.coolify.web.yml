@@ -1,0 +1,29 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Coolify production stack — public web app only
+#
+# Use this file as a separate Coolify project for the public frontend.
+#
+# Required env vars in Coolify (build-time for Vite):
+#   VITE_API_URL
+#   VITE_API_KEY
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_API_URL: ${VITE_API_URL:?}
+        VITE_API_KEY: ${VITE_API_KEY:?}
+    restart: unless-stopped
+    expose:
+      - '80'
+    labels:
+      - traefik.http.services.web.loadbalancer.server.port=80
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/health || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s

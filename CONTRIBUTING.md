@@ -98,10 +98,10 @@ docker compose -f docker-compose.e2e.yml down -v
 
 The `docker-compose.e2e.yml` stack uses a fixed `API_KEY_SECRET` (`e2e-stack-secret`) already known by the test suite. LLM provider keys and Langfuse credentials are injected from the shell environment when available; by default `LLM_PROVIDER=null` so the suite runs without any real provider.
 
-### Coolify Full Stack (`docker-compose.coolify.yml`)
+### Coolify Backend Stack (`docker-compose.coolify.yml`)
 
 ```bash
-# Deploy the production stack in Coolify
+# Deploy the backend stack in Coolify
 # Use `docker-compose.coolify.yml` as the Compose file in the Coolify project.
 ```
 
@@ -122,6 +122,20 @@ Optional Coolify env vars:
 - `LANGFUSE_BASE_URL`
 
 The stack includes PostgreSQL and Redis as internal services, so the app connects to them through the Compose network and does not need external database or cache services.
+
+### Coolify Public Web App (`docker-compose.coolify.web.yml`)
+
+```bash
+# Deploy the public web app as a separate Coolify project
+# Use `docker-compose.coolify.web.yml` as the Compose file in the web project.
+```
+
+Required Coolify env vars (build-time for Vite):
+
+- `VITE_API_URL` (example: `https://api.example.com`)
+- `VITE_API_KEY`
+
+The web stack builds `apps/web` and serves static assets through nginx on port 80.
 
 ## Daily Workflow
 
