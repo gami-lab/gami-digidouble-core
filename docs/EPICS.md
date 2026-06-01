@@ -1689,6 +1689,68 @@ A hybrid response engine improves quality/cost/latency trade-offs versus pure li
 
 - faster, more reliable responses without losing adaptability
 
+# Sprint 7 — Public Web Experience
+
+---
+
+## EPIC 7.1 — Public User Web App v1
+
+**Purpose**  
+Deliver the first production-facing user interface for players.
+
+**Description**  
+Build a professional public web experience where a user can create a local identity and persona, choose a scenario, see only currently available avatars, and chat with the active conversation in a focused single-chat view.
+
+This EPIC explicitly excludes `apps/console`, which remains a local debug/manual-testing tool and is not part of the Coolify production deployment.
+
+**Hypothesis**  
+A polished, low-friction public web app makes the Core usable by real end users without exposing internal debugging surfaces.
+
+**Includes**
+
+- local user identity creation with `userId` + persona
+- persistence of identity data in browser local storage
+- reset flow to discard the current identity and create a new one
+- scenario list visible only after identity creation
+- scenario selection flow
+- avatar list filtered to currently available avatars only
+- hidden avatars remain hidden until made available by the Game Master
+- live avatar list updates when new avatars become available
+- single active chat surface only
+- no access to old chats from the public UI
+- immediate optimistic display of sent messages
+- visible processing indicator while a response is pending
+- response arrival updates the current chat thread
+
+**DoD**
+
+- user can create a new identity and persona from the web app
+- identity survives browser refresh via local storage
+- user can reset identity and start over
+- user can select a scenario after identity creation
+- user sees only currently available avatars for the selected scenario
+- avatar availability can update dynamically when the GM unlocks a new avatar
+- user can start a chat with an available avatar
+- sent messages appear immediately in the current chat view
+- the UI shows that a response is being processed
+- the user only sees the current chat, not historical chats
+
+**What Can Be Tested**
+
+1. create identity + persona, refresh page, verify identity remains
+2. reset identity, verify local storage is cleared and onboarding restarts
+3. select a scenario and verify the scenario context loads
+4. verify only available avatars are shown
+5. unlock a new avatar and verify it appears in the avatar list
+6. send a message and verify it is rendered optimistically
+7. verify the processing indicator appears while waiting for the answer
+8. verify the current chat updates when the response arrives
+9. verify old chats are not reachable from the public UI
+
+**User Increment**
+
+- a real user can enter the experience, pick a scenario, and start chatting through a focused public interface
+
 # Final Rule
 
 If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
