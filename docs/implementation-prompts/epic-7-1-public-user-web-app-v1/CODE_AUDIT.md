@@ -177,3 +177,56 @@ Minimal changes needed to reach A:
 ## Final Recommendation
 
 Close with debt
+
+## Remediation Outcome
+
+### Changes Made
+
+- Added event-driven avatar availability refresh in `apps/web`:
+  - new SSE client for session runtime events in `apps/web/src/api/runtime-events-stream.ts`
+  - discovery layer now refreshes available avatars on `runtime.avatar_unlocked` events while preserving interval polling as fallback safety
+- Added behavior-level tests proving user-observable flows:
+  - onboarding success/failure flow in rendered app (`apps/web/src/App.behavior.test.tsx`)
+  - discovery dynamic update behavior (event-triggered + polling fallback) (`apps/web/src/discovery/use-scenario-avatar-discovery.behavior.test.tsx`)
+  - chat lifecycle behavior (optimistic pending send, success/failure reconciliation, conversation end reset) (`apps/web/src/chat/use-active-chat-runtime.behavior.test.tsx`)
+  - SSE frame parsing coverage for web runtime stream client (`apps/web/src/api/runtime-events-stream.test.ts`)
+- Synced project status docs for EPIC closure and remediation evidence (`docs/PROJECT_STATUS.md`)
+
+### Findings Resolved
+
+- Resolved: Behavioral confidence gap in web test suite
+  - Added behavior-level tests at app/hook boundaries for onboarding, discovery, and chat lifecycle.
+- Resolved: Live avatar availability behavior not proven
+  - Added deterministic tests for runtime-event unlock refresh and polling fallback refresh.
+- Resolved: Persona sync failure onboarding behavior not proven
+  - Added explicit rendered-flow failure test proving onboarding remains blocked with user-visible error.
+- Resolved: Event-driven principle drift for availability updates
+  - Implemented runtime-event subscription path for immediate unlock refresh; retained polling as bounded fallback.
+- Resolved: EPIC closure documentation ambiguity
+  - Updated EPIC 7.1 status to complete in project status document.
+
+### Findings Deferred
+
+- None
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`pnpm test:coverage`)
+
+### Final Feature Confidence
+
+- Local identity onboarding is behaviorally proven for both success and failure transitions.
+- Avatar discovery live updates are behaviorally proven via runtime unlock events and fallback interval refresh.
+- Current-chat-only runtime behavior is proven for optimistic send, failure handling, response reconciliation, and end-conversation reset.
+- Contract-safe API usage and runtime-event transport behavior are covered by deterministic tests.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- Runtime unlock visibility still depends on server event semantics; if event type contracts change, web refresh triggers must stay aligned with shared runtime event types.

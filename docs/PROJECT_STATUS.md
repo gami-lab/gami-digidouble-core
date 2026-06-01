@@ -580,7 +580,8 @@ Completed on: 2026-05-21
 
 ## EPIC 7.1 — Public User Web App v1
 
-Status: 🚧 In Progress
+Status: ✅ Complete
+Completed on: 2026-06-01
 
 ### Current slice completed (contract cleanup prerequisite)
 
@@ -620,7 +621,8 @@ Status: 🚧 In Progress
 - avatar discovery is now availability-driven and dynamic:
   - avatar list is sourced from `GET /v1/sessions/{sessionId}/available-avatars`
   - hidden/locked avatars are excluded by contract (no fallback to raw scenario avatar inventory)
-  - polling refresh keeps list current so newly unlocked avatars appear without page reload
+  - runtime-event subscription (`GET /v1/sessions/{sessionId}/events/stream`) triggers immediate refresh when avatars are unlocked
+  - interval polling remains as bounded fallback safety to keep availability synchronized
 - public web app contract usage remains canonical with no local DTO duplication:
   - scenario/session/avatar request/response shapes are consumed from `@gami/shared`
   - web-specific local API helpers are transport-only and isolated under `apps/web/src/api`
@@ -660,6 +662,11 @@ Status: 🚧 In Progress
     - success reconciliation and avatar append
     - failed-send state marking
 - web runtime helpers now expose explicit pure-state transformers used by tests to validate consumer-visible behavior without brittle implementation-mirroring
+- behavior-level web tests now validate user-observable flows end-to-end:
+  - onboarding success path activates runtime shell only after persona sync and persists identity
+  - onboarding failure path keeps user in onboarding with explicit error messaging
+  - discovery hook validates live avatar updates from runtime unlock events and polling fallback ticks
+  - active-chat runtime validates optimistic send pending state, success/failure reconciliation, and end-conversation reset transitions
 - documentation synced for EPIC 7.1 closure expectations:
   - `docs/TEST_COVERAGE_PLAN.md` now includes a dedicated `apps/web` coverage checklist
 
@@ -766,7 +773,7 @@ Status: 🚧 In Progress
 | 2026-05-11 | EPIC 5.1 — Knowledge Substrate, Ingestion, Retrieval  |
 | 2026-05-11 | EPIC 5.2 — Context Engine v2                          |
 | 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration         |
-| 2026-06-01 | EPIC 7.1 — Web shell + local identity slice           |
+| 2026-06-01 | EPIC 7.1 — Public User Web App v1                     |
 
 ---
 
@@ -779,7 +786,7 @@ Current implementation focus:
 - media-aware retrieval
 - advanced orchestration intelligence
 - retrieval observability
-- public web app baseline (identity and shell)
+- public web app operational hardening
 
 ---
 

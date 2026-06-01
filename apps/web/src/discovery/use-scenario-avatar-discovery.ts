@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import type {
   AvailableAvatarSummary,
   LocalWebIdentity,
+  RuntimeEvent,
   ScenarioSummary,
   SessionSummary,
 } from '@gami/shared'
+import { subscribeToRuntimeEvents } from '../api/runtime-events-stream'
 import { listAvailableScenarios } from '../api/scenarios'
 import { ensureActiveSession, getAvailableAvatarsForSession } from '../api/sessions'
 
@@ -185,9 +187,11 @@ function useAvatarAvailabilityPolling(
 ): void {
   useEffect(() => {
     if (selectedScenarioId === null || session === null) return
+
     const scenarioId = selectedScenarioId
     const sessionId = session.sessionId
     let isCancelled = false
+
     async function refreshAvailableAvatars(): Promise<void> {
       try {
         const nextAvatars = await getAvailableAvatarsForSession(sessionId, scenarioId)
@@ -204,13 +208,25 @@ function useAvatarAvailabilityPolling(
         setAvatarStatus((current) => (current === 'ready' ? 'ready' : 'error'))
       }
     }
+
     void refreshAvailableAvatars()
+
     const intervalId = window.setInterval(() => {
       void refreshAvailableAvatars()
     }, AVATAR_DISCOVERY_POLL_INTERVAL_MS)
+
+    const subscription = subscribeToRuntimeEvents(sessionId, {
+      onEvent: (event) => {
+        if (shouldRefreshAvatarAvailabilityFromEvent(event)) {
+          void refreshAvailableAvatars()
+        }
+      },
+    })
+
     return () => {
       isCancelled = true
       window.clearInterval(intervalId)
+      subscription.close()
     }
   }, [
     selectedScenarioId,
@@ -220,6 +236,10 @@ function useAvatarAvailabilityPolling(
     setAvatarError,
     setLastAvatarSyncAt,
   ])
+}
+
+function shouldRefreshAvatarAvailabilityFromEvent(event: RuntimeEvent): boolean {
+  return event.type === 'runtime.avatar_unlocked'
 }
 
 type SessionAvatarSetters = {
