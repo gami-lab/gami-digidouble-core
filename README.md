@@ -164,12 +164,11 @@ pnpm --filter @gami/web lint
 pnpm --filter @gami/web build
 ```
 
-Coolify deployment files:
+Coolify deployment file:
 
-- Backend stack: `docker-compose.coolify.yml`
-- Public web app stack: `docker-compose.coolify.web.yml`
+- Single project stack: `docker-compose.coolify.yml`
 
-Deploy backend and web as separate Coolify projects, each with its own domain.
+Deploy the backend API and public web app together as separate services inside one Coolify project, each with its own domain.
 
 ---
 

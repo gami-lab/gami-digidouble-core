@@ -25,41 +25,39 @@ Use one monorepo.
 
 ### Coolify model
 
-Use two separate Coolify projects per environment.
+Use one Coolify project per environment.
 
-- Project A: Backend stack
-- Project B: Public web app
-
-This is the approved deployment model for current scope.
+That project contains both the backend stack and the public web app.
 
 ---
 
-## Why Two Projects
+## Why One Project
 
-Two-project deployment gives clearer runtime ownership and safer rollouts than a single all-in-one project.
+One-project deployment keeps the current production surface simple while still separating concerns by service.
 
 Benefits:
 
-- Independent deploy/rollback history for API and Web
-- Clear domain ownership (`api` vs `app`)
-- Reduced operational coupling between backend and frontend releases
-- Simpler troubleshooting boundaries
+- Single project to manage in Coolify
+- One deployment history for the current runtime surface
+- Clear service separation inside the compose file
+- Simpler initial setup and fewer moving parts
 
 Tradeoff:
 
-- Some environment variables are duplicated between projects by design
+- Backend and web are deployed together
 
 ---
 
 ## Deployment Topology
 
-### Project A: Backend stack
+### Single production project
 
 Compose file: `docker-compose.coolify.yml`
 
 Services:
 
 - `app` (`core` API)
+- `web` public frontend
 - `postgres`
 - `redis`
 - `db-init` one-shot schema initializer
@@ -67,31 +65,16 @@ Services:
 Domain:
 
 - `api.example.com` -> `app` service
-
-### Project B: Public web app
-
-Compose file: `docker-compose.coolify.web.yml`
-
-Service:
-
-- `web` static app container (nginx)
-
-Domain:
-
 - `app.example.com` -> `web` service
 
 ---
 
 ## File Mapping
 
-Backend project files:
+Project files:
 
 - `docker-compose.coolify.yml`
 - `Dockerfile`
-
-Web project files:
-
-- `docker-compose.coolify.web.yml`
 - `Dockerfile.web`
 - `infra/nginx/web.conf`
 
@@ -99,7 +82,7 @@ Web project files:
 
 ## Environment Variable Ownership
 
-### Backend project (`core`)
+### Backend runtime (`core`)
 
 Required:
 
@@ -122,17 +105,17 @@ Optional:
 - `LANGFUSE_SECRET_KEY`
 - `LANGFUSE_BASE_URL`
 
-### Web project (`web`)
+### Web runtime (`web`)
 
 Required build arguments:
 
 - `VITE_API_URL`
-- `VITE_API_KEY`
+- `VITE_API_KEY` (derived from `API_KEY_SECRET` in the compose file)
 
 Important:
 
 - `VITE_*` values are embedded at build time in Vite static builds.
-- `VITE_API_KEY` is client-visible in browser bundles. This is acceptable only if that key is intentionally public-scoped.
+- `VITE_API_KEY` is client-visible in browser bundles. The current deployment reuses `API_KEY_SECRET` as the source value so Coolify only needs one configured secret.
 
 ---
 
@@ -152,22 +135,14 @@ References:
 
 ## Deployment Steps
 
-### 1. Deploy backend project first
+### 1. Deploy the single Coolify project
 
-- Create/update Project A using `docker-compose.coolify.yml`
-- Configure domain for `app` service (API domain)
-- Set required env var `API_KEY_SECRET`
-- Deploy and verify `GET /health`
+- Use `docker-compose.coolify.yml`
+- Configure domains for both `app` and `web` services in the same project
+- Set required env vars `API_KEY_SECRET` and `VITE_API_URL`
+- Deploy and verify both `/health` (API) and `/` (web)
 
-### 2. Deploy web project second
-
-- Create Project B using `docker-compose.coolify.web.yml`
-- Configure domain for `web` service (public app domain)
-- Set `VITE_API_URL` to backend public domain
-- Set `VITE_API_KEY` to the API key expected by backend
-- Deploy and open web domain root (`/`)
-
-### 3. CORS alignment
+### 2. CORS alignment
 
 Set backend `CORS_ORIGIN` so browser requests from `app.example.com` to `api.example.com` are allowed.
 

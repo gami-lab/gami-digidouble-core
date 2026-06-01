@@ -1,14 +1,17 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Coolify production stack — app + PostgreSQL + Redis
+# Coolify production stack — app + web + PostgreSQL + Redis
 #
 # Use this file for a full-stack deployment in Coolify or any other Compose-
 # based platform.
 #
-# The app builds from the production Dockerfile and connects to the internal
-# postgres and redis services over the Compose network.
+# The API builds from the production Dockerfile and the public web app builds
+# from Dockerfile.web. Both connect to the internal postgres and redis services
+# over the Compose network.
 #
 # Required env vars in Coolify:
 #   API_KEY_SECRET
+#   VITE_API_URL
+#   VITE_API_KEY is derived from API_KEY_SECRET for the web build
 #
 # Optional env vars:
 #   LLM_PROVIDER, OPENAI_API_KEY, ANTHROPIC_API_KEY, MISTRAL_API_KEY,
@@ -102,6 +105,26 @@ services:
       timeout: 5s
       retries: 12
       start_period: 15s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_API_URL: ${VITE_API_URL:?}
+        VITE_API_KEY: ${API_KEY_SECRET:?}
+    restart: unless-stopped
+    expose:
+      - '80'
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.web.loadbalancer.server.port=80
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/health || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
 volumes:
   postgres_data:
