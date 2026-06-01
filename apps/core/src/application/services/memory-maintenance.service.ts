@@ -35,6 +35,7 @@ const ALLOWED_FACT_CATEGORIES = new Set([
   'identity',
   'context',
 ])
+const WORKING_MEMORY_RECENT_MESSAGE_LIMIT = 10
 
 export class MemoryMaintenanceService implements IMemoryMaintenancePort {
   constructor(
@@ -70,9 +71,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     })
 
     try {
-      const messages = await this.messageRepository.findByConversationId(input.conversationId, {
-        limit: 10,
-      })
+      const messages = await this.messageRepository.findByConversationId(input.conversationId)
       const priorMemory: ConversationWorkingMemory | null =
         await this.conversationWorkingMemoryRepository.findByConversationId(input.conversationId)
       const ordered = messages
@@ -82,8 +81,9 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       if (input.trigger === 'post_turn' && exchangeCount % 3 !== 0) {
         return
       }
+      const recentOrdered = ordered.slice(-WORKING_MEMORY_RECENT_MESSAGE_LIMIT)
 
-      const rewritten = await this.rewriteWorkingMemory(ordered, priorMemory, {
+      const rewritten = await this.rewriteWorkingMemory(recentOrdered, priorMemory, {
         requestId,
         sessionId: input.sessionId,
         conversationId: input.conversationId,
@@ -112,7 +112,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
           avatarId: input.avatarId,
           trigger: input.trigger,
           workingSummary: rewritten.summary,
-          messageCount: ordered.length,
+          messageCount: recentOrdered.length,
           unresolvedThreads: rewritten.unresolvedThreads,
           candidateFacts: rewritten.candidateFacts,
           exchangeCount,

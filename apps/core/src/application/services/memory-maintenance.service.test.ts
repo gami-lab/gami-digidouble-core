@@ -432,4 +432,56 @@ describe('MemoryMaintenanceService — post_turn policy gate', () => {
       conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
     ).resolves.toBeNull()
   })
+
+  it('refreshes post_turn memory again at 6 exchanges when conversation exceeds 10 messages', async () => {
+    const messageRepository = new InMemoryMessageRepository(
+      Array.from({ length: 12 }, (_, index) => ({
+        messageId: `msg_${String(index + 1)}`,
+        conversationId: 'conversation_1',
+        role: index % 2 === 0 ? 'user' : ('avatar' as const),
+        content: `message_${String(index + 1)}`,
+        createdAt: `2026-05-06T10:00:${index.toString().padStart(2, '0')}.000Z`,
+      })),
+    )
+    const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository()
+    const eventLogRepository = new InMemoryEventLogRepository()
+    const llmComplete = vi.fn().mockResolvedValue({
+      content: JSON.stringify({
+        summary: 'Updated after 6 exchanges.',
+        unresolvedThreads: [],
+        candidateFacts: [],
+      }),
+      model: 'test',
+      inputTokens: 0,
+      outputTokens: 0,
+      latencyMs: 0,
+    })
+    const service = new MemoryMaintenanceService(
+      messageRepository,
+      conversationWorkingMemoryRepository,
+      eventLogRepository,
+      { complete: llmComplete },
+    )
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+
+    await expect(
+      conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
+    ).resolves.toMatchObject({
+      summary: 'Updated after 6 exchanges.',
+    })
+    const succeededEvent = eventLogRepository
+      .getAll()
+      .find((event) => event.type === 'memory_refresh_succeeded')
+    expect(succeededEvent?.payload).toMatchObject({
+      exchangeCount: 6,
+      messageCount: 10,
+    })
+    expect(llmComplete).toHaveBeenCalledTimes(1)
+  })
 })
