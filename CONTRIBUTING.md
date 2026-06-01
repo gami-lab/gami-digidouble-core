@@ -148,6 +148,32 @@ Reference scenario seed (AI Guided Discovery):
 pnpm --filter @gami/core seed:ai-guided-discovery
 ```
 
+Public web app (EPIC 7.1) local workflow:
+
+```bash
+# 1) Start infra
+pnpm infra:up
+
+# 2) Start core API (Terminal A)
+pnpm --filter @gami/core dev
+
+# 3) (Optional but recommended) Seed a ready-to-play scenario and avatars
+pnpm --filter @gami/core seed:ai-guided-discovery
+
+# 4) Start the public web app (Terminal B)
+VITE_API_URL=http://localhost:3000 VITE_API_KEY=your-api-key-secret pnpm --filter @gami/web dev
+```
+
+Then open `http://localhost:5173`.
+
+Manual smoke test for the public web app:
+
+1. Create a local identity and refresh the page (identity should be restored from browser storage).
+2. Reset identity (onboarding should appear again).
+3. Select a scenario and confirm only available avatars are shown.
+4. Start a chat, send a message, and confirm optimistic user message + visible processing state.
+5. Confirm avatar response appears in the active thread.
+
 ## Quality Commands
 
 These are the core quality commands used by CI gates. Always verify locally before pushing.
@@ -171,6 +197,10 @@ pnpm --filter @gami/core test:coverage
 pnpm --filter @gami/core test:integration-e2e
 pnpm --filter @gami/core typecheck
 pnpm --filter @gami/core exec eslint src
+pnpm --filter @gami/web test
+pnpm --filter @gami/web typecheck
+pnpm --filter @gami/web lint
+pnpm --filter @gami/web build
 pnpm --filter @gami/console lint
 pnpm --filter @gami/console typecheck
 pnpm --filter @gami/console build

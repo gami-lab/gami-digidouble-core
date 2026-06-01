@@ -127,6 +127,43 @@ pnpm dev
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full onboarding guide, quality commands, workflow conventions, and deployment notes.
 
+### Public Web App (EPIC 7.1)
+
+The repository now includes a production-facing player app in `apps/web`.
+
+Run it locally with the core API:
+
+```bash
+# Terminal A: infra + core API
+pnpm infra:up
+pnpm --filter @gami/core dev
+
+# Optional: seed a ready scenario + avatars for first run
+pnpm --filter @gami/core seed:ai-guided-discovery
+
+# Terminal B: public web app
+VITE_API_URL=http://localhost:3000 VITE_API_KEY=your-api-key-secret pnpm --filter @gami/web dev
+```
+
+Open `http://localhost:5173`.
+
+What you can do in the web app:
+
+- Create a local player identity/persona (persisted in browser local storage)
+- Reset identity at any time
+- Select an active scenario
+- See currently available avatars only (hidden avatars unlock later)
+- Play one active chat with optimistic send and visible processing state
+
+Package-level checks for the web app:
+
+```bash
+pnpm --filter @gami/web test
+pnpm --filter @gami/web typecheck
+pnpm --filter @gami/web lint
+pnpm --filter @gami/web build
+```
+
 ---
 
 ## Documentation
