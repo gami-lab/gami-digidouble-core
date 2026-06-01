@@ -1,7 +1,7 @@
 import type { ApiError as SharedApiError, ApiResponse } from '@gami/shared'
 import { apiKey, apiUrl } from '../env'
 
-type HttpMethod = 'GET' | 'POST'
+type HttpMethod = 'GET' | 'POST' | 'PUT'
 type ApiResponseEnvelope<T> = ApiResponse<T>
 type ApiResponseError = SharedApiError
 

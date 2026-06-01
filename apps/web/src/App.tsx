@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
 import type { LocalWebIdentity } from '@gami/shared'
+import { ApiError } from './api/client'
+import { upsertUserPersona } from './api/users'
 import { ActiveChatSection } from './chat/ActiveChatSection'
 import { useActiveChatRuntime } from './chat/use-active-chat-runtime'
 import { AvatarDiscoverySection } from './discovery/AvatarDiscoverySection'
@@ -20,6 +22,7 @@ type AppState =
       mode: 'onboarding'
       form: LocalIdentityFormValues
       error: string | null
+      isSubmitting: boolean
     }
   | {
       mode: 'active'
@@ -38,6 +41,7 @@ function initializeState(): AppState {
     mode: 'onboarding',
     form: createInitialIdentityFormValues(),
     error: null,
+    isSubmitting: false,
   }
 }
 
@@ -45,22 +49,36 @@ function App(): JSX.Element {
   const [state, setState] = useState<AppState>(initializeState)
 
   const handleSubmit: FormSubmitHandler = (event) => {
+    void submitOnboarding(event)
+  }
+
+  async function submitOnboarding(event: Parameters<FormSubmitHandler>[0]): Promise<void> {
     event.preventDefault()
 
-    if (state.mode !== 'onboarding') {
+    if (state.mode !== 'onboarding' || state.isSubmitting) {
       return
     }
 
     try {
       const identity = createLocalWebIdentity(state.form, new Date().toISOString())
+      setState((current) => {
+        if (current.mode !== 'onboarding') return current
+        return { ...current, error: null, isSubmitting: true }
+      })
+
+      await upsertUserPersona(identity.userId, identity.persona)
       persistLocalWebIdentity(identity)
       setState({ mode: 'active', identity })
-    } catch {
+    } catch (error) {
       setState((current) => {
         if (current.mode !== 'onboarding') return current
         return {
           ...current,
-          error: 'Please provide a valid user ID to continue.',
+          error:
+            error instanceof ApiError
+              ? `Unable to save identity to server: ${error.message}`
+              : 'Please provide a valid user ID to continue.',
+          isSubmitting: false,
         }
       })
     }
@@ -72,6 +90,7 @@ function App(): JSX.Element {
       mode: 'onboarding',
       form: createInitialIdentityFormValues(),
       error: null,
+      isSubmitting: false,
     })
   }
 
@@ -83,12 +102,14 @@ function App(): JSX.Element {
     <OnboardingShell
       form={state.form}
       error={state.error}
+      isSubmitting={state.isSubmitting}
       onChange={(field, value) => {
         setState((current) => {
           if (current.mode !== 'onboarding') return current
           return {
             mode: 'onboarding',
             error: null,
+            isSubmitting: false,
             form: {
               ...current.form,
               [field]: value,
@@ -104,18 +125,25 @@ function App(): JSX.Element {
 type OnboardingShellProps = {
   form: LocalIdentityFormValues
   error: string | null
+  isSubmitting: boolean
   onSubmit: FormSubmitHandler
   onChange: (field: keyof LocalIdentityFormValues, value: string) => void
 }
 
-function OnboardingShell({ form, error, onSubmit, onChange }: OnboardingShellProps): JSX.Element {
+function OnboardingShell({
+  form,
+  error,
+  isSubmitting,
+  onSubmit,
+  onChange,
+}: OnboardingShellProps): JSX.Element {
   return (
     <main className="page page-onboarding">
       <section className="card onboarding-card" aria-labelledby="onboarding-title">
         <p className="eyebrow">Gami DigiDouble</p>
         <h1 id="onboarding-title">Create your local identity</h1>
         <p className="lead">
-          Your profile is stored only in this browser. You can reset it anytime.
+          Your profile is stored in this browser and synced to the experience runtime.
         </p>
 
         <form className="form" onSubmit={onSubmit}>
@@ -186,8 +214,8 @@ function OnboardingShell({ form, error, onSubmit, onChange }: OnboardingShellPro
 
           {error !== null ? <p className="error">{error}</p> : null}
 
-          <button type="submit" className="button-primary">
-            Save identity
+          <button type="submit" className="button-primary" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving identity…' : 'Save identity'}
           </button>
         </form>
       </section>

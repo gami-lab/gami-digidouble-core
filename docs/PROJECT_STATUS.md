@@ -606,6 +606,9 @@ Status: 🚧 In Progress
 - restore-on-load and reset flows implemented:
   - identity is rehydrated from local storage on startup
   - reset clears persisted identity and returns app to onboarding mode
+- onboarding now persists persona to backend canonical user contract before activation:
+  - `PUT /v1/users/{userId}/persona` is called from `apps/web` using shared contract types
+  - onboarding remains blocked with user-visible error if persona sync fails
 - deterministic unit coverage added for identity normalization, storage round-trip, invalid payload handling, and reset behavior
 
 ### Current slice completed (scenario and avatar discovery)
