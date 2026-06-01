@@ -77,7 +77,7 @@ function App(): JSX.Element {
           error:
             error instanceof ApiError
               ? `Unable to save identity to server: ${error.message}`
-              : 'Please provide a valid user ID to continue.',
+              : 'Unable to save your identity. Please try again.',
           isSubmitting: false,
         }
       })
@@ -147,20 +147,6 @@ function OnboardingShell({
         </p>
 
         <form className="form" onSubmit={onSubmit}>
-          <label className="field">
-            <span>User ID</span>
-            <input
-              name="userId"
-              value={form.userId}
-              onChange={(event) => {
-                onChange('userId', event.target.value)
-              }}
-              autoComplete="off"
-              placeholder="e.g. player.nora"
-              required
-            />
-          </label>
-
           <div className="grid-two">
             <label className="field">
               <span>Name</span>
@@ -239,7 +225,7 @@ function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
         <header className="active-header">
           <div>
             <p className="eyebrow">Public Experience</p>
-            <h1 id="active-title">Welcome, {identity.userId}</h1>
+            <h1 id="active-title">Welcome</h1>
             <p className="lead">
               Choose a scenario to discover avatars currently available to your session.
             </p>

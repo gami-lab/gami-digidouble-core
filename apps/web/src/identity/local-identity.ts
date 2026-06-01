@@ -9,7 +9,6 @@ export type StorageLike = {
 }
 
 export type LocalIdentityFormValues = {
-  userId: string
   name: string
   roleInWorld: string
   avatarRelationships: string
@@ -18,7 +17,6 @@ export type LocalIdentityFormValues = {
 
 export function createInitialIdentityFormValues(): LocalIdentityFormValues {
   return {
-    userId: '',
     name: '',
     roleInWorld: '',
     avatarRelationships: '',
@@ -26,8 +24,12 @@ export function createInitialIdentityFormValues(): LocalIdentityFormValues {
   }
 }
 
-export function normalizeUserId(value: string): string {
-  return value.trim()
+export function createGeneratedUserId(): string {
+  if ('crypto' in globalThis && typeof globalThis.crypto.randomUUID === 'function') {
+    return `user_${globalThis.crypto.randomUUID().replaceAll('-', '').slice(0, 8)}`
+  }
+
+  return `user_${Math.random().toString(16).slice(2, 10).padEnd(8, '0')}`
 }
 
 export function normalizePersonaInput(values: LocalIdentityFormValues): UserPersona {
@@ -47,12 +49,8 @@ export function normalizePersonaInput(values: LocalIdentityFormValues): UserPers
 export function createLocalWebIdentity(
   formValues: LocalIdentityFormValues,
   nowIso: string,
+  userId: string = createGeneratedUserId(),
 ): LocalWebIdentity {
-  const userId = normalizeUserId(formValues.userId)
-  if (userId.length === 0) {
-    throw new Error('userId is required')
-  }
-
   return {
     version: 1,
     userId,

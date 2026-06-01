@@ -595,7 +595,7 @@ Status: 🚧 In Progress
 
 - new `apps/web` workspace package scaffolded with monorepo-standard scripts (`dev`, `build`, `typecheck`, `lint`, `test`, `preview`) and Vite + React + strict TypeScript setup
 - onboarding flow implemented for browser-owned identity creation:
-  - required `userId`
+  - internal auto-generated `userId` (`user_xxxxxxxx`) kept off the public UI
   - optional canonical `UserPersona` fields (`name`, `roleInWorld`, `avatarRelationships`, `dialogGuidance`)
 - identity state model is explicit and deterministic:
   - `onboarding` mode (identity creation)

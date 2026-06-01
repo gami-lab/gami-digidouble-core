@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearLocalWebIdentity,
+  createGeneratedUserId,
   createInitialIdentityFormValues,
   createLocalWebIdentity,
   LOCAL_WEB_IDENTITY_STORAGE_KEY,
   normalizePersonaInput,
-  normalizeUserId,
   persistLocalWebIdentity,
   readLocalWebIdentity,
   type StorageLike,
@@ -19,20 +19,19 @@ describe('local identity', () => {
     storage = createMemoryStorage()
   })
 
-  it('normalizes userId and persona fields deterministically', () => {
+  it('builds identity with generated userId and normalized persona fields', () => {
     const form = {
-      userId: '  player.nora  ',
       name: ' Nora ',
       roleInWorld: ' Investigator ',
       avatarRelationships: 'Clara, Thomas\n  Margot  ',
       dialogGuidance: ' Keep your answers concise. ',
     }
 
-    const identity = createLocalWebIdentity(form, '2026-06-01T11:00:00.000Z')
+    const identity = createLocalWebIdentity(form, '2026-06-01T11:00:00.000Z', 'user_12345678')
 
     expect(identity).toEqual({
       version: 1,
-      userId: 'player.nora',
+      userId: 'user_12345678',
       persona: {
         name: 'Nora',
         roleInWorld: 'Investigator',
@@ -46,11 +45,9 @@ describe('local identity', () => {
 
   it('persists and restores an identity payload', () => {
     const identity = createLocalWebIdentity(
-      {
-        ...createInitialIdentityFormValues(),
-        userId: 'player.alix',
-      },
+      createInitialIdentityFormValues(),
       '2026-06-01T11:15:00.000Z',
+      'user_alix0001',
     )
 
     persistLocalWebIdentity(identity, storage)
@@ -77,8 +74,8 @@ describe('local identity', () => {
     expect(storage.getItem(LOCAL_WEB_IDENTITY_STORAGE_KEY)).toBeNull()
   })
 
-  it('exposes stable helpers for empty and trimmed values', () => {
-    expect(normalizeUserId('  id-7  ')).toBe('id-7')
+  it('exposes stable helpers for generated userId and empty persona values', () => {
+    expect(createGeneratedUserId()).toMatch(/^user_[a-f0-9]{8}$/)
 
     expect(
       normalizePersonaInput({
