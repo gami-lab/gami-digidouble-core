@@ -622,6 +622,22 @@ Status: 🚧 In Progress
   - scenario/session/avatar request/response shapes are consumed from `@gami/shared`
   - web-specific local API helpers are transport-only and isolated under `apps/web/src/api`
 
+### Current slice completed (single chat runtime + live updates)
+
+- public web app now exposes one active thread at a time for runtime play:
+  - no conversation history browser is rendered
+  - old conversations are not discoverable from the public surface
+- active chat flow wired to existing backend contracts/endpoints:
+  - `POST /v1/sessions/{sessionId}/conversations` to open current thread for selected avatar
+  - `POST /v1/conversations/{conversationId}/messages` for user turns
+- send-message UX now models runtime states explicitly:
+  - optimistic user message is inserted immediately
+  - processing indicator is shown while avatar response is in flight
+  - avatar response is appended to the same active thread on completion
+  - failed sends remain visible with explicit failed state
+- avatar availability live updates remain active during chat sessions via isolated polling in the discovery layer, so newly unlocked avatars can appear without page reload
+- no new backend endpoints were added; implementation reuses canonical shared conversation/session/message contracts from `@gami/shared`
+
 ---
 
 # 3. Current Public API Surface

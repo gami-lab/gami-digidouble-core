@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
 import type { LocalWebIdentity } from '@gami/shared'
+import { ActiveChatSection } from './chat/ActiveChatSection'
+import { useActiveChatRuntime } from './chat/use-active-chat-runtime'
 import { AvatarDiscoverySection } from './discovery/AvatarDiscoverySection'
 import { ScenarioDiscoverySection } from './discovery/ScenarioDiscoverySection'
 import { useScenarioAvatarDiscovery } from './discovery/use-scenario-avatar-discovery'
@@ -201,6 +203,7 @@ type ActiveShellProps = {
 function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
   const personaSummary = useMemo(() => buildPersonaSummary(identity), [identity])
   const discovery = useScenarioAvatarDiscovery(identity)
+  const chat = useActiveChatRuntime(discovery.session)
 
   return (
     <main className="page page-active">
@@ -253,6 +256,8 @@ function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
           session={discovery.session}
           lastAvatarSyncAt={discovery.lastAvatarSyncAt}
         />
+
+        <ActiveChatSection avatars={discovery.avatars} chat={chat} />
       </section>
     </main>
   )
