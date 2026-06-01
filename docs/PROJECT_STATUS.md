@@ -639,6 +639,12 @@ Status: 🚧 In Progress
   - avatar response is appended to the same active thread on completion
   - failed sends remain visible with explicit failed state
 - avatar availability live updates remain active during chat sessions via isolated polling in the discovery layer, so newly unlocked avatars can appear without page reload
+- runtime continuity now persists across refresh for the same local identity:
+  - selected scenario, active avatar, session id, and current conversation id are stored in local browser state
+  - page reload rehydrates and restores the active thread from canonical conversation history
+- explicit conversation-ending control added to public web chat:
+  - `POST /v1/sessions/{sessionId}/conversations/{conversationId}/end` is called from the web UI
+  - ending a conversation clears active avatar/thread selection and returns chat to idle state
 - no new backend endpoints were added; implementation reuses canonical shared conversation/session/message contracts from `@gami/shared`
 
 ### Current slice completed (tests, hardening, and docs sync)

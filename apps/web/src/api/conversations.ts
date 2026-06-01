@@ -1,5 +1,10 @@
 import type {
+  ConversationHistoryApiResponse,
   ConversationSummary,
+  EndConversationApiResponse,
+  EndConversationRequest,
+  EndConversationResponse,
+  GetHistoryResponse,
   SendMessageApiResponse,
   SendMessageRequest,
   StartConversationRequest,
@@ -28,5 +33,25 @@ export async function sendMessage(
     'POST',
     `/v1/conversations/${conversationId}/messages`,
     request,
+  )
+}
+
+export async function getConversationHistory(conversationId: string): Promise<GetHistoryResponse> {
+  return webRequest<ConversationHistoryApiResponse>(
+    'GET',
+    `/v1/conversations/${conversationId}/history`,
+  )
+}
+
+export async function endConversation(
+  sessionId: string,
+  conversationId: string,
+  reason?: EndConversationRequest['reason'],
+): Promise<EndConversationResponse> {
+  const body: EndConversationRequest = reason !== undefined ? { reason } : {}
+  return webRequest<EndConversationApiResponse>(
+    'POST',
+    `/v1/sessions/${sessionId}/conversations/${conversationId}/end`,
+    body,
   )
 }

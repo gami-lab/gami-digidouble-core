@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
 import type { LocalWebIdentity } from '@gami/shared'
 import { ApiError } from './api/client'
@@ -16,6 +16,11 @@ import {
   persistLocalWebIdentity,
   readLocalWebIdentity,
 } from './identity/local-identity'
+import {
+  clearLocalWebRuntimeState,
+  persistLocalWebRuntimeState,
+  readLocalWebRuntimeState,
+} from './runtime/local-runtime-state'
 
 type AppState =
   | {
@@ -86,6 +91,7 @@ function App(): JSX.Element {
 
   function handleReset(): void {
     clearLocalWebIdentity()
+    clearLocalWebRuntimeState()
     setState({
       mode: 'onboarding',
       form: createInitialIdentityFormValues(),
@@ -215,9 +221,33 @@ type ActiveShellProps = {
 }
 
 function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
+  const persistedRuntime = useMemo(() => readLocalWebRuntimeState(identity.userId), [identity.userId])
   const personaSummary = useMemo(() => buildPersonaSummary(identity), [identity])
-  const discovery = useScenarioAvatarDiscovery(identity)
-  const chat = useActiveChatRuntime(discovery.session)
+  const discovery = useScenarioAvatarDiscovery(identity, {
+    initialSelectedScenarioId: persistedRuntime?.selectedScenarioId ?? null,
+  })
+  const chat = useActiveChatRuntime(discovery.session, {
+    initialActiveAvatarId: persistedRuntime?.activeAvatarId ?? null,
+    initialConversationId: persistedRuntime?.conversationId ?? null,
+  })
+
+  useEffect(() => {
+    persistLocalWebRuntimeState({
+      version: 1,
+      userId: identity.userId,
+      selectedScenarioId: discovery.selectedScenarioId,
+      sessionId: discovery.session?.sessionId ?? null,
+      activeAvatarId: chat.activeAvatarId,
+      conversationId: chat.conversation?.conversationId ?? null,
+      updatedAt: new Date().toISOString(),
+    })
+  }, [
+    identity.userId,
+    discovery.selectedScenarioId,
+    discovery.session?.sessionId,
+    chat.activeAvatarId,
+    chat.conversation?.conversationId,
+  ])
 
   return (
     <main className="page page-active">
@@ -235,24 +265,7 @@ function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
           </button>
         </header>
 
-        <dl className="details details-compact">
-          <div>
-            <dt>Name</dt>
-            <dd>{identity.persona.name ?? 'Not set'}</dd>
-          </div>
-          <div>
-            <dt>Role in world</dt>
-            <dd>{identity.persona.roleInWorld ?? 'Not set'}</dd>
-          </div>
-          <div>
-            <dt>Relationships</dt>
-            <dd>{personaSummary.relationships}</dd>
-          </div>
-          <div>
-            <dt>Dialogue guidance</dt>
-            <dd>{personaSummary.guidance}</dd>
-          </div>
-        </dl>
+        <IdentitySummaryDetails identity={identity} personaSummary={personaSummary} />
 
         <ScenarioDiscoverySection
           scenarios={discovery.scenarios}
@@ -272,6 +285,37 @@ function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
         <ActiveChatSection avatars={discovery.avatars} chat={chat} />
       </section>
     </main>
+  )
+}
+
+type IdentitySummaryDetailsProps = {
+  identity: LocalWebIdentity
+  personaSummary: { relationships: string; guidance: string }
+}
+
+function IdentitySummaryDetails({
+  identity,
+  personaSummary,
+}: IdentitySummaryDetailsProps): JSX.Element {
+  return (
+    <dl className="details details-compact">
+      <div>
+        <dt>Name</dt>
+        <dd>{identity.persona.name ?? 'Not set'}</dd>
+      </div>
+      <div>
+        <dt>Role in world</dt>
+        <dd>{identity.persona.roleInWorld ?? 'Not set'}</dd>
+      </div>
+      <div>
+        <dt>Relationships</dt>
+        <dd>{personaSummary.relationships}</dd>
+      </div>
+      <div>
+        <dt>Dialogue guidance</dt>
+        <dd>{personaSummary.guidance}</dd>
+      </div>
+    </dl>
   )
 }
 

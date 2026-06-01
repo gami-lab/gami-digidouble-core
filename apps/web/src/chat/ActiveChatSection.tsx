@@ -101,28 +101,39 @@ function ChatComposer({ chat }: { chat: ActiveChatRuntimeState }): JSX.Element {
   }
 
   return (
-    <form
-      className="chat-composer"
-      onSubmit={(event) => {
-        event.preventDefault()
-        chat.sendCurrentMessage()
-      }}
-    >
-      <label className="field">
-        <span>Message</span>
-        <textarea
-          value={chat.composerValue}
-          onChange={(event) => {
-            chat.setComposerValue(event.target.value)
-          }}
-          rows={3}
-          placeholder="Write your message..."
-        />
-      </label>
-      {chat.sendError !== null ? <p className="error">{chat.sendError}</p> : null}
-      <button type="submit" className="button-primary" disabled={!chat.canSend}>
-        {chat.sendStatus === 'sending' ? 'Sending…' : 'Send'}
+    <div className="chat-composer">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          chat.sendCurrentMessage()
+        }}
+      >
+        <label className="field">
+          <span>Message</span>
+          <textarea
+            value={chat.composerValue}
+            onChange={(event) => {
+              chat.setComposerValue(event.target.value)
+            }}
+            rows={3}
+            placeholder="Write your message..."
+          />
+        </label>
+        {chat.sendError !== null ? <p className="error">{chat.sendError}</p> : null}
+        <button type="submit" className="button-primary" disabled={!chat.canSend}>
+          {chat.sendStatus === 'sending' ? 'Sending…' : 'Send'}
+        </button>
+      </form>
+      <button
+        type="button"
+        className="button-secondary"
+        disabled={!chat.canEndConversation}
+        onClick={() => {
+          chat.endCurrentConversation()
+        }}
+      >
+        End conversation
       </button>
-    </form>
+    </div>
   )
 }

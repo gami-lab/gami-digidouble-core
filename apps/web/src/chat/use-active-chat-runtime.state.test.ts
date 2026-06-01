@@ -4,6 +4,7 @@ import {
   createOptimisticSendState,
   createPendingUserMessage,
   createThreadStateForAvatarSelection,
+  createThreadStateForConversationEnd,
   markSendFailure,
   reconcileSendSuccess,
 } from './use-active-chat-runtime'
@@ -14,6 +15,19 @@ describe('active chat runtime state helpers', () => {
       activeAvatarId: 'avatar_9',
       conversation: null,
       conversationStatus: 'starting',
+      conversationError: null,
+      messages: [],
+      composerValue: '',
+      sendStatus: 'idle',
+      sendError: null,
+    })
+  })
+
+  it('clears active avatar and thread state after ending a conversation', () => {
+    expect(createThreadStateForConversationEnd()).toEqual({
+      activeAvatarId: null,
+      conversation: null,
+      conversationStatus: 'idle',
       conversationError: null,
       messages: [],
       composerValue: '',

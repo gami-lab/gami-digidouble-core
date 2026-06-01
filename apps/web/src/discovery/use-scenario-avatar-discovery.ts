@@ -35,17 +35,27 @@ export type ScenarioAvatarDiscoveryState = {
   selectScenario: (scenarioId: string) => void
 }
 
+type ScenarioAvatarDiscoveryOptions = {
+  initialSelectedScenarioId?: string | null
+}
+
 export function useScenarioAvatarDiscovery(
   identity: LocalWebIdentity,
+  options?: ScenarioAvatarDiscoveryOptions,
 ): ScenarioAvatarDiscoveryState {
+  const initialSelectedScenarioId = options?.initialSelectedScenarioId ?? null
   const [scenarios, setScenarios] = useState<ScenarioSummary[]>([])
   const [scenarioStatus, setScenarioStatus] = useState<ScenarioLoadStatus>('loading')
   const [scenarioError, setScenarioError] = useState<string | null>(null)
-  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
+    initialSelectedScenarioId,
+  )
 
   const [session, setSession] = useState<SessionSummary | null>(null)
   const [avatars, setAvatars] = useState<AvailableAvatarSummary[]>([])
-  const [avatarStatus, setAvatarStatus] = useState<AvatarLoadStatus>('idle')
+  const [avatarStatus, setAvatarStatus] = useState<AvatarLoadStatus>(
+    initialSelectedScenarioId === null ? 'idle' : 'loading',
+  )
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const [lastAvatarSyncAt, setLastAvatarSyncAt] = useState<string | null>(null)
 
@@ -60,10 +70,44 @@ export function useScenarioAvatarDiscovery(
     setAvatarError,
     setLastAvatarSyncAt,
   )
+  useEffect(() => {
+    if (selectedScenarioId === null) {
+      return
+    }
+
+    const selectedExists = scenarios.some((scenario) => scenario.scenarioId === selectedScenarioId)
+    if (scenarioStatus !== 'ready' || selectedExists) {
+      return
+    }
+
+    scenarioSelectionRequestIdRef.current += 1
+    setSelectedScenarioId(null)
+    setSession(null)
+    setAvatars([])
+    setAvatarStatus('idle')
+    setAvatarError(null)
+    setLastAvatarSyncAt(null)
+  }, [scenarioStatus, scenarios, selectedScenarioId])
+
+  useEffect(() => {
+    if (selectedScenarioId === null) {
+      return
+    }
+
+    scenarioSelectionRequestIdRef.current += 1
+    const requestId = scenarioSelectionRequestIdRef.current
+    void loadScenarioSessionAndAvatars(identity.userId, selectedScenarioId, requestId, {
+      setSession,
+      setAvatars,
+      setAvatarStatus,
+      setAvatarError,
+      setLastAvatarSyncAt,
+      scenarioSelectionRequestIdRef,
+    })
+  }, [identity.userId, selectedScenarioId])
 
   function selectScenario(scenarioId: string): void {
     scenarioSelectionRequestIdRef.current += 1
-    const requestId = scenarioSelectionRequestIdRef.current
 
     const selectionState = createScenarioSelectionState(scenarioId)
     setSelectedScenarioId(selectionState.selectedScenarioId)
@@ -72,15 +116,6 @@ export function useScenarioAvatarDiscovery(
     setAvatars(selectionState.avatars)
     setSession(selectionState.session)
     setLastAvatarSyncAt(selectionState.lastAvatarSyncAt)
-
-    void loadScenarioSessionAndAvatars(identity.userId, scenarioId, requestId, {
-      setSession,
-      setAvatars,
-      setAvatarStatus,
-      setAvatarError,
-      setLastAvatarSyncAt,
-      scenarioSelectionRequestIdRef,
-    })
   }
 
   return {
