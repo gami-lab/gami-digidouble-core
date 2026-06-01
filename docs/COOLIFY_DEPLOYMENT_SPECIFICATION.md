@@ -260,6 +260,7 @@ Optional:
 Required:
 
 - `VITE_API_URL`
+- `VITE_API_KEY`
 
 Optional:
 
@@ -335,7 +336,10 @@ The debug console must not be required for production deploys.
 ### `web` app
 
 - Source: same repository
-- Build pack: Dockerfile or static frontend deployment depending on chosen frontend framework
+- Build pack: static frontend deployment
+- Workspace/package: `apps/web` (`@gami/web`)
+- Build command: `pnpm --filter @gami/web build`
+- Publish directory: `apps/web/dist`
 - Public exposure: yes
 - Domain: public app domain
 
@@ -379,6 +383,14 @@ Avoid names like:
 ### Dependency rule
 
 `admin` and `web` depend on `core` only through the public API, not through direct service-to-service coupling.
+
+### Public web refresh and routing rule
+
+- `apps/web` currently uses a single-page, state-driven UI without client-side path routing.
+- Production serving must always return `apps/web/dist/index.html` for the app domain root.
+- Browser refresh behavior is contract-stable:
+  - identity is restored from browser local storage when present
+  - chat thread state is intentionally ephemeral and re-established from current session/scenario selection flow
 
 ### Rollback rule
 

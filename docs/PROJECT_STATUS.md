@@ -654,6 +654,17 @@ Status: 🚧 In Progress
 - documentation synced for EPIC 7.1 closure expectations:
   - `docs/TEST_COVERAGE_PLAN.md` now includes a dedicated `apps/web` coverage checklist
 
+### Current slice completed (deployment and final hardening)
+
+- production-readiness checks validated for `apps/web`:
+  - monorepo build compatibility confirmed with package-scoped build/typecheck/test gates
+  - runtime contract remains stable across rebuild and refresh boundaries (identity persisted, chat thread ephemeral by design)
+- Coolify deployment assumptions clarified to remove ambiguity:
+  - `web` now documents both required runtime env vars (`VITE_API_URL`, `VITE_API_KEY`)
+  - explicit `apps/web` build command and publish directory documented for static deployment
+  - refresh/routing behavior documented for the single-page public runtime surface
+- `apps/console` remains explicitly excluded from Coolify production routing and deployment
+
 ---
 
 # 3. Current Public API Surface
