@@ -43,7 +43,6 @@ export function ScenarioDiscoverySection({
                 }}
               >
                 <span className="scenario-name">{scenario.name}</span>
-                <span className="scenario-meta">Scenario ID: {scenario.scenarioId}</span>
               </button>
             )
           })}

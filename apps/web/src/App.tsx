@@ -253,8 +253,6 @@ function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
           avatarStatus={discovery.avatarStatus}
           avatarError={discovery.avatarError}
           avatars={discovery.avatars}
-          session={discovery.session}
-          lastAvatarSyncAt={discovery.lastAvatarSyncAt}
         />
 
         <ActiveChatSection avatars={discovery.avatars} chat={chat} />
