@@ -20,6 +20,7 @@ services:
     expose:
       - '80'
     labels:
+      - traefik.enable=true
       - traefik.http.services.web.loadbalancer.server.port=80
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/health || exit 1']
