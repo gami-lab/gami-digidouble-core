@@ -49,5 +49,12 @@ export async function getAvailableAvatarsForSession(
     `/v1/sessions/${sessionId}/available-avatars`,
   )
 
-  return payload.avatars.filter((avatar) => avatar.scenarioId === scenarioId)
+  return filterAvatarsForScenario(payload.avatars, scenarioId)
+}
+
+export function filterAvatarsForScenario(
+  avatars: AvailableAvatarSummary[],
+  scenarioId: string,
+): AvailableAvatarSummary[] {
+  return avatars.filter((avatar) => avatar.scenarioId === scenarioId)
 }

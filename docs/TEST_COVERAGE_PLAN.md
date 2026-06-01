@@ -258,6 +258,36 @@ Must test:
   - `POST /v1/admin/sessions/{sessionId}/memory/refresh`
   - `POST /v1/admin/sessions/{sessionId}/memory/clear`
 - persona editor API wrapper calls `PUT /v1/users/{userId}/persona` and preserves canonical shared DTO usage
+
+---
+
+## Public Web App Module (`apps/web`)
+
+**Goals:** deterministic public runtime behavior, contract-safe API usage, and strict separation from debug/admin surfaces.
+
+Must test:
+
+- identity persistence contract:
+  - create + normalize browser identity payload
+  - restore on load from local storage
+  - reset clears persisted identity
+- scenario discovery:
+  - only active scenarios are rendered
+  - scenario selection resets stale avatar/session UI state
+- avatar availability visibility:
+  - only avatars for current scenario/session availability are shown
+  - hidden/locked avatars remain excluded
+- active-chat-only runtime:
+  - selecting a new avatar clears previous thread state (no old-chat browsing surface)
+  - one current thread is represented at a time
+- optimistic send lifecycle:
+  - user message appears immediately
+  - send state transitions to processing while request is in flight
+  - successful send reconciles pending user message and appends avatar response
+  - failed send marks pending message as failed and clears processing state
+- contract ownership discipline:
+  - no locally duplicated backend DTOs in `apps/web`
+  - all request/response contracts are consumed from `@gami/shared`
 - persona-first session start gate blocks session start until persona is saved/available for selected user
 - GM impact causality trace renders trigger → decision → impact chain from bounded shared event payloads
 - turn profiler renders per-turn latency composition and supports deterministic sort/filter behavior (slowest/latest, GM-only)

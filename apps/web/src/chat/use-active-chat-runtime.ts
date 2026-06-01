@@ -14,6 +14,24 @@ export type ChatThreadMessage = {
   failed?: true
 }
 
+export type ChatThreadState = {
+  activeAvatarId: string | null
+  conversation: ConversationSummary | null
+  conversationStatus: ConversationStatus
+  conversationError: string | null
+  messages: ChatThreadMessage[]
+  composerValue: string
+  sendStatus: SendStatus
+  sendError: string | null
+}
+
+export type OptimisticSendState = {
+  composerValue: string
+  sendStatus: SendStatus
+  sendError: string | null
+  messages: ChatThreadMessage[]
+}
+
 export type ActiveChatRuntimeState = {
   activeAvatarId: string | null
   conversation: ConversationSummary | null
@@ -52,14 +70,17 @@ export function useActiveChatRuntime(session: SessionSummary | null): ActiveChat
     conversationRequestIdRef.current += 1
     const requestId = conversationRequestIdRef.current
 
-    setActiveAvatarId(avatarId)
-    setConversation(null)
-    setConversationStatus('starting')
-    setConversationError(null)
-    setMessages([])
-    setComposerValue('')
-    setSendError(null)
-    setSendStatus('idle')
+    const nextThreadState = createThreadStateForAvatarSelection(avatarId)
+    applyThreadState(nextThreadState, {
+      setActiveAvatarId,
+      setConversation,
+      setConversationStatus,
+      setConversationError,
+      setMessages,
+      setComposerValue,
+      setSendStatus,
+      setSendError,
+    })
 
     void createConversation(session.sessionId, avatarId, requestId, {
       setConversation,
@@ -81,20 +102,16 @@ export function useActiveChatRuntime(session: SessionSummary | null): ActiveChat
 
     const runId = conversationRequestIdRef.current
     const pendingMessageId = `pending-${String(Date.now())}-${Math.random().toString(36).slice(2)}`
+    const pendingMessage = createPendingUserMessage(
+      content,
+      pendingMessageId,
+      new Date().toISOString(),
+    )
 
     setComposerValue('')
     setSendStatus('sending')
     setSendError(null)
-    setMessages((current) => [
-      ...current,
-      {
-        localId: pendingMessageId,
-        role: 'user',
-        content,
-        createdAt: new Date().toISOString(),
-        pending: true,
-      },
-    ])
+    setMessages((current) => createOptimisticSendState(current, pendingMessage).messages)
 
     void sendAndReconcile(conversation.conversationId, content, runId, pendingMessageId, {
       setMessages,
@@ -180,28 +197,22 @@ async function sendAndReconcile(
     }
 
     setters.setMessages((current) => {
-      const withUser = current.map((message) => {
-        if (message.localId !== pendingMessageId) {
-          return message
-        }
-
-        return {
+      return reconcileSendSuccess(
+        current,
+        pendingMessageId,
+        {
           localId: response.userMessage.messageId,
           role: response.userMessage.role,
           content: response.userMessage.content,
           createdAt: response.userMessage.createdAt,
-        }
-      })
-
-      return [
-        ...withUser,
+        },
         {
           localId: response.avatarMessage.messageId,
           role: response.avatarMessage.role,
           content: response.avatarMessage.content,
           createdAt: response.avatarMessage.createdAt,
         },
-      ]
+      )
     })
     setters.setSendStatus('idle')
     setters.setSendError(null)
@@ -210,15 +221,7 @@ async function sendAndReconcile(
       return
     }
 
-    setters.setMessages((current) =>
-      current.map((message) => {
-        if (message.localId !== pendingMessageId) {
-          return message
-        }
-
-        return markMessageAsFailed(message)
-      }),
-    )
+    setters.setMessages((current) => markSendFailure(current, pendingMessageId))
     setters.setSendStatus('idle')
     setters.setSendError(error instanceof Error ? error.message : 'Unable to send message')
   }
@@ -231,5 +234,88 @@ function markMessageAsFailed(message: ChatThreadMessage): ChatThreadMessage {
     content: message.content,
     createdAt: message.createdAt,
     failed: true,
+  }
+}
+
+type ThreadStateSetters = {
+  setActiveAvatarId: (value: string | null) => void
+  setConversation: (value: ConversationSummary | null) => void
+  setConversationStatus: (value: ConversationStatus) => void
+  setConversationError: (value: string | null) => void
+  setMessages: (value: ChatThreadMessage[]) => void
+  setComposerValue: (value: string) => void
+  setSendStatus: (value: SendStatus) => void
+  setSendError: (value: string | null) => void
+}
+
+function applyThreadState(state: ChatThreadState, setters: ThreadStateSetters): void {
+  setters.setActiveAvatarId(state.activeAvatarId)
+  setters.setConversation(state.conversation)
+  setters.setConversationStatus(state.conversationStatus)
+  setters.setConversationError(state.conversationError)
+  setters.setMessages(state.messages)
+  setters.setComposerValue(state.composerValue)
+  setters.setSendStatus(state.sendStatus)
+  setters.setSendError(state.sendError)
+}
+
+export function createThreadStateForAvatarSelection(avatarId: string): ChatThreadState {
+  return {
+    activeAvatarId: avatarId,
+    conversation: null,
+    conversationStatus: 'starting',
+    conversationError: null,
+    messages: [],
+    composerValue: '',
+    sendStatus: 'idle',
+    sendError: null,
+  }
+}
+
+export function createPendingUserMessage(
+  content: string,
+  localId: string,
+  createdAt: string,
+): ChatThreadMessage {
+  return {
+    localId,
+    role: 'user',
+    content,
+    createdAt,
+    pending: true,
+  }
+}
+
+export function reconcileSendSuccess(
+  messages: ChatThreadMessage[],
+  pendingMessageId: string,
+  userMessage: ChatThreadMessage,
+  avatarMessage: ChatThreadMessage,
+): ChatThreadMessage[] {
+  const withUser = messages.map((message) =>
+    message.localId === pendingMessageId ? userMessage : message,
+  )
+
+  return [...withUser, avatarMessage]
+}
+
+export function markSendFailure(
+  messages: ChatThreadMessage[],
+  pendingMessageId: string,
+): ChatThreadMessage[] {
+  return messages.map((message) =>
+    message.localId === pendingMessageId ? markMessageAsFailed(message) : message,
+  )
+}
+
+export function createOptimisticSendState(
+  currentMessages: ChatThreadMessage[],
+  pendingMessage: ChatThreadMessage,
+): OptimisticSendState {
+  return {
+    composerValue: '',
+    sendStatus: 'sending',
+    sendError: null,
+    messages: [...currentMessages, pendingMessage],
   }
 }

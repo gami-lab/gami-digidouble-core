@@ -13,6 +13,15 @@ const AVATAR_DISCOVERY_POLL_INTERVAL_MS = 5_000
 type ScenarioLoadStatus = 'loading' | 'ready' | 'error'
 type AvatarLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
+export type ScenarioSelectionState = {
+  selectedScenarioId: string
+  avatarStatus: AvatarLoadStatus
+  avatarError: string | null
+  avatars: AvailableAvatarSummary[]
+  session: SessionSummary | null
+  lastAvatarSyncAt: string | null
+}
+
 export type ScenarioAvatarDiscoveryState = {
   scenarios: ScenarioSummary[]
   scenarioStatus: ScenarioLoadStatus
@@ -56,12 +65,13 @@ export function useScenarioAvatarDiscovery(
     scenarioSelectionRequestIdRef.current += 1
     const requestId = scenarioSelectionRequestIdRef.current
 
-    setSelectedScenarioId(scenarioId)
-    setAvatarStatus('loading')
-    setAvatarError(null)
-    setAvatars([])
-    setSession(null)
-    setLastAvatarSyncAt(null)
+    const selectionState = createScenarioSelectionState(scenarioId)
+    setSelectedScenarioId(selectionState.selectedScenarioId)
+    setAvatarStatus(selectionState.avatarStatus)
+    setAvatarError(selectionState.avatarError)
+    setAvatars(selectionState.avatars)
+    setSession(selectionState.session)
+    setLastAvatarSyncAt(selectionState.lastAvatarSyncAt)
 
     void loadScenarioSessionAndAvatars(identity.userId, scenarioId, requestId, {
       setSession,
@@ -84,6 +94,17 @@ export function useScenarioAvatarDiscovery(
     avatarError,
     lastAvatarSyncAt,
     selectScenario,
+  }
+}
+
+export function createScenarioSelectionState(scenarioId: string): ScenarioSelectionState {
+  return {
+    selectedScenarioId: scenarioId,
+    avatarStatus: 'loading',
+    avatarError: null,
+    avatars: [],
+    session: null,
+    lastAvatarSyncAt: null,
   }
 }
 

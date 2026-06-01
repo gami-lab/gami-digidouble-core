@@ -638,6 +638,22 @@ Status: 🚧 In Progress
 - avatar availability live updates remain active during chat sessions via isolated polling in the discovery layer, so newly unlocked avatars can appear without page reload
 - no new backend endpoints were added; implementation reuses canonical shared conversation/session/message contracts from `@gami/shared`
 
+### Current slice completed (tests, hardening, and docs sync)
+
+- public web app deterministic test coverage expanded beyond identity helpers:
+  - scenario visibility filtering (`active` scenarios only)
+  - avatar visibility filtering by selected scenario
+  - scenario-selection reset state hardening (clears stale avatar/session discovery state)
+  - chat runtime state transitions:
+    - current-thread reset on new avatar selection (no old-chat carryover)
+    - optimistic pending user message insertion
+    - processing-state transition during send
+    - success reconciliation and avatar append
+    - failed-send state marking
+- web runtime helpers now expose explicit pure-state transformers used by tests to validate consumer-visible behavior without brittle implementation-mirroring
+- documentation synced for EPIC 7.1 closure expectations:
+  - `docs/TEST_COVERAGE_PLAN.md` now includes a dedicated `apps/web` coverage checklist
+
 ---
 
 # 3. Current Public API Surface
