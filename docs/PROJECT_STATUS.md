@@ -608,6 +608,20 @@ Status: 🚧 In Progress
   - reset clears persisted identity and returns app to onboarding mode
 - deterministic unit coverage added for identity normalization, storage round-trip, invalid payload handling, and reset behavior
 
+### Current slice completed (scenario and avatar discovery)
+
+- public web app now loads active scenarios after local identity is established and keeps onboarding separate from runtime discovery surfaces
+- scenario selection state is explicit and session-scoped:
+  - selected scenario ID is tracked in web UI state
+  - session is created or reused per `(userId, scenarioId)` via canonical shared session contracts
+- avatar discovery is now availability-driven and dynamic:
+  - avatar list is sourced from `GET /v1/sessions/{sessionId}/available-avatars`
+  - hidden/locked avatars are excluded by contract (no fallback to raw scenario avatar inventory)
+  - polling refresh keeps list current so newly unlocked avatars appear without page reload
+- public web app contract usage remains canonical with no local DTO duplication:
+  - scenario/session/avatar request/response shapes are consumed from `@gami/shared`
+  - web-specific local API helpers are transport-only and isolated under `apps/web/src/api`
+
 ---
 
 # 3. Current Public API Surface

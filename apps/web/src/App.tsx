@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
 import type { LocalWebIdentity } from '@gami/shared'
+import { AvatarDiscoverySection } from './discovery/AvatarDiscoverySection'
+import { ScenarioDiscoverySection } from './discovery/ScenarioDiscoverySection'
+import { useScenarioAvatarDiscovery } from './discovery/use-scenario-avatar-discovery'
 import {
   clearLocalWebIdentity,
   createInitialIdentityFormValues,
@@ -197,22 +200,25 @@ type ActiveShellProps = {
 
 function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
   const personaSummary = useMemo(() => buildPersonaSummary(identity), [identity])
+  const discovery = useScenarioAvatarDiscovery(identity)
 
   return (
     <main className="page page-active">
       <section className="card active-card" aria-labelledby="active-title">
         <header className="active-header">
           <div>
-            <p className="eyebrow">Ready</p>
+            <p className="eyebrow">Public Experience</p>
             <h1 id="active-title">Welcome, {identity.userId}</h1>
-            <p className="lead">Identity loaded from your browser. Public runtime flows come next.</p>
+            <p className="lead">
+              Choose a scenario to discover avatars currently available to your session.
+            </p>
           </div>
           <button type="button" className="button-secondary" onClick={onReset}>
             Reset identity
           </button>
         </header>
 
-        <dl className="details">
+        <dl className="details details-compact">
           <div>
             <dt>Name</dt>
             <dd>{identity.persona.name ?? 'Not set'}</dd>
@@ -229,11 +235,24 @@ function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
             <dt>Dialogue guidance</dt>
             <dd>{personaSummary.guidance}</dd>
           </div>
-          <div>
-            <dt>Created</dt>
-            <dd>{new Date(identity.createdAt).toLocaleString()}</dd>
-          </div>
         </dl>
+
+        <ScenarioDiscoverySection
+          scenarios={discovery.scenarios}
+          scenarioStatus={discovery.scenarioStatus}
+          scenarioError={discovery.scenarioError}
+          selectedScenarioId={discovery.selectedScenarioId}
+          onSelectScenario={discovery.selectScenario}
+        />
+
+        <AvatarDiscoverySection
+          selectedScenarioId={discovery.selectedScenarioId}
+          avatarStatus={discovery.avatarStatus}
+          avatarError={discovery.avatarError}
+          avatars={discovery.avatars}
+          session={discovery.session}
+          lastAvatarSyncAt={discovery.lastAvatarSyncAt}
+        />
       </section>
     </main>
   )
