@@ -1,18 +1,14 @@
 import { coreRequest } from './client'
-import type { SendMessageResponse } from '@gami/shared'
+import type { SendMessageApiResponse, SendMessageRequest, SendMessageResponse } from '@gami/shared'
 export type { SendMessageResponse }
 
-export type SendMessageParams = {
-  message: {
-    content: string
-  }
-}
+export type SendMessageParams = SendMessageRequest
 
 export async function sendMessage(
   conversationId: string,
   params: SendMessageParams,
-): Promise<SendMessageResponse> {
-  return coreRequest<SendMessageResponse>(
+): Promise<SendMessageApiResponse> {
+  return coreRequest<SendMessageApiResponse>(
     'POST',
     `/v1/conversations/${conversationId}/messages`,
     params,

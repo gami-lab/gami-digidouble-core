@@ -1,63 +1,34 @@
 import { coreRequest } from './client'
 import type {
   AvatarSummary,
-  CreateAvatarRequest,
+  CreateAvatarForScenarioRequest,
+  CreateAvatarResponse,
+  CreateScenarioRequest,
+  CreateScenarioResponse,
+  DeleteAvatarResponse,
+  DeleteScenarioResponse,
+  ListScenarioAvatarsResponse,
+  ListScenariosResponse,
   ScenarioStatus,
   ScenarioSummary,
+  UpdateScenarioRequest,
+  UpdateScenarioResponse,
+  UpdateAvatarResponse,
   UpdateAvatarRequest,
 } from '@gami/shared'
 
 export type { AvatarSummary, ScenarioStatus, ScenarioSummary }
 
-export type CreateScenarioParams = {
-  name: string
-  status?: ScenarioSummary['status']
-  config?: Record<string, unknown>
-}
-
-type CreateScenarioPayload = {
-  scenario: ScenarioSummary
-}
-
-export type CreateAvatarParams = CreateAvatarRequest
-
-type CreateAvatarPayload = {
-  avatar: AvatarSummary
-}
-
-type UpdateScenarioPayload = {
-  scenario: ScenarioSummary
-}
-
-type DeleteScenarioPayload = {
-  scenarioId: string
-  deleted: true
-}
-
-type UpdateAvatarPayload = {
-  avatar: AvatarSummary
-}
-
-type DeleteAvatarPayload = {
-  avatarId: string
-  deleted: true
-}
-
-type ListScenariosPayload = {
-  scenarios: ScenarioSummary[]
-}
-
-type ListScenarioAvatarsPayload = {
-  avatars: AvatarSummary[]
-}
+export type CreateScenarioParams = CreateScenarioRequest
+export type CreateAvatarParams = CreateAvatarForScenarioRequest['avatar']
 
 export async function listScenarios(): Promise<ScenarioSummary[]> {
-  const payload = await coreRequest<ListScenariosPayload>('GET', '/v1/scenarios')
+  const payload = await coreRequest<ListScenariosResponse>('GET', '/v1/scenarios')
   return payload.scenarios
 }
 
 export async function listScenarioAvatars(scenarioId: string): Promise<AvatarSummary[]> {
-  const payload = await coreRequest<ListScenarioAvatarsPayload>(
+  const payload = await coreRequest<ListScenarioAvatarsResponse>(
     'GET',
     `/v1/scenarios/${scenarioId}/avatars`,
   )
@@ -66,8 +37,8 @@ export async function listScenarioAvatars(scenarioId: string): Promise<AvatarSum
 
 export async function createScenario(
   params: CreateScenarioParams,
-): Promise<CreateScenarioPayload['scenario']> {
-  const payload = await coreRequest<CreateScenarioPayload>('POST', '/v1/scenarios', params)
+): Promise<CreateScenarioResponse['scenario']> {
+  const payload = await coreRequest<CreateScenarioResponse>('POST', '/v1/scenarios', params)
   return payload.scenario
 }
 
@@ -75,7 +46,7 @@ export async function createAvatar(
   scenarioId: string,
   params: CreateAvatarParams,
 ): Promise<AvatarSummary> {
-  const payload = await coreRequest<CreateAvatarPayload>(
+  const payload = await coreRequest<CreateAvatarResponse>(
     'POST',
     `/v1/scenarios/${scenarioId}/avatars`,
     params,
@@ -86,9 +57,9 @@ export async function createAvatar(
 
 export async function updateScenario(
   scenarioId: string,
-  updates: Partial<Pick<ScenarioSummary, 'name' | 'status'>>,
+  updates: UpdateScenarioRequest,
 ): Promise<ScenarioSummary> {
-  const payload = await coreRequest<UpdateScenarioPayload>(
+  const payload = await coreRequest<UpdateScenarioResponse>(
     'PATCH',
     `/v1/scenarios/${scenarioId}`,
     updates,
@@ -97,14 +68,14 @@ export async function updateScenario(
 }
 
 export async function deleteScenario(scenarioId: string): Promise<void> {
-  await coreRequest<DeleteScenarioPayload>('DELETE', `/v1/scenarios/${scenarioId}`)
+  await coreRequest<DeleteScenarioResponse>('DELETE', `/v1/scenarios/${scenarioId}`)
 }
 
 export async function updateAvatar(
   avatarId: string,
   updates: UpdateAvatarRequest,
 ): Promise<AvatarSummary> {
-  const payload = await coreRequest<UpdateAvatarPayload>(
+  const payload = await coreRequest<UpdateAvatarResponse>(
     'PATCH',
     `/v1/avatars/${avatarId}`,
     updates,
@@ -113,5 +84,5 @@ export async function updateAvatar(
 }
 
 export async function deleteAvatar(avatarId: string): Promise<void> {
-  await coreRequest<DeleteAvatarPayload>('DELETE', `/v1/avatars/${avatarId}`)
+  await coreRequest<DeleteAvatarResponse>('DELETE', `/v1/avatars/${avatarId}`)
 }

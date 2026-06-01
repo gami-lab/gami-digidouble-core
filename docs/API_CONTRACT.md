@@ -146,7 +146,7 @@ type SessionSummary = {
   sessionId: string
   userId: string
   scenarioId: string
-  activeAvatarId?: string | null
+  activeAvatarId?: string
   unlockedAvatarIds?: string[]
   status: 'active' | 'closed' | 'archived'
   startedAt: string

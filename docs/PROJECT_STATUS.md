@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: May 21, 2026
+Last updated: June 1, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -575,6 +575,21 @@ Completed on: 2026-05-21
   - avatar privacy filtering remains deterministic
   - GM visibility remains unrestricted with bounded diagnostics only
 - confirmed no new EPIC 5.1b endpoint surfaces were introduced beyond existing knowledge/admin routes; mandatory auth/validation/not-found stack-e2e baselines remain on those routes
+
+---
+
+## EPIC 7.1 — Public User Web App v1
+
+Status: 🚧 In Progress
+
+### Current slice completed (contract cleanup prerequisite)
+
+- canonical web-facing client contract helpers now live in `packages/shared/src/web-contract-types.ts`
+- duplicated console-local request/response helper DTOs for scenarios, avatars, sessions, conversations, messages, and user persona flows were consolidated to shared exports
+- console API client modules now import those shared helpers directly, creating a single canonical path for future `apps/web` consumers
+- nullability alignment confirmed:
+  - `SessionSummary.activeAvatarId` remains optional (`undefined` when absent)
+  - explicit `null` remains limited to contracts that intentionally use it (`currentAvatarId`, persona payloads, lifecycle transitions, and related admin/runtime payloads)
 
 ---
 

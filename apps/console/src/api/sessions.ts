@@ -17,7 +17,6 @@ import type {
   GetHistoryResponse,
   GetRuntimeStateResponse,
   GmStateSummary,
-  LifecycleStatus,
   Message,
   RuntimeState,
   SessionEventRecord,
@@ -28,6 +27,19 @@ import type {
   UserPersona,
   UpsertUserPersonaResponse,
   UserPersonaResponse,
+  EndConversationRequest,
+  EndConversationApiResponse,
+  GetAvailableAvatarsApiResponse,
+  GetSessionResponse,
+  ListSessionConversationsResponse,
+  ListSessionsQuery,
+  ListSessionsResponse,
+  ResetSessionResponse,
+  StartConversationRequest,
+  StartConversationResponse,
+  StartSessionRequest,
+  StartSessionResponse,
+  SwitchAvatarApiResponse,
 } from '@gami/shared'
 
 export type { SessionSummary, ConversationSummary, SessionMemorySummary, SessionTransitionRecord }
@@ -56,38 +68,16 @@ export type {
   AdminClearMemoryResponse,
 }
 
-export type StartSessionParams = {
-  userId: string
-  scenarioId: string
-}
-
-type StartSessionPayload = {
-  session: SessionSummary
-}
-
-type GetSessionPayload = {
-  session: SessionSummary
-}
-
-export type StartConversationParams = {
-  avatarId: string
-}
-
-type StartConversationPayload = {
-  conversation: ConversationSummary
-}
-
-type ListSessionConversationsPayload = {
-  conversations: ConversationSummary[]
-}
+export type StartSessionParams = StartSessionRequest
+export type StartConversationParams = StartConversationRequest
 
 export async function startSession(params: StartSessionParams): Promise<SessionSummary> {
-  const payload = await coreRequest<StartSessionPayload>('POST', '/v1/sessions', params)
+  const payload = await coreRequest<StartSessionResponse>('POST', '/v1/sessions', params)
   return payload.session
 }
 
 export async function getSession(sessionId: string): Promise<SessionSummary> {
-  const payload = await coreRequest<GetSessionPayload>('GET', `/v1/sessions/${sessionId}`)
+  const payload = await coreRequest<GetSessionResponse>('GET', `/v1/sessions/${sessionId}`)
   return payload.session
 }
 
@@ -95,7 +85,7 @@ export async function startConversation(
   sessionId: string,
   params: StartConversationParams,
 ): Promise<ConversationSummary> {
-  const payload = await coreRequest<StartConversationPayload>(
+  const payload = await coreRequest<StartConversationResponse>(
     'POST',
     `/v1/sessions/${sessionId}/conversations`,
     params,
@@ -104,7 +94,7 @@ export async function startConversation(
 }
 
 export async function getAvailableAvatars(sessionId: string): Promise<GetAvailableAvatarsResponse> {
-  return coreRequest<GetAvailableAvatarsResponse>(
+  return coreRequest<GetAvailableAvatarsApiResponse>(
     'GET',
     `/v1/sessions/${sessionId}/available-avatars`,
   )
@@ -114,13 +104,13 @@ export async function switchAvatar(
   sessionId: string,
   avatarId: string,
 ): Promise<SwitchAvatarResponse> {
-  return coreRequest<SwitchAvatarResponse>('POST', `/v1/sessions/${sessionId}/switch-avatar`, {
+  return coreRequest<SwitchAvatarApiResponse>('POST', `/v1/sessions/${sessionId}/switch-avatar`, {
     avatarId,
   })
 }
 
 export async function listSessionConversations(sessionId: string): Promise<ConversationSummary[]> {
-  const payload = await coreRequest<ListSessionConversationsPayload>(
+  const payload = await coreRequest<ListSessionConversationsResponse>(
     'GET',
     `/v1/sessions/${sessionId}/conversations`,
   )
@@ -132,10 +122,11 @@ export async function endConversation(
   conversationId: string,
   reason?: ConversationEndReason,
 ): Promise<EndConversationResponse> {
-  return coreRequest<EndConversationResponse>(
+  const body: EndConversationRequest = reason !== undefined ? { reason } : {}
+  return coreRequest<EndConversationApiResponse>(
     'POST',
     `/v1/sessions/${sessionId}/conversations/${conversationId}/end`,
-    reason !== undefined ? { reason } : {},
+    body,
   )
 }
 
@@ -143,19 +134,7 @@ export async function getHistory(conversationId: string): Promise<GetHistoryResp
   return coreRequest<GetHistoryResponse>('GET', `/v1/conversations/${conversationId}/history`)
 }
 
-export type ListSessionsFilter = {
-  scenarioId?: string
-  userId?: string
-  status?: LifecycleStatus
-}
-
-type ListSessionsPayload = {
-  sessions: SessionSummary[]
-}
-
-type ResetSessionPayload = {
-  session: SessionSummary
-}
+export type ListSessionsFilter = ListSessionsQuery
 
 export async function listSessions(filter?: ListSessionsFilter): Promise<SessionSummary[]> {
   const params = new URLSearchParams()
@@ -164,12 +143,12 @@ export async function listSessions(filter?: ListSessionsFilter): Promise<Session
   if (filter?.status !== undefined) params.set('status', filter.status)
   const query = params.toString()
   const path = query.length > 0 ? `/v1/sessions?${query}` : '/v1/sessions'
-  const payload = await coreRequest<ListSessionsPayload>('GET', path)
+  const payload = await coreRequest<ListSessionsResponse>('GET', path)
   return payload.sessions
 }
 
 export async function resetSession(sessionId: string): Promise<SessionSummary> {
-  const payload = await coreRequest<ResetSessionPayload>('POST', `/v1/sessions/${sessionId}/reset`)
+  const payload = await coreRequest<ResetSessionResponse>('POST', `/v1/sessions/${sessionId}/reset`)
   return payload.session
 }
 
