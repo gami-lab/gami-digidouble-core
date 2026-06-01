@@ -355,12 +355,13 @@ describe('RunGameMasterUseCase trace context', () => {
 
     expect(request.trace).toEqual(
       expect.objectContaining({
-        requestId: 'corr_trace_ctx',
         sessionId: 'session_1',
         event: 'gm.llm_completion',
         errorEvent: 'gm.llm_error',
       }),
     )
+    expect(request.trace?.requestId).toMatch(/^gm_[0-9a-f-]{36}$/)
     expect(request.trace?.metadata?.['triggerReason']).toBe('post_turn_observation')
+    expect(request.trace?.metadata?.['correlationId']).toBe('corr_trace_ctx')
   })
 })

@@ -258,16 +258,18 @@ export class RunGameMasterUseCase {
     llmLatencyMs: number
   } | null> {
     const resolvedLlm = await this.resolveGameMasterLlmCall()
+    const gmTraceRequestId = `gm_${crypto.randomUUID()}`
     const llmRequest = {
       systemPrompt: buildGameMasterSystemPrompt(),
       messages: [{ role: 'user' as const, content: JSON.stringify(gmInput) }],
       ...(resolvedLlm.model !== undefined ? { model: resolvedLlm.model } : {}),
       trace: {
-        requestId: input.correlationId,
+        requestId: gmTraceRequestId,
         sessionId: input.sessionId,
         event: 'gm.llm_completion',
         errorEvent: 'gm.llm_error',
         metadata: {
+          correlationId: input.correlationId,
           triggerReason,
           conversationId: input.conversationId,
           turnIndex: input.turnIndex,
