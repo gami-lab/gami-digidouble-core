@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConversationEndReason } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
@@ -170,7 +171,12 @@ function toConversationCloser(enabled: boolean): {
 }
 
 function toMemoryMaintenance(enabled: boolean): IMemoryMaintenancePort | undefined {
-  return enabled ? ({ execute: memoryMaintenanceExecuteMock } as IMemoryMaintenancePort) : undefined
+  return enabled
+    ? ({
+        execute: memoryMaintenanceExecuteMock,
+        awaitPendingRefresh: vi.fn().mockResolvedValue(undefined),
+      } as IMemoryMaintenancePort)
+    : undefined
 }
 
 beforeEach(() => {
@@ -415,6 +421,51 @@ describe('SendMessageUseCase — memory maintenance', () => {
       await Promise.resolve()
     }, /memory-maintenance/)
   })
+
+  it('waits for a pending working-memory refresh before building the next prompt', async () => {
+    let releasePending: (() => void) | undefined
+    let signalPendingCalled: (() => void) | undefined
+    const pendingCalled = new Promise<void>((resolve) => {
+      signalPendingCalled = resolve
+    })
+    const awaitPendingRefresh = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          signalPendingCalled?.()
+          releasePending = resolve
+        }),
+    )
+    const memoryMaintenance: IMemoryMaintenancePort = {
+      execute: memoryMaintenanceExecuteMock,
+      awaitPendingRefresh,
+    }
+    const useCase = new SendMessageUseCase(
+      sessionRepository,
+      conversationRepository,
+      avatarRepository,
+      scenarioRepository,
+      messageRepository,
+      llm,
+      eventLogRepository,
+      null,
+      userRepository,
+      null,
+      undefined,
+      undefined,
+      memoryMaintenance,
+    )
+
+    const execution = useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    await pendingCalled
+    expect(awaitPendingRefresh).toHaveBeenCalledWith('conversation_1')
+    expect(completeMock).not.toHaveBeenCalled()
+
+    releasePending?.()
+
+    await execution
+    expect(completeMock).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('SendMessageUseCase — validation and GM integration', () => {
@@ -444,7 +495,8 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       throw new Error('Expected llm request with a string systemPrompt')
     }
     const llmRequest = llmRequestUnknown as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).toContain('Director notes: Push user deeper into examples.')
+    expect(llmRequest.systemPrompt).toContain('## Director Notes')
+    expect(llmRequest.systemPrompt).toContain('Push user deeper into examples.')
   })
 
   it('clears gmNotes after the turn that consumes them', async () => {

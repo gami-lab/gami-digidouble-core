@@ -12,4 +12,5 @@ export interface IMemoryMaintenancePort {
     trigger: MemoryRefreshTrigger
     correlationId?: string
   }): Promise<void>
+  awaitPendingRefresh?(conversationId: string): Promise<void>
 }

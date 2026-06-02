@@ -38,6 +38,8 @@ const ALLOWED_FACT_CATEGORIES = new Set([
 const WORKING_MEMORY_RECENT_MESSAGE_LIMIT = 10
 
 export class MemoryMaintenanceService implements IMemoryMaintenancePort {
+  private readonly pendingRefreshes = new Map<string, Promise<void>>()
+
   constructor(
     private readonly messageRepository: IMessageRepository,
     private readonly conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository,
@@ -48,7 +50,35 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     private readonly modelConfigFallback?: ModelConfig,
   ) {}
 
+  async awaitPendingRefresh(conversationId: string): Promise<void> {
+    const pending = this.pendingRefreshes.get(conversationId)
+    if (pending !== undefined) {
+      await pending
+    }
+  }
+
   async execute(input: {
+    sessionId: string
+    conversationId: string
+    avatarId: string
+    trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
+    correlationId?: string
+  }): Promise<void> {
+    const prior = this.pendingRefreshes.get(input.conversationId) ?? Promise.resolve()
+    const tracked = prior
+      .catch(() => undefined)
+      .then(() => this.executeRefresh(input))
+      .finally(() => {
+        if (this.pendingRefreshes.get(input.conversationId) === tracked) {
+          this.pendingRefreshes.delete(input.conversationId)
+        }
+      })
+
+    this.pendingRefreshes.set(input.conversationId, tracked)
+    await tracked
+  }
+
+  private async executeRefresh(input: {
     sessionId: string
     conversationId: string
     avatarId: string

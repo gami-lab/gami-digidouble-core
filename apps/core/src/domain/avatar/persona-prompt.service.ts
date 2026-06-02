@@ -33,29 +33,30 @@ export function assemblePersonaPrompt(
   },
 ): string {
   const personaPrompt = requirePersonaPrompt(config.personaPrompt)
-  const sections: string[] = [personaPrompt]
-
-  if (shouldAppendName(personaPrompt, config.name)) {
-    sections.push(`Your name is ${config.name.trim()}.`)
-  }
-
-  if (hasText(config.tone)) {
-    sections.push(`Your tone is ${config.tone.trim()}.`)
-  }
+  const sections: string[] = [buildCorePersonaSection(personaPrompt, config)]
 
   // Deterministic precedence for adaptive context: persona -> memory -> retrieval snippets.
   sections.push(...buildUserPersonaContext(opts?.userPersona))
   sections.push(...buildMemoryContext(opts?.memory))
   sections.push(...buildRetrievalContext(opts?.retrieval))
-  sections.push(...buildAdjustments(config.adjustments))
   sections.push(...buildAvatarAwareness(opts?.avatarAwareness))
-
-  // EPIC 2.2 extension point: inject async Game Master directives here.
-  sections.push(DEFAULT_STYLE_RULE)
-  if (hasText(opts?.gmNotes)) {
-    sections.push(`Director notes: ${opts.gmNotes.trim()}`)
-  }
+  sections.push(buildResponseRulesSection(config.adjustments))
+  sections.push(...buildDirectorNotes(opts?.gmNotes))
   return sections.join('\n\n')
+}
+
+function buildCorePersonaSection(personaPrompt: string, config: AvatarConfig): string {
+  const lines = ['## Core Persona', personaPrompt]
+
+  if (shouldAppendName(personaPrompt, config.name)) {
+    lines.push(`Your name is ${config.name.trim()}.`)
+  }
+
+  if (hasText(config.tone)) {
+    lines.push(`Your tone is ${config.tone.trim()}.`)
+  }
+
+  return lines.join('\n')
 }
 
 function buildUserPersonaContext(userPersona: UserPersona | undefined): string[] {
@@ -84,21 +85,10 @@ function buildUserPersonaContext(userPersona: UserPersona | undefined): string[]
 function buildMemoryContext(memory: LayeredMemorySnapshot | undefined): string[] {
   if (memory === undefined) return []
   const lines: string[] = ['## Memory Context']
-  appendShortTermMemory(lines, memory)
   appendWorkingMemory(lines, memory)
   appendLongTermMemory(lines, memory)
 
   return lines.length > 1 ? [lines.join('\n')] : []
-}
-
-function appendShortTermMemory(lines: string[], memory: LayeredMemorySnapshot): void {
-  const exchanges = memory.shortTerm?.recentExchanges ?? []
-  if (exchanges.length === 0) return
-  lines.push('Recent exchange window:')
-  for (const exchange of exchanges.slice(-2)) {
-    if (hasText(exchange.user)) lines.push(`- User: ${compactText(exchange.user, 180)}`)
-    if (hasText(exchange.avatar)) lines.push(`- You: ${compactText(exchange.avatar, 180)}`)
-  }
 }
 
 function appendWorkingMemory(lines: string[], memory: LayeredMemorySnapshot): void {
@@ -170,6 +160,11 @@ function buildAdjustments(adjustments: AvatarConfig['adjustments']): string[] {
   return adjustments.map((a) => a.trim()).filter((a) => a.length > 0)
 }
 
+function buildResponseRulesSection(adjustments: AvatarConfig['adjustments']): string {
+  const lines = ['## Response Rules', ...buildAdjustments(adjustments), DEFAULT_STYLE_RULE]
+  return lines.join('\n')
+}
+
 function buildAvatarAwareness(avatars: AvatarAwarenessItem[] | undefined): string[] {
   if (avatars === undefined || avatars.length === 0) return []
 
@@ -181,11 +176,17 @@ function buildAvatarAwareness(avatars: AvatarAwarenessItem[] | undefined): strin
 
   return [
     [
+      '## Other Avatars',
       'Other avatars in this scenario:',
       ...lines,
       'You may suggest that the user talk to another avatar when their scope is a better fit and you may mention locked avatars. Availability is managed by the director, who may unlock mentioned avatars automatically.',
     ].join('\n'),
   ]
+}
+
+function buildDirectorNotes(gmNotes: string | undefined): string[] {
+  if (!hasText(gmNotes)) return []
+  return [['## Director Notes', gmNotes.trim()].join('\n')]
 }
 
 function hasText(value: string | undefined): value is string {

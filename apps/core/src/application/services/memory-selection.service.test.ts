@@ -65,4 +65,44 @@ describe('MemorySelectionService', () => {
     expect(selected.episodicMemories[0]?.selectionReasons).toContain('relevance')
     expect(selected.episodicMemories[0]?.selectionReasons).toContain('unresolved_topic')
   })
+
+  it('does not inject working memory when persisted memory is missing', async () => {
+    const service = new MemorySelectionService(
+      {
+        findByConversationId: vi.fn().mockResolvedValue([
+          {
+            conversationId: 'conversation_active',
+            role: 'user',
+            content: 'Who is Dr. Moreau?',
+            createdAt: '2026-05-08T09:00:00.000Z',
+          },
+          {
+            conversationId: 'conversation_active',
+            role: 'avatar',
+            content: 'He is the physician.',
+            createdAt: '2026-05-08T09:00:01.000Z',
+          },
+        ]),
+      } as never,
+      {
+        findByConversationId: vi.fn().mockResolvedValue(null),
+      } as never,
+      {
+        listByScope: vi.fn().mockResolvedValue([]),
+      } as never,
+      {
+        findByUserId: vi.fn().mockResolvedValue([]),
+      } as never,
+    )
+
+    const selected = await service.select({
+      conversationId: 'conversation_active',
+      userId: 'user_1',
+      avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
+      userMessageText: 'Tell me more.',
+    })
+
+    expect(selected.workingMemory).toBeUndefined()
+  })
 })

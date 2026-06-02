@@ -101,6 +101,7 @@ export class SendMessageUseCase {
     const start = Date.now()
 
     const conversation = await this.loadActiveConversation(input.conversationId)
+    await this.awaitPendingWorkingMemoryRefresh(conversation.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
     const { systemPrompt, userPersona, selectedMemory, assembledContext } =
@@ -404,6 +405,16 @@ export class SendMessageUseCase {
     ).catch((error: unknown) => {
       console.error('[memory-maintenance] Background refresh failed:', error)
     })
+  }
+
+  private async awaitPendingWorkingMemoryRefresh(conversationId: string): Promise<void> {
+    if (this.memoryMaintenance?.awaitPendingRefresh === undefined) return
+
+    try {
+      await this.memoryMaintenance.awaitPendingRefresh(conversationId)
+    } catch (error) {
+      console.error('[memory-maintenance] Await pending refresh failed:', error)
+    }
   }
 
   private validateInput(input: SendMessageInput): void {

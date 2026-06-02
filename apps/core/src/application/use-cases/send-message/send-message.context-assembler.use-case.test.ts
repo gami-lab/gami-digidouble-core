@@ -205,6 +205,7 @@ describe('SendMessageUseCase — context assembler dependency', () => {
 
     expect(assembleMock).toHaveBeenCalledTimes(1)
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).toContain('Director notes: Injected directive')
+    expect(llmRequest.systemPrompt).toContain('## Director Notes')
+    expect(llmRequest.systemPrompt).toContain('Injected directive')
   })
 })

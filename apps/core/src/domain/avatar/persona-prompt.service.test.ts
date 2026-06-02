@@ -10,6 +10,7 @@ describe('assemblePersonaPrompt -> personaPrompt included', () => {
 
     const prompt = assemblePersonaPrompt(config)
 
+    expect(prompt).toContain('## Core Persona')
     expect(prompt).toContain(config.personaPrompt)
   })
 })
@@ -23,6 +24,7 @@ describe('assemblePersonaPrompt -> name included', () => {
 
     const prompt = assemblePersonaPrompt(config)
 
+    expect(prompt).toContain('## Core Persona')
     expect(prompt).toContain('Your name is Nova.')
   })
 })
@@ -84,8 +86,8 @@ describe('assemblePersonaPrompt -> adjustments included', () => {
     const prompt = assemblePersonaPrompt(config)
     const lines = prompt.split('\n\n')
 
-    // personaPrompt + name + tone + DEFAULT_STYLE_RULE — no adjustment lines
-    expect(lines).toHaveLength(4)
+    expect(lines).toHaveLength(2)
+    expect(prompt).toContain('## Response Rules')
   })
 
   it('skips blank or whitespace-only adjustments', () => {
@@ -122,7 +124,8 @@ describe('assemblePersonaPrompt -> gm notes', () => {
       gmNotes: 'Steer the user toward practical examples.',
     })
 
-    expect(prompt).toContain('Director notes: Steer the user toward practical examples.')
+    expect(prompt).toContain('## Director Notes')
+    expect(prompt).toContain('Steer the user toward practical examples.')
   })
 })
 
@@ -141,6 +144,7 @@ describe('assemblePersonaPrompt -> avatar awareness', () => {
       ],
     })
 
+    expect(prompt).toContain('## Other Avatars')
     expect(prompt).toContain('Other avatars in this scenario:')
     expect(prompt).toContain(
       '- Theo (locked) — Technical AI specialist. Scope: Model internals and infrastructure.',
@@ -293,9 +297,9 @@ describe('assemblePersonaPrompt -> layered memory context', () => {
     })
 
     expect(prompt).toContain('## Memory Context')
-    expect(prompt).toContain('Recent exchange window:')
-    expect(prompt).toContain('- User: Hi')
-    expect(prompt).toContain('- You: Hello there')
+    expect(prompt).not.toContain('Recent exchange window:')
+    expect(prompt).not.toContain('- User: Hi')
+    expect(prompt).not.toContain('- You: Hello there')
     expect(prompt).toContain('Session working memory: Session summary')
     expect(prompt).toContain('Current avatar memory: Avatar summary')
     expect(prompt).toContain('Remembered user facts:')
@@ -309,6 +313,58 @@ describe('assemblePersonaPrompt -> layered memory context', () => {
     const prompt = assemblePersonaPrompt(config)
 
     expect(prompt).not.toContain('## Memory Context')
+  })
+})
+
+describe('assemblePersonaPrompt -> section order', () => {
+  it('keeps injected context in a consistent markdown section order', () => {
+    const config = makeAvatarConfig({
+      personaPrompt: 'You are a helpful guide.',
+      tone: 'warm',
+      adjustments: ['Use short paragraphs.'],
+    })
+
+    const prompt = assemblePersonaPrompt(config, {
+      userPersona: { name: 'Maya' },
+      memory: {
+        shortTerm: {
+          exchangeCount: 2,
+          recentExchanges: [{ user: 'Hi', avatar: 'Hello there' }],
+        },
+        working: {
+          session: {
+            summary: 'Session summary',
+            updatedAt: '2026-05-06T10:00:00.000Z',
+          },
+        },
+      },
+      retrieval: {
+        memory: [],
+        world: [],
+        media: [],
+      },
+      avatarAwareness: [
+        {
+          name: 'Theo',
+          availability: 'available',
+        },
+      ],
+      gmNotes: 'Stay on topic.',
+    })
+
+    const corePersonaIndex = prompt.indexOf('## Core Persona')
+    const userPersonaIndex = prompt.indexOf('## User Persona')
+    const memoryIndex = prompt.indexOf('## Memory Context')
+    const otherAvatarsIndex = prompt.indexOf('## Other Avatars')
+    const responseRulesIndex = prompt.indexOf('## Response Rules')
+    const directorNotesIndex = prompt.indexOf('## Director Notes')
+
+    expect(corePersonaIndex).toBeGreaterThanOrEqual(0)
+    expect(userPersonaIndex).toBeGreaterThan(corePersonaIndex)
+    expect(memoryIndex).toBeGreaterThan(userPersonaIndex)
+    expect(otherAvatarsIndex).toBeGreaterThan(memoryIndex)
+    expect(responseRulesIndex).toBeGreaterThan(otherAvatarsIndex)
+    expect(directorNotesIndex).toBeGreaterThan(responseRulesIndex)
   })
 })
 

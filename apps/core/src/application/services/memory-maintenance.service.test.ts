@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { describe, expect, it, vi } from 'vitest'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
@@ -381,6 +382,62 @@ describe('MemoryMaintenanceService — prior memory continuity', () => {
       await conversationWorkingMemoryRepository.findByConversationId('conversation_1')
     // The second summary should contain material from the first (prior memory preserved)
     expect(secondMemory?.summary).toContain(firstMemory?.summary)
+  })
+})
+
+describe('MemoryMaintenanceService — pending refresh coordination', () => {
+  it('awaits the in-flight refresh for the same conversation', async () => {
+    let releaseRefresh: (() => void) | undefined
+    let signalLlmStarted: (() => void) | undefined
+    const llmStarted = new Promise<void>((resolve) => {
+      signalLlmStarted = resolve
+    })
+    const llmComplete = vi.fn().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          signalLlmStarted?.()
+          releaseRefresh = () => {
+            resolve({
+              content: JSON.stringify({
+                summary: 'Updated working memory.',
+                unresolvedThreads: [],
+                candidateFacts: [],
+              }),
+              model: 'test',
+              inputTokens: 0,
+              outputTokens: 0,
+              latencyMs: 0,
+            })
+          }
+        }),
+    )
+    const service = new MemoryMaintenanceService(
+      new InMemoryMessageRepository(compactionMessages),
+      new InMemoryConversationWorkingMemoryRepository(),
+      new InMemoryEventLogRepository(),
+      { complete: llmComplete },
+    )
+
+    const refreshPromise = service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+
+    let awaited = false
+    const waitPromise = service.awaitPendingRefresh('conversation_1').then(() => {
+      awaited = true
+    })
+
+    await llmStarted
+    expect(awaited).toBe(false)
+
+    releaseRefresh?.()
+
+    await refreshPromise
+    await waitPromise
+    expect(awaited).toBe(true)
   })
 })
 
