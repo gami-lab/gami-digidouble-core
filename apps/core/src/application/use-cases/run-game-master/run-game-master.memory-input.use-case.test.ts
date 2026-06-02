@@ -365,3 +365,94 @@ describe('RunGameMasterUseCase trace context', () => {
     expect(request.trace?.metadata?.['correlationId']).toBe('corr_trace_ctx')
   })
 })
+
+describe('RunGameMasterUseCase assembledContext path', () => {
+  it('uses DB-loaded recent messages even when assembledContext is provided', async () => {
+    const useCase = createUseCase()
+    findMessagesByConversationIdMock.mockResolvedValue([
+      { role: 'user', content: 'Hi Clara', createdAt: '2026-04-18T10:00:00.000Z' },
+      { role: 'avatar', content: 'Good evening.', createdAt: '2026-04-18T10:00:01.000Z' },
+      { role: 'user', content: 'Tell me what you saw', createdAt: '2026-04-18T10:00:02.000Z' },
+      { role: 'avatar', content: 'He was collapsed.', createdAt: '2026-04-18T10:00:03.000Z' },
+      { role: 'user', content: 'Is he dead?', createdAt: '2026-04-18T10:00:04.000Z' },
+      { role: 'avatar', content: 'Yes, unfortunately.', createdAt: '2026-04-18T10:00:05.000Z' },
+    ])
+    findConversationWorkingMemoryByConversationIdMock.mockResolvedValue(null)
+    listConversationMemoriesByScopeMock.mockResolvedValue([])
+    findFactsByUserIdMock.mockResolvedValue([])
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      conversationId: 'conversation_1',
+      userMessageText: 'Is he dead?',
+      turnIndex: 3,
+      correlationId: 'corr_assembled_ctx',
+      assembledContext: {
+        avatar: {
+          recentExchanges: [],
+          workingMemory: {},
+          longTermFacts: [],
+          userPersona: null,
+          gmNotes: null,
+          scenario: { scenarioId: 'scenario_1' },
+        },
+        gm: {
+          recentMessages: [{ role: 'user', content: 'Is he dead?' }],
+          memory: {},
+          currentState: { progression: '', topicsCovered: [], interactionCount: 2 },
+          availableAvatars: [
+            { avatarId: 'avatar_1', name: 'Clara Whitcombe', availability: 'available' },
+          ],
+          userPersona: null,
+          scenario: { scenarioId: 'scenario_1' },
+        },
+        trace: {
+          deterministic: true,
+          policy: {
+            tokenBudget: { avatarMaxTokens: 800, gmMaxTokens: 900 },
+            protectedSegments: ['gmDirective', 'scenario'],
+            precedence: [
+              'gmDirective',
+              'scenario',
+              'userPersona',
+              'shortTermMemory',
+              'workingMemory',
+              'longTermFacts',
+              'typedRetrievalMemory',
+              'typedRetrievalWorld',
+              'typedRetrievalMedia',
+              'recentMessages',
+            ],
+          },
+          selectedInputs: {
+            hasActiveAvatar: true,
+            recentMessageCount: 1,
+            shortTermExchangeCount: 0,
+            hasWorkingMemory: false,
+            longTermFactCount: 0,
+            retrievalCounts: { memory: 0, world: 0, media: 0 },
+            hasUserPersona: false,
+            hasGmDirective: false,
+          },
+          rationale: {
+            avatarProjection: ['policy-driven-precedence'],
+            gmProjection: ['policy-driven-precedence'],
+          },
+          selection: { kept: [], trimmed: [] },
+        },
+      },
+    })
+
+    const recentMessages = readRecentMessages()
+    expect(recentMessages).toEqual([
+      { role: 'user', content: 'Hi Clara' },
+      { role: 'avatar', content: 'Good evening.' },
+      { role: 'user', content: 'Tell me what you saw' },
+      { role: 'avatar', content: 'He was collapsed.' },
+      { role: 'user', content: 'Is he dead?' },
+      { role: 'avatar', content: 'Yes, unfortunately.' },
+    ])
+  })
+})

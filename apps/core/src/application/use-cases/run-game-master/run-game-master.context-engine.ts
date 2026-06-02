@@ -17,7 +17,12 @@ export function resolveAssembledGmContext(args: {
   contextEngine: ContextEngine
   memorySelectionService: MemorySelectionService
 }): GmContextSnapshot {
-  if (args.input.assembledContext !== undefined) return args.input.assembledContext.gm
+  if (args.input.assembledContext !== undefined) {
+    return {
+      ...args.input.assembledContext.gm,
+      recentMessages: args.recentMessages,
+    }
+  }
 
   const availableAvatars = toGameMasterAvailableAvatars(args.scenarioAvatars, args.session)
   return args.contextEngine.assemble({
