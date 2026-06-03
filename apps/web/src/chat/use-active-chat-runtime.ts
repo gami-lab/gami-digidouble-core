@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ConversationSummary, SessionSummary } from '@gami/shared'
+import i18n from '../i18n/index'
 import {
   endConversation,
   getConversationHistory,
@@ -210,7 +211,7 @@ function startChat(
 ): void {
   if (session === null) {
     conversationSetters.setConversationStatus('error')
-    conversationSetters.setConversationError('Session unavailable. Please select a scenario again.')
+    conversationSetters.setConversationError(i18n.t('errors.sessionUnavailable'))
     return
   }
 
@@ -318,7 +319,9 @@ async function createConversation(
     }
 
     setters.setConversationStatus('error')
-    setters.setConversationError(error instanceof Error ? error.message : 'Unable to start chat')
+    setters.setConversationError(
+      error instanceof Error ? error.message : i18n.t('errors.unableToStartChat'),
+    )
   }
 }
 
@@ -384,7 +387,9 @@ async function sendAndReconcile(
 
     setters.setMessages((current) => markSendFailure(current, pendingMessageId))
     setters.setSendStatus('idle')
-    setters.setSendError(error instanceof Error ? error.message : 'Unable to send message')
+    setters.setSendError(
+      error instanceof Error ? error.message : i18n.t('errors.unableToSendMessage'),
+    )
   }
 }
 
@@ -430,7 +435,7 @@ async function restoreConversation(
       setSendError: setters.setSendError,
     })
     setters.setConversationError(
-      error instanceof Error ? error.message : 'Unable to restore previous conversation',
+      error instanceof Error ? error.message : i18n.t('errors.unableToRestoreConversation'),
     )
   }
 }
@@ -467,7 +472,7 @@ async function endAndClearConversation(
 
     setters.setConversationStatus('ready')
     setters.setConversationError(
-      error instanceof Error ? error.message : 'Unable to end conversation',
+      error instanceof Error ? error.message : i18n.t('errors.unableToEndConversation'),
     )
   }
 }

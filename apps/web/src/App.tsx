@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { LocalWebIdentity } from '@gami/shared'
 import { ApiError } from './api/client'
 import { upsertUserPersona } from './api/users'
@@ -8,6 +9,7 @@ import { useActiveChatRuntime } from './chat/use-active-chat-runtime'
 import { AvatarDiscoverySection } from './discovery/AvatarDiscoverySection'
 import { ScenarioDiscoverySection } from './discovery/ScenarioDiscoverySection'
 import { useScenarioAvatarDiscovery } from './discovery/use-scenario-avatar-discovery'
+import { LanguageSwitcher } from './i18n/LanguageSwitcher'
 import {
   clearLocalWebIdentity,
   createInitialIdentityFormValues,
@@ -51,6 +53,7 @@ function initializeState(): AppState {
 }
 
 function App(): JSX.Element {
+  const { t } = useTranslation()
   const [state, setState] = useState<AppState>(initializeState)
 
   const handleSubmit: FormSubmitHandler = (event) => {
@@ -81,8 +84,8 @@ function App(): JSX.Element {
           ...current,
           error:
             error instanceof ApiError
-              ? `Unable to save identity to server: ${error.message}`
-              : 'Unable to save your identity. Please try again.',
+              ? t('onboarding.error.server', { message: error.message })
+              : t('onboarding.error.generic'),
           isSubmitting: false,
         }
       })
@@ -143,63 +146,66 @@ function OnboardingShell({
   onSubmit,
   onChange,
 }: OnboardingShellProps): JSX.Element {
+  const { t } = useTranslation()
+
   return (
     <main className="page page-onboarding">
       <section className="card onboarding-card" aria-labelledby="onboarding-title">
-        <p className="eyebrow">Gami DigiDouble</p>
-        <h1 id="onboarding-title">Create your local identity</h1>
-        <p className="lead">
-          Your profile is stored in this browser and synced to the experience runtime.
-        </p>
+        <div className="card-top-bar">
+          <p className="eyebrow">{t('onboarding.eyebrow')}</p>
+          <LanguageSwitcher />
+        </div>
+        <h1 id="onboarding-title">{t('onboarding.title')}</h1>
+        <p className="lead">{t('onboarding.lead')}</p>
 
         <form className="form" onSubmit={onSubmit}>
           <div className="grid-two">
             <label className="field">
-              <span>Name</span>
+              <span>{t('onboarding.name.label')}</span>
               <input
                 name="name"
                 value={form.name}
                 onChange={(event) => {
                   onChange('name', event.target.value)
                 }}
-                placeholder="What should avatars call you?"
+                placeholder={t('onboarding.name.placeholder')}
               />
             </label>
 
             <label className="field">
-              <span>Role in world</span>
+              <span>{t('onboarding.roleInWorld.label')}</span>
               <input
                 name="roleInWorld"
                 value={form.roleInWorld}
                 onChange={(event) => {
                   onChange('roleInWorld', event.target.value)
                 }}
-                placeholder="Detective, traveler, curator..."
+                placeholder={t('onboarding.roleInWorld.placeholder')}
               />
             </label>
           </div>
 
           <label className="field">
-            <span>Avatar relationships</span>
+            <span>{t('onboarding.avatarRelationships.label')}</span>
             <input
               name="avatarRelationships"
               value={form.avatarRelationships}
               onChange={(event) => {
                 onChange('avatarRelationships', event.target.value)
               }}
-              placeholder="Separated by comma or new line"
+              placeholder={t('onboarding.avatarRelationships.placeholder')}
             />
           </label>
 
           <label className="field">
-            <span>Dialogue guidance</span>
+            <span>{t('onboarding.dialogueGuidance.label')}</span>
             <textarea
               name="dialogGuidance"
               value={form.dialogGuidance}
               onChange={(event) => {
                 onChange('dialogGuidance', event.target.value)
               }}
-              placeholder="How should avatars interact with you?"
+              placeholder={t('onboarding.dialogueGuidance.placeholder')}
               rows={4}
             />
           </label>
@@ -207,7 +213,7 @@ function OnboardingShell({
           {error !== null ? <p className="error">{error}</p> : null}
 
           <button type="submit" className="button-primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving identity…' : 'Save identity'}
+            {isSubmitting ? t('onboarding.saving') : t('onboarding.save')}
           </button>
         </form>
       </section>
@@ -221,6 +227,7 @@ type ActiveShellProps = {
 }
 
 function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
+  const { t } = useTranslation()
   const persistedRuntime = useMemo(() => readLocalWebRuntimeState(identity.userId), [identity.userId])
   const personaSummary = useMemo(() => buildPersonaSummary(identity), [identity])
   const discovery = useScenarioAvatarDiscovery(identity, {
@@ -254,15 +261,16 @@ function ActiveShell({ identity, onReset }: ActiveShellProps): JSX.Element {
       <section className="card active-card" aria-labelledby="active-title">
         <header className="active-header">
           <div>
-            <p className="eyebrow">Public Experience</p>
-            <h1 id="active-title">Welcome</h1>
-            <p className="lead">
-              Choose a scenario to discover avatars currently available to your session.
-            </p>
+            <p className="eyebrow">{t('active.eyebrow')}</p>
+            <h1 id="active-title">{t('active.title')}</h1>
+            <p className="lead">{t('active.lead')}</p>
           </div>
-          <button type="button" className="button-secondary" onClick={onReset}>
-            Reset identity
-          </button>
+          <div className="active-header-actions">
+            <LanguageSwitcher />
+            <button type="button" className="button-secondary" onClick={onReset}>
+              {t('active.resetIdentity')}
+            </button>
+          </div>
         </header>
 
         <IdentitySummaryDetails identity={identity} personaSummary={personaSummary} />
@@ -297,23 +305,25 @@ function IdentitySummaryDetails({
   identity,
   personaSummary,
 }: IdentitySummaryDetailsProps): JSX.Element {
+  const { t } = useTranslation()
+
   return (
     <dl className="details details-compact">
       <div>
-        <dt>Name</dt>
-        <dd>{identity.persona.name ?? 'Not set'}</dd>
+        <dt>{t('identity.name')}</dt>
+        <dd>{identity.persona.name ?? t('identity.notSet')}</dd>
       </div>
       <div>
-        <dt>Role in world</dt>
-        <dd>{identity.persona.roleInWorld ?? 'Not set'}</dd>
+        <dt>{t('identity.roleInWorld')}</dt>
+        <dd>{identity.persona.roleInWorld ?? t('identity.notSet')}</dd>
       </div>
       <div>
-        <dt>Relationships</dt>
-        <dd>{personaSummary.relationships}</dd>
+        <dt>{t('identity.relationships')}</dt>
+        <dd>{personaSummary.relationships || t('identity.notSet')}</dd>
       </div>
       <div>
-        <dt>Dialogue guidance</dt>
-        <dd>{personaSummary.guidance}</dd>
+        <dt>{t('identity.dialogueGuidance')}</dt>
+        <dd>{personaSummary.guidance || t('identity.notSet')}</dd>
       </div>
     </dl>
   )
@@ -327,11 +337,11 @@ function buildPersonaSummary(identity: LocalWebIdentity): {
     identity.persona.avatarRelationships !== undefined &&
     identity.persona.avatarRelationships.length > 0
       ? identity.persona.avatarRelationships.join(', ')
-      : 'Not set'
+      : ''
 
   return {
     relationships,
-    guidance: identity.persona.dialogGuidance ?? 'Not set',
+    guidance: identity.persona.dialogGuidance ?? '',
   }
 }
 

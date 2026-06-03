@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import i18n from '../i18n/index'
 import type {
   AvailableAvatarSummary,
   LocalWebIdentity,
@@ -162,7 +163,9 @@ function useScenarioList(
       } catch (error) {
         if (!isCancelled) {
           setScenarioStatus('error')
-          setScenarioError(error instanceof Error ? error.message : 'Unable to load scenarios')
+          setScenarioError(
+            error instanceof Error ? error.message : i18n.t('errors.unableToLoadScenarios'),
+          )
         }
       }
     }
@@ -201,7 +204,7 @@ function useAvatarAvailabilitySubscription(
       } catch (error) {
         if (isCancelled) return
         setAvatarError(
-          error instanceof Error ? error.message : 'Unable to refresh avatar availability',
+          error instanceof Error ? error.message : i18n.t('errors.unableToRefreshAvatars'),
         )
         setAvatarStatus((current) => (current === 'ready' ? 'ready' : 'error'))
       }
@@ -285,7 +288,9 @@ async function loadScenarioSessionAndAvatars(
       return
     }
     setters.setAvatarStatus('error')
-    setters.setAvatarError(error instanceof Error ? error.message : 'Unable to load avatars')
+    setters.setAvatarError(
+      error instanceof Error ? error.message : i18n.t('errors.unableToLoadAvatars'),
+    )
   }
 }
 
