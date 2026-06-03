@@ -71,6 +71,9 @@ function makeViewModel(): RuntimeInspectorViewModel {
       },
       turns: [],
     },
+    knowledge: {
+      sources: [],
+    },
     context: {
       avatar: {
         recentExchanges: [],

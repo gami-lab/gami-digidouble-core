@@ -12,7 +12,6 @@ import {
   formatTraceRetrievalCounts,
   formatTraceVisibilityExcludedCounts,
   formatTraceVisibilityGmRetrievalCounts,
-  formatVisibility,
 } from './runtime-inspector-context-formatters'
 import { buildPersonaPayload, PersonaEditor } from './runtime-inspector-persona'
 import { MemoryObservabilitySection } from './runtime-inspector-memory-observability'
@@ -288,10 +287,20 @@ function renderMemoryEvolution(
   )
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity, max-lines-per-function
 function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
   const avatarKnowledge = snapshot.context.avatar.knowledge?.retrievedItems ?? []
   const gmKnowledge = snapshot.context.gm.knowledge
+  const gmKnowledgeItems = [
+    ...(gmKnowledge?.memory ?? []),
+    ...(gmKnowledge?.world ?? []),
+    ...(gmKnowledge?.media ?? []),
+  ]
+  const avatarNameById = new Map(
+    snapshot.context.gm.availableAvatars.map((avatar) => [avatar.avatarId, avatar.name] as const),
+  )
+  const staticKnowledgeCounts = countKnowledgeSources(snapshot.knowledge.sources)
+  const accessMatrix = buildAvatarKnowledgeAccess(snapshot)
   const trace = snapshot.context.trace
   const gmCounts = formatGmKnowledgeCounts(gmKnowledge)
   const traceDeterministic = trace?.deterministic === true ? 'true' : 'false'
@@ -306,34 +315,198 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
   return (
     <div style={{ marginTop: '12px' }}>
       <p style={{ margin: '0 0 10px', color: '#4b5563' }}>
-        This is the bounded context assembled before the Avatar and Game Master calls. It explains
-        what memory, retrieval, persona, and directives were kept or trimmed for the current turn.
+        This tab answers two questions: what knowledge exists for this scenario, and what the
+        Avatar and Game Master actually received for the current turn.
       </p>
-      <Row label="Avatar assembled for">{snapshot.context.avatar.avatarId ?? '-'}</Row>
-      <Row label="Avatar exchange window">
-        {String(snapshot.context.avatar.recentExchanges.length)}
-      </Row>
-      <Row label="GM recent message window">{String(snapshot.context.gm.recentMessages.length)}</Row>
+      <strong>Static knowledge inventory</strong>
       <Row label="Scenario">{snapshot.context.gm.scenario.name ?? snapshot.session.scenarioId}</Row>
-      <Row label="Avatar knowledge items">{String(avatarKnowledge.length)}</Row>
-      <Row label="GM memory/world/media">{gmCounts}</Row>
+      <Row label="Loaded sources">{String(snapshot.knowledge.sources.length)}</Row>
+      <Row label="World / memory / media">
+        {`${String(staticKnowledgeCounts.world)} / ${String(staticKnowledgeCounts.memory)} / ${String(staticKnowledgeCounts.media)}`}
+      </Row>
+      {snapshot.knowledge.sources.length === 0 ? (
+        <p style={{ margin: '6px 0', color: '#6b7280' }}>No scenario knowledge sources loaded.</p>
+      ) : (
+        snapshot.knowledge.sources.map((source) => (
+          <p key={source.sourceId} style={{ margin: '4px 0', color: '#374151' }}>
+            [{source.knowledgeType}] {source.name} [{source.status}] access:{' '}
+            {formatKnowledgeAccess(source.visibleToAvatarIds, avatarNameById)}
+          </p>
+        ))
+      )}
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>Avatar access</strong>
+      {accessMatrix.length === 0 ? (
+        <p style={{ margin: '6px 0', color: '#6b7280' }}>No avatar access matrix available.</p>
+      ) : (
+        accessMatrix.map((entry) => (
+          <p key={entry.avatarId} style={{ margin: '4px 0', color: '#374151' }}>
+            {entry.avatarName}: {entry.sourceNames.length > 0 ? entry.sourceNames.join(', ') : 'no avatar-visible sources'}
+          </p>
+        ))
+      )}
+      <p style={{ margin: '4px 0', color: '#374151' }}>
+        GM-only sources:{' '}
+        {listGmOnlySourceNames(snapshot.knowledge.sources).join(', ') || 'none'}
+      </p>
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>Used by avatar for current turn</strong>
+      <Row label="Avatar">
+        {formatAvatarLabel(snapshot.context.avatar.avatarId, avatarNameById)}
+      </Row>
+      <Row label="Recent exchanges">{String(snapshot.context.avatar.recentExchanges.length)}</Row>
+      <Row label="Working memory">
+        {snapshot.context.avatar.workingMemory.avatar?.summary ??
+          snapshot.context.avatar.workingMemory.session?.summary ??
+          '-'}
+      </Row>
+      <Row label="Long-term facts">{String(snapshot.context.avatar.longTermFacts.length)}</Row>
+      <Row label="GM note">{snapshot.context.avatar.gmNotes ?? '-'}</Row>
+      <Row label="Retrieved knowledge">{String(avatarKnowledge.length)}</Row>
+      <Row label="User persona">{formatPersonaSummary(snapshot.context.avatar.userPersona)}</Row>
+      {snapshot.context.avatar.recentExchanges.map((exchange, index) => (
+        <p key={`avatar-exchange-${String(index)}`} style={{ margin: '4px 0', color: '#374151' }}>
+          U: {exchange.user} / A: {exchange.avatar}
+        </p>
+      ))}
+      {snapshot.context.avatar.longTermFacts.map((fact) => (
+        <p key={`avatar-fact-${fact.category}-${fact.key}`} style={{ margin: '4px 0', color: '#374151' }}>
+          Fact {fact.category}.{fact.key}: {fact.value}
+        </p>
+      ))}
+      {avatarKnowledge.length === 0 ? (
+        <p style={{ margin: '4px 0', color: '#6b7280' }}>No retrieval content was added for the avatar.</p>
+      ) : (
+        avatarKnowledge.map((item) => (
+          <p key={`avatar-knowledge-${item.chunkId}`} style={{ margin: '4px 0', color: '#374151' }}>
+            {formatRetrievedKnowledgeItem(item, avatarNameById)}
+          </p>
+        ))
+      )}
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>Used by GM for current turn</strong>
+      <Row label="Recent messages">{String(snapshot.context.gm.recentMessages.length)}</Row>
+      <Row label="Working memory">{snapshot.context.gm.memory.workingSummary ?? '-'}</Row>
+      <Row label="Long-term facts">
+        {String(snapshot.context.gm.memory.longTermFacts?.length ?? 0)}
+      </Row>
+      <Row label="Retrieved knowledge">{String(gmKnowledgeItems.length)}</Row>
+      <Row label="User persona">{formatPersonaSummary(snapshot.context.gm.userPersona)}</Row>
+      <Row label="GM state">
+        {`avatar ${formatAvatarLabel(snapshot.context.gm.currentState.currentAvatarId, avatarNameById)}, progression ${snapshot.context.gm.currentState.progression || '-'}, interaction ${String(snapshot.context.gm.currentState.interactionCount)}`}
+      </Row>
+      {snapshot.context.gm.recentMessages.map((message, index) => (
+        <p key={`gm-message-${String(index)}`} style={{ margin: '4px 0', color: '#374151' }}>
+          {message.role}: {truncateText(message.content, 180)}
+        </p>
+      ))}
+      {snapshot.context.gm.memory.shortTerm?.recentExchanges.map((exchange, index) => (
+        <p key={`gm-memory-${String(index)}`} style={{ margin: '4px 0', color: '#374151' }}>
+          Memory U: {exchange.user} / A: {exchange.avatar}
+        </p>
+      ))}
+      {snapshot.context.gm.memory.longTermFacts?.map((fact) => (
+        <p key={`gm-fact-${fact.category}-${fact.key}`} style={{ margin: '4px 0', color: '#374151' }}>
+          Fact {fact.category}.{fact.key}: {fact.value}
+        </p>
+      ))}
+      {gmKnowledgeItems.length === 0 ? (
+        <p style={{ margin: '4px 0', color: '#6b7280' }}>No retrieval content was added for the GM.</p>
+      ) : (
+        gmKnowledgeItems.map((item) => (
+          <p key={`gm-knowledge-${item.chunkId}`} style={{ margin: '4px 0', color: '#374151' }}>
+            {formatRetrievedKnowledgeItem(item, avatarNameById)}
+          </p>
+        ))
+      )}
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>Assembly diagnostics</strong>
       <Row label="Deterministic assembly">{traceDeterministic}</Row>
       <Row label="Protected segments">{trace?.policy.protectedSegments.join(', ') || '-'}</Row>
       <Row label="Kept / trimmed segments">{traceKeptTrimmed}</Row>
-      <Row label="Selected retrieval memory/world/media">{traceRetrievalCounts}</Row>
-      <Row label="Excluded by visibility memory/world/media">{traceVisibilityExcluded}</Row>
+      <Row label="Avatar retrieval counts">{traceRetrievalCounts}</Row>
+      <Row label="GM retrieval counts">{gmCounts}</Row>
+      <Row label="Excluded by visibility">{traceVisibilityExcluded}</Row>
       <Row label="GM visibility unrestricted">{traceVisibilityGmUnrestricted}</Row>
-      <Row label="GM retrieval memory/world/media">
-        {traceVisibilityGmRetrieval}
-      </Row>
-      {avatarKnowledge.slice(0, 3).map((item) => (
-        <p key={`${item.sourceId}-${item.chunkId}`} style={{ margin: '4px 0', color: '#374151' }}>
-          [{item.knowledgeType}] [visibility:{formatVisibility(item.visibleToAvatarIds)}]{' '}
-          {truncateText(item.content, 160)}
-        </p>
-      ))}
+      <Row label="GM retrieval after visibility">{traceVisibilityGmRetrieval}</Row>
     </div>
   )
+}
+
+type RetrievedKnowledgeItem =
+  NonNullable<RuntimeInspectorViewModel['context']['avatar']['knowledge']>['retrievedItems'][number]
+
+function countKnowledgeSources(
+  sources: RuntimeInspectorViewModel['knowledge']['sources'],
+): Record<'memory' | 'world' | 'media', number> {
+  return sources.reduce(
+    (counts, source) => {
+      counts[source.knowledgeType] += 1
+      return counts
+    },
+    { memory: 0, world: 0, media: 0 },
+  )
+}
+
+function buildAvatarKnowledgeAccess(snapshot: RuntimeInspectorViewModel): Array<{
+  avatarId: string
+  avatarName: string
+  sourceNames: string[]
+}> {
+  return snapshot.context.gm.availableAvatars.map((avatar) => ({
+    avatarId: avatar.avatarId,
+    avatarName: avatar.name,
+    sourceNames: snapshot.knowledge.sources
+      .filter((source) => isVisibleToAvatar(source.visibleToAvatarIds, avatar.avatarId))
+      .map((source) => source.name),
+  }))
+}
+
+function isVisibleToAvatar(visibleToAvatarIds: string[] | undefined, avatarId: string): boolean {
+  if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0) return true
+  if (visibleToAvatarIds.includes('__GM_ONLY__')) return false
+  return visibleToAvatarIds.includes(avatarId)
+}
+
+function listGmOnlySourceNames(sources: RuntimeInspectorViewModel['knowledge']['sources']): string[] {
+  return sources
+    .filter((source) => source.visibleToAvatarIds?.includes('__GM_ONLY__') === true)
+    .map((source) => source.name)
+}
+
+function formatKnowledgeAccess(
+  visibleToAvatarIds: string[] | undefined,
+  avatarNameById: Map<string, string>,
+): string {
+  if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0) return 'all avatars'
+  if (visibleToAvatarIds.includes('__GM_ONLY__')) return 'GM only'
+  return visibleToAvatarIds
+    .map((avatarId) => avatarNameById.get(avatarId) ?? avatarId)
+    .join(', ')
+}
+
+function formatAvatarLabel(
+  avatarId: string | undefined,
+  avatarNameById: Map<string, string>,
+): string {
+  if (avatarId === undefined) return '-'
+  const avatarName = avatarNameById.get(avatarId)
+  return avatarName !== undefined ? `${avatarName} (${avatarId})` : avatarId
+}
+
+function formatPersonaSummary(persona: UserPersona | null): string {
+  if (persona === null) return '-'
+  const parts = [persona.name, persona.roleInWorld].filter(
+    (value): value is string => typeof value === 'string' && value.length > 0,
+  )
+  return parts.length > 0 ? parts.join(' / ') : 'present'
+}
+
+function formatRetrievedKnowledgeItem(
+  item: RetrievedKnowledgeItem,
+  avatarNameById: Map<string, string>,
+): string {
+  return `[${item.knowledgeType}] access:${formatKnowledgeAccess(item.visibleToAvatarIds, avatarNameById)} ${truncateText(item.content, 180)}`
 }
 
 function EventsTab({

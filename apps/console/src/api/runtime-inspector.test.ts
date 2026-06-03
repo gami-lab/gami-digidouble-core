@@ -9,6 +9,7 @@ import {
   inspectSession,
   listSessionEvents,
 } from './sessions'
+import { listKnowledgeSources } from './knowledge'
 import { loadRuntimeInspectorViewModel } from './runtime-inspector'
 
 vi.mock('./sessions', () => ({
@@ -20,6 +21,9 @@ vi.mock('./sessions', () => ({
   getSessionMetrics: vi.fn(),
   getUserPersona: vi.fn(),
   listSessionEvents: vi.fn(),
+}))
+vi.mock('./knowledge', () => ({
+  listKnowledgeSources: vi.fn(),
 }))
 
 describe('loadRuntimeInspectorViewModel', () => {
@@ -40,12 +44,14 @@ describe('loadRuntimeInspectorViewModel', () => {
     expect(getSessionMetrics).toHaveBeenCalledWith('session_1')
     expect(getUserPersona).toHaveBeenCalledWith('user_1')
     expect(listSessionEvents).toHaveBeenCalledWith('session_1', { limit: 12 })
+    expect(listKnowledgeSources).toHaveBeenCalledWith('scenario_1')
     expect(result.session.sessionId).toBe('session_1')
     expect(result.gm.gmState).toBeNull()
     expect(result.memory.layers.shortTerm.exchangeCount).toBe(2)
     expect(result.metrics.summary.totalTurns).toBe(1)
     expect(result.metrics.turns).toHaveLength(1)
     expect(result.context.gm.currentState.progression).toBe('intro')
+    expect(result.knowledge.sources).toHaveLength(1)
     expect(result.context.trace?.deterministic).toBe(true)
     expect(result.persona?.name).toBe('Maya')
     expect(result.effectiveModels.avatar.provider).toBe('openai')
@@ -204,6 +210,20 @@ function arrangeSession1(): void {
   vi.mocked(listSessionEvents).mockResolvedValue({
     events: [],
   })
+  vi.mocked(listKnowledgeSources).mockResolvedValue({
+    sources: [
+      {
+        sourceId: 'source_1',
+        scenarioId: 'scenario_1',
+        name: 'Scene notes',
+        knowledgeType: 'world',
+        format: 'markdown',
+        uriOrPath: '/tmp/scene.md',
+        status: 'ready',
+        createdAt: '2026-05-01T10:00:00.000Z',
+      },
+    ],
+  })
 }
 
 function arrangeSession2(): void {
@@ -293,4 +313,5 @@ function arrangeSession2(): void {
   })
   vi.mocked(getUserPersona).mockResolvedValue({ persona: null })
   vi.mocked(listSessionEvents).mockResolvedValue({ events: [] })
+  vi.mocked(listKnowledgeSources).mockResolvedValue({ sources: [] })
 }

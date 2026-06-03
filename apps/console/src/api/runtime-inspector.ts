@@ -4,11 +4,13 @@ import type {
   AdminSessionMemoryLayersResponse,
   AdminSessionMemoryResponse,
   AdminSessionTurnMetricsResponse,
+  KnowledgeSourceDto,
   RuntimeState,
   SessionEventRecord,
   SessionSummary,
   UserPersona,
 } from '@gami/shared'
+import { listKnowledgeSources } from './knowledge'
 import {
   getSessionContext,
   getRuntimeState,
@@ -47,6 +49,9 @@ export type RuntimeInspectorViewModel = {
     gm: AdminSessionContextResponse['gmContext']
     trace: AdminSessionContextResponse['contextTrace']
   }
+  knowledge: {
+    sources: KnowledgeSourceDto[]
+  }
   persona: UserPersona | null
   recentEvents: SessionEventRecord[]
 }
@@ -68,6 +73,7 @@ export async function loadRuntimeInspectorViewModel(
     personaResponse,
     eventsResponse,
     contextResponse,
+    knowledgeSources,
   ] = await Promise.all([
     getRuntimeState(sessionId),
     getSessionMemory(sessionId),
@@ -76,6 +82,7 @@ export async function loadRuntimeInspectorViewModel(
     getUserPersona(inspect.inspect.session.userId),
     listSessionEvents(sessionId, { limit: eventsLimit }),
     getSessionContext(sessionId),
+    listKnowledgeSources(inspect.inspect.session.scenarioId),
   ])
 
   return {
@@ -100,6 +107,9 @@ export async function loadRuntimeInspectorViewModel(
       avatar: contextResponse.avatarContext,
       gm: contextResponse.gmContext,
       trace: contextResponse.contextTrace,
+    },
+    knowledge: {
+      sources: knowledgeSources.sources,
     },
     persona: personaResponse.persona,
     recentEvents: eventsResponse.events,

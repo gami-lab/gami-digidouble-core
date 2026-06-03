@@ -19,6 +19,42 @@ function makeViewModel(): RuntimeInspectorViewModel {
     memory: makeMemorySummary(),
     metrics: makeMetricsSummary(),
     context: makeContextSummary(),
+    knowledge: {
+      sources: [
+        {
+          sourceId: 'source_world_all',
+          scenarioId: 'scenario_1',
+          name: 'Shared clues',
+          knowledgeType: 'world',
+          format: 'markdown',
+          uriOrPath: '/tmp/shared-clues.md',
+          status: 'ready',
+          createdAt: '2026-05-07T10:00:00.000Z',
+        },
+        {
+          sourceId: 'source_world_avatar_1',
+          scenarioId: 'scenario_1',
+          name: 'Clara private notes',
+          knowledgeType: 'world',
+          format: 'markdown',
+          uriOrPath: '/tmp/clara-notes.md',
+          status: 'ready',
+          visibleToAvatarIds: ['avatar_1'],
+          createdAt: '2026-05-07T10:00:00.000Z',
+        },
+        {
+          sourceId: 'source_gm_only',
+          scenarioId: 'scenario_1',
+          name: 'GM truth',
+          knowledgeType: 'world',
+          format: 'markdown',
+          uriOrPath: '/tmp/gm-truth.md',
+          status: 'ready',
+          visibleToAvatarIds: ['__GM_ONLY__'],
+          createdAt: '2026-05-07T10:00:00.000Z',
+        },
+      ],
+    },
     persona: null,
     recentEvents: [makeGmEvent(), makeRecentEvent()],
   }
@@ -173,16 +209,20 @@ function makeContextSummary(): RuntimeInspectorViewModel['context'] {
         media: [],
       },
       memory: {},
-      currentState: {
-        progression: 'intro',
-        topicsCovered: [],
-        interactionCount: 1,
-      },
-      availableAvatars: [],
-      userPersona: null,
-      scenario: {
-        scenarioId: 'scenario_1',
-      },
+        currentState: {
+          currentAvatarId: 'avatar_1',
+          progression: 'intro',
+          topicsCovered: [],
+          interactionCount: 1,
+        },
+        availableAvatars: [
+          { avatarId: 'avatar_1', name: 'Clara Whitcombe', availability: 'available' },
+          { avatarId: 'avatar_2', name: 'Theo', availability: 'available' },
+        ],
+        userPersona: null,
+        scenario: {
+          scenarioId: 'scenario_1',
+        },
     },
     trace: {
       deterministic: true,
@@ -354,8 +394,8 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('openai / gpt-4.1-mini')
     expect(html).toContain('mistral / mistral-small-latest')
     expect(html).toContain('xai / grok-2-mini')
-    expect(html).toContain('avatar_1 (unknown)')
-    expect(html).toContain('avatar_2 (unknown) — user asked architecture question')
+    expect(html).toContain('avatar_1 (Clara Whitcombe)')
+    expect(html).toContain('avatar_2 (Theo) — user asked architecture question')
   })
 
   it('renders action controls and status text', () => {
@@ -400,16 +440,25 @@ describe('RuntimeInspectorTabContent', () => {
 
     expect(html).toContain('Scenario')
     expect(html).toContain('scenario_1')
-    expect(html).toContain('Avatar knowledge items')
-    expect(html).toContain('GM memory/world/media')
-    expect(html).toContain('This is the bounded context assembled before the Avatar and Game Master calls.')
+    expect(html).toContain('This tab answers two questions')
+    expect(html).toContain('Static knowledge inventory')
+    expect(html).toContain('Avatar access')
+    expect(html).toContain('Used by avatar for current turn')
+    expect(html).toContain('Used by GM for current turn')
+    expect(html).toContain('Loaded sources')
+    expect(html).toContain('Shared clues')
+    expect(html).toContain('Clara private notes')
+    expect(html).toContain('access: all avatars')
+    expect(html).toContain('access: Clara Whitcombe')
+    expect(html).toContain('GM-only sources')
+    expect(html).toContain('GM truth')
+    expect(html).toContain('Clara Whitcombe: Shared clues, Clara private notes')
+    expect(html).toContain('Theo: Shared clues')
+    expect(html).toContain('Retrieved knowledge')
+    expect(html).toContain('[world] access:Clara Whitcombe')
+    expect(html).toContain('[world] access:all avatars lore')
+    expect(html).toContain('Assembly diagnostics')
     expect(html).toContain('Deterministic assembly')
-    expect(html).toContain('Kept / trimmed segments')
-    expect(html).toContain('Selected retrieval memory/world/media')
-    expect(html).toContain('Excluded by visibility memory/world/media')
-    expect(html).toContain('GM visibility unrestricted')
-    expect(html).toContain('GM retrieval memory/world/media')
-    expect(html).toContain('[visibility:avatar_1]')
   })
 
   it('renders live runtime events in events tab', () => {
@@ -446,8 +495,8 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('GM decision/action')
     expect(html).toContain('Resulting impact')
     expect(html).toContain('Avatar unlocks: avatar_2 (Theo) [unlocked]')
-    expect(html).toContain('Routing suggestion: avatar_2')
-    expect(html).toContain('Directive count: 2')
+    expect(html).toContain('GM recommendation: Theo (avatar_2) — user asked architecture question')
+    expect(html).toContain('GM produced 2 structured recommendations.')
     expect(html).toContain('Turn 1')
     expect(html).toContain('Correlation: corr_1')
   })
