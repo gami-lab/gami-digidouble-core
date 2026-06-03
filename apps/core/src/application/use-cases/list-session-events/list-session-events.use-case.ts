@@ -235,6 +235,7 @@ function readDecision(value: unknown): GmSessionEventPayload['decision'] | undef
     conversationMode:
       conversationMode === 'new' || conversationMode === 'continue' ? conversationMode : 'continue',
     notesInjected: value['notesInjected'] === true,
+    ...readOptionalStringField(value, 'injectedNote'),
     directiveCount: readNumber(value['directiveCount']),
     ...(unlockEvaluations !== undefined ? { unlockEvaluations } : {}),
     ...readOptionalStringField(value, 'suggestedAvatarId'),
@@ -310,7 +311,12 @@ function readOptionalCandidateFacts(
 }
 
 function readOptionalStringField<
-  K extends 'suggestedAvatarId' | 'suggestedAvatarReason' | 'switchedAvatarId' | 'correlationId',
+  K extends
+    | 'suggestedAvatarId'
+    | 'suggestedAvatarReason'
+    | 'switchedAvatarId'
+    | 'correlationId'
+    | 'injectedNote',
 >(value: Record<string, unknown>, key: K): Partial<Record<K, string>> {
   const field = readOptionalString(value[key])
   return field !== undefined ? ({ [key]: field } as Partial<Record<K, string>>) : {}

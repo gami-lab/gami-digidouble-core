@@ -271,6 +271,9 @@ describe('RunGameMasterUseCase — event log', () => {
     expect(event?.type).toBe('gm_triggered')
     expect(event?.payload['triggerReason']).toBe('post_turn_observation')
     expect(event?.payload['decision']).toBeDefined()
+    expect(event?.payload['decision']).toMatchObject({
+      injectedNote: 'Help the user move to concrete examples.',
+    })
     expect(JSON.stringify(event?.payload ?? {})).not.toContain('secret user input')
     expect(JSON.stringify(event?.payload ?? {})).not.toContain('systemPrompt')
   })

@@ -103,6 +103,7 @@ export type GameMasterEvent = {
       avatarId: string
       conversationMode: 'new' | 'continue'
       notesInjected: boolean
+      injectedNote?: string
       directiveCount: number
       unlockedAvatarIds?: string[]
       unlockEvaluations?: Array<{

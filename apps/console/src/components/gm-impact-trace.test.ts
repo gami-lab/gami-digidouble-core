@@ -88,7 +88,10 @@ function makeViewModel(): RuntimeInspectorViewModel {
           topicsCovered: [],
           interactionCount: 1,
         },
-        availableAvatars: [],
+        availableAvatars: [
+          { avatarId: 'avatar_1', name: 'Clara Whitcombe', availability: 'available' },
+          { avatarId: 'avatar_2', name: 'Theo', availability: 'available' },
+        ],
         userPersona: null,
         scenario: { scenarioId: 'scenario_1' },
       },
@@ -105,13 +108,15 @@ function makeViewModel(): RuntimeInspectorViewModel {
           turnIndex: 1,
           interactionCount: 2,
           stateBefore: {
+            currentAvatarId: 'avatar_1',
             progression: 'intro',
             topicsCovered: [],
           },
           decision: {
             avatarId: 'avatar_2',
-            conversationMode: 'continue',
+            conversationMode: 'new',
             notesInjected: true,
+            injectedNote: 'Ask Theo for concrete implementation details next.',
             directiveCount: 1,
             unlockedAvatarIds: ['avatar_2'],
             unlockEvaluations: [
@@ -176,13 +181,25 @@ describe('buildGmImpactTrace', () => {
     if (!first) return
     expect(first.turnIndex).toBe(1)
     expect(first.timelinePosition).toBe('1/1')
-    expect(first.gmDecisionAction.join(' ')).toContain('Decision: avatar avatar_2')
+    expect(first.gmDecisionAction).toContain('GM ran after turn 1 because topic shift.')
+    expect(first.gmDecisionAction.join(' ')).toContain(
+      'Before the decision, the active avatar was Clara Whitcombe (avatar_1)',
+    )
+    expect(first.gmDecisionAction.join(' ')).toContain(
+      'GM asked to start a new conversation with Theo (avatar_2).',
+    )
     expect(first.resultingImpact.join(' ')).toContain('Avatar unlocks: avatar_2 (Theo) [unlocked]')
-    expect(first.resultingImpact.join(' ')).toContain('Routing suggestion: avatar_2')
-    expect(first.resultingImpact.join(' ')).toContain('GM notes/directives injected into context')
-    expect(first.resultingImpact.join(' ')).toContain('User-flow impact: completed turn 1')
     expect(first.resultingImpact.join(' ')).toContain(
-      'Context selection: short-term 2, long-term 1, retrieval 1/2/0',
+      'GM recommendation: Theo (avatar_2) — topic depth',
+    )
+    expect(first.resultingImpact.join(' ')).toContain(
+      'GM note added to the next avatar turn: Ask Theo for concrete implementation details next.',
+    )
+    expect(first.resultingImpact.join(' ')).toContain(
+      'Immediate user-facing result: turn 1 was still answered by Theo (avatar_2). GM changes apply on the next turn.',
+    )
+    expect(first.resultingImpact.join(' ')).toContain(
+      'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 3 retrieved references (1 memory / 2 world / 0 media), GM note included, no user persona',
     )
     expect(first.status).toBe('applied')
   })

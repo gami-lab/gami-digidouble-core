@@ -36,6 +36,7 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
         avatarId: 'avatar_2',
         conversationMode: 'new',
         notesInjected: true,
+        injectedNote: 'Ask Theo for concrete implementation details next.',
         directiveCount: 1,
         unlockEvaluations: [
           {
@@ -177,6 +178,7 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
           avatarId: 'avatar_2',
           conversationMode: 'new',
           notesInjected: true,
+          injectedNote: 'Ask Theo for concrete implementation details next.',
           directiveCount: 1,
           unlockEvaluations: [
             {

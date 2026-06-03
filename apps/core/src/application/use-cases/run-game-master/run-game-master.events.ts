@@ -184,16 +184,20 @@ export function buildStateSummary(state: GameMasterState): GameMasterStateSummar
   }
 }
 
+// eslint-disable-next-line complexity
 export function buildTriggeredDecision(
   output: GameMasterOutput,
   unlockedAvatarIds: string[],
   unlockEvaluations: UnlockEvaluation[],
   switchedAvatarId: string | undefined,
 ): Record<string, unknown> {
+  const injectedNote = normalizeInjectedNote(output.context?.notes)
+
   return {
     avatarId: output.avatarId,
     conversationMode: output.conversationMode,
     notesInjected: Boolean(output.context?.notes),
+    ...(injectedNote !== undefined ? { injectedNote } : {}),
     directiveCount: output.recommendedChoices?.length ?? 0,
     ...(unlockedAvatarIds.length > 0 ? { unlockedAvatarIds } : {}),
     ...(unlockEvaluations.length > 0 ? { unlockEvaluations } : {}),
@@ -205,6 +209,16 @@ export function buildTriggeredDecision(
       : {}),
     ...(switchedAvatarId !== undefined ? { switchedAvatarId } : {}),
   }
+}
+
+function normalizeInjectedNote(value: string | undefined): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const normalized = value.replace(/\s+/g, ' ').trim()
+  if (normalized.length === 0) return undefined
+  const MAX_NOTE_LENGTH = 240
+  return normalized.length <= MAX_NOTE_LENGTH
+    ? normalized
+    : `${normalized.slice(0, MAX_NOTE_LENGTH - 1)}…`
 }
 
 function incrementedState(currentState: GameMasterState): GameMasterState {
