@@ -14,6 +14,8 @@ const generateForClosedConversationMock = vi.fn()
 const hydrateForNewConversationWithMetadataMock = vi.fn()
 const workingMemoryUpsertMock = vi.fn()
 const appendEventMock = vi.fn()
+const findGmStateBySessionIdMock = vi.fn()
+const saveGmStateMock = vi.fn()
 
 const sessionRepository = {
   findById: findSessionByIdMock,
@@ -40,6 +42,11 @@ const conversationRepository = {
   listBySessionId: vi.fn(),
   deleteBySessionId: vi.fn(),
   update: updateConversationMock,
+}
+
+const gmStateRepository = {
+  findBySessionId: findGmStateBySessionIdMock,
+  save: saveGmStateMock,
 }
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -100,6 +107,7 @@ function createUseCaseWithEpisodicDependencies() {
       append: appendEventMock,
       findBySessionId: vi.fn(),
     },
+    gmStateRepository,
   )
 }
 
@@ -115,6 +123,8 @@ beforeEach(() => {
   hydrateForNewConversationWithMetadataMock.mockReset()
   workingMemoryUpsertMock.mockReset()
   appendEventMock.mockReset()
+  findGmStateBySessionIdMock.mockReset()
+  saveGmStateMock.mockReset()
   memoryMaintenanceExecuteMock.mockResolvedValue(undefined)
   generateForClosedConversationMock.mockResolvedValue(undefined)
   hydrateForNewConversationWithMetadataMock.mockResolvedValue({
@@ -135,6 +145,13 @@ beforeEach(() => {
   findActiveBySessionIdMock.mockResolvedValue(makeConversation())
   createConversationMock.mockResolvedValue(makeConversation({ avatarId: 'avatar_2' }))
   updateConversationMock.mockResolvedValue(makeConversation({ status: 'closed' }))
+  findGmStateBySessionIdMock.mockResolvedValue({
+    currentAvatarId: 'avatar_1',
+    progression: 'advanced',
+    topicsCovered: ['setup'],
+    interactionCount: 4,
+  })
+  saveGmStateMock.mockResolvedValue(undefined)
 })
 
 describe('SwitchAvatarUseCase success flows', () => {
@@ -148,6 +165,10 @@ describe('SwitchAvatarUseCase success flows', () => {
       avatarRepository,
       conversationRepository,
       { execute: memoryMaintenanceExecuteMock },
+      undefined,
+      undefined,
+      undefined,
+      gmStateRepository,
     )
 
     const output = await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_2' })
@@ -174,6 +195,12 @@ describe('SwitchAvatarUseCase success flows', () => {
     expect(output.previousConversationId).toBe('conversation_1')
     expect(output.session.activeAvatarId).toBe('avatar_2')
     expect(output.conversation.avatarId).toBe('avatar_2')
+    expect(saveGmStateMock).toHaveBeenCalledWith('session_1', {
+      currentAvatarId: 'avatar_2',
+      progression: 'advanced',
+      topicsCovered: ['setup'],
+      interactionCount: 4,
+    })
     expect(memoryMaintenanceExecuteMock).toHaveBeenCalledWith({
       sessionId: 'session_1',
       conversationId: 'conversation_1',
@@ -190,6 +217,10 @@ describe('SwitchAvatarUseCase success flows', () => {
       avatarRepository,
       conversationRepository,
       { execute: memoryMaintenanceExecuteMock },
+      undefined,
+      undefined,
+      undefined,
+      gmStateRepository,
     )
 
     const output = await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_2' })

@@ -2,6 +2,7 @@ import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
+import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
@@ -31,6 +32,7 @@ export class SwitchAvatarUseCase {
     private readonly episodicMemoryService?: EpisodicMemoryService,
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly eventLogRepository?: IEventLogRepository,
+    private readonly gmStateRepository?: IGmStateRepository,
   ) {}
 
   async execute(input: SwitchAvatarInput): Promise<SwitchAvatarOutput> {
@@ -67,6 +69,7 @@ export class SwitchAvatarUseCase {
       activeAvatarId: avatarId,
       lastActivityAt: now,
     })
+    await this.syncGmCurrentAvatar(sessionId, avatarId)
 
     await this.hydrateConversationMemory({
       conversationId: conversation.conversationId,
@@ -205,6 +208,18 @@ export class SwitchAvatarUseCase {
     } catch (error: unknown) {
       console.error('[switch-avatar] Background episodic generation failed:', error)
     }
+  }
+
+  private async syncGmCurrentAvatar(sessionId: string, avatarId: string): Promise<void> {
+    if (this.gmStateRepository === undefined) return
+
+    const currentState = await this.gmStateRepository.findBySessionId(sessionId)
+    await this.gmStateRepository.save(sessionId, {
+      progression: currentState?.progression ?? '',
+      topicsCovered: currentState?.topicsCovered ?? [],
+      interactionCount: currentState?.interactionCount ?? 0,
+      currentAvatarId: avatarId,
+    })
   }
 
   private toSessionSummary(session: Session) {

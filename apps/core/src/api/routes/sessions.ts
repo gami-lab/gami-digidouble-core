@@ -9,6 +9,7 @@ import type { IAvatarRepository } from '../../application/ports/IAvatarRepositor
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
+import type { IGmStateRepository } from '../../application/ports/IGmStateRepository.js'
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
@@ -43,6 +44,7 @@ import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
+import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
@@ -72,6 +74,7 @@ export type SessionsRouteOptions = {
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   conversationMemoryRepository?: IConversationMemoryRepository
   eventLogRepository?: IEventLogRepository
+  gmStateRepository?: IGmStateRepository
   sessionEventPublisher?: ISessionEventPublisher
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
@@ -197,6 +200,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     scenarioRepository,
     avatarRepository,
     conversationRepository,
+    gmStateRepository,
     messageRepository,
     sessionMemoryRepository,
     avatarSessionMemoryRepository,
@@ -222,6 +226,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     scenarioRepository,
     avatarRepository,
     conversationRepository,
+    gmStateRepository,
     messageRepository,
     sessionMemoryRepository,
     avatarSessionMemoryRepository,
@@ -268,6 +273,7 @@ function resolveRouteDependencies(options: SessionsRouteOptions) {
   const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
   const conversationRepository =
     options.conversationRepository ?? new InMemoryConversationRepository()
+  const gmStateRepository = options.gmStateRepository ?? new InMemoryGmStateRepository()
   const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
   const {
     sessionMemoryRepository,
@@ -283,6 +289,7 @@ function resolveRouteDependencies(options: SessionsRouteOptions) {
     scenarioRepository,
     avatarRepository,
     conversationRepository,
+    gmStateRepository,
     messageRepository,
     sessionMemoryRepository,
     avatarSessionMemoryRepository,

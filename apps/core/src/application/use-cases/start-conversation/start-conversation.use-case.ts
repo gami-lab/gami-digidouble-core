@@ -2,6 +2,7 @@ import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
+import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import { DomainError } from '../../../domain/errors.js'
@@ -30,6 +31,7 @@ export class StartConversationUseCase {
     private readonly episodicMemoryService?: EpisodicMemoryService,
     private readonly eventLogRepository?: IEventLogRepository,
     private readonly memoryMaintenance?: IMemoryMaintenancePort,
+    private readonly gmStateRepository?: IGmStateRepository,
   ) {}
 
   async execute(input: StartConversationInput): Promise<StartConversationOutput> {
@@ -84,6 +86,7 @@ export class StartConversationUseCase {
       activeAvatarId: avatarId,
       lastActivityAt: now,
     })
+    await this.syncGmCurrentAvatar(sessionId, avatarId)
 
     await this.hydrateConversationMemory({
       conversationId: conversation.conversationId,
@@ -169,5 +172,17 @@ export class StartConversationUseCase {
     } catch (error: unknown) {
       console.error('[start-conversation] Background episodic generation failed:', error)
     }
+  }
+
+  private async syncGmCurrentAvatar(sessionId: string, avatarId: string): Promise<void> {
+    if (this.gmStateRepository === undefined) return
+
+    const currentState = await this.gmStateRepository.findBySessionId(sessionId)
+    await this.gmStateRepository.save(sessionId, {
+      progression: currentState?.progression ?? '',
+      topicsCovered: currentState?.topicsCovered ?? [],
+      interactionCount: currentState?.interactionCount ?? 0,
+      currentAvatarId: avatarId,
+    })
   }
 }

@@ -7,6 +7,7 @@ import type { IEventLogRepository } from '../../application/ports/IEventLogRepos
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
+import type { IGmStateRepository } from '../../application/ports/IGmStateRepository.js'
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
@@ -41,11 +42,13 @@ export type SessionRouteUseCases = {
   endConversationUseCase: EndConversationUseCase
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function createSessionRouteUseCases(deps: {
   sessionRepository: ISessionRepository
   scenarioRepository: IScenarioRepository
   avatarRepository: IAvatarRepository
   conversationRepository: IConversationRepository
+  gmStateRepository: IGmStateRepository
   messageRepository: IMessageRepository
   sessionMemoryRepository: ISessionMemoryRepository
   avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
@@ -100,6 +103,7 @@ export function createSessionRouteUseCases(deps: {
       episodicMemoryService,
       deps.eventLogRepository,
       memoryMaintenance,
+      deps.gmStateRepository,
     ),
     listSessionConversationsUseCase: new ListSessionConversationsUseCase(
       deps.sessionRepository,
@@ -113,6 +117,7 @@ export function createSessionRouteUseCases(deps: {
       episodicMemoryService,
       deps.conversationWorkingMemoryRepository,
       deps.eventLogRepository,
+      deps.gmStateRepository,
     ),
     getAvailableAvatarsUseCase: new GetAvailableAvatarsUseCase(
       deps.sessionRepository,
