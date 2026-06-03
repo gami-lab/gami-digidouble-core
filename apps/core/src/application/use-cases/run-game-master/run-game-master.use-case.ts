@@ -124,7 +124,7 @@ export class RunGameMasterUseCase {
     scenarioAvatars: AvatarConfig[],
     gmRunStartMs: number,
   ): Promise<void> {
-    const gmInput = await this.buildGameMasterInput(
+    const { gmInput, assembledGmContext } = await this.buildGameMasterInput(
       input,
       currentState,
       scenarioContext,
@@ -193,6 +193,7 @@ export class RunGameMasterUseCase {
       currentState,
       reconciledState,
       output: normalizedOutput,
+      gmContext: assembledGmContext,
       unlockedAvatarIds: unlockResult.newlyUnlockedAvatarIds,
       unlockEvaluations: unlockResult.evaluations,
       ...(routingResult.switchedAvatarId !== undefined
@@ -340,7 +341,10 @@ export class RunGameMasterUseCase {
     scenarioContext: ScenarioContext,
     session: Session | null,
     scenarioAvatars: AvatarConfig[],
-  ): Promise<GameMasterInput> {
+  ): Promise<{
+    gmInput: GameMasterInput
+    assembledGmContext: ReturnType<typeof resolveAssembledGmContext>
+  }> {
     const { memory, workingMemoryUpdatedAt } = await this.loadMemoryContext(input, session)
     const recentMessages = await this.loadRecentMessages(
       input.conversationId,
@@ -358,27 +362,30 @@ export class RunGameMasterUseCase {
     })
 
     return {
-      session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
-      userMessage: { text: input.userMessageText },
-      ...(assembledGmContext.recentMessages.length > 0
-        ? { recentMessages: assembledGmContext.recentMessages }
-        : {}),
-      state: currentState,
-      context: {
-        experience: {
-          scenarioId: input.scenarioId,
-          ...(assembledGmContext.scenario.description !== undefined
-            ? { description: assembledGmContext.scenario.description }
-            : {}),
-          ...(assembledGmContext.scenario.goals !== undefined
-            ? { goals: assembledGmContext.scenario.goals }
-            : {}),
-        },
-        ...(memory !== undefined ? { memory } : {}),
-        ...(assembledGmContext.userPersona !== null
-          ? { userPersona: assembledGmContext.userPersona }
+      assembledGmContext,
+      gmInput: {
+        session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
+        userMessage: { text: input.userMessageText },
+        ...(assembledGmContext.recentMessages.length > 0
+          ? { recentMessages: assembledGmContext.recentMessages }
           : {}),
-        availableAvatars: assembledGmContext.availableAvatars,
+        state: currentState,
+        context: {
+          experience: {
+            scenarioId: input.scenarioId,
+            ...(assembledGmContext.scenario.description !== undefined
+              ? { description: assembledGmContext.scenario.description }
+              : {}),
+            ...(assembledGmContext.scenario.goals !== undefined
+              ? { goals: assembledGmContext.scenario.goals }
+              : {}),
+          },
+          ...(memory !== undefined ? { memory } : {}),
+          ...(assembledGmContext.userPersona !== null
+            ? { userPersona: assembledGmContext.userPersona }
+            : {}),
+          availableAvatars: assembledGmContext.availableAvatars,
+        },
       },
     }
   }

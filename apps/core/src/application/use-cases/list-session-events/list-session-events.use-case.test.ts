@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest'
 import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
@@ -31,6 +32,42 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
         currentAvatarId: 'avatar_1',
         progression: 'intro',
         topicsCovered: ['setup'],
+      },
+      gmContext: {
+        recentMessages: [{ role: 'user', content: 'Who left last night?' }],
+        memory: {
+          shortTerm: { recentExchanges: [{ user: 'u', avatar: 'a' }] },
+          workingSummary: 'Working summary',
+          longTermFacts: [
+            {
+              category: 'context',
+              key: 'k',
+              value: 'v',
+            },
+          ],
+        },
+        knowledge: {
+          memory: [],
+          world: [
+            {
+              sourceId: 'source_1',
+              chunkId: 'chunk_1',
+              knowledgeType: 'world',
+              content: 'World clue',
+              visibleToAvatarIds: ['avatar_1'],
+            },
+          ],
+          media: [],
+        },
+        currentState: {
+          currentAvatarId: 'avatar_1',
+          progression: 'intro',
+          topicsCovered: ['setup'],
+          interactionCount: 5,
+        },
+        availableAvatars: [{ avatarId: 'avatar_1', name: 'Clara', availability: 'available' }],
+        userPersona: { name: 'Maya', roleInWorld: 'inspector' },
+        scenario: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
       },
       decision: {
         avatarId: 'avatar_2',
@@ -174,6 +211,42 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
           progression: 'intro',
           topicsCovered: ['setup'],
         },
+        gmContext: {
+          recentMessages: [{ role: 'user', content: 'Who left last night?' }],
+          memory: {
+            shortTerm: { recentExchanges: [{ user: 'u', avatar: 'a' }] },
+            workingSummary: 'Working summary',
+            longTermFacts: [
+              {
+                category: 'context',
+                key: 'k',
+                value: 'v',
+              },
+            ],
+          },
+          knowledge: {
+            memory: [],
+            world: [
+              {
+                sourceId: 'source_1',
+                chunkId: 'chunk_1',
+                knowledgeType: 'world',
+                content: 'World clue',
+                visibleToAvatarIds: ['avatar_1'],
+              },
+            ],
+            media: [],
+          },
+          currentState: {
+            currentAvatarId: 'avatar_1',
+            progression: 'intro',
+            topicsCovered: ['setup'],
+            interactionCount: 5,
+          },
+          availableAvatars: [{ avatarId: 'avatar_1', name: 'Clara', availability: 'available' }],
+          userPersona: { name: 'Maya', roleInWorld: 'inspector' },
+          scenario: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
+        },
         decision: {
           avatarId: 'avatar_2',
           conversationMode: 'new',
@@ -241,6 +314,39 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
             conversationId: 'conversation_1',
             turnIndex: 2,
             avatarId: 'avatar_1',
+            avatarContext: {
+              avatarId: 'avatar_1',
+              recentExchanges: [{ user: 'u1', avatar: 'a1' }],
+              workingMemory: {
+                session: { summary: 'Session memory', updatedAt: '2026-04-28T10:05:00.000Z' },
+                avatar: {
+                  avatarId: 'avatar_1',
+                  summary: 'Avatar memory',
+                  updatedAt: '2026-04-28T10:05:00.000Z',
+                },
+              },
+              longTermFacts: [
+                {
+                  category: 'goal',
+                  key: 'focus',
+                  value: 'truth',
+                },
+              ],
+              knowledge: {
+                retrievedItems: [
+                  {
+                    sourceId: 'source_1',
+                    chunkId: 'chunk_1',
+                    knowledgeType: 'world',
+                    content: 'A clue',
+                    visibleToAvatarIds: ['avatar_1'],
+                  },
+                ],
+              },
+              userPersona: { name: 'Maya', roleInWorld: 'inspector' },
+              gmNotes: 'Ask about the glass.',
+              scenario: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
+            },
             avatarLatencyMs: 8,
             totalTurnLatencyMs: 19,
             inputTokens: 13,
@@ -266,6 +372,39 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
           conversationId: 'conversation_1',
           turnIndex: 2,
           avatarId: 'avatar_1',
+          avatarContext: {
+            avatarId: 'avatar_1',
+            recentExchanges: [{ user: 'u1', avatar: 'a1' }],
+            workingMemory: {
+              session: { summary: 'Session memory', updatedAt: '2026-04-28T10:05:00.000Z' },
+              avatar: {
+                avatarId: 'avatar_1',
+                summary: 'Avatar memory',
+                updatedAt: '2026-04-28T10:05:00.000Z',
+              },
+            },
+            longTermFacts: [
+              {
+                category: 'goal',
+                key: 'focus',
+                value: 'truth',
+              },
+            ],
+            knowledge: {
+              retrievedItems: [
+                {
+                  sourceId: 'source_1',
+                  chunkId: 'chunk_1',
+                  knowledgeType: 'world',
+                  content: 'A clue',
+                  visibleToAvatarIds: ['avatar_1'],
+                },
+              ],
+            },
+            userPersona: { name: 'Maya', roleInWorld: 'inspector' },
+            gmNotes: 'Ask about the glass.',
+            scenario: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
+          },
           avatarLatencyMs: 8,
           totalTurnLatencyMs: 19,
           inputTokens: 13,

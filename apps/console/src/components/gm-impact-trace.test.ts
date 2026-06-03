@@ -110,6 +110,45 @@ function makeViewModel(): RuntimeInspectorViewModel {
           triggerReason: 'topic_shift',
           turnIndex: 1,
           interactionCount: 2,
+          gmContext: {
+            recentMessages: [{ role: 'user', content: 'Who left last night?' }],
+            memory: {
+              shortTerm: { recentExchanges: [{ user: 'u1', avatar: 'a1' }] },
+              workingSummary: 'GM working summary',
+              longTermFacts: [
+                {
+                  category: 'context',
+                  key: 'departure',
+                  value: 'Thomas left late',
+                },
+              ],
+            },
+            knowledge: {
+              memory: [],
+              world: [
+                {
+                  sourceId: 'source_1',
+                  chunkId: 'chunk_1',
+                  knowledgeType: 'world',
+                  content: 'Thomas was near the terrace door.',
+                  visibleToAvatarIds: ['avatar_1'],
+                },
+              ],
+              media: [],
+            },
+            currentState: {
+              currentAvatarId: 'avatar_1',
+              progression: 'intro',
+              topicsCovered: [],
+              interactionCount: 2,
+            },
+            availableAvatars: [
+              { avatarId: 'avatar_1', name: 'Clara Whitcombe', availability: 'available' },
+              { avatarId: 'avatar_2', name: 'Theo', availability: 'available' },
+            ],
+            userPersona: { name: 'Maya', roleInWorld: 'investigator' },
+            scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
+          },
           stateBefore: {
             currentAvatarId: 'avatar_1',
             progression: 'intro',
@@ -149,6 +188,39 @@ function makeViewModel(): RuntimeInspectorViewModel {
           conversationId: 'conversation_1',
           turnIndex: 1,
           avatarId: 'avatar_2',
+          avatarContext: {
+            avatarId: 'avatar_2',
+            recentExchanges: [{ user: 'Did Thomas leave?', avatar: 'Not yet.' }],
+            workingMemory: {
+              session: { summary: 'Session summary', updatedAt: '2026-05-07T10:00:00.000Z' },
+              avatar: {
+                avatarId: 'avatar_2',
+                summary: 'Theo summary',
+                updatedAt: '2026-05-07T10:00:00.000Z',
+              },
+            },
+            longTermFacts: [
+              {
+                category: 'context',
+                key: 'terrace',
+                value: 'Door was ajar',
+              },
+            ],
+            knowledge: {
+              retrievedItems: [
+                {
+                  sourceId: 'source_2',
+                  chunkId: 'chunk_2',
+                  knowledgeType: 'world',
+                  content: 'The terrace door had damp footprints nearby.',
+                  visibleToAvatarIds: ['avatar_2'],
+                },
+              ],
+            },
+            userPersona: { name: 'Maya', roleInWorld: 'investigator' },
+            gmNotes: 'Ask Theo for concrete implementation details next.',
+            scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
+          },
           avatarLatencyMs: 80,
           totalTurnLatencyMs: 120,
           inputTokens: 10,
@@ -174,6 +246,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
   }
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('buildGmImpactTrace', () => {
   it('maps gm trigger to concrete causality chain with impacts', () => {
     const trace = buildGmImpactTrace(makeViewModel())
@@ -201,6 +274,16 @@ describe('buildGmImpactTrace', () => {
     )
     expect(first.resultingImpact.join(' ')).toContain(
       'Immediate user-facing result: turn 1 was still answered by Theo (avatar_2). GM changes apply on the next turn.',
+    )
+    expect(first.resultingImpact.join(' ')).toContain('Recorded GM input: 1 message(s)')
+    expect(first.resultingImpact.join(' ')).toContain('GM working memory: GM working summary')
+    expect(first.resultingImpact.join(' ')).toContain(
+      'GM retrieval: [world] access:Clara Whitcombe',
+    )
+    expect(first.resultingImpact.join(' ')).toContain('Recorded avatar input: 1 exchange(s)')
+    expect(first.resultingImpact.join(' ')).toContain('Avatar working memory: Theo summary')
+    expect(first.resultingImpact.join(' ')).toContain(
+      'Avatar retrieval: [world] access:Theo The terrace door had damp footprints nearby.',
     )
     expect(first.resultingImpact.join(' ')).toContain(
       'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 3 retrieved references (1 memory / 2 world / 0 media), GM note included, no user persona',

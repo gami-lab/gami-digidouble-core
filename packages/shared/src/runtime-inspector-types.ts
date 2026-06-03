@@ -79,6 +79,7 @@ export type GmSessionEventPayload = {
   turnIndex: number
   interactionCount: number
   stateBefore: Omit<GmStateSummary, 'interactionCount'>
+  gmContext?: SessionContextGmSnapshot
   decision?: {
     avatarId: string
     conversationMode: 'new' | 'continue'
@@ -104,6 +105,7 @@ export type TurnCompletedEventPayload = {
   conversationId: string
   turnIndex: number
   avatarId: string
+  avatarContext?: SessionContextAvatarSnapshot
   avatarLatencyMs: number
   totalTurnLatencyMs: number
   inputTokens: number

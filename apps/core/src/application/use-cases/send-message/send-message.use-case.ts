@@ -178,6 +178,7 @@ export class SendMessageUseCase {
       conversationId: conversation.conversationId,
       turnIndex: nextTurnIndex,
       avatarId: conversation.avatarId,
+      avatarContext: assembledContext.avatar,
       avatarLatencyMs: response.latencyMs,
       totalTurnLatencyMs: latencyMs,
       inputTokens: response.inputTokens,

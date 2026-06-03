@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RuntimeEvent } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
@@ -273,6 +274,14 @@ describe('RunGameMasterUseCase — event log', () => {
     expect(event?.payload['decision']).toBeDefined()
     expect(event?.payload['decision']).toMatchObject({
       injectedNote: 'Help the user move to concrete examples.',
+    })
+    expect(event?.payload['gmContext']).toMatchObject({
+      recentMessages: [],
+      currentState: {
+        currentAvatarId: 'avatar_1',
+        progression: 'progressing',
+        interactionCount: 1,
+      },
     })
     expect(JSON.stringify(event?.payload ?? {})).not.toContain('secret user input')
     expect(JSON.stringify(event?.payload ?? {})).not.toContain('systemPrompt')

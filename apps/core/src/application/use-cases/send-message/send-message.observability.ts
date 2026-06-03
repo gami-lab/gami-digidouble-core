@@ -1,4 +1,5 @@
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
+import type { AvatarContextSnapshot } from '../../../domain/context/session-context.types.js'
 
 export function emitTurnCompletedEventNonBlocking(args: {
   requestId: string
@@ -6,6 +7,7 @@ export function emitTurnCompletedEventNonBlocking(args: {
   conversationId: string
   turnIndex: number
   avatarId: string
+  avatarContext: AvatarContextSnapshot
   avatarLatencyMs: number
   totalTurnLatencyMs: number
   inputTokens: number
@@ -47,6 +49,7 @@ export function emitTurnCompletedEventNonBlocking(args: {
     conversationId: args.conversationId,
     turnIndex: args.turnIndex,
     avatarId: args.avatarId,
+    avatarContext: args.avatarContext,
     avatarLatencyMs: args.avatarLatencyMs,
     totalTurnLatencyMs: args.totalTurnLatencyMs,
     inputTokens: args.inputTokens,

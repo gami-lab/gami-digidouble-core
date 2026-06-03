@@ -81,6 +81,9 @@ function toTraceEntry(
 
   if (decision) {
     decisionActions.push(describeDecision(decision, gmPayload, avatarNameById))
+    if (gmPayload.gmContext) {
+      impacts.push(...describeRecordedGmContext(gmPayload.gmContext, avatarNameById))
+    }
 
     if (decision.suggestedAvatarId) {
       impacts.push(
@@ -127,6 +130,9 @@ function toTraceEntry(
     impacts.push(
       `Immediate user-facing result: turn ${String(turnPayload.turnIndex)} was still answered by ${formatAvatar(turnPayload.avatarId, avatarNameById)}. GM changes apply on the next turn.`,
     )
+    if (turnPayload.avatarContext) {
+      impacts.push(...describeRecordedAvatarContext(turnPayload.avatarContext, avatarNameById))
+    }
     if (turnPayload.contextSelection) {
       impacts.push(formatAvatarContext(turnPayload))
     }
@@ -233,6 +239,76 @@ function formatAvatarContext(turnPayload: TurnCompletedEventPayload): string {
     selected.hasGmDirective ? 'GM note included' : 'no GM note',
     selected.hasUserPersona ? 'user persona included' : 'no user persona',
   ].join(', ')
+}
+
+// eslint-disable-next-line complexity
+function describeRecordedAvatarContext(
+  avatarContext: NonNullable<TurnCompletedEventPayload['avatarContext']>,
+  avatarNameById: Map<string, string>,
+): string[] {
+  const lines = [
+    `Recorded avatar input: ${String(avatarContext.recentExchanges.length)} exchange(s), ${String(avatarContext.longTermFacts.length)} long-term fact(s), GM note ${avatarContext.gmNotes ? 'present' : 'absent'}, user persona ${avatarContext.userPersona ? 'present' : 'absent'}.`,
+  ]
+  if (avatarContext.workingMemory.avatar?.summary || avatarContext.workingMemory.session?.summary) {
+    lines.push(
+      `Avatar working memory: ${avatarContext.workingMemory.avatar?.summary ?? avatarContext.workingMemory.session?.summary ?? '-'}`,
+    )
+  }
+  if (avatarContext.knowledge?.retrievedItems.length) {
+    lines.push(
+      `Avatar retrieval: ${avatarContext.knowledge.retrievedItems
+        .map((item) => formatKnowledgeSnippet(item, avatarNameById))
+        .join(' | ')}`,
+    )
+  }
+  return lines
+}
+
+// eslint-disable-next-line complexity
+function describeRecordedGmContext(
+  gmContext: NonNullable<GmSessionEventPayload['gmContext']>,
+  avatarNameById: Map<string, string>,
+): string[] {
+  const knowledgeItems = [
+    ...(gmContext.knowledge?.memory ?? []),
+    ...(gmContext.knowledge?.world ?? []),
+    ...(gmContext.knowledge?.media ?? []),
+  ]
+  const activeAvatar =
+    gmContext.currentState.currentAvatarId === undefined
+      ? 'none recorded'
+      : formatAvatar(gmContext.currentState.currentAvatarId, avatarNameById)
+  const lines = [
+    `Recorded GM input: ${String(gmContext.recentMessages.length)} message(s), ${String(gmContext.memory.longTermFacts?.length ?? 0)} long-term fact(s), user persona ${gmContext.userPersona ? 'present' : 'absent'}, active avatar ${activeAvatar}.`,
+  ]
+  if (gmContext.memory.workingSummary) {
+    lines.push(`GM working memory: ${gmContext.memory.workingSummary}`)
+  }
+  if (knowledgeItems.length > 0) {
+    lines.push(
+      `GM retrieval: ${knowledgeItems
+        .map((item) => formatKnowledgeSnippet(item, avatarNameById))
+        .join(' | ')}`,
+    )
+  }
+  return lines
+}
+
+function formatKnowledgeSnippet(
+  item: {
+    knowledgeType: 'memory' | 'world' | 'media'
+    content: string
+    visibleToAvatarIds?: string[]
+  },
+  avatarNameById: Map<string, string>,
+): string {
+  const access =
+    item.visibleToAvatarIds === undefined || item.visibleToAvatarIds.length === 0
+      ? 'all avatars'
+      : item.visibleToAvatarIds
+          .map((avatarId) => avatarNameById.get(avatarId) ?? avatarId)
+          .join(',')
+  return `[${item.knowledgeType}] access:${access} ${item.content}`
 }
 
 function isGmPayload(payload: SessionEventRecord['payload']): payload is GmSessionEventPayload {

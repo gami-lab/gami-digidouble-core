@@ -6,6 +6,7 @@ import type {
   GameMasterState,
   GameMasterStateSummary,
 } from '../../../domain/game-master/game-master.types.js'
+import type { GmContextSnapshot } from '../../../domain/context/session-context.types.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
 import type { UnlockEvaluation } from './run-game-master.avatar-unlocks.js'
 
@@ -91,6 +92,7 @@ export async function emitTriggeredGameMasterTurn(args: {
   currentState: GameMasterState
   reconciledState: GameMasterState
   output: GameMasterOutput
+  gmContext: GmContextSnapshot
   unlockedAvatarIds: string[]
   unlockEvaluations: UnlockEvaluation[]
   switchedAvatarId?: string
@@ -119,6 +121,7 @@ export async function emitTriggeredGameMasterTurn(args: {
       turnIndex: args.input.turnIndex,
       interactionCount: args.reconciledState.interactionCount,
       stateBefore: buildStateSummary(args.currentState),
+      gmContext: args.gmContext,
       decision: buildTriggeredDecision(
         args.output,
         args.unlockedAvatarIds,

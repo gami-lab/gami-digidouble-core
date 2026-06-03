@@ -323,6 +323,11 @@ describe('SendMessageUseCase — llm request payload', () => {
       conversationId: 'conversation_1',
       turnIndex: 2,
       avatarId: 'avatar_1',
+      avatarContext: {
+        avatarId: 'avatar_1',
+        recentExchanges: [],
+        scenario: { scenarioId: 'scenario_1' },
+      },
       avatarLatencyMs: 5,
       inputTokens: 10,
       outputTokens: 20,

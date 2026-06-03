@@ -1,6 +1,12 @@
+/* eslint-disable max-lines */
 import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { GmUnlockEvaluation } from '@gami/shared'
+import type {
+  SessionContextAvatarSnapshot,
+  SessionContextGmSnapshot,
+  UserPersona,
+} from '@gami/shared'
 import type { GameMasterStateSummary } from '../../../domain/game-master/game-master.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type {
@@ -89,6 +95,7 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
   }
   const decision = readDecision(payload['decision'])
   const stateAfter = readOptionalStateSummary(payload['stateAfter'])
+  const gmContext = readOptionalGmContextSnapshot(payload['gmContext'])
   const totalLatencyMs = readOptionalNumber(payload['totalLatencyMs'])
   const inputTokens = readOptionalNumber(payload['inputTokens'])
   const outputTokens = readOptionalNumber(payload['outputTokens'])
@@ -96,6 +103,7 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
 
   return {
     ...safePayload,
+    ...(gmContext !== undefined ? { gmContext } : {}),
     ...(decision !== undefined ? { decision } : {}),
     ...(stateAfter !== undefined ? { stateAfter } : {}),
     ...(totalLatencyMs !== undefined ? { totalLatencyMs } : {}),
@@ -142,10 +150,12 @@ function readMemoryTrigger(value: unknown): MemoryRefreshEventPayload['trigger']
 
 function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompletedEventPayload {
   const contextSelection = readOptionalContextSelection(payload['contextSelection'])
+  const avatarContext = readOptionalAvatarContextSnapshot(payload['avatarContext'])
   return {
     conversationId: readString(payload['conversationId']),
     turnIndex: readNumber(payload['turnIndex']),
     avatarId: readString(payload['avatarId']),
+    ...(avatarContext !== undefined ? { avatarContext } : {}),
     avatarLatencyMs: readNumber(payload['avatarLatencyMs']),
     totalTurnLatencyMs: readNumber(payload['totalTurnLatencyMs']),
     inputTokens: readNumber(payload['inputTokens']),
@@ -157,6 +167,37 @@ function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompl
     ...readOptionalNumberField(payload, 'otherOverheadMs'),
     ...(contextSelection !== undefined ? { contextSelection } : {}),
     ...readOptionalStringField(payload, 'correlationId'),
+  }
+}
+
+function readOptionalAvatarContextSnapshot(
+  value: unknown,
+): SessionContextAvatarSnapshot | undefined {
+  if (!isRecord(value)) return undefined
+
+  return {
+    ...(typeof value['avatarId'] === 'string' ? { avatarId: value['avatarId'] } : {}),
+    recentExchanges: readRecentExchanges(value['recentExchanges']),
+    workingMemory: readAvatarWorkingMemory(value['workingMemory']),
+    longTermFacts: readLongTermFacts(value['longTermFacts']),
+    ...(isRecord(value['knowledge']) ? { knowledge: readAvatarKnowledge(value['knowledge']) } : {}),
+    userPersona: readUserPersona(value['userPersona']),
+    gmNotes: readStringOrNull(value['gmNotes']),
+    scenario: readScenarioSnapshot(value['scenario']),
+  }
+}
+
+function readOptionalGmContextSnapshot(value: unknown): SessionContextGmSnapshot | undefined {
+  if (!isRecord(value)) return undefined
+
+  return {
+    recentMessages: readRecentMessages(value['recentMessages']),
+    memory: readGmMemory(value['memory']),
+    ...(isRecord(value['knowledge']) ? { knowledge: readGmKnowledge(value['knowledge']) } : {}),
+    currentState: readFullStateSummary(value['currentState']),
+    availableAvatars: readAvailableAvatars(value['availableAvatars']),
+    userPersona: readUserPersona(value['userPersona']),
+    scenario: readScenarioSnapshot(value['scenario']),
   }
 }
 
@@ -222,6 +263,14 @@ function readStateSummary(value: unknown): GameMasterStateSummary {
   }
 }
 
+function readFullStateSummary(value: unknown): SessionContextGmSnapshot['currentState'] {
+  const record = isRecord(value) ? value : {}
+  return {
+    ...readStateSummary(record),
+    interactionCount: readNumber(record['interactionCount']),
+  }
+}
+
 function readOptionalStateSummary(value: unknown): GameMasterStateSummary | undefined {
   return isRecord(value) ? readStateSummary(value) : undefined
 }
@@ -272,6 +321,216 @@ function readOptionalUnlockEvaluations(value: unknown): GmUnlockEvaluation[] | u
     .filter((entry): entry is GmUnlockEvaluation => entry !== null)
 
   return unlockEvaluations.length > 0 ? unlockEvaluations : undefined
+}
+
+function readRecentExchanges(value: unknown): SessionContextAvatarSnapshot['recentExchanges'] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((entry) => {
+      if (!isRecord(entry)) return null
+      const user = readOptionalString(entry['user'])
+      const avatar = readOptionalString(entry['avatar'])
+      if (user === undefined || avatar === undefined) return null
+      return { user, avatar }
+    })
+    .filter(
+      (entry): entry is SessionContextAvatarSnapshot['recentExchanges'][number] => entry !== null,
+    )
+}
+
+function readAvatarWorkingMemory(value: unknown): SessionContextAvatarSnapshot['workingMemory'] {
+  const record = isRecord(value) ? value : {}
+  return {
+    ...(isRecord(record['session']) ? { session: readWorkingSession(record['session']) } : {}),
+    ...(isRecord(record['avatar']) ? { avatar: readWorkingAvatar(record['avatar']) } : {}),
+  }
+}
+
+function readWorkingSession(
+  value: Record<string, unknown>,
+): NonNullable<SessionContextAvatarSnapshot['workingMemory']['session']> {
+  return {
+    summary: readString(value['summary']),
+    updatedAt: readString(value['updatedAt']),
+  }
+}
+
+function readWorkingAvatar(
+  value: Record<string, unknown>,
+): NonNullable<SessionContextAvatarSnapshot['workingMemory']['avatar']> {
+  return {
+    avatarId: readString(value['avatarId']),
+    summary: readString(value['summary']),
+    updatedAt: readString(value['updatedAt']),
+  }
+}
+
+function readLongTermFacts(value: unknown): SessionContextAvatarSnapshot['longTermFacts'] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((entry) => {
+      if (!isRecord(entry)) return null
+      const category = readOptionalString(entry['category'])
+      const key = readOptionalString(entry['key'])
+      const factValue = readOptionalString(entry['value'])
+      if (category === undefined || key === undefined || factValue === undefined) {
+        return null
+      }
+      return { category, key, value: factValue }
+    })
+    .filter(
+      (entry): entry is SessionContextAvatarSnapshot['longTermFacts'][number] => entry !== null,
+    )
+}
+
+function readAvatarKnowledge(
+  value: Record<string, unknown>,
+): NonNullable<SessionContextAvatarSnapshot['knowledge']> {
+  const typedSectionsValue = isRecord(value['typedSections']) ? value['typedSections'] : undefined
+  return {
+    retrievedItems: readRetrievedKnowledgeItems(value['retrievedItems']),
+    ...(typedSectionsValue !== undefined
+      ? {
+          typedSections: {
+            memory: readRetrievedKnowledgeItems(typedSectionsValue['memory']),
+            world: readRetrievedKnowledgeItems(typedSectionsValue['world']),
+            media: readRetrievedKnowledgeItems(typedSectionsValue['media']),
+          },
+        }
+      : {}),
+  }
+}
+
+function readGmMemory(value: unknown): SessionContextGmSnapshot['memory'] {
+  const record = isRecord(value) ? value : {}
+  const workingSummary = readOptionalString(record['workingSummary'])
+  return {
+    ...(isRecord(record['shortTerm'])
+      ? {
+          shortTerm: {
+            recentExchanges: readRecentExchanges(record['shortTerm']['recentExchanges']),
+          },
+        }
+      : {}),
+    ...(workingSummary !== undefined ? { workingSummary } : {}),
+    ...(Array.isArray(record['longTermFacts'])
+      ? { longTermFacts: readLongTermFacts(record['longTermFacts']) }
+      : {}),
+  }
+}
+
+function readGmKnowledge(
+  value: Record<string, unknown>,
+): NonNullable<SessionContextGmSnapshot['knowledge']> {
+  return {
+    memory: readRetrievedKnowledgeItems(value['memory']),
+    world: readRetrievedKnowledgeItems(value['world']),
+    media: readRetrievedKnowledgeItems(value['media']),
+  }
+}
+
+function readRecentMessages(value: unknown): SessionContextGmSnapshot['recentMessages'] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((entry) => {
+      if (!isRecord(entry)) return null
+      const role = entry['role']
+      const content = readOptionalString(entry['content'])
+      if ((role !== 'user' && role !== 'avatar' && role !== 'system') || content === undefined) {
+        return null
+      }
+      return { role, content }
+    })
+    .filter((entry): entry is SessionContextGmSnapshot['recentMessages'][number] => entry !== null)
+}
+
+function readAvailableAvatars(value: unknown): SessionContextGmSnapshot['availableAvatars'] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((entry) => {
+      if (!isRecord(entry)) return null
+      const avatarId = readOptionalString(entry['avatarId'])
+      const name = readOptionalString(entry['name'])
+      if (avatarId === undefined || name === undefined) return null
+      const availability = entry['availability']
+      return {
+        avatarId,
+        name,
+        ...(typeof entry['description'] === 'string' ? { description: entry['description'] } : {}),
+        ...(typeof entry['scope'] === 'string' ? { scope: entry['scope'] } : {}),
+        ...(availability === 'available' || availability === 'locked' ? { availability } : {}),
+      }
+    })
+    .filter(
+      (entry): entry is SessionContextGmSnapshot['availableAvatars'][number] => entry !== null,
+    )
+}
+
+function readUserPersona(value: unknown): UserPersona | null {
+  if (!isRecord(value)) return null
+  const persona: UserPersona = {}
+  const name = readOptionalString(value['name'])
+  const roleInWorld = readOptionalString(value['roleInWorld'])
+  if (name !== undefined) persona.name = name
+  if (roleInWorld !== undefined) persona.roleInWorld = roleInWorld
+  const avatarRelationships = readOptionalStringArray(value['avatarRelationships'])
+  const dialogGuidance = readOptionalString(value['dialogGuidance'])
+  if (avatarRelationships !== undefined) persona.avatarRelationships = avatarRelationships
+  if (dialogGuidance !== undefined) persona.dialogGuidance = dialogGuidance
+  return Object.keys(persona).length > 0 ? persona : null
+}
+
+function readScenarioSnapshot(value: unknown): SessionContextAvatarSnapshot['scenario'] {
+  const record = isRecord(value) ? value : {}
+  const name = readOptionalString(record['name'])
+  const description = readOptionalString(record['description'])
+  return {
+    scenarioId: readString(record['scenarioId']),
+    ...(name !== undefined ? { name } : {}),
+    ...(description !== undefined ? { description } : {}),
+    ...(Array.isArray(record['goals']) ? { goals: readStringArray(record['goals']) } : {}),
+  }
+}
+
+type SafeRetrievedKnowledgeItem = NonNullable<
+  NonNullable<SessionContextAvatarSnapshot['knowledge']>['retrievedItems'][number]
+>
+
+function readRetrievedKnowledgeItems(value: unknown): SafeRetrievedKnowledgeItem[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map(readRetrievedKnowledgeItem)
+    .filter((entry): entry is SafeRetrievedKnowledgeItem => entry !== null)
+}
+
+// eslint-disable-next-line complexity
+function readRetrievedKnowledgeItem(entry: unknown): SafeRetrievedKnowledgeItem | null {
+  if (!isRecord(entry)) return null
+  const sourceId = readOptionalString(entry['sourceId'])
+  const chunkId = readOptionalString(entry['chunkId'])
+  const content = readOptionalString(entry['content'])
+  const knowledgeType = entry['knowledgeType']
+  if (
+    sourceId === undefined ||
+    chunkId === undefined ||
+    content === undefined ||
+    (knowledgeType !== 'memory' && knowledgeType !== 'world' && knowledgeType !== 'media')
+  ) {
+    return null
+  }
+  const item: SafeRetrievedKnowledgeItem = {
+    sourceId,
+    chunkId,
+    knowledgeType,
+    content,
+    ...(typeof entry['score'] === 'number' ? { score: entry['score'] } : {}),
+    ...(typeof entry['reason'] === 'string' ? { reason: entry['reason'] } : {}),
+    ...(isRecord(entry['metadata']) ? { metadata: entry['metadata'] } : {}),
+    ...(Array.isArray(entry['visibleToAvatarIds'])
+      ? { visibleToAvatarIds: readStringArray(entry['visibleToAvatarIds']) }
+      : {}),
+  }
+  return item
 }
 
 function readStringArray(value: unknown): string[] {
