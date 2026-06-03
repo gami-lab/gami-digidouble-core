@@ -150,20 +150,31 @@ function isInMemoryScope(chunk: KnowledgeChunk, input: TypedRetrievalInput): boo
     input.conversationId !== undefined
   if (!hasScope) return true
 
-  if (!metadataMatches(chunk.metadata, 'userId', input.userId)) return false
-  if (!metadataMatches(chunk.metadata, 'sessionId', input.sessionId)) return false
-  if (!metadataMatches(chunk.metadata, 'conversationId', input.conversationId)) return false
+  if (!hasMemoryScopeMetadata(chunk.metadata)) return true
+  if (!metadataMatchesWhenPresent(chunk.metadata, 'userId', input.userId)) return false
+  if (!metadataMatchesWhenPresent(chunk.metadata, 'sessionId', input.sessionId)) return false
+  if (!metadataMatchesWhenPresent(chunk.metadata, 'conversationId', input.conversationId))
+    return false
 
   return true
 }
 
-function metadataMatches(
+function hasMemoryScopeMetadata(metadata: Record<string, unknown> | undefined): boolean {
+  if (metadata === undefined) return false
+  return (
+    Object.hasOwn(metadata, 'userId') ||
+    Object.hasOwn(metadata, 'sessionId') ||
+    Object.hasOwn(metadata, 'conversationId')
+  )
+}
+
+function metadataMatchesWhenPresent(
   metadata: Record<string, unknown> | undefined,
   key: string,
   expected: string | undefined,
 ): boolean {
   if (expected === undefined) return true
-  if (metadata === undefined) return false
+  if (metadata === undefined || !Object.hasOwn(metadata, key)) return true
   return metadata[key] === expected
 }
 

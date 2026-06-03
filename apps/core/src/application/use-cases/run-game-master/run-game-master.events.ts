@@ -9,6 +9,7 @@ import type {
 import type { GmContextSnapshot } from '../../../domain/context/session-context.types.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
 import type { UnlockEvaluation } from './run-game-master.avatar-unlocks.js'
+import { toRecordedGmContextSnapshot } from '../../services/runtime-inspector-event-context.js'
 
 export async function handleInvalidGameMasterOutput(args: {
   input: RunGameMasterInput
@@ -121,7 +122,7 @@ export async function emitTriggeredGameMasterTurn(args: {
       turnIndex: args.input.turnIndex,
       interactionCount: args.reconciledState.interactionCount,
       stateBefore: buildStateSummary(args.currentState),
-      gmContext: args.gmContext,
+      gmContext: toRecordedGmContextSnapshot(args.gmContext),
       decision: buildTriggeredDecision(
         args.output,
         args.unlockedAvatarIds,

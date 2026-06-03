@@ -60,6 +60,7 @@ async function seed() {
   return { sourceRepo, chunkRepo }
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('TypedRetrievalService', () => {
   it('returns separated typed retrieval sections with trace metadata', async () => {
     const { sourceRepo, chunkRepo } = await seed()
@@ -119,6 +120,50 @@ describe('TypedRetrievalService', () => {
 
     expect(result.memory).toHaveLength(1)
     expect(result.memory[0]?.metadata).toMatchObject({ userId: 'user_1', sessionId: 'session_1' })
+  })
+
+  it('keeps authored avatar-private memory available even when session scope is provided', async () => {
+    const sourceRepo = new InMemoryKnowledgeSourceRepository()
+    const chunkRepo = new InMemoryKnowledgeChunkRepository()
+
+    const memory = await sourceRepo.create({
+      scenarioId: 'scenario_1',
+      name: 'Avatar private memory',
+      knowledgeType: 'memory',
+      format: 'markdown',
+      uriOrPath: '/avatar-memory.md',
+      visibleToAvatarIds: ['avatar_1'],
+    })
+    await sourceRepo.updateStatus(memory.sourceId, 'ready')
+    await chunkRepo.create({
+      sourceId: memory.sourceId,
+      chunkIndex: 0,
+      content: 'Private alibi details for avatar one',
+      visibleToAvatarIds: ['avatar_1'],
+    })
+
+    const service = new TypedRetrievalService(sourceRepo, chunkRepo)
+    const visible = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'alibi',
+      userId: 'user_1',
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      activeAvatarId: 'avatar_1',
+    })
+    const hidden = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'alibi',
+      userId: 'user_1',
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      activeAvatarId: 'avatar_2',
+    })
+
+    expect(visible.memory).toHaveLength(1)
+    expect(visible.memory[0]?.chunkId).toBeDefined()
+    expect(hidden.memory).toHaveLength(0)
+    expect(hidden.trace.perType.memory.visibility?.excludedChunkCount).toBe(1)
   })
 
   it('filters non-visible knowledge by active avatar deterministically', async () => {

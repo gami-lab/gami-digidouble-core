@@ -13,6 +13,9 @@ import type {
   SharedAvatarContextKnowledgeInjection,
   SharedContextScenarioSnapshot,
   SharedGmContextKnowledgeInjection,
+  RecordedAvatarContextKnowledgeInjection,
+  RecordedGmContextKnowledgeInjection,
+  RecordedKnowledgeReferenceDto,
 } from './knowledge-contract-types.js'
 import type { RuntimeState } from './runtime-types.js'
 import type { SessionSummary } from './entity-types.js'
@@ -79,7 +82,7 @@ export type GmSessionEventPayload = {
   turnIndex: number
   interactionCount: number
   stateBefore: Omit<GmStateSummary, 'interactionCount'>
-  gmContext?: SessionContextGmSnapshot
+  gmContext?: RecordedGmContextSnapshot
   decision?: {
     avatarId: string
     conversationMode: 'new' | 'continue'
@@ -105,7 +108,7 @@ export type TurnCompletedEventPayload = {
   conversationId: string
   turnIndex: number
   avatarId: string
-  avatarContext?: SessionContextAvatarSnapshot
+  avatarContext?: RecordedAvatarContextSnapshot
   avatarLatencyMs: number
   totalTurnLatencyMs: number
   inputTokens: number
@@ -282,6 +285,47 @@ export type SessionContextGmSnapshot = {
   userPersona: UserPersona | null
   scenario: SessionContextScenarioSnapshot
 }
+
+export type RecordedAvatarContextSnapshot = {
+  avatarId?: string
+  recentExchanges: SharedShortTermMemoryExchange[]
+  workingMemory: {
+    session?: SharedWorkingMemorySessionSummary
+    avatar?: SharedWorkingMemoryAvatarSummary
+  }
+  longTermFacts: SharedLongTermMemoryFact[]
+  knowledge?: RecordedAvatarContextKnowledgeInjection
+  userPersona: UserPersona | null
+  gmNotes: string | null
+  scenario: SessionContextScenarioSnapshot
+}
+
+export type RecordedGmContextSnapshot = {
+  recentMessages: Array<{
+    role: 'user' | 'avatar' | 'system'
+    content: string
+  }>
+  memory: {
+    shortTerm?: {
+      recentExchanges: SharedShortTermMemoryExchange[]
+    }
+    workingSummary?: string
+    longTermFacts?: SharedLongTermMemoryFact[]
+  }
+  knowledge?: RecordedGmContextKnowledgeInjection
+  currentState: GmStateSummary
+  availableAvatars: Array<{
+    avatarId: string
+    name: string
+    description?: string
+    scope?: string
+    availability?: 'available' | 'locked'
+  }>
+  userPersona: UserPersona | null
+  scenario: SessionContextScenarioSnapshot
+}
+
+export type RecordedKnowledgeReference = RecordedKnowledgeReferenceDto
 
 export type SessionContextSegmentId =
   | 'gmDirective'

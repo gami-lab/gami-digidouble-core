@@ -53,7 +53,7 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
               sourceId: 'source_1',
               chunkId: 'chunk_1',
               knowledgeType: 'world',
-              content: 'World clue',
+              metadata: { inlineText: 'World clue' },
               visibleToAvatarIds: ['avatar_1'],
             },
           ],
@@ -231,7 +231,6 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
                 sourceId: 'source_1',
                 chunkId: 'chunk_1',
                 knowledgeType: 'world',
-                content: 'World clue',
                 visibleToAvatarIds: ['avatar_1'],
               },
             ],
@@ -275,6 +274,8 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
     })
     expect(JSON.stringify(output)).not.toContain('secret user input')
     expect(JSON.stringify(output)).not.toContain('hidden prompt')
+    expect(JSON.stringify(output)).not.toContain('World clue')
+    expect(JSON.stringify(output)).not.toContain('inlineText')
   })
 
   it('maps gm_error events to the correct safe output shape', async () => {
@@ -339,6 +340,7 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
                     chunkId: 'chunk_1',
                     knowledgeType: 'world',
                     content: 'A clue',
+                    metadata: { inlineText: 'A clue' },
                     visibleToAvatarIds: ['avatar_1'],
                   },
                 ],
@@ -391,15 +393,18 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
               },
             ],
             knowledge: {
-              retrievedItems: [
-                {
-                  sourceId: 'source_1',
-                  chunkId: 'chunk_1',
-                  knowledgeType: 'world',
-                  content: 'A clue',
-                  visibleToAvatarIds: ['avatar_1'],
-                },
-              ],
+              typedSections: {
+                memory: [],
+                world: [
+                  {
+                    sourceId: 'source_1',
+                    chunkId: 'chunk_1',
+                    knowledgeType: 'world',
+                    visibleToAvatarIds: ['avatar_1'],
+                  },
+                ],
+                media: [],
+              },
             },
             userPersona: { name: 'Maya', roleInWorld: 'inspector' },
             gmNotes: 'Ask about the glass.',
@@ -417,6 +422,8 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
         },
       },
     ])
+    expect(JSON.stringify(output)).not.toContain('A clue')
+    expect(JSON.stringify(output)).not.toContain('inlineText')
   })
 })
 

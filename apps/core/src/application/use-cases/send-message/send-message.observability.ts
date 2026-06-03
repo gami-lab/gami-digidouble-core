@@ -1,5 +1,6 @@
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { AvatarContextSnapshot } from '../../../domain/context/session-context.types.js'
+import { toRecordedAvatarContextSnapshot } from '../../services/runtime-inspector-event-context.js'
 
 export function emitTurnCompletedEventNonBlocking(args: {
   requestId: string
@@ -49,7 +50,7 @@ export function emitTurnCompletedEventNonBlocking(args: {
     conversationId: args.conversationId,
     turnIndex: args.turnIndex,
     avatarId: args.avatarId,
-    avatarContext: args.avatarContext,
+    avatarContext: toRecordedAvatarContextSnapshot(args.avatarContext),
     avatarLatencyMs: args.avatarLatencyMs,
     totalTurnLatencyMs: args.totalTurnLatencyMs,
     inputTokens: args.inputTokens,

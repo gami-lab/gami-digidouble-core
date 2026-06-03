@@ -79,6 +79,27 @@ export type SharedTypedKnowledgeSections = {
 
 export type SharedGmContextKnowledgeInjection = SharedTypedKnowledgeSections
 
+export type RecordedKnowledgeReferenceDto = {
+  sourceId: string
+  chunkId: string
+  knowledgeType: KnowledgeType
+  score?: number
+  reason?: string
+  visibleToAvatarIds?: string[]
+}
+
+export type RecordedTypedKnowledgeSections = {
+  memory: RecordedKnowledgeReferenceDto[]
+  world: RecordedKnowledgeReferenceDto[]
+  media: RecordedKnowledgeReferenceDto[]
+}
+
+export type RecordedAvatarContextKnowledgeInjection = {
+  typedSections?: RecordedTypedKnowledgeSections
+}
+
+export type RecordedGmContextKnowledgeInjection = RecordedTypedKnowledgeSections
+
 /**
  * Canonical shared API DTOs for EPIC 5.1 knowledge endpoints.
  * Keep API-facing request/response contracts here to avoid route-local copies.

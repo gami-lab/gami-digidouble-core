@@ -72,7 +72,28 @@ function makeViewModel(): RuntimeInspectorViewModel {
       turns: [],
     },
     knowledge: {
-      sources: [],
+      sources: [
+        {
+          sourceId: 'source_1',
+          scenarioId: 'scenario_1',
+          name: 'Terrace notes',
+          knowledgeType: 'world',
+          format: 'markdown',
+          uriOrPath: '/tmp/terrace.md',
+          status: 'ready',
+          createdAt: '2026-05-07T10:00:00.000Z',
+        },
+        {
+          sourceId: 'source_2',
+          scenarioId: 'scenario_1',
+          name: 'Footprint report',
+          knowledgeType: 'world',
+          format: 'markdown',
+          uriOrPath: '/tmp/footprints.md',
+          status: 'ready',
+          createdAt: '2026-05-07T10:00:00.000Z',
+        },
+      ],
     },
     context: {
       avatar: {
@@ -130,7 +151,6 @@ function makeViewModel(): RuntimeInspectorViewModel {
                   sourceId: 'source_1',
                   chunkId: 'chunk_1',
                   knowledgeType: 'world',
-                  content: 'Thomas was near the terrace door.',
                   visibleToAvatarIds: ['avatar_1'],
                 },
               ],
@@ -207,15 +227,18 @@ function makeViewModel(): RuntimeInspectorViewModel {
               },
             ],
             knowledge: {
-              retrievedItems: [
-                {
-                  sourceId: 'source_2',
-                  chunkId: 'chunk_2',
-                  knowledgeType: 'world',
-                  content: 'The terrace door had damp footprints nearby.',
-                  visibleToAvatarIds: ['avatar_2'],
-                },
-              ],
+              typedSections: {
+                memory: [],
+                world: [
+                  {
+                    sourceId: 'source_2',
+                    chunkId: 'chunk_2',
+                    knowledgeType: 'world',
+                    visibleToAvatarIds: ['avatar_2'],
+                  },
+                ],
+                media: [],
+              },
             },
             userPersona: { name: 'Maya', roleInWorld: 'investigator' },
             gmNotes: 'Ask Theo for concrete implementation details next.',
@@ -278,12 +301,12 @@ describe('buildGmImpactTrace', () => {
     expect(first.resultingImpact.join(' ')).toContain('Recorded GM input: 1 message(s)')
     expect(first.resultingImpact.join(' ')).toContain('GM working memory: GM working summary')
     expect(first.resultingImpact.join(' ')).toContain(
-      'GM retrieval: [world] access:Clara Whitcombe',
+      'GM retrieval: [world] Terrace notes (chunk_1, access:Clara Whitcombe)',
     )
     expect(first.resultingImpact.join(' ')).toContain('Recorded avatar input: 1 exchange(s)')
     expect(first.resultingImpact.join(' ')).toContain('Avatar working memory: Theo summary')
     expect(first.resultingImpact.join(' ')).toContain(
-      'Avatar retrieval: [world] access:Theo The terrace door had damp footprints nearby.',
+      'Avatar retrieval: [world] Footprint report (chunk_2, access:Theo)',
     )
     expect(first.resultingImpact.join(' ')).toContain(
       'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 3 retrieved references (1 memory / 2 world / 0 media), GM note included, no user persona',

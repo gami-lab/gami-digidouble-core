@@ -20,6 +20,9 @@ export type GmImpactTraceEntry = {
 export function buildGmImpactTrace(snapshot: RuntimeInspectorViewModel): GmImpactTraceEntry[] {
   const eventsByCorrelation = new Map<string, SessionEventRecord[]>()
   const avatarNameById = buildAvatarNameById(snapshot)
+  const knowledgeSourceNameById = new Map(
+    snapshot.knowledge.sources.map((source) => [source.sourceId, source.name] as const),
+  )
 
   for (const event of snapshot.recentEvents) {
     const existing = eventsByCorrelation.get(event.correlationId) ?? []
@@ -29,7 +32,13 @@ export function buildGmImpactTrace(snapshot: RuntimeInspectorViewModel): GmImpac
 
   const traces = Array.from(eventsByCorrelation.entries())
     .map(([correlationId, events]) =>
-      toTraceEntry(correlationId, events, snapshot.gm.transitionHistory.length, avatarNameById),
+      toTraceEntry(
+        correlationId,
+        events,
+        snapshot.gm.transitionHistory.length,
+        avatarNameById,
+        knowledgeSourceNameById,
+      ),
     )
     .filter((entry): entry is GmImpactTraceEntry => entry !== null)
 
@@ -49,12 +58,13 @@ export function buildGmImpactTrace(snapshot: RuntimeInspectorViewModel): GmImpac
   })
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity, max-lines-per-function
 function toTraceEntry(
   correlationId: string,
   events: SessionEventRecord[],
   timelineCount: number,
   avatarNameById: Map<string, string>,
+  knowledgeSourceNameById: Map<string, string>,
 ): GmImpactTraceEntry | null {
   const gmEvent = events.find((event) => event.type === 'gm_triggered' || event.type === 'gm_error')
   if (!gmEvent) return null
@@ -82,7 +92,9 @@ function toTraceEntry(
   if (decision) {
     decisionActions.push(describeDecision(decision, gmPayload, avatarNameById))
     if (gmPayload.gmContext) {
-      impacts.push(...describeRecordedGmContext(gmPayload.gmContext, avatarNameById))
+      impacts.push(
+        ...describeRecordedGmContext(gmPayload.gmContext, avatarNameById, knowledgeSourceNameById),
+      )
     }
 
     if (decision.suggestedAvatarId) {
@@ -131,7 +143,13 @@ function toTraceEntry(
       `Immediate user-facing result: turn ${String(turnPayload.turnIndex)} was still answered by ${formatAvatar(turnPayload.avatarId, avatarNameById)}. GM changes apply on the next turn.`,
     )
     if (turnPayload.avatarContext) {
-      impacts.push(...describeRecordedAvatarContext(turnPayload.avatarContext, avatarNameById))
+      impacts.push(
+        ...describeRecordedAvatarContext(
+          turnPayload.avatarContext,
+          avatarNameById,
+          knowledgeSourceNameById,
+        ),
+      )
     }
     if (turnPayload.contextSelection) {
       impacts.push(formatAvatarContext(turnPayload))
@@ -245,6 +263,7 @@ function formatAvatarContext(turnPayload: TurnCompletedEventPayload): string {
 function describeRecordedAvatarContext(
   avatarContext: NonNullable<TurnCompletedEventPayload['avatarContext']>,
   avatarNameById: Map<string, string>,
+  knowledgeSourceNameById: Map<string, string>,
 ): string[] {
   const lines = [
     `Recorded avatar input: ${String(avatarContext.recentExchanges.length)} exchange(s), ${String(avatarContext.longTermFacts.length)} long-term fact(s), GM note ${avatarContext.gmNotes ? 'present' : 'absent'}, user persona ${avatarContext.userPersona ? 'present' : 'absent'}.`,
@@ -254,10 +273,13 @@ function describeRecordedAvatarContext(
       `Avatar working memory: ${avatarContext.workingMemory.avatar?.summary ?? avatarContext.workingMemory.session?.summary ?? '-'}`,
     )
   }
-  if (avatarContext.knowledge?.retrievedItems.length) {
+  const knowledgeItems = avatarContext.knowledge
+    ? flattenTypedSections(avatarContext.knowledge.typedSections)
+    : []
+  if (knowledgeItems.length) {
     lines.push(
-      `Avatar retrieval: ${avatarContext.knowledge.retrievedItems
-        .map((item) => formatKnowledgeSnippet(item, avatarNameById))
+      `Avatar retrieval: ${knowledgeItems
+        .map((item) => formatKnowledgeSnippet(item, avatarNameById, knowledgeSourceNameById))
         .join(' | ')}`,
     )
   }
@@ -268,6 +290,7 @@ function describeRecordedAvatarContext(
 function describeRecordedGmContext(
   gmContext: NonNullable<GmSessionEventPayload['gmContext']>,
   avatarNameById: Map<string, string>,
+  knowledgeSourceNameById: Map<string, string>,
 ): string[] {
   const knowledgeItems = [
     ...(gmContext.knowledge?.memory ?? []),
@@ -287,7 +310,7 @@ function describeRecordedGmContext(
   if (knowledgeItems.length > 0) {
     lines.push(
       `GM retrieval: ${knowledgeItems
-        .map((item) => formatKnowledgeSnippet(item, avatarNameById))
+        .map((item) => formatKnowledgeSnippet(item, avatarNameById, knowledgeSourceNameById))
         .join(' | ')}`,
     )
   }
@@ -297,18 +320,32 @@ function describeRecordedGmContext(
 function formatKnowledgeSnippet(
   item: {
     knowledgeType: 'memory' | 'world' | 'media'
-    content: string
+    sourceId: string
+    chunkId: string
     visibleToAvatarIds?: string[]
   },
   avatarNameById: Map<string, string>,
+  knowledgeSourceNameById: Map<string, string>,
 ): string {
+  const sourceName = knowledgeSourceNameById.get(item.sourceId) ?? item.sourceId
   const access =
     item.visibleToAvatarIds === undefined || item.visibleToAvatarIds.length === 0
       ? 'all avatars'
       : item.visibleToAvatarIds
           .map((avatarId) => avatarNameById.get(avatarId) ?? avatarId)
           .join(',')
-  return `[${item.knowledgeType}] access:${access} ${item.content}`
+  return `[${item.knowledgeType}] ${sourceName} (${item.chunkId}, access:${access})`
+}
+
+function flattenTypedSections(
+  typedSections:
+    | NonNullable<
+        NonNullable<TurnCompletedEventPayload['avatarContext']>['knowledge']
+      >['typedSections']
+    | undefined,
+) {
+  if (!typedSections) return []
+  return [...typedSections.memory, ...typedSections.world, ...typedSections.media]
 }
 
 function isGmPayload(payload: SessionEventRecord['payload']): payload is GmSessionEventPayload {
