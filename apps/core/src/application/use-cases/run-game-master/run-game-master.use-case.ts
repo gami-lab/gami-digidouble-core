@@ -340,8 +340,11 @@ export class RunGameMasterUseCase {
     session: Session | null,
     scenarioAvatars: AvatarConfig[],
   ): Promise<GameMasterInput> {
-    const memory = await this.loadMemoryContext(input, session)
-    const recentMessages = await this.loadRecentMessages(input.conversationId)
+    const { memory, workingMemoryUpdatedAt } = await this.loadMemoryContext(input, session)
+    const recentMessages = await this.loadRecentMessages(
+      input.conversationId,
+      workingMemoryUpdatedAt,
+    )
     const assembledGmContext = resolveAssembledGmContext({
       input,
       session,
@@ -382,18 +385,24 @@ export class RunGameMasterUseCase {
   private async loadMemoryContext(
     input: RunGameMasterInput,
     session: Session | null,
-  ): Promise<GameMasterInput['context']['memory'] | undefined> {
+  ): Promise<{
+    memory: GameMasterInput['context']['memory'] | undefined
+    workingMemoryUpdatedAt: string | undefined
+  }> {
     if (input.selectedMemory !== undefined) {
-      return this.getMemorySelectionServiceForFallback().toGameMasterMemoryContext(
-        input.selectedMemory,
-      )
+      return {
+        memory: this.getMemorySelectionServiceForFallback().toGameMasterMemoryContext(
+          input.selectedMemory,
+        ),
+        workingMemoryUpdatedAt: input.selectedMemory.workingMemory?.updatedAt,
+      }
     }
     if (
       session === null ||
       input.conversationId === undefined ||
       this.messageRepository === undefined
     ) {
-      return undefined
+      return { memory: undefined, workingMemoryUpdatedAt: undefined }
     }
     try {
       const selectedMemory = await this.getMemorySelectionService().select({
@@ -403,26 +412,50 @@ export class RunGameMasterUseCase {
         scenarioId: input.scenarioId,
         userMessageText: input.userMessageText,
       })
-      return this.getMemorySelectionService().toGameMasterMemoryContext(selectedMemory)
+      return {
+        memory: this.getMemorySelectionService().toGameMasterMemoryContext(selectedMemory),
+        workingMemoryUpdatedAt: selectedMemory.workingMemory?.updatedAt,
+      }
     } catch {
-      return undefined
+      return { memory: undefined, workingMemoryUpdatedAt: undefined }
     }
   }
 
   private async loadRecentMessages(
     conversationId: string | undefined,
+    workingMemoryUpdatedAt?: string,
   ): Promise<Array<{ role: 'user' | 'avatar' | 'system'; content: string }>> {
     if (conversationId === undefined || this.messageRepository === undefined) return []
     const messages = await this.messageRepository.findByConversationId(conversationId, {
       limit: 24,
     })
-    return toRecentExchangeMessages(
-      messages
-        .slice()
-        .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-        .map((message) => ({ role: message.role, content: message.content })),
+    const sorted = messages
+      .slice()
+      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+
+    // When working memory exists, only send exchanges not yet covered by it.
+    // Always guarantee at least 1 full exchange so the GM has immediate context.
+    const memoryThresholdMs =
+      workingMemoryUpdatedAt !== undefined ? Date.parse(workingMemoryUpdatedAt) : undefined
+    const uncovered =
+      memoryThresholdMs !== undefined
+        ? sorted.filter((m) => Date.parse(m.createdAt) > memoryThresholdMs)
+        : sorted
+
+    const exchanges = toRecentExchangeMessages(
+      uncovered.map((m) => ({ role: m.role, content: m.content })),
       GM_RECENT_EXCHANGE_LIMIT,
     )
+
+    // Fallback: if no complete exchange in uncovered window, include at least the last one
+    if (exchanges.length === 0 && sorted.length > 0) {
+      return toRecentExchangeMessages(
+        sorted.map((m) => ({ role: m.role, content: m.content })),
+        1,
+      )
+    }
+
+    return exchanges
   }
 
   private getMemorySelectionService(): MemorySelectionService {
