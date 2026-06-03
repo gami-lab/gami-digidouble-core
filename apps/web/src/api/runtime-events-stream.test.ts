@@ -37,4 +37,52 @@ describe('subscribeToRuntimeEvents', () => {
       }),
     )
   })
+
+  it('reconnects after the stream closes and notifies when the stream opens', async () => {
+    vi.useFakeTimers()
+
+    const onOpen = vi.fn()
+    const encoder = new TextEncoder()
+    const firstStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(': keepalive\n\n'))
+        controller.close()
+      },
+    })
+    const secondStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(': keepalive\n\n'))
+        controller.close()
+      },
+    })
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        body: firstStream as unknown as Response['body'],
+      } satisfies Partial<Response>)
+      .mockResolvedValueOnce({
+        ok: true,
+        body: secondStream as unknown as Response['body'],
+      } satisfies Partial<Response>)
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    const subscription = subscribeToRuntimeEvents('s1', { onEvent: vi.fn(), onOpen })
+
+    await vi.waitFor(() => {
+      expect(onOpen).toHaveBeenCalledTimes(1)
+    })
+
+    await vi.advanceTimersByTimeAsync(1_000)
+
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(onOpen).toHaveBeenCalledTimes(2)
+    })
+
+    subscription.close()
+    vi.useRealTimers()
+  })
 })

@@ -621,8 +621,7 @@ Completed on: 2026-06-01
 - avatar discovery is now availability-driven and dynamic:
   - avatar list is sourced from `GET /v1/sessions/{sessionId}/available-avatars`
   - hidden/locked avatars are excluded by contract (no fallback to raw scenario avatar inventory)
-  - runtime-event subscription (`GET /v1/sessions/{sessionId}/events/stream`) triggers immediate refresh when avatars are unlocked
-  - interval polling remains as bounded fallback safety to keep availability synchronized
+  - runtime-event subscription (`GET /v1/sessions/{sessionId}/events/stream`) drives live availability refreshes when avatars are unlocked and reconnects automatically after disconnects
 - public web app contract usage remains canonical with no local DTO duplication:
   - scenario/session/avatar request/response shapes are consumed from `@gami/shared`
   - web-specific local API helpers are transport-only and isolated under `apps/web/src/api`
@@ -640,7 +639,7 @@ Completed on: 2026-06-01
   - processing indicator is shown while avatar response is in flight
   - avatar response is appended to the same active thread on completion
   - failed sends remain visible with explicit failed state
-- avatar availability live updates remain active during chat sessions via isolated polling in the discovery layer, so newly unlocked avatars can appear without page reload
+- avatar availability live updates remain active during chat sessions via the session runtime event stream, so newly unlocked avatars can appear without page reload
 - runtime continuity now persists across refresh for the same local identity:
   - selected scenario, active avatar, session id, and current conversation id are stored in local browser state
   - page reload rehydrates and restores the active thread from canonical conversation history
@@ -665,7 +664,7 @@ Completed on: 2026-06-01
 - behavior-level web tests now validate user-observable flows end-to-end:
   - onboarding success path activates runtime shell only after persona sync and persists identity
   - onboarding failure path keeps user in onboarding with explicit error messaging
-  - discovery hook validates live avatar updates from runtime unlock events and polling fallback ticks
+  - discovery hook validates live avatar updates from runtime unlock events, stream reconnect resyncs, and the absence of interval polling
   - active-chat runtime validates optimistic send pending state, success/failure reconciliation, and end-conversation reset transitions
 - documentation synced for EPIC 7.1 closure expectations:
   - `docs/TEST_COVERAGE_PLAN.md` now includes a dedicated `apps/web` coverage checklist

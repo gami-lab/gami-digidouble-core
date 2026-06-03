@@ -10,8 +10,6 @@ import { subscribeToRuntimeEvents } from '../api/runtime-events-stream'
 import { listAvailableScenarios } from '../api/scenarios'
 import { ensureActiveSession, getAvailableAvatarsForSession } from '../api/sessions'
 
-const AVATAR_DISCOVERY_POLL_INTERVAL_MS = 5_000
-
 type ScenarioLoadStatus = 'loading' | 'ready' | 'error'
 type AvatarLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -64,7 +62,7 @@ export function useScenarioAvatarDiscovery(
   const scenarioSelectionRequestIdRef = useRef(0)
 
   useScenarioList(setScenarios, setScenarioStatus, setScenarioError)
-  useAvatarAvailabilityPolling(
+  useAvatarAvailabilitySubscription(
     selectedScenarioId,
     session,
     setAvatars,
@@ -175,7 +173,7 @@ function useScenarioList(
   }, [setScenarios, setScenarioStatus, setScenarioError])
 }
 
-function useAvatarAvailabilityPolling(
+function useAvatarAvailabilitySubscription(
   selectedScenarioId: string | null,
   session: SessionSummary | null,
   setAvatars: (updater: (current: AvailableAvatarSummary[]) => AvailableAvatarSummary[]) => void,
@@ -209,13 +207,10 @@ function useAvatarAvailabilityPolling(
       }
     }
 
-    void refreshAvailableAvatars()
-
-    const intervalId = window.setInterval(() => {
-      void refreshAvailableAvatars()
-    }, AVATAR_DISCOVERY_POLL_INTERVAL_MS)
-
     const subscription = subscribeToRuntimeEvents(sessionId, {
+      onOpen: () => {
+        void refreshAvailableAvatars()
+      },
       onEvent: (event) => {
         if (shouldRefreshAvatarAvailabilityFromEvent(event)) {
           void refreshAvailableAvatars()
@@ -225,7 +220,6 @@ function useAvatarAvailabilityPolling(
 
     return () => {
       isCancelled = true
-      window.clearInterval(intervalId)
       subscription.close()
     }
   }, [

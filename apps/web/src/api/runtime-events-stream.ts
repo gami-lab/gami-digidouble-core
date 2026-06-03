@@ -4,6 +4,7 @@ import { apiKey, apiUrl } from '../env'
 const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
 
 export type RuntimeEventStreamHandlers = {
+  onOpen?: () => void
   onEvent: (event: RuntimeEvent) => void
   onError?: (error: Error) => void
 }
@@ -30,41 +31,99 @@ async function streamRuntimeEvents(
   handlers: RuntimeEventStreamHandlers,
   signal: AbortSignal,
 ): Promise<void> {
-  try {
-    const response = await fetch(
-      `${normalizeApiUrl(apiUrl)}/v1/sessions/${sessionId}/events/stream`,
-      {
-        method: 'GET',
-        headers: {
-          'x-api-key': apiKey,
-        },
-        signal,
-      },
-    )
+  let reconnectAttempt = 0
 
-    if (!response.ok || response.body === null) {
-      throw new Error(`Failed to subscribe to runtime events for ${sessionId}`)
+  while (!signal.aborted) {
+    try {
+      const response = await fetch(
+        `${normalizeApiUrl(apiUrl)}/v1/sessions/${sessionId}/events/stream`,
+        {
+          method: 'GET',
+          headers: {
+            'x-api-key': apiKey,
+          },
+          signal,
+        },
+      )
+
+      if (!response.ok || response.body === null) {
+        throw new Error(`Failed to subscribe to runtime events for ${sessionId}`)
+      }
+
+      reconnectAttempt = 0
+      handlers.onOpen?.()
+      await consumeEventStream(response.body, handlers.onEvent, signal)
+    } catch (error) {
+      if (isAbortError(error)) {
+        return
+      }
+
+      handlers.onError?.(error instanceof Error ? error : new Error('SSE subscription failed'))
     }
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
+    reconnectAttempt += 1
+    await waitForReconnectDelay(getReconnectDelayMs(reconnectAttempt), signal)
+  }
+}
 
+async function consumeEventStream(
+  body: ReadableStream<Uint8Array>,
+  onEvent: (event: RuntimeEvent) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  try {
     while (!signal.aborted) {
       const chunk = await reader.read()
       if (chunk.done) {
-        break
+        return
       }
       buffer += decoder.decode(chunk.value, { stream: true })
-      buffer = processFrames(buffer, handlers.onEvent)
+      buffer = processFrames(buffer, onEvent)
     }
-  } catch (error) {
-    if (signal.aborted) {
-      return
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+function getReconnectDelayMs(attempt: number): number {
+  if (attempt <= 1) {
+    return 1_000
+  }
+
+  if (attempt === 2) {
+    return 2_000
+  }
+
+  return 5_000
+}
+
+async function waitForReconnectDelay(delayMs: number, signal: AbortSignal): Promise<void> {
+  if (delayMs <= 0 || signal.aborted) {
+    return
+  }
+
+  await new Promise<void>((resolve) => {
+    const timeoutId = setTimeout(() => {
+      signal.removeEventListener('abort', handleAbort)
+      resolve()
+    }, delayMs)
+
+    function handleAbort(): void {
+      clearTimeout(timeoutId)
+      signal.removeEventListener('abort', handleAbort)
+      resolve()
     }
 
-    handlers.onError?.(error instanceof Error ? error : new Error('SSE subscription failed'))
-  }
+    signal.addEventListener('abort', handleAbort, { once: true })
+  })
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
 }
 
 function processFrames(buffer: string, onEvent: (event: RuntimeEvent) => void): string {

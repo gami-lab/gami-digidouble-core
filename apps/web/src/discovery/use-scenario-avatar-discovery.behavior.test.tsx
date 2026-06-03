@@ -59,6 +59,7 @@ describe('useScenarioAvatarDiscovery behavior', () => {
     let onEvent: ((event: RuntimeEvent) => void) | undefined
     vi.mocked(subscribeToRuntimeEvents).mockImplementation((_, handlers) => {
       onEvent = handlers.onEvent
+      handlers.onOpen?.()
       return { close }
     })
 
@@ -144,22 +145,15 @@ describe('useScenarioAvatarDiscovery behavior', () => {
     expect(close).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps polling fallback and updates availability on interval ticks', async () => {
-    let pollCallback: (() => void) | undefined
-    const originalSetInterval = window.setInterval
-    vi.spyOn(window, 'setInterval').mockImplementation((handler, timeout, ...args) => {
-      if (timeout === 5_000 && typeof handler === 'function') {
-        pollCallback = () => {
-          handler(...args)
-        }
-      }
-
-      return originalSetInterval(handler, timeout, ...args) as unknown as ReturnType<
-        typeof window.setInterval
-      >
+  it('refreshes available avatars when the runtime stream reconnects', async () => {
+    const close = vi.fn()
+    let onOpen: (() => void) | undefined
+    vi.mocked(subscribeToRuntimeEvents).mockImplementation((_, handlers) => {
+      onOpen = handlers.onOpen
+      handlers.onOpen?.()
+      return { close }
     })
 
-    vi.mocked(subscribeToRuntimeEvents).mockReturnValue({ close: vi.fn() })
     vi.mocked(getAvailableAvatarsForSession)
       .mockResolvedValueOnce([
         {
@@ -219,7 +213,7 @@ describe('useScenarioAvatarDiscovery behavior', () => {
     })
 
     await act(async () => {
-      pollCallback?.()
+      onOpen?.()
       await Promise.resolve()
     })
 
@@ -229,5 +223,52 @@ describe('useScenarioAvatarDiscovery behavior', () => {
         'avatar_2',
       ])
     })
+  })
+
+  it('does not start an interval polling loop for avatar availability', async () => {
+    const setIntervalSpy = vi.spyOn(window, 'setInterval')
+
+    vi.mocked(subscribeToRuntimeEvents).mockImplementation((_, handlers) => {
+      handlers.onOpen?.()
+      return { close: vi.fn() }
+    })
+    vi.mocked(getAvailableAvatarsForSession).mockResolvedValueOnce([
+      {
+        avatarId: 'avatar_1',
+        scenarioId: 'scenario_1',
+        name: 'Avatar 1',
+        status: 'active',
+        personaPrompt: 'Prompt 1',
+        createdAt: '2026-06-01T00:00:00.000Z',
+        updatedAt: '2026-06-01T00:00:00.000Z',
+      },
+    ])
+    vi.mocked(getAvailableAvatarsForSession).mockResolvedValueOnce([
+      {
+        avatarId: 'avatar_1',
+        scenarioId: 'scenario_1',
+        name: 'Avatar 1',
+        status: 'active',
+        personaPrompt: 'Prompt 1',
+        createdAt: '2026-06-01T00:00:00.000Z',
+        updatedAt: '2026-06-01T00:00:00.000Z',
+      },
+    ])
+
+    const { result } = renderHook(() => useScenarioAvatarDiscovery(identity))
+
+    await waitFor(() => {
+      expect(result.current.scenarioStatus).toBe('ready')
+    })
+
+    act(() => {
+      result.current.selectScenario('scenario_1')
+    })
+
+    await waitFor(() => {
+      expect(result.current.avatars.map((avatar) => avatar.avatarId)).toEqual(['avatar_1'])
+    })
+
+    expect(setIntervalSpy.mock.calls.some(([, timeout]) => timeout === 5_000)).toBe(false)
   })
 })
