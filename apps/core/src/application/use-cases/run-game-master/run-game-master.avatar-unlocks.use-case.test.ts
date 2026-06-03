@@ -196,6 +196,57 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
     })
   })
 
+  it('treats titled first-name mentions as valid avatar mentions for unlocks', async () => {
+    const eventLog = new InMemoryEventLogRepository()
+    const useCase = createUseCase(eventLog)
+    listAvatarsByScenarioIdMock.mockResolvedValue([
+      makeAvatar({ avatarId: 'avatar_1', name: 'Clara Whitcombe' }),
+      makeAvatar({ avatarId: 'avatar_2', name: 'Margot Vale' }),
+    ])
+    findMessagesByConversationIdMock.mockResolvedValue([
+      {
+        messageId: 'msg_1',
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'Please bring Miss Margot here. I want to question her directly.',
+        createdAt: '2026-04-20T10:00:00.000Z',
+      },
+      {
+        messageId: 'msg_1b',
+        conversationId: 'conversation_1',
+        role: 'avatar',
+        content: 'Very well, Inspector. I shall fetch Miss Margot from the drawing room.',
+        createdAt: '2026-04-20T10:00:01.000Z',
+      },
+    ])
+    mockGmOutput({
+      avatarId: 'avatar_1',
+      unlockAvatarIds: ['avatar_2'],
+      unlockDecisions: [
+        { avatarId: 'avatar_2', reason: 'User requested direct conversation with Miss Margot.' },
+      ],
+      conversationMode: 'new',
+      stateUpdate: { interactionIncrement: 1 },
+    })
+
+    await executeGm(useCase)
+
+    expect(updateSessionMock).toHaveBeenCalledWith('session_1', {
+      unlockedAvatarIds: ['avatar_1', 'avatar_2'],
+    })
+    expect(eventLog.getAll()[0]?.payload['decision']).toMatchObject({
+      unlockedAvatarIds: ['avatar_2'],
+      unlockEvaluations: [
+        {
+          avatarId: 'avatar_2',
+          avatarName: 'Margot Vale',
+          reason: 'User requested direct conversation with Miss Margot.',
+          outcome: 'unlocked',
+        },
+      ],
+    })
+  })
+
   it('ignores invalid and non-scenario avatar IDs from GM unlock output', async () => {
     const useCase = createUseCase()
     mockGmOutput({

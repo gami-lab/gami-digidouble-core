@@ -104,6 +104,8 @@ function resolveMentionedLockedAvatarIds(
 ): Set<string> {
   const recentMessageList = recentMessages ?? []
   const messageCorpus = recentMessageList.map((message) => message.content.toLowerCase()).join('\n')
+  const normalizedCorpus = normalizeText(messageCorpus)
+  const corpusTokens = new Set(tokenizeText(messageCorpus))
   const lockedAvatars = avatars.filter(
     (avatar) => avatar.status === 'active' && !session.unlockedAvatarIds?.includes(avatar.avatarId),
   )
@@ -111,14 +113,45 @@ function resolveMentionedLockedAvatarIds(
   return lockedAvatars.reduce<Set<string>>((ids, avatar) => {
     const avatarName = avatar.name.trim().toLowerCase()
     const avatarId = avatar.avatarId.toLowerCase()
-    if (
-      (avatarName.length > 0 && messageCorpus.includes(avatarName)) ||
-      messageCorpus.includes(avatarId)
-    ) {
+    if (isAvatarMentioned(avatarName, avatarId, messageCorpus, normalizedCorpus, corpusTokens)) {
       ids.add(avatar.avatarId)
     }
     return ids
   }, new Set<string>())
+}
+
+function isAvatarMentioned(
+  avatarName: string,
+  avatarId: string,
+  rawCorpus: string,
+  normalizedCorpus: string,
+  corpusTokens: Set<string>,
+): boolean {
+  if (avatarId.length > 0 && rawCorpus.includes(avatarId)) return true
+
+  const normalizedAvatarName = normalizeText(avatarName)
+  if (normalizedAvatarName.length > 0 && normalizedCorpus.includes(normalizedAvatarName)) {
+    return true
+  }
+
+  const significantNameTokens = tokenizeText(avatarName).filter(
+    (token) => token.length >= 4 && !NAME_TOKEN_STOPWORDS.has(token),
+  )
+  return significantNameTokens.some((token) => corpusTokens.has(token))
+}
+
+const NAME_TOKEN_STOPWORDS = new Set(['miss', 'mrs', 'mr', 'ms', 'dr', 'sir', 'lady', 'lord'])
+
+function normalizeText(value: string): string {
+  return tokenizeText(value).join(' ')
+}
+
+function tokenizeText(value: string): string[] {
+  return value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/g)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0)
 }
 
 function toAvailableAvatar(
