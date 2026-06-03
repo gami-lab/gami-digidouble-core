@@ -180,6 +180,7 @@ describe('buildGmImpactTrace', () => {
     expect(first).toBeDefined()
     if (!first) return
     expect(first.turnIndex).toBe(1)
+    expect(first.interactionCount).toBe(2)
     expect(first.timelinePosition).toBe('1/1')
     expect(first.gmDecisionAction).toContain('GM ran after turn 1 because topic shift.')
     expect(first.gmDecisionAction.join(' ')).toContain(
@@ -202,5 +203,73 @@ describe('buildGmImpactTrace', () => {
       'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 3 retrieved references (1 memory / 2 world / 0 media), GM note included, no user persona',
     )
     expect(first.status).toBe('applied')
+  })
+
+  it('sorts trace entries by interactionCount when turnIndex resets after avatar switches', () => {
+    const snapshot = makeViewModel()
+    snapshot.recentEvents = [
+      {
+        type: 'gm_triggered',
+        correlationId: 'corr_old',
+        createdAt: '2026-05-07T10:00:00.000Z',
+        payload: {
+          triggerReason: 'post_turn_observation',
+          turnIndex: 5,
+          interactionCount: 12,
+          stateBefore: {
+            currentAvatarId: 'avatar_1',
+            progression: 'advanced',
+            topicsCovered: [],
+          },
+          decision: {
+            avatarId: 'avatar_1',
+            conversationMode: 'continue',
+            notesInjected: true,
+            injectedNote: 'Older interaction.',
+            directiveCount: 0,
+          },
+          stateAfter: {
+            currentAvatarId: 'avatar_1',
+            progression: 'advanced',
+            topicsCovered: [],
+          },
+          latencyMs: 40,
+        },
+      },
+      {
+        type: 'gm_triggered',
+        correlationId: 'corr_new',
+        createdAt: '2026-05-07T10:00:01.000Z',
+        payload: {
+          triggerReason: 'post_turn_observation',
+          turnIndex: 1,
+          interactionCount: 16,
+          stateBefore: {
+            currentAvatarId: 'avatar_2',
+            progression: 'advanced',
+            topicsCovered: [],
+          },
+          decision: {
+            avatarId: 'avatar_2',
+            conversationMode: 'continue',
+            notesInjected: true,
+            injectedNote: 'Newer interaction after avatar switch.',
+            directiveCount: 0,
+          },
+          stateAfter: {
+            currentAvatarId: 'avatar_2',
+            progression: 'advanced',
+            topicsCovered: [],
+          },
+          latencyMs: 42,
+        },
+      },
+    ]
+
+    const trace = buildGmImpactTrace(snapshot)
+
+    expect(trace.map((entry) => entry.correlationId)).toEqual(['corr_new', 'corr_old'])
+    expect(trace.map((entry) => entry.interactionCount)).toEqual([16, 12])
+    expect(trace.map((entry) => entry.turnIndex)).toEqual([1, 5])
   })
 })

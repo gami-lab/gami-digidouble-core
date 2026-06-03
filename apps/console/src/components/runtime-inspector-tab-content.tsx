@@ -363,8 +363,8 @@ function EventsTab({
             }}
           >
             <p style={{ margin: 0, fontWeight: 600 }}>
-              Turn {String(entry.turnIndex ?? 0)} · timeline {entry.timelinePosition} ·{' '}
-              {entry.status}
+              Turn {String(entry.turnIndex ?? 0)} · interaction {String(entry.interactionCount)} ·
+              {' '}timeline {entry.timelinePosition} · {entry.status}
             </p>
             <p style={{ margin: '4px 0', color: '#4b5563' }}>Correlation: {entry.correlationId}</p>
             <p style={{ margin: '4px 0' }}>

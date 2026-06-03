@@ -8,6 +8,7 @@ import type { RuntimeInspectorViewModel } from '../api'
 export type GmImpactTraceEntry = {
   correlationId: string
   turnIndex: number | null
+  interactionCount: number
   timelinePosition: string
   triggerContext: string
   gmDecisionAction: string[]
@@ -33,8 +34,17 @@ export function buildGmImpactTrace(snapshot: RuntimeInspectorViewModel): GmImpac
     .filter((entry): entry is GmImpactTraceEntry => entry !== null)
 
   return traces.sort((a, b) => {
-    const left = a.turnIndex ?? -1
-    const right = b.turnIndex ?? -1
+    const left = a.interactionCount
+    const right = b.interactionCount
+    if (right !== left) return right - left
+    const leftTurn = a.turnIndex ?? -1
+    const rightTurn = b.turnIndex ?? -1
+    if (rightTurn !== leftTurn) return rightTurn - leftTurn
+    const leftCreatedAt = Date.parse(a.createdAt)
+    const rightCreatedAt = Date.parse(b.createdAt)
+    if (!Number.isNaN(rightCreatedAt) && !Number.isNaN(leftCreatedAt)) {
+      return rightCreatedAt - leftCreatedAt
+    }
     return right - left
   })
 }
@@ -131,6 +141,7 @@ function toTraceEntry(
   return {
     correlationId,
     turnIndex,
+    interactionCount: gmPayload.interactionCount,
     timelinePosition,
     triggerContext: gmPayload.triggerReason ?? 'none',
     gmDecisionAction: decisionActions,
