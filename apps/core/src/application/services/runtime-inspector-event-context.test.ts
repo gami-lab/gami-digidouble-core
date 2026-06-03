@@ -31,20 +31,18 @@ describe('runtime inspector event context snapshots', () => {
     })
 
     expect(snapshot.knowledge).toEqual({
-      typedSections: {
-        memory: [],
-        world: [
-          {
-            sourceId: 'source_1',
-            chunkId: 'chunk_1',
-            knowledgeType: 'world',
-            score: 0.9,
-            reason: 'token-overlap',
-            visibleToAvatarIds: ['avatar_1'],
-          },
-        ],
-        media: [],
-      },
+      memory: [],
+      world: [
+        {
+          sourceId: 'source_1',
+          chunkId: 'chunk_1',
+          knowledgeType: 'world',
+          score: 0.9,
+          reason: 'token-overlap',
+          visibleToAvatarIds: ['avatar_1'],
+        },
+      ],
+      media: [],
     })
     expect(JSON.stringify(snapshot)).not.toContain('Sensitive chunk text')
     expect(JSON.stringify(snapshot)).not.toContain('inlineText')

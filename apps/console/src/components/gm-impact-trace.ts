@@ -274,13 +274,19 @@ function describeRecordedAvatarContext(
     )
   }
   const knowledgeItems = avatarContext.knowledge
-    ? flattenTypedSections(avatarContext.knowledge.typedSections)
+    ? [
+        ...avatarContext.knowledge.memory,
+        ...avatarContext.knowledge.world,
+        ...avatarContext.knowledge.media,
+      ]
     : []
   if (knowledgeItems.length) {
+    lines.push(`Avatar retrieval selected ${String(knowledgeItems.length)} item(s):`)
+    lines.push('Higher score means a stronger retrieval match for this turn.')
     lines.push(
-      `Avatar retrieval: ${knowledgeItems
-        .map((item) => formatKnowledgeSnippet(item, avatarNameById, knowledgeSourceNameById))
-        .join(' | ')}`,
+      ...knowledgeItems.map((item) =>
+        formatKnowledgeSnippet(item, avatarNameById, knowledgeSourceNameById),
+      ),
     )
   }
   return lines
@@ -308,10 +314,12 @@ function describeRecordedGmContext(
     lines.push(`GM working memory: ${gmContext.memory.workingSummary}`)
   }
   if (knowledgeItems.length > 0) {
+    lines.push(`GM retrieval selected ${String(knowledgeItems.length)} item(s):`)
+    lines.push('Higher score means a stronger retrieval match for this turn.')
     lines.push(
-      `GM retrieval: ${knowledgeItems
-        .map((item) => formatKnowledgeSnippet(item, avatarNameById, knowledgeSourceNameById))
-        .join(' | ')}`,
+      ...knowledgeItems.map((item) =>
+        formatKnowledgeSnippet(item, avatarNameById, knowledgeSourceNameById),
+      ),
     )
   }
   return lines
@@ -322,6 +330,8 @@ function formatKnowledgeSnippet(
     knowledgeType: 'memory' | 'world' | 'media'
     sourceId: string
     chunkId: string
+    score?: number
+    reason?: string
     visibleToAvatarIds?: string[]
   },
   avatarNameById: Map<string, string>,
@@ -334,18 +344,9 @@ function formatKnowledgeSnippet(
       : item.visibleToAvatarIds
           .map((avatarId) => avatarNameById.get(avatarId) ?? avatarId)
           .join(',')
-  return `[${item.knowledgeType}] ${sourceName} (${item.chunkId}, access:${access})`
-}
-
-function flattenTypedSections(
-  typedSections:
-    | NonNullable<
-        NonNullable<TurnCompletedEventPayload['avatarContext']>['knowledge']
-      >['typedSections']
-    | undefined,
-) {
-  if (!typedSections) return []
-  return [...typedSections.memory, ...typedSections.world, ...typedSections.media]
+  const score = item.score !== undefined ? `score ${item.score.toFixed(4)}` : 'score n/a'
+  const reason = item.reason !== undefined ? item.reason : 'reason unavailable'
+  return `Selected [${item.knowledgeType}] ${sourceName} (${item.chunkId}) · access: ${access} · ${score} · ${reason}`
 }
 
 function isGmPayload(payload: SessionEventRecord['payload']): payload is GmSessionEventPayload {

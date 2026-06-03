@@ -395,11 +395,13 @@ function readAvatarKnowledge(
   const typedSections =
     typedSectionsValue !== undefined
       ? readRecordedTypedSections(typedSectionsValue)
-      : groupRecordedKnowledgeReferences(readRecordedKnowledgeReferences(value['retrievedItems']))
+      : Array.isArray(value['memory']) ||
+          Array.isArray(value['world']) ||
+          Array.isArray(value['media'])
+        ? readRecordedTypedSections(value)
+        : groupRecordedKnowledgeReferences(readRecordedKnowledgeReferences(value['retrievedItems']))
   if (!hasRecordedKnowledge(typedSections)) return undefined
-  return {
-    typedSections,
-  }
+  return typedSections
 }
 
 function readGmMemory(value: unknown): RecordedGmContextSnapshot['memory'] {

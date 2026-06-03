@@ -94,9 +94,7 @@ export type RecordedTypedKnowledgeSections = {
   media: RecordedKnowledgeReferenceDto[]
 }
 
-export type RecordedAvatarContextKnowledgeInjection = {
-  typedSections?: RecordedTypedKnowledgeSections
-}
+export type RecordedAvatarContextKnowledgeInjection = RecordedTypedKnowledgeSections
 
 export type RecordedGmContextKnowledgeInjection = RecordedTypedKnowledgeSections
 

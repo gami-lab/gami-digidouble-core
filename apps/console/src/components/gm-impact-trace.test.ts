@@ -151,6 +151,8 @@ function makeViewModel(): RuntimeInspectorViewModel {
                   sourceId: 'source_1',
                   chunkId: 'chunk_1',
                   knowledgeType: 'world',
+                  score: 0.4444,
+                  reason: 'token-overlap',
                   visibleToAvatarIds: ['avatar_1'],
                 },
               ],
@@ -227,18 +229,18 @@ function makeViewModel(): RuntimeInspectorViewModel {
               },
             ],
             knowledge: {
-              typedSections: {
-                memory: [],
-                world: [
-                  {
-                    sourceId: 'source_2',
-                    chunkId: 'chunk_2',
-                    knowledgeType: 'world',
-                    visibleToAvatarIds: ['avatar_2'],
-                  },
-                ],
-                media: [],
-              },
+              memory: [],
+              world: [
+                {
+                  sourceId: 'source_2',
+                  chunkId: 'chunk_2',
+                  knowledgeType: 'world',
+                  score: 0.8123,
+                  reason: 'token-overlap',
+                  visibleToAvatarIds: ['avatar_2'],
+                },
+              ],
+              media: [],
             },
             userPersona: { name: 'Maya', roleInWorld: 'investigator' },
             gmNotes: 'Ask Theo for concrete implementation details next.',
@@ -300,13 +302,15 @@ describe('buildGmImpactTrace', () => {
     )
     expect(first.resultingImpact.join(' ')).toContain('Recorded GM input: 1 message(s)')
     expect(first.resultingImpact.join(' ')).toContain('GM working memory: GM working summary')
+    expect(first.resultingImpact.join(' ')).toContain('GM retrieval selected 1 item(s):')
     expect(first.resultingImpact.join(' ')).toContain(
-      'GM retrieval: [world] Terrace notes (chunk_1, access:Clara Whitcombe)',
+      'Selected [world] Terrace notes (chunk_1) · access: Clara Whitcombe · score 0.4444 · token-overlap',
     )
     expect(first.resultingImpact.join(' ')).toContain('Recorded avatar input: 1 exchange(s)')
     expect(first.resultingImpact.join(' ')).toContain('Avatar working memory: Theo summary')
+    expect(first.resultingImpact.join(' ')).toContain('Avatar retrieval selected 1 item(s):')
     expect(first.resultingImpact.join(' ')).toContain(
-      'Avatar retrieval: [world] Footprint report (chunk_2, access:Theo)',
+      'Selected [world] Footprint report (chunk_2) · access: Theo · score 0.8123 · token-overlap',
     )
     expect(first.resultingImpact.join(' ')).toContain(
       'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 3 retrieved references (1 memory / 2 world / 0 media), GM note included, no user persona',

@@ -55,8 +55,7 @@ function toRecordedAvatarKnowledge(
   const typedSections = toRecordedTypedKnowledgeSections(
     knowledge.typedSections ?? groupRetrievedItemsByType(knowledge.retrievedItems),
   )
-  if (typedSections === undefined) return undefined
-  return { typedSections }
+  return typedSections
 }
 
 function toRecordedTypedKnowledgeSections(

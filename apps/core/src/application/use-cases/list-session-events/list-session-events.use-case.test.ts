@@ -1,4 +1,4 @@
-/* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines, max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest'
 import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
@@ -393,18 +393,16 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
               },
             ],
             knowledge: {
-              typedSections: {
-                memory: [],
-                world: [
-                  {
-                    sourceId: 'source_1',
-                    chunkId: 'chunk_1',
-                    knowledgeType: 'world',
-                    visibleToAvatarIds: ['avatar_1'],
-                  },
-                ],
-                media: [],
-              },
+              memory: [],
+              world: [
+                {
+                  sourceId: 'source_1',
+                  chunkId: 'chunk_1',
+                  knowledgeType: 'world',
+                  visibleToAvatarIds: ['avatar_1'],
+                },
+              ],
+              media: [],
             },
             userPersona: { name: 'Maya', roleInWorld: 'inspector' },
             gmNotes: 'Ask about the glass.',
@@ -424,6 +422,67 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
     ])
     expect(JSON.stringify(output)).not.toContain('A clue')
     expect(JSON.stringify(output)).not.toContain('inlineText')
+  })
+
+  it('reads recorded avatar retrieval from the flat memory/world/media event shape', async () => {
+    const { useCase } = createUseCase({
+      events: [
+        makeEvent({
+          type: 'turn_completed',
+          payload: {
+            conversationId: 'conversation_1',
+            turnIndex: 3,
+            avatarId: 'avatar_1',
+            avatarContext: {
+              recentExchanges: [],
+              workingMemory: {},
+              longTermFacts: [],
+              knowledge: {
+                memory: [],
+                world: [
+                  {
+                    sourceId: 'source_world_1',
+                    chunkId: 'chunk_world_1',
+                    knowledgeType: 'world',
+                    score: 0.4444,
+                    reason: 'token-overlap',
+                  },
+                ],
+                media: [],
+              },
+              userPersona: null,
+              gmNotes: null,
+              scenario: { scenarioId: 'scenario_1' },
+            },
+            avatarLatencyMs: 9,
+            totalTurnLatencyMs: 18,
+            inputTokens: 10,
+            outputTokens: 12,
+            totalTokens: 22,
+            model: 'null-model',
+            hasGm: true,
+          },
+        }),
+      ],
+    })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.events[0]?.payload).toMatchObject({
+      avatarContext: {
+        knowledge: {
+          world: [
+            {
+              sourceId: 'source_world_1',
+              chunkId: 'chunk_world_1',
+              knowledgeType: 'world',
+              score: 0.4444,
+              reason: 'token-overlap',
+            },
+          ],
+        },
+      },
+    })
   })
 })
 
