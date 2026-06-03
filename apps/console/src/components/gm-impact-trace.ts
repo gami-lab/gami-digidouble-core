@@ -11,10 +11,25 @@ export type GmImpactTraceEntry = {
   interactionCount: number
   timelinePosition: string
   triggerContext: string
-  gmDecisionAction: string[]
-  resultingImpact: string[]
+  gmRun: string[]
+  gmInput: string[]
+  gmRetrieval: RetrievalTraceItem[]
+  gmOutput: string[]
+  avatarInput: string[]
+  avatarRetrieval: RetrievalTraceItem[]
+  userVisibleOutcome: string[]
+  errors: string[]
   createdAt: string
   status: 'applied' | 'error' | 'pending'
+}
+
+export type RetrievalTraceItem = {
+  knowledgeType: 'memory' | 'world' | 'media'
+  sourceName: string
+  chunkId: string
+  access: string
+  score?: number
+  matchBasis: string
 }
 
 export function buildGmImpactTrace(snapshot: RuntimeInspectorViewModel): GmImpactTraceEntry[] {
@@ -81,36 +96,46 @@ function toTraceEntry(
       : '-'
 
   const decision = gmPayload.decision
-  const decisionActions: string[] = []
-  const impacts: string[] = []
+  const gmRun: string[] = []
+  const gmInput: string[] = []
+  const gmOutput: string[] = []
+  const avatarInput: string[] = []
+  const userVisibleOutcome: string[] = []
+  const errors: string[] = []
+  let gmRetrieval: RetrievalTraceItem[] = []
+  let avatarRetrieval: RetrievalTraceItem[] = []
 
-  decisionActions.push(
+  gmRun.push(
     `GM ran after turn ${String(gmPayload.turnIndex)} because ${formatTriggerReason(gmPayload.triggerReason)}.`,
   )
-  decisionActions.push(describeStateBefore(gmPayload, avatarNameById))
+  gmRun.push(describeStateBefore(gmPayload, avatarNameById))
 
   if (decision) {
-    decisionActions.push(describeDecision(decision, gmPayload, avatarNameById))
+    gmRun.push(describeDecision(decision, gmPayload, avatarNameById))
     if (gmPayload.gmContext) {
-      impacts.push(
-        ...describeRecordedGmContext(gmPayload.gmContext, avatarNameById, knowledgeSourceNameById),
+      const gmContextDetails = describeRecordedGmContext(
+        gmPayload.gmContext,
+        avatarNameById,
+        knowledgeSourceNameById,
       )
+      gmInput.push(...gmContextDetails.summary)
+      gmRetrieval = gmContextDetails.retrieval
     }
 
     if (decision.suggestedAvatarId) {
-      impacts.push(
+      gmOutput.push(
         `GM recommendation: ${formatAvatar(decision.suggestedAvatarId, avatarNameById)}${decision.suggestedAvatarReason ? ` — ${decision.suggestedAvatarReason}` : ''}`,
       )
     }
 
     if (decision.switchedAvatarId) {
-      impacts.push(
+      gmOutput.push(
         `Next active avatar: ${formatAvatar(decision.switchedAvatarId, avatarNameById)}.`,
       )
     }
 
     if (decision.unlockEvaluations && decision.unlockEvaluations.length > 0) {
-      impacts.push(
+      gmOutput.push(
         `Avatar unlocks: ${decision.unlockEvaluations
           .map((unlock) => {
             const detail = `${unlock.avatarId} (${unlock.avatarName})`
@@ -120,46 +145,46 @@ function toTraceEntry(
           .join(', ')}`,
       )
     } else if (decision.unlockedAvatarIds && decision.unlockedAvatarIds.length > 0) {
-      impacts.push(`Avatar unlocks: ${decision.unlockedAvatarIds.join(', ')}`)
+      gmOutput.push(`Avatar unlocks: ${decision.unlockedAvatarIds.join(', ')}`)
     }
 
     if (decision.injectedNote) {
-      impacts.push(`GM note added to the next avatar turn: ${decision.injectedNote}`)
+      gmOutput.push(`GM note added to the next avatar turn: ${decision.injectedNote}`)
     } else if (decision.notesInjected) {
-      impacts.push('GM note added to the next avatar turn.')
+      gmOutput.push('GM note added to the next avatar turn.')
     }
 
     if (decision.directiveCount > 0) {
-      impacts.push(
+      gmOutput.push(
         `GM produced ${String(decision.directiveCount)} structured recommendation${decision.directiveCount === 1 ? '' : 's'}.`,
       )
     }
   } else {
-    decisionActions.push('Decision: no decision payload')
+    gmRun.push('Decision: no decision payload')
   }
 
   if (turnPayload) {
-    impacts.push(
+    userVisibleOutcome.push(
       `Immediate user-facing result: turn ${String(turnPayload.turnIndex)} was still answered by ${formatAvatar(turnPayload.avatarId, avatarNameById)}. GM changes apply on the next turn.`,
     )
     if (turnPayload.avatarContext) {
-      impacts.push(
-        ...describeRecordedAvatarContext(
-          turnPayload.avatarContext,
-          avatarNameById,
-          knowledgeSourceNameById,
-        ),
+      const avatarContextDetails = describeRecordedAvatarContext(
+        turnPayload.avatarContext,
+        avatarNameById,
+        knowledgeSourceNameById,
       )
+      avatarInput.push(...avatarContextDetails.summary)
+      avatarRetrieval = avatarContextDetails.retrieval
     }
     if (turnPayload.contextSelection) {
-      impacts.push(formatAvatarContext(turnPayload))
+      avatarInput.push(formatAvatarContext(turnPayload))
     }
   } else {
-    impacts.push('User-flow impact: turn completion not observed in snapshot window')
+    userVisibleOutcome.push('Turn completion not observed in snapshot window.')
   }
 
   if (gmEvent.type === 'gm_error') {
-    impacts.push(`GM error: ${gmPayload.errorCode ?? 'unknown'}`)
+    errors.push(`GM error: ${gmPayload.errorCode ?? 'unknown'}`)
   }
 
   return {
@@ -168,8 +193,14 @@ function toTraceEntry(
     interactionCount: gmPayload.interactionCount,
     timelinePosition,
     triggerContext: gmPayload.triggerReason ?? 'none',
-    gmDecisionAction: decisionActions,
-    resultingImpact: impacts,
+    gmRun,
+    gmInput,
+    gmRetrieval,
+    gmOutput,
+    avatarInput,
+    avatarRetrieval,
+    userVisibleOutcome,
+    errors,
     createdAt: gmEvent.createdAt,
     status: gmEvent.type === 'gm_error' ? 'error' : turnEvent ? 'applied' : 'pending',
   }
@@ -264,9 +295,9 @@ function describeRecordedAvatarContext(
   avatarContext: NonNullable<TurnCompletedEventPayload['avatarContext']>,
   avatarNameById: Map<string, string>,
   knowledgeSourceNameById: Map<string, string>,
-): string[] {
+): { summary: string[]; retrieval: RetrievalTraceItem[] } {
   const lines = [
-    `Recorded avatar input: ${String(avatarContext.recentExchanges.length)} exchange(s), ${String(avatarContext.longTermFacts.length)} long-term fact(s), GM note ${avatarContext.gmNotes ? 'present' : 'absent'}, user persona ${avatarContext.userPersona ? 'present' : 'absent'}.`,
+    `Avatar input summary: ${String(avatarContext.recentExchanges.length)} exchange(s), ${String(avatarContext.longTermFacts.length)} long-term fact(s), GM note ${avatarContext.gmNotes ? 'present' : 'absent'}, user persona ${avatarContext.userPersona ? 'present' : 'absent'}.`,
   ]
   if (avatarContext.workingMemory.avatar?.summary || avatarContext.workingMemory.session?.summary) {
     lines.push(
@@ -280,16 +311,12 @@ function describeRecordedAvatarContext(
         ...avatarContext.knowledge.media,
       ]
     : []
-  if (knowledgeItems.length) {
-    lines.push(`Avatar retrieval selected ${String(knowledgeItems.length)} item(s):`)
-    lines.push('Higher score means a stronger retrieval match for this turn.')
-    lines.push(
-      ...knowledgeItems.map((item) =>
-        formatKnowledgeSnippet(item, avatarNameById, knowledgeSourceNameById),
-      ),
-    )
+  return {
+    summary: lines,
+    retrieval: knowledgeItems.map((item) =>
+      toRetrievalTraceItem(item, avatarNameById, knowledgeSourceNameById),
+    ),
   }
-  return lines
 }
 
 // eslint-disable-next-line complexity
@@ -297,7 +324,7 @@ function describeRecordedGmContext(
   gmContext: NonNullable<GmSessionEventPayload['gmContext']>,
   avatarNameById: Map<string, string>,
   knowledgeSourceNameById: Map<string, string>,
-): string[] {
+): { summary: string[]; retrieval: RetrievalTraceItem[] } {
   const knowledgeItems = [
     ...(gmContext.knowledge?.memory ?? []),
     ...(gmContext.knowledge?.world ?? []),
@@ -308,24 +335,20 @@ function describeRecordedGmContext(
       ? 'none recorded'
       : formatAvatar(gmContext.currentState.currentAvatarId, avatarNameById)
   const lines = [
-    `Recorded GM input: ${String(gmContext.recentMessages.length)} message(s), ${String(gmContext.memory.longTermFacts?.length ?? 0)} long-term fact(s), user persona ${gmContext.userPersona ? 'present' : 'absent'}, active avatar ${activeAvatar}.`,
+    `GM input summary: ${String(gmContext.recentMessages.length)} message(s), ${String(gmContext.memory.longTermFacts?.length ?? 0)} long-term fact(s), user persona ${gmContext.userPersona ? 'present' : 'absent'}, active avatar ${activeAvatar}.`,
   ]
   if (gmContext.memory.workingSummary) {
     lines.push(`GM working memory: ${gmContext.memory.workingSummary}`)
   }
-  if (knowledgeItems.length > 0) {
-    lines.push(`GM retrieval selected ${String(knowledgeItems.length)} item(s):`)
-    lines.push('Higher score means a stronger retrieval match for this turn.')
-    lines.push(
-      ...knowledgeItems.map((item) =>
-        formatKnowledgeSnippet(item, avatarNameById, knowledgeSourceNameById),
-      ),
-    )
+  return {
+    summary: lines,
+    retrieval: knowledgeItems.map((item) =>
+      toRetrievalTraceItem(item, avatarNameById, knowledgeSourceNameById),
+    ),
   }
-  return lines
 }
 
-function formatKnowledgeSnippet(
+function toRetrievalTraceItem(
   item: {
     knowledgeType: 'memory' | 'world' | 'media'
     sourceId: string
@@ -336,7 +359,7 @@ function formatKnowledgeSnippet(
   },
   avatarNameById: Map<string, string>,
   knowledgeSourceNameById: Map<string, string>,
-): string {
+): RetrievalTraceItem {
   const sourceName = knowledgeSourceNameById.get(item.sourceId) ?? item.sourceId
   const access =
     item.visibleToAvatarIds === undefined || item.visibleToAvatarIds.length === 0
@@ -344,9 +367,29 @@ function formatKnowledgeSnippet(
       : item.visibleToAvatarIds
           .map((avatarId) => avatarNameById.get(avatarId) ?? avatarId)
           .join(',')
-  const score = item.score !== undefined ? `score ${item.score.toFixed(4)}` : 'score n/a'
-  const reason = item.reason !== undefined ? item.reason : 'reason unavailable'
-  return `Selected [${item.knowledgeType}] ${sourceName} (${item.chunkId}) · access: ${access} · ${score} · ${reason}`
+  return {
+    knowledgeType: item.knowledgeType,
+    sourceName,
+    chunkId: item.chunkId,
+    access,
+    ...(item.score !== undefined ? { score: item.score } : {}),
+    matchBasis: formatMatchBasis(item.reason),
+  }
+}
+
+function formatMatchBasis(reason: string | undefined): string {
+  if (reason === undefined || reason.length === 0) return 'not recorded'
+  return reason
+    .split('+')
+    .map((part) => {
+      if (part === 'token-overlap') return 'keyword match'
+      if (part === 'user-match') return 'same user'
+      if (part === 'session-match') return 'same session'
+      if (part === 'conversation-match') return 'same conversation'
+      if (part === 'tag-match') return 'tag match'
+      return part.replaceAll('_', ' ')
+    })
+    .join(', ')
 }
 
 function isGmPayload(payload: SessionEventRecord['payload']): payload is GmSessionEventPayload {

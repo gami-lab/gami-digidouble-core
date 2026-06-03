@@ -283,38 +283,49 @@ describe('buildGmImpactTrace', () => {
     expect(first.turnIndex).toBe(1)
     expect(first.interactionCount).toBe(2)
     expect(first.timelinePosition).toBe('1/1')
-    expect(first.gmDecisionAction).toContain('GM ran after turn 1 because topic shift.')
-    expect(first.gmDecisionAction.join(' ')).toContain(
+    expect(first.gmRun).toContain('GM ran after turn 1 because topic shift.')
+    expect(first.gmRun.join(' ')).toContain(
       'Before the decision, the active avatar was Clara Whitcombe (avatar_1)',
     )
-    expect(first.gmDecisionAction.join(' ')).toContain(
+    expect(first.gmRun.join(' ')).toContain(
       'GM asked to start a new conversation with Theo (avatar_2).',
     )
-    expect(first.resultingImpact.join(' ')).toContain('Avatar unlocks: avatar_2 (Theo) [unlocked]')
-    expect(first.resultingImpact.join(' ')).toContain(
-      'GM recommendation: Theo (avatar_2) — topic depth',
-    )
-    expect(first.resultingImpact.join(' ')).toContain(
+    expect(first.gmOutput.join(' ')).toContain('Avatar unlocks: avatar_2 (Theo) [unlocked]')
+    expect(first.gmOutput.join(' ')).toContain('GM recommendation: Theo (avatar_2) — topic depth')
+    expect(first.gmOutput.join(' ')).toContain(
       'GM note added to the next avatar turn: Ask Theo for concrete implementation details next.',
     )
-    expect(first.resultingImpact.join(' ')).toContain(
+    expect(first.userVisibleOutcome.join(' ')).toContain(
       'Immediate user-facing result: turn 1 was still answered by Theo (avatar_2). GM changes apply on the next turn.',
     )
-    expect(first.resultingImpact.join(' ')).toContain('Recorded GM input: 1 message(s)')
-    expect(first.resultingImpact.join(' ')).toContain('GM working memory: GM working summary')
-    expect(first.resultingImpact.join(' ')).toContain('GM retrieval selected 1 item(s):')
-    expect(first.resultingImpact.join(' ')).toContain(
-      'Selected [world] Terrace notes (chunk_1) · access: Clara Whitcombe · score 0.4444 · token-overlap',
-    )
-    expect(first.resultingImpact.join(' ')).toContain('Recorded avatar input: 1 exchange(s)')
-    expect(first.resultingImpact.join(' ')).toContain('Avatar working memory: Theo summary')
-    expect(first.resultingImpact.join(' ')).toContain('Avatar retrieval selected 1 item(s):')
-    expect(first.resultingImpact.join(' ')).toContain(
-      'Selected [world] Footprint report (chunk_2) · access: Theo · score 0.8123 · token-overlap',
-    )
-    expect(first.resultingImpact.join(' ')).toContain(
+    expect(first.gmInput.join(' ')).toContain('GM input summary: 1 message(s)')
+    expect(first.gmInput.join(' ')).toContain('GM working memory: GM working summary')
+    expect(first.gmRetrieval).toEqual([
+      {
+        knowledgeType: 'world',
+        sourceName: 'Terrace notes',
+        chunkId: 'chunk_1',
+        access: 'Clara Whitcombe',
+        score: 0.4444,
+        matchBasis: 'keyword match',
+      },
+    ])
+    expect(first.avatarInput.join(' ')).toContain('Avatar input summary: 1 exchange(s)')
+    expect(first.avatarInput.join(' ')).toContain('Avatar working memory: Theo summary')
+    expect(first.avatarRetrieval).toEqual([
+      {
+        knowledgeType: 'world',
+        sourceName: 'Footprint report',
+        chunkId: 'chunk_2',
+        access: 'Theo',
+        score: 0.8123,
+        matchBasis: 'keyword match',
+      },
+    ])
+    expect(first.avatarInput.join(' ')).toContain(
       'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 3 retrieved references (1 memory / 2 world / 0 media), GM note included, no user persona',
     )
+    expect(first.errors).toEqual([])
     expect(first.status).toBe('applied')
   })
 

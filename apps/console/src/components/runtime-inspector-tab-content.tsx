@@ -4,6 +4,7 @@ import type { CSSProperties, JSX } from 'react'
 import type { GmSessionEventPayload, RuntimeEvent, UserPersona } from '@gami/shared'
 import type { RuntimeInspectorViewModel } from '../api'
 import { buildGmImpactTrace } from './gm-impact-trace'
+import type { RetrievalTraceItem } from './gm-impact-trace'
 import type { MemoryEvolutionSnapshot } from './memory-evolution'
 import { computeMemoryDelta } from './memory-evolution'
 import {
@@ -71,6 +72,37 @@ const buttonStyle: CSSProperties = {
   color: '#1f2937',
   fontSize: '12px',
   cursor: 'pointer',
+}
+
+const traceCardStyle: CSSProperties = {
+  border: '1px solid #d1d5db',
+  borderRadius: '8px',
+  backgroundColor: '#ffffff',
+  padding: '10px',
+  margin: '8px 0',
+}
+
+const traceSectionStyle: CSSProperties = {
+  marginTop: '10px',
+  paddingTop: '10px',
+  borderTop: '1px solid #e5e7eb',
+}
+
+const traceListStyle: CSSProperties = {
+  margin: '6px 0 0 0',
+  paddingLeft: '18px',
+  color: '#374151',
+}
+
+const traceRetrievalRowStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '90px minmax(0, 1fr) 150px 90px',
+  gap: '8px',
+  marginTop: '6px',
+  padding: '8px',
+  borderRadius: '6px',
+  backgroundColor: '#f9fafb',
+  color: '#374151',
 }
 
 export function RuntimeInspectorTabContent(props: RuntimeInspectorTabContentProps): JSX.Element {
@@ -527,13 +559,7 @@ function EventsTab({
         trace.map((entry) => (
           <div
             key={`${entry.correlationId}-${entry.createdAt}`}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              backgroundColor: '#ffffff',
-              padding: '8px',
-              margin: '8px 0',
-            }}
+            style={traceCardStyle}
           >
             <p style={{ margin: 0, fontWeight: 600 }}>
               Turn {String(entry.turnIndex ?? 0)} · interaction {String(entry.interactionCount)} ·
@@ -543,28 +569,14 @@ function EventsTab({
             <p style={{ margin: '4px 0' }}>
               <strong>Trigger/context:</strong> {entry.triggerContext}
             </p>
-            <p style={{ margin: '4px 0' }}>
-              <strong>GM decision/action:</strong>
-            </p>
-            {entry.gmDecisionAction.map((line, index) => (
-              <p
-                key={`${entry.correlationId}-decision-${String(index)}`}
-                style={{ margin: '2px 0', color: '#374151' }}
-              >
-                - {line}
-              </p>
-            ))}
-            <p style={{ margin: '4px 0' }}>
-              <strong>Resulting impact:</strong>
-            </p>
-            {entry.resultingImpact.map((line, index) => (
-              <p
-                key={`${entry.correlationId}-impact-${String(index)}`}
-                style={{ margin: '2px 0', color: '#374151' }}
-              >
-                - {line}
-              </p>
-            ))}
+            <TraceTextSection title="GM run" lines={entry.gmRun} />
+            <TraceTextSection title="GM input" lines={entry.gmInput} />
+            <TraceRetrievalSection title="GM retrieval" items={entry.gmRetrieval} />
+            <TraceTextSection title="GM outputs" lines={entry.gmOutput} />
+            <TraceTextSection title="Avatar input used for the reply" lines={entry.avatarInput} />
+            <TraceRetrievalSection title="Avatar retrieval used for the reply" items={entry.avatarRetrieval} />
+            <TraceTextSection title="User-visible effect" lines={entry.userVisibleOutcome} />
+            <TraceTextSection title="Errors" lines={entry.errors} />
           </div>
         ))
       )}
@@ -582,6 +594,66 @@ function EventsTab({
           style={{ margin: '6px 0', color: '#374151' }}
         >
           [{new Date(event.createdAt).toLocaleTimeString()}] {event.type}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function TraceTextSection({
+  title,
+  lines,
+}: {
+  title: string
+  lines: string[]
+}): JSX.Element | null {
+  if (lines.length === 0) return null
+  return (
+    <div style={traceSectionStyle}>
+      <strong>{title}</strong>
+      <ul style={traceListStyle}>
+        {lines.map((line, index) => (
+          <li key={`${title}-${String(index)}`} style={{ margin: '4px 0' }}>
+            {line}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function TraceRetrievalSection({
+  title,
+  items,
+}: {
+  title: string
+  items: RetrievalTraceItem[]
+}): JSX.Element | null {
+  if (items.length === 0) return null
+  return (
+    <div style={traceSectionStyle}>
+      <strong>{title}</strong>
+      <p style={{ margin: '6px 0 0', color: '#4b5563' }}>{String(items.length)} selected item(s)</p>
+      {items.map((item, index) => (
+        <div key={`${title}-${item.chunkId}-${String(index)}`} style={traceRetrievalRowStyle}>
+          <div>
+            <strong>{item.knowledgeType}</strong>
+          </div>
+          <div>
+            <div>{item.sourceName}</div>
+            <div style={{ color: '#6b7280', fontSize: '12px' }}>{item.chunkId}</div>
+            <div style={{ color: '#6b7280', fontSize: '12px' }}>Access: {item.access}</div>
+          </div>
+          <div>
+            <div>Match basis</div>
+            <div style={{ color: '#6b7280', fontSize: '12px' }}>{item.matchBasis}</div>
+          </div>
+          <div>
+            <div>Score</div>
+            <div style={{ color: '#6b7280', fontSize: '12px' }}>
+              {item.score !== undefined ? item.score.toFixed(4) : '-'}
+            </div>
+          </div>
         </div>
       ))}
     </div>
