@@ -369,7 +369,7 @@ describe('assemblePersonaPrompt -> section order', () => {
 })
 
 describe('assemblePersonaPrompt -> typed retrieval context', () => {
-  it('includes bounded typed retrieval snippets when provided', () => {
+  it('includes full typed retrieval content when provided', () => {
     const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
 
     const prompt = assemblePersonaPrompt(config, {

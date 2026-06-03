@@ -131,8 +131,8 @@ function buildRetrievalContext(
 function formatRetrievalSection(label: string, items: RetrievedKnowledgeItem[]): string[] {
   if (items.length === 0) return []
   const lines = [`${label}:`]
-  for (const item of items.slice(0, 2)) {
-    lines.push(`- ${compactText(item.content, 200)}`)
+  for (const item of items) {
+    lines.push(`- ${item.content.trim()}`)
   }
   return lines
 }
@@ -195,9 +195,4 @@ function hasText(value: string | undefined): value is string {
 
 function escapeForRegExp(value: string): string {
   return value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function compactText(value: string, maxLength: number): string {
-  const compact = value.trim().replaceAll(/\s+/g, ' ')
-  return compact.length <= maxLength ? compact : `${compact.slice(0, maxLength)}...`
 }
