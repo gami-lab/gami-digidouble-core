@@ -7,7 +7,9 @@ import { StartConversationUseCase } from './start-conversation.use-case.js'
 const findSessionByIdMock = vi.fn()
 const updateSessionMock = vi.fn()
 const findAvatarByIdMock = vi.fn()
+const findActiveBySessionIdMock = vi.fn()
 const createConversationMock = vi.fn()
+const updateConversationMock = vi.fn()
 const appendEventMock = vi.fn()
 
 const sessionRepository = {
@@ -30,11 +32,11 @@ const avatarRepository = {
 
 const conversationRepository = {
   findById: vi.fn(),
-  findActiveBySessionId: vi.fn(),
+  findActiveBySessionId: findActiveBySessionIdMock,
   create: createConversationMock,
   listBySessionId: vi.fn(),
   deleteBySessionId: vi.fn(),
-  update: vi.fn(),
+  update: updateConversationMock,
 }
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -79,14 +81,38 @@ beforeEach(() => {
   findSessionByIdMock.mockReset()
   updateSessionMock.mockReset()
   findAvatarByIdMock.mockReset()
+  findActiveBySessionIdMock.mockReset()
   createConversationMock.mockReset()
+  updateConversationMock.mockReset()
   appendEventMock.mockReset()
 
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession())
   findAvatarByIdMock.mockResolvedValue(makeAvatar())
+  findActiveBySessionIdMock.mockResolvedValue(null) // no prior conversation by default
   createConversationMock.mockResolvedValue(makeConversation())
+  updateConversationMock.mockResolvedValue(makeConversation())
 })
+
+function makeUseCaseWithPipeline(
+  generateForClosedConversation: ReturnType<typeof vi.fn>,
+  memoryMaintenance: { execute: ReturnType<typeof vi.fn> },
+): StartConversationUseCase {
+  const hydrate = vi.fn().mockResolvedValue({
+    hydration: { summary: '', unresolvedThreads: [], candidateFacts: [] },
+    selectedConversationIds: [],
+    consideredConversationIds: [],
+  })
+  return new StartConversationUseCase(
+    sessionRepository,
+    avatarRepository,
+    conversationRepository,
+    undefined,
+    { hydrateForNewConversationWithMetadata: hydrate, generateForClosedConversation },
+    undefined,
+    memoryMaintenance,
+  )
+}
 
 describe('StartConversationUseCase', () => {
   it('creates a conversation with the requested avatar', async () => {
@@ -163,7 +189,10 @@ describe('StartConversationUseCase', () => {
       avatarRepository,
       conversationRepository,
       conversationWorkingMemoryRepository,
-      { hydrateForNewConversationWithMetadata },
+      {
+        hydrateForNewConversationWithMetadata,
+        generateForClosedConversation: vi.fn().mockResolvedValue(undefined),
+      },
       { append: appendEventMock, findBySessionId: vi.fn() },
     )
 
@@ -180,6 +209,33 @@ describe('StartConversationUseCase', () => {
         type: 'memory_hydration_succeeded',
         sessionId: 'session_1',
       }),
+    )
+  })
+})
+
+describe('StartConversationUseCase — prior conversation close', () => {
+  it('closes the prior active conversation and runs memory pipeline before starting a new one', async () => {
+    findActiveBySessionIdMock.mockResolvedValue(
+      makeConversation({ conversationId: 'conversation_prev' }),
+    )
+    const generateForClosedConversation = vi.fn().mockResolvedValue(undefined)
+    const memoryMaintenance = { execute: vi.fn().mockResolvedValue(undefined) }
+    const useCase = makeUseCaseWithPipeline(generateForClosedConversation, memoryMaintenance)
+
+    await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' })
+
+    expect(updateConversationMock).toHaveBeenCalledWith(
+      'conversation_prev',
+      expect.objectContaining({ status: 'closed' }),
+    )
+    expect(memoryMaintenance.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ conversationId: 'conversation_prev', trigger: 'avatar_switch' }),
+    )
+    expect(generateForClosedConversation).toHaveBeenCalledWith(
+      expect.objectContaining({ conversationId: 'conversation_prev' }),
+    )
+    expect(createConversationMock).toHaveBeenCalledWith(
+      expect.objectContaining({ avatarId: 'avatar_1' }),
     )
   })
 })

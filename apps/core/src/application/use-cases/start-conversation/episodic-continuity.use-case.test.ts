@@ -59,6 +59,7 @@ beforeEach(() => {
   findAvatarByIdMock.mockReset()
   createConversationMock.mockReset()
   appendEventMock.mockReset()
+  conversationRepository.findActiveBySessionId.mockResolvedValue(null)
 
   findSessionByIdMock.mockResolvedValue({
     sessionId: 'session_2',

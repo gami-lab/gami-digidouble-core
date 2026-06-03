@@ -99,6 +99,7 @@ export function createSessionRouteUseCases(deps: {
       deps.conversationWorkingMemoryRepository,
       episodicMemoryService,
       deps.eventLogRepository,
+      memoryMaintenance,
     ),
     listSessionConversationsUseCase: new ListSessionConversationsUseCase(
       deps.sessionRepository,
