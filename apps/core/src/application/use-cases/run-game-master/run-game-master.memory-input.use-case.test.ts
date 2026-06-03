@@ -193,7 +193,7 @@ describe('RunGameMasterUseCase memory input', () => {
       summary: 'Session working summary',
       unresolvedThreads: ['Follow up on budget'],
       candidateFacts: [],
-      updatedAt: '2026-04-18T10:00:06.000Z',
+      updatedAt: '2026-04-18T10:00:00.500Z', // after U0/A0 → U1–A3 are uncovered (3 exchanges)
     })
     listConversationMemoriesByScopeMock.mockResolvedValue([])
     findFactsByUserIdMock.mockResolvedValue([
