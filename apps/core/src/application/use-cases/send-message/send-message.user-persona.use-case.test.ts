@@ -429,6 +429,8 @@ describe('SendMessageUseCase — context selection observability', () => {
           hasUserPersona: boolean
           hasGmDirective: boolean
         }
+        retrievalLatencyMs?: number
+        otherOverheadMs?: number
       }
     }
     expect(event.payload.contextSelection).toEqual({
@@ -445,5 +447,7 @@ describe('SendMessageUseCase — context selection observability', () => {
       hasUserPersona: true,
       hasGmDirective: false,
     })
+    expect(event.payload.retrievalLatencyMs).toBeTypeOf('number')
+    expect(event.payload.otherOverheadMs).toBeTypeOf('number')
   })
 })

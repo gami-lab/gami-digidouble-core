@@ -1,5 +1,6 @@
 import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
+import type { GmUnlockEvaluation } from '@gami/shared'
 import type { GameMasterStateSummary } from '../../../domain/game-master/game-master.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type {
@@ -88,6 +89,7 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
   }
   const decision = readDecision(payload['decision'])
   const stateAfter = readOptionalStateSummary(payload['stateAfter'])
+  const totalLatencyMs = readOptionalNumber(payload['totalLatencyMs'])
   const inputTokens = readOptionalNumber(payload['inputTokens'])
   const outputTokens = readOptionalNumber(payload['outputTokens'])
   const errorCode = readOptionalString(payload['errorCode'])
@@ -96,6 +98,7 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
     ...safePayload,
     ...(decision !== undefined ? { decision } : {}),
     ...(stateAfter !== undefined ? { stateAfter } : {}),
+    ...(totalLatencyMs !== undefined ? { totalLatencyMs } : {}),
     ...(inputTokens !== undefined ? { inputTokens } : {}),
     ...(outputTokens !== undefined ? { outputTokens } : {}),
     ...(errorCode !== undefined ? { errorCode } : {}),
@@ -150,6 +153,8 @@ function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompl
     totalTokens: readNumber(payload['totalTokens']),
     model: readString(payload['model']),
     hasGm: readBoolean(payload['hasGm']),
+    ...readOptionalNumberField(payload, 'retrievalLatencyMs'),
+    ...readOptionalNumberField(payload, 'otherOverheadMs'),
     ...(contextSelection !== undefined ? { contextSelection } : {}),
     ...readOptionalStringField(payload, 'correlationId'),
   }
@@ -224,17 +229,48 @@ function readOptionalStateSummary(value: unknown): GameMasterStateSummary | unde
 function readDecision(value: unknown): GmSessionEventPayload['decision'] | undefined {
   if (!isRecord(value)) return undefined
   const conversationMode = value['conversationMode']
+  const unlockEvaluations = readOptionalUnlockEvaluations(value['unlockEvaluations'])
   return {
     avatarId: typeof value['avatarId'] === 'string' ? value['avatarId'] : '',
     conversationMode:
       conversationMode === 'new' || conversationMode === 'continue' ? conversationMode : 'continue',
     notesInjected: value['notesInjected'] === true,
     directiveCount: readNumber(value['directiveCount']),
+    ...(unlockEvaluations !== undefined ? { unlockEvaluations } : {}),
     ...readOptionalStringField(value, 'suggestedAvatarId'),
     ...readOptionalStringField(value, 'suggestedAvatarReason'),
     ...readOptionalStringField(value, 'switchedAvatarId'),
     ...readOptionalStringArrayField(value, 'unlockedAvatarIds'),
   }
+}
+
+function readOptionalUnlockEvaluations(value: unknown): GmUnlockEvaluation[] | undefined {
+  if (!Array.isArray(value)) return undefined
+
+  const unlockEvaluations = value
+    .map((entry) => {
+      if (!isRecord(entry)) return null
+      const avatarId = readOptionalString(entry['avatarId'])
+      const avatarName = readOptionalString(entry['avatarName'])
+      if (avatarId === undefined || avatarName === undefined) return null
+      const outcome = entry['outcome']
+      if (
+        outcome !== 'unlocked' &&
+        outcome !== 'already_unlocked' &&
+        outcome !== 'rejected_not_mentioned'
+      ) {
+        return null
+      }
+      return {
+        avatarId,
+        avatarName,
+        ...(typeof entry['reason'] === 'string' ? { reason: entry['reason'] } : {}),
+        outcome,
+      }
+    })
+    .filter((entry): entry is GmUnlockEvaluation => entry !== null)
+
+  return unlockEvaluations.length > 0 ? unlockEvaluations : undefined
 }
 
 function readStringArray(value: unknown): string[] {
@@ -290,6 +326,14 @@ function readOptionalStringArrayField(
 ): { unlockedAvatarIds?: string[] } {
   const field = readStringArray(value[key])
   return field.length > 0 ? { unlockedAvatarIds: field } : {}
+}
+
+function readOptionalNumberField<T extends 'retrievalLatencyMs' | 'otherOverheadMs'>(
+  value: Record<string, unknown>,
+  key: T,
+): Partial<Record<T, number>> {
+  const field = readOptionalNumber(value[key])
+  return field !== undefined ? ({ [key]: field } as Partial<Record<T, number>>) : {}
 }
 
 function readNumber(value: unknown): number {

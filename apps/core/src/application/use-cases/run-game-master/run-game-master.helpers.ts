@@ -55,6 +55,7 @@ function parseOptionalOutputFields(value: Record<string, unknown>): {
   recommendedChoices?: Array<{ id: string; label: string }>
   context?: { notes: string }
   unlockAvatarIds?: string[]
+  unlockDecisions?: Array<{ avatarId: string; reason: string }>
   suggestedAvatarId?: string
   suggestedAvatarReason?: string
 } {
@@ -64,6 +65,7 @@ function parseOptionalOutputFields(value: Record<string, unknown>): {
     ...parseOptionalRecommendedChoices(value),
     ...parseOptionalContext(value),
     ...parseOptionalUnlockAvatarIds(value),
+    ...parseOptionalUnlockDecisions(value),
     ...parseOptionalTextField(value, 'suggestedAvatarId'),
     ...parseOptionalTextField(value, 'suggestedAvatarReason'),
   }
@@ -103,6 +105,23 @@ function parseOptionalUnlockAvatarIds(value: Record<string, unknown>): {
   return {
     unlockAvatarIds: value['unlockAvatarIds'].filter(hasText).map((avatarId) => avatarId.trim()),
   }
+}
+
+function parseOptionalUnlockDecisions(value: Record<string, unknown>): {
+  unlockDecisions?: Array<{ avatarId: string; reason: string }>
+} {
+  if (!Array.isArray(value['unlockDecisions'])) return {}
+  const unlockDecisions = value['unlockDecisions']
+    .map((entry) => {
+      if (!isRecord(entry) || !hasText(entry['avatarId']) || !hasText(entry['reason'])) return null
+      return {
+        avatarId: entry['avatarId'].trim(),
+        reason: entry['reason'].trim(),
+      }
+    })
+    .filter((entry): entry is { avatarId: string; reason: string } => entry !== null)
+
+  return unlockDecisions.length > 0 ? { unlockDecisions } : {}
 }
 
 function toStateUpdate(value: unknown): GameMasterOutput['stateUpdate'] | null {

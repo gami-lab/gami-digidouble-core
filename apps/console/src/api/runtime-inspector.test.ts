@@ -186,6 +186,7 @@ function arrangeSession1(): void {
       {
         turnIndex: 1,
         correlationId: 'corr_1',
+        conversationId: 'conversation_1',
         avatarLatencyMs: 100,
         totalTurnLatencyMs: 120,
         overheadMs: 20,

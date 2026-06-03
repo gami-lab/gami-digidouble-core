@@ -12,9 +12,11 @@ function makeTurns(): TurnMetrics[] {
     {
       turnIndex: 1,
       correlationId: 'corr_1',
+      conversationId: 'conversation_1',
       avatarLatencyMs: 120,
       totalTurnLatencyMs: 170,
       overheadMs: 20,
+      retrievalLatencyMs: 30,
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
@@ -27,6 +29,7 @@ function makeTurns(): TurnMetrics[] {
     {
       turnIndex: 2,
       correlationId: 'corr_2',
+      conversationId: 'conversation_2',
       avatarLatencyMs: 90,
       totalTurnLatencyMs: 100,
       overheadMs: 10,
@@ -67,7 +70,7 @@ describe('turn-profiler', () => {
 
     expect(rows).toHaveLength(2)
     expect(rows[0]?.conversationId).toBe('conversation_1')
-    expect(rows[1]?.conversationId).toBeNull()
+    expect(rows[1]?.conversationId).toBe('conversation_2')
   })
 
   it('filters gm turns and sorts by slowest or latest', () => {
@@ -97,7 +100,9 @@ describe('turn-profiler', () => {
     expect(first).toBeDefined()
     expect(second).toBeDefined()
     if (!first || !second) return
+    expect(describeTurnLatency(first)).toContain('rag 30ms')
     expect(describeTurnLatency(first)).toContain('gm 30ms')
+    expect(describeTurnLatency(second)).toContain('rag -')
     expect(describeTurnLatency(second)).toContain('gm -')
     expect(describeTurnTokens(first)).toContain('gm in 5 / out 7')
     expect(describeTurnTokens(second)).toContain('tokens 20 (in 9 / out 11)')

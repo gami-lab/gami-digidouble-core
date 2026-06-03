@@ -79,7 +79,17 @@ function toTraceEntry(
       impacts.push(`Avatar switched: ${decision.switchedAvatarId}`)
     }
 
-    if (decision.unlockedAvatarIds && decision.unlockedAvatarIds.length > 0) {
+    if (decision.unlockEvaluations && decision.unlockEvaluations.length > 0) {
+      impacts.push(
+        `Avatar unlocks: ${decision.unlockEvaluations
+          .map((unlock) => {
+            const detail = `${unlock.avatarId} (${unlock.avatarName})`
+            const reason = unlock.reason ? ` — ${unlock.reason}` : ''
+            return `${detail} [${unlock.outcome}]${reason}`
+          })
+          .join(', ')}`,
+      )
+    } else if (decision.unlockedAvatarIds && decision.unlockedAvatarIds.length > 0) {
       impacts.push(`Avatar unlocks: ${decision.unlockedAvatarIds.join(', ')}`)
     }
 

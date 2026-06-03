@@ -14,6 +14,7 @@ function createUseCase(events: StoredEvent[]): GetTurnMetricsUseCase {
 
 function makeTurnCompletedEvent(params: {
   correlationId: string
+  conversationId?: string
   turnIndex: number
   avatarLatencyMs: number
   totalTurnLatencyMs: number
@@ -21,6 +22,8 @@ function makeTurnCompletedEvent(params: {
   outputTokens: number
   totalTokens: number
   model?: string
+  retrievalLatencyMs?: number
+  otherOverheadMs?: number
 }): StoredEvent {
   return {
     sessionId: 'session_1',
@@ -28,7 +31,7 @@ function makeTurnCompletedEvent(params: {
     severity: 'info',
     correlationId: params.correlationId,
     payload: {
-      conversationId: 'conversation_1',
+      conversationId: params.conversationId ?? 'conversation_1',
       turnIndex: params.turnIndex,
       avatarId: 'avatar_1',
       avatarLatencyMs: params.avatarLatencyMs,
@@ -38,6 +41,10 @@ function makeTurnCompletedEvent(params: {
       totalTokens: params.totalTokens,
       model: params.model ?? 'model-x',
       hasGm: true,
+      ...(params.retrievalLatencyMs !== undefined
+        ? { retrievalLatencyMs: params.retrievalLatencyMs }
+        : {}),
+      ...(params.otherOverheadMs !== undefined ? { otherOverheadMs: params.otherOverheadMs } : {}),
     },
     createdAt: '2026-04-30T10:00:00.000Z',
   }
@@ -110,6 +117,7 @@ describe('GetTurnMetricsUseCase — empty and single turn', () => {
       {
         turnIndex: 1,
         correlationId: 'corr_1',
+        conversationId: 'conversation_1',
         avatarLatencyMs: 120,
         totalTurnLatencyMs: 180,
         overheadMs: 60,
@@ -146,6 +154,7 @@ describe('GetTurnMetricsUseCase — empty and single turn', () => {
     expect(report.turns[0]).toEqual({
       turnIndex: 1,
       correlationId: 'corr_1',
+      conversationId: 'conversation_1',
       avatarLatencyMs: 100,
       totalTurnLatencyMs: 160,
       overheadMs: 60,
@@ -216,6 +225,39 @@ describe('GetTurnMetricsUseCase — mixed turns and summaries', () => {
       avgInputTokens: 20,
       avgOutputTokens: 40,
       avgGmLatencyMs: 70,
+    })
+  })
+
+  it('uses explicit retrieval timing to separate RAG from other overhead', async () => {
+    const useCase = createUseCase([
+      makeTurnCompletedEvent({
+        correlationId: 'corr_1',
+        turnIndex: 1,
+        avatarLatencyMs: 100,
+        totalTurnLatencyMs: 170,
+        inputTokens: 10,
+        outputTokens: 20,
+        totalTokens: 30,
+        retrievalLatencyMs: 25,
+        otherOverheadMs: 45,
+      }),
+    ])
+
+    const report = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(report.turns[0]).toEqual({
+      turnIndex: 1,
+      correlationId: 'corr_1',
+      conversationId: 'conversation_1',
+      avatarLatencyMs: 100,
+      totalTurnLatencyMs: 170,
+      overheadMs: 45,
+      retrievalLatencyMs: 25,
+      inputTokens: 10,
+      outputTokens: 20,
+      totalTokens: 30,
+      model: 'model-x',
+      hasGm: false,
     })
   })
 })

@@ -7,6 +7,8 @@ export function buildGameMasterSystemPrompt(): string {
       transitionReason: '<optional string — short reason for switching to nextAvatarId>',
       unlockAvatarIds:
         '<optional string[] — active locked avatar IDs that should become available now>',
+      unlockDecisions:
+        '<optional array of { avatarId, reason } explaining why each unlock should happen now>',
       suggestedAvatarId:
         '<optional string — avatar the actor may suggest next without forcing a switch>',
       suggestedAvatarReason: '<optional string — safe short reason for the suggestion>',
@@ -34,6 +36,7 @@ export function buildGameMasterSystemPrompt(): string {
     '- context.notes must be one sentence maximum.',
     '- avatarId must be one of the avatarIds listed in availableAvatars in the input.',
     '- unlockAvatarIds may include only locked avatarIds listed in availableAvatars.',
+    '- When you unlock an avatar, also include unlockDecisions with one short safe reason per unlocked avatar.',
     '- Unlock only avatars explicitly mentioned in recentMessages (by name or avatarId) when the discussion shows that specialist is now relevant.',
     '- suggestedAvatarReason must be safe, short, and must not quote user content.',
     '- Set nextAvatarId only when conversationMode is "new" and a new conversation should be opened.',

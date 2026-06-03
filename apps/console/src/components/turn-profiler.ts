@@ -11,10 +11,11 @@ export type TurnProfilerFilter = {
 export type TurnProfilerRow = {
   turnIndex: number
   correlationId: string
-  conversationId: string | null
+  conversationId: string
   totalLatencyMs: number
   avatarLatencyMs: number
   gmLatencyMs: number | null
+  retrievalLatencyMs: number | null
   overheadLatencyMs: number
   totalTokens: number
   inputTokens: number
@@ -31,21 +32,16 @@ export function buildTurnProfilerRows(
   turns: TurnMetrics[],
   recentEvents: SessionEventRecord[],
 ): TurnProfilerRow[] {
-  const conversationByCorrelation = new Map<string, string>()
-
-  for (const event of recentEvents) {
-    if (event.type !== 'turn_completed') continue
-    if (!('conversationId' in event.payload)) continue
-    conversationByCorrelation.set(event.correlationId, event.payload.conversationId)
-  }
+  void recentEvents
 
   return turns.map((turn) => ({
     turnIndex: turn.turnIndex,
     correlationId: turn.correlationId,
-    conversationId: conversationByCorrelation.get(turn.correlationId) ?? null,
+    conversationId: turn.conversationId,
     totalLatencyMs: turn.totalTurnLatencyMs,
     avatarLatencyMs: turn.avatarLatencyMs,
     gmLatencyMs: turn.gmLatencyMs ?? null,
+    retrievalLatencyMs: turn.retrievalLatencyMs ?? null,
     overheadLatencyMs: turn.overheadMs,
     totalTokens: turn.totalTokens,
     inputTokens: turn.inputTokens,
@@ -67,7 +63,7 @@ export function applyTurnProfilerFilter(
 }
 
 export function describeTurnLatency(row: TurnProfilerRow): string {
-  return `total ${String(row.totalLatencyMs)}ms · avatar ${String(row.avatarLatencyMs)}ms · gm ${row.gmLatencyMs !== null ? `${String(row.gmLatencyMs)}ms` : '-'} · overhead ${String(row.overheadLatencyMs)}ms`
+  return `total ${String(row.totalLatencyMs)}ms · rag ${row.retrievalLatencyMs !== null ? `${String(row.retrievalLatencyMs)}ms` : '-'} · llm ${String(row.avatarLatencyMs)}ms · gm ${row.gmLatencyMs !== null ? `${String(row.gmLatencyMs)}ms` : '-'} · overhead ${String(row.overheadLatencyMs)}ms`
 }
 
 export function describeTurnTokens(row: TurnProfilerRow): string {

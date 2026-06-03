@@ -41,19 +41,25 @@ export function normalizeGameMasterOutput(
     activeAvatars,
   )
 
-  const unlockAvatarIds =
+  const unlockAvatarIdsFromList =
     output.unlockAvatarIds !== undefined
       ? output.unlockAvatarIds
           .map((candidate) => resolveAvatarReference(candidate, activeAvatars))
           .filter((candidate): candidate is string => candidate !== undefined)
-      : undefined
+      : []
+  const unlockDecisions = normalizeUnlockDecisions(output.unlockDecisions, activeAvatars)
+  const unlockAvatarIds = dedupeStringList([
+    ...unlockAvatarIdsFromList,
+    ...unlockDecisions.map((decision) => decision.avatarId),
+  ])
 
   return {
     ...output,
     avatarId,
     ...(nextAvatarId !== undefined ? { nextAvatarId } : {}),
     ...(suggestedAvatarId !== undefined ? { suggestedAvatarId } : {}),
-    ...(unlockAvatarIds !== undefined ? { unlockAvatarIds } : {}),
+    ...(unlockAvatarIds.length > 0 ? { unlockAvatarIds } : {}),
+    ...(unlockDecisions.length > 0 ? { unlockDecisions } : {}),
     stateUpdate: {
       ...output.stateUpdate,
       ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
@@ -86,4 +92,23 @@ function resolveAvatarReference(value: string, avatars: AvatarConfig[]): string 
   const lowered = trimmed.toLowerCase()
   const byName = avatars.find((avatar) => avatar.name.trim().toLowerCase() === lowered)
   return byName?.avatarId
+}
+
+function normalizeUnlockDecisions(
+  decisions: GameMasterOutput['unlockDecisions'],
+  avatars: AvatarConfig[],
+): Array<{ avatarId: string; reason: string }> {
+  if (decisions === undefined) return []
+
+  return decisions.reduce<Array<{ avatarId: string; reason: string }>>((normalized, decision) => {
+    const avatarId = resolveAvatarReference(decision.avatarId, avatars)
+    if (avatarId === undefined) return normalized
+    if (normalized.some((entry) => entry.avatarId === avatarId)) return normalized
+    normalized.push({ avatarId, reason: decision.reason })
+    return normalized
+  }, [])
+}
+
+function dedupeStringList(values: string[]): string[] {
+  return [...new Set(values)]
 }

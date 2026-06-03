@@ -35,6 +35,16 @@ const tabOrder: InspectorTab[] = [
   'actions',
 ]
 
+const tabLabels: Record<InspectorTab, string> = {
+  overview: 'Overview',
+  memory: 'Memory',
+  context: 'Context assembly',
+  events: 'GM trace',
+  metrics: 'Turn profiler',
+  persona: 'Persona',
+  actions: 'Actions',
+}
+
 const panelStyle: CSSProperties = {
   border: '1px solid #d1d5db',
   borderRadius: '10px',
@@ -128,13 +138,13 @@ export function RuntimeInspector({
                 setActiveTab(tab)
               }}
             >
-              {tab}
+              {tabLabels[tab]}
             </button>
           ))}
         </div>
       ) : (
         <p style={{ marginTop: '12px', marginBottom: 0, color: '#4b5563' }}>
-          Section focus: <strong>{activeTab}</strong>
+          Section focus: <strong>{tabLabels[activeTab]}</strong>
         </p>
       )}
       {error !== null ? <p style={{ color: '#b91c1c' }}>{error}</p> : null}

@@ -201,6 +201,10 @@ export type GameMasterOutput = {
   }>
   contentTrigger?: string
   unlockAvatarIds?: string[]
+  unlockDecisions?: Array<{
+    avatarId: string
+    reason: string
+  }>
   suggestedAvatarId?: string
   suggestedAvatarReason?: string
 

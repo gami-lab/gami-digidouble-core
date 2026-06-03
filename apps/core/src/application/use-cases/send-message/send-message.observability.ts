@@ -12,6 +12,8 @@ export function emitTurnCompletedEventNonBlocking(args: {
   outputTokens: number
   model: string
   hasGm: boolean
+  retrievalLatencyMs: number
+  otherOverheadMs: number
   contextSelection: {
     shortTermExchangeCount: number
     hasWorkingMemory: boolean
@@ -52,6 +54,8 @@ export function emitTurnCompletedEventNonBlocking(args: {
     totalTokens: args.inputTokens + args.outputTokens,
     model: args.model,
     hasGm: args.hasGm,
+    retrievalLatencyMs: args.retrievalLatencyMs,
+    otherOverheadMs: args.otherOverheadMs,
     contextSelection: args.contextSelection,
   } as const
 

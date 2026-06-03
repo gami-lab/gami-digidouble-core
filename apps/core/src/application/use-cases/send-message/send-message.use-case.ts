@@ -104,7 +104,7 @@ export class SendMessageUseCase {
     await this.awaitPendingWorkingMemoryRefresh(conversation.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
-    const { systemPrompt, userPersona, selectedMemory, assembledContext } =
+    const { systemPrompt, userPersona, selectedMemory, assembledContext, retrievalLatencyMs } =
       await this.buildTurnPromptContext({
         session,
         conversation,
@@ -171,6 +171,7 @@ export class SendMessageUseCase {
     })
 
     const latencyMs = Date.now() - start
+    const otherOverheadMs = Math.max(0, latencyMs - response.latencyMs - retrievalLatencyMs)
     emitTurnCompletedEventNonBlocking({
       requestId,
       sessionId: session.sessionId,
@@ -183,6 +184,8 @@ export class SendMessageUseCase {
       outputTokens: response.outputTokens,
       model: response.model,
       hasGm: this.runGameMasterUseCase !== null,
+      retrievalLatencyMs,
+      otherOverheadMs,
       contextSelection: toContextSelectionMetadata(assembledContext),
       eventLogRepository: this.eventLogRepository,
     })
@@ -228,6 +231,7 @@ export class SendMessageUseCase {
     userPersona: UserPersona | undefined
     selectedMemory?: SelectedMemoryPayload
     assembledContext: ContextEngineOutput
+    retrievalLatencyMs: number
   }> {
     const scenario = await this.loadScenario(args.session.scenarioId)
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(args.session.scenarioId)
@@ -243,6 +247,7 @@ export class SendMessageUseCase {
       selectedMemory !== undefined
         ? this.getMemorySelectionService().toAvatarMemorySnapshot(selectedMemory)
         : undefined
+    const retrievalStartMs = Date.now()
     const retrieval = await this.loadTypedRetrieval(
       args.session,
       args.conversation.conversationId,
@@ -254,6 +259,7 @@ export class SendMessageUseCase {
       undefined,
       true,
     )
+    const retrievalLatencyMs = Date.now() - retrievalStartMs
     const assembledContext = this.contextAssembler.assemble({
       sessionId: args.session.sessionId,
       activeAvatarId: args.conversation.avatarId,
@@ -298,6 +304,7 @@ export class SendMessageUseCase {
       systemPrompt,
       userPersona,
       assembledContext,
+      retrievalLatencyMs,
       ...(selectedMemory !== undefined ? { selectedMemory } : {}),
     }
   }

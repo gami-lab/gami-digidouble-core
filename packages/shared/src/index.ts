@@ -79,6 +79,7 @@ export type {
   UpsertUserPersonaResponse,
   GmStateSummary,
   AdminSessionInspectResponse,
+  GmUnlockEvaluation,
   GmSessionEventPayload,
   MemoryRefreshEventPayload,
   TurnCompletedEventPayload,

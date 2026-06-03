@@ -114,6 +114,14 @@ function makeViewModel(): RuntimeInspectorViewModel {
             notesInjected: true,
             directiveCount: 1,
             unlockedAvatarIds: ['avatar_2'],
+            unlockEvaluations: [
+              {
+                avatarId: 'avatar_2',
+                avatarName: 'Theo',
+                reason: 'topic depth',
+                outcome: 'unlocked',
+              },
+            ],
             suggestedAvatarId: 'avatar_2',
             suggestedAvatarReason: 'topic depth',
             switchedAvatarId: 'avatar_2',
@@ -169,7 +177,7 @@ describe('buildGmImpactTrace', () => {
     expect(first.turnIndex).toBe(1)
     expect(first.timelinePosition).toBe('1/1')
     expect(first.gmDecisionAction.join(' ')).toContain('Decision: avatar avatar_2')
-    expect(first.resultingImpact.join(' ')).toContain('Avatar unlocks: avatar_2')
+    expect(first.resultingImpact.join(' ')).toContain('Avatar unlocks: avatar_2 (Theo) [unlocked]')
     expect(first.resultingImpact.join(' ')).toContain('Routing suggestion: avatar_2')
     expect(first.resultingImpact.join(' ')).toContain('GM notes/directives injected into context')
     expect(first.resultingImpact.join(' ')).toContain('User-flow impact: completed turn 1')

@@ -34,7 +34,7 @@ import {
   normalizeGameMasterOutput,
   toRecentExchangeMessages,
 } from './run-game-master.normalization.js'
-import { resolveAvatarUnlocks } from './run-game-master.avatar-unlocks.js'
+import { type UnlockEvaluation, resolveAvatarUnlocks } from './run-game-master.avatar-unlocks.js'
 import { resolveAssembledGmContext } from './run-game-master.context-engine.js'
 import {
   emitGameMasterError,
@@ -172,14 +172,14 @@ export class RunGameMasterUseCase {
       scenarioAvatars,
       normalizedOutput,
     )
-    const unlockedAvatarIds = await this.applyAvatarUnlocks(
+    const unlockResult = await this.applyAvatarUnlocks(
       input,
       session,
       scenarioAvatars,
       normalizedOutput,
       gmInput.recentMessages,
     )
-    this.publishDecisionRuntimeEvents(input, normalizedOutput, unlockedAvatarIds)
+    this.publishDecisionRuntimeEvents(input, normalizedOutput, unlockResult.newlyUnlockedAvatarIds)
 
     const reconciledState: GameMasterState =
       routingResult.switchedAvatarId !== undefined
@@ -193,7 +193,8 @@ export class RunGameMasterUseCase {
       currentState,
       reconciledState,
       output: normalizedOutput,
-      unlockedAvatarIds,
+      unlockedAvatarIds: unlockResult.newlyUnlockedAvatarIds,
+      unlockEvaluations: unlockResult.evaluations,
       ...(routingResult.switchedAvatarId !== undefined
         ? { switchedAvatarId: routingResult.switchedAvatarId }
         : {}),
@@ -507,14 +508,24 @@ export class RunGameMasterUseCase {
     scenarioAvatars: AvatarConfig[],
     output: GameMasterOutput,
     recentMessages: GameMasterInput['recentMessages'],
-  ): Promise<string[]> {
+  ): Promise<{ newlyUnlockedAvatarIds: string[]; evaluations: UnlockEvaluation[] }> {
     const unlocks = resolveAvatarUnlocks(session, scenarioAvatars, output, recentMessages)
-    if (unlocks === null) return []
+    if (unlocks === null) {
+      return {
+        newlyUnlockedAvatarIds: [],
+        evaluations: [],
+      }
+    }
 
-    await this.sessionRepository.update(input.sessionId, {
-      unlockedAvatarIds: unlocks.nextUnlockedAvatarIds,
-    })
-    return unlocks.newlyUnlockedAvatarIds
+    if (unlocks.newlyUnlockedAvatarIds.length > 0) {
+      await this.sessionRepository.update(input.sessionId, {
+        unlockedAvatarIds: unlocks.nextUnlockedAvatarIds,
+      })
+    }
+    return {
+      newlyUnlockedAvatarIds: unlocks.newlyUnlockedAvatarIds,
+      evaluations: unlocks.evaluations,
+    }
   }
 
   private async loadScenarioContext(scenarioId: string): Promise<ScenarioContext> {

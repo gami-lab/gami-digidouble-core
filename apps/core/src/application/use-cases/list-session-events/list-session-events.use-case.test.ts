@@ -37,6 +37,14 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
         conversationMode: 'new',
         notesInjected: true,
         directiveCount: 1,
+        unlockEvaluations: [
+          {
+            avatarId: 'avatar_2',
+            avatarName: 'Theo',
+            reason: 'Technical specialist requested.',
+            outcome: 'unlocked',
+          },
+        ],
       },
       stateAfter: {
         currentAvatarId: 'avatar_2',
@@ -44,6 +52,7 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
         topicsCovered: ['setup', 'handoff'],
       },
       latencyMs: 12,
+      totalLatencyMs: 18,
       inputTokens: 20,
       outputTokens: 30,
       userMessageText: 'secret user input',
@@ -169,6 +178,14 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
           conversationMode: 'new',
           notesInjected: true,
           directiveCount: 1,
+          unlockEvaluations: [
+            {
+              avatarId: 'avatar_2',
+              avatarName: 'Theo',
+              reason: 'Technical specialist requested.',
+              outcome: 'unlocked',
+            },
+          ],
         },
         stateAfter: {
           currentAvatarId: 'avatar_2',
@@ -176,6 +193,7 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
           topicsCovered: ['setup', 'handoff'],
         },
         latencyMs: 12,
+        totalLatencyMs: 18,
         inputTokens: 20,
         outputTokens: 30,
       },
@@ -228,6 +246,8 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
             totalTokens: 34,
             model: 'null-model',
             hasGm: false,
+            retrievalLatencyMs: 14,
+            otherOverheadMs: 6,
           },
         }),
       ],
@@ -251,6 +271,8 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
           totalTokens: 34,
           model: 'null-model',
           hasGm: false,
+          retrievalLatencyMs: 14,
+          otherOverheadMs: 6,
         },
       },
     ])

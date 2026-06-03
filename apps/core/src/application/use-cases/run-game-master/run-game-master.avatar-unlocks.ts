@@ -5,6 +5,13 @@ import type {
   GameMasterOutput,
 } from '../../../domain/game-master/game-master.types.js'
 
+export type UnlockEvaluation = {
+  avatarId: string
+  avatarName: string
+  reason?: string
+  outcome: 'unlocked' | 'already_unlocked' | 'rejected_not_mentioned'
+}
+
 export function toGameMasterAvailableAvatars(
   avatars: AvatarConfig[],
   session: Session | null,
@@ -19,7 +26,11 @@ export function resolveAvatarUnlocks(
   avatars: AvatarConfig[],
   output: GameMasterOutput,
   recentMessages: GameMasterInput['recentMessages'] = [],
-): { nextUnlockedAvatarIds: string[]; newlyUnlockedAvatarIds: string[] } | null {
+): {
+  nextUnlockedAvatarIds: string[]
+  newlyUnlockedAvatarIds: string[]
+  evaluations: UnlockEvaluation[]
+} | null {
   if (session?.unlockedAvatarIds === undefined || output.unlockAvatarIds === undefined) {
     return null
   }
@@ -27,24 +38,62 @@ export function resolveAvatarUnlocks(
   const activeAvatarIds = new Set(
     avatars.filter((avatar) => avatar.status === 'active').map((avatar) => avatar.avatarId),
   )
+  const activeAvatarNameById = new Map(
+    avatars
+      .filter((avatar) => avatar.status === 'active')
+      .map((avatar) => [avatar.avatarId, avatar.name] as const),
+  )
   const knownUnlockedIds = new Set(session.unlockedAvatarIds)
   const mentionedLockedAvatarIds = resolveMentionedLockedAvatarIds(session, avatars, recentMessages)
-  const newlyUnlockedAvatarIds = [
-    ...new Set(
-      output.unlockAvatarIds.filter(
-        (avatarId) =>
-          activeAvatarIds.has(avatarId) &&
-          !knownUnlockedIds.has(avatarId) &&
-          mentionedLockedAvatarIds.has(avatarId),
-      ),
-    ),
-  ]
+  const unlockReasonById = new Map(
+    (output.unlockDecisions ?? []).map((decision) => [decision.avatarId, decision.reason] as const),
+  )
+  const evaluations = [...new Set(output.unlockAvatarIds)].reduce<UnlockEvaluation[]>(
+    (result, avatarId) => {
+      if (!activeAvatarIds.has(avatarId)) return result
+      const avatarName = activeAvatarNameById.get(avatarId) ?? avatarId
+      const reason = unlockReasonById.get(avatarId)
 
-  if (newlyUnlockedAvatarIds.length === 0) return null
+      if (knownUnlockedIds.has(avatarId)) {
+        result.push({
+          avatarId,
+          avatarName,
+          ...(reason !== undefined ? { reason } : {}),
+          outcome: 'already_unlocked',
+        })
+        return result
+      }
+
+      if (!mentionedLockedAvatarIds.has(avatarId)) {
+        result.push({
+          avatarId,
+          avatarName,
+          ...(reason !== undefined ? { reason } : {}),
+          outcome: 'rejected_not_mentioned',
+        })
+        return result
+      }
+
+      result.push({
+        avatarId,
+        avatarName,
+        ...(reason !== undefined ? { reason } : {}),
+        outcome: 'unlocked',
+      })
+      return result
+    },
+    [],
+  )
+  const newlyUnlockedAvatarIds = evaluations
+    .filter((evaluation) => evaluation.outcome === 'unlocked')
+    .map((evaluation) => evaluation.avatarId)
+
+  if (evaluations.length === 0) return null
 
   return {
     nextUnlockedAvatarIds: [...session.unlockedAvatarIds, ...newlyUnlockedAvatarIds],
     newlyUnlockedAvatarIds,
+    evaluations,
   }
 }
 

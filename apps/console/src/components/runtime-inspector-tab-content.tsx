@@ -1,6 +1,7 @@
+/* eslint-disable max-lines */
 import { useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
-import type { RuntimeEvent, UserPersona } from '@gami/shared'
+import type { GmSessionEventPayload, RuntimeEvent, UserPersona } from '@gami/shared'
 import type { RuntimeInspectorViewModel } from '../api'
 import { buildGmImpactTrace } from './gm-impact-trace'
 import type { MemoryEvolutionSnapshot } from './memory-evolution'
@@ -107,13 +108,17 @@ export function RuntimeInspectorTabContent(props: RuntimeInspectorTabContentProp
 }
 
 function OverviewTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
+  const latestGmDecision = findLatestGmDecision(snapshot.recentEvents)
+
   return (
     <div style={{ marginTop: '12px' }}>
       <Row label="Session">{snapshot.session.sessionId}</Row>
       <Row label="Runtime processing">{String(snapshot.runtimeState.isProcessing)}</Row>
       <Row label="Can send message">{String(snapshot.runtimeState.canSendMessage)}</Row>
       <Row label="GM progression">{snapshot.gm.gmState?.progression ?? '-'}</Row>
-      <Row label="Unlocked avatars">{snapshot.gm.unlockedAvatarIds.join(', ') || 'none'}</Row>
+      <Row label="Unlocked avatars">{formatUnlockedAvatars(snapshot)}</Row>
+      <Row label="GM recommendation">{formatSuggestedAvatar(snapshot, latestGmDecision)}</Row>
+      <Row label="GM next-turn note">{snapshot.gm.gmNotes ?? '-'}</Row>
       <strong style={{ display: 'block', marginTop: '12px' }}>Effective models</strong>
       <Row label="Avatar">{`${snapshot.effectiveModels.avatar.provider} / ${snapshot.effectiveModels.avatar.model}`}</Row>
       <Row label="Game Master">{`${snapshot.effectiveModels.gameMaster.provider} / ${snapshot.effectiveModels.gameMaster.model}`}</Row>
@@ -165,17 +170,31 @@ function renderShortTermMemory(snapshot: RuntimeInspectorViewModel): JSX.Element
   )
 }
 
+// eslint-disable-next-line complexity
 function renderWorkingMemory(snapshot: RuntimeInspectorViewModel): JSX.Element {
   return (
     <>
       <strong style={{ display: 'block', marginTop: '12px' }}>Working memory</strong>
       <Row label="Active avatar">{snapshot.memory.layers.activeAvatarId ?? '-'}</Row>
       <Row label="Working summary">{snapshot.memory.layers.working.current?.summary ?? '-'}</Row>
+      <Row label="Working updated at">
+        {snapshot.memory.layers.working.current?.updatedAt ?? '-'}
+      </Row>
       <Row label="Unresolved threads">
         {String(snapshot.memory.layers.working.current?.unresolvedThreads.length ?? 0)}
       </Row>
       <Row label="Candidate facts">
         {String(snapshot.memory.layers.working.current?.candidateFacts.length ?? 0)}
+      </Row>
+      <Row label="Session memory updated at">
+        {snapshot.memory.layers.working.session?.updatedAt ?? '-'}
+      </Row>
+      <Row label="Avatar memory summaries">
+        {snapshot.memory.layers.working.avatars.length > 0
+          ? snapshot.memory.layers.working.avatars
+              .map((avatar) => `${avatar.avatarId} @ ${avatar.updatedAt}`)
+              .join(', ')
+          : 'none'}
       </Row>
     </>
   )
@@ -194,15 +213,24 @@ function renderLongTermMemory(snapshot: RuntimeInspectorViewModel): JSX.Element 
           ),
         )}
       </Row>
+      <Row label="Fact count">{String(snapshot.memory.layers.longTerm.facts.length)}</Row>
       {snapshot.memory.layers.longTerm.avatars.map((avatar) => (
         <div key={avatar.avatarId} style={{ margin: '8px 0' }}>
           <strong>{avatar.avatarId}</strong>
           {avatar.memories.map((memory) => (
             <p key={memory.conversationId} style={{ margin: '4px 0', color: '#374151' }}>
-              {memory.conversationId}: {memory.summary}
+              {memory.conversationId} [{memory.createdAt}]: {memory.summary}
             </p>
           ))}
         </div>
+      ))}
+      {snapshot.memory.layers.longTerm.facts.map((fact) => (
+        <p
+          key={`${fact.category}-${fact.key}-${fact.updatedAt}`}
+          style={{ margin: '4px 0', color: '#374151' }}
+        >
+          [{fact.updatedAt}] {fact.category}.{fact.key}: {fact.value}
+        </p>
       ))}
     </>
   )
@@ -260,6 +288,7 @@ function renderMemoryEvolution(
   )
 }
 
+// eslint-disable-next-line complexity
 function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
   const avatarKnowledge = snapshot.context.avatar.knowledge?.retrievedItems ?? []
   const gmKnowledge = snapshot.context.gm.knowledge
@@ -276,20 +305,25 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
 
   return (
     <div style={{ marginTop: '12px' }}>
-      <Row label="Avatar context avatarId">{snapshot.context.avatar.avatarId ?? '-'}</Row>
-      <Row label="Avatar recent exchanges">
+      <p style={{ margin: '0 0 10px', color: '#4b5563' }}>
+        This is the bounded context assembled before the Avatar and Game Master calls. It explains
+        what memory, retrieval, persona, and directives were kept or trimmed for the current turn.
+      </p>
+      <Row label="Avatar assembled for">{snapshot.context.avatar.avatarId ?? '-'}</Row>
+      <Row label="Avatar exchange window">
         {String(snapshot.context.avatar.recentExchanges.length)}
       </Row>
-      <Row label="GM recent messages">{String(snapshot.context.gm.recentMessages.length)}</Row>
+      <Row label="GM recent message window">{String(snapshot.context.gm.recentMessages.length)}</Row>
       <Row label="Scenario">{snapshot.context.gm.scenario.name ?? snapshot.session.scenarioId}</Row>
       <Row label="Avatar knowledge items">{String(avatarKnowledge.length)}</Row>
       <Row label="GM memory/world/media">{gmCounts}</Row>
-      <Row label="Trace deterministic">{traceDeterministic}</Row>
-      <Row label="Trace kept/trimmed">{traceKeptTrimmed}</Row>
-      <Row label="Trace retrieval memory/world/media">{traceRetrievalCounts}</Row>
-      <Row label="Trace visibility excluded memory/world/media">{traceVisibilityExcluded}</Row>
-      <Row label="Trace visibility GM unrestricted">{traceVisibilityGmUnrestricted}</Row>
-      <Row label="Trace visibility GM retrieval memory/world/media">
+      <Row label="Deterministic assembly">{traceDeterministic}</Row>
+      <Row label="Protected segments">{trace?.policy.protectedSegments.join(', ') || '-'}</Row>
+      <Row label="Kept / trimmed segments">{traceKeptTrimmed}</Row>
+      <Row label="Selected retrieval memory/world/media">{traceRetrievalCounts}</Row>
+      <Row label="Excluded by visibility memory/world/media">{traceVisibilityExcluded}</Row>
+      <Row label="GM visibility unrestricted">{traceVisibilityGmUnrestricted}</Row>
+      <Row label="GM retrieval memory/world/media">
         {traceVisibilityGmRetrieval}
       </Row>
       {avatarKnowledge.slice(0, 3).map((item) => (
@@ -445,8 +479,7 @@ function MetricsTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
             }}
           >
             <p style={{ margin: 0, fontWeight: 600 }}>
-              Turn {String(row.turnIndex)} · {row.conversationId ?? 'unknown conversation'} ·{' '}
-              {row.hasGm ? 'GM' : 'Avatar only'}
+              Turn {String(row.turnIndex)} · {row.conversationId} · {row.hasGm ? 'GM' : 'Avatar only'}
             </p>
             <p style={{ margin: '4px 0', color: '#374151' }}>{describeTurnLatency(row)}</p>
             <p style={{ margin: '4px 0', color: '#374151' }}>{describeTurnTokens(row)}</p>
@@ -506,4 +539,34 @@ function Row({ label, children }: { label: string; children: string }): JSX.Elem
 function truncateText(value: string, maxLength: number): string {
   if (value.length <= maxLength) return value
   return `${value.slice(0, maxLength)}…`
+}
+
+function findLatestGmDecision(
+  events: RuntimeInspectorViewModel['recentEvents'],
+): GmSessionEventPayload['decision'] | null {
+  const latestGmEvent = events.find((event) => event.type === 'gm_triggered')
+  if (latestGmEvent?.type !== 'gm_triggered') return null
+  return 'decision' in latestGmEvent.payload ? (latestGmEvent.payload.decision ?? null) : null
+}
+
+function formatUnlockedAvatars(snapshot: RuntimeInspectorViewModel): string {
+  if (snapshot.gm.unlockedAvatarIds.length === 0) return 'none'
+  const avatarNameById = new Map(
+    snapshot.context.gm.availableAvatars.map((avatar) => [avatar.avatarId, avatar.name] as const),
+  )
+  return snapshot.gm.unlockedAvatarIds
+    .map((avatarId) => `${avatarId} (${avatarNameById.get(avatarId) ?? 'unknown'})`)
+    .join(', ')
+}
+
+function formatSuggestedAvatar(
+  snapshot: RuntimeInspectorViewModel,
+  decision: GmSessionEventPayload['decision'] | null,
+): string {
+  if (decision?.suggestedAvatarId === undefined) return '-'
+  const avatarName =
+    snapshot.context.gm.availableAvatars.find((avatar) => avatar.avatarId === decision.suggestedAvatarId)
+      ?.name ?? 'unknown'
+  const reason = decision.suggestedAvatarReason ?? 'no reason recorded'
+  return `${decision.suggestedAvatarId} (${avatarName}) — ${reason}`
 }

@@ -13,6 +13,7 @@ export type GetTurnMetricsInput = {
 
 type TurnCompletedPayload = {
   correlationId: string
+  conversationId: string
   turnIndex: number
   avatarLatencyMs: number
   totalTurnLatencyMs: number
@@ -20,6 +21,8 @@ type TurnCompletedPayload = {
   outputTokens: number
   totalTokens: number
   model: string
+  retrievalLatencyMs?: number
+  otherOverheadMs?: number
 }
 
 type GmPayload = {
@@ -80,9 +83,19 @@ export class GetTurnMetricsUseCase {
       {
         turnIndex: payload.turnIndex,
         correlationId: payload.correlationId,
+        conversationId: payload.conversationId,
         avatarLatencyMs: payload.avatarLatencyMs,
         totalTurnLatencyMs: payload.totalTurnLatencyMs,
-        overheadMs: payload.totalTurnLatencyMs - payload.avatarLatencyMs,
+        overheadMs: Math.max(
+          0,
+          payload.otherOverheadMs ??
+            payload.totalTurnLatencyMs -
+              payload.avatarLatencyMs -
+              (payload.retrievalLatencyMs ?? 0),
+        ),
+        ...(payload.retrievalLatencyMs !== undefined
+          ? { retrievalLatencyMs: payload.retrievalLatencyMs }
+          : {}),
         inputTokens: payload.inputTokens,
         outputTokens: payload.outputTokens,
         totalTokens: payload.totalTokens,
@@ -100,9 +113,11 @@ export class GetTurnMetricsUseCase {
   }
 }
 
+// eslint-disable-next-line complexity
 function extractTurnCompletedPayload(event: StoredEvent): TurnCompletedPayload | null {
   const correlationId = typeof event.correlationId === 'string' ? event.correlationId : null
   const payload = event.payload
+  const conversationId = readString(payload['conversationId'])
   const turnIndex = readNumber(payload['turnIndex'])
   const avatarLatencyMs = readNumber(payload['avatarLatencyMs'])
   const totalTurnLatencyMs = readNumber(payload['totalTurnLatencyMs'])
@@ -110,9 +125,12 @@ function extractTurnCompletedPayload(event: StoredEvent): TurnCompletedPayload |
   const outputTokens = readNumber(payload['outputTokens'])
   const totalTokens = readNumber(payload['totalTokens'])
   const model = readString(payload['model'])
+  const retrievalLatencyMs = readOptionalNumber(payload['retrievalLatencyMs'])
+  const otherOverheadMs = readOptionalNumber(payload['otherOverheadMs'])
 
   if (
     correlationId === null ||
+    conversationId === null ||
     turnIndex === null ||
     avatarLatencyMs === null ||
     totalTurnLatencyMs === null ||
@@ -126,6 +144,7 @@ function extractTurnCompletedPayload(event: StoredEvent): TurnCompletedPayload |
 
   return {
     correlationId,
+    conversationId,
     turnIndex,
     avatarLatencyMs,
     totalTurnLatencyMs,
@@ -133,6 +152,8 @@ function extractTurnCompletedPayload(event: StoredEvent): TurnCompletedPayload |
     outputTokens,
     totalTokens,
     model,
+    ...(retrievalLatencyMs !== null ? { retrievalLatencyMs } : {}),
+    ...(otherOverheadMs !== null ? { otherOverheadMs } : {}),
   }
 }
 
@@ -185,4 +206,8 @@ function readNumber(value: unknown): number | null {
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' ? value : null
+}
+
+function readOptionalNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }

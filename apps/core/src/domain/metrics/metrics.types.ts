@@ -1,9 +1,11 @@
 export type TurnMetrics = {
   turnIndex: number
   correlationId: string
+  conversationId: string
   avatarLatencyMs: number
   totalTurnLatencyMs: number
   overheadMs: number
+  retrievalLatencyMs?: number
   inputTokens: number
   outputTokens: number
   totalTokens: number

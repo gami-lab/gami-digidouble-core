@@ -7,6 +7,7 @@ import type {
   GameMasterStateSummary,
 } from '../../../domain/game-master/game-master.types.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
+import type { UnlockEvaluation } from './run-game-master.avatar-unlocks.js'
 
 export async function handleInvalidGameMasterOutput(args: {
   input: RunGameMasterInput
@@ -91,6 +92,7 @@ export async function emitTriggeredGameMasterTurn(args: {
   reconciledState: GameMasterState
   output: GameMasterOutput
   unlockedAvatarIds: string[]
+  unlockEvaluations: UnlockEvaluation[]
   switchedAvatarId?: string
   triggerReason: string
   gmRunStartMs: number
@@ -117,13 +119,18 @@ export async function emitTriggeredGameMasterTurn(args: {
       turnIndex: args.input.turnIndex,
       interactionCount: args.reconciledState.interactionCount,
       stateBefore: buildStateSummary(args.currentState),
-      decision: buildTriggeredDecision(args.output, args.unlockedAvatarIds, args.switchedAvatarId),
+      decision: buildTriggeredDecision(
+        args.output,
+        args.unlockedAvatarIds,
+        args.unlockEvaluations,
+        args.switchedAvatarId,
+      ),
       stateAfter: buildStateSummary(args.reconciledState),
       latencyMs: args.llmLatencyMs,
+      totalLatencyMs: Date.now() - args.gmRunStartMs,
       inputTokens: args.llmResponse.inputTokens,
       outputTokens: args.llmResponse.outputTokens,
       correlationId: args.input.correlationId,
-      totalLatencyMs: Date.now() - args.gmRunStartMs,
     },
   })
 }
@@ -180,6 +187,7 @@ export function buildStateSummary(state: GameMasterState): GameMasterStateSummar
 export function buildTriggeredDecision(
   output: GameMasterOutput,
   unlockedAvatarIds: string[],
+  unlockEvaluations: UnlockEvaluation[],
   switchedAvatarId: string | undefined,
 ): Record<string, unknown> {
   return {
@@ -188,6 +196,7 @@ export function buildTriggeredDecision(
     notesInjected: Boolean(output.context?.notes),
     directiveCount: output.recommendedChoices?.length ?? 0,
     ...(unlockedAvatarIds.length > 0 ? { unlockedAvatarIds } : {}),
+    ...(unlockEvaluations.length > 0 ? { unlockEvaluations } : {}),
     ...(output.suggestedAvatarId !== undefined
       ? { suggestedAvatarId: output.suggestedAvatarId }
       : {}),

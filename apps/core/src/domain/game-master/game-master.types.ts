@@ -60,6 +60,10 @@ export interface GameMasterOutput {
   }>
   contentTrigger?: string
   unlockAvatarIds?: string[]
+  unlockDecisions?: Array<{
+    avatarId: string
+    reason: string
+  }>
   suggestedAvatarId?: string
   suggestedAvatarReason?: string
   conversationMode: 'new' | 'continue'
@@ -101,12 +105,19 @@ export type GameMasterEvent = {
       notesInjected: boolean
       directiveCount: number
       unlockedAvatarIds?: string[]
+      unlockEvaluations?: Array<{
+        avatarId: string
+        avatarName: string
+        reason?: string
+        outcome: 'unlocked' | 'already_unlocked' | 'rejected_not_mentioned'
+      }>
       suggestedAvatarId?: string
       suggestedAvatarReason?: string
       switchedAvatarId?: string
     }
     stateAfter?: GameMasterStateSummary
     latencyMs: number
+    totalLatencyMs?: number
     inputTokens?: number
     outputTokens?: number
   }

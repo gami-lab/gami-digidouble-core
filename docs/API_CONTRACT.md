@@ -708,6 +708,12 @@ ApiResponse<{
 GET /v1/admin/sessions/{sessionId}/events
 ```
 
+Response notes:
+
+- Returns `ApiResponse<AdminSessionEventsResponse>`
+- `gm_triggered` decision payloads may include bounded unlock diagnostics (`avatarId`, `avatarName`, `reason`, `outcome`)
+- `turn_completed` payloads may include per-turn retrieval timing (`retrievalLatencyMs`) and remaining non-LLM overhead (`otherOverheadMs`)
+
 ---
 
 ## Session Context
@@ -729,6 +735,12 @@ Response notes:
 ```text
 GET /v1/admin/sessions/{sessionId}/metrics
 ```
+
+Response notes:
+
+- Returns `ApiResponse<AdminSessionTurnMetricsResponse>`
+- Each turn entry includes `conversationId`
+- Each turn entry may include `retrievalLatencyMs` when typed retrieval ran for that turn
 
 ---
 

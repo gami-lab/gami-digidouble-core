@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: June 1, 2026
+Last updated: June 3, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -229,6 +229,10 @@ Completed on: 2026-05-07
 - memory evolution workspace
 - GM causality trace
 - turn profiler
+- working-memory and long-term-memory timestamps in the inspector
+- GM unlock diagnostics with avatar names, reasons, and rejected/applied outcomes
+- turn profiler conversation alignment plus per-turn retrieval timing
+- clearer context-assembly copy in the inspector
 - persona-first flow
 - consolidated debug navigation
 - inspector cleanup

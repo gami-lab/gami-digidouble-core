@@ -145,6 +145,7 @@ beforeEach(() => {
   traceMock.mockResolvedValue(undefined)
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('RunGameMasterUseCase — avatar unlock decisions', () => {
   it('updates session unlockedAvatarIds from valid GM unlock output without duplicates', async () => {
     const eventLog = new InMemoryEventLogRepository()
@@ -168,6 +169,7 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
     mockGmOutput({
       avatarId: 'avatar_1',
       unlockAvatarIds: ['avatar_2', 'avatar_2'],
+      unlockDecisions: [{ avatarId: 'avatar_2', reason: 'Technical specialist is now relevant.' }],
       suggestedAvatarId: 'avatar_2',
       suggestedAvatarReason: 'Technical specialist is now relevant.',
       conversationMode: 'continue',
@@ -181,6 +183,14 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
     })
     expect(eventLog.getAll()[0]?.payload['decision']).toMatchObject({
       unlockedAvatarIds: ['avatar_2'],
+      unlockEvaluations: [
+        {
+          avatarId: 'avatar_2',
+          avatarName: 'Theo',
+          reason: 'Technical specialist is now relevant.',
+          outcome: 'unlocked',
+        },
+      ],
       suggestedAvatarId: 'avatar_2',
       suggestedAvatarReason: 'Technical specialist is now relevant.',
     })
@@ -201,7 +211,8 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
   })
 
   it('does not unlock locked avatars that were not mentioned in recent discussion', async () => {
-    const useCase = createUseCase()
+    const eventLog = new InMemoryEventLogRepository()
+    const useCase = createUseCase(eventLog)
     findMessagesByConversationIdMock.mockResolvedValue([
       {
         messageId: 'msg_2',
@@ -221,6 +232,9 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
     mockGmOutput({
       avatarId: 'avatar_1',
       unlockAvatarIds: ['avatar_2'],
+      unlockDecisions: [
+        { avatarId: 'avatar_2', reason: 'The topic stayed with the current guide.' },
+      ],
       conversationMode: 'continue',
       stateUpdate: { interactionIncrement: 1 },
     })
@@ -228,6 +242,42 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
     await executeGm(useCase)
 
     expect(hasUnlockUpdate()).toBe(false)
+    expect(eventLog.getAll()[0]?.payload['decision']).toMatchObject({
+      unlockEvaluations: [
+        {
+          avatarId: 'avatar_2',
+          avatarName: 'Theo',
+          reason: 'The topic stayed with the current guide.',
+          outcome: 'rejected_not_mentioned',
+        },
+      ],
+    })
+  })
+
+  it('marks already unlocked avatars explicitly in diagnostics', async () => {
+    const eventLog = new InMemoryEventLogRepository()
+    const useCase = createUseCase(eventLog)
+    mockGmOutput({
+      avatarId: 'avatar_1',
+      unlockAvatarIds: ['avatar_1'],
+      unlockDecisions: [{ avatarId: 'avatar_1', reason: 'Already available.' }],
+      conversationMode: 'continue',
+      stateUpdate: { interactionIncrement: 1 },
+    })
+
+    await executeGm(useCase)
+
+    expect(hasUnlockUpdate()).toBe(false)
+    expect(eventLog.getAll()[0]?.payload['decision']).toMatchObject({
+      unlockEvaluations: [
+        {
+          avatarId: 'avatar_1',
+          avatarName: 'Ava',
+          reason: 'Already available.',
+          outcome: 'already_unlocked',
+        },
+      ],
+    })
   })
 
   it('does not unlock when GM output has no unlock decision', async () => {

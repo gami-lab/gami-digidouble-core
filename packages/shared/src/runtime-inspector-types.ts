@@ -67,6 +67,13 @@ export type AdminSessionInspectResponse = {
   }
 }
 
+export type GmUnlockEvaluation = {
+  avatarId: string
+  avatarName: string
+  reason?: string
+  outcome: 'unlocked' | 'already_unlocked' | 'rejected_not_mentioned'
+}
+
 export type GmSessionEventPayload = {
   triggerReason: string | null
   turnIndex: number
@@ -78,12 +85,14 @@ export type GmSessionEventPayload = {
     notesInjected: boolean
     directiveCount: number
     unlockedAvatarIds?: string[]
+    unlockEvaluations?: GmUnlockEvaluation[]
     suggestedAvatarId?: string
     suggestedAvatarReason?: string
     switchedAvatarId?: string
   }
   stateAfter?: Omit<GmStateSummary, 'interactionCount'>
   latencyMs: number
+  totalLatencyMs?: number
   inputTokens?: number
   outputTokens?: number
   errorCode?: string
@@ -101,6 +110,8 @@ export type TurnCompletedEventPayload = {
   totalTokens: number
   model: string
   hasGm: boolean
+  retrievalLatencyMs?: number
+  otherOverheadMs?: number
   contextSelection?: {
     shortTermExchangeCount: number
     hasWorkingMemory: boolean
@@ -171,9 +182,11 @@ export type AdminSessionMemoryLayersResponse = {
 export type TurnMetrics = {
   turnIndex: number
   correlationId: string
+  conversationId: string
   avatarLatencyMs: number
   totalTurnLatencyMs: number
   overheadMs: number
+  retrievalLatencyMs?: number
   inputTokens: number
   outputTokens: number
   totalTokens: number

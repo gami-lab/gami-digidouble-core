@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { RuntimeEvent } from '@gami/shared'
@@ -125,9 +126,11 @@ function makeMetricsSummary(): RuntimeInspectorViewModel['metrics'] {
       {
         turnIndex: 1,
         correlationId: 'corr_1',
+        conversationId: 'conversation_1',
         avatarLatencyMs: 120,
         totalTurnLatencyMs: 140,
         overheadMs: 20,
+        retrievalLatencyMs: 12,
         inputTokens: 12,
         outputTokens: 18,
         totalTokens: 30,
@@ -258,6 +261,14 @@ function makeGmEvent(): RuntimeInspectorViewModel['recentEvents'][number] {
         notesInjected: true,
         directiveCount: 2,
         unlockedAvatarIds: ['avatar_2'],
+        unlockEvaluations: [
+          {
+            avatarId: 'avatar_2',
+            avatarName: 'Theo',
+            reason: 'user asked architecture question',
+            outcome: 'unlocked',
+          },
+        ],
         suggestedAvatarId: 'avatar_2',
         suggestedAvatarReason: 'user asked architecture question',
         switchedAvatarId: 'avatar_2',
@@ -343,6 +354,8 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('openai / gpt-4.1-mini')
     expect(html).toContain('mistral / mistral-small-latest')
     expect(html).toContain('xai / grok-2-mini')
+    expect(html).toContain('avatar_1 (unknown)')
+    expect(html).toContain('avatar_2 (unknown) — user asked architecture question')
   })
 
   it('renders action controls and status text', () => {
@@ -389,12 +402,13 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('scenario_1')
     expect(html).toContain('Avatar knowledge items')
     expect(html).toContain('GM memory/world/media')
-    expect(html).toContain('Trace deterministic')
-    expect(html).toContain('Trace kept/trimmed')
-    expect(html).toContain('Trace retrieval memory/world/media')
-    expect(html).toContain('Trace visibility excluded memory/world/media')
-    expect(html).toContain('Trace visibility GM unrestricted')
-    expect(html).toContain('Trace visibility GM retrieval memory/world/media')
+    expect(html).toContain('This is the bounded context assembled before the Avatar and Game Master calls.')
+    expect(html).toContain('Deterministic assembly')
+    expect(html).toContain('Kept / trimmed segments')
+    expect(html).toContain('Selected retrieval memory/world/media')
+    expect(html).toContain('Excluded by visibility memory/world/media')
+    expect(html).toContain('GM visibility unrestricted')
+    expect(html).toContain('GM retrieval memory/world/media')
     expect(html).toContain('[visibility:avatar_1]')
   })
 
@@ -431,7 +445,7 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('Trigger/context')
     expect(html).toContain('GM decision/action')
     expect(html).toContain('Resulting impact')
-    expect(html).toContain('Avatar unlocks: avatar_2')
+    expect(html).toContain('Avatar unlocks: avatar_2 (Theo) [unlocked]')
     expect(html).toContain('Routing suggestion: avatar_2')
     expect(html).toContain('Directive count: 2')
     expect(html).toContain('Turn 1')
@@ -460,7 +474,9 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('Long-term avatar memories')
     expect(html).toContain('Memory evolution')
     expect(html).toContain('active working summary')
-    expect(html).toContain('conversation_old_1: older memory')
+    expect(html).toContain('Working updated at')
+    expect(html).toContain('Fact count')
+    expect(html).toContain('conversation_old_1 [2026-05-07T09:00:00.000Z]: older memory')
     expect(html).toContain('New long-term avatar memory stored')
   })
 
@@ -483,8 +499,10 @@ describe('RuntimeInspectorTabContent', () => {
 
     expect(html).toContain('Turn profiler')
     expect(html).toContain('total 140ms')
-    expect(html).toContain('avatar 120ms')
+    expect(html).toContain('rag 12ms')
+    expect(html).toContain('llm 120ms')
     expect(html).toContain('gm -')
+    expect(html).toContain('conversation_1')
     expect(html).toContain('tokens 30 (in 12 / out 18)')
   })
 })
