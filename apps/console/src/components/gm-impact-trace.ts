@@ -178,6 +178,8 @@ function toTraceEntry(
     }
     if (turnPayload.contextSelection) {
       avatarInput.push(formatAvatarContext(turnPayload))
+      const retrievalAssembly = formatAvatarRetrievalAssembly(turnPayload)
+      if (retrievalAssembly) avatarInput.push(retrievalAssembly)
     }
   } else {
     userVisibleOutcome.push('Turn completion not observed in snapshot window.')
@@ -275,18 +277,40 @@ function formatAvatarContext(turnPayload: TurnCompletedEventPayload): string {
   const selected = turnPayload.contextSelection
   if (!selected) return 'Avatar context used for this reply: unavailable.'
 
-  const retrievalTotal =
-    selected.retrievalCounts.memory +
-    selected.retrievalCounts.world +
-    selected.retrievalCounts.media
+  const retrieval = selected.retrieval
+  const includedCounts = retrieval?.includedCounts ?? { memory: 0, world: 0, media: 0 }
+  const retrievalTotal = includedCounts.memory + includedCounts.world + includedCounts.media
 
   return [
     `Avatar context used for this reply: ${String(selected.shortTermExchangeCount)} recent exchange${selected.shortTermExchangeCount === 1 ? '' : 's'}`,
     selected.hasWorkingMemory ? 'working memory included' : 'no working memory',
     `${String(selected.longTermFactCount)} long-term fact${selected.longTermFactCount === 1 ? '' : 's'}`,
-    `${String(retrievalTotal)} retrieved reference${retrievalTotal === 1 ? '' : 's'} (${String(selected.retrievalCounts.memory)} memory / ${String(selected.retrievalCounts.world)} world / ${String(selected.retrievalCounts.media)} media)`,
+    `${String(retrievalTotal)} retrieved reference${retrievalTotal === 1 ? '' : 's'} included (${String(includedCounts.memory)} memory / ${String(includedCounts.world)} world / ${String(includedCounts.media)} media)`,
     selected.hasGmDirective ? 'GM note included' : 'no GM note',
     selected.hasUserPersona ? 'user persona included' : 'no user persona',
+  ].join(', ')
+}
+
+function formatAvatarRetrievalAssembly(turnPayload: TurnCompletedEventPayload): string | null {
+  const retrieval = turnPayload.contextSelection?.retrieval
+  if (!retrieval) return null
+
+  const selectedTotal =
+    retrieval.selectedCounts.memory +
+    retrieval.selectedCounts.world +
+    retrieval.selectedCounts.media
+  const includedTotal =
+    retrieval.includedCounts.memory +
+    retrieval.includedCounts.world +
+    retrieval.includedCounts.media
+  const excludedCounts = retrieval.excludedByVisibilityCounts ?? { memory: 0, world: 0, media: 0 }
+  const excludedTotal = excludedCounts.memory + excludedCounts.world + excludedCounts.media
+
+  return [
+    `Avatar retrieval assembly: ${String(selectedTotal)} candidate${selectedTotal === 1 ? '' : 's'} found`,
+    `${String(includedTotal)} included in the final avatar input`,
+    `${String(excludedTotal)} excluded by avatar visibility`,
+    `${String(Math.max(0, selectedTotal - includedTotal - excludedTotal))} omitted during final assembly`,
   ].join(', ')
 }
 

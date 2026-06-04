@@ -4,36 +4,64 @@ export function toContextSelectionMetadata(assembledContext: ContextEngineOutput
   shortTermExchangeCount: number
   hasWorkingMemory: boolean
   longTermFactCount: number
-  retrievalCounts: {
-    memory: number
-    world: number
-    media: number
-  }
-  visibility?: {
-    activeAvatarId?: string
-    excludedCounts: {
+  retrieval?: {
+    selectedCounts: {
       memory: number
       world: number
       media: number
     }
-    gmRetrievalCounts?: {
+    includedCounts: {
       memory: number
       world: number
       media: number
     }
-    gmUnrestricted?: true
+    excludedByVisibilityCounts?: {
+      memory: number
+      world: number
+      media: number
+    }
   }
   hasUserPersona: boolean
   hasGmDirective: boolean
 } {
   const selected = assembledContext.trace.selectedInputs
+  const includedCounts = toIncludedRetrievalCounts(assembledContext)
   return {
     shortTermExchangeCount: selected.shortTermExchangeCount,
     hasWorkingMemory: selected.hasWorkingMemory,
     longTermFactCount: selected.longTermFactCount,
-    retrievalCounts: selected.retrievalCounts,
-    ...(selected.visibility !== undefined ? { visibility: selected.visibility } : {}),
+    retrieval: {
+      selectedCounts: selected.retrievalCounts,
+      includedCounts,
+      ...(selected.visibility !== undefined
+        ? { excludedByVisibilityCounts: selected.visibility.excludedCounts }
+        : {}),
+    },
     hasUserPersona: selected.hasUserPersona,
     hasGmDirective: selected.hasGmDirective,
   }
+}
+
+function toIncludedRetrievalCounts(assembledContext: ContextEngineOutput): {
+  memory: number
+  world: number
+  media: number
+} {
+  const typedSections = assembledContext.avatar.knowledge?.typedSections
+  if (typedSections !== undefined) {
+    return {
+      memory: typedSections.memory.length,
+      world: typedSections.world.length,
+      media: typedSections.media.length,
+    }
+  }
+
+  const retrievedItems = assembledContext.avatar.knowledge?.retrievedItems ?? []
+  return retrievedItems.reduce(
+    (counts, item) => {
+      counts[item.knowledgeType] += 1
+      return counts
+    },
+    { memory: 0, world: 0, media: 0 },
+  )
 }

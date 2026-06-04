@@ -150,8 +150,8 @@ function readMemoryTrigger(value: unknown): MemoryRefreshEventPayload['trigger']
 }
 
 function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompletedEventPayload {
-  const contextSelection = readOptionalContextSelection(payload['contextSelection'])
   const avatarContext = readOptionalAvatarContextSnapshot(payload['avatarContext'])
+  const contextSelection = readOptionalContextSelection(payload['contextSelection'], avatarContext)
   return {
     conversationId: readString(payload['conversationId']),
     turnIndex: readNumber(payload['turnIndex']),
@@ -208,52 +208,101 @@ function readOptionalGmContextSnapshot(value: unknown): RecordedGmContextSnapsho
 
 function readOptionalContextSelection(
   value: unknown,
+  avatarContext: RecordedAvatarContextSnapshot | undefined,
 ): TurnCompletedEventPayload['contextSelection'] | undefined {
   if (!isRecord(value)) return undefined
-  const retrievalCountsValue = isRecord(value['retrievalCounts']) ? value['retrievalCounts'] : {}
+  const retrieval = readOptionalRetrievalSelection(value['retrieval'], avatarContext)
+  const retrievalCountsValue = isRecord(value['retrievalCounts'])
+    ? value['retrievalCounts']
+    : undefined
   const visibility = readOptionalVisibilitySelection(value['visibility'])
   return {
     shortTermExchangeCount: readNumber(value['shortTermExchangeCount']),
     hasWorkingMemory: readBoolean(value['hasWorkingMemory']),
     longTermFactCount: readNumber(value['longTermFactCount']),
-    retrievalCounts: {
-      memory: readNumber(retrievalCountsValue['memory']),
-      world: readNumber(retrievalCountsValue['world']),
-      media: readNumber(retrievalCountsValue['media']),
-    },
-    ...(visibility !== undefined ? { visibility } : {}),
+    ...(retrieval !== undefined
+      ? { retrieval }
+      : retrievalCountsValue !== undefined
+        ? {
+            retrieval: {
+              selectedCounts: readRetrievalCounts(retrievalCountsValue),
+              includedCounts: readIncludedRetrievalCounts(avatarContext),
+              ...(visibility !== undefined
+                ? { excludedByVisibilityCounts: visibility.excludedCounts }
+                : {}),
+            },
+          }
+        : {}),
     hasUserPersona: readBoolean(value['hasUserPersona']),
     hasGmDirective: readBoolean(value['hasGmDirective']),
   }
 }
 
+function readOptionalRetrievalSelection(
+  value: unknown,
+  avatarContext: RecordedAvatarContextSnapshot | undefined,
+): NonNullable<TurnCompletedEventPayload['contextSelection']>['retrieval'] | undefined {
+  if (!isRecord(value)) return undefined
+  const selectedCountsValue = isRecord(value['selectedCounts'])
+    ? value['selectedCounts']
+    : undefined
+  const includedCountsValue = isRecord(value['includedCounts'])
+    ? value['includedCounts']
+    : undefined
+  const excludedCountsValue = isRecord(value['excludedByVisibilityCounts'])
+    ? value['excludedByVisibilityCounts']
+    : undefined
+  if (selectedCountsValue === undefined && includedCountsValue === undefined) return undefined
+  return {
+    selectedCounts:
+      selectedCountsValue !== undefined
+        ? readRetrievalCounts(selectedCountsValue)
+        : { memory: 0, world: 0, media: 0 },
+    includedCounts:
+      includedCountsValue !== undefined
+        ? readRetrievalCounts(includedCountsValue)
+        : readIncludedRetrievalCounts(avatarContext),
+    ...(excludedCountsValue !== undefined
+      ? { excludedByVisibilityCounts: readRetrievalCounts(excludedCountsValue) }
+      : {}),
+  }
+}
+
 function readOptionalVisibilitySelection(
   value: unknown,
-): NonNullable<TurnCompletedEventPayload['contextSelection']>['visibility'] | undefined {
+): { excludedCounts: { memory: number; world: number; media: number } } | undefined {
   if (!isRecord(value)) return undefined
   const excludedCountsValue = isRecord(value['excludedCounts']) ? value['excludedCounts'] : {}
-  const gmRetrievalCountsValue = isRecord(value['gmRetrievalCounts'])
-    ? value['gmRetrievalCounts']
-    : undefined
   return {
-    ...(typeof value['activeAvatarId'] === 'string'
-      ? { activeAvatarId: value['activeAvatarId'] }
-      : {}),
     excludedCounts: {
       memory: readNumber(excludedCountsValue['memory']),
       world: readNumber(excludedCountsValue['world']),
       media: readNumber(excludedCountsValue['media']),
     },
-    ...(value['gmUnrestricted'] === true ? { gmUnrestricted: true } : {}),
-    ...(gmRetrievalCountsValue !== undefined
-      ? {
-          gmRetrievalCounts: {
-            memory: readNumber(gmRetrievalCountsValue['memory']),
-            world: readNumber(gmRetrievalCountsValue['world']),
-            media: readNumber(gmRetrievalCountsValue['media']),
-          },
-        }
-      : {}),
+  }
+}
+
+function readRetrievalCounts(value: Record<string, unknown>): {
+  memory: number
+  world: number
+  media: number
+} {
+  return {
+    memory: readNumber(value['memory']),
+    world: readNumber(value['world']),
+    media: readNumber(value['media']),
+  }
+}
+
+function readIncludedRetrievalCounts(avatarContext: RecordedAvatarContextSnapshot | undefined): {
+  memory: number
+  world: number
+  media: number
+} {
+  return {
+    memory: avatarContext?.knowledge?.memory.length ?? 0,
+    world: avatarContext?.knowledge?.world.length ?? 0,
+    media: avatarContext?.knowledge?.media.length ?? 0,
   }
 }
 

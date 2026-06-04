@@ -21,24 +21,22 @@ export function emitTurnCompletedEventNonBlocking(args: {
     shortTermExchangeCount: number
     hasWorkingMemory: boolean
     longTermFactCount: number
-    retrievalCounts: {
-      memory: number
-      world: number
-      media: number
-    }
-    visibility?: {
-      activeAvatarId?: string
-      excludedCounts: {
+    retrieval?: {
+      selectedCounts: {
         memory: number
         world: number
         media: number
       }
-      gmRetrievalCounts?: {
+      includedCounts: {
         memory: number
         world: number
         media: number
       }
-      gmUnrestricted?: true
+      excludedByVisibilityCounts?: {
+        memory: number
+        world: number
+        media: number
+      }
     }
     hasUserPersona: boolean
     hasGmDirective: boolean

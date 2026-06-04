@@ -504,10 +504,20 @@ function describeRetrievalStatus(args: {
   trace: RuntimeInspectorViewModel['context']['trace']
 }): string {
   if (args.actualCount > 0) return ''
-  const selectedCounts = args.trace?.selectedInputs.retrievalCounts
+  const selectedCounts =
+    args.projection === 'gm'
+      ? args.trace?.selectedInputs.visibility?.gmRetrievalCounts
+      : args.trace?.selectedInputs.retrievalCounts
   const selectedTotal =
     (selectedCounts?.memory ?? 0) + (selectedCounts?.world ?? 0) + (selectedCounts?.media ?? 0)
+  const excludedCounts =
+    args.projection === 'avatar' ? args.trace?.selectedInputs.visibility?.excludedCounts : undefined
+  const excludedTotal =
+    (excludedCounts?.memory ?? 0) + (excludedCounts?.world ?? 0) + (excludedCounts?.media ?? 0)
   if (selectedTotal === 0) {
+    if (excludedTotal > 0) {
+      return 'Retrieval candidates existed for the avatar, but they were excluded by avatar visibility rules.'
+    }
     return `No retrieval candidates were selected for the ${args.projection}.`
   }
 

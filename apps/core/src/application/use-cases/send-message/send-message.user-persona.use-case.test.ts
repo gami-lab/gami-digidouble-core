@@ -419,12 +419,10 @@ describe('SendMessageUseCase — context selection observability', () => {
           shortTermExchangeCount: number
           hasWorkingMemory: boolean
           longTermFactCount: number
-          retrievalCounts: { memory: number; world: number; media: number }
-          visibility?: {
-            activeAvatarId?: string
-            excludedCounts: { memory: number; world: number; media: number }
-            gmRetrievalCounts?: { memory: number; world: number; media: number }
-            gmUnrestricted?: true
+          retrieval?: {
+            selectedCounts: { memory: number; world: number; media: number }
+            includedCounts: { memory: number; world: number; media: number }
+            excludedByVisibilityCounts?: { memory: number; world: number; media: number }
           }
           hasUserPersona: boolean
           hasGmDirective: boolean
@@ -437,12 +435,10 @@ describe('SendMessageUseCase — context selection observability', () => {
       shortTermExchangeCount: 1,
       hasWorkingMemory: false,
       longTermFactCount: 0,
-      retrievalCounts: { memory: 1, world: 0, media: 0 },
-      visibility: {
-        activeAvatarId: 'avatar_1',
-        excludedCounts: { memory: 0, world: 0, media: 0 },
-        gmRetrievalCounts: { memory: 1, world: 0, media: 0 },
-        gmUnrestricted: true,
+      retrieval: {
+        selectedCounts: { memory: 1, world: 0, media: 0 },
+        includedCounts: { memory: 1, world: 0, media: 0 },
+        excludedByVisibilityCounts: { memory: 0, world: 0, media: 0 },
       },
       hasUserPersona: true,
       hasGmDirective: false,

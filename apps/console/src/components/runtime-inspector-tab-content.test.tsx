@@ -600,6 +600,80 @@ describe('RuntimeInspectorTabContent', () => {
       'Retrieval candidates existed for the gm, but they were trimmed during context assembly.',
     )
   })
+
+  it('explains when avatar retrieval candidates were excluded by visibility', () => {
+    const snapshot = makeViewModel()
+    delete snapshot.context.avatar.knowledge
+    if (snapshot.context.trace) {
+      snapshot.context.trace.selectedInputs.retrievalCounts = { memory: 0, world: 0, media: 0 }
+      snapshot.context.trace.selectedInputs.visibility = {
+        activeAvatarId: 'avatar_2',
+        excludedCounts: { memory: 2, world: 3, media: 0 },
+      }
+      snapshot.context.trace.selection.trimmed = []
+    }
+
+    const html = renderToStaticMarkup(
+      <RuntimeInspectorTabContent
+        tab="context"
+        snapshot={snapshot}
+        memoryHistory={makeMemoryHistory(snapshot)}
+        liveEvents={[]}
+        actionStatus={null}
+        onReplayGm={vi.fn()}
+        onRefreshMemory={vi.fn()}
+        onClearMemory={vi.fn()}
+        onResetSession={vi.fn()}
+        onUpsertPersona={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    expect(html).toContain(
+      'Retrieval candidates existed for the avatar, but they were excluded by avatar visibility rules.',
+    )
+  })
+
+  it('uses GM retrieval counts instead of avatar retrieval counts for GM empty-state messaging', () => {
+    const snapshot = makeViewModel()
+    delete snapshot.context.gm.knowledge
+    if (snapshot.context.trace) {
+      snapshot.context.trace.selectedInputs.retrievalCounts = { memory: 0, world: 0, media: 0 }
+      snapshot.context.trace.selectedInputs.visibility = {
+        activeAvatarId: 'avatar_1',
+        excludedCounts: { memory: 0, world: 0, media: 0 },
+        gmRetrievalCounts: { memory: 1, world: 2, media: 0 },
+        gmUnrestricted: true,
+      }
+      snapshot.context.trace.selection.trimmed = [
+        {
+          projection: 'gm',
+          segmentId: 'typedRetrievalWorld',
+          tokenEstimate: 120,
+          reason: 'budget_exceeded',
+        },
+      ]
+    }
+
+    const html = renderToStaticMarkup(
+      <RuntimeInspectorTabContent
+        tab="context"
+        snapshot={snapshot}
+        memoryHistory={makeMemoryHistory(snapshot)}
+        liveEvents={[]}
+        actionStatus={null}
+        onReplayGm={vi.fn()}
+        onRefreshMemory={vi.fn()}
+        onClearMemory={vi.fn()}
+        onResetSession={vi.fn()}
+        onUpsertPersona={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    expect(html).toContain(
+      'Retrieval candidates existed for the gm, but they were trimmed during context assembly.',
+    )
+    expect(html).not.toContain('No retrieval candidates were selected for the gm.')
+  })
 })
 
 describe('buildPersonaPayload', () => {

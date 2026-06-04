@@ -358,6 +358,31 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
             hasGm: false,
             retrievalLatencyMs: 14,
             otherOverheadMs: 6,
+            contextSelection: {
+              shortTermExchangeCount: 1,
+              hasWorkingMemory: true,
+              longTermFactCount: 1,
+              retrievalCounts: {
+                memory: 3,
+                world: 2,
+                media: 0,
+              },
+              visibility: {
+                excludedCounts: {
+                  memory: 1,
+                  world: 0,
+                  media: 0,
+                },
+                gmRetrievalCounts: {
+                  memory: 3,
+                  world: 2,
+                  media: 0,
+                },
+                gmUnrestricted: true,
+              },
+              hasUserPersona: true,
+              hasGmDirective: true,
+            },
           },
         }),
       ],
@@ -417,6 +442,30 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
           hasGm: false,
           retrievalLatencyMs: 14,
           otherOverheadMs: 6,
+          contextSelection: {
+            shortTermExchangeCount: 1,
+            hasWorkingMemory: true,
+            longTermFactCount: 1,
+            retrieval: {
+              selectedCounts: {
+                memory: 3,
+                world: 2,
+                media: 0,
+              },
+              includedCounts: {
+                memory: 0,
+                world: 1,
+                media: 0,
+              },
+              excludedByVisibilityCounts: {
+                memory: 1,
+                world: 0,
+                media: 0,
+              },
+            },
+            hasUserPersona: true,
+            hasGmDirective: true,
+          },
         },
       },
     ])

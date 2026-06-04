@@ -257,10 +257,22 @@ function makeViewModel(): RuntimeInspectorViewModel {
             shortTermExchangeCount: 2,
             hasWorkingMemory: true,
             longTermFactCount: 1,
-            retrievalCounts: {
-              memory: 1,
-              world: 2,
-              media: 0,
+            retrieval: {
+              selectedCounts: {
+                memory: 1,
+                world: 2,
+                media: 0,
+              },
+              includedCounts: {
+                memory: 0,
+                world: 1,
+                media: 0,
+              },
+              excludedByVisibilityCounts: {
+                memory: 0,
+                world: 0,
+                media: 0,
+              },
             },
             hasUserPersona: false,
             hasGmDirective: true,
@@ -323,7 +335,10 @@ describe('buildGmImpactTrace', () => {
       },
     ])
     expect(first.avatarInput.join(' ')).toContain(
-      'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 3 retrieved references (1 memory / 2 world / 0 media), GM note included, no user persona',
+      'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 1 retrieved reference included (0 memory / 1 world / 0 media), GM note included, no user persona',
+    )
+    expect(first.avatarInput.join(' ')).toContain(
+      'Avatar retrieval assembly: 3 candidates found, 1 included in the final avatar input, 0 excluded by avatar visibility, 2 omitted during final assembly',
     )
     expect(first.errors).toEqual([])
     expect(first.status).toBe('applied')
