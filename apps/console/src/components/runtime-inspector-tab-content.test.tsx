@@ -555,6 +555,51 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('conversation_1')
     expect(html).toContain('tokens 30 (in 12 / out 18)')
   })
+
+  it('explains when retrieval candidates existed but were trimmed from the final context', () => {
+    const snapshot = makeViewModel()
+    delete snapshot.context.avatar.knowledge
+    delete snapshot.context.gm.knowledge
+    if (snapshot.context.trace) {
+      snapshot.context.trace.selectedInputs.retrievalCounts = { memory: 1, world: 2, media: 0 }
+      snapshot.context.trace.selection.trimmed = [
+        {
+          projection: 'avatar',
+          segmentId: 'typedRetrievalWorld',
+          tokenEstimate: 120,
+          reason: 'budget_exceeded',
+        },
+        {
+          projection: 'gm',
+          segmentId: 'typedRetrievalWorld',
+          tokenEstimate: 120,
+          reason: 'budget_exceeded',
+        },
+      ]
+    }
+
+    const html = renderToStaticMarkup(
+      <RuntimeInspectorTabContent
+        tab="context"
+        snapshot={snapshot}
+        memoryHistory={makeMemoryHistory(snapshot)}
+        liveEvents={[]}
+        actionStatus={null}
+        onReplayGm={vi.fn()}
+        onRefreshMemory={vi.fn()}
+        onClearMemory={vi.fn()}
+        onResetSession={vi.fn()}
+        onUpsertPersona={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    expect(html).toContain(
+      'Retrieval candidates existed for the avatar, but they were trimmed during context assembly.',
+    )
+    expect(html).toContain(
+      'Retrieval candidates existed for the gm, but they were trimmed during context assembly.',
+    )
+  })
 })
 
 describe('buildPersonaPayload', () => {

@@ -321,7 +321,7 @@ function renderMemoryEvolution(
 
 // eslint-disable-next-line complexity, max-lines-per-function
 function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
-  const avatarKnowledge = snapshot.context.avatar.knowledge?.retrievedItems ?? []
+  const avatarKnowledge = flattenAvatarKnowledge(snapshot.context.avatar.knowledge)
   const gmKnowledge = snapshot.context.gm.knowledge
   const gmKnowledgeItems = [
     ...(gmKnowledge?.memory ?? []),
@@ -343,6 +343,16 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
     ? 'true'
     : 'false'
   const traceVisibilityGmRetrieval = formatTraceVisibilityGmRetrievalCounts(trace)
+  const avatarRetrievalStatus = describeRetrievalStatus({
+    projection: 'avatar',
+    actualCount: avatarKnowledge.length,
+    trace,
+  })
+  const gmRetrievalStatus = describeRetrievalStatus({
+    projection: 'gm',
+    actualCount: gmKnowledgeItems.length,
+    trace,
+  })
 
   return (
     <div style={{ marginTop: '12px' }}>
@@ -407,7 +417,7 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
         </p>
       ))}
       {avatarKnowledge.length === 0 ? (
-        <p style={{ margin: '4px 0', color: '#6b7280' }}>No retrieval content was added for the avatar.</p>
+        <p style={{ margin: '4px 0', color: '#6b7280' }}>{avatarRetrievalStatus}</p>
       ) : (
         avatarKnowledge.map((item) => (
           <p key={`avatar-knowledge-${item.chunkId}`} style={{ margin: '4px 0', color: '#374151' }}>
@@ -443,7 +453,7 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
         </p>
       ))}
       {gmKnowledgeItems.length === 0 ? (
-        <p style={{ margin: '4px 0', color: '#6b7280' }}>No retrieval content was added for the GM.</p>
+        <p style={{ margin: '4px 0', color: '#6b7280' }}>{gmRetrievalStatus}</p>
       ) : (
         gmKnowledgeItems.map((item) => (
           <p key={`gm-knowledge-${item.chunkId}`} style={{ margin: '4px 0', color: '#374151' }}>
@@ -466,7 +476,60 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
 }
 
 type RetrievedKnowledgeItem =
-  NonNullable<RuntimeInspectorViewModel['context']['avatar']['knowledge']>['retrievedItems'][number]
+  NonNullable<
+    NonNullable<RuntimeInspectorViewModel['context']['avatar']['knowledge']>['typedSections']
+  >['world'][number]
+
+function flattenAvatarKnowledge(
+  knowledge: RuntimeInspectorViewModel['context']['avatar']['knowledge'],
+): RetrievedKnowledgeItem[] {
+  if (!knowledge) return []
+  if ('retrievedItems' in knowledge && Array.isArray(knowledge.retrievedItems)) {
+    return knowledge.retrievedItems
+  }
+  if (knowledge.typedSections !== undefined) {
+    return [
+      ...knowledge.typedSections.memory,
+      ...knowledge.typedSections.world,
+      ...knowledge.typedSections.media,
+    ]
+  }
+  return []
+}
+
+// eslint-disable-next-line complexity
+function describeRetrievalStatus(args: {
+  projection: 'avatar' | 'gm'
+  actualCount: number
+  trace: RuntimeInspectorViewModel['context']['trace']
+}): string {
+  if (args.actualCount > 0) return ''
+  const selectedCounts = args.trace?.selectedInputs.retrievalCounts
+  const selectedTotal =
+    (selectedCounts?.memory ?? 0) + (selectedCounts?.world ?? 0) + (selectedCounts?.media ?? 0)
+  if (selectedTotal === 0) {
+    return `No retrieval candidates were selected for the ${args.projection}.`
+  }
+
+  const trimmedSegments =
+    args.trace?.selection.trimmed.filter(
+      (entry) => entry.projection === args.projection && isRetrievalSegment(entry.segmentId),
+    ) ?? []
+
+  if (trimmedSegments.length > 0) {
+    return `Retrieval candidates existed for the ${args.projection}, but they were trimmed during context assembly.`
+  }
+
+  return `Retrieval candidates existed for the ${args.projection}, but none were included in the final assembled input.`
+}
+
+function isRetrievalSegment(segmentId: string): boolean {
+  return (
+    segmentId === 'typedRetrievalMemory' ||
+    segmentId === 'typedRetrievalWorld' ||
+    segmentId === 'typedRetrievalMedia'
+  )
+}
 
 function countKnowledgeSources(
   sources: RuntimeInspectorViewModel['knowledge']['sources'],
