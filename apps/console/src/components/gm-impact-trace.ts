@@ -296,21 +296,23 @@ function formatAvatarRetrievalAssembly(turnPayload: TurnCompletedEventPayload): 
   if (!retrieval) return null
 
   const selectedTotal =
-    retrieval.selectedCounts.memory +
-    retrieval.selectedCounts.world +
-    retrieval.selectedCounts.media
+    retrieval.selectedForAssemblyCounts.memory +
+    retrieval.selectedForAssemblyCounts.world +
+    retrieval.selectedForAssemblyCounts.media
   const includedTotal =
     retrieval.includedCounts.memory +
     retrieval.includedCounts.world +
     retrieval.includedCounts.media
+  const omittedCounts = retrieval.omittedByAssemblyCounts ?? { memory: 0, world: 0, media: 0 }
+  const omittedTotal = omittedCounts.memory + omittedCounts.world + omittedCounts.media
   const excludedCounts = retrieval.excludedByVisibilityCounts ?? { memory: 0, world: 0, media: 0 }
   const excludedTotal = excludedCounts.memory + excludedCounts.world + excludedCounts.media
 
   return [
-    `Avatar retrieval assembly: ${String(selectedTotal)} candidate${selectedTotal === 1 ? '' : 's'} found`,
+    `Avatar retrieval assembly: ${String(selectedTotal)} hit${selectedTotal === 1 ? '' : 's'} selected for assembly`,
     `${String(includedTotal)} included in the final avatar input`,
     `${String(excludedTotal)} excluded by avatar visibility`,
-    `${String(Math.max(0, selectedTotal - includedTotal - excludedTotal))} omitted during final assembly`,
+    `${String(omittedTotal)} omitted during final assembly`,
   ].join(', ')
 }
 

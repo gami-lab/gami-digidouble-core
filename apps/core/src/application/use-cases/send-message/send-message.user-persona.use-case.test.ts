@@ -420,8 +420,9 @@ describe('SendMessageUseCase — context selection observability', () => {
           hasWorkingMemory: boolean
           longTermFactCount: number
           retrieval?: {
-            selectedCounts: { memory: number; world: number; media: number }
+            selectedForAssemblyCounts: { memory: number; world: number; media: number }
             includedCounts: { memory: number; world: number; media: number }
+            omittedByAssemblyCounts?: { memory: number; world: number; media: number }
             excludedByVisibilityCounts?: { memory: number; world: number; media: number }
           }
           hasUserPersona: boolean
@@ -436,8 +437,9 @@ describe('SendMessageUseCase — context selection observability', () => {
       hasWorkingMemory: false,
       longTermFactCount: 0,
       retrieval: {
-        selectedCounts: { memory: 1, world: 0, media: 0 },
+        selectedForAssemblyCounts: { memory: 1, world: 0, media: 0 },
         includedCounts: { memory: 1, world: 0, media: 0 },
+        omittedByAssemblyCounts: { memory: 0, world: 0, media: 0 },
         excludedByVisibilityCounts: { memory: 0, world: 0, media: 0 },
       },
       hasUserPersona: true,

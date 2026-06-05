@@ -22,12 +22,17 @@ export function emitTurnCompletedEventNonBlocking(args: {
     hasWorkingMemory: boolean
     longTermFactCount: number
     retrieval?: {
-      selectedCounts: {
+      selectedForAssemblyCounts: {
         memory: number
         world: number
         media: number
       }
       includedCounts: {
+        memory: number
+        world: number
+        media: number
+      }
+      omittedByAssemblyCounts?: {
         memory: number
         world: number
         media: number

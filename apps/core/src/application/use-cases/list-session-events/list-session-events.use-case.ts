@@ -206,6 +206,7 @@ function readOptionalGmContextSnapshot(value: unknown): RecordedGmContextSnapsho
   }
 }
 
+// eslint-disable-next-line complexity
 function readOptionalContextSelection(
   value: unknown,
   avatarContext: RecordedAvatarContextSnapshot | undefined,
@@ -225,8 +226,25 @@ function readOptionalContextSelection(
       : retrievalCountsValue !== undefined
         ? {
             retrieval: {
-              selectedCounts: readRetrievalCounts(retrievalCountsValue),
+              selectedForAssemblyCounts: readRetrievalCounts(retrievalCountsValue),
               includedCounts: readIncludedRetrievalCounts(avatarContext),
+              omittedByAssemblyCounts: {
+                memory: Math.max(
+                  0,
+                  readNumber(retrievalCountsValue['memory']) -
+                    (avatarContext?.knowledge?.memory.length ?? 0),
+                ),
+                world: Math.max(
+                  0,
+                  readNumber(retrievalCountsValue['world']) -
+                    (avatarContext?.knowledge?.world.length ?? 0),
+                ),
+                media: Math.max(
+                  0,
+                  readNumber(retrievalCountsValue['media']) -
+                    (avatarContext?.knowledge?.media.length ?? 0),
+                ),
+              },
               ...(visibility !== undefined
                 ? { excludedByVisibilityCounts: visibility.excludedCounts }
                 : {}),
@@ -238,30 +256,46 @@ function readOptionalContextSelection(
   }
 }
 
+// eslint-disable-next-line complexity
 function readOptionalRetrievalSelection(
   value: unknown,
   avatarContext: RecordedAvatarContextSnapshot | undefined,
 ): NonNullable<TurnCompletedEventPayload['contextSelection']>['retrieval'] | undefined {
   if (!isRecord(value)) return undefined
-  const selectedCountsValue = isRecord(value['selectedCounts'])
-    ? value['selectedCounts']
-    : undefined
+  const selectedCountsValue = isRecord(value['selectedForAssemblyCounts'])
+    ? value['selectedForAssemblyCounts']
+    : isRecord(value['selectedCounts'])
+      ? value['selectedCounts']
+      : undefined
   const includedCountsValue = isRecord(value['includedCounts'])
     ? value['includedCounts']
+    : undefined
+  const omittedCountsValue = isRecord(value['omittedByAssemblyCounts'])
+    ? value['omittedByAssemblyCounts']
     : undefined
   const excludedCountsValue = isRecord(value['excludedByVisibilityCounts'])
     ? value['excludedByVisibilityCounts']
     : undefined
   if (selectedCountsValue === undefined && includedCountsValue === undefined) return undefined
+  const selectedForAssemblyCounts =
+    selectedCountsValue !== undefined
+      ? readRetrievalCounts(selectedCountsValue)
+      : { memory: 0, world: 0, media: 0 }
+  const includedCounts =
+    includedCountsValue !== undefined
+      ? readRetrievalCounts(includedCountsValue)
+      : readIncludedRetrievalCounts(avatarContext)
   return {
-    selectedCounts:
-      selectedCountsValue !== undefined
-        ? readRetrievalCounts(selectedCountsValue)
-        : { memory: 0, world: 0, media: 0 },
-    includedCounts:
-      includedCountsValue !== undefined
-        ? readRetrievalCounts(includedCountsValue)
-        : readIncludedRetrievalCounts(avatarContext),
+    selectedForAssemblyCounts,
+    includedCounts,
+    omittedByAssemblyCounts:
+      omittedCountsValue !== undefined
+        ? readRetrievalCounts(omittedCountsValue)
+        : {
+            memory: Math.max(0, selectedForAssemblyCounts.memory - includedCounts.memory),
+            world: Math.max(0, selectedForAssemblyCounts.world - includedCounts.world),
+            media: Math.max(0, selectedForAssemblyCounts.media - includedCounts.media),
+          },
     ...(excludedCountsValue !== undefined
       ? { excludedByVisibilityCounts: readRetrievalCounts(excludedCountsValue) }
       : {}),

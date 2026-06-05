@@ -447,13 +447,18 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
             hasWorkingMemory: true,
             longTermFactCount: 1,
             retrieval: {
-              selectedCounts: {
+              selectedForAssemblyCounts: {
                 memory: 3,
                 world: 2,
                 media: 0,
               },
               includedCounts: {
                 memory: 0,
+                world: 1,
+                media: 0,
+              },
+              omittedByAssemblyCounts: {
+                memory: 3,
                 world: 1,
                 media: 0,
               },
