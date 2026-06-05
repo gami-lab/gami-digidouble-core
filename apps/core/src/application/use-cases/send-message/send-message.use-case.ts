@@ -31,6 +31,10 @@ import {
 } from '../../services/model-resolution-runtime.service.js'
 import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import {
+  buildTypedRetrievalQueries,
+  flattenTypedRetrievalQueries,
+} from '../../services/knowledge/typed-retrieval-query-builder.js'
+import {
   DEFAULT_IMPLICIT_END_POLICY,
   type ImplicitEndPolicy,
 } from '../../services/implicit-end-detection.service.js'
@@ -248,16 +252,23 @@ export class SendMessageUseCase {
       selectedMemory !== undefined
         ? this.getMemorySelectionService().toAvatarMemorySnapshot(selectedMemory)
         : undefined
+    const retrievalQueries = buildTypedRetrievalQueries({
+      gmGuideline: args.session.gmNotes,
+      lastUserInput: args.userMessage,
+      memory,
+    })
     const retrievalStartMs = Date.now()
     const retrieval = await this.loadTypedRetrieval(
       args.session,
       args.conversation.conversationId,
       args.conversation.avatarId,
+      retrievalQueries,
     )
     const retrievalForGm = await this.loadTypedRetrieval(
       args.session,
       args.conversation.conversationId,
       undefined,
+      retrievalQueries,
       true,
     )
     const retrievalLatencyMs = Date.now() - retrievalStartMs
@@ -314,20 +325,11 @@ export class SendMessageUseCase {
     session: Session,
     conversationId: string,
     avatarId: string | undefined,
+    queries: ReturnType<typeof buildTypedRetrievalQueries>,
     bypassVisibilityFilter = false,
   ) {
     if (this.typedRetrievalService === undefined) return undefined
-    const recentMessages = await this.messageRepository.findByConversationId(conversationId, {
-      limit: 12,
-    })
-    const query = recentMessages
-      .slice()
-      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-      .filter((message) => message.role === 'user')
-      .slice(-2)
-      .map((message) => message.content.trim())
-      .join(' ')
-      .trim()
+    const query = flattenTypedRetrievalQueries(queries)
     if (!hasText(query)) return undefined
 
     return this.typedRetrievalService.retrieve({
@@ -338,6 +340,7 @@ export class SendMessageUseCase {
       ...(avatarId !== undefined ? { activeAvatarId: avatarId } : {}),
       ...(bypassVisibilityFilter ? { bypassVisibilityFilter: true } : {}),
       query,
+      queries,
       limitPerType: 3,
     })
   }

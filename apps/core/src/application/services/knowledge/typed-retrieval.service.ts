@@ -6,6 +6,7 @@ import type {
   RetrievedKnowledgeItem,
   TypedRetrievalResult,
 } from '../../../domain/knowledge/knowledge.types.js'
+import type { TypedRetrievalQueryVariant } from './typed-retrieval-query-builder.js'
 
 const DEFAULT_LIMIT_PER_TYPE = 3
 
@@ -17,6 +18,7 @@ export type TypedRetrievalInput = {
   activeAvatarId?: string
   bypassVisibilityFilter?: boolean
   query: string
+  queries?: TypedRetrievalQueryVariant[]
   limitPerType?: number
 }
 
@@ -28,9 +30,10 @@ export class TypedRetrievalService {
 
   async retrieve(input: TypedRetrievalInput): Promise<TypedRetrievalResult> {
     const limit = Math.max(1, input.limitPerType ?? DEFAULT_LIMIT_PER_TYPE)
-    const memory = await this.retrieveByType('memory', input, limit)
-    const world = await this.retrieveByType('world', input, limit)
-    const media = await this.retrieveByType('media', input, limit)
+    const queries = normalizeQueries(input)
+    const memory = await this.retrieveByType('memory', input, queries, limit)
+    const world = await this.retrieveByType('world', input, queries, limit)
+    const media = await this.retrieveByType('media', input, queries, limit)
 
     return {
       memory: memory.items,
@@ -59,7 +62,12 @@ export class TypedRetrievalService {
     }
   }
 
-  private async retrieveByType(type: KnowledgeType, input: TypedRetrievalInput, limit: number) {
+  private async retrieveByType(
+    type: KnowledgeType,
+    input: TypedRetrievalInput,
+    queries: TypedRetrievalQueryVariant[],
+    limit: number,
+  ) {
     const sources = await this.sourceRepository.listByScenario({
       scenarioId: input.scenarioId,
       knowledgeType: type,
@@ -97,20 +105,33 @@ export class TypedRetrievalService {
         : avatarVisibleChunks
 
     const scored = scopedChunks
-      .map((chunk) => ({ chunk, score: scoreChunk(type, chunk, input.query, input) }))
+      .flatMap((chunk) =>
+        queries.map((query, queryIndex) => ({
+          chunk,
+          query,
+          queryIndex,
+          score: scoreChunk(type, chunk, query.text, input),
+        })),
+      )
       .filter((entry) => entry.score > 0)
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score
+        if (a.queryIndex !== b.queryIndex) return a.queryIndex - b.queryIndex
         if (a.chunk.sourceId !== b.chunk.sourceId)
           return a.chunk.sourceId.localeCompare(b.chunk.sourceId)
         return a.chunk.chunkIndex - b.chunk.chunkIndex
       })
-      .slice(0, limit)
+    const selected = takeTopUniqueChunks(scored, limit)
 
     return {
       sourceIds,
-      items: scored.map((entry) =>
-        toRetrievedItem(type, entry.chunk, entry.score, explainScore(type, entry.chunk, input)),
+      items: selected.map((entry) =>
+        toRetrievedItem(
+          type,
+          entry.chunk,
+          entry.score,
+          explainScore(type, entry.chunk, entry.query, input),
+        ),
       ),
       visibility: {
         ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
@@ -119,6 +140,14 @@ export class TypedRetrievalService {
       },
     }
   }
+}
+
+function normalizeQueries(input: TypedRetrievalInput): TypedRetrievalQueryVariant[] {
+  const queries = input.queries?.filter((query) => query.text.trim().length > 0) ?? []
+  if (queries.length > 0) return queries
+
+  const query = input.query.trim()
+  return query.length > 0 ? [{ source: 'direct_query', text: query }] : []
 }
 
 function isAvatarVisible(
@@ -223,10 +252,12 @@ function scoreChunk(
 function explainScore(
   type: KnowledgeType,
   chunk: KnowledgeChunk,
+  query: TypedRetrievalQueryVariant,
   input: TypedRetrievalInput,
 ): string {
+  const queryReason = query.source.replaceAll('_', '-')
   if (type === 'memory') {
-    const reasons: string[] = ['token-overlap']
+    const reasons: string[] = [queryReason, 'token-overlap']
     if (metadataEquals(chunk.metadata, 'userId', input.userId)) reasons.push('user-match')
     if (metadataEquals(chunk.metadata, 'sessionId', input.sessionId)) reasons.push('session-match')
     if (metadataEquals(chunk.metadata, 'conversationId', input.conversationId)) {
@@ -234,10 +265,10 @@ function explainScore(
     }
     return reasons.join('+')
   }
-  if (type === 'media' && metadataTokenBoost(chunk.metadata, 'tags', input.query, 0.1) > 0) {
-    return 'token-overlap+tag-match'
+  if (type === 'media' && metadataTokenBoost(chunk.metadata, 'tags', query.text, 0.1) > 0) {
+    return `${queryReason}+token-overlap+tag-match`
   }
-  return 'token-overlap'
+  return `${queryReason}+token-overlap`
 }
 
 function overlapScore(query: string, content: string): number {
@@ -296,4 +327,21 @@ function tokenize(text: string): string[] {
     .split(/[^a-z0-9]+/g)
     .map((token) => token.trim())
     .filter((token) => token.length >= 2)
+}
+
+function takeTopUniqueChunks<T extends { chunk: KnowledgeChunk }>(
+  entries: T[],
+  limit: number,
+): T[] {
+  const selected: T[] = []
+  const seenChunkIds = new Set<string>()
+
+  for (const entry of entries) {
+    if (seenChunkIds.has(entry.chunk.chunkId)) continue
+    seenChunkIds.add(entry.chunk.chunkId)
+    selected.push(entry)
+    if (selected.length >= limit) break
+  }
+
+  return selected
 }

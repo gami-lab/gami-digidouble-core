@@ -209,4 +209,62 @@ describe('TypedRetrievalService', () => {
     expect(forAvatarTwo.trace.perType.world.visibility?.activeAvatarId).toBe('avatar_2')
     expect(forAvatarTwo.trace.perType.world.visibility?.excludedChunkCount).toBe(1)
   })
+
+  it('ranks unique matches across GM, user, and working-memory queries', async () => {
+    const sourceRepo = new InMemoryKnowledgeSourceRepository()
+    const chunkRepo = new InMemoryKnowledgeChunkRepository()
+
+    const world = await sourceRepo.create({
+      scenarioId: 'scenario_1',
+      name: 'World source',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/world.md',
+    })
+    await sourceRepo.updateStatus(world.sourceId, 'ready')
+
+    await chunkRepo.create({
+      sourceId: world.sourceId,
+      chunkIndex: 0,
+      content: 'harbor protocol checklist',
+    })
+    await chunkRepo.create({
+      sourceId: world.sourceId,
+      chunkIndex: 1,
+      content: 'dock before storm tide',
+    })
+    await chunkRepo.create({
+      sourceId: world.sourceId,
+      chunkIndex: 2,
+      content: 'concise operational guidance chart rope',
+    })
+    await chunkRepo.create({
+      sourceId: world.sourceId,
+      chunkIndex: 3,
+      content: 'harbor storm rope',
+    })
+
+    const service = new TypedRetrievalService(sourceRepo, chunkRepo)
+    const result = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query:
+        'Follow harbor protocol. | What should I do before the storm tide? | concise operational guidance rope',
+      queries: [
+        { source: 'gm_guideline', text: 'Follow harbor protocol.' },
+        { source: 'last_user_input', text: 'What should I do before the storm tide?' },
+        { source: 'working_memory', text: 'concise operational guidance rope' },
+      ],
+      limitPerType: 3,
+    })
+
+    expect(result.world).toHaveLength(3)
+    expect(result.world.map((item) => item.content)).toEqual([
+      'concise operational guidance chart rope',
+      'harbor protocol checklist',
+      'dock before storm tide',
+    ])
+    expect(result.world[0]?.reason).toContain('working-memory')
+    expect(result.world[1]?.reason).toContain('gm-guideline')
+    expect(result.world[2]?.reason).toContain('last-user-input')
+  })
 })

@@ -12,6 +12,10 @@ import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
 import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
+import {
+  buildTypedRetrievalQueries,
+  flattenTypedRetrievalQueries,
+} from '../../services/knowledge/typed-retrieval-query-builder.js'
 import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master.avatar-unlocks.js'
 import type {
   GetSessionContextInput,
@@ -96,12 +100,17 @@ export class GetSessionContextUseCase {
       activeConversation?.conversationId,
     )
     const recentMessages = await this.loadContextRecentMessages(activeConversation?.conversationId)
+    const retrievalQueries = buildTypedRetrievalQueries({
+      gmGuideline: session.gmNotes,
+      lastUserInput: lastUserInputFromRecentMessages(recentMessages),
+      memory: memorySnapshot,
+    })
     const retrieval = await this.loadTypedRetrieval(
       session,
-      recentMessages,
+      retrievalQueries,
       activeConversation?.avatarId,
     )
-    const retrievalForGm = await this.loadTypedRetrieval(session, recentMessages, undefined, true)
+    const retrievalForGm = await this.loadTypedRetrieval(session, retrievalQueries, undefined, true)
 
     return {
       scenario,
@@ -144,12 +153,12 @@ export class GetSessionContextUseCase {
 
   private async loadTypedRetrieval(
     session: Session,
-    recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
+    queries: ReturnType<typeof buildTypedRetrievalQueries>,
     activeAvatarId: string | undefined,
     bypassVisibilityFilter = false,
   ) {
     if (this.typedRetrievalService === undefined) return undefined
-    const query = buildRetrievalQuery(recentMessages)
+    const query = flattenTypedRetrievalQueries(queries)
     if (query.length === 0) return undefined
 
     return this.typedRetrievalService.retrieve({
@@ -159,6 +168,7 @@ export class GetSessionContextUseCase {
       ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
       ...(bypassVisibilityFilter ? { bypassVisibilityFilter: true } : {}),
       query,
+      queries,
       limitPerType: 3,
     })
   }
@@ -185,15 +195,13 @@ export class GetSessionContextUseCase {
   }
 }
 
-function buildRetrievalQuery(
+function lastUserInputFromRecentMessages(
   recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
-): string {
-  const userMessages = recentMessages.filter((message) => message.role === 'user')
-  return userMessages
-    .slice(-2)
-    .map((message) => message.content.trim())
-    .join(' ')
-    .trim()
+): string | undefined {
+  return recentMessages
+    .filter((message) => message.role === 'user')
+    .at(-1)
+    ?.content.trim()
 }
 
 function toScenarioSnapshot(session: Session, scenario: Scenario | null) {
