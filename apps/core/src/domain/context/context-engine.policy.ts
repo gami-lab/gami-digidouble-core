@@ -23,8 +23,8 @@ export type ContextEnginePolicy = {
 
 export const DEFAULT_CONTEXT_ENGINE_POLICY: ContextEnginePolicy = {
   tokenBudget: {
-    avatarMaxTokens: 800,
-    gmMaxTokens: 900,
+    avatarMaxTokens: 4096,
+    gmMaxTokens: 4096,
   },
   protectedSegments: ['gmDirective', 'scenario'],
   precedence: [
