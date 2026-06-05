@@ -38,6 +38,11 @@ export interface GameMasterInput {
       goals?: string[]
     }
     memory?: GameMasterMemoryContext
+    rag?: {
+      memory?: Array<{ sourceId: string; excerpt: string }>
+      world?: Array<{ sourceId: string; excerpt: string }>
+      media?: Array<{ sourceId: string; excerpt: string }>
+    }
     userPersona?: UserPersona
     availableAvatars: Array<{
       avatarId: string

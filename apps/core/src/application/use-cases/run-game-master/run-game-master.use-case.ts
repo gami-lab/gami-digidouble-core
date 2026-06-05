@@ -381,6 +381,10 @@ export class RunGameMasterUseCase {
               : {}),
           },
           ...(memory !== undefined ? { memory } : {}),
+          ...(() => {
+            const rag = toGameMasterRagContext(assembledGmContext.knowledge)
+            return rag !== undefined ? { rag } : {}
+          })(),
           ...(assembledGmContext.userPersona !== null
             ? { userPersona: assembledGmContext.userPersona }
             : {}),
@@ -609,6 +613,33 @@ export class RunGameMasterUseCase {
       console.warn('[GM] Runtime event emission failed:', error)
     }
   }
+}
+
+function toGameMasterRagContext(
+  knowledge:
+    | {
+        memory: Array<{ sourceId: string; content: string }>
+        world: Array<{ sourceId: string; content: string }>
+        media: Array<{ sourceId: string; content: string }>
+      }
+    | undefined,
+): GameMasterInput['context']['rag'] | undefined {
+  if (knowledge === undefined) return undefined
+
+  const rag = {
+    ...(knowledge.memory.length > 0 ? { memory: toRagEntries(knowledge.memory) } : {}),
+    ...(knowledge.world.length > 0 ? { world: toRagEntries(knowledge.world) } : {}),
+    ...(knowledge.media.length > 0 ? { media: toRagEntries(knowledge.media) } : {}),
+  }
+
+  return Object.keys(rag).length > 0 ? rag : undefined
+}
+
+function toRagEntries(items: Array<{ sourceId: string; content: string }>) {
+  return items.map((item) => ({
+    sourceId: item.sourceId,
+    excerpt: item.content,
+  }))
 }
 
 function hasText(value: unknown): value is string {
