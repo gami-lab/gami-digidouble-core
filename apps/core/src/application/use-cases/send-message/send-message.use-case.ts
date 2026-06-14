@@ -31,7 +31,7 @@ import {
 } from '../../services/model-resolution-runtime.service.js'
 import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import {
-  buildTypedRetrievalQueries,
+  buildAvatarTypedRetrievalQueries,
   flattenTypedRetrievalQueries,
 } from '../../services/knowledge/typed-retrieval-query-builder.js'
 import {
@@ -170,7 +170,6 @@ export class SendMessageUseCase {
       userMessage: input.userMessage,
       turnIndex: nextTurnIndex,
       userPersona,
-      assembledContext,
       ...(selectedMemory !== undefined ? { selectedMemory } : {}),
     })
 
@@ -226,6 +225,7 @@ export class SendMessageUseCase {
     return output
   }
 
+  // eslint-disable-next-line complexity
   private async buildTurnPromptContext(args: {
     session: Session
     conversation: Conversation
@@ -252,10 +252,11 @@ export class SendMessageUseCase {
       selectedMemory !== undefined
         ? this.getMemorySelectionService().toAvatarMemorySnapshot(selectedMemory)
         : undefined
-    const retrievalQueries = buildTypedRetrievalQueries({
+    const retrievalQueries = buildAvatarTypedRetrievalQueries({
       gmGuideline: args.session.gmNotes,
       lastUserInput: args.userMessage,
-      memory,
+      workingMemorySummary: memory?.working?.avatar?.summary ?? memory?.working?.session?.summary,
+      recentExchanges: memory?.shortTerm?.recentExchanges,
     })
     const retrievalStartMs = Date.now()
     const retrieval = await this.loadTypedRetrieval(
@@ -263,13 +264,6 @@ export class SendMessageUseCase {
       args.conversation.conversationId,
       args.conversation.avatarId,
       retrievalQueries,
-    )
-    const retrievalForGm = await this.loadTypedRetrieval(
-      args.session,
-      args.conversation.conversationId,
-      undefined,
-      retrievalQueries,
-      true,
     )
     const retrievalLatencyMs = Date.now() - retrievalStartMs
     const assembledContext = this.contextAssembler.assemble({
@@ -286,7 +280,6 @@ export class SendMessageUseCase {
       extensions: {
         memory,
         retrieval,
-        ...(retrievalForGm !== undefined ? { retrievalForGm } : {}),
         userPersona: userPersona ?? null,
         gmDirective: args.session.gmNotes ?? null,
       },
@@ -308,6 +301,9 @@ export class SendMessageUseCase {
         const snapshot = toLayeredSnapshotFromAvatarContext(assembledContext)
         return snapshot !== undefined ? { memory: snapshot } : {}
       })(),
+      ...(assembledContext.avatar.scenario.description !== undefined
+        ? { worldContext: assembledContext.avatar.scenario.description }
+        : {}),
       ...(assembledContext.avatar.knowledge?.typedSections !== undefined
         ? { retrieval: assembledContext.avatar.knowledge.typedSections }
         : {}),
@@ -325,7 +321,7 @@ export class SendMessageUseCase {
     session: Session,
     conversationId: string,
     avatarId: string | undefined,
-    queries: ReturnType<typeof buildTypedRetrievalQueries>,
+    queries: ReturnType<typeof buildAvatarTypedRetrievalQueries>,
     bypassVisibilityFilter = false,
   ) {
     if (this.typedRetrievalService === undefined) return undefined
@@ -354,7 +350,6 @@ export class SendMessageUseCase {
     userMessage: string
     turnIndex: number
     userPersona: UserPersona | undefined
-    assembledContext: ContextEngineOutput
     selectedMemory?: SelectedMemoryPayload
   }): void {
     this.dispatchRunGameMaster(args)
@@ -370,7 +365,6 @@ export class SendMessageUseCase {
     userMessage: string
     turnIndex: number
     userPersona: UserPersona | undefined
-    assembledContext: ContextEngineOutput
     selectedMemory?: SelectedMemoryPayload
   }): void {
     if (this.runGameMasterUseCase === null) return
@@ -384,7 +378,6 @@ export class SendMessageUseCase {
         turnIndex: args.turnIndex,
         correlationId: args.requestId,
         ...(args.userPersona !== undefined ? { userPersona: args.userPersona } : {}),
-        assembledContext: args.assembledContext,
         ...(args.selectedMemory !== undefined ? { selectedMemory: args.selectedMemory } : {}),
       })
       .catch((err: unknown) => {

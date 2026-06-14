@@ -96,30 +96,13 @@ function makeViewModel(): RuntimeInspectorViewModel {
       ],
     },
     context: {
-      avatar: {
-        recentExchanges: [],
-        workingMemory: {},
-        longTermFacts: [],
-        userPersona: null,
-        gmNotes: null,
-        scenario: { scenarioId: 'scenario_1' },
-      },
-      gm: {
-        recentMessages: [],
-        memory: {},
-        currentState: {
-          progression: 'intro',
-          topicsCovered: [],
-          interactionCount: 1,
-        },
-        availableAvatars: [
-          { avatarId: 'avatar_1', name: 'Clara Whitcombe', availability: 'available' },
-          { avatarId: 'avatar_2', name: 'Theo', availability: 'available' },
-        ],
-        userPersona: null,
-        scenario: { scenarioId: 'scenario_1' },
-      },
-      trace: undefined,
+      sessionId: 'session_1',
+      avatarPrompt: 'You are Clara.',
+      worldContext: 'Scenario world',
+      worldObjectives: ['Find the culprit'],
+      gmInstruction: null,
+      workingMemory: null,
+      currentExchanges: [],
     },
     persona: null,
     recentEvents: [

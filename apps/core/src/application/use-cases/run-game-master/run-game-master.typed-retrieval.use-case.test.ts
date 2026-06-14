@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
-import type { ContextEngineOutput } from '../../../domain/context/context-engine.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
@@ -12,6 +11,8 @@ const listAvatarsByScenarioIdMock = vi.fn()
 const completeMock = vi.fn()
 const traceMock = vi.fn()
 const findScenarioByIdMock = vi.fn()
+const findMessagesByConversationIdMock = vi.fn()
+const retrieveTypedContextMock = vi.fn()
 
 const gmStateRepository = { findBySessionId: findBySessionIdMock, save: saveGmStateMock }
 const sessionRepository = {
@@ -39,6 +40,17 @@ const scenarioRepository = {
 }
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
+const messageRepository = {
+  create: vi.fn(),
+  save: vi.fn(),
+  findByConversationId: findMessagesByConversationIdMock,
+  findById: vi.fn(),
+  deleteByConversationId: vi.fn(),
+}
+const memorySelectionService = {
+  select: vi.fn(),
+  toGameMasterMemoryContext: vi.fn(),
+}
 
 function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
   return {
@@ -72,83 +84,16 @@ function createUseCase(): RunGameMasterUseCase {
     llm,
     observability,
     scenarioRepository,
+    undefined,
+    undefined,
+    messageRepository,
+    undefined,
+    memorySelectionService as never,
+    { retrieve: retrieveTypedContextMock } as never,
   )
 }
 
-function makeAssembledContext(): ContextEngineOutput {
-  return {
-    avatar: {
-      avatarId: 'avatar_1',
-      recentExchanges: [],
-      workingMemory: {},
-      longTermFacts: [],
-      userPersona: null,
-      gmNotes: null,
-      scenario: { scenarioId: 'scenario_1' },
-    },
-    gm: {
-      recentMessages: [{ role: 'user', content: 'What happened at the harbor?' }],
-      memory: {},
-      knowledge: {
-        memory: [
-          {
-            sourceId: 'memory_source_1',
-            chunkId: 'memory_chunk_1',
-            knowledgeType: 'memory',
-            content: 'The witness already shared a timeline contradiction.',
-          },
-        ],
-        world: [
-          {
-            sourceId: 'world_source_1',
-            chunkId: 'world_chunk_1',
-            knowledgeType: 'world',
-            content: 'Storm tide starts at dusk near the harbor.',
-          },
-        ],
-        media: [
-          {
-            sourceId: 'media_source_1',
-            chunkId: 'media_chunk_1',
-            knowledgeType: 'media',
-            content: 'Harbor map with dock markers.',
-          },
-        ],
-      },
-      currentState: makeState(),
-      availableAvatars: [{ avatarId: 'avatar_1', name: 'Ava' }],
-      userPersona: null,
-      scenario: { scenarioId: 'scenario_1' },
-    },
-    trace: {
-      deterministic: true,
-      policy: {
-        tokenBudget: { avatarMaxTokens: 100, gmMaxTokens: 100 },
-        protectedSegments: [],
-        precedence: [],
-      },
-      selectedInputs: {
-        hasActiveAvatar: true,
-        recentMessageCount: 1,
-        shortTermExchangeCount: 0,
-        hasWorkingMemory: false,
-        longTermFactCount: 0,
-        retrievalCounts: { memory: 0, world: 0, media: 0 },
-        hasUserPersona: false,
-        hasGmDirective: false,
-      },
-      rationale: {
-        avatarProjection: [],
-        gmProjection: [],
-      },
-      selection: {
-        kept: [],
-        trimmed: [],
-      },
-    },
-  }
-}
-
+// eslint-disable-next-line max-lines-per-function
 beforeEach(() => {
   findBySessionIdMock.mockReset()
   saveGmStateMock.mockReset()
@@ -158,6 +103,10 @@ beforeEach(() => {
   completeMock.mockReset()
   traceMock.mockReset()
   findScenarioByIdMock.mockReset()
+  findMessagesByConversationIdMock.mockReset()
+  retrieveTypedContextMock.mockReset()
+  memorySelectionService.select.mockReset()
+  memorySelectionService.toGameMasterMemoryContext.mockReset()
 
   findBySessionIdMock.mockResolvedValue(makeState())
   saveGmStateMock.mockResolvedValue(undefined)
@@ -176,9 +125,72 @@ beforeEach(() => {
     scenarioId: 'scenario_1',
     name: 'Scenario',
     status: 'active',
-    config: {},
+    config: {
+      worldContext: 'Storm tide starts at dusk near the harbor.',
+    },
     createdAt: '2026-04-18T10:00:00.000Z',
     updatedAt: '2026-04-18T10:00:00.000Z',
+  })
+  findMessagesByConversationIdMock.mockResolvedValue([
+    {
+      role: 'user',
+      content: 'What happened at the harbor?',
+      createdAt: '2026-04-18T10:00:00.000Z',
+    },
+    { role: 'avatar', content: 'The docks are crowded.', createdAt: '2026-04-18T10:00:01.000Z' },
+  ])
+  memorySelectionService.select.mockResolvedValue({
+    shortTermExchanges: [
+      { user: 'What happened at the harbor?', avatar: 'The docks are crowded.' },
+    ],
+    workingMemory: {
+      summary: 'The witness already shared a timeline contradiction.',
+      unresolvedThreads: [],
+      updatedAt: '2026-04-18T09:59:00.000Z',
+      selectionReasons: ['working_memory', 'continuity'],
+    },
+    episodicMemories: [],
+    longTermFacts: [],
+  })
+  memorySelectionService.toGameMasterMemoryContext.mockReturnValue({
+    workingMemory: {
+      summary: 'The witness already shared a timeline contradiction.',
+      unresolvedThreads: [],
+    },
+  })
+  retrieveTypedContextMock.mockResolvedValue({
+    memory: [
+      {
+        sourceId: 'memory_source_1',
+        chunkId: 'memory_chunk_1',
+        knowledgeType: 'memory',
+        content: 'The witness already shared a timeline contradiction.',
+      },
+    ],
+    world: [
+      {
+        sourceId: 'world_source_1',
+        chunkId: 'world_chunk_1',
+        knowledgeType: 'world',
+        content: 'Storm tide starts at dusk near the harbor.',
+      },
+    ],
+    media: [
+      {
+        sourceId: 'media_source_1',
+        chunkId: 'media_chunk_1',
+        knowledgeType: 'media',
+        content: 'Harbor map with dock markers.',
+      },
+    ],
+    trace: {
+      query: 'q',
+      perType: {
+        memory: { sourceIds: [], selectedChunkIds: [] },
+        world: { sourceIds: [], selectedChunkIds: [] },
+        media: { sourceIds: [], selectedChunkIds: [] },
+      },
+    },
   })
   completeMock.mockResolvedValue({
     content: JSON.stringify({
@@ -195,18 +207,36 @@ beforeEach(() => {
 })
 
 describe('RunGameMasterUseCase typed retrieval input', () => {
-  it('injects GM retrieval context into the GM prompt payload when assembled context includes knowledge', async () => {
+  it('builds GM retrieval from world context plus current exchanges and injects it into the prompt payload', async () => {
     const useCase = createUseCase()
 
     await useCase.execute({
       sessionId: 'session_1',
       scenarioId: 'scenario_1',
       avatarId: 'avatar_1',
+      conversationId: 'conversation_1',
       userMessageText: 'hello',
       turnIndex: 2,
       correlationId: 'request_gm_rag',
-      assembledContext: makeAssembledContext(),
     })
+
+    expect(retrieveTypedContextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query:
+          'Storm tide starts at dusk near the harbor. | The witness already shared a timeline contradiction. User: What happened at the harbor? Avatar: The docks are crowded.',
+        queries: [
+          {
+            source: 'world_context',
+            text: 'Storm tide starts at dusk near the harbor.',
+          },
+          {
+            source: 'working_memory',
+            text: 'The witness already shared a timeline contradiction. User: What happened at the harbor? Avatar: The docks are crowded.',
+          },
+        ],
+        bypassVisibilityFilter: true,
+      }),
+    )
 
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
     const gmInput = JSON.parse(request.messages[0]?.content ?? '{}') as {

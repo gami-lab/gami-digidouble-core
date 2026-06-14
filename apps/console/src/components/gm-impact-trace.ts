@@ -211,13 +211,13 @@ function toTraceEntry(
 function buildAvatarNameById(snapshot: RuntimeInspectorViewModel): Map<string, string> {
   const avatarNameById = new Map<string, string>()
 
-  for (const avatar of snapshot.context.gm.availableAvatars) {
-    avatarNameById.set(avatar.avatarId, avatar.name)
-  }
-
   for (const event of snapshot.recentEvents) {
     if (event.type !== 'gm_triggered') continue
     if (!isGmPayload(event.payload)) continue
+    const availableAvatars = event.payload.gmContext?.availableAvatars ?? []
+    for (const avatar of availableAvatars) {
+      avatarNameById.set(avatar.avatarId, avatar.name)
+    }
     const unlockEvaluations = event.payload.decision?.unlockEvaluations ?? []
     for (const unlock of unlockEvaluations) {
       avatarNameById.set(unlock.avatarId, unlock.avatarName)

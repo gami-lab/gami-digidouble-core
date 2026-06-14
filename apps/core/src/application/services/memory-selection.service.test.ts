@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { MemorySelectionService } from './memory-selection.service.js'
 
+// eslint-disable-next-line max-lines-per-function
 describe('MemorySelectionService', () => {
   it('selects bounded episodic memories with deterministic reasons', async () => {
     const service = new MemorySelectionService(
@@ -104,5 +105,65 @@ describe('MemorySelectionService', () => {
     })
 
     expect(selected.workingMemory).toBeUndefined()
+  })
+
+  it('keeps only exchanges after the working-memory update with a one-exchange fallback', async () => {
+    const service = new MemorySelectionService(
+      {
+        findByConversationId: vi.fn().mockResolvedValue([
+          {
+            conversationId: 'conversation_active',
+            role: 'user',
+            content: 'q1',
+            createdAt: '2026-05-08T09:00:00.000Z',
+          },
+          {
+            conversationId: 'conversation_active',
+            role: 'avatar',
+            content: 'a1',
+            createdAt: '2026-05-08T09:00:01.000Z',
+          },
+          {
+            conversationId: 'conversation_active',
+            role: 'user',
+            content: 'q2',
+            createdAt: '2026-05-08T09:00:02.000Z',
+          },
+          {
+            conversationId: 'conversation_active',
+            role: 'avatar',
+            content: 'a2',
+            createdAt: '2026-05-08T09:00:03.000Z',
+          },
+        ]),
+      } as never,
+      {
+        findByConversationId: vi.fn().mockResolvedValue({
+          conversationId: 'conversation_active',
+          sessionId: 'session_1',
+          avatarId: 'avatar_1',
+          summary: 'Working summary',
+          unresolvedThreads: [],
+          candidateFacts: [],
+          updatedAt: '2026-05-08T09:00:01.500Z',
+        }),
+      } as never,
+      {
+        listByScope: vi.fn().mockResolvedValue([]),
+      } as never,
+      {
+        findByUserId: vi.fn().mockResolvedValue([]),
+      } as never,
+    )
+
+    const selected = await service.select({
+      conversationId: 'conversation_active',
+      userId: 'user_1',
+      avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
+      userMessageText: 'Tell me more.',
+    })
+
+    expect(selected.shortTermExchanges).toEqual([{ user: 'q2', avatar: 'a2' }])
   })
 })

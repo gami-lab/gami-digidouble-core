@@ -13,7 +13,6 @@ import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
-import { ContextEngine } from '../../../domain/context/context-engine.service.js'
 import type { ContextScenarioSnapshot } from '../../../domain/context/session-context.types.js'
 import { buildGameMasterSystemPrompt } from '../../../domain/game-master/gm-prompt.service.js'
 import { reduceGmState } from '../../../domain/game-master/gm-state-reducer.js'
@@ -30,12 +29,9 @@ import {
   resolveRoleLlmCall,
 } from '../../services/model-resolution-runtime.service.js'
 import { safeParseGameMasterOutput } from './run-game-master.helpers.js'
-import {
-  normalizeGameMasterOutput,
-  toRecentExchangeMessages,
-} from './run-game-master.normalization.js'
+import { normalizeGameMasterOutput } from './run-game-master.normalization.js'
 import { type UnlockEvaluation, resolveAvatarUnlocks } from './run-game-master.avatar-unlocks.js'
-import { resolveAssembledGmContext } from './run-game-master.context-engine.js'
+import { buildGmContextSnapshot } from './run-game-master.context-engine.js'
 import {
   emitGameMasterError,
   emitTriggeredGameMasterTurn,
@@ -44,6 +40,12 @@ import {
 } from './run-game-master.events.js'
 import type { ModelConfig } from '../../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../../infrastructure/llm/llm-adapter-registry.js'
+import { selectExchangeMessageWindow } from '../../services/conversation-exchange-window.js'
+import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
+import {
+  buildGameMasterTypedRetrievalQueries,
+  flattenTypedRetrievalQueries,
+} from '../../services/knowledge/typed-retrieval-query-builder.js'
 
 const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
   progression: '',
@@ -71,7 +73,7 @@ export class RunGameMasterUseCase {
     private readonly messageRepository?: IMessageRepository,
     private readonly sessionEventPublisher?: ISessionEventPublisher,
     private readonly memorySelectionService?: MemorySelectionService,
-    private readonly contextEngine: ContextEngine = new ContextEngine(),
+    private readonly typedRetrievalService?: TypedRetrievalService,
     private readonly modelConfigRepository?: IModelConfigRepository,
     private readonly llmAdapterRegistry?: LlmAdapterRegistry,
     private readonly modelConfigFallback?: ModelConfig,
@@ -343,23 +345,52 @@ export class RunGameMasterUseCase {
     scenarioAvatars: AvatarConfig[],
   ): Promise<{
     gmInput: GameMasterInput
-    assembledGmContext: ReturnType<typeof resolveAssembledGmContext>
+    assembledGmContext: ReturnType<typeof buildGmContextSnapshot>
   }> {
     const { memory, workingMemoryUpdatedAt } = await this.loadMemoryContext(input, session)
     const recentMessages = await this.loadRecentMessages(
       input.conversationId,
       workingMemoryUpdatedAt,
     )
-    const assembledGmContext = resolveAssembledGmContext({
+    const retrieval = await this.loadTypedRetrieval(
       input,
+      session,
+      scenarioContext.description,
+      recentMessages,
+      memory,
+    )
+    const assembledGmContext = buildGmContextSnapshot({
       session,
       currentState,
       scenarioAvatars,
       scenarioContext,
       recentMessages,
-      contextEngine: this.contextEngine,
-      memorySelectionService: this.getMemorySelectionServiceForFallback(),
+      memory,
+      retrieval,
+      userPersona: input.userPersona ?? null,
     })
+    const context: GameMasterInput['context'] = {
+      experience: {
+        scenarioId: input.scenarioId,
+        ...(assembledGmContext.scenario.description !== undefined
+          ? { description: assembledGmContext.scenario.description }
+          : {}),
+        ...(assembledGmContext.scenario.goals !== undefined
+          ? { goals: assembledGmContext.scenario.goals }
+          : {}),
+      },
+      availableAvatars: assembledGmContext.availableAvatars,
+    }
+    if (memory !== undefined) {
+      context.memory = memory
+    }
+    const rag = toGameMasterRagContext(assembledGmContext.knowledge)
+    if (rag !== undefined) {
+      context.rag = rag
+    }
+    if (assembledGmContext.userPersona !== null) {
+      context.userPersona = assembledGmContext.userPersona
+    }
 
     return {
       assembledGmContext,
@@ -370,26 +401,7 @@ export class RunGameMasterUseCase {
           ? { recentMessages: assembledGmContext.recentMessages }
           : {}),
         state: currentState,
-        context: {
-          experience: {
-            scenarioId: input.scenarioId,
-            ...(assembledGmContext.scenario.description !== undefined
-              ? { description: assembledGmContext.scenario.description }
-              : {}),
-            ...(assembledGmContext.scenario.goals !== undefined
-              ? { goals: assembledGmContext.scenario.goals }
-              : {}),
-          },
-          ...(memory !== undefined ? { memory } : {}),
-          ...(() => {
-            const rag = toGameMasterRagContext(assembledGmContext.knowledge)
-            return rag !== undefined ? { rag } : {}
-          })(),
-          ...(assembledGmContext.userPersona !== null
-            ? { userPersona: assembledGmContext.userPersona }
-            : {}),
-          availableAvatars: assembledGmContext.availableAvatars,
-        },
+        context,
       },
     }
   }
@@ -441,33 +453,9 @@ export class RunGameMasterUseCase {
     const messages = await this.messageRepository.findByConversationId(conversationId, {
       limit: 24,
     })
-    const sorted = messages
-      .slice()
-      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-
-    // When working memory exists, only send exchanges not yet covered by it.
-    // Always guarantee at least 1 full exchange so the GM has immediate context.
-    const memoryThresholdMs =
-      workingMemoryUpdatedAt !== undefined ? Date.parse(workingMemoryUpdatedAt) : undefined
-    const uncovered =
-      memoryThresholdMs !== undefined
-        ? sorted.filter((m) => Date.parse(m.createdAt) > memoryThresholdMs)
-        : sorted
-
-    const exchanges = toRecentExchangeMessages(
-      uncovered.map((m) => ({ role: m.role, content: m.content })),
-      GM_RECENT_EXCHANGE_LIMIT,
+    return selectExchangeMessageWindow(messages, workingMemoryUpdatedAt, 0).slice(
+      -GM_RECENT_EXCHANGE_LIMIT * 2,
     )
-
-    // Fallback: if no complete exchange in uncovered window, include at least the last one
-    if (exchanges.length === 0 && sorted.length > 0) {
-      return toRecentExchangeMessages(
-        sorted.map((m) => ({ role: m.role, content: m.content })),
-        1,
-      )
-    }
-
-    return exchanges
   }
 
   private getMemorySelectionService(): MemorySelectionService {
@@ -613,6 +601,41 @@ export class RunGameMasterUseCase {
       console.warn('[GM] Runtime event emission failed:', error)
     }
   }
+
+  private async loadTypedRetrieval(
+    input: RunGameMasterInput,
+    session: Session | null,
+    worldContext: string | undefined,
+    recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
+    memory: GameMasterInput['context']['memory'] | undefined,
+  ) {
+    if (
+      this.typedRetrievalService === undefined ||
+      session === null ||
+      input.conversationId === undefined
+    ) {
+      return undefined
+    }
+
+    const queries = buildGameMasterTypedRetrievalQueries({
+      worldContext,
+      recentExchanges: toRecentExchanges(recentMessages),
+      workingMemorySummary: memory?.workingMemory?.summary,
+    })
+    const query = flattenTypedRetrievalQueries(queries)
+    if (!hasText(query)) return undefined
+
+    return this.typedRetrievalService.retrieve({
+      scenarioId: input.scenarioId,
+      sessionId: input.sessionId,
+      userId: session.userId,
+      conversationId: input.conversationId,
+      bypassVisibilityFilter: true,
+      query,
+      queries,
+      limitPerType: 3,
+    })
+  }
 }
 
 function toGameMasterRagContext(
@@ -644,4 +667,24 @@ function toRagEntries(items: Array<{ sourceId: string; content: string }>) {
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function toRecentExchanges(
+  recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
+): Array<{ user: string; avatar: string }> {
+  const exchanges: Array<{ user: string; avatar: string }> = []
+  let pendingUser: string | undefined
+
+  for (const message of recentMessages) {
+    if (message.role === 'user') {
+      pendingUser = message.content
+      continue
+    }
+    if (message.role === 'avatar' && pendingUser !== undefined) {
+      exchanges.push({ user: pendingUser, avatar: message.content })
+      pendingUser = undefined
+    }
+  }
+
+  return exchanges
 }

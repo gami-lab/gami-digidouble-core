@@ -725,8 +725,8 @@ GET /v1/admin/sessions/{sessionId}/context
 Response notes:
 
 - Returns `ApiResponse<AdminSessionContextResponse>`
-- Includes `contextTrace` explainability metadata (policy, selected inputs, kept/trimmed segment summaries)
-- Trace payload is bounded and redacted to avoid leaking raw prompt/provider internals
+- Returns the stable prompt inputs only: `avatarPrompt`, `worldContext`, `worldObjectives`, `gmInstruction`, `workingMemory`, and `currentExchanges`
+- Does not return retrieval output; turn-specific RAG usage must be inspected from session events
 
 ---
 

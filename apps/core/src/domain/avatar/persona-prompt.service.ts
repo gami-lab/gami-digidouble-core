@@ -22,6 +22,7 @@ export function assemblePersonaPrompt(
   config: AvatarConfig,
   opts?: {
     gmNotes?: string
+    worldContext?: string
     avatarAwareness?: AvatarAwarenessItem[]
     userPersona?: UserPersona
     memory?: LayeredMemorySnapshot
@@ -36,6 +37,7 @@ export function assemblePersonaPrompt(
   const sections: string[] = [buildCorePersonaSection(personaPrompt, config)]
 
   // Deterministic precedence for adaptive context: persona -> memory -> retrieval snippets.
+  sections.push(...buildWorldContext(opts?.worldContext))
   sections.push(...buildUserPersonaContext(opts?.userPersona))
   sections.push(...buildMemoryContext(opts?.memory))
   sections.push(...buildRetrievalContext(opts?.retrieval))
@@ -57,6 +59,11 @@ function buildCorePersonaSection(personaPrompt: string, config: AvatarConfig): s
   }
 
   return lines.join('\n')
+}
+
+function buildWorldContext(worldContext: string | undefined): string[] {
+  if (!hasText(worldContext)) return []
+  return [['## World Context', worldContext.trim()].join('\n')]
 }
 
 function buildUserPersonaContext(userPersona: UserPersona | undefined): string[] {

@@ -50,9 +50,9 @@ describe('loadRuntimeInspectorViewModel', () => {
     expect(result.memory.layers.shortTerm.exchangeCount).toBe(2)
     expect(result.metrics.summary.totalTurns).toBe(1)
     expect(result.metrics.turns).toHaveLength(1)
-    expect(result.context.gm.currentState.progression).toBe('intro')
+    expect(result.context.worldObjectives).toEqual(['Obj1'])
     expect(result.knowledge.sources).toHaveLength(1)
-    expect(result.context.trace?.deterministic).toBe(true)
+    expect(result.context.currentExchanges).toEqual([{ user: 'u1', avatar: 'a1' }])
     expect(result.persona?.name).toBe('Maya')
     expect(result.effectiveModels.avatar.provider).toBe('openai')
   })
@@ -100,58 +100,16 @@ function arrangeSession1(): void {
   })
   vi.mocked(getSessionContext).mockResolvedValue({
     sessionId: 'session_1',
-    avatarContext: {
-      avatarId: 'avatar_1',
-      recentExchanges: [],
-      workingMemory: {},
-      longTermFacts: [],
-      userPersona: { name: 'Maya', roleInWorld: 'student' },
-      gmNotes: null,
-      scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
+    avatarPrompt: 'You are a guide.',
+    worldContext: 'Scenario 1 world',
+    worldObjectives: ['Obj1'],
+    gmInstruction: null,
+    workingMemory: {
+      summary: 'working summary',
+      unresolvedThreads: ['thread_1'],
+      updatedAt: '2026-05-01T10:00:30.000Z',
     },
-    gmContext: {
-      recentMessages: [],
-      memory: {},
-      currentState: {
-        progression: 'intro',
-        topicsCovered: [],
-        interactionCount: 1,
-      },
-      availableAvatars: [],
-      userPersona: { name: 'Maya', roleInWorld: 'student' },
-      scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
-    },
-    contextTrace: {
-      deterministic: true,
-      policy: {
-        tokenBudget: {
-          avatarMaxTokens: 1200,
-          gmMaxTokens: 900,
-        },
-        protectedSegments: ['scenario'],
-        precedence: ['gmDirective', 'scenario', 'userPersona'],
-      },
-      selectedInputs: {
-        hasActiveAvatar: true,
-        recentMessageCount: 2,
-        shortTermExchangeCount: 1,
-        hasWorkingMemory: true,
-        longTermFactCount: 0,
-        retrievalCounts: { memory: 1, world: 1, media: 0 },
-        hasUserPersona: true,
-        hasGmDirective: false,
-      },
-      rationale: {
-        avatarProjection: ['bounded'],
-        gmProjection: ['deterministic'],
-      },
-      selection: {
-        kept: [
-          { projection: 'avatar', segmentId: 'scenario', tokenEstimate: 44, reason: 'protected' },
-        ],
-        trimmed: [],
-      },
-    },
+    currentExchanges: [{ user: 'u1', avatar: 'a1' }],
   })
   vi.mocked(getSessionMemory).mockResolvedValue({
     session: {
@@ -261,26 +219,12 @@ function arrangeSession2(): void {
   })
   vi.mocked(getSessionContext).mockResolvedValue({
     sessionId: 'session_2',
-    avatarContext: {
-      recentExchanges: [],
-      workingMemory: {},
-      longTermFacts: [],
-      userPersona: null,
-      gmNotes: 'n',
-      scenario: { scenarioId: 'scenario_1' },
-    },
-    gmContext: {
-      recentMessages: [],
-      memory: {},
-      currentState: {
-        progression: 'intro',
-        topicsCovered: [],
-        interactionCount: 1,
-      },
-      availableAvatars: [],
-      userPersona: null,
-      scenario: { scenarioId: 'scenario_1' },
-    },
+    avatarPrompt: null,
+    worldContext: null,
+    worldObjectives: [],
+    gmInstruction: 'n',
+    workingMemory: null,
+    currentExchanges: [],
   })
   vi.mocked(getSessionMemory).mockResolvedValue({
     session: {

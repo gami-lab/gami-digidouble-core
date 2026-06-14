@@ -94,7 +94,7 @@ describe('GET /v1/admin/sessions/:sessionId/context — stack not found', () => 
 })
 
 describe('GET /v1/admin/sessions/:sessionId/context — stack happy path', () => {
-  it('returns bounded avatar and gm context snapshots', async () => {
+  it('returns the stable session context snapshot', async () => {
     const seeded = await seedSession()
     const messageRes = await postJson(`/v1/conversations/${seeded.conversationId}/messages`, {
       message: { content: 'Hello context endpoint' },
@@ -126,19 +126,17 @@ function assertStackContextCoreShape(
 ): void {
   expect(body.error).toBeNull()
   expect(body.data?.sessionId).toBe(sessionId)
-  expect(Array.isArray(body.data?.avatarContext.recentExchanges)).toBe(true)
-  expect(Array.isArray(body.data?.gmContext.recentMessages)).toBe(true)
-  expect(Array.isArray(body.data?.gmContext.availableAvatars)).toBe(true)
+  expect(typeof body.data?.avatarPrompt === 'string' || body.data?.avatarPrompt === null).toBe(true)
+  expect(typeof body.data?.worldContext === 'string' || body.data?.worldContext === null).toBe(true)
+  expect(Array.isArray(body.data?.worldObjectives)).toBe(true)
+  expect(Array.isArray(body.data?.currentExchanges)).toBe(true)
 }
 
 function assertStackContextTraceBounds(body: ApiResponse<AdminSessionContextResponse>): void {
-  expect(body.data?.contextTrace?.deterministic).toBe(true)
-  expect((body.data?.contextTrace?.selection.kept.length ?? 0) <= 24).toBe(true)
-  expect((body.data?.contextTrace?.selection.trimmed.length ?? 0) <= 24).toBe(true)
+  expect((body.data?.currentExchanges.length ?? 0) >= 1).toBe(true)
 }
 
 function assertStackContextRedaction(rawBody: string): void {
-  expect(rawBody).not.toContain('You are a helpful guide.')
   expect(rawBody).not.toContain('OPENAI_API_KEY')
   expect(rawBody).not.toContain('systemPrompt')
 }

@@ -3,18 +3,13 @@ import { ok } from '@gami/shared'
 import type { AdminSessionContextResponse } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
-import type { IGmStateRepository } from '../../application/ports/IGmStateRepository.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
-import type { IUserMemoryFactRepository } from '../../application/ports/IUserMemoryFactRepository.js'
-import type { IUserRepository } from '../../application/ports/IUserRepository.js'
-import { AvatarMemoryContextAssembler } from '../../application/services/avatar-memory-context-assembler.service.js'
+import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import { GetSessionContextUseCase } from '../../application/use-cases/get-session-context/get-session-context.use-case.js'
 import type { Config } from '../../config.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
-import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
-import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import { toAdminSessionContextResponse } from './mappers/session-context.mapper.js'
 import {
   mapInspectorDomainError,
@@ -29,32 +24,20 @@ export type AdminSessionContextRouteOptions = {
   avatarRepository: IAvatarRepository
   scenarioRepository: IScenarioRepository
   messageRepository: IMessageRepository
-  gmStateRepository: IGmStateRepository
-  userRepository?: IUserRepository
-  userMemoryFactRepository?: IUserMemoryFactRepository
-  sessionMemoryRepository?: ISessionMemoryRepository
-  avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
+  conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
 }
 
 export const adminSessionContextRoute: FastifyPluginCallback<AdminSessionContextRouteOptions> = (
   app,
   options,
 ) => {
-  const memoryContextAssembler = new AvatarMemoryContextAssembler(
-    options.messageRepository,
-    options.sessionMemoryRepository,
-    options.avatarSessionMemoryRepository,
-    options.userMemoryFactRepository,
-  )
   const useCase = new GetSessionContextUseCase(
     options.sessionRepository,
     options.conversationRepository,
     options.avatarRepository,
     options.scenarioRepository,
     options.messageRepository,
-    options.gmStateRepository,
-    options.userRepository,
-    memoryContextAssembler,
+    options.conversationWorkingMemoryRepository,
   )
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))

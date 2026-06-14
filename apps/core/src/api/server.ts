@@ -306,19 +306,9 @@ function buildAdminSessionContextRouteOptions(config: Config, adapters: ServerAd
     avatarRepository: withDefault(adapters.avatarRepository, new InMemoryAvatarRepository()),
     scenarioRepository: withDefault(adapters.scenarioRepository, new InMemoryScenarioRepository()),
     messageRepository: withDefault(adapters.messageRepository, new InMemoryMessageRepository()),
-    gmStateRepository: withDefault(adapters.gmStateRepository, new InMemoryGmStateRepository()),
-    userRepository: withDefault(adapters.userRepository, new InMemoryUserRepository()),
-    userMemoryFactRepository: withDefault(
-      adapters.userMemoryFactRepository,
-      new InMemoryUserMemoryFactRepository(),
-    ),
-    sessionMemoryRepository: withDefault(
-      adapters.sessionMemoryRepository,
-      new InMemorySessionMemoryRepository(),
-    ),
-    avatarSessionMemoryRepository: withDefault(
-      adapters.avatarSessionMemoryRepository,
-      new InMemoryAvatarSessionMemoryRepository(),
+    conversationWorkingMemoryRepository: withDefault(
+      adapters.conversationWorkingMemoryRepository,
+      new InMemoryConversationWorkingMemoryRepository(),
     ),
   }
 }

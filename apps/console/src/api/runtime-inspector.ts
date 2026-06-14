@@ -44,11 +44,7 @@ export type RuntimeInspectorViewModel = {
     summary: AdminSessionTurnMetricsResponse['summary']
     turns: AdminSessionTurnMetricsResponse['turns']
   }
-  context: {
-    avatar: AdminSessionContextResponse['avatarContext']
-    gm: AdminSessionContextResponse['gmContext']
-    trace: AdminSessionContextResponse['contextTrace']
-  }
+  context: AdminSessionContextResponse
   knowledge: {
     sources: KnowledgeSourceDto[]
   }
@@ -103,11 +99,7 @@ export async function loadRuntimeInspectorViewModel(
       summary: metrics.summary,
       turns: metrics.turns,
     },
-    context: {
-      avatar: contextResponse.avatarContext,
-      gm: contextResponse.gmContext,
-      trace: contextResponse.contextTrace,
-    },
+    context: contextResponse,
     knowledge: {
       sources: knowledgeSources.sources,
     },

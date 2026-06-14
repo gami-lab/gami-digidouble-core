@@ -11,7 +11,7 @@ export function toLayeredSnapshotFromAvatarContext(
     ...(assembled.avatar.recentExchanges.length > 0
       ? {
           shortTerm: {
-            exchangeCount: 2 as const,
+            exchangeCount: assembled.avatar.recentExchanges.length,
             recentExchanges: assembled.avatar.recentExchanges,
           },
         }

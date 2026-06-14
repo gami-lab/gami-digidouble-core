@@ -85,22 +85,12 @@ describe('sessions runtime inspector action API wrappers', () => {
   it('calls context and persona endpoints with canonical shapes', async () => {
     const contextPayload: AdminSessionContextResponse = {
       sessionId: 'session_1',
-      avatarContext: {
-        recentExchanges: [],
-        workingMemory: {},
-        longTermFacts: [],
-        userPersona: null,
-        gmNotes: null,
-        scenario: { scenarioId: 'scenario_1' },
-      },
-      gmContext: {
-        recentMessages: [],
-        memory: {},
-        currentState: { progression: 'intro', topicsCovered: [], interactionCount: 0 },
-        availableAvatars: [],
-        userPersona: null,
-        scenario: { scenarioId: 'scenario_1' },
-      },
+      avatarPrompt: 'You are a guide.',
+      worldContext: 'Scenario world',
+      worldObjectives: ['Obj1'],
+      gmInstruction: null,
+      workingMemory: null,
+      currentExchanges: [],
     }
     const personaPayload: UpsertUserPersonaResponse = {
       user: {
@@ -127,7 +117,7 @@ describe('sessions runtime inspector action API wrappers', () => {
 
     expect(coreRequest).toHaveBeenNthCalledWith(1, 'GET', '/v1/admin/sessions/session_1/context')
     expect(coreRequest).toHaveBeenNthCalledWith(2, 'PUT', '/v1/users/user_1/persona', personaInput)
-    expect(context.gmContext.currentState.progression).toBe('intro')
+    expect(context.avatarPrompt).toBe('You are a guide.')
     expect(updatedPersona.user.persona?.name).toBe('Maya')
   })
 })

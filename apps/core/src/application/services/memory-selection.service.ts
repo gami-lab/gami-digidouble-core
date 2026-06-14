@@ -5,10 +5,10 @@ import type { IUserMemoryFactRepository } from '../ports/IUserMemoryFactReposito
 import {
   MEMORY_EPISODIC_SELECTION_LIMIT,
   MEMORY_LONG_TERM_FACT_LIMIT,
-  MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
   MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
 } from '../../domain/memory/memory.policy.js'
 import { scoreEpisodicMemorySelection } from '../../domain/memory/memory-selection.policy.js'
+import { selectExchangeWindow } from './conversation-exchange-window.js'
 import type {
   GameMasterMemoryContext,
   LayeredMemorySnapshot,
@@ -53,9 +53,9 @@ export class MemorySelectionService {
       topSelectionReasons: string[]
     }
   }> {
-    const [shortTermExchanges, workingMemory, episodicMemories, longTermFacts] = await Promise.all([
-      this.loadShortTermExchanges(input.conversationId),
-      this.loadWorkingMemory(input.conversationId),
+    const workingMemory = await this.loadWorkingMemory(input.conversationId)
+    const [shortTermExchanges, episodicMemories, longTermFacts] = await Promise.all([
+      this.loadShortTermExchanges(input.conversationId, workingMemory?.updatedAt),
       this.loadEpisodicMemories(input),
       this.loadLongTermFacts(input.userId),
     ])
@@ -89,7 +89,7 @@ export class MemorySelectionService {
       ...(payload.shortTermExchanges.length > 0
         ? {
             shortTerm: {
-              exchangeCount: 2,
+              exchangeCount: payload.shortTermExchanges.length,
               recentExchanges: payload.shortTermExchanges,
             },
           }
@@ -139,29 +139,15 @@ export class MemorySelectionService {
     return Object.keys(memory).length > 0 ? memory : undefined
   }
 
-  private async loadShortTermExchanges(conversationId: string): Promise<ShortTermMemoryExchange[]> {
+  private async loadShortTermExchanges(
+    conversationId: string,
+    workingMemoryUpdatedAt?: string,
+  ): Promise<ShortTermMemoryExchange[]> {
     try {
       const messages = await this.messageRepository.findByConversationId(conversationId, {
         limit: MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
       })
-      const ordered = messages
-        .slice()
-        .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-      const exchanges: ShortTermMemoryExchange[] = []
-      let pendingUser: string | null = null
-
-      for (const message of ordered) {
-        if (message.role === 'user') {
-          pendingUser = message.content
-          continue
-        }
-        if (message.role === 'avatar' && pendingUser !== null) {
-          exchanges.push({ user: pendingUser, avatar: message.content })
-          pendingUser = null
-        }
-      }
-
-      return exchanges.slice(-MEMORY_SHORT_TERM_EXCHANGE_LIMIT)
+      return selectExchangeWindow(messages, workingMemoryUpdatedAt)
     } catch {
       return []
     }

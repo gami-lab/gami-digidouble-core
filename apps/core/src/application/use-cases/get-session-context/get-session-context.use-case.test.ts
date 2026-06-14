@@ -1,146 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import { DomainError } from '../../../domain/errors.js'
-import { AvatarMemoryContextAssembler } from '../../services/avatar-memory-context-assembler.service.js'
 import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
-import { InMemoryGmStateRepository } from '../../../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
-import { InMemoryUserMemoryFactRepository } from '../../../infrastructure/db/in-memory-user-memory-fact.repository.js'
-import { InMemoryUserRepository } from '../../../infrastructure/db/in-memory-user.repository.js'
-import { InMemorySessionMemoryRepository } from '../../../infrastructure/db/in-memory-session-memory.repository.js'
-import { InMemoryAvatarSessionMemoryRepository } from '../../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
-import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
-import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { GetSessionContextUseCase } from './get-session-context.use-case.js'
-import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 
 function createUseCase() {
-  const sessionRepository = new InMemorySessionRepository([makeSession()])
-  const conversationRepository = new InMemoryConversationRepository([makeConversation()])
-  const avatarRepository = new InMemoryAvatarRepository(makeAvatars())
-  const scenarioRepository = new InMemoryScenarioRepository([makeScenario()])
-  const messageRepository = new InMemoryMessageRepository(makeMessages())
-  const gmStateRepository = new InMemoryGmStateRepository([makeGmState()])
-  const userRepository = new InMemoryUserRepository([makeUser()])
-  const sessionMemoryRepository = new InMemorySessionMemoryRepository([makeSessionMemory()])
-  const avatarSessionMemoryRepository = new InMemoryAvatarSessionMemoryRepository([
-    makeAvatarMemory(),
-  ])
-  const userMemoryFactRepository = new InMemoryUserMemoryFactRepository([makeFact()])
-
-  const memoryAssembler = new AvatarMemoryContextAssembler(
-    messageRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
-    userMemoryFactRepository,
-  )
-  const typedRetrievalService = buildTypedRetrievalService()
-
-  return new GetSessionContextUseCase(
-    sessionRepository,
-    conversationRepository,
-    avatarRepository,
-    scenarioRepository,
-    messageRepository,
-    gmStateRepository,
-    userRepository,
-    memoryAssembler,
-    typedRetrievalService,
-  )
-}
-
-function buildTypedRetrievalService(): TypedRetrievalService {
-  const sourceRepo = new InMemoryKnowledgeSourceRepository([
-    {
-      sourceId: 'knowledge_source_world',
-      scenarioId: 'scenario_1',
-      name: 'World brief',
-      knowledgeType: 'world',
-      format: 'markdown',
-      uriOrPath: '/world.md',
-      status: 'ready',
-      createdAt: '2026-05-01T10:00:00.000Z',
-      updatedAt: '2026-05-01T10:00:00.000Z',
-    },
-  ])
-  const chunkRepo = new InMemoryKnowledgeChunkRepository([
-    {
-      chunkId: 'knowledge_chunk_world_1',
-      sourceId: 'knowledge_source_world',
-      content: 'u1 scenario world setup guidance for onboarding',
-      chunkIndex: 0,
-      createdAt: '2026-05-01T10:00:00.000Z',
-    },
-  ])
-  return new TypedRetrievalService(sourceRepo, chunkRepo)
-}
-
-function buildVisibilityTypedRetrievalService(): TypedRetrievalService {
-  const sourceRepo = new InMemoryKnowledgeSourceRepository([
-    {
-      sourceId: 'knowledge_source_avatar_1',
-      scenarioId: 'scenario_1',
-      name: 'Avatar one world',
-      knowledgeType: 'world',
-      format: 'markdown',
-      uriOrPath: '/world-1.md',
-      status: 'ready',
-      visibleToAvatarIds: ['avatar_1'],
-      createdAt: '2026-05-01T10:00:00.000Z',
-      updatedAt: '2026-05-01T10:00:00.000Z',
-    },
-    {
-      sourceId: 'knowledge_source_avatar_2',
-      scenarioId: 'scenario_1',
-      name: 'Avatar two world',
-      knowledgeType: 'world',
-      format: 'markdown',
-      uriOrPath: '/world-2.md',
-      status: 'ready',
-      visibleToAvatarIds: ['avatar_2'],
-      createdAt: '2026-05-01T10:00:00.000Z',
-      updatedAt: '2026-05-01T10:00:00.000Z',
-    },
-  ])
-  const chunkRepo = new InMemoryKnowledgeChunkRepository([
-    {
-      chunkId: 'knowledge_chunk_avatar_1',
-      sourceId: 'knowledge_source_avatar_1',
-      content: 'u1 avatar one visible world clue',
-      chunkIndex: 0,
-      createdAt: '2026-05-01T10:00:00.000Z',
-    },
-    {
-      chunkId: 'knowledge_chunk_avatar_2',
-      sourceId: 'knowledge_source_avatar_2',
-      content: 'u1 avatar two visible world clue',
-      chunkIndex: 0,
-      createdAt: '2026-05-01T10:00:00.000Z',
-    },
-  ])
-  return new TypedRetrievalService(sourceRepo, chunkRepo)
-}
-
-function buildVisibilityScopedUseCase(avatarId: 'avatar_1' | 'avatar_2'): GetSessionContextUseCase {
   return new GetSessionContextUseCase(
     new InMemorySessionRepository([makeSession()]),
-    new InMemoryConversationRepository([makeConversation({ avatarId })]),
-    new InMemoryAvatarRepository(makeAvatars()),
+    new InMemoryConversationRepository([makeConversation()]),
+    new InMemoryAvatarRepository([makeAvatar()]),
     new InMemoryScenarioRepository([makeScenario()]),
     new InMemoryMessageRepository(makeMessages()),
-    new InMemoryGmStateRepository([makeGmState()]),
-    new InMemoryUserRepository([makeUser()]),
-    undefined,
-    buildVisibilityTypedRetrievalService(),
+    new InMemoryConversationWorkingMemoryRepository([makeWorkingMemory()]),
   )
-}
-
-function worldChunkIdsFromAvatarContext(
-  output: Awaited<ReturnType<GetSessionContextUseCase['execute']>>,
-) {
-  return output.avatarContext.knowledge?.typedSections?.world.map((item) => item.chunkId) ?? []
 }
 
 function makeSession() {
@@ -157,7 +33,7 @@ function makeSession() {
   }
 }
 
-function makeConversation(overrides: Record<string, unknown> = {}) {
+function makeConversation() {
   return {
     conversationId: 'conversation_1',
     sessionId: 'session_1',
@@ -165,35 +41,21 @@ function makeConversation(overrides: Record<string, unknown> = {}) {
     status: 'active' as const,
     startedAt: '2026-05-01T10:00:00.000Z',
     lastActivityAt: '2026-05-01T10:10:00.000Z',
-    ...overrides,
   }
 }
 
-function makeAvatars() {
-  return [
-    {
-      avatarId: 'avatar_1',
-      scenarioId: 'scenario_1',
-      name: 'Guide',
-      status: 'active' as const,
-      personaPrompt: 'You are a guide.',
-      description: 'General guide',
-      config: {},
-      createdAt: '2026-05-01T10:00:00.000Z',
-      updatedAt: '2026-05-01T10:00:00.000Z',
-    },
-    {
-      avatarId: 'avatar_2',
-      scenarioId: 'scenario_1',
-      name: 'Specialist',
-      status: 'active' as const,
-      personaPrompt: 'You are a specialist.',
-      description: 'Expert guide',
-      config: {},
-      createdAt: '2026-05-01T10:00:01.000Z',
-      updatedAt: '2026-05-01T10:00:01.000Z',
-    },
-  ]
+function makeAvatar() {
+  return {
+    avatarId: 'avatar_1',
+    scenarioId: 'scenario_1',
+    name: 'Guide',
+    status: 'active' as const,
+    personaPrompt: 'You are a guide.',
+    description: 'General guide',
+    config: {},
+    createdAt: '2026-05-01T10:00:00.000Z',
+    updatedAt: '2026-05-01T10:00:00.000Z',
+  }
 }
 
 function makeScenario() {
@@ -217,7 +79,7 @@ function makeMessages() {
       messageId: 'msg_1',
       conversationId: 'conversation_1',
       role: 'user' as const,
-      content: 'u1',
+      content: 'q1',
       createdAt: '2026-05-01T10:01:00.000Z',
     },
     {
@@ -227,165 +89,83 @@ function makeMessages() {
       content: 'a1',
       createdAt: '2026-05-01T10:01:01.000Z',
     },
+    {
+      messageId: 'msg_3',
+      conversationId: 'conversation_1',
+      role: 'user' as const,
+      content: 'q2',
+      createdAt: '2026-05-01T10:02:00.000Z',
+    },
+    {
+      messageId: 'msg_4',
+      conversationId: 'conversation_1',
+      role: 'avatar' as const,
+      content: 'a2',
+      createdAt: '2026-05-01T10:02:01.000Z',
+    },
   ]
 }
 
-function makeGmState() {
+function makeWorkingMemory() {
   return {
-    sessionId: 'session_1',
-    state: {
-      currentAvatarId: 'avatar_1',
-      progression: 'intro',
-      topicsCovered: ['setup'],
-      interactionCount: 2,
-    },
-  }
-}
-
-function makeUser() {
-  return {
-    userId: 'user_1',
-    persona: { name: 'Maya', roleInWorld: 'student' },
-    createdAt: '2026-05-01T10:00:00.000Z',
-    updatedAt: '2026-05-01T10:00:00.000Z',
-  }
-}
-
-function makeSessionMemory() {
-  return {
-    sessionId: 'session_1',
-    summary: 'Session summary',
-    updatedAt: '2026-05-01T10:09:00.000Z',
-  }
-}
-
-function makeAvatarMemory() {
-  return {
+    conversationId: 'conversation_1',
     sessionId: 'session_1',
     avatarId: 'avatar_1',
-    summary: 'Avatar summary',
-    updatedAt: '2026-05-01T10:08:00.000Z',
-  }
-}
-
-function makeFact() {
-  return {
-    id: 'umf_1',
-    userId: 'user_1',
-    category: 'preference',
-    key: 'style',
-    value: 'concise',
-    createdAt: '2026-05-01T10:00:00.000Z',
-    updatedAt: '2026-05-01T10:00:00.000Z',
+    summary: 'Working summary',
+    unresolvedThreads: ['thread_1'],
+    candidateFacts: [],
+    updatedAt: '2026-05-01T10:01:30.000Z',
   }
 }
 
 describe('GetSessionContextUseCase', () => {
-  it('returns bounded avatar and gm context snapshot', async () => {
-    const useCase = createUseCase()
-    const output = await useCase.execute({ sessionId: 'session_1' })
+  it('returns the stable prompt inputs without reassembling retrieval context', async () => {
+    const output = await createUseCase().execute({ sessionId: 'session_1' })
 
-    expect(output.sessionId).toBe('session_1')
-    expect(output.avatarContext.avatarId).toBe('avatar_1')
-    expect(output.avatarContext.recentExchanges).toEqual([{ user: 'u1', avatar: 'a1' }])
-    expect(output.avatarContext.workingMemory.session?.summary).toBe('Session summary')
-    expect(output.avatarContext.workingMemory.avatar?.summary).toBe('Avatar summary')
-    expect(output.avatarContext.longTermFacts).toEqual([
-      { category: 'preference', key: 'style', value: 'concise' },
-    ])
-    expect(output.avatarContext.userPersona).toEqual({ name: 'Maya', roleInWorld: 'student' })
-    expect(output.gmContext.currentState.progression).toBe('intro')
-    expect(output.gmContext.availableAvatars.length).toBe(2)
-    expect(output.gmContext.memory.shortTerm?.recentExchanges).toEqual([
-      { user: 'u1', avatar: 'a1' },
-    ])
-    expect(output.gmContext.memory.workingSummary).toContain('Session summary')
-    expect(output.gmContext.memory.workingSummary).toContain('Avatar (avatar_1): Avatar summary')
-    expect(output.gmContext.memory.longTermFacts).toEqual([
-      { category: 'preference', key: 'style', value: 'concise' },
-    ])
-    expect(output.avatarContext.knowledge?.retrievedItems.length).toBeGreaterThan(0)
-    expect(output.gmContext.knowledge?.world.length).toBeGreaterThan(0)
-    expect(output.contextTrace.deterministic).toBe(true)
-    expect(output.contextTrace.selection.kept.length).toBeGreaterThan(0)
+    expect(output).toEqual({
+      sessionId: 'session_1',
+      avatarPrompt: 'You are a guide.',
+      worldContext: 'Scenario world',
+      worldObjectives: ['Obj1', 'Goal1'],
+      gmInstruction: 'Focus on actionable steps.',
+      workingMemory: {
+        summary: 'Working summary',
+        unresolvedThreads: ['thread_1'],
+        updatedAt: '2026-05-01T10:01:30.000Z',
+      },
+      currentExchanges: [{ user: 'q2', avatar: 'a2' }],
+    })
   })
 
-  it('returns null/empty optional layers when conversation and persona are absent', async () => {
+  it('returns all exchanges when no working memory exists', async () => {
     const useCase = new GetSessionContextUseCase(
-      new InMemorySessionRepository([
-        {
-          sessionId: 'session_2',
-          userId: 'user_2',
-          scenarioId: 'scenario_2',
-          status: 'active',
-          startedAt: '2026-05-01T10:00:00.000Z',
-          lastActivityAt: '2026-05-01T10:10:00.000Z',
-        },
-      ]),
-      new InMemoryConversationRepository([]),
-      new InMemoryAvatarRepository([]),
-      new InMemoryScenarioRepository([]),
-      new InMemoryMessageRepository([]),
-      new InMemoryGmStateRepository([]),
-      new InMemoryUserRepository([]),
-      undefined,
+      new InMemorySessionRepository([makeSession()]),
+      new InMemoryConversationRepository([makeConversation()]),
+      new InMemoryAvatarRepository([makeAvatar()]),
+      new InMemoryScenarioRepository([makeScenario()]),
+      new InMemoryMessageRepository(makeMessages()),
     )
 
-    const output = await useCase.execute({ sessionId: 'session_2' })
-    expect(output.avatarContext.avatarId).toBeUndefined()
-    expect(output.avatarContext.recentExchanges).toEqual([])
-    expect(output.avatarContext.longTermFacts).toEqual([])
-    expect(output.avatarContext.userPersona).toBeNull()
-    expect(output.gmContext.recentMessages).toEqual([])
-    expect(output.gmContext.currentState).toEqual({
-      progression: '',
-      topicsCovered: [],
-      interactionCount: 0,
-    })
-    expect(output.gmContext.memory).toEqual({})
-    expect(output.contextTrace.deterministic).toBe(true)
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.workingMemory).toBeNull()
+    expect(output.currentExchanges).toEqual([
+      { user: 'q1', avatar: 'a1' },
+      { user: 'q2', avatar: 'a2' },
+    ])
   })
 
-  it('throws NOT_FOUND when session is missing', async () => {
+  it('throws not found for an unknown session', async () => {
     const useCase = new GetSessionContextUseCase(
       new InMemorySessionRepository([]),
       new InMemoryConversationRepository([]),
       new InMemoryAvatarRepository([]),
       new InMemoryScenarioRepository([]),
       new InMemoryMessageRepository([]),
-      new InMemoryGmStateRepository([]),
     )
 
-    await expect(useCase.execute({ sessionId: 'missing' })).rejects.toEqual(
-      new DomainError('NOT_FOUND', 'Session missing was not found.'),
-    )
-  })
-})
-
-describe('GetSessionContextUseCase visibility scope', () => {
-  it('updates avatar retrieval scope deterministically when active avatar changes', async () => {
-    const useCaseAvatarOne = buildVisibilityScopedUseCase('avatar_1')
-    const useCaseAvatarTwo = buildVisibilityScopedUseCase('avatar_2')
-
-    const avatarOneOutput = await useCaseAvatarOne.execute({ sessionId: 'session_1' })
-    const avatarTwoOutput = await useCaseAvatarTwo.execute({ sessionId: 'session_1' })
-    const avatarOneWorldChunkIds = worldChunkIdsFromAvatarContext(avatarOneOutput)
-    const avatarTwoWorldChunkIds = worldChunkIdsFromAvatarContext(avatarTwoOutput)
-
-    expect(avatarOneWorldChunkIds).toEqual(['knowledge_chunk_avatar_1'])
-    expect(avatarTwoWorldChunkIds).toEqual(['knowledge_chunk_avatar_2'])
-    expect(avatarOneOutput.contextTrace.selectedInputs.visibility?.activeAvatarId).toBe('avatar_1')
-    expect(avatarTwoOutput.contextTrace.selectedInputs.visibility?.activeAvatarId).toBe('avatar_2')
-    expect(avatarOneOutput.contextTrace.selectedInputs.visibility?.gmUnrestricted).toBe(true)
-    expect(avatarOneOutput.contextTrace.selectedInputs.visibility?.gmRetrievalCounts).toEqual({
-      memory: 0,
-      world: 2,
-      media: 0,
-    })
-    expect(avatarTwoOutput.contextTrace.selectedInputs.visibility?.gmRetrievalCounts).toEqual({
-      memory: 0,
-      world: 2,
-      media: 0,
-    })
+    await expect(useCase.execute({ sessionId: 'missing' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    } satisfies Partial<DomainError>)
   })
 })

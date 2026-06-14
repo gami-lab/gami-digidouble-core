@@ -232,12 +232,7 @@ describe('SendMessageUseCase typed retrieval query reuse', () => {
         ],
       }),
     )
-    expect(retrieveTypedContextMock).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        bypassVisibilityFilter: true,
-      }),
-    )
+    expect(retrieveTypedContextMock).toHaveBeenCalledTimes(1)
     expect(findMessagesByConversationIdMock).not.toHaveBeenCalledWith('conversation_1', {
       limit: 12,
     })

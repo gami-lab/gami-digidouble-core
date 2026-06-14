@@ -76,7 +76,7 @@ export type ShortTermMemoryExchange = {
 }
 
 export type ShortTermMemoryWindow = {
-  exchangeCount: 2
+  exchangeCount: number
   recentExchanges: ShortTermMemoryExchange[]
 }
 

@@ -402,9 +402,16 @@ export type SessionContextTrace = {
 
 export type AdminSessionContextResponse = {
   sessionId: string
-  avatarContext: SessionContextAvatarSnapshot
-  gmContext: SessionContextGmSnapshot
-  contextTrace?: SessionContextTrace
+  avatarPrompt: string | null
+  worldContext: string | null
+  worldObjectives: string[]
+  gmInstruction: string | null
+  workingMemory: {
+    summary: string
+    unresolvedThreads: string[]
+    updatedAt: string
+  } | null
+  currentExchanges: SharedShortTermMemoryExchange[]
 }
 
 export type AdminReplayGmResponse = {

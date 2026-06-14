@@ -7,11 +7,7 @@ import { InMemoryConversationRepository } from '../../infrastructure/db/in-memor
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
-import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
-import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
-import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
-import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
-import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { TEST_CONFIG } from './test-config.js'
 
 const appsToClose: FastifyInstance[] = []
@@ -37,11 +33,9 @@ function buildAdapters() {
     avatarRepository: new InMemoryAvatarRepository([makeAvatar()]),
     scenarioRepository: new InMemoryScenarioRepository([makeScenario()]),
     messageRepository: new InMemoryMessageRepository(makeMessages()),
-    gmStateRepository: new InMemoryGmStateRepository([makeGmState()]),
-    userRepository: new InMemoryUserRepository([makeUser()]),
-    userMemoryFactRepository: new InMemoryUserMemoryFactRepository([makeFact()]),
-    sessionMemoryRepository: new InMemorySessionMemoryRepository([makeSessionMemory()]),
-    avatarSessionMemoryRepository: new InMemoryAvatarSessionMemoryRepository([makeAvatarMemory()]),
+    conversationWorkingMemoryRepository: new InMemoryConversationWorkingMemoryRepository([
+      makeWorkingMemory(),
+    ]),
   }
 }
 
@@ -114,53 +108,15 @@ function makeMessages() {
   ]
 }
 
-function makeGmState() {
+function makeWorkingMemory() {
   return {
-    sessionId: 'session_1',
-    state: {
-      currentAvatarId: 'avatar_1',
-      progression: 'intro',
-      topicsCovered: ['setup'],
-      interactionCount: 2,
-    },
-  }
-}
-
-function makeUser() {
-  return {
-    userId: 'user_1',
-    persona: { name: 'Maya', roleInWorld: 'student' },
-    createdAt: '2026-05-01T10:00:00.000Z',
-    updatedAt: '2026-05-01T10:00:00.000Z',
-  }
-}
-
-function makeFact() {
-  return {
-    id: 'umf_1',
-    userId: 'user_1',
-    category: 'preference',
-    key: 'style',
-    value: 'concise',
-    createdAt: '2026-05-01T10:00:00.000Z',
-    updatedAt: '2026-05-01T10:00:00.000Z',
-  }
-}
-
-function makeSessionMemory() {
-  return {
-    sessionId: 'session_1',
-    summary: 'Session summary',
-    updatedAt: '2026-05-01T10:09:00.000Z',
-  }
-}
-
-function makeAvatarMemory() {
-  return {
+    conversationId: 'conversation_1',
     sessionId: 'session_1',
     avatarId: 'avatar_1',
-    summary: 'Avatar summary',
-    updatedAt: '2026-05-01T10:08:00.000Z',
+    summary: 'Working summary',
+    unresolvedThreads: ['thread_1'],
+    candidateFacts: [],
+    updatedAt: '2026-05-01T10:00:30.000Z',
   }
 }
 
@@ -181,7 +137,6 @@ describe('GET /v1/admin/sessions/:sessionId/context', () => {
       avatarRepository: new InMemoryAvatarRepository([]),
       scenarioRepository: new InMemoryScenarioRepository([]),
       messageRepository: new InMemoryMessageRepository([]),
-      gmStateRepository: new InMemoryGmStateRepository([]),
     })
     appsToClose.push(app)
 
@@ -215,40 +170,23 @@ function assertContextBody(body: ApiResponse<AdminSessionContextResponse>): void
 function assertCoreContextShape(body: ApiResponse<AdminSessionContextResponse>): void {
   expect(body.error).toBeNull()
   expect(body.data?.sessionId).toBe('session_1')
-  expect(body.data?.avatarContext.recentExchanges).toEqual([{ user: 'hello', avatar: 'hi' }])
-  expect(body.data?.avatarContext.longTermFacts).toEqual([
-    { category: 'preference', key: 'style', value: 'concise' },
-  ])
-  expect(body.data?.avatarContext.userPersona).toEqual({
-    name: 'Maya',
-    roleInWorld: 'student',
+  expect(body.data?.avatarPrompt).toBe('You are Guide.')
+  expect(body.data?.worldContext).toBe('World')
+  expect(body.data?.worldObjectives).toEqual(['Obj'])
+  expect(body.data?.gmInstruction).toBe('Follow up with concrete examples.')
+  expect(body.data?.workingMemory).toEqual({
+    summary: 'Working summary',
+    unresolvedThreads: ['thread_1'],
+    updatedAt: '2026-05-01T10:00:30.000Z',
   })
-  expect(body.data?.gmContext.currentState.progression).toBe('intro')
-  expect(body.data?.gmContext.recentMessages).toEqual([
-    { role: 'user', content: 'hello' },
-    { role: 'avatar', content: 'hi' },
-  ])
-  expect(body.data?.gmContext.memory.workingSummary).toContain('Session summary')
+  expect(body.data?.currentExchanges).toEqual([{ user: 'hello', avatar: 'hi' }])
 }
 
 function assertContextTraceBounds(body: ApiResponse<AdminSessionContextResponse>): void {
-  assertContextTraceSelectionBounds(body)
-  assertContextTracePolicyBounds(body)
-}
-
-function assertContextTraceSelectionBounds(body: ApiResponse<AdminSessionContextResponse>): void {
-  expect(body.data?.contextTrace?.deterministic).toBe(true)
-  expect(body.data?.contextTrace?.selection.kept.length).toBeLessThanOrEqual(24)
-  expect(body.data?.contextTrace?.selection.trimmed.length).toBeLessThanOrEqual(24)
-}
-
-function assertContextTracePolicyBounds(body: ApiResponse<AdminSessionContextResponse>): void {
-  expect(body.data?.contextTrace?.policy.precedence.length).toBeLessThanOrEqual(16)
-  expect(body.data?.contextTrace?.policy.protectedSegments.length).toBeLessThanOrEqual(16)
+  expect(body.data?.currentExchanges.length).toBeLessThanOrEqual(1)
 }
 
 function assertContextResponseRedaction(rawBody: string): void {
-  expect(rawBody).not.toContain('personaPrompt')
   expect(rawBody).not.toContain('OPENAI_API_KEY')
   expect(rawBody).not.toContain('systemPrompt')
   expect(rawBody).not.toContain('apiKeySecret')

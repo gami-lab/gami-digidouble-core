@@ -179,86 +179,17 @@ function makeMetricsSummary(): RuntimeInspectorViewModel['metrics'] {
 
 function makeContextSummary(): RuntimeInspectorViewModel['context'] {
   return {
-    avatar: {
-      avatarId: 'avatar_1',
-      recentExchanges: [{ user: 'u', avatar: 'a' }],
-      knowledge: {
-        retrievedItems: [
-          {
-            sourceId: 'source_1',
-            chunkId: 'chunk_1',
-            knowledgeType: 'world',
-            content: 'A'.repeat(200),
-            visibleToAvatarIds: ['avatar_1'],
-          },
-        ],
-      },
-      workingMemory: {},
-      longTermFacts: [],
-      userPersona: null,
-      gmNotes: null,
-      scenario: {
-        scenarioId: 'scenario_1',
-      },
+    sessionId: 'session_1',
+    avatarPrompt: 'You are Ava.',
+    worldContext: 'Scenario world',
+    worldObjectives: ['Obj1', 'Goal1'],
+    gmInstruction: 'Focus on examples.',
+    workingMemory: {
+      summary: 'active working summary',
+      unresolvedThreads: ['follow_up'],
+      updatedAt: '2026-05-07T10:00:00.000Z',
     },
-    gm: {
-      recentMessages: [{ role: 'user', content: 'hello' }],
-      knowledge: {
-        memory: [],
-        world: [{ sourceId: 'source_1', chunkId: 'chunk_1', knowledgeType: 'world', content: 'lore' }],
-        media: [],
-      },
-      memory: {},
-        currentState: {
-          currentAvatarId: 'avatar_1',
-          progression: 'intro',
-          topicsCovered: [],
-          interactionCount: 1,
-        },
-        availableAvatars: [
-          { avatarId: 'avatar_1', name: 'Clara Whitcombe', availability: 'available' },
-          { avatarId: 'avatar_2', name: 'Theo', availability: 'available' },
-        ],
-        userPersona: null,
-        scenario: {
-          scenarioId: 'scenario_1',
-        },
-    },
-    trace: {
-      deterministic: true,
-      policy: {
-        tokenBudget: {
-          avatarMaxTokens: 1200,
-          gmMaxTokens: 900,
-        },
-        protectedSegments: ['scenario'],
-        precedence: ['gmDirective', 'scenario', 'userPersona'],
-      },
-      selectedInputs: {
-        hasActiveAvatar: true,
-        recentMessageCount: 2,
-        shortTermExchangeCount: 1,
-        hasWorkingMemory: false,
-        longTermFactCount: 0,
-        retrievalCounts: { memory: 0, world: 1, media: 0 },
-        visibility: {
-          activeAvatarId: 'avatar_1',
-          excludedCounts: { memory: 1, world: 2, media: 0 },
-          gmRetrievalCounts: { memory: 2, world: 3, media: 1 },
-          gmUnrestricted: true,
-        },
-        hasUserPersona: false,
-        hasGmDirective: false,
-      },
-      rationale: {
-        avatarProjection: [],
-        gmProjection: [],
-      },
-      selection: {
-        kept: [{ projection: 'avatar', segmentId: 'scenario', tokenEstimate: 18, reason: 'protected' }],
-        trimmed: [],
-      },
-    },
+    currentExchanges: [{ user: 'u', avatar: 'a' }],
   }
 }
 
@@ -394,8 +325,8 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('openai / gpt-4.1-mini')
     expect(html).toContain('mistral / mistral-small-latest')
     expect(html).toContain('xai / grok-2-mini')
-    expect(html).toContain('avatar_1 (Clara Whitcombe)')
-    expect(html).toContain('avatar_2 (Theo) — user asked architecture question')
+    expect(html).toContain('avatar_1')
+    expect(html).toContain('avatar_2 — user asked architecture question')
   })
 
   it('renders action controls and status text', () => {
@@ -421,7 +352,7 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('Action complete')
   })
 
-  it('falls back to scenarioId when context scenario name is absent', () => {
+  it('renders the stable session context snapshot and static knowledge inventory', () => {
     const snapshot = makeViewModel()
     const html = renderToStaticMarkup(
       <RuntimeInspectorTabContent
@@ -440,25 +371,24 @@ describe('RuntimeInspectorTabContent', () => {
 
     expect(html).toContain('Scenario')
     expect(html).toContain('scenario_1')
-    expect(html).toContain('This tab answers two questions')
+    expect(html).toContain('Retrieval varies between the Avatar and GM')
     expect(html).toContain('Static knowledge inventory')
-    expect(html).toContain('Avatar access')
-    expect(html).toContain('Used by avatar for current turn')
-    expect(html).toContain('Used by GM for current turn')
+    expect(html).toContain('Prompt context snapshot')
     expect(html).toContain('Loaded sources')
     expect(html).toContain('Shared clues')
     expect(html).toContain('Clara private notes')
     expect(html).toContain('access: all avatars')
-    expect(html).toContain('access: Clara Whitcombe')
+    expect(html).toContain('access: avatar_1')
     expect(html).toContain('GM-only sources')
     expect(html).toContain('GM truth')
-    expect(html).toContain('Clara Whitcombe: Shared clues, Clara private notes')
-    expect(html).toContain('Theo: Shared clues')
-    expect(html).toContain('Retrieved knowledge')
-    expect(html).toContain('[world] access:Clara Whitcombe')
-    expect(html).toContain('[world] access:all avatars lore')
-    expect(html).toContain('Assembly diagnostics')
-    expect(html).toContain('Deterministic assembly')
+    expect(html).toContain('Avatar prompt')
+    expect(html).toContain('You are Ava.')
+    expect(html).toContain('World objectives')
+    expect(html).toContain('Obj1 | Goal1')
+    expect(html).toContain('GM instruction')
+    expect(html).toContain('Focus on examples.')
+    expect(html).toContain('Current exchanges')
+    expect(html).toContain('U: u / A: a')
   })
 
   it('renders live runtime events in events tab', () => {
@@ -556,28 +486,8 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('tokens 30 (in 12 / out 18)')
   })
 
-  it('explains when retrieval candidates existed but were trimmed from the final context', () => {
+  it('points operators to the events tab for turn-specific retrieval usage', () => {
     const snapshot = makeViewModel()
-    delete snapshot.context.avatar.knowledge
-    delete snapshot.context.gm.knowledge
-    if (snapshot.context.trace) {
-      snapshot.context.trace.selectedInputs.retrievalCounts = { memory: 1, world: 2, media: 0 }
-      snapshot.context.trace.selection.trimmed = [
-        {
-          projection: 'avatar',
-          segmentId: 'typedRetrievalWorld',
-          tokenEstimate: 120,
-          reason: 'budget_exceeded',
-        },
-        {
-          projection: 'gm',
-          segmentId: 'typedRetrievalWorld',
-          tokenEstimate: 120,
-          reason: 'budget_exceeded',
-        },
-      ]
-    }
-
     const html = renderToStaticMarkup(
       <RuntimeInspectorTabContent
         tab="context"
@@ -593,86 +503,7 @@ describe('RuntimeInspectorTabContent', () => {
       />,
     )
 
-    expect(html).toContain(
-      'Retrieval candidates existed for the avatar, but they were trimmed during context assembly.',
-    )
-    expect(html).toContain(
-      'Retrieval candidates existed for the gm, but they were trimmed during context assembly.',
-    )
-  })
-
-  it('explains when avatar retrieval candidates were excluded by visibility', () => {
-    const snapshot = makeViewModel()
-    delete snapshot.context.avatar.knowledge
-    if (snapshot.context.trace) {
-      snapshot.context.trace.selectedInputs.retrievalCounts = { memory: 0, world: 0, media: 0 }
-      snapshot.context.trace.selectedInputs.visibility = {
-        activeAvatarId: 'avatar_2',
-        excludedCounts: { memory: 2, world: 3, media: 0 },
-      }
-      snapshot.context.trace.selection.trimmed = []
-    }
-
-    const html = renderToStaticMarkup(
-      <RuntimeInspectorTabContent
-        tab="context"
-        snapshot={snapshot}
-        memoryHistory={makeMemoryHistory(snapshot)}
-        liveEvents={[]}
-        actionStatus={null}
-        onReplayGm={vi.fn()}
-        onRefreshMemory={vi.fn()}
-        onClearMemory={vi.fn()}
-        onResetSession={vi.fn()}
-        onUpsertPersona={vi.fn().mockResolvedValue(undefined)}
-      />,
-    )
-
-    expect(html).toContain(
-      'Retrieval candidates existed for the avatar, but they were excluded by avatar visibility rules.',
-    )
-  })
-
-  it('uses GM retrieval counts instead of avatar retrieval counts for GM empty-state messaging', () => {
-    const snapshot = makeViewModel()
-    delete snapshot.context.gm.knowledge
-    if (snapshot.context.trace) {
-      snapshot.context.trace.selectedInputs.retrievalCounts = { memory: 0, world: 0, media: 0 }
-      snapshot.context.trace.selectedInputs.visibility = {
-        activeAvatarId: 'avatar_1',
-        excludedCounts: { memory: 0, world: 0, media: 0 },
-        gmRetrievalCounts: { memory: 1, world: 2, media: 0 },
-        gmUnrestricted: true,
-      }
-      snapshot.context.trace.selection.trimmed = [
-        {
-          projection: 'gm',
-          segmentId: 'typedRetrievalWorld',
-          tokenEstimate: 120,
-          reason: 'budget_exceeded',
-        },
-      ]
-    }
-
-    const html = renderToStaticMarkup(
-      <RuntimeInspectorTabContent
-        tab="context"
-        snapshot={snapshot}
-        memoryHistory={makeMemoryHistory(snapshot)}
-        liveEvents={[]}
-        actionStatus={null}
-        onReplayGm={vi.fn()}
-        onRefreshMemory={vi.fn()}
-        onClearMemory={vi.fn()}
-        onResetSession={vi.fn()}
-        onUpsertPersona={vi.fn().mockResolvedValue(undefined)}
-      />,
-    )
-
-    expect(html).toContain(
-      'Retrieval candidates existed for the gm, but they were trimmed during context assembly.',
-    )
-    expect(html).not.toContain('No retrieval candidates were selected for the gm.')
+    expect(html).toContain('Events tab instead')
   })
 })
 
