@@ -312,7 +312,7 @@ function renderMemoryEvolution(
   )
 }
 
-// eslint-disable-next-line complexity, max-lines-per-function
+// eslint-disable-next-line complexity
 function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
   const staticKnowledgeCounts = countKnowledgeSources(snapshot.knowledge.sources)
 
@@ -379,15 +379,15 @@ function countKnowledgeSources(
   )
 }
 
-function listGmOnlySourceNames(sources: RuntimeInspectorViewModel['knowledge']['sources']): string[] {
+function listGmOnlySourceNames(
+  sources: RuntimeInspectorViewModel['knowledge']['sources'],
+): string[] {
   return sources
     .filter((source) => source.visibleToAvatarIds?.includes('__GM_ONLY__') === true)
     .map((source) => source.name)
 }
 
-function formatKnowledgeAccess(
-  visibleToAvatarIds: string[] | undefined,
-): string {
+function formatKnowledgeAccess(visibleToAvatarIds: string[] | undefined): string {
   if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0) return 'all avatars'
   if (visibleToAvatarIds.includes('__GM_ONLY__')) return 'GM only'
   return visibleToAvatarIds.join(', ')
@@ -409,13 +409,10 @@ function EventsTab({
         <p style={{ margin: '8px 0' }}>No GM causality entries yet.</p>
       ) : (
         trace.map((entry) => (
-          <div
-            key={`${entry.correlationId}-${entry.createdAt}`}
-            style={traceCardStyle}
-          >
+          <div key={`${entry.correlationId}-${entry.createdAt}`} style={traceCardStyle}>
             <p style={{ margin: 0, fontWeight: 600 }}>
-              Turn {String(entry.turnIndex ?? 0)} · interaction {String(entry.interactionCount)} ·
-              {' '}timeline {entry.timelinePosition} · {entry.status}
+              Turn {String(entry.turnIndex ?? 0)} · interaction {String(entry.interactionCount)} ·{' '}
+              timeline {entry.timelinePosition} · {entry.status}
             </p>
             <p style={{ margin: '4px 0', color: '#4b5563' }}>Correlation: {entry.correlationId}</p>
             <p style={{ margin: '4px 0' }}>
@@ -426,7 +423,10 @@ function EventsTab({
             <TraceRetrievalSection title="GM retrieval" items={entry.gmRetrieval} />
             <TraceTextSection title="GM outputs" lines={entry.gmOutput} />
             <TraceTextSection title="Avatar input used for the reply" lines={entry.avatarInput} />
-            <TraceRetrievalSection title="Avatar retrieval used for the reply" items={entry.avatarRetrieval} />
+            <TraceRetrievalSection
+              title="Avatar retrieval used for the reply"
+              items={entry.avatarRetrieval}
+            />
             <TraceTextSection title="User-visible effect" lines={entry.userVisibleOutcome} />
             <TraceTextSection title="Errors" lines={entry.errors} />
           </div>
@@ -576,7 +576,8 @@ function MetricsTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
             }}
           >
             <p style={{ margin: 0, fontWeight: 600 }}>
-              Turn {String(row.turnIndex)} · {row.conversationId} · {row.hasGm ? 'GM' : 'Avatar only'}
+              Turn {String(row.turnIndex)} · {row.conversationId} ·{' '}
+              {row.hasGm ? 'GM' : 'Avatar only'}
             </p>
             <p style={{ margin: '4px 0', color: '#374151' }}>{describeTurnLatency(row)}</p>
             <p style={{ margin: '4px 0', color: '#374151' }}>{describeTurnTokens(row)}</p>
