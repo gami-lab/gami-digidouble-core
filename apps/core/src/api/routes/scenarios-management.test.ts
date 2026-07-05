@@ -115,6 +115,35 @@ describe('GET /v1/scenarios', () => {
   })
 })
 
+describe('GET /v1/scenarios/:scenarioId', () => {
+  it('returns the scenario when it exists', async () => {
+    const app = makeApp({ scenarios: [makeScenario()] })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/scenarios/scenario_1',
+      headers: { 'x-api-key': 'test-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ scenario: { scenarioId: string; name: string } }>>()
+    expect(body.error).toBeNull()
+    expect(body.data?.scenario).toMatchObject({ scenarioId: 'scenario_1', name: 'Scenario' })
+  })
+
+  it('returns 404 when scenario does not exist', async () => {
+    const response = await makeApp().inject({
+      method: 'GET',
+      url: '/v1/scenarios/scenario_missing',
+      headers: { 'x-api-key': 'test-secret' },
+    })
+
+    expect(response.statusCode).toBe(404)
+    const body = response.json<ApiResponse<never>>()
+    expect(body.error?.code).toBe('NOT_FOUND')
+  })
+})
+
 describe('GET /v1/scenarios/:scenarioId/avatars', () => {
   it('returns avatars for an existing scenario ordered by createdAt DESC', async () => {
     const app = makeApp({

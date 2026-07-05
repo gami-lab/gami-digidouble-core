@@ -16,6 +16,8 @@ import type {
 } from '../../application/use-cases/create-scenario/create-scenario.types.js'
 import { DeleteScenarioUseCase } from '../../application/use-cases/delete-scenario/delete-scenario.use-case.js'
 import type { DeleteScenarioOutput } from '../../application/use-cases/delete-scenario/delete-scenario.types.js'
+import { GetScenarioUseCase } from '../../application/use-cases/get-scenario/get-scenario.use-case.js'
+import type { GetScenarioOutput } from '../../application/use-cases/get-scenario/get-scenario.types.js'
 import { ListScenarioAvatarsUseCase } from '../../application/use-cases/list-scenario-avatars/list-scenario-avatars.use-case.js'
 import type { ListScenarioAvatarsOutput } from '../../application/use-cases/list-scenario-avatars/list-scenario-avatars.types.js'
 import { ListScenariosUseCase } from '../../application/use-cases/list-scenarios/list-scenarios.use-case.js'
@@ -58,6 +60,14 @@ type ListScenarioAvatarsRequestParams = {
 
 type DeleteScenarioRequestParams = {
   scenarioId: string
+}
+
+type GetScenarioRequestParams = {
+  scenarioId: string
+}
+
+type GetScenarioResponse = {
+  scenario: ScenarioSummary
 }
 
 type UpdateScenarioRequestParams = {
@@ -174,11 +184,13 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
     sessionRepository,
   )
   const updateScenarioUseCase = new UpdateScenarioUseCase(scenarioRepository)
+  const getScenarioUseCase = new GetScenarioUseCase(scenarioRepository)
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
   registerListScenariosRoute(app, listScenariosUseCase)
   registerCreateScenarioRoute(app, createScenarioUseCase)
+  registerGetScenarioRoute(app, getScenarioUseCase)
   registerCreateAvatarRoute(app, createAvatarUseCase)
   registerListScenarioAvatarsRoute(app, listScenarioAvatarsUseCase)
   registerDeleteScenarioRoute(app, deleteScenarioUseCase)
@@ -205,6 +217,21 @@ function registerCreateScenarioRoute(app: FastifyInstance, useCase: CreateScenar
       try {
         const output = await useCase.execute(mapCreateInput(request.body))
         return await reply.status(201).send(ok<CreateScenarioResponse>(mapCreateResponse(output)))
+      } catch (error) {
+        return handleDomainError(error, reply)
+      }
+    },
+  )
+}
+
+function registerGetScenarioRoute(app: FastifyInstance, useCase: GetScenarioUseCase): void {
+  app.get<{ Params: GetScenarioRequestParams }>(
+    '/:scenarioId',
+    { schema: { params: scenarioIdParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await useCase.execute({ scenarioId: request.params.scenarioId })
+        return await reply.send(ok<GetScenarioResponse>(mapGetScenarioResponse(output)))
       } catch (error) {
         return handleDomainError(error, reply)
       }
@@ -395,6 +422,19 @@ function normalizeLlmOverride(
       ? { provider: llmOverride.provider as ProviderName }
       : {}),
     ...(llmOverride.model !== undefined ? { model: llmOverride.model.trim() } : {}),
+  }
+}
+
+function mapGetScenarioResponse(output: GetScenarioOutput): GetScenarioResponse {
+  return {
+    scenario: {
+      scenarioId: output.scenario.scenarioId,
+      name: output.scenario.name,
+      status: output.scenario.status,
+      config: output.scenario.config as Record<string, unknown>,
+      createdAt: output.scenario.createdAt,
+      updatedAt: output.scenario.updatedAt,
+    },
   }
 }
 
