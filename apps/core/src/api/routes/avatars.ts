@@ -1,6 +1,6 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
-import type { AvatarSummary } from '@gami/shared'
+import type { AvatarSummary, UpdateAvatarRequest, UpdateAvatarResponse } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { DeleteAvatarUseCase } from '../../application/use-cases/delete-avatar/delete-avatar.use-case.js'
@@ -23,21 +23,6 @@ export type AvatarsRouteOptions = {
 
 type AvatarParams = {
   avatarId: string
-}
-
-type PatchAvatarBody = {
-  name?: string
-  personaPrompt?: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  llmOverride?: { provider?: string; model?: string } | null
-  config?: Record<string, unknown>
-  status?: AvatarSummary['status']
-}
-
-type PatchAvatarResponse = {
-  avatar: AvatarSummary
 }
 
 const avatarIdParamsSchema = {
@@ -105,7 +90,7 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
     },
   )
 
-  app.patch<{ Params: AvatarParams; Body: PatchAvatarBody }>(
+  app.patch<{ Params: AvatarParams; Body: UpdateAvatarRequest }>(
     '/:avatarId',
     { schema: { params: avatarIdParamsSchema, body: patchAvatarBodySchema } },
     async (request, reply) => {
@@ -118,7 +103,7 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
         const output = await updateAvatarUseCase.execute(
           buildUpdateAvatarInput(request.params.avatarId, request.body),
         )
-        return await reply.send(ok<PatchAvatarResponse>(mapUpdateAvatarResponse(output)))
+        return await reply.send(ok<UpdateAvatarResponse>(mapUpdateAvatarResponse(output)))
       } catch (error) {
         if (error instanceof DomainError) {
           if (error.code === 'NOT_FOUND') {
@@ -134,7 +119,7 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
   )
 }
 
-function buildUpdateAvatarInput(avatarId: string, body: PatchAvatarBody): UpdateAvatarInput {
+function buildUpdateAvatarInput(avatarId: string, body: UpdateAvatarRequest): UpdateAvatarInput {
   const { name, personaPrompt, tone, description, adjustments, llmOverride, config, status } = body
   const normalizedLlmOverride = normalizeLlmOverride(llmOverride)
   return {
@@ -150,11 +135,11 @@ function buildUpdateAvatarInput(avatarId: string, body: PatchAvatarBody): Update
   }
 }
 
-function mapUpdateAvatarResponse(output: { avatar: AvatarSummary }): PatchAvatarResponse {
+function mapUpdateAvatarResponse(output: { avatar: AvatarSummary }): UpdateAvatarResponse {
   return { avatar: output.avatar }
 }
 
-function validateLlmOverride(value: PatchAvatarBody['llmOverride']): string | null {
+function validateLlmOverride(value: UpdateAvatarRequest['llmOverride']): string | null {
   if (value === undefined || value === null) return null
 
   if (value.provider !== undefined && !isProviderName(value.provider)) {
@@ -168,7 +153,7 @@ function validateLlmOverride(value: PatchAvatarBody['llmOverride']): string | nu
 }
 
 function normalizeLlmOverride(
-  llmOverride: PatchAvatarBody['llmOverride'],
+  llmOverride: UpdateAvatarRequest['llmOverride'],
 ): UpdateAvatarInput['llmOverride'] {
   if (llmOverride === undefined) return undefined
   if (llmOverride === null) return null

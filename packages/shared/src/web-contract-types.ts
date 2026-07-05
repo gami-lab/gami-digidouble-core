@@ -5,7 +5,6 @@ import type {
   ScenarioAvatarAvailability,
   ScenarioSummary,
   SessionSummary,
-  UpdateAvatarRequest,
 } from './entity-types.js'
 import type {
   GetAvailableAvatarsResponse,
@@ -38,10 +37,17 @@ export type CreateScenarioResponse = {
 }
 
 export type UpdateScenarioRequest = Partial<
-  Pick<ScenarioSummary, 'name' | 'status' | 'objectives' | 'worldContext' | 'avatarAvailability'>
+  Pick<
+    ScenarioSummary,
+    'name' | 'status' | 'objectives' | 'worldContext' | 'avatarAvailability' | 'config'
+  >
 >
 
 export type UpdateScenarioResponse = {
+  scenario: ScenarioSummary
+}
+
+export type GetScenarioResponse = {
   scenario: ScenarioSummary
 }
 
@@ -52,20 +58,6 @@ export type DeleteScenarioResponse = {
 
 export type ListScenarioAvatarsResponse = {
   avatars: AvatarSummary[]
-}
-
-export type CreateAvatarForScenarioRequest = {
-  scenarioId: string
-  avatar: {
-    name: string
-    personaPrompt: string
-    tone?: string
-    description?: string
-    adjustments?: string[]
-    llmOverride?: { provider?: string; model?: string } | null
-    config?: Record<string, unknown>
-    status?: AvatarSummary['status']
-  }
 }
 
 export type CreateAvatarResponse = {
@@ -145,8 +137,6 @@ export type UpsertUserPersonaRequest = UserPersona
 export type UpsertUserPersonaApiResponse = UpsertUserPersonaResponse
 
 export type EndConversationApiResponse = EndConversationResponse
-
-export type UpdateAvatarRequestBody = UpdateAvatarRequest
 
 export type LocalWebIdentity = {
   version: 1

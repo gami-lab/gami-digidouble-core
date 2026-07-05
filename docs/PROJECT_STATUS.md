@@ -686,6 +686,27 @@ Completed on: 2026-06-01
 
 ---
 
+## EPIC 6.1 — Scenario Builder v1
+
+Status: 🔄 In Progress
+Started on: 2026-07-05
+
+### Current slice completed (contract cleanup prerequisite)
+
+- audited scenario/avatar/knowledge/model-config contracts touched by the upcoming admin app across `apps/core`, `apps/console`, `apps/web`, and `packages/shared`
+- removed route-local duplicate DTOs in `apps/core/src/api/routes/scenarios.ts` and `avatars.ts` (`CreateScenarioRequest/Response`, `UpdateScenarioRequest/Response`, `CreateAvatarRequest/Response`, `UpdateAvatarRequest/Response`); routes now import the canonical shapes from `@gami/shared` instead of re-declaring them
+- added the missing canonical `GetScenarioResponse` to `packages/shared/src/web-contract-types.ts` (previously only declared locally in the core route)
+- fixed a real contract/behavior drift: canonical `UpdateScenarioRequest` was missing `config`, even though the route schema and use case already accepted it — normalized to match `CreateScenarioRequest`
+- simplified `CreateAvatarForScenarioRequest` to reuse `CreateAvatarRequest` directly, then removed it once console switched to consuming `CreateAvatarRequest` directly (it added no value beyond an unused `scenarioId` wrapper field)
+- removed the dead `UpdateAvatarRequestBody` alias from shared exports
+- added a canonical `UpdateModelConfigRequest` to `packages/shared/src/runtime-inspector-types.ts`; `apps/core`'s `update-model-config` use case and `apps/console`'s model-config client/`ModelConfigPanel` now reuse it instead of each declaring their own copy of the same shape
+- documented known contract gaps intentionally **not** implemented in this slice (deferred to their owning prompts, not in scope for cleanup-only work):
+  - explicit GM-only world knowledge visibility (currently only representable as "all" vs "subset" via `visibleToAvatarIds`) — owned by `03-knowledge-sources-and-visibility.md`
+  - scenario-level default runtime model assignment (no field exists yet on `Scenario`/`ScenarioSummary`) — owned by `04-runtime-model-selection.md`
+- verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web` all typecheck/lint clean; full test suites pass (core 659 tests, console 48 tests, web 28 tests)
+
+---
+
 # 3. Current Public API Surface
 
 ## Sessions & Conversations
@@ -777,6 +798,7 @@ Completed on: 2026-06-01
 | 2026-05-11 | EPIC 5.2 — Context Engine v2                          |
 | 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration         |
 | 2026-06-01 | EPIC 7.1 — Public User Web App v1                     |
+| 2026-07-05 | EPIC 6.1 — Scenario Builder v1 (contract cleanup)     |
 
 ---
 
@@ -790,6 +812,7 @@ Current implementation focus:
 - advanced orchestration intelligence
 - retrieval observability
 - public web app operational hardening
+- Scenario Builder v1 admin app (EPIC 6.1): contract cleanup complete, admin app foundation and editor workflows next
 
 ---
 

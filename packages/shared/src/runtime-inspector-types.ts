@@ -454,3 +454,13 @@ export type ModelConfigResponse = {
   }
   updatedAt: string
 }
+
+/** Canonical wire request body for `PUT /v1/admin/model-config`. */
+export type UpdateModelConfigRequest = {
+  globalDefault: { provider: string; model: string }
+  roleOverrides?: {
+    avatar?: { provider?: string; model?: string }
+    gameMaster?: { provider?: string; model?: string }
+    memory?: { provider?: string; model?: string }
+  }
+}

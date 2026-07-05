@@ -1,5 +1,7 @@
-import type { ModelConfigResponse } from '@gami/shared'
+import type { ModelConfigResponse, UpdateModelConfigRequest } from '@gami/shared'
 import { coreRequest } from './client'
+
+export type { UpdateModelConfigRequest }
 
 type GetModelConfigPayload = {
   modelConfig: ModelConfigResponse
@@ -7,15 +9,6 @@ type GetModelConfigPayload = {
 
 type UpdateModelConfigPayload = {
   modelConfig: ModelConfigResponse
-}
-
-export type UpdateModelConfigRequest = {
-  globalDefault: { provider: string; model: string }
-  roleOverrides?: {
-    avatar?: { provider?: string; model?: string }
-    gameMaster?: { provider?: string; model?: string }
-    memory?: { provider?: string; model?: string }
-  }
 }
 
 export async function getModelConfig(): Promise<ModelConfigResponse> {

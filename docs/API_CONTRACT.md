@@ -380,6 +380,19 @@ GET /v1/scenarios
 POST /v1/scenarios
 ```
 
+```ts
+type CreateScenarioRequest = {
+  name: string
+  status?: 'draft' | 'active' | 'archived'
+  objectives?: string[]
+  worldContext?: string
+  avatarAvailability?: ScenarioAvatarAvailability
+  config?: Record<string, unknown>
+}
+```
+
+Response: `ApiResponse<{ scenario: ScenarioSummary }>`
+
 ---
 
 ## Get Scenario
@@ -388,6 +401,8 @@ POST /v1/scenarios
 GET /v1/scenarios/{scenarioId}
 ```
 
+Response: `ApiResponse<{ scenario: ScenarioSummary }>`
+
 ---
 
 ## Update Scenario
@@ -395,6 +410,19 @@ GET /v1/scenarios/{scenarioId}
 ```text
 PATCH /v1/scenarios/{scenarioId}
 ```
+
+```ts
+type UpdateScenarioRequest = Partial<
+  Pick<
+    ScenarioSummary,
+    'name' | 'status' | 'objectives' | 'worldContext' | 'avatarAvailability' | 'config'
+  >
+>
+```
+
+Response: `ApiResponse<{ scenario: ScenarioSummary }>`
+
+At least one field is required (enforced by the use case, not the request schema).
 
 ---
 
@@ -490,6 +518,9 @@ Request contract note:
 
 - optional `visibleToAvatarIds?: string[]`
 - omitted or empty array means visible to all avatars (default/backward-compatible)
+- known gap (EPIC 6.1, out of scope for the contract-cleanup slice): there is no explicit way
+  to represent "GM-only, visible to no avatar" — that requires a dedicated visibility policy
+  field and is owned by `docs/implementation-prompts/epic-6-1-scenario-builder-v1/03-knowledge-sources-and-visibility.md`
 
 ---
 
@@ -898,6 +929,30 @@ packages/shared/src/knowledge-contract-types.ts
 ```text
 packages/shared/src/conversation-contract-types.ts
 ```
+
+## Scenario/Avatar Contracts (EPIC 6.1)
+
+```text
+apps/core/src/domain/scenario/scenario.types.ts
+apps/core/src/domain/avatar/avatar.types.ts
+packages/shared/src/entity-types.ts        -- summaries + create/update avatar shapes
+packages/shared/src/web-contract-types.ts  -- scenario/avatar route request/response wrappers
+```
+
+Route handlers (`apps/core/src/api/routes/scenarios.ts`, `avatars.ts`) must import these
+canonical types rather than re-declaring local request/response shapes.
+
+## Model Configuration Contracts (EPIC 6.1)
+
+```text
+apps/core/src/domain/model-config/model-config.types.ts  -- ModelConfig, ModelRole, ProviderName
+packages/shared/src/runtime-inspector-types.ts            -- ModelConfigResponse, UpdateModelConfigRequest
+```
+
+Known gap (out of scope for this cleanup, owned by future EPIC 6.1 slices):
+
+- no scenario-level default model assignment field exists yet; only global default + role
+  overrides (avatar/gameMaster/memory) are modeled today
 
 ---
 

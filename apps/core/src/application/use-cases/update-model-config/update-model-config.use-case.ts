@@ -1,3 +1,4 @@
+import type { UpdateModelConfigRequest } from '@gami/shared'
 import type {
   ModelConfig,
   ModelOverride,
@@ -8,17 +9,8 @@ import { isProviderName, PROVIDER_NAMES } from '../../../domain/model-config/ind
 import { DomainError } from '../../../domain/errors.js'
 import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
 
-export type UpdateModelConfigInput = {
-  globalDefault: {
-    provider: string
-    model: string
-  }
-  roleOverrides?: {
-    avatar?: { provider?: string; model?: string }
-    gameMaster?: { provider?: string; model?: string }
-    memory?: { provider?: string; model?: string }
-  }
-}
+/** Wire request body for `PUT /v1/admin/model-config`; canonical shape owned by `@gami/shared`. */
+export type UpdateModelConfigInput = UpdateModelConfigRequest
 
 export type UpdateModelConfigOutput = {
   modelConfig: ModelConfig

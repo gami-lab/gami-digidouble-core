@@ -1,7 +1,7 @@
 import { coreRequest } from './client'
 import type {
   AvatarSummary,
-  CreateAvatarForScenarioRequest,
+  CreateAvatarRequest,
   CreateAvatarResponse,
   CreateScenarioRequest,
   CreateScenarioResponse,
@@ -20,7 +20,7 @@ import type {
 export type { AvatarSummary, ScenarioStatus, ScenarioSummary }
 
 export type CreateScenarioParams = CreateScenarioRequest
-export type CreateAvatarParams = CreateAvatarForScenarioRequest['avatar']
+export type CreateAvatarParams = CreateAvatarRequest
 
 export async function listScenarios(): Promise<ScenarioSummary[]> {
   const payload = await coreRequest<ListScenariosResponse>('GET', '/v1/scenarios')

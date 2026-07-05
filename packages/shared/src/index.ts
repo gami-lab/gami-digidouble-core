@@ -114,6 +114,7 @@ export type {
   AdminRefreshMemoryResponse,
   AdminClearMemoryResponse,
   ModelConfigResponse,
+  UpdateModelConfigRequest,
 } from './runtime-inspector-types.js'
 export type {
   ListScenariosResponse,
@@ -121,9 +122,9 @@ export type {
   CreateScenarioResponse,
   UpdateScenarioRequest,
   UpdateScenarioResponse,
+  GetScenarioResponse,
   DeleteScenarioResponse,
   ListScenarioAvatarsResponse,
-  CreateAvatarForScenarioRequest,
   CreateAvatarResponse,
   UpdateAvatarResponse,
   DeleteAvatarResponse,
@@ -146,6 +147,5 @@ export type {
   UpsertUserPersonaRequest,
   UpsertUserPersonaApiResponse,
   EndConversationApiResponse,
-  UpdateAvatarRequestBody,
   LocalWebIdentity,
 } from './web-contract-types.js'

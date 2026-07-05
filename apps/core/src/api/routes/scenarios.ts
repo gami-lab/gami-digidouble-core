@@ -1,6 +1,14 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
-import type { AvatarSummary, ScenarioAvatarAvailability, ScenarioSummary } from '@gami/shared'
+import type {
+  CreateAvatarRequest,
+  CreateAvatarResponse,
+  CreateScenarioRequest,
+  CreateScenarioResponse,
+  GetScenarioResponse,
+  UpdateScenarioRequest,
+  UpdateScenarioResponse,
+} from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
@@ -40,19 +48,6 @@ export type ScenariosRouteOptions = {
   sessionRepository?: ISessionRepository
 }
 
-type CreateScenarioRequestBody = {
-  name: string
-  status?: ScenarioSummary['status']
-  objectives?: string[]
-  worldContext?: string
-  avatarAvailability?: ScenarioAvatarAvailability
-  config?: Record<string, unknown>
-}
-
-type CreateScenarioResponse = {
-  scenario: ScenarioSummary
-}
-
 type CreateAvatarRequestParams = {
   scenarioId: string
 }
@@ -69,46 +64,13 @@ type GetScenarioRequestParams = {
   scenarioId: string
 }
 
-type GetScenarioResponse = {
-  scenario: ScenarioSummary
-}
-
 type UpdateScenarioRequestParams = {
   scenarioId: string
-}
-
-type UpdateScenarioRequestBody = {
-  name?: string
-  status?: ScenarioSummary['status']
-  objectives?: string[]
-  worldContext?: string
-  avatarAvailability?: ScenarioAvatarAvailability
-  config?: Record<string, unknown>
-}
-
-type UpdateScenarioResponse = {
-  scenario: ScenarioSummary
-}
-
-type CreateAvatarRequestBody = {
-  name: string
-  personaPrompt: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  llmOverride?: { provider?: string; model?: string } | null
-  config?: Record<string, unknown>
-  status?: AvatarSummary['status']
-}
-
-type CreateAvatarResponse = {
-  avatar: AvatarSummary
 }
 
 type ListScenariosResponse = ListScenariosOutput
 type ListScenarioAvatarsResponse = ListScenarioAvatarsOutput
 type DeleteScenarioResponse = DeleteScenarioOutput
-type PatchScenarioResponse = UpdateScenarioResponse
 
 const avatarAvailabilityBodySchema = {
   type: 'object',
@@ -232,7 +194,7 @@ function registerListScenariosRoute(app: FastifyInstance, useCase: ListScenarios
 }
 
 function registerCreateScenarioRoute(app: FastifyInstance, useCase: CreateScenarioUseCase): void {
-  app.post<{ Body: CreateScenarioRequestBody }>(
+  app.post<{ Body: CreateScenarioRequest }>(
     '/',
     { schema: { body: createScenarioBodySchema } },
     async (request, reply) => {
@@ -262,7 +224,7 @@ function registerGetScenarioRoute(app: FastifyInstance, useCase: GetScenarioUseC
 }
 
 function registerCreateAvatarRoute(app: FastifyInstance, useCase: CreateAvatarUseCase): void {
-  app.post<{ Params: CreateAvatarRequestParams; Body: CreateAvatarRequestBody }>(
+  app.post<{ Params: CreateAvatarRequestParams; Body: CreateAvatarRequest }>(
     '/:scenarioId/avatars',
     {
       schema: {
@@ -335,7 +297,7 @@ function registerDeleteScenarioRoute(app: FastifyInstance, useCase: DeleteScenar
 }
 
 function registerUpdateScenarioRoute(app: FastifyInstance, useCase: UpdateScenarioUseCase): void {
-  app.patch<{ Params: UpdateScenarioRequestParams; Body: UpdateScenarioRequestBody }>(
+  app.patch<{ Params: UpdateScenarioRequestParams; Body: UpdateScenarioRequest }>(
     '/:scenarioId',
     { schema: { params: scenarioIdParamsSchema, body: updateScenarioBodySchema } },
     async (request, reply) => {
@@ -350,7 +312,7 @@ function registerUpdateScenarioRoute(app: FastifyInstance, useCase: UpdateScenar
           ...(avatarAvailability !== undefined ? { avatarAvailability } : {}),
           ...(config !== undefined ? { config } : {}),
         })
-        return await reply.send(ok<PatchScenarioResponse>(mapUpdateResponse(output)))
+        return await reply.send(ok<UpdateScenarioResponse>(mapUpdateResponse(output)))
       } catch (error) {
         return handleDomainError(error, reply)
       }
@@ -380,7 +342,7 @@ async function handleDomainError(error: unknown, reply: FastifyReply): Promise<F
   return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
 }
 
-function mapCreateInput(body: CreateScenarioRequestBody): CreateScenarioInput {
+function mapCreateInput(body: CreateScenarioRequest): CreateScenarioInput {
   return {
     name: body.name,
     ...(body.status !== undefined ? { status: body.status } : {}),
@@ -409,10 +371,7 @@ function mapCreateResponse(output: CreateScenarioOutput): CreateScenarioResponse
   }
 }
 
-function mapCreateAvatarInput(
-  scenarioId: string,
-  body: CreateAvatarRequestBody,
-): CreateAvatarInput {
+function mapCreateAvatarInput(scenarioId: string, body: CreateAvatarRequest): CreateAvatarInput {
   const normalizedLlmOverride = normalizeLlmOverride(body.llmOverride)
   return {
     scenarioId,
@@ -431,7 +390,7 @@ function mapCreateAvatarResponse(output: CreateAvatarOutput): CreateAvatarRespon
   return { avatar: output.avatar }
 }
 
-function validateLlmOverride(value: CreateAvatarRequestBody['llmOverride']): string | null {
+function validateLlmOverride(value: CreateAvatarRequest['llmOverride']): string | null {
   if (value === undefined || value === null) return null
 
   if (value.provider !== undefined && !isProviderName(value.provider)) {
@@ -445,7 +404,7 @@ function validateLlmOverride(value: CreateAvatarRequestBody['llmOverride']): str
 }
 
 function normalizeLlmOverride(
-  llmOverride: CreateAvatarRequestBody['llmOverride'],
+  llmOverride: CreateAvatarRequest['llmOverride'],
 ): CreateAvatarInput['llmOverride'] {
   if (llmOverride === undefined) return undefined
   if (llmOverride === null) return null

@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function, complexity */
 import { useEffect, useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
-import type { ModelConfigResponse } from '@gami/shared'
+import type { ModelConfigResponse, UpdateModelConfigRequest } from '@gami/shared'
 import { ApiError } from '../api'
 import { getModelConfig, updateModelConfig } from '../api'
 import { getModelPresetOptions } from '../api/model-presets'
@@ -15,15 +15,6 @@ type ModelOverrideForm = { provider: string; model: string }
 type ModelConfigForm = {
   globalDefault: { provider: string; model: string }
   roleOverrides: Record<RoleKey, ModelOverrideForm>
-}
-
-export type UpdateModelConfigRequestBody = {
-  globalDefault: { provider: string; model: string }
-  roleOverrides: {
-    avatar?: { provider?: string; model?: string }
-    gameMaster?: { provider?: string; model?: string }
-    memory?: { provider?: string; model?: string }
-  }
 }
 
 const roleLabels: Record<RoleKey, string> = {
@@ -303,8 +294,8 @@ export function toModelConfigForm(config: ModelConfigResponse): ModelConfigForm 
   }
 }
 
-export function toUpdateModelConfigRequest(form: ModelConfigForm): UpdateModelConfigRequestBody {
-  const roleOverrides: UpdateModelConfigRequestBody['roleOverrides'] = {}
+export function toUpdateModelConfigRequest(form: ModelConfigForm): UpdateModelConfigRequest {
+  const roleOverrides: NonNullable<UpdateModelConfigRequest['roleOverrides']> = {}
   const avatarOverride = toOverride(form.roleOverrides.avatar)
   const gameMasterOverride = toOverride(form.roleOverrides.gameMaster)
   const memoryOverride = toOverride(form.roleOverrides.memory)
