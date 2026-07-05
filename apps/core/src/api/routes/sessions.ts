@@ -20,6 +20,7 @@ import type { IConversationWorkingMemoryRepository } from '../../application/por
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
+import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
 import type { GetAvatarTransitionsOutput } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.types.js'
@@ -79,6 +80,7 @@ export type SessionsRouteOptions = {
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
+  runGameMasterUseCase?: RunGameMasterUseCase
 }
 
 type StartSessionRequestBody = {
@@ -244,6 +246,9 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
       : {}),
     ...(options.modelConfigFallback !== undefined
       ? { modelConfigFallback: options.modelConfigFallback }
+      : {}),
+    ...(options.runGameMasterUseCase !== undefined
+      ? { runGameMasterUseCase: options.runGameMasterUseCase }
       : {}),
   })
 

@@ -6,6 +6,7 @@ import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import { DomainError } from '../../../domain/errors.js'
+import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import {
   hydrateConversationMemoryForNewConversation,
   type EpisodicMemoryHydrationService,
@@ -32,6 +33,7 @@ export class StartConversationUseCase {
     private readonly eventLogRepository?: IEventLogRepository,
     private readonly memoryMaintenance?: IMemoryMaintenancePort,
     private readonly gmStateRepository?: IGmStateRepository,
+    private readonly runGameMasterUseCase?: RunGameMasterUseCase | null,
   ) {}
 
   async execute(input: StartConversationInput): Promise<StartConversationOutput> {
@@ -95,6 +97,13 @@ export class StartConversationUseCase {
       avatarId,
       scenarioId: session.scenarioId,
       ...(session.memorySummary !== undefined ? { queryText: session.memorySummary } : {}),
+    })
+
+    this.dispatchInitialGameMasterRun({
+      sessionId,
+      scenarioId: session.scenarioId,
+      avatarId,
+      conversationId: conversation.conversationId,
     })
 
     return {
@@ -184,5 +193,37 @@ export class StartConversationUseCase {
       interactionCount: currentState?.interactionCount ?? 0,
       currentAvatarId: avatarId,
     })
+  }
+
+  /**
+   * Runs the GM before any user message exists so the avatar's very first
+   * reply also carries director guidance (gmNotes), not just replies after
+   * the first exchange. Fire-and-forget: must not delay conversation creation.
+   */
+  private dispatchInitialGameMasterRun(args: {
+    sessionId: string
+    scenarioId: string
+    avatarId: string
+    conversationId: string
+  }): void {
+    if (this.runGameMasterUseCase === undefined || this.runGameMasterUseCase === null) return
+
+    void this.runGameMasterUseCase
+      .execute({
+        sessionId: args.sessionId,
+        scenarioId: args.scenarioId,
+        avatarId: args.avatarId,
+        conversationId: args.conversationId,
+        userMessageText: '',
+        turnIndex: 0,
+        correlationId: crypto.randomUUID(),
+      })
+      .catch((err: unknown) => {
+        console.error(
+          '[start-conversation] Initial GM run failed for session:',
+          args.sessionId,
+          err,
+        )
+      })
   }
 }

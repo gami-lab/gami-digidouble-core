@@ -22,6 +22,7 @@ import { GetSessionUseCase } from '../../application/use-cases/get-session/get-s
 import { ListSessionConversationsUseCase } from '../../application/use-cases/list-session-conversations/list-session-conversations.use-case.js'
 import { ListSessionsUseCase } from '../../application/use-cases/list-sessions/list-sessions.use-case.js'
 import { ResetSessionUseCase } from '../../application/use-cases/reset-session/reset-session.use-case.js'
+import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import { StartConversationUseCase } from '../../application/use-cases/start-conversation/start-conversation.use-case.js'
 import { StartSessionUseCase } from '../../application/use-cases/start-session/start-session.use-case.js'
 import { SwitchAvatarUseCase } from '../../application/use-cases/switch-avatar/switch-avatar.use-case.js'
@@ -60,6 +61,7 @@ export function createSessionRouteUseCases(deps: {
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
+  runGameMasterUseCase?: RunGameMasterUseCase
 }): SessionRouteUseCases {
   const memoryMaintenance = new MemoryMaintenanceService(
     deps.messageRepository,
@@ -104,6 +106,7 @@ export function createSessionRouteUseCases(deps: {
       deps.eventLogRepository,
       memoryMaintenance,
       deps.gmStateRepository,
+      deps.runGameMasterUseCase,
     ),
     listSessionConversationsUseCase: new ListSessionConversationsUseCase(
       deps.sessionRepository,
@@ -118,6 +121,7 @@ export function createSessionRouteUseCases(deps: {
       deps.conversationWorkingMemoryRepository,
       deps.eventLogRepository,
       deps.gmStateRepository,
+      deps.runGameMasterUseCase,
     ),
     getAvailableAvatarsUseCase: new GetAvailableAvatarsUseCase(
       deps.sessionRepository,

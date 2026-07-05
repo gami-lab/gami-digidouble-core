@@ -43,5 +43,6 @@ export function buildGameMasterSystemPrompt(): string {
     '- nextAvatarId must be an active avatar listed in availableAvatars and should normally be available or unlocked in the same output.',
     '- stateUpdate.interactionIncrement must always be exactly 1.',
     '- Do not answer the user directly; provide only director decisions and compact context.',
+    '- When userMessage.text is empty, no user message has been sent yet — this is the opening of the conversation. Use context.notes to guide how the Avatar should open (e.g. greet the user, set the scene) instead of reacting to a message.',
   ].join('\n')
 }

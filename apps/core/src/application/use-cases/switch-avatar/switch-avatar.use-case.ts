@@ -7,6 +7,7 @@ import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
+import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import {
   hydrateConversationMemoryForNewConversation,
   type EpisodicMemoryHydrationService,
@@ -33,6 +34,7 @@ export class SwitchAvatarUseCase {
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly eventLogRepository?: IEventLogRepository,
     private readonly gmStateRepository?: IGmStateRepository,
+    private readonly runGameMasterUseCase?: RunGameMasterUseCase | null,
   ) {}
 
   async execute(input: SwitchAvatarInput): Promise<SwitchAvatarOutput> {
@@ -84,6 +86,13 @@ export class SwitchAvatarUseCase {
     if (updatedSession === null) {
       throw new DomainError('NOT_FOUND', `Session ${sessionId} was not found.`)
     }
+
+    this.dispatchInitialGameMasterRun({
+      sessionId,
+      scenarioId: session.scenarioId,
+      avatarId,
+      conversationId: conversation.conversationId,
+    })
 
     return {
       session: this.toSessionSummary(updatedSession),
@@ -220,6 +229,34 @@ export class SwitchAvatarUseCase {
       interactionCount: currentState?.interactionCount ?? 0,
       currentAvatarId: avatarId,
     })
+  }
+
+  /**
+   * Runs the GM before any user message exists so the newly active avatar's
+   * very first reply after a switch also carries director guidance.
+   * Fire-and-forget: must not delay the switch response.
+   */
+  private dispatchInitialGameMasterRun(args: {
+    sessionId: string
+    scenarioId: string
+    avatarId: string
+    conversationId: string
+  }): void {
+    if (this.runGameMasterUseCase === undefined || this.runGameMasterUseCase === null) return
+
+    void this.runGameMasterUseCase
+      .execute({
+        sessionId: args.sessionId,
+        scenarioId: args.scenarioId,
+        avatarId: args.avatarId,
+        conversationId: args.conversationId,
+        userMessageText: '',
+        turnIndex: 0,
+        correlationId: crypto.randomUUID(),
+      })
+      .catch((err: unknown) => {
+        console.error('[switch-avatar] Initial GM run failed for session:', args.sessionId, err)
+      })
   }
 
   private toSessionSummary(session: Session) {

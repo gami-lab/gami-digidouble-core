@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
+import { expectConsoleError } from '../../../test-utils/console.js'
+import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { StartConversationUseCase } from './start-conversation.use-case.js'
 
 const findSessionByIdMock = vi.fn()
@@ -248,6 +250,61 @@ describe('StartConversationUseCase', () => {
         type: 'memory_hydration_succeeded',
         sessionId: 'session_1',
       }),
+    )
+  })
+})
+
+describe('StartConversationUseCase initial GM run', () => {
+  it('dispatches a GM run for the new conversation before any user message exists', async () => {
+    const runGameMasterExecuteMock = vi.fn().mockResolvedValue(undefined)
+    const useCase = new StartConversationUseCase(
+      sessionRepository,
+      avatarRepository,
+      conversationRepository,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      gmStateRepository,
+      { execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase,
+    )
+
+    await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' })
+
+    await vi.waitFor(() => {
+      expect(runGameMasterExecuteMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 'session_1',
+          scenarioId: 'scenario_1',
+          avatarId: 'avatar_1',
+          conversationId: 'conversation_1',
+          userMessageText: '',
+          turnIndex: 0,
+        }),
+      )
+    })
+  })
+
+  it('does not fail conversation start when the GM run fails', async () => {
+    const runGameMasterExecuteMock = vi.fn().mockRejectedValue(new Error('gm boom'))
+    const useCase = new StartConversationUseCase(
+      sessionRepository,
+      avatarRepository,
+      conversationRepository,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      gmStateRepository,
+      { execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase,
+    )
+
+    await expectConsoleError(
+      async () =>
+        expect(
+          useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' }),
+        ).resolves.toBeDefined(),
+      /Initial GM run failed.*gm boom/,
     )
   })
 })
