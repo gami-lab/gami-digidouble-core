@@ -1553,19 +1553,17 @@ Hybrid systems outperform pure LLM systems.
 Enable non-developers to configure experiences.
 
 **Description**  
-Provide a simple web panel to create/edit scenarios, avatars, objectives, and sources.
+Provide a web panel to create/edit scenarios, avatars, objectives, and sources.
 
 **Hypothesis**  
-Back-office usability is enough for MVP; no consumer frontend required yet.
+Back-office usability is enough for MVP; consumer grade frontend.
 
 **Includes**
 
 - scenario editor
 - avatar editor
-- goals/pacing editor
-- transition rule editor
 - reusable variable editor
-- source upload
+- knowledge source upload and update
 - save/load config
 
 **DoD**
@@ -1576,11 +1574,7 @@ Back-office usability is enough for MVP; no consumer frontend required yet.
 
 - create full scenario without code
 - edit avatar live
-- upload sources
-
-**User Increment**
-
-- content team autonomy begins
+- upload/update sources
 
 ---
 
