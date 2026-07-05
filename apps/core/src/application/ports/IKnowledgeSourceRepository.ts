@@ -21,9 +21,19 @@ export type ListKnowledgeSourcesFilters = {
   status?: KnowledgeSourceStatus
 }
 
+export type UpdateKnowledgeSourceParams = {
+  name?: string
+  metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
+  uriOrPath?: string
+  status?: KnowledgeSourceStatus
+}
+
 export interface IKnowledgeSourceRepository {
   create(params: CreateKnowledgeSourceParams): Promise<KnowledgeSource>
   findById(sourceId: string): Promise<KnowledgeSource | null>
   listByScenario(filters: ListKnowledgeSourcesFilters): Promise<KnowledgeSource[]>
   updateStatus(sourceId: string, status: KnowledgeSourceStatus): Promise<KnowledgeSource | null>
+  update(sourceId: string, updates: UpdateKnowledgeSourceParams): Promise<KnowledgeSource | null>
+  delete(sourceId: string): Promise<void>
 }

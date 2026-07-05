@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import type {
   CreateKnowledgeSourceRequest,
   CreateKnowledgeSourceResponse,
+  DeleteKnowledgeSourceResponse,
   GetIngestionJobResponse,
   ListIngestionJobsResponse,
   ListKnowledgeSourcesQuery,
@@ -12,6 +13,8 @@ import type {
   QueryKnowledgeRetrievalResponse,
   TriggerIngestionRequest,
   TriggerIngestionResponse,
+  UpdateKnowledgeSourceRequest,
+  UpdateKnowledgeSourceResponse,
 } from '@gami/shared'
 import type { IIngestionJobRepository } from '../../application/ports/IIngestionJobRepository.js'
 import type { IKnowledgeChunkRepository } from '../../application/ports/IKnowledgeChunkRepository.js'
@@ -22,10 +25,12 @@ import type { IEventLogRepository } from '../../application/ports/IEventLogRepos
 import { KnowledgeIngestionService } from '../../application/services/knowledge/knowledge-ingestion.service.js'
 import { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
 import { CreateKnowledgeSourceUseCase } from '../../application/use-cases/create-knowledge-source/create-knowledge-source.use-case.js'
+import { DeleteKnowledgeSourceUseCase } from '../../application/use-cases/delete-knowledge-source/delete-knowledge-source.use-case.js'
 import { GetIngestionJobUseCase } from '../../application/use-cases/get-ingestion-job/get-ingestion-job.use-case.js'
 import { GetTypedRetrievalUseCase } from '../../application/use-cases/get-typed-retrieval/get-typed-retrieval.use-case.js'
 import { ListKnowledgeSourcesUseCase } from '../../application/use-cases/list-knowledge-sources/list-knowledge-sources.use-case.js'
 import { TriggerIngestionUseCase } from '../../application/use-cases/trigger-ingestion/trigger-ingestion.use-case.js'
+import { UpdateKnowledgeSourceUseCase } from '../../application/use-cases/update-knowledge-source/update-knowledge-source.use-case.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
@@ -48,6 +53,8 @@ type JobParams = { ingestionJobId: string }
 type UseCases = {
   createSourceUseCase: CreateKnowledgeSourceUseCase
   listSourcesUseCase: ListKnowledgeSourcesUseCase
+  updateSourceUseCase: UpdateKnowledgeSourceUseCase
+  deleteSourceUseCase: DeleteKnowledgeSourceUseCase
   triggerIngestionUseCase: TriggerIngestionUseCase
   getIngestionJobUseCase: GetIngestionJobUseCase
   getTypedRetrievalUseCase: GetTypedRetrievalUseCase
@@ -86,6 +93,22 @@ const sourceParamsSchema = {
   type: 'object',
   required: ['sourceId'],
   properties: { sourceId: { type: 'string', minLength: 1 } },
+  additionalProperties: false,
+} as const
+
+// All fields are optional — the empty-body guard (at least one field required)
+// is enforced in UpdateKnowledgeSourceUseCase, not at the schema level.
+const updateSourceBodySchema = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', minLength: 1 },
+    uriOrPath: { type: 'string', minLength: 1 },
+    metadata: { type: 'object' },
+    visibleToAvatarIds: {
+      type: 'array',
+      items: { type: 'string', minLength: 1 },
+    },
+  },
   additionalProperties: false,
 } as const
 
@@ -129,6 +152,8 @@ export const knowledgeRoute: FastifyPluginCallback<KnowledgeRouteOptions> = (app
   const useCases = buildUseCases(options)
   registerCreateSourceRoute(app, useCases)
   registerListSourcesRoute(app, useCases)
+  registerUpdateSourceRoute(app, useCases)
+  registerDeleteSourceRoute(app, useCases)
   registerTriggerIngestionRoute(app, useCases)
   registerListIngestionJobsRoute(app, useCases)
   registerGetIngestionJobRoute(app, useCases)
@@ -148,6 +173,11 @@ function buildUseCases(options: KnowledgeRouteOptions): UseCases {
   return {
     createSourceUseCase: new CreateKnowledgeSourceUseCase(options.sourceRepository),
     listSourcesUseCase: new ListKnowledgeSourcesUseCase(options.sourceRepository),
+    updateSourceUseCase: new UpdateKnowledgeSourceUseCase(options.sourceRepository),
+    deleteSourceUseCase: new DeleteKnowledgeSourceUseCase(
+      options.sourceRepository,
+      options.chunkRepository,
+    ),
     triggerIngestionUseCase: new TriggerIngestionUseCase(
       options.sourceRepository,
       options.ingestionJobRepository,
@@ -191,6 +221,45 @@ function registerListSourcesRoute(app: FastifyInstance, useCases: UseCases): voi
           ...(request.query.status !== undefined ? { status: request.query.status } : {}),
         })
         return await reply.send(ok<ListKnowledgeSourcesResponse>(output))
+      } catch (error) {
+        return await handleError(error, reply)
+      }
+    },
+  )
+}
+
+function registerUpdateSourceRoute(app: FastifyInstance, useCases: UseCases): void {
+  app.patch<{ Params: SourceParams; Body: UpdateKnowledgeSourceRequest }>(
+    '/v1/knowledge-sources/:sourceId',
+    { schema: { params: sourceParamsSchema, body: updateSourceBodySchema } },
+    async (request, reply) => {
+      try {
+        const { name, metadata, visibleToAvatarIds, uriOrPath } = request.body
+        const output = await useCases.updateSourceUseCase.execute({
+          sourceId: request.params.sourceId,
+          ...(name !== undefined ? { name } : {}),
+          ...(metadata !== undefined ? { metadata } : {}),
+          ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
+          ...(uriOrPath !== undefined ? { uriOrPath } : {}),
+        })
+        return await reply.send(ok<UpdateKnowledgeSourceResponse>(output))
+      } catch (error) {
+        return await handleError(error, reply)
+      }
+    },
+  )
+}
+
+function registerDeleteSourceRoute(app: FastifyInstance, useCases: UseCases): void {
+  app.delete<{ Params: SourceParams }>(
+    '/v1/knowledge-sources/:sourceId',
+    { schema: { params: sourceParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await useCases.deleteSourceUseCase.execute({
+          sourceId: request.params.sourceId,
+        })
+        return await reply.send(ok<DeleteKnowledgeSourceResponse>(output))
       } catch (error) {
         return await handleError(error, reply)
       }

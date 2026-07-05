@@ -2,36 +2,18 @@
 
 This note lists API and platform gaps observed while implementing full murder-party setup through HTTP only.
 
-## 1. No knowledge source update endpoint
+## 1. No knowledge source update endpoint — RESOLVED
 
 Current API supports:
 
 - `POST /v1/knowledge-sources`
+- `PATCH /v1/knowledge-sources/{sourceId}`
+- `DELETE /v1/knowledge-sources/{sourceId}`
 - `GET /v1/scenarios/{scenarioId}/knowledge-sources`
 - ingestion endpoints
 
-Missing:
-
-- update source metadata/content
-- update source visibility
-- delete source
-
-### Impact
-
-Bootstrap scripts can create sources, but cannot replace changed content in-place.
-If a source was created with outdated content, the script must either:
-
-- keep the stale source
-- create duplicate sources
-
-### Proposal
-
-Add:
-
-- `PATCH /v1/knowledge-sources/{sourceId}`
-- `DELETE /v1/knowledge-sources/{sourceId}`
-
-Suggested request shape for PATCH:
+Implemented request shape for PATCH (`apps/core/src/api/routes/knowledge.ts`,
+`packages/shared/src/knowledge-contract-types.ts`):
 
 ```ts
 type UpdateKnowledgeSourceRequest = {
@@ -42,10 +24,16 @@ type UpdateKnowledgeSourceRequest = {
 }
 ```
 
-Suggested behavior:
+Behavior:
 
-- when fields affecting ingestion inputs change (`metadata`, `uriOrPath`, maybe `format`), set status back to `pending`
-- ingestion must be explicitly re-triggered
+- at least one field must be provided (400 `VALIDATION_ERROR` otherwise)
+- when `metadata` or `uriOrPath` changes, status is reset to `pending`; ingestion must be
+  explicitly re-triggered via `POST /v1/knowledge-sources/{sourceId}/ingest`
+- `DELETE` removes the source and its chunks (`IKnowledgeChunkRepository.deleteBySourceId`);
+  Postgres also cascades ingestion job rows via `ON DELETE CASCADE`
+
+The murder-party bootstrap script (`setup-via-api.ts`) now calls `updateKnowledgeSource`
+in-place when it detects content hash drift, instead of only warning.
 
 ## 2. No scenario lookup by deterministic external key
 
@@ -74,33 +62,24 @@ type ScenarioConfig = {
 }
 ```
 
-## 3. Source loading is currently inline-text centric
+## 3. Source loading is currently inline-text centric — RESOLVED
 
-The current content loader implementation (`InMemoryKnowledgeSourceContentLoader`) resolves content from:
+`FileUrlKnowledgeSourceContentLoader` (`apps/core/src/infrastructure/knowledge/file-url-knowledge-source-content-loader.ts`)
+is now the production content loader, wired in `src/index.ts`:
 
-- `metadata.inlineText`
-- fallback string built from `uriOrPath`
+- `metadata.inlineText` is still honored first, when present, for environment-portable bootstrap flows
+- `format: 'url'` sources are fetched over HTTP(S)
+- `format: 'text' | 'markdown'` sources are fetched over HTTP(S) when `uriOrPath` is a URL, otherwise read
+  from local/mounted disk — gated by an explicit `allowedRoots` allowlist (empty by default, i.e. local
+  file access is disabled unless configured)
+- `format: 'pdf'` sources are fetched/read the same way and parsed via `pdf-parse`
+- `format: 'media'` sources still produce a description/reference string (no binary transcription)
+- a `maxContentBytes` guard (10 MB default) bounds fetched/read content size
 
-It does not perform real remote/local fetch of PDF/text/markdown/url assets.
+Configuration: `KNOWLEDGE_SOURCE_ALLOWED_ROOTS` (comma-separated absolute paths), see `.env.example`.
 
-### Impact
-
-`uriOrPath` and `format` are accepted by API, but ingestion does not yet parse real files/URLs by default runtime adapter.
-
-### Proposal
-
-Introduce a production loader adapter, for example:
-
-- `FileUrlKnowledgeSourceContentLoader`
-
-Responsibilities:
-
-- fetch `url` sources over HTTP(S)
-- read configured local or mounted files (for `text`/`markdown`/`pdf`) with allowlisted roots
-- extract text from PDF sources
-- produce normalized text content and metadata
-
-Maintain `InMemoryKnowledgeSourceContentLoader` as the fallback for tests and controlled bootstrap flows.
+`InMemoryKnowledgeSourceContentLoader` remains the default in `src/api/server.ts` for tests and
+route-level unit tests that don't provide adapters explicitly.
 
 ## 4. No direct endpoint to test avatar-visible retrieval in runtime path
 

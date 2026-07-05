@@ -260,7 +260,7 @@ async function waitForJob(
   )
 }
 
-function shouldWarnHashDrift(existing: KnowledgeSourceDto, newHash: string): boolean {
+function hasHashDrift(existing: KnowledgeSourceDto, newHash: string): boolean {
   const existingHash = readStringField(existing.metadata?.['contentSha256'])
   return existingHash !== null && existingHash !== newHash
 }
@@ -314,6 +314,8 @@ async function ensureOneKnowledgeSource(args: {
   const existing = existingBySlug.get(seed.slug)
 
   let source = existing
+  let contentReplaced = false
+
   if (existing === undefined) {
     const created = await client.createKnowledgeSource(
       toCreateSourcePayload({
@@ -325,10 +327,17 @@ async function ensureOneKnowledgeSource(args: {
       }),
     )
     source = created.source
-  } else if (shouldWarnHashDrift(existing, contentHash)) {
-    warnings.push(
-      `Knowledge source ${seed.slug} exists with different content hash. API currently has no update/delete endpoint for knowledge sources, so content was not replaced.`,
-    )
+  } else if (hasHashDrift(existing, contentHash)) {
+    const updated = await client.updateKnowledgeSource(existing.sourceId, {
+      metadata: {
+        seedSlug: seed.slug,
+        seedFileName: seed.fileName,
+        contentSha256: contentHash,
+        inlineText: content,
+      },
+    })
+    source = updated.source
+    contentReplaced = true
   }
 
   if (source === undefined) {
@@ -336,7 +345,7 @@ async function ensureOneKnowledgeSource(args: {
     return null
   }
 
-  if (existing !== undefined && !options.reingestExisting) {
+  if (existing !== undefined && !contentReplaced && !options.reingestExisting) {
     return source.sourceId
   }
 
@@ -413,7 +422,7 @@ async function runSetup(options: CliOptions): Promise<SetupOutcome> {
     warnings: knowledge.warnings,
     notes: [
       'Knowledge content is sent via metadata.inlineText for environment portability.',
-      'If source content changes, current API cannot replace existing knowledge source content in-place.',
+      'Sources with drifted content are replaced in-place via PATCH and re-ingested.',
     ],
   }
 }

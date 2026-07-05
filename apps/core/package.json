@@ -27,10 +27,12 @@
     "ioredis": "^5.10.1",
     "langfuse": "^3.38.20",
     "openai": "^6.34.0",
+    "pdf-parse": "^1.1.1",
     "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pdf-parse": "^1.1.5",
     "@vitest/coverage-v8": "^3.2.4",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",

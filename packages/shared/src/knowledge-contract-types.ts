@@ -125,6 +125,22 @@ export type ListKnowledgeSourcesResponse = {
   sources: KnowledgeSourceDto[]
 }
 
+export type UpdateKnowledgeSourceRequest = {
+  name?: string
+  metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
+  uriOrPath?: string
+}
+
+export type UpdateKnowledgeSourceResponse = {
+  source: KnowledgeSourceDto
+}
+
+export type DeleteKnowledgeSourceResponse = {
+  sourceId: string
+  deleted: boolean
+}
+
 export type TriggerIngestionRequest = {
   correlationId?: string
 }

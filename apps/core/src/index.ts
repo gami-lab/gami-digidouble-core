@@ -1,4 +1,5 @@
 import { loadConfig } from './config.js'
+import type { Config } from './config.js'
 import { createServer } from './api/server.js'
 import type { IDependencyProbe } from './application/ports/IDependencyProbe.js'
 import { RunGameMasterUseCase } from './application/use-cases/run-game-master/run-game-master.use-case.js'
@@ -39,7 +40,7 @@ import {
   PostgresIngestionJobRepository,
   PostgresModelConfigRepository,
 } from './infrastructure/db/index.js'
-import { InMemoryKnowledgeSourceContentLoader } from './infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
+import { FileUrlKnowledgeSourceContentLoader } from './infrastructure/knowledge/file-url-knowledge-source-content-loader.js'
 import { HashEmbeddingAdapter } from './infrastructure/knowledge/hash-embedding.adapter.js'
 
 type CoreRepositories = ReturnType<typeof buildCoreRepositories>
@@ -55,7 +56,7 @@ async function main(): Promise<void> {
   const sql = getDbClient(config.databaseUrl)
   const redisClient = getRedisClient(config.redisUrl)
   const repositories = buildCoreRepositories(sql)
-  const knowledgeAdapters = buildKnowledgeAdapters(sql)
+  const knowledgeAdapters = buildKnowledgeAdapters(sql, config)
   const modelConfigRepository = repositories.modelConfigRepository
   const runtimeModelConfigFallback: ModelConfig = {
     ...DEFAULT_MODEL_CONFIG,
@@ -178,12 +179,14 @@ function resolveProviderName(value: string): ProviderName {
   return isProviderName(value) ? value : 'null'
 }
 
-function buildKnowledgeAdapters(sql: ReturnType<typeof getDbClient>) {
+function buildKnowledgeAdapters(sql: ReturnType<typeof getDbClient>, config: Config) {
   return {
     knowledgeSourceRepository: new PostgresKnowledgeSourceRepository(sql),
     knowledgeChunkRepository: new PostgresKnowledgeChunkRepository(sql),
     ingestionJobRepository: new PostgresIngestionJobRepository(sql),
-    knowledgeSourceContentLoader: new InMemoryKnowledgeSourceContentLoader(),
+    knowledgeSourceContentLoader: new FileUrlKnowledgeSourceContentLoader({
+      allowedRoots: config.knowledgeSourceAllowedRoots,
+    }),
     embeddingAdapter: new HashEmbeddingAdapter(),
   }
 }

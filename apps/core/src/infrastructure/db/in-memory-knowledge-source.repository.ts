@@ -2,6 +2,7 @@ import type {
   CreateKnowledgeSourceParams,
   IKnowledgeSourceRepository,
   ListKnowledgeSourcesFilters,
+  UpdateKnowledgeSourceParams,
 } from '../../application/ports/IKnowledgeSourceRepository.js'
 import type { KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
 
@@ -73,5 +74,36 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
     }
     this.sources.set(sourceId, updated)
     return Promise.resolve(updated)
+  }
+
+  update(sourceId: string, updates: UpdateKnowledgeSourceParams): Promise<KnowledgeSource | null> {
+    const existing = this.sources.get(sourceId)
+    if (existing === undefined) return Promise.resolve(null)
+
+    const updated: KnowledgeSource = {
+      ...existing,
+      ...(updates.name !== undefined ? { name: updates.name } : {}),
+      ...(updates.uriOrPath !== undefined ? { uriOrPath: updates.uriOrPath } : {}),
+      ...(updates.metadata !== undefined ? { metadata: updates.metadata } : {}),
+      ...(updates.status !== undefined ? { status: updates.status } : {}),
+      updatedAt: new Date().toISOString(),
+    }
+
+    if (updates.visibleToAvatarIds !== undefined) {
+      const normalized = normalizeVisibleToAvatarIds(updates.visibleToAvatarIds)
+      if (normalized !== undefined) {
+        updated.visibleToAvatarIds = normalized
+      } else {
+        delete updated.visibleToAvatarIds
+      }
+    }
+
+    this.sources.set(sourceId, updated)
+    return Promise.resolve(updated)
+  }
+
+  delete(sourceId: string): Promise<void> {
+    this.sources.delete(sourceId)
+    return Promise.resolve()
   }
 }

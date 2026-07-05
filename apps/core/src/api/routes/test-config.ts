@@ -23,4 +23,5 @@ export const TEST_CONFIG: Config = {
   langfusePublicKey: undefined,
   langfuseSecretKey: undefined,
   langfuseHost: undefined,
+  knowledgeSourceAllowedRoots: [],
 }

@@ -114,7 +114,7 @@ export class ApiClient {
   constructor(private readonly options: CliOptions) {}
 
   private async request<T>(
-    method: 'GET' | 'POST' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     path: string,
     body?: unknown,
     acceptedStatuses: number[] = [200],
@@ -208,6 +208,22 @@ export class ApiClient {
     visibleToAvatarIds?: string[]
   }): Promise<{ source: KnowledgeSourceDto }> {
     return this.request('POST', '/v1/knowledge-sources', input, [201])
+  }
+
+  updateKnowledgeSource(
+    sourceId: string,
+    input: Partial<{
+      name: string
+      metadata: Record<string, unknown>
+      visibleToAvatarIds: string[]
+      uriOrPath: string
+    }>,
+  ): Promise<{ source: KnowledgeSourceDto }> {
+    return this.request('PATCH', `/v1/knowledge-sources/${sourceId}`, input)
+  }
+
+  deleteKnowledgeSource(sourceId: string): Promise<{ sourceId: string; deleted: boolean }> {
+    return this.request('DELETE', `/v1/knowledge-sources/${sourceId}`)
   }
 
   triggerIngestion(

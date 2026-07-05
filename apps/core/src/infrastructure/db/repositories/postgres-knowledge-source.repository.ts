@@ -3,6 +3,7 @@ import type {
   CreateKnowledgeSourceParams,
   IKnowledgeSourceRepository,
   ListKnowledgeSourcesFilters,
+  UpdateKnowledgeSourceParams,
 } from '../../../application/ports/IKnowledgeSourceRepository.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
@@ -25,6 +26,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+// sql.unsafe() (used by update()) does not decode jsonb columns into objects
+// the way tagged-template queries do — it returns the raw JSON text instead.
+function normalizeMetadata(value: unknown): Record<string, unknown> | undefined {
+  if (isRecord(value)) return value
+  if (typeof value !== 'string') return undefined
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return isRecord(parsed) ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
 function normalizeVisibleToAvatarIds(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined
   const normalized = value
@@ -36,6 +50,7 @@ function normalizeVisibleToAvatarIds(value: unknown): string[] | undefined {
 
 function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
   const visibleToAvatarIds = normalizeVisibleToAvatarIds(row.visible_to_avatar_ids)
+  const metadata = normalizeMetadata(row.metadata)
   return {
     sourceId: `knowledge_source_${row.id}`,
     scenarioId: `scenario_${row.scenario_id}`,
@@ -44,7 +59,7 @@ function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
     format: row.format,
     uriOrPath: row.uri_or_path,
     status: row.status,
-    ...(isRecord(row.metadata) ? { metadata: row.metadata } : {}),
+    ...(metadata !== undefined ? { metadata } : {}),
     ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -134,5 +149,61 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
     `
 
     return row === undefined ? null : rowToKnowledgeSource(row)
+  }
+
+  async update(
+    sourceId: string,
+    updates: UpdateKnowledgeSourceParams,
+  ): Promise<KnowledgeSource | null> {
+    const sourceUuid = extractUuid('knowledge_source_', sourceId)
+    if (sourceUuid === null) return null
+
+    const setClauses: string[] = ['updated_at = NOW()']
+    const values: unknown[] = []
+
+    if (updates.name !== undefined) {
+      values.push(updates.name)
+      setClauses.push(`name = $${String(values.length)}`)
+    }
+    if (updates.uriOrPath !== undefined) {
+      values.push(updates.uriOrPath)
+      setClauses.push(`uri_or_path = $${String(values.length)}`)
+    }
+    if (updates.metadata !== undefined) {
+      values.push(JSON.stringify(updates.metadata))
+      setClauses.push(`metadata = $${String(values.length)}::jsonb`)
+    }
+    if (updates.visibleToAvatarIds !== undefined) {
+      values.push(normalizeVisibleToAvatarIds(updates.visibleToAvatarIds) ?? null)
+      setClauses.push(`visible_to_avatar_ids = $${String(values.length)}`)
+    }
+    if (updates.status !== undefined) {
+      values.push(updates.status)
+      setClauses.push(`status = $${String(values.length)}`)
+    }
+
+    values.push(sourceUuid)
+    const whereParam = `$${String(values.length)}`
+
+    const query = `
+      UPDATE knowledge_sources
+      SET ${setClauses.join(', ')}
+      WHERE id = ${whereParam}
+      RETURNING id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visible_to_avatar_ids, created_at, updated_at
+    `
+
+    const rows = await this.sql.unsafe(query, values as string[])
+    const row = rows[0] as KnowledgeSourceRow | undefined
+    return row === undefined ? null : rowToKnowledgeSource(row)
+  }
+
+  async delete(sourceId: string): Promise<void> {
+    const sourceUuid = extractUuid('knowledge_source_', sourceId)
+    if (sourceUuid === null) return
+
+    await this.sql`
+      DELETE FROM knowledge_sources
+      WHERE id = ${sourceUuid}
+    `
   }
 }

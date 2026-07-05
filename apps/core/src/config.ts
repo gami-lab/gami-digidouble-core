@@ -20,6 +20,7 @@ export interface Config {
   langfusePublicKey: string | undefined
   langfuseSecretKey: string | undefined
   langfuseHost: string | undefined
+  knowledgeSourceAllowedRoots: string[]
 }
 
 function requireEnv(key: string): string {
@@ -48,5 +49,14 @@ export function loadConfig(): Config {
     langfusePublicKey: process.env['LANGFUSE_PUBLIC_KEY'],
     langfuseSecretKey: process.env['LANGFUSE_SECRET_KEY'],
     langfuseHost: process.env['LANGFUSE_BASE_URL'],
+    knowledgeSourceAllowedRoots: parseAllowedRoots(process.env['KNOWLEDGE_SOURCE_ALLOWED_ROOTS']),
   }
+}
+
+function parseAllowedRoots(value: string | undefined): string[] {
+  if (value === undefined || value.trim().length === 0) return []
+  return value
+    .split(',')
+    .map((root) => root.trim())
+    .filter((root) => root.length > 0)
 }
