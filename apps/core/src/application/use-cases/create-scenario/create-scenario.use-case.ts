@@ -26,6 +26,9 @@ export class CreateScenarioUseCase {
     const scenario = await this.scenarioRepository.create({
       name,
       status,
+      objectives: input.objectives ?? [],
+      worldContext: input.worldContext ?? '',
+      avatarAvailability: input.avatarAvailability ?? { initialAvatarIds: [] },
       ...(input.config !== undefined ? { config: input.config } : {}),
     })
 
@@ -34,6 +37,9 @@ export class CreateScenarioUseCase {
         scenarioId: scenario.scenarioId,
         name: scenario.name,
         status: scenario.status,
+        objectives: scenario.objectives,
+        worldContext: scenario.worldContext,
+        avatarAvailability: scenario.avatarAvailability,
         config: scenario.config as Record<string, unknown>,
         createdAt: scenario.createdAt,
         updatedAt: scenario.updatedAt,

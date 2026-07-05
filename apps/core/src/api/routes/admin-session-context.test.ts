@@ -83,7 +83,10 @@ function makeScenario() {
     scenarioId: 'scenario_1',
     name: 'Scenario',
     status: 'active' as const,
-    config: { worldContext: 'World', objectives: ['Obj'] },
+    objectives: ['Obj'],
+    worldContext: 'World',
+    avatarAvailability: { initialAvatarIds: [] },
+    config: {},
     createdAt: '2026-05-01T10:00:00.000Z',
     updatedAt: '2026-05-01T10:00:00.000Z',
   }

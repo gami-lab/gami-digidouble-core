@@ -9,10 +9,18 @@ export type ApiEnvelope<T> = {
   } | null
 }
 
+export type ScenarioAvatarAvailability = {
+  initialAvatarIds: string[]
+  unlockableAvatarIds?: string[]
+}
+
 export type ScenarioSummary = {
   scenarioId: string
   name: string
   status: 'draft' | 'active' | 'archived'
+  objectives: string[]
+  worldContext: string
+  avatarAvailability: ScenarioAvatarAvailability
   config: Record<string, unknown>
 }
 
@@ -132,6 +140,9 @@ export class ApiClient {
   createScenario(input: {
     name: string
     status: 'draft' | 'active' | 'archived'
+    objectives?: string[]
+    worldContext?: string
+    avatarAvailability?: ScenarioAvatarAvailability
     config: Record<string, unknown>
   }): Promise<{ scenario: ScenarioSummary }> {
     return this.request('POST', '/v1/scenarios', input, [201])
@@ -142,6 +153,9 @@ export class ApiClient {
     input: Partial<{
       name: string
       status: 'draft' | 'active' | 'archived'
+      objectives: string[]
+      worldContext: string
+      avatarAvailability: ScenarioAvatarAvailability
       config: Record<string, unknown>
     }>,
   ): Promise<{ scenario: ScenarioSummary }> {

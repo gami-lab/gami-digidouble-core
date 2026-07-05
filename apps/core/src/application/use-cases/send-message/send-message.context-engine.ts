@@ -38,15 +38,13 @@ export function toLayeredSnapshotFromAvatarContext(
 
 export function toScenarioSnapshot(session: Session, scenario: Scenario): ContextScenarioSnapshot {
   const goals = [
-    ...(Array.isArray(scenario.config.objectives) ? scenario.config.objectives : []),
+    ...scenario.objectives,
     ...(Array.isArray(scenario.config.goals) ? scenario.config.goals : []),
   ]
   return {
     scenarioId: session.scenarioId,
     name: scenario.name,
-    ...(scenario.config.worldContext !== undefined
-      ? { description: scenario.config.worldContext }
-      : {}),
+    ...(scenario.worldContext.length > 0 ? { description: scenario.worldContext } : {}),
     ...(goals.length > 0 ? { goals } : {}),
   }
 }

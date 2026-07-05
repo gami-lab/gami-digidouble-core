@@ -45,7 +45,7 @@ describe('ai-guided-discovery seed data derivation', () => {
     expect(aiGuidedDiscoveryScenarioConfig.config?.['topicSignals']).toBeUndefined()
     expect(aiGuidedDiscoveryScenarioConfig.config?.['avatarTransitionRules']).toBeUndefined()
 
-    const avatarAvailability = aiGuidedDiscoveryScenarioConfig.config?.['avatarAvailability']
+    const avatarAvailability = aiGuidedDiscoveryScenarioConfig.avatarAvailability
     expect(avatarAvailability).toEqual({
       initialAvatarIds: ['avatar_mira'],
       unlockableAvatarIds: ['avatar_theo', 'avatar_eva'],

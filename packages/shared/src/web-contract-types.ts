@@ -2,6 +2,7 @@ import type {
   AvatarSummary,
   ConversationSummary,
   LifecycleStatus,
+  ScenarioAvatarAvailability,
   ScenarioSummary,
   SessionSummary,
   UpdateAvatarRequest,
@@ -26,6 +27,9 @@ export type ListScenariosResponse = {
 export type CreateScenarioRequest = {
   name: string
   status?: ScenarioSummary['status']
+  objectives?: string[]
+  worldContext?: string
+  avatarAvailability?: ScenarioAvatarAvailability
   config?: Record<string, unknown>
 }
 
@@ -33,7 +37,9 @@ export type CreateScenarioResponse = {
   scenario: ScenarioSummary
 }
 
-export type UpdateScenarioRequest = Partial<Pick<ScenarioSummary, 'name' | 'status'>>
+export type UpdateScenarioRequest = Partial<
+  Pick<ScenarioSummary, 'name' | 'status' | 'objectives' | 'worldContext' | 'avatarAvailability'>
+>
 
 export type UpdateScenarioResponse = {
   scenario: ScenarioSummary

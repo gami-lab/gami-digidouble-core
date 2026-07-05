@@ -536,13 +536,11 @@ export class RunGameMasterUseCase {
       return {}
     }
     const goals = [
-      ...(Array.isArray(scenario.config.objectives) ? scenario.config.objectives : []),
+      ...scenario.objectives,
       ...(Array.isArray(scenario.config.goals) ? scenario.config.goals : []),
     ]
     return {
-      ...(hasText(scenario.config.worldContext)
-        ? { description: scenario.config.worldContext }
-        : {}),
+      ...(hasText(scenario.worldContext) ? { description: scenario.worldContext } : {}),
       ...(goals.length > 0 ? { goals } : {}),
     }
   }

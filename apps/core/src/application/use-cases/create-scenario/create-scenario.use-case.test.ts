@@ -18,6 +18,9 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
     scenarioId: 'scenario_1',
     name: 'Demo',
     status: 'draft',
+    objectives: [],
+    worldContext: '',
+    avatarAvailability: { initialAvatarIds: [] },
     config: {},
     createdAt: '2026-04-19T10:00:00.000Z',
     updatedAt: '2026-04-19T10:00:00.000Z',
@@ -68,6 +71,9 @@ describe('CreateScenarioUseCase', () => {
     expect(createMock).toHaveBeenCalledWith({
       name: 'Demo Name',
       status: 'active',
+      objectives: [],
+      worldContext: '',
+      avatarAvailability: { initialAvatarIds: [] },
     })
     expect(output.scenario).toMatchObject({
       scenarioId: 'scenario_abc',

@@ -30,11 +30,15 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
     scenarioId: 'scenario_1',
     name: 'Scenario 1',
     status: 'active',
-    config: {
-      avatarAvailability: {
-        initialAvatarIds: [],
-      },
+    objectives: [],
+    worldContext: '',
+    // Non-empty so the availability policy is treated as configured (deterministic
+    // empty result once filtered against the test's avatar roster), rather than
+    // "no policy" (which would leave unlockedAvatarIds untouched on reset).
+    avatarAvailability: {
+      initialAvatarIds: ['avatar_unregistered'],
     },
+    config: {},
     createdAt: '2026-04-21T08:00:00.000Z',
     updatedAt: '2026-04-21T08:00:00.000Z',
     ...overrides,
@@ -331,10 +335,8 @@ describe('ResetSessionUseCase unlock policy behavior', () => {
       scenarios: [
         makeScenario({
           scenarioId: 'scenario_policy',
-          config: {
-            avatarAvailability: {
-              initialAvatarIds: ['avatar_guide'],
-            },
+          avatarAvailability: {
+            initialAvatarIds: ['avatar_guide'],
           },
         }),
       ],

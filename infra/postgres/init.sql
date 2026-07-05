@@ -21,12 +21,15 @@ $$;
 -- ── Scenarios ─────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS scenarios (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  name        TEXT        NOT NULL,
-  status      TEXT        NOT NULL DEFAULT 'draft',
-  config      JSONB       NOT NULL DEFAULT '{}',
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name                TEXT        NOT NULL,
+  status              TEXT        NOT NULL DEFAULT 'draft',
+  objectives          TEXT[]      NOT NULL DEFAULT '{}',
+  world_context       TEXT        NOT NULL DEFAULT '',
+  avatar_availability JSONB       NOT NULL DEFAULT '{"initialAvatarIds": []}',
+  config              JSONB       NOT NULL DEFAULT '{}',
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ── Avatars ───────────────────────────────────────────────────────────────────

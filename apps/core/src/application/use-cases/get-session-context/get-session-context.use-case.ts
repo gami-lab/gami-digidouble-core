@@ -5,6 +5,7 @@ import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
+import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import { selectExchangeWindow } from '../../services/conversation-exchange-window.js'
 import type {
@@ -48,8 +49,8 @@ export class GetSessionContextUseCase {
     return {
       sessionId: session.sessionId,
       avatarPrompt: avatar?.personaPrompt ?? null,
-      worldContext: normalizeOptionalText(scenario?.config.worldContext),
-      worldObjectives: normalizeGoals(scenario?.config),
+      worldContext: normalizeOptionalText(scenario?.worldContext),
+      worldObjectives: normalizeGoals(scenario),
       gmInstruction: normalizeOptionalText(session.gmNotes),
       workingMemory:
         workingMemory !== null
@@ -72,11 +73,11 @@ export class GetSessionContextUseCase {
   }
 }
 
-function normalizeGoals(config: { objectives?: string[]; goals?: string[] } | undefined): string[] {
-  if (config === undefined) return []
+function normalizeGoals(scenario: Scenario | null | undefined): string[] {
+  if (scenario === null || scenario === undefined) return []
   return [
-    ...(Array.isArray(config.objectives) ? config.objectives : []),
-    ...(Array.isArray(config.goals) ? config.goals : []),
+    ...scenario.objectives,
+    ...(Array.isArray(scenario.config.goals) ? scenario.config.goals : []),
   ].filter((goal) => goal.trim().length > 0)
 }
 

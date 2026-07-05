@@ -63,11 +63,20 @@ export type ScenarioStatus = 'draft' | 'active' | 'archived'
 /** Canonical lifecycle status for sessions/conversations. */
 export type LifecycleStatus = 'active' | 'closed' | 'archived'
 
+/** Session-scoped avatar availability policy for a Scenario. */
+export type ScenarioAvatarAvailability = {
+  initialAvatarIds: string[]
+  unlockableAvatarIds?: string[]
+}
+
 /** Canonical read shape for a Scenario as returned by the Core API. */
 export type ScenarioSummary = {
   scenarioId: string
   name: string
   status: ScenarioStatus
+  objectives: string[]
+  worldContext: string
+  avatarAvailability: ScenarioAvatarAvailability
   config: Record<string, unknown>
   createdAt: string
   updatedAt: string

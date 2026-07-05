@@ -1,10 +1,21 @@
 /* eslint-disable max-lines, max-lines-per-function */
 import { useEffect, useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
-import { createAvatar, createScenario, listScenarioAvatars, listScenarios } from '../api'
+import {
+  createAvatar,
+  createScenario,
+  listScenarioAvatars,
+  listScenarios,
+  updateScenario,
+} from '../api'
 import { PROVIDER_OPTIONS } from '../api/provider-options'
 import { formatApiError } from '../api/error'
-import type { AvatarSummary, ScenarioStatus, ScenarioSummary } from '../api/scenarios'
+import type {
+  AvatarSummary,
+  CreateScenarioParams,
+  ScenarioStatus,
+  ScenarioSummary,
+} from '../api/scenarios'
 import { LabeledInput } from '../components/LabeledInput'
 import {
   buttonStyle,
@@ -41,33 +52,45 @@ export function ScenarioPage({
 }: ScenarioPageProps): JSX.Element {
   const [name, setName] = useState('')
   const [status, setStatus] = useState<ScenarioStatus>('active')
+  const [worldContext, setWorldContext] = useState('')
+  const [objectivesText, setObjectivesText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [listError, setListError] = useState<string | null>(null)
   const [scenarios, setScenarios] = useState<ScenarioSummary[]>([])
   const avatarSection = useAvatarSection(selectedScenarioId)
+  const selectedScenario =
+    scenarios.find((scenario) => scenario.scenarioId === selectedScenarioId) ?? null
 
   useEffect(() => {
     void loadScenarios(setScenarios, setIsLoading, setListError)
   }, [])
 
+  const handleScenarioUpdated = (updated: ScenarioSummary): void => {
+    setScenarios((prev) => prev.map((s) => (s.scenarioId === updated.scenarioId ? updated : s)))
+  }
+
   const handleSubmit = (event: FormSubmitEvent): void => {
     event.preventDefault()
+    const objectives = parseObjectives(objectivesText)
     void submitScenario(
-      { name, status },
+      {
+        name,
+        status,
+        ...(worldContext.trim().length > 0 ? { worldContext: worldContext.trim() } : {}),
+        ...(objectives.length > 0 ? { objectives } : {}),
+      },
       onScenarioSelected,
       setSubmitError,
       setIsSubmitting,
       () => {
         setName('')
+        setWorldContext('')
+        setObjectivesText('')
       },
       async () => loadScenarios(setScenarios, setIsLoading, setListError),
     )
-  }
-
-  const handleScenarioUpdated = (updated: ScenarioSummary): void => {
-    setScenarios((prev) => prev.map((s) => (s.scenarioId === updated.scenarioId ? updated : s)))
   }
 
   const handleScenarioDeleted = (scenarioId: string): void => {
@@ -84,10 +107,14 @@ export function ScenarioPage({
       <ScenarioForm
         name={name}
         status={status}
+        worldContext={worldContext}
+        objectivesText={objectivesText}
         isSubmitting={isSubmitting}
         submitError={submitError}
         onNameChange={setName}
         onStatusChange={setStatus}
+        onWorldContextChange={setWorldContext}
+        onObjectivesTextChange={setObjectivesText}
         onSubmit={handleSubmit}
       />
 
@@ -105,6 +132,13 @@ export function ScenarioPage({
         <>
           <div style={successStyle}>✓ Selected scenario: {selectedScenarioId}</div>
           <AvatarSection {...avatarSection} />
+          {selectedScenario !== null ? (
+            <ScenarioAvatarAvailabilityEditor
+              scenario={selectedScenario}
+              avatars={avatarSection.avatars}
+              onScenarioUpdated={handleScenarioUpdated}
+            />
+          ) : null}
           <div style={{ marginTop: '20px' }}>
             <button type="button" style={buttonStyle} onClick={onNext}>
               Next → Session
@@ -114,6 +148,13 @@ export function ScenarioPage({
       ) : null}
     </section>
   )
+}
+
+function parseObjectives(objectivesText: string): string[] {
+  return objectivesText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
 }
 
 function useAvatarSection(selectedScenarioId: string | null): AvatarSectionProps {
@@ -186,20 +227,28 @@ function useAvatarSection(selectedScenarioId: string | null): AvatarSectionProps
 type ScenarioFormProps = {
   name: string
   status: ScenarioStatus
+  worldContext: string
+  objectivesText: string
   isSubmitting: boolean
   submitError: string | null
   onNameChange: (value: string) => void
   onStatusChange: (value: ScenarioStatus) => void
+  onWorldContextChange: (value: string) => void
+  onObjectivesTextChange: (value: string) => void
   onSubmit: (event: FormSubmitEvent) => void
 }
 
 function ScenarioForm({
   name,
   status,
+  worldContext,
+  objectivesText,
   isSubmitting,
   submitError,
   onNameChange,
   onStatusChange,
+  onWorldContextChange,
+  onObjectivesTextChange,
   onSubmit,
 }: ScenarioFormProps): JSX.Element {
   return (
@@ -230,6 +279,32 @@ function ScenarioForm({
           <option value="active">active</option>
           <option value="archived">archived</option>
         </select>
+
+        <label style={labelStyle} htmlFor="scenario-world-context">
+          World context (optional)
+        </label>
+        <textarea
+          id="scenario-world-context"
+          style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+          value={worldContext}
+          onChange={(event) => {
+            onWorldContextChange(event.target.value)
+          }}
+          placeholder="The experience the user is stepping into…"
+        />
+
+        <label style={labelStyle} htmlFor="scenario-objectives">
+          Objectives (optional, one per line)
+        </label>
+        <textarea
+          id="scenario-objectives"
+          style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+          value={objectivesText}
+          onChange={(event) => {
+            onObjectivesTextChange(event.target.value)
+          }}
+          placeholder={'Introduce AI concepts progressively.\nUnlock specialists when relevant.'}
+        />
 
         <button type="submit" style={buttonStyle} disabled={isSubmitting || name.trim() === ''}>
           {isSubmitting ? 'Creating…' : 'Create Scenario'}
@@ -281,7 +356,7 @@ function ScenarioList({
 }
 
 async function submitScenario(
-  values: { name: string; status: ScenarioStatus },
+  values: CreateScenarioParams,
   onScenarioSelected: (scenario: ScenarioSummary) => void,
   setSubmitError: (value: string | null) => void,
   setIsSubmitting: (value: boolean) => void,
@@ -574,4 +649,96 @@ async function loadAvatars(
   } finally {
     setIsLoading(false)
   }
+}
+
+// ─── Avatar availability ──────────────────────────────────────────────────────
+
+type AvailabilityChoice = 'none' | 'initial' | 'unlockable'
+
+type ScenarioAvatarAvailabilityEditorProps = {
+  scenario: ScenarioSummary
+  avatars: AvatarSummary[]
+  onScenarioUpdated: (scenario: ScenarioSummary) => void
+}
+
+function ScenarioAvatarAvailabilityEditor({
+  scenario,
+  avatars,
+  onScenarioUpdated,
+}: ScenarioAvatarAvailabilityEditorProps): JSX.Element | null {
+  const [choices, setChoices] = useState<Record<string, AvailabilityChoice>>({})
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const initialAvatarIds = new Set(scenario.avatarAvailability.initialAvatarIds)
+    const unlockableAvatarIds = new Set(scenario.avatarAvailability.unlockableAvatarIds ?? [])
+    setChoices(
+      Object.fromEntries(
+        avatars.map((avatar) => [
+          avatar.avatarId,
+          initialAvatarIds.has(avatar.avatarId)
+            ? 'initial'
+            : unlockableAvatarIds.has(avatar.avatarId)
+              ? 'unlockable'
+              : 'none',
+        ]),
+      ),
+    )
+  }, [scenario.scenarioId, scenario.avatarAvailability, avatars])
+
+  if (avatars.length === 0) return null
+
+  const handleSave = (): void => {
+    const initialAvatarIds = avatars
+      .filter((avatar) => choices[avatar.avatarId] === 'initial')
+      .map((avatar) => avatar.avatarId)
+    const unlockableAvatarIds = avatars
+      .filter((avatar) => choices[avatar.avatarId] === 'unlockable')
+      .map((avatar) => avatar.avatarId)
+
+    setSaveError(null)
+    setIsSaving(true)
+    updateScenario(scenario.scenarioId, {
+      avatarAvailability: { initialAvatarIds, unlockableAvatarIds },
+    })
+      .then(onScenarioUpdated)
+      .catch((error: unknown) => {
+        setSaveError(formatApiError(error, 'UNKNOWN_ERROR: Failed to save avatar availability'))
+      })
+      .finally(() => {
+        setIsSaving(false)
+      })
+  }
+
+  return (
+    <div style={{ marginTop: '16px' }}>
+      <h4 style={{ marginBottom: '4px' }}>Avatar availability</h4>
+      <p style={{ marginTop: 0, color: '#6b7280', fontSize: '13px' }}>
+        Choose which avatars are available from the start versus unlockable during the session.
+      </p>
+      {avatars.map((avatar) => (
+        <div key={avatar.avatarId} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
+          <span style={{ flex: 1 }}>{avatar.name}</span>
+          {(['none', 'initial', 'unlockable'] as const).map((choice) => (
+            <label key={choice} style={{ fontSize: '13px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <input
+                type="radio"
+                name={`availability-${avatar.avatarId}`}
+                checked={(choices[avatar.avatarId] ?? 'none') === choice}
+                onChange={() => {
+                  setChoices((prev) => ({ ...prev, [avatar.avatarId]: choice }))
+                }}
+              />
+              {choice}
+            </label>
+          ))}
+        </div>
+      ))}
+      <button type="button" style={buttonStyle} disabled={isSaving} onClick={handleSave}>
+        {isSaving ? 'Saving…' : 'Save availability'}
+      </button>
+      {saveError !== null ? <p style={errorStyle}>{saveError}</p> : null}
+    </div>
+  )
 }

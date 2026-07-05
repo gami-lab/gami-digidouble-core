@@ -125,9 +125,10 @@ beforeEach(() => {
     scenarioId: 'scenario_1',
     name: 'Scenario',
     status: 'active',
-    config: {
-      worldContext: 'Storm tide starts at dusk near the harbor.',
-    },
+    objectives: [],
+    worldContext: 'Storm tide starts at dusk near the harbor.',
+    avatarAvailability: { initialAvatarIds: [] },
+    config: {},
     createdAt: '2026-04-18T10:00:00.000Z',
     updatedAt: '2026-04-18T10:00:00.000Z',
   })

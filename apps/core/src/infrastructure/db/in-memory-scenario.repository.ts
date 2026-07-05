@@ -30,6 +30,9 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
       scenarioId: `scenario_${crypto.randomUUID()}`,
       name: params.name,
       status: params.status ?? 'draft',
+      objectives: params.objectives ?? [],
+      worldContext: params.worldContext ?? '',
+      avatarAvailability: params.avatarAvailability ?? { initialAvatarIds: [] },
       config: (params.config ?? {}) as Scenario['config'],
       createdAt: now,
       updatedAt: now,
@@ -53,6 +56,11 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
       ...existing,
       ...(updates.name !== undefined ? { name: updates.name } : {}),
       ...(updates.status !== undefined ? { status: updates.status } : {}),
+      ...(updates.objectives !== undefined ? { objectives: updates.objectives } : {}),
+      ...(updates.worldContext !== undefined ? { worldContext: updates.worldContext } : {}),
+      ...(updates.avatarAvailability !== undefined
+        ? { avatarAvailability: updates.avatarAvailability }
+        : {}),
       ...(updates.config !== undefined ? { config: updates.config as Scenario['config'] } : {}),
       updatedAt: new Date().toISOString(),
     }

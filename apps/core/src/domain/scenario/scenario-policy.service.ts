@@ -1,32 +1,21 @@
 import type { AvatarConfig } from '../avatar/avatar.types.js'
-import type { ScenarioConfig, ScenarioAvatarAvailabilityConfig } from './scenario.types.js'
+import type { ScenarioAvatarAvailabilityConfig } from './scenario.types.js'
 
+/**
+ * Returns undefined when the scenario has no meaningful availability policy
+ * (no initial or unlockable avatars declared), meaning every avatar is available —
+ * as opposed to an empty array, which would lock out every avatar.
+ */
 export function resolveInitialUnlockedAvatarIds(
-  config: ScenarioConfig,
+  availability: ScenarioAvatarAvailabilityConfig,
   avatars: AvatarConfig[],
 ): string[] | undefined {
-  const availability = extractAvatarAvailability(config)
-  if (availability?.initialAvatarIds === undefined) return undefined
+  const hasPolicy =
+    availability.initialAvatarIds.length > 0 ||
+    (availability.unlockableAvatarIds !== undefined && availability.unlockableAvatarIds.length > 0)
+  if (!hasPolicy) return undefined
 
   return filterExistingAvatarIds(availability.initialAvatarIds, avatars)
-}
-
-function extractAvatarAvailability(
-  config: ScenarioConfig,
-): ScenarioAvatarAvailabilityConfig | null {
-  if (!isRecord(config.avatarAvailability)) return null
-
-  const initialAvatarIds = Array.isArray(config.avatarAvailability['initialAvatarIds'])
-    ? config.avatarAvailability['initialAvatarIds'].filter(hasText)
-    : []
-  const unlockableAvatarIds = Array.isArray(config.avatarAvailability['unlockableAvatarIds'])
-    ? config.avatarAvailability['unlockableAvatarIds'].filter(hasText)
-    : undefined
-
-  return {
-    initialAvatarIds,
-    ...(unlockableAvatarIds !== undefined ? { unlockableAvatarIds } : {}),
-  }
 }
 
 function filterExistingAvatarIds(avatarIds: string[], avatars: AvatarConfig[]): string[] {
@@ -37,12 +26,4 @@ function filterExistingAvatarIds(avatarIds: string[], avatars: AvatarConfig[]): 
     }
     return resolvedAvatarIds
   }, [])
-}
-
-function hasText(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }

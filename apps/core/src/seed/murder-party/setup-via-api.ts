@@ -14,7 +14,9 @@ import {
   type AvatarSlug,
   GM_ONLY_SENTINEL,
   getScenarioBaseConfig,
+  SCENARIO_OBJECTIVES,
   SCENARIO_SEED_SLUG,
+  SCENARIO_WORLD_CONTEXT,
   SOURCE_SEEDS,
   type SourceSeed,
   type SourceVisibility,
@@ -162,6 +164,8 @@ async function ensureScenario(client: ApiClient, options: CliOptions): Promise<S
     const created = await client.createScenario({
       name: options.scenarioName,
       status: 'active',
+      worldContext: SCENARIO_WORLD_CONTEXT,
+      objectives: SCENARIO_OBJECTIVES,
       config: scenarioConfig,
     })
     return created.scenario
@@ -170,6 +174,8 @@ async function ensureScenario(client: ApiClient, options: CliOptions): Promise<S
   const updated = await client.updateScenario(existing.scenarioId, {
     name: options.scenarioName,
     status: 'active',
+    worldContext: SCENARIO_WORLD_CONTEXT,
+    objectives: SCENARIO_OBJECTIVES,
     config: {
       ...existing.config,
       ...scenarioConfig,
@@ -389,8 +395,8 @@ async function runSetup(options: CliOptions): Promise<SetupOutcome> {
     config: {
       ...scenario.config,
       ...getScenarioBaseConfig(),
-      avatarAvailability: buildAvatarAvailability(avatars),
     },
+    avatarAvailability: buildAvatarAvailability(avatars),
   })
 
   const knowledge = await ensureKnowledgeSources(client, options, scenario.scenarioId, avatars)

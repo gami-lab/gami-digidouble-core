@@ -16,6 +16,7 @@ export type {
   LifecycleStatus,
   ScenarioStatus,
   ScenarioSummary,
+  ScenarioAvatarAvailability,
   SessionSummary,
   ConversationSummary,
 } from './entity-types.js'

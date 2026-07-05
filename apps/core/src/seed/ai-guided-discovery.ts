@@ -28,19 +28,18 @@ type AiGuidedDiscoveryAvatarDefinition = {
 export const aiGuidedDiscoveryScenarioConfig: CreateScenarioParams = {
   name: SCENARIO_NAME,
   status: 'active',
-  config: {
-    worldContext:
-      'A guided learning experience about AI where a generalist guide introduces specialists only when the topic genuinely needs them.',
-    objectives: [
-      'Introduce AI concepts progressively.',
-      'Demonstrate bounded competence between avatars.',
-      'Expose unlockable specialist routing inside one session.',
-    ],
-    avatarAvailability: {
-      initialAvatarIds: ['avatar_mira'],
-      unlockableAvatarIds: ['avatar_theo', 'avatar_eva'],
-    },
+  worldContext:
+    'A guided learning experience about AI where a generalist guide introduces specialists only when the topic genuinely needs them.',
+  objectives: [
+    'Introduce AI concepts progressively.',
+    'Demonstrate bounded competence between avatars.',
+    'Expose unlockable specialist routing inside one session.',
+  ],
+  avatarAvailability: {
+    initialAvatarIds: ['avatar_mira'],
+    unlockableAvatarIds: ['avatar_theo', 'avatar_eva'],
   },
+  config: {},
 }
 
 const aiGuidedDiscoveryAvatarDefinitions: AiGuidedDiscoveryAvatarDefinition[] = [
@@ -139,6 +138,11 @@ export function buildAiGuidedDiscoveryFixture(): {
     scenarioId: 'scenario_ai_guided_discovery',
     name: SCENARIO_NAME,
     status: 'active',
+    objectives: aiGuidedDiscoveryScenarioConfig.objectives ?? [],
+    worldContext: aiGuidedDiscoveryScenarioConfig.worldContext ?? '',
+    avatarAvailability: aiGuidedDiscoveryScenarioConfig.avatarAvailability ?? {
+      initialAvatarIds: [],
+    },
     config: aiGuidedDiscoveryScenarioConfig.config as Scenario['config'],
     createdAt: FIXTURE_TIMESTAMP,
     updatedAt: FIXTURE_TIMESTAMP,
@@ -219,12 +223,9 @@ export async function ensureAiGuidedDiscoverySeed(): Promise<{
       .filter((avatarId): avatarId is string => typeof avatarId === 'string')
 
     await scenarioRepository.update(scenario.scenarioId, {
-      config: {
-        ...scenario.config,
-        avatarAvailability: {
-          initialAvatarIds,
-          unlockableAvatarIds,
-        },
+      avatarAvailability: {
+        initialAvatarIds,
+        unlockableAvatarIds,
       },
     })
 

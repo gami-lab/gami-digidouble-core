@@ -30,7 +30,10 @@ export class StartSessionUseCase {
     }
 
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(scenarioId)
-    const unlockedAvatarIds = resolveInitialUnlockedAvatarIds(scenario.config, scenarioAvatars)
+    const unlockedAvatarIds = resolveInitialUnlockedAvatarIds(
+      scenario.avatarAvailability,
+      scenarioAvatars,
+    )
     const session = await this.sessionRepository.create({
       userId,
       scenarioId,

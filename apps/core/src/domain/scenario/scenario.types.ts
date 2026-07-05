@@ -11,20 +11,20 @@ export interface Scenario {
   scenarioId: string
   name: string
   status: ScenarioStatus
+  /** Learning or engagement objectives. Always present (defaults to []). */
+  objectives: string[]
+  /** World/experience description injected into context. Always present (defaults to ''). */
+  worldContext: string
+  /** Session-scoped avatar availability policy. Always present. */
+  avatarAvailability: ScenarioAvatarAvailabilityConfig
   config: ScenarioConfig
   createdAt: string
   updatedAt: string
 }
 
 export interface ScenarioConfig {
-  /** World/experience description injected into context. */
-  worldContext?: string
-  /** Learning or engagement objectives. */
-  objectives?: string[]
-  /** Additional scenario goals. */
+  /** Additional scenario goals, merged alongside root-level objectives. */
   goals?: string[]
-  /** Session-scoped avatar availability policy. */
-  avatarAvailability?: ScenarioAvatarAvailabilityConfig
   /** Scenario runtime defaults for adapters and clients. */
   runtimeDefaults?: Record<string, unknown>
   /** Optional UI-only hints; ignored by Core orchestration. */

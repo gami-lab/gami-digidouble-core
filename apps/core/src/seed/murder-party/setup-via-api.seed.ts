@@ -146,6 +146,16 @@ export const SOURCE_SEEDS: SourceSeed[] = [
   },
 ]
 
+export const SCENARIO_WORLD_CONTEXT =
+  'A storm traps four people inside Villa Miralac, an old house overlooking Lake Geneva. Lionel Ardent, the owner, is found dead in the winter garden shortly before midnight. The user plays an invited investigator who must question the suspects, reconstruct the timeline, compare memories, find contradictions, and identify the murderer among Clara, Elias, Margot, and Thomas.'
+
+export const SCENARIO_OBJECTIVES: string[] = [
+  'Guide the investigator through a multi-avatar murder inquiry at Villa Miralac.',
+  'Reveal that Lionel Ardent was poisoned with digitalis, not killed by natural causes.',
+  "Help the user uncover Elias's motive, access to poison, and timeline contradictions.",
+  'Let the user reach a supported accusation of Dr. Elias Moreau with at least three evidence points.',
+]
+
 export function getScenarioBaseConfig(): Record<string, unknown> {
   return {
     seedSlug: SCENARIO_SEED_SLUG,

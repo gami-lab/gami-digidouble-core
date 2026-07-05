@@ -36,7 +36,7 @@ export class ResetSessionUseCase {
     }
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(session.scenarioId)
     const initialUnlockedAvatarIds = resolveInitialUnlockedAvatarIds(
-      scenario.config,
+      scenario.avatarAvailability,
       scenarioAvatars,
     )
 

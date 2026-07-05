@@ -137,9 +137,10 @@ beforeEach(() => {
     scenarioId: 'scenario_1',
     name: 'Scenario',
     status: 'active',
+    objectives: ['Understand the basics.'],
+    worldContext: 'A learning world.',
+    avatarAvailability: { initialAvatarIds: [] },
     config: {
-      worldContext: 'A learning world.',
-      objectives: ['Understand the basics.'],
       goals: ['Ask better questions.'],
     },
     createdAt: '2026-04-18T10:00:00.000Z',

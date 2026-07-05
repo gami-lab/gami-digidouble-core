@@ -1,4 +1,8 @@
-import type { Scenario, ScenarioStatus } from '../../domain/scenario/scenario.types.js'
+import type {
+  Scenario,
+  ScenarioAvatarAvailabilityConfig,
+  ScenarioStatus,
+} from '../../domain/scenario/scenario.types.js'
 
 export interface IScenarioRepository {
   create(params: CreateScenarioParams): Promise<Scenario>
@@ -11,11 +15,17 @@ export interface IScenarioRepository {
 export interface CreateScenarioParams {
   name: string
   status?: ScenarioStatus
+  objectives?: string[]
+  worldContext?: string
+  avatarAvailability?: ScenarioAvatarAvailabilityConfig
   config?: Record<string, unknown>
 }
 
 export type UpdateScenarioParams = {
   name?: string
   status?: ScenarioStatus
+  objectives?: string[]
+  worldContext?: string
+  avatarAvailability?: ScenarioAvatarAvailabilityConfig
   config?: Record<string, unknown>
 }

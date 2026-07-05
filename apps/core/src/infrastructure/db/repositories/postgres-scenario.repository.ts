@@ -4,7 +4,10 @@ import type {
   IScenarioRepository,
   UpdateScenarioParams,
 } from '../../../application/ports/IScenarioRepository.js'
-import type { Scenario } from '../../../domain/scenario/scenario.types.js'
+import type {
+  Scenario,
+  ScenarioAvatarAvailabilityConfig,
+} from '../../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import { extractUuid } from './id-prefix.js'
 
@@ -12,6 +15,9 @@ interface ScenarioRow {
   id: string
   name: string
   status: string
+  objectives: string[] | null
+  world_context: string | null
+  avatar_availability: unknown
   config: unknown
   created_at: Date
   updated_at: Date
@@ -32,6 +38,33 @@ function normalizeConfig(config: unknown): Scenario['config'] {
   return {}
 }
 
+function normalizeAvatarAvailability(value: unknown): ScenarioAvatarAvailabilityConfig {
+  const parsed = typeof value === 'string' ? safeJsonParse(value) : value
+  if (!isRecord(parsed)) return { initialAvatarIds: [] }
+
+  const initialAvatarIds = Array.isArray(parsed['initialAvatarIds'])
+    ? (parsed['initialAvatarIds'] as unknown[]).filter((id): id is string => typeof id === 'string')
+    : []
+  const unlockableAvatarIds = Array.isArray(parsed['unlockableAvatarIds'])
+    ? (parsed['unlockableAvatarIds'] as unknown[]).filter(
+        (id): id is string => typeof id === 'string',
+      )
+    : undefined
+
+  return {
+    initialAvatarIds,
+    ...(unlockableAvatarIds !== undefined ? { unlockableAvatarIds } : {}),
+  }
+}
+
+function safeJsonParse(value: string): unknown {
+  try {
+    return JSON.parse(value)
+  } catch {
+    return null
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -41,6 +74,9 @@ function rowToScenario(row: ScenarioRow): Scenario {
     scenarioId: `scenario_${row.id}`,
     name: row.name,
     status: row.status as Scenario['status'],
+    objectives: row.objectives ?? [],
+    worldContext: row.world_context ?? '',
+    avatarAvailability: normalizeAvatarAvailability(row.avatar_availability),
     config: normalizeConfig(row.config),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -52,13 +88,16 @@ export class PostgresScenarioRepository implements IScenarioRepository {
 
   async create(params: CreateScenarioParams): Promise<Scenario> {
     const [row] = await this.sql<[ScenarioRow]>`
-      INSERT INTO scenarios (name, status, config)
+      INSERT INTO scenarios (name, status, objectives, world_context, avatar_availability, config)
       VALUES (
         ${params.name},
         ${params.status ?? 'draft'},
+        ${params.objectives ?? []},
+        ${params.worldContext ?? ''},
+        ${this.sql.json((params.avatarAvailability ?? { initialAvatarIds: [] }) as unknown as JSONValue)},
         ${this.sql.json((params.config ?? {}) as JSONValue)}
       )
-      RETURNING id, name, status, config, created_at, updated_at
+      RETURNING id, name, status, objectives, world_context, avatar_availability, config, created_at, updated_at
     `
     return rowToScenario(row)
   }
@@ -67,7 +106,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
     const uuid = extractUuid('scenario_', scenarioId)
     if (uuid === null) return null
     const [row] = await this.sql<[ScenarioRow?]>`
-      SELECT id, name, status, config, created_at, updated_at
+      SELECT id, name, status, objectives, world_context, avatar_availability, config, created_at, updated_at
       FROM scenarios
       WHERE id = ${uuid}
     `
@@ -76,7 +115,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
 
   async list(): Promise<Scenario[]> {
     const rows = await this.sql<ScenarioRow[]>`
-      SELECT id, name, status, config, created_at, updated_at
+      SELECT id, name, status, objectives, world_context, avatar_availability, config, created_at, updated_at
       FROM scenarios
       ORDER BY created_at DESC
     `
@@ -109,6 +148,18 @@ export class PostgresScenarioRepository implements IScenarioRepository {
       values.push(updates.status)
       setClauses.push(`status = $${String(values.length)}`)
     }
+    if (updates.objectives !== undefined) {
+      values.push(updates.objectives)
+      setClauses.push(`objectives = $${String(values.length)}`)
+    }
+    if (updates.worldContext !== undefined) {
+      values.push(updates.worldContext)
+      setClauses.push(`world_context = $${String(values.length)}`)
+    }
+    if (updates.avatarAvailability !== undefined) {
+      values.push(JSON.stringify(updates.avatarAvailability))
+      setClauses.push(`avatar_availability = $${String(values.length)}::jsonb`)
+    }
     if (updates.config !== undefined) {
       values.push(JSON.stringify(updates.config))
       setClauses.push(`config = $${String(values.length)}::jsonb`)
@@ -121,7 +172,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
       UPDATE scenarios
       SET ${setClauses.join(', ')}
       WHERE id = ${whereParam}
-      RETURNING id, name, status, config, created_at, updated_at
+      RETURNING id, name, status, objectives, world_context, avatar_availability, config, created_at, updated_at
     `
 
     const rows = await this.sql.unsafe(query, values as string[])

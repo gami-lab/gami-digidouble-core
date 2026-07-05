@@ -21,6 +21,9 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
     scenarioId: 'scenario_1',
     name: 'Scenario',
     status: 'active',
+    objectives: [],
+    worldContext: '',
+    avatarAvailability: { initialAvatarIds: [] },
     config: {},
     createdAt: '2026-04-18T10:00:00.000Z',
     updatedAt: '2026-04-18T10:00:00.000Z',
@@ -193,10 +196,8 @@ describe('session API', () => {
     const response = await makeApp({
       scenarios: [
         makeScenario({
-          config: {
-            avatarAvailability: {
-              initialAvatarIds: ['avatar_guide'],
-            },
+          avatarAvailability: {
+            initialAvatarIds: ['avatar_guide'],
           },
         }),
       ],

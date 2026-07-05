@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
-import type { AvatarSummary, ScenarioSummary } from '@gami/shared'
+import type { AvatarSummary, ScenarioAvatarAvailability, ScenarioSummary } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
@@ -43,6 +43,9 @@ export type ScenariosRouteOptions = {
 type CreateScenarioRequestBody = {
   name: string
   status?: ScenarioSummary['status']
+  objectives?: string[]
+  worldContext?: string
+  avatarAvailability?: ScenarioAvatarAvailability
   config?: Record<string, unknown>
 }
 
@@ -77,6 +80,9 @@ type UpdateScenarioRequestParams = {
 type UpdateScenarioRequestBody = {
   name?: string
   status?: ScenarioSummary['status']
+  objectives?: string[]
+  worldContext?: string
+  avatarAvailability?: ScenarioAvatarAvailability
   config?: Record<string, unknown>
 }
 
@@ -104,12 +110,25 @@ type ListScenarioAvatarsResponse = ListScenarioAvatarsOutput
 type DeleteScenarioResponse = DeleteScenarioOutput
 type PatchScenarioResponse = UpdateScenarioResponse
 
+const avatarAvailabilityBodySchema = {
+  type: 'object',
+  required: ['initialAvatarIds'],
+  properties: {
+    initialAvatarIds: { type: 'array', items: { type: 'string' } },
+    unlockableAvatarIds: { type: 'array', items: { type: 'string' } },
+  },
+  additionalProperties: false,
+} as const
+
 const createScenarioBodySchema = {
   type: 'object',
   required: ['name'],
   properties: {
     name: { type: 'string', minLength: 1 },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
+    objectives: { type: 'array', items: { type: 'string' } },
+    worldContext: { type: 'string' },
+    avatarAvailability: avatarAvailabilityBodySchema,
     config: { type: 'object' },
   },
   additionalProperties: false,
@@ -122,6 +141,9 @@ const updateScenarioBodySchema = {
   properties: {
     name: { type: 'string', minLength: 1 },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
+    objectives: { type: 'array', items: { type: 'string' } },
+    worldContext: { type: 'string' },
+    avatarAvailability: avatarAvailabilityBodySchema,
     config: { type: 'object' },
   },
   additionalProperties: false,
@@ -318,11 +340,14 @@ function registerUpdateScenarioRoute(app: FastifyInstance, useCase: UpdateScenar
     { schema: { params: scenarioIdParamsSchema, body: updateScenarioBodySchema } },
     async (request, reply) => {
       try {
-        const { name, status, config } = request.body
+        const { name, status, objectives, worldContext, avatarAvailability, config } = request.body
         const output = await useCase.execute({
           scenarioId: request.params.scenarioId,
           ...(name !== undefined ? { name } : {}),
           ...(status !== undefined ? { status } : {}),
+          ...(objectives !== undefined ? { objectives } : {}),
+          ...(worldContext !== undefined ? { worldContext } : {}),
+          ...(avatarAvailability !== undefined ? { avatarAvailability } : {}),
           ...(config !== undefined ? { config } : {}),
         })
         return await reply.send(ok<PatchScenarioResponse>(mapUpdateResponse(output)))
@@ -359,6 +384,11 @@ function mapCreateInput(body: CreateScenarioRequestBody): CreateScenarioInput {
   return {
     name: body.name,
     ...(body.status !== undefined ? { status: body.status } : {}),
+    ...(body.objectives !== undefined ? { objectives: body.objectives } : {}),
+    ...(body.worldContext !== undefined ? { worldContext: body.worldContext } : {}),
+    ...(body.avatarAvailability !== undefined
+      ? { avatarAvailability: body.avatarAvailability }
+      : {}),
     ...(body.config !== undefined ? { config: body.config } : {}),
   }
 }
@@ -369,6 +399,9 @@ function mapCreateResponse(output: CreateScenarioOutput): CreateScenarioResponse
       scenarioId: output.scenario.scenarioId,
       name: output.scenario.name,
       status: output.scenario.status,
+      objectives: output.scenario.objectives,
+      worldContext: output.scenario.worldContext,
+      avatarAvailability: output.scenario.avatarAvailability,
       config: output.scenario.config,
       createdAt: output.scenario.createdAt,
       updatedAt: output.scenario.updatedAt,
@@ -431,6 +464,9 @@ function mapGetScenarioResponse(output: GetScenarioOutput): GetScenarioResponse 
       scenarioId: output.scenario.scenarioId,
       name: output.scenario.name,
       status: output.scenario.status,
+      objectives: output.scenario.objectives,
+      worldContext: output.scenario.worldContext,
+      avatarAvailability: output.scenario.avatarAvailability,
       config: output.scenario.config as Record<string, unknown>,
       createdAt: output.scenario.createdAt,
       updatedAt: output.scenario.updatedAt,
@@ -444,6 +480,9 @@ function mapUpdateResponse(output: UpdateScenarioOutput): UpdateScenarioResponse
       scenarioId: output.scenario.scenarioId,
       name: output.scenario.name,
       status: output.scenario.status,
+      objectives: output.scenario.objectives,
+      worldContext: output.scenario.worldContext,
+      avatarAvailability: output.scenario.avatarAvailability,
       config: output.scenario.config as Record<string, unknown>,
       createdAt: output.scenario.createdAt,
       updatedAt: output.scenario.updatedAt,
