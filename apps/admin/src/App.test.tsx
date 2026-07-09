@@ -4,11 +4,17 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ScenarioSummary } from '@gami/shared'
 import App from './App'
-import { getScenario, listScenarios } from './api/scenarios'
+import { getScenario, listScenarioAvatars, listScenarios } from './api/scenarios'
 
 vi.mock('./api/scenarios', () => ({
   listScenarios: vi.fn(),
   getScenario: vi.fn(),
+  listScenarioAvatars: vi.fn(),
+  createScenario: vi.fn(),
+  updateScenario: vi.fn(),
+  createAvatar: vi.fn(),
+  updateAvatar: vi.fn(),
+  deleteAvatar: vi.fn(),
 }))
 
 function createScenario(): ScenarioSummary {
@@ -51,6 +57,7 @@ describe('App navigation', () => {
   it('opens the scenario detail shell after selecting a scenario row', async () => {
     vi.mocked(listScenarios).mockResolvedValue([createScenario()])
     vi.mocked(getScenario).mockResolvedValue(createScenario())
+    vi.mocked(listScenarioAvatars).mockResolvedValue([])
 
     render(<App />)
 

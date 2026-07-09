@@ -36,7 +36,7 @@ describe('ScenarioListPage', () => {
   it('shows a loading state while scenarios are fetched', () => {
     vi.mocked(listScenarios).mockReturnValue(new Promise(() => {}))
 
-    render(<ScenarioListPage onOpenScenario={vi.fn()} />)
+    render(<ScenarioListPage onOpenScenario={vi.fn()} onCreateScenario={vi.fn()} />)
 
     expect(screen.getByText('Loading scenarios…')).toBeTruthy()
   })
@@ -44,7 +44,7 @@ describe('ScenarioListPage', () => {
   it('renders fetched scenarios once loaded', async () => {
     vi.mocked(listScenarios).mockResolvedValue([createScenario('scenario_a', 'Guided Discovery')])
 
-    render(<ScenarioListPage onOpenScenario={vi.fn()} />)
+    render(<ScenarioListPage onOpenScenario={vi.fn()} onCreateScenario={vi.fn()} />)
 
     await waitFor(() => {
       expect(screen.getByText('Guided Discovery')).toBeTruthy()
@@ -54,7 +54,7 @@ describe('ScenarioListPage', () => {
   it('shows an error message when the fetch fails', async () => {
     vi.mocked(listScenarios).mockRejectedValue(new Error('network down'))
 
-    render(<ScenarioListPage onOpenScenario={vi.fn()} />)
+    render(<ScenarioListPage onOpenScenario={vi.fn()} onCreateScenario={vi.fn()} />)
 
     await waitFor(() => {
       expect(screen.getByText('UNKNOWN_ERROR: Failed to load scenarios')).toBeTruthy()
@@ -65,7 +65,7 @@ describe('ScenarioListPage', () => {
     vi.mocked(listScenarios).mockResolvedValue([createScenario('scenario_a', 'Guided Discovery')])
     const onOpenScenario = vi.fn()
 
-    render(<ScenarioListPage onOpenScenario={onOpenScenario} />)
+    render(<ScenarioListPage onOpenScenario={onOpenScenario} onCreateScenario={vi.fn()} />)
 
     await waitFor(() => {
       expect(screen.getByText('Guided Discovery')).toBeTruthy()
@@ -74,5 +74,20 @@ describe('ScenarioListPage', () => {
     screen.getByText('Guided Discovery').closest('tr')?.click()
 
     expect(onOpenScenario).toHaveBeenCalledWith('scenario_a')
+  })
+
+  it('calls onCreateScenario when "Create scenario" is clicked', async () => {
+    vi.mocked(listScenarios).mockResolvedValue([])
+    const onCreateScenario = vi.fn()
+
+    render(<ScenarioListPage onOpenScenario={vi.fn()} onCreateScenario={onCreateScenario} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create scenario' })).toBeTruthy()
+    })
+
+    screen.getByRole('button', { name: 'Create scenario' }).click()
+
+    expect(onCreateScenario).toHaveBeenCalledTimes(1)
   })
 })
