@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent, JSX } from 'react'
+import type { JSX, SyntheticEvent } from 'react'
 import type { AvatarSummary, ScenarioAvatarAvailability, ScenarioSummary } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import {
@@ -10,6 +10,26 @@ import {
   updateAvatar,
   updateScenario,
 } from '../api/scenarios'
+import { ScenarioEditForm } from './ScenarioEditForm'
+
+function computeNextAvailability(
+  current: ScenarioAvatarAvailability,
+  avatarId: string,
+  visible: boolean,
+): ScenarioAvatarAvailability {
+  const initial = current.initialAvatarIds
+  const unlockable = current.unlockableAvatarIds ?? []
+  const nextInitial = visible
+    ? initial.includes(avatarId) ? initial : [...initial, avatarId]
+    : initial.filter((id) => id !== avatarId)
+  const nextUnlockable = visible
+    ? unlockable.filter((id) => id !== avatarId)
+    : unlockable.includes(avatarId) ? unlockable : [...unlockable, avatarId]
+  return {
+    initialAvatarIds: nextInitial,
+    ...(nextUnlockable.length > 0 ? { unlockableAvatarIds: nextUnlockable } : {}),
+  }
+}
 
 type ScenarioDetailPageProps = {
   scenarioId: string
@@ -48,7 +68,6 @@ export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPagePro
 
   useEffect(() => {
     loadData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scenarioId])
 
   return (
@@ -161,25 +180,7 @@ function DetailBody({ state, onSetState }: DetailBodyProps): JSX.Element {
           })
       }}
       onToggleVisibility={(avatarId, visible) => {
-        const current = data.scenario.avatarAvailability
-        const initial = current.initialAvatarIds
-        const unlockable = current.unlockableAvatarIds ?? []
-
-        let nextInitial: string[]
-        let nextUnlockable: string[]
-        if (visible) {
-          nextInitial = initial.includes(avatarId) ? initial : [...initial, avatarId]
-          nextUnlockable = unlockable.filter((id: string) => id !== avatarId)
-        } else {
-          nextInitial = initial.filter((id: string) => id !== avatarId)
-          nextUnlockable = unlockable.includes(avatarId) ? unlockable : [...unlockable, avatarId]
-        }
-
-        const nextAvailability: ScenarioAvatarAvailability = {
-          initialAvatarIds: nextInitial,
-          ...(nextUnlockable.length > 0 ? { unlockableAvatarIds: nextUnlockable } : {}),
-        }
-
+        const nextAvailability = computeNextAvailability(data.scenario.avatarAvailability, avatarId, visible)
         updateScenario(data.scenario.scenarioId, { avatarAvailability: nextAvailability })
           .then((scenario) => {
             onSetState(makeReady({ data: { ...data, scenario }, actionError: null }))
@@ -306,167 +307,6 @@ function ScenarioView({
   )
 }
 
-// ── Scenario edit form ─────────────────────────────────────────────────────
-
-type ScenarioEditFormProps = {
-  scenario: ScenarioSummary
-  onCancel: () => void
-  onSaved: (scenario: ScenarioSummary) => void
-  onError: (message: string) => void
-}
-
-function ScenarioEditForm({ scenario, onCancel, onSaved, onError }: ScenarioEditFormProps): JSX.Element {
-  const [name, setName] = useState(scenario.name)
-  const [status, setStatus] = useState<'draft' | 'active' | 'archived'>(scenario.status)
-  const [worldContext, setWorldContext] = useState(scenario.worldContext)
-  const [objectives, setObjectives] = useState<string[]>(scenario.objectives)
-  const [objectiveInput, setObjectiveInput] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  function handleAddObjective(): void {
-    const trimmed = objectiveInput.trim()
-    if (trimmed.length === 0) return
-    setObjectives((prev) => [...prev, trimmed])
-    setObjectiveInput('')
-  }
-
-  async function handleSubmit(e: FormEvent): Promise<void> {
-    e.preventDefault()
-    if (name.trim().length === 0) return
-    setSaving(true)
-    try {
-      const updated = await updateScenario(scenario.scenarioId, {
-        name: name.trim(),
-        status,
-        worldContext: worldContext.trim(),
-        objectives,
-      })
-      onSaved(updated)
-    } catch (error: unknown) {
-      onError(formatApiError(error, 'UNKNOWN_ERROR: Failed to update scenario'))
-      setSaving(false)
-    }
-  }
-
-  return (
-    <>
-      <h2>Edit scenario</h2>
-      <form onSubmit={(e) => void handleSubmit(e)}>
-        <div className="admin-form-group">
-          <label htmlFor="edit-sc-name" className="admin-form-label">
-            Name <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="edit-sc-name"
-            type="text"
-            className="admin-form-input"
-            value={name}
-            onChange={(e) => { setName(e.target.value) }}
-            required
-            disabled={saving}
-          />
-        </div>
-
-        <div className="admin-form-group">
-          <label htmlFor="edit-sc-status" className="admin-form-label">
-            Status
-          </label>
-          <select
-            id="edit-sc-status"
-            className="admin-form-select"
-            value={status}
-            onChange={(e) => { setStatus(e.target.value as 'draft' | 'active' | 'archived') }}
-            disabled={saving}
-          >
-            <option value="draft">draft</option>
-            <option value="active">active</option>
-            <option value="archived">archived</option>
-          </select>
-        </div>
-
-        <div className="admin-form-group">
-          <label htmlFor="edit-sc-world-context" className="admin-form-label">
-            World context
-          </label>
-          <textarea
-            id="edit-sc-world-context"
-            className="admin-form-textarea"
-            rows={4}
-            value={worldContext}
-            onChange={(e) => { setWorldContext(e.target.value) }}
-            disabled={saving}
-          />
-        </div>
-
-        <div className="admin-form-group">
-          <p className="admin-form-label">Objectives</p>
-          {objectives.length > 0 ? (
-            <ul className="admin-objectives-list">
-              {objectives.map((objective, index) => (
-                <li key={index} className="admin-objective-item">
-                  <span>{objective}</span>
-                  <button
-                    type="button"
-                    className="admin-remove-button"
-                    onClick={() => { setObjectives((prev) => prev.filter((_, i) => i !== index)) }}
-                    disabled={saving}
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="admin-muted">No objectives yet.</p>
-          )}
-          <div className="admin-objective-input-row">
-            <input
-              type="text"
-              className="admin-form-input"
-              placeholder="Add an objective…"
-              value={objectiveInput}
-              onChange={(e) => { setObjectiveInput(e.target.value) }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleAddObjective()
-                }
-              }}
-              disabled={saving}
-            />
-            <button
-              type="button"
-              className="admin-button admin-button-secondary"
-              onClick={handleAddObjective}
-              disabled={saving}
-            >
-              Add
-            </button>
-          </div>
-        </div>
-
-        <div className="admin-form-actions">
-          <button
-            type="submit"
-            className="admin-button admin-button-primary"
-            disabled={saving || name.trim().length === 0}
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-          <button
-            type="button"
-            className="admin-button admin-button-secondary"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </>
-  )
-}
-
 // ── Avatar create form ─────────────────────────────────────────────────────
 
 type AvatarCreateFormProps = {
@@ -482,7 +322,7 @@ function AvatarCreateForm({ scenarioId, onCancel, onCreated, onError }: AvatarCr
   const [avatarStatus, setAvatarStatus] = useState<'draft' | 'active' | 'archived'>('active')
   const [saving, setSaving] = useState(false)
 
-  async function handleSubmit(e: FormEvent): Promise<void> {
+  async function handleSubmit(e: SyntheticEvent): Promise<void> {
     e.preventDefault()
     if (name.trim().length === 0 || personaPrompt.trim().length === 0) return
     setSaving(true)
@@ -550,7 +390,7 @@ function AvatarEditForm({ avatar, onCancel, onSaved, onError }: AvatarEditFormPr
   const [avatarStatus, setAvatarStatus] = useState<'draft' | 'active' | 'archived'>(avatar.status)
   const [saving, setSaving] = useState(false)
 
-  async function handleSubmit(e: FormEvent): Promise<void> {
+  async function handleSubmit(e: SyntheticEvent): Promise<void> {
     e.preventDefault()
     if (name.trim().length === 0 || personaPrompt.trim().length === 0) return
     setSaving(true)
