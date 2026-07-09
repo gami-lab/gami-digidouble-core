@@ -159,12 +159,11 @@ describe('POST /v1/knowledge-sources/upload — success', () => {
     })
 
     expect(response.statusCode).toBe(201)
-    const body =
-      response.json<
-        ApiResponse<{
-          source: { format: string; status: string; metadata?: Record<string, unknown> }
-        }>
-      >()
+    const body = response.json<
+      ApiResponse<{
+        source: { format: string; status: string; metadata?: Record<string, unknown> }
+      }>
+    >()
     expect(body.error).toBeNull()
     expect(body.data?.source.format).toBe('text')
     expect(body.data?.source.status).toBe('pending')
