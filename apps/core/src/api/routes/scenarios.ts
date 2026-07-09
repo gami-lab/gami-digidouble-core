@@ -13,15 +13,9 @@ import type { IAvatarRepository } from '../../application/ports/IAvatarRepositor
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { CreateAvatarUseCase } from '../../application/use-cases/create-avatar/create-avatar.use-case.js'
-import type {
-  CreateAvatarInput,
-  CreateAvatarOutput,
-} from '../../application/use-cases/create-avatar/create-avatar.types.js'
+import type { CreateAvatarOutput } from '../../application/use-cases/create-avatar/create-avatar.types.js'
 import { CreateScenarioUseCase } from '../../application/use-cases/create-scenario/create-scenario.use-case.js'
-import type {
-  CreateScenarioInput,
-  CreateScenarioOutput,
-} from '../../application/use-cases/create-scenario/create-scenario.types.js'
+import type { CreateScenarioOutput } from '../../application/use-cases/create-scenario/create-scenario.types.js'
 import { DeleteScenarioUseCase } from '../../application/use-cases/delete-scenario/delete-scenario.use-case.js'
 import type { DeleteScenarioOutput } from '../../application/use-cases/delete-scenario/delete-scenario.types.js'
 import { GetScenarioUseCase } from '../../application/use-cases/get-scenario/get-scenario.use-case.js'
@@ -34,12 +28,19 @@ import { UpdateScenarioUseCase } from '../../application/use-cases/update-scenar
 import type { UpdateScenarioOutput } from '../../application/use-cases/update-scenario/update-scenario.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
-import type { ProviderName } from '../../domain/model-config/index.js'
-import { isProviderName, PROVIDER_NAMES } from '../../domain/model-config/index.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
+import {
+  mapCreateAvatarInput,
+  mapCreateScenarioInput,
+  mapUpdateScenarioInput,
+} from './model-selection-mappers.js'
+import {
+  validateAvatarLlmOverride,
+  validateScenarioModelSelection,
+} from './model-selection-validation.js'
 
 export type ScenariosRouteOptions = {
   config: Config
@@ -91,6 +92,30 @@ const createScenarioBodySchema = {
     objectives: { type: 'array', items: { type: 'string' } },
     worldContext: { type: 'string' },
     avatarAvailability: avatarAvailabilityBodySchema,
+    modelSelection: {
+      type: 'object',
+      properties: {
+        defaultProfile: {
+          type: 'object',
+          required: ['provider', 'model'],
+          properties: {
+            provider: { type: 'string' },
+            model: { type: 'string' },
+          },
+          additionalProperties: false,
+        },
+        gameMasterOverride: {
+          type: 'object',
+          required: ['provider', 'model'],
+          properties: {
+            provider: { type: 'string' },
+            model: { type: 'string' },
+          },
+          additionalProperties: false,
+        },
+      },
+      additionalProperties: false,
+    },
     config: { type: 'object' },
   },
   additionalProperties: false,
@@ -106,6 +131,35 @@ const updateScenarioBodySchema = {
     objectives: { type: 'array', items: { type: 'string' } },
     worldContext: { type: 'string' },
     avatarAvailability: avatarAvailabilityBodySchema,
+    modelSelection: {
+      anyOf: [
+        { type: 'null' },
+        {
+          type: 'object',
+          properties: {
+            defaultProfile: {
+              type: 'object',
+              required: ['provider', 'model'],
+              properties: {
+                provider: { type: 'string' },
+                model: { type: 'string' },
+              },
+              additionalProperties: false,
+            },
+            gameMasterOverride: {
+              type: 'object',
+              required: ['provider', 'model'],
+              properties: {
+                provider: { type: 'string' },
+                model: { type: 'string' },
+              },
+              additionalProperties: false,
+            },
+          },
+          additionalProperties: false,
+        },
+      ],
+    },
     config: { type: 'object' },
   },
   additionalProperties: false,
@@ -199,7 +253,13 @@ function registerCreateScenarioRoute(app: FastifyInstance, useCase: CreateScenar
     { schema: { body: createScenarioBodySchema } },
     async (request, reply) => {
       try {
-        const output = await useCase.execute(mapCreateInput(request.body))
+        const body: CreateScenarioRequest = request.body
+        const validationError = validateScenarioModelSelection(body.modelSelection)
+        if (validationError !== null) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
+        }
+
+        const output = await useCase.execute(mapCreateScenarioInput(body))
         return await reply.status(201).send(ok<CreateScenarioResponse>(mapCreateResponse(output)))
       } catch (error) {
         return handleDomainError(error, reply)
@@ -234,7 +294,7 @@ function registerCreateAvatarRoute(app: FastifyInstance, useCase: CreateAvatarUs
     },
     async (request, reply) => {
       try {
-        const validationError = validateLlmOverride(request.body.llmOverride)
+        const validationError = validateAvatarLlmOverride(request.body.llmOverride)
         if (validationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
         }
@@ -302,16 +362,14 @@ function registerUpdateScenarioRoute(app: FastifyInstance, useCase: UpdateScenar
     { schema: { params: scenarioIdParamsSchema, body: updateScenarioBodySchema } },
     async (request, reply) => {
       try {
-        const { name, status, objectives, worldContext, avatarAvailability, config } = request.body
-        const output = await useCase.execute({
-          scenarioId: request.params.scenarioId,
-          ...(name !== undefined ? { name } : {}),
-          ...(status !== undefined ? { status } : {}),
-          ...(objectives !== undefined ? { objectives } : {}),
-          ...(worldContext !== undefined ? { worldContext } : {}),
-          ...(avatarAvailability !== undefined ? { avatarAvailability } : {}),
-          ...(config !== undefined ? { config } : {}),
-        })
+        const validationError = validateScenarioModelSelection(request.body.modelSelection)
+        if (validationError !== null) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
+        }
+
+        const output = await useCase.execute(
+          mapUpdateScenarioInput(request.params.scenarioId, request.body),
+        )
         return await reply.send(ok<UpdateScenarioResponse>(mapUpdateResponse(output)))
       } catch (error) {
         return handleDomainError(error, reply)
@@ -342,19 +400,6 @@ async function handleDomainError(error: unknown, reply: FastifyReply): Promise<F
   return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
 }
 
-function mapCreateInput(body: CreateScenarioRequest): CreateScenarioInput {
-  return {
-    name: body.name,
-    ...(body.status !== undefined ? { status: body.status } : {}),
-    ...(body.objectives !== undefined ? { objectives: body.objectives } : {}),
-    ...(body.worldContext !== undefined ? { worldContext: body.worldContext } : {}),
-    ...(body.avatarAvailability !== undefined
-      ? { avatarAvailability: body.avatarAvailability }
-      : {}),
-    ...(body.config !== undefined ? { config: body.config } : {}),
-  }
-}
-
 function mapCreateResponse(output: CreateScenarioOutput): CreateScenarioResponse {
   return {
     scenario: {
@@ -364,6 +409,9 @@ function mapCreateResponse(output: CreateScenarioOutput): CreateScenarioResponse
       objectives: output.scenario.objectives,
       worldContext: output.scenario.worldContext,
       avatarAvailability: output.scenario.avatarAvailability,
+      ...(output.scenario.modelSelection !== undefined
+        ? { modelSelection: output.scenario.modelSelection }
+        : {}),
       config: output.scenario.config,
       createdAt: output.scenario.createdAt,
       updatedAt: output.scenario.updatedAt,
@@ -371,50 +419,8 @@ function mapCreateResponse(output: CreateScenarioOutput): CreateScenarioResponse
   }
 }
 
-function mapCreateAvatarInput(scenarioId: string, body: CreateAvatarRequest): CreateAvatarInput {
-  const normalizedLlmOverride = normalizeLlmOverride(body.llmOverride)
-  return {
-    scenarioId,
-    name: body.name,
-    personaPrompt: body.personaPrompt,
-    ...(body.tone !== undefined ? { tone: body.tone } : {}),
-    ...(body.description !== undefined ? { description: body.description } : {}),
-    ...(body.adjustments !== undefined ? { adjustments: body.adjustments } : {}),
-    ...(normalizedLlmOverride !== undefined ? { llmOverride: normalizedLlmOverride } : {}),
-    ...(body.config !== undefined ? { config: body.config } : {}),
-    ...(body.status !== undefined ? { status: body.status } : {}),
-  }
-}
-
 function mapCreateAvatarResponse(output: CreateAvatarOutput): CreateAvatarResponse {
   return { avatar: output.avatar }
-}
-
-function validateLlmOverride(value: CreateAvatarRequest['llmOverride']): string | null {
-  if (value === undefined || value === null) return null
-
-  if (value.provider !== undefined && !isProviderName(value.provider)) {
-    return `llmOverride.provider must be one of: ${PROVIDER_NAMES.join(', ')}`
-  }
-  if (value.model !== undefined && value.model.trim().length === 0) {
-    return 'llmOverride.model must be a non-empty string when provided'
-  }
-
-  return null
-}
-
-function normalizeLlmOverride(
-  llmOverride: CreateAvatarRequest['llmOverride'],
-): CreateAvatarInput['llmOverride'] {
-  if (llmOverride === undefined) return undefined
-  if (llmOverride === null) return null
-
-  return {
-    ...(llmOverride.provider !== undefined
-      ? { provider: llmOverride.provider as ProviderName }
-      : {}),
-    ...(llmOverride.model !== undefined ? { model: llmOverride.model.trim() } : {}),
-  }
 }
 
 function mapGetScenarioResponse(output: GetScenarioOutput): GetScenarioResponse {
@@ -426,6 +432,9 @@ function mapGetScenarioResponse(output: GetScenarioOutput): GetScenarioResponse 
       objectives: output.scenario.objectives,
       worldContext: output.scenario.worldContext,
       avatarAvailability: output.scenario.avatarAvailability,
+      ...(output.scenario.modelSelection !== undefined
+        ? { modelSelection: output.scenario.modelSelection }
+        : {}),
       config: output.scenario.config as Record<string, unknown>,
       createdAt: output.scenario.createdAt,
       updatedAt: output.scenario.updatedAt,
@@ -442,6 +451,9 @@ function mapUpdateResponse(output: UpdateScenarioOutput): UpdateScenarioResponse
       objectives: output.scenario.objectives,
       worldContext: output.scenario.worldContext,
       avatarAvailability: output.scenario.avatarAvailability,
+      ...(output.scenario.modelSelection !== undefined
+        ? { modelSelection: output.scenario.modelSelection }
+        : {}),
       config: output.scenario.config as Record<string, unknown>,
       createdAt: output.scenario.createdAt,
       updatedAt: output.scenario.updatedAt,

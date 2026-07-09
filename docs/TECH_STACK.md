@@ -217,6 +217,7 @@ This is now one of the strongest architectural decisions in the roadmap:
 
 - provider abstraction
 - model selection by role
+- catalog-backed validation for operator-selected provider/model pairs
 - retries / timeouts
 - fallback strategy
 - JSON enforcement for structured calls
@@ -228,6 +229,7 @@ This is now one of the strongest architectural decisions in the roadmap:
 
 - Wrapper is mandatory
 - SDKs are replaceable
+- allowed runtime model selections are owned centrally in shared contracts/catalog code, not duplicated in UI or business logic
 - architecture must never depend on LangChain, LangGraph, or another framework abstraction
 
 ### Why

@@ -227,4 +227,74 @@ describe('SendMessageUseCase model resolution', () => {
     expect(llmRequest.model).toBeUndefined()
     expect(llmRequest.trace.metadata.effectiveModel).toBe('adapter_default')
   })
+
+  it('uses scenario default model selection when avatar override is absent', async () => {
+    const completeMock = vi.fn().mockResolvedValue({
+      content: 'Avatar reply',
+      model: 'scenario-default-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    })
+    const modelConfigRepository = {
+      get: vi.fn().mockResolvedValue({
+        globalDefault: { provider: 'null', model: '' },
+        roleOverrides: { avatar: { provider: 'mistral', model: 'mistral-medium-3.5' } },
+        updatedAt: '2026-05-20T00:00:00.000Z',
+      } satisfies ModelConfig),
+      upsert: vi.fn(),
+    }
+    const llmAdapterRegistry = { get: vi.fn().mockReturnValue({ complete: completeMock }) }
+    findScenarioByIdMock.mockResolvedValue({
+      scenarioId: 'scenario_1',
+      name: 'Scenario',
+      status: 'active',
+      objectives: [],
+      worldContext: '',
+      avatarAvailability: { initialAvatarIds: [] },
+      modelSelection: {
+        defaultProfile: { provider: 'openai', model: 'gpt-4o-mini' },
+      },
+      config: {
+        modelSelection: {
+          defaultProfile: { provider: 'openai', model: 'gpt-4o-mini' },
+        },
+      },
+      createdAt: '2026-04-18T10:00:00.000Z',
+      updatedAt: '2026-04-18T10:00:00.000Z',
+    })
+    const useCase = new SendMessageUseCase(
+      sessionRepository,
+      conversationRepository,
+      avatarRepository,
+      scenarioRepository,
+      messageRepository,
+      llm,
+      eventLogRepository,
+      null,
+      undefined,
+      null,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      modelConfigRepository,
+      llmAdapterRegistry,
+    )
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    expect(llmAdapterRegistry.get).toHaveBeenCalledWith('openai')
+    const llmRequest = completeMock.mock.calls[0]?.[0] as {
+      model?: string
+      trace: { metadata: { effectiveProvider: string; effectiveModel: string } }
+    }
+    expect(llmRequest.model).toBe('gpt-4o-mini')
+    expect(llmRequest.trace.metadata.effectiveProvider).toBe('openai')
+    expect(llmRequest.trace.metadata.effectiveModel).toBe('gpt-4o-mini')
+  })
 })

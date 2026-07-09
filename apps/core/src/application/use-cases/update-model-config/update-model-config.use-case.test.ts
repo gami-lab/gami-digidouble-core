@@ -37,7 +37,7 @@ describe('UpdateModelConfigUseCase', () => {
 
     await expect(
       useCase.execute({
-        globalDefault: { provider: 'unsupported', model: 'gpt-4.1-mini' },
+        globalDefault: { provider: 'unsupported' as 'openai', model: 'gpt-4.1-mini' },
       }),
     ).rejects.toThrowError(/globalDefault\.provider must be one of/)
   })

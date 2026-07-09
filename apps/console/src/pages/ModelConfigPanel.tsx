@@ -1,7 +1,11 @@
 /* eslint-disable max-lines-per-function, complexity */
 import { useEffect, useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
-import type { ModelConfigResponse, UpdateModelConfigRequest } from '@gami/shared'
+import type {
+  ModelConfigResponse,
+  ModelProviderName,
+  UpdateModelConfigRequest,
+} from '@gami/shared'
 import { ApiError } from '../api'
 import { getModelConfig, updateModelConfig } from '../api'
 import { getModelPresetOptions } from '../api/model-presets'
@@ -305,7 +309,7 @@ export function toUpdateModelConfigRequest(form: ModelConfigForm): UpdateModelCo
 
   return {
     globalDefault: {
-      provider: form.globalDefault.provider,
+      provider: form.globalDefault.provider as ModelProviderName,
       model: form.globalDefault.model,
     },
     roleOverrides,
@@ -314,12 +318,12 @@ export function toUpdateModelConfigRequest(form: ModelConfigForm): UpdateModelCo
 
 function toOverride(
   override: ModelOverrideForm,
-): { provider?: string; model?: string } | undefined {
+): { provider?: ModelProviderName; model?: string } | undefined {
   const provider = override.provider.trim()
   const model = override.model.trim()
   if (provider.length === 0 && model.length === 0) return undefined
   return {
-    ...(provider.length > 0 ? { provider } : {}),
+    ...(provider.length > 0 ? { provider: provider as ModelProviderName } : {}),
     ...(model.length > 0 ? { model } : {}),
   }
 }

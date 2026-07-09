@@ -3,6 +3,7 @@ import type {
   ConversationSummary,
   LifecycleStatus,
   ScenarioAvatarAvailability,
+  ScenarioModelSelection,
   ScenarioSummary,
   SessionSummary,
 } from './entity-types.js'
@@ -29,6 +30,7 @@ export type CreateScenarioRequest = {
   objectives?: string[]
   worldContext?: string
   avatarAvailability?: ScenarioAvatarAvailability
+  modelSelection?: ScenarioModelSelection
   config?: Record<string, unknown>
 }
 
@@ -36,12 +38,15 @@ export type CreateScenarioResponse = {
   scenario: ScenarioSummary
 }
 
-export type UpdateScenarioRequest = Partial<
-  Pick<
-    ScenarioSummary,
-    'name' | 'status' | 'objectives' | 'worldContext' | 'avatarAvailability' | 'config'
-  >
->
+export type UpdateScenarioRequest = {
+  name?: ScenarioSummary['name']
+  status?: ScenarioSummary['status']
+  objectives?: ScenarioSummary['objectives']
+  worldContext?: ScenarioSummary['worldContext']
+  avatarAvailability?: ScenarioAvatarAvailability
+  modelSelection?: ScenarioModelSelection | null
+  config?: Record<string, unknown>
+}
 
 export type UpdateScenarioResponse = {
   scenario: ScenarioSummary

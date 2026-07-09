@@ -67,6 +67,39 @@ describe('UpdateScenarioUseCase', () => {
     expect(output.scenario.name).toBe('Original Name')
   })
 
+  it('updates and clears modelSelection explicitly', async () => {
+    const repo = new InMemoryScenarioRepository([
+      {
+        ...seedScenario,
+        modelSelection: {
+          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+        },
+        config: {
+          modelSelection: {
+            defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          },
+        },
+      },
+    ])
+    const useCase = new UpdateScenarioUseCase(repo)
+
+    const updated = await useCase.execute({
+      scenarioId: 'scenario_1',
+      modelSelection: {
+        defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+      },
+    })
+    expect(updated.scenario.modelSelection).toEqual({
+      defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+    })
+
+    const cleared = await useCase.execute({
+      scenarioId: 'scenario_1',
+      modelSelection: null,
+    })
+    expect(cleared.scenario.modelSelection).toBeUndefined()
+  })
+
   it('refreshes updatedAt on update', async () => {
     const repo = new InMemoryScenarioRepository([seedScenario])
     const useCase = new UpdateScenarioUseCase(repo)

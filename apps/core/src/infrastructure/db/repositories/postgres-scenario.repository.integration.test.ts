@@ -97,4 +97,23 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
     const reloaded = listed.find((scenario) => scenario.scenarioId === created.scenarioId)
     expect(reloaded?.config).toEqual(updated.config)
   })
+
+  it('persists modelSelection inside config and returns it as a typed field', async () => {
+    const created = await repo.create({
+      name: 'Scenario Models',
+      modelSelection: {
+        defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+        gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+      },
+    })
+
+    expect(created.modelSelection).toEqual({
+      defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+      gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+    })
+
+    const cleared = await repo.update(created.scenarioId, { modelSelection: null })
+    expect(cleared.modelSelection).toBeUndefined()
+    expect(cleared.config).toEqual({})
+  })
 })

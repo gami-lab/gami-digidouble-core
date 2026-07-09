@@ -216,6 +216,21 @@ describe('PATCH /v1/avatars/:avatarId llmOverride', () => {
     expect(body.error?.code).toBe('VALIDATION_ERROR')
   })
 
+  it('returns 400 when llmOverride is partial', async () => {
+    const response = await makeApp({
+      avatars: [makeAvatar({ avatarId: 'avatar_1' })],
+    }).inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { llmOverride: { provider: 'openai' } },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
   it('sets and clears llmOverride', async () => {
     const app = makeApp({
       avatars: [makeAvatar({ avatarId: 'avatar_1', config: { routeKey: 'guide' } })],
@@ -225,11 +240,11 @@ describe('PATCH /v1/avatars/:avatarId llmOverride', () => {
       method: 'PATCH',
       url: '/v1/avatars/avatar_1',
       headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
-      payload: { llmOverride: { provider: 'openai' } },
+      payload: { llmOverride: { provider: 'openai', model: 'gpt-4o' } },
     })
     expect(setResponse.statusCode).toBe(200)
     const setBody = setResponse.json<ApiResponse<{ avatar: AvatarSummary }>>()
-    expect(setBody.data?.avatar.llmOverride?.provider).toBe('openai')
+    expect(setBody.data?.avatar.llmOverride).toEqual({ provider: 'openai', model: 'gpt-4o' })
 
     const clearResponse = await app.inject({
       method: 'PATCH',

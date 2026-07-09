@@ -5,6 +5,7 @@ import type { IConversationRepository } from '../../application/ports/IConversat
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../../application/ports/IGmStateRepository.js'
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
+import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import { InspectSessionUseCase } from '../../application/use-cases/inspect-session/inspect-session.use-case.js'
@@ -15,6 +16,7 @@ import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-ev
 import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryModelConfigRepository } from '../../infrastructure/db/in-memory-model-config.repository.js'
+import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import {
@@ -31,6 +33,7 @@ export type AdminSessionsRouteOptions = {
   eventLogRepository?: IEventLogRepository
   avatarRepository?: IAvatarRepository
   modelConfigRepository?: IModelConfigRepository
+  scenarioRepository?: IScenarioRepository
 }
 
 type SessionEventsQuerystring = {
@@ -56,12 +59,14 @@ export const adminSessionsRoute: FastifyPluginCallback<AdminSessionsRouteOptions
   const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
   const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
   const modelConfigRepository = options.modelConfigRepository ?? new InMemoryModelConfigRepository()
+  const scenarioRepository = options.scenarioRepository ?? new InMemoryScenarioRepository()
   const inspectSessionUseCase = new InspectSessionUseCase(
     sessionRepository,
     gmStateRepository,
     conversationRepository,
     avatarRepository,
     modelConfigRepository,
+    scenarioRepository,
   )
   const listSessionEventsUseCase = new ListSessionEventsUseCase(
     sessionRepository,

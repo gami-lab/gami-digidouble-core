@@ -7,6 +7,22 @@
 
 export type { ApiResponse, ApiError, ResponseMeta, ErrorCode } from './api-response.js'
 export { ok, fail } from './api-response.js'
+export {
+  MODEL_PROVIDER_NAMES,
+  MODEL_SELECTION_PROVIDER_NAMES,
+  getModelPresetOptions,
+  isAllowedModelForProvider,
+  isModelProviderName,
+  isModelSelectionProviderName,
+} from './model-catalog.js'
+export type {
+  ModelPresetOption,
+  ModelProfile,
+  ModelProviderName,
+  ModelSelectionOverride,
+  ModelSelectionProviderName,
+  ScenarioModelSelection,
+} from './model-catalog.js'
 export type {
   AvatarStatus,
   AvatarLlmOverride,

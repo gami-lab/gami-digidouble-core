@@ -76,6 +76,38 @@ describe('ScenarioCreatePage', () => {
     })
   })
 
+  it('submits scenario model selection when runtime models are chosen', async () => {
+    vi.mocked(createScenario).mockResolvedValue(makeScenario())
+
+    render(<ScenarioCreatePage onBack={vi.fn()} onCreated={vi.fn()} />)
+
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'New Scenario' } })
+    fireEvent.change(screen.getByLabelText('Provider', { selector: '#sc-default-model-provider' }), {
+      target: { value: 'openai' },
+    })
+    fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-default-model-model' }), {
+      target: { value: 'gpt-4o' },
+    })
+    fireEvent.change(screen.getByLabelText('Provider', { selector: '#sc-gm-model-provider' }), {
+      target: { value: 'anthropic' },
+    })
+    fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-gm-model-model' }), {
+      target: { value: 'claude-sonnet-4-6' },
+    })
+    fireEvent.submit(screen.getByRole('button', { name: /Create scenario/ }).closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(createScenario).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelSelection: {
+            defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+            gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+          },
+        }),
+      )
+    })
+  })
+
   it('shows an error message when creation fails', async () => {
     vi.mocked(createScenario).mockRejectedValue(new Error('server error'))
 

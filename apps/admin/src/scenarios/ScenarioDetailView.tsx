@@ -68,6 +68,9 @@ function ScenarioSummarySection({
   actionError,
   onEditScenario,
 }: ScenarioSummarySectionProps): JSX.Element {
+  const defaultProfile = scenario.modelSelection?.defaultProfile
+  const gameMasterOverride = scenario.modelSelection?.gameMasterOverride
+
   return (
     <>
       <div className="admin-detail-header">
@@ -94,6 +97,14 @@ function ScenarioSummarySection({
           ))}
         </ul>
       )}
+
+      <h3>Runtime models</h3>
+      <p className="admin-muted">
+        Scenario default: {defaultProfile === undefined ? 'Inherited from global runtime config.' : formatModelProfile(defaultProfile)}
+      </p>
+      <p className="admin-muted">
+        Game Master override: {gameMasterOverride === undefined ? 'Inherited from scenario default or global Game Master config.' : formatModelProfile(gameMasterOverride)}
+      </p>
     </>
   )
 }
@@ -132,6 +143,7 @@ function AvatarListSection({
             <tr>
               <th>Name</th>
               <th>Status</th>
+              <th>Model override</th>
               <th>Initially visible</th>
               <th>Actions</th>
             </tr>
@@ -143,6 +155,7 @@ function AvatarListSection({
                 <td>
                   <span className="admin-status-pill">{avatar.status}</span>
                 </td>
+                <td>{formatAvatarOverride(avatar.llmOverride)}</td>
                 <td>
                   <input
                     type="checkbox"
@@ -175,6 +188,18 @@ function AvatarListSection({
       )}
     </>
   )
+}
+
+function formatModelProfile(profile: { provider: string; model: string }): string {
+  return `${profile.provider} / ${profile.model}`
+}
+
+function formatAvatarOverride(override: AvatarSummary['llmOverride']): string {
+  if (override?.provider === undefined || override.model === undefined) {
+    return 'Inherited'
+  }
+
+  return formatModelProfile({ provider: override.provider, model: override.model })
 }
 
 type KnowledgeSourceListSectionProps = {

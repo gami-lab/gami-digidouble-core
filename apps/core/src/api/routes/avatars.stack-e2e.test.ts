@@ -346,13 +346,13 @@ describe('Stack E2E — avatar llmOverride flow', () => {
     const patchSetRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ llmOverride: { provider: 'openai' } }),
+      body: JSON.stringify({ llmOverride: { provider: 'openai', model: 'gpt-4o' } }),
     })
     expect(patchSetRes.status).toBe(200)
     const patchSetBody = (await patchSetRes.json()) as ApiResponse<{
       avatar: { llmOverride?: { provider?: string; model?: string } }
     }>
-    expect(patchSetBody.data?.avatar.llmOverride?.provider).toBe('openai')
+    expect(patchSetBody.data?.avatar.llmOverride).toEqual({ provider: 'openai', model: 'gpt-4o' })
 
     const patchInvalidProviderRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
       method: 'PATCH',
@@ -380,6 +380,15 @@ describe('Stack E2E — avatar llmOverride flow', () => {
     expect(patchInvalidModelRes.status).toBe(400)
     const invalidModelBody = (await patchInvalidModelRes.json()) as ApiResponse<null>
     expect(invalidModelBody.error?.code).toBe('VALIDATION_ERROR')
+
+    const patchPartialOverrideRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({ llmOverride: { provider: 'anthropic' } }),
+    })
+    expect(patchPartialOverrideRes.status).toBe(400)
+    const partialOverrideBody = (await patchPartialOverrideRes.json()) as ApiResponse<null>
+    expect(partialOverrideBody.error?.code).toBe('VALIDATION_ERROR')
   })
 
   it('clears llmOverride and returns override in GET list after set', async () => {

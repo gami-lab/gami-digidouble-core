@@ -29,6 +29,7 @@ export class CreateScenarioUseCase {
       objectives: input.objectives ?? [],
       worldContext: input.worldContext ?? '',
       avatarAvailability: input.avatarAvailability ?? { initialAvatarIds: [] },
+      ...(input.modelSelection !== undefined ? { modelSelection: input.modelSelection } : {}),
       ...(input.config !== undefined ? { config: input.config } : {}),
     })
 
@@ -40,6 +41,9 @@ export class CreateScenarioUseCase {
         objectives: scenario.objectives,
         worldContext: scenario.worldContext,
         avatarAvailability: scenario.avatarAvailability,
+        ...(scenario.modelSelection !== undefined
+          ? { modelSelection: scenario.modelSelection }
+          : {}),
         config: scenario.config as Record<string, unknown>,
         createdAt: scenario.createdAt,
         updatedAt: scenario.updatedAt,

@@ -3,6 +3,11 @@ import type { JSX, SyntheticEvent } from 'react'
 import { formatApiError } from '../api/error'
 import { createScenario } from '../api/scenarios'
 import { ScenarioFormFields } from './ScenarioFormFields'
+import {
+  EMPTY_MODEL_SELECTION,
+  hasPartialModelSelection,
+  toScenarioModelSelection,
+} from './model-selection-form'
 
 type ScenarioCreatePageProps = {
   onBack: () => void
@@ -16,6 +21,8 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
   const [status, setStatus] = useState<'draft' | 'active' | 'archived'>('draft')
   const [worldContext, setWorldContext] = useState('')
   const [objectives, setObjectives] = useState<string[]>([])
+  const [defaultModelSelection, setDefaultModelSelection] = useState(EMPTY_MODEL_SELECTION)
+  const [gameMasterModelSelection, setGameMasterModelSelection] = useState(EMPTY_MODEL_SELECTION)
   const [createState, setCreateState] = useState<CreateState>({ status: 'idle' })
 
   async function handleSubmit(e: SyntheticEvent): Promise<void> {
@@ -23,11 +30,16 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
     if (name.trim().length === 0) return
     setCreateState({ status: 'saving' })
     try {
+      const modelSelection = toScenarioModelSelection({
+        defaultProfile: defaultModelSelection,
+        gameMasterOverride: gameMasterModelSelection,
+      })
       const scenario = await createScenario({
         name: name.trim(),
         status,
         objectives,
         worldContext: worldContext.trim(),
+        ...(modelSelection !== undefined ? { modelSelection } : {}),
       })
       onCreated(scenario.scenarioId)
     } catch (error: unknown) {
@@ -39,6 +51,9 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
   }
 
   const isSaving = createState.status === 'saving'
+  const hasPartialModelSelectionState =
+    hasPartialModelSelection(defaultModelSelection) || hasPartialModelSelection(gameMasterModelSelection)
+  const submitDisabled = isSaving || name.trim().length === 0 || hasPartialModelSelectionState
 
   return (
     <section className="admin-card">
@@ -55,18 +70,25 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           status={status}
           worldContext={worldContext}
           objectives={objectives}
+          defaultModelSelection={defaultModelSelection}
+          gameMasterModelSelection={gameMasterModelSelection}
           idPrefix="sc"
           disabled={isSaving}
           onNameChange={setName}
           onStatusChange={setStatus}
           onWorldContextChange={setWorldContext}
           onObjectivesChange={setObjectives}
+          onDefaultModelSelectionChange={setDefaultModelSelection}
+          onGameMasterModelSelectionChange={setGameMasterModelSelection}
         />
+        {hasPartialModelSelectionState ? (
+          <p className="admin-error">Select both provider and model for each model setting, or leave both empty.</p>
+        ) : null}
         <div className="admin-form-actions">
           <button
             type="submit"
             className="admin-button admin-button-primary"
-            disabled={isSaving || name.trim().length === 0}
+            disabled={submitDisabled}
           >
             {isSaving ? 'Creating…' : 'Create scenario'}
           </button>

@@ -9,11 +9,10 @@ import { UpdateAvatarUseCase } from '../../application/use-cases/update-avatar/u
 import type { UpdateAvatarInput } from '../../application/use-cases/update-avatar/update-avatar.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
-import type { ProviderName } from '../../domain/model-config/index.js'
-import { isProviderName, PROVIDER_NAMES } from '../../domain/model-config/index.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
+import { validateAvatarLlmOverride } from './model-selection-validation.js'
 
 export type AvatarsRouteOptions = {
   config: Config
@@ -95,7 +94,7 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
     { schema: { params: avatarIdParamsSchema, body: patchAvatarBodySchema } },
     async (request, reply) => {
       try {
-        const validationError = validateLlmOverride(request.body.llmOverride)
+        const validationError = validateAvatarLlmOverride(request.body.llmOverride)
         if (validationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
         }
@@ -139,19 +138,6 @@ function mapUpdateAvatarResponse(output: { avatar: AvatarSummary }): UpdateAvata
   return { avatar: output.avatar }
 }
 
-function validateLlmOverride(value: UpdateAvatarRequest['llmOverride']): string | null {
-  if (value === undefined || value === null) return null
-
-  if (value.provider !== undefined && !isProviderName(value.provider)) {
-    return `llmOverride.provider must be one of: ${PROVIDER_NAMES.join(', ')}`
-  }
-  if (value.model !== undefined && value.model.trim().length === 0) {
-    return 'llmOverride.model must be a non-empty string when provided'
-  }
-
-  return null
-}
-
 function normalizeLlmOverride(
   llmOverride: UpdateAvatarRequest['llmOverride'],
 ): UpdateAvatarInput['llmOverride'] {
@@ -159,9 +145,7 @@ function normalizeLlmOverride(
   if (llmOverride === null) return null
 
   return {
-    ...(llmOverride.provider !== undefined
-      ? { provider: llmOverride.provider as ProviderName }
-      : {}),
+    ...(llmOverride.provider !== undefined ? { provider: llmOverride.provider } : {}),
     ...(llmOverride.model !== undefined ? { model: llmOverride.model.trim() } : {}),
   }
 }

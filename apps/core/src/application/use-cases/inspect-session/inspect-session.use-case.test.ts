@@ -3,10 +3,33 @@ import type { IConversationRepository } from '../../ports/IConversationRepositor
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
+import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
+import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import { InspectSessionUseCase } from './inspect-session.use-case.js'
+
+const defaultScenarioModelSelection = {
+  defaultProfile: { provider: 'openai' as const, model: 'gpt-4o-mini' },
+  gameMasterOverride: { provider: 'anthropic' as const, model: 'claude-sonnet-4-6' },
+}
+
+const defaultGmState = {
+  currentAvatarId: 'avatar_2',
+  progression: 'intro complete',
+  topicsCovered: ['setup'],
+  interactionCount: 4,
+}
+
+const defaultModelConfig = {
+  globalDefault: { provider: 'openai' as const, model: 'gpt-4.1-mini' },
+  roleOverrides: {
+    gameMaster: { provider: 'mistral' as const, model: 'mistral-small-latest' },
+    memory: { provider: 'xai' as const, model: 'grok-2-mini' },
+  },
+  updatedAt: '2026-05-20T00:00:00.000Z',
+}
 
 function makeSession(overrides: Partial<Session> = {}): Session {
   return {
@@ -35,26 +58,67 @@ function makeConversation(overrides: Partial<Conversation>): Conversation {
   }
 }
 
+function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
+  return {
+    scenarioId: 'scenario_1',
+    name: 'Scenario',
+    status: 'active',
+    objectives: [],
+    worldContext: '',
+    avatarAvailability: { initialAvatarIds: [] },
+    modelSelection: defaultScenarioModelSelection,
+    config: { modelSelection: defaultScenarioModelSelection },
+    createdAt: '2026-04-28T09:00:00.000Z',
+    updatedAt: '2026-04-28T09:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function createAvatarRepository(): IAvatarRepository {
+  return {
+    findById: vi.fn().mockResolvedValue({
+      avatarId: 'avatar_2',
+      scenarioId: 'scenario_1',
+      name: 'Avatar',
+      status: 'active',
+      personaPrompt: 'Prompt',
+      llmOverride: { provider: 'anthropic', model: 'claude-3-5-haiku' },
+      config: {},
+      createdAt: '2026-04-28T09:01:00.000Z',
+      updatedAt: '2026-04-28T09:01:00.000Z',
+    }),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    listByScenarioId: vi.fn(),
+  }
+}
+
+function pickOptionalValue<T>(
+  params: Record<string, unknown> | undefined,
+  key: string,
+  fallback: T,
+): T {
+  return Object.hasOwn(params ?? {}, key) ? (params?.[key] as T) : fallback
+}
+
 function createRepositories(params?: {
   session?: Session | null
   gmState?: Awaited<ReturnType<IGmStateRepository['findBySessionId']>>
   conversations?: Conversation[]
+  scenario?: Scenario | null
 }): {
   sessionRepository: ISessionRepository
   gmStateRepository: IGmStateRepository
   conversationRepository: IConversationRepository
   avatarRepository: IAvatarRepository
   modelConfigRepository: IModelConfigRepository
+  scenarioRepository: IScenarioRepository
 } {
-  const gmState = Object.hasOwn(params ?? {}, 'gmState')
-    ? params?.gmState
-    : {
-        currentAvatarId: 'avatar_2',
-        progression: 'intro complete',
-        topicsCovered: ['setup'],
-        interactionCount: 4,
-      }
-  const session = Object.hasOwn(params ?? {}, 'session') ? params?.session : makeSession()
+  const gmState = pickOptionalValue(params, 'gmState', defaultGmState)
+  const session = pickOptionalValue(params, 'session', makeSession())
+  const scenario = pickOptionalValue(params, 'scenario', makeScenario())
+  const conversations = pickOptionalValue(params, 'conversations', [] as Conversation[])
 
   return {
     sessionRepository: {
@@ -74,37 +138,21 @@ function createRepositories(params?: {
       findById: vi.fn(),
       findActiveBySessionId: vi.fn(),
       create: vi.fn(),
-      listBySessionId: vi.fn().mockResolvedValue(params?.conversations ?? []),
+      listBySessionId: vi.fn().mockResolvedValue(conversations),
       deleteBySessionId: vi.fn(),
       update: vi.fn(),
     },
-    avatarRepository: {
-      findById: vi.fn().mockResolvedValue({
-        avatarId: 'avatar_2',
-        scenarioId: 'scenario_1',
-        name: 'Avatar',
-        status: 'active',
-        personaPrompt: 'Prompt',
-        llmOverride: { provider: 'anthropic', model: 'claude-3-5-haiku' },
-        config: {},
-        createdAt: '2026-04-28T09:01:00.000Z',
-        updatedAt: '2026-04-28T09:01:00.000Z',
-      }),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      listByScenarioId: vi.fn(),
-    },
+    avatarRepository: createAvatarRepository(),
     modelConfigRepository: {
-      get: vi.fn().mockResolvedValue({
-        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
-        roleOverrides: {
-          gameMaster: { provider: 'mistral', model: 'mistral-small-latest' },
-          memory: { provider: 'xai', model: 'grok-2-mini' },
-        },
-        updatedAt: '2026-05-20T00:00:00.000Z',
-      }),
+      get: vi.fn().mockResolvedValue(defaultModelConfig),
       upsert: vi.fn(),
+    },
+    scenarioRepository: {
+      findById: vi.fn().mockResolvedValue(scenario),
+      create: vi.fn(),
+      list: vi.fn(),
+      delete: vi.fn(),
+      update: vi.fn(),
     },
   }
 }
@@ -117,6 +165,7 @@ function createUseCaseFromRepositories(params?: Parameters<typeof createReposito
     r.conversationRepository,
     r.avatarRepository,
     r.modelConfigRepository,
+    r.scenarioRepository,
   )
 }
 
@@ -165,7 +214,7 @@ describe('InspectSessionUseCase', () => {
     expect(output.inspect.gmNotes).toBe('Guide the next turn toward reflection.')
     expect(output.inspect.effectiveModels).toEqual({
       avatar: { provider: 'anthropic', model: 'claude-3-5-haiku' },
-      gameMaster: { provider: 'mistral', model: 'mistral-small-latest' },
+      gameMaster: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
       memory: { provider: 'xai', model: 'grok-2-mini' },
     })
     expect(output.inspect.transitionHistory).toEqual([
@@ -205,6 +254,7 @@ describe('InspectSessionUseCase', () => {
     expect(output.inspect.unlockedAvatarIds).toEqual([])
     expect(output.inspect.gmNotes).toBeNull()
     expect(output.inspect.effectiveModels.avatar.provider).toBe('openai')
+    expect(output.inspect.effectiveModels.avatar.model).toBe('gpt-4o-mini')
   })
 
   it('throws NOT_FOUND when the session does not exist', async () => {

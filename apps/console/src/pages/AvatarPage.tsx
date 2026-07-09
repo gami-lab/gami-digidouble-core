@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
+import type { ModelSelectionProviderName } from '@gami/shared'
 import { createAvatar, listScenarioAvatars } from '../api'
 import { getModelPresetOptions } from '../api/model-presets'
 import { PROVIDER_OPTIONS } from '../api/provider-options'
@@ -336,17 +337,7 @@ async function submitAvatar(
       personaPrompt: values.personaPrompt,
       ...(values.tone.trim().length > 0 ? { tone: values.tone } : {}),
       ...(values.description.trim().length > 0 ? { description: values.description } : {}),
-      ...(() => {
-        const provider = values.llmProviderOverride.trim()
-        const model = values.llmModelOverride.trim()
-        if (provider.length === 0 && model.length === 0) return { llmOverride: null }
-        return {
-          llmOverride: {
-            ...(provider.length > 0 ? { provider } : {}),
-            ...(model.length > 0 ? { model } : {}),
-          },
-        }
-      })(),
+      ...buildAvatarOverride(values.llmProviderOverride, values.llmModelOverride),
     })
 
     onAvatarSelected(avatar)
@@ -356,6 +347,23 @@ async function submitAvatar(
     setSubmitError(formatApiError(error, 'UNKNOWN_ERROR: Failed to create avatar'))
   } finally {
     setIsSubmitting(false)
+  }
+}
+
+function buildAvatarOverride(providerValue: string, modelValue: string): {
+  llmOverride: { provider?: ModelSelectionProviderName; model?: string } | null
+} {
+  const provider = providerValue.trim()
+  const model = modelValue.trim()
+  if (provider.length === 0 && model.length === 0) {
+    return { llmOverride: null }
+  }
+
+  return {
+    llmOverride: {
+      ...(provider.length > 0 ? { provider: provider as ModelSelectionProviderName } : {}),
+      ...(model.length > 0 ? { model } : {}),
+    },
   }
 }
 

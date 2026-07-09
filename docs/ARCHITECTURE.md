@@ -447,7 +447,8 @@ Admin app boundary (EPIC 6.1):
 
 - `apps/admin` is a dedicated, first-class app for scenario-builder content authoring (scenarios, avatars, knowledge sources, runtime model selection) — distinct from `apps/console` (manual test / runtime debugging console) and `apps/web` (public player-facing app).
 - Like Console, it is a consumer-only layer over canonical Core public/admin routes: no direct database access, no business logic duplication, environment-driven Core connection (`VITE_API_URL`, `VITE_API_KEY`).
-- Current scope (foundation slice): app shell with scenario-builder module navigation, and a read-only scenario list -> scenario detail vertical skeleton. Full scenario/avatar/knowledge/model editing workflows land in later EPIC 6.1 slices.
+- Current scope: scenario list/detail editing plus scenario, avatar, knowledge, and runtime model-selection workflows through canonical Core routes.
+- Scenario-scoped runtime model selection remains data-driven: persisted on `scenario.config.modelSelection`, surfaced as typed contracts, and resolved in the application/domain layers through the existing internal LLM abstraction.
 
 ---
 

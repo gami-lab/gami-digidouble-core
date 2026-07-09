@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: June 3, 2026
+Last updated: July 9, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -700,9 +700,8 @@ Started on: 2026-07-05
 - simplified `CreateAvatarForScenarioRequest` to reuse `CreateAvatarRequest` directly, then removed it once console switched to consuming `CreateAvatarRequest` directly (it added no value beyond an unused `scenarioId` wrapper field)
 - removed the dead `UpdateAvatarRequestBody` alias from shared exports
 - added a canonical `UpdateModelConfigRequest` to `packages/shared/src/runtime-inspector-types.ts`; `apps/core`'s `update-model-config` use case and `apps/console`'s model-config client/`ModelConfigPanel` now reuse it instead of each declaring their own copy of the same shape
-- documented known contract gaps intentionally **not** implemented in this slice (deferred to their owning prompts, not in scope for cleanup-only work):
+- documented known contract gaps intentionally **not** implemented in that cleanup-only slice (deferred at the time to their owning prompts):
   - explicit GM-only world knowledge visibility (currently only representable as "all" vs "subset" via `visibleToAvatarIds`) — owned by `03-knowledge-sources-and-visibility.md`
-  - scenario-level default runtime model assignment (no field exists yet on `Scenario`/`ScenarioSummary`) — owned by `04-runtime-model-selection.md`
 - verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web` all typecheck/lint clean; full test suites pass (core 659 tests, console 48 tests, web 28 tests)
 
 ### Current slice completed (scenario and avatar editors — objectives, world context, persona, visibility)
@@ -733,6 +732,22 @@ Started on: 2026-07-05
 - admin UI extended: `ScenarioDetailPage` loads and displays knowledge sources; "Add knowledge" button opens `KnowledgeSourceCreateForm` (text paste or file upload, type + visibility selectors); list table shows name/type/visibility/status with Edit / Ingest / Delete actions; `KnowledgeSourceEditForm` for updating name and visibility policy
 - test coverage: GM-only retrieval unit test in `typed-retrieval.service.test.ts`; route integration tests for upload and visibility policy in `knowledge-sources-management.test.ts`; stack-e2e upload 401 + 400 + skipped happy-path in `knowledge.stack-e2e.test.ts`; admin unit tests updated to mock `listKnowledgeSources`, plus two new tests for knowledge section rendering and form navigation
 - quality gates validated: `pnpm typecheck` clean across all packages; core 668 tests pass; admin 23 tests pass
+
+### Current slice completed (runtime model selection)
+
+- added canonical shared model-selection ownership in `packages/shared/src/model-catalog.ts` for provider names, allowed preset catalog, scenario model-selection DTOs, and validation helpers; `apps/admin`, `apps/console`, and `apps/core` now consume the same source of truth
+- added `ScenarioSummary.modelSelection`, `CreateScenarioRequest.modelSelection`, and `UpdateScenarioRequest.modelSelection` to the canonical shared contracts; persisted as `scenario.config.modelSelection` while exposed as a first-class typed field in domain/API DTOs
+- admin scenario editor now supports scenario default model profile and Game Master override; admin avatar editor supports per-avatar `llmOverride`; all writes go through the canonical shared contracts only
+- core route validation now enforces catalog-backed model assignments:
+  - scenario `modelSelection.defaultProfile` and `modelSelection.gameMasterOverride` must use allowed `openai | anthropic | mistral | xai` provider/model pairs
+  - avatar `llmOverride` requires both `provider` and `model` when set; `llmOverride: null` clears the override
+- deterministic runtime precedence now implemented and unit-tested:
+  - avatar runtime: `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` -> global avatar role override -> global default
+  - Game Master runtime: `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` -> global Game Master role override -> global default
+  - memory runtime remains global-only: memory role override -> global default
+- legacy compatibility preserved: scenarios without `modelSelection` continue to resolve through the pre-existing global model config fallback path
+- runtime inspection now reports effective avatar/Game Master models with scenario-scoped selection applied
+- test coverage added/updated for model resolution, scenario create/update use cases, scenario and avatar routes, scenario repository behavior, admin create/detail flows, and stack-e2e route files for the extended existing endpoints
 
 ---
 
@@ -829,6 +844,7 @@ Started on: 2026-07-05
 | 2026-07-06 | EPIC 6.1 — Scenario Builder v1 (admin app foundation)                                |
 | 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (scenario/avatar editors + visibility)                |
 | 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (knowledge sources + visibility policy + file upload) |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (runtime model selection)                             |
 
 ---
 
@@ -842,7 +858,7 @@ Current implementation focus:
 - advanced orchestration intelligence
 - retrieval observability
 - public web app operational hardening
-- Scenario Builder v1 admin app (EPIC 6.1): contract cleanup, admin app foundation/vertical skeleton, scenario/avatar editors (objectives, world context, persona, visibility), and knowledge source management (text paste + PDF/TXT upload, visibility policy including GM-only) complete; runtime model selection workflow next
+- Scenario Builder v1 admin app (EPIC 6.1): contract cleanup, scenario/avatar editors, knowledge source management, and runtime model selection (scenario default, GM override, avatar override) complete; remaining EPIC 6.1 work is outside this slice
 
 ---
 

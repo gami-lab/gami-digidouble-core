@@ -3,8 +3,63 @@ import type {
   IScenarioRepository,
   UpdateScenarioParams,
 } from '../../application/ports/IScenarioRepository.js'
+import type { ScenarioModelSelection } from '@gami/shared'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../domain/errors.js'
+
+function applyModelSelection(
+  config: Scenario['config'],
+  modelSelection: ScenarioModelSelection | null | undefined,
+): Scenario['config'] {
+  if (modelSelection === undefined) return config
+
+  const nextConfig = { ...config }
+  if (modelSelection === null) {
+    delete nextConfig['modelSelection']
+    return nextConfig
+  }
+
+  nextConfig['modelSelection'] = modelSelection
+  return nextConfig
+}
+
+function withoutModelSelection(scenario: Scenario): Omit<Scenario, 'modelSelection'> {
+  const scenarioWithoutModelSelection = { ...scenario }
+  delete scenarioWithoutModelSelection.modelSelection
+  return scenarioWithoutModelSelection
+}
+
+function resolveNextModelSelection(
+  existing: Scenario,
+  updates: UpdateScenarioParams,
+): ScenarioModelSelection | undefined {
+  return updates.modelSelection !== undefined
+    ? (updates.modelSelection ?? undefined)
+    : existing.modelSelection
+}
+
+function resolveNextConfig(existing: Scenario, updates: UpdateScenarioParams): Scenario['config'] {
+  return updates.config !== undefined || updates.modelSelection !== undefined
+    ? applyModelSelection(updates.config ?? existing.config, updates.modelSelection)
+    : existing.config
+}
+
+function buildUpdatedScenario(existing: Scenario, updates: UpdateScenarioParams): Scenario {
+  const nextModelSelection = resolveNextModelSelection(existing, updates)
+  return {
+    ...withoutModelSelection(existing),
+    ...(updates.name !== undefined ? { name: updates.name } : {}),
+    ...(updates.status !== undefined ? { status: updates.status } : {}),
+    ...(updates.objectives !== undefined ? { objectives: updates.objectives } : {}),
+    ...(updates.worldContext !== undefined ? { worldContext: updates.worldContext } : {}),
+    ...(updates.avatarAvailability !== undefined
+      ? { avatarAvailability: updates.avatarAvailability }
+      : {}),
+    ...(nextModelSelection !== undefined ? { modelSelection: nextModelSelection } : {}),
+    config: resolveNextConfig(existing, updates),
+    updatedAt: new Date().toISOString(),
+  }
+}
 
 export class InMemoryScenarioRepository implements IScenarioRepository {
   private readonly scenarios: Map<string, Scenario>
@@ -33,7 +88,8 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
       objectives: params.objectives ?? [],
       worldContext: params.worldContext ?? '',
       avatarAvailability: params.avatarAvailability ?? { initialAvatarIds: [] },
-      config: (params.config ?? {}) as Scenario['config'],
+      ...(params.modelSelection !== undefined ? { modelSelection: params.modelSelection } : {}),
+      config: applyModelSelection(params.config ?? {}, params.modelSelection),
       createdAt: now,
       updatedAt: now,
     }
@@ -52,18 +108,7 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
     if (existing === undefined) {
       throw new DomainError('NOT_FOUND', 'Scenario not found')
     }
-    const updated: Scenario = {
-      ...existing,
-      ...(updates.name !== undefined ? { name: updates.name } : {}),
-      ...(updates.status !== undefined ? { status: updates.status } : {}),
-      ...(updates.objectives !== undefined ? { objectives: updates.objectives } : {}),
-      ...(updates.worldContext !== undefined ? { worldContext: updates.worldContext } : {}),
-      ...(updates.avatarAvailability !== undefined
-        ? { avatarAvailability: updates.avatarAvailability }
-        : {}),
-      ...(updates.config !== undefined ? { config: updates.config as Scenario['config'] } : {}),
-      updatedAt: new Date().toISOString(),
-    }
+    const updated = buildUpdatedScenario(existing, updates)
     this.scenarios.set(scenarioId, updated)
     return Promise.resolve(updated)
   }

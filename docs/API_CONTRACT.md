@@ -111,6 +111,22 @@ type ScenarioSummary = {
   scenarioId: string
   name: string
   status: 'draft' | 'active' | 'archived'
+  objectives: string[]
+  worldContext: string
+  avatarAvailability: {
+    initialAvatarIds: string[]
+    unlockableAvatarIds?: string[]
+  }
+  modelSelection?: {
+    defaultProfile?: {
+      provider: 'openai' | 'anthropic' | 'mistral' | 'xai'
+      model: string
+    }
+    gameMasterOverride?: {
+      provider: 'openai' | 'anthropic' | 'mistral' | 'xai'
+      model: string
+    }
+  }
   config: Record<string, unknown>
   createdAt: string
   updatedAt: string
@@ -130,7 +146,7 @@ type AvatarSummary = {
   description?: string
   adjustments?: string[]
   llmOverride?: {
-    provider?: string
+    provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'
     model?: string
   }
   config: Record<string, unknown>
@@ -387,9 +403,24 @@ type CreateScenarioRequest = {
   objectives?: string[]
   worldContext?: string
   avatarAvailability?: ScenarioAvatarAvailability
+  modelSelection?: {
+    defaultProfile?: {
+      provider: 'openai' | 'anthropic' | 'mistral' | 'xai'
+      model: string
+    }
+    gameMasterOverride?: {
+      provider: 'openai' | 'anthropic' | 'mistral' | 'xai'
+      model: string
+    }
+  }
   config?: Record<string, unknown>
 }
 ```
+
+Validation:
+
+- if `modelSelection` is provided, it must define `defaultProfile` or `gameMasterOverride`
+- each provided profile must use an allowed `provider/model` pair from the canonical model catalog
 
 Response: `ApiResponse<{ scenario: ScenarioSummary }>`
 
@@ -415,7 +446,13 @@ PATCH /v1/scenarios/{scenarioId}
 type UpdateScenarioRequest = Partial<
   Pick<
     ScenarioSummary,
-    'name' | 'status' | 'objectives' | 'worldContext' | 'avatarAvailability' | 'config'
+    | 'name'
+    | 'status'
+    | 'objectives'
+    | 'worldContext'
+    | 'avatarAvailability'
+    | 'modelSelection'
+    | 'config'
   >
 >
 ```
@@ -423,6 +460,8 @@ type UpdateScenarioRequest = Partial<
 Response: `ApiResponse<{ scenario: ScenarioSummary }>`
 
 At least one field is required (enforced by the use case, not the request schema).
+
+`modelSelection: null` clears stored scenario-scoped model selection.
 
 ---
 
@@ -450,7 +489,7 @@ type CreateAvatarRequest = {
   description?: string
   adjustments?: string[]
   llmOverride?: {
-    provider?: string
+    provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'
     model?: string
   } | null
   config?: Record<string, unknown>
@@ -460,8 +499,9 @@ type CreateAvatarRequest = {
 
 Validation:
 
-- if `llmOverride.provider` is present, it must be one of `openai | anthropic | mistral | xai | null`
-- if `llmOverride.model` is present, it must be a non-empty string after trimming
+- if `llmOverride` is provided as an object, both `llmOverride.provider` and `llmOverride.model` are required
+- `llmOverride.provider` must be one of `openai | anthropic | mistral | xai`
+- `llmOverride.model` must be a non-empty allowed catalog model for the selected provider
 - sending `llmOverride: null` clears the stored override
 
 ---
@@ -488,7 +528,7 @@ type UpdateAvatarRequest = {
   description?: string
   adjustments?: string[]
   llmOverride?: {
-    provider?: string
+    provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'
     model?: string
   } | null
   config?: Record<string, unknown>
@@ -990,12 +1030,14 @@ canonical types rather than re-declaring local request/response shapes.
 ```text
 apps/core/src/domain/model-config/model-config.types.ts  -- ModelConfig, ModelRole, ProviderName
 packages/shared/src/runtime-inspector-types.ts            -- ModelConfigResponse, UpdateModelConfigRequest
+packages/shared/src/model-catalog.ts                     -- provider catalog + scenario model-selection contracts
 ```
 
-Known gap (out of scope for this cleanup, owned by future EPIC 6.1 slices):
+Runtime precedence:
 
-- no scenario-level default model assignment field exists yet; only global default + role
-  overrides (avatar/gameMaster/memory) are modeled today
+- avatar runtime: `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` -> global avatar role override -> global default
+- Game Master runtime: `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` -> global Game Master role override -> global default
+- memory runtime: global memory role override -> global default
 
 ---
 

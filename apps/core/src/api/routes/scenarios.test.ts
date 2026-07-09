@@ -246,6 +246,28 @@ describe('POST /v1/scenarios — optional field coverage', () => {
     expect(body.data?.scenario.config).toEqual({ worldContext: 'A fantasy world' })
   })
 
+  it('returns 201 with modelSelection preserved in the response', async () => {
+    const response = await createServer(TEST_CONFIG).inject({
+      method: 'POST',
+      url: '/v1/scenarios',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        name: 'Configured Runtime Scenario',
+        modelSelection: {
+          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+        },
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body = response.json<ApiResponse<{ scenario: { modelSelection?: unknown } }>>()
+    expect(body.data?.scenario.modelSelection).toEqual({
+      defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+      gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+    })
+  })
+
   it('returns 500 on unexpected repository error', async () => {
     const brokenRepo: IScenarioRepository = {
       create: () => {
@@ -267,6 +289,25 @@ describe('POST /v1/scenarios — optional field coverage', () => {
     expect(response.statusCode).toBe(500)
     const body = response.json<ApiResponse<null>>()
     expect(body.error?.code).toBe('INTERNAL_ERROR')
+  })
+})
+
+describe('PATCH /v1/scenarios/:scenarioId modelSelection', () => {
+  it('returns 400 when modelSelection uses a model outside the allowed catalog', async () => {
+    const response = await createServer(TEST_CONFIG).inject({
+      method: 'PATCH',
+      url: '/v1/scenarios/scenario_1',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        modelSelection: {
+          defaultProfile: { provider: 'openai', model: 'not-in-catalog' },
+        },
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
   })
 })
 

@@ -2,6 +2,7 @@ import type { IConversationRepository } from '../../ports/IConversationRepositor
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
+import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 import { DEFAULT_MODEL_CONFIG, ModelResolutionService } from '../../../domain/model-config/index.js'
@@ -20,6 +21,7 @@ export class InspectSessionUseCase {
     private readonly conversationRepository: IConversationRepository,
     private readonly avatarRepository: IAvatarRepository,
     private readonly modelConfigRepository: IModelConfigRepository,
+    private readonly scenarioRepository: IScenarioRepository,
   ) {}
 
   async execute(input: InspectSessionInput): Promise<InspectSessionOutput> {
@@ -28,15 +30,8 @@ export class InspectSessionUseCase {
       throw new DomainError('NOT_FOUND', `Session ${input.sessionId} was not found.`)
     }
 
-    const [gmState, conversations, modelConfig, activeAvatar] = await Promise.all([
-      this.gmStateRepository.findBySessionId(input.sessionId),
-      this.conversationRepository.listBySessionId(input.sessionId),
-      this.modelConfigRepository.get(),
-      session.activeAvatarId === undefined
-        ? Promise.resolve(null)
-        : this.avatarRepository.findById(session.activeAvatarId),
-    ])
-    const resolvedConfig = modelConfig ?? DEFAULT_MODEL_CONFIG
+    const { gmState, conversations, activeAvatar, scenario, resolvedConfig } =
+      await this.loadDependencies(session)
 
     return {
       inspect: {
@@ -45,16 +40,34 @@ export class InspectSessionUseCase {
         transitionHistory: toTransitionHistory(conversations),
         unlockedAvatarIds: session.unlockedAvatarIds ?? [],
         gmNotes: session.gmNotes ?? null,
-        effectiveModels: {
-          avatar: ModelResolutionService.resolve(
-            'avatar',
-            resolvedConfig,
-            activeAvatar?.llmOverride,
-          ),
-          gameMaster: ModelResolutionService.resolve('gameMaster', resolvedConfig),
-          memory: ModelResolutionService.resolve('memory', resolvedConfig),
-        },
+        effectiveModels: resolveEffectiveModels(resolvedConfig, activeAvatar, scenario),
       },
+    }
+  }
+
+  private async loadDependencies(session: Session): Promise<{
+    gmState: Awaited<ReturnType<IGmStateRepository['findBySessionId']>>
+    conversations: Conversation[]
+    activeAvatar: Awaited<ReturnType<IAvatarRepository['findById']>>
+    scenario: Awaited<ReturnType<IScenarioRepository['findById']>>
+    resolvedConfig: NonNullable<Awaited<ReturnType<IModelConfigRepository['get']>>>
+  }> {
+    const [gmState, conversations, modelConfig, activeAvatar, scenario] = await Promise.all([
+      this.gmStateRepository.findBySessionId(session.sessionId),
+      this.conversationRepository.listBySessionId(session.sessionId),
+      this.modelConfigRepository.get(),
+      session.activeAvatarId === undefined
+        ? Promise.resolve(null)
+        : this.avatarRepository.findById(session.activeAvatarId),
+      this.scenarioRepository.findById(session.scenarioId),
+    ])
+
+    return {
+      gmState,
+      conversations,
+      activeAvatar,
+      scenario,
+      resolvedConfig: modelConfig ?? DEFAULT_MODEL_CONFIG,
     }
   }
 }
@@ -89,4 +102,25 @@ function toTransitionHistory(conversations: Conversation[]): InspectTransitionRe
       transitionedAt: conversation.startedAt,
     }))
     .reverse()
+}
+
+function resolveEffectiveModels(
+  config: NonNullable<Awaited<ReturnType<IModelConfigRepository['get']>>>,
+  activeAvatar: Awaited<ReturnType<IAvatarRepository['findById']>>,
+  scenario: Awaited<ReturnType<IScenarioRepository['findById']>>,
+): InspectSessionOutput['inspect']['effectiveModels'] {
+  const scenarioOptions =
+    scenario?.modelSelection !== undefined
+      ? { scenarioModelSelection: scenario.modelSelection }
+      : undefined
+  const avatarOptions =
+    activeAvatar?.llmOverride !== undefined
+      ? { ...scenarioOptions, avatarOverride: activeAvatar.llmOverride }
+      : scenarioOptions
+
+  return {
+    avatar: ModelResolutionService.resolve('avatar', config, avatarOptions),
+    gameMaster: ModelResolutionService.resolve('gameMaster', config, scenarioOptions),
+    memory: ModelResolutionService.resolve('memory', config),
+  }
 }

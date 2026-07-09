@@ -1,4 +1,5 @@
 import type { JSONValue, Sql } from 'postgres'
+import { isModelSelectionProviderName } from '@gami/shared'
 import type {
   CreateAvatarParams,
   IAvatarRepository,
@@ -7,7 +8,6 @@ import type {
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { AvatarLlmOverride } from '../../../domain/model-config/index.js'
-import { isProviderName } from '../../../domain/model-config/index.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
 interface AvatarRow {
@@ -50,7 +50,7 @@ function readAvatarLlmOverride(config: Record<string, unknown>): AvatarLlmOverri
 
   const provider = raw['provider']
   const model = raw['model']
-  const hasProvider = typeof provider === 'string' && isProviderName(provider)
+  const hasProvider = typeof provider === 'string' && isModelSelectionProviderName(provider)
   const hasModel = typeof model === 'string' && model.trim().length > 0
 
   if (!hasProvider && !hasModel) return undefined

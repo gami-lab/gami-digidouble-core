@@ -22,6 +22,7 @@ import type {
   GameMasterState,
 } from '../../../domain/game-master/game-master.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
+import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import {
@@ -54,7 +55,9 @@ const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
 }
 const GM_RECENT_EXCHANGE_LIMIT = 3
 
-type ScenarioContext = Pick<ContextScenarioSnapshot, 'description' | 'goals'>
+type ScenarioContext = Pick<ContextScenarioSnapshot, 'description' | 'goals'> & {
+  modelSelection?: Scenario['modelSelection']
+}
 
 type AvatarRoutingResult = {
   switchedAvatarId?: string
@@ -140,6 +143,7 @@ export class RunGameMasterUseCase {
       gmInput,
       input,
       currentState,
+      scenarioContext,
       triggerReason,
       llmStart,
       gmRunStartMs,
@@ -250,6 +254,7 @@ export class RunGameMasterUseCase {
     gmInput: GameMasterInput,
     input: RunGameMasterInput,
     currentState: GameMasterState,
+    scenarioContext: ScenarioContext,
     triggerReason: string,
     llmStart: number,
     gmRunStartMs: number,
@@ -261,7 +266,7 @@ export class RunGameMasterUseCase {
     llmResponse: LlmResponse
     llmLatencyMs: number
   } | null> {
-    const resolvedLlm = await this.resolveGameMasterLlmCall()
+    const resolvedLlm = await this.resolveGameMasterLlmCall(scenarioContext.modelSelection)
     const gmTraceRequestId = `gm_${crypto.randomUUID()}`
     const llmRequest = {
       systemPrompt: buildGameMasterSystemPrompt(),
@@ -306,7 +311,9 @@ export class RunGameMasterUseCase {
     }
   }
 
-  private async resolveGameMasterLlmCall(): Promise<{
+  private async resolveGameMasterLlmCall(
+    scenarioModelSelection: Scenario['modelSelection'],
+  ): Promise<{
     adapter: ILlmAdapter
     provider: string
     model?: string
@@ -319,6 +326,7 @@ export class RunGameMasterUseCase {
       llmAdapterRegistry: this.llmAdapterRegistry,
       modelConfigFallback: this.modelConfigFallback,
       avatarOverride: undefined,
+      scenarioModelSelection,
     })
   }
 
@@ -542,6 +550,7 @@ export class RunGameMasterUseCase {
     return {
       ...(hasText(scenario.worldContext) ? { description: scenario.worldContext } : {}),
       ...(goals.length > 0 ? { goals } : {}),
+      ...(scenario.modelSelection !== undefined ? { modelSelection: scenario.modelSelection } : {}),
     }
   }
 

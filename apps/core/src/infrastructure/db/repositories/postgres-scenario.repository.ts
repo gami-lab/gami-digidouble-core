@@ -1,4 +1,5 @@
 import type { JSONValue, Sql } from 'postgres'
+import { isModelSelectionProviderName, type ScenarioModelSelection } from '@gami/shared'
 import type {
   CreateScenarioParams,
   IScenarioRepository,
@@ -38,6 +39,74 @@ function normalizeConfig(config: unknown): Scenario['config'] {
   return {}
 }
 
+function readModelProfile(value: unknown): ScenarioModelSelection['defaultProfile'] | undefined {
+  if (!isRecord(value)) return undefined
+  const provider = value['provider']
+  const model = value['model']
+  if (typeof provider !== 'string' || typeof model !== 'string') return undefined
+  if (!isModelSelectionProviderName(provider)) return undefined
+  return { provider, model }
+}
+
+function readScenarioModelSelection(
+  config: Scenario['config'],
+): ScenarioModelSelection | undefined {
+  const raw = isRecord(config['modelSelection']) ? config['modelSelection'] : undefined
+  if (raw === undefined) return undefined
+
+  const defaultProfile = readModelProfile(raw['defaultProfile'])
+  const gameMasterOverride = readModelProfile(raw['gameMasterOverride'])
+  if (defaultProfile === undefined && gameMasterOverride === undefined) return undefined
+
+  return {
+    ...(defaultProfile !== undefined ? { defaultProfile } : {}),
+    ...(gameMasterOverride !== undefined ? { gameMasterOverride } : {}),
+  }
+}
+
+function applyModelSelection(
+  config: Scenario['config'],
+  modelSelection: ScenarioModelSelection | null | undefined,
+): Scenario['config'] {
+  if (modelSelection === undefined) return config
+
+  const nextConfig = { ...config }
+  if (modelSelection === null) {
+    delete nextConfig['modelSelection']
+    return nextConfig
+  }
+
+  nextConfig['modelSelection'] = modelSelection
+  return nextConfig
+}
+
+function appendUpdateValue(
+  setClauses: string[],
+  values: unknown[],
+  column: string,
+  value: unknown,
+): void {
+  values.push(value)
+  setClauses.push(`${column} = $${String(values.length)}`)
+}
+
+async function resolveUpdatedConfig(
+  repository: PostgresScenarioRepository,
+  scenarioId: string,
+  updates: UpdateScenarioParams,
+): Promise<Scenario['config'] | undefined> {
+  if (updates.config === undefined && updates.modelSelection === undefined) {
+    return undefined
+  }
+
+  const existing = await repository.findById(scenarioId)
+  if (existing === null) {
+    throw new DomainError('NOT_FOUND', 'Scenario not found')
+  }
+
+  return applyModelSelection(updates.config ?? existing.config, updates.modelSelection)
+}
+
 function normalizeAvatarAvailability(value: unknown): ScenarioAvatarAvailabilityConfig {
   const parsed = typeof value === 'string' ? safeJsonParse(value) : value
   if (!isRecord(parsed)) return { initialAvatarIds: [] }
@@ -70,6 +139,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function rowToScenario(row: ScenarioRow): Scenario {
+  const config = normalizeConfig(row.config)
+  const modelSelection = readScenarioModelSelection(config)
   return {
     scenarioId: `scenario_${row.id}`,
     name: row.name,
@@ -77,7 +148,8 @@ function rowToScenario(row: ScenarioRow): Scenario {
     objectives: row.objectives ?? [],
     worldContext: row.world_context ?? '',
     avatarAvailability: normalizeAvatarAvailability(row.avatar_availability),
-    config: normalizeConfig(row.config),
+    ...(modelSelection !== undefined ? { modelSelection } : {}),
+    config,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }
@@ -87,6 +159,10 @@ export class PostgresScenarioRepository implements IScenarioRepository {
   constructor(private readonly sql: Sql) {}
 
   async create(params: CreateScenarioParams): Promise<Scenario> {
+    const config = applyModelSelection(
+      (params.config ?? {}) as Scenario['config'],
+      params.modelSelection,
+    )
     const [row] = await this.sql<[ScenarioRow]>`
       INSERT INTO scenarios (name, status, objectives, world_context, avatar_availability, config)
       VALUES (
@@ -95,7 +171,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
         ${params.objectives ?? []},
         ${params.worldContext ?? ''},
         ${this.sql.json((params.avatarAvailability ?? { initialAvatarIds: [] }) as unknown as JSONValue)},
-        ${this.sql.json((params.config ?? {}) as JSONValue)}
+        ${this.sql.json(config as JSONValue)}
       )
       RETURNING id, name, status, objectives, world_context, avatar_availability, config, created_at, updated_at
     `
@@ -141,27 +217,24 @@ export class PostgresScenarioRepository implements IScenarioRepository {
     const values: unknown[] = []
 
     if (updates.name !== undefined) {
-      values.push(updates.name)
-      setClauses.push(`name = $${String(values.length)}`)
+      appendUpdateValue(setClauses, values, 'name', updates.name)
     }
     if (updates.status !== undefined) {
-      values.push(updates.status)
-      setClauses.push(`status = $${String(values.length)}`)
+      appendUpdateValue(setClauses, values, 'status', updates.status)
     }
     if (updates.objectives !== undefined) {
-      values.push(updates.objectives)
-      setClauses.push(`objectives = $${String(values.length)}`)
+      appendUpdateValue(setClauses, values, 'objectives', updates.objectives)
     }
     if (updates.worldContext !== undefined) {
-      values.push(updates.worldContext)
-      setClauses.push(`world_context = $${String(values.length)}`)
+      appendUpdateValue(setClauses, values, 'world_context', updates.worldContext)
     }
     if (updates.avatarAvailability !== undefined) {
       values.push(JSON.stringify(updates.avatarAvailability))
       setClauses.push(`avatar_availability = $${String(values.length)}::jsonb`)
     }
-    if (updates.config !== undefined) {
-      values.push(JSON.stringify(updates.config))
+    const config = await resolveUpdatedConfig(this, scenarioId, updates)
+    if (config !== undefined) {
+      values.push(JSON.stringify(config))
       setClauses.push(`config = $${String(values.length)}::jsonb`)
     }
 

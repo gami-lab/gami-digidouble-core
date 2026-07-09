@@ -44,7 +44,17 @@ beforeEach(() => {
     objectives: [],
     worldContext: '',
     avatarAvailability: { initialAvatarIds: [] },
-    config: { goals: ['Goal'] },
+    modelSelection: {
+      defaultProfile: { provider: 'openai', model: 'gpt-4o-mini' },
+      gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+    },
+    config: {
+      goals: ['Goal'],
+      modelSelection: {
+        defaultProfile: { provider: 'openai', model: 'gpt-4o-mini' },
+        gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+      },
+    },
     createdAt: '2026-04-18T10:00:00.000Z',
     updatedAt: '2026-04-18T10:00:00.000Z',
   })
@@ -52,7 +62,7 @@ beforeEach(() => {
 })
 
 describe('RunGameMasterUseCase model resolution', () => {
-  it('uses gameMaster role override and metadata fields', async () => {
+  it('uses scenario Game Master override before global role config', async () => {
     const completeMock = vi.fn().mockResolvedValue({
       content: JSON.stringify({
         avatarId: 'avatar_1',
@@ -128,13 +138,13 @@ describe('RunGameMasterUseCase model resolution', () => {
       correlationId: 'request_1',
     })
 
-    expect(llmAdapterRegistry.get).toHaveBeenCalledWith('mistral')
+    expect(llmAdapterRegistry.get).toHaveBeenCalledWith('anthropic')
     const llmRequest = completeMock.mock.calls[0]?.[0] as {
       model?: string
       trace: { metadata: { effectiveProvider: string; effectiveModel: string } }
     }
-    expect(llmRequest.model).toBe('gm-role-model')
-    expect(llmRequest.trace.metadata.effectiveProvider).toBe('mistral')
-    expect(llmRequest.trace.metadata.effectiveModel).toBe('gm-role-model')
+    expect(llmRequest.model).toBe('claude-sonnet-4-6')
+    expect(llmRequest.trace.metadata.effectiveProvider).toBe('anthropic')
+    expect(llmRequest.trace.metadata.effectiveModel).toBe('claude-sonnet-4-6')
   })
 })

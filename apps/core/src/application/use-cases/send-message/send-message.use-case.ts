@@ -108,13 +108,19 @@ export class SendMessageUseCase {
     await this.awaitPendingWorkingMemoryRefresh(conversation.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
-    const { systemPrompt, userPersona, selectedMemory, assembledContext, retrievalLatencyMs } =
-      await this.buildTurnPromptContext({
-        session,
-        conversation,
-        avatar,
-        userMessage: input.userMessage,
-      })
+    const {
+      systemPrompt,
+      userPersona,
+      selectedMemory,
+      assembledContext,
+      retrievalLatencyMs,
+      scenarioModelSelection,
+    } = await this.buildTurnPromptContext({
+      session,
+      conversation,
+      avatar,
+      userMessage: input.userMessage,
+    })
     const priorUserTurnCount = await this.loadRecentUserTurnCount(conversation.conversationId)
     const historyMessages = await this.buildHistoryMessages(
       conversation.conversationId,
@@ -131,6 +137,7 @@ export class SendMessageUseCase {
       llmAdapterRegistry: this.llmAdapterRegistry,
       modelConfigFallback: this.modelConfigFallback,
       avatarOverride: avatar.llmOverride,
+      scenarioModelSelection,
     })
     const llmRequest = buildSendMessageLlmRequest({
       requestId,
@@ -237,6 +244,7 @@ export class SendMessageUseCase {
     selectedMemory?: SelectedMemoryPayload
     assembledContext: ContextEngineOutput
     retrievalLatencyMs: number
+    scenarioModelSelection: Scenario['modelSelection']
   }> {
     const scenario = await this.loadScenario(args.session.scenarioId)
     const scenarioAvatars = await this.avatarRepository.listByScenarioId(args.session.scenarioId)
@@ -313,6 +321,7 @@ export class SendMessageUseCase {
       userPersona,
       assembledContext,
       retrievalLatencyMs,
+      scenarioModelSelection: scenario.modelSelection,
       ...(selectedMemory !== undefined ? { selectedMemory } : {}),
     }
   }

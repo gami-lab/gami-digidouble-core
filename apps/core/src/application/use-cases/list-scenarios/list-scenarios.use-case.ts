@@ -14,6 +14,9 @@ export class ListScenariosUseCase {
         objectives: scenario.objectives,
         worldContext: scenario.worldContext,
         avatarAvailability: scenario.avatarAvailability,
+        ...(scenario.modelSelection !== undefined
+          ? { modelSelection: scenario.modelSelection }
+          : {}),
         config: scenario.config as Record<string, unknown>,
         createdAt: scenario.createdAt,
         updatedAt: scenario.updatedAt,

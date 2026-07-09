@@ -235,6 +235,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       llmAdapterRegistry: this.llmAdapterRegistry,
       modelConfigFallback: this.modelConfigFallback,
       avatarOverride: undefined,
+      scenarioModelSelection: undefined,
     })
   }
 }

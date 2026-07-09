@@ -68,7 +68,9 @@ describe('ModelResolutionService.resolve -> avatar overrides', () => {
 
     expect(
       ModelResolutionService.resolve('avatar', config, {
-        provider: 'xai',
+        avatarOverride: {
+          provider: 'xai',
+        },
       }),
     ).toEqual({
       provider: 'xai',
@@ -88,7 +90,9 @@ describe('ModelResolutionService.resolve -> avatar overrides', () => {
 
     expect(
       ModelResolutionService.resolve('avatar', config, {
-        model: 'claude-3-5-haiku',
+        avatarOverride: {
+          model: 'claude-3-5-haiku',
+        },
       }),
     ).toEqual({
       provider: 'anthropic',
@@ -109,8 +113,10 @@ describe('ModelResolutionService.resolve -> avatar overrides', () => {
 
     expect(
       ModelResolutionService.resolve('gameMaster', config, {
-        provider: 'xai',
-        model: 'grok-3',
+        avatarOverride: {
+          provider: 'xai',
+          model: 'grok-3',
+        },
       }),
     ).toEqual({
       provider: 'mistral',
@@ -133,6 +139,74 @@ describe('ModelResolutionService.resolve -> null provider default', () => {
     expect(ModelResolutionService.resolve('memory', config)).toEqual({
       provider: 'null',
       model: '',
+    })
+  })
+})
+
+describe('ModelResolutionService.resolve -> scenario model selection', () => {
+  it('uses scenario default for avatar when no avatar override is present', () => {
+    expect(
+      ModelResolutionService.resolve('avatar', baseConfig, {
+        scenarioModelSelection: {
+          defaultProfile: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-6',
+          },
+        },
+      }),
+    ).toEqual({
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-6',
+    })
+  })
+
+  it('gives avatar override precedence over scenario default', () => {
+    expect(
+      ModelResolutionService.resolve('avatar', baseConfig, {
+        avatarOverride: {
+          provider: 'mistral',
+          model: 'mistral-small-4',
+        },
+        scenarioModelSelection: {
+          defaultProfile: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-6',
+          },
+        },
+      }),
+    ).toEqual({
+      provider: 'mistral',
+      model: 'mistral-small-4',
+    })
+  })
+
+  it('uses Game Master override before scenario default and global config', () => {
+    const config: ModelConfig = {
+      ...baseConfig,
+      roleOverrides: {
+        gameMaster: {
+          provider: 'mistral',
+          model: 'mistral-medium-3.5',
+        },
+      },
+    }
+
+    expect(
+      ModelResolutionService.resolve('gameMaster', config, {
+        scenarioModelSelection: {
+          defaultProfile: {
+            provider: 'openai',
+            model: 'gpt-5.4-mini',
+          },
+          gameMasterOverride: {
+            provider: 'anthropic',
+            model: 'claude-opus-4-7',
+          },
+        },
+      }),
+    ).toEqual({
+      provider: 'anthropic',
+      model: 'claude-opus-4-7',
     })
   })
 })

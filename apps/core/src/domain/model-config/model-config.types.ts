@@ -1,8 +1,15 @@
+import {
+  MODEL_PROVIDER_NAMES,
+  type ModelProviderName,
+  type ScenarioModelSelection,
+} from '@gami/shared'
+export type { AvatarLlmOverride } from '@gami/shared'
+
 export type ModelRole = 'avatar' | 'gameMaster' | 'memory'
 
-export const PROVIDER_NAMES = ['openai', 'anthropic', 'mistral', 'xai', 'null'] as const
+export const PROVIDER_NAMES = MODEL_PROVIDER_NAMES
 
-export type ProviderName = (typeof PROVIDER_NAMES)[number]
+export type ProviderName = ModelProviderName
 
 export interface ModelOverride {
   provider?: ProviderName
@@ -20,7 +27,7 @@ export interface ModelConfig {
   updatedAt: string
 }
 
-export type AvatarLlmOverride = ModelOverride
+export type ScenarioModelSelectionConfig = ScenarioModelSelection
 
 export function isProviderName(value: string): value is ProviderName {
   return PROVIDER_NAMES.includes(value as ProviderName)

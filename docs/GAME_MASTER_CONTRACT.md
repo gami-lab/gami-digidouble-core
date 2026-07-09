@@ -51,6 +51,10 @@ Its job is only to:
 - trigger guidance when needed
 - update a very small state
 
+Legacy compatibility rule:
+
+- if a scenario has no explicit `modelSelection`, GM runtime falls back to the pre-existing global model-config path with no scenario-specific override required
+
 👉 In early session startup, the GM may run synchronously.
 👉 During live conversation, the Avatar should remain autonomous whenever possible.
 
@@ -86,6 +90,7 @@ See `PRINCIPLES.md` for full engineering philosophy.
 5. GM LLM is called with recent messages, current state, scenario goals, active avatar, and avatar availability context
    - recent messages are bounded and provided as short-term context (not full replay)
    - working memory, long-term facts/events, typed RAG sections (`memory`, `world`, `media`), and optional user persona are included via context
+   - GM runtime model is resolved deterministically as: `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` -> global Game Master role override -> global default
 6. GM output is parsed and validated
 7. State is reduced, guidance notes are stored into `sessions.gm_notes` for the next turn, and valid avatar unlocks are persisted to `sessions.unlocked_avatar_ids`
 8. Runtime events are emitted from GM decisions (unlocks, suggestions, world-processing state changes) through the system event publisher

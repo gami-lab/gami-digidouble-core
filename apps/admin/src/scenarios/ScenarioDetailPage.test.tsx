@@ -3,7 +3,12 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarSummary, ScenarioSummary } from '@gami/shared'
-import { getScenario, listScenarioAvatars, updateScenario } from '../api/scenarios'
+import {
+  createAvatar as createAvatarApi,
+  getScenario,
+  listScenarioAvatars,
+  updateScenario,
+} from '../api/scenarios'
 import { listKnowledgeSources } from '../api/knowledge'
 import { ScenarioDetailPage } from './ScenarioDetailPage'
 
@@ -100,7 +105,15 @@ describe('ScenarioDetailPage loading and data states', () => {
   })
 
   it('renders the fetched scenario details with avatars', async () => {
-    mockReadyLoad({ avatars: [createAvatar()] })
+    mockReadyLoad({
+      scenario: createScenario({
+        modelSelection: {
+          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+        },
+      }),
+      avatars: [createAvatar({ llmOverride: { provider: 'mistral', model: 'mistral-small-4' } })],
+    })
 
     renderPage()
 
@@ -108,6 +121,11 @@ describe('ScenarioDetailPage loading and data states', () => {
     expect(screen.getByText('A guided discovery lab.')).toBeTruthy()
     expect(screen.getByText('Explore AI concepts')).toBeTruthy()
     expect(screen.getByText('Mira')).toBeTruthy()
+    expect(screen.getByText(/Scenario default:\s*openai \/ gpt-4o/)).toBeTruthy()
+    expect(
+      screen.getByText(/Game Master override:\s*anthropic \/ claude-sonnet-4-6/),
+    ).toBeTruthy()
+    expect(screen.getByText('mistral / mistral-small-4')).toBeTruthy()
   })
 
   it('shows an error message when the fetch fails', async () => {
@@ -157,6 +175,35 @@ describe('ScenarioDetailPage navigation and avatar actions', () => {
 
     expect(screen.getByText('Add avatar')).toBeTruthy()
     expect(screen.getByLabelText(/Persona prompt/)).toBeTruthy()
+  })
+
+  it('submits avatar model override from the create form', async () => {
+    mockReadyLoad()
+    vi.mocked(createAvatarApi).mockResolvedValue(createAvatar())
+
+    renderPage()
+
+    await waitForScenario()
+    fireEvent.click(screen.getByRole('button', { name: 'Add avatar' }))
+
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Mira' } })
+    fireEvent.change(screen.getByLabelText(/Persona prompt/), { target: { value: 'You are Mira.' } })
+    fireEvent.change(screen.getByLabelText('Provider', { selector: '#create-avatar-model-provider' }), {
+      target: { value: 'openai' },
+    })
+    fireEvent.change(screen.getByLabelText('Model', { selector: '#create-avatar-model-model' }), {
+      target: { value: 'gpt-4o' },
+    })
+    fireEvent.submit(screen.getByRole('button', { name: /Create avatar/ }).closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(createAvatarApi).toHaveBeenCalledWith('scenario_a', {
+        name: 'Mira',
+        personaPrompt: 'You are Mira.',
+        status: 'active',
+        llmOverride: { provider: 'openai', model: 'gpt-4o' },
+      })
+    })
   })
 
   it('renders initially visible checkbox reflecting scenario avatarAvailability', async () => {

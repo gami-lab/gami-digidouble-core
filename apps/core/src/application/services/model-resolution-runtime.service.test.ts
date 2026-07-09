@@ -28,6 +28,7 @@ describe('resolveRoleLlmCall', () => {
         llmAdapterRegistry,
         modelConfigFallback: undefined,
         avatarOverride: undefined,
+        scenarioModelSelection: undefined,
       }),
     ).rejects.toMatchObject({
       message: "Provider 'anthropic' is configured for role 'avatar' but no API key is available.",

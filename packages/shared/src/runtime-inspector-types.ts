@@ -17,6 +17,7 @@ import type {
   RecordedGmContextKnowledgeInjection,
   RecordedKnowledgeReferenceDto,
 } from './knowledge-contract-types.js'
+import type { ModelProviderName } from './model-catalog.js'
 import type { RuntimeState } from './runtime-types.js'
 import type { SessionSummary } from './entity-types.js'
 
@@ -446,21 +447,21 @@ export type AdminClearMemoryResponse = {
 }
 
 export type ModelConfigResponse = {
-  globalDefault: { provider: string; model: string }
+  globalDefault: { provider: ModelProviderName; model: string }
   roleOverrides: {
-    avatar?: { provider?: string; model?: string }
-    gameMaster?: { provider?: string; model?: string }
-    memory?: { provider?: string; model?: string }
+    avatar?: { provider?: ModelProviderName; model?: string }
+    gameMaster?: { provider?: ModelProviderName; model?: string }
+    memory?: { provider?: ModelProviderName; model?: string }
   }
   updatedAt: string
 }
 
 /** Canonical wire request body for `PUT /v1/admin/model-config`. */
 export type UpdateModelConfigRequest = {
-  globalDefault: { provider: string; model: string }
+  globalDefault: { provider: ModelProviderName; model: string }
   roleOverrides?: {
-    avatar?: { provider?: string; model?: string }
-    gameMaster?: { provider?: string; model?: string }
-    memory?: { provider?: string; model?: string }
+    avatar?: { provider?: ModelProviderName; model?: string }
+    gameMaster?: { provider?: ModelProviderName; model?: string }
+    memory?: { provider?: ModelProviderName; model?: string }
   }
 }

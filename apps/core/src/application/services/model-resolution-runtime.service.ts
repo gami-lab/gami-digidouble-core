@@ -7,6 +7,7 @@ import {
   type ModelConfig,
   type ModelRole,
   type ProviderName,
+  type ScenarioModelSelectionConfig,
 } from '../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 import { LlmError } from '../../infrastructure/llm/llm.error.js'
@@ -37,6 +38,7 @@ export async function resolveRoleLlmCall(args: {
   llmAdapterRegistry: LlmAdapterRegistry | undefined
   modelConfigFallback: ModelConfig | undefined
   avatarOverride: AvatarLlmOverride | undefined
+  scenarioModelSelection: ScenarioModelSelectionConfig | undefined
 }): Promise<{ adapter: ILlmAdapter; provider: string; model?: string; effectiveModel: string }> {
   if (args.modelConfigRepository === undefined || args.llmAdapterRegistry === undefined) {
     return { adapter: args.legacyAdapter, provider: 'legacy', effectiveModel: 'legacy' }
@@ -44,7 +46,12 @@ export async function resolveRoleLlmCall(args: {
 
   const config =
     (await args.modelConfigRepository.get()) ?? args.modelConfigFallback ?? DEFAULT_MODEL_CONFIG
-  const resolved = ModelResolutionService.resolve(args.role, config, args.avatarOverride)
+  const resolved = ModelResolutionService.resolve(args.role, config, {
+    ...(args.avatarOverride !== undefined ? { avatarOverride: args.avatarOverride } : {}),
+    ...(args.scenarioModelSelection !== undefined
+      ? { scenarioModelSelection: args.scenarioModelSelection }
+      : {}),
+  })
   const normalizedModel = resolved.model.trim().length > 0 ? resolved.model.trim() : undefined
 
   return {

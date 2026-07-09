@@ -81,4 +81,37 @@ describe('CreateScenarioUseCase', () => {
       status: 'active',
     })
   })
+
+  it('passes modelSelection through to repository and output', async () => {
+    const useCase = new CreateScenarioUseCase(scenarioRepository)
+    createMock.mockResolvedValue(
+      makeScenario({
+        modelSelection: {
+          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+        },
+      }),
+    )
+
+    const output = await useCase.execute({
+      name: 'Demo',
+      modelSelection: {
+        defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+        gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+      },
+    })
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelSelection: {
+          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+        },
+      }),
+    )
+    expect(output.scenario.modelSelection).toEqual({
+      defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+      gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+    })
+  })
 })

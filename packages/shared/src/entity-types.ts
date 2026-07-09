@@ -11,13 +11,13 @@
  *   the API contract explicitly sends `null` (not undefined).
  */
 
+import type { ModelSelectionOverride, ScenarioModelSelection } from './model-catalog.js'
+export type { ScenarioModelSelection } from './model-catalog.js'
+
 /** Avatar status union — matches domain AvatarStatus. */
 export type AvatarStatus = 'draft' | 'active' | 'archived'
 
-export type AvatarLlmOverride = {
-  provider?: string
-  model?: string
-}
+export type AvatarLlmOverride = ModelSelectionOverride
 
 /** Canonical read shape for an Avatar as returned by the Core API. */
 export type AvatarSummary = {
@@ -77,6 +77,7 @@ export type ScenarioSummary = {
   objectives: string[]
   worldContext: string
   avatarAvailability: ScenarioAvatarAvailability
+  modelSelection?: ScenarioModelSelection
   config: Record<string, unknown>
   createdAt: string
   updatedAt: string

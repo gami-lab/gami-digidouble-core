@@ -18,7 +18,8 @@ export class UpdateScenarioUseCase {
 }
 
 function buildUpdates(input: UpdateScenarioInput): UpdateScenarioParams {
-  const { name, status, objectives, worldContext, avatarAvailability, config } = input
+  const { name, status, objectives, worldContext, avatarAvailability, modelSelection, config } =
+    input
 
   return {
     ...(name !== undefined ? { name } : {}),
@@ -26,6 +27,7 @@ function buildUpdates(input: UpdateScenarioInput): UpdateScenarioParams {
     ...(objectives !== undefined ? { objectives } : {}),
     ...(worldContext !== undefined ? { worldContext } : {}),
     ...(avatarAvailability !== undefined ? { avatarAvailability } : {}),
+    ...(modelSelection !== undefined ? { modelSelection } : {}),
     ...(config !== undefined ? { config } : {}),
   }
 }
