@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
 -- Backward-compatible schema alignment for existing local volumes.
 ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[];
 ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[];
+ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visibility_policy TEXT CHECK (visibility_policy IN ('all', 'avatars', 'none'));
 
 -- Ensure the embedding column keeps a fixed dimension required by ivfflat.
 DO $$

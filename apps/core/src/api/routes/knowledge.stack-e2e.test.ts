@@ -30,6 +30,16 @@ describe('Stack E2E — knowledge routes — auth', () => {
 
     expect(res.status).toBe(401)
   })
+
+  it('rejects upload with missing API key (401)', async () => {
+    const res = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+
+    expect(res.status).toBe(401)
+  })
 })
 
 describe('Stack E2E — knowledge routes — validation', () => {
@@ -51,6 +61,35 @@ describe('Stack E2E — knowledge routes — validation', () => {
         headers: { 'x-api-key': API_KEY },
       },
     )
+
+    expect(res.status).toBe(400)
+  })
+
+  it('rejects upload with unsupported file extension (400)', async () => {
+    const content = Buffer.from('some data').toString('base64')
+    const res = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        scenarioId: 'scenario_1',
+        name: 'Bad file',
+        knowledgeType: 'world',
+        content,
+        filename: 'document.docx',
+      }),
+    })
+
+    expect(res.status).toBe(400)
+    const body = (await res.json()) as { error: { code: string } }
+    expect(body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('rejects upload with missing required fields (400)', async () => {
+    const res = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ name: 'Missing fields' }),
+    })
 
     expect(res.status).toBe(400)
   })
@@ -216,5 +255,13 @@ describe('Stack E2E — knowledge routes — happy path', () => {
 
     expect(visibleBody.data.retrieval.world.length).toBeGreaterThan(0)
     expect(hiddenBody.data.retrieval.world).toEqual([])
+  })
+})
+
+describe('Stack E2E — knowledge upload — happy path', () => {
+  // TODO(EPIC-6.1): Add full happy-path test for upload + ingest + retrieve
+  // once a running stack fixture with auto-ingest is available.
+  it.skip('uploads a TXT file and retrieves ingested content', () => {
+    // Requires a running stack with the upload endpoint available.
   })
 })

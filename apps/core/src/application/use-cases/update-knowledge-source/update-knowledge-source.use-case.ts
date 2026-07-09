@@ -32,6 +32,9 @@ export class UpdateKnowledgeSourceUseCase {
         format: source.format,
         uriOrPath: source.uriOrPath,
         status: source.status,
+        ...(source.visibilityPolicy !== undefined
+          ? { visibilityPolicy: source.visibilityPolicy }
+          : {}),
         ...(source.visibleToAvatarIds !== undefined
           ? { visibleToAvatarIds: source.visibleToAvatarIds }
           : {}),
@@ -52,7 +55,7 @@ function assertNonEmptyWhenProvided(value: string | undefined, fieldName: string
 }
 
 function buildUpdates(input: UpdateKnowledgeSourceInput): UpdateKnowledgeSourceParams {
-  const { name, metadata, visibleToAvatarIds, uriOrPath } = input
+  const { name, metadata, visibilityPolicy, visibleToAvatarIds, uriOrPath } = input
 
   assertNonEmptyWhenProvided(name, 'name')
   assertNonEmptyWhenProvided(uriOrPath, 'uriOrPath')
@@ -63,6 +66,7 @@ function buildUpdates(input: UpdateKnowledgeSourceInput): UpdateKnowledgeSourceP
     ...(name !== undefined ? { name: name.trim() } : {}),
     ...(uriOrPath !== undefined ? { uriOrPath: uriOrPath.trim() } : {}),
     ...(metadata !== undefined ? { metadata } : {}),
+    ...(visibilityPolicy !== undefined ? { visibilityPolicy } : {}),
     ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
     ...(ingestionInputsChanged ? { status: 'pending' as const } : {}),
   }

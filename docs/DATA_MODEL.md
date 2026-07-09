@@ -380,6 +380,7 @@ Table: `knowledge_sources`
 - status (`pending | ready | error`)
 - metadata (JSONB)
 - visible_to_avatar_ids (TEXT[] nullable)
+- visibility_policy (TEXT nullable, CHECK `'all' | 'avatars' | 'none'`)
 - created_at
 
 ## Notes
@@ -388,10 +389,11 @@ Knowledge sources belong to scenarios.
 
 Multi-layer retrieval uses metadata rather than additional tables.
 
-Visibility rule (EPIC 5.1b MVP):
+Visibility rule (EPIC 6.1):
 
-- `visible_to_avatar_ids` null or empty => visible to all avatars
-- populated list => visible only to those avatar IDs
+- `visibility_policy = 'all'` or `null` (legacy) => visible to all avatars (default/backward-compatible)
+- `visibility_policy = 'avatars'` => visible only to avatar IDs in `visible_to_avatar_ids`
+- `visibility_policy = 'none'` => GM-only; excluded from all avatar retrieval; accessible via `bypassVisibilityFilter` (GM omniscience path)
 
 ---
 

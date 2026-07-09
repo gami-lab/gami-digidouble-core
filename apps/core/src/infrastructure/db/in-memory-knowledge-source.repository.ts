@@ -37,6 +37,9 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
       createdAt: now,
       updatedAt: now,
       ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
+      ...(params.visibilityPolicy !== undefined
+        ? { visibilityPolicy: params.visibilityPolicy }
+        : {}),
       ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
     }
 
@@ -86,6 +89,9 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
       ...(updates.uriOrPath !== undefined ? { uriOrPath: updates.uriOrPath } : {}),
       ...(updates.metadata !== undefined ? { metadata: updates.metadata } : {}),
       ...(updates.status !== undefined ? { status: updates.status } : {}),
+      ...(updates.visibilityPolicy !== undefined
+        ? { visibilityPolicy: updates.visibilityPolicy }
+        : {}),
       updatedAt: new Date().toISOString(),
     }
 

@@ -267,4 +267,47 @@ describe('TypedRetrievalService', () => {
     expect(result.world[1]?.reason).toContain('gm-guideline')
     expect(result.world[2]?.reason).toContain('last-user-input')
   })
+
+  it('enforces visibilityPolicy none: blocks all avatar retrieval, passes GM bypass', async () => {
+    const sourceRepo = new InMemoryKnowledgeSourceRepository()
+    const chunkRepo = new InMemoryKnowledgeChunkRepository()
+
+    const world = await sourceRepo.create({
+      scenarioId: 'scenario_1',
+      name: 'GM-only world lore',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/gm-only.txt',
+      visibilityPolicy: 'none',
+    })
+    await sourceRepo.updateStatus(world.sourceId, 'ready')
+    await chunkRepo.create({
+      sourceId: world.sourceId,
+      chunkIndex: 0,
+      content: 'secret gm-only orchestration hint',
+    })
+
+    const service = new TypedRetrievalService(sourceRepo, chunkRepo)
+
+    const avatarResult = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'secret orchestration',
+      activeAvatarId: 'avatar_1',
+    })
+    const noAvatarResult = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'secret orchestration',
+    })
+    const gmResult = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'secret orchestration',
+      bypassVisibilityFilter: true,
+    })
+
+    expect(avatarResult.world).toHaveLength(0)
+    expect(avatarResult.trace.perType.world.visibility?.excludedChunkCount).toBe(1)
+    expect(noAvatarResult.world).toHaveLength(0)
+    expect(gmResult.world).toHaveLength(1)
+    expect(gmResult.world[0]?.content).toBe('secret gm-only orchestration hint')
+  })
 })

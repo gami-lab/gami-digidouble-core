@@ -75,9 +75,7 @@ export class TypedRetrievalService {
     })
 
     const sourceIds = sources.map((source) => source.sourceId)
-    const sourceVisibilityById = new Map(
-      sources.map((source) => [source.sourceId, source.visibleToAvatarIds] as const),
-    )
+    const sourceById = new Map(sources.map((source) => [source.sourceId, source] as const))
     if (sourceIds.length === 0) {
       return {
         sourceIds: [],
@@ -91,13 +89,15 @@ export class TypedRetrievalService {
     }
 
     const chunks = await this.chunkRepository.listBySourceIds(sourceIds)
-    const avatarVisibleChunks = chunks.filter((chunk) =>
-      isAvatarVisible(
-        chunk.visibleToAvatarIds ?? sourceVisibilityById.get(chunk.sourceId),
+    const avatarVisibleChunks = chunks.filter((chunk) => {
+      const source = sourceById.get(chunk.sourceId)
+      return isAvatarVisible(
+        source?.visibilityPolicy,
+        chunk.visibleToAvatarIds ?? source?.visibleToAvatarIds,
         input.activeAvatarId,
         input.bypassVisibilityFilter === true,
-      ),
-    )
+      )
+    })
     const excludedByVisibilityCount = chunks.length - avatarVisibleChunks.length
     const scopedChunks =
       type === 'memory'
@@ -151,11 +151,14 @@ function normalizeQueries(input: TypedRetrievalInput): TypedRetrievalQueryVarian
 }
 
 function isAvatarVisible(
+  visibilityPolicy: string | undefined,
   visibleToAvatarIds: string[] | undefined,
   activeAvatarId: string | undefined,
   bypassVisibilityFilter: boolean,
 ): boolean {
   if (bypassVisibilityFilter) return true
+  // Explicit GM-only: no avatar can see this regardless of visibleToAvatarIds.
+  if (visibilityPolicy === 'none') return false
   const normalized = normalizeVisibleToAvatarIds(visibleToAvatarIds)
   if (normalized === undefined) return true
   if (activeAvatarId === undefined) return false

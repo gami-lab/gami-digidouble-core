@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
 import crypto from 'node:crypto'
+import pdfParse from 'pdf-parse'
 import type {
   CreateKnowledgeSourceRequest,
   CreateKnowledgeSourceResponse,
@@ -15,6 +16,8 @@ import type {
   TriggerIngestionResponse,
   UpdateKnowledgeSourceRequest,
   UpdateKnowledgeSourceResponse,
+  UploadKnowledgeSourceRequest,
+  UploadKnowledgeSourceResponse,
 } from '@gami/shared'
 import type { IIngestionJobRepository } from '../../application/ports/IIngestionJobRepository.js'
 import type { IKnowledgeChunkRepository } from '../../application/ports/IKnowledgeChunkRepository.js'
@@ -62,6 +65,8 @@ type UseCases = {
   eventLogRepository: IEventLogRepository
 }
 
+const VISIBILITY_POLICY_ENUM = ['all', 'avatars', 'none'] as const
+
 const sourceBodySchema = {
   type: 'object',
   required: ['scenarioId', 'name', 'knowledgeType', 'format', 'uriOrPath'],
@@ -72,6 +77,7 @@ const sourceBodySchema = {
     format: { type: 'string', enum: ['pdf', 'text', 'markdown', 'url', 'media'] },
     uriOrPath: { type: 'string', minLength: 1 },
     metadata: { type: 'object' },
+    visibilityPolicy: { type: 'string', enum: VISIBILITY_POLICY_ENUM },
     visibleToAvatarIds: {
       type: 'array',
       items: { type: 'string', minLength: 1 },
@@ -104,6 +110,7 @@ const updateSourceBodySchema = {
     name: { type: 'string', minLength: 1 },
     uriOrPath: { type: 'string', minLength: 1 },
     metadata: { type: 'object' },
+    visibilityPolicy: { type: 'string', enum: VISIBILITY_POLICY_ENUM },
     visibleToAvatarIds: {
       type: 'array',
       items: { type: 'string', minLength: 1 },
@@ -132,6 +139,28 @@ const triggerBodySchema = {
   additionalProperties: false,
 } as const
 
+// Max base64-encoded content size: ~14MB encodes to ~10MB of raw bytes.
+const UPLOAD_MAX_BASE64_BYTES = 14 * 1024 * 1024
+const ALLOWED_EXTENSIONS = new Set(['.txt', '.text', '.pdf'])
+
+const uploadBodySchema = {
+  type: 'object',
+  required: ['scenarioId', 'name', 'knowledgeType', 'content', 'filename'],
+  properties: {
+    scenarioId: { type: 'string', minLength: 1 },
+    name: { type: 'string', minLength: 1 },
+    knowledgeType: { type: 'string', enum: ['memory', 'world', 'media'] },
+    content: { type: 'string', minLength: 1 },
+    filename: { type: 'string', minLength: 1 },
+    visibilityPolicy: { type: 'string', enum: VISIBILITY_POLICY_ENUM },
+    visibleToAvatarIds: {
+      type: 'array',
+      items: { type: 'string', minLength: 1 },
+    },
+  },
+  additionalProperties: false,
+} as const
+
 const retrievalBodySchema = {
   type: 'object',
   required: ['scenarioId', 'query'],
@@ -151,6 +180,7 @@ export const knowledgeRoute: FastifyPluginCallback<KnowledgeRouteOptions> = (app
   app.addHook('preValidation', authenticateApiKey(options.config.apiKeySecret))
   const useCases = buildUseCases(options)
   registerCreateSourceRoute(app, useCases)
+  registerUploadSourceRoute(app, useCases)
   registerListSourcesRoute(app, useCases)
   registerUpdateSourceRoute(app, useCases)
   registerDeleteSourceRoute(app, useCases)
@@ -207,6 +237,94 @@ function registerCreateSourceRoute(app: FastifyInstance, useCases: UseCases): vo
   )
 }
 
+function registerUploadSourceRoute(app: FastifyInstance, useCases: UseCases): void {
+  app.post<{ Body: UploadKnowledgeSourceRequest }>(
+    '/v1/knowledge-sources/upload',
+    { schema: { body: uploadBodySchema } },
+    async (request, reply) => {
+      try {
+        const {
+          scenarioId,
+          name,
+          knowledgeType,
+          content,
+          filename,
+          visibilityPolicy,
+          visibleToAvatarIds,
+        } = request.body
+
+        const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase()
+        if (!ALLOWED_EXTENSIONS.has(ext)) {
+          return await reply
+            .status(400)
+            .send(
+              fail(
+                'VALIDATION_ERROR',
+                `Unsupported file type "${ext}". Allowed: .txt, .text, .pdf`,
+              ),
+            )
+        }
+
+        if (content.length > UPLOAD_MAX_BASE64_BYTES) {
+          return await reply
+            .status(400)
+            .send(fail('VALIDATION_ERROR', 'File content exceeds maximum allowed size (10 MB).'))
+        }
+
+        const extractResult = await extractInlineText(content, ext)
+        if (extractResult.error !== null) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', extractResult.error))
+        }
+
+        const output = await useCases.createSourceUseCase.execute({
+          scenarioId,
+          name,
+          knowledgeType,
+          format: ext === '.pdf' ? 'pdf' : 'text',
+          uriOrPath: filename,
+          metadata: { inlineText: extractResult.text },
+          ...(visibilityPolicy !== undefined ? { visibilityPolicy } : {}),
+          ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
+        })
+
+        return await reply.status(201).send(ok<UploadKnowledgeSourceResponse>(output))
+      } catch (error) {
+        return await handleError(error, reply)
+      }
+    },
+  )
+}
+
+async function extractInlineText(
+  content: string,
+  ext: string,
+): Promise<{ text: string; error: null } | { text: ''; error: string }> {
+  let rawBuffer: Buffer
+  try {
+    rawBuffer = Buffer.from(content, 'base64')
+  } catch {
+    return { text: '', error: 'content must be valid base64.' }
+  }
+
+  let inlineText: string
+  if (ext === '.pdf') {
+    try {
+      const parsed = await pdfParse(rawBuffer)
+      inlineText = parsed.text.trim()
+    } catch {
+      return { text: '', error: 'Failed to parse PDF file.' }
+    }
+  } else {
+    inlineText = rawBuffer.toString('utf8').trim()
+  }
+
+  if (inlineText.length === 0) {
+    return { text: '', error: 'Uploaded file contains no extractable text content.' }
+  }
+
+  return { text: inlineText, error: null }
+}
+
 function registerListSourcesRoute(app: FastifyInstance, useCases: UseCases): void {
   app.get<{ Params: ScenarioParams; Querystring: ListKnowledgeSourcesQuery }>(
     '/v1/scenarios/:scenarioId/knowledge-sources',
@@ -234,11 +352,12 @@ function registerUpdateSourceRoute(app: FastifyInstance, useCases: UseCases): vo
     { schema: { params: sourceParamsSchema, body: updateSourceBodySchema } },
     async (request, reply) => {
       try {
-        const { name, metadata, visibleToAvatarIds, uriOrPath } = request.body
+        const { name, metadata, visibilityPolicy, visibleToAvatarIds, uriOrPath } = request.body
         const output = await useCases.updateSourceUseCase.execute({
           sourceId: request.params.sourceId,
           ...(name !== undefined ? { name } : {}),
           ...(metadata !== undefined ? { metadata } : {}),
+          ...(visibilityPolicy !== undefined ? { visibilityPolicy } : {}),
           ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
           ...(uriOrPath !== undefined ? { uriOrPath } : {}),
         })
