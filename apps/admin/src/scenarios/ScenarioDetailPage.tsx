@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import type { AvatarSummary, ScenarioAvatarAvailability, ScenarioSummary } from '@gami/shared'
+import type { AvatarSummary, KnowledgeType, KnowledgeVisibilityPolicy, ScenarioAvatarAvailability, ScenarioSummary } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import {
   createAvatar,
@@ -10,6 +10,15 @@ import {
   updateAvatar,
   updateScenario,
 } from '../api/scenarios'
+import type { KnowledgeSourceDto } from '../api/knowledge'
+import {
+  createKnowledgeSource,
+  deleteKnowledgeSource,
+  listKnowledgeSources,
+  updateKnowledgeSource,
+  uploadKnowledgeSource,
+  triggerIngestion,
+} from '../api/knowledge'
 import { ScenarioEditForm } from './ScenarioEditForm'
 
 function computeNextAvailability(
@@ -41,8 +50,10 @@ type DetailMode =
   | { kind: 'editing-scenario' }
   | { kind: 'creating-avatar' }
   | { kind: 'editing-avatar'; avatarId: string }
+  | { kind: 'creating-knowledge' }
+  | { kind: 'editing-knowledge'; sourceId: string }
 
-type DetailData = { scenario: ScenarioSummary; avatars: AvatarSummary[] }
+type DetailData = { scenario: ScenarioSummary; avatars: AvatarSummary[]; knowledgeSources: KnowledgeSourceDto[] }
 
 type DetailState =
   | { status: 'loading' }
@@ -54,9 +65,9 @@ export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPagePro
 
   function loadData(): void {
     setState({ status: 'loading' })
-    Promise.all([getScenario(scenarioId), listScenarioAvatars(scenarioId)])
-      .then(([scenario, avatars]) => {
-        setState({ status: 'ready', data: { scenario, avatars }, mode: { kind: 'view' }, actionError: null })
+    Promise.all([getScenario(scenarioId), listScenarioAvatars(scenarioId), listKnowledgeSources(scenarioId)])
+      .then(([scenario, avatars, knowledgeSources]) => {
+        setState({ status: 'ready', data: { scenario, avatars, knowledgeSources }, mode: { kind: 'view' }, actionError: null })
       })
       .catch((error: unknown) => {
         setState({
@@ -158,6 +169,41 @@ function DetailBody({ state, onSetState }: DetailBodyProps): JSX.Element {
     )
   }
 
+  if (mode.kind === 'creating-knowledge') {
+    return (
+      <KnowledgeSourceCreateForm
+        scenarioId={data.scenario.scenarioId}
+        onCancel={() => { setMode({ kind: 'view' }) }}
+        onCreated={(source) => {
+          refreshData({ knowledgeSources: [source, ...data.knowledgeSources] })
+        }}
+        onError={setActionError}
+      />
+    )
+  }
+
+  if (mode.kind === 'editing-knowledge') {
+    const source = data.knowledgeSources.find((s) => s.sourceId === mode.sourceId)
+    if (source === undefined) {
+      setMode({ kind: 'view' })
+      return <p>Knowledge source not found.</p>
+    }
+    return (
+      <KnowledgeSourceEditForm
+        source={source}
+        onCancel={() => { setMode({ kind: 'view' }) }}
+        onSaved={(updated) => {
+          refreshData({
+            knowledgeSources: data.knowledgeSources.map((s) =>
+              s.sourceId === updated.sourceId ? updated : s,
+            ),
+          })
+        }}
+        onError={setActionError}
+      />
+    )
+  }
+
   return (
     <ScenarioView
       data={data}
@@ -189,6 +235,29 @@ function DetailBody({ state, onSetState }: DetailBodyProps): JSX.Element {
             setActionError(formatApiError(error, 'UNKNOWN_ERROR: Failed to update visibility'))
           })
       }}
+      onAddKnowledge={() => { setMode({ kind: 'creating-knowledge' }) }}
+      onEditKnowledge={(sourceId) => { setMode({ kind: 'editing-knowledge', sourceId }) }}
+      onDeleteKnowledge={(sourceId) => {
+        deleteKnowledgeSource(sourceId)
+          .then(() => {
+            onSetState(
+              makeReady({
+                data: { ...data, knowledgeSources: data.knowledgeSources.filter((s) => s.sourceId !== sourceId) },
+                actionError: null,
+              }),
+            )
+          })
+          .catch((error: unknown) => {
+            setActionError(formatApiError(error, 'UNKNOWN_ERROR: Failed to delete knowledge source'))
+          })
+      }}
+      onTriggerIngestion={(sourceId) => {
+        triggerIngestion(sourceId)
+          .then(() => { onSetState(makeReady({ actionError: null })) })
+          .catch((error: unknown) => {
+            setActionError(formatApiError(error, 'UNKNOWN_ERROR: Failed to trigger ingestion'))
+          })
+      }}
     />
   )
 }
@@ -203,6 +272,10 @@ type ScenarioViewProps = {
   onEditAvatar: (avatarId: string) => void
   onDeleteAvatar: (avatarId: string) => void
   onToggleVisibility: (avatarId: string, visible: boolean) => void
+  onAddKnowledge: () => void
+  onEditKnowledge: (sourceId: string) => void
+  onDeleteKnowledge: (sourceId: string) => void
+  onTriggerIngestion: (sourceId: string) => void
 }
 
 function ScenarioView({
@@ -213,8 +286,12 @@ function ScenarioView({
   onEditAvatar,
   onDeleteAvatar,
   onToggleVisibility,
+  onAddKnowledge,
+  onEditKnowledge,
+  onDeleteKnowledge,
+  onTriggerIngestion,
 }: ScenarioViewProps): JSX.Element {
-  const { scenario, avatars } = data
+  const { scenario, avatars, knowledgeSources } = data
   const initialIds = new Set(scenario.avatarAvailability.initialAvatarIds)
 
   return (
@@ -294,6 +371,67 @@ function ScenarioView({
                     type="button"
                     className="admin-button admin-button-danger"
                     onClick={() => { onDeleteAvatar(avatar.avatarId) }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <div className="admin-section-header">
+        <h3>Knowledge sources</h3>
+        <button type="button" className="admin-button admin-button-primary" onClick={onAddKnowledge}>
+          Add knowledge
+        </button>
+      </div>
+
+      {knowledgeSources.length === 0 ? (
+        <p className="admin-muted">No knowledge sources yet.</p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Visibility</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {knowledgeSources.map((source) => (
+              <tr key={source.sourceId}>
+                <td>{source.name}</td>
+                <td>{source.knowledgeType}</td>
+                <td>{source.visibilityPolicy ?? 'all'}</td>
+                <td>
+                  <span className="admin-status-pill">{source.status}</span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="admin-button admin-button-secondary"
+                    onClick={() => { onEditKnowledge(source.sourceId) }}
+                  >
+                    Edit
+                  </button>
+                  {' '}
+                  <button
+                    type="button"
+                    className="admin-button admin-button-secondary"
+                    onClick={() => { onTriggerIngestion(source.sourceId) }}
+                    disabled={source.status === 'pending'}
+                  >
+                    Ingest
+                  </button>
+                  {' '}
+                  <button
+                    type="button"
+                    className="admin-button admin-button-danger"
+                    onClick={() => { onDeleteKnowledge(source.sourceId) }}
                   >
                     Delete
                   </button>
@@ -518,3 +656,307 @@ function AvatarFormFields({
   )
 }
 
+// ── Knowledge source create form ───────────────────────────────────────────
+
+type KnowledgeSourceCreateFormProps = {
+  scenarioId: string
+  onCancel: () => void
+  onCreated: (source: KnowledgeSourceDto) => void
+  onError: (message: string) => void
+}
+
+function KnowledgeSourceCreateForm({
+  scenarioId,
+  onCancel,
+  onCreated,
+  onError,
+}: KnowledgeSourceCreateFormProps): JSX.Element {
+  const [name, setName] = useState('')
+  const [knowledgeType, setKnowledgeType] = useState<KnowledgeType>('world')
+  const [visibilityPolicy, setVisibilityPolicy] = useState<KnowledgeVisibilityPolicy>('all')
+  const [inputMode, setInputMode] = useState<'text' | 'file'>('text')
+  const [inlineText, setInlineText] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e: SyntheticEvent): Promise<void> {
+    e.preventDefault()
+    if (name.trim().length === 0) return
+    setSaving(true)
+    try {
+      let source: KnowledgeSourceDto
+      if (inputMode === 'file' && file !== null) {
+        const content = await readFileAsBase64(file)
+        source = await uploadKnowledgeSource({
+          scenarioId,
+          name: name.trim(),
+          knowledgeType,
+          visibilityPolicy,
+          content,
+          filename: file.name,
+        })
+      } else {
+        if (inlineText.trim().length === 0) { setSaving(false); return }
+        source = await createKnowledgeSource({
+          scenarioId,
+          name: name.trim(),
+          knowledgeType,
+          visibilityPolicy,
+          format: 'text',
+          uriOrPath: '',
+          metadata: { inlineText: inlineText.trim() },
+        })
+      }
+      onCreated(source)
+    } catch (error: unknown) {
+      onError(formatApiError(error, 'UNKNOWN_ERROR: Failed to create knowledge source'))
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <h2>Add knowledge source</h2>
+      <form onSubmit={(e) => void handleSubmit(e)}>
+        <div className="admin-form-group">
+          <label htmlFor="ks-create-name" className="admin-form-label">
+            Name <span aria-hidden="true">*</span>
+          </label>
+          <input
+            id="ks-create-name"
+            type="text"
+            className="admin-form-input"
+            value={name}
+            onChange={(e) => { setName(e.target.value) }}
+            required
+            disabled={saving}
+          />
+        </div>
+
+        <div className="admin-form-group">
+          <label htmlFor="ks-create-type" className="admin-form-label">
+            Knowledge type
+          </label>
+          <select
+            id="ks-create-type"
+            className="admin-form-select"
+            value={knowledgeType}
+            onChange={(e) => { setKnowledgeType(e.target.value as KnowledgeType) }}
+            disabled={saving}
+          >
+            <option value="world">world</option>
+            <option value="memory">memory</option>
+            <option value="media">media</option>
+          </select>
+        </div>
+
+        <div className="admin-form-group">
+          <label htmlFor="ks-create-visibility" className="admin-form-label">
+            Visibility policy
+          </label>
+          <select
+            id="ks-create-visibility"
+            className="admin-form-select"
+            value={visibilityPolicy}
+            onChange={(e) => { setVisibilityPolicy(e.target.value as KnowledgeVisibilityPolicy) }}
+            disabled={saving}
+          >
+            <option value="all">all avatars</option>
+            <option value="avatars">specific avatars</option>
+            <option value="none">GM-only (no avatars)</option>
+          </select>
+        </div>
+
+        <div className="admin-form-group">
+          <label className="admin-form-label">Input mode</label>
+          <label>
+            <input
+              type="radio"
+              name="ks-input-mode"
+              value="text"
+              checked={inputMode === 'text'}
+              onChange={() => { setInputMode('text') }}
+              disabled={saving}
+            />{' '}
+            Paste text
+          </label>
+          {' '}
+          <label>
+            <input
+              type="radio"
+              name="ks-input-mode"
+              value="file"
+              checked={inputMode === 'file'}
+              onChange={() => { setInputMode('file') }}
+              disabled={saving}
+            />{' '}
+            Upload file (PDF/TXT)
+          </label>
+        </div>
+
+        {inputMode === 'text' ? (
+          <div className="admin-form-group">
+            <label htmlFor="ks-create-text" className="admin-form-label">
+              Content <span aria-hidden="true">*</span>
+            </label>
+            <textarea
+              id="ks-create-text"
+              className="admin-form-textarea"
+              rows={8}
+              value={inlineText}
+              onChange={(e) => { setInlineText(e.target.value) }}
+              required
+              disabled={saving}
+            />
+          </div>
+        ) : (
+          <div className="admin-form-group">
+            <label htmlFor="ks-create-file" className="admin-form-label">
+              File (PDF or TXT) <span aria-hidden="true">*</span>
+            </label>
+            <input
+              id="ks-create-file"
+              type="file"
+              accept=".pdf,.txt,.text"
+              onChange={(e) => { setFile(e.target.files?.[0] ?? null) }}
+              disabled={saving}
+            />
+          </div>
+        )}
+
+        <div className="admin-form-actions">
+          <button
+            type="submit"
+            className="admin-button admin-button-primary"
+            disabled={
+              saving ||
+              name.trim().length === 0 ||
+              (inputMode === 'text' && inlineText.trim().length === 0) ||
+              (inputMode === 'file' && file === null)
+            }
+          >
+            {saving ? 'Creating…' : 'Create knowledge source'}
+          </button>
+          <button
+            type="button"
+            className="admin-button admin-button-secondary"
+            onClick={onCancel}
+            disabled={saving}
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </>
+  )
+}
+
+// ── Knowledge source edit form ─────────────────────────────────────────────
+
+type KnowledgeSourceEditFormProps = {
+  source: KnowledgeSourceDto
+  onCancel: () => void
+  onSaved: (source: KnowledgeSourceDto) => void
+  onError: (message: string) => void
+}
+
+function KnowledgeSourceEditForm({
+  source,
+  onCancel,
+  onSaved,
+  onError,
+}: KnowledgeSourceEditFormProps): JSX.Element {
+  const [name, setName] = useState(source.name)
+  const [visibilityPolicy, setVisibilityPolicy] = useState<KnowledgeVisibilityPolicy>(
+    source.visibilityPolicy ?? 'all',
+  )
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e: SyntheticEvent): Promise<void> {
+    e.preventDefault()
+    if (name.trim().length === 0) return
+    setSaving(true)
+    try {
+      const updated = await updateKnowledgeSource(source.sourceId, {
+        name: name.trim(),
+        visibilityPolicy,
+      })
+      onSaved(updated)
+    } catch (error: unknown) {
+      onError(formatApiError(error, 'UNKNOWN_ERROR: Failed to update knowledge source'))
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <h2>Edit knowledge source</h2>
+      <form onSubmit={(e) => void handleSubmit(e)}>
+        <div className="admin-form-group">
+          <label htmlFor="ks-edit-name" className="admin-form-label">
+            Name <span aria-hidden="true">*</span>
+          </label>
+          <input
+            id="ks-edit-name"
+            type="text"
+            className="admin-form-input"
+            value={name}
+            onChange={(e) => { setName(e.target.value) }}
+            required
+            disabled={saving}
+          />
+        </div>
+
+        <div className="admin-form-group">
+          <label htmlFor="ks-edit-visibility" className="admin-form-label">
+            Visibility policy
+          </label>
+          <select
+            id="ks-edit-visibility"
+            className="admin-form-select"
+            value={visibilityPolicy}
+            onChange={(e) => { setVisibilityPolicy(e.target.value as KnowledgeVisibilityPolicy) }}
+            disabled={saving}
+          >
+            <option value="all">all avatars</option>
+            <option value="avatars">specific avatars</option>
+            <option value="none">GM-only (no avatars)</option>
+          </select>
+        </div>
+
+        <div className="admin-form-actions">
+          <button
+            type="submit"
+            className="admin-button admin-button-primary"
+            disabled={saving || name.trim().length === 0}
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            type="button"
+            className="admin-button admin-button-secondary"
+            onClick={onCancel}
+            disabled={saving}
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </>
+  )
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      // result is "data:<mime>;base64,<data>" — strip the prefix
+      resolve(result.split(',')[1] ?? '')
+    }
+    reader.onerror = () => { reject(new Error('Failed to read file')) }
+    reader.readAsDataURL(file)
+  })
+}

@@ -14,6 +14,15 @@ export type KnowledgeSourceStatus = 'pending' | 'ready' | 'error'
 
 export type IngestionJobStatus = 'queued' | 'running' | 'completed' | 'failed'
 
+/**
+ * Explicit visibility policy for a knowledge source.
+ *
+ * - `'all'`     — visible to all avatars (default / backward-compatible)
+ * - `'avatars'` — visible only to the avatar IDs listed in `visibleToAvatarIds`
+ * - `'none'`    — GM-only: not visible to any avatar in retrieval; GM omniscience bypasses this
+ */
+export type KnowledgeVisibilityPolicy = 'all' | 'avatars' | 'none'
+
 export type KnowledgeSourceDto = {
   sourceId: string
   scenarioId: string
@@ -23,6 +32,7 @@ export type KnowledgeSourceDto = {
   uriOrPath: string
   status: KnowledgeSourceStatus
   metadata?: Record<string, unknown>
+  visibilityPolicy?: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
   createdAt: string
 }
@@ -109,6 +119,7 @@ export type CreateKnowledgeSourceRequest = {
   format: KnowledgeSourceFormat
   uriOrPath: string
   metadata?: Record<string, unknown>
+  visibilityPolicy?: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
 }
 
@@ -128,6 +139,7 @@ export type ListKnowledgeSourcesResponse = {
 export type UpdateKnowledgeSourceRequest = {
   name?: string
   metadata?: Record<string, unknown>
+  visibilityPolicy?: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
   uriOrPath?: string
 }
@@ -139,6 +151,25 @@ export type UpdateKnowledgeSourceResponse = {
 export type DeleteKnowledgeSourceResponse = {
   sourceId: string
   deleted: boolean
+}
+
+/**
+ * Upload a PDF or TXT file as a knowledge source.
+ * `content` is the base64-encoded raw file bytes.
+ * `filename` determines format (.pdf / .txt / .text).
+ */
+export type UploadKnowledgeSourceRequest = {
+  scenarioId: string
+  name: string
+  knowledgeType: KnowledgeType
+  content: string
+  filename: string
+  visibilityPolicy?: KnowledgeVisibilityPolicy
+  visibleToAvatarIds?: string[]
+}
+
+export type UploadKnowledgeSourceResponse = {
+  source: KnowledgeSourceDto
 }
 
 export type TriggerIngestionRequest = {

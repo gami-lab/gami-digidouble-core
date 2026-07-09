@@ -3,6 +3,7 @@ import type {
   KnowledgeSourceFormat,
   KnowledgeSourceStatus,
   KnowledgeType,
+  KnowledgeVisibilityPolicy,
 } from '../../domain/knowledge/knowledge.types.js'
 
 export type CreateKnowledgeSourceParams = {
@@ -12,6 +13,7 @@ export type CreateKnowledgeSourceParams = {
   format: KnowledgeSourceFormat
   uriOrPath: string
   metadata?: Record<string, unknown>
+  visibilityPolicy?: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
 }
 
@@ -24,6 +26,7 @@ export type ListKnowledgeSourcesFilters = {
 export type UpdateKnowledgeSourceParams = {
   name?: string
   metadata?: Record<string, unknown>
+  visibilityPolicy?: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
   uriOrPath?: string
   status?: KnowledgeSourceStatus

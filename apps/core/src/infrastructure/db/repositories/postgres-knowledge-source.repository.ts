@@ -5,7 +5,10 @@ import type {
   ListKnowledgeSourcesFilters,
   UpdateKnowledgeSourceParams,
 } from '../../../application/ports/IKnowledgeSourceRepository.js'
-import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
+import type {
+  KnowledgeSource,
+  KnowledgeVisibilityPolicy,
+} from '../../../domain/knowledge/knowledge.types.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
 type KnowledgeSourceRow = {
@@ -17,6 +20,7 @@ type KnowledgeSourceRow = {
   uri_or_path: string
   status: KnowledgeSource['status']
   metadata: unknown
+  visibility_policy: string | null
   visible_to_avatar_ids: string[] | null
   created_at: Date
   updated_at: Date
@@ -48,8 +52,14 @@ function normalizeVisibleToAvatarIds(value: unknown): string[] | undefined {
   return normalized.length > 0 ? normalized : undefined
 }
 
+function normalizeVisibilityPolicy(value: unknown): KnowledgeVisibilityPolicy | undefined {
+  if (value === 'all' || value === 'avatars' || value === 'none') return value
+  return undefined
+}
+
 function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
   const visibleToAvatarIds = normalizeVisibleToAvatarIds(row.visible_to_avatar_ids)
+  const visibilityPolicy = normalizeVisibilityPolicy(row.visibility_policy)
   const metadata = normalizeMetadata(row.metadata)
   return {
     sourceId: `knowledge_source_${row.id}`,
@@ -60,6 +70,7 @@ function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
     uriOrPath: row.uri_or_path,
     status: row.status,
     ...(metadata !== undefined ? { metadata } : {}),
+    ...(visibilityPolicy !== undefined ? { visibilityPolicy } : {}),
     ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -83,6 +94,7 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
         uri_or_path,
         status,
         metadata,
+        visibility_policy,
         visible_to_avatar_ids
       )
       VALUES (
@@ -93,9 +105,10 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
         ${params.uriOrPath},
         ${'pending'},
         ${this.sql.json((params.metadata ?? {}) as JSONValue)},
+        ${params.visibilityPolicy ?? null},
         ${visibleToAvatarIds ?? null}
       )
-      RETURNING id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visible_to_avatar_ids, created_at, updated_at
+      RETURNING id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visibility_policy, visible_to_avatar_ids, created_at, updated_at
     `
 
     if (row === undefined) {
@@ -110,7 +123,7 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
     if (sourceUuid === null) return null
 
     const [row] = await this.sql<[KnowledgeSourceRow?]>`
-      SELECT id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visible_to_avatar_ids, created_at, updated_at
+      SELECT id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visibility_policy, visible_to_avatar_ids, created_at, updated_at
       FROM knowledge_sources
       WHERE id = ${sourceUuid}
     `
@@ -123,7 +136,7 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
     if (scenarioUuid === null) return []
 
     const rows = await this.sql<KnowledgeSourceRow[]>`
-      SELECT id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visible_to_avatar_ids, created_at, updated_at
+      SELECT id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visibility_policy, visible_to_avatar_ids, created_at, updated_at
       FROM knowledge_sources
       WHERE scenario_id = ${scenarioUuid}
         AND (${filters.knowledgeType ?? null}::text IS NULL OR knowledge_type = ${filters.knowledgeType ?? null})
@@ -145,7 +158,7 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
       UPDATE knowledge_sources
       SET status = ${status}, updated_at = NOW()
       WHERE id = ${sourceUuid}
-      RETURNING id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visible_to_avatar_ids, created_at, updated_at
+      RETURNING id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visibility_policy, visible_to_avatar_ids, created_at, updated_at
     `
 
     return row === undefined ? null : rowToKnowledgeSource(row)
@@ -173,6 +186,10 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
       values.push(JSON.stringify(updates.metadata))
       setClauses.push(`metadata = $${String(values.length)}::jsonb`)
     }
+    if (updates.visibilityPolicy !== undefined) {
+      values.push(updates.visibilityPolicy)
+      setClauses.push(`visibility_policy = $${String(values.length)}`)
+    }
     if (updates.visibleToAvatarIds !== undefined) {
       values.push(normalizeVisibleToAvatarIds(updates.visibleToAvatarIds) ?? null)
       setClauses.push(`visible_to_avatar_ids = $${String(values.length)}`)
@@ -189,7 +206,7 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
       UPDATE knowledge_sources
       SET ${setClauses.join(', ')}
       WHERE id = ${whereParam}
-      RETURNING id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visible_to_avatar_ids, created_at, updated_at
+      RETURNING id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visibility_policy, visible_to_avatar_ids, created_at, updated_at
     `
 
     const rows = await this.sql.unsafe(query, values as string[])

@@ -514,13 +514,56 @@ DELETE /v1/avatars/{avatarId}
 POST /v1/knowledge-sources
 ```
 
-Request contract note:
+Request body (`CreateKnowledgeSourceRequest`):
 
-- optional `visibleToAvatarIds?: string[]`
-- omitted or empty array means visible to all avatars (default/backward-compatible)
-- known gap (EPIC 6.1, out of scope for the contract-cleanup slice): there is no explicit way
-  to represent "GM-only, visible to no avatar" — that requires a dedicated visibility policy
-  field and is owned by `docs/implementation-prompts/epic-6-1-scenario-builder-v1/03-knowledge-sources-and-visibility.md`
+- `scenarioId: string`
+- `name: string`
+- `knowledgeType: KnowledgeType` — `'world' | 'memory' | 'media'`
+- `format: KnowledgeSourceFormat`
+- `uriOrPath: string`
+- `visibilityPolicy?: KnowledgeVisibilityPolicy` — `'all' | 'avatars' | 'none'`; defaults to `'all'` when omitted
+- `visibleToAvatarIds?: string[]` — only meaningful when `visibilityPolicy === 'avatars'`
+- `metadata?: Record<string, unknown>` — set `metadata.inlineText` for inline text content
+
+Visibility policy semantics:
+
+- `'all'` — visible to all avatars (default; backward-compatible with pre-EPIC-6.1 records)
+- `'avatars'` — visible only to avatars listed in `visibleToAvatarIds`
+- `'none'` — GM-only; excluded from all avatar retrieval; still accessible via `bypassVisibilityFilter` (GM omniscience path)
+
+---
+
+## Upload Knowledge Source (Text / PDF)
+
+```text
+POST /v1/knowledge-sources/upload
+```
+
+Request body (`UploadKnowledgeSourceRequest`):
+
+- `scenarioId: string`
+- `name: string`
+- `knowledgeType: KnowledgeType`
+- `content: string` — base64-encoded file bytes
+- `filename: string` — must end in `.pdf`, `.txt`, or `.text`; determines extraction path
+- `visibilityPolicy?: KnowledgeVisibilityPolicy` — same semantics as Register above
+
+Notes:
+
+- PDF files are parsed at the API boundary via `pdf-parse`; extracted text stored as `metadata.inlineText`
+- TXT/text files decoded as UTF-8 and stored as `metadata.inlineText`
+- Max base64 payload: ~15 MB (20 MB raw); 400 returned if exceeded or extension unsupported
+- Returns the same `CreateKnowledgeSourceResponse` shape as POST /v1/knowledge-sources
+
+---
+
+## Update Knowledge Source
+
+```text
+PATCH /v1/knowledge-sources/{sourceId}
+```
+
+`visibilityPolicy` is patchable. Updates are idempotent and safe for partial edits.
 
 ---
 

@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarSummary, ScenarioSummary } from '@gami/shared'
 import { getScenario, listScenarioAvatars, updateScenario } from '../api/scenarios'
+import { listKnowledgeSources } from '../api/knowledge'
 import { ScenarioDetailPage } from './ScenarioDetailPage'
 
 vi.mock('../api/scenarios', () => ({
@@ -13,6 +14,15 @@ vi.mock('../api/scenarios', () => ({
   updateAvatar: vi.fn(),
   createAvatar: vi.fn(),
   deleteAvatar: vi.fn(),
+}))
+
+vi.mock('../api/knowledge', () => ({
+  listKnowledgeSources: vi.fn(),
+  createKnowledgeSource: vi.fn(),
+  uploadKnowledgeSource: vi.fn(),
+  updateKnowledgeSource: vi.fn(),
+  deleteKnowledgeSource: vi.fn(),
+  triggerIngestion: vi.fn(),
 }))
 
 function createScenario(overrides: Partial<ScenarioSummary> = {}): ScenarioSummary {
@@ -56,6 +66,7 @@ describe('ScenarioDetailPage', () => {
   it('shows a loading state while the scenario is fetched', () => {
     vi.mocked(getScenario).mockReturnValue(new Promise(() => {}))
     vi.mocked(listScenarioAvatars).mockReturnValue(new Promise(() => {}))
+    vi.mocked(listKnowledgeSources).mockReturnValue(new Promise(() => {}))
 
     render(<ScenarioDetailPage scenarioId="scenario_a" onBack={vi.fn()} />)
 
@@ -65,6 +76,7 @@ describe('ScenarioDetailPage', () => {
   it('renders the fetched scenario details with avatars', async () => {
     vi.mocked(getScenario).mockResolvedValue(createScenario())
     vi.mocked(listScenarioAvatars).mockResolvedValue([createAvatar()])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
 
     render(<ScenarioDetailPage scenarioId="scenario_a" onBack={vi.fn()} />)
 
@@ -79,6 +91,7 @@ describe('ScenarioDetailPage', () => {
   it('shows an error message when the fetch fails', async () => {
     vi.mocked(getScenario).mockRejectedValue(new Error('not found'))
     vi.mocked(listScenarioAvatars).mockResolvedValue([])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
 
     render(<ScenarioDetailPage scenarioId="scenario_a" onBack={vi.fn()} />)
 
@@ -90,6 +103,7 @@ describe('ScenarioDetailPage', () => {
   it('calls onBack when the back button is clicked', () => {
     vi.mocked(getScenario).mockReturnValue(new Promise(() => {}))
     vi.mocked(listScenarioAvatars).mockReturnValue(new Promise(() => {}))
+    vi.mocked(listKnowledgeSources).mockReturnValue(new Promise(() => {}))
     const onBack = vi.fn()
 
     render(<ScenarioDetailPage scenarioId="scenario_a" onBack={onBack} />)
@@ -101,6 +115,7 @@ describe('ScenarioDetailPage', () => {
   it('shows scenario edit form when Edit button is clicked', async () => {
     vi.mocked(getScenario).mockResolvedValue(createScenario())
     vi.mocked(listScenarioAvatars).mockResolvedValue([])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
 
     render(<ScenarioDetailPage scenarioId="scenario_a" onBack={vi.fn()} />)
 
@@ -116,6 +131,7 @@ describe('ScenarioDetailPage', () => {
   it('shows avatar create form when "Add avatar" is clicked', async () => {
     vi.mocked(getScenario).mockResolvedValue(createScenario())
     vi.mocked(listScenarioAvatars).mockResolvedValue([])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
 
     render(<ScenarioDetailPage scenarioId="scenario_a" onBack={vi.fn()} />)
 
@@ -134,6 +150,7 @@ describe('ScenarioDetailPage', () => {
       createScenario({ avatarAvailability: { initialAvatarIds: ['avatar_1'] } }),
     )
     vi.mocked(listScenarioAvatars).mockResolvedValue([createAvatar()])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
 
     render(<ScenarioDetailPage scenarioId="scenario_a" onBack={vi.fn()} />)
 
@@ -149,6 +166,7 @@ describe('ScenarioDetailPage', () => {
     const scenario = createScenario({ avatarAvailability: { initialAvatarIds: [] } })
     vi.mocked(getScenario).mockResolvedValue(scenario)
     vi.mocked(listScenarioAvatars).mockResolvedValue([createAvatar()])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
     vi.mocked(updateScenario).mockResolvedValue(
       createScenario({ avatarAvailability: { initialAvatarIds: ['avatar_1'] } }),
     )
@@ -165,5 +183,35 @@ describe('ScenarioDetailPage', () => {
     expect(updateScenario).toHaveBeenCalledWith('scenario_a', {
       avatarAvailability: { initialAvatarIds: ['avatar_1'] },
     })
+  })
+
+  it('shows knowledge sources section with "Add knowledge" button', async () => {
+    vi.mocked(getScenario).mockResolvedValue(createScenario())
+    vi.mocked(listScenarioAvatars).mockResolvedValue([])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
+
+    render(<ScenarioDetailPage scenarioId="scenario_a" onBack={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Add knowledge' })).toBeTruthy()
+    })
+    expect(screen.getByText('No knowledge sources yet.')).toBeTruthy()
+  })
+
+  it('shows knowledge create form when "Add knowledge" is clicked', async () => {
+    vi.mocked(getScenario).mockResolvedValue(createScenario())
+    vi.mocked(listScenarioAvatars).mockResolvedValue([])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
+
+    render(<ScenarioDetailPage scenarioId="scenario_a" onBack={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Add knowledge' })).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add knowledge' }))
+
+    expect(screen.getByText('Add knowledge source')).toBeTruthy()
+    expect(screen.getByLabelText(/Visibility policy/)).toBeTruthy()
   })
 })

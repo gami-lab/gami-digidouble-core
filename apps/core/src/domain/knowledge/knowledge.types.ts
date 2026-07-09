@@ -3,6 +3,7 @@ import type {
   KnowledgeSourceFormat as SharedKnowledgeSourceFormat,
   KnowledgeSourceStatus as SharedKnowledgeSourceStatus,
   KnowledgeType as SharedKnowledgeType,
+  KnowledgeVisibilityPolicy as SharedKnowledgeVisibilityPolicy,
 } from '@gami/shared'
 
 /**
@@ -21,6 +22,8 @@ export type KnowledgeSourceStatus = SharedKnowledgeSourceStatus
 
 export type IngestionJobStatus = SharedIngestionJobStatus
 
+export type KnowledgeVisibilityPolicy = SharedKnowledgeVisibilityPolicy
+
 export interface KnowledgeSource {
   sourceId: string
   scenarioId: string
@@ -35,8 +38,16 @@ export interface KnowledgeSource {
   updatedAt: string
   metadata?: Record<string, unknown>
   /**
+   * Explicit visibility policy for EPIC 6.1.
+   * - `'all'`     — visible to all avatars (default when absent)
+   * - `'avatars'` — visible only to IDs in `visibleToAvatarIds`
+   * - `'none'`    — GM-only; no avatar retrieval regardless of `visibleToAvatarIds`
+   */
+  visibilityPolicy?: KnowledgeVisibilityPolicy
+  /**
    * Avatar visibility scope for EPIC 5.1b.
-   * Undefined or empty => visible to all avatars.
+   * Relevant when `visibilityPolicy` is `'avatars'`.
+   * Undefined or empty (with `'all'` policy) => visible to all avatars.
    */
   visibleToAvatarIds?: string[]
 }
