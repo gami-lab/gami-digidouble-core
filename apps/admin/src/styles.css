@@ -136,3 +136,147 @@ body {
   font: inherit;
   text-decoration: underline;
 }
+
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.admin-section-header h3 {
+  margin: 0;
+}
+
+.admin-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-detail-header h2 {
+  margin: 0;
+}
+
+.admin-button {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+
+.admin-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-button-primary {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.admin-button-primary:not(:disabled):hover {
+  background-color: #1d4ed8;
+}
+
+.admin-button-secondary {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.admin-button-secondary:not(:disabled):hover {
+  background-color: #e5e7eb;
+}
+
+.admin-button-danger {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.admin-button-danger:not(:disabled):hover {
+  background-color: #fee2e2;
+}
+
+.admin-form-group {
+  margin-bottom: 16px;
+}
+
+.admin-form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.admin-form-input,
+.admin-form-select,
+.admin-form-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+  background-color: #ffffff;
+}
+
+.admin-form-input:disabled,
+.admin-form-select:disabled,
+.admin-form-textarea:disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+}
+
+.admin-form-textarea {
+  resize: vertical;
+}
+
+.admin-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.admin-objectives-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+}
+
+.admin-objective-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.admin-remove-button {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.admin-remove-button:hover {
+  color: #b91c1c;
+}
+
+.admin-objective-input-row {
+  display: flex;
+  gap: 8px;
+}

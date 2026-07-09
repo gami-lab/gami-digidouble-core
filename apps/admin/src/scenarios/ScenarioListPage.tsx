@@ -7,9 +7,13 @@ import type { ScenarioListState } from './scenario-list-state'
 
 type ScenarioListPageProps = {
   onOpenScenario: (scenarioId: string) => void
+  onCreateScenario: () => void
 }
 
-export function ScenarioListPage({ onOpenScenario }: ScenarioListPageProps): JSX.Element {
+export function ScenarioListPage({
+  onOpenScenario,
+  onCreateScenario,
+}: ScenarioListPageProps): JSX.Element {
   const [state, setState] = useState<ScenarioListState>({ status: 'loading' })
 
   useEffect(() => {
@@ -36,7 +40,16 @@ export function ScenarioListPage({ onOpenScenario }: ScenarioListPageProps): JSX
 
   return (
     <section className="admin-card">
-      <h2>Scenarios</h2>
+      <div className="admin-section-header">
+        <h2>Scenarios</h2>
+        <button
+          type="button"
+          className="admin-button admin-button-primary"
+          onClick={onCreateScenario}
+        >
+          Create scenario
+        </button>
+      </div>
       <p className="admin-muted">Select a scenario to view its details.</p>
       <ScenarioListBody state={state} onOpenScenario={onOpenScenario} />
     </section>

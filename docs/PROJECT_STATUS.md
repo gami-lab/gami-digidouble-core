@@ -705,20 +705,19 @@ Started on: 2026-07-05
   - scenario-level default runtime model assignment (no field exists yet on `Scenario`/`ScenarioSummary`) — owned by `04-runtime-model-selection.md`
 - verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web` all typecheck/lint clean; full test suites pass (core 659 tests, console 48 tests, web 28 tests)
 
-### Current slice completed (admin app foundation and vertical skeleton)
+### Current slice completed (scenario and avatar editors — objectives, world context, persona, visibility)
 
-- new `apps/admin` workspace scaffolded as a first-class app (not a mode inside `apps/web` or `apps/console`), with monorepo-standard scripts (`dev`, `build`, `typecheck`, `lint`, `test`, `preview`) and Vite + React + strict TypeScript setup, matching `apps/web`/`apps/console` conventions
-- environment-driven Core connection (`VITE_API_URL`, `VITE_API_KEY`) reused via an app-local `env.ts` + `adminRequest` transport client, following the same `ApiResponse` envelope handling already used by `apps/web` and `apps/console`
-- minimal app shell (`AppShell`) with a left-hand navigation listing scenario-builder modules (`Scenarios` active; `Knowledge Sources` and `Model Config` shown as "coming soon" placeholders for `03-knowledge-sources-and-visibility.md` and `04-runtime-model-selection.md`)
-- first vertical skeleton flow implemented end-to-end against existing canonical endpoints (no new backend endpoints introduced):
-  - scenario list (`GET /v1/scenarios`) with loading/error/empty states
-  - scenario detail placeholder (`GET /v1/scenarios/{scenarioId}`) showing name, status, world context, and objectives, with a note that avatar/knowledge/model-config editing arrive in later slices
-  - simple in-app view-state routing (list ↔ detail) consistent with the state-based navigation pattern already used by `apps/console` (no router dependency added, per KISS/YAGNI)
-- no shared DTO duplication introduced: `apps/admin` consumes `ScenarioSummary`, `ListScenariosResponse`, and `GetScenarioResponse` directly from `@gami/shared`
-- no new admin endpoints were introduced by this slice, so no additional stack-e2e coverage was required beyond what already exists for `GET /v1/scenarios` and `GET /v1/scenarios/{scenarioId}`
-- deterministic behavior-level test coverage added for the new app (loading/success/error states for both list and detail, row-click navigation, back navigation)
-- verified end-to-end manually against the running local Core API (live scenario data loaded and rendered through list → detail → back)
-- quality gates validated across the full monorepo after adding the new workspace: `pnpm lint`, `pnpm typecheck`, `pnpm test` (core 659 tests, console 48 tests, web 28 tests, admin 10 tests)
+- admin scenario editor: full create + update forms with name, status, objectives list editor, and world context textarea; routes via `POST /v1/scenarios` and `PATCH /v1/scenarios/{scenarioId}` using canonical `CreateScenarioRequest` / `UpdateScenarioRequest` from `@gami/shared`
+- admin avatar editor: avatar list per scenario with create + update forms covering name, personaPrompt, and status; routes via `POST /v1/scenarios/{scenarioId}/avatars` and `PATCH /v1/avatars/{avatarId}` using canonical `CreateAvatarRequest` / `UpdateAvatarRequest` from `@gami/shared`
+- avatar initial visibility configuration: "Initially visible" toggle per avatar in the scenario detail view; reads from `scenario.avatarAvailability.initialAvatarIds` and persists changes via `PATCH /v1/scenarios/{scenarioId}` — single source of truth, no duplicate field on Avatar; consistent with the runtime session-start mechanism documented in `GAME_MASTER_CONTRACT.md`
+- `ScenarioListPage` extended with "Create scenario" button and `onCreateScenario` callback
+- `ScenarioDetailPage` redesigned as a full editor: scenario view/edit modes, avatar list with add/edit/delete actions, visibility toggle; sub-mode state machine (`view | editing-scenario | creating-avatar | editing-avatar`) keeps concerns separated without a router
+- new `ScenarioCreatePage` component with form state, objective list editor, and error handling
+- avatar list and visibility toggle APIs wired through new admin API functions (`createScenario`, `updateScenario`, `listScenarioAvatars`, `createAvatar`, `updateAvatar`, `deleteAvatar`) all consuming `@gami/shared` response types directly
+- no new backend endpoints introduced: all editor flows use existing canonical Core API endpoints
+- no new shared DTO types required: all editor state and transport mapping are explicitly typed against existing `@gami/shared` shapes
+- behavior-level test coverage added for all new components (21 admin tests total): create form submission, error states, objective list editing, visibility checkbox state and toggle, edit/cancel flows
+- quality gates validated: `pnpm typecheck` clean, core 659 tests pass, admin 21 tests pass
 
 ---
 
@@ -789,32 +788,33 @@ Started on: 2026-07-05
 
 # 4. Timeline
 
-| Date       | Milestone                                             |
-| ---------- | ----------------------------------------------------- |
-| 2026-04-22 | EPIC 1.1 — Core Platform Bootstrap                    |
-| 2026-04-22 | EPIC 1.2 — First LLM Loop + Observability             |
-| 2026-04-22 | EPIC 2.1 — Avatar Agent v1                            |
-| 2026-04-22 | EPIC 2.2 — Scenario & Session Lifecycle               |
-| 2026-04-27 | EPIC 4.4 — Multi-Avatar Navigation v1                 |
-| 2026-04-28 | EPIC 2.5 — Admin CRUD + Console Integration           |
-| 2026-04-28 | EPIC 2.6 — GM Debug Panel v1                          |
-| 2026-04-29 | EPIC 4.1 — Async Game Master v1                       |
-| 2026-04-30 | EPIC 3.1 — Health & Dependency Monitoring             |
-| 2026-04-30 | EPIC 4.3 — Performance Baseline                       |
-| 2026-05-02 | EPIC 5.5 — User Persona System                        |
-| 2026-05-05 | EPIC 4.2 — Memory Layer v1                            |
-| 2026-05-05 | EPIC 4.5 — Runtime State & SSE Events                 |
-| 2026-05-06 | EPIC 4.2b — Memory System v2                          |
-| 2026-05-07 | EPIC 2.7 — Runtime Inspector v2                       |
-| 2026-05-07 | EPIC 2.8 — Console Debugging Redesign                 |
-| 2026-05-08 | EPIC 4.2c — Episodic + Hydrated Memory System         |
-| 2026-05-10 | EPIC 3.2 — Inspector Consolidation & Contract Cleanup |
-| 2026-05-11 | EPIC 5.1 — Knowledge Substrate, Ingestion, Retrieval  |
-| 2026-05-11 | EPIC 5.2 — Context Engine v2                          |
-| 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration         |
-| 2026-06-01 | EPIC 7.1 — Public User Web App v1                     |
-| 2026-07-05 | EPIC 6.1 — Scenario Builder v1 (contract cleanup)     |
-| 2026-07-06 | EPIC 6.1 — Scenario Builder v1 (admin app foundation) |
+| Date       | Milestone                                                             |
+| ---------- | --------------------------------------------------------------------- |
+| 2026-04-22 | EPIC 1.1 — Core Platform Bootstrap                                    |
+| 2026-04-22 | EPIC 1.2 — First LLM Loop + Observability                             |
+| 2026-04-22 | EPIC 2.1 — Avatar Agent v1                                            |
+| 2026-04-22 | EPIC 2.2 — Scenario & Session Lifecycle                               |
+| 2026-04-27 | EPIC 4.4 — Multi-Avatar Navigation v1                                 |
+| 2026-04-28 | EPIC 2.5 — Admin CRUD + Console Integration                           |
+| 2026-04-28 | EPIC 2.6 — GM Debug Panel v1                                          |
+| 2026-04-29 | EPIC 4.1 — Async Game Master v1                                       |
+| 2026-04-30 | EPIC 3.1 — Health & Dependency Monitoring                             |
+| 2026-04-30 | EPIC 4.3 — Performance Baseline                                       |
+| 2026-05-02 | EPIC 5.5 — User Persona System                                        |
+| 2026-05-05 | EPIC 4.2 — Memory Layer v1                                            |
+| 2026-05-05 | EPIC 4.5 — Runtime State & SSE Events                                 |
+| 2026-05-06 | EPIC 4.2b — Memory System v2                                          |
+| 2026-05-07 | EPIC 2.7 — Runtime Inspector v2                                       |
+| 2026-05-07 | EPIC 2.8 — Console Debugging Redesign                                 |
+| 2026-05-08 | EPIC 4.2c — Episodic + Hydrated Memory System                         |
+| 2026-05-10 | EPIC 3.2 — Inspector Consolidation & Contract Cleanup                 |
+| 2026-05-11 | EPIC 5.1 — Knowledge Substrate, Ingestion, Retrieval                  |
+| 2026-05-11 | EPIC 5.2 — Context Engine v2                                          |
+| 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration                         |
+| 2026-06-01 | EPIC 7.1 — Public User Web App v1                                     |
+| 2026-07-05 | EPIC 6.1 — Scenario Builder v1 (contract cleanup)                     |
+| 2026-07-06 | EPIC 6.1 — Scenario Builder v1 (admin app foundation)                 |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (scenario/avatar editors + visibility) |
 
 ---
 
@@ -828,7 +828,7 @@ Current implementation focus:
 - advanced orchestration intelligence
 - retrieval observability
 - public web app operational hardening
-- Scenario Builder v1 admin app (EPIC 6.1): contract cleanup and admin app foundation/vertical skeleton complete; scenario/avatar editors, knowledge sources, and runtime model selection workflows next
+- Scenario Builder v1 admin app (EPIC 6.1): contract cleanup, admin app foundation/vertical skeleton, and scenario/avatar editors (objectives, world context, persona, visibility) complete; knowledge sources and runtime model selection workflows next
 
 ---
 
