@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import type { AvatarSummary } from '@gami/shared'
+import type { AvatarStatus, AvatarSummary } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { createAvatar, updateAvatar } from '../api/scenarios'
 import { ModelSelectionFields } from './ModelSelectionFields'
@@ -27,7 +27,7 @@ export function AvatarCreateForm({
 }: AvatarCreateFormProps): JSX.Element {
   const [name, setName] = useState('')
   const [personaPrompt, setPersonaPrompt] = useState('')
-  const [avatarStatus, setAvatarStatus] = useState<'draft' | 'active' | 'archived'>('active')
+  const [avatarStatus, setAvatarStatus] = useState<AvatarStatus>('active')
   const [modelOverride, setModelOverride] = useState<ModelSelectionFormValue>(EMPTY_MODEL_SELECTION)
   const [saving, setSaving] = useState(false)
 
@@ -79,7 +79,7 @@ type AvatarEditFormProps = {
 export function AvatarEditForm({ avatar, onCancel, onSaved, onError }: AvatarEditFormProps): JSX.Element {
   const [name, setName] = useState(avatar.name)
   const [personaPrompt, setPersonaPrompt] = useState(avatar.personaPrompt)
-  const [avatarStatus, setAvatarStatus] = useState<'draft' | 'active' | 'archived'>(avatar.status)
+  const [avatarStatus, setAvatarStatus] = useState<AvatarStatus>(avatar.status)
   const [modelOverride, setModelOverride] = useState(fromAvatarLlmOverride(avatar.llmOverride))
   const [saving, setSaving] = useState(false)
 
@@ -126,7 +126,7 @@ type AvatarFormProps = {
   submitLabel: string
   name: string
   personaPrompt: string
-  avatarStatus: 'draft' | 'active' | 'archived'
+  avatarStatus: AvatarStatus
   modelOverride: ModelSelectionFormValue
   saving: boolean
   idPrefix: string
@@ -134,7 +134,7 @@ type AvatarFormProps = {
   onCancel: () => void
   onNameChange: (value: string) => void
   onPersonaPromptChange: (value: string) => void
-  onStatusChange: (value: 'draft' | 'active' | 'archived') => void
+  onStatusChange: (value: AvatarStatus) => void
   onModelOverrideChange: (value: ModelSelectionFormValue) => void
 }
 
@@ -198,13 +198,13 @@ function AvatarForm({
 type AvatarFormFieldsProps = {
   name: string
   personaPrompt: string
-  avatarStatus: 'draft' | 'active' | 'archived'
+  avatarStatus: AvatarStatus
   modelOverride: ModelSelectionFormValue
   saving: boolean
   idPrefix: string
   onNameChange: (value: string) => void
   onPersonaPromptChange: (value: string) => void
-  onStatusChange: (value: 'draft' | 'active' | 'archived') => void
+  onStatusChange: (value: AvatarStatus) => void
   onModelOverrideChange: (value: ModelSelectionFormValue) => void
 }
 
@@ -260,7 +260,7 @@ function AvatarFormFields({
           id={`${idPrefix}-av-status`}
           className="admin-form-select"
           value={avatarStatus}
-          onChange={(event) => { onStatusChange(event.target.value as 'draft' | 'active' | 'archived') }}
+          onChange={(event) => { onStatusChange(event.target.value as AvatarStatus) }}
           disabled={saving}
         >
           <option value="draft">draft</option>

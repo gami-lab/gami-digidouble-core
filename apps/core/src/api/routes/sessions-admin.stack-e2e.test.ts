@@ -102,7 +102,7 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     headers: authHeaders(),
     payload: {
       name: `Policy Scenario ${String(Date.now())}`,
-      config: { avatarAvailability: { initialAvatarIds: [] } },
+      avatarAvailability: { initialAvatarIds: [] },
     },
   })
   expect(createScenario.statusCode).toBe(201)
@@ -147,7 +147,7 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     url: `/v1/scenarios/${scenarioId}`,
     headers: authHeaders(),
     payload: {
-      config: { avatarAvailability: { initialAvatarIds: [guideAvatarId, ethicsAvatarId] } },
+      avatarAvailability: { initialAvatarIds: [guideAvatarId, ethicsAvatarId] },
     },
   })
   expect(patchScenarioInitialBoth.statusCode).toBe(200)
@@ -184,7 +184,7 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     method: 'PATCH',
     url: `/v1/scenarios/${scenarioId}`,
     headers: authHeaders(),
-    payload: { config: { avatarAvailability: { initialAvatarIds: [guideAvatarId] } } },
+    payload: { avatarAvailability: { initialAvatarIds: [guideAvatarId] } },
   })
   expect(patchScenarioResetGuide.statusCode).toBe(200)
 

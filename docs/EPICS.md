@@ -1547,7 +1547,9 @@ Hybrid systems outperform pure LLM systems.
 
 ---
 
-## EPIC 6.1 — Scenario Builder v1
+## EPIC 6.1 — Scenario Builder v1 ✅ Done
+
+Completed on: 2026-07-09
 
 **Purpose**  
 Enable non-developers to configure experiences.
@@ -1575,6 +1577,18 @@ Back-office usability is enough for MVP; consumer grade frontend.
 - create full scenario without code
 - edit avatar live
 - upload/update sources
+
+**Progress update (July 9, 2026)**
+
+- EPIC 6.1 is complete.
+- Implemented slices:
+  - contract cleanup prerequisite
+  - dedicated `apps/admin` app foundation (scenario list/detail vertical skeleton)
+  - scenario and avatar editors (objectives, world context, persona, initial visibility)
+  - knowledge sources: text + PDF/TXT upload, visibility policy (`all` / `avatars` / GM-only `none`)
+  - runtime model selection (scenario default, Game Master override, avatar override) with deterministic precedence
+  - final hardening: knowledge-upload happy-path stack-e2e coverage, admin transport-layer test coverage closure, removal of residual `ScenarioStatus`/`AvatarStatus`/`KnowledgeVisibilityPolicy` duplication, seed-parity verification and fix (GM-only visibility representation), and documentation sync
+- see `docs/TEST_COVERAGE_PLAN.md` for the admin app coverage checklist and the seed-parity checklist
 
 ---
 

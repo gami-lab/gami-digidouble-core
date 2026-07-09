@@ -77,33 +77,24 @@ Suggested behavior:
 
 Register these Markdown files as knowledge sources:
 
-| File               | knowledgeType | visibleToAvatarIds |
-| ------------------ | ------------- | ------------------ |
-| `scenario.md`      | world         | []                 |
-| `places.md`        | world         | []                 |
-| `crime-scene.md`   | world         | []                 |
-| `shared-clues.md`  | world         | []                 |
-| `avatar-clara.md`  | memory        | ["clara"]          |
-| `avatar-elias.md`  | memory        | ["elias"]          |
-| `avatar-margot.md` | memory        | ["margot"]         |
-| `avatar-thomas.md` | memory        | ["thomas"]         |
-| `gm-truth.md`      | world         | ["__GM_ONLY__"]    |
+| File               | knowledgeType | visibilityPolicy | visibleToAvatarIds |
+| ------------------ | ------------- | ---------------- | ------------------ |
+| `scenario.md`      | world         | all              | —                  |
+| `places.md`        | world         | all              | —                  |
+| `crime-scene.md`   | world         | all              | —                  |
+| `shared-clues.md`  | world         | all              | —                  |
+| `avatar-clara.md`  | memory        | avatars          | ["clara"]          |
+| `avatar-elias.md`  | memory        | avatars          | ["elias"]          |
+| `avatar-margot.md` | memory        | avatars          | ["margot"]         |
+| `avatar-thomas.md` | memory        | avatars          | ["thomas"]         |
+| `gm-truth.md`      | world         | none             | —                  |
 
 ## GM-only knowledge
 
-Current system may not support a special `__GM_ONLY__` avatar ID directly.
-
-Implementation options:
-
-### Option A — Do not register `gm-truth.md` as normal avatar-visible knowledge
-
-Keep it as operator/bootstrap data and inject it only into GM configuration.
-
-### Option B — Register it with a fake visibility ID
-
-Use `visibleToAvatarIds: ["__GM_ONLY__"]`.
-
-No real avatar has this ID, so avatar retrieval should exclude it. GM unrestricted retrieval should still see it.
+Sources with `visibilityPolicy: "none"` are excluded from every avatar's retrieval scope while
+remaining visible to the Game Master's unrestricted retrieval channel (see
+`docs/GAME_MASTER_CONTRACT.md`). This is the canonical way to represent GM-only world knowledge —
+no fake avatar ID or sentinel value is needed.
 
 This is useful for testing GM omniscience and visibility diagnostics.
 

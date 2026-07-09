@@ -688,8 +688,9 @@ Completed on: 2026-06-01
 
 ## EPIC 6.1 — Scenario Builder v1
 
-Status: 🔄 In Progress
+Status: ✅ Complete
 Started on: 2026-07-05
+Completed on: 2026-07-09
 
 ### Current slice completed (contract cleanup prerequisite)
 
@@ -748,6 +749,17 @@ Started on: 2026-07-05
 - legacy compatibility preserved: scenarios without `modelSelection` continue to resolve through the pre-existing global model config fallback path
 - runtime inspection now reports effective avatar/Game Master models with scenario-scoped selection applied
 - test coverage added/updated for model resolution, scenario create/update use cases, scenario and avatar routes, scenario repository behavior, admin create/detail flows, and stack-e2e route files for the extended existing endpoints
+
+### Current slice completed (final hardening: seed parity, tests, doc sync)
+
+- added the deferred happy-path stack-e2e test for `POST /v1/knowledge-sources/upload` (upload → ingest → retrieve), replacing the `TODO(EPIC-6.1)` skipped placeholder; full `apps/core` stack-e2e suite (159 tests) validated green against a real Docker stack (`docker-compose.e2e.yml`)
+- closed a real admin-app test gap: `apps/admin/src/api/client.ts`, `api/scenarios.ts`, and `api/knowledge.ts` were fully mocked away in every existing page-level test, so their actual request/response mapping was never executed; added direct unit tests for all three plus `api/error.ts` and `scenarios/model-selection-form.ts` (60 admin tests total, up from 25)
+- removed a residual contract duplication: `apps/admin` re-declared the `'draft' | 'active' | 'archived'` status literal locally in 5 files (12 occurrences) instead of importing canonical `ScenarioStatus`/`AvatarStatus` from `@gami/shared`; `ScenarioKnowledgeSourceForms.tsx` also re-declared `KnowledgeVisibilityPolicy` as a local literal union — all now alias/import the canonical shared types
+- seed-parity verification completed (checklist in `docs/TEST_COVERAGE_PLAN.md`): the murder-party seed script is itself API-first and uses the same canonical endpoints as the admin app, so parity holds by construction for scenario/avatar/knowledge-text fields; one real gap was found and fixed — the seed script and the console runtime inspector both represented GM-only knowledge visibility with a legacy sentinel (`visibleToAvatarIds: ['__GM_ONLY__']`) predating the canonical `visibilityPolicy: 'none'` field from the knowledge-visibility slice, so an admin-created GM-only source would have displayed incorrectly in the console inspector; fixed in both the seed script and `runtime-inspector-tab-content.tsx` (with backward-compatible fallback to the legacy sentinel for previously-seeded data)
+- fixed two stale stack-e2e fixtures discovered while validating against a real stack: `avatars.stack-e2e.test.ts` referenced a decommissioned model id (`claude-3-7-sonnet`) no longer in the shared model catalog, and `sessions-admin.stack-e2e.test.ts`'s unlock-policy fixture still nested `avatarAvailability` inside `config` from before it was promoted to a root-level scenario field — both fixed to match current canonical contracts
+- confirmed no unresolved contract duplication remains across scenario/avatar/knowledge/model-config contracts touched by EPIC 6.1
+- quality gates validated for all touched workspaces: `pnpm typecheck`, `pnpm lint`, `pnpm test` (core 678, admin 60, console 48, web 28, all passing) plus a full `pnpm --filter @gami/core test:stack-e2e` run against a real Docker stack (159/159 passing)
+- discovered and flagged (as a separate follow-up, out of this slice's scope) an operational risk: `infra/postgres/init.sql` only runs on a fresh Postgres data volume, so `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` migrations added after a volume already exists (e.g. `visibility_policy`) never apply to already-provisioned environments; the generic 500 error handler in `apps/core/src/api/server.ts` also does not log the underlying error, which made this hard to diagnose
 
 ---
 
@@ -816,35 +828,36 @@ Started on: 2026-07-05
 
 # 4. Timeline
 
-| Date       | Milestone                                                                            |
-| ---------- | ------------------------------------------------------------------------------------ |
-| 2026-04-22 | EPIC 1.1 — Core Platform Bootstrap                                                   |
-| 2026-04-22 | EPIC 1.2 — First LLM Loop + Observability                                            |
-| 2026-04-22 | EPIC 2.1 — Avatar Agent v1                                                           |
-| 2026-04-22 | EPIC 2.2 — Scenario & Session Lifecycle                                              |
-| 2026-04-27 | EPIC 4.4 — Multi-Avatar Navigation v1                                                |
-| 2026-04-28 | EPIC 2.5 — Admin CRUD + Console Integration                                          |
-| 2026-04-28 | EPIC 2.6 — GM Debug Panel v1                                                         |
-| 2026-04-29 | EPIC 4.1 — Async Game Master v1                                                      |
-| 2026-04-30 | EPIC 3.1 — Health & Dependency Monitoring                                            |
-| 2026-04-30 | EPIC 4.3 — Performance Baseline                                                      |
-| 2026-05-02 | EPIC 5.5 — User Persona System                                                       |
-| 2026-05-05 | EPIC 4.2 — Memory Layer v1                                                           |
-| 2026-05-05 | EPIC 4.5 — Runtime State & SSE Events                                                |
-| 2026-05-06 | EPIC 4.2b — Memory System v2                                                         |
-| 2026-05-07 | EPIC 2.7 — Runtime Inspector v2                                                      |
-| 2026-05-07 | EPIC 2.8 — Console Debugging Redesign                                                |
-| 2026-05-08 | EPIC 4.2c — Episodic + Hydrated Memory System                                        |
-| 2026-05-10 | EPIC 3.2 — Inspector Consolidation & Contract Cleanup                                |
-| 2026-05-11 | EPIC 5.1 — Knowledge Substrate, Ingestion, Retrieval                                 |
-| 2026-05-11 | EPIC 5.2 — Context Engine v2                                                         |
-| 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration                                        |
-| 2026-06-01 | EPIC 7.1 — Public User Web App v1                                                    |
-| 2026-07-05 | EPIC 6.1 — Scenario Builder v1 (contract cleanup)                                    |
-| 2026-07-06 | EPIC 6.1 — Scenario Builder v1 (admin app foundation)                                |
-| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (scenario/avatar editors + visibility)                |
-| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (knowledge sources + visibility policy + file upload) |
-| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (runtime model selection)                             |
+| Date       | Milestone                                                                                      |
+| ---------- | ---------------------------------------------------------------------------------------------- |
+| 2026-04-22 | EPIC 1.1 — Core Platform Bootstrap                                                             |
+| 2026-04-22 | EPIC 1.2 — First LLM Loop + Observability                                                      |
+| 2026-04-22 | EPIC 2.1 — Avatar Agent v1                                                                     |
+| 2026-04-22 | EPIC 2.2 — Scenario & Session Lifecycle                                                        |
+| 2026-04-27 | EPIC 4.4 — Multi-Avatar Navigation v1                                                          |
+| 2026-04-28 | EPIC 2.5 — Admin CRUD + Console Integration                                                    |
+| 2026-04-28 | EPIC 2.6 — GM Debug Panel v1                                                                   |
+| 2026-04-29 | EPIC 4.1 — Async Game Master v1                                                                |
+| 2026-04-30 | EPIC 3.1 — Health & Dependency Monitoring                                                      |
+| 2026-04-30 | EPIC 4.3 — Performance Baseline                                                                |
+| 2026-05-02 | EPIC 5.5 — User Persona System                                                                 |
+| 2026-05-05 | EPIC 4.2 — Memory Layer v1                                                                     |
+| 2026-05-05 | EPIC 4.5 — Runtime State & SSE Events                                                          |
+| 2026-05-06 | EPIC 4.2b — Memory System v2                                                                   |
+| 2026-05-07 | EPIC 2.7 — Runtime Inspector v2                                                                |
+| 2026-05-07 | EPIC 2.8 — Console Debugging Redesign                                                          |
+| 2026-05-08 | EPIC 4.2c — Episodic + Hydrated Memory System                                                  |
+| 2026-05-10 | EPIC 3.2 — Inspector Consolidation & Contract Cleanup                                          |
+| 2026-05-11 | EPIC 5.1 — Knowledge Substrate, Ingestion, Retrieval                                           |
+| 2026-05-11 | EPIC 5.2 — Context Engine v2                                                                   |
+| 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration                                                  |
+| 2026-06-01 | EPIC 7.1 — Public User Web App v1                                                              |
+| 2026-07-05 | EPIC 6.1 — Scenario Builder v1 (contract cleanup)                                              |
+| 2026-07-06 | EPIC 6.1 — Scenario Builder v1 (admin app foundation)                                          |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (scenario/avatar editors + visibility)                          |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (knowledge sources + visibility policy + file upload)           |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (runtime model selection)                                       |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (final hardening: seed parity, tests, doc sync) — EPIC complete |
 
 ---
 
@@ -858,7 +871,7 @@ Current implementation focus:
 - advanced orchestration intelligence
 - retrieval observability
 - public web app operational hardening
-- Scenario Builder v1 admin app (EPIC 6.1): contract cleanup, scenario/avatar editors, knowledge source management, and runtime model selection (scenario default, GM override, avatar override) complete; remaining EPIC 6.1 work is outside this slice
+- EPIC 6.1 (Scenario Builder v1 admin app) is complete: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, and final hardening (seed parity, test coverage closure, doc sync) all delivered
 
 ---
 

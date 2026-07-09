@@ -1,5 +1,9 @@
 import type { KnowledgeFormat, KnowledgeType } from './setup-via-api.seed.js'
 
+// Mirrors the canonical `KnowledgeVisibilityPolicy` from `@gami/shared`; this script talks to
+// the API over HTTP only and intentionally does not import internal package types.
+export type KnowledgeVisibilityPolicy = 'all' | 'avatars' | 'none'
+
 export type ApiEnvelope<T> = {
   data: T | null
   error: {
@@ -45,6 +49,7 @@ export type KnowledgeSourceDto = {
   status: 'pending' | 'ready' | 'error'
   metadata?: Record<string, unknown>
   visibleToAvatarIds?: string[]
+  visibilityPolicy?: KnowledgeVisibilityPolicy
 }
 
 export type IngestionJobDto = {
@@ -206,6 +211,7 @@ export class ApiClient {
     uriOrPath: string
     metadata: Record<string, unknown>
     visibleToAvatarIds?: string[]
+    visibilityPolicy?: KnowledgeVisibilityPolicy
   }): Promise<{ source: KnowledgeSourceDto }> {
     return this.request('POST', '/v1/knowledge-sources', input, [201])
   }
@@ -216,6 +222,7 @@ export class ApiClient {
       name: string
       metadata: Record<string, unknown>
       visibleToAvatarIds: string[]
+      visibilityPolicy: KnowledgeVisibilityPolicy
       uriOrPath: string
     }>,
   ): Promise<{ source: KnowledgeSourceDto }> {

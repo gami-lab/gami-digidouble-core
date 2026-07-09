@@ -30,7 +30,6 @@ export type SourceSeed = {
 }
 
 export const SCENARIO_SEED_SLUG = 'murder-party-villa-miralac'
-export const GM_ONLY_SENTINEL = '__GM_ONLY__'
 
 export const AVATAR_SEEDS: AvatarSeed[] = [
   {

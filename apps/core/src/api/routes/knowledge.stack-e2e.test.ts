@@ -259,9 +259,63 @@ describe('Stack E2E — knowledge routes — happy path', () => {
 })
 
 describe('Stack E2E — knowledge upload — happy path', () => {
-  // TODO(EPIC-6.1): Add full happy-path test for upload + ingest + retrieve
-  // once a running stack fixture with auto-ingest is available.
-  it.skip('uploads a TXT file and retrieves ingested content', () => {
-    // Requires a running stack with the upload endpoint available.
+  it('uploads a TXT file, ingests it, and retrieves the extracted content', async () => {
+    const now = Date.now().toString()
+    const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ name: `Upload scenario ${now}` }),
+    })
+    expect(createScenarioRes.status).toBe(201)
+    const scenarioBody = (await createScenarioRes.json()) as {
+      data: { scenario: { scenarioId: string } }
+    }
+    const scenarioId = scenarioBody.data.scenario.scenarioId
+
+    const content = Buffer.from('Uploaded lore mentions a hidden lakeside passage.').toString(
+      'base64',
+    )
+    const uploadRes = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        scenarioId,
+        name: 'Uploaded lore',
+        knowledgeType: 'world',
+        content,
+        filename: 'lore.txt',
+      }),
+    })
+    expect(uploadRes.status).toBe(201)
+    const uploadBody = (await uploadRes.json()) as { data: { source: { sourceId: string } } }
+    const sourceId = uploadBody.data.source.sourceId
+
+    const triggerRes = await fetch(`${APP_URL}/v1/knowledge-sources/${sourceId}/ingest`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({}),
+    })
+    expect(triggerRes.status).toBe(202)
+    const triggerBody = (await triggerRes.json()) as {
+      data: { ingestionJob: { ingestionJobId: string } }
+    }
+
+    const finalJob = await waitForJob(triggerBody.data.ingestionJob.ingestionJobId)
+    expect(finalJob.status).toBe('completed')
+
+    const retrievalRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ scenarioId, query: 'lakeside passage' }),
+    })
+    expect(retrievalRes.status).toBe(200)
+    const retrievalBody = (await retrievalRes.json()) as {
+      data: { retrieval: { world: Array<{ content: string }> } }
+    }
+    expect(
+      retrievalBody.data.retrieval.world.some((item) =>
+        item.content.toLowerCase().includes('lakeside passage'),
+      ),
+    ).toBe(true)
   })
 })

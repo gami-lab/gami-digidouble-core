@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
+import type { ScenarioStatus } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { createScenario } from '../api/scenarios'
 import { ScenarioFormFields } from './ScenarioFormFields'
@@ -18,7 +19,7 @@ type CreateState = { status: 'idle' } | { status: 'saving' } | { status: 'error'
 
 export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProps): JSX.Element {
   const [name, setName] = useState('')
-  const [status, setStatus] = useState<'draft' | 'active' | 'archived'>('draft')
+  const [status, setStatus] = useState<ScenarioStatus>('draft')
   const [worldContext, setWorldContext] = useState('')
   const [objectives, setObjectives] = useState<string[]>([])
   const [defaultModelSelection, setDefaultModelSelection] = useState(EMPTY_MODEL_SELECTION)

@@ -334,7 +334,7 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
         snapshot.knowledge.sources.map((source) => (
           <p key={source.sourceId} style={{ margin: '4px 0', color: '#374151' }}>
             [{source.knowledgeType}] {source.name} [{source.status}] access:{' '}
-            {formatKnowledgeAccess(source.visibleToAvatarIds)}
+            {formatKnowledgeAccess(source)}
           </p>
         ))
       )}
@@ -379,17 +379,24 @@ function countKnowledgeSources(
   )
 }
 
-function listGmOnlySourceNames(
-  sources: RuntimeInspectorViewModel['knowledge']['sources'],
-): string[] {
-  return sources
-    .filter((source) => source.visibleToAvatarIds?.includes('__GM_ONLY__') === true)
-    .map((source) => source.name)
+type KnowledgeSourceView = RuntimeInspectorViewModel['knowledge']['sources'][number]
+
+// '__GM_ONLY__' sentinel check preserves compatibility with sources created before
+// the canonical `visibilityPolicy: 'none'` field existed (EPIC 6.1).
+function isGmOnlySource(source: KnowledgeSourceView): boolean {
+  return (
+    source.visibilityPolicy === 'none' || source.visibleToAvatarIds?.includes('__GM_ONLY__') === true
+  )
 }
 
-function formatKnowledgeAccess(visibleToAvatarIds: string[] | undefined): string {
+function listGmOnlySourceNames(sources: KnowledgeSourceView[]): string[] {
+  return sources.filter(isGmOnlySource).map((source) => source.name)
+}
+
+function formatKnowledgeAccess(source: KnowledgeSourceView): string {
+  if (isGmOnlySource(source)) return 'GM only'
+  const { visibleToAvatarIds } = source
   if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0) return 'all avatars'
-  if (visibleToAvatarIds.includes('__GM_ONLY__')) return 'GM only'
   return visibleToAvatarIds.join(', ')
 }
 

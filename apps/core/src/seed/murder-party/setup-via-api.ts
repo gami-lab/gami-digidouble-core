@@ -7,12 +7,12 @@ import {
   type CliOptions,
   type IngestionJobDto,
   type KnowledgeSourceDto,
+  type KnowledgeVisibilityPolicy,
   type ScenarioSummary,
 } from './setup-via-api.api.js'
 import {
   AVATAR_SEEDS,
   type AvatarSlug,
-  GM_ONLY_SENTINEL,
   getScenarioBaseConfig,
   SCENARIO_OBJECTIVES,
   SCENARIO_SEED_SLUG,
@@ -138,9 +138,9 @@ async function readSeedFile(fileName: string): Promise<string> {
 function resolveVisibility(
   visibility: SourceVisibility,
   avatars: Record<AvatarSlug, AvatarSummary>,
-): string[] | undefined {
-  if (visibility === 'public') return undefined
-  if (visibility === 'gm-only') return [GM_ONLY_SENTINEL]
+): { visibilityPolicy?: KnowledgeVisibilityPolicy; visibleToAvatarIds?: string[] } {
+  if (visibility === 'public') return {}
+  if (visibility === 'gm-only') return { visibilityPolicy: 'none' }
 
   const map: Record<Exclude<SourceVisibility, 'public' | 'gm-only'>, AvatarSlug> = {
     'avatar-clara': 'clara',
@@ -148,7 +148,10 @@ function resolveVisibility(
     'avatar-margot': 'margot',
     'avatar-thomas': 'thomas',
   }
-  return [avatars[map[visibility]].avatarId]
+  return {
+    visibilityPolicy: 'avatars',
+    visibleToAvatarIds: [avatars[map[visibility]].avatarId],
+  }
 }
 
 async function ensureScenario(client: ApiClient, options: CliOptions): Promise<ScenarioSummary> {
@@ -270,6 +273,7 @@ function toCreateSourcePayload(args: {
   seed: SourceSeed
   content: string
   contentHash: string
+  visibilityPolicy?: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
 }): {
   scenarioId: string
@@ -278,6 +282,7 @@ function toCreateSourcePayload(args: {
   format: SourceSeed['format']
   uriOrPath: string
   metadata: Record<string, unknown>
+  visibilityPolicy?: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
 } {
   return {
@@ -292,6 +297,7 @@ function toCreateSourcePayload(args: {
       contentSha256: args.contentHash,
       inlineText: args.content,
     },
+    ...(args.visibilityPolicy !== undefined ? { visibilityPolicy: args.visibilityPolicy } : {}),
     ...(args.visibleToAvatarIds !== undefined
       ? { visibleToAvatarIds: args.visibleToAvatarIds }
       : {}),
@@ -323,7 +329,7 @@ async function ensureOneKnowledgeSource(args: {
         seed,
         content,
         contentHash,
-        ...(visibility !== undefined ? { visibleToAvatarIds: visibility } : {}),
+        ...visibility,
       }),
     )
     source = created.source

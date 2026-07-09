@@ -295,6 +295,57 @@ Must test:
 
 ---
 
+## Admin App Module (`apps/admin`, EPIC 6.1)
+
+**Goals:** deterministic scenario-builder editor behavior, contract-safe transport layer, and zero locally duplicated backend DTOs.
+
+Coverage expectations by module:
+
+| Module path                                                                          | Required coverage                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api/client.ts`                                                                      | Unit tests for the `adminRequest` transport: api-key injection (and `/health` exemption), body serialization, envelope success/error unwrapping, network/JSON/envelope failure paths                                    |
+| `api/scenarios.ts`, `api/knowledge.ts`                                               | Unit tests verifying each wrapper calls `adminRequest` with the correct method/path/body and unwraps the correct response field — these modules are fully mocked away in page-level tests, so they need direct coverage |
+| `scenarios/model-selection-form.ts`                                                  | Unit tests for empty/complete/partial detection, trim behavior, and `ScenarioModelSelection`/`AvatarLlmOverride` round-tripping                                                                                         |
+| `scenarios/ScenarioListPage.tsx`, `ScenarioCreatePage.tsx`, `ScenarioDetailPage.tsx` | Behavior-level tests (loading/error/success states, form submission, validation errors, edit/cancel flows)                                                                                                              |
+
+Must test:
+
+- scenario create/update form flows including objectives and world context
+- avatar create/update flows with `personaPrompt` and initial-visibility toggle
+- knowledge source create (text + upload) and visibility-policy editing
+- model-selection precedence UI (scenario default, GM override, avatar override) blocks submission on partial (one-field) input
+- no locally duplicated backend DTOs in `apps/admin`; all request/response contracts and status enums (`ScenarioStatus`, `AvatarStatus`, `KnowledgeVisibilityPolicy`) are consumed from `@gami/shared`
+
+---
+
+## Seed Parity Checklist (EPIC 6.1)
+
+**Goal:** manual admin workflows must be able to fully replace or update the content currently produced by seed scripts, with no representational gap between the two paths.
+
+The murder-party seed script (`apps/core/src/seed/murder-party/setup-via-api.ts`) is itself API-first — it calls the same canonical Core endpoints (`POST/PATCH /v1/scenarios`, `POST/PATCH /v1/scenarios/{id}/avatars`, `POST/PATCH /v1/knowledge-sources`) that the admin app uses, so parity is largely guaranteed by construction. This checklist tracks the specific constructs verified during the EPIC 6.1 final-hardening pass:
+
+| Construct                                                                               | Seed script                                                                                     | Admin app                                                                         | Parity                                                 |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Scenario name/status/objectives/worldContext                                            | `ensureScenario` via `POST`/`PATCH /v1/scenarios`                                               | `ScenarioCreatePage`/`ScenarioEditForm` via same endpoints                        | ✅                                                     |
+| Avatar name/personaPrompt/status                                                        | `ensureAvatars` via `POST`/`PATCH /v1/scenarios/{id}/avatars`                                   | `AvatarCreateForm`/`AvatarEditForm` via same endpoints                            | ✅                                                     |
+| Avatar initial visibility (`avatarAvailability.initialAvatarIds`/`unlockableAvatarIds`) | `buildAvatarAvailability` via `PATCH /v1/scenarios/{id}`                                        | Visibility toggle in `ScenarioDetailPage` via same endpoint                       | ✅                                                     |
+| Knowledge source content (text)                                                         | `ensureKnowledgeSources` via `POST`/`PATCH /v1/knowledge-sources` (`metadata.inlineText`)       | `KnowledgeSourceCreateForm` (paste-text mode)                                     | ✅                                                     |
+| Knowledge source content (file)                                                         | n/a (seed script always sends inline text)                                                      | `KnowledgeSourceCreateForm` (upload mode) via `POST /v1/knowledge-sources/upload` | ✅ (admin-only path, additive)                         |
+| Knowledge visibility — shared/world                                                     | `visibility: 'public'` → no `visibilityPolicy`/`visibleToAvatarIds` set                         | `visibilityPolicy: 'all'`                                                         | ✅                                                     |
+| Knowledge visibility — avatar-scoped                                                    | `visibility: 'avatar-<slug>'` → `visibilityPolicy: 'avatars'`, `visibleToAvatarIds: [avatarId]` | `visibilityPolicy: 'avatars'` + avatar picker                                     | ✅                                                     |
+| Knowledge visibility — GM-only                                                          | `visibility: 'gm-only'` → `visibilityPolicy: 'none'`                                            | `visibilityPolicy: 'none'`                                                        | ✅ (fixed during this pass — see below)                |
+| Scenario default/GM-override model selection                                            | `getScenarioBaseConfig` does not set `modelSelection` (out of seed scope)                       | `ModelSelectionFields` via `PATCH /v1/scenarios/{id}`                             | N/A — seed intentionally leaves this at global default |
+| Avatar `llmOverride`                                                                    | not set by seed (out of seed scope)                                                             | Avatar form model-override fields via `PATCH /v1/avatars/{id}`                    | N/A — seed intentionally leaves this unset             |
+
+**Found and fixed during this pass:** the seed script and the console runtime inspector both represented "GM-only" visibility using a legacy sentinel value (`visibleToAvatarIds: ['__GM_ONLY__']`) predating the canonical `visibilityPolicy: 'none'` field introduced in the EPIC 6.1 knowledge-visibility slice. This meant seed-created GM-only sources were structurally different from admin-created ones, and the console inspector didn't recognize admin-created GM-only sources at all (it would have mislabeled them as "all avatars"). Fixed by:
+
+- updating `setup-via-api.ts`/`setup-via-api.seed.ts` to emit `visibilityPolicy: 'none'` (no sentinel) for GM-only sources
+- updating `runtime-inspector-tab-content.tsx` to detect GM-only via `visibilityPolicy === 'none'`, falling back to the legacy sentinel check for sources created before this fix (backward-compatible, does not require re-seeding existing environments)
+
+**Known gap, not fixed (out of EPIC 6.1 scope):** scenario-specific orchestration config (`scenario.config`, e.g. `progressionMilestones`, `solution`) has no admin editor — it remains seed/API-only. This is intentional: EPIC 6.1's admin scope is objectives/world context/persona/visibility/model-selection, not free-form scenario-specific game state.
+
+---
+
 ## Metrics Module
 
 **Goals:** reliable per-turn metric reconstruction from persisted events and safe admin exposure.

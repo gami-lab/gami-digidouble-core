@@ -53,6 +53,17 @@ function makeViewModel(): RuntimeInspectorViewModel {
           visibleToAvatarIds: ['__GM_ONLY__'],
           createdAt: '2026-05-07T10:00:00.000Z',
         },
+        {
+          sourceId: 'source_gm_only_policy',
+          scenarioId: 'scenario_1',
+          name: 'GM truth v2',
+          knowledgeType: 'world',
+          format: 'markdown',
+          uriOrPath: '/tmp/gm-truth-v2.md',
+          status: 'ready',
+          visibilityPolicy: 'none',
+          createdAt: '2026-05-07T10:00:00.000Z',
+        },
       ],
     },
     persona: null,
@@ -381,6 +392,7 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('access: avatar_1')
     expect(html).toContain('GM-only sources')
     expect(html).toContain('GM truth')
+    expect(html).toContain('GM truth v2')
     expect(html).toContain('Avatar prompt')
     expect(html).toContain('You are Ava.')
     expect(html).toContain('World objectives')

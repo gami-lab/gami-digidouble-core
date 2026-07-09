@@ -2,7 +2,7 @@
 scenarioId: murder-party-villa-miralac
 name: GM Truth — Full Solution
 knowledgeType: world
-visibleToAvatarIds: ['__GM_ONLY__']
+visibilityPolicy: none
 ---
 
 # GM Truth — Full Solution

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import type { ScenarioSummary } from '@gami/shared'
+import type { ScenarioStatus, ScenarioSummary } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { updateScenario } from '../api/scenarios'
 import { ScenarioFormFields } from './ScenarioFormFields'
@@ -20,7 +20,7 @@ type ScenarioEditFormProps = {
 export function ScenarioEditForm({ scenario, onCancel, onSaved, onError }: ScenarioEditFormProps): JSX.Element {
   const initialModelSelection = fromScenarioModelSelection(scenario.modelSelection)
   const [name, setName] = useState(scenario.name)
-  const [status, setStatus] = useState<'draft' | 'active' | 'archived'>(scenario.status)
+  const [status, setStatus] = useState<ScenarioStatus>(scenario.status)
   const [worldContext, setWorldContext] = useState(scenario.worldContext)
   const [objectives, setObjectives] = useState<string[]>(scenario.objectives)
   const [defaultModelSelection, setDefaultModelSelection] = useState(initialModelSelection.defaultProfile)

@@ -1,11 +1,12 @@
 import type { JSX } from 'react'
+import type { ScenarioStatus } from '@gami/shared'
 import { ModelSelectionFields } from './ModelSelectionFields'
 import { ObjectivesEditor } from './ObjectivesEditor'
 import type { ModelSelectionFormValue } from './model-selection-form'
 
 type ScenarioFormFieldsProps = {
   name: string
-  status: 'draft' | 'active' | 'archived'
+  status: ScenarioStatus
   worldContext: string
   objectives: string[]
   defaultModelSelection: ModelSelectionFormValue
@@ -13,7 +14,7 @@ type ScenarioFormFieldsProps = {
   idPrefix: string
   disabled: boolean
   onNameChange: (value: string) => void
-  onStatusChange: (value: 'draft' | 'active' | 'archived') => void
+  onStatusChange: (value: ScenarioStatus) => void
   onWorldContextChange: (value: string) => void
   onObjectivesChange: (objectives: string[]) => void
   onDefaultModelSelectionChange: (value: ModelSelectionFormValue) => void
@@ -61,7 +62,7 @@ export function ScenarioFormFields({
           id={`${idPrefix}-status`}
           className="admin-form-select"
           value={status}
-          onChange={(e) => { onStatusChange(e.target.value as 'draft' | 'active' | 'archived') }}
+          onChange={(e) => { onStatusChange(e.target.value as ScenarioStatus) }}
           disabled={disabled}
         >
           <option value="draft">draft</option>

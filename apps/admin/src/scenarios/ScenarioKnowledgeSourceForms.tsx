@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import type { KnowledgeType } from '@gami/shared'
+import type { KnowledgeType, KnowledgeVisibilityPolicy } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import type { KnowledgeSourceDto } from '../api/knowledge'
 import { createKnowledgeSource, updateKnowledgeSource, uploadKnowledgeSource } from '../api/knowledge'
 
-type VisibilityPolicy = 'all' | 'avatars' | 'none'
+type VisibilityPolicy = KnowledgeVisibilityPolicy
 
 type KnowledgeSourceCreateFormProps = {
   scenarioId: string

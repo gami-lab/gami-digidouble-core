@@ -397,7 +397,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
     const patchSetModelRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ llmOverride: { provider: 'anthropic', model: 'claude-3-7-sonnet' } }),
+      body: JSON.stringify({ llmOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' } }),
     })
     expect(patchSetModelRes.status).toBe(200)
 
@@ -410,7 +410,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
       avatars: Array<{ avatarId: string; llmOverride?: { provider?: string; model?: string } }>
     }>
     const listed = listBody.data?.avatars.find((avatar) => avatar.avatarId === avatarId)
-    expect(listed?.llmOverride).toEqual({ provider: 'anthropic', model: 'claude-3-7-sonnet' })
+    expect(listed?.llmOverride).toEqual({ provider: 'anthropic', model: 'claude-sonnet-4-6' })
 
     const patchClearRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
       method: 'PATCH',
