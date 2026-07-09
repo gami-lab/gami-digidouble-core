@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import type { JSX, FormEvent } from 'react'
+import type { JSX, SyntheticEvent } from 'react'
 import { formatApiError } from '../api/error'
 import { createScenario } from '../api/scenarios'
+import { ScenarioFormFields } from './ScenarioFormFields'
 
 type ScenarioCreatePageProps = {
   onBack: () => void
@@ -14,25 +15,12 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
   const [name, setName] = useState('')
   const [status, setStatus] = useState<'draft' | 'active' | 'archived'>('draft')
   const [worldContext, setWorldContext] = useState('')
-  const [objectiveInput, setObjectiveInput] = useState('')
   const [objectives, setObjectives] = useState<string[]>([])
   const [createState, setCreateState] = useState<CreateState>({ status: 'idle' })
 
-  function handleAddObjective(): void {
-    const trimmed = objectiveInput.trim()
-    if (trimmed.length === 0) return
-    setObjectives((prev) => [...prev, trimmed])
-    setObjectiveInput('')
-  }
-
-  function handleRemoveObjective(index: number): void {
-    setObjectives((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  async function handleSubmit(e: FormEvent): Promise<void> {
+  async function handleSubmit(e: SyntheticEvent): Promise<void> {
     e.preventDefault()
     if (name.trim().length === 0) return
-
     setCreateState({ status: 'saving' })
     try {
       const scenario = await createScenario({
@@ -62,109 +50,18 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
         <p className="admin-error">{createState.message}</p>
       ) : null}
       <form onSubmit={(e) => void handleSubmit(e)}>
-        <div className="admin-form-group">
-          <label htmlFor="sc-name" className="admin-form-label">
-            Name <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="sc-name"
-            type="text"
-            className="admin-form-input"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value)
-            }}
-            required
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="admin-form-group">
-          <label htmlFor="sc-status" className="admin-form-label">
-            Status
-          </label>
-          <select
-            id="sc-status"
-            className="admin-form-select"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value as 'draft' | 'active' | 'archived')
-            }}
-            disabled={isSaving}
-          >
-            <option value="draft">draft</option>
-            <option value="active">active</option>
-            <option value="archived">archived</option>
-          </select>
-        </div>
-
-        <div className="admin-form-group">
-          <label htmlFor="sc-world-context" className="admin-form-label">
-            World context
-          </label>
-          <textarea
-            id="sc-world-context"
-            className="admin-form-textarea"
-            rows={4}
-            value={worldContext}
-            onChange={(e) => {
-              setWorldContext(e.target.value)
-            }}
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="admin-form-group">
-          <p className="admin-form-label">Objectives</p>
-          {objectives.length > 0 ? (
-            <ul className="admin-objectives-list">
-              {objectives.map((objective, index) => (
-                <li key={index} className="admin-objective-item">
-                  <span>{objective}</span>
-                  <button
-                    type="button"
-                    className="admin-remove-button"
-                    onClick={() => {
-                      handleRemoveObjective(index)
-                    }}
-                    disabled={isSaving}
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="admin-muted">No objectives yet.</p>
-          )}
-          <div className="admin-objective-input-row">
-            <input
-              type="text"
-              className="admin-form-input"
-              placeholder="Add an objective…"
-              value={objectiveInput}
-              onChange={(e) => {
-                setObjectiveInput(e.target.value)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleAddObjective()
-                }
-              }}
-              disabled={isSaving}
-            />
-            <button
-              type="button"
-              className="admin-button admin-button-secondary"
-              onClick={handleAddObjective}
-              disabled={isSaving}
-            >
-              Add
-            </button>
-          </div>
-        </div>
-
+        <ScenarioFormFields
+          name={name}
+          status={status}
+          worldContext={worldContext}
+          objectives={objectives}
+          idPrefix="sc"
+          disabled={isSaving}
+          onNameChange={setName}
+          onStatusChange={setStatus}
+          onWorldContextChange={setWorldContext}
+          onObjectivesChange={setObjectives}
+        />
         <div className="admin-form-actions">
           <button
             type="submit"

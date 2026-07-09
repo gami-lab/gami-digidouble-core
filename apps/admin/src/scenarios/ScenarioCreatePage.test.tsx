@@ -66,7 +66,7 @@ describe('ScenarioCreatePage', () => {
     render(<ScenarioCreatePage onBack={vi.fn()} onCreated={onCreated} />)
 
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'New Scenario' } })
-    fireEvent.submit(screen.getByRole('button', { name: /Create scenario/ }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: /Create scenario/ }).closest('form') as HTMLFormElement)
 
     await waitFor(() => {
       expect(createScenario).toHaveBeenCalledWith(
@@ -82,7 +82,7 @@ describe('ScenarioCreatePage', () => {
     render(<ScenarioCreatePage onBack={vi.fn()} onCreated={vi.fn()} />)
 
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'New Scenario' } })
-    fireEvent.submit(screen.getByRole('button', { name: /Create scenario/ }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: /Create scenario/ }).closest('form') as HTMLFormElement)
 
     await waitFor(() => {
       expect(screen.getByText(/UNKNOWN_ERROR: Failed to create scenario/)).toBeTruthy()
