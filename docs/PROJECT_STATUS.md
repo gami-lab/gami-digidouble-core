@@ -705,6 +705,21 @@ Started on: 2026-07-05
   - scenario-level default runtime model assignment (no field exists yet on `Scenario`/`ScenarioSummary`) — owned by `04-runtime-model-selection.md`
 - verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web` all typecheck/lint clean; full test suites pass (core 659 tests, console 48 tests, web 28 tests)
 
+### Current slice completed (admin app foundation and vertical skeleton)
+
+- new `apps/admin` workspace scaffolded as a first-class app (not a mode inside `apps/web` or `apps/console`), with monorepo-standard scripts (`dev`, `build`, `typecheck`, `lint`, `test`, `preview`) and Vite + React + strict TypeScript setup, matching `apps/web`/`apps/console` conventions
+- environment-driven Core connection (`VITE_API_URL`, `VITE_API_KEY`) reused via an app-local `env.ts` + `adminRequest` transport client, following the same `ApiResponse` envelope handling already used by `apps/web` and `apps/console`
+- minimal app shell (`AppShell`) with a left-hand navigation listing scenario-builder modules (`Scenarios` active; `Knowledge Sources` and `Model Config` shown as "coming soon" placeholders for `03-knowledge-sources-and-visibility.md` and `04-runtime-model-selection.md`)
+- first vertical skeleton flow implemented end-to-end against existing canonical endpoints (no new backend endpoints introduced):
+  - scenario list (`GET /v1/scenarios`) with loading/error/empty states
+  - scenario detail placeholder (`GET /v1/scenarios/{scenarioId}`) showing name, status, world context, and objectives, with a note that avatar/knowledge/model-config editing arrive in later slices
+  - simple in-app view-state routing (list ↔ detail) consistent with the state-based navigation pattern already used by `apps/console` (no router dependency added, per KISS/YAGNI)
+- no shared DTO duplication introduced: `apps/admin` consumes `ScenarioSummary`, `ListScenariosResponse`, and `GetScenarioResponse` directly from `@gami/shared`
+- no new admin endpoints were introduced by this slice, so no additional stack-e2e coverage was required beyond what already exists for `GET /v1/scenarios` and `GET /v1/scenarios/{scenarioId}`
+- deterministic behavior-level test coverage added for the new app (loading/success/error states for both list and detail, row-click navigation, back navigation)
+- verified end-to-end manually against the running local Core API (live scenario data loaded and rendered through list → detail → back)
+- quality gates validated across the full monorepo after adding the new workspace: `pnpm lint`, `pnpm typecheck`, `pnpm test` (core 659 tests, console 48 tests, web 28 tests, admin 10 tests)
+
 ---
 
 # 3. Current Public API Surface
@@ -799,6 +814,7 @@ Started on: 2026-07-05
 | 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration         |
 | 2026-06-01 | EPIC 7.1 — Public User Web App v1                     |
 | 2026-07-05 | EPIC 6.1 — Scenario Builder v1 (contract cleanup)     |
+| 2026-07-06 | EPIC 6.1 — Scenario Builder v1 (admin app foundation) |
 
 ---
 
@@ -812,7 +828,7 @@ Current implementation focus:
 - advanced orchestration intelligence
 - retrieval observability
 - public web app operational hardening
-- Scenario Builder v1 admin app (EPIC 6.1): contract cleanup complete, admin app foundation and editor workflows next
+- Scenario Builder v1 admin app (EPIC 6.1): contract cleanup and admin app foundation/vertical skeleton complete; scenario/avatar editors, knowledge sources, and runtime model selection workflows next
 
 ---
 

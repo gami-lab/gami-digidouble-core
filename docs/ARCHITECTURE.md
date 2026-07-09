@@ -443,6 +443,12 @@ Console boundary (Phase A, final EPIC 3.2):
 - Console is a consumer-only layer over canonical Core routes.
 - Operator flow is a single `Session Inspector` path (session list -> selected session detail) and must not introduce parallel compatibility read paths.
 
+Admin app boundary (EPIC 6.1):
+
+- `apps/admin` is a dedicated, first-class app for scenario-builder content authoring (scenarios, avatars, knowledge sources, runtime model selection) — distinct from `apps/console` (manual test / runtime debugging console) and `apps/web` (public player-facing app).
+- Like Console, it is a consumer-only layer over canonical Core public/admin routes: no direct database access, no business logic duplication, environment-driven Core connection (`VITE_API_URL`, `VITE_API_KEY`).
+- Current scope (foundation slice): app shell with scenario-builder module navigation, and a read-only scenario list -> scenario detail vertical skeleton. Full scenario/avatar/knowledge/model editing workflows land in later EPIC 6.1 slices.
+
 ---
 
 # Request Flow (Normal Message)
@@ -547,9 +553,9 @@ src/
 
 Keep folders boring and predictable.
 
-`apps/console/` is a front-end consumer layer, not part of the backend 4-layer architecture.
-It consumes Core HTTP APIs and has no direct access to backend domain or infrastructure modules.
-Cross-package HTTP DTO ownership for Core/console contracts lives in `packages/shared/src/`.
+`apps/console/`, `apps/web/`, and `apps/admin/` are front-end consumer layers, not part of the backend 4-layer architecture.
+Each consumes Core HTTP APIs and has no direct access to backend domain or infrastructure modules.
+Cross-package HTTP DTO ownership for Core/console/web/admin contracts lives in `packages/shared/src/`.
 
 ---
 

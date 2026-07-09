@@ -564,18 +564,21 @@ SSE provides simple, stable server-to-client runtime event streaming without Web
 
 ### Scope
 
-This UI is an **internal admin and manual test console**, not a public product UI.
+Two distinct internal UIs share this stack, split by purpose:
 
-It is also the future home for editable policy configuration (goals, pacing, transition rules, constraints), once those controls are introduced.
+- `apps/console` — **manual test console and runtime/session debugging surface** (Session Inspector, GM debug panel, memory evolution workspace, model config editor).
+- `apps/admin` — **scenario builder / content-authoring app** for operators (EPIC 6.1): scenarios, avatars, knowledge sources, runtime model selection. Introduced as its own workspace so scenario-authoring UX can evolve independently of the debugging-focused console.
+
+Neither is a public product UI.
 
 ### Rules
 
-- The admin UI is `apps/console` in the monorepo
-- It consumes the Core only through **HTTP admin/public API contracts**
-- **No direct database access** from the UI
-- **No business logic duplication** in the UI
-- Keep the UI thin: orchestration and runtime logic stay in the Core
-- Environment-driven Core connection (`VITE_API_URL`, `VITE_API_KEY`)
+- Both `apps/console` and `apps/admin` consume the Core only through **HTTP admin/public API contracts**
+- **No direct database access** from either UI
+- **No business logic duplication** in either UI
+- Keep both UIs thin: orchestration and runtime logic stay in the Core
+- Environment-driven Core connection (`VITE_API_URL`, `VITE_API_KEY`) for both
+- No routing library is used for in-app navigation in either app — simple state-based view switching is preferred (KISS/YAGNI); introduce one only if navigation complexity later justifies it
 
 ### Why
 
