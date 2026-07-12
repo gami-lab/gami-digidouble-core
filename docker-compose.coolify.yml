@@ -126,6 +126,26 @@ services:
       retries: 12
       start_period: 10s
 
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+      args:
+        VITE_API_URL: ${VITE_API_URL:?}
+        VITE_API_KEY: ${API_KEY_SECRET:?}
+    restart: unless-stopped
+    expose:
+      - '80'
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.admin.loadbalancer.server.port=80
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/health || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
 volumes:
   postgres_data:
   redis_data:

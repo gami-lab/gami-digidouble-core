@@ -8,7 +8,8 @@ This document covers:
 
 1. Backend deployment (`core` + PostgreSQL + Redis)
 2. Public frontend deployment (`web`)
-3. Environment variable ownership and domain routing
+3. Admin frontend deployment (`admin`)
+4. Environment variable ownership and domain routing
 
 ---
 
@@ -20,6 +21,7 @@ Use one monorepo.
 
 - `apps/core` -> backend API runtime
 - `apps/web` -> public user frontend
+- `apps/admin` -> operator scenario-builder frontend
 - `apps/console` -> local debug UI only (never deployed to production)
 - `packages/shared` -> shared contracts/types
 
@@ -58,6 +60,7 @@ Services:
 
 - `app` (`core` API)
 - `web` public frontend
+- `admin` operator frontend
 - `postgres`
 - `redis`
 - `db-init` one-shot schema initializer
@@ -66,6 +69,7 @@ Domain:
 
 - `api.example.com` -> `app` service
 - `app.example.com` -> `web` service
+- `admin.example.com` -> `admin` service
 
 ---
 
@@ -76,7 +80,8 @@ Project files:
 - `docker-compose.coolify.yml`
 - `Dockerfile`
 - `Dockerfile.web`
-- `infra/nginx/web.conf`
+- `Dockerfile.admin`
+- `infra/nginx/web.conf` (shared by both `web` and `admin`)
 
 ---
 
@@ -117,6 +122,17 @@ Important:
 - `VITE_*` values are embedded at build time in Vite static builds.
 - `VITE_API_KEY` is client-visible in browser bundles. The current deployment reuses `API_KEY_SECRET` as the source value so Coolify only needs one configured secret.
 
+### Admin runtime (`admin`)
+
+Required build arguments:
+
+- `VITE_API_URL`
+- `VITE_API_KEY` (derived from `API_KEY_SECRET` in the compose file, same as `web`)
+
+Same build-time/client-visibility notes as the web runtime apply.
+
+**CORS caveat:** `apps/core/src/api/server.ts` registers `@fastify/cors` with `origin: config.corsOrigin` — a single string, not a list. If `CORS_ORIGIN` is set to one exact origin (e.g. `app.example.com`), requests from the `admin` domain will be blocked by the browser. Until the backend supports multiple allowed origins, either set `CORS_ORIGIN=*` or pick one exact origin that covers your actual usage.
+
 ---
 
 ## Coolify Configuration Notes
@@ -138,13 +154,13 @@ References:
 ### 1. Deploy the single Coolify project
 
 - Use `docker-compose.coolify.yml`
-- Configure domains for both `app` and `web` services in the same project
+- Configure domains for `app`, `web`, and `admin` services in the same project (Coolify only lists a "Domains for X" field for services present in the compose file — after adding a new service, redeploy once before the domain field appears)
 - Set required env vars `API_KEY_SECRET` and `VITE_API_URL`
-- Deploy and verify both `/health` (API) and `/` (web)
+- Deploy and verify `/health` (API), `/` (web), and `/` (admin)
 
 ### 2. CORS alignment
 
-Set backend `CORS_ORIGIN` so browser requests from `app.example.com` to `api.example.com` are allowed.
+Set backend `CORS_ORIGIN` so browser requests from `app.example.com` to `api.example.com` are allowed. See the CORS caveat under [Admin runtime](#admin-runtime-admin) if serving both `web` and `admin` from different origins.
 
 ---
 
@@ -189,6 +205,6 @@ Then click **Redeploy** in Coolify so `db-init` rebuilds the schema from `init.s
 
 ---
 
-## Future Extension (Admin App)
+## Admin App
 
-If `apps/admin` is introduced later, deploy it as an independent runtime surface (own Coolify application or project), with its own domain and rollback path.
+`apps/admin` is deployed as the `admin` service in this same compose stack (see `Dockerfile.admin`), sharing this project's deployment history and rollback path with `app` and `web`. This was a deliberate simplicity tradeoff over an independent Coolify resource — revisit if admin's release cadence or blast-radius needs diverge enough to justify splitting it out.
