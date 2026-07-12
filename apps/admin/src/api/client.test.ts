@@ -53,14 +53,12 @@ describe('adminRequest', () => {
   })
 
   it('throws ApiError with the envelope error code/message on a domain error', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse(404, {
-          data: null,
-          error: { code: 'NOT_FOUND', message: 'Scenario missing' },
-        }),
-      )
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(404, {
+        data: null,
+        error: { code: 'NOT_FOUND', message: 'Scenario missing' },
+      }),
+    )
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(adminRequest('GET', '/v1/scenarios/missing')).rejects.toMatchObject({
