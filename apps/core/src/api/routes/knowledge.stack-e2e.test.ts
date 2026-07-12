@@ -191,7 +191,7 @@ async function seedReadyWorldKnowledgeSource(args: {
 async function deleteScenario(scenarioId: string): Promise<void> {
   await fetch(`${APP_URL}/v1/scenarios/${scenarioId}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    headers: { 'x-api-key': API_KEY },
   })
 }
 

@@ -50,7 +50,10 @@ function readModelProfile(value: unknown): ScenarioModelSelection['defaultProfil
 }
 
 function readScenarioModelSelection(value: unknown): ScenarioModelSelection | undefined {
-  const raw = isRecord(value) ? value : undefined
+  // sql.unsafe() (used by update()) returns jsonb columns as raw text when that
+  // column is also the target of a bound-parameter SET in the same statement.
+  const parsed = typeof value === 'string' ? safeJsonParse(value) : value
+  const raw = isRecord(parsed) ? parsed : undefined
   if (raw === undefined) return undefined
 
   const defaultProfile = readModelProfile(raw['defaultProfile'])

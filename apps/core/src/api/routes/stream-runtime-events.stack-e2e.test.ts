@@ -12,7 +12,7 @@ function authHeaders(apiKey = API_KEY): Record<string, string> {
 }
 
 async function deleteJson(path: string): Promise<void> {
-  await fetch(`${APP_URL}${path}`, { method: 'DELETE', headers: authHeaders() })
+  await fetch(`${APP_URL}${path}`, { method: 'DELETE', headers: { 'x-api-key': API_KEY } })
 }
 
 async function cleanupScenario(ids: { sessionId: string; scenarioId: string }): Promise<void> {
