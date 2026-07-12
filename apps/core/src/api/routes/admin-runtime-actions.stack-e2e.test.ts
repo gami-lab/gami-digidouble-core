@@ -31,7 +31,26 @@ function requireId<T extends Record<string, unknown>>(value: T | undefined, key:
   return id
 }
 
-async function seedConversation(): Promise<{ sessionId: string; conversationId: string }> {
+async function deleteJson(path: string): Promise<void> {
+  await fetch(buildUrl(path), { method: 'DELETE', headers: authHeaders() })
+}
+
+async function cleanupSession(ids: {
+  sessionId: string
+  avatarId: string
+  scenarioId: string
+}): Promise<void> {
+  await deleteJson(`/v1/sessions/${ids.sessionId}`)
+  await deleteJson(`/v1/avatars/${ids.avatarId}`)
+  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+}
+
+async function seedConversation(): Promise<{
+  sessionId: string
+  conversationId: string
+  avatarId: string
+  scenarioId: string
+}> {
   const scenarioRes = await postJson('/v1/scenarios', {
     name: `Admin Actions Scenario ${String(Date.now())}`,
   })
@@ -69,7 +88,7 @@ async function seedConversation(): Promise<{ sessionId: string; conversationId: 
   })
   expect(messageRes.status).toBe(200)
 
-  return { sessionId, conversationId }
+  return { sessionId, conversationId, avatarId, scenarioId }
 }
 
 describe('admin runtime actions auth', () => {
@@ -123,42 +142,60 @@ describe('admin runtime actions not-found', () => {
 
 describe('admin runtime actions happy path', () => {
   it('schedules gm replay', async () => {
-    const { sessionId } = await seedConversation()
-    const response = await fetch(buildUrl(`/v1/admin/sessions/${sessionId}/gm/replay`), {
-      method: 'POST',
-      headers: authHeaders(),
-    })
-    expect(response.status).toBe(200)
-    const body = (await response.json()) as ApiResponse<{ action: string; scheduled: boolean }>
-    expect(body.error).toBeNull()
-    expect(body.data?.action).toBe('gm.replay')
-    expect(body.data?.scheduled).toBe(true)
+    const seeded = await seedConversation()
+    try {
+      const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/gm/replay`), {
+        method: 'POST',
+        headers: authHeaders(),
+      })
+      expect(response.status).toBe(200)
+      const body = (await response.json()) as ApiResponse<{ action: string; scheduled: boolean }>
+      expect(body.error).toBeNull()
+      expect(body.data?.action).toBe('gm.replay')
+      expect(body.data?.scheduled).toBe(true)
+    } finally {
+      await cleanupSession(seeded)
+    }
   })
 
   it('schedules memory refresh', async () => {
-    const { sessionId } = await seedConversation()
-    const response = await fetch(buildUrl(`/v1/admin/sessions/${sessionId}/memory/refresh`), {
-      method: 'POST',
-      headers: authHeaders(),
-    })
-    expect(response.status).toBe(200)
-    const body = (await response.json()) as ApiResponse<{ action: string; scheduled: boolean }>
-    expect(body.data?.action).toBe('memory.refresh')
-    expect(body.data?.scheduled).toBe(true)
+    const seeded = await seedConversation()
+    try {
+      const response = await fetch(
+        buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory/refresh`),
+        {
+          method: 'POST',
+          headers: authHeaders(),
+        },
+      )
+      expect(response.status).toBe(200)
+      const body = (await response.json()) as ApiResponse<{ action: string; scheduled: boolean }>
+      expect(body.data?.action).toBe('memory.refresh')
+      expect(body.data?.scheduled).toBe(true)
+    } finally {
+      await cleanupSession(seeded)
+    }
   })
 
   it('clears session memory only', async () => {
-    const { sessionId } = await seedConversation()
-    const response = await fetch(buildUrl(`/v1/admin/sessions/${sessionId}/memory/clear`), {
-      method: 'POST',
-      headers: authHeaders(),
-    })
-    expect(response.status).toBe(200)
-    const body = (await response.json()) as ApiResponse<{
-      action: string
-      cleared: { userFactsCleared: boolean }
-    }>
-    expect(body.data?.action).toBe('memory.clear')
-    expect(body.data?.cleared.userFactsCleared).toBe(false)
+    const seeded = await seedConversation()
+    try {
+      const response = await fetch(
+        buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory/clear`),
+        {
+          method: 'POST',
+          headers: authHeaders(),
+        },
+      )
+      expect(response.status).toBe(200)
+      const body = (await response.json()) as ApiResponse<{
+        action: string
+        cleared: { userFactsCleared: boolean }
+      }>
+      expect(body.data?.action).toBe('memory.clear')
+      expect(body.data?.cleared.userFactsCleared).toBe(false)
+    } finally {
+      await cleanupSession(seeded)
+    }
   })
 })

@@ -38,6 +38,10 @@ describe('GET /v1/users/:userId/memory-facts — stack auth', () => {
   })
 })
 
+async function deleteJson(path: string): Promise<void> {
+  await fetch(buildUrl(path), { method: 'DELETE', headers: authHeaders() })
+}
+
 describe('GET /v1/users/:userId/memory-facts — stack behavior', () => {
   it('returns empty list for unknown user', async () => {
     const userId = `e2e_user_${crypto.randomUUID()}`
@@ -82,56 +86,62 @@ describe('GET /v1/users/:userId/memory-facts — stack behavior', () => {
     const sessionBody = (await sessionRes.json()) as ApiResponse<{ session: { sessionId: string } }>
     const sessionId = requireId(sessionBody.data?.session, 'sessionId')
 
-    const convoRes = await fetch(buildUrl(`/v1/sessions/${sessionId}/conversations`), {
-      method: 'POST',
-      headers: { ...authHeaders(), 'content-type': 'application/json' },
-      body: JSON.stringify({ avatarId }),
-    })
-    expect(convoRes.status).toBe(201)
-    const convoBody = (await convoRes.json()) as ApiResponse<{
-      conversation: { conversationId: string }
-    }>
-    const conversationId = requireId(convoBody.data?.conversation, 'conversationId')
-
-    const messageRes = await fetch(buildUrl(`/v1/conversations/${conversationId}/messages`), {
-      method: 'POST',
-      headers: { ...authHeaders(), 'content-type': 'application/json' },
-      body: JSON.stringify({ message: { content: 'I enjoy strategy games.' } }),
-    })
-    expect(messageRes.status).toBe(200)
-
-    const endRes = await fetch(
-      buildUrl(`/v1/sessions/${sessionId}/conversations/${conversationId}/end`),
-      {
+    try {
+      const convoRes = await fetch(buildUrl(`/v1/sessions/${sessionId}/conversations`), {
         method: 'POST',
         headers: { ...authHeaders(), 'content-type': 'application/json' },
-        body: JSON.stringify({ reason: 'operator_end' }),
-      },
-    )
-    expect(endRes.status).toBe(200)
-
-    const response = await fetch(buildUrl(`/v1/users/${userId}/memory-facts`), {
-      headers: authHeaders(),
-    })
-    expect(response.status).toBe(200)
-    const body = (await response.json()) as ApiResponse<{
-      facts: Array<{
-        id: string
-        category: string
-        key: string
-        value: string
-        confidence?: number | null
-        updatedAt: string
+        body: JSON.stringify({ avatarId }),
+      })
+      expect(convoRes.status).toBe(201)
+      const convoBody = (await convoRes.json()) as ApiResponse<{
+        conversation: { conversationId: string }
       }>
-    }>
-    expect(body.error).toBeNull()
-    expect(Array.isArray(body.data?.facts)).toBe(true)
-    for (const fact of body.data?.facts ?? []) {
-      expect(typeof fact.id).toBe('string')
-      expect(typeof fact.category).toBe('string')
-      expect(typeof fact.key).toBe('string')
-      expect(typeof fact.value).toBe('string')
-      expect(typeof fact.updatedAt).toBe('string')
+      const conversationId = requireId(convoBody.data?.conversation, 'conversationId')
+
+      const messageRes = await fetch(buildUrl(`/v1/conversations/${conversationId}/messages`), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'content-type': 'application/json' },
+        body: JSON.stringify({ message: { content: 'I enjoy strategy games.' } }),
+      })
+      expect(messageRes.status).toBe(200)
+
+      const endRes = await fetch(
+        buildUrl(`/v1/sessions/${sessionId}/conversations/${conversationId}/end`),
+        {
+          method: 'POST',
+          headers: { ...authHeaders(), 'content-type': 'application/json' },
+          body: JSON.stringify({ reason: 'operator_end' }),
+        },
+      )
+      expect(endRes.status).toBe(200)
+
+      const response = await fetch(buildUrl(`/v1/users/${userId}/memory-facts`), {
+        headers: authHeaders(),
+      })
+      expect(response.status).toBe(200)
+      const body = (await response.json()) as ApiResponse<{
+        facts: Array<{
+          id: string
+          category: string
+          key: string
+          value: string
+          confidence?: number | null
+          updatedAt: string
+        }>
+      }>
+      expect(body.error).toBeNull()
+      expect(Array.isArray(body.data?.facts)).toBe(true)
+      for (const fact of body.data?.facts ?? []) {
+        expect(typeof fact.id).toBe('string')
+        expect(typeof fact.category).toBe('string')
+        expect(typeof fact.key).toBe('string')
+        expect(typeof fact.value).toBe('string')
+        expect(typeof fact.updatedAt).toBe('string')
+      }
+    } finally {
+      await deleteJson(`/v1/sessions/${sessionId}`)
+      await deleteJson(`/v1/avatars/${avatarId}`)
+      await deleteJson(`/v1/scenarios/${scenarioId}`)
     }
   })
 })

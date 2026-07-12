@@ -26,105 +26,128 @@ function requireValue(value: string | undefined, label: string): string {
   return value
 }
 
+async function deleteJson(path: string): Promise<void> {
+  await fetch(`${APP_URL}${path}`, {
+    method: 'DELETE',
+    headers: { 'x-api-key': API_KEY },
+  })
+}
+
+async function cleanupScenario(ids: {
+  sessionId: string | undefined
+  avatarId: string | undefined
+  scenarioId: string
+}): Promise<void> {
+  if (ids.sessionId !== undefined) await deleteJson(`/v1/sessions/${ids.sessionId}`)
+  if (ids.avatarId !== undefined) await deleteJson(`/v1/avatars/${ids.avatarId}`)
+  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+}
+
+async function seedSessionFixture(
+  scenarioName: string,
+  avatarName: string,
+): Promise<{ scenarioId: string; avatarId: string; sessionId: string }> {
+  const scenarioRes = await postJson('/v1/scenarios', { name: scenarioName })
+  expect(scenarioRes.status).toBe(201)
+  const scenarioBody = (await scenarioRes.json()) as ApiResponse<{
+    scenario: { scenarioId: string }
+  }>
+  const scenarioId = requireValue(scenarioBody.data?.scenario.scenarioId, 'scenarioId')
+
+  const avatarRes = await postJson(`/v1/scenarios/${scenarioId}/avatars`, {
+    name: avatarName,
+    personaPrompt: `You are ${avatarName}.`,
+  })
+  expect(avatarRes.status).toBe(201)
+  const avatarBody = (await avatarRes.json()) as ApiResponse<{ avatar: { avatarId: string } }>
+  const avatarId = requireValue(avatarBody.data?.avatar.avatarId, 'avatarId')
+
+  const sessionRes = await postJson('/v1/sessions', {
+    userId: `user_${Date.now().toString()}`,
+    scenarioId,
+  })
+  expect(sessionRes.status).toBe(201)
+  const sessionBody = (await sessionRes.json()) as ApiResponse<{ session: { sessionId: string } }>
+  const sessionId = requireValue(sessionBody.data?.session.sessionId, 'sessionId')
+
+  return { scenarioId, avatarId, sessionId }
+}
+
 describe('Stack E2E — session/conversation lifecycle', () => {
   it('runs create session -> create conversation -> send message -> history -> list conversations', async () => {
-    const scenarioRes = await postJson('/v1/scenarios', { name: 'Lifecycle Scenario' })
-    expect(scenarioRes.status).toBe(201)
-    const scenarioBody = (await scenarioRes.json()) as ApiResponse<{
-      scenario: { scenarioId: string }
-    }>
-    const scenarioId = requireValue(scenarioBody.data?.scenario.scenarioId, 'scenarioId')
-
-    const avatarRes = await postJson(`/v1/scenarios/${scenarioId}/avatars`, {
-      name: 'Avatar A',
-      personaPrompt: 'You are Avatar A.',
-    })
-    expect(avatarRes.status).toBe(201)
-    const avatarBody = (await avatarRes.json()) as ApiResponse<{ avatar: { avatarId: string } }>
-    const avatarId = requireValue(avatarBody.data?.avatar.avatarId, 'avatarId')
-
-    const sessionRes = await postJson('/v1/sessions', {
-      userId: `user_${Date.now().toString()}`,
-      scenarioId,
-    })
-    expect(sessionRes.status).toBe(201)
-    const sessionBody = (await sessionRes.json()) as ApiResponse<{ session: { sessionId: string } }>
-    const sessionId = requireValue(sessionBody.data?.session.sessionId, 'sessionId')
-
-    const conversationRes = await postJson(`/v1/sessions/${sessionId}/conversations`, { avatarId })
-    expect(conversationRes.status).toBe(201)
-    const conversationBody = (await conversationRes.json()) as ApiResponse<{
-      conversation: { conversationId: string }
-    }>
-    const conversationId = requireValue(
-      conversationBody.data?.conversation.conversationId,
-      'conversationId',
+    const { scenarioId, avatarId, sessionId } = await seedSessionFixture(
+      `Lifecycle Scenario ${String(Date.now())}`,
+      'Avatar A',
     )
 
-    const sendRes = await postJson(`/v1/conversations/${conversationId}/messages`, {
-      message: { content: 'Hello stack test' },
-    })
-    expect(sendRes.status).toBe(200)
+    try {
+      const conversationRes = await postJson(`/v1/sessions/${sessionId}/conversations`, {
+        avatarId,
+      })
+      expect(conversationRes.status).toBe(201)
+      const conversationBody = (await conversationRes.json()) as ApiResponse<{
+        conversation: { conversationId: string }
+      }>
+      const conversationId = requireValue(
+        conversationBody.data?.conversation.conversationId,
+        'conversationId',
+      )
 
-    const historyRes = await getJson(`/v1/conversations/${conversationId}/history`)
-    expect(historyRes.status).toBe(200)
-    const historyBody = (await historyRes.json()) as ApiResponse<{
-      messages: Array<{ content: string }>
-    }>
-    expect(historyBody.data?.messages[0]?.content).toBe('Hello stack test')
+      const sendRes = await postJson(`/v1/conversations/${conversationId}/messages`, {
+        message: { content: 'Hello stack test' },
+      })
+      expect(sendRes.status).toBe(200)
 
-    const listConversationsRes = await getJson(`/v1/sessions/${sessionId}/conversations`)
-    expect(listConversationsRes.status).toBe(200)
-    const listConversationsBody = (await listConversationsRes.json()) as ApiResponse<{
-      conversations: Array<{ conversationId: string }>
-    }>
-    expect(listConversationsBody.data?.conversations.map((item) => item.conversationId)).toContain(
-      conversationId,
-    )
+      const historyRes = await getJson(`/v1/conversations/${conversationId}/history`)
+      expect(historyRes.status).toBe(200)
+      const historyBody = (await historyRes.json()) as ApiResponse<{
+        messages: Array<{ content: string }>
+      }>
+      expect(historyBody.data?.messages[0]?.content).toBe('Hello stack test')
+
+      const listConversationsRes = await getJson(`/v1/sessions/${sessionId}/conversations`)
+      expect(listConversationsRes.status).toBe(200)
+      const listConversationsBody = (await listConversationsRes.json()) as ApiResponse<{
+        conversations: Array<{ conversationId: string }>
+      }>
+      expect(
+        listConversationsBody.data?.conversations.map((item) => item.conversationId),
+      ).toContain(conversationId)
+    } finally {
+      await cleanupScenario({ sessionId, avatarId, scenarioId })
+    }
   })
 
   it('implicitly closes conversation on terminal user signal via canonical close pipeline', async () => {
-    const scenarioRes = await postJson('/v1/scenarios', { name: 'Implicit End Scenario' })
-    expect(scenarioRes.status).toBe(201)
-    const scenarioBody = (await scenarioRes.json()) as ApiResponse<{
-      scenario: { scenarioId: string }
-    }>
-    const scenarioId = requireValue(scenarioBody.data?.scenario.scenarioId, 'scenarioId')
-
-    const avatarRes = await postJson(`/v1/scenarios/${scenarioId}/avatars`, {
-      name: 'Avatar B',
-      personaPrompt: 'You are Avatar B.',
-    })
-    expect(avatarRes.status).toBe(201)
-    const avatarBody = (await avatarRes.json()) as ApiResponse<{ avatar: { avatarId: string } }>
-    const avatarId = requireValue(avatarBody.data?.avatar.avatarId, 'avatarId')
-
-    const sessionRes = await postJson('/v1/sessions', {
-      userId: `user_${Date.now().toString()}`,
-      scenarioId,
-    })
-    expect(sessionRes.status).toBe(201)
-    const sessionBody = (await sessionRes.json()) as ApiResponse<{ session: { sessionId: string } }>
-    const sessionId = requireValue(sessionBody.data?.session.sessionId, 'sessionId')
-
-    const conversationRes = await postJson(`/v1/sessions/${sessionId}/conversations`, { avatarId })
-    expect(conversationRes.status).toBe(201)
-    const conversationBody = (await conversationRes.json()) as ApiResponse<{
-      conversation: { conversationId: string }
-    }>
-    const conversationId = requireValue(
-      conversationBody.data?.conversation.conversationId,
-      'conversationId',
+    const { scenarioId, avatarId, sessionId } = await seedSessionFixture(
+      `Implicit End Scenario ${String(Date.now())}`,
+      'Avatar B',
     )
 
-    const sendRes = await postJson(`/v1/conversations/${conversationId}/messages`, {
-      message: { content: 'bye' },
-    })
-    expect(sendRes.status).toBe(200)
-    const sendBody = (await sendRes.json()) as ApiResponse<{
-      conversation: { status: string; endedAt?: string }
-    }>
-    expect(sendBody.data?.conversation.status).toBe('closed')
-    expect(sendBody.data?.conversation.endedAt).toBeTypeOf('string')
+    try {
+      const conversationRes = await postJson(`/v1/sessions/${sessionId}/conversations`, {
+        avatarId,
+      })
+      expect(conversationRes.status).toBe(201)
+      const conversationBody = (await conversationRes.json()) as ApiResponse<{
+        conversation: { conversationId: string }
+      }>
+      const conversationId = requireValue(
+        conversationBody.data?.conversation.conversationId,
+        'conversationId',
+      )
+
+      const sendRes = await postJson(`/v1/conversations/${conversationId}/messages`, {
+        message: { content: 'bye' },
+      })
+      expect(sendRes.status).toBe(200)
+      const sendBody = (await sendRes.json()) as ApiResponse<{
+        conversation: { status: string; endedAt?: string }
+      }>
+      expect(sendBody.data?.conversation.status).toBe('closed')
+      expect(sendBody.data?.conversation.endedAt).toBeTypeOf('string')
+    } finally {
+      await cleanupScenario({ sessionId, avatarId, scenarioId })
+    }
   })
 })

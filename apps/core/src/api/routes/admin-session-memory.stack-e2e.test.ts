@@ -31,6 +31,30 @@ async function postConversationMessage(conversationId: string, content: string):
   })
 }
 
+async function endConversation(sessionId: string, conversationId: string): Promise<Response> {
+  return fetch(buildUrl(`/v1/sessions/${sessionId}/conversations/${conversationId}/end`), {
+    method: 'POST',
+    headers: {
+      ...authHeaders(),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ reason: 'operator_end' }),
+  })
+}
+
+async function pollForSummary(sessionId: string): Promise<string | null> {
+  for (let i = 0; i < 100; i += 1) {
+    const memoryRes = await fetch(buildUrl(`/v1/admin/sessions/${sessionId}/memory`), {
+      headers: authHeaders(),
+    })
+    const body = (await memoryRes.json()) as ApiResponse<{ session: SessionMemorySummary }>
+    const summary = body.data?.session.summary ?? null
+    if (summary !== null) return summary
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  return null
+}
+
 function assertMemoryLayersEnvelope(
   body: ApiResponse<{ session: SessionMemoryLayers }>,
   sessionId: string,
@@ -62,10 +86,26 @@ function assertObservabilityLayer(session: SessionMemoryLayers | undefined): voi
   expect(Array.isArray(session?.observability?.selection?.topSelectionReasons ?? [])).toBe(true)
 }
 
+async function deleteJson(path: string): Promise<void> {
+  await fetch(buildUrl(path), { method: 'DELETE', headers: authHeaders() })
+}
+
+async function cleanupSession(ids: {
+  sessionId: string
+  avatarId: string
+  scenarioId: string
+}): Promise<void> {
+  await deleteJson(`/v1/sessions/${ids.sessionId}`)
+  await deleteJson(`/v1/avatars/${ids.avatarId}`)
+  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+}
+
 async function seedSession(): Promise<{
   sessionId: string
   userId: string
   conversationId: string
+  avatarId: string
+  scenarioId: string
 }> {
   const userId = `e2e_user_${crypto.randomUUID()}`
   const scenarioRes = await fetch(buildUrl('/v1/scenarios'), {
@@ -115,7 +155,7 @@ async function seedSession(): Promise<{
     conversation: { conversationId: string }
   }>
   const conversationId = requireId(convoBody.data?.conversation, 'conversationId')
-  return { sessionId, userId, conversationId }
+  return { sessionId, userId, conversationId, avatarId, scenarioId }
 }
 
 describe('GET /v1/admin/sessions/:sessionId/memory — stack auth', () => {
@@ -153,93 +193,59 @@ describe('GET /v1/admin/sessions/:sessionId/memory — stack behavior', () => {
 
   it('returns empty summary and zero facts for known session with no summary/facts', async () => {
     const seeded = await seedSession()
-    const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory`), {
-      headers: authHeaders(),
-    })
-    expect(response.status).toBe(200)
-    const body = (await response.json()) as ApiResponse<{ session: SessionMemorySummary }>
-    expect(body.error).toBeNull()
-    expect(body.data?.session.summary).toBe('')
-    expect(body.data?.session.longTermFactCount).toBe(0)
+    try {
+      const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory`), {
+        headers: authHeaders(),
+      })
+      expect(response.status).toBe(200)
+      const body = (await response.json()) as ApiResponse<{ session: SessionMemorySummary }>
+      expect(body.error).toBeNull()
+      expect(body.data?.session.summary).toBe('')
+      expect(body.data?.session.longTermFactCount).toBe(0)
+    } finally {
+      await cleanupSession(seeded)
+    }
   })
 
   it('returns a valid memory summary envelope after conversation close compaction', async () => {
     const seeded = await seedSession()
-    const messageRes = await fetch(
-      buildUrl(`/v1/conversations/${seeded.conversationId}/messages`),
-      {
-        method: 'POST',
-        headers: {
-          ...authHeaders(),
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ message: { content: 'Hello there' } }),
-      },
-    )
-    expect(messageRes.status).toBe(200)
+    try {
+      const messageRes = await postConversationMessage(seeded.conversationId, 'Hello there')
+      expect(messageRes.status).toBe(200)
 
-    const endRes = await fetch(
-      buildUrl(`/v1/sessions/${seeded.sessionId}/conversations/${seeded.conversationId}/end`),
-      {
-        method: 'POST',
-        headers: {
-          ...authHeaders(),
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ reason: 'operator_end' }),
-      },
-    )
-    expect(endRes.status).toBe(200)
+      const endRes = await endConversation(seeded.sessionId, seeded.conversationId)
+      expect(endRes.status).toBe(200)
 
-    let summary: string | null = null
-    for (let i = 0; i < 100; i += 1) {
-      const memoryRes = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory`), {
-        headers: authHeaders(),
-      })
-      const body = (await memoryRes.json()) as ApiResponse<{ session: SessionMemorySummary }>
-      summary = body.data?.session.summary ?? null
-      if (summary !== null) break
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      const summary = await pollForSummary(seeded.sessionId)
+      expect(typeof summary).toBe('string')
+    } finally {
+      await cleanupSession(seeded)
     }
-    expect(typeof summary).toBe('string')
   })
 
   it('returns a numeric longTermFactCount after real conversation close flow', async () => {
     const seeded = await seedSession()
-    const messageRes = await fetch(
-      buildUrl(`/v1/conversations/${seeded.conversationId}/messages`),
-      {
-        method: 'POST',
-        headers: {
-          ...authHeaders(),
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ message: { content: 'I prefer tea over coffee.' } }),
-      },
-    )
-    expect(messageRes.status).toBe(200)
+    try {
+      const messageRes = await postConversationMessage(
+        seeded.conversationId,
+        'I prefer tea over coffee.',
+      )
+      expect(messageRes.status).toBe(200)
 
-    const endRes = await fetch(
-      buildUrl(`/v1/sessions/${seeded.sessionId}/conversations/${seeded.conversationId}/end`),
-      {
-        method: 'POST',
-        headers: {
-          ...authHeaders(),
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ reason: 'operator_end' }),
-      },
-    )
-    expect(endRes.status).toBe(200)
+      const endRes = await endConversation(seeded.sessionId, seeded.conversationId)
+      expect(endRes.status).toBe(200)
 
-    const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory`), {
-      headers: authHeaders(),
-    })
-    expect(response.status).toBe(200)
-    const body = (await response.json()) as ApiResponse<{ session: SessionMemorySummary }>
-    expect(body.error).toBeNull()
-    expect(typeof body.data?.session.longTermFactCount).toBe('number')
-    expect((body.data?.session.longTermFactCount ?? -1) >= 0).toBe(true)
+      const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory`), {
+        headers: authHeaders(),
+      })
+      expect(response.status).toBe(200)
+      const body = (await response.json()) as ApiResponse<{ session: SessionMemorySummary }>
+      expect(body.error).toBeNull()
+      expect(typeof body.data?.session.longTermFactCount).toBe('number')
+      expect((body.data?.session.longTermFactCount ?? -1) >= 0).toBe(true)
+    } finally {
+      await cleanupSession(seeded)
+    }
   })
 })
 
@@ -253,25 +259,32 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers — stack behavior', (
 
   it('returns layered memory details in ApiResponse envelope', async () => {
     const seeded = await seedSession()
-    const firstMessage = await postConversationMessage(
-      seeded.conversationId,
-      'First memory message',
-    )
-    expect(firstMessage.status).toBe(200)
-    const secondMessage = await postConversationMessage(
-      seeded.conversationId,
-      'Second memory message',
-    )
-    expect(secondMessage.status).toBe(200)
+    try {
+      const firstMessage = await postConversationMessage(
+        seeded.conversationId,
+        'First memory message',
+      )
+      expect(firstMessage.status).toBe(200)
+      const secondMessage = await postConversationMessage(
+        seeded.conversationId,
+        'Second memory message',
+      )
+      expect(secondMessage.status).toBe(200)
 
-    const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory-layers`), {
-      headers: authHeaders(),
-    })
-    expect(response.status).toBe(200)
-    const text = await response.text()
-    const body = JSON.parse(text) as ApiResponse<{ session: SessionMemoryLayers }>
-    assertMemoryLayersEnvelope(body, seeded.sessionId)
-    expect(text).not.toContain('You are a helpful guide.')
-    expect(text).not.toContain('OPENAI_API_KEY')
+      const response = await fetch(
+        buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory-layers`),
+        {
+          headers: authHeaders(),
+        },
+      )
+      expect(response.status).toBe(200)
+      const text = await response.text()
+      const body = JSON.parse(text) as ApiResponse<{ session: SessionMemoryLayers }>
+      assertMemoryLayersEnvelope(body, seeded.sessionId)
+      expect(text).not.toContain('You are a helpful guide.')
+      expect(text).not.toContain('OPENAI_API_KEY')
+    } finally {
+      await cleanupSession(seeded)
+    }
   })
 })

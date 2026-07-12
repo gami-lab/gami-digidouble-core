@@ -27,7 +27,26 @@ function requireId<T extends Record<string, unknown>>(value: T | undefined, key:
   return id
 }
 
-async function seedConversation(): Promise<{ sessionId: string; conversationId: string }> {
+async function deleteJson(path: string): Promise<void> {
+  await fetch(buildUrl(path), { method: 'DELETE', headers: { 'x-api-key': API_KEY } })
+}
+
+async function cleanupSession(ids: {
+  sessionId: string
+  avatarId: string
+  scenarioId: string
+}): Promise<void> {
+  await deleteJson(`/v1/sessions/${ids.sessionId}`)
+  await deleteJson(`/v1/avatars/${ids.avatarId}`)
+  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+}
+
+async function seedConversation(): Promise<{
+  sessionId: string
+  conversationId: string
+  avatarId: string
+  scenarioId: string
+}> {
   const scenarioRes = await postJson('/v1/scenarios', {
     name: `Metrics Scenario ${String(Date.now())}`,
   })
@@ -60,7 +79,7 @@ async function seedConversation(): Promise<{ sessionId: string; conversationId: 
   }>
   const conversationId = requireId(conversationBody.data?.conversation, 'conversationId')
 
-  return { sessionId, conversationId }
+  return { sessionId, conversationId, avatarId, scenarioId }
 }
 
 describe('GET /v1/admin/sessions/:id/metrics — stack auth', () => {
@@ -92,31 +111,35 @@ describe('GET /v1/admin/sessions/:id/metrics — stack not found', () => {
 
 describe('GET /v1/admin/sessions/:id/metrics — stack happy path', () => {
   it('returns 200 with turn metrics for a session with completed turns', async () => {
-    const { sessionId, conversationId } = await seedConversation()
+    const seeded = await seedConversation()
 
-    const messageRes = await postJson(`/v1/conversations/${conversationId}/messages`, {
-      message: { content: 'Hello metrics test' },
-    })
-    expect(messageRes.status).toBe(200)
+    try {
+      const messageRes = await postJson(`/v1/conversations/${seeded.conversationId}/messages`, {
+        message: { content: 'Hello metrics test' },
+      })
+      expect(messageRes.status).toBe(200)
 
-    const response = await fetch(buildUrl(`/v1/admin/sessions/${sessionId}/metrics`), {
-      headers: { 'x-api-key': API_KEY },
-    })
-    expect(response.status).toBe(200)
+      const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/metrics`), {
+        headers: { 'x-api-key': API_KEY },
+      })
+      expect(response.status).toBe(200)
 
-    const body = (await response.json()) as ApiResponse<{
-      sessionId: string
-      summary: { totalTurns: number; turnsWithGm: number; avgAvatarLatencyMs: number }
-      turns: Array<{ turnIndex: number; hasGm: boolean; avatarLatencyMs: number }>
-    }>
-    expect(body.error).toBeNull()
-    expect(body.data?.sessionId).toBe(sessionId)
-    expect(body.data?.summary.totalTurns).toBeGreaterThanOrEqual(1)
-    expect(body.data?.summary.avgAvatarLatencyMs).toBeGreaterThan(0)
-    expect(body.data?.turns.length).toBeGreaterThanOrEqual(1)
-    const firstTurn = body.data?.turns.at(0)
-    expect(firstTurn?.turnIndex).toBe(1)
-    expect(typeof firstTurn?.hasGm).toBe('boolean')
-    expect(typeof firstTurn?.avatarLatencyMs).toBe('number')
+      const body = (await response.json()) as ApiResponse<{
+        sessionId: string
+        summary: { totalTurns: number; turnsWithGm: number; avgAvatarLatencyMs: number }
+        turns: Array<{ turnIndex: number; hasGm: boolean; avatarLatencyMs: number }>
+      }>
+      expect(body.error).toBeNull()
+      expect(body.data?.sessionId).toBe(seeded.sessionId)
+      expect(body.data?.summary.totalTurns).toBeGreaterThanOrEqual(1)
+      expect(body.data?.summary.avgAvatarLatencyMs).toBeGreaterThan(0)
+      expect(body.data?.turns.length).toBeGreaterThanOrEqual(1)
+      const firstTurn = body.data?.turns.at(0)
+      expect(firstTurn?.turnIndex).toBe(1)
+      expect(typeof firstTurn?.hasGm).toBe('boolean')
+      expect(typeof firstTurn?.avatarLatencyMs).toBe('number')
+    } finally {
+      await cleanupSession(seeded)
+    }
   })
 })

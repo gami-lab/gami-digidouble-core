@@ -4,6 +4,13 @@ const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
 const ENDPOINT = `${APP_URL}/v1/scenarios`
 
+async function deleteScenario(scenarioId: string): Promise<void> {
+  await fetch(`${ENDPOINT}/${scenarioId}`, {
+    method: 'DELETE',
+    headers: { 'x-api-key': API_KEY },
+  })
+}
+
 describe('Stack E2E — POST /v1/scenarios — auth', () => {
   it('rejects requests with no API key (401)', async () => {
     const res = await fetch(ENDPOINT, {
@@ -86,7 +93,7 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
         'x-api-key': API_KEY,
       },
       body: JSON.stringify({
-        name: 'E2E Scenario',
+        name: `E2E Scenario ${String(Date.now())}`,
       }),
     })
 
@@ -99,6 +106,8 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
     expect(body.error).toBeNull()
     expect(body.data.scenario.scenarioId.startsWith('scenario_')).toBe(true)
     expect(body.data.scenario.status).toBe('draft')
+
+    await deleteScenario(body.data.scenario.scenarioId)
   })
 
   it('creates scenario with runtime model selection', async () => {
@@ -109,7 +118,7 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
         'x-api-key': API_KEY,
       },
       body: JSON.stringify({
-        name: 'Scenario With Models',
+        name: `Scenario With Models ${String(Date.now())}`,
         modelSelection: {
           defaultProfile: { provider: 'openai', model: 'gpt-4o' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
@@ -121,6 +130,7 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
     const body = (await res.json()) as {
       data: {
         scenario: {
+          scenarioId: string
           modelSelection?: {
             defaultProfile?: { provider: string; model: string }
             gameMasterOverride?: { provider: string; model: string }
@@ -134,6 +144,8 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
       defaultProfile: { provider: 'openai', model: 'gpt-4o' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
+
+    await deleteScenario(body.data.scenario.scenarioId)
   })
 })
 
@@ -187,7 +199,7 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — validation', () => {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
       },
-      body: JSON.stringify({ name: 'Scenario For Patch Validation' }),
+      body: JSON.stringify({ name: `Scenario For Patch Validation ${String(Date.now())}` }),
     })
     expect(createRes.status).toBe(201)
     const created = (await createRes.json()) as {
@@ -195,18 +207,22 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — validation', () => {
     }
     const scenarioId = created.data.scenario.scenarioId
 
-    const res = await fetch(`${ENDPOINT}/${scenarioId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-      },
-      body: JSON.stringify({}),
-    })
+    try {
+      const res = await fetch(`${ENDPOINT}/${scenarioId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({}),
+      })
 
-    expect(res.status).toBe(400)
-    const body = (await res.json()) as { error: { code: string } }
-    expect(body.error.code).toBe('VALIDATION_ERROR')
+      expect(res.status).toBe(400)
+      const body = (await res.json()) as { error: { code: string } }
+      expect(body.error.code).toBe('VALIDATION_ERROR')
+    } finally {
+      await deleteScenario(scenarioId)
+    }
   })
 })
 
@@ -218,7 +234,7 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
       },
-      body: JSON.stringify({ name: 'Original Name' }),
+      body: JSON.stringify({ name: `Original Name ${String(Date.now())}` }),
     })
     expect(createRes.status).toBe(201)
     const created = (await createRes.json()) as {
@@ -226,25 +242,31 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
     }
     const { scenarioId, updatedAt: originalUpdatedAt } = created.data.scenario
 
-    const patchRes = await fetch(`${ENDPOINT}/${scenarioId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-      },
-      body: JSON.stringify({ name: 'Updated Name' }),
-    })
+    try {
+      const patchRes = await fetch(`${ENDPOINT}/${scenarioId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({ name: 'Updated Name' }),
+      })
 
-    expect(patchRes.status).toBe(200)
-    const patched = (await patchRes.json()) as {
-      data: { scenario: { scenarioId: string; name: string; status: string; updatedAt: string } }
-      error: null
+      expect(patchRes.status).toBe(200)
+      const patched = (await patchRes.json()) as {
+        data: {
+          scenario: { scenarioId: string; name: string; status: string; updatedAt: string }
+        }
+        error: null
+      }
+      expect(patched.error).toBeNull()
+      expect(patched.data.scenario.scenarioId).toBe(scenarioId)
+      expect(patched.data.scenario.name).toBe('Updated Name')
+      expect(patched.data.scenario.status).toBe('draft')
+      expect(patched.data.scenario.updatedAt).not.toBe(originalUpdatedAt)
+    } finally {
+      await deleteScenario(scenarioId)
     }
-    expect(patched.error).toBeNull()
-    expect(patched.data.scenario.scenarioId).toBe(scenarioId)
-    expect(patched.data.scenario.name).toBe('Updated Name')
-    expect(patched.data.scenario.status).toBe('draft')
-    expect(patched.data.scenario.updatedAt).not.toBe(originalUpdatedAt)
   })
 
   it('updates and clears modelSelection', async () => {
@@ -254,7 +276,7 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
       },
-      body: JSON.stringify({ name: 'Model Selection Scenario' }),
+      body: JSON.stringify({ name: `Model Selection Scenario ${String(Date.now())}` }),
     })
     expect(createRes.status).toBe(201)
     const created = (await createRes.json()) as {
@@ -262,42 +284,46 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
     }
     const scenarioId = created.data.scenario.scenarioId
 
-    const patchSetRes = await fetch(`${ENDPOINT}/${scenarioId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-      },
-      body: JSON.stringify({
-        modelSelection: {
-          defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+    try {
+      const patchSetRes = await fetch(`${ENDPOINT}/${scenarioId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
         },
-      }),
-    })
-    expect(patchSetRes.status).toBe(200)
-    const patchSetBody = (await patchSetRes.json()) as {
-      data: {
-        scenario: {
-          modelSelection?: { defaultProfile?: { provider: string; model: string } }
+        body: JSON.stringify({
+          modelSelection: {
+            defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+          },
+        }),
+      })
+      expect(patchSetRes.status).toBe(200)
+      const patchSetBody = (await patchSetRes.json()) as {
+        data: {
+          scenario: {
+            modelSelection?: { defaultProfile?: { provider: string; model: string } }
+          }
         }
       }
-    }
-    expect(patchSetBody.data.scenario.modelSelection).toEqual({
-      defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
-    })
+      expect(patchSetBody.data.scenario.modelSelection).toEqual({
+        defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+      })
 
-    const patchClearRes = await fetch(`${ENDPOINT}/${scenarioId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-      },
-      body: JSON.stringify({ modelSelection: null }),
-    })
-    expect(patchClearRes.status).toBe(200)
-    const patchClearBody = (await patchClearRes.json()) as {
-      data: { scenario: { modelSelection?: unknown } }
+      const patchClearRes = await fetch(`${ENDPOINT}/${scenarioId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({ modelSelection: null }),
+      })
+      expect(patchClearRes.status).toBe(200)
+      const patchClearBody = (await patchClearRes.json()) as {
+        data: { scenario: { modelSelection?: unknown } }
+      }
+      expect(patchClearBody.data.scenario.modelSelection).toBeUndefined()
+    } finally {
+      await deleteScenario(scenarioId)
     }
-    expect(patchClearBody.data.scenario.modelSelection).toBeUndefined()
   })
 })

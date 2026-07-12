@@ -120,6 +120,20 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — resource look
   })
 })
 
+async function deleteAvatar(avatarId: string): Promise<void> {
+  await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+    method: 'DELETE',
+    headers: { 'x-api-key': API_KEY },
+  })
+}
+
+async function deleteScenario(scenarioId: string): Promise<void> {
+  await fetch(`${APP_URL}/v1/scenarios/${scenarioId}`, {
+    method: 'DELETE',
+    headers: { 'x-api-key': API_KEY },
+  })
+}
+
 describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — success', () => {
   it('creates avatar and returns 201 for a valid scenario', async () => {
     const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
@@ -129,7 +143,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — success', () 
         'x-api-key': API_KEY,
       },
       body: JSON.stringify({
-        name: 'Avatar E2E Scenario',
+        name: `Avatar E2E Scenario ${String(Date.now())}`,
       }),
     })
 
@@ -137,24 +151,32 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — success', () 
     const createdScenario = (await createScenarioRes.json()) as ApiResponse<CreateScenarioResponse>
     const scenarioId = createdScenario.data?.scenario.scenarioId ?? ''
 
-    const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-      },
-      body: JSON.stringify({
-        name: 'E2E Avatar',
-        personaPrompt: 'You are an E2E test avatar.',
-      }),
-    })
+    try {
+      const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({
+          name: 'E2E Avatar',
+          personaPrompt: 'You are an E2E test avatar.',
+        }),
+      })
 
-    expect(createAvatarRes.status).toBe(201)
+      expect(createAvatarRes.status).toBe(201)
 
-    const avatarBody = (await createAvatarRes.json()) as ApiResponse<CreateAvatarResponse>
-    expect(avatarBody.error).toBeNull()
-    expect(avatarBody.data?.avatar.avatarId.startsWith('avatar_')).toBe(true)
-    expect(avatarBody.data?.avatar.scenarioId).toBe(scenarioId)
+      const avatarBody = (await createAvatarRes.json()) as ApiResponse<CreateAvatarResponse>
+      expect(avatarBody.error).toBeNull()
+      expect(avatarBody.data?.avatar.avatarId.startsWith('avatar_')).toBe(true)
+      expect(avatarBody.data?.avatar.scenarioId).toBe(scenarioId)
+
+      if (avatarBody.data?.avatar.avatarId !== undefined) {
+        await deleteAvatar(avatarBody.data.avatar.avatarId)
+      }
+    } finally {
+      await deleteScenario(scenarioId)
+    }
   })
 })
 
@@ -284,30 +306,36 @@ describe('Stack E2E — PATCH /v1/avatars/:avatarId — success', () => {
     const createdScenario = (await createScenarioRes.json()) as ApiResponse<CreateScenarioResponse>
     const scenarioId = createdScenario.data?.scenario.scenarioId ?? ''
 
-    const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({
-        name: 'PATCH E2E Avatar',
-        personaPrompt: 'Original prompt.',
-      }),
-    })
-    expect(createAvatarRes.status).toBe(201)
-    const createdAvatar = (await createAvatarRes.json()) as ApiResponse<CreateAvatarResponse>
-    const avatarId = createdAvatar.data?.avatar.avatarId ?? ''
-    const originalUpdatedAt = createdAvatar.data?.avatar.updatedAt ?? ''
+    try {
+      const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({
+          name: 'PATCH E2E Avatar',
+          personaPrompt: 'Original prompt.',
+        }),
+      })
+      expect(createAvatarRes.status).toBe(201)
+      const createdAvatar = (await createAvatarRes.json()) as ApiResponse<CreateAvatarResponse>
+      const avatarId = createdAvatar.data?.avatar.avatarId ?? ''
+      const originalUpdatedAt = createdAvatar.data?.avatar.updatedAt ?? ''
 
-    const patchRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ personaPrompt: 'Patched prompt.' }),
-    })
-    expect(patchRes.status).toBe(200)
-    const patchBody = (await patchRes.json()) as ApiResponse<PatchAvatarResponse>
-    expect(patchBody.error).toBeNull()
-    expect(patchBody.data?.avatar.personaPrompt).toBe('Patched prompt.')
-    expect(patchBody.data?.avatar.avatarId).toBe(avatarId)
-    expect(patchBody.data?.avatar.updatedAt).not.toBe(originalUpdatedAt)
+      const patchRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ personaPrompt: 'Patched prompt.' }),
+      })
+      expect(patchRes.status).toBe(200)
+      const patchBody = (await patchRes.json()) as ApiResponse<PatchAvatarResponse>
+      expect(patchBody.error).toBeNull()
+      expect(patchBody.data?.avatar.personaPrompt).toBe('Patched prompt.')
+      expect(patchBody.data?.avatar.avatarId).toBe(avatarId)
+      expect(patchBody.data?.avatar.updatedAt).not.toBe(originalUpdatedAt)
+
+      await deleteAvatar(avatarId)
+    } finally {
+      await deleteScenario(scenarioId)
+    }
   })
 })
 
@@ -341,86 +369,103 @@ async function createScenarioAndAvatarForOverride(): Promise<{
 
 describe('Stack E2E — avatar llmOverride flow', () => {
   it('sets llmOverride and rejects invalid values', async () => {
-    const { avatarId } = await createScenarioAndAvatarForOverride()
+    const { scenarioId, avatarId } = await createScenarioAndAvatarForOverride()
 
-    const patchSetRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ llmOverride: { provider: 'openai', model: 'gpt-4o' } }),
-    })
-    expect(patchSetRes.status).toBe(200)
-    const patchSetBody = (await patchSetRes.json()) as ApiResponse<{
-      avatar: { llmOverride?: { provider?: string; model?: string } }
-    }>
-    expect(patchSetBody.data?.avatar.llmOverride).toEqual({ provider: 'openai', model: 'gpt-4o' })
+    try {
+      const patchSetRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ llmOverride: { provider: 'openai', model: 'gpt-4o' } }),
+      })
+      expect(patchSetRes.status).toBe(200)
+      const patchSetBody = (await patchSetRes.json()) as ApiResponse<{
+        avatar: { llmOverride?: { provider?: string; model?: string } }
+      }>
+      expect(patchSetBody.data?.avatar.llmOverride).toEqual({
+        provider: 'openai',
+        model: 'gpt-4o',
+      })
 
-    const patchInvalidProviderRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ llmOverride: { provider: 'not-a-provider' } }),
-    })
-    expect(patchInvalidProviderRes.status).toBe(400)
-    const invalidProviderBody = (await patchInvalidProviderRes.json()) as ApiResponse<null>
-    expect(invalidProviderBody.error?.code).toBe('VALIDATION_ERROR')
+      const patchInvalidProviderRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ llmOverride: { provider: 'not-a-provider' } }),
+      })
+      expect(patchInvalidProviderRes.status).toBe(400)
+      const invalidProviderBody = (await patchInvalidProviderRes.json()) as ApiResponse<null>
+      expect(invalidProviderBody.error?.code).toBe('VALIDATION_ERROR')
 
-    const patchEmptyProviderRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ llmOverride: { provider: '' } }),
-    })
-    expect(patchEmptyProviderRes.status).toBe(400)
-    const emptyProviderBody = (await patchEmptyProviderRes.json()) as ApiResponse<null>
-    expect(emptyProviderBody.error?.code).toBe('VALIDATION_ERROR')
+      const patchEmptyProviderRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ llmOverride: { provider: '' } }),
+      })
+      expect(patchEmptyProviderRes.status).toBe(400)
+      const emptyProviderBody = (await patchEmptyProviderRes.json()) as ApiResponse<null>
+      expect(emptyProviderBody.error?.code).toBe('VALIDATION_ERROR')
 
-    const patchInvalidModelRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ llmOverride: { model: '   ' } }),
-    })
-    expect(patchInvalidModelRes.status).toBe(400)
-    const invalidModelBody = (await patchInvalidModelRes.json()) as ApiResponse<null>
-    expect(invalidModelBody.error?.code).toBe('VALIDATION_ERROR')
+      const patchInvalidModelRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ llmOverride: { model: '   ' } }),
+      })
+      expect(patchInvalidModelRes.status).toBe(400)
+      const invalidModelBody = (await patchInvalidModelRes.json()) as ApiResponse<null>
+      expect(invalidModelBody.error?.code).toBe('VALIDATION_ERROR')
 
-    const patchPartialOverrideRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ llmOverride: { provider: 'anthropic' } }),
-    })
-    expect(patchPartialOverrideRes.status).toBe(400)
-    const partialOverrideBody = (await patchPartialOverrideRes.json()) as ApiResponse<null>
-    expect(partialOverrideBody.error?.code).toBe('VALIDATION_ERROR')
+      const patchPartialOverrideRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ llmOverride: { provider: 'anthropic' } }),
+      })
+      expect(patchPartialOverrideRes.status).toBe(400)
+      const partialOverrideBody = (await patchPartialOverrideRes.json()) as ApiResponse<null>
+      expect(partialOverrideBody.error?.code).toBe('VALIDATION_ERROR')
+
+      await deleteAvatar(avatarId)
+    } finally {
+      await deleteScenario(scenarioId)
+    }
   })
 
   it('clears llmOverride and returns override in GET list after set', async () => {
     const { scenarioId, avatarId } = await createScenarioAndAvatarForOverride()
 
-    const patchSetModelRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ llmOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' } }),
-    })
-    expect(patchSetModelRes.status).toBe(200)
+    try {
+      const patchSetModelRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({
+          llmOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+        }),
+      })
+      expect(patchSetModelRes.status).toBe(200)
 
-    const listRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
-      method: 'GET',
-      headers: { 'x-api-key': API_KEY },
-    })
-    expect(listRes.status).toBe(200)
-    const listBody = (await listRes.json()) as ApiResponse<{
-      avatars: Array<{ avatarId: string; llmOverride?: { provider?: string; model?: string } }>
-    }>
-    const listed = listBody.data?.avatars.find((avatar) => avatar.avatarId === avatarId)
-    expect(listed?.llmOverride).toEqual({ provider: 'anthropic', model: 'claude-sonnet-4-6' })
+      const listRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+        method: 'GET',
+        headers: { 'x-api-key': API_KEY },
+      })
+      expect(listRes.status).toBe(200)
+      const listBody = (await listRes.json()) as ApiResponse<{
+        avatars: Array<{ avatarId: string; llmOverride?: { provider?: string; model?: string } }>
+      }>
+      const listed = listBody.data?.avatars.find((avatar) => avatar.avatarId === avatarId)
+      expect(listed?.llmOverride).toEqual({ provider: 'anthropic', model: 'claude-sonnet-4-6' })
 
-    const patchClearRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ llmOverride: null }),
-    })
-    expect(patchClearRes.status).toBe(200)
-    const clearBody = (await patchClearRes.json()) as ApiResponse<{
-      avatar: { llmOverride?: { provider?: string; model?: string } }
-    }>
-    expect(clearBody.data?.avatar.llmOverride).toBeUndefined()
+      const patchClearRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ llmOverride: null }),
+      })
+      expect(patchClearRes.status).toBe(200)
+      const clearBody = (await patchClearRes.json()) as ApiResponse<{
+        avatar: { llmOverride?: { provider?: string; model?: string } }
+      }>
+      expect(clearBody.data?.avatar.llmOverride).toBeUndefined()
+
+      await deleteAvatar(avatarId)
+    } finally {
+      await deleteScenario(scenarioId)
+    }
   })
 })

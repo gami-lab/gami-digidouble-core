@@ -31,7 +31,26 @@ async function postJson(path: string, body: unknown): Promise<Response> {
   })
 }
 
-async function seedSession(): Promise<{ sessionId: string; conversationId: string }> {
+async function deleteJson(path: string): Promise<void> {
+  await fetch(buildUrl(path), { method: 'DELETE', headers: authHeaders() })
+}
+
+async function cleanupSession(ids: {
+  sessionId: string
+  avatarId: string
+  scenarioId: string
+}): Promise<void> {
+  await deleteJson(`/v1/sessions/${ids.sessionId}`)
+  await deleteJson(`/v1/avatars/${ids.avatarId}`)
+  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+}
+
+async function seedSession(): Promise<{
+  sessionId: string
+  conversationId: string
+  avatarId: string
+  scenarioId: string
+}> {
   const scenarioRes = await postJson('/v1/scenarios', {
     name: `Context Scenario ${String(Date.now())}`,
     config: { worldContext: 'Context world', objectives: ['Goal A'] },
@@ -65,7 +84,7 @@ async function seedSession(): Promise<{ sessionId: string; conversationId: strin
   }>
   const conversationId = requireId(convoBody.data?.conversation, 'conversationId')
 
-  return { sessionId, conversationId }
+  return { sessionId, conversationId, avatarId, scenarioId }
 }
 
 describe('GET /v1/admin/sessions/:sessionId/context — stack auth', () => {
@@ -96,19 +115,23 @@ describe('GET /v1/admin/sessions/:sessionId/context — stack not found', () => 
 describe('GET /v1/admin/sessions/:sessionId/context — stack happy path', () => {
   it('returns the stable session context snapshot', async () => {
     const seeded = await seedSession()
-    const messageRes = await postJson(`/v1/conversations/${seeded.conversationId}/messages`, {
-      message: { content: 'Hello context endpoint' },
-    })
-    expect(messageRes.status).toBe(200)
+    try {
+      const messageRes = await postJson(`/v1/conversations/${seeded.conversationId}/messages`, {
+        message: { content: 'Hello context endpoint' },
+      })
+      expect(messageRes.status).toBe(200)
 
-    const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/context`), {
-      headers: authHeaders(),
-    })
-    expect(response.status).toBe(200)
-    const text = await response.text()
-    const body = JSON.parse(text) as ApiResponse<AdminSessionContextResponse>
-    assertStackContextBody(body, seeded.sessionId)
-    assertStackContextRedaction(text)
+      const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/context`), {
+        headers: authHeaders(),
+      })
+      expect(response.status).toBe(200)
+      const text = await response.text()
+      const body = JSON.parse(text) as ApiResponse<AdminSessionContextResponse>
+      assertStackContextBody(body, seeded.sessionId)
+      assertStackContextRedaction(text)
+    } finally {
+      await cleanupSession(seeded)
+    }
   })
 })
 

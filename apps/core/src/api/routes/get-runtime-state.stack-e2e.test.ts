@@ -8,7 +8,16 @@ function authHeaders(apiKey = API_KEY): Record<string, string> {
   return { 'x-api-key': apiKey, 'content-type': 'application/json' }
 }
 
-async function createScenarioAndSession(): Promise<{ sessionId: string }> {
+async function deleteJson(path: string): Promise<void> {
+  await fetch(`${APP_URL}${path}`, { method: 'DELETE', headers: authHeaders() })
+}
+
+async function cleanupScenario(ids: { sessionId: string; scenarioId: string }): Promise<void> {
+  await deleteJson(`/v1/sessions/${ids.sessionId}`)
+  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+}
+
+async function createScenarioAndSession(): Promise<{ sessionId: string; scenarioId: string }> {
   const scenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
     method: 'POST',
     headers: authHeaders(),
@@ -37,7 +46,7 @@ async function createScenarioAndSession(): Promise<{ sessionId: string }> {
     throw new Error('Missing sessionId')
   }
 
-  return { sessionId }
+  return { sessionId, scenarioId }
 }
 
 describe('Stack E2E — GET /v1/sessions/:sessionId/runtime-state auth', () => {
@@ -72,27 +81,31 @@ describe('Stack E2E — GET /v1/sessions/:sessionId/runtime-state behavior', () 
   })
 
   it('returns runtimeState shape and null error for a valid session', async () => {
-    const { sessionId } = await createScenarioAndSession()
+    const { sessionId, scenarioId } = await createScenarioAndSession()
 
-    const response = await fetch(`${APP_URL}/v1/sessions/${sessionId}/runtime-state`, {
-      headers: authHeaders(),
-    })
+    try {
+      const response = await fetch(`${APP_URL}/v1/sessions/${sessionId}/runtime-state`, {
+        headers: authHeaders(),
+      })
 
-    expect(response.status).toBe(200)
-    const body = (await response.json()) as ApiResponse<{
-      runtimeState: {
-        sessionId: string
-        canSendMessage: boolean
-        isProcessing: boolean
-        updatedAt: string
-      }
-    }>
+      expect(response.status).toBe(200)
+      const body = (await response.json()) as ApiResponse<{
+        runtimeState: {
+          sessionId: string
+          canSendMessage: boolean
+          isProcessing: boolean
+          updatedAt: string
+        }
+      }>
 
-    expect(body.error).toBeNull()
-    expect(body.data?.runtimeState.sessionId).toBe(sessionId)
-    expect(typeof body.data?.runtimeState.canSendMessage).toBe('boolean')
-    expect(typeof body.data?.runtimeState.isProcessing).toBe('boolean')
-    expect(typeof body.data?.runtimeState.updatedAt).toBe('string')
-    expect(Number.isNaN(Date.parse(body.data?.runtimeState.updatedAt ?? 'invalid'))).toBe(false)
+      expect(body.error).toBeNull()
+      expect(body.data?.runtimeState.sessionId).toBe(sessionId)
+      expect(typeof body.data?.runtimeState.canSendMessage).toBe('boolean')
+      expect(typeof body.data?.runtimeState.isProcessing).toBe('boolean')
+      expect(typeof body.data?.runtimeState.updatedAt).toBe('string')
+      expect(Number.isNaN(Date.parse(body.data?.runtimeState.updatedAt ?? 'invalid'))).toBe(false)
+    } finally {
+      await cleanupScenario({ sessionId, scenarioId })
+    }
   })
 })

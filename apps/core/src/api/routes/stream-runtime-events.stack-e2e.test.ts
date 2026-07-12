@@ -11,7 +11,16 @@ function authHeaders(apiKey = API_KEY): Record<string, string> {
   return { 'x-api-key': apiKey, 'content-type': 'application/json' }
 }
 
-async function createScenarioAndSession(): Promise<{ sessionId: string }> {
+async function deleteJson(path: string): Promise<void> {
+  await fetch(`${APP_URL}${path}`, { method: 'DELETE', headers: authHeaders() })
+}
+
+async function cleanupScenario(ids: { sessionId: string; scenarioId: string }): Promise<void> {
+  await deleteJson(`/v1/sessions/${ids.sessionId}`)
+  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+}
+
+async function createScenarioAndSession(): Promise<{ sessionId: string; scenarioId: string }> {
   const scenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
     method: 'POST',
     headers: authHeaders(),
@@ -40,7 +49,7 @@ async function createScenarioAndSession(): Promise<{ sessionId: string }> {
     throw new Error('Missing sessionId')
   }
 
-  return { sessionId }
+  return { sessionId, scenarioId }
 }
 
 async function openSseAndReadFirstChunk(path: string): Promise<{
@@ -122,14 +131,18 @@ describe('Stack E2E — GET /v1/sessions/:sessionId/events/stream behavior', () 
   })
 
   it('returns event-stream headers and initial keepalive frame', async () => {
-    const { sessionId } = await createScenarioAndSession()
+    const { sessionId, scenarioId } = await createScenarioAndSession()
 
-    const streamResult = await openSseAndReadFirstChunk(`/v1/sessions/${sessionId}/events/stream`)
+    try {
+      const streamResult = await openSseAndReadFirstChunk(`/v1/sessions/${sessionId}/events/stream`)
 
-    expect(streamResult.statusCode).toBe(200)
-    expect(streamResult.contentType).toContain('text/event-stream')
-    expect(streamResult.firstChunk).toContain(': keepalive')
+      expect(streamResult.statusCode).toBe(200)
+      expect(streamResult.contentType).toContain('text/event-stream')
+      expect(streamResult.firstChunk).toContain(': keepalive')
 
-    // TODO(epic-4-5): add full live event frame assertion by triggering a GM runtime event in stack-e2e.
+      // TODO(epic-4-5): add full live event frame assertion by triggering a GM runtime event in stack-e2e.
+    } finally {
+      await cleanupScenario({ sessionId, scenarioId })
+    }
   })
 })
