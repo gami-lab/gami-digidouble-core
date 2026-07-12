@@ -265,7 +265,6 @@ function KnowledgeSourceListSection({
                     type="button"
                     className="admin-button admin-button-secondary"
                     onClick={() => { onTriggerIngestion(source.sourceId) }}
-                    disabled={source.status === 'pending'}
                   >
                     Ingest
                   </button>
