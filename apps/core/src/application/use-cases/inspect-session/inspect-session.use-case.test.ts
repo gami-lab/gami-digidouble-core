@@ -67,7 +67,7 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
     worldContext: '',
     avatarAvailability: { initialAvatarIds: [] },
     modelSelection: defaultScenarioModelSelection,
-    config: { modelSelection: defaultScenarioModelSelection },
+    config: {},
     createdAt: '2026-04-28T09:00:00.000Z',
     updatedAt: '2026-04-28T09:00:00.000Z',
     ...overrides,

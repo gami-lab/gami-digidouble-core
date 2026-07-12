@@ -7,22 +7,6 @@ import type { ScenarioModelSelection } from '@gami/shared'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../domain/errors.js'
 
-function applyModelSelection(
-  config: Scenario['config'],
-  modelSelection: ScenarioModelSelection | null | undefined,
-): Scenario['config'] {
-  if (modelSelection === undefined) return config
-
-  const nextConfig = { ...config }
-  if (modelSelection === null) {
-    delete nextConfig['modelSelection']
-    return nextConfig
-  }
-
-  nextConfig['modelSelection'] = modelSelection
-  return nextConfig
-}
-
 function withoutModelSelection(scenario: Scenario): Omit<Scenario, 'modelSelection'> {
   const scenarioWithoutModelSelection = { ...scenario }
   delete scenarioWithoutModelSelection.modelSelection
@@ -39,9 +23,7 @@ function resolveNextModelSelection(
 }
 
 function resolveNextConfig(existing: Scenario, updates: UpdateScenarioParams): Scenario['config'] {
-  return updates.config !== undefined || updates.modelSelection !== undefined
-    ? applyModelSelection(updates.config ?? existing.config, updates.modelSelection)
-    : existing.config
+  return updates.config !== undefined ? updates.config : existing.config
 }
 
 function buildUpdatedScenario(existing: Scenario, updates: UpdateScenarioParams): Scenario {
@@ -89,7 +71,7 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
       worldContext: params.worldContext ?? '',
       avatarAvailability: params.avatarAvailability ?? { initialAvatarIds: [] },
       ...(params.modelSelection !== undefined ? { modelSelection: params.modelSelection } : {}),
-      config: applyModelSelection(params.config ?? {}, params.modelSelection),
+      config: params.config ?? {},
       createdAt: now,
       updatedAt: now,
     }

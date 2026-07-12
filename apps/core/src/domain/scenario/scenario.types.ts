@@ -19,7 +19,7 @@ export interface Scenario {
   worldContext: string
   /** Session-scoped avatar availability policy. Always present. */
   avatarAvailability: ScenarioAvatarAvailabilityConfig
-  /** Optional scenario-scoped model defaults and overrides sourced from config.modelSelection. */
+  /** Optional scenario-scoped model defaults and overrides. Persisted in its own column, never nested in config. */
   modelSelection?: ScenarioModelSelection
   config: ScenarioConfig
   createdAt: string
@@ -29,8 +29,6 @@ export interface Scenario {
 export interface ScenarioConfig {
   /** Additional scenario goals, merged alongside root-level objectives. */
   goals?: string[]
-  /** Persistence-backed source of truth for scenario-scoped runtime model settings. */
-  modelSelection?: ScenarioModelSelection
   /** Scenario runtime defaults for adapters and clients. */
   runtimeDefaults?: Record<string, unknown>
   /** Optional UI-only hints; ignored by Core orchestration. */

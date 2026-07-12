@@ -106,7 +106,7 @@ describe('InMemoryScenarioRepository', () => {
     expect(updated.updatedAt).not.toBe(seeded.updatedAt)
   })
 
-  it('persists modelSelection into config and supports explicit clearing', async () => {
+  it('keeps modelSelection separate from config and supports explicit clearing', async () => {
     const repository = new InMemoryScenarioRepository()
 
     const created = await repository.create({
@@ -120,12 +120,7 @@ describe('InMemoryScenarioRepository', () => {
       defaultProfile: { provider: 'openai', model: 'gpt-4o' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
-    expect(created.config).toEqual({
-      modelSelection: {
-        defaultProfile: { provider: 'openai', model: 'gpt-4o' },
-        gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
-      },
-    })
+    expect(created.config).toEqual({})
 
     const cleared = await repository.update(created.scenarioId, { modelSelection: null })
     expect(cleared.modelSelection).toBeUndefined()

@@ -20,6 +20,7 @@ interface ScenarioRow {
   world_context: string | null
   avatar_availability: unknown
   config: unknown
+  model_selection: unknown
   created_at: Date
   updated_at: Date
 }
@@ -48,10 +49,8 @@ function readModelProfile(value: unknown): ScenarioModelSelection['defaultProfil
   return { provider, model }
 }
 
-function readScenarioModelSelection(
-  config: Scenario['config'],
-): ScenarioModelSelection | undefined {
-  const raw = isRecord(config['modelSelection']) ? config['modelSelection'] : undefined
+function readScenarioModelSelection(value: unknown): ScenarioModelSelection | undefined {
+  const raw = isRecord(value) ? value : undefined
   if (raw === undefined) return undefined
 
   const defaultProfile = readModelProfile(raw['defaultProfile'])
@@ -64,22 +63,6 @@ function readScenarioModelSelection(
   }
 }
 
-function applyModelSelection(
-  config: Scenario['config'],
-  modelSelection: ScenarioModelSelection | null | undefined,
-): Scenario['config'] {
-  if (modelSelection === undefined) return config
-
-  const nextConfig = { ...config }
-  if (modelSelection === null) {
-    delete nextConfig['modelSelection']
-    return nextConfig
-  }
-
-  nextConfig['modelSelection'] = modelSelection
-  return nextConfig
-}
-
 function appendUpdateValue(
   setClauses: string[],
   values: unknown[],
@@ -90,21 +73,46 @@ function appendUpdateValue(
   setClauses.push(`${column} = $${String(values.length)}`)
 }
 
-async function resolveUpdatedConfig(
-  repository: PostgresScenarioRepository,
-  scenarioId: string,
-  updates: UpdateScenarioParams,
-): Promise<Scenario['config'] | undefined> {
-  if (updates.config === undefined && updates.modelSelection === undefined) {
-    return undefined
+function appendJsonbUpdateValue(
+  setClauses: string[],
+  values: unknown[],
+  column: string,
+  value: unknown,
+): void {
+  values.push(value === null ? null : JSON.stringify(value))
+  setClauses.push(`${column} = $${String(values.length)}::jsonb`)
+}
+
+function buildScenarioSetClauses(updates: UpdateScenarioParams): {
+  setClauses: string[]
+  values: unknown[]
+} {
+  const setClauses: string[] = ['updated_at = NOW()']
+  const values: unknown[] = []
+
+  if (updates.name !== undefined) {
+    appendUpdateValue(setClauses, values, 'name', updates.name)
+  }
+  if (updates.status !== undefined) {
+    appendUpdateValue(setClauses, values, 'status', updates.status)
+  }
+  if (updates.objectives !== undefined) {
+    appendUpdateValue(setClauses, values, 'objectives', updates.objectives)
+  }
+  if (updates.worldContext !== undefined) {
+    appendUpdateValue(setClauses, values, 'world_context', updates.worldContext)
+  }
+  if (updates.avatarAvailability !== undefined) {
+    appendJsonbUpdateValue(setClauses, values, 'avatar_availability', updates.avatarAvailability)
+  }
+  if (updates.config !== undefined) {
+    appendJsonbUpdateValue(setClauses, values, 'config', updates.config)
+  }
+  if (updates.modelSelection !== undefined) {
+    appendJsonbUpdateValue(setClauses, values, 'model_selection', updates.modelSelection)
   }
 
-  const existing = await repository.findById(scenarioId)
-  if (existing === null) {
-    throw new DomainError('NOT_FOUND', 'Scenario not found')
-  }
-
-  return applyModelSelection(updates.config ?? existing.config, updates.modelSelection)
+  return { setClauses, values }
 }
 
 function normalizeAvatarAvailability(value: unknown): ScenarioAvatarAvailabilityConfig {
@@ -139,8 +147,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function rowToScenario(row: ScenarioRow): Scenario {
-  const config = normalizeConfig(row.config)
-  const modelSelection = readScenarioModelSelection(config)
+  const modelSelection = readScenarioModelSelection(row.model_selection)
   return {
     scenarioId: `scenario_${row.id}`,
     name: row.name,
@@ -149,7 +156,7 @@ function rowToScenario(row: ScenarioRow): Scenario {
     worldContext: row.world_context ?? '',
     avatarAvailability: normalizeAvatarAvailability(row.avatar_availability),
     ...(modelSelection !== undefined ? { modelSelection } : {}),
-    config,
+    config: normalizeConfig(row.config),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }
@@ -159,21 +166,18 @@ export class PostgresScenarioRepository implements IScenarioRepository {
   constructor(private readonly sql: Sql) {}
 
   async create(params: CreateScenarioParams): Promise<Scenario> {
-    const config = applyModelSelection(
-      (params.config ?? {}) as Scenario['config'],
-      params.modelSelection,
-    )
     const [row] = await this.sql<[ScenarioRow]>`
-      INSERT INTO scenarios (name, status, objectives, world_context, avatar_availability, config)
+      INSERT INTO scenarios (name, status, objectives, world_context, avatar_availability, config, model_selection)
       VALUES (
         ${params.name},
         ${params.status ?? 'draft'},
         ${params.objectives ?? []},
         ${params.worldContext ?? ''},
         ${this.sql.json((params.avatarAvailability ?? { initialAvatarIds: [] }) as unknown as JSONValue)},
-        ${this.sql.json(config as JSONValue)}
+        ${this.sql.json((params.config ?? {}) as JSONValue)},
+        ${this.sql.json((params.modelSelection ?? null) as unknown as JSONValue)}
       )
-      RETURNING id, name, status, objectives, world_context, avatar_availability, config, created_at, updated_at
+      RETURNING id, name, status, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
     `
     return rowToScenario(row)
   }
@@ -182,7 +186,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
     const uuid = extractUuid('scenario_', scenarioId)
     if (uuid === null) return null
     const [row] = await this.sql<[ScenarioRow?]>`
-      SELECT id, name, status, objectives, world_context, avatar_availability, config, created_at, updated_at
+      SELECT id, name, status, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
       FROM scenarios
       WHERE id = ${uuid}
     `
@@ -191,7 +195,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
 
   async list(): Promise<Scenario[]> {
     const rows = await this.sql<ScenarioRow[]>`
-      SELECT id, name, status, objectives, world_context, avatar_availability, config, created_at, updated_at
+      SELECT id, name, status, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
       FROM scenarios
       ORDER BY created_at DESC
     `
@@ -213,31 +217,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
       throw new DomainError('NOT_FOUND', 'Scenario not found')
     }
 
-    const setClauses: string[] = ['updated_at = NOW()']
-    const values: unknown[] = []
-
-    if (updates.name !== undefined) {
-      appendUpdateValue(setClauses, values, 'name', updates.name)
-    }
-    if (updates.status !== undefined) {
-      appendUpdateValue(setClauses, values, 'status', updates.status)
-    }
-    if (updates.objectives !== undefined) {
-      appendUpdateValue(setClauses, values, 'objectives', updates.objectives)
-    }
-    if (updates.worldContext !== undefined) {
-      appendUpdateValue(setClauses, values, 'world_context', updates.worldContext)
-    }
-    if (updates.avatarAvailability !== undefined) {
-      values.push(JSON.stringify(updates.avatarAvailability))
-      setClauses.push(`avatar_availability = $${String(values.length)}::jsonb`)
-    }
-    const config = await resolveUpdatedConfig(this, scenarioId, updates)
-    if (config !== undefined) {
-      values.push(JSON.stringify(config))
-      setClauses.push(`config = $${String(values.length)}::jsonb`)
-    }
-
+    const { setClauses, values } = buildScenarioSetClauses(updates)
     values.push(uuid)
     const whereParam = `$${String(values.length)}`
 
@@ -245,7 +225,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
       UPDATE scenarios
       SET ${setClauses.join(', ')}
       WHERE id = ${whereParam}
-      RETURNING id, name, status, objectives, world_context, avatar_availability, config, created_at, updated_at
+      RETURNING id, name, status, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
     `
 
     const rows = await this.sql.unsafe(query, values as string[])

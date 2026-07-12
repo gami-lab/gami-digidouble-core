@@ -74,11 +74,7 @@ describe('UpdateScenarioUseCase', () => {
         modelSelection: {
           defaultProfile: { provider: 'openai', model: 'gpt-4o' },
         },
-        config: {
-          modelSelection: {
-            defaultProfile: { provider: 'openai', model: 'gpt-4o' },
-          },
-        },
+        config: {},
       },
     ])
     const useCase = new UpdateScenarioUseCase(repo)

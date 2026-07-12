@@ -98,9 +98,10 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
     expect(reloaded?.config).toEqual(updated.config)
   })
 
-  it('persists modelSelection inside config and returns it as a typed field', async () => {
+  it('persists modelSelection in its own column, separate from config, and supports clearing', async () => {
     const created = await repo.create({
       name: 'Scenario Models',
+      config: { language: 'fr' },
       modelSelection: {
         defaultProfile: { provider: 'openai', model: 'gpt-4o' },
         gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
@@ -111,9 +112,10 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
       defaultProfile: { provider: 'openai', model: 'gpt-4o' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
+    expect(created.config).toEqual({ language: 'fr' })
 
     const cleared = await repo.update(created.scenarioId, { modelSelection: null })
     expect(cleared.modelSelection).toBeUndefined()
-    expect(cleared.config).toEqual({})
+    expect(cleared.config).toEqual({ language: 'fr' })
   })
 })

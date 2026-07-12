@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS scenarios (
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Own column (not nested in config) for scenario-scoped model overrides.
+ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS model_selection JSONB;
+
 -- ── Avatars ───────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS avatars (
