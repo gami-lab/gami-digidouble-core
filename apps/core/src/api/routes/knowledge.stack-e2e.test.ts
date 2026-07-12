@@ -188,34 +188,45 @@ async function seedReadyWorldKnowledgeSource(args: {
   return { scenarioId }
 }
 
+async function deleteScenario(scenarioId: string): Promise<void> {
+  await fetch(`${APP_URL}/v1/scenarios/${scenarioId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
+}
+
 describe('Stack E2E — knowledge routes — happy path', () => {
   it('creates source, triggers ingestion, and queries retrieval', async () => {
     const seeded = await seedReadyWorldKnowledgeSource({
       inlineText: 'Kingdom history and timeline.',
     })
 
-    const retrievalRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        scenarioId: seeded.scenarioId,
-        query: 'timeline',
-        limitPerType: 3,
-      }),
-    })
-    expect(retrievalRes.status).toBe(200)
-    const retrievalBody = (await retrievalRes.json()) as {
-      data: { retrieval: { world: Array<{ content: string }> } }
-    }
-    expect(Array.isArray(retrievalBody.data.retrieval.world)).toBe(true)
-    expect(retrievalBody.data.retrieval.world.length).toBeGreaterThan(0)
-    expect(
-      retrievalBody.data.retrieval.world.some((item) =>
-        item.content.toLowerCase().includes('timeline'),
-      ),
-    ).toBe(true)
-    for (const item of retrievalBody.data.retrieval.world) {
-      expect(item.content.length).toBeLessThanOrEqual(803)
+    try {
+      const retrievalRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          scenarioId: seeded.scenarioId,
+          query: 'timeline',
+          limitPerType: 3,
+        }),
+      })
+      expect(retrievalRes.status).toBe(200)
+      const retrievalBody = (await retrievalRes.json()) as {
+        data: { retrieval: { world: Array<{ content: string }> } }
+      }
+      expect(Array.isArray(retrievalBody.data.retrieval.world)).toBe(true)
+      expect(retrievalBody.data.retrieval.world.length).toBeGreaterThan(0)
+      expect(
+        retrievalBody.data.retrieval.world.some((item) =>
+          item.content.toLowerCase().includes('timeline'),
+        ),
+      ).toBe(true)
+      for (const item of retrievalBody.data.retrieval.world) {
+        expect(item.content.length).toBeLessThanOrEqual(803)
+      }
+    } finally {
+      await deleteScenario(seeded.scenarioId)
     }
   })
 
@@ -225,36 +236,40 @@ describe('Stack E2E — knowledge routes — happy path', () => {
       inlineText: 'Avatar one private timeline marker.',
     })
 
-    const visibleRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        scenarioId: seeded.scenarioId,
-        query: 'timeline marker',
-        activeAvatarId: 'avatar_world_1',
-      }),
-    })
-    expect(visibleRes.status).toBe(200)
-    const visibleBody = (await visibleRes.json()) as {
-      data: { retrieval: { world: Array<{ chunkId: string }> } }
-    }
+    try {
+      const visibleRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          scenarioId: seeded.scenarioId,
+          query: 'timeline marker',
+          activeAvatarId: 'avatar_world_1',
+        }),
+      })
+      expect(visibleRes.status).toBe(200)
+      const visibleBody = (await visibleRes.json()) as {
+        data: { retrieval: { world: Array<{ chunkId: string }> } }
+      }
 
-    const hiddenRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        scenarioId: seeded.scenarioId,
-        query: 'timeline marker',
-        activeAvatarId: 'avatar_world_2',
-      }),
-    })
-    expect(hiddenRes.status).toBe(200)
-    const hiddenBody = (await hiddenRes.json()) as {
-      data: { retrieval: { world: Array<{ chunkId: string }> } }
-    }
+      const hiddenRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          scenarioId: seeded.scenarioId,
+          query: 'timeline marker',
+          activeAvatarId: 'avatar_world_2',
+        }),
+      })
+      expect(hiddenRes.status).toBe(200)
+      const hiddenBody = (await hiddenRes.json()) as {
+        data: { retrieval: { world: Array<{ chunkId: string }> } }
+      }
 
-    expect(visibleBody.data.retrieval.world.length).toBeGreaterThan(0)
-    expect(hiddenBody.data.retrieval.world).toEqual([])
+      expect(visibleBody.data.retrieval.world.length).toBeGreaterThan(0)
+      expect(hiddenBody.data.retrieval.world).toEqual([])
+    } finally {
+      await deleteScenario(seeded.scenarioId)
+    }
   })
 })
 
@@ -272,50 +287,54 @@ describe('Stack E2E — knowledge upload — happy path', () => {
     }
     const scenarioId = scenarioBody.data.scenario.scenarioId
 
-    const content = Buffer.from('Uploaded lore mentions a hidden lakeside passage.').toString(
-      'base64',
-    )
-    const uploadRes = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        scenarioId,
-        name: 'Uploaded lore',
-        knowledgeType: 'world',
-        content,
-        filename: 'lore.txt',
-      }),
-    })
-    expect(uploadRes.status).toBe(201)
-    const uploadBody = (await uploadRes.json()) as { data: { source: { sourceId: string } } }
-    const sourceId = uploadBody.data.source.sourceId
+    try {
+      const content = Buffer.from('Uploaded lore mentions a hidden lakeside passage.').toString(
+        'base64',
+      )
+      const uploadRes = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          scenarioId,
+          name: 'Uploaded lore',
+          knowledgeType: 'world',
+          content,
+          filename: 'lore.txt',
+        }),
+      })
+      expect(uploadRes.status).toBe(201)
+      const uploadBody = (await uploadRes.json()) as { data: { source: { sourceId: string } } }
+      const sourceId = uploadBody.data.source.sourceId
 
-    const triggerRes = await fetch(`${APP_URL}/v1/knowledge-sources/${sourceId}/ingest`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({}),
-    })
-    expect(triggerRes.status).toBe(202)
-    const triggerBody = (await triggerRes.json()) as {
-      data: { ingestionJob: { ingestionJobId: string } }
+      const triggerRes = await fetch(`${APP_URL}/v1/knowledge-sources/${sourceId}/ingest`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      })
+      expect(triggerRes.status).toBe(202)
+      const triggerBody = (await triggerRes.json()) as {
+        data: { ingestionJob: { ingestionJobId: string } }
+      }
+
+      const finalJob = await waitForJob(triggerBody.data.ingestionJob.ingestionJobId)
+      expect(finalJob.status).toBe('completed')
+
+      const retrievalRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ scenarioId, query: 'lakeside passage' }),
+      })
+      expect(retrievalRes.status).toBe(200)
+      const retrievalBody = (await retrievalRes.json()) as {
+        data: { retrieval: { world: Array<{ content: string }> } }
+      }
+      expect(
+        retrievalBody.data.retrieval.world.some((item) =>
+          item.content.toLowerCase().includes('lakeside passage'),
+        ),
+      ).toBe(true)
+    } finally {
+      await deleteScenario(scenarioId)
     }
-
-    const finalJob = await waitForJob(triggerBody.data.ingestionJob.ingestionJobId)
-    expect(finalJob.status).toBe('completed')
-
-    const retrievalRes = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ scenarioId, query: 'lakeside passage' }),
-    })
-    expect(retrievalRes.status).toBe(200)
-    const retrievalBody = (await retrievalRes.json()) as {
-      data: { retrieval: { world: Array<{ content: string }> } }
-    }
-    expect(
-      retrievalBody.data.retrieval.world.some((item) =>
-        item.content.toLowerCase().includes('lakeside passage'),
-      ),
-    ).toBe(true)
   })
 })
