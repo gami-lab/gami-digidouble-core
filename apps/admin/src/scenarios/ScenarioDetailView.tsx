@@ -2,11 +2,14 @@ import type { JSX } from 'react'
 import type { AvatarSummary, ScenarioSummary } from '@gami/shared'
 import type { KnowledgeSourceDto } from '../api/knowledge'
 
+export type IngestUiStatus = { phase: 'running' } | { phase: 'error'; message: string }
+
 type ScenarioViewProps = {
   scenario: ScenarioSummary
   avatars: AvatarSummary[]
   knowledgeSources: KnowledgeSourceDto[]
   actionError: string | null
+  ingestStatus: Record<string, IngestUiStatus>
   onEditScenario: () => void
   onAddAvatar: () => void
   onEditAvatar: (avatarId: string) => void
@@ -16,6 +19,8 @@ type ScenarioViewProps = {
   onEditKnowledge: (sourceId: string) => void
   onDeleteKnowledge: (sourceId: string) => void
   onTriggerIngestion: (sourceId: string) => void
+  onViewKnowledgeChunks: (sourceId: string) => void
+  onTestRetrieval: () => void
 }
 
 export function ScenarioView({
@@ -23,6 +28,7 @@ export function ScenarioView({
   avatars,
   knowledgeSources,
   actionError,
+  ingestStatus,
   onEditScenario,
   onAddAvatar,
   onEditAvatar,
@@ -32,6 +38,8 @@ export function ScenarioView({
   onEditKnowledge,
   onDeleteKnowledge,
   onTriggerIngestion,
+  onViewKnowledgeChunks,
+  onTestRetrieval,
 }: ScenarioViewProps): JSX.Element {
   const initialIds = new Set(scenario.avatarAvailability.initialAvatarIds)
   const avatarNamesById = new Map(avatars.map((avatar) => [avatar.avatarId, avatar.name] as const))
@@ -50,10 +58,13 @@ export function ScenarioView({
       <KnowledgeSourceListSection
         knowledgeSources={knowledgeSources}
         avatarNamesById={avatarNamesById}
+        ingestStatus={ingestStatus}
         onAddKnowledge={onAddKnowledge}
         onEditKnowledge={onEditKnowledge}
         onDeleteKnowledge={onDeleteKnowledge}
         onTriggerIngestion={onTriggerIngestion}
+        onViewKnowledgeChunks={onViewKnowledgeChunks}
+        onTestRetrieval={onTestRetrieval}
       />
     </>
   )
@@ -207,27 +218,39 @@ function formatAvatarOverride(override: AvatarSummary['llmOverride']): string {
 type KnowledgeSourceListSectionProps = {
   knowledgeSources: KnowledgeSourceDto[]
   avatarNamesById: Map<string, string>
+  ingestStatus: Record<string, IngestUiStatus>
   onAddKnowledge: () => void
   onEditKnowledge: (sourceId: string) => void
   onDeleteKnowledge: (sourceId: string) => void
   onTriggerIngestion: (sourceId: string) => void
+  onViewKnowledgeChunks: (sourceId: string) => void
+  onTestRetrieval: () => void
 }
 
 function KnowledgeSourceListSection({
   knowledgeSources,
   avatarNamesById,
+  ingestStatus,
   onAddKnowledge,
   onEditKnowledge,
   onDeleteKnowledge,
   onTriggerIngestion,
+  onViewKnowledgeChunks,
+  onTestRetrieval,
 }: KnowledgeSourceListSectionProps): JSX.Element {
   return (
     <>
       <div className="admin-section-header">
         <h3>Knowledge sources</h3>
-        <button type="button" className="admin-button admin-button-primary" onClick={onAddKnowledge}>
-          Add knowledge
-        </button>
+        <div>
+          <button type="button" className="admin-button admin-button-secondary" onClick={onTestRetrieval}>
+            Test retrieval
+          </button>
+          {' '}
+          <button type="button" className="admin-button admin-button-primary" onClick={onAddKnowledge}>
+            Add knowledge
+          </button>
+        </div>
       </div>
 
       {knowledgeSources.length === 0 ? (
@@ -245,43 +268,102 @@ function KnowledgeSourceListSection({
           </thead>
           <tbody>
             {knowledgeSources.map((source) => (
-              <tr key={source.sourceId}>
-                <td>{source.name}</td>
-                <td>{source.knowledgeType}</td>
-                <td>{formatKnowledgeVisibility(source, avatarNamesById)}</td>
-                <td>
-                  <span className="admin-status-pill">{source.status}</span>
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="admin-button admin-button-secondary"
-                    onClick={() => { onEditKnowledge(source.sourceId) }}
-                  >
-                    Edit
-                  </button>
-                  {' '}
-                  <button
-                    type="button"
-                    className="admin-button admin-button-secondary"
-                    onClick={() => { onTriggerIngestion(source.sourceId) }}
-                  >
-                    Ingest
-                  </button>
-                  {' '}
-                  <button
-                    type="button"
-                    className="admin-button admin-button-danger"
-                    onClick={() => { onDeleteKnowledge(source.sourceId) }}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
+              <KnowledgeSourceRow
+                key={source.sourceId}
+                source={source}
+                avatarNamesById={avatarNamesById}
+                ingestState={ingestStatus[source.sourceId]}
+                onEditKnowledge={onEditKnowledge}
+                onDeleteKnowledge={onDeleteKnowledge}
+                onTriggerIngestion={onTriggerIngestion}
+                onViewKnowledgeChunks={onViewKnowledgeChunks}
+              />
             ))}
           </tbody>
         </table>
       )}
+    </>
+  )
+}
+
+type KnowledgeSourceRowProps = {
+  source: KnowledgeSourceDto
+  avatarNamesById: Map<string, string>
+  ingestState: IngestUiStatus | undefined
+  onEditKnowledge: (sourceId: string) => void
+  onDeleteKnowledge: (sourceId: string) => void
+  onTriggerIngestion: (sourceId: string) => void
+  onViewKnowledgeChunks: (sourceId: string) => void
+}
+
+function KnowledgeSourceRow({
+  source,
+  avatarNamesById,
+  ingestState,
+  onEditKnowledge,
+  onDeleteKnowledge,
+  onTriggerIngestion,
+  onViewKnowledgeChunks,
+}: KnowledgeSourceRowProps): JSX.Element {
+  const isIngesting = ingestState?.phase === 'running'
+  const ingestLabel = isIngesting ? 'Ingesting…' : source.status === 'ready' ? 'Re-ingest' : 'Ingest'
+  const ingestTitle =
+    source.status === 'ready'
+      ? 'Already ingested. Re-ingest to pick up content or metadata changes.'
+      : 'Chunk, embed, and store this source so it can be retrieved at runtime.'
+
+  return (
+    <>
+      <tr>
+        <td>{source.name}</td>
+        <td>{source.knowledgeType}</td>
+        <td>{formatKnowledgeVisibility(source, avatarNamesById)}</td>
+        <td>
+          <span className="admin-status-pill">{source.status}</span>
+        </td>
+        <td>
+          <button
+            type="button"
+            className="admin-button admin-button-secondary"
+            onClick={() => { onEditKnowledge(source.sourceId) }}
+          >
+            Edit
+          </button>
+          {' '}
+          <button
+            type="button"
+            className="admin-button admin-button-secondary"
+            onClick={() => { onViewKnowledgeChunks(source.sourceId) }}
+          >
+            View data
+          </button>
+          {' '}
+          <button
+            type="button"
+            className="admin-button admin-button-secondary"
+            title={ingestTitle}
+            onClick={() => { onTriggerIngestion(source.sourceId) }}
+            disabled={isIngesting}
+          >
+            {ingestLabel}
+          </button>
+          {' '}
+          <button
+            type="button"
+            className="admin-button admin-button-danger"
+            onClick={() => { onDeleteKnowledge(source.sourceId) }}
+          >
+            Delete
+          </button>
+        </td>
+      </tr>
+      {ingestState?.phase === 'error' ? (
+        <tr>
+          <td colSpan={5} className="admin-error">
+            Ingestion failed: {ingestState.message}
+          </td>
+        </tr>
+      ) : null}
     </>
   )
 }

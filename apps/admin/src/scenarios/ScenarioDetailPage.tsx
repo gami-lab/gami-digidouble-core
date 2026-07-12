@@ -1,14 +1,43 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
-import type { AvatarSummary, ScenarioAvatarAvailability, ScenarioSummary } from '@gami/shared'
+import type { AvatarSummary, IngestionJobDto, ScenarioAvatarAvailability, ScenarioSummary } from '@gami/shared'
+import { ApiError } from '../api/client'
 import { formatApiError } from '../api/error'
 import { deleteAvatar, getScenario, listScenarioAvatars, updateScenario } from '../api/scenarios'
 import type { KnowledgeSourceDto } from '../api/knowledge'
-import { deleteKnowledgeSource, listKnowledgeSources, triggerIngestion } from '../api/knowledge'
+import {
+  deleteKnowledgeSource,
+  getIngestionJob,
+  listKnowledgeSources,
+  triggerIngestion,
+} from '../api/knowledge'
 import { AvatarCreateForm, AvatarEditForm } from './ScenarioAvatarForms'
 import { ScenarioEditForm } from './ScenarioEditForm'
 import { KnowledgeSourceCreateForm, KnowledgeSourceEditForm } from './ScenarioKnowledgeSourceForms'
+import { ScenarioKnowledgeChunksView } from './ScenarioKnowledgeChunksView'
+import { ScenarioKnowledgeRetrievalTester } from './ScenarioKnowledgeRetrievalTester'
 import { ScenarioView } from './ScenarioDetailView'
+import type { IngestUiStatus } from './ScenarioDetailView'
+
+const INGESTION_POLL_INTERVAL_MS = 1200
+const INGESTION_POLL_MAX_ATTEMPTS = 30
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => { setTimeout(resolve, ms) })
+}
+
+function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T> {
+  return Object.fromEntries(Object.entries(record).filter(([entryKey]) => entryKey !== key))
+}
+
+async function pollIngestionJob(ingestionJobId: string): Promise<IngestionJobDto> {
+  for (let attempt = 0; attempt < INGESTION_POLL_MAX_ATTEMPTS; attempt += 1) {
+    const job = await getIngestionJob(ingestionJobId)
+    if (job.status === 'completed' || job.status === 'failed') return job
+    await sleep(INGESTION_POLL_INTERVAL_MS)
+  }
+  throw new ApiError('TIMEOUT', 'Ingestion is taking longer than expected. Check back shortly.')
+}
 
 function computeNextAvailability(
   current: ScenarioAvatarAvailability,
@@ -41,6 +70,8 @@ type DetailMode =
   | { kind: 'editing-avatar'; avatarId: string }
   | { kind: 'creating-knowledge' }
   | { kind: 'editing-knowledge'; sourceId: string }
+  | { kind: 'viewing-knowledge-chunks'; sourceId: string }
+  | { kind: 'testing-retrieval' }
 
 type DetailData = {
   scenario: ScenarioSummary
@@ -59,6 +90,7 @@ type ReadyStateUpdates = Partial<{
   actionError: string | null
 }>
 
+type SetIngestStatus = (updater: (prev: Record<string, IngestUiStatus>) => Record<string, IngestUiStatus>) => void
 type SetDetailState = (state: DetailState) => void
 type SetDetailMode = (mode: DetailMode) => void
 type SetDetailActionError = (message: string) => void
@@ -67,6 +99,7 @@ type MakeReadyState = (updates: ReadyStateUpdates) => DetailState
 
 export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPageProps): JSX.Element {
   const [state, setState] = useState<DetailState>({ status: 'loading' })
+  const [ingestStatus, setIngestStatus] = useState<Record<string, IngestUiStatus>>({})
 
   function loadData(): void {
     setState({ status: 'loading' })
@@ -91,7 +124,12 @@ export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPagePro
       <button type="button" className="admin-link-button" onClick={onBack}>
         ← Back to scenarios
       </button>
-      <DetailBody state={state} onSetState={setState} />
+      <DetailBody
+        state={state}
+        onSetState={setState}
+        ingestStatus={ingestStatus}
+        onSetIngestStatus={setIngestStatus}
+      />
     </section>
   )
 }
@@ -99,12 +137,23 @@ export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPagePro
 type DetailBodyProps = {
   state: DetailState
   onSetState: SetDetailState
+  ingestStatus: Record<string, IngestUiStatus>
+  onSetIngestStatus: SetIngestStatus
 }
 
-function DetailBody({ state, onSetState }: DetailBodyProps): JSX.Element {
+function DetailBody({ state, onSetState, ingestStatus, onSetIngestStatus }: DetailBodyProps): JSX.Element {
   if (state.status === 'loading') return <p>Loading scenario…</p>
   if (state.status === 'error') return <p className="admin-error">{state.message}</p>
-  return <ReadyDetailBody data={state.data} mode={state.mode} actionError={state.actionError} onSetState={onSetState} />
+  return (
+    <ReadyDetailBody
+      data={state.data}
+      mode={state.mode}
+      actionError={state.actionError}
+      onSetState={onSetState}
+      ingestStatus={ingestStatus}
+      onSetIngestStatus={onSetIngestStatus}
+    />
+  )
 }
 
 type ReadyDetailBodyProps = {
@@ -112,9 +161,18 @@ type ReadyDetailBodyProps = {
   mode: DetailMode
   actionError: string | null
   onSetState: SetDetailState
+  ingestStatus: Record<string, IngestUiStatus>
+  onSetIngestStatus: SetIngestStatus
 }
 
-function ReadyDetailBody({ data, mode, actionError, onSetState }: ReadyDetailBodyProps): JSX.Element {
+function ReadyDetailBody({
+  data,
+  mode,
+  actionError,
+  onSetState,
+  ingestStatus,
+  onSetIngestStatus,
+}: ReadyDetailBodyProps): JSX.Element {
   const makeReady: MakeReadyState = (updates) => ({
     status: 'ready',
     data: updates.data ?? data,
@@ -143,6 +201,8 @@ function ReadyDetailBody({ data, mode, actionError, onSetState }: ReadyDetailBod
       makeReady={makeReady}
       setMode={setMode}
       setActionError={setActionError}
+      ingestStatus={ingestStatus}
+      onSetIngestStatus={onSetIngestStatus}
     />
   )
 }
@@ -195,9 +255,34 @@ function renderModePanel({
       )
     case 'editing-knowledge':
       return renderKnowledgeEditMode(data, mode.sourceId, refreshData, setMode, setActionError)
+    case 'viewing-knowledge-chunks':
+      return renderKnowledgeChunksMode(data, mode.sourceId, setMode)
+    case 'testing-retrieval':
+      return (
+        <ScenarioKnowledgeRetrievalTester
+          scenarioId={data.scenario.scenarioId}
+          avatars={data.avatars}
+          knowledgeSources={data.knowledgeSources}
+          onClose={() => { setMode({ kind: 'view' }) }}
+        />
+      )
     case 'view':
       return null
   }
+}
+
+function renderKnowledgeChunksMode(
+  data: DetailData,
+  sourceId: string,
+  setMode: SetDetailMode,
+): JSX.Element {
+  const source = data.knowledgeSources.find((item) => item.sourceId === sourceId)
+  if (source === undefined) {
+    setMode({ kind: 'view' })
+    return <p>Knowledge source not found.</p>
+  }
+
+  return <ScenarioKnowledgeChunksView source={source} onClose={() => { setMode({ kind: 'view' }) }} />
 }
 
 function renderAvatarEditMode(
@@ -260,6 +345,8 @@ type ScenarioViewContainerProps = {
   makeReady: MakeReadyState
   setMode: SetDetailMode
   setActionError: SetDetailActionError
+  ingestStatus: Record<string, IngestUiStatus>
+  onSetIngestStatus: SetIngestStatus
 }
 
 function ScenarioViewContainer({
@@ -269,6 +356,8 @@ function ScenarioViewContainer({
   makeReady,
   setMode,
   setActionError,
+  ingestStatus,
+  onSetIngestStatus,
 }: ScenarioViewContainerProps): JSX.Element {
   async function handleDeleteAvatar(avatarId: string): Promise<void> {
     try {
@@ -302,11 +391,23 @@ function ScenarioViewContainer({
   }
 
   async function handleTriggerIngestion(sourceId: string): Promise<void> {
+    onSetIngestStatus((prev) => ({ ...prev, [sourceId]: { phase: 'running' } }))
     try {
-      await triggerIngestion(sourceId)
-      onSetState(makeReady({ actionError: null }))
+      const job = await triggerIngestion(sourceId)
+      const finalJob = await pollIngestionJob(job.ingestionJobId)
+      const refreshedSources = await listKnowledgeSources(data.scenario.scenarioId)
+      onSetState(makeReady({ data: { ...data, knowledgeSources: refreshedSources }, actionError: null }))
+      onSetIngestStatus((prev) => {
+        if (finalJob.status === 'failed') {
+          return { ...prev, [sourceId]: { phase: 'error', message: finalJob.errorMessage ?? 'Ingestion failed.' } }
+        }
+        return withoutKey(prev, sourceId)
+      })
     } catch (error: unknown) {
-      setActionError(formatApiError(error, 'UNKNOWN_ERROR: Failed to trigger ingestion'))
+      onSetIngestStatus((prev) => ({
+        ...prev,
+        [sourceId]: { phase: 'error', message: formatApiError(error, 'Failed to trigger ingestion.') },
+      }))
     }
   }
 
@@ -316,6 +417,7 @@ function ScenarioViewContainer({
       avatars={data.avatars}
       knowledgeSources={data.knowledgeSources}
       actionError={actionError}
+      ingestStatus={ingestStatus}
       onEditScenario={() => { setMode({ kind: 'editing-scenario' }) }}
       onAddAvatar={() => { setMode({ kind: 'creating-avatar' }) }}
       onEditAvatar={(avatarId) => { setMode({ kind: 'editing-avatar', avatarId }) }}
@@ -325,6 +427,8 @@ function ScenarioViewContainer({
       onEditKnowledge={(sourceId) => { setMode({ kind: 'editing-knowledge', sourceId }) }}
       onDeleteKnowledge={(sourceId) => { void handleDeleteKnowledge(sourceId) }}
       onTriggerIngestion={(sourceId) => { void handleTriggerIngestion(sourceId) }}
+      onViewKnowledgeChunks={(sourceId) => { setMode({ kind: 'viewing-knowledge-chunks', sourceId }) }}
+      onTestRetrieval={() => { setMode({ kind: 'testing-retrieval' }) }}
     />
   )
 }

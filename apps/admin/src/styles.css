@@ -280,3 +280,34 @@ body {
   display: flex;
   gap: 8px;
 }
+
+.admin-chunk-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+}
+
+.admin-chunk-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background-color: #f9fafb;
+}
+
+.admin-chunk-item-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.admin-chunk-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 13px;
+  margin: 0;
+}

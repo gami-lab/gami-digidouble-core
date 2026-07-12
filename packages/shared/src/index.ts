@@ -95,6 +95,7 @@ export type {
   TriggerIngestionResponse,
   GetIngestionJobResponse,
   ListIngestionJobsResponse,
+  ListKnowledgeChunksResponse,
   QueryKnowledgeRetrievalRequest,
   TypedKnowledgeRetrievalDto,
   QueryKnowledgeRetrievalResponse,

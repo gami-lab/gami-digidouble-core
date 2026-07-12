@@ -432,3 +432,32 @@ describe('POST /v1/knowledge-sources — visibilityPolicy', () => {
     expect(body.error?.code).toBe('VALIDATION_ERROR')
   })
 })
+
+describe('GET /v1/knowledge-sources/:sourceId/chunks', () => {
+  it('returns an empty list for a source with no ingested chunks', async () => {
+    const app = makeApp({ sources: [makeSource()] })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/knowledge-sources/knowledge_source_1/chunks',
+      headers: { 'x-api-key': 'test-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ chunks: unknown[] }>>()
+    expect(body.error).toBeNull()
+    expect(body.data?.chunks).toEqual([])
+  })
+
+  it('returns 404 when the source does not exist', async () => {
+    const response = await makeApp().inject({
+      method: 'GET',
+      url: '/v1/knowledge-sources/knowledge_source_missing/chunks',
+      headers: { 'x-api-key': 'test-secret' },
+    })
+
+    expect(response.statusCode).toBe(404)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('NOT_FOUND')
+  })
+})

@@ -8,6 +8,7 @@ import type {
   DeleteKnowledgeSourceResponse,
   GetIngestionJobResponse,
   ListIngestionJobsResponse,
+  ListKnowledgeChunksResponse,
   ListKnowledgeSourcesQuery,
   ListKnowledgeSourcesResponse,
   QueryKnowledgeRetrievalRequest,
@@ -31,6 +32,7 @@ import { CreateKnowledgeSourceUseCase } from '../../application/use-cases/create
 import { DeleteKnowledgeSourceUseCase } from '../../application/use-cases/delete-knowledge-source/delete-knowledge-source.use-case.js'
 import { GetIngestionJobUseCase } from '../../application/use-cases/get-ingestion-job/get-ingestion-job.use-case.js'
 import { GetTypedRetrievalUseCase } from '../../application/use-cases/get-typed-retrieval/get-typed-retrieval.use-case.js'
+import { ListKnowledgeChunksUseCase } from '../../application/use-cases/list-knowledge-chunks/list-knowledge-chunks.use-case.js'
 import { ListKnowledgeSourcesUseCase } from '../../application/use-cases/list-knowledge-sources/list-knowledge-sources.use-case.js'
 import { TriggerIngestionUseCase } from '../../application/use-cases/trigger-ingestion/trigger-ingestion.use-case.js'
 import { UpdateKnowledgeSourceUseCase } from '../../application/use-cases/update-knowledge-source/update-knowledge-source.use-case.js'
@@ -61,6 +63,7 @@ type UseCases = {
   triggerIngestionUseCase: TriggerIngestionUseCase
   getIngestionJobUseCase: GetIngestionJobUseCase
   getTypedRetrievalUseCase: GetTypedRetrievalUseCase
+  listChunksUseCase: ListKnowledgeChunksUseCase
   sourceRepository: IKnowledgeSourceRepository
   eventLogRepository: IEventLogRepository
 }
@@ -187,6 +190,7 @@ export const knowledgeRoute: FastifyPluginCallback<KnowledgeRouteOptions> = (app
   registerTriggerIngestionRoute(app, useCases)
   registerListIngestionJobsRoute(app, useCases)
   registerGetIngestionJobRoute(app, useCases)
+  registerListChunksRoute(app, useCases)
   registerRetrievalRoute(app, useCases)
 }
 
@@ -216,6 +220,10 @@ function buildUseCases(options: KnowledgeRouteOptions): UseCases {
     getIngestionJobUseCase: new GetIngestionJobUseCase(options.ingestionJobRepository),
     getTypedRetrievalUseCase: new GetTypedRetrievalUseCase(
       new TypedRetrievalService(options.sourceRepository, options.chunkRepository),
+    ),
+    listChunksUseCase: new ListKnowledgeChunksUseCase(
+      options.sourceRepository,
+      options.chunkRepository,
     ),
     sourceRepository: options.sourceRepository,
     eventLogRepository: options.eventLogRepository,
@@ -437,6 +445,23 @@ function registerGetIngestionJobRoute(app: FastifyInstance, useCases: UseCases):
           ingestionJobId: request.params.ingestionJobId,
         })
         return await reply.send(ok<GetIngestionJobResponse>(output))
+      } catch (error) {
+        return await handleError(error, reply)
+      }
+    },
+  )
+}
+
+function registerListChunksRoute(app: FastifyInstance, useCases: UseCases): void {
+  app.get<{ Params: SourceParams }>(
+    '/v1/knowledge-sources/:sourceId/chunks',
+    { schema: { params: sourceParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await useCases.listChunksUseCase.execute({
+          sourceId: request.params.sourceId,
+        })
+        return await reply.send(ok<ListKnowledgeChunksResponse>(output))
       } catch (error) {
         return await handleError(error, reply)
       }

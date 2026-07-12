@@ -11,7 +11,11 @@ import {
 } from '../api/scenarios'
 import {
   createKnowledgeSource as createKnowledgeSourceApi,
+  getIngestionJob,
+  listKnowledgeChunks,
   listKnowledgeSources,
+  queryKnowledgeRetrieval,
+  triggerIngestion,
   updateKnowledgeSource as updateKnowledgeSourceApi,
   uploadKnowledgeSource as uploadKnowledgeSourceApi,
 } from '../api/knowledge'
@@ -33,6 +37,9 @@ vi.mock('../api/knowledge', () => ({
   updateKnowledgeSource: vi.fn(),
   deleteKnowledgeSource: vi.fn(),
   triggerIngestion: vi.fn(),
+  getIngestionJob: vi.fn(),
+  listKnowledgeChunks: vi.fn(),
+  queryKnowledgeRetrieval: vi.fn(),
 }))
 
 function createScenario(overrides: Partial<ScenarioSummary> = {}): ScenarioSummary {
@@ -421,6 +428,155 @@ describe('ScenarioDetailPage knowledge edit submissions', () => {
         visibilityPolicy: 'avatars',
         visibleToAvatarIds: ['avatar_2'],
       })
+    })
+  })
+})
+
+describe('ScenarioDetailPage knowledge ingestion feedback', () => {
+  it('polls the ingestion job and refreshes the source status on success', async () => {
+    mockReadyLoad({ knowledgeSources: [createKnowledgeSource({ status: 'pending' })] })
+    vi.mocked(triggerIngestion).mockResolvedValue({
+      ingestionJobId: 'job_1',
+      sourceId: 'knowledge_source_1',
+      status: 'queued',
+      attempts: 0,
+      createdAt: '2026-06-01T00:00:00.000Z',
+    })
+    vi.mocked(getIngestionJob).mockResolvedValue({
+      ingestionJobId: 'job_1',
+      sourceId: 'knowledge_source_1',
+      status: 'completed',
+      attempts: 1,
+      createdAt: '2026-06-01T00:00:00.000Z',
+    })
+    vi.mocked(listKnowledgeSources).mockResolvedValueOnce([createKnowledgeSource({ status: 'pending' })])
+    vi.mocked(listKnowledgeSources).mockResolvedValueOnce([createKnowledgeSource({ status: 'ready' })])
+
+    renderPage()
+    await waitForScenario()
+
+    const knowledgeRow = screen.getByText('Secret lore').closest('tr')
+    fireEvent.click(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Ingest' }))
+
+    await waitFor(() => {
+      expect(triggerIngestion).toHaveBeenCalledWith('knowledge_source_1')
+    })
+    await waitFor(() => {
+      expect(getIngestionJob).toHaveBeenCalledWith('job_1')
+    })
+    await waitFor(() => {
+      const refreshedRow = screen.getByText('Secret lore').closest('tr') as HTMLTableRowElement
+      expect(within(refreshedRow).getByText('ready')).toBeTruthy()
+    })
+  })
+
+  it('shows an inline error when the ingestion job fails', async () => {
+    mockReadyLoad({ knowledgeSources: [createKnowledgeSource({ status: 'pending' })] })
+    vi.mocked(triggerIngestion).mockResolvedValue({
+      ingestionJobId: 'job_2',
+      sourceId: 'knowledge_source_1',
+      status: 'queued',
+      attempts: 0,
+      createdAt: '2026-06-01T00:00:00.000Z',
+    })
+    vi.mocked(getIngestionJob).mockResolvedValue({
+      ingestionJobId: 'job_2',
+      sourceId: 'knowledge_source_1',
+      status: 'failed',
+      attempts: 1,
+      createdAt: '2026-06-01T00:00:00.000Z',
+      errorMessage: 'Could not load source content.',
+    })
+    vi.mocked(listKnowledgeSources).mockResolvedValue([createKnowledgeSource({ status: 'error' })])
+
+    renderPage()
+    await waitForScenario()
+
+    const knowledgeRow = screen.getByText('Secret lore').closest('tr')
+    fireEvent.click(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Ingest' }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Could not load source content\./)).toBeTruthy()
+    })
+  })
+
+  it('relabels the button "Re-ingest" once a source is ready', async () => {
+    mockReadyLoad({ knowledgeSources: [createKnowledgeSource({ status: 'ready' })] })
+
+    renderPage()
+    await waitForScenario()
+
+    const knowledgeRow = screen.getByText('Secret lore').closest('tr')
+    expect(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Re-ingest' })).toBeTruthy()
+  })
+})
+
+describe('ScenarioDetailPage ingested-data view', () => {
+  it('opens the chunk viewer and lists ingested chunks', async () => {
+    mockReadyLoad({ knowledgeSources: [createKnowledgeSource({ status: 'ready' })] })
+    vi.mocked(listKnowledgeChunks).mockResolvedValue([
+      {
+        chunkId: 'chunk_1',
+        sourceId: 'knowledge_source_1',
+        content: 'Chunk one content',
+        chunkIndex: 0,
+        createdAt: '2026-06-01T00:00:00.000Z',
+      },
+    ])
+
+    renderPage()
+    await waitForScenario()
+
+    const knowledgeRow = screen.getByText('Secret lore').closest('tr')
+    fireEvent.click(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'View data' }))
+
+    await waitFor(() => {
+      expect(listKnowledgeChunks).toHaveBeenCalledWith('knowledge_source_1')
+    })
+    await waitFor(() => {
+      expect(screen.getByText('Chunk one content')).toBeTruthy()
+    })
+  })
+})
+
+describe('ScenarioDetailPage retrieval tester', () => {
+  it('runs a retrieval query and shows matched chunks', async () => {
+    mockReadyLoad({ knowledgeSources: [createKnowledgeSource({ status: 'ready' })] })
+    vi.mocked(queryKnowledgeRetrieval).mockResolvedValue({
+      memory: [],
+      world: [
+        {
+          sourceId: 'knowledge_source_1',
+          chunkId: 'chunk_1',
+          knowledgeType: 'world',
+          content: 'World chunk content',
+          score: 0.8,
+          reason: 'lexical overlap',
+        },
+      ],
+      media: [],
+      trace: {
+        query: 'lore',
+        perType: {
+          memory: { sourceIds: [], selectedChunkIds: [] },
+          world: { sourceIds: ['knowledge_source_1'], selectedChunkIds: ['chunk_1'] },
+          media: { sourceIds: [], selectedChunkIds: [] },
+        },
+      },
+    })
+
+    renderPage()
+    await waitForScenario()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Test retrieval' }))
+    fireEvent.change(screen.getByLabelText(/Query/), { target: { value: 'lore' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Run retrieval' }).closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(queryKnowledgeRetrieval).toHaveBeenCalledWith({ scenarioId: 'scenario_a', query: 'lore' })
+    })
+    await waitFor(() => {
+      expect(screen.getByText('World chunk content')).toBeTruthy()
     })
   })
 })

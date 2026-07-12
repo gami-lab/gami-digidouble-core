@@ -189,6 +189,10 @@ export type ListIngestionJobsResponse = {
   jobs: IngestionJobDto[]
 }
 
+export type ListKnowledgeChunksResponse = {
+  chunks: KnowledgeChunkDto[]
+}
+
 export type QueryKnowledgeRetrievalRequest = {
   scenarioId: string
   query: string
