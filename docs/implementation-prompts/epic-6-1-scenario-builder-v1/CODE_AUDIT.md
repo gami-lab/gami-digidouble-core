@@ -2,16 +2,10 @@
 
 ## Scope audited
 
-EPIC scope audited from:
+Audited against:
 
 - `docs/implementation-prompts/epic-6-1-scenario-builder-v1/README.md`
-- `apps/admin` scenario-builder implementation
-- `apps/core` scenario, avatar, knowledge, and model-selection routes/use cases touched by EPIC 6.1
-- `packages/shared` contracts used by the admin app
-- related tests and documentation updates
-
-Project alignment references reviewed:
-
+- `docs/implementation-prompts/epic-6-1-scenario-builder-v1/03-knowledge-sources-and-visibility.md`
 - `docs/VISION.md`
 - `docs/PRINCIPLES.md`
 - `docs/ARCHITECTURE.md`
@@ -23,248 +17,178 @@ Project alignment references reviewed:
 - `docs/EPICS.md`
 - `docs/PROJECT_STATUS.md`
 
+Implementation reviewed:
+
+- `apps/admin`
+- `apps/core`
+- `packages/shared`
+- `infra/postgres/init.sql`
+
 ## Executive Summary
 
-EPIC 6.1 delivered the dedicated `apps/admin` workspace, scenario and avatar editing, and scenario-scoped model selection with generally clean layering and green mandatory quality gates.
+EPIC 6.1 is largely delivered: the dedicated `apps/admin` workspace exists, scenario and avatar authoring are usable, knowledge creation works for pasted text and PDF/TXT upload, visibility rules are normalized, and scenario/avatar runtime model selection is wired through shared contracts with green lint, typecheck, test, and coverage gates.
 
-The EPIC is not functionally complete against its own README. Two core knowledge-management behaviors are materially broken or missing:
-
-- pasted-text knowledge creation from the admin app cannot succeed
-- avatar-scoped knowledge visibility cannot actually be authored from the admin app
-
-There is also a backend visibility-rule bug: `visibilityPolicy` and `visibleToAvatarIds` are not enforced as one coherent contract, so invalid or stale combinations can silently broaden or narrow access. Tests missed these consumer-visible failures.
+The EPIC is not fully complete against its own README and prompt scope. The missing piece is knowledge-source updating from the admin app: operators can rename a source and change visibility, but they cannot update source content or change source type from the UI, even though the EPIC README and slice prompt both say create/update flows must cover pasted text and PDF/TXT knowledge management. There is also a serious rollout risk: EPIC 6.1 introduced schema changes through a one-time Postgres init script instead of a real migration mechanism, which makes upgrades unsafe for already-initialized environments.
 
 ## Final Grade
 
-**D**
+**C**
 
 ## Build Health
 
 - lint: PASS
 - typecheck: PASS
 - tests: PASS
-- coverage: PASS (`pnpm test:coverage`; @gami/core overall coverage report shows 85.82% statements, 83.92% branches, 96.31% functions, 85.82% lines)
+- coverage: PASS (`pnpm test:coverage` for `@gami/core`: 86.24% statements, 84.52% branches, 96.48% functions, 86.24% lines)
 
-Executed commands:
+Commands executed:
 
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm test:coverage`
 
-Not executed in this audit:
-
-- `pnpm test:integration-e2e`
-- `pnpm test:stack-e2e`
-
 ## Feature Confidence Matrix
 
-| Feature                                      | Expected Behavior                                                                                | Evidence                                                                                                                                                                                                                                              | Confidence (High/Medium/Low) | Notes                                                                                           |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------- |
-| Dedicated admin app foundation               | First-class admin workspace with scenario list and detail shell                                  | `apps/admin/src/App.tsx`, `apps/admin/src/scenarios/ScenarioListPage.tsx`, `apps/admin/src/scenarios/ScenarioDetailPage.tsx`                                                                                                                          | High                         | Delivered and behavior-tested at page level                                                     |
-| Scenario editing                             | Admin can create/update scenario name, status, objectives, world context                         | `apps/admin/src/scenarios/ScenarioCreatePage.tsx`, `ScenarioEditForm.tsx`, `apps/core/src/api/routes/scenarios.ts`, route/use-case tests                                                                                                              | High                         | Core workflow present and covered                                                               |
-| Avatar editing                               | Admin can create/update avatar persona prompt and initial visibility                             | `apps/admin/src/scenarios/ScenarioAvatarForms.tsx`, `ScenarioDetailPage.tsx`, `apps/core/src/api/routes/avatars.ts`, tests                                                                                                                            | Medium                       | Initial visibility toggle is covered; broader runtime implications are not deeply proven here   |
-| Knowledge source creation via pasted text    | Admin can create knowledge via pasted text                                                       | `docs/implementation-prompts/epic-6-1-scenario-builder-v1/README.md:38`, `apps/admin/src/scenarios/ScenarioKnowledgeSourceForms.tsx:458-466`, `apps/core/src/application/use-cases/create-knowledge-source/create-knowledge-source.use-case.ts:12-20` | Low                          | Broken: admin sends `uriOrPath: ''`, backend rejects it                                         |
-| Knowledge source creation via PDF/TXT upload | Admin can upload file-backed knowledge and persist it                                            | `apps/admin/src/scenarios/ScenarioKnowledgeSourceForms.tsx:412-433`, `apps/core/src/api/routes/knowledge.ts`, `apps/core/src/api/routes/knowledge-sources-management.test.ts`                                                                         | Medium                       | Backend flow exists; admin consumer path lacks save-behavior tests                              |
-| Knowledge visibility rules                   | Admin can author world/all-avatar, avatar-scoped, subset, and GM-only visibility                 | `README.md:39`, `docs/TEST_COVERAGE_PLAN.md:335`, `apps/admin/src/scenarios/ScenarioKnowledgeSourceForms.tsx:264-278`                                                                                                                                 | Low                          | UI exposes policy enum only; no avatar picker or subset ownership editing                       |
-| Runtime model selection                      | Admin can configure scenario default, GM override, and avatar override using canonical contracts | `apps/admin/src/scenarios/ModelSelectionFields.tsx`, `ScenarioFormFields.tsx`, avatar forms, `packages/shared/src/model-catalog.ts`                                                                                                                   | Medium                       | Feature exists and is validated, but test discipline is weakened by a mislabeled stack-e2e file |
-| Seed replacement parity                      | Admin workflows can replace current seed-script content                                          | `README.md:41`, `docs/TEST_COVERAGE_PLAN.md:323-345`, `apps/core/src/seed/murder-party/setup-via-api.seed.ts:158-178`, `apps/admin/src/scenarios/ScenarioFormFields.tsx`                                                                              | Low                          | Documented parity claim is overstated; scenario `config` content still remains seed/API-only    |
+| Feature                             | Expected Behavior                                                                              | Evidence                                                                                                                                                                                                                                           | Confidence (High/Medium/Low) | Notes                                                                                |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| Dedicated admin app                 | First-class admin workspace with scenario list and detail flows                                | `apps/admin/src/App.tsx`, `apps/admin/src/scenarios/ScenarioListPage.tsx`, `apps/admin/src/scenarios/ScenarioDetailPage.tsx`                                                                                                                       | High                         | Cleanly separated from `apps/web` and `apps/console`                                 |
+| Scenario editing                    | Admin can create/update scenario name, status, objectives, and world context                   | `apps/admin/src/scenarios/ScenarioCreatePage.tsx`, `apps/admin/src/scenarios/ScenarioEditForm.tsx`, `apps/core/src/api/routes/scenarios.ts`, related tests                                                                                         | High                         | Behavior is proven in admin tests and route tests                                    |
+| Avatar editing + initial visibility | Admin can create/update avatars and control initial visibility                                 | `apps/admin/src/scenarios/ScenarioAvatarForms.tsx`, `apps/admin/src/scenarios/ScenarioDetailPage.tsx`, `apps/core/src/api/routes/avatars.ts`, related tests                                                                                        | High                         | Good end-to-end evidence for the supported flow                                      |
+| Knowledge creation                  | Admin can create knowledge from pasted text and PDF/TXT upload                                 | `apps/admin/src/scenarios/ScenarioKnowledgeSourceForms.tsx`, `apps/core/src/api/routes/knowledge.ts`, `apps/admin/src/scenarios/ScenarioDetailPage.test.tsx`, `apps/core/src/api/routes/knowledge.stack-e2e.test.ts`                               | High                         | Both authoring paths are covered                                                     |
+| Knowledge updating                  | Admin can update knowledge sources via text and PDF/TXT flows                                  | `docs/implementation-prompts/epic-6-1-scenario-builder-v1/README.md:38`, `docs/implementation-prompts/epic-6-1-scenario-builder-v1/03-knowledge-sources-and-visibility.md:11`, `apps/admin/src/scenarios/ScenarioKnowledgeSourceForms.tsx:116-178` | Low                          | UI only supports rename + visibility edit; content/type update is missing            |
+| Visibility rules                    | Avatar-scoped, all-avatar, and GM-only visibility are represented and enforced                 | `apps/core/src/domain/knowledge/knowledge-visibility.ts`, `apps/admin/src/scenarios/ScenarioKnowledgeSourceFieldGroups.tsx`, retrieval/use-case tests                                                                                              | High                         | Normalization and enforcement are well covered                                       |
+| Runtime model selection             | Scenario default, GM override, and avatar override are editable and resolved deterministically | `apps/admin/src/scenarios/ModelSelectionFields.tsx`, `apps/core/src/domain/model-config/model-resolution.service.ts`, scenario/avatar route tests                                                                                                  | High                         | Shared catalog ownership is a strength                                               |
+| Seed parity for supported surfaces  | Admin workflows can replace the supported non-orchestration seed surfaces                      | `docs/TEST_COVERAGE_PLAN.md:321-345`, `apps/core/src/seed/murder-party/setup-via-api.ts`, admin forms                                                                                                                                              | Medium                       | Create flows align well, but update gaps on knowledge content/type reduce confidence |
 
 ## Strengths
 
-- Clean monorepo outcome: `apps/admin` is a separate consumer app, not a mode bolted into `apps/web`.
-- Core layering is mostly respected: admin app calls APIs only; scenario/avatar/knowledge logic stays in core application/domain/infrastructure layers.
-- Shared contract reuse is materially better than earlier repo patterns; EPIC 6.1 mostly uses `@gami/shared` instead of local DTO copies.
-- Scenario-scoped model-selection ownership is explicit and reasonably well-factored.
-- Mandatory build health is green.
+- `apps/admin` is a proper first-class app, not a mode bolted onto the player app.
+- Shared DTO ownership is materially improved. Scenario, avatar, knowledge, and model-selection transports mostly flow through `@gami/shared`.
+- The admin app is a thin consumer; business logic remains in `apps/core`.
+- Knowledge visibility normalization is centralized and well tested.
+- The test suite proves a lot of observable behavior at the page, route, use-case, and stack-e2e levels.
+- Mandatory quality gates are green.
 
 ## Findings
 
-### Admin pasted-text knowledge creation is broken
+### Knowledge-source update workflows are incomplete in the admin app
 
-- Severity: Critical
+- Severity: High
 - Category: Functional completeness
-- Problem: The admin pasted-text flow sends `uriOrPath: ''`, but backend validation requires a non-empty `uriOrPath`, so the default admin knowledge-authoring path fails.
-- Why it matters: `README.md` explicitly requires "Admin can create/update knowledge sources via pasted text and PDF/TXT upload". The text path is one of the main EPIC promises and is the seed-parity path for authored knowledge content.
+- Problem: The EPIC requires create/update knowledge flows for pasted text and PDF/TXT, but the admin edit form only updates `name` and `visibilityPolicy`. It disables knowledge type changes and exposes no content/file replacement path.
+- Why it matters: This leaves a core EPIC workflow incomplete. Operators cannot update existing source content from the admin app; they must delete/recreate the source or call the API directly.
 - Evidence:
   - `docs/implementation-prompts/epic-6-1-scenario-builder-v1/README.md:38`
-  - `apps/admin/src/scenarios/ScenarioKnowledgeSourceForms.tsx:458-466`
-  - `apps/core/src/application/use-cases/create-knowledge-source/create-knowledge-source.use-case.ts:12-20`
-- Recommendation: Either make inline-text creation supply a meaningful synthetic `uriOrPath` value, or change the create contract so inline text does not require one. Add an admin behavior test that submits pasted text end-to-end through the page/form layer.
+  - `docs/implementation-prompts/epic-6-1-scenario-builder-v1/03-knowledge-sources-and-visibility.md:11`
+  - `apps/admin/src/scenarios/ScenarioKnowledgeSourceForms.tsx:116-178`
+- Recommendation: Extend `KnowledgeSourceEditForm` to support content updates for inline text and file-backed sources, and decide explicitly whether source type is editable after creation. Add admin behavior tests for both update paths.
 
-### Avatar-scoped knowledge visibility is not actually authorable from the admin app
-
-- Severity: High
-- Category: Functional completeness
-- Problem: The admin UI exposes only the visibility policy enum. It does not let operators choose one avatar or a subset of avatars, and it never submits `visibleToAvatarIds`.
-- Why it matters: The EPIC README and coverage-plan parity checklist both require avatar-scoped visibility, including subset targeting. Operators cannot perform that workflow today.
-- Evidence:
-  - `docs/implementation-prompts/epic-6-1-scenario-builder-v1/README.md:39`
-  - `docs/TEST_COVERAGE_PLAN.md:335`
-  - `apps/admin/src/scenarios/ScenarioKnowledgeSourceForms.tsx:264-278`
-  - `apps/admin/src/scenarios/ScenarioKnowledgeSourceForms.tsx:426-433`
-  - `apps/admin/src/scenarios/ScenarioKnowledgeSourceForms.tsx:458-466`
-- Recommendation: Add explicit avatar selection UI and submit canonical `visibleToAvatarIds` for create/update flows. Cover one-avatar, subset, all-avatar, and GM-only transitions with admin behavior tests and backend route tests.
-
-### Knowledge visibility semantics are inconsistent and can silently leak or mis-scope access
+### Postgres schema evolution is unsafe for already-initialized environments
 
 - Severity: High
-- Category: Architecture / Structural maintainability
-- Problem: Backend logic treats `visibilityPolicy` and `visibleToAvatarIds` as loosely related fields instead of one coherent invariant:
-  - `visibilityPolicy: 'avatars'` with no `visibleToAvatarIds` becomes visible to all avatars
-  - switching a source to `visibilityPolicy: 'all'` without clearing old `visibleToAvatarIds` can keep it restricted
-- Why it matters: This breaks the explicit visibility contract, creates hidden coupling between fields, and makes future edits high-risk. It also undermines the GM-only/all/subset semantics operators rely on.
+- Category: Operational quality
+- Problem: EPIC 6.1 added persistence fields such as `visibility_policy` through `infra/postgres/init.sql`, but that file is a one-time bootstrap script rather than a repeatable migration mechanism.
+- Why it matters: Existing environments with a persisted Postgres volume can miss new columns introduced by the EPIC, causing runtime 500s after deployment even when tests are green.
 - Evidence:
-  - `apps/core/src/application/services/knowledge/typed-retrieval.service.ts:153-165`
-  - `apps/core/src/application/use-cases/create-knowledge-source/create-knowledge-source.use-case.ts:23-34`
-  - `apps/core/src/application/use-cases/update-knowledge-source/update-knowledge-source.use-case.ts:57-72`
-- Recommendation: Enforce invariants at the API/application boundary:
-  - require non-empty `visibleToAvatarIds` when `visibilityPolicy === 'avatars'`
-  - clear `visibleToAvatarIds` when `visibilityPolicy === 'all'` or `'none'`
-  - make retrieval logic respect `visibilityPolicy` first, not infer everything from optional ID arrays
-  - add regression tests for all policy/ID combinations
+  - `infra/postgres/init.sql:2-4`
+  - `infra/postgres/init.sql:82-85`
+  - `apps/core/src/infrastructure/db/test-helpers.ts:19-26`
+- Recommendation: Introduce a real migration path for schema evolution, or at minimum add an explicit startup migration step that is rerunnable against existing databases.
 
-### Tests miss the admin knowledge flows that matter to operators
+### File upload parsing duplicates ingestion responsibilities in the API layer
 
 - Severity: Medium
-- Category: Test quality
-- Problem: Page-level admin tests stop at rendering the knowledge form; they do not prove pasted-text create, file upload create, or visibility-edit save behavior. A core regression escaped because of that. Test-tier discipline is also weakened by at least one `*.stack-e2e.test.ts` file using Fastify `inject()`, which the test strategy explicitly forbids.
-- Why it matters: The project’s testing standard is consumer-observable behavior. The missing admin knowledge tests allowed a broken happy path to ship green. Misclassified test tiers erode trust in the test suite.
+- Category: Architecture quality
+- Problem: The upload endpoint imports `pdf-parse`, decodes base64, and extracts text inside the route, while the production content loader already owns file/PDF loading behavior.
+- Why it matters: This splits one responsibility across API and infrastructure layers, duplicates PDF parsing logic, and increases the chance of drift between upload ingestion and normal ingestion.
 - Evidence:
-  - `apps/admin/src/scenarios/ScenarioDetailPage.test.tsx:243-264`
-  - `docs/TEST_STRATEGY.md:121-128`
-  - `apps/core/src/api/routes/admin-model-config.stack-e2e.test.ts:1-28`
-- Recommendation: Add behavior tests that actually submit knowledge create/edit flows from the admin UI and assert request payloads/outcomes. Rename or rewrite misclassified stack-e2e files so they match the declared tier semantics.
+  - `apps/core/src/api/routes/knowledge.ts:4`
+  - `apps/core/src/api/routes/knowledge.ts:274-325`
+  - `apps/core/src/infrastructure/knowledge/file-url-knowledge-source-content-loader.ts:3`
+  - `apps/core/src/infrastructure/knowledge/file-url-knowledge-source-content-loader.ts:55-67`
+- Recommendation: Move upload-content decoding/parsing behind a dedicated infrastructure adapter or reuse the existing content-loader abstraction so the API layer only validates and dispatches.
 
-### Manual admin workflows do not fully replace current seed-script content
+### Internal server errors are returned without root-cause logging
 
 - Severity: Medium
-- Category: Functional completeness / Documentation alignment
-- Problem: The EPIC README says manual admin workflows can fully replace current seed-script content, but seed scenarios still rely on scenario-specific `config` fields such as `progressionMilestones` and `solution`, and the admin app has no editor for them.
-- Why it matters: This means the EPIC’s closure claim is overstated. Operators still need seed/API-only paths for part of the production scenario definition.
+- Category: Operational quality
+- Problem: The global Fastify error handler converts unexpected failures to a generic 500 response but does not log the underlying error.
+- Why it matters: This materially reduces debuggability, especially for rollout problems like missing schema columns or environment drift.
 - Evidence:
-  - `docs/implementation-prompts/epic-6-1-scenario-builder-v1/README.md:41`
-  - `docs/TEST_COVERAGE_PLAN.md:323-345`
-  - `apps/core/src/seed/murder-party/setup-via-api.seed.ts:158-178`
-  - `apps/admin/src/scenarios/ScenarioFormFields.tsx:1-101`
-- Recommendation: Either narrow the EPIC/documentation claim to match the implemented scope, or add an explicit authoring path for required scenario `config` fields that seeded scenarios depend on.
+  - `apps/core/src/api/server.ts:123-130`
+- Recommendation: Log unexpected errors with request context before returning the generic envelope. Preserve the safe public response, but do not drop the diagnostic signal.
+
+### EPIC documentation is internally inconsistent about delivered scope
+
+- Severity: Low
+- Category: Documentation alignment
+- Problem: The EPIC README and slice prompt require update flows for knowledge sources, while `docs/EPICS.md` describes a different scope (`reusable variable editor`, `save/load config`) that does not match the implemented admin app.
+- Why it matters: The audit target becomes ambiguous, and “EPIC complete” status is harder to trust when the scope differs across project documents.
+- Evidence:
+  - `docs/implementation-prompts/epic-6-1-scenario-builder-v1/README.md:35-43`
+  - `docs/implementation-prompts/epic-6-1-scenario-builder-v1/03-knowledge-sources-and-visibility.md:11-18`
+  - `docs/EPICS.md:1556-1574`
+- Recommendation: Reconcile `README.md`, `03-knowledge-sources-and-visibility.md`, and `docs/EPICS.md` to one authoritative scope. Either implement the missing update behavior or narrow the documented claim.
 
 ## Architecture Review
 
-- Boundary quality is mostly solid:
-  - `apps/admin` is a thin consumer
-  - core routes remain thin
-  - use cases own workflow coordination
-  - repositories keep persistence details out of domain logic
-- No meaningful vendor leakage into domain logic was found in the EPIC-specific paths.
-- The main architecture drift is around knowledge visibility semantics:
-  - policy is split across UI, DTOs, use cases, repositories, and retrieval without one enforced invariant
-  - that makes the knowledge contract fragile under change
-- Runtime model selection is cleaner: shared catalog ownership is explicit and runtime resolution stays behind internal abstractions.
+The EPIC mostly respects the modular monolith boundaries:
+
+- `apps/admin` is a consumer-only layer over canonical routes.
+- Route handlers are generally thin and delegate to use cases.
+- Scenario/avatar/model-selection logic stays out of the UI.
+- Shared contract ownership is explicit enough to keep cross-app drift low.
+
+The main architecture blemish is the knowledge upload path. Parsing binary/base64 payloads and extracting PDF text in `apps/core/src/api/routes/knowledge.ts` pulls infrastructure behavior into the API layer and duplicates content-loader behavior. That is not catastrophic, but it is clear drift from the intended API → Application → Infrastructure separation.
 
 ## Test Review
 
 Strong tests:
 
+- `apps/admin/src/scenarios/ScenarioCreatePage.test.tsx`
+- `apps/admin/src/scenarios/ScenarioDetailPage.test.tsx`
 - `apps/core/src/api/routes/scenarios.test.ts`
 - `apps/core/src/api/routes/avatars.test.ts`
 - `apps/core/src/api/routes/knowledge-sources-management.test.ts`
-- `apps/admin/src/api/client.test.ts`
-- `apps/admin/src/api/scenarios.test.ts`
-- `apps/admin/src/scenarios/model-selection-form.test.ts`
+- `apps/core/src/application/services/knowledge/typed-retrieval.service.test.ts`
+- `apps/core/src/api/routes/knowledge.stack-e2e.test.ts`
 
 Weak tests:
 
-- `apps/admin/src/scenarios/ScenarioDetailPage.test.tsx` only proves that the knowledge form opens, not that authoring works.
-- `apps/core/src/application/services/knowledge/typed-retrieval.service.test.ts` covers positive visibility filtering but not invalid contract combinations like `'avatars'` without IDs or `'all'` with stale IDs.
+- There is no admin behavior test for editing knowledge content or changing knowledge type, because the UI does not expose those workflows.
+- There is no automated verification that a pre-existing Postgres volume upgrades safely when EPIC 6.1 columns are introduced.
 
 Missing tests:
 
-- Admin pasted-text knowledge creation happy path
-- Admin file-upload knowledge creation happy path
-- Admin knowledge visibility edit/save behavior
-- Backend validation for `visibilityPolicy`/`visibleToAvatarIds` invariants
-- Retrieval regression tests for malformed/stale visibility combinations
+- Admin pasted-text knowledge edit flow
+- Admin file-backed knowledge replacement flow
+- Admin knowledge-type update behavior, if that workflow is intended to be supported
+- Startup or deployment validation for schema drift on already-initialized databases
+- Error-path logging assertions for unexpected 500s
 
-Implementation-coupled or policy-violating tests:
+Implementation-coupled tests:
 
-- `apps/core/src/api/routes/admin-model-config.stack-e2e.test.ts` is named as stack-e2e but uses `createServer` and `inject()`, which conflicts with `docs/TEST_STRATEGY.md`.
+- No severe implementation-mirroring pattern stood out in the EPIC-specific tests. Most of the important tests assert consumer-visible payloads or page behavior rather than private internals.
 
 ## Documentation Gaps
 
-- `docs/implementation-prompts/epic-6-1-scenario-builder-v1/README.md` overstates completion if the code remains unchanged:
-  - pasted-text knowledge creation is broken
-  - seed replacement is incomplete
-- `docs/TEST_COVERAGE_PLAN.md:335` claims an avatar picker exists for knowledge visibility, but the admin UI does not implement one.
-- `docs/PROJECT_STATUS.md` should be revised if the EPIC remains marked complete without fixing the knowledge authoring and seed-parity gaps.
+- `docs/implementation-prompts/epic-6-1-scenario-builder-v1/README.md` and `03-knowledge-sources-and-visibility.md` should be reconciled with the actual admin edit scope if knowledge-source updating remains limited.
+- `docs/EPICS.md` should be corrected to match the actual EPIC scope and remove unmatched items like `reusable variable editor` / `save/load config`, unless those are intentionally still part of the target.
+- If the team accepts delete-and-recreate as the intended operator pattern for knowledge content changes, that decision should be documented explicitly. Right now the docs imply true update support.
 
 ## Path to A
 
-Minimal steps required:
+Minimal steps:
 
-1. Fix pasted-text knowledge creation so the admin happy path actually works.
-2. Add avatar selection/subset editing for knowledge visibility and submit canonical `visibleToAvatarIds`.
-3. Enforce `visibilityPolicy`/`visibleToAvatarIds` invariants in backend validation and retrieval logic.
-4. Add behavior-first admin tests for knowledge create/upload/edit flows and regression tests for visibility combinations.
-5. Reconcile the seed-parity claim:
-   - either add the missing scenario-config authoring path
-   - or narrow the documented DoD and project-status completion claim
+1. Complete the admin knowledge update workflow so operators can update source content, not only rename/change visibility.
+2. Add a repeatable migration mechanism for schema evolution, then prove EPIC 6.1 columns upgrade safely on an existing database.
+3. Move upload parsing/extraction behind an infrastructure boundary instead of keeping it in the route.
+4. Add root-cause logging for unexpected 500s.
+5. Reconcile EPIC documentation so scope, completion state, and acceptance criteria all describe the same thing.
 
 ## Final Recommendation
 
-**Rework before close**
+**Close with debt**
 
-Rationale:
-
-- Mandatory quality gates are green.
-- Architecture is mostly clean.
-- But core EPIC behaviors in the knowledge-management slice are not delivered at the level the README promises, and the current tests do not prove those operator-facing workflows.
-
-## Remediation Outcome
-
-### Changes Made
-
-- fixed admin pasted-text knowledge creation by generating a stable non-empty inline `uriOrPath` for authored text sources
-- completed admin knowledge visibility authoring with explicit avatar subset selection for create/edit flows and clearer visibility labels in the scenario detail view
-- centralized knowledge visibility normalization in core so create, update, retrieval, and repository reads apply one consistent contract:
-  - `visibleToAvatarIds` without a policy normalizes to `visibilityPolicy: 'avatars'`
-  - `visibilityPolicy: 'all' | 'none'` clears stale avatar IDs
-  - `visibilityPolicy: 'avatars'` without avatar IDs is rejected
-- renamed `admin-model-config.stack-e2e.test.ts` to `admin-model-config.test.ts` so test naming matches the actual Fastify `inject()` tier
-- clarified EPIC docs and seed-parity scope so scenario-specific orchestration config remains intentionally seed/API-owned rather than silently implied as admin-editable
-
-### Findings Resolved
-
-- resolved: admin pasted-text knowledge creation is broken
-- resolved: avatar-scoped knowledge visibility is not actually authorable from the admin app
-- resolved: knowledge visibility semantics are inconsistent and can silently leak or mis-scope access
-- resolved: tests miss the admin knowledge flows that matter to operators
-- resolved by documentation alignment: manual admin workflows do not fully replace current seed-script content
-
-### Findings Deferred
-
-- none within EPIC 6.1 scope
-
-### Build Gates
-
-- lint: PASS
-- typecheck: PASS
-- tests: PASS
-- coverage: PASS (`pnpm test:coverage`; @gami/core overall coverage report shows 86.25% statements, 84.49% branches, 96.48% functions, 86.25% lines)
-
-### Final Feature Confidence
-
-- knowledge source creation via pasted text: High
-- knowledge source creation via PDF/TXT upload: High
-- knowledge visibility authoring (`all` / avatar subset / GM-only): High
-- visibility enforcement in retrieval and updates: High
-- admin scenario and avatar editing: High
-- runtime model selection: High
-
-### Final Grade
-
-**A**
-
-### Remaining Risks
-
-- scenario-specific orchestration config (`scenario.config`, e.g. progression/solution fields) remains intentionally outside the EPIC 6.1 admin surface and must continue to be managed via seed/API workflows
+The EPIC is close enough to usable that a total rework is not warranted, and the core architecture/test posture is materially better than average. But I would not call it a clean close: one advertised admin workflow is incomplete, and the persistence rollout model is still operationally risky. If the project wants to treat the README and slice prompts as the source of truth, this EPIC should carry explicit follow-up debt before being considered truly done.
