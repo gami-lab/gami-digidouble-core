@@ -80,7 +80,7 @@ pnpm infra:logs            # tail all container logs
 
 # Teardown
 pnpm infra:down            # stop containers, keep volumes
-pnpm infra:reset           # stop + wipe all volumes (fresh DB)
+pnpm infra:reset           # stop + wipe all volumes (fresh DB) + rebuild app image
 ```
 
 ### Stack E2E (`docker-compose.e2e.yml`)
@@ -258,7 +258,7 @@ pnpm simple-git-hooks
 If the local DB is in a bad state (schema drift, corrupted data, failed migration), wipe all Docker volumes and restart:
 
 ```bash
-pnpm infra:reset   # docker compose down -v  — stops containers AND deletes all volumes
+pnpm infra:reset   # docker compose down -v && docker compose build app — stops containers, deletes all volumes, rebuilds the app image
 pnpm infra:up      # recreates postgres + redis with a clean DB (init.sql is applied automatically)
 ```
 

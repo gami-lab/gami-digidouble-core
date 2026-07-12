@@ -22,7 +22,7 @@
     "infra:up": "docker compose up postgres redis -d",
     "infra:up:all": "docker compose up -d",
     "infra:down": "docker compose down",
-    "infra:reset": "docker compose down -v",
+    "infra:reset": "docker compose down -v && docker compose build app",
     "infra:logs": "docker compose logs -f",
     "seed:murder-party:api": "pnpm --filter @gami/core seed:murder-party:api",
     "seed:murder-party:api:local": "MURDER_PARTY_API_BASE_URL=${MURDER_PARTY_API_BASE_URL:-http://localhost:3000} pnpm --filter @gami/core seed:murder-party:api",
