@@ -1,14 +1,24 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import type { KnowledgeType, KnowledgeVisibilityPolicy } from '@gami/shared'
+import type { KnowledgeType } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import type { KnowledgeSourceDto } from '../api/knowledge'
 import { createKnowledgeSource, updateKnowledgeSource, uploadKnowledgeSource } from '../api/knowledge'
-
-type VisibilityPolicy = KnowledgeVisibilityPolicy
+import {
+  buildInlineKnowledgeUri,
+  buildKnowledgeVisibilityInput,
+  KnowledgeSourceContentFields,
+  KnowledgeSourceFormActions,
+  KnowledgeSourceIdentityFields,
+  KnowledgeSourceInputModeFields,
+  normalizeVisibilityPolicy,
+  normalizeVisibleToAvatarIds,
+} from './ScenarioKnowledgeSourceFieldGroups'
+import type { AvatarOption, VisibilityPolicy } from './ScenarioKnowledgeSourceFieldGroups'
 
 type KnowledgeSourceCreateFormProps = {
   scenarioId: string
+  avatars: AvatarOption[]
   onCancel: () => void
   onCreated: (source: KnowledgeSourceDto) => void
   onError: (message: string) => void
@@ -16,6 +26,7 @@ type KnowledgeSourceCreateFormProps = {
 
 export function KnowledgeSourceCreateForm({
   scenarioId,
+  avatars,
   onCancel,
   onCreated,
   onError,
@@ -23,6 +34,7 @@ export function KnowledgeSourceCreateForm({
   const [name, setName] = useState('')
   const [knowledgeType, setKnowledgeType] = useState<KnowledgeType>('world')
   const [visibilityPolicy, setVisibilityPolicy] = useState<VisibilityPolicy>('all')
+  const [visibleToAvatarIds, setVisibleToAvatarIds] = useState<string[]>([])
   const [inputMode, setInputMode] = useState<'text' | 'file'>('text')
   const [inlineText, setInlineText] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -32,10 +44,27 @@ export function KnowledgeSourceCreateForm({
     event.preventDefault()
     if (name.trim().length === 0) return
     setSaving(true)
+    const selectedAvatarIds = buildKnowledgeVisibilityInput(visibilityPolicy, visibleToAvatarIds)
     try {
       const source = inputMode === 'file'
-        ? await createUploadedKnowledgeSource({ scenarioId, name, knowledgeType, visibilityPolicy, file, setSaving })
-        : await createInlineKnowledgeSource({ scenarioId, name, knowledgeType, visibilityPolicy, inlineText, setSaving })
+        ? await createUploadedKnowledgeSource({
+            scenarioId,
+            name,
+            knowledgeType,
+            visibilityPolicy,
+            file,
+            setSaving,
+            ...(selectedAvatarIds !== undefined ? { visibleToAvatarIds: selectedAvatarIds } : {}),
+          })
+        : await createInlineKnowledgeSource({
+            scenarioId,
+            name,
+            knowledgeType,
+            visibilityPolicy,
+            inlineText,
+            setSaving,
+            ...(selectedAvatarIds !== undefined ? { visibleToAvatarIds: selectedAvatarIds } : {}),
+          })
       if (source === null) return
       onCreated(source)
     } catch (error: unknown) {
@@ -47,6 +76,7 @@ export function KnowledgeSourceCreateForm({
   const submitDisabled =
     saving ||
     name.trim().length === 0 ||
+    (visibilityPolicy === 'avatars' && visibleToAvatarIds.length === 0) ||
     (inputMode === 'text' && inlineText.trim().length === 0) ||
     (inputMode === 'file' && file === null)
 
@@ -54,7 +84,9 @@ export function KnowledgeSourceCreateForm({
     <KnowledgeSourceCreateLayout
       name={name}
       knowledgeType={knowledgeType}
+      avatars={avatars}
       visibilityPolicy={visibilityPolicy}
+      visibleToAvatarIds={visibleToAvatarIds}
       inputMode={inputMode}
       inlineText={inlineText}
       file={file}
@@ -65,6 +97,7 @@ export function KnowledgeSourceCreateForm({
       onNameChange={setName}
       onKnowledgeTypeChange={setKnowledgeType}
       onVisibilityPolicyChange={setVisibilityPolicy}
+      onVisibleToAvatarIdsChange={setVisibleToAvatarIds}
       onInputModeChange={setInputMode}
       onInlineTextChange={setInlineText}
       onFileChange={setFile}
@@ -74,6 +107,7 @@ export function KnowledgeSourceCreateForm({
 
 type KnowledgeSourceEditFormProps = {
   source: KnowledgeSourceDto
+  avatars: AvatarOption[]
   onCancel: () => void
   onSaved: (source: KnowledgeSourceDto) => void
   onError: (message: string) => void
@@ -81,13 +115,17 @@ type KnowledgeSourceEditFormProps = {
 
 export function KnowledgeSourceEditForm({
   source,
+  avatars,
   onCancel,
   onSaved,
   onError,
 }: KnowledgeSourceEditFormProps): JSX.Element {
   const [name, setName] = useState(source.name)
   const [visibilityPolicy, setVisibilityPolicy] = useState<VisibilityPolicy>(
-    normalizeVisibilityPolicy(source.visibilityPolicy),
+    normalizeVisibilityPolicy(source.visibilityPolicy, source.visibleToAvatarIds),
+  )
+  const [visibleToAvatarIds, setVisibleToAvatarIds] = useState<string[]>(
+    normalizeVisibleToAvatarIds(source.visibleToAvatarIds),
   )
   const [saving, setSaving] = useState(false)
 
@@ -95,10 +133,12 @@ export function KnowledgeSourceEditForm({
     event.preventDefault()
     if (name.trim().length === 0) return
     setSaving(true)
+    const selectedAvatarIds = buildKnowledgeVisibilityInput(visibilityPolicy, visibleToAvatarIds)
     try {
       const updated = await updateKnowledgeSource(source.sourceId, {
         name: name.trim(),
         visibilityPolicy,
+        ...(selectedAvatarIds !== undefined ? { visibleToAvatarIds: selectedAvatarIds } : {}),
       })
       onSaved(updated)
     } catch (error: unknown) {
@@ -114,17 +154,22 @@ export function KnowledgeSourceEditForm({
         <KnowledgeSourceIdentityFields
           name={name}
           knowledgeType={source.knowledgeType}
+          avatars={avatars}
           visibilityPolicy={visibilityPolicy}
+          visibleToAvatarIds={visibleToAvatarIds}
           saving={saving}
           idPrefix="ks-edit"
           disableKnowledgeType
           onNameChange={setName}
           onKnowledgeTypeChange={() => {}}
           onVisibilityPolicyChange={setVisibilityPolicy}
+          onVisibleToAvatarIdsChange={setVisibleToAvatarIds}
         />
         <KnowledgeSourceFormActions
           submitLabel={saving ? 'Saving…' : 'Save'}
-          submitDisabled={saving || name.trim().length === 0}
+          submitDisabled={
+            saving || name.trim().length === 0 || (visibilityPolicy === 'avatars' && visibleToAvatarIds.length === 0)
+          }
           saving={saving}
           onCancel={onCancel}
         />
@@ -136,7 +181,9 @@ export function KnowledgeSourceEditForm({
 type KnowledgeSourceCreateLayoutProps = {
   name: string
   knowledgeType: KnowledgeType
+  avatars: AvatarOption[]
   visibilityPolicy: VisibilityPolicy
+  visibleToAvatarIds: string[]
   inputMode: 'text' | 'file'
   inlineText: string
   file: File | null
@@ -147,6 +194,7 @@ type KnowledgeSourceCreateLayoutProps = {
   onNameChange: (value: string) => void
   onKnowledgeTypeChange: (value: KnowledgeType) => void
   onVisibilityPolicyChange: (value: VisibilityPolicy) => void
+  onVisibleToAvatarIdsChange: (value: string[]) => void
   onInputModeChange: (value: 'text' | 'file') => void
   onInlineTextChange: (value: string) => void
   onFileChange: (value: File | null) => void
@@ -155,7 +203,9 @@ type KnowledgeSourceCreateLayoutProps = {
 function KnowledgeSourceCreateLayout({
   name,
   knowledgeType,
+  avatars,
   visibilityPolicy,
+  visibleToAvatarIds,
   inputMode,
   inlineText,
   file,
@@ -166,6 +216,7 @@ function KnowledgeSourceCreateLayout({
   onNameChange,
   onKnowledgeTypeChange,
   onVisibilityPolicyChange,
+  onVisibleToAvatarIdsChange,
   onInputModeChange,
   onInlineTextChange,
   onFileChange,
@@ -177,12 +228,15 @@ function KnowledgeSourceCreateLayout({
         <KnowledgeSourceIdentityFields
           name={name}
           knowledgeType={knowledgeType}
+          avatars={avatars}
           visibilityPolicy={visibilityPolicy}
+          visibleToAvatarIds={visibleToAvatarIds}
           saving={saving}
           idPrefix="ks-create"
           onNameChange={onNameChange}
           onKnowledgeTypeChange={onKnowledgeTypeChange}
           onVisibilityPolicyChange={onVisibilityPolicyChange}
+          onVisibleToAvatarIdsChange={onVisibleToAvatarIdsChange}
         />
         <KnowledgeSourceInputModeFields inputMode={inputMode} saving={saving} onInputModeChange={onInputModeChange} />
         <KnowledgeSourceContentFields
@@ -204,207 +258,12 @@ function KnowledgeSourceCreateLayout({
   )
 }
 
-type KnowledgeSourceIdentityFieldsProps = {
-  name: string
-  knowledgeType: KnowledgeType
-  visibilityPolicy: VisibilityPolicy
-  saving: boolean
-  idPrefix: string
-  disableKnowledgeType?: boolean
-  onNameChange: (value: string) => void
-  onKnowledgeTypeChange: (value: KnowledgeType) => void
-  onVisibilityPolicyChange: (value: VisibilityPolicy) => void
-}
-
-function KnowledgeSourceIdentityFields({
-  name,
-  knowledgeType,
-  visibilityPolicy,
-  saving,
-  idPrefix,
-  disableKnowledgeType = false,
-  onNameChange,
-  onKnowledgeTypeChange,
-  onVisibilityPolicyChange,
-}: KnowledgeSourceIdentityFieldsProps): JSX.Element {
-  return (
-    <>
-      <div className="admin-form-group">
-        <label htmlFor={`${idPrefix}-name`} className="admin-form-label">
-          Name <span aria-hidden="true">*</span>
-        </label>
-        <input
-          id={`${idPrefix}-name`}
-          type="text"
-          className="admin-form-input"
-          value={name}
-          onChange={(event) => { onNameChange(event.target.value) }}
-          required
-          disabled={saving}
-        />
-      </div>
-
-      <div className="admin-form-group">
-        <label htmlFor={`${idPrefix}-type`} className="admin-form-label">
-          Knowledge type
-        </label>
-        <select
-          id={`${idPrefix}-type`}
-          className="admin-form-select"
-          value={knowledgeType}
-          onChange={(event) => { onKnowledgeTypeChange(event.target.value as KnowledgeType) }}
-          disabled={saving || disableKnowledgeType}
-        >
-          <option value="world">world</option>
-          <option value="memory">memory</option>
-          <option value="media">media</option>
-        </select>
-      </div>
-
-      <div className="admin-form-group">
-        <label htmlFor={`${idPrefix}-visibility`} className="admin-form-label">
-          Visibility policy
-        </label>
-        <select
-          id={`${idPrefix}-visibility`}
-          className="admin-form-select"
-          value={visibilityPolicy}
-          onChange={(event) => { onVisibilityPolicyChange(event.target.value as VisibilityPolicy) }}
-          disabled={saving}
-        >
-          <option value="all">all avatars</option>
-          <option value="avatars">specific avatars</option>
-          <option value="none">GM-only (no avatars)</option>
-        </select>
-      </div>
-    </>
-  )
-}
-
-type KnowledgeSourceInputModeFieldsProps = {
-  inputMode: 'text' | 'file'
-  saving: boolean
-  onInputModeChange: (value: 'text' | 'file') => void
-}
-
-function KnowledgeSourceInputModeFields({
-  inputMode,
-  saving,
-  onInputModeChange,
-}: KnowledgeSourceInputModeFieldsProps): JSX.Element {
-  return (
-    <div className="admin-form-group">
-      <label className="admin-form-label">Input mode</label>
-      <label>
-        <input
-          type="radio"
-          name="ks-input-mode"
-          value="text"
-          checked={inputMode === 'text'}
-          onChange={() => { onInputModeChange('text') }}
-          disabled={saving}
-        />{' '}
-        Paste text
-      </label>
-      {' '}
-      <label>
-        <input
-          type="radio"
-          name="ks-input-mode"
-          value="file"
-          checked={inputMode === 'file'}
-          onChange={() => { onInputModeChange('file') }}
-          disabled={saving}
-        />{' '}
-        Upload file (PDF/TXT)
-      </label>
-    </div>
-  )
-}
-
-type KnowledgeSourceContentFieldsProps = {
-  inputMode: 'text' | 'file'
-  inlineText: string
-  file: File | null
-  saving: boolean
-  onInlineTextChange: (value: string) => void
-  onFileChange: (value: File | null) => void
-}
-
-function KnowledgeSourceContentFields({
-  inputMode,
-  inlineText,
-  file,
-  saving,
-  onInlineTextChange,
-  onFileChange,
-}: KnowledgeSourceContentFieldsProps): JSX.Element {
-  if (inputMode === 'text') {
-    return (
-      <div className="admin-form-group">
-        <label htmlFor="ks-create-text" className="admin-form-label">
-          Content <span aria-hidden="true">*</span>
-        </label>
-        <textarea
-          id="ks-create-text"
-          className="admin-form-textarea"
-          rows={8}
-          value={inlineText}
-          onChange={(event) => { onInlineTextChange(event.target.value) }}
-          required
-          disabled={saving}
-        />
-      </div>
-    )
-  }
-
-  return (
-    <div className="admin-form-group">
-      <label htmlFor="ks-create-file" className="admin-form-label">
-        File (PDF or TXT) <span aria-hidden="true">*</span>
-      </label>
-      <input
-        id="ks-create-file"
-        type="file"
-        accept=".pdf,.txt,.text"
-        onChange={(event) => { onFileChange(event.target.files?.[0] ?? null) }}
-        disabled={saving}
-      />
-      {file === null ? null : <p className="admin-muted">{file.name}</p>}
-    </div>
-  )
-}
-
-type KnowledgeSourceFormActionsProps = {
-  submitLabel: string
-  submitDisabled: boolean
-  saving: boolean
-  onCancel: () => void
-}
-
-function KnowledgeSourceFormActions({
-  submitLabel,
-  submitDisabled,
-  saving,
-  onCancel,
-}: KnowledgeSourceFormActionsProps): JSX.Element {
-  return (
-    <div className="admin-form-actions">
-      <button type="submit" className="admin-button admin-button-primary" disabled={submitDisabled}>
-        {submitLabel}
-      </button>
-      <button type="button" className="admin-button admin-button-secondary" onClick={onCancel} disabled={saving}>
-        Cancel
-      </button>
-    </div>
-  )
-}
-
 type CreateUploadedKnowledgeSourceArgs = {
   scenarioId: string
   name: string
   knowledgeType: KnowledgeType
   visibilityPolicy: VisibilityPolicy
+  visibleToAvatarIds?: string[]
   file: File | null
   setSaving: (value: boolean) => void
 }
@@ -414,6 +273,7 @@ async function createUploadedKnowledgeSource({
   name,
   knowledgeType,
   visibilityPolicy,
+  visibleToAvatarIds,
   file,
   setSaving,
 }: CreateUploadedKnowledgeSourceArgs): Promise<KnowledgeSourceDto | null> {
@@ -428,6 +288,7 @@ async function createUploadedKnowledgeSource({
     name: name.trim(),
     knowledgeType,
     visibilityPolicy,
+    ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
     content,
     filename: file.name,
   })
@@ -438,6 +299,7 @@ type CreateInlineKnowledgeSourceArgs = {
   name: string
   knowledgeType: KnowledgeType
   visibilityPolicy: VisibilityPolicy
+  visibleToAvatarIds?: string[]
   inlineText: string
   setSaving: (value: boolean) => void
 }
@@ -447,6 +309,7 @@ async function createInlineKnowledgeSource({
   name,
   knowledgeType,
   visibilityPolicy,
+  visibleToAvatarIds,
   inlineText,
   setSaving,
 }: CreateInlineKnowledgeSourceArgs): Promise<KnowledgeSourceDto | null> {
@@ -461,7 +324,8 @@ async function createInlineKnowledgeSource({
     knowledgeType,
     visibilityPolicy,
     format: 'text',
-    uriOrPath: '',
+    ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
+    uriOrPath: buildInlineKnowledgeUri(name),
     metadata: { inlineText: inlineText.trim() },
   })
 }
@@ -476,9 +340,4 @@ function readFileAsBase64(file: File): Promise<string> {
     reader.onerror = () => { reject(new Error('Failed to read file')) }
     reader.readAsDataURL(file)
   })
-}
-
-function normalizeVisibilityPolicy(value: string | undefined): VisibilityPolicy {
-  if (value === 'avatars' || value === 'none') return value
-  return 'all'
 }

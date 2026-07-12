@@ -5,6 +5,10 @@ import type {
   ListKnowledgeSourcesFilters,
   UpdateKnowledgeSourceParams,
 } from '../../../application/ports/IKnowledgeSourceRepository.js'
+import {
+  buildKnowledgeVisibilitySelection,
+  normalizeKnowledgeVisibilitySelection,
+} from '../../../domain/knowledge/knowledge-visibility.js'
 import type {
   KnowledgeSource,
   KnowledgeVisibilityPolicy,
@@ -58,8 +62,13 @@ function normalizeVisibilityPolicy(value: unknown): KnowledgeVisibilityPolicy | 
 }
 
 function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
-  const visibleToAvatarIds = normalizeVisibleToAvatarIds(row.visible_to_avatar_ids)
-  const visibilityPolicy = normalizeVisibilityPolicy(row.visibility_policy)
+  const visibility = normalizeKnowledgeVisibilitySelection(
+    buildKnowledgeVisibilitySelection(
+      normalizeVisibilityPolicy(row.visibility_policy),
+      normalizeVisibleToAvatarIds(row.visible_to_avatar_ids),
+    ),
+    { inferAvatarPolicyFromIds: true },
+  )
   const metadata = normalizeMetadata(row.metadata)
   return {
     sourceId: `knowledge_source_${row.id}`,
@@ -70,8 +79,12 @@ function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
     uriOrPath: row.uri_or_path,
     status: row.status,
     ...(metadata !== undefined ? { metadata } : {}),
-    ...(visibilityPolicy !== undefined ? { visibilityPolicy } : {}),
-    ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
+    ...(visibility.visibilityPolicy !== undefined
+      ? { visibilityPolicy: visibility.visibilityPolicy }
+      : {}),
+    ...(visibility.visibleToAvatarIds !== undefined
+      ? { visibleToAvatarIds: visibility.visibleToAvatarIds }
+      : {}),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }
@@ -82,8 +95,13 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
 
   async create(params: CreateKnowledgeSourceParams): Promise<KnowledgeSource> {
     const scenarioUuid = stripPrefix('scenario_', params.scenarioId)
-
-    const visibleToAvatarIds = normalizeVisibleToAvatarIds(params.visibleToAvatarIds)
+    const visibility = normalizeKnowledgeVisibilitySelection(
+      buildKnowledgeVisibilitySelection(
+        params.visibilityPolicy,
+        normalizeVisibleToAvatarIds(params.visibleToAvatarIds),
+      ),
+      { inferAvatarPolicyFromIds: true },
+    )
 
     const [row] = await this.sql<[KnowledgeSourceRow?]>`
       INSERT INTO knowledge_sources (
@@ -105,8 +123,8 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
         ${params.uriOrPath},
         ${'pending'},
         ${this.sql.json((params.metadata ?? {}) as JSONValue)},
-        ${params.visibilityPolicy ?? null},
-        ${visibleToAvatarIds ?? null}
+        ${visibility.visibilityPolicy ?? null},
+        ${visibility.visibleToAvatarIds ?? null}
       )
       RETURNING id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visibility_policy, visible_to_avatar_ids, created_at, updated_at
     `

@@ -2,7 +2,7 @@
 
 ## Objective
 
-Deliver a dedicated admin application that lets operators create and maintain production scenarios without seeding-script-only workflows. The app must cover scenario setup, avatar authoring, knowledge source management (text + file upload) with visibility rules, and runtime model assignment for Avatar, Game Master, and scenario defaults.
+Deliver a dedicated admin application that lets operators create and maintain production scenarios without seeding-script-only workflows for the supported scenario-builder surfaces. The app must cover scenario setup, avatar authoring, knowledge source management (text + file upload) with visibility rules, and runtime model assignment for Avatar, Game Master, and scenario defaults.
 
 ## Generated
 
@@ -38,6 +38,6 @@ Execute strictly in numeric order. Each prompt establishes contracts and module 
 - [ ] Admin can create/update knowledge sources via pasted text and PDF/TXT upload.
 - [ ] Knowledge source ownership and visibility are supported for avatar-scoped and world-scoped data, including GM-only world visibility.
 - [ ] Admin can configure runtime model selection for avatar, GM, and scenario-level defaults.
-- [ ] Manual admin workflows can fully replace or update current seeding-script content.
+- [ ] Manual admin workflows can fully replace or update current seeding-script content for the supported scenario-builder surfaces (scenario/objectives/world context, avatar persona + visibility, knowledge sources, runtime model selection). Scenario-specific orchestration config remains seed/API-owned.
 - [ ] Any new API endpoint includes a matching `*.stack-e2e.test.ts` file with auth, validation, and not-found coverage.
 - [ ] Documentation is updated (`docs/PROJECT_STATUS.md` required, plus impacted contracts/architecture/data model/testing docs).

@@ -210,6 +210,79 @@ describe('TypedRetrievalService', () => {
     expect(forAvatarTwo.trace.perType.world.visibility?.excludedChunkCount).toBe(1)
   })
 
+  it('treats explicit all visibility as public even when stale avatar ids exist', async () => {
+    const sourceRepo = new InMemoryKnowledgeSourceRepository([
+      {
+        sourceId: 'knowledge_source_world',
+        scenarioId: 'scenario_1',
+        name: 'Shared world',
+        knowledgeType: 'world',
+        format: 'text',
+        uriOrPath: '/world.txt',
+        status: 'ready',
+        visibilityPolicy: 'all',
+        visibleToAvatarIds: ['avatar_hidden'],
+        createdAt: '2026-05-11T08:00:00.000Z',
+        updatedAt: '2026-05-11T08:00:00.000Z',
+      },
+    ])
+    const chunkRepo = new InMemoryKnowledgeChunkRepository()
+    await chunkRepo.create({
+      sourceId: 'knowledge_source_world',
+      chunkIndex: 0,
+      content: 'Shared harbor law',
+    })
+
+    const service = new TypedRetrievalService(sourceRepo, chunkRepo)
+    const result = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'harbor law',
+      activeAvatarId: 'avatar_2',
+    })
+
+    expect(result.world).toHaveLength(1)
+    expect(result.trace.perType.world.visibility?.excludedChunkCount).toBe(0)
+  })
+
+  it('treats avatars visibility without avatar ids as hidden', async () => {
+    const sourceRepo = new InMemoryKnowledgeSourceRepository([
+      {
+        sourceId: 'knowledge_source_world',
+        scenarioId: 'scenario_1',
+        name: 'Broken private world',
+        knowledgeType: 'world',
+        format: 'text',
+        uriOrPath: '/world.txt',
+        status: 'ready',
+        visibilityPolicy: 'avatars',
+        createdAt: '2026-05-11T08:00:00.000Z',
+        updatedAt: '2026-05-11T08:00:00.000Z',
+      },
+    ])
+    const chunkRepo = new InMemoryKnowledgeChunkRepository()
+    await chunkRepo.create({
+      sourceId: 'knowledge_source_world',
+      chunkIndex: 0,
+      content: 'Broken private clue',
+    })
+
+    const service = new TypedRetrievalService(sourceRepo, chunkRepo)
+    const visible = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'private clue',
+      activeAvatarId: 'avatar_1',
+    })
+    const gm = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'private clue',
+      bypassVisibilityFilter: true,
+    })
+
+    expect(visible.world).toHaveLength(0)
+    expect(visible.trace.perType.world.visibility?.excludedChunkCount).toBe(1)
+    expect(gm.world).toHaveLength(1)
+  })
+
   it('ranks unique matches across GM, user, and working-memory queries', async () => {
     const sourceRepo = new InMemoryKnowledgeSourceRepository()
     const chunkRepo = new InMemoryKnowledgeChunkRepository()

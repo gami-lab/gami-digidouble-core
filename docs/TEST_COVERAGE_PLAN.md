@@ -320,7 +320,7 @@ Must test:
 
 ## Seed Parity Checklist (EPIC 6.1)
 
-**Goal:** manual admin workflows must be able to fully replace or update the content currently produced by seed scripts, with no representational gap between the two paths.
+**Goal:** manual admin workflows must be able to fully replace or update the content currently produced by seed scripts for the supported scenario-builder surfaces, with no representational gap in those surfaces.
 
 The murder-party seed script (`apps/core/src/seed/murder-party/setup-via-api.ts`) is itself API-first — it calls the same canonical Core endpoints (`POST/PATCH /v1/scenarios`, `POST/PATCH /v1/scenarios/{id}/avatars`, `POST/PATCH /v1/knowledge-sources`) that the admin app uses, so parity is largely guaranteed by construction. This checklist tracks the specific constructs verified during the EPIC 6.1 final-hardening pass:
 

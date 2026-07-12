@@ -32,7 +32,7 @@ function makeApp({
   })
 }
 
-describe('PATCH /v1/knowledge-sources/:sourceId', () => {
+describe('PATCH /v1/knowledge-sources/:sourceId — success', () => {
   it('updates only the provided fields', async () => {
     const app = makeApp({ sources: [makeSource()] })
 
@@ -81,6 +81,68 @@ describe('PATCH /v1/knowledge-sources/:sourceId', () => {
     expect(body.data?.source.visibilityPolicy).toBe('none')
   })
 
+  it('infers avatar-scoped visibility when only avatar ids are provided', async () => {
+    const app = makeApp({ sources: [makeSource()] })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/v1/knowledge-sources/knowledge_source_1',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { visibleToAvatarIds: ['avatar_1'] },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body =
+      response.json<
+        ApiResponse<{ source: { visibilityPolicy?: string; visibleToAvatarIds?: string[] } }>
+      >()
+    expect(body.data?.source.visibilityPolicy).toBe('avatars')
+    expect(body.data?.source.visibleToAvatarIds).toEqual(['avatar_1'])
+  })
+
+  it('clears stale avatar ids when visibilityPolicy changes to all', async () => {
+    const app = makeApp({
+      sources: [
+        makeSource({
+          visibilityPolicy: 'avatars',
+          visibleToAvatarIds: ['avatar_1'],
+        }),
+      ],
+    })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/v1/knowledge-sources/knowledge_source_1',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { visibilityPolicy: 'all' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body =
+      response.json<
+        ApiResponse<{ source: { visibilityPolicy?: string; visibleToAvatarIds?: string[] } }>
+      >()
+    expect(body.data?.source.visibilityPolicy).toBe('all')
+    expect(body.data?.source.visibleToAvatarIds).toBeUndefined()
+  })
+
+  it('rejects avatars visibility without avatar ids on update', async () => {
+    const app = makeApp({ sources: [makeSource()] })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/v1/knowledge-sources/knowledge_source_1',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { visibilityPolicy: 'avatars' },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+})
+
+describe('PATCH /v1/knowledge-sources/:sourceId — validation', () => {
   it('returns 400 when body is empty', async () => {
     const app = makeApp({ sources: [makeSource()] })
 
@@ -293,5 +355,80 @@ describe('POST /v1/knowledge-sources — visibilityPolicy', () => {
     const body = response.json<ApiResponse<{ source: { visibilityPolicy: string } }>>()
     expect(body.error).toBeNull()
     expect(body.data?.source.visibilityPolicy).toBe('none')
+  })
+
+  it('infers avatar-scoped visibility from visibleToAvatarIds on create', async () => {
+    const app = makeApp()
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/knowledge-sources',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        scenarioId: 'scenario_1',
+        name: 'Avatar lore',
+        knowledgeType: 'world',
+        format: 'text',
+        uriOrPath: '/tmp/avatar-lore.txt',
+        visibleToAvatarIds: ['avatar_1', 'avatar_2'],
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body =
+      response.json<
+        ApiResponse<{ source: { visibilityPolicy?: string; visibleToAvatarIds?: string[] } }>
+      >()
+    expect(body.data?.source.visibilityPolicy).toBe('avatars')
+    expect(body.data?.source.visibleToAvatarIds).toEqual(['avatar_1', 'avatar_2'])
+  })
+
+  it('clears stale avatar ids when visibilityPolicy is all on create', async () => {
+    const app = makeApp()
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/knowledge-sources',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        scenarioId: 'scenario_1',
+        name: 'Shared lore',
+        knowledgeType: 'world',
+        format: 'text',
+        uriOrPath: '/tmp/shared-lore.txt',
+        visibilityPolicy: 'all',
+        visibleToAvatarIds: ['avatar_hidden'],
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body =
+      response.json<
+        ApiResponse<{ source: { visibilityPolicy?: string; visibleToAvatarIds?: string[] } }>
+      >()
+    expect(body.data?.source.visibilityPolicy).toBe('all')
+    expect(body.data?.source.visibleToAvatarIds).toBeUndefined()
+  })
+
+  it('rejects avatars visibility without avatar ids on create', async () => {
+    const app = makeApp()
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/knowledge-sources',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        scenarioId: 'scenario_1',
+        name: 'Broken lore',
+        knowledgeType: 'world',
+        format: 'text',
+        uriOrPath: '/tmp/broken-lore.txt',
+        visibilityPolicy: 'avatars',
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
   })
 })

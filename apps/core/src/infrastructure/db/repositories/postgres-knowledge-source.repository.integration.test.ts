@@ -9,29 +9,71 @@ import {
 import { PostgresKnowledgeSourceRepository } from './postgres-knowledge-source.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 
-describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository', () => {
+type RepositoryTestState = {
+  sql: Sql
+  scenarioRepo: PostgresScenarioRepository
+  sourceRepo: PostgresKnowledgeSourceRepository
+  scenarioId: string
+}
+
+function registerRepositoryLifecycle(state: RepositoryTestState): void {
+  beforeAll(async () => {
+    state.sql = createTestSql()
+    await ensureKnowledgeVisibilityColumns(state.sql)
+    state.scenarioRepo = new PostgresScenarioRepository(state.sql)
+    state.sourceRepo = new PostgresKnowledgeSourceRepository(state.sql)
+    const scenario = await state.scenarioRepo.create({
+      name: 'Knowledge scenario',
+      status: 'active',
+    })
+    state.scenarioId = scenario.scenarioId
+  })
+
+  afterEach(async () => {
+    await truncateAllTables(state.sql)
+    const scenario = await state.scenarioRepo.create({
+      name: 'Knowledge scenario',
+      status: 'active',
+    })
+    state.scenarioId = scenario.scenarioId
+  })
+
+  afterAll(async () => {
+    await state.sql.end()
+  })
+}
+
+describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — create/find', () => {
   let sql: Sql
   let scenarioRepo: PostgresScenarioRepository
   let sourceRepo: PostgresKnowledgeSourceRepository
   let scenarioId: string
 
-  beforeAll(async () => {
-    sql = createTestSql()
-    await ensureKnowledgeVisibilityColumns(sql)
-    scenarioRepo = new PostgresScenarioRepository(sql)
-    sourceRepo = new PostgresKnowledgeSourceRepository(sql)
-    const scenario = await scenarioRepo.create({ name: 'Knowledge scenario', status: 'active' })
-    scenarioId = scenario.scenarioId
-  })
-
-  afterEach(async () => {
-    await truncateAllTables(sql)
-    const scenario = await scenarioRepo.create({ name: 'Knowledge scenario', status: 'active' })
-    scenarioId = scenario.scenarioId
-  })
-
-  afterAll(async () => {
-    await sql.end()
+  registerRepositoryLifecycle({
+    get sql() {
+      return sql
+    },
+    set sql(value) {
+      sql = value
+    },
+    get scenarioRepo() {
+      return scenarioRepo
+    },
+    set scenarioRepo(value) {
+      scenarioRepo = value
+    },
+    get sourceRepo() {
+      return sourceRepo
+    },
+    set sourceRepo(value) {
+      sourceRepo = value
+    },
+    get scenarioId() {
+      return scenarioId
+    },
+    set scenarioId(value) {
+      scenarioId = value
+    },
   })
 
   it('creates and fetches a source by id', async () => {
@@ -80,6 +122,68 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository', () => {
 
     expect(visibleFound?.visibleToAvatarIds).toEqual(['avatar_a', 'avatar_b'])
     expect(publicFound?.visibleToAvatarIds).toBeUndefined()
+  })
+
+  it('normalizes visibilityPolicy and avatar ids coherently on create', async () => {
+    const publicSource = await sourceRepo.create({
+      scenarioId,
+      name: 'Shared source',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/data/shared.txt',
+      visibilityPolicy: 'all',
+      visibleToAvatarIds: ['avatar_hidden'],
+    })
+    const privateSource = await sourceRepo.create({
+      scenarioId,
+      name: 'Private source',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/data/private.txt',
+      visibleToAvatarIds: ['avatar_a'],
+    })
+
+    const publicFound = await sourceRepo.findById(publicSource.sourceId)
+    const privateFound = await sourceRepo.findById(privateSource.sourceId)
+
+    expect(publicFound?.visibilityPolicy).toBe('all')
+    expect(publicFound?.visibleToAvatarIds).toBeUndefined()
+    expect(privateFound?.visibilityPolicy).toBe('avatars')
+    expect(privateFound?.visibleToAvatarIds).toEqual(['avatar_a'])
+  })
+})
+
+describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — list/status', () => {
+  let sql: Sql
+  let scenarioRepo: PostgresScenarioRepository
+  let sourceRepo: PostgresKnowledgeSourceRepository
+  let scenarioId: string
+
+  registerRepositoryLifecycle({
+    get sql() {
+      return sql
+    },
+    set sql(value) {
+      sql = value
+    },
+    get scenarioRepo() {
+      return scenarioRepo
+    },
+    set scenarioRepo(value) {
+      scenarioRepo = value
+    },
+    get sourceRepo() {
+      return sourceRepo
+    },
+    set sourceRepo(value) {
+      sourceRepo = value
+    },
+    get scenarioId() {
+      return scenarioId
+    },
+    set scenarioId(value) {
+      scenarioId = value
+    },
   })
 
   it('lists by scenario with filters', async () => {

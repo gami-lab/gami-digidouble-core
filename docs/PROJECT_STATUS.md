@@ -702,7 +702,7 @@ Completed on: 2026-07-09
 - removed the dead `UpdateAvatarRequestBody` alias from shared exports
 - added a canonical `UpdateModelConfigRequest` to `packages/shared/src/runtime-inspector-types.ts`; `apps/core`'s `update-model-config` use case and `apps/console`'s model-config client/`ModelConfigPanel` now reuse it instead of each declaring their own copy of the same shape
 - documented known contract gaps intentionally **not** implemented in that cleanup-only slice (deferred at the time to their owning prompts):
-  - explicit GM-only world knowledge visibility (currently only representable as "all" vs "subset" via `visibleToAvatarIds`) — owned by `03-knowledge-sources-and-visibility.md`
+  - explicit GM-only world knowledge visibility (deferred in that prerequisite slice, later delivered by `03-knowledge-sources-and-visibility.md`)
 - verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web` all typecheck/lint clean; full test suites pass (core 659 tests, console 48 tests, web 28 tests)
 
 ### Current slice completed (scenario and avatar editors — objectives, world context, persona, visibility)
@@ -726,8 +726,7 @@ Completed on: 2026-07-09
 - added `UploadKnowledgeSourceRequest` and `UploadKnowledgeSourceResponse` to `@gami/shared` for base64-encoded PDF/TXT file ingestion without `@fastify/multipart` dependency
 - updated domain `KnowledgeSource` entity and `IKnowledgeSourceRepository` with `visibilityPolicy`
 - updated in-memory and Postgres knowledge source repositories to persist and return `visibility_policy`; backward-compatible `ADD COLUMN IF NOT EXISTS` migration added to `infra/postgres/init.sql`
-- updated `typed-retrieval.service.ts`: sources keyed by full DTO, `isAvatarVisible` now accepts `visibilityPolicy` and returns `false` when `'none'` unless `bypassVisibilityFilter === true` (GM omniscience path)
-- updated create and update knowledge source use cases to pass through and return `visibilityPolicy`
+- updated typed retrieval and knowledge-source use cases to respect canonical `visibilityPolicy` semantics (`'all' | 'avatars' | 'none'`) and return `visibilityPolicy`
 - added `POST /v1/knowledge-sources/upload` endpoint: validates extension (`.pdf`, `.txt`, `.text`), decodes base64, calls `pdf-parse` for PDFs, stores extracted text as `metadata.inlineText`, creates source via existing use case; registered before the `:sourceId` route to avoid path conflicts
 - admin API client `apps/admin/src/api/knowledge.ts`: wraps all knowledge source CRUD + upload + ingest-trigger endpoints using `adminRequest` with canonical `@gami/shared` types
 - admin UI extended: `ScenarioDetailPage` loads and displays knowledge sources; "Add knowledge" button opens `KnowledgeSourceCreateForm` (text paste or file upload, type + visibility selectors); list table shows name/type/visibility/status with Edit / Ingest / Delete actions; `KnowledgeSourceEditForm` for updating name and visibility policy
@@ -760,6 +759,20 @@ Completed on: 2026-07-09
 - confirmed no unresolved contract duplication remains across scenario/avatar/knowledge/model-config contracts touched by EPIC 6.1
 - quality gates validated for all touched workspaces: `pnpm typecheck`, `pnpm lint`, `pnpm test` (core 678, admin 60, console 48, web 28, all passing) plus a full `pnpm --filter @gami/core test:stack-e2e` run against a real Docker stack (159/159 passing)
 - discovered and flagged (as a separate follow-up, out of this slice's scope) an operational risk: `infra/postgres/init.sql` only runs on a fresh Postgres data volume, so `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` migrations added after a volume already exists (e.g. `visibility_policy`) never apply to already-provisioned environments; the generic 500 error handler in `apps/core/src/api/server.ts` also does not log the underlying error, which made this hard to diagnose
+
+### Remediation follow-up (2026-07-12)
+
+- fixed the admin pasted-text knowledge flow: inline authoring now generates a non-empty synthetic `uriOrPath` and successfully creates knowledge sources through the canonical `POST /v1/knowledge-sources` contract
+- completed admin knowledge visibility authoring: create/edit flows now support `visibilityPolicy: 'avatars'` with explicit avatar subset selection, and the detail table renders human-readable visibility labels
+- centralized knowledge visibility normalization in core so `visibilityPolicy` and `visibleToAvatarIds` behave as one invariant across create, update, retrieval, and repository reads:
+  - `visibleToAvatarIds` without a policy normalizes to `visibilityPolicy: 'avatars'`
+  - `'all'` / `'none'` clear stale avatar IDs
+  - `'avatars'` without IDs is rejected
+- strengthened behavior-first coverage for the remediated slice:
+  - admin page tests now prove pasted-text create, file-upload create, and knowledge visibility edit submissions
+  - core use-case, route, retrieval, and repository tests now cover visibility normalization and failure paths
+  - renamed `admin-model-config.stack-e2e.test.ts` to `admin-model-config.test.ts` so test naming matches the actual Fastify `inject()` tier
+- clarified EPIC 6.1 seed-parity scope in docs: scenario-specific orchestration config (`scenario.config`, e.g. progression/solution fields) remains intentionally seed/API-owned and is not part of the admin surface
 
 ---
 
@@ -828,36 +841,37 @@ Completed on: 2026-07-09
 
 # 4. Timeline
 
-| Date       | Milestone                                                                                      |
-| ---------- | ---------------------------------------------------------------------------------------------- |
-| 2026-04-22 | EPIC 1.1 — Core Platform Bootstrap                                                             |
-| 2026-04-22 | EPIC 1.2 — First LLM Loop + Observability                                                      |
-| 2026-04-22 | EPIC 2.1 — Avatar Agent v1                                                                     |
-| 2026-04-22 | EPIC 2.2 — Scenario & Session Lifecycle                                                        |
-| 2026-04-27 | EPIC 4.4 — Multi-Avatar Navigation v1                                                          |
-| 2026-04-28 | EPIC 2.5 — Admin CRUD + Console Integration                                                    |
-| 2026-04-28 | EPIC 2.6 — GM Debug Panel v1                                                                   |
-| 2026-04-29 | EPIC 4.1 — Async Game Master v1                                                                |
-| 2026-04-30 | EPIC 3.1 — Health & Dependency Monitoring                                                      |
-| 2026-04-30 | EPIC 4.3 — Performance Baseline                                                                |
-| 2026-05-02 | EPIC 5.5 — User Persona System                                                                 |
-| 2026-05-05 | EPIC 4.2 — Memory Layer v1                                                                     |
-| 2026-05-05 | EPIC 4.5 — Runtime State & SSE Events                                                          |
-| 2026-05-06 | EPIC 4.2b — Memory System v2                                                                   |
-| 2026-05-07 | EPIC 2.7 — Runtime Inspector v2                                                                |
-| 2026-05-07 | EPIC 2.8 — Console Debugging Redesign                                                          |
-| 2026-05-08 | EPIC 4.2c — Episodic + Hydrated Memory System                                                  |
-| 2026-05-10 | EPIC 3.2 — Inspector Consolidation & Contract Cleanup                                          |
-| 2026-05-11 | EPIC 5.1 — Knowledge Substrate, Ingestion, Retrieval                                           |
-| 2026-05-11 | EPIC 5.2 — Context Engine v2                                                                   |
-| 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration                                                  |
-| 2026-06-01 | EPIC 7.1 — Public User Web App v1                                                              |
-| 2026-07-05 | EPIC 6.1 — Scenario Builder v1 (contract cleanup)                                              |
-| 2026-07-06 | EPIC 6.1 — Scenario Builder v1 (admin app foundation)                                          |
-| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (scenario/avatar editors + visibility)                          |
-| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (knowledge sources + visibility policy + file upload)           |
-| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (runtime model selection)                                       |
-| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (final hardening: seed parity, tests, doc sync) — EPIC complete |
+| Date       | Milestone                                                                                       |
+| ---------- | ----------------------------------------------------------------------------------------------- |
+| 2026-04-22 | EPIC 1.1 — Core Platform Bootstrap                                                              |
+| 2026-04-22 | EPIC 1.2 — First LLM Loop + Observability                                                       |
+| 2026-04-22 | EPIC 2.1 — Avatar Agent v1                                                                      |
+| 2026-04-22 | EPIC 2.2 — Scenario & Session Lifecycle                                                         |
+| 2026-04-27 | EPIC 4.4 — Multi-Avatar Navigation v1                                                           |
+| 2026-04-28 | EPIC 2.5 — Admin CRUD + Console Integration                                                     |
+| 2026-04-28 | EPIC 2.6 — GM Debug Panel v1                                                                    |
+| 2026-04-29 | EPIC 4.1 — Async Game Master v1                                                                 |
+| 2026-04-30 | EPIC 3.1 — Health & Dependency Monitoring                                                       |
+| 2026-04-30 | EPIC 4.3 — Performance Baseline                                                                 |
+| 2026-05-02 | EPIC 5.5 — User Persona System                                                                  |
+| 2026-05-05 | EPIC 4.2 — Memory Layer v1                                                                      |
+| 2026-05-05 | EPIC 4.5 — Runtime State & SSE Events                                                           |
+| 2026-05-06 | EPIC 4.2b — Memory System v2                                                                    |
+| 2026-05-07 | EPIC 2.7 — Runtime Inspector v2                                                                 |
+| 2026-05-07 | EPIC 2.8 — Console Debugging Redesign                                                           |
+| 2026-05-08 | EPIC 4.2c — Episodic + Hydrated Memory System                                                   |
+| 2026-05-10 | EPIC 3.2 — Inspector Consolidation & Contract Cleanup                                           |
+| 2026-05-11 | EPIC 5.1 — Knowledge Substrate, Ingestion, Retrieval                                            |
+| 2026-05-11 | EPIC 5.2 — Context Engine v2                                                                    |
+| 2026-05-20 | EPIC 4.1c — Multi-Model Runtime Configuration                                                   |
+| 2026-06-01 | EPIC 7.1 — Public User Web App v1                                                               |
+| 2026-07-05 | EPIC 6.1 — Scenario Builder v1 (contract cleanup)                                               |
+| 2026-07-06 | EPIC 6.1 — Scenario Builder v1 (admin app foundation)                                           |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (scenario/avatar editors + visibility)                           |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (knowledge sources + visibility policy + file upload)            |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (runtime model selection)                                        |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (final hardening: seed parity, tests, doc sync) — EPIC complete  |
+| 2026-07-12 | EPIC 6.1 — Scenario Builder v1 (audit remediation: knowledge authoring + visibility invariants) |
 
 ---
 
@@ -871,7 +885,7 @@ Current implementation focus:
 - advanced orchestration intelligence
 - retrieval observability
 - public web app operational hardening
-- EPIC 6.1 (Scenario Builder v1 admin app) is complete: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, and final hardening (seed parity, test coverage closure, doc sync) all delivered
+- EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
 
 ---
 

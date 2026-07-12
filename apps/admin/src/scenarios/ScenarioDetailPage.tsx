@@ -187,6 +187,7 @@ function renderModePanel({
       return (
         <KnowledgeSourceCreateForm
           scenarioId={data.scenario.scenarioId}
+          avatars={data.avatars}
           onCancel={() => { setMode({ kind: 'view' }) }}
           onCreated={(source) => { refreshData({ knowledgeSources: [source, ...data.knowledgeSources] }) }}
           onError={setActionError}
@@ -240,6 +241,7 @@ function renderKnowledgeEditMode(
   return (
     <KnowledgeSourceEditForm
       source={source}
+      avatars={data.avatars}
       onCancel={() => { setMode({ kind: 'view' }) }}
       onSaved={(updated) => {
         refreshData({

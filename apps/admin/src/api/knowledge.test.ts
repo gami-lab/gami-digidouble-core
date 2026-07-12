@@ -50,7 +50,8 @@ describe('knowledge API wrappers', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/world-lore.txt',
-      visibilityPolicy: 'all',
+      visibilityPolicy: 'avatars',
+      visibleToAvatarIds: ['avatar_1'],
     })
 
     expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/knowledge-sources', {
@@ -59,7 +60,8 @@ describe('knowledge API wrappers', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/world-lore.txt',
-      visibilityPolicy: 'all',
+      visibilityPolicy: 'avatars',
+      visibleToAvatarIds: ['avatar_1'],
     })
   })
 
@@ -72,7 +74,8 @@ describe('knowledge API wrappers', () => {
       knowledgeType: 'world',
       content: 'base64content',
       filename: 'lore.txt',
-      visibilityPolicy: 'none',
+      visibilityPolicy: 'avatars',
+      visibleToAvatarIds: ['avatar_1'],
     })
 
     expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/knowledge-sources/upload', {
@@ -81,17 +84,22 @@ describe('knowledge API wrappers', () => {
       knowledgeType: 'world',
       content: 'base64content',
       filename: 'lore.txt',
-      visibilityPolicy: 'none',
+      visibilityPolicy: 'avatars',
+      visibleToAvatarIds: ['avatar_1'],
     })
   })
 
   it('updates a knowledge source', async () => {
     vi.mocked(adminRequest).mockResolvedValue({ source: makeSource() })
 
-    await updateKnowledgeSource('source_1', { visibilityPolicy: 'avatars' })
+    await updateKnowledgeSource('source_1', {
+      visibilityPolicy: 'avatars',
+      visibleToAvatarIds: ['avatar_1'],
+    })
 
     expect(adminRequest).toHaveBeenCalledWith('PATCH', '/v1/knowledge-sources/source_1', {
       visibilityPolicy: 'avatars',
+      visibleToAvatarIds: ['avatar_1'],
     })
   })
 

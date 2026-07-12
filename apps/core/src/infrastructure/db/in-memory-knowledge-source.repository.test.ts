@@ -60,6 +60,33 @@ describe('InMemoryKnowledgeSourceRepository', () => {
     expect(publicByEmpty.visibleToAvatarIds).toBeUndefined()
   })
 
+  it('normalizes visibilityPolicy and avatar ids coherently on create', async () => {
+    const repository = new InMemoryKnowledgeSourceRepository()
+
+    const publicSource = await repository.create({
+      scenarioId: 'scenario_1',
+      name: 'Shared lore',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/shared.txt',
+      visibilityPolicy: 'all',
+      visibleToAvatarIds: ['avatar_hidden'],
+    })
+    const privateSource = await repository.create({
+      scenarioId: 'scenario_1',
+      name: 'Private lore',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/private.txt',
+      visibleToAvatarIds: ['avatar_a'],
+    })
+
+    expect(publicSource.visibilityPolicy).toBe('all')
+    expect(publicSource.visibleToAvatarIds).toBeUndefined()
+    expect(privateSource.visibilityPolicy).toBe('avatars')
+    expect(privateSource.visibleToAvatarIds).toEqual(['avatar_a'])
+  })
+
   it('listByScenario supports knowledgeType and status filtering', async () => {
     const repository = new InMemoryKnowledgeSourceRepository([
       makeSource({ sourceId: 'knowledge_source_a', knowledgeType: 'world', status: 'ready' }),

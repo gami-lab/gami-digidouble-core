@@ -1,5 +1,9 @@
 import type { IKnowledgeChunkRepository } from '../../ports/IKnowledgeChunkRepository.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
+import {
+  buildKnowledgeVisibilitySelection,
+  isKnowledgeVisibleToAvatar,
+} from '../../../domain/knowledge/knowledge-visibility.js'
 import type {
   KnowledgeChunk,
   KnowledgeType,
@@ -91,9 +95,11 @@ export class TypedRetrievalService {
     const chunks = await this.chunkRepository.listBySourceIds(sourceIds)
     const avatarVisibleChunks = chunks.filter((chunk) => {
       const source = sourceById.get(chunk.sourceId)
-      return isAvatarVisible(
-        source?.visibilityPolicy,
-        chunk.visibleToAvatarIds ?? source?.visibleToAvatarIds,
+      return isKnowledgeVisibleToAvatar(
+        buildKnowledgeVisibilitySelection(
+          source?.visibilityPolicy,
+          chunk.visibleToAvatarIds ?? source?.visibleToAvatarIds,
+        ),
         input.activeAvatarId,
         input.bypassVisibilityFilter === true,
       )
@@ -148,31 +154,6 @@ function normalizeQueries(input: TypedRetrievalInput): TypedRetrievalQueryVarian
 
   const query = input.query.trim()
   return query.length > 0 ? [{ source: 'direct_query', text: query }] : []
-}
-
-function isAvatarVisible(
-  visibilityPolicy: string | undefined,
-  visibleToAvatarIds: string[] | undefined,
-  activeAvatarId: string | undefined,
-  bypassVisibilityFilter: boolean,
-): boolean {
-  if (bypassVisibilityFilter) return true
-  // Explicit GM-only: no avatar can see this regardless of visibleToAvatarIds.
-  if (visibilityPolicy === 'none') return false
-  const normalized = normalizeVisibleToAvatarIds(visibleToAvatarIds)
-  if (normalized === undefined) return true
-  if (activeAvatarId === undefined) return false
-  return normalized.includes(activeAvatarId)
-}
-
-function normalizeVisibleToAvatarIds(
-  visibleToAvatarIds: string[] | undefined,
-): string[] | undefined {
-  if (visibleToAvatarIds === undefined) return undefined
-  const normalized = visibleToAvatarIds
-    .map((avatarId) => avatarId.trim())
-    .filter((avatarId) => avatarId.length > 0)
-  return normalized.length > 0 ? normalized : undefined
 }
 
 function isInMemoryScope(chunk: KnowledgeChunk, input: TypedRetrievalInput): boolean {

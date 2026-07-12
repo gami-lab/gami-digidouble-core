@@ -571,6 +571,12 @@ Visibility policy semantics:
 - `'avatars'` — visible only to avatars listed in `visibleToAvatarIds`
 - `'none'` — GM-only; excluded from all avatar retrieval; still accessible via `bypassVisibilityFilter` (GM omniscience path)
 
+Normalization rules:
+
+- if `visibleToAvatarIds` is provided without `visibilityPolicy`, the server normalizes the source to `visibilityPolicy: 'avatars'`
+- if `visibilityPolicy` is `'all'` or `'none'`, any provided `visibleToAvatarIds` are ignored and cleared
+- if `visibilityPolicy` is `'avatars'`, `visibleToAvatarIds` must contain at least one avatar ID after trimming
+
 ---
 
 ## Upload Knowledge Source (Text / PDF)
@@ -587,12 +593,13 @@ Request body (`UploadKnowledgeSourceRequest`):
 - `content: string` — base64-encoded file bytes
 - `filename: string` — must end in `.pdf`, `.txt`, or `.text`; determines extraction path
 - `visibilityPolicy?: KnowledgeVisibilityPolicy` — same semantics as Register above
+- `visibleToAvatarIds?: string[]` — same normalization and validation rules as Register above
 
 Notes:
 
 - PDF files are parsed at the API boundary via `pdf-parse`; extracted text stored as `metadata.inlineText`
 - TXT/text files decoded as UTF-8 and stored as `metadata.inlineText`
-- Max base64 payload: ~15 MB (20 MB raw); 400 returned if exceeded or extension unsupported
+- Max base64 payload: ~14 MB (~10 MB raw); 400 returned if exceeded or extension unsupported
 - Returns the same `CreateKnowledgeSourceResponse` shape as POST /v1/knowledge-sources
 
 ---
@@ -604,6 +611,12 @@ PATCH /v1/knowledge-sources/{sourceId}
 ```
 
 `visibilityPolicy` is patchable. Updates are idempotent and safe for partial edits.
+
+Patch normalization rules:
+
+- updating only `visibleToAvatarIds` normalizes the source to `visibilityPolicy: 'avatars'`
+- patching `visibilityPolicy: 'all'` or `'none'` clears any stored `visibleToAvatarIds`
+- patching `visibilityPolicy: 'avatars'` without avatar IDs returns `400 VALIDATION_ERROR`
 
 ---
 

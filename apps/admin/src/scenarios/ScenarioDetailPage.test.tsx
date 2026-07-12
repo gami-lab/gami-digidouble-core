@@ -1,15 +1,20 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AvatarSummary, ScenarioSummary } from '@gami/shared'
+import type { AvatarSummary, KnowledgeSourceDto, ScenarioSummary } from '@gami/shared'
 import {
   createAvatar as createAvatarApi,
   getScenario,
   listScenarioAvatars,
   updateScenario,
 } from '../api/scenarios'
-import { listKnowledgeSources } from '../api/knowledge'
+import {
+  createKnowledgeSource as createKnowledgeSourceApi,
+  listKnowledgeSources,
+  updateKnowledgeSource as updateKnowledgeSourceApi,
+  uploadKnowledgeSource as uploadKnowledgeSourceApi,
+} from '../api/knowledge'
 import { ScenarioDetailPage } from './ScenarioDetailPage'
 
 vi.mock('../api/scenarios', () => ({
@@ -59,6 +64,20 @@ function createAvatar(overrides: Partial<AvatarSummary> = {}): AvatarSummary {
   }
 }
 
+function createKnowledgeSource(overrides: Partial<KnowledgeSourceDto> = {}): KnowledgeSourceDto {
+  return {
+    sourceId: 'knowledge_source_1',
+    scenarioId: 'scenario_a',
+    name: 'Secret lore',
+    knowledgeType: 'world',
+    format: 'text',
+    uriOrPath: 'inline://secret-lore.txt',
+    status: 'pending',
+    createdAt: '2026-06-01T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
 function mockPendingLoad(): void {
   vi.mocked(getScenario).mockReturnValue(new Promise(() => {}))
   vi.mocked(listScenarioAvatars).mockReturnValue(new Promise(() => {}))
@@ -68,13 +87,15 @@ function mockPendingLoad(): void {
 function mockReadyLoad({
   scenario = createScenario(),
   avatars = [] as AvatarSummary[],
+  knowledgeSources = [] as KnowledgeSourceDto[],
 }: {
   scenario?: ScenarioSummary
   avatars?: AvatarSummary[]
+  knowledgeSources?: KnowledgeSourceDto[]
 } = {}): void {
   vi.mocked(getScenario).mockResolvedValue(scenario)
   vi.mocked(listScenarioAvatars).mockResolvedValue(avatars)
-  vi.mocked(listKnowledgeSources).mockResolvedValue([])
+  vi.mocked(listKnowledgeSources).mockResolvedValue(knowledgeSources)
 }
 
 function renderPage(onBack = vi.fn()): void {
@@ -89,6 +110,7 @@ async function waitForScenario(name = 'Guided Discovery'): Promise<void> {
 
 afterEach(() => {
   cleanup()
+  vi.unstubAllGlobals()
 })
 
 beforeEach(() => {
@@ -240,7 +262,7 @@ describe('ScenarioDetailPage navigation and avatar actions', () => {
   })
 })
 
-describe('ScenarioDetailPage knowledge actions', () => {
+describe('ScenarioDetailPage knowledge section', () => {
   it('shows knowledge sources section with "Add knowledge" button', async () => {
     mockReadyLoad()
 
@@ -261,5 +283,144 @@ describe('ScenarioDetailPage knowledge actions', () => {
 
     expect(screen.getByText('Add knowledge source')).toBeTruthy()
     expect(screen.getByLabelText(/Visibility policy/)).toBeTruthy()
+  })
+})
+
+class MockKnowledgeFileReader {
+  public result: string | ArrayBuffer | null = null
+  public onload: null | (() => void) = null
+  public onerror: null | (() => void) = null
+
+  readAsDataURL(file: File): void {
+    this.result = `data:${file.type};base64,${Buffer.from('Top secret clue').toString('base64')}`
+    this.onload?.()
+  }
+}
+
+describe('ScenarioDetailPage knowledge creation submissions', () => {
+  it('submits pasted-text knowledge creation with avatar-scoped visibility', async () => {
+    mockReadyLoad({
+      avatars: [createAvatar(), createAvatar({ avatarId: 'avatar_2', name: 'Noor' })],
+    })
+    vi.mocked(createKnowledgeSourceApi).mockResolvedValue(
+      createKnowledgeSource({
+        visibilityPolicy: 'avatars',
+        visibleToAvatarIds: ['avatar_1', 'avatar_2'],
+      }),
+    )
+
+    renderPage()
+
+    await waitForScenario()
+    fireEvent.click(screen.getByRole('button', { name: 'Add knowledge' }))
+
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Character secrets' } })
+    fireEvent.change(screen.getByLabelText(/Visibility policy/), {
+      target: { value: 'avatars' },
+    })
+    fireEvent.click(screen.getByLabelText('Mira'))
+    fireEvent.click(screen.getByLabelText('Noor'))
+    fireEvent.change(screen.getByLabelText(/Content/), {
+      target: { value: 'Hidden relationships between suspects.' },
+    })
+    fireEvent.submit(
+      screen.getByRole('button', { name: /Create knowledge source/ }).closest('form') as HTMLFormElement,
+    )
+
+    await waitFor(() => {
+      expect(createKnowledgeSourceApi).toHaveBeenCalledWith({
+        scenarioId: 'scenario_a',
+        name: 'Character secrets',
+        knowledgeType: 'world',
+        visibilityPolicy: 'avatars',
+        visibleToAvatarIds: ['avatar_1', 'avatar_2'],
+        format: 'text',
+        uriOrPath: 'inline://character-secrets.txt',
+        metadata: { inlineText: 'Hidden relationships between suspects.' },
+      })
+    })
+  })
+
+  it('submits uploaded knowledge creation with GM-only visibility', async () => {
+    mockReadyLoad({ avatars: [createAvatar()] })
+    vi.mocked(uploadKnowledgeSourceApi).mockResolvedValue(
+      createKnowledgeSource({
+        name: 'Clue packet',
+        uriOrPath: 'clues.txt',
+        visibilityPolicy: 'none',
+      }),
+    )
+
+    vi.stubGlobal('FileReader', MockKnowledgeFileReader)
+
+    renderPage()
+
+    await waitForScenario()
+    fireEvent.click(screen.getByRole('button', { name: 'Add knowledge' }))
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Clue packet' } })
+    fireEvent.change(screen.getByLabelText(/Visibility policy/), {
+      target: { value: 'none' },
+    })
+    fireEvent.click(screen.getByLabelText(/Upload file/))
+    fireEvent.change(screen.getByLabelText(/File \(PDF or TXT\)/), {
+      target: {
+        files: [new File(['Top secret clue'], 'clues.txt', { type: 'text/plain' })],
+      },
+    })
+    fireEvent.submit(
+      screen.getByRole('button', { name: /Create knowledge source/ }).closest('form') as HTMLFormElement,
+    )
+
+    await waitFor(() => {
+      expect(uploadKnowledgeSourceApi).toHaveBeenCalledWith({
+        scenarioId: 'scenario_a',
+        name: 'Clue packet',
+        knowledgeType: 'world',
+        visibilityPolicy: 'none',
+        content: Buffer.from('Top secret clue').toString('base64'),
+        filename: 'clues.txt',
+      })
+    })
+  })
+})
+
+describe('ScenarioDetailPage knowledge edit submissions', () => {
+  it('submits knowledge visibility edits with canonical avatar ids', async () => {
+    mockReadyLoad({
+      avatars: [createAvatar(), createAvatar({ avatarId: 'avatar_2', name: 'Noor' })],
+      knowledgeSources: [
+        createKnowledgeSource({
+          visibilityPolicy: 'all',
+        }),
+      ],
+    })
+    vi.mocked(updateKnowledgeSourceApi).mockResolvedValue(
+      createKnowledgeSource({
+        visibilityPolicy: 'avatars',
+        visibleToAvatarIds: ['avatar_2'],
+      }),
+    )
+
+    renderPage()
+
+    await waitForScenario()
+
+    const knowledgeRow = screen.getByText('Secret lore').closest('tr')
+    expect(knowledgeRow).not.toBeNull()
+    fireEvent.click(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Edit' }))
+
+    fireEvent.change(screen.getByLabelText(/Visibility policy/), {
+      target: { value: 'avatars' },
+    })
+    fireEvent.click(screen.getByLabelText('Noor'))
+    fireEvent.submit(screen.getByRole('button', { name: 'Save' }).closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(updateKnowledgeSourceApi).toHaveBeenCalledWith('knowledge_source_1', {
+        name: 'Secret lore',
+        visibilityPolicy: 'avatars',
+        visibleToAvatarIds: ['avatar_2'],
+      })
+    })
   })
 })

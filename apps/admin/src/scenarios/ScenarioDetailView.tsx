@@ -34,6 +34,7 @@ export function ScenarioView({
   onTriggerIngestion,
 }: ScenarioViewProps): JSX.Element {
   const initialIds = new Set(scenario.avatarAvailability.initialAvatarIds)
+  const avatarNamesById = new Map(avatars.map((avatar) => [avatar.avatarId, avatar.name] as const))
 
   return (
     <>
@@ -48,6 +49,7 @@ export function ScenarioView({
       />
       <KnowledgeSourceListSection
         knowledgeSources={knowledgeSources}
+        avatarNamesById={avatarNamesById}
         onAddKnowledge={onAddKnowledge}
         onEditKnowledge={onEditKnowledge}
         onDeleteKnowledge={onDeleteKnowledge}
@@ -204,6 +206,7 @@ function formatAvatarOverride(override: AvatarSummary['llmOverride']): string {
 
 type KnowledgeSourceListSectionProps = {
   knowledgeSources: KnowledgeSourceDto[]
+  avatarNamesById: Map<string, string>
   onAddKnowledge: () => void
   onEditKnowledge: (sourceId: string) => void
   onDeleteKnowledge: (sourceId: string) => void
@@ -212,6 +215,7 @@ type KnowledgeSourceListSectionProps = {
 
 function KnowledgeSourceListSection({
   knowledgeSources,
+  avatarNamesById,
   onAddKnowledge,
   onEditKnowledge,
   onDeleteKnowledge,
@@ -244,7 +248,7 @@ function KnowledgeSourceListSection({
               <tr key={source.sourceId}>
                 <td>{source.name}</td>
                 <td>{source.knowledgeType}</td>
-                <td>{source.visibilityPolicy ?? 'all'}</td>
+                <td>{formatKnowledgeVisibility(source, avatarNamesById)}</td>
                 <td>
                   <span className="admin-status-pill">{source.status}</span>
                 </td>
@@ -281,4 +285,21 @@ function KnowledgeSourceListSection({
       )}
     </>
   )
+}
+
+function formatKnowledgeVisibility(
+  source: KnowledgeSourceDto,
+  avatarNamesById: Map<string, string>,
+): string {
+  if (source.visibilityPolicy === 'none') return 'GM-only'
+
+  if (source.visibilityPolicy === 'avatars' || (source.visibleToAvatarIds?.length ?? 0) > 0) {
+    const labels = (source.visibleToAvatarIds ?? []).map(
+      (avatarId) => avatarNamesById.get(avatarId) ?? avatarId,
+    )
+
+    return labels.length > 0 ? labels.join(', ') : 'Specific avatars'
+  }
+
+  return 'All avatars'
 }

@@ -86,6 +86,52 @@ describe('UpdateKnowledgeSourceUseCase', () => {
     expect(output.source.visibleToAvatarIds).toEqual(['avatar_a'])
   })
 
+  it('infers avatars visibility when only avatar ids are provided', async () => {
+    const repo = new InMemoryKnowledgeSourceRepository([makeSource()])
+    const useCase = new UpdateKnowledgeSourceUseCase(repo)
+
+    const output = await useCase.execute({
+      sourceId: 'knowledge_source_1',
+      visibleToAvatarIds: ['avatar_a', ' avatar_b '],
+    })
+
+    expect(output.source.visibilityPolicy).toBe('avatars')
+    expect(output.source.visibleToAvatarIds).toEqual(['avatar_a', 'avatar_b'])
+  })
+
+  it('clears stale avatar ids when visibility changes to all', async () => {
+    const repo = new InMemoryKnowledgeSourceRepository([
+      makeSource({
+        visibilityPolicy: 'avatars',
+        visibleToAvatarIds: ['avatar_a'],
+      }),
+    ])
+    const useCase = new UpdateKnowledgeSourceUseCase(repo)
+
+    const output = await useCase.execute({
+      sourceId: 'knowledge_source_1',
+      visibilityPolicy: 'all',
+    })
+
+    expect(output.source.visibilityPolicy).toBe('all')
+    expect(output.source.visibleToAvatarIds).toBeUndefined()
+    expect(output.source.status).toBe('ready')
+  })
+
+  it('rejects avatars visibility without avatar ids', async () => {
+    const repo = new InMemoryKnowledgeSourceRepository([makeSource()])
+    const useCase = new UpdateKnowledgeSourceUseCase(repo)
+
+    await expect(
+      useCase.execute({
+        sourceId: 'knowledge_source_1',
+        visibilityPolicy: 'avatars',
+      }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+    })
+  })
+
   it('rejects blank name', async () => {
     const useCase = new UpdateKnowledgeSourceUseCase(
       new InMemoryKnowledgeSourceRepository([makeSource()]),

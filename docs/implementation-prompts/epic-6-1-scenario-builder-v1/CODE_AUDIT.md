@@ -219,3 +219,52 @@ Rationale:
 - Mandatory quality gates are green.
 - Architecture is mostly clean.
 - But core EPIC behaviors in the knowledge-management slice are not delivered at the level the README promises, and the current tests do not prove those operator-facing workflows.
+
+## Remediation Outcome
+
+### Changes Made
+
+- fixed admin pasted-text knowledge creation by generating a stable non-empty inline `uriOrPath` for authored text sources
+- completed admin knowledge visibility authoring with explicit avatar subset selection for create/edit flows and clearer visibility labels in the scenario detail view
+- centralized knowledge visibility normalization in core so create, update, retrieval, and repository reads apply one consistent contract:
+  - `visibleToAvatarIds` without a policy normalizes to `visibilityPolicy: 'avatars'`
+  - `visibilityPolicy: 'all' | 'none'` clears stale avatar IDs
+  - `visibilityPolicy: 'avatars'` without avatar IDs is rejected
+- renamed `admin-model-config.stack-e2e.test.ts` to `admin-model-config.test.ts` so test naming matches the actual Fastify `inject()` tier
+- clarified EPIC docs and seed-parity scope so scenario-specific orchestration config remains intentionally seed/API-owned rather than silently implied as admin-editable
+
+### Findings Resolved
+
+- resolved: admin pasted-text knowledge creation is broken
+- resolved: avatar-scoped knowledge visibility is not actually authorable from the admin app
+- resolved: knowledge visibility semantics are inconsistent and can silently leak or mis-scope access
+- resolved: tests miss the admin knowledge flows that matter to operators
+- resolved by documentation alignment: manual admin workflows do not fully replace current seed-script content
+
+### Findings Deferred
+
+- none within EPIC 6.1 scope
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`pnpm test:coverage`; @gami/core overall coverage report shows 86.25% statements, 84.49% branches, 96.48% functions, 86.25% lines)
+
+### Final Feature Confidence
+
+- knowledge source creation via pasted text: High
+- knowledge source creation via PDF/TXT upload: High
+- knowledge visibility authoring (`all` / avatar subset / GM-only): High
+- visibility enforcement in retrieval and updates: High
+- admin scenario and avatar editing: High
+- runtime model selection: High
+
+### Final Grade
+
+**A**
+
+### Remaining Risks
+
+- scenario-specific orchestration config (`scenario.config`, e.g. progression/solution fields) remains intentionally outside the EPIC 6.1 admin surface and must continue to be managed via seed/API workflows
