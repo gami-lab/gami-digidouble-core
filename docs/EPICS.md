@@ -1766,602 +1766,183 @@ A polished, low-friction public web app makes the Core usable by real end users 
 
 - a real user can enter the experience, pick a scenario, and start chatting through a focused public interface
 
-# EPIC X.X.1 — Canonical Persona Structuring
+---
+
+# EPIC X.X — Improve the LLM Prompt Pipeline
 
 ## Purpose
 
-Improve avatar consistency by transforming administrator-authored personas into a canonical structured representation before they are assembled into the runtime context.
+Improve the quality, consistency and maintainability of all interactions between the platform and the LLMs by refining the prompts, the runtime context, and the intermediate information exchanged between the different LLM stages.
 
-The objective is to make persona information easier for the Context Engine and Avatar Prompt Assembly to consume while preserving the administrator's intent and avoiding prompt sprawl.
+The platform currently relies on three complementary prompts that together implement a conversation pipeline:
 
----
+- the **Avatar Prompt**, responsible for generating the avatar response;
+- the **Game Master Prompt**, responsible for analysing the interaction and orchestrating the conversation;
+- the **Working Memory Prompt**, responsible for periodically compacting the discussion into long-lived working memory.
 
-## Description
+Although each prompt already fulfils its intended responsibility, they have gradually evolved independently. This has increased prompt complexity, duplicated information, and made the interaction between the three stages less explicit.
 
-Today, avatar personas are stored as free-form text (`personaPrompt`) authored by administrators. While this provides complete creative freedom, it also produces highly variable prompt quality depending on writing style, ordering, and structure.
-
-Large persona descriptions often mix:
-
-- identity
-- behavioural instructions
-- biography
-- world knowledge
-- timeline
-- speaking style
-- conversation guidance
-
-inside a single narrative document.
-
-As persona size grows, important behavioural information becomes difficult for the LLM to identify, reducing consistency across conversations.
-
-This EPIC introduces a canonical persona normalization stage.
-
-Before runtime prompt assembly, the administrator-authored persona is processed by an LLM and reorganized into a deterministic internal structure.
-
-The original content remains the source of truth, but the runtime representation becomes structured, predictable and optimized for retrieval.
+This EPIC reviews the entire prompt pipeline as a single system. The objective is not to introduce new conversational capabilities, but to improve how information is represented, organised and exchanged so that each LLM receives the clearest possible context for its specific responsibility.
 
 ---
 
-## Goals
+# Objectives
 
-- Preserve administrator creativity while improving runtime consistency.
-- Reduce variability caused by prompt writing style.
-- Separate behavioural information from descriptive reference material.
-- Improve retrieval of important persona information.
-- Create a canonical internal representation that future features can extend.
-
----
-
-## Design Principles
-
-The transformation follows existing Core principles:
-
-- Context is structured rather than treated as raw prompt text.
-- Product behaviour should not depend on handcrafted prompt ordering.
-- Information should become inspectable rather than hidden inside narrative paragraphs.
-- The transformation should remain deterministic enough to produce stable behaviour while preserving creative freedom.
+- Reduce prompt complexity while preserving behaviour.
+- Improve consistency of Avatar responses.
+- Improve consistency of Game Master decisions.
+- Improve the quality and usefulness of Working Memory.
+- Reduce duplicated information between prompts.
+- Improve the separation between static knowledge and runtime state.
+- Make prompts easier to understand, evolve and debug.
+- Leave implementation choices open where multiple approaches are possible.
 
 ---
 
-## Scope
+# Scope
 
-Introduce a Persona Structuring component within Avatar Prompt Assembly.
+## 1. Review Persona Representation
 
-```text
-Administrator Persona
-        │
-        ▼
-Persona Structuring
-        │
-        ▼
-Canonical Persona Representation
-        │
-        ▼
-Context Assembly
-        │
-        ▼
-Runtime Prompt
-```
+Today, avatar personas are authored as free-form narrative text. This gives administrators complete creative freedom but also means that runtime prompt quality depends heavily on how the persona was written.
 
-The administrator continues editing a single persona document.
+Large personas often mix several different concepts together, such as:
 
-The structured representation is generated automatically and remains an internal implementation detail.
+- character identity;
+- personality;
+- speaking style;
+- behavioural rules;
+- background;
+- relationships;
+- world knowledge;
+- conversation guidance.
 
----
+This makes important behavioural information harder for the LLM to identify, especially as personas grow.
 
-## Canonical Representation
+The objective is to review how persona information is authored, stored and consumed so that runtime prompts receive a clearer and more structured representation of the avatar while preserving administrator intent.
 
-The canonical representation should separate concepts rather than preserving arbitrary document order.
+This EPIC intentionally does **not** prescribe how this should be achieved. Possible solutions may involve improvements to the administration UI, changes to the stored representation, preprocessing during prompt assembly, transformation services, or a combination of these.
 
-Typical sections include:
+Regardless of the implementation, the solution should:
 
-- Identity
-- Psychology
-- Personality Traits
-- Speaking Style
-- Behavioural Rules
-- Relationships
-- Background
-- Knowledge
-- Timeline
-- Current Situation
-- Emotional Sensitivities
-
-The exact schema may evolve over time without affecting administrator workflows.
+- preserve all meaningful information;
+- preserve administrator flexibility;
+- avoid introducing hallucinated information;
+- separate behavioural instructions from descriptive content;
+- make persona information easier for the LLM to interpret.
 
 ---
 
-## Information Preservation
+## 2. Improve Runtime Context Assembly
 
-This transformation must prioritize preservation over compression.
+The Avatar prompt currently receives a large amount of information assembled into a single system prompt.
 
-It must:
+Although the content is correct, dynamic runtime information competes with large static reference documents for the model's attention.
 
-- preserve all meaningful information
-- preserve intentional ambiguity
-- preserve contradictions when deliberately authored
-- avoid inventing facts
-- avoid rewriting the author's intentions
-- avoid unnecessary summarisation
+The runtime context should be reviewed to better distinguish between:
 
-Information loss is considered a defect.
+- runtime instructions;
+- current conversation state;
+- user information;
+- retrieved knowledge;
+- permanent avatar information.
 
----
+The ordering and grouping of runtime context should reflect operational importance rather than the historical origin of the information.
 
-## Future Evolution
-
-The canonical persona representation becomes the foundation for future capabilities such as:
-
-- persona inspection
-- persona quality analysis
-- behavioural validation
-- consistency checking
-- configurable persona editing
-- selective context injection
+The objective is to improve instruction following while reducing prompt entropy.
 
 ---
 
-## DoD
+## 3. Refine the Game Master Prompt
 
-- Every avatar persona is normalized before runtime assembly.
-- Behavioural instructions are consistently separated from descriptive content.
-- Existing personas continue producing equivalent behaviour.
-- No meaningful information is lost.
-- Runtime prompt generation consumes only the canonical representation.
+The Game Master prompt is responsible for interpreting the completed interaction and updating the runtime conversation state.
 
----
+The current prompt mixes several different responsibilities:
 
-## What Can Be Tested
+- defining the Game Master's role;
+- describing orchestration objectives;
+- documenting runtime policies;
+- documenting the output schema;
+- describing formatting rules.
 
-- Compare multiple differently written personas describing the same character and verify similar runtime behaviour.
-- Verify that large personas preserve behavioural consistency.
-- Compare original vs structured prompt outputs.
-- Validate that no information is lost during transformation.
+This makes the prompt longer than necessary and forces the model to distinguish between behavioural guidance and implementation details.
 
----
+The prompt should be reorganised so that these concerns become clearly separated.
 
-## User Increment
+In particular, the prompt should:
 
-Avatar behaviour becomes more consistent and less dependent on prompt-writing quality while administrators retain complete creative freedom.
+- explicitly describe the Game Master's responsibility;
+- define clear decision priorities before producing an output;
+- distinguish orchestration policies from formatting rules;
+- separate static scenario context from the current discussion;
+- encourage evidence-based state updates rather than unnecessary changes;
+- reduce duplicated documentation of the output contract where possible.
 
----
-
-# EPIC X.X.2 — Runtime Context Assembly Refactoring
-
-## Purpose
-
-Improve avatar instruction following by reorganising runtime context according to operational priority rather than document origin.
-
-The objective is to strengthen the visibility of dynamic runtime instructions without changing avatar personalities or conversation behaviour.
+The objective is not to change the Game Master's behaviour, but to make that behaviour easier for the model to execute consistently.
 
 ---
 
-## Description
+## 4. Refine the Working Memory Prompt
 
-The current runtime prompt assembles all context into a single system message.
+The Working Memory prompt periodically compacts recent discussion into a bounded representation consumed by future Game Master executions.
 
-Although the content is correct, high-priority runtime instructions currently compete with large static persona documents.
+Its current output already provides good continuity through:
 
-This reduces the visibility of operational context such as:
+- summary;
+- unresolved threads;
+- candidate facts.
 
-- Director Notes
-- Response Rules
-- User Persona
-- Conversation State
+However, some information that is repeatedly inferred by the Game Master could instead be represented explicitly.
 
-despite these being the most important instructions for the current turn.
+In particular, the memory representation should better distinguish:
 
-This EPIC reorganises context assembly so that runtime information is prioritised before static reference material.
+- what has already been discussed;
+- what remains unresolved;
+- which objective facts should be retained across the conversation.
 
-The implementation changes only the assembly order and logical grouping of runtime context.
+The prompt should therefore be reviewed to improve both the quality of the generated summary and the overall structure of the working memory.
 
-No persona content is modified.
+One example discussed during design is the introduction of an explicit **coveredTopics** section to identify discussion subjects that have already been explored, allowing the Game Master to reason about progression without repeatedly analysing the free-text summary.
 
----
-
-## Goals
-
-- Prioritise runtime instructions.
-- Separate dynamic state from static knowledge.
-- Reduce prompt entropy.
-- Improve maintainability of context assembly.
-- Keep behaviour deterministic and inspectable.
+Conversely, the Working Memory prompt should remain focused on factual conversation history and should not infer transient conversational state such as trust, mood, pacing or progression, as those remain the responsibility of the Game Master.
 
 ---
 
-## Design Principles
+## 5. Improve Information Flow Between Prompts
 
-This EPIC directly supports the project's Context Engine philosophy.
+The three prompts form a processing pipeline rather than independent components.
 
-Runtime context should be assembled according to semantic responsibility rather than historical document structure.
+The output of one prompt becomes the input of the next, meaning that unnecessary ambiguity or duplication propagates throughout the system.
 
-Operational instructions belong before reference material.
+The interaction between the three prompts should therefore be reviewed holistically to ensure that:
 
-Dynamic context belongs before permanent knowledge.
+- each prompt has a single, clearly defined responsibility;
+- information is produced once and consumed where needed;
+- prompts complement each other rather than repeating the same reasoning;
+- the overall cognitive load presented to each LLM is minimised.
 
-This reinforces the project's principles that context quality comes from selection and structure rather than larger prompts.
-
----
-
-## Target Runtime Context Order
-
-The Context Engine should assemble runtime context in the following order:
-
-```text
-Director Notes
-
-Response Rules
-
-Conversation State
-    - Working Memory
-    - Current Conversation Summary
-
-User Persona
-
-World Context
-
-Retrieved Context
-
-Canonical Persona
-```
-
-This ordering reflects execution priority rather than content ownership.
+The objective is to make the pipeline easier to evolve while improving overall conversation quality.
 
 ---
 
-## Conversation State
+# Out of Scope
 
-Conversation state becomes a dedicated runtime section containing transient information such as:
-
-- working memory
-- current discussion summary
-- active conversation state
-
-This separates temporary state from permanent character identity, matching the existing layered memory model.
+- Changes to the overall conversation architecture.
+- Introduction of new memory layers.
+- New orchestration capabilities.
+- Changes to runtime APIs unless required by the chosen implementation.
+- Changes to the fundamental responsibilities of the Avatar, Game Master or Working Memory prompts.
 
 ---
 
-## User Persona
-
-The User Persona section becomes an explicit runtime description of the current conversation partner instead of a simple identifier.
-
-Future enrichment may include:
-
-- identity
-- role
-- relationship
-- inferred trust
-- dialogue guidance
-
-without modifying persona definitions.
-
----
-
-## Director Notes
-
-Director Notes become the highest-priority runtime instruction.
-
-Because they are regenerated every interaction, they should appear before all static context and remain immediately visible to the model.
-
-This matches the Director–Actor architecture already used by the Game Master.
-
----
-
-## Core Persona
-
-The canonical persona becomes the final reference section.
-
-It represents who the avatar is, not what the avatar should prioritise during the current interaction.
-
----
-
-## DoD
-
-- Runtime context is assembled according to operational priority.
-- Director Notes always appear first.
-- Conversation state is grouped into a dedicated runtime section.
-- User Persona becomes an explicit runtime context component.
-- Canonical Persona always appears last.
-- Existing avatars preserve behavioural consistency.
-
----
-
-## What Can Be Tested
-
-- Verify Director Notes consistently influence the next reply.
-- Compare instruction-following before and after reordering.
-- Validate that behaviour remains stable across large personas.
-- Measure improvements using existing runtime inspection and context inspection tools.
-
----
-
-## User Increment
-
-Avatar responses become more responsive to the current interaction while preserving long-term character consistency.
-
----
-
-# EPIC X.X.3 — Game Master Prompt Refinement
-
-## Purpose
-
-Improve the quality, consistency, and maintainability of the Game Master prompt by clarifying its responsibilities, simplifying its instructions, and strengthening its decision-making guidance without changing the existing architecture or runtime contracts.
-
----
-
-## Description
-
-The Game Master is responsible for interpreting the latest interaction between the user and the active avatar, updating the discussion state, and producing orchestration decisions for the next turn.
-
-The current prompt already provides all the required information, but it combines multiple concerns into a single block of instructions:
-
-- Game Master role definition
-- orchestration objectives
-- product policies
-- output schema
-- formatting rules
-
-As the prompt grows, these responsibilities become harder for the model to prioritize, increasing prompt complexity without improving orchestration quality.
-
-This EPIC refactors the Game Master prompt to improve clarity while preserving its current inputs and outputs. The objective is not to change the Game Master's responsibilities, but to make them more explicit and easier for the model to follow.
-
----
-
-## Goals
-
-- Improve the consistency of Game Master decisions.
-- Reduce prompt complexity without reducing functionality.
-- Clearly separate role, objectives, policies, and output contract.
-- Encourage evidence-based state updates.
-- Improve maintainability of the prompt.
-
----
-
-## Scope
-
-Refine the existing Game Master prompt by:
-
-### Clarifying Responsibilities
-
-Explicitly describe the Game Master's role as:
-
-- interpreting the latest exchange
-- evaluating discussion progress
-- determining conversation state
-- deciding avatar progression
-- providing compact guidance to the Avatar
-
-while emphasizing that it must never respond directly to the user.
-
----
-
-### Structuring Prompt Sections
-
-Reorganize the prompt into clearly separated sections, for example:
-
-- Role
-- Objectives
-- Decision Policies
-- Output Contract
-
-instead of one long sequence of rules.
-
----
-
-### Strengthening Decision Guidance
-
-Provide explicit decision priorities such as:
-
-- Should the discussion state change?
-- Has trust evolved?
-- Has the emotional tone changed?
-- Has meaningful progress been made?
-- Should another avatar become available?
-- Should another avatar become active?
-- What guidance should be provided for the next response?
-
-The prompt should encourage stable decisions and avoid unnecessary state changes.
-
----
-
-### Separating Static and Dynamic Context
-
-Improve readability by clearly distinguishing:
-
-Static Scenario Context
-
-- description
-- goals
-- available avatars
-
-from
-
-Current Discussion Context
-
-- recent exchanges
-- working memory
-- current runtime state
-
-This improves the model's understanding without changing the information provided.
-
----
-
-### Simplifying Output Documentation
-
-Reduce repetitive documentation of the JSON contract while preserving all validation rules.
-
-The prompt should focus on orchestration behaviour rather than explaining every output field in detail.
-
----
-
-## Out of Scope
-
-- Changes to the Game Master API.
-- Changes to the output JSON schema.
-- New runtime state fields.
-- New orchestration algorithms.
-- Changes to memory generation.
-
----
-
-## DoD
-
-- Prompt is reorganized into clearly defined sections.
-- Responsibilities and objectives are explicitly stated.
-- Decision guidance is clearer and more deterministic.
-- Prompt size is reduced where possible without losing functionality.
-- Existing Game Master output contract remains unchanged.
-- Existing scenarios continue to function without modification.
-
----
-
-## What Can Be Tested
-
-- Compare Game Master decisions before and after the prompt refinement.
-- Verify more stable state updates across similar conversations.
-- Verify avatar transition decisions remain consistent.
-- Measure prompt length reduction.
-- Validate that all existing scenarios continue to behave correctly.
-
----
-
-## User Increment
-
-The Game Master produces more consistent orchestration decisions while remaining fully compatible with the existing runtime architecture.
-
----
-
-# EPIC X.X.4 — Working Memory Prompt Refinement
-
-## Purpose
-
-Improve the quality and usefulness of the conversation working memory by generating a more structured representation of the discussion while preserving the current lightweight memory architecture.
-
----
-
-## Description
-
-The Working Memory prompt periodically compacts recent conversation history into a bounded memory that is later consumed by the Game Master.
-
-The current prompt already produces:
-
-- summary
-- unresolvedThreads
-- candidateFacts
-
-This provides good continuity, but it does not explicitly identify which discussion topics have already been explored.
-
-As a result, the Game Master must repeatedly infer discussion coverage from the free-text summary, making orchestration decisions more difficult than necessary.
-
-This EPIC refines the memory prompt to produce a slightly richer yet still lightweight memory representation that better supports discussion progression while keeping the responsibility of state interpretation within the Game Master.
-
----
-
-## Goals
-
-- Improve the usefulness of working memory.
-- Better distinguish completed and unresolved discussion topics.
-- Preserve factual accuracy.
-- Keep memory compact and bounded.
-- Avoid expanding the responsibility of the memory system.
-
----
-
-## Scope
-
-Refine the memory prompt to improve the generated working memory.
-
-### Improve Summary Quality
-
-Clarify that the summary should:
-
-- preserve important context
-- merge previous and recent discussion
-- eliminate repetition
-- remain concise
-- replace outdated information when superseded
-
----
-
-### Introduce Covered Topics
-
-Extend the generated memory with a new field:
-
-- coveredTopics
-
-This field contains a compact list of normalized discussion subjects that have already been explored.
-
-Examples:
-
-- Mona quarantine
-- First death
-- Ava contamination
-- Peter identity
-
-The objective is to help the Game Master quickly understand discussion progression without reinterpreting the entire summary.
-
----
-
-### Preserve Objective Facts
-
-Candidate facts should remain limited to objective, persistent information extracted from the conversation.
-
-The prompt should explicitly avoid generating inferred conversational state such as:
-
-- trust
-- emotional state
-- pacing
-- progression
-
-Those remain the responsibility of the Game Master.
-
----
-
-### Improve Unresolved Threads
-
-Clarify that unresolved threads should:
-
-- carry forward unresolved discussions
-- remove resolved items
-- avoid duplicates
-- remain concise
-
----
-
-## Out of Scope
-
-- Long-term memory.
-- Episodic memory.
-- Game Master state.
-- Trust or emotion inference.
-- Discussion progression computation.
-
----
-
-## DoD
-
-- Working memory remains bounded.
-- Summary quality is improved.
-- Covered topics are generated.
-- Candidate facts remain factual.
-- Unresolved threads remain accurate across compaction cycles.
-- Existing memory architecture remains unchanged.
-
----
-
-## What Can Be Tested
-
-- Compare summaries before and after refinement.
-- Verify covered topics accurately reflect completed discussions.
-- Verify resolved threads disappear over time.
-- Verify no inferred emotional or orchestration state appears in memory.
-- Verify Game Master prompt can use covered topics to reduce repeated discussion.
-
----
-
-## User Increment
-
-The Game Master receives a clearer and more structured representation of the conversation history, improving discussion continuity and progression without increasing architectural complexity.
+# Definition of Done
+
+- Avatar runtime context is clearer and better structured.
+- Persona information is represented in a way that improves runtime prompt quality.
+- Game Master prompt has clearer responsibilities and reduced prompt complexity.
+- Working Memory produces more useful structured conversation history.
+- Information duplication between prompts is reduced.
+- The interaction between the three prompts is more coherent and easier to reason about.
+- Existing scenarios continue to produce equivalent or improved behaviour.
 
 # Final Rule
 
