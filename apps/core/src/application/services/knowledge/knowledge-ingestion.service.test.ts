@@ -119,6 +119,45 @@ describe('KnowledgeIngestionService — completion flow', () => {
     expect(chunks[0]?.embedding?.length).toBe(16)
     expect(chunks[0]?.visibleToAvatarIds).toEqual(['avatar_memory_1'])
   })
+
+  it('excludes inlineText from chunk metadata while keeping other loader metadata', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Kingdom lore',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: 'inline://kingdom-lore.txt',
+    })
+    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+
+    class InlineTextLoader implements IKnowledgeSourceContentLoader {
+      load(): Promise<{ content: string; metadata?: Record<string, unknown> }> {
+        return Promise.resolve({
+          content: 'Full document body.',
+          metadata: { inlineText: 'Full document body.', tags: ['kingdom'] },
+        })
+      }
+    }
+
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new InlineTextLoader(),
+      new HashEmbeddingAdapter(),
+      eventLogRepository,
+    )
+
+    await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
+
+    const chunks = await chunkRepository.listBySourceId(source.sourceId)
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0]?.metadata?.inlineText).toBeUndefined()
+    expect(chunks[0]?.metadata?.tags).toEqual(['kingdom'])
+  })
 })
 
 describe('KnowledgeIngestionService — failure and retry behavior', () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import { createServer } from '../server.js'
@@ -279,7 +279,13 @@ describe('POST /v1/scenarios — optional field coverage', () => {
       update: () => Promise.reject(new Error('DB connection failed')),
     }
 
-    const response = await createServer(TEST_CONFIG, { scenarioRepository: brokenRepo }).inject({
+    const app = createServer(
+      { ...TEST_CONFIG, nodeEnv: 'development' },
+      { scenarioRepository: brokenRepo },
+    )
+    const errorSpy = vi.spyOn(app.log, 'error')
+
+    const response = await app.inject({
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
@@ -289,6 +295,7 @@ describe('POST /v1/scenarios — optional field coverage', () => {
     expect(response.statusCode).toBe(500)
     const body = response.json<ApiResponse<null>>()
     expect(body.error?.code).toBe('INTERNAL_ERROR')
+    expect(errorSpy).toHaveBeenCalled()
   })
 })
 

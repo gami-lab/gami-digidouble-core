@@ -36,3 +36,4 @@ export { PostgresIngestionJobRepository } from './repositories/postgres-ingestio
 export { PostgresModelConfigRepository } from './repositories/postgres-model-config.repository.js'
 export { InMemoryConversationRepository } from './in-memory-conversation.repository.js'
 export { getDbClient, closeDbClient } from './client.js'
+export { alignPostgresSchema } from './schema-alignment.js'

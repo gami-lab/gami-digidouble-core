@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import {
   DB_AVAILABLE,
   createTestSql,
-  ensureKnowledgeVisibilityColumns,
+  ensureSchemaAlignment,
   truncateAllTables,
 } from '../test-helpers.js'
 import { PostgresIngestionJobRepository } from './postgres-ingestion-job.repository.js'
@@ -19,7 +19,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresIngestionJobRepository', () => {
 
   beforeAll(async () => {
     sql = createTestSql()
-    await ensureKnowledgeVisibilityColumns(sql)
+    await ensureSchemaAlignment(sql)
     scenarioRepo = new PostgresScenarioRepository(sql)
     sourceRepo = new PostgresKnowledgeSourceRepository(sql)
     jobRepo = new PostgresIngestionJobRepository(sql)

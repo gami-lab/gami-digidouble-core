@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: July 9, 2026
+Last updated: July 18, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -690,7 +690,7 @@ Completed on: 2026-06-01
 
 Status: ✅ Complete
 Started on: 2026-07-05
-Completed on: 2026-07-09
+Completed on: 2026-07-18
 
 ### Current slice completed (contract cleanup prerequisite)
 
@@ -725,12 +725,12 @@ Completed on: 2026-07-09
 - added `visibilityPolicy` field to `KnowledgeSourceDto`, `CreateKnowledgeSourceRequest`, and `UpdateKnowledgeSourceRequest` in `@gami/shared`
 - added `UploadKnowledgeSourceRequest` and `UploadKnowledgeSourceResponse` to `@gami/shared` for base64-encoded PDF/TXT file ingestion without `@fastify/multipart` dependency
 - updated domain `KnowledgeSource` entity and `IKnowledgeSourceRepository` with `visibilityPolicy`
-- updated in-memory and Postgres knowledge source repositories to persist and return `visibility_policy`; backward-compatible `ADD COLUMN IF NOT EXISTS` migration added to `infra/postgres/init.sql`
+- updated in-memory and Postgres knowledge source repositories to persist and return `visibility_policy`; rerunnable startup schema alignment now applies EPIC-added columns to already-initialized databases before repository construction
 - updated typed retrieval and knowledge-source use cases to respect canonical `visibilityPolicy` semantics (`'all' | 'avatars' | 'none'`) and return `visibilityPolicy`
-- added `POST /v1/knowledge-sources/upload` endpoint: validates extension (`.pdf`, `.txt`, `.text`), decodes base64, calls `pdf-parse` for PDFs, stores extracted text as `metadata.inlineText`, creates source via existing use case; registered before the `:sourceId` route to avoid path conflicts
+- added `POST /v1/knowledge-sources/upload` endpoint: validates extension (`.pdf`, `.txt`, `.text`), parses uploaded bytes through the infrastructure knowledge parser, stores extracted text as `metadata.inlineText`, creates source via existing use case; registered before the `:sourceId` route to avoid path conflicts
 - admin API client `apps/admin/src/api/knowledge.ts`: wraps all knowledge source CRUD + upload + ingest-trigger endpoints using `adminRequest` with canonical `@gami/shared` types
-- admin UI extended: `ScenarioDetailPage` loads and displays knowledge sources; "Add knowledge" button opens `KnowledgeSourceCreateForm` (text paste or file upload, type + visibility selectors); list table shows name/type/visibility/status with Edit / Ingest / Delete actions; `KnowledgeSourceEditForm` for updating name and visibility policy
-- test coverage: GM-only retrieval unit test in `typed-retrieval.service.test.ts`; route integration tests for upload and visibility policy in `knowledge-sources-management.test.ts`; stack-e2e upload 401 + 400 + skipped happy-path in `knowledge.stack-e2e.test.ts`; admin unit tests updated to mock `listKnowledgeSources`, plus two new tests for knowledge section rendering and form navigation
+- admin UI extended: `ScenarioDetailPage` loads and displays knowledge sources; "Add knowledge" button opens `KnowledgeSourceCreateForm` (text paste or file upload, type + visibility selectors); list table shows name/type/visibility/status with Edit / Ingest / Delete actions; `KnowledgeSourceEditForm` supports rename/visibility changes plus inline-text replacement or PDF/TXT replacement through the canonical update contract
+- test coverage: GM-only retrieval unit test in `typed-retrieval.service.test.ts`; route integration tests for upload, replacement, and visibility policy in `knowledge-sources-management.test.ts`; stack-e2e upload 401 + 400 + skipped happy-path in `knowledge.stack-e2e.test.ts`; admin unit tests prove create plus edit submissions for text, file, and visibility flows
 - quality gates validated: `pnpm typecheck` clean across all packages; core 668 tests pass; admin 23 tests pass
 
 ### Current slice completed (runtime model selection)
@@ -773,6 +773,16 @@ Completed on: 2026-07-09
   - core use-case, route, retrieval, and repository tests now cover visibility normalization and failure paths
   - renamed `admin-model-config.stack-e2e.test.ts` to `admin-model-config.test.ts` so test naming matches the actual Fastify `inject()` tier
 - clarified EPIC 6.1 seed-parity scope in docs: scenario-specific orchestration config (`scenario.config`, e.g. progression/solution fields) remains intentionally seed/API-owned and is not part of the admin surface
+
+### Audit remediation (2026-07-18)
+
+- completed the missing admin knowledge-update workflows:
+  - inline knowledge sources can now replace pasted text content through `PATCH /v1/knowledge-sources/{sourceId}` by sending canonical `metadata.inlineText`
+  - file-backed PDF/TXT sources can now replace their content through the same patch endpoint using `content` + `filename`
+- moved uploaded-content parsing behind the infrastructure knowledge boundary so the route no longer imports `pdf-parse` directly
+- added rerunnable Postgres startup schema alignment before repository wiring so EPIC-added columns are applied to already-initialized environments, not only fresh Docker volumes
+- added unexpected-error logging for scenario and global request failures while preserving the public `INTERNAL_ERROR` envelope
+- expanded behavior tests to prove operator-visible edit flows and the startup schema-alignment path
 
 ---
 
@@ -870,8 +880,9 @@ Completed on: 2026-07-09
 | 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (scenario/avatar editors + visibility)                           |
 | 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (knowledge sources + visibility policy + file upload)            |
 | 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (runtime model selection)                                        |
-| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (final hardening: seed parity, tests, doc sync) — EPIC complete  |
+| 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (final hardening: seed parity, tests, doc sync)                  |
 | 2026-07-12 | EPIC 6.1 — Scenario Builder v1 (audit remediation: knowledge authoring + visibility invariants) |
+| 2026-07-18 | EPIC 6.1 — Scenario Builder v1 (audit remediation: knowledge updates + schema alignment)        |
 
 ---
 

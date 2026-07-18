@@ -57,7 +57,7 @@ describe('UpdateKnowledgeSourceUseCase', () => {
     })
 
     expect(output.source.status).toBe('pending')
-    expect(output.source.metadata).toEqual({ inlineText: 'Updated content' })
+    expect(output.source.metadata).toBeUndefined()
   })
 
   it('resets status to pending when uriOrPath changes', async () => {

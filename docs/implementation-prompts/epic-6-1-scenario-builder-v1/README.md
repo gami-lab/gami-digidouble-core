@@ -32,12 +32,12 @@ Execute strictly in numeric order. Each prompt establishes contracts and module 
 
 ## Definition of Done (Full EPIC)
 
-- [ ] A dedicated admin app exists as a first-class workspace app (separate from user-facing web app).
-- [ ] Admin can create/update scenarios including objectives and world context.
-- [ ] Admin can create/update avatars for a scenario, including `personaPrompt` and initial visibility.
-- [ ] Admin can create/update knowledge sources via pasted text and PDF/TXT upload.
-- [ ] Knowledge source ownership and visibility are supported for avatar-scoped and world-scoped data, including GM-only world visibility.
-- [ ] Admin can configure runtime model selection for avatar, GM, and scenario-level defaults.
-- [ ] Manual admin workflows can fully replace or update current seeding-script content for the supported scenario-builder surfaces (scenario/objectives/world context, avatar persona + visibility, knowledge sources, runtime model selection). Scenario-specific orchestration config remains seed/API-owned.
-- [ ] Any new API endpoint includes a matching `*.stack-e2e.test.ts` file with auth, validation, and not-found coverage.
-- [ ] Documentation is updated (`docs/PROJECT_STATUS.md` required, plus impacted contracts/architecture/data model/testing docs).
+- [x] A dedicated admin app exists as a first-class workspace app (separate from user-facing web app).
+- [x] Admin can create/update scenarios including objectives and world context.
+- [x] Admin can create/update avatars for a scenario, including `personaPrompt` and initial visibility.
+- [x] Admin can create/update knowledge sources via pasted text and PDF/TXT upload.
+- [x] Knowledge source ownership and visibility are supported for avatar-scoped and world-scoped data, including GM-only world visibility.
+- [x] Admin can configure runtime model selection for avatar, GM, and scenario-level defaults.
+- [x] Manual admin workflows can fully replace or update current seeding-script content for the supported scenario-builder surfaces (scenario/objectives/world context, avatar persona + visibility, knowledge sources, runtime model selection). Scenario-specific orchestration config remains seed/API-owned.
+- [x] Any new API endpoint includes a matching `*.stack-e2e.test.ts` file with auth, validation, and not-found coverage.
+- [x] Documentation is updated (`docs/PROJECT_STATUS.md` required, plus impacted contracts/architecture/data model/testing docs).

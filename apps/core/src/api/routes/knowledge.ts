@@ -1,7 +1,6 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok } from '@gami/shared'
 import crypto from 'node:crypto'
-import pdfParse from 'pdf-parse'
 import type {
   CreateKnowledgeSourceRequest,
   CreateKnowledgeSourceResponse,
@@ -39,6 +38,11 @@ import { UpdateKnowledgeSourceUseCase } from '../../application/use-cases/update
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
+import {
+  buildUploadedKnowledgeSourceUpdate,
+  toKnowledgeSourceUpdateInput,
+  validateUploadedKnowledgeSource,
+} from './knowledge-upload.request.js'
 import { presentKnowledgeRetrieval } from './knowledge-retrieval.presenter.js'
 
 export type KnowledgeRouteOptions = {
@@ -113,6 +117,8 @@ const updateSourceBodySchema = {
     name: { type: 'string', minLength: 1 },
     uriOrPath: { type: 'string', minLength: 1 },
     metadata: { type: 'object' },
+    content: { type: 'string', minLength: 1 },
+    filename: { type: 'string', minLength: 1 },
     visibilityPolicy: { type: 'string', enum: VISIBILITY_POLICY_ENUM },
     visibleToAvatarIds: {
       type: 'array',
@@ -141,10 +147,6 @@ const triggerBodySchema = {
   properties: { correlationId: { type: 'string', minLength: 1 } },
   additionalProperties: false,
 } as const
-
-// Max base64-encoded content size: ~14MB encodes to ~10MB of raw bytes.
-const UPLOAD_MAX_BASE64_BYTES = 14 * 1024 * 1024
-const ALLOWED_EXTENSIONS = new Set(['.txt', '.text', '.pdf'])
 
 const uploadBodySchema = {
   type: 'object',
@@ -261,36 +263,18 @@ function registerUploadSourceRoute(app: FastifyInstance, useCases: UseCases): vo
           visibleToAvatarIds,
         } = request.body
 
-        const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase()
-        if (!ALLOWED_EXTENSIONS.has(ext)) {
-          return await reply
-            .status(400)
-            .send(
-              fail(
-                'VALIDATION_ERROR',
-                `Unsupported file type "${ext}". Allowed: .txt, .text, .pdf`,
-              ),
-            )
-        }
-
-        if (content.length > UPLOAD_MAX_BASE64_BYTES) {
-          return await reply
-            .status(400)
-            .send(fail('VALIDATION_ERROR', 'File content exceeds maximum allowed size (10 MB).'))
-        }
-
-        const extractResult = await extractInlineText(content, ext)
-        if (extractResult.error !== null) {
-          return await reply.status(400).send(fail('VALIDATION_ERROR', extractResult.error))
+        const uploaded = await validateUploadedKnowledgeSource(content, filename)
+        if (!uploaded.success) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', uploaded.message))
         }
 
         const output = await useCases.createSourceUseCase.execute({
           scenarioId,
           name,
           knowledgeType,
-          format: ext === '.pdf' ? 'pdf' : 'text',
-          uriOrPath: filename,
-          metadata: { inlineText: extractResult.text },
+          format: uploaded.value.format,
+          uriOrPath: uploaded.value.filename,
+          metadata: { inlineText: uploaded.value.text },
           ...(visibilityPolicy !== undefined ? { visibilityPolicy } : {}),
           ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
         })
@@ -301,36 +285,6 @@ function registerUploadSourceRoute(app: FastifyInstance, useCases: UseCases): vo
       }
     },
   )
-}
-
-async function extractInlineText(
-  content: string,
-  ext: string,
-): Promise<{ text: string; error: null } | { text: ''; error: string }> {
-  let rawBuffer: Buffer
-  try {
-    rawBuffer = Buffer.from(content, 'base64')
-  } catch {
-    return { text: '', error: 'content must be valid base64.' }
-  }
-
-  let inlineText: string
-  if (ext === '.pdf') {
-    try {
-      const parsed = await pdfParse(rawBuffer)
-      inlineText = parsed.text.trim()
-    } catch {
-      return { text: '', error: 'Failed to parse PDF file.' }
-    }
-  } else {
-    inlineText = rawBuffer.toString('utf8').trim()
-  }
-
-  if (inlineText.length === 0) {
-    return { text: '', error: 'Uploaded file contains no extractable text content.' }
-  }
-
-  return { text: inlineText, error: null }
 }
 
 function registerListSourcesRoute(app: FastifyInstance, useCases: UseCases): void {
@@ -360,15 +314,19 @@ function registerUpdateSourceRoute(app: FastifyInstance, useCases: UseCases): vo
     { schema: { params: sourceParamsSchema, body: updateSourceBodySchema } },
     async (request, reply) => {
       try {
-        const { name, metadata, visibilityPolicy, visibleToAvatarIds, uriOrPath } = request.body
-        const output = await useCases.updateSourceUseCase.execute({
-          sourceId: request.params.sourceId,
-          ...(name !== undefined ? { name } : {}),
-          ...(metadata !== undefined ? { metadata } : {}),
-          ...(visibilityPolicy !== undefined ? { visibilityPolicy } : {}),
-          ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
-          ...(uriOrPath !== undefined ? { uriOrPath } : {}),
+        const { metadata, uriOrPath, content, filename } = request.body
+        const uploadedUpdate = await buildUploadedKnowledgeSourceUpdate({
+          content,
+          filename,
+          metadata,
+          uriOrPath,
         })
+        if (!uploadedUpdate.success) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', uploadedUpdate.message))
+        }
+        const output = await useCases.updateSourceUseCase.execute(
+          toKnowledgeSourceUpdateInput(request.params.sourceId, request.body, uploadedUpdate.value),
+        )
         return await reply.send(ok<UpdateKnowledgeSourceResponse>(output))
       } catch (error) {
         return await handleError(error, reply)
@@ -539,5 +497,6 @@ async function handleError(error: unknown, reply: FastifyReply): Promise<Fastify
   if (error instanceof DomainError && error.code === 'CONFLICT') {
     return await reply.status(409).send(fail('CONFLICT', error.message))
   }
+  reply.log.error({ err: error }, 'Unhandled knowledge route error')
   return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
 }

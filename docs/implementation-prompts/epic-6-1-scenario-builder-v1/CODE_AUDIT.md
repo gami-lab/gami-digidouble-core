@@ -192,3 +192,51 @@ Minimal steps:
 **Close with debt**
 
 The EPIC is close enough to usable that a total rework is not warranted, and the core architecture/test posture is materially better than average. But I would not call it a clean close: one advertised admin workflow is incomplete, and the persistence rollout model is still operationally risky. If the project wants to treat the README and slice prompts as the source of truth, this EPIC should carry explicit follow-up debt before being considered truly done.
+
+## Remediation Outcome
+
+### Changes Made
+
+- completed the admin knowledge-edit workflow:
+  - inline knowledge sources now support pasted-text replacement through the existing edit form
+  - file-backed PDF/TXT sources now support content replacement through the same edit form
+- extended the canonical `UpdateKnowledgeSourceRequest` contract to support file replacement via `content` + `filename`
+- moved uploaded-content parsing out of the knowledge route into dedicated helpers backed by the infrastructure parser, reducing API-layer parsing drift
+- added rerunnable Postgres startup schema alignment and wired it into `apps/core/src/index.ts` before repository construction
+- added unexpected-error logging for the global Fastify error handler and scenario/knowledge route fallback paths
+- synced EPIC/status/API/test-plan docs to the delivered behavior and final scope
+
+### Findings Resolved
+
+- `High` — Knowledge-source update workflows are complete in the admin app for inline text and PDF/TXT-backed sources
+- `High` — Postgres schema evolution now has a rerunnable startup alignment path for already-initialized environments
+- `Medium` — File-upload parsing no longer lives inline in the main knowledge route; request translation now delegates to dedicated helpers backed by the infrastructure parser
+- `Medium` — Unexpected internal errors now emit diagnostic logs while preserving the public `INTERNAL_ERROR` envelope
+- `Low` — EPIC documentation and status docs now match the delivered scope
+
+### Findings Deferred
+
+- none
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`pnpm test:coverage` for `@gami/core`: 86.3% statements, 84.56% branches, 96.53% functions, 86.3% lines)
+
+### Final Feature Confidence
+
+- Dedicated admin app behavior is proven through page-level tests for scenario, avatar, knowledge, and model-selection flows
+- Knowledge source creation and replacement are proven for pasted text and PDF/TXT upload/replacement paths
+- Visibility-policy normalization and GM-only enforcement are proven in domain, route, retrieval, and repository tests
+- Startup schema alignment is proven by dedicated unit coverage and exercised by the green build gates
+- Unexpected 500 handling is now observable through logging and covered by scenario-route failure tests
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- integration-level proof of schema alignment against a legacy live Postgres volume remains in the extended DB-backed suite rather than the fast unit gate, but the production startup path is now rerunnable and covered by deterministic tests

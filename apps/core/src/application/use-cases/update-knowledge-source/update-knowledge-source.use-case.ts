@@ -5,6 +5,7 @@ import {
   normalizeKnowledgeVisibilitySelection,
   normalizeVisibleToAvatarIds,
 } from '../../../domain/knowledge/knowledge-visibility.js'
+import { toKnowledgeSourceDto } from '../../../domain/knowledge/knowledge-source-presenter.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 import type {
   IKnowledgeSourceRepository,
@@ -34,25 +35,7 @@ export class UpdateKnowledgeSourceUseCase {
       throw new DomainError('NOT_FOUND', 'Knowledge source not found')
     }
 
-    return {
-      source: {
-        sourceId: source.sourceId,
-        scenarioId: source.scenarioId,
-        name: source.name,
-        knowledgeType: source.knowledgeType,
-        format: source.format,
-        uriOrPath: source.uriOrPath,
-        status: source.status,
-        ...(source.visibilityPolicy !== undefined
-          ? { visibilityPolicy: source.visibilityPolicy }
-          : {}),
-        ...(source.visibleToAvatarIds !== undefined
-          ? { visibleToAvatarIds: source.visibleToAvatarIds }
-          : {}),
-        createdAt: source.createdAt,
-        ...(source.metadata !== undefined ? { metadata: source.metadata } : {}),
-      },
-    }
+    return { source: toKnowledgeSourceDto(source) }
   }
 }
 

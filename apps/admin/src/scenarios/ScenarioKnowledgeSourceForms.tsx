@@ -127,6 +127,8 @@ export function KnowledgeSourceEditForm({
   const [visibleToAvatarIds, setVisibleToAvatarIds] = useState<string[]>(
     normalizeVisibleToAvatarIds(source.visibleToAvatarIds),
   )
+  const [inlineText, setInlineText] = useState('')
+  const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(event: SyntheticEvent): Promise<void> {
@@ -135,10 +137,17 @@ export function KnowledgeSourceEditForm({
     setSaving(true)
     const selectedAvatarIds = buildKnowledgeVisibilityInput(visibilityPolicy, visibleToAvatarIds)
     try {
+      const replacement = await buildKnowledgeSourceEditReplacement({
+        source,
+        name,
+        inlineText,
+        file,
+      })
       const updated = await updateKnowledgeSource(source.sourceId, {
         name: name.trim(),
         visibilityPolicy,
         ...(selectedAvatarIds !== undefined ? { visibleToAvatarIds: selectedAvatarIds } : {}),
+        ...(replacement ?? {}),
       })
       onSaved(updated)
     } catch (error: unknown) {
@@ -165,6 +174,14 @@ export function KnowledgeSourceEditForm({
           onVisibilityPolicyChange={setVisibilityPolicy}
           onVisibleToAvatarIdsChange={setVisibleToAvatarIds}
         />
+        <KnowledgeSourceEditReplacementFields
+          source={source}
+          inlineText={inlineText}
+          file={file}
+          saving={saving}
+          onInlineTextChange={setInlineText}
+          onFileChange={setFile}
+        />
         <KnowledgeSourceFormActions
           submitLabel={saving ? 'Saving…' : 'Save'}
           submitDisabled={
@@ -175,6 +192,62 @@ export function KnowledgeSourceEditForm({
         />
       </form>
     </>
+  )
+}
+
+type KnowledgeSourceEditReplacementFieldsProps = {
+  source: KnowledgeSourceDto
+  inlineText: string
+  file: File | null
+  saving: boolean
+  onInlineTextChange: (value: string) => void
+  onFileChange: (value: File | null) => void
+}
+
+function KnowledgeSourceEditReplacementFields({
+  source,
+  inlineText,
+  file,
+  saving,
+  onInlineTextChange,
+  onFileChange,
+}: KnowledgeSourceEditReplacementFieldsProps): JSX.Element | null {
+  if (isInlineKnowledgeSource(source)) {
+    return (
+      <div className="admin-form-group">
+        <label htmlFor="ks-edit-text" className="admin-form-label">
+          Replace content
+        </label>
+        <textarea
+          id="ks-edit-text"
+          className="admin-form-textarea"
+          rows={8}
+          value={inlineText}
+          onChange={(event) => { onInlineTextChange(event.target.value) }}
+          disabled={saving}
+        />
+        <p className="admin-muted">Leave blank to keep the current content.</p>
+      </div>
+    )
+  }
+
+  if (!supportsFileReplacement(source)) return null
+
+  return (
+    <div className="admin-form-group">
+      <label htmlFor="ks-edit-file" className="admin-form-label">
+        Replace file (PDF or TXT)
+      </label>
+      <input
+        id="ks-edit-file"
+        type="file"
+        accept=".pdf,.txt,.text"
+        onChange={(event) => { onFileChange(event.target.files?.[0] ?? null) }}
+        disabled={saving}
+      />
+      <p className="admin-muted">Current file: {source.uriOrPath}</p>
+      {file === null ? null : <p className="admin-muted">Replacement selected: {file.name}</p>}
+    </div>
   )
 }
 
@@ -292,6 +365,37 @@ async function createUploadedKnowledgeSource({
     content,
     filename: file.name,
   })
+}
+
+async function buildKnowledgeSourceEditReplacement(args: {
+  source: KnowledgeSourceDto
+  name: string
+  inlineText: string
+  file: File | null
+}): Promise<Partial<Parameters<typeof updateKnowledgeSource>[1]> | null> {
+  if (isInlineKnowledgeSource(args.source)) {
+    const nextInlineText = args.inlineText.trim()
+    if (nextInlineText.length === 0) return null
+    return {
+      uriOrPath: buildInlineKnowledgeUri(args.name),
+      metadata: { inlineText: nextInlineText },
+    }
+  }
+
+  if (!supportsFileReplacement(args.source) || args.file === null) return null
+
+  return {
+    content: await readFileAsBase64(args.file),
+    filename: args.file.name,
+  }
+}
+
+function isInlineKnowledgeSource(source: KnowledgeSourceDto): boolean {
+  return source.format === 'text' && source.uriOrPath.startsWith('inline://')
+}
+
+function supportsFileReplacement(source: KnowledgeSourceDto): boolean {
+  return source.format === 'pdf' || (source.format === 'text' && !isInlineKnowledgeSource(source))
 }
 
 type CreateInlineKnowledgeSourceArgs = {

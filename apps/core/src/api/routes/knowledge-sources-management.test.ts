@@ -64,7 +64,9 @@ describe('PATCH /v1/knowledge-sources/:sourceId — success', () => {
     const body = response.json<ApiResponse<{ source: { status: string } }>>()
     expect(body.data?.source.status).toBe('pending')
   })
+})
 
+describe('PATCH /v1/knowledge-sources/:sourceId — visibility and replacement', () => {
   it('persists visibilityPolicy update', async () => {
     const app = makeApp({ sources: [makeSource()] })
 
@@ -140,6 +142,40 @@ describe('PATCH /v1/knowledge-sources/:sourceId — success', () => {
     const body = response.json<ApiResponse<null>>()
     expect(body.error?.code).toBe('VALIDATION_ERROR')
   })
+
+  it('replaces a file-backed source from base64 content and resets status to pending', async () => {
+    const app = makeApp({
+      sources: [
+        makeSource({
+          format: 'text',
+          uriOrPath: 'rulebook.txt',
+          status: 'ready',
+        }),
+      ],
+    })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/v1/knowledge-sources/knowledge_source_1',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        content: Buffer.from('Updated text file').toString('base64'),
+        filename: 'rulebook-v2.txt',
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body =
+      response.json<
+        ApiResponse<{
+          source: { uriOrPath: string; status: string; metadata?: Record<string, unknown> }
+        }>
+      >()
+    expect(body.error).toBeNull()
+    expect(body.data?.source.uriOrPath).toBe('rulebook-v2.txt')
+    expect(body.data?.source.status).toBe('pending')
+    expect(body.data?.source.metadata?.inlineText).toBeUndefined()
+  })
 })
 
 describe('PATCH /v1/knowledge-sources/:sourceId — validation', () => {
@@ -151,6 +187,21 @@ describe('PATCH /v1/knowledge-sources/:sourceId — validation', () => {
       url: '/v1/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: {},
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 400 when content replacement omits filename', async () => {
+    const app = makeApp({ sources: [makeSource()] })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/v1/knowledge-sources/knowledge_source_1',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { content: Buffer.from('Updated text').toString('base64') },
     })
 
     expect(response.statusCode).toBe(400)
@@ -229,7 +280,7 @@ describe('POST /v1/knowledge-sources/upload — success', () => {
     expect(body.error).toBeNull()
     expect(body.data?.source.format).toBe('text')
     expect(body.data?.source.status).toBe('pending')
-    expect(body.data?.source.metadata?.inlineText).toBe(text)
+    expect(body.data?.source.metadata?.inlineText).toBeUndefined()
   })
 
   it('creates a source with visibilityPolicy none from upload', async () => {

@@ -9,7 +9,7 @@ Scenario Builder must let operators manage knowledge without code changes. Knowl
 In scope:
 
 - admin flows for creating/updating knowledge sources from pasted text and PDF/TXT upload
-- assignment of source type (avatar memory vs world)
+- assignment of source type (avatar memory vs world) at creation time
 - visibility policy editor:
   - one avatar
   - subset of avatars
@@ -70,6 +70,7 @@ Respect:
 ## Deliverables
 
 - admin knowledge source editor for text + PDF/TXT inputs
+- admin knowledge source replacement flow for existing text + PDF/TXT inputs
 - visibility policy controls (avatar subset/all/GM-only world)
 - backend support for source typing + visibility persistence
 - required test coverage including stack-e2e for new endpoints
@@ -97,8 +98,8 @@ If no doc changes are needed, explicitly confirm docs remain accurate.
 
 ## Acceptance Criteria
 
-- [ ] admin can create/update knowledge via text and PDF/TXT
-- [ ] source type and visibility are editable and persisted correctly
-- [ ] GM-only world visibility is explicitly represented and enforced
-- [ ] new endpoints include required stack-e2e coverage
-- [ ] required documentation review/update completed
+- [x] admin can create/update knowledge via text and PDF/TXT
+- [x] source type is assigned at creation time and visibility is editable and persisted correctly
+- [x] GM-only world visibility is explicitly represented and enforced
+- [x] new endpoints include required stack-e2e coverage
+- [x] required documentation review/update completed

@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { stripNonDescriptiveMetadata } from '../../../domain/knowledge/knowledge-source-presenter.js'
 import type { IEmbeddingAdapter } from '../../ports/IEmbeddingAdapter.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IIngestionJobRepository } from '../../ports/IIngestionJobRepository.js'
@@ -324,7 +325,7 @@ function buildChunkMetadata(
   return {
     sourceFormat: source.format,
     knowledgeType: source.knowledgeType,
-    ...(loadedMetadata ?? {}),
+    ...(stripNonDescriptiveMetadata(loadedMetadata) ?? {}),
   }
 }
 

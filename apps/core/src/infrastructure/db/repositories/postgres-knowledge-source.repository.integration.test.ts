@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import {
   DB_AVAILABLE,
   createTestSql,
-  ensureKnowledgeVisibilityColumns,
+  ensureSchemaAlignment,
   truncateAllTables,
 } from '../test-helpers.js'
 import { PostgresKnowledgeSourceRepository } from './postgres-knowledge-source.repository.js'
@@ -19,7 +19,7 @@ type RepositoryTestState = {
 function registerRepositoryLifecycle(state: RepositoryTestState): void {
   beforeAll(async () => {
     state.sql = createTestSql()
-    await ensureKnowledgeVisibilityColumns(state.sql)
+    await ensureSchemaAlignment(state.sql)
     state.scenarioRepo = new PostgresScenarioRepository(state.sql)
     state.sourceRepo = new PostgresKnowledgeSourceRepository(state.sql)
     const scenario = await state.scenarioRepo.create({
@@ -225,7 +225,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
 
   beforeAll(async () => {
     sql = createTestSql()
-    await ensureKnowledgeVisibilityColumns(sql)
+    await ensureSchemaAlignment(sql)
     scenarioRepo = new PostgresScenarioRepository(sql)
     sourceRepo = new PostgresKnowledgeSourceRepository(sql)
     const scenario = await scenarioRepo.create({ name: 'Knowledge scenario', status: 'active' })

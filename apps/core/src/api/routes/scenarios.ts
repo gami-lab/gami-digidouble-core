@@ -327,6 +327,7 @@ function registerListScenarioAvatarsRoute(
         if (error instanceof DomainError && error.code === 'NOT_FOUND') {
           return await reply.status(404).send(fail('NOT_FOUND', error.message))
         }
+        reply.server.log.error({ err: error }, 'Failed to list scenario avatars.')
         return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
       }
     },
@@ -350,6 +351,7 @@ function registerDeleteScenarioRoute(app: FastifyInstance, useCase: DeleteScenar
             return await reply.status(409).send(fail('CONFLICT', error.message, error.details))
           }
         }
+        reply.server.log.error({ err: error }, 'Failed to delete scenario.')
         return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
       }
     },
@@ -397,6 +399,7 @@ async function handleDomainError(error: unknown, reply: FastifyReply): Promise<F
       return await reply.status(502).send(fail('EXTERNAL_SERVICE_ERROR', error.message))
     }
   }
+  reply.server.log.error({ err: error }, 'Unhandled scenario route error')
   return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
 }
 

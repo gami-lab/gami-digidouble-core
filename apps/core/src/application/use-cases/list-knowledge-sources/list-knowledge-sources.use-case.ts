@@ -1,4 +1,5 @@
 import { DomainError } from '../../../domain/errors.js'
+import { toKnowledgeSourceDto } from '../../../domain/knowledge/knowledge-source-presenter.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type {
   ListKnowledgeSourcesInput,
@@ -34,20 +35,7 @@ export class ListKnowledgeSourcesUseCase {
     })
 
     return {
-      sources: sources.map((source) => ({
-        sourceId: source.sourceId,
-        scenarioId: source.scenarioId,
-        name: source.name,
-        knowledgeType: source.knowledgeType,
-        format: source.format,
-        uriOrPath: source.uriOrPath,
-        status: source.status,
-        ...(source.visibleToAvatarIds !== undefined
-          ? { visibleToAvatarIds: source.visibleToAvatarIds }
-          : {}),
-        createdAt: source.createdAt,
-        ...(source.metadata !== undefined ? { metadata: source.metadata } : {}),
-      })),
+      sources: sources.map((source) => toKnowledgeSourceDto(source)),
     }
   }
 }

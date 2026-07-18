@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import {
   DB_AVAILABLE,
   createTestSql,
-  ensureKnowledgeVisibilityColumns,
+  ensureSchemaAlignment,
   truncateAllTables,
 } from '../test-helpers.js'
 import { PostgresKnowledgeChunkRepository } from './postgres-knowledge-chunk.repository.js'
@@ -23,7 +23,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
 
   beforeAll(async () => {
     sql = createTestSql()
-    await ensureKnowledgeVisibilityColumns(sql)
+    await ensureSchemaAlignment(sql)
     scenarioRepo = new PostgresScenarioRepository(sql)
     sourceRepo = new PostgresKnowledgeSourceRepository(sql)
     chunkRepo = new PostgresKnowledgeChunkRepository(sql)

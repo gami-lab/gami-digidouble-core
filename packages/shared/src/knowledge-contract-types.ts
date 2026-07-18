@@ -142,6 +142,12 @@ export type UpdateKnowledgeSourceRequest = {
   visibilityPolicy?: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
   uriOrPath?: string
+  /**
+   * Optional replacement file payload for existing PDF/TXT-backed sources.
+   * `content` and `filename` must be provided together.
+   */
+  content?: string
+  filename?: string
 }
 
 export type UpdateKnowledgeSourceResponse = {

@@ -597,8 +597,7 @@ Request body (`UploadKnowledgeSourceRequest`):
 
 Notes:
 
-- PDF files are parsed at the API boundary via `pdf-parse`; extracted text stored as `metadata.inlineText`
-- TXT/text files decoded as UTF-8 and stored as `metadata.inlineText`
+- uploaded PDF/TXT bytes are parsed before dispatch to the knowledge-source use case; extracted text is stored as `metadata.inlineText`
 - Max base64 payload: ~14 MB (~10 MB raw); 400 returned if exceeded or extension unsupported
 - Returns the same `CreateKnowledgeSourceResponse` shape as POST /v1/knowledge-sources
 
@@ -610,6 +609,16 @@ Notes:
 PATCH /v1/knowledge-sources/{sourceId}
 ```
 
+Patch body (`UpdateKnowledgeSourceRequest`):
+
+- `name?: string`
+- `metadata?: Record<string, unknown>` — set `metadata.inlineText` to replace inline text content directly
+- `uriOrPath?: string`
+- `content?: string` — base64-encoded replacement file bytes for an existing PDF/TXT-backed source
+- `filename?: string` — replacement filename for `content`; must end in `.pdf`, `.txt`, or `.text`
+- `visibilityPolicy?: KnowledgeVisibilityPolicy`
+- `visibleToAvatarIds?: string[]`
+
 `visibilityPolicy` is patchable. Updates are idempotent and safe for partial edits.
 
 Patch normalization rules:
@@ -617,6 +626,9 @@ Patch normalization rules:
 - updating only `visibleToAvatarIds` normalizes the source to `visibilityPolicy: 'avatars'`
 - patching `visibilityPolicy: 'all'` or `'none'` clears any stored `visibleToAvatarIds`
 - patching `visibilityPolicy: 'avatars'` without avatar IDs returns `400 VALIDATION_ERROR`
+- `content` and `filename` must be provided together
+- `content`/`filename` replacement cannot be combined with direct `metadata`/`uriOrPath` patch fields in the same request
+- replacing inline text or a backing file resets source `status` to `pending` so ingestion can be rerun against the new content
 
 ---
 

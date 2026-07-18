@@ -1549,13 +1549,13 @@ Hybrid systems outperform pure LLM systems.
 
 ## EPIC 6.1 — Scenario Builder v1 ✅ Done
 
-Completed on: 2026-07-09
+Completed on: 2026-07-18
 
 **Purpose**  
 Enable non-developers to configure experiences.
 
 **Description**  
-Provide a web panel to create/edit scenarios, avatars, objectives, and sources.
+Provide a dedicated admin app to create/edit scenarios, avatars, knowledge sources, and runtime model selection for the supported scenario-builder surfaces.
 
 **Hypothesis**  
 Back-office usability is enough for MVP; consumer grade frontend.
@@ -1564,19 +1564,22 @@ Back-office usability is enough for MVP; consumer grade frontend.
 
 - scenario editor
 - avatar editor
-- reusable variable editor
-- knowledge source upload and update
-- save/load config
+- objectives and world-context editing
+- knowledge source create/update via pasted text and PDF/TXT upload
+- knowledge visibility policy management (`all` / `avatars` / `none`)
+- runtime model selection (scenario default, GM override, avatar override)
 
 **DoD**
 
-- non-developer can configure a scenario
+- non-developer can configure a supported scenario without seed-script-only workflows
 
 **What Can Be Tested**
 
 - create full scenario without code
 - edit avatar live
 - upload/update sources
+- replace knowledge content without delete/recreate
+- assign runtime model overrides from the admin app
 
 **Progress update (July 9, 2026)**
 
@@ -1588,6 +1591,10 @@ Back-office usability is enough for MVP; consumer grade frontend.
   - knowledge sources: text + PDF/TXT upload, visibility policy (`all` / `avatars` / GM-only `none`)
   - runtime model selection (scenario default, Game Master override, avatar override) with deterministic precedence
   - final hardening: knowledge-upload happy-path stack-e2e coverage, admin transport-layer test coverage closure, removal of residual `ScenarioStatus`/`AvatarStatus`/`KnowledgeVisibilityPolicy` duplication, seed-parity verification and fix (GM-only visibility representation), and documentation sync
+- July 18, 2026 audit remediation closed the remaining gaps:
+  - admin knowledge edit flow now supports inline-text replacement and PDF/TXT replacement
+  - rerunnable startup schema alignment now covers EPIC-added Postgres columns on existing environments
+  - unexpected internal errors now emit diagnostic logs
 - see `docs/TEST_COVERAGE_PLAN.md` for the admin app coverage checklist and the seed-parity checklist
 
 ---

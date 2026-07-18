@@ -120,12 +120,21 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     allowedHeaders: ['Content-Type', 'x-api-key'],
   })
 
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error, request, reply) => {
     if (isFastifyValidationError(error)) {
       return reply
         .status(400)
         .send(fail('VALIDATION_ERROR', 'Invalid request body', error.validation))
     }
+
+    request.log.error(
+      {
+        err: error,
+        method: request.method,
+        url: request.url,
+      },
+      'Unhandled request error',
+    )
 
     return reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
   })

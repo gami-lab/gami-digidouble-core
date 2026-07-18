@@ -4,6 +4,8 @@ import {
   getKnowledgeVisibilityValidationError,
   normalizeKnowledgeVisibilitySelection,
 } from '../../../domain/knowledge/knowledge-visibility.js'
+import { toKnowledgeSourceDto } from '../../../domain/knowledge/knowledge-source-presenter.js'
+import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type {
   CreateKnowledgeSourceInput,
@@ -68,26 +70,6 @@ function normalizeCreateKnowledgeSourceInput(
   return { scenarioId, name, uriOrPath, visibility }
 }
 
-function presentCreateKnowledgeSourceOutput(
-  source: CreateKnowledgeSourceOutput['source'],
-): CreateKnowledgeSourceOutput {
-  return {
-    source: {
-      sourceId: source.sourceId,
-      scenarioId: source.scenarioId,
-      name: source.name,
-      knowledgeType: source.knowledgeType,
-      format: source.format,
-      uriOrPath: source.uriOrPath,
-      status: source.status,
-      ...(source.visibilityPolicy !== undefined
-        ? { visibilityPolicy: source.visibilityPolicy }
-        : {}),
-      ...(source.visibleToAvatarIds !== undefined
-        ? { visibleToAvatarIds: source.visibleToAvatarIds }
-        : {}),
-      createdAt: source.createdAt,
-      ...(source.metadata !== undefined ? { metadata: source.metadata } : {}),
-    },
-  }
+function presentCreateKnowledgeSourceOutput(source: KnowledgeSource): CreateKnowledgeSourceOutput {
+  return { source: toKnowledgeSourceDto(source) }
 }
