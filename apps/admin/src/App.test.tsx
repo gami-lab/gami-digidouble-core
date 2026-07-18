@@ -2,8 +2,10 @@
 
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ScenarioSummary } from '@gami/shared'
+import type { ModelConfigResponse, ScenarioSummary } from '@gami/shared'
 import App from './App'
+import { listKnowledgeSources } from './api/knowledge'
+import { getModelConfig } from './api/model-config'
 import { getScenario, listScenarioAvatars, listScenarios } from './api/scenarios'
 
 vi.mock('./api/scenarios', () => ({
@@ -17,6 +19,15 @@ vi.mock('./api/scenarios', () => ({
   deleteAvatar: vi.fn(),
 }))
 
+vi.mock('./api/knowledge', () => ({
+  listKnowledgeSources: vi.fn(),
+}))
+
+vi.mock('./api/model-config', () => ({
+  getModelConfig: vi.fn(),
+  updateModelConfig: vi.fn(),
+}))
+
 function createScenario(): ScenarioSummary {
   return {
     scenarioId: 'scenario_a',
@@ -27,6 +38,14 @@ function createScenario(): ScenarioSummary {
     avatarAvailability: { initialAvatarIds: [] },
     config: {},
     createdAt: '2026-06-01T00:00:00.000Z',
+    updatedAt: '2026-06-01T00:00:00.000Z',
+  }
+}
+
+function createModelConfig(): ModelConfigResponse {
+  return {
+    globalDefault: { provider: 'openai', model: 'gpt-5.4' },
+    roleOverrides: {},
     updatedAt: '2026-06-01T00:00:00.000Z',
   }
 }
@@ -47,7 +66,8 @@ describe('App navigation', () => {
 
     expect(screen.getByText('Gami DigiDouble — Admin')).toBeTruthy()
     expect(screen.getAllByText('Scenarios').length).toBeGreaterThan(0)
-    expect(screen.getByText('Knowledge Sources')).toBeTruthy()
+    expect(screen.getByText('Model Config')).toBeTruthy()
+    expect(screen.queryByText('Knowledge Sources')).toBeNull()
 
     await waitFor(() => {
       expect(screen.getByText('Guided Discovery')).toBeTruthy()
@@ -58,6 +78,7 @@ describe('App navigation', () => {
     vi.mocked(listScenarios).mockResolvedValue([createScenario()])
     vi.mocked(getScenario).mockResolvedValue(createScenario())
     vi.mocked(listScenarioAvatars).mockResolvedValue([])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
 
     render(<App />)
 
@@ -71,5 +92,23 @@ describe('App navigation', () => {
       expect(screen.getByRole('button', { name: '← Back to scenarios' })).toBeTruthy()
     })
     expect(getScenario).toHaveBeenCalledWith('scenario_a')
+  })
+
+  it('opens the model config page from the nav', async () => {
+    vi.mocked(listScenarios).mockResolvedValue([createScenario()])
+    vi.mocked(getModelConfig).mockResolvedValue(createModelConfig())
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Guided Discovery')).toBeTruthy()
+    })
+
+    screen.getByRole('button', { name: 'Model Config' }).click()
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Model configuration' })).toBeTruthy()
+    })
+    expect(getModelConfig).toHaveBeenCalledTimes(1)
   })
 })

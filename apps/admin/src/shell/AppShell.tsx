@@ -4,10 +4,11 @@ import { NAV_ITEMS, type NavModuleId } from './nav-items'
 
 type AppShellProps = {
   activeModuleId: NavModuleId
+  onSelectModule: (moduleId: NavModuleId) => void
   children: ReactNode
 }
 
-export function AppShell({ activeModuleId, children }: AppShellProps): JSX.Element {
+export function AppShell({ activeModuleId, onSelectModule, children }: AppShellProps): JSX.Element {
   return (
     <div className="admin-shell">
       <header className="admin-header">
@@ -19,17 +20,18 @@ export function AppShell({ activeModuleId, children }: AppShellProps): JSX.Eleme
           <ul>
             {NAV_ITEMS.map((item) => (
               <li key={item.id}>
-                <span
+                <button
+                  type="button"
                   className={
                     item.id === activeModuleId
                       ? 'admin-nav-item admin-nav-item-active'
                       : 'admin-nav-item'
                   }
                   aria-current={item.id === activeModuleId ? 'page' : undefined}
+                  onClick={() => { onSelectModule(item.id) }}
                 >
                   {item.label}
-                  {item.comingSoon ? <em className="admin-nav-badge"> (coming soon)</em> : null}
-                </span>
+                </button>
               </li>
             ))}
           </ul>

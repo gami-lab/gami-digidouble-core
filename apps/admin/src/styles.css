@@ -59,9 +59,15 @@ body {
 
 .admin-nav-item {
   display: block;
+  width: 100%;
   padding: 10px 20px;
+  border: none;
+  background: none;
   color: #6b7280;
+  text-align: left;
   font-weight: 500;
+  font: inherit;
+  cursor: pointer;
 }
 
 .admin-nav-item-active {
@@ -69,11 +75,6 @@ body {
   background-color: #eff6ff;
   border-left: 3px solid #2563eb;
   padding-left: 17px;
-}
-
-.admin-nav-badge {
-  font-size: 11px;
-  color: #9ca3af;
 }
 
 .admin-content {
