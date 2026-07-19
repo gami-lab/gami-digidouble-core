@@ -25,6 +25,10 @@ Must test:
   - `DELETE /v1/avatars/:avatarId` returns `404` when missing and `409` when blocked by active sessions
   - `DELETE /v1/scenarios/:scenarioId` returns `404` when missing and `409` when dependent avatars or sessions exist
 - SSE event ordering (when SSE is used)
+- global error handler classifies Fastify's own body-parsing errors (empty/malformed JSON body
+  with `Content-Type: application/json`, mismatched `Content-Length`) as `400 VALIDATION_ERROR`,
+  not `500 INTERNAL_ERROR` — covered in `apps/core/src/api/server.test.ts`; this applies to every
+  route, including no-body action routes (`gm/replay`, `memory/refresh`, `prepare-avatar-traits`)
 
 Avoid: retesting business rules already covered by unit tests.
 

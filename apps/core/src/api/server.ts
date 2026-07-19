@@ -107,6 +107,43 @@ function isFastifyValidationError(
   return candidate.statusCode === 400 && candidate.validation !== undefined
 }
 
+type FastifyBodyParsingError = {
+  code?: string
+  statusCode?: number
+  message?: string
+}
+
+/**
+ * Fastify throws these during the parsing phase — before preValidation and
+ * before any route's own preHandler/try-catch — whenever a client sends
+ * `Content-Type: application/json` with a body that is empty, malformed, or
+ * size-mismatched (`FST_ERR_CTP_EMPTY_JSON_BODY`, `FST_ERR_CTP_INVALID_JSON_BODY`,
+ * `FST_ERR_CTP_INVALID_CONTENT_LENGTH`, `FST_ERR_CTP_INVALID_MEDIA_TYPE`, ...).
+ * They carry a 4xx `statusCode` but no `.validation` property, so
+ * `isFastifyValidationError` doesn't recognize them and they used to fall
+ * through to the generic 500 branch below.
+ *
+ * Because parsing runs ahead of any route's `preHandler` auth hook, these
+ * errors surface before authentication is checked — an unauthenticated
+ * malformed request gets 400 instead of 401. That's acceptable: no
+ * privileged data or behavior is exposed, and it matches standard REST
+ * practice of rejecting a structurally invalid request before doing
+ * anything else with it.
+ */
+function isFastifyBodyParsingError(
+  error: unknown,
+): error is FastifyBodyParsingError & { code: string; statusCode: number } {
+  if (typeof error !== 'object' || error === null) return false
+  const candidate = error as FastifyBodyParsingError
+  return (
+    typeof candidate.code === 'string' &&
+    candidate.code.startsWith('FST_ERR_CTP_') &&
+    typeof candidate.statusCode === 'number' &&
+    candidate.statusCode >= 400 &&
+    candidate.statusCode < 500
+  )
+}
+
 export function createServer(config: Config, adapters: ServerAdapters = {}): FastifyInstance {
   const resolvedAdapters = resolveServerAdapters(adapters)
 
@@ -125,6 +162,12 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
       return reply
         .status(400)
         .send(fail('VALIDATION_ERROR', 'Invalid request body', error.validation))
+    }
+
+    if (isFastifyBodyParsingError(error)) {
+      return reply
+        .status(error.statusCode)
+        .send(fail('VALIDATION_ERROR', error.message ?? 'Malformed request body'))
     }
 
     request.log.error(
