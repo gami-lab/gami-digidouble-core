@@ -69,7 +69,7 @@ Domain:
 
 - `api.example.com` -> `app` service
 - `app.example.com` -> `web` service
-- `admin.example.com` -> `admin` service
+- `app.example.com/admin` -> `admin` service
 
 ---
 
@@ -81,7 +81,8 @@ Project files:
 - `Dockerfile`
 - `Dockerfile.web`
 - `Dockerfile.admin`
-- `infra/nginx/web.conf` (shared by both `web` and `admin`)
+- `infra/nginx/web.conf` (`web`)
+- `infra/nginx/admin.conf` (`admin`)
 
 ---
 
@@ -130,6 +131,7 @@ Required build arguments:
 - `VITE_API_KEY` (derived from `API_KEY_SECRET` in the compose file, same as `web`)
 
 Same build-time/client-visibility notes as the web runtime apply.
+The admin build is path-prefixed and emitted for `/admin/`.
 
 **CORS caveat:** `apps/core/src/api/server.ts` registers `@fastify/cors` with `origin: config.corsOrigin` — a single string, not a list. If `CORS_ORIGIN` is set to one exact origin (e.g. `app.example.com`), requests from the `admin` domain will be blocked by the browser. Until the backend supports multiple allowed origins, either set `CORS_ORIGIN=*` or pick one exact origin that covers your actual usage.
 
@@ -156,7 +158,7 @@ References:
 - Use `docker-compose.coolify.yml`
 - Configure domains for `app`, `web`, and `admin` services in the same project (Coolify only lists a "Domains for X" field for services present in the compose file — after adding a new service, redeploy once before the domain field appears)
 - Set required env vars `API_KEY_SECRET` and `VITE_API_URL`
-- Deploy and verify `/health` (API), `/` (web), and `/` (admin)
+- Deploy and verify `/health` (API), `/` (web), and `/admin` (admin)
 
 ### 2. CORS alignment
 
@@ -207,4 +209,4 @@ Then click **Redeploy** in Coolify so `db-init` rebuilds the schema from `init.s
 
 ## Admin App
 
-`apps/admin` is deployed as the `admin` service in this same compose stack (see `Dockerfile.admin`), sharing this project's deployment history and rollback path with `app` and `web`. This was a deliberate simplicity tradeoff over an independent Coolify resource — revisit if admin's release cadence or blast-radius needs diverge enough to justify splitting it out.
+`apps/admin` is deployed as the `admin` service in this same compose stack (see `Dockerfile.admin`), sharing this project's deployment history and rollback path with `app` and `web`. The production build is emitted for the `/admin/` path and the admin nginx config serves `/admin`, `/admin/`, and `/admin/assets/*` from the same static bundle. This was a deliberate simplicity tradeoff over an independent Coolify resource — revisit if admin's release cadence or blast-radius needs diverge enough to justify splitting it out.
