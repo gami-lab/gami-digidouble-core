@@ -40,6 +40,7 @@ const avatarRepository = {
   listByScenarioId: listAvatarsByScenarioIdMock,
   delete: vi.fn(),
   update: vi.fn(),
+  saveComputedTraits: vi.fn(),
 }
 const scenarioRepository = {
   create: vi.fn(),

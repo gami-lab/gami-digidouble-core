@@ -19,6 +19,24 @@ export type AvatarStatus = 'draft' | 'active' | 'archived'
 
 export type AvatarLlmOverride = ModelSelectionOverride
 
+/**
+ * Fixed, derived trait structure computed from an avatar's source material
+ * (author input, memory documents, world context) — see EPIC 8.1.
+ *
+ * The seven field names are stable: they are reused by the trait generation
+ * prompt and by Avatar Prompt Assembly (EPIC 8.2). Do not rename or add
+ * fields without updating both.
+ */
+export type AvatarComputedTraits = {
+  identity: string[]
+  personality: string[]
+  speakingStyle: string[]
+  background: string[]
+  timeline: string[]
+  currentSituation: string[]
+  behaviouralRules: string[]
+}
+
 /** Canonical read shape for an Avatar as returned by the Core API. */
 export type AvatarSummary = {
   avatarId: string
@@ -30,6 +48,8 @@ export type AvatarSummary = {
   description?: string
   adjustments?: string[]
   llmOverride?: AvatarLlmOverride
+  /** Derived trait structure, or `null` if preparation has not run yet (EPIC 8.1). */
+  computedTraits: AvatarComputedTraits | null
   config: Record<string, unknown>
   createdAt: string
   updatedAt: string

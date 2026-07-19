@@ -3,7 +3,7 @@ import type {
   IAvatarRepository,
   UpdateAvatarParams,
 } from '../../application/ports/IAvatarRepository.js'
-import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
+import type { AvatarComputedTraits, AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../domain/errors.js'
 import type { AvatarLlmOverride } from '../../domain/model-config/index.js'
 
@@ -134,6 +134,24 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
     const updatedConfig = buildUpdatedConfig(existing.config, updates.config, updates.llmOverride)
 
     const updated = buildUpdatedAvatar(existing, updates, updatedConfig)
+    this.avatars.set(avatarId, updated)
+    return Promise.resolve(updated)
+  }
+
+  async saveComputedTraits(
+    avatarId: string,
+    computedTraits: AvatarComputedTraits | null,
+  ): Promise<AvatarConfig> {
+    const existing = this.avatars.get(avatarId)
+    if (existing === undefined) {
+      throw new DomainError('NOT_FOUND', 'Avatar not found')
+    }
+    const updated = { ...existing, updatedAt: new Date().toISOString() }
+    if (computedTraits === null) {
+      delete updated.computedTraits
+    } else {
+      updated.computedTraits = computedTraits
+    }
     this.avatars.set(avatarId, updated)
     return Promise.resolve(updated)
   }

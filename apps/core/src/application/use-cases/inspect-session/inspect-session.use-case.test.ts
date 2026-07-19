@@ -91,6 +91,7 @@ function createAvatarRepository(): IAvatarRepository {
     update: vi.fn(),
     delete: vi.fn(),
     listByScenarioId: vi.fn(),
+    saveComputedTraits: vi.fn(),
   }
 }
 

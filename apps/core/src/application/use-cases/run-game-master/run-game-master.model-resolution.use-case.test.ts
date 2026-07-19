@@ -105,6 +105,7 @@ describe('RunGameMasterUseCase model resolution', () => {
         listByScenarioId: listAvatarsByScenarioIdMock,
         delete: vi.fn(),
         update: vi.fn(),
+        saveComputedTraits: vi.fn(),
       },
       { complete: vi.fn() },
       { trace: vi.fn(), flush: vi.fn() },

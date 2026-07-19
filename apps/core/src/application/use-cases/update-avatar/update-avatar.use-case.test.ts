@@ -45,6 +45,7 @@ describe('UpdateAvatarUseCase', () => {
     expect(result.avatar.tone).toBe('formal')
     expect(result.avatar.name).toBe('Ava')
     expect(result.avatar.updatedAt).not.toBe(baseAvatar.updatedAt)
+    expect(result.avatar.computedTraits).toBeNull()
   })
 
   it('only updates provided fields — other fields remain unchanged', async () => {
@@ -59,5 +60,25 @@ describe('UpdateAvatarUseCase', () => {
     expect(result.avatar.tone).toBe('casual')
     expect(result.avatar.description).toBe('A helpful avatar')
     expect(result.avatar.personaPrompt).toBe('You are Ava.')
+  })
+
+  it('surfaces computedTraits as null when not yet prepared, and passes through when set', async () => {
+    const traits = {
+      identity: ['Guide'],
+      personality: ['Warm'],
+      speakingStyle: ['Concise'],
+      background: ['Former teacher'],
+      timeline: ['Joined at story start'],
+      currentSituation: ['Welcoming visitors'],
+      behaviouralRules: ['No spoilers'],
+    }
+    const avatarRepository = new InMemoryAvatarRepository([
+      { ...baseAvatar, computedTraits: traits },
+    ])
+    const useCase = new UpdateAvatarUseCase(avatarRepository)
+
+    const result = await useCase.execute({ avatarId: 'avatar_1', name: 'Ava v2' })
+
+    expect(result.avatar.computedTraits).toEqual(traits)
   })
 })

@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS avatars (
   tone             TEXT,
   persona_prompt   TEXT        NOT NULL,
   adjustments      TEXT[],
+  computed_traits  JSONB,
   config           JSONB       NOT NULL DEFAULT '{}',
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()

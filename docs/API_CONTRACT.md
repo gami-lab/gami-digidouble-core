@@ -149,11 +149,39 @@ type AvatarSummary = {
     provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'
     model?: string
   }
+  computedTraits: AvatarComputedTraits | null
   config: Record<string, unknown>
   createdAt: string
   updatedAt: string
 }
 ```
+
+## AvatarComputedTraits
+
+Fixed, derived trait structure computed from an avatar's source material (author input,
+memory documents, world context). See EPIC 8.1. Field names are stable — they are reused by
+the trait generation prompt and by Avatar Prompt Assembly (EPIC 8.2). `null` on
+`AvatarSummary.computedTraits` means preparation has not run yet.
+
+```ts
+type AvatarComputedTraits = {
+  identity: string[]
+  personality: string[]
+  speakingStyle: string[]
+  background: string[]
+  timeline: string[]
+  currentSituation: string[]
+  behaviouralRules: string[]
+}
+```
+
+Persistence and write path:
+
+- stored in a dedicated `avatars.computed_traits JSONB` column, never inside `config`
+- written only through a narrow repository method (`IAvatarRepository.saveComputedTraits`),
+  never through the generic avatar create/update path
+- does not replace or modify the source `personaPrompt` / `description` / `tone` /
+  `adjustments` fields it is derived from
 
 ## SessionSummary
 
@@ -1049,6 +1077,10 @@ packages/shared/src/web-contract-types.ts  -- scenario/avatar route request/resp
 
 Route handlers (`apps/core/src/api/routes/scenarios.ts`, `avatars.ts`) must import these
 canonical types rather than re-declaring local request/response shapes.
+
+`AvatarComputedTraits` (EPIC 8.1) is defined once in `packages/shared/src/entity-types.ts`
+and re-exported (not re-declared) by `apps/core/src/domain/avatar/avatar.types.ts` for
+domain/internal use, following the same pattern as `AvatarLlmOverride`.
 
 ## Model Configuration Contracts (EPIC 6.1)
 

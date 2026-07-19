@@ -37,6 +37,7 @@ function makeAvatar(): AvatarSummary {
     name: 'Clara',
     status: 'active',
     personaPrompt: 'You are Clara.',
+    computedTraits: null,
     config: {},
     createdAt: '2026-07-01T00:00:00.000Z',
     updatedAt: '2026-07-01T00:00:00.000Z',

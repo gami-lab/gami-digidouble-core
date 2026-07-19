@@ -33,6 +33,7 @@ const avatarRepository = {
   listByScenarioId: listAvatarsByScenarioIdMock,
   delete: vi.fn(),
   update: vi.fn(),
+  saveComputedTraits: vi.fn(),
 }
 
 function makeSession(overrides: Partial<Session> = {}): Session {

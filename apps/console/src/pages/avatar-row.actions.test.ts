@@ -23,6 +23,7 @@ describe('avatar-row actions', () => {
       personaPrompt: 'Focused prompt',
       tone: 'calm',
       description: 'desc',
+      computedTraits: null,
       config: {},
       createdAt: '2026-04-28T00:00:00.000Z',
       updatedAt: '2026-04-28T00:01:00.000Z',

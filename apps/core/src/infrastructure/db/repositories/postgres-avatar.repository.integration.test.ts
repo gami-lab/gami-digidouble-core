@@ -1,8 +1,19 @@
 import type { Sql } from 'postgres'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { AvatarComputedTraits } from '../../../domain/avatar/avatar.types.js'
 import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
 import { PostgresAvatarRepository } from './postgres-avatar.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
+
+const sampleTraits: AvatarComputedTraits = {
+  identity: ['A warm onboarding guide.'],
+  personality: ['Curious', 'Patient'],
+  speakingStyle: ['Short sentences.'],
+  background: ['Former teacher.'],
+  timeline: ['Joined the world at story start.'],
+  currentSituation: ['Welcoming new visitors.'],
+  behaviouralRules: ['Never reveals plot twists early.'],
+}
 
 function defineCreateAndReadTests(
   getRepo: () => PostgresAvatarRepository,
@@ -93,6 +104,55 @@ function defineCreateAndReadTests(
   })
 }
 
+function defineComputedTraitsTests(
+  getRepo: () => PostgresAvatarRepository,
+  getScenarioId: () => string,
+): void {
+  it('is undefined until preparation has run', async () => {
+    const result = await getRepo().create({
+      scenarioId: getScenarioId(),
+      name: 'Unprepared Avatar',
+      personaPrompt: 'Not yet prepared.',
+    })
+
+    expect(result.computedTraits).toBeUndefined()
+
+    const found = await getRepo().findById(result.avatarId)
+    expect(found?.computedTraits).toBeUndefined()
+  })
+
+  it('saveComputedTraits stores and round-trips traits without touching author fields', async () => {
+    const created = await getRepo().create({
+      scenarioId: getScenarioId(),
+      name: 'Preparable Avatar',
+      personaPrompt: 'Original prompt.',
+      description: 'Original description.',
+    })
+
+    const saved = await getRepo().saveComputedTraits(created.avatarId, sampleTraits)
+
+    expect(saved.computedTraits).toEqual(sampleTraits)
+    expect(saved.personaPrompt).toBe('Original prompt.')
+    expect(saved.description).toBe('Original description.')
+
+    const found = await getRepo().findById(created.avatarId)
+    expect(found?.computedTraits).toEqual(sampleTraits)
+  })
+
+  it('saveComputedTraits clears traits when passed null', async () => {
+    const created = await getRepo().create({
+      scenarioId: getScenarioId(),
+      name: 'Clearable Avatar',
+      personaPrompt: 'Prompt.',
+    })
+    await getRepo().saveComputedTraits(created.avatarId, sampleTraits)
+
+    const cleared = await getRepo().saveComputedTraits(created.avatarId, null)
+
+    expect(cleared.computedTraits).toBeUndefined()
+  })
+}
+
 function defineListAndDeleteTests(
   getRepo: () => PostgresAvatarRepository,
   getScenarioId: () => string,
@@ -163,4 +223,10 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
     () => avatarRepo,
     () => scenarioId,
   )
+  describe('computedTraits', () => {
+    defineComputedTraitsTests(
+      () => avatarRepo,
+      () => scenarioId,
+    )
+  })
 })

@@ -8,6 +8,7 @@ const SCHEMA_ALIGNMENT_STATEMENTS = [
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS unlocked_avatar_ids UUID[]',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS gm_notes TEXT',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS memory_summary TEXT',
+  'ALTER TABLE avatars ADD COLUMN IF NOT EXISTS computed_traits JSONB',
 ] as const
 
 export async function alignPostgresSchema(sql: Sql): Promise<void> {

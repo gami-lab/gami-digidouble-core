@@ -33,6 +33,7 @@ describe('GET /health', () => {
         listByScenarioId: vi.fn(failIfCalled),
         delete: vi.fn(failIfCalled),
         update: vi.fn(failIfCalled),
+        saveComputedTraits: vi.fn(failIfCalled),
       },
       probes: [{ probe: vi.fn(failIfCalled) }],
     }

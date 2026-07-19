@@ -30,6 +30,7 @@ export class ListScenarioAvatarsUseCase {
         ...(avatar.description !== undefined ? { description: avatar.description } : {}),
         ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
         ...(avatar.llmOverride !== undefined ? { llmOverride: avatar.llmOverride } : {}),
+        computedTraits: avatar.computedTraits ?? null,
         config: avatar.config,
         createdAt: avatar.createdAt,
         updatedAt: avatar.updatedAt,

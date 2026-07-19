@@ -134,6 +134,8 @@ Represents one actor inside a scenario.
 - description
 - tone
 - persona_prompt
+- adjustments (TEXT[] nullable)
+- computed_traits (JSONB nullable)
 - config (JSONB)
 - created_at
 - updated_at
@@ -145,6 +147,11 @@ Represents one actor inside a scenario.
 - `config.llmOverride` optionally stores per-avatar model override:
   - `provider?: 'openai' | 'anthropic' | 'mistral' | 'xai' | 'null'`
   - `model?: string`
+- `computed_traits` stores the fixed, derived seven-field trait structure generated from
+  author input, memory documents, and world context documents (EPIC 8.1). It is `NULL`
+  until a preparation step has run, is written only through a narrow repository write
+  path (never the generic avatar update path), and never replaces the source
+  `description` / `persona_prompt` / `tone` / `adjustments` fields it is derived from.
 
 ---
 

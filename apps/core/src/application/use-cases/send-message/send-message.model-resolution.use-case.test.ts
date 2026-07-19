@@ -37,6 +37,7 @@ const avatarRepository = {
   listByScenarioId: vi.fn().mockResolvedValue([]),
   delete: vi.fn(),
   update: vi.fn(),
+  saveComputedTraits: vi.fn(),
 }
 const scenarioRepository = {
   create: vi.fn(),

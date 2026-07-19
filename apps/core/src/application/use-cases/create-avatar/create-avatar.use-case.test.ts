@@ -21,6 +21,7 @@ const avatarRepository = {
   listByScenarioId: vi.fn(),
   delete: vi.fn(),
   update: vi.fn(),
+  saveComputedTraits: vi.fn(),
 }
 
 function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
@@ -131,6 +132,7 @@ describe('CreateAvatarUseCase', () => {
     expect(output.avatar.tone).toBeUndefined()
     expect(output.avatar.description).toBeUndefined()
     expect(output.avatar.adjustments).toBeUndefined()
+    expect(output.avatar.computedTraits).toBeNull()
     expect(output.avatar.config).toEqual({})
   })
 })

@@ -32,6 +32,7 @@ const avatarRepository = {
   listByScenarioId: vi.fn(),
   delete: vi.fn(),
   update: vi.fn(),
+  saveComputedTraits: vi.fn(),
 }
 
 const conversationRepository = {

@@ -5,7 +5,7 @@ import type {
   IAvatarRepository,
   UpdateAvatarParams,
 } from '../../../application/ports/IAvatarRepository.js'
-import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import type { AvatarComputedTraits, AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { AvatarLlmOverride } from '../../../domain/model-config/index.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
@@ -19,6 +19,7 @@ interface AvatarRow {
   tone: string | null
   description: string | null
   adjustments: string[] | null
+  computed_traits: unknown
   config: unknown
   created_at: Date
   updated_at: Date
@@ -84,9 +85,27 @@ function applyLlmOverride(
   return nextConfig
 }
 
+function normalizeComputedTraits(value: unknown): AvatarComputedTraits | undefined {
+  const record = asRecord(value)
+  if (record !== null) return record as unknown as AvatarComputedTraits
+
+  if (typeof value === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(value)
+      const parsedRecord = asRecord(parsed)
+      return parsedRecord !== null ? (parsedRecord as unknown as AvatarComputedTraits) : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  return undefined
+}
+
 function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
   const config = normalizeAvatarConfig(row.config)
   const llmOverride = readAvatarLlmOverride(config)
+  const computedTraits = normalizeComputedTraits(row.computed_traits)
 
   return {
     avatarId: `avatar_${row.id}`,
@@ -98,6 +117,7 @@ function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
     ...(row.description !== null ? { description: row.description } : {}),
     ...(row.adjustments !== null ? { adjustments: row.adjustments } : {}),
     ...(llmOverride !== undefined ? { llmOverride } : {}),
+    ...(computedTraits !== undefined ? { computedTraits } : {}),
     config,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -162,7 +182,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
       )
       RETURNING
         id, scenario_id, name, status,
-        persona_prompt, tone, description, adjustments, config, created_at, updated_at
+        persona_prompt, tone, description, adjustments, computed_traits, config, created_at, updated_at
     `
     return rowToAvatarConfig(row)
   }
@@ -173,7 +193,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
     const [row] = await this.sql<[AvatarRow?]>`
       SELECT
         id, scenario_id, name, status,
-        persona_prompt, tone, description, adjustments, config, created_at, updated_at
+        persona_prompt, tone, description, adjustments, computed_traits, config, created_at, updated_at
       FROM avatars
       WHERE id = ${uuid}
     `
@@ -187,7 +207,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
     const rows = await this.sql<AvatarRow[]>`
       SELECT
         id, scenario_id, name, status,
-        persona_prompt, tone, description, adjustments, config, created_at, updated_at
+        persona_prompt, tone, description, adjustments, computed_traits, config, created_at, updated_at
       FROM avatars
       WHERE scenario_id = ${scenarioUuid}
       ORDER BY created_at DESC
@@ -242,11 +262,34 @@ export class PostgresAvatarRepository implements IAvatarRepository {
       WHERE id = ${whereParam}
       RETURNING
         id, scenario_id, name, status,
-        persona_prompt, tone, description, adjustments, config, created_at, updated_at
+        persona_prompt, tone, description, adjustments, computed_traits, config, created_at, updated_at
     `
 
     const rows = await this.sql.unsafe<AvatarRow[]>(query, values as string[])
     const row = rows[0]
+    if (row === undefined) {
+      throw new DomainError('NOT_FOUND', 'Avatar not found')
+    }
+    return rowToAvatarConfig(row)
+  }
+
+  async saveComputedTraits(
+    avatarId: string,
+    computedTraits: AvatarComputedTraits | null,
+  ): Promise<AvatarConfig> {
+    const uuid = extractUuid('avatar_', avatarId)
+    if (uuid === null) {
+      throw new DomainError('NOT_FOUND', 'Avatar not found')
+    }
+
+    const [row] = await this.sql<[AvatarRow?]>`
+      UPDATE avatars
+      SET computed_traits = ${this.sql.json(computedTraits as unknown as JSONValue)}, updated_at = NOW()
+      WHERE id = ${uuid}
+      RETURNING
+        id, scenario_id, name, status,
+        persona_prompt, tone, description, adjustments, computed_traits, config, created_at, updated_at
+    `
     if (row === undefined) {
       throw new DomainError('NOT_FOUND', 'Avatar not found')
     }

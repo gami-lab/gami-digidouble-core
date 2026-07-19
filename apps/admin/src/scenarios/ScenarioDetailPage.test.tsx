@@ -64,6 +64,7 @@ function createAvatar(overrides: Partial<AvatarSummary> = {}): AvatarSummary {
     name: 'Mira',
     status: 'active',
     personaPrompt: 'You are Mira.',
+    computedTraits: null,
     config: {},
     createdAt: '2026-06-01T00:00:00.000Z',
     updatedAt: '2026-06-01T00:00:00.000Z',

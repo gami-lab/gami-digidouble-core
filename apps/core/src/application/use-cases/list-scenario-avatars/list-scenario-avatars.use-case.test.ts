@@ -57,5 +57,6 @@ describe('ListScenarioAvatarsUseCase', () => {
 
     expect(result.avatars.map((avatar) => avatar.avatarId)).toEqual(['avatar_new', 'avatar_old'])
     expect(result.avatars[0]?.config).toEqual({})
+    expect(result.avatars[0]?.computedTraits).toBeNull()
   })
 })

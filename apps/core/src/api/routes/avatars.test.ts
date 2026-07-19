@@ -182,6 +182,7 @@ describe('PATCH /v1/avatars/:avatarId', () => {
     expect(avatar?.config).toBeDefined()
     expect(avatar?.createdAt).toBeDefined()
     expect(avatar?.updatedAt).toBeDefined()
+    expect(avatar?.computedTraits).toBeNull()
   })
 })
 

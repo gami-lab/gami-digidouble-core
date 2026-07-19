@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest'
+import type { AvatarComputedTraits } from '../../domain/avatar/avatar.types.js'
 import { makeAvatarConfig } from '../../domain/avatar/avatar.fixtures.js'
 import { InMemoryAvatarRepository } from './in-memory-avatar.repository.js'
+
+const sampleTraits: AvatarComputedTraits = {
+  identity: ['A warm onboarding guide.'],
+  personality: ['Curious', 'Patient'],
+  speakingStyle: ['Short sentences.'],
+  background: ['Former teacher.'],
+  timeline: ['Joined the world at story start.'],
+  currentSituation: ['Welcoming new visitors.'],
+  behaviouralRules: ['Never reveals plot twists early.'],
+}
 
 describe('InMemoryAvatarRepository', () => {
   it('create stores and returns avatar config with generated avatarId', async () => {
@@ -96,6 +107,42 @@ describe('InMemoryAvatarRepository', () => {
     const repository = new InMemoryAvatarRepository()
 
     await expect(repository.update('avatar_missing', { name: 'New name' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
+  })
+})
+
+describe('InMemoryAvatarRepository — saveComputedTraits', () => {
+  it('stores traits and leaves author-authored fields unchanged', async () => {
+    const avatar = makeAvatarConfig()
+    const repository = new InMemoryAvatarRepository([avatar])
+
+    const result = await repository.saveComputedTraits(avatar.avatarId, sampleTraits)
+
+    expect(result.computedTraits).toEqual(sampleTraits)
+    expect(result.personaPrompt).toBe(avatar.personaPrompt)
+    expect(result.description).toBe(avatar.description)
+    expect(result.updatedAt).not.toBe(avatar.updatedAt)
+
+    const loaded = await repository.findById(avatar.avatarId)
+    expect(loaded?.computedTraits).toEqual(sampleTraits)
+  })
+
+  it('clears traits when passed null', async () => {
+    const avatar = makeAvatarConfig({ computedTraits: sampleTraits })
+    const repository = new InMemoryAvatarRepository([avatar])
+
+    const result = await repository.saveComputedTraits(avatar.avatarId, null)
+
+    expect(result.computedTraits).toBeUndefined()
+  })
+
+  it('throws NOT_FOUND when avatar does not exist', async () => {
+    const repository = new InMemoryAvatarRepository()
+
+    await expect(
+      repository.saveComputedTraits('avatar_missing', sampleTraits),
+    ).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
   })

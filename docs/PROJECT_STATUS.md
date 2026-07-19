@@ -806,6 +806,19 @@ Started on: 2026-07-19
 - verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web`, `apps/admin` all typecheck clean; `apps/core` and `packages/shared` lint clean; touched test suites pass (core 92 tests across avatar/seed/get-available-avatars files, web 18 tests, console 19 tests)
 - deferred to the next EPIC 8.1 slice (per this slice's explicit scope): the `computedTraits` schema itself, persistence changes, LLM preparation behavior, new endpoint behavior, and admin UI changes
 
+### Current slice completed (fixed trait schema and avatar persistence)
+
+- defined the canonical `AvatarComputedTraits` type once in `packages/shared/src/entity-types.ts` — the fixed seven-field schema (`identity`, `personality`, `speakingStyle`, `background`, `timeline`, `currentSituation`, `behaviouralRules`), each `string[]`; `apps/core/src/domain/avatar/avatar.types.ts` re-exports it (not re-declares it) for domain/internal use, matching the existing `AvatarLlmOverride` pattern
+- `AvatarSummary.computedTraits` is now `AvatarComputedTraits | null` (required, nullable — the canonical HTTP nullability rule); domain `Avatar`/`AvatarConfig.computedTraits` is `AvatarComputedTraits | undefined` (optional, the canonical domain nullability rule)
+- added a dedicated `avatars.computed_traits JSONB` (nullable) column — never inside `config` — to `infra/postgres/init.sql` (fresh stacks) and `apps/core/src/infrastructure/db/schema-alignment.ts` (already-provisioned volumes); verified live against the running dev Postgres container that the rerunnable `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` applies correctly
+- added a narrow repository write path — `IAvatarRepository.saveComputedTraits(avatarId, computedTraits | null)` — implemented in both `InMemoryAvatarRepository` and `PostgresAvatarRepository`; deliberately kept out of `CreateAvatarParams`/`UpdateAvatarParams` so trait writes can never ride along with generic author-input mutation payloads (per EPIC 8.1 guidance)
+- updated every place that materializes `AvatarSummary` from a domain avatar (`create-avatar`, `update-avatar`, `list-scenario-avatars` use cases) to map `computedTraits: avatar.computedTraits ?? null`; `update-avatar` previously returned the repository's domain object directly and needed a new explicit mapping function once the domain/shared shapes diverged (optional vs. required-nullable)
+- author-authored avatar fields (`personaPrompt`, `description`, `tone`, `adjustments`, `config`) are untouched by this slice — proven by repository-level tests asserting they're unchanged after `saveComputedTraits` runs
+- confirmed `AvailableAvatarSummary` (the player-facing "available avatars" shape, `Pick`-derived from `AvatarSummary` since the EPIC 8.1 baseline slice) correctly excludes `computedTraits` without any change needed — it already omits it by construction
+- test coverage added across all three layers: `InMemoryAvatarRepository` unit tests (store/clear/not-found), `PostgresAvatarRepository` integration tests run against a real Postgres instance (store/clear/round-trip/untouched-author-fields), and use-case/route tests proving `computedTraits: null` surfaces correctly by default through `POST /v1/scenarios/{id}/avatars`, `PATCH /v1/avatars/{id}`, and `GET /v1/scenarios/{id}/avatars`
+- verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web`, `apps/admin` all typecheck clean; all five packages lint clean; full `apps/core` unit suite passes (733 tests, up from 729); full `apps/core` stack-e2e suite passes against the real Docker stack (96 tests, including `avatars.stack-e2e.test.ts`); Postgres integration suite for the avatar repository passes against the real database (12 tests)
+- deferred to later EPIC 8.1 slices (explicitly out of scope for this slice): LLM trait preparation/generation behavior, the explicit trigger-preparation API endpoint, and admin UI trait display
+
 ---
 
 ## Sessions & Conversations
@@ -906,6 +919,7 @@ Started on: 2026-07-19
 | 2026-07-12 | EPIC 6.1 — Scenario Builder v1 (audit remediation: knowledge authoring + visibility invariants) |
 | 2026-07-18 | EPIC 6.1 — Scenario Builder v1 (audit remediation: knowledge updates + schema alignment)        |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (contract and source-ownership baseline)                    |
+| 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (fixed trait schema and avatar persistence)                 |
 
 ---
 
@@ -920,7 +934,7 @@ Current implementation focus:
 - retrieval observability
 - public web app operational hardening
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
-- EPIC 8.1 (Avatar Trait Structuring) is in progress: contract/source-ownership baseline complete; `computedTraits` schema, persistence, and LLM preparation behavior remain
+- EPIC 8.1 (Avatar Trait Structuring) is in progress: contract/source-ownership baseline and fixed `computedTraits` schema/persistence complete; LLM trait preparation behavior, the trigger-preparation endpoint, and admin UI trait display remain
 
 ---
 

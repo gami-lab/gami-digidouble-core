@@ -1,4 +1,9 @@
+// Canonical trait schema — imported (not re-declared) so this domain module
+// stays in sync with the shared HTTP contract automatically.
+import type { AvatarComputedTraits } from '@gami/shared'
 import type { AvatarLlmOverride } from '../model-config/index.js'
+
+export type { AvatarComputedTraits }
 
 export type AvatarStatus = 'draft' | 'active' | 'archived'
 
@@ -17,6 +22,8 @@ export interface Avatar {
   tone?: string
   /** Optional human-readable avatar description. */
   description?: string
+  /** Derived trait structure; undefined until preparation has run (EPIC 8.1). */
+  computedTraits?: AvatarComputedTraits
   /** JSONB-backed extensible configuration. */
   config: Record<string, unknown>
   createdAt: string
@@ -40,6 +47,8 @@ export interface AvatarConfig {
   adjustments?: string[]
   /** Optional per-avatar model override sourced from config.llmOverride JSONB. */
   llmOverride?: AvatarLlmOverride
+  /** Derived trait structure; undefined until preparation has run (EPIC 8.1). */
+  computedTraits?: AvatarComputedTraits
   /** JSONB-backed extensible configuration for voice, UI hints, knowledge scope, etc. */
   config: Record<string, unknown>
   createdAt: string
