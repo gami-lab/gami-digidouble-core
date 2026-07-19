@@ -232,10 +232,11 @@ Contains:
 - persona prompt assembly (`domain/avatar/persona-prompt.service.ts`)
 - deterministic avatar fixtures (`domain/avatar/avatar.fixtures.ts`)
 - style behavior rules used by persona prompt assembly
+- explicit, rerunnable trait preparation (`PrepareScenarioAvatarTraitsUseCase`, EPIC 8.1): derives the fixed `AvatarComputedTraits` structure from existing avatar/scenario/knowledge-source storage via the `avatar` LLM role, and persists it through `IAvatarRepository.saveComputedTraits` — a narrow write path kept separate from generic avatar create/update
 
 The Avatar speaks.
 
-The Avatar module does not own response orchestration; `SendMessageUseCase` in the application layer coordinates history + LLM invocation.
+The Avatar module does not own response orchestration; `SendMessageUseCase` in the application layer coordinates history + LLM invocation. Trait preparation is a separate, explicit step — not part of runtime response orchestration, and not itself consumed at runtime until EPIC 8.2.
 
 ---
 

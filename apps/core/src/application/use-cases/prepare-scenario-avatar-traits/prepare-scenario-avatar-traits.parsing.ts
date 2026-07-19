@@ -1,0 +1,81 @@
+import type { AvatarComputedTraits } from '@gami/shared'
+
+/** Single source of truth for the fixed seven-field trait schema (EPIC 8.1). */
+const TRAIT_FIELDS = [
+  'identity',
+  'personality',
+  'speakingStyle',
+  'background',
+  'timeline',
+  'currentSituation',
+  'behaviouralRules',
+] as const satisfies readonly (keyof AvatarComputedTraits)[]
+
+const MAX_ITEMS_PER_FIELD = 7
+
+/**
+ * Parses raw LLM output into the fixed trait shape.
+ *
+ * Lenient by design: only the seven allowed fields are ever read (any other
+ * key the model invents is silently dropped), and a missing/invalid field
+ * defaults to `[]` rather than failing the whole parse — an LLM omitting a
+ * field it has no signal for is expected, not an error.
+ *
+ * Returns `null` only when the response isn't parseable JSON at all.
+ */
+export function parseTraitPreparationOutput(content: string): AvatarComputedTraits | null {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(stripMarkdownFences(content))
+  } catch {
+    return null
+  }
+  if (!isRecord(parsed)) return null
+
+  const result = {} as AvatarComputedTraits
+  for (const field of TRAIT_FIELDS) {
+    result[field] = readStringArray(parsed[field])
+  }
+  return result
+}
+
+/**
+ * Normalizes a parsed trait object: trims whitespace, drops empties,
+ * deduplicates exact repeats, and caps each field at {@link MAX_ITEMS_PER_FIELD}
+ * items (the EPIC's "5-7 concise items per field" guidance).
+ */
+export function normalizeComputedTraits(raw: AvatarComputedTraits): AvatarComputedTraits {
+  const result = {} as AvatarComputedTraits
+  for (const field of TRAIT_FIELDS) {
+    result[field] = normalizeField(raw[field])
+  }
+  return result
+}
+
+function normalizeField(items: string[]): string[] {
+  const seen = new Set<string>()
+  const normalized: string[] = []
+  for (const item of items) {
+    const trimmed = item.trim()
+    if (trimmed.length === 0 || seen.has(trimmed)) continue
+    seen.add(trimmed)
+    normalized.push(trimmed)
+    if (normalized.length >= MAX_ITEMS_PER_FIELD) break
+  }
+  return normalized
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function stripMarkdownFences(content: string): string {
+  const trimmed = content.trim()
+  const match = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(trimmed)
+  return match?.[1]?.trim() ?? trimmed
+}

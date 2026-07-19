@@ -819,6 +819,21 @@ Started on: 2026-07-19
 - verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web`, `apps/admin` all typecheck clean; all five packages lint clean; full `apps/core` unit suite passes (733 tests, up from 729); full `apps/core` stack-e2e suite passes against the real Docker stack (96 tests, including `avatars.stack-e2e.test.ts`); Postgres integration suite for the avatar repository passes against the real database (12 tests)
 - deferred to later EPIC 8.1 slices (explicitly out of scope for this slice): LLM trait preparation/generation behavior, the explicit trigger-preparation API endpoint, and admin UI trait display
 
+### Current slice completed (scenario avatar trait preparation service)
+
+- added `PrepareScenarioAvatarTraitsUseCase` (`apps/core/src/application/use-cases/prepare-scenario-avatar-traits/`): a scenario-scoped, explicitly-rerunnable preparation flow — not runtime prompt assembly — that computes `AvatarComputedTraits` for every avatar in a scenario and persists them via the existing narrow `saveComputedTraits` write path
+- source material is gathered exclusively from canonical existing storage, no new storage introduced: avatar author fields (`personaPrompt`, `tone`, `description`, `adjustments`), `scenario.worldContext`, and `knowledge_sources` rows with `knowledgeType: 'memory' | 'world'`, reading original preserved text from `metadata.inlineText` only (never retrieval chunks); sources without preserved inline text are silently omitted from the prompt context rather than triggering a new loader path
+- the LLM call reuses the existing `'avatar'` model role end-to-end (`resolveRoleLlmCall`/`logResolvedLlmCall`, the same role-resolution path `SendMessageUseCase` uses for live avatar responses), including per-avatar `avatar.llmOverride` and `scenario.modelSelection` precedence — no new model role was added, per EPIC 8.1's explicit "don't add a role without strong reason" guidance
+- parsing (`prepare-scenario-avatar-traits.parsing.ts`) is lenient and schema-locked: only the seven canonical fields are ever read from the LLM's JSON (any invented field is dropped), a missing/invalid field defaults to `[]` rather than failing the whole response, and only fundamentally unparseable JSON returns `null`
+- normalization (same file) trims whitespace, drops empties, deduplicates exact repeats, and caps each field at 7 items (the EPIC's "5-7 concise items" guidance), matching the `readStringArray`/cap-and-dedupe style already used by `MemoryMaintenanceService`
+- failures are isolated per avatar: one avatar's unparseable LLM response or thrown error produces a `{ status: 'failed', reason }` entry without blocking preparation for the rest of the scenario's avatars (mirrors the `LlmUserFactExtractor` fail-soft philosophy, but surfaced as a structured result instead of swallowed)
+- recomputation is idempotent at the contract level: rerunning `saveComputedTraits` overwrites the derived value with a fresh result; author-authored avatar fields are never touched by this flow (proven directly by a recomputation test asserting `personaPrompt`/`description` are unchanged across two preparation runs)
+- output is a compact per-avatar result list (`{ scenarioId, results: [{ avatarId, status, computedTraits | reason }] }`) rather than full re-mapped `AvatarSummary` objects — the practical-default option named in the EPIC's implementation guidance
+- no new HTTP routes, admin UI, or shared/domain type duplication were introduced: the use case imports the canonical `AvatarComputedTraits` from `@gami/shared` and the existing `IScenarioRepository` / `IAvatarRepository` / `IKnowledgeSourceRepository` / `ILlmAdapter` ports directly
+- test coverage (25 new tests, deterministic, no real LLM calls): parsing/normalization edge cases (fenced JSON, malformed JSON, non-object JSON, invented extra fields, non-string array items, trimming, dedup, 7-item cap), prompt-building (avatar/memory/world sections, inline-text-missing sources omitted, empty world context omits the section entirely), and use-case behavior (`NOT_FOUND` for missing scenario, multi-avatar computation and persistence, scenario/type-scoped source gathering excluding other scenarios and `media`-type sources, per-avatar failure isolation, and recomputation without mutating original avatar fields)
+- verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web`, `apps/admin` all typecheck clean; `apps/core` lints clean; full `apps/core` unit suite passes (758 tests, up from 733)
+- deferred to later EPIC 8.1/8.2 slices (explicitly out of scope for this slice): the trigger-preparation HTTP endpoint, admin UI trait display, and EPIC 8.2 runtime prompt consumption of `computedTraits`
+
 ---
 
 ## Sessions & Conversations
@@ -920,6 +935,7 @@ Started on: 2026-07-19
 | 2026-07-18 | EPIC 6.1 — Scenario Builder v1 (audit remediation: knowledge updates + schema alignment)        |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (contract and source-ownership baseline)                    |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (fixed trait schema and avatar persistence)                 |
+| 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (scenario avatar trait preparation service)                 |
 
 ---
 
@@ -934,7 +950,7 @@ Current implementation focus:
 - retrieval observability
 - public web app operational hardening
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
-- EPIC 8.1 (Avatar Trait Structuring) is in progress: contract/source-ownership baseline and fixed `computedTraits` schema/persistence complete; LLM trait preparation behavior, the trigger-preparation endpoint, and admin UI trait display remain
+- EPIC 8.1 (Avatar Trait Structuring) is in progress: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, and the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`) are complete; the trigger-preparation HTTP endpoint, admin UI trait display, and EPIC 8.2 runtime consumption remain
 
 ---
 
