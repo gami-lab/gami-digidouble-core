@@ -31,7 +31,7 @@ import type {
   PrepareScenarioAvatarTraitsOutput,
 } from './prepare-scenario-avatar-traits.types.js'
 
-const TRAIT_PREPARATION_MAX_TOKENS = 700
+const TRAIT_PREPARATION_MAX_TOKENS = 3000
 
 /**
  * Computes and persists structured avatar traits for every avatar in a

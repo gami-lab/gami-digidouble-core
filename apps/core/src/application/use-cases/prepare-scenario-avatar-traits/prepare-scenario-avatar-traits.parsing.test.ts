@@ -114,7 +114,7 @@ describe('normalizeComputedTraits', () => {
     expect(result.background).toEqual(['Former teacher'])
   })
 
-  it('caps each field at 7 items', () => {
+  it('caps most fields at 7 items', () => {
     const result = normalizeComputedTraits({
       ...emptyTraits,
       behaviouralRules: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
@@ -122,6 +122,18 @@ describe('normalizeComputedTraits', () => {
 
     expect(result.behaviouralRules).toHaveLength(7)
     expect(result.behaviouralRules).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g'])
+  })
+
+  it('allows timeline well beyond 7 items, up to its own higher ceiling', () => {
+    const manyEvents = Array.from({ length: 30 }, (_, i) => `Event ${String(i + 1)}`)
+    const result = normalizeComputedTraits({
+      ...emptyTraits,
+      timeline: manyEvents,
+    })
+
+    expect(result.timeline).toHaveLength(25)
+    expect(result.timeline[0]).toBe('Event 1')
+    expect(result.timeline.at(-1)).toBe('Event 25')
   })
 
   it('normalizes all seven fields independently', () => {

@@ -64,9 +64,16 @@ describe('TRAIT_PREPARATION_SYSTEM_PROMPT — grounding constraints', () => {
     )
   })
 
-  it('caps each field at 5-7 concise items', () => {
+  it('caps the non-timeline fields at 5-7 concise items', () => {
     expect(TRAIT_PREPARATION_SYSTEM_PROMPT).toContain(
-      'Each field must contain at most 5-7 concise items.',
+      'identity, personality, speakingStyle, background, currentSituation, and behaviouralRules must each contain at most 5-7 concise items.',
+    )
+  })
+
+  it('exempts timeline from the fixed item cap so events are not compressed away', () => {
+    expect(TRAIT_PREPARATION_SYSTEM_PROMPT).toContain('timeline has no fixed item cap')
+    expect(TRAIT_PREPARATION_SYSTEM_PROMPT).toContain(
+      'never drop critical events (deaths, discoveries, confrontations, turning points)',
     )
   })
 

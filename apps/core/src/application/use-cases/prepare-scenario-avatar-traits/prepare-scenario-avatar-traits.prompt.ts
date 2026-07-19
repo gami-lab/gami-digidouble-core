@@ -20,7 +20,7 @@ Field meanings:
 - personality: how the avatar thinks, feels, decides, reacts — dominant traits, motivations, fears, emotional tendencies.
 - speakingStyle: tone, vocabulary level, sentence length, rhythm, directness, recurring verbal habits.
 - background: relevant biography and past experiences that explain how the avatar behaves.
-- timeline: key past events, current point in time, recent events, explicit future expectations.
+- timeline: every distinct notable past event, in chronological order, plus the current point in time and explicit future expectations. One item per event — do not merge several events into one line.
 - currentSituation: current objective, emotional state, constraints, relationship to the scenario, what the avatar knows now. Do not duplicate the whole world context.
 - behaviouralRules: explicit boundaries, required/forbidden behaviours, interaction rules — preserve administrator intent directly.
 
@@ -30,7 +30,8 @@ Rules:
 - Use WORLD CONTEXT only to avoid contradictions and remove redundancy — never copy generic world facts into avatar traits.
 - Never invent details that are not supported by the provided sources.
 - Preserve intentional ambiguity and meaningful contradictions from the authored character; do not force invented specificity.
-- Each field must contain at most 5-7 concise items. Return [] for a field with no strong signal.
+- identity, personality, speakingStyle, background, currentSituation, and behaviouralRules must each contain at most 5-7 concise items. Return [] for a field with no strong signal.
+- timeline has no fixed item cap: include one item per distinct notable event described in the sources, in chronological order. Do not compress multiple important events into a single summarized item, and never drop critical events (deaths, discoveries, confrontations, turning points) just to keep the list short.
 - Generate the same fixed structure for every avatar. Do not add extra fields.`
 
 /**
