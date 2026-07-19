@@ -345,6 +345,24 @@ Must test:
 - model-selection precedence UI (scenario default, GM override, avatar override) blocks submission on partial (one-field) input
 - no locally duplicated backend DTOs in `apps/admin`; all request/response contracts and status enums (`ScenarioStatus`, `AvatarStatus`, `KnowledgeVisibilityPolicy`) are consumed from `@gami/shared`
 
+### Avatar Trait Preparation Admin Trigger (EPIC 8.1)
+
+**Goals:** the admin trigger and read-only trait inspection are covered independently of the
+existing scenario-detail suite, and the read-only surface never grows editable trait controls.
+
+Coverage expectations by module:
+
+| Module path                                               | Required coverage                                                                                                                                                                                                                                                                                                |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api/scenarios.ts#prepareAvatarTraits`                    | Unit test verifying the wrapper calls `adminRequest('POST', '/v1/scenarios/{scenarioId}/prepare-avatar-traits')` with no body and returns the response unchanged                                                                                                                                                 |
+| `scenarios/ScenarioDetailPage.trait-preparation.test.tsx` | Behavior-level tests: `Prepared`/`Not prepared` list signal, trigger disabled + "Preparing…" while in flight, avatars re-fetched via `listScenarioAvatars` and success message shown after completion, failure message rendering, and read-only seven-section trait display (present/absent) in `AvatarEditForm` |
+
+Must test:
+
+- the trigger never mutates avatars locally from the prepare response — it always re-fetches via `listScenarioAvatars` after a successful call
+- the read-only trait block only renders when `avatar.computedTraits` is non-null, and never renders as editable inputs
+- no scoring, approval, or manual-override controls are introduced alongside the trait display
+
 ---
 
 ## Seed Parity Checklist (EPIC 6.1)

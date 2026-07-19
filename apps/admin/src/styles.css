@@ -94,6 +94,10 @@ body {
   color: #b91c1c;
 }
 
+.admin-success {
+  color: #15803d;
+}
+
 .admin-muted {
   color: #6b7280;
 }

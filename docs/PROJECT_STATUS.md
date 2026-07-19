@@ -788,8 +788,9 @@ Completed on: 2026-07-18
 
 ## EPIC 8.1 — Avatar Trait Structuring
 
-Status: 🚧 In Progress
+Status: ✅ Complete
 Started on: 2026-07-19
+Completed on: 2026-07-19
 
 ### Current slice completed (contract and source-ownership baseline)
 
@@ -847,6 +848,20 @@ Started on: 2026-07-19
   - mandatory stack-e2e file `apps/core/src/api/routes/prepare-avatar-traits.stack-e2e.test.ts`: auth, validation, and not-found always-on; an always-on null-provider block proving the full HTTP -> use case -> DB round trip (deterministic `failed`/`unparseable_output` outcome under the default null adapter, matching the existing `exchange.stack-e2e.test.ts` always-on pattern); a `describe.skipIf(isNullProvider)` real-provider block asserting genuine non-empty `computedTraits` when the stack is started with `LLM_PROVIDER` set to a real provider
 - verified no regressions: `packages/shared` and `apps/core` typecheck clean; existing `scenarios.test.ts`, `scenarios-management.test.ts`, and `avatars.test.ts` route suites still pass unchanged; full new route test file passes (7 tests)
 - deferred to later EPIC 8.1/8.2 slices (still out of scope for this slice): admin UI trait display/trigger button, and EPIC 8.2 runtime prompt consumption of `computedTraits`
+
+### Current slice completed (admin trigger and read-only trait inspection) — final EPIC 8.1 slice
+
+- added `apps/admin/src/api/scenarios.ts#prepareAvatarTraits(scenarioId)`, a thin wrapper over `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` returning the canonical `PrepareAvatarTraitsResponse` from `@gami/shared` directly — no app-local response DTO was introduced
+- added a `Prepare avatar traits` button to the existing scenario detail avatars section (`apps/admin/src/scenarios/ScenarioDetailView.tsx`), reusing the same avatar-management surface administrators already use for avatar CRUD, visibility toggling, and knowledge sources, rather than a new page
+- the trigger exposes four explicit UI states via a `PrepareTraitsStatus` union (idle / preparing / success / error): the button disables and reads "Preparing…" while the request is in flight, a success message reports how many avatars were prepared (and how many failed, if any), and a failure surfaces the API error text — matching the existing `IngestUiStatus` pattern already used for knowledge ingestion feedback
+- on success, `apps/admin/src/scenarios/ScenarioDetailPage.tsx` re-fetches avatars via the existing `listScenarioAvatars(scenarioId)` and replaces `data.avatars` wholesale, rather than mutating the previous avatar list from the trait-preparation response — per this slice's explicit "refresh from the API" requirement
+- found and fixed a real bug while verifying the trigger against a live local stack: `apps/admin/src/api/client.ts#adminRequest` always sent `Content-Type: application/json`, even for the new bodyless `prepareAvatarTraits` call; the Core route's no-body acceptance (see the earlier trigger-preparation slice) only holds when the header is absent entirely, so the request was rejected with `400 VALIDATION_ERROR: Body cannot be empty when content-type is set to 'application/json'`. Fixed by only setting `Content-Type` when a body is actually provided; every existing caller already sends a body, so this is additive and covered by a new `client.test.ts` case
+- added a `Prepared` / `Not prepared` read-only signal (`avatar.computedTraits !== null`) as a new column in the avatar list table, and a read-only "Computed traits" block in `AvatarEditForm` (`apps/admin/src/scenarios/ScenarioAvatarForms.tsx`) that renders all seven canonical trait sections as plain lists when `avatar.computedTraits` is present; both reuse the existing canonical `AvatarSummary`/`AvatarComputedTraits` shared types end-to-end with no new local types
+- deliberately not built (out of scope for this slice and the EPIC's "no complex trait editing surface" non-goal): editable trait fields, scoring/approval controls, manual override inputs, bulk preparation dashboards, and preparation history/job monitoring — the trigger is a single explicit re-runnable action and the trait block is strictly read-only
+- test coverage added: API client wrapper call-shape test (`apps/admin/src/api/scenarios.test.ts`); trigger loading/disabled state, success refresh (asserting `listScenarioAvatars` is re-called and the new avatar list is rendered), and failure message rendering (`apps/admin/src/scenarios/ScenarioDetailPage.trait-preparation.test.tsx`, split into its own file to stay under the project's `max-lines` lint budget, following the existing `ScenarioDetailPage.knowledge-edit.test.tsx` split pattern); read-only trait-section rendering and its absence when `computedTraits` is `null` (same file)
+- verified end-to-end against a live local stack (real Postgres/Redis, Core API, `LLM_PROVIDER=null`) in a browser, not just unit tests: scenario list → detail → trigger → deterministic null-provider failure path → success-with-failures summary → edit-panel read-only block correctly absent when `computedTraits` stays `null`
+- verified no regressions: `apps/admin` typechecks clean; `apps/admin` lints clean; full `apps/admin` suite passes (86 tests, up from 77)
+- this completes EPIC 8.1 — Avatar Trait Structuring: the fixed trait schema, LLM-based preparation service, explicit HTTP trigger endpoint, and this admin-facing trigger/inspection slice are all delivered; EPIC 8.2 runtime prompt consumption of `computedTraits` remains a separate EPIC
 
 ---
 
@@ -951,6 +966,7 @@ Started on: 2026-07-19
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (fixed trait schema and avatar persistence)                 |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (scenario avatar trait preparation service)                 |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (explicit trigger-preparation HTTP endpoint)                |
+| 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (admin trigger and read-only trait inspection)              |
 
 ---
 
@@ -965,7 +981,7 @@ Current implementation focus:
 - retrieval observability
 - public web app operational hardening
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
-- EPIC 8.1 (Avatar Trait Structuring) is in progress: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), and the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint are complete; admin UI trait display and EPIC 8.2 runtime consumption remain
+- EPIC 8.1 (Avatar Trait Structuring) is complete: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint, and the admin trigger/read-only trait inspection UI are all delivered; EPIC 8.2 runtime consumption of `computedTraits` remains
 
 ---
 

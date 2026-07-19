@@ -50,6 +50,20 @@ describe('adminRequest', () => {
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(init.body).toBe(JSON.stringify({ name: 'Test' }))
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json')
+  })
+
+  it('omits the body and Content-Type header for explicit no-payload actions', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await adminRequest('POST', '/v1/scenarios/scenario_1/prepare-avatar-traits')
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(init.body).toBeUndefined()
+    expect((init.headers as Record<string, string>)['Content-Type']).toBeUndefined()
   })
 
   it('throws ApiError with the envelope error code/message on a domain error', async () => {

@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "core-api",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/gami_core REDIS_URL=redis://localhost:6379 API_KEY_SECRET=e2e-stack-secret LLM_PROVIDER=null npx --prefix apps/core tsx apps/core/src/index.ts"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "admin-ui",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd apps/admin && npm run dev"],
+      "port": 5173
+    }
+  ]
+}

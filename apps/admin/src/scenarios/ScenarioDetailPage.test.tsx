@@ -28,6 +28,7 @@ vi.mock('../api/scenarios', () => ({
   updateAvatar: vi.fn(),
   createAvatar: vi.fn(),
   deleteAvatar: vi.fn(),
+  prepareAvatarTraits: vi.fn(),
 }))
 
 vi.mock('../api/knowledge', () => ({

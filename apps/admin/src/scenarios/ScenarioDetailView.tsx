@@ -4,17 +4,25 @@ import type { KnowledgeSourceDto } from '../api/knowledge'
 
 export type IngestUiStatus = { phase: 'running' } | { phase: 'error'; message: string }
 
+export type PrepareTraitsStatus =
+  | { kind: 'idle' }
+  | { kind: 'preparing' }
+  | { kind: 'success'; summary: string }
+  | { kind: 'error'; message: string }
+
 type ScenarioViewProps = {
   scenario: ScenarioSummary
   avatars: AvatarSummary[]
   knowledgeSources: KnowledgeSourceDto[]
   actionError: string | null
   ingestStatus: Record<string, IngestUiStatus>
+  prepareTraitsStatus: PrepareTraitsStatus
   onEditScenario: () => void
   onAddAvatar: () => void
   onEditAvatar: (avatarId: string) => void
   onDeleteAvatar: (avatarId: string) => void
   onToggleVisibility: (avatarId: string, visible: boolean) => void
+  onPrepareTraits: () => void
   onAddKnowledge: () => void
   onEditKnowledge: (sourceId: string) => void
   onDeleteKnowledge: (sourceId: string) => void
@@ -29,11 +37,13 @@ export function ScenarioView({
   knowledgeSources,
   actionError,
   ingestStatus,
+  prepareTraitsStatus,
   onEditScenario,
   onAddAvatar,
   onEditAvatar,
   onDeleteAvatar,
   onToggleVisibility,
+  onPrepareTraits,
   onAddKnowledge,
   onEditKnowledge,
   onDeleteKnowledge,
@@ -50,10 +60,12 @@ export function ScenarioView({
       <AvatarListSection
         avatars={avatars}
         initialIds={initialIds}
+        prepareTraitsStatus={prepareTraitsStatus}
         onAddAvatar={onAddAvatar}
         onEditAvatar={onEditAvatar}
         onDeleteAvatar={onDeleteAvatar}
         onToggleVisibility={onToggleVisibility}
+        onPrepareTraits={onPrepareTraits}
       />
       <KnowledgeSourceListSection
         knowledgeSources={knowledgeSources}
@@ -125,28 +137,51 @@ function ScenarioSummarySection({
 type AvatarListSectionProps = {
   avatars: AvatarSummary[]
   initialIds: Set<string>
+  prepareTraitsStatus: PrepareTraitsStatus
   onAddAvatar: () => void
   onEditAvatar: (avatarId: string) => void
   onDeleteAvatar: (avatarId: string) => void
   onToggleVisibility: (avatarId: string, visible: boolean) => void
+  onPrepareTraits: () => void
 }
 
 function AvatarListSection({
   avatars,
   initialIds,
+  prepareTraitsStatus,
   onAddAvatar,
   onEditAvatar,
   onDeleteAvatar,
   onToggleVisibility,
+  onPrepareTraits,
 }: AvatarListSectionProps): JSX.Element {
+  const isPreparing = prepareTraitsStatus.kind === 'preparing'
+
   return (
     <>
       <div className="admin-section-header">
         <h3>Avatars</h3>
-        <button type="button" className="admin-button admin-button-primary" onClick={onAddAvatar}>
-          Add avatar
-        </button>
+        <div>
+          <button
+            type="button"
+            className="admin-button admin-button-secondary"
+            onClick={onPrepareTraits}
+            disabled={isPreparing}
+          >
+            {isPreparing ? 'Preparing…' : 'Prepare avatar traits'}
+          </button>
+          {' '}
+          <button type="button" className="admin-button admin-button-primary" onClick={onAddAvatar}>
+            Add avatar
+          </button>
+        </div>
       </div>
+      {prepareTraitsStatus.kind === 'success' ? (
+        <p className="admin-success">{prepareTraitsStatus.summary}</p>
+      ) : null}
+      {prepareTraitsStatus.kind === 'error' ? (
+        <p className="admin-error">{prepareTraitsStatus.message}</p>
+      ) : null}
 
       {avatars.length === 0 ? (
         <p className="admin-muted">No avatars yet.</p>
@@ -158,6 +193,7 @@ function AvatarListSection({
               <th>Status</th>
               <th>Model override</th>
               <th>Initially visible</th>
+              <th>Traits</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -176,6 +212,11 @@ function AvatarListSection({
                     checked={initialIds.has(avatar.avatarId)}
                     onChange={(event) => { onToggleVisibility(avatar.avatarId, event.target.checked) }}
                   />
+                </td>
+                <td>
+                  <span className="admin-status-pill">
+                    {avatar.computedTraits !== null ? 'prepared' : 'not prepared'}
+                  </span>
                 </td>
                 <td>
                   <button

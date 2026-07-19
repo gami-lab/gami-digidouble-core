@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AvatarSummary, ScenarioSummary } from '@gami/shared'
+import type { AvatarSummary, PrepareAvatarTraitsResponse, ScenarioSummary } from '@gami/shared'
 import { adminRequest } from './client'
 import {
   createAvatar,
@@ -8,6 +8,7 @@ import {
   getScenario,
   listScenarioAvatars,
   listScenarios,
+  prepareAvatarTraits,
   updateAvatar,
   updateScenario,
 } from './scenarios'
@@ -124,5 +125,35 @@ describe('scenarios API wrappers', () => {
     await deleteAvatar('avatar_1')
 
     expect(adminRequest).toHaveBeenCalledWith('DELETE', '/v1/avatars/avatar_1')
+  })
+
+  it('triggers avatar trait preparation for a scenario', async () => {
+    const response: PrepareAvatarTraitsResponse = {
+      scenarioId: 'scenario_1',
+      results: [
+        {
+          avatarId: 'avatar_1',
+          status: 'prepared',
+          computedTraits: {
+            identity: ['A guide'],
+            personality: ['Curious'],
+            speakingStyle: ['Short sentences'],
+            background: ['Local'],
+            timeline: ['Joined recently'],
+            currentSituation: ['On duty'],
+            behaviouralRules: ['Never lies'],
+          },
+        },
+      ],
+    }
+    vi.mocked(adminRequest).mockResolvedValue(response)
+
+    const result = await prepareAvatarTraits('scenario_1')
+
+    expect(adminRequest).toHaveBeenCalledWith(
+      'POST',
+      '/v1/scenarios/scenario_1/prepare-avatar-traits',
+    )
+    expect(result).toEqual(response)
   })
 })

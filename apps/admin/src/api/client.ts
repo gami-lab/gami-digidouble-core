@@ -58,7 +58,7 @@ export async function adminRequest<T>(
   const url = `${normalizeApiUrl(apiUrl)}${normalizedPath}`
 
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     ...(shouldInjectApiKey(normalizedPath) ? { 'x-api-key': apiKey } : {}),
   }
 

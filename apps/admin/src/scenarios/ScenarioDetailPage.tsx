@@ -1,9 +1,21 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
-import type { AvatarSummary, IngestionJobDto, ScenarioAvatarAvailability, ScenarioSummary } from '@gami/shared'
+import type {
+  AvatarSummary,
+  AvatarTraitPreparationResult,
+  IngestionJobDto,
+  ScenarioAvatarAvailability,
+  ScenarioSummary,
+} from '@gami/shared'
 import { ApiError } from '../api/client'
 import { formatApiError } from '../api/error'
-import { deleteAvatar, getScenario, listScenarioAvatars, updateScenario } from '../api/scenarios'
+import {
+  deleteAvatar,
+  getScenario,
+  listScenarioAvatars,
+  prepareAvatarTraits,
+  updateScenario,
+} from '../api/scenarios'
 import type { KnowledgeSourceDto } from '../api/knowledge'
 import {
   deleteKnowledgeSource,
@@ -17,7 +29,7 @@ import { KnowledgeSourceCreateForm, KnowledgeSourceEditForm } from './ScenarioKn
 import { ScenarioKnowledgeChunksView } from './ScenarioKnowledgeChunksView'
 import { ScenarioKnowledgeRetrievalTester } from './ScenarioKnowledgeRetrievalTester'
 import { ScenarioView } from './ScenarioDetailView'
-import type { IngestUiStatus } from './ScenarioDetailView'
+import type { IngestUiStatus, PrepareTraitsStatus } from './ScenarioDetailView'
 
 const INGESTION_POLL_INTERVAL_MS = 1200
 const INGESTION_POLL_MAX_ATTEMPTS = 30
@@ -37,6 +49,14 @@ async function pollIngestionJob(ingestionJobId: string): Promise<IngestionJobDto
     await sleep(INGESTION_POLL_INTERVAL_MS)
   }
   throw new ApiError('TIMEOUT', 'Ingestion is taking longer than expected. Check back shortly.')
+}
+
+function summarizePrepareTraitsResults(results: AvatarTraitPreparationResult[]): string {
+  const failedCount = results.filter((result) => result.status === 'failed').length
+  const preparedCount = results.length - failedCount
+  return failedCount > 0
+    ? `Prepared ${String(preparedCount)} of ${String(results.length)} avatar(s); ${String(failedCount)} failed.`
+    : `Prepared traits for ${String(preparedCount)} avatar(s).`
 }
 
 function computeNextAvailability(
@@ -91,6 +111,7 @@ type ReadyStateUpdates = Partial<{
 }>
 
 type SetIngestStatus = (updater: (prev: Record<string, IngestUiStatus>) => Record<string, IngestUiStatus>) => void
+type SetPrepareTraitsStatus = (status: PrepareTraitsStatus) => void
 type SetDetailState = (state: DetailState) => void
 type SetDetailMode = (mode: DetailMode) => void
 type SetDetailActionError = (message: string) => void
@@ -100,9 +121,11 @@ type MakeReadyState = (updates: ReadyStateUpdates) => DetailState
 export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPageProps): JSX.Element {
   const [state, setState] = useState<DetailState>({ status: 'loading' })
   const [ingestStatus, setIngestStatus] = useState<Record<string, IngestUiStatus>>({})
+  const [prepareTraitsStatus, setPrepareTraitsStatus] = useState<PrepareTraitsStatus>({ kind: 'idle' })
 
   function loadData(): void {
     setState({ status: 'loading' })
+    setPrepareTraitsStatus({ kind: 'idle' })
     Promise.all([getScenario(scenarioId), listScenarioAvatars(scenarioId), listKnowledgeSources(scenarioId)])
       .then(([scenario, avatars, knowledgeSources]) => {
         setState({ status: 'ready', data: { scenario, avatars, knowledgeSources }, mode: { kind: 'view' }, actionError: null })
@@ -129,6 +152,8 @@ export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPagePro
         onSetState={setState}
         ingestStatus={ingestStatus}
         onSetIngestStatus={setIngestStatus}
+        prepareTraitsStatus={prepareTraitsStatus}
+        onSetPrepareTraitsStatus={setPrepareTraitsStatus}
       />
     </section>
   )
@@ -139,9 +164,18 @@ type DetailBodyProps = {
   onSetState: SetDetailState
   ingestStatus: Record<string, IngestUiStatus>
   onSetIngestStatus: SetIngestStatus
+  prepareTraitsStatus: PrepareTraitsStatus
+  onSetPrepareTraitsStatus: SetPrepareTraitsStatus
 }
 
-function DetailBody({ state, onSetState, ingestStatus, onSetIngestStatus }: DetailBodyProps): JSX.Element {
+function DetailBody({
+  state,
+  onSetState,
+  ingestStatus,
+  onSetIngestStatus,
+  prepareTraitsStatus,
+  onSetPrepareTraitsStatus,
+}: DetailBodyProps): JSX.Element {
   if (state.status === 'loading') return <p>Loading scenario…</p>
   if (state.status === 'error') return <p className="admin-error">{state.message}</p>
   return (
@@ -152,6 +186,8 @@ function DetailBody({ state, onSetState, ingestStatus, onSetIngestStatus }: Deta
       onSetState={onSetState}
       ingestStatus={ingestStatus}
       onSetIngestStatus={onSetIngestStatus}
+      prepareTraitsStatus={prepareTraitsStatus}
+      onSetPrepareTraitsStatus={onSetPrepareTraitsStatus}
     />
   )
 }
@@ -163,6 +199,8 @@ type ReadyDetailBodyProps = {
   onSetState: SetDetailState
   ingestStatus: Record<string, IngestUiStatus>
   onSetIngestStatus: SetIngestStatus
+  prepareTraitsStatus: PrepareTraitsStatus
+  onSetPrepareTraitsStatus: SetPrepareTraitsStatus
 }
 
 function ReadyDetailBody({
@@ -172,6 +210,8 @@ function ReadyDetailBody({
   onSetState,
   ingestStatus,
   onSetIngestStatus,
+  prepareTraitsStatus,
+  onSetPrepareTraitsStatus,
 }: ReadyDetailBodyProps): JSX.Element {
   const makeReady: MakeReadyState = (updates) => ({
     status: 'ready',
@@ -203,6 +243,8 @@ function ReadyDetailBody({
       setActionError={setActionError}
       ingestStatus={ingestStatus}
       onSetIngestStatus={onSetIngestStatus}
+      prepareTraitsStatus={prepareTraitsStatus}
+      onSetPrepareTraitsStatus={onSetPrepareTraitsStatus}
     />
   )
 }
@@ -347,6 +389,8 @@ type ScenarioViewContainerProps = {
   setActionError: SetDetailActionError
   ingestStatus: Record<string, IngestUiStatus>
   onSetIngestStatus: SetIngestStatus
+  prepareTraitsStatus: PrepareTraitsStatus
+  onSetPrepareTraitsStatus: SetPrepareTraitsStatus
 }
 
 function ScenarioViewContainer({
@@ -358,6 +402,8 @@ function ScenarioViewContainer({
   setActionError,
   ingestStatus,
   onSetIngestStatus,
+  prepareTraitsStatus,
+  onSetPrepareTraitsStatus,
 }: ScenarioViewContainerProps): JSX.Element {
   async function handleDeleteAvatar(avatarId: string): Promise<void> {
     try {
@@ -411,6 +457,21 @@ function ScenarioViewContainer({
     }
   }
 
+  async function handlePrepareTraits(): Promise<void> {
+    onSetPrepareTraitsStatus({ kind: 'preparing' })
+    try {
+      const response = await prepareAvatarTraits(data.scenario.scenarioId)
+      const avatars = await listScenarioAvatars(data.scenario.scenarioId)
+      onSetState(makeReady({ data: { ...data, avatars }, actionError: null }))
+      onSetPrepareTraitsStatus({ kind: 'success', summary: summarizePrepareTraitsResults(response.results) })
+    } catch (error: unknown) {
+      onSetPrepareTraitsStatus({
+        kind: 'error',
+        message: formatApiError(error, 'UNKNOWN_ERROR: Failed to prepare avatar traits'),
+      })
+    }
+  }
+
   return (
     <ScenarioView
       scenario={data.scenario}
@@ -418,11 +479,13 @@ function ScenarioViewContainer({
       knowledgeSources={data.knowledgeSources}
       actionError={actionError}
       ingestStatus={ingestStatus}
+      prepareTraitsStatus={prepareTraitsStatus}
       onEditScenario={() => { setMode({ kind: 'editing-scenario' }) }}
       onAddAvatar={() => { setMode({ kind: 'creating-avatar' }) }}
       onEditAvatar={(avatarId) => { setMode({ kind: 'editing-avatar', avatarId }) }}
       onDeleteAvatar={(avatarId) => { void handleDeleteAvatar(avatarId) }}
       onToggleVisibility={(avatarId, visible) => { void handleToggleVisibility(avatarId, visible) }}
+      onPrepareTraits={() => { void handlePrepareTraits() }}
       onAddKnowledge={() => { setMode({ kind: 'creating-knowledge' }) }}
       onEditKnowledge={(sourceId) => { setMode({ kind: 'editing-knowledge', sourceId }) }}
       onDeleteKnowledge={(sourceId) => { void handleDeleteKnowledge(sourceId) }}
