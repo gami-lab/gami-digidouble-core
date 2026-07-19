@@ -1,14 +1,13 @@
-import type { AvatarComputedTraits } from '@gami/shared'
+import type { AvatarTraitPreparationResult, PrepareAvatarTraitsResponse } from '@gami/shared'
+
+export type { AvatarTraitPreparationResult }
 
 export type PrepareScenarioAvatarTraitsInput = {
   scenarioId: string
 }
 
-export type AvatarTraitPreparationResult =
-  | { avatarId: string; status: 'prepared'; computedTraits: AvatarComputedTraits }
-  | { avatarId: string; status: 'failed'; reason: string }
-
-export type PrepareScenarioAvatarTraitsOutput = {
-  scenarioId: string
-  results: AvatarTraitPreparationResult[]
-}
+/**
+ * Structurally identical to the canonical `PrepareAvatarTraitsResponse`
+ * shared DTO — the API route returns this use-case output directly.
+ */
+export type PrepareScenarioAvatarTraitsOutput = PrepareAvatarTraitsResponse

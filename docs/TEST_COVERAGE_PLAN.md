@@ -65,6 +65,31 @@ Must test:
 
 Do not test prose quality or writing style — only structure, contract, and error behavior.
 
+### Avatar Trait Preparation (EPIC 8.1)
+
+**Goals:** trait computation is explicit (never triggered from a `GET`), scenario-scoped,
+rerunnable, and per-avatar failures never block the rest of the batch.
+
+Must test:
+
+- `PrepareScenarioAvatarTraitsUseCase`: `NOT_FOUND` for unknown scenario, multi-avatar
+  computation/persistence, scenario/type-scoped source gathering (excludes other scenarios
+  and `media`-type sources), per-avatar failure isolation, recomputation without mutating
+  author-authored avatar fields
+- trait-preparation prompt building and lenient/schema-locked parsing (fenced/malformed JSON,
+  invented fields dropped, 7-item cap, dedup)
+- `AvatarSummary.computedTraits` is `null` before preparation and populated after, consistently
+  across create-avatar, update-avatar, and list-scenario-avatars responses
+- route: `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` — auth (401 x2), request-body
+  rejection when unexpected fields are sent (400), `404` for unknown scenario, and a
+  deterministic success path using a fake LLM adapter that returns valid trait JSON
+- stack-e2e: auth, validation, not-found always-on; an always-on null-provider path proving
+  the full HTTP -> use case -> DB round trip (deterministic `failed`/`unparseable_output`
+  outcome under the null adapter); a `describe.skipIf` real-provider block asserting genuine
+  non-empty `computedTraits` when the stack is started with a real provider key
+
+Do not test prose quality of generated traits — only structure, persistence, and boundary behavior.
+
 ---
 
 ## Game Master Module

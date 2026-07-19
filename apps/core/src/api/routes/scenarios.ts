@@ -6,10 +6,14 @@ import type {
   CreateScenarioRequest,
   CreateScenarioResponse,
   GetScenarioResponse,
+  PrepareAvatarTraitsResponse,
   UpdateScenarioRequest,
   UpdateScenarioResponse,
 } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
+import type { IKnowledgeSourceRepository } from '../../application/ports/IKnowledgeSourceRepository.js'
+import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
+import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { CreateAvatarUseCase } from '../../application/use-cases/create-avatar/create-avatar.use-case.js'
@@ -24,13 +28,17 @@ import { ListScenarioAvatarsUseCase } from '../../application/use-cases/list-sce
 import type { ListScenarioAvatarsOutput } from '../../application/use-cases/list-scenario-avatars/list-scenario-avatars.types.js'
 import { ListScenariosUseCase } from '../../application/use-cases/list-scenarios/list-scenarios.use-case.js'
 import type { ListScenariosOutput } from '../../application/use-cases/list-scenarios/list-scenarios.types.js'
+import { PrepareScenarioAvatarTraitsUseCase } from '../../application/use-cases/prepare-scenario-avatar-traits/prepare-scenario-avatar-traits.use-case.js'
 import { UpdateScenarioUseCase } from '../../application/use-cases/update-scenario/update-scenario.use-case.js'
 import type { UpdateScenarioOutput } from '../../application/use-cases/update-scenario/update-scenario.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
+import type { ModelConfig } from '../../domain/model-config/index.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
+import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import {
   mapCreateAvatarInput,
@@ -47,6 +55,11 @@ export type ScenariosRouteOptions = {
   scenarioRepository?: IScenarioRepository
   avatarRepository?: IAvatarRepository
   sessionRepository?: ISessionRepository
+  knowledgeSourceRepository?: IKnowledgeSourceRepository
+  llmAdapter: ILlmAdapter
+  modelConfigRepository?: IModelConfigRepository
+  llmAdapterRegistry?: LlmAdapterRegistry
+  modelConfigFallback?: ModelConfig
 }
 
 type CreateAvatarRequestParams = {
@@ -223,6 +236,17 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
   )
   const updateScenarioUseCase = new UpdateScenarioUseCase(scenarioRepository)
   const getScenarioUseCase = new GetScenarioUseCase(scenarioRepository)
+  const knowledgeSourceRepository =
+    options.knowledgeSourceRepository ?? new InMemoryKnowledgeSourceRepository()
+  const prepareAvatarTraitsUseCase = new PrepareScenarioAvatarTraitsUseCase(
+    scenarioRepository,
+    avatarRepository,
+    knowledgeSourceRepository,
+    options.llmAdapter,
+    options.modelConfigRepository,
+    options.llmAdapterRegistry,
+    options.modelConfigFallback,
+  )
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
@@ -233,6 +257,7 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
   registerListScenarioAvatarsRoute(app, listScenarioAvatarsUseCase)
   registerDeleteScenarioRoute(app, deleteScenarioUseCase)
   registerUpdateScenarioRoute(app, updateScenarioUseCase)
+  registerPrepareAvatarTraitsRoute(app, prepareAvatarTraitsUseCase)
 }
 
 function registerListScenariosRoute(app: FastifyInstance, useCase: ListScenariosUseCase): void {
@@ -373,6 +398,33 @@ function registerUpdateScenarioRoute(app: FastifyInstance, useCase: UpdateScenar
           mapUpdateScenarioInput(request.params.scenarioId, request.body),
         )
         return await reply.send(ok<UpdateScenarioResponse>(mapUpdateResponse(output)))
+      } catch (error) {
+        return handleDomainError(error, reply)
+      }
+    },
+  )
+}
+
+function registerPrepareAvatarTraitsRoute(
+  app: FastifyInstance,
+  useCase: PrepareScenarioAvatarTraitsUseCase,
+): void {
+  app.post<{ Params: GetScenarioRequestParams; Body: Record<string, unknown> | undefined }>(
+    '/:scenarioId/prepare-avatar-traits',
+    { schema: { params: scenarioIdParamsSchema } },
+    async (request, reply) => {
+      // Explicit no-payload action: no fields to validate at the schema level
+      // (Fastify runs body schemas even when no body was sent), so unexpected
+      // fields are rejected at the API boundary with a plain guard instead.
+      if (request.body !== undefined && Object.keys(request.body).length > 0) {
+        return await reply
+          .status(400)
+          .send(fail('VALIDATION_ERROR', 'This action does not accept a request body.'))
+      }
+
+      try {
+        const output = await useCase.execute({ scenarioId: request.params.scenarioId })
+        return await reply.send(ok<PrepareAvatarTraitsResponse>(output))
       } catch (error) {
         return handleDomainError(error, reply)
       }

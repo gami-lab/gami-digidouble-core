@@ -834,6 +834,20 @@ Started on: 2026-07-19
 - verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web`, `apps/admin` all typecheck clean; `apps/core` lints clean; full `apps/core` unit suite passes (758 tests, up from 733)
 - deferred to later EPIC 8.1/8.2 slices (explicitly out of scope for this slice): the trigger-preparation HTTP endpoint, admin UI trait display, and EPIC 8.2 runtime prompt consumption of `computedTraits`
 
+### Current slice completed (explicit trigger-preparation HTTP endpoint)
+
+- added `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits`, wired directly into the existing `scenariosRoute` (scenario-scoped, alongside create/list avatars) so the previously-built `PrepareScenarioAvatarTraitsUseCase` is now reachable over HTTP; the route is an explicit action only — no `GET` route triggers trait computation
+- added canonical shared response ownership: `PrepareAvatarTraitsResponse` / `AvatarTraitPreparationResult` now live once in `packages/shared/src/web-contract-types.ts`; `PrepareScenarioAvatarTraitsUseCase`'s output type was updated to reuse them directly (`PrepareScenarioAvatarTraitsOutput = PrepareAvatarTraitsResponse`) instead of re-declaring the same discriminated union locally
+- confirmed `AvatarSummary.computedTraits` (added in the earlier fixed-schema slice) is already consistently returned by every avatar-read surface with no further changes needed: create avatar, update avatar, and list scenario avatars all already map `computedTraits: avatar.computedTraits ?? null`
+- the endpoint takes no request body (explicit no-payload action); an unexpected body field returns `400 VALIDATION_ERROR` via a small API-boundary guard in the handler rather than a JSON-schema `body` clause — Fastify runs `body` schemas even against a fully omitted body, so a strict `type: 'object'` schema would incorrectly reject the common "no body sent at all" call shape
+- unknown `scenarioId` returns `404 NOT_FOUND`; a scenario with zero avatars returns `200` with an empty `results` array (no special-casing needed, since the use case already iterates `listByScenarioId`)
+- route wiring reuses the same LLM role-resolution dependencies as `admin-runtime-actions` (`modelConfigRepository`, `llmAdapterRegistry`, `modelConfigFallback`) so scenario/avatar-scoped model overrides apply identically to trait preparation and to live avatar responses; `apps/core/src/index.ts` already threads all of these through `ServerAdapters`, so no production wiring changes were needed beyond `buildScenariosRouteOptions` in `apps/core/src/api/server.ts`
+- test coverage added:
+  - route-level unit tests (`apps/core/src/api/routes/prepare-avatar-traits.test.ts`): auth (401 x2), unexpected-body-field validation (400), no-body-at-all acceptance, `404` for unknown scenario, and a deterministic success path using a fake LLM adapter returning valid trait JSON — asserting `computedTraits` is `null` before preparation and populated after, both in the prepare response and in a subsequent `GET` avatars list
+  - mandatory stack-e2e file `apps/core/src/api/routes/prepare-avatar-traits.stack-e2e.test.ts`: auth, validation, and not-found always-on; an always-on null-provider block proving the full HTTP -> use case -> DB round trip (deterministic `failed`/`unparseable_output` outcome under the default null adapter, matching the existing `exchange.stack-e2e.test.ts` always-on pattern); a `describe.skipIf(isNullProvider)` real-provider block asserting genuine non-empty `computedTraits` when the stack is started with `LLM_PROVIDER` set to a real provider
+- verified no regressions: `packages/shared` and `apps/core` typecheck clean; existing `scenarios.test.ts`, `scenarios-management.test.ts`, and `avatars.test.ts` route suites still pass unchanged; full new route test file passes (7 tests)
+- deferred to later EPIC 8.1/8.2 slices (still out of scope for this slice): admin UI trait display/trigger button, and EPIC 8.2 runtime prompt consumption of `computedTraits`
+
 ---
 
 ## Sessions & Conversations
@@ -936,6 +950,7 @@ Started on: 2026-07-19
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (contract and source-ownership baseline)                    |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (fixed trait schema and avatar persistence)                 |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (scenario avatar trait preparation service)                 |
+| 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (explicit trigger-preparation HTTP endpoint)                |
 
 ---
 
@@ -950,7 +965,7 @@ Current implementation focus:
 - retrieval observability
 - public web app operational hardening
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
-- EPIC 8.1 (Avatar Trait Structuring) is in progress: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, and the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`) are complete; the trigger-preparation HTTP endpoint, admin UI trait display, and EPIC 8.2 runtime consumption remain
+- EPIC 8.1 (Avatar Trait Structuring) is in progress: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), and the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint are complete; admin UI trait display and EPIC 8.2 runtime consumption remain
 
 ---
 

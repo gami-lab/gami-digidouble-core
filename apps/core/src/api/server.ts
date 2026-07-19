@@ -261,6 +261,22 @@ function buildScenariosRouteOptions(
     ...(adapters.sessionRepository !== undefined
       ? { sessionRepository: adapters.sessionRepository }
       : {}),
+    knowledgeSourceRepository: withDefault(
+      adapters.knowledgeSourceRepository,
+      new InMemoryKnowledgeSourceRepository(),
+    ),
+    llmAdapter:
+      adapters.llmAdapter ??
+      createLlmAdapter(resolveServerLlmConfig(config), adapters.observabilityAdapter),
+    ...(adapters.modelConfigRepository !== undefined
+      ? { modelConfigRepository: adapters.modelConfigRepository }
+      : {}),
+    ...(adapters.llmAdapterRegistry !== undefined
+      ? { llmAdapterRegistry: adapters.llmAdapterRegistry }
+      : {}),
+    ...(adapters.modelConfigFallback !== undefined
+      ? { modelConfigFallback: adapters.modelConfigFallback }
+      : {}),
   }
 }
 

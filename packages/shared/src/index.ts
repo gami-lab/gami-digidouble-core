@@ -149,6 +149,8 @@ export type {
   CreateAvatarResponse,
   UpdateAvatarResponse,
   DeleteAvatarResponse,
+  AvatarTraitPreparationResult,
+  PrepareAvatarTraitsResponse,
   StartSessionRequest,
   StartSessionResponse,
   GetSessionResponse,

@@ -574,6 +574,50 @@ DELETE /v1/avatars/{avatarId}
 
 ---
 
+## Prepare Scenario Avatar Traits (EPIC 8.1)
+
+```text
+POST /v1/scenarios/{scenarioId}/prepare-avatar-traits
+```
+
+Explicit, scenario-scoped, synchronous action that (re)computes `AvatarComputedTraits`
+for every avatar in the scenario and persists the result via the existing narrow
+`saveComputedTraits` write path. This is an explicit preparation step, not runtime
+prompt assembly — it must never be triggered implicitly from a `GET` route, and it
+is rerunnable at any time (each run overwrites `computedTraits` with a fresh result;
+author-authored avatar fields are never touched).
+
+No request body — the route rejects a body containing any fields with
+`400 VALIDATION_ERROR`; sending no body at all is the expected call shape.
+
+Response: `ApiResponse<PrepareAvatarTraitsResponse>`
+
+```ts
+type PrepareAvatarTraitsResponse = {
+  scenarioId: string
+  results: AvatarTraitPreparationResult[]
+}
+
+type AvatarTraitPreparationResult =
+  | { avatarId: string; status: 'prepared'; computedTraits: AvatarComputedTraits }
+  | { avatarId: string; status: 'failed'; reason: string }
+```
+
+Behavior:
+
+- `404 NOT_FOUND` when `scenarioId` does not exist
+- one result per avatar in the scenario (empty `results` array for a scenario with no avatars)
+- per-avatar failures (unparseable LLM output, provider error) are isolated as a `failed`
+  entry and never fail the whole batch
+- uses the same `'avatar'` model-role resolution path as live avatar responses
+  (`avatar.llmOverride` -> `scenario.modelSelection` -> global config), so provider/model
+  choice for preparation matches the avatar's normal runtime configuration
+- source material is read only from existing canonical storage — avatar author fields,
+  `scenario.worldContext`, and `knowledge_sources` rows (`memory`/`world` types, inline
+  text only); no new storage or upload path is introduced by this endpoint
+
+---
+
 # Knowledge
 
 ## Register Knowledge Source
@@ -1081,6 +1125,11 @@ canonical types rather than re-declaring local request/response shapes.
 `AvatarComputedTraits` (EPIC 8.1) is defined once in `packages/shared/src/entity-types.ts`
 and re-exported (not re-declared) by `apps/core/src/domain/avatar/avatar.types.ts` for
 domain/internal use, following the same pattern as `AvatarLlmOverride`.
+
+`PrepareAvatarTraitsResponse` / `AvatarTraitPreparationResult` (EPIC 8.1) are defined once
+in `packages/shared/src/web-contract-types.ts`; the `PrepareScenarioAvatarTraitsUseCase`
+output type (`apps/core/.../prepare-scenario-avatar-traits.types.ts`) reuses them directly
+rather than re-declaring the same shape.
 
 ## Model Configuration Contracts (EPIC 6.1)
 

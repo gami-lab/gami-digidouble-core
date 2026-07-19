@@ -1,4 +1,5 @@
 import type {
+  AvatarComputedTraits,
   AvatarSummary,
   ConversationSummary,
   LifecycleStatus,
@@ -76,6 +77,20 @@ export type UpdateAvatarResponse = {
 export type DeleteAvatarResponse = {
   avatarId: string
   deleted: true
+}
+
+/**
+ * Per-avatar outcome of an explicit scenario-scoped trait preparation run
+ * (EPIC 8.1). `prepared` carries the freshly persisted `computedTraits`;
+ * `failed` isolates one avatar's error without failing the whole batch.
+ */
+export type AvatarTraitPreparationResult =
+  | { avatarId: string; status: 'prepared'; computedTraits: AvatarComputedTraits }
+  | { avatarId: string; status: 'failed'; reason: string }
+
+export type PrepareAvatarTraitsResponse = {
+  scenarioId: string
+  results: AvatarTraitPreparationResult[]
 }
 
 export type StartSessionRequest = {
