@@ -1,7 +1,11 @@
+// Canonical read shape — imported (not re-declared) so this seed script picks up
+// AvatarSummary changes (e.g. computedTraits) automatically.
+import type { AvatarSummary } from '@gami/shared'
 import type { KnowledgeFormat, KnowledgeType } from './setup-via-api.seed.js'
 
-// Mirrors the canonical `KnowledgeVisibilityPolicy` from `@gami/shared`; this script talks to
-// the API over HTTP only and intentionally does not import internal package types.
+export type { AvatarSummary }
+
+// Mirrors the canonical `KnowledgeVisibilityPolicy` from `@gami/shared` (out of scope for this pass).
 export type KnowledgeVisibilityPolicy = 'all' | 'avatars' | 'none'
 
 export type ApiEnvelope<T> = {
@@ -25,17 +29,6 @@ export type ScenarioSummary = {
   objectives: string[]
   worldContext: string
   avatarAvailability: ScenarioAvatarAvailability
-  config: Record<string, unknown>
-}
-
-export type AvatarSummary = {
-  avatarId: string
-  scenarioId: string
-  name: string
-  status: 'draft' | 'active' | 'archived'
-  personaPrompt: string
-  tone?: string
-  description?: string
   config: Record<string, unknown>
 }
 

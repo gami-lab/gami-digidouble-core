@@ -1,4 +1,4 @@
-import type { ConversationSummary, SessionSummary } from './entity-types.js'
+import type { AvatarSummary, ConversationSummary, SessionSummary } from './entity-types.js'
 import type { SessionMemorySummary } from './lifecycle-types.js'
 
 export type MessageMetadata = {
@@ -52,18 +52,26 @@ export type GetHistoryResponse = {
   memory?: SessionMemorySummary
 }
 
-export type AvailableAvatarSummary = {
-  avatarId: string
-  scenarioId: string
-  name: string
-  status: 'draft' | 'active' | 'archived'
-  personaPrompt: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  createdAt: string
-  updatedAt: string
-}
+/**
+ * Player-facing avatar summary for the "available avatars" endpoint.
+ *
+ * Deliberately narrower than the canonical `AvatarSummary`: it omits `config` (may hold
+ * GM-only scenario data) and `llmOverride` (internal routing detail). Derived via `Pick`
+ * from the canonical type so new AvatarSummary fields must be explicitly opted in here.
+ */
+export type AvailableAvatarSummary = Pick<
+  AvatarSummary,
+  | 'avatarId'
+  | 'scenarioId'
+  | 'name'
+  | 'status'
+  | 'personaPrompt'
+  | 'tone'
+  | 'description'
+  | 'adjustments'
+  | 'createdAt'
+  | 'updatedAt'
+>
 
 export type GetAvailableAvatarsResponse = {
   sessionId: string

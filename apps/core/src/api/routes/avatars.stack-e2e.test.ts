@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { ApiResponse } from '@gami/shared'
+import type {
+  ApiResponse,
+  CreateAvatarResponse,
+  ListScenarioAvatarsResponse,
+  UpdateAvatarResponse,
+} from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
@@ -11,31 +16,9 @@ type CreateScenarioResponse = {
   }
 }
 
-type CreateAvatarResponse = {
-  avatar: {
-    avatarId: string
-    scenarioId: string
-    updatedAt: string
-  }
-}
-
-type PatchAvatarResponse = {
-  avatar: {
-    avatarId: string
-    personaPrompt: string
-    updatedAt: string
-  }
-}
-
 type ListScenariosResponse = {
   scenarios: Array<{
     scenarioId: string
-  }>
-}
-
-type ListAvatarsResponse = {
-  avatars: Array<{
-    avatarId: string
   }>
 }
 
@@ -228,7 +211,8 @@ describe('Stack E2E — scenario/avatar management full flow', () => {
       headers: { 'x-api-key': API_KEY },
     })
     expect(listAvatarsRes.status).toBe(200)
-    const listAvatarsBody = (await listAvatarsRes.json()) as ApiResponse<ListAvatarsResponse>
+    const listAvatarsBody =
+      (await listAvatarsRes.json()) as ApiResponse<ListScenarioAvatarsResponse>
     expect(listAvatarsBody.data?.avatars.some((avatar) => avatar.avatarId === avatarId)).toBe(true)
 
     const deleteAvatarRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
@@ -326,7 +310,7 @@ describe('Stack E2E — PATCH /v1/avatars/:avatarId — success', () => {
         body: JSON.stringify({ personaPrompt: 'Patched prompt.' }),
       })
       expect(patchRes.status).toBe(200)
-      const patchBody = (await patchRes.json()) as ApiResponse<PatchAvatarResponse>
+      const patchBody = (await patchRes.json()) as ApiResponse<UpdateAvatarResponse>
       expect(patchBody.error).toBeNull()
       expect(patchBody.data?.avatar.personaPrompt).toBe('Patched prompt.')
       expect(patchBody.data?.avatar.avatarId).toBe(avatarId)
@@ -378,9 +362,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
         body: JSON.stringify({ llmOverride: { provider: 'openai', model: 'gpt-4o' } }),
       })
       expect(patchSetRes.status).toBe(200)
-      const patchSetBody = (await patchSetRes.json()) as ApiResponse<{
-        avatar: { llmOverride?: { provider?: string; model?: string } }
-      }>
+      const patchSetBody = (await patchSetRes.json()) as ApiResponse<UpdateAvatarResponse>
       expect(patchSetBody.data?.avatar.llmOverride).toEqual({
         provider: 'openai',
         model: 'gpt-4o',
@@ -446,9 +428,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
         headers: { 'x-api-key': API_KEY },
       })
       expect(listRes.status).toBe(200)
-      const listBody = (await listRes.json()) as ApiResponse<{
-        avatars: Array<{ avatarId: string; llmOverride?: { provider?: string; model?: string } }>
-      }>
+      const listBody = (await listRes.json()) as ApiResponse<ListScenarioAvatarsResponse>
       const listed = listBody.data?.avatars.find((avatar) => avatar.avatarId === avatarId)
       expect(listed?.llmOverride).toEqual({ provider: 'anthropic', model: 'claude-sonnet-4-6' })
 
@@ -458,9 +438,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
         body: JSON.stringify({ llmOverride: null }),
       })
       expect(patchClearRes.status).toBe(200)
-      const clearBody = (await patchClearRes.json()) as ApiResponse<{
-        avatar: { llmOverride?: { provider?: string; model?: string } }
-      }>
+      const clearBody = (await patchClearRes.json()) as ApiResponse<UpdateAvatarResponse>
       expect(clearBody.data?.avatar.llmOverride).toBeUndefined()
 
       await deleteAvatar(avatarId)

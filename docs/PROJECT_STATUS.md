@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: July 18, 2026
+Last updated: July 19, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -786,6 +786,28 @@ Completed on: 2026-07-18
 
 ---
 
+## EPIC 8.1 — Avatar Trait Structuring
+
+Status: 🚧 In Progress
+Started on: 2026-07-19
+
+### Current slice completed (contract and source-ownership baseline)
+
+- audited every avatar read contract that will need a `computedTraits` field in the next slice: `packages/shared/src/entity-types.ts` (`AvatarSummary`), avatar create/update responses, and the scenario avatar list response — all already funnel through the single canonical `AvatarSummary`/`web-contract-types.ts` ownership established in EPIC 6.1, so no changes were needed there
+- found and consolidated three real duplicate/near-duplicate avatar read shapes that would otherwise have needed repeated manual edits when `computedTraits` is added:
+  - `packages/shared/src/conversation-contract-types.ts`: `AvailableAvatarSummary` (the player-facing "available avatars" shape) was hand-typed as a near-copy of `AvatarSummary`; converted to `Pick<AvatarSummary, ...>` so it stays in sync automatically while still deliberately excluding `config`/`llmOverride` (documented in a code comment as an intentional narrowing, not an oversight)
+  - `apps/core/src/seed/murder-party/setup-via-api.api.ts`: the murder-party seed script hand-declared its own local `AvatarSummary` type instead of importing the canonical one from `@gami/shared`; now imports and re-exports it directly
+  - `apps/core/src/api/routes/avatars.stack-e2e.test.ts`: five separate hand-typed response fragments (`CreateAvatarResponse`, `PatchAvatarResponse`, `ListAvatarsResponse`, plus two inline `llmOverride` assertion shapes) replaced with the canonical `CreateAvatarResponse` / `UpdateAvatarResponse` / `ListScenarioAvatarsResponse` imported from `@gami/shared`
+- confirmed remaining avatar-shaped local types are legitimate, not duplicates, and left unchanged: `apps/core/src/seed/ai-guided-discovery.ts`'s `AiGuidedDiscoveryAvatarDefinition` and `apps/core/src/seed/murder-party/setup-via-api.seed.ts`'s `AvatarSeed` are creation-input fixtures (not read/response shapes); `apps/core/src/application/use-cases/list-scenario-avatars/list-scenario-avatars.types.ts`'s `ListScenarioAvatarsOutput` and `apps/core/src/application/use-cases/get-available-avatars/get-available-avatars.types.ts`'s local `AvatarSummary` alias both already import `AvatarSummary`/`AvailableAvatarSummary` from `@gami/shared` rather than redeclaring fields
+- confirmed canonical source-of-truth ownership for future trait-preparation inputs (no new storage introduced, per EPIC 8.1 scope for this slice):
+  - avatar author input remains the existing `avatars` fields (`description`, `tone`, `personaPrompt`, `config`)
+  - scenario-wide world context remains `scenarios.world_context` (`ScenarioSummary.worldContext`)
+  - supporting documents remain existing `knowledge_sources` rows, specifically `knowledgeType: 'memory' | 'world'`; no separate "avatar trait source" table, upload path, or config blob was added
+- verified no regressions: `packages/shared`, `apps/core`, `apps/console`, `apps/web`, `apps/admin` all typecheck clean; `apps/core` and `packages/shared` lint clean; touched test suites pass (core 92 tests across avatar/seed/get-available-avatars files, web 18 tests, console 19 tests)
+- deferred to the next EPIC 8.1 slice (per this slice's explicit scope): the `computedTraits` schema itself, persistence changes, LLM preparation behavior, new endpoint behavior, and admin UI changes
+
+---
+
 ## Sessions & Conversations
 
 - `POST /v1/sessions`
@@ -883,6 +905,7 @@ Completed on: 2026-07-18
 | 2026-07-09 | EPIC 6.1 — Scenario Builder v1 (final hardening: seed parity, tests, doc sync)                  |
 | 2026-07-12 | EPIC 6.1 — Scenario Builder v1 (audit remediation: knowledge authoring + visibility invariants) |
 | 2026-07-18 | EPIC 6.1 — Scenario Builder v1 (audit remediation: knowledge updates + schema alignment)        |
+| 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (contract and source-ownership baseline)                    |
 
 ---
 
@@ -897,6 +920,7 @@ Current implementation focus:
 - retrieval observability
 - public web app operational hardening
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
+- EPIC 8.1 (Avatar Trait Structuring) is in progress: contract/source-ownership baseline complete; `computedTraits` schema, persistence, and LLM preparation behavior remain
 
 ---
 
