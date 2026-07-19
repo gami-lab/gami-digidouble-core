@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { AvatarComputedTraits } from '@gami/shared'
 import type { ILlmAdapter, LlmRequest } from '../../ports/ILlmAdapter.js'
+import type { IObservabilityAdapter, TraceEvent } from '../../ports/IObservabilityAdapter.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
+import { LlmError } from '../../../infrastructure/llm/llm.error.js'
 import { PrepareScenarioAvatarTraitsUseCase } from './prepare-scenario-avatar-traits.use-case.js'
 
 const sampleTraits: AvatarComputedTraits = {
@@ -86,6 +88,37 @@ function createLlm(
       const content = typeof avatarId === 'string' ? (responsesByAvatarId[avatarId] ?? '{}') : '{}'
       return llmResponse(content)
     }),
+  }
+}
+
+class FailingSaveAvatarRepository extends InMemoryAvatarRepository {
+  constructor(
+    initialData: AvatarConfig[],
+    private readonly failingAvatarId: string,
+  ) {
+    super(initialData)
+  }
+
+  override async saveComputedTraits(
+    avatarId: string,
+    computedTraits: AvatarComputedTraits | null,
+  ): Promise<AvatarConfig> {
+    if (avatarId === this.failingAvatarId) {
+      throw new Error('database write failed')
+    }
+    return await super.saveComputedTraits(avatarId, computedTraits)
+  }
+}
+
+function createObservabilitySpy(): IObservabilityAdapter & { events: TraceEvent[] } {
+  const events: TraceEvent[] = []
+  return {
+    events,
+    trace: vi.fn((event: TraceEvent) => {
+      events.push(event)
+      return Promise.resolve()
+    }),
+    flush: vi.fn(() => Promise.resolve()),
   }
 }
 
@@ -211,7 +244,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — output and source gathering', (
   })
 })
 
-describe('PrepareScenarioAvatarTraitsUseCase — failure isolation and recomputation', () => {
+describe('PrepareScenarioAvatarTraitsUseCase — failure isolation', () => {
   it('isolates a failed avatar so other avatars in the scenario still succeed', async () => {
     const avatarRepository = new InMemoryAvatarRepository([
       makeAvatar({ avatarId: 'avatar_good', name: 'Good' }),
@@ -239,6 +272,78 @@ describe('PrepareScenarioAvatarTraitsUseCase — failure isolation and recomputa
     expect(badAvatar?.computedTraits).toBeUndefined()
   })
 
+  it('normalizes provider and persistence failures while tracing a batch summary', async () => {
+    const avatarRepository = new FailingSaveAvatarRepository(
+      [
+        makeAvatar({ avatarId: 'avatar_good', name: 'Good' }),
+        makeAvatar({ avatarId: 'avatar_llm', name: 'LLM fail' }),
+        makeAvatar({ avatarId: 'avatar_persist', name: 'Persistence fail' }),
+      ],
+      'avatar_persist',
+    )
+    const observability = createObservabilitySpy()
+    const llm: ILlmAdapter = {
+      complete: vi.fn((request: LlmRequest) => {
+        const avatarId = request.trace?.metadata?.['avatarId']
+        if (avatarId === 'avatar_llm') {
+          throw new LlmError('openai', 'raw provider message', 502)
+        }
+        return llmResponse(JSON.stringify(sampleTraits))
+      }),
+    }
+    const useCase = new PrepareScenarioAvatarTraitsUseCase(
+      new InMemoryScenarioRepository([makeScenario()]),
+      avatarRepository,
+      new InMemoryKnowledgeSourceRepository(),
+      llm,
+      undefined,
+      undefined,
+      undefined,
+      observability,
+    )
+
+    const output = await useCase.execute({ scenarioId: 'scenario_1' })
+
+    expect(output.results.find((result) => result.avatarId === 'avatar_good')).toMatchObject({
+      status: 'prepared',
+      computedTraits: sampleTraits,
+    })
+    expect(output.results.find((result) => result.avatarId === 'avatar_llm')).toEqual({
+      avatarId: 'avatar_llm',
+      status: 'failed',
+      reason: 'llm_error',
+    })
+    expect(output.results.find((result) => result.avatarId === 'avatar_persist')).toEqual({
+      avatarId: 'avatar_persist',
+      status: 'failed',
+      reason: 'persistence_error',
+    })
+
+    const failedAvatar = await avatarRepository.findById('avatar_persist')
+    expect(failedAvatar?.computedTraits).toBeUndefined()
+
+    expect(observability.events).toHaveLength(1)
+    expect(observability.events[0]).toMatchObject({
+      event: 'avatar.trait_preparation.completed',
+      output: {
+        preparedCount: 1,
+        failedCount: 2,
+      },
+      metadata: {
+        scenarioId: 'scenario_1',
+        avatarCount: 3,
+        failureReasons: ['llm_error', 'persistence_error'],
+      },
+    })
+    expect(observability.events[0]?.metadata?.['preparedAvatarIds']).toEqual(['avatar_good'])
+    expect(observability.events[0]?.metadata?.['failedAvatarIds']).toEqual([
+      'avatar_llm',
+      'avatar_persist',
+    ])
+  })
+})
+
+describe('PrepareScenarioAvatarTraitsUseCase — recomputation', () => {
   it('recomputation overwrites derived traits without mutating original avatar fields', async () => {
     const avatarRepository = new InMemoryAvatarRepository([
       makeAvatar({

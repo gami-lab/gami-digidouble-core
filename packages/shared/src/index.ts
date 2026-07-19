@@ -15,6 +15,12 @@ export {
   isModelProviderName,
   isModelSelectionProviderName,
 } from './model-catalog.js'
+export {
+  AVATAR_COMPUTED_TRAIT_KEYS,
+  AVATAR_COMPUTED_TRAIT_LABELS,
+  coerceAvatarComputedTraits,
+  createEmptyAvatarComputedTraits,
+} from './avatar-computed-traits.js'
 export type {
   ModelPresetOption,
   ModelProfile,
@@ -149,6 +155,7 @@ export type {
   CreateAvatarResponse,
   UpdateAvatarResponse,
   DeleteAvatarResponse,
+  AvatarTraitPreparationFailureReason,
   AvatarTraitPreparationResult,
   PrepareAvatarTraitsResponse,
   StartSessionRequest,

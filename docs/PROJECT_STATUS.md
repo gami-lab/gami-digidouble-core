@@ -874,6 +874,20 @@ Completed on: 2026-07-19
 - verified (not just re-declared) all Definition-of-Done claims already logged in the prior slices by running the actual suites rather than trusting the doc: `pnpm lint` and `pnpm typecheck` clean across all five packages; full unit suites green (core 775 tests, up from 768; admin 86; web 28; console 48); `pnpm --filter @gami/core test:integration-e2e` green against a real Postgres instance (163 tests, including the new repository-level recomputation test); `pnpm --filter @gami/core test:coverage` passes the 80% gate; full `pnpm --filter @gami/core test:stack-e2e` green against a real Docker stack including the new rerunnability test, both under the default null provider and under a real configured LLM provider (103 tests)
 - no product code changed in this slice — every change is a new or corrected test, plus the one contract-duplication fix in a test file; this matches the slice's explicit "no new product scope" constraint
 - docs synced as part of this slice (not deferred): `docs/TEST_COVERAGE_PLAN.md` Avatar Trait Preparation section updated to describe the persistence-tier and stack-e2e-rerun coverage now in place; `docs/EPICS.md` EPIC 8.1 heading marked `✅ Done` to match the established convention used by other completed EPICs; `docs/API_CONTRACT.md` and `docs/DATA_MODEL.md` reviewed and found already accurate (no changes needed — the `computedTraits`/`AvatarComputedTraits`/`prepare-avatar-traits` sections already matched the shipped behavior); `docs/ARCHITECTURE.md` and `docs/TEST_STRATEGY.md` reviewed and left unchanged (no material design or test-ownership change occurred in this hardening-only slice)
+
+### EPIC 8.1 remediation completed (A-quality hardening pass)
+
+- tightened the public `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` contract so any parsed JSON body is rejected with `400 VALIDATION_ERROR`; the route now honors its documented "no request body" semantics for `null`, scalar, boolean, array, and object payloads alike
+- normalized per-avatar preparation failures to the finite public code set (`unparseable_output`, `llm_error`, `persistence_error`, `unknown_error`) instead of leaking raw provider or repository messages through the API result
+- added batch-level observability for trait preparation runs (`avatar.trait_preparation.completed`) with prepared/failed counts, avatar ids, and failure reasons so operators can diagnose partial failures without scraping individual results
+- centralized the canonical trait-field metadata in `packages/shared/src/avatar-computed-traits.ts`, then reused it for parsing, persistence coercion, and admin rendering to reduce field-addition blast radius and schema-drift risk
+- hardened `PostgresAvatarRepository` reads so malformed persisted `computed_traits` JSON is coerced back into the canonical seven-field shape instead of leaking invalid contract data to API consumers
+- expanded behavioral proof:
+  - route/unit and stack-e2e tests now reject every bodied JSON shape, not only unexpected object fields
+  - use-case tests now prove sanitized `llm_error` / `persistence_error` results and summary tracing
+  - Postgres integration tests now prove malformed `computed_traits` rows are normalized on read
+  - the real-provider stack-e2e fixture now checks concise bounded fields, avatar-specific fact grounding, and absence of unrelated world-detail copying
+- updated the EPIC README checklist and source-of-truth docs to match the remediated behavior and test guarantees
 - this closes out EPIC 8.1 end-to-end, including the hardening/test-closure/doc-sync gate that the EPIC's own execution plan calls for as a final step
 
 ---

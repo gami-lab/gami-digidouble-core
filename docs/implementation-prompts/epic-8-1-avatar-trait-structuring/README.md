@@ -39,14 +39,14 @@ The admin slice should not be started until the endpoint and shared contracts ar
 
 ## Definition of Done
 
-- [ ] A fixed seven-field avatar trait schema exists and has one canonical owner across domain and shared HTTP contracts.
-- [ ] Avatar read DTOs expose `computedTraits: AvatarComputedTraits | null` with stable field names.
-- [ ] Trait source ownership is explicit: avatar author input stays on the avatar, scenario context stays on the scenario, supporting documents are reused from existing knowledge sources.
-- [ ] Avatars persist derived traits in a dedicated field or column, not inside free-form prompt text and not inside ad-hoc config blobs.
-- [ ] An explicit scenario-scoped API action computes or recomputes traits for the scenario avatars.
-- [ ] Preparation reuses the existing LLM abstraction layer and does not call provider SDKs directly from business logic.
-- [ ] Generated traits stay concise, avatar-specific, and grounded in the provided sources.
-- [ ] Existing authoring inputs remain preserved for regeneration.
-- [ ] The admin app can trigger preparation and inspect the resulting traits without introducing editable trait fields.
-- [ ] Unit, integration/E2E, and stack-e2e coverage exists where required by the touched surfaces.
-- [ ] `docs/PROJECT_STATUS.md` and every impacted source-of-truth doc are updated before the EPIC is considered complete.
+- [x] A fixed seven-field avatar trait schema exists and has one canonical owner across domain and shared HTTP contracts.
+- [x] Avatar read DTOs expose `computedTraits: AvatarComputedTraits | null` with stable field names.
+- [x] Trait source ownership is explicit: avatar author input stays on the avatar, scenario context stays on the scenario, supporting documents are reused from existing knowledge sources.
+- [x] Avatars persist derived traits in a dedicated field or column, not inside free-form prompt text and not inside ad-hoc config blobs.
+- [x] An explicit scenario-scoped API action computes or recomputes traits for the scenario avatars.
+- [x] Preparation reuses the existing LLM abstraction layer and does not call provider SDKs directly from business logic.
+- [x] Generated traits stay concise, avatar-specific, and grounded in the provided sources.
+- [x] Existing authoring inputs remain preserved for regeneration.
+- [x] The admin app can trigger preparation and inspect the resulting traits without introducing editable trait fields.
+- [x] Unit, integration/E2E, and stack-e2e coverage exists where required by the touched surfaces.
+- [x] `docs/PROJECT_STATUS.md` and every impacted source-of-truth doc are updated before the EPIC is considered complete.

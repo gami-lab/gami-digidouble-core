@@ -3,6 +3,7 @@ import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type { ILlmAdapter } from '../../ports/ILlmAdapter.js'
 import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
+import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../../domain/errors.js'
@@ -10,6 +11,7 @@ import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.
 import type { ModelConfig } from '../../../domain/model-config/index.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { LlmAdapterRegistry } from '../../../infrastructure/llm/llm-adapter-registry.js'
+import { LlmError } from '../../../infrastructure/llm/llm.error.js'
 import {
   logResolvedLlmCall,
   resolveRoleLlmCall,
@@ -23,6 +25,7 @@ import {
   TRAIT_PREPARATION_SYSTEM_PROMPT,
 } from './prepare-scenario-avatar-traits.prompt.js'
 import type {
+  AvatarTraitPreparationFailureReason,
   AvatarTraitPreparationResult,
   PrepareScenarioAvatarTraitsInput,
   PrepareScenarioAvatarTraitsOutput,
@@ -45,6 +48,7 @@ export class PrepareScenarioAvatarTraitsUseCase {
     private readonly modelConfigRepository?: IModelConfigRepository,
     private readonly llmAdapterRegistry?: LlmAdapterRegistry,
     private readonly modelConfigFallback?: ModelConfig,
+    private readonly observability?: IObservabilityAdapter,
   ) {}
 
   async execute(
@@ -62,6 +66,8 @@ export class PrepareScenarioAvatarTraitsUseCase {
     for (const avatar of avatars) {
       results.push(await this.prepareOneAvatar({ avatar, scenario, memorySources, worldSources }))
     }
+
+    await this.tracePreparationSummary(scenario.scenarioId, results)
 
     return { scenarioId: scenario.scenarioId, results }
   }
@@ -82,24 +88,26 @@ export class PrepareScenarioAvatarTraitsUseCase {
     memorySources: KnowledgeSource[]
     worldSources: KnowledgeSource[]
   }): Promise<AvatarTraitPreparationResult> {
+    let response: Awaited<ReturnType<ILlmAdapter['complete']>>
     try {
-      const response = await this.callTraitPreparationLlm(args)
-      const parsed = parseTraitPreparationOutput(response.content)
-      if (parsed === null) {
-        return { avatarId: args.avatar.avatarId, status: 'failed', reason: 'unparseable_output' }
-      }
-
-      const normalized = normalizeComputedTraits(parsed)
-      await this.avatarRepository.saveComputedTraits(args.avatar.avatarId, normalized)
-
-      return { avatarId: args.avatar.avatarId, status: 'prepared', computedTraits: normalized }
+      response = await this.callTraitPreparationLlm(args)
     } catch (error) {
-      return {
-        avatarId: args.avatar.avatarId,
-        status: 'failed',
-        reason: error instanceof Error ? error.message : 'unknown_error',
-      }
+      return buildFailedResult(args.avatar.avatarId, classifyLlmFailure(error))
     }
+
+    const parsed = parseTraitPreparationOutput(response.content)
+    if (parsed === null) {
+      return buildFailedResult(args.avatar.avatarId, 'unparseable_output')
+    }
+
+    const normalized = normalizeComputedTraits(parsed)
+    try {
+      await this.avatarRepository.saveComputedTraits(args.avatar.avatarId, normalized)
+    } catch {
+      return buildFailedResult(args.avatar.avatarId, 'persistence_error')
+    }
+
+    return { avatarId: args.avatar.avatarId, status: 'prepared', computedTraits: normalized }
   }
 
   private async callTraitPreparationLlm(args: {
@@ -141,4 +149,50 @@ export class PrepareScenarioAvatarTraitsUseCase {
       },
     })
   }
+
+  private async tracePreparationSummary(
+    scenarioId: string,
+    results: AvatarTraitPreparationResult[],
+  ): Promise<void> {
+    if (this.observability === undefined) return
+
+    const preparedResults = results.filter(
+      (result): result is Extract<AvatarTraitPreparationResult, { status: 'prepared' }> =>
+        result.status === 'prepared',
+    )
+    const failedResults = results.filter((result) => result.status === 'failed')
+
+    try {
+      await this.observability.trace({
+        requestId: crypto.randomUUID(),
+        event: 'avatar.trait_preparation.completed',
+        output: {
+          preparedCount: preparedResults.length,
+          failedCount: failedResults.length,
+        },
+        metadata: {
+          scenarioId,
+          avatarCount: results.length,
+          preparedAvatarIds: preparedResults.map((result) => result.avatarId),
+          failedAvatarIds: failedResults.map((result) => result.avatarId),
+          failureReasons: [...new Set(failedResults.map((result) => result.reason))],
+        },
+      })
+    } catch (error) {
+      console.error('[avatar.trait_preparation] Failed to record summary trace', error)
+    }
+  }
+}
+
+function buildFailedResult(
+  avatarId: string,
+  reason: AvatarTraitPreparationFailureReason,
+): AvatarTraitPreparationResult {
+  return { avatarId, status: 'failed', reason }
+}
+
+function classifyLlmFailure(error: unknown): AvatarTraitPreparationFailureReason {
+  if (error instanceof LlmError) return 'llm_error'
+  if (error instanceof Error) return 'llm_error'
+  return 'unknown_error'
 }

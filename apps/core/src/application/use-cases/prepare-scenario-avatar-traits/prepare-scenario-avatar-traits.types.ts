@@ -1,6 +1,10 @@
-import type { AvatarTraitPreparationResult, PrepareAvatarTraitsResponse } from '@gami/shared'
+import type {
+  AvatarTraitPreparationFailureReason,
+  AvatarTraitPreparationResult,
+  PrepareAvatarTraitsResponse,
+} from '@gami/shared'
 
-export type { AvatarTraitPreparationResult }
+export type { AvatarTraitPreparationFailureReason, AvatarTraitPreparationResult }
 
 export type PrepareScenarioAvatarTraitsInput = {
   scenarioId: string

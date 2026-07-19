@@ -248,5 +248,35 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
       () => avatarRepo,
       () => scenarioId,
     )
+
+    it('normalizes malformed persisted computed_traits into the canonical seven-field shape', async () => {
+      const created = await avatarRepo.create({
+        scenarioId,
+        name: 'Malformed Traits Avatar',
+        personaPrompt: 'Prompt.',
+      })
+
+      await sql`
+        UPDATE avatars
+        SET computed_traits = ${sql.json({
+          identity: ['Valid identity', 42, null],
+          personality: 'not-an-array',
+          extraField: ['discarded'],
+        })}
+        WHERE id = ${created.avatarId.replace('avatar_', '')}
+      `
+
+      const found = await avatarRepo.findById(created.avatarId)
+
+      expect(found?.computedTraits).toEqual({
+        identity: ['Valid identity'],
+        personality: [],
+        speakingStyle: [],
+        background: [],
+        timeline: [],
+        currentSituation: [],
+        behaviouralRules: [],
+      })
+    })
   })
 })

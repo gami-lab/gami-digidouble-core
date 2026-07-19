@@ -1,5 +1,5 @@
 import type { JSONValue, Sql } from 'postgres'
-import { isModelSelectionProviderName } from '@gami/shared'
+import { coerceAvatarComputedTraits, isModelSelectionProviderName } from '@gami/shared'
 import type {
   CreateAvatarParams,
   IAvatarRepository,
@@ -86,14 +86,13 @@ function applyLlmOverride(
 }
 
 function normalizeComputedTraits(value: unknown): AvatarComputedTraits | undefined {
-  const record = asRecord(value)
-  if (record !== null) return record as unknown as AvatarComputedTraits
+  const normalized = coerceAvatarComputedTraits(value)
+  if (normalized !== null) return normalized
 
   if (typeof value === 'string') {
     try {
       const parsed: unknown = JSON.parse(value)
-      const parsedRecord = asRecord(parsed)
-      return parsedRecord !== null ? (parsedRecord as unknown as AvatarComputedTraits) : undefined
+      return coerceAvatarComputedTraits(parsed) ?? undefined
     } catch {
       return undefined
     }

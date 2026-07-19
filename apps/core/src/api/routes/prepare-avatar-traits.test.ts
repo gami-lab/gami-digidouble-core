@@ -85,12 +85,19 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — auth', () => 
 })
 
 describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — validation', () => {
-  it('returns 400 when the request body has unexpected fields', async () => {
+  it.each([
+    { label: 'object fields', payload: JSON.stringify({ avatarIds: ['avatar_1'] }) },
+    { label: 'null JSON', payload: 'null' },
+    { label: 'number JSON', payload: '5' },
+    { label: 'boolean JSON', payload: 'true' },
+    { label: 'array JSON', payload: '[]' },
+    { label: 'string JSON', payload: '"unexpected"' },
+  ])('returns 400 when a bodied request sends $label', async ({ payload }) => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/scenarios/scenario_unknown/prepare-avatar-traits',
       headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
-      payload: { avatarIds: ['avatar_1'] },
+      payload,
     })
 
     expect(response.statusCode).toBe(400)

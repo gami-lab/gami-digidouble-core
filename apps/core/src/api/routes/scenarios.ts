@@ -14,6 +14,7 @@ import type { IAvatarRepository } from '../../application/ports/IAvatarRepositor
 import type { IKnowledgeSourceRepository } from '../../application/ports/IKnowledgeSourceRepository.js'
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
+import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { CreateAvatarUseCase } from '../../application/use-cases/create-avatar/create-avatar.use-case.js'
@@ -57,6 +58,7 @@ export type ScenariosRouteOptions = {
   sessionRepository?: ISessionRepository
   knowledgeSourceRepository?: IKnowledgeSourceRepository
   llmAdapter: ILlmAdapter
+  observabilityAdapter?: IObservabilityAdapter
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
@@ -246,6 +248,7 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
     options.modelConfigRepository,
     options.llmAdapterRegistry,
     options.modelConfigFallback,
+    options.observabilityAdapter,
   )
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
@@ -409,14 +412,11 @@ function registerPrepareAvatarTraitsRoute(
   app: FastifyInstance,
   useCase: PrepareScenarioAvatarTraitsUseCase,
 ): void {
-  app.post<{ Params: GetScenarioRequestParams; Body: Record<string, unknown> | undefined }>(
+  app.post<{ Params: GetScenarioRequestParams; Body: unknown }>(
     '/:scenarioId/prepare-avatar-traits',
     { schema: { params: scenarioIdParamsSchema } },
     async (request, reply) => {
-      // Explicit no-payload action: no fields to validate at the schema level
-      // (Fastify runs body schemas even when no body was sent), so unexpected
-      // fields are rejected at the API boundary with a plain guard instead.
-      if (request.body !== undefined && Object.keys(request.body).length > 0) {
+      if (request.body !== undefined) {
         return await reply
           .status(400)
           .send(fail('VALIDATION_ERROR', 'This action does not accept a request body.'))

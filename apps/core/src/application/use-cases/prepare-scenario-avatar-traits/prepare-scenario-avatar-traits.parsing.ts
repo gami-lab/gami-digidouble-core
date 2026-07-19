@@ -1,15 +1,5 @@
+import { AVATAR_COMPUTED_TRAIT_KEYS, coerceAvatarComputedTraits } from '@gami/shared'
 import type { AvatarComputedTraits } from '@gami/shared'
-
-/** Single source of truth for the fixed seven-field trait schema (EPIC 8.1). */
-const TRAIT_FIELDS = [
-  'identity',
-  'personality',
-  'speakingStyle',
-  'background',
-  'timeline',
-  'currentSituation',
-  'behaviouralRules',
-] as const satisfies readonly (keyof AvatarComputedTraits)[]
 
 const MAX_ITEMS_PER_FIELD = 7
 
@@ -30,13 +20,7 @@ export function parseTraitPreparationOutput(content: string): AvatarComputedTrai
   } catch {
     return null
   }
-  if (!isRecord(parsed)) return null
-
-  const result = {} as AvatarComputedTraits
-  for (const field of TRAIT_FIELDS) {
-    result[field] = readStringArray(parsed[field])
-  }
-  return result
+  return coerceAvatarComputedTraits(parsed)
 }
 
 /**
@@ -46,7 +30,7 @@ export function parseTraitPreparationOutput(content: string): AvatarComputedTrai
  */
 export function normalizeComputedTraits(raw: AvatarComputedTraits): AvatarComputedTraits {
   const result = {} as AvatarComputedTraits
-  for (const field of TRAIT_FIELDS) {
+  for (const field of AVATAR_COMPUTED_TRAIT_KEYS) {
     result[field] = normalizeField(raw[field])
   }
   return result
@@ -63,15 +47,6 @@ function normalizeField(items: string[]): string[] {
     if (normalized.length >= MAX_ITEMS_PER_FIELD) break
   }
   return normalized
-}
-
-function readStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value.filter((item): item is string => typeof item === 'string')
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function stripMarkdownFences(content: string): string {

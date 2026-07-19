@@ -93,13 +93,16 @@ Must test:
   create/list routes and their stack-e2e coverage also assert `computedTraits: null` directly
   (not only the trait-preparation-specific route test)
 - route: `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` — auth (401 x2), request-body
-  rejection when unexpected fields are sent (400), `404` for unknown scenario, and a
-  deterministic success path using a fake LLM adapter that returns valid trait JSON
+  rejection for any bodied JSON request (object, array, string, number, boolean, `null`)
+  with `400`, `404` for unknown scenario, and a deterministic success path using a fake
+  LLM adapter that returns valid trait JSON
 - stack-e2e: auth, validation, not-found always-on; an always-on null-provider path proving
   the full HTTP -> use case -> DB round trip (deterministic `failed`/`unparseable_output`
   outcome under the null adapter); a rerunnability check that the endpoint can be called twice
   in a row and persists a fresh result each time; a `describe.skipIf` real-provider block
-  asserting genuine non-empty `computedTraits` when the stack is started with a real provider key
+  asserting genuine prepared `computedTraits` when the stack is started with a real provider key,
+  including bounded field sizes, avatar-specific source grounding, and absence of unrelated
+  generic world-context copying for a curated fixture
 
 Do not test prose quality of generated traits — only structure, persistence, and boundary behavior.
 

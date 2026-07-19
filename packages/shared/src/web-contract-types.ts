@@ -79,6 +79,12 @@ export type DeleteAvatarResponse = {
   deleted: true
 }
 
+export type AvatarTraitPreparationFailureReason =
+  | 'unparseable_output'
+  | 'llm_error'
+  | 'persistence_error'
+  | 'unknown_error'
+
 /**
  * Per-avatar outcome of an explicit scenario-scoped trait preparation run
  * (EPIC 8.1). `prepared` carries the freshly persisted `computedTraits`;
@@ -86,7 +92,7 @@ export type DeleteAvatarResponse = {
  */
 export type AvatarTraitPreparationResult =
   | { avatarId: string; status: 'prepared'; computedTraits: AvatarComputedTraits }
-  | { avatarId: string; status: 'failed'; reason: string }
+  | { avatarId: string; status: 'failed'; reason: AvatarTraitPreparationFailureReason }
 
 export type PrepareAvatarTraitsResponse = {
   scenarioId: string

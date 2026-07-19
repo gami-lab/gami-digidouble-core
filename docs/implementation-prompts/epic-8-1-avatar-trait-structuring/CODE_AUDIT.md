@@ -210,3 +210,56 @@ Minimal steps needed to reach A:
 - Rework before close
 
 The implementation is close, but I would not close the EPIC cleanly while the public preparation route still violates its own no-body contract and the headline trait-quality behaviors remain unproven by tests.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Fixed the `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` API boundary so any parsed JSON body value is rejected with `400 VALIDATION_ERROR`; only a truly bodyless request is accepted.
+- Normalized trait-preparation failure output to a finite public code set (`unparseable_output`, `llm_error`, `persistence_error`, `unknown_error`) and stopped leaking raw provider/repository error text through API results.
+- Added batch-level observability for scenario trait preparation runs with prepared/failed counts, avatar ids, and failure reasons.
+- Centralized canonical trait-field ownership in `packages/shared/src/avatar-computed-traits.ts` and reused it across parsing, repository coercion, and admin rendering to reduce schema-drift blast radius.
+- Hardened `PostgresAvatarRepository` reads so malformed persisted `computed_traits` data is coerced back into the canonical seven-field shape before reaching consumers.
+- Strengthened tests:
+  - route/unit and stack-e2e validation for `null`, scalar, boolean, string, array, and object JSON bodies
+  - use-case behavior for sanitized failure reasons and batch summary tracing
+  - Postgres integration coverage for malformed persisted trait JSON
+  - real-provider stack-e2e assertions for bounded field size, avatar-specific grounding, and absence of unrelated world-detail copying
+- Synced source-of-truth docs and the EPIC README checklist with the remediated behavior.
+
+### Findings Resolved
+
+- High: bodyless route validation bug
+- High: missing behavioral proof for concise/avatar-specific/grounded trait generation
+- Medium: Postgres read-path trusting malformed `computed_traits`
+- Medium: raw per-avatar failure leakage and missing batch observability
+- Low: trait-field evolution blast radius / duplicated structural metadata
+- Documentation gap: stale EPIC README DoD checklist
+
+### Findings Deferred
+
+- Provider-backed stack-e2e execution was not run in this environment because the required Docker stack at `http://localhost:3000` was not available during remediation. The test coverage was strengthened in code, but live-provider execution still depends on that external setup.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`pnpm test:coverage`; `@gami/core` all files `86.58%` statements, `84.77%` branches, `96.62%` functions, `86.58%` lines)
+
+### Final Feature Confidence
+
+- Fixed trait schema ownership: High
+- Avatar persistence and read DTOs: High
+- Explicit scenario-scoped preparation action and no-body HTTP contract: High
+- Per-avatar failure isolation and operator observability: High
+- Admin trigger and read-only inspection: High
+- Grounded/avatar-specific/concise trait generation: High in repository test design, with live-provider execution still environment-dependent
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- The provider-gated stack-e2e test for grounded trait generation still requires a running Docker stack plus real provider credentials to execute end-to-end; this is an environment dependency, not a code gap.

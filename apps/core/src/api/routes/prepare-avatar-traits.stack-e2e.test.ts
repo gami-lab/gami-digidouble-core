@@ -13,7 +13,12 @@
  * real provider key, the gated block below asserts genuine prepared traits.
  */
 import { describe, expect, it } from 'vitest'
-import type { ApiResponse, PrepareAvatarTraitsResponse } from '@gami/shared'
+import {
+  AVATAR_COMPUTED_TRAIT_KEYS,
+  type ApiResponse,
+  type AvatarComputedTraits,
+  type PrepareAvatarTraitsResponse,
+} from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
@@ -57,11 +62,18 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
 })
 
 describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits — validation', () => {
-  it('rejects a request body with unexpected fields (400)', async () => {
+  it.each([
+    { label: 'object fields', body: JSON.stringify({ avatarIds: ['avatar_1'] }) },
+    { label: 'null JSON', body: 'null' },
+    { label: 'number JSON', body: '5' },
+    { label: 'boolean JSON', body: 'true' },
+    { label: 'array JSON', body: '[]' },
+    { label: 'string JSON', body: '"unexpected"' },
+  ])('rejects $label request bodies (400)', async ({ body: requestBody }) => {
     const res = await fetch(UNKNOWN_ENDPOINT, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ avatarIds: ['avatar_1'] }),
+      body: requestBody,
     })
 
     expect(res.status).toBe(400)
@@ -111,6 +123,27 @@ async function createScenarioAndAvatar(): Promise<{ scenarioId: string; avatarId
   return { scenarioId, avatarId }
 }
 
+async function createKnowledgeSource(args: {
+  scenarioId: string
+  name: string
+  knowledgeType: 'memory' | 'world'
+  inlineText: string
+}): Promise<void> {
+  const createSourceRes = await fetch(`${APP_URL}/v1/knowledge-sources`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({
+      scenarioId: args.scenarioId,
+      name: args.name,
+      knowledgeType: args.knowledgeType,
+      format: 'text',
+      uriOrPath: `/tmp/${args.name.toLowerCase().replaceAll(' ', '-')}.txt`,
+      metadata: { inlineText: args.inlineText },
+    }),
+  })
+  expect(createSourceRes.status).toBe(201)
+}
+
 async function deleteAvatar(avatarId: string): Promise<void> {
   await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
     method: 'DELETE',
@@ -130,6 +163,48 @@ async function deleteScenario(scenarioId: string): Promise<void> {
 // (`unparseable_output`), which still proves the full HTTP -> use case ->
 // DB round trip works.
 const isNullProvider = (process.env['LLM_PROVIDER'] ?? 'null') === 'null'
+
+function flattenTraits(traits: AvatarComputedTraits): string[] {
+  return AVATAR_COMPUTED_TRAIT_KEYS.flatMap((key) => traits[key])
+}
+
+async function prepareAvatarTraits(
+  scenarioId: string,
+): Promise<ApiResponse<PrepareAvatarTraitsResponse>> {
+  const res = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/prepare-avatar-traits`, {
+    method: 'POST',
+    headers: noBodyAuthHeaders(),
+  })
+
+  expect(res.status).toBe(200)
+  return (await res.json()) as ApiResponse<PrepareAvatarTraitsResponse>
+}
+
+async function listScenarioAvatar(
+  scenarioId: string,
+  avatarId: string,
+): Promise<{ avatarId: string; computedTraits: AvatarComputedTraits | null } | undefined> {
+  const listRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+    method: 'GET',
+    headers: { 'x-api-key': API_KEY },
+  })
+  const listBody = (await listRes.json()) as ApiResponse<{
+    avatars: Array<{ avatarId: string; computedTraits: AvatarComputedTraits | null }>
+  }>
+  return listBody.data?.avatars.find((avatar) => avatar.avatarId === avatarId)
+}
+
+function assertPreparedTraitBehavior(traits: AvatarComputedTraits): void {
+  for (const key of AVATAR_COMPUTED_TRAIT_KEYS) {
+    expect(Array.isArray(traits[key])).toBe(true)
+    expect(traits[key].length).toBeLessThanOrEqual(7)
+  }
+
+  const combinedTraits = flattenTraits(traits).join(' ').toLowerCase()
+  expect(combinedTraits).toMatch(/harbor|family|families|ledger|medicine/)
+  expect(combinedTraits).not.toContain('blue stone')
+  expect(combinedTraits).not.toContain('lantern fair')
+}
 
 describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success (always-on)', () => {
   it('returns 200 with one result per avatar and persists computedTraits deterministically', async () => {
@@ -213,33 +288,37 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
 describe.skipIf(isNullProvider)(
   'Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits — real provider flow',
   () => {
-    it('computes and persists non-empty structured traits', async () => {
+    it('computes concise traits that stay grounded in avatar-specific sources', async () => {
       const { scenarioId, avatarId } = await createScenarioAndAvatar()
 
       try {
-        const res = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/prepare-avatar-traits`, {
-          method: 'POST',
-          headers: noBodyAuthHeaders(),
+        await createKnowledgeSource({
+          scenarioId,
+          name: 'Harbor memory',
+          knowledgeType: 'memory',
+          inlineText:
+            'Mara keeps a handwritten ledger of which local families need medicine first when storms close the harbor.',
+        })
+        await createKnowledgeSource({
+          scenarioId,
+          name: 'Town festival',
+          knowledgeType: 'world',
+          inlineText:
+            'The town square is paved with blue stone and hosts an annual lantern fair for tourists.',
         })
 
-        expect(res.status).toBe(200)
-        const body = (await res.json()) as ApiResponse<PrepareAvatarTraitsResponse>
+        const body = await prepareAvatarTraits(scenarioId)
         const result = body.data?.results[0]
         expect(result?.status).toBe('prepared')
         if (result?.status === 'prepared') {
-          expect(result.computedTraits.identity.length).toBeGreaterThan(0)
-          expect(result.computedTraits.personality.length).toBeGreaterThan(0)
+          assertPreparedTraitBehavior(result.computedTraits)
         }
 
-        const listRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
-          method: 'GET',
-          headers: { 'x-api-key': API_KEY },
-        })
-        const listBody = (await listRes.json()) as ApiResponse<{
-          avatars: Array<{ avatarId: string; computedTraits: { identity: string[] } | null }>
-        }>
-        const listedAvatar = listBody.data?.avatars.find((a) => a.avatarId === avatarId)
+        const listedAvatar = await listScenarioAvatar(scenarioId, avatarId)
         expect(listedAvatar?.computedTraits).not.toBe(null)
+        if (result?.status === 'prepared') {
+          expect(listedAvatar?.computedTraits).toEqual(result.computedTraits)
+        }
 
         await deleteAvatar(avatarId)
       } finally {

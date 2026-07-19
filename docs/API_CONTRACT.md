@@ -587,8 +587,9 @@ prompt assembly — it must never be triggered implicitly from a `GET` route, an
 is rerunnable at any time (each run overwrites `computedTraits` with a fresh result;
 author-authored avatar fields are never touched).
 
-No request body — the route rejects a body containing any fields with
-`400 VALIDATION_ERROR`; sending no body at all is the expected call shape.
+No request body — the route rejects any parsed JSON body value with
+`400 VALIDATION_ERROR` (object, array, string, number, boolean, or `null`);
+sending no body at all is the expected call shape.
 
 Response: `ApiResponse<PrepareAvatarTraitsResponse>`
 
@@ -600,7 +601,11 @@ type PrepareAvatarTraitsResponse = {
 
 type AvatarTraitPreparationResult =
   | { avatarId: string; status: 'prepared'; computedTraits: AvatarComputedTraits }
-  | { avatarId: string; status: 'failed'; reason: string }
+  | {
+      avatarId: string
+      status: 'failed'
+      reason: 'unparseable_output' | 'llm_error' | 'persistence_error' | 'unknown_error'
+    }
 ```
 
 Behavior:

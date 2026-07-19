@@ -311,6 +311,9 @@ function buildScenariosRouteOptions(
     llmAdapter:
       adapters.llmAdapter ??
       createLlmAdapter(resolveServerLlmConfig(config), adapters.observabilityAdapter),
+    ...(adapters.observabilityAdapter !== undefined
+      ? { observabilityAdapter: adapters.observabilityAdapter }
+      : {}),
     ...(adapters.modelConfigRepository !== undefined
       ? { modelConfigRepository: adapters.modelConfigRepository }
       : {}),
