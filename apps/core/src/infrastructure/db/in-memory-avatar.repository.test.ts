@@ -146,4 +146,20 @@ describe('InMemoryAvatarRepository — saveComputedTraits', () => {
       code: 'NOT_FOUND',
     })
   })
+
+  it('a second call overwrites the first computed traits value and still leaves author fields untouched', async () => {
+    const avatar = makeAvatarConfig()
+    const repository = new InMemoryAvatarRepository([avatar])
+    const regeneratedTraits: AvatarComputedTraits = { ...sampleTraits, identity: ['Regenerated'] }
+
+    await repository.saveComputedTraits(avatar.avatarId, sampleTraits)
+    const result = await repository.saveComputedTraits(avatar.avatarId, regeneratedTraits)
+
+    expect(result.computedTraits).toEqual(regeneratedTraits)
+    expect(result.personaPrompt).toBe(avatar.personaPrompt)
+    expect(result.description).toBe(avatar.description)
+
+    const loaded = await repository.findById(avatar.avatarId)
+    expect(loaded?.computedTraits).toEqual(regeneratedTraits)
+  })
 })

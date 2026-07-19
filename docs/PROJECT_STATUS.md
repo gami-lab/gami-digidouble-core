@@ -863,6 +863,19 @@ Completed on: 2026-07-19
 - verified no regressions: `apps/admin` typechecks clean; `apps/admin` lints clean; full `apps/admin` suite passes (86 tests, up from 77)
 - this completes EPIC 8.1 — Avatar Trait Structuring: the fixed trait schema, LLM-based preparation service, explicit HTTP trigger endpoint, and this admin-facing trigger/inspection slice are all delivered; EPIC 8.2 runtime prompt consumption of `computedTraits` remains a separate EPIC
 
+### Current slice completed (test-gap closure, recomputation hardening, and doc sync) — final EPIC 8.1 slice
+
+- audited existing coverage across all tiers before writing anything new (per this slice's mandatory pre-check): found the feature-slice commits had already added substantial deterministic coverage incrementally (unit, route, Postgres integration, stack-e2e, admin), so this pass closed a small number of narrow, real gaps rather than rebuilding coverage from scratch
+- closed the one genuine recomputation-fidelity gap: the existing use-case recomputation test changed the LLM's _response_ between two `execute()` calls but never changed the avatar's _authored input_; added a test proving that editing an avatar's `personaPrompt` between two preparation runs changes the actual LLM request content on the second run (not just the stored result), while confirming the updated text becomes the new `personaPrompt` of record — this directly verifies "modify avatar author text, rerun preparation, confirm derived traits update" end-to-end, not just by inference from two separate existing tests
+- closed a persistence-tier gap: `saveComputedTraits` was only ever exercised once per test in both `InMemoryAvatarRepository` and `PostgresAvatarRepository` suites; added a second-call-overwrites-the-first test to each (asserting the second value wins and `personaPrompt`/`description` stay untouched), so recomputation-overwrite is now proven at the repository layer against a real Postgres instance, not only inferred from the use-case-level in-memory test
+- closed a stack-e2e gap: added a rerunnability test to `prepare-avatar-traits.stack-e2e.test.ts` that calls the endpoint twice against the running Docker stack and asserts the second call still returns `200` with a fresh persisted result (deterministic `failed`/`unparseable_output` under the null provider; `prepared` under a real provider) — verified against a real stack with a real provider key configured, not just the null-provider path
+- closed a fixed-schema-stability gap: the plain avatar create/list routes (`apps/core/src/api/routes/scenarios.test.ts`, `apps/core/src/api/routes/avatars.stack-e2e.test.ts`) never asserted `computedTraits: null` directly — only the trait-preparation-specific route test did. Added direct assertions to both; while doing so, found and removed a real contract duplication — `scenarios.test.ts` hand-declared a local `CreateAvatarRouteData` type instead of importing the canonical `CreateAvatarResponse` from `@gami/shared` (the exact kind of drift this schema is supposed to prevent) — replaced it with the shared type
+- closed a grounding-constraint regression gap: `TRAIT_PREPARATION_SYSTEM_PROMPT` (the only place the "never invent details" / "never copy generic world facts" / "5-7 item cap" / "fixed field set" constraints are enforced, since an LLM's actual adherence can't be unit-tested) had no test guarding its content; added assertions so a future edit that silently weakens these constraints fails a test instead of going unnoticed; also added a whitespace-only-inline-text case alongside the existing missing-inline-text case in the prompt-building tests
+- verified (not just re-declared) all Definition-of-Done claims already logged in the prior slices by running the actual suites rather than trusting the doc: `pnpm lint` and `pnpm typecheck` clean across all five packages; full unit suites green (core 775 tests, up from 768; admin 86; web 28; console 48); `pnpm --filter @gami/core test:integration-e2e` green against a real Postgres instance (163 tests, including the new repository-level recomputation test); `pnpm --filter @gami/core test:coverage` passes the 80% gate; full `pnpm --filter @gami/core test:stack-e2e` green against a real Docker stack including the new rerunnability test, both under the default null provider and under a real configured LLM provider (103 tests)
+- no product code changed in this slice — every change is a new or corrected test, plus the one contract-duplication fix in a test file; this matches the slice's explicit "no new product scope" constraint
+- docs synced as part of this slice (not deferred): `docs/TEST_COVERAGE_PLAN.md` Avatar Trait Preparation section updated to describe the persistence-tier and stack-e2e-rerun coverage now in place; `docs/EPICS.md` EPIC 8.1 heading marked `✅ Done` to match the established convention used by other completed EPICs; `docs/API_CONTRACT.md` and `docs/DATA_MODEL.md` reviewed and found already accurate (no changes needed — the `computedTraits`/`AvatarComputedTraits`/`prepare-avatar-traits` sections already matched the shipped behavior); `docs/ARCHITECTURE.md` and `docs/TEST_STRATEGY.md` reviewed and left unchanged (no material design or test-ownership change occurred in this hardening-only slice)
+- this closes out EPIC 8.1 end-to-end, including the hardening/test-closure/doc-sync gate that the EPIC's own execution plan calls for as a final step
+
 ---
 
 ## Sessions & Conversations
@@ -967,6 +980,7 @@ Completed on: 2026-07-19
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (scenario avatar trait preparation service)                 |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (explicit trigger-preparation HTTP endpoint)                |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (admin trigger and read-only trait inspection)              |
+| 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (test-gap closure, recomputation hardening, doc sync)       |
 
 ---
 
@@ -981,7 +995,7 @@ Current implementation focus:
 - retrieval observability
 - public web app operational hardening
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
-- EPIC 8.1 (Avatar Trait Structuring) is complete: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint, and the admin trigger/read-only trait inspection UI are all delivered; EPIC 8.2 runtime consumption of `computedTraits` remains
+- EPIC 8.1 (Avatar Trait Structuring) is complete: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint, the admin trigger/read-only trait inspection UI, and the final test-gap-closure/recomputation-hardening/doc-sync pass are all delivered; EPIC 8.2 runtime consumption of `computedTraits` remains
 
 ---
 

@@ -173,6 +173,41 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
       await deleteScenario(scenarioId)
     }
   })
+
+  it('is rerunnable: a second call succeeds and produces a fresh persisted result', async () => {
+    const { scenarioId, avatarId } = await createScenarioAndAvatar()
+
+    try {
+      const firstRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/prepare-avatar-traits`, {
+        method: 'POST',
+        headers: noBodyAuthHeaders(),
+      })
+      expect(firstRes.status).toBe(200)
+
+      const secondRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/prepare-avatar-traits`, {
+        method: 'POST',
+        headers: noBodyAuthHeaders(),
+      })
+      expect(secondRes.status).toBe(200)
+      const secondBody = (await secondRes.json()) as ApiResponse<PrepareAvatarTraitsResponse>
+      expect(secondBody.data?.results).toHaveLength(1)
+      expect(secondBody.data?.results[0]?.avatarId).toBe(avatarId)
+
+      if (isNullProvider) {
+        expect(secondBody.data?.results[0]).toEqual({
+          avatarId,
+          status: 'failed',
+          reason: 'unparseable_output',
+        })
+      } else {
+        expect(secondBody.data?.results[0]?.status).toBe('prepared')
+      }
+
+      await deleteAvatar(avatarId)
+    } finally {
+      await deleteScenario(scenarioId)
+    }
+  })
 })
 
 describe.skipIf(isNullProvider)(

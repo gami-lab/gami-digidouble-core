@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ApiResponse } from '@gami/shared'
+import type { ApiResponse, CreateAvatarResponse } from '@gami/shared'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
@@ -9,22 +9,6 @@ type CreateScenarioRouteData = {
     scenarioId: string
     name: string
     status: 'draft' | 'active' | 'archived'
-    config: Record<string, unknown>
-    createdAt: string
-    updatedAt: string
-  }
-}
-
-type CreateAvatarRouteData = {
-  avatar: {
-    avatarId: string
-    scenarioId: string
-    name: string
-    status: 'draft' | 'active' | 'archived'
-    personaPrompt: string
-    tone?: string
-    description?: string
-    adjustments?: string[]
     config: Record<string, unknown>
     createdAt: string
     updatedAt: string
@@ -208,11 +192,12 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
     })
 
     expect(createAvatarResponse.statusCode).toBe(201)
-    const avatarBody = createAvatarResponse.json<ApiResponse<CreateAvatarRouteData>>()
+    const avatarBody = createAvatarResponse.json<ApiResponse<CreateAvatarResponse>>()
     expect(avatarBody.error).toBeNull()
     expect(avatarBody.data?.avatar.avatarId.startsWith('avatar_')).toBe(true)
     expect(avatarBody.data?.avatar.scenarioId).toBe(scenarioId)
     expect(avatarBody.data?.avatar.config).toEqual({})
+    expect(avatarBody.data?.avatar.computedTraits).toBeNull()
   })
 })
 
@@ -346,7 +331,7 @@ describe('POST /v1/scenarios/:scenarioId/avatars — optional field coverage', (
     })
 
     expect(createAvatarResponse.statusCode).toBe(201)
-    const body = createAvatarResponse.json<ApiResponse<CreateAvatarRouteData>>()
+    const body = createAvatarResponse.json<ApiResponse<CreateAvatarResponse>>()
     expect(body.error).toBeNull()
     expect(body.data?.avatar.tone).toBe('formal')
     expect(body.data?.avatar.description).toBe('A formal legal assistant.')

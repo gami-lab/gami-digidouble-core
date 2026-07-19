@@ -272,4 +272,40 @@ describe('PrepareScenarioAvatarTraitsUseCase — failure isolation and recomputa
     expect(avatar?.personaPrompt).toBe('Original prompt.')
     expect(avatar?.description).toBe('Original description.')
   })
+
+  it('rerunning preparation after editing the avatar description reflects the new source text', async () => {
+    const avatarRepository = new InMemoryAvatarRepository([
+      makeAvatar({ avatarId: 'avatar_1', personaPrompt: 'Original prompt.' }),
+    ])
+    const llm = createLlm({ avatar_1: JSON.stringify(sampleTraits) })
+    const useCase = new PrepareScenarioAvatarTraitsUseCase(
+      new InMemoryScenarioRepository([makeScenario()]),
+      avatarRepository,
+      new InMemoryKnowledgeSourceRepository(),
+      llm,
+    )
+
+    await useCase.execute({ scenarioId: 'scenario_1' })
+    expect(llm.requests[0]?.messages[0]?.content).toContain('Original prompt.')
+
+    await avatarRepository.update('avatar_1', { personaPrompt: 'Updated prompt after edit.' })
+    const updatedTraits: AvatarComputedTraits = { ...sampleTraits, identity: ['Reflects the edit'] }
+    llm.complete = vi.fn((request: LlmRequest) => {
+      llm.requests.push(request)
+      return llmResponse(JSON.stringify(updatedTraits))
+    })
+
+    const secondOutput = await useCase.execute({ scenarioId: 'scenario_1' })
+
+    expect(llm.requests[1]?.messages[0]?.content).toContain('Updated prompt after edit.')
+    expect(llm.requests[1]?.messages[0]?.content).not.toContain('Original prompt.')
+    expect(secondOutput.results[0]).toMatchObject({
+      status: 'prepared',
+      computedTraits: updatedTraits,
+    })
+
+    const avatar = await avatarRepository.findById('avatar_1')
+    expect(avatar?.computedTraits).toEqual(updatedTraits)
+    expect(avatar?.personaPrompt).toBe('Updated prompt after edit.')
+  })
 })

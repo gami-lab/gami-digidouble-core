@@ -151,6 +151,26 @@ function defineComputedTraitsTests(
 
     expect(cleared.computedTraits).toBeUndefined()
   })
+
+  it('a second saveComputedTraits call overwrites the first, still leaving author fields untouched', async () => {
+    const created = await getRepo().create({
+      scenarioId: getScenarioId(),
+      name: 'Recomputed Avatar',
+      personaPrompt: 'Original prompt.',
+      description: 'Original description.',
+    })
+    const regeneratedTraits: AvatarComputedTraits = { ...sampleTraits, identity: ['Regenerated'] }
+
+    await getRepo().saveComputedTraits(created.avatarId, sampleTraits)
+    const result = await getRepo().saveComputedTraits(created.avatarId, regeneratedTraits)
+
+    expect(result.computedTraits).toEqual(regeneratedTraits)
+    expect(result.personaPrompt).toBe('Original prompt.')
+    expect(result.description).toBe('Original description.')
+
+    const found = await getRepo().findById(created.avatarId)
+    expect(found?.computedTraits).toEqual(regeneratedTraits)
+  })
 }
 
 function defineListAndDeleteTests(

@@ -153,6 +153,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — success', () 
       expect(avatarBody.error).toBeNull()
       expect(avatarBody.data?.avatar.avatarId.startsWith('avatar_')).toBe(true)
       expect(avatarBody.data?.avatar.scenarioId).toBe(scenarioId)
+      expect(avatarBody.data?.avatar.computedTraits).toBeNull()
 
       if (avatarBody.data?.avatar.avatarId !== undefined) {
         await deleteAvatar(avatarBody.data.avatar.avatarId)
@@ -214,6 +215,9 @@ describe('Stack E2E — scenario/avatar management full flow', () => {
     const listAvatarsBody =
       (await listAvatarsRes.json()) as ApiResponse<ListScenarioAvatarsResponse>
     expect(listAvatarsBody.data?.avatars.some((avatar) => avatar.avatarId === avatarId)).toBe(true)
+    expect(
+      listAvatarsBody.data?.avatars.find((avatar) => avatar.avatarId === avatarId)?.computedTraits,
+    ).toBeNull()
 
     const deleteAvatarRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
       method: 'DELETE',

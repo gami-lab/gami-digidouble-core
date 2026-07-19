@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
-import { buildTraitPreparationUserMessage } from './prepare-scenario-avatar-traits.prompt.js'
+import {
+  buildTraitPreparationUserMessage,
+  TRAIT_PREPARATION_SYSTEM_PROMPT,
+} from './prepare-scenario-avatar-traits.prompt.js'
 
 function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   return {
@@ -47,6 +50,30 @@ function makeKnowledgeSource(overrides: Partial<KnowledgeSource> = {}): Knowledg
     ...overrides,
   }
 }
+
+describe('TRAIT_PREPARATION_SYSTEM_PROMPT — grounding constraints', () => {
+  it('instructs the model not to invent unsupported details', () => {
+    expect(TRAIT_PREPARATION_SYSTEM_PROMPT).toContain(
+      'Never invent details that are not supported by the provided sources.',
+    )
+  })
+
+  it('instructs the model not to copy generic world facts into avatar traits', () => {
+    expect(TRAIT_PREPARATION_SYSTEM_PROMPT).toContain(
+      'never copy generic world facts into avatar traits',
+    )
+  })
+
+  it('caps each field at 5-7 concise items', () => {
+    expect(TRAIT_PREPARATION_SYSTEM_PROMPT).toContain(
+      'Each field must contain at most 5-7 concise items.',
+    )
+  })
+
+  it('forbids adding extra fields beyond the fixed structure', () => {
+    expect(TRAIT_PREPARATION_SYSTEM_PROMPT).toContain('Do not add extra fields.')
+  })
+})
 
 describe('buildTraitPreparationUserMessage', () => {
   it('includes the avatar description fields', () => {
@@ -118,6 +145,24 @@ describe('buildTraitPreparationUserMessage', () => {
 
     expect(message).not.toContain('--- MEMORY DOCUMENTS ---')
     expect(message).not.toContain('Unparsed upload')
+  })
+
+  it('skips knowledge sources whose inline text is present but whitespace-only', () => {
+    const message = buildTraitPreparationUserMessage({
+      avatar: makeAvatar(),
+      scenario: makeScenario(),
+      memorySources: [
+        makeKnowledgeSource({
+          sourceId: 'mem_blank',
+          name: 'Blank upload',
+          metadata: { inlineText: '   \n  ' },
+        }),
+      ],
+      worldSources: [],
+    })
+
+    expect(message).not.toContain('--- MEMORY DOCUMENTS ---')
+    expect(message).not.toContain('Blank upload')
   })
 
   it('omits the world context section entirely when there is nothing to say', () => {

@@ -79,18 +79,27 @@ Must test:
 - `PrepareScenarioAvatarTraitsUseCase`: `NOT_FOUND` for unknown scenario, multi-avatar
   computation/persistence, scenario/type-scoped source gathering (excludes other scenarios
   and `media`-type sources), per-avatar failure isolation, recomputation without mutating
-  author-authored avatar fields
+  author-authored avatar fields, and recomputation after editing an avatar's authored text
+  (asserts the rebuilt LLM prompt reflects the edited text, not the stale one)
 - trait-preparation prompt building and lenient/schema-locked parsing (fenced/malformed JSON,
-  invented fields dropped, 7-item cap, dedup)
+  invented fields dropped, 7-item cap, dedup, whitespace-only inline text treated as absent);
+  a regression guard asserts the system prompt still contains its grounding constraints
+  (no invented details, no generic world-context copying, 5-7 item cap, fixed field set)
+- persistence tier (in-memory and Postgres integration): a second `saveComputedTraits` call
+  overwrites the first value and still leaves `personaPrompt`/`description` untouched —
+  proven at the repository layer, not only at the use-case layer
 - `AvatarSummary.computedTraits` is `null` before preparation and populated after, consistently
-  across create-avatar, update-avatar, and list-scenario-avatars responses
+  across create-avatar, update-avatar, and list-scenario-avatars responses; plain avatar
+  create/list routes and their stack-e2e coverage also assert `computedTraits: null` directly
+  (not only the trait-preparation-specific route test)
 - route: `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` — auth (401 x2), request-body
   rejection when unexpected fields are sent (400), `404` for unknown scenario, and a
   deterministic success path using a fake LLM adapter that returns valid trait JSON
 - stack-e2e: auth, validation, not-found always-on; an always-on null-provider path proving
   the full HTTP -> use case -> DB round trip (deterministic `failed`/`unparseable_output`
-  outcome under the null adapter); a `describe.skipIf` real-provider block asserting genuine
-  non-empty `computedTraits` when the stack is started with a real provider key
+  outcome under the null adapter); a rerunnability check that the endpoint can be called twice
+  in a row and persists a fresh result each time; a `describe.skipIf` real-provider block
+  asserting genuine non-empty `computedTraits` when the stack is started with a real provider key
 
 Do not test prose quality of generated traits — only structure, persistence, and boundary behavior.
 
