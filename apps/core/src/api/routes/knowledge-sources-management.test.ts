@@ -165,12 +165,11 @@ describe('PATCH /v1/knowledge-sources/:sourceId — visibility and replacement',
     })
 
     expect(response.statusCode).toBe(200)
-    const body =
-      response.json<
-        ApiResponse<{
-          source: { uriOrPath: string; status: string; metadata?: Record<string, unknown> }
-        }>
-      >()
+    const body = response.json<
+      ApiResponse<{
+        source: { uriOrPath: string; status: string; metadata?: Record<string, unknown> }
+      }>
+    >()
     expect(body.error).toBeNull()
     expect(body.data?.source.uriOrPath).toBe('rulebook-v2.txt')
     expect(body.data?.source.status).toBe('pending')
