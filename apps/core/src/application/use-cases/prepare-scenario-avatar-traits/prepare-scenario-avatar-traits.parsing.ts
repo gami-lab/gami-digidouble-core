@@ -2,22 +2,6 @@ import { AVATAR_COMPUTED_TRAIT_KEYS, coerceAvatarComputedTraits } from '@gami/sh
 import type { AvatarComputedTraits } from '@gami/shared'
 
 /**
- * Per-field safety ceiling. Most fields follow the EPIC's "5-7 concise
- * items" guidance; `timeline` has no fixed target — the prompt asks for one
- * item per notable event — so it gets a much higher ceiling that only
- * guards against a runaway response, not a compression target.
- */
-const FIELD_ITEM_CAPS: Record<(typeof AVATAR_COMPUTED_TRAIT_KEYS)[number], number> = {
-  identity: 7,
-  personality: 7,
-  speakingStyle: 7,
-  background: 7,
-  timeline: 25,
-  currentSituation: 7,
-  behaviouralRules: 7,
-}
-
-/**
  * Parses raw LLM output into the fixed trait shape.
  *
  * Lenient by design: only the seven allowed fields are ever read (any other
@@ -38,19 +22,21 @@ export function parseTraitPreparationOutput(content: string): AvatarComputedTrai
 }
 
 /**
- * Normalizes a parsed trait object: trims whitespace, drops empties,
- * deduplicates exact repeats, and caps each field at its {@link FIELD_ITEM_CAPS}
- * ceiling.
+ * Normalizes a parsed trait object: trims whitespace, drops empties, and
+ * deduplicates exact repeats. No item-count cap — the prompt guides how
+ * many items each field should have, but if the model returns more than
+ * asked for, we keep all of it rather than truncate potentially important
+ * detail (e.g. a longer timeline).
  */
 export function normalizeComputedTraits(raw: AvatarComputedTraits): AvatarComputedTraits {
   const result = {} as AvatarComputedTraits
   for (const field of AVATAR_COMPUTED_TRAIT_KEYS) {
-    result[field] = normalizeField(raw[field], FIELD_ITEM_CAPS[field])
+    result[field] = normalizeField(raw[field])
   }
   return result
 }
 
-function normalizeField(items: string[], maxItems: number): string[] {
+function normalizeField(items: string[]): string[] {
   const seen = new Set<string>()
   const normalized: string[] = []
   for (const item of items) {
@@ -58,7 +44,6 @@ function normalizeField(items: string[], maxItems: number): string[] {
     if (trimmed.length === 0 || seen.has(trimmed)) continue
     seen.add(trimmed)
     normalized.push(trimmed)
-    if (normalized.length >= maxItems) break
   }
   return normalized
 }

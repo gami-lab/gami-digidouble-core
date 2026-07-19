@@ -114,26 +114,25 @@ describe('normalizeComputedTraits', () => {
     expect(result.background).toEqual(['Former teacher'])
   })
 
-  it('caps most fields at 7 items', () => {
+  it('does not truncate a field when the model returns more items than requested', () => {
     const result = normalizeComputedTraits({
       ...emptyTraits,
       behaviouralRules: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
     })
 
-    expect(result.behaviouralRules).toHaveLength(7)
-    expect(result.behaviouralRules).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g'])
+    expect(result.behaviouralRules).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'])
   })
 
-  it('allows timeline well beyond 7 items, up to its own higher ceiling', () => {
+  it('keeps a long timeline entirely rather than truncating important events', () => {
     const manyEvents = Array.from({ length: 30 }, (_, i) => `Event ${String(i + 1)}`)
     const result = normalizeComputedTraits({
       ...emptyTraits,
       timeline: manyEvents,
     })
 
-    expect(result.timeline).toHaveLength(25)
+    expect(result.timeline).toHaveLength(30)
     expect(result.timeline[0]).toBe('Event 1')
-    expect(result.timeline.at(-1)).toBe('Event 25')
+    expect(result.timeline.at(-1)).toBe('Event 30')
   })
 
   it('normalizes all seven fields independently', () => {
