@@ -1768,185 +1768,945 @@ A polished, low-friction public web app makes the Core usable by real end users 
 
 ---
 
-# EPIC X.X — Improve the LLM Prompt Pipeline
+# EPIC 8.1 — Avatar Trait Structuring
 
 ## Purpose
 
-Improve the quality, consistency and maintainability of all interactions between the platform and the LLMs by refining the prompts, the runtime context, and the intermediate information exchanged between the different LLM stages.
+Improve avatar consistency by generating a fixed structured set of avatar traits from free-form administrator input, memory documents, and world context documents.
 
-The platform currently relies on three complementary prompts that together implement a conversation pipeline:
+The objective is not to make administrators write structured prompts manually.
+Instead, administrators provide natural input, and the platform computes a canonical internal representation that can later be used by Avatar Prompt Assembly.
 
-- the **Avatar Prompt**, responsible for generating the avatar response;
-- the **Game Master Prompt**, responsible for analysing the interaction and orchestrating the conversation;
-- the **Working Memory Prompt**, responsible for periodically compacting the discussion into long-lived working memory.
-
-Although each prompt already fulfils its intended responsibility, they have gradually evolved independently. This has increased prompt complexity, duplicated information, and made the interaction between the three stages less explicit.
-
-This EPIC reviews the entire prompt pipeline as a single system. The objective is not to introduce new conversational capabilities, but to improve how information is represented, organised and exchanged so that each LLM receives the clearest possible context for its specific responsibility.
+EPIC 8.2 will use this structured representation to improve the runtime avatar prompt.
 
 ---
 
-# Objectives
+## Description
 
-- Reduce prompt complexity while preserving behaviour.
-- Improve consistency of Avatar responses.
-- Improve consistency of Game Master decisions.
-- Improve the quality and usefulness of Working Memory.
-- Reduce duplicated information between prompts.
-- Improve the separation between static knowledge and runtime state.
-- Make prompts easier to understand, evolve and debug.
-- Leave implementation choices open where multiple approaches are possible.
+Today, avatar information is mainly stored as free-form text, such as `personaPrompt`, authored by administrators.
 
----
+This gives flexibility, but it also makes runtime behaviour depend too much on how well the administrator wrote and organized the prompt.
 
-# Scope
+Avatar descriptions can mix:
 
-## 1. Review Persona Representation
+- identity
+- personality
+- biography
+- speaking style
+- timeline
+- behavioural guidance
+- world knowledge
+- memories
+- scenario context
 
-Today, avatar personas are authored as free-form narrative text. This gives administrators complete creative freedom but also means that runtime prompt quality depends heavily on how the persona was written.
+inside one narrative document.
 
-Large personas often mix several different concepts together, such as:
+As scenarios grow, this becomes harder to control. Some information belongs to the avatar, while other information belongs to the world context or memory/RAG layer. If everything is copied into the avatar prompt, the result becomes redundant, noisy, and difficult to maintain.
 
-- character identity;
-- personality;
-- speaking style;
-- behavioural rules;
-- background;
-- relationships;
-- world knowledge;
-- conversation guidance.
+This EPIC introduces a preparation step that computes a canonical set of avatar traits.
 
-This makes important behavioural information harder for the LLM to identify, especially as personas grow.
+The administrator still provides free-form input and supporting documents. The platform keeps the original data unchanged, then uses an LLM to generate a fixed structured representation for each avatar.
 
-The objective is to review how persona information is authored, stored and consumed so that runtime prompts receive a clearer and more structured representation of the avatar while preserving administrator intent.
-
-This EPIC intentionally does **not** prescribe how this should be achieved. Possible solutions may involve improvements to the administration UI, changes to the stored representation, preprocessing during prompt assembly, transformation services, or a combination of these.
-
-Regardless of the implementation, the solution should:
-
-- preserve all meaningful information;
-- preserve administrator flexibility;
-- avoid introducing hallucinated information;
-- separate behavioural instructions from descriptive content;
-- make persona information easier for the LLM to interpret.
+This representation is internal, stable, and platform-defined.
 
 ---
 
-## 2. Improve Runtime Context Assembly
+## Intended Flow
 
-The Avatar prompt currently receives a large amount of information assembled into a single system prompt.
+```text
+User provides avatar description
+        │
+        ▼
+User provides memory documents
+        │
+        ▼
+User provides world context documents
+        │
+        ▼
+User triggers "Prepare Scenario"
+        │
+        ▼
+LLM computes structured avatar traits
+        │
+        ▼
+Structured traits are stored on the avatar
+        │
+        ▼
+Avatar traits are returned by the Avatar API
+```
 
-Although the content is correct, dynamic runtime information competes with large static reference documents for the model's attention.
+The preparation action must be re-triggerable at any time.
 
-The runtime context should be reviewed to better distinguish between:
-
-- runtime instructions;
-- current conversation state;
-- user information;
-- retrieved knowledge;
-- permanent avatar information.
-
-The ordering and grouping of runtime context should reflect operational importance rather than the historical origin of the information.
-
-The objective is to improve instruction following while reducing prompt entropy.
-
----
-
-## 3. Refine the Game Master Prompt
-
-The Game Master prompt is responsible for interpreting the completed interaction and updating the runtime conversation state.
-
-The current prompt mixes several different responsibilities:
-
-- defining the Game Master's role;
-- describing orchestration objectives;
-- documenting runtime policies;
-- documenting the output schema;
-- describing formatting rules.
-
-This makes the prompt longer than necessary and forces the model to distinguish between behavioural guidance and implementation details.
-
-The prompt should be reorganised so that these concerns become clearly separated.
-
-In particular, the prompt should:
-
-- explicitly describe the Game Master's responsibility;
-- define clear decision priorities before producing an output;
-- distinguish orchestration policies from formatting rules;
-- separate static scenario context from the current discussion;
-- encourage evidence-based state updates rather than unnecessary changes;
-- reduce duplicated documentation of the output contract where possible.
-
-The objective is not to change the Game Master's behaviour, but to make that behaviour easier for the model to execute consistently.
+The original administrator input, memory files, and world context files must be kept so the structured representation can be regenerated when needed.
 
 ---
 
-## 4. Refine the Working Memory Prompt
+## Goals
 
-The Working Memory prompt periodically compacts recent discussion into a bounded representation consumed by future Game Master executions.
-
-Its current output already provides good continuity through:
-
-- summary;
-- unresolved threads;
-- candidate facts.
-
-However, some information that is repeatedly inferred by the Game Master could instead be represented explicitly.
-
-In particular, the memory representation should better distinguish:
-
-- what has already been discussed;
-- what remains unresolved;
-- which objective facts should be retained across the conversation.
-
-The prompt should therefore be reviewed to improve both the quality of the generated summary and the overall structure of the working memory.
-
-One example discussed during design is the introduction of an explicit **coveredTopics** section to identify discussion subjects that have already been explored, allowing the Game Master to reason about progression without repeatedly analysing the free-text summary.
-
-Conversely, the Working Memory prompt should remain focused on factual conversation history and should not infer transient conversational state such as trust, mood, pacing or progression, as those remain the responsibility of the Game Master.
+- Allow administrators to provide avatar information in free-form text.
+- Generate a fixed structured representation for each avatar.
+- Keep internal avatar storage independent from the shape of user input.
+- Avoid copying redundant world-context information into avatar traits.
+- Keep the structured traits concise and useful for prompt generation.
+- Make computed avatar traits available through the Avatar API.
+- Preserve original source data so preparation can be re-run.
 
 ---
 
-## 5. Improve Information Flow Between Prompts
+## Non-Goals
 
-The three prompts form a processing pipeline rather than independent components.
+- Do not redesign Avatar Prompt Assembly in this EPIC.
+- Do not implement the final runtime prompt improvements here.
+- Do not introduce a complex editable trait UI.
+- Do not create open-ended or avatar-specific schemas.
+- Do not invent future validation, scoring, or quality-analysis workflows.
 
-The output of one prompt becomes the input of the next, meaning that unnecessary ambiguity or duplication propagates throughout the system.
-
-The interaction between the three prompts should therefore be reviewed holistically to ensure that:
-
-- each prompt has a single, clearly defined responsibility;
-- information is produced once and consumed where needed;
-- prompts complement each other rather than repeating the same reasoning;
-- the overall cognitive load presented to each LLM is minimised.
-
-The objective is to make the pipeline easier to evolve while improving overall conversation quality.
+EPIC 8.2 will handle how these structured traits are used to improve the avatar prompt.
 
 ---
 
-# Out of Scope
+## Design Principles
 
-- Changes to the overall conversation architecture.
-- Introduction of new memory layers.
-- New orchestration capabilities.
-- Changes to runtime APIs unless required by the chosen implementation.
-- Changes to the fundamental responsibilities of the Avatar, Game Master or Working Memory prompts.
+- Keep user input flexible.
+- Keep platform storage structured.
+- Keep the trait schema fixed across the platform.
+- Keep the generated traits short and operational.
+- Avoid redundant information already present in world context.
+- Do not invent facts that are not supported by the provided sources.
+- Keep original data as the source material for regeneration.
 
 ---
 
-# Definition of Done
+## Canonical Avatar Traits
 
-- Avatar runtime context is clearer and better structured.
-- Persona information is represented in a way that improves runtime prompt quality.
-- Game Master prompt has clearer responsibilities and reduced prompt complexity.
-- Working Memory produces more useful structured conversation history.
-- Information duplication between prompts is reduced.
-- The interaction between the three prompts is more coherent and easier to reason about.
-- Existing scenarios continue to produce equivalent or improved behaviour.
+The platform must define one fixed set of avatar trait fields.
 
-# Final Rule
+Each avatar uses the same structure.
 
-If an EPIC does not leave the system more usable, more testable, more operable, or more valuable, it should probably be split or reordered.
+The generated traits should contain at most 5–7 important points per field.
+They should be concise enough to be useful in prompts, but precise enough to preserve the avatar’s behaviour.
+
+### Required Trait Fields
+
+#### 1. Identity
+
+Core identity of the avatar.
+
+Includes stable facts such as:
+
+- name
+- role
+- age or life stage if relevant
+- social/professional position
+- defining identity markers relevant to the scenario
+
+This field should not include general world knowledge unless it directly defines the avatar.
+
+---
+
+#### 2. Personality
+
+How the avatar tends to think, feel, decide, and react.
+
+Includes:
+
+- dominant personality traits
+- motivations
+- fears or sensitivities
+- emotional tendencies
+- recurring behavioural patterns
+
+This field should focus on internal character behaviour, not biography.
+
+---
+
+#### 3. Speaking Style
+
+How the avatar expresses themselves in conversation.
+
+Includes:
+
+- tone
+- vocabulary level
+- sentence length
+- rhythm
+- directness or indirectness
+- recurring verbal habits if important
+
+This field should be usable directly by the prompt assembly layer.
+
+---
+
+#### 4. Background
+
+Relevant biography and past experiences that shape the avatar.
+
+Includes:
+
+- important life events
+- formative experiences
+- professional or personal history
+- relationships that affect behaviour
+
+This field should only keep information that helps explain how the avatar behaves.
+
+---
+
+#### 5. Timeline
+
+Important chronological information.
+
+Includes:
+
+- key past events
+- current point in time
+- recent events affecting the avatar
+- future expectations if explicitly provided
+
+This field should help the system understand when the avatar is situated in the scenario.
+
+---
+
+#### 6. Current Situation
+
+The avatar’s state at the beginning of the scenario or conversation.
+
+Includes:
+
+- current objective
+- current emotional state
+- current constraints
+- current relationship to the scenario
+- what the avatar knows now
+
+This field should not duplicate the whole world context.
+
+---
+
+#### 7. Behavioural Rules
+
+Explicit instructions about how the avatar should or should not behave.
+
+Includes:
+
+- boundaries
+- recurring choices
+- forbidden behaviours
+- required behaviours
+- interaction rules
+
+This field should preserve administrator intent as directly as possible.
+
+---
+
+## Trait Generation Rules
+
+The LLM-based preparation step must:
+
+- use the avatar free-form description as the primary avatar source
+- use memory documents only when they clarify the avatar
+- use world context only to avoid contradictions and remove redundancy
+- avoid storing generic world information as avatar traits
+- avoid inventing missing details
+- preserve intentional ambiguity
+- preserve meaningful contradictions when they are part of the authored character
+- keep each trait field concise
+- generate the same fixed trait structure for every avatar
+
+The goal is not to summarize everything.
+
+The goal is to extract the most important avatar-specific information needed to support consistent behaviour.
+
+---
+
+## Storage Requirements
+
+The system must keep:
+
+- the original avatar description
+- the uploaded memory files
+- the uploaded world context files
+- the computed structured avatar traits
+
+The computed traits are derived data.
+
+They may be regenerated at any time from the original inputs.
+
+The original data must not be overwritten by the preparation step.
+
+---
+
+## API Requirements
+
+### Trigger Avatar Trait Computation
+
+Add an API function that triggers the computation of structured avatar traits.
+
+The function should support recomputation so the user can re-run preparation after changing avatar descriptions, memory documents, or world context documents.
+
+The exact route name can follow existing API conventions, but the behaviour must be clear:
+
+```text
+Prepare scenario
+→ compute structured traits for the scenario avatars
+→ store the computed traits
+```
+
+The operation should be explicit. Trait computation should not be hidden inside a normal avatar read operation.
+
+---
+
+### Return Computed Traits When Getting an Avatar
+
+When an avatar is returned by the API, the response must include the computed structured traits if they exist.
+
+Example shape:
+
+```json
+{
+  "id": "avatar-id",
+  "name": "Avatar Name",
+  "personaPrompt": "...",
+  "computedTraits": {
+    "identity": [],
+    "personality": [],
+    "speakingStyle": [],
+    "background": [],
+    "timeline": [],
+    "currentSituation": [],
+    "behaviouralRules": []
+  }
+}
+```
+
+The field names must remain stable because they will be reused by the trait generation prompt and by Avatar Prompt Assembly in EPIC 8.2.
+
+If traits have not been computed yet, the API should make this visible in a simple way, for example by returning `computedTraits: null`.
+
+---
+
+## Scope
+
+This EPIC includes:
+
+- defining the fixed avatar trait schema
+- generating structured traits from free-form avatar input and supporting documents
+- storing the computed traits
+- keeping original data available for regeneration
+- adding an explicit API action to trigger computation
+- returning computed traits when reading an avatar
+
+This EPIC does not include:
+
+- changing final Avatar Prompt Assembly behaviour
+- designing advanced trait editing
+- adding quality scoring
+- adding complex validation workflows
+- changing the RAG system itself
+
+---
+
+## Definition of Done
+
+- A fixed avatar trait schema exists and is used consistently.
+- Structured traits are generated for each avatar through an explicit preparation action.
+- The preparation action can be re-triggered.
+- Original avatar input and uploaded documents are preserved.
+- Generated traits avoid redundant world-context information.
+- Generated traits do not invent unsupported facts.
+- Avatar API responses include computed traits when available.
+- Runtime prompt usage of these traits is left to EPIC 8.2.
+
+---
+
+## What Can Be Tested
+
+- Create an avatar from a free-form description and verify that structured traits are generated.
+- Upload memory and world context documents, then verify that avatar traits remain avatar-specific.
+- Verify that generic world-context information is not duplicated into avatar traits.
+- Re-trigger preparation after modifying the avatar description and verify that traits are updated.
+- Verify that the original avatar description and uploaded documents are still available after preparation.
+- Verify that getting an avatar returns the computed trait fields.
+- Verify that all avatars use the same fixed trait schema.
+- Verify that each trait field remains concise and does not become a long prompt dump.
+
+---
+
+## User Increment
+
+Administrators can continue describing avatars naturally, without learning a strict schema.
+
+The platform prepares each avatar into a stable internal structure that is easier to inspect, store, regenerate, and later use for prompt assembly.
+
+This makes avatar behaviour less dependent on prompt-writing quality while keeping the original creative input intact.
+
+---
+
+# EPIC 8.2 — Runtime Context Assembly Refactoring
+
+## Purpose
+
+Improve avatar instruction following by reorganising runtime context according to operational priority and by using the structured avatar traits generated in EPIC 8.1.
+
+The objective is to make runtime instructions more visible while preserving avatar identity, personality, and behavioural consistency.
+
+---
+
+## Description
+
+Today, runtime context is assembled into a single prompt structure where dynamic instructions can compete with large static avatar information.
+
+This reduces the visibility of high-priority runtime information such as:
+
+- Director Notes
+- Response Rules
+- Conversation State
+- User Persona
+
+EPIC 8.1 introduced computed avatar traits: a fixed structured representation generated from the avatar description, memory documents, and world context documents.
+
+EPIC 8.2 uses those computed traits during runtime prompt assembly.
+
+The goal is not to change the avatar’s character.
+The goal is to assemble context in a clearer order, where current operational instructions appear before static reference information.
+
+---
+
+## Goals
+
+- Prioritise runtime instructions.
+- Use the computed avatar traits generated by EPIC 8.1.
+- Separate dynamic state from static avatar information.
+- Reduce prompt entropy.
+- Improve maintainability of runtime context assembly.
+- Keep behaviour deterministic and inspectable.
+
+---
+
+## Non-Goals
+
+- Do not regenerate avatar traits in this EPIC.
+- Do not change the EPIC 8.1 trait schema.
+- Do not modify original avatar descriptions.
+- Do not redesign RAG.
+- Do not introduce complex trait selection logic.
+- Do not add advanced validation or scoring workflows.
+
+EPIC 8.1 computes and stores the avatar traits.
+EPIC 8.2 consumes them during runtime context assembly.
+
+---
+
+## Design Principles
+
+Runtime context should be assembled according to semantic responsibility and operational priority.
+
+Dynamic instructions belong before static reference material.
+
+Current conversation state belongs before permanent avatar identity.
+
+Avatar traits should be used as structured runtime input, not as another large free-form prompt dump.
+
+Context quality should come from clear selection, grouping, and ordering rather than simply adding more text.
+
+---
+
+## Expected Input from EPIC 8.1
+
+EPIC 8.2 expects avatars to expose computed traits in the following fixed structure:
+
+```json
+{
+  "computedTraits": {
+    "identity": [],
+    "personality": [],
+    "speakingStyle": [],
+    "background": [],
+    "timeline": [],
+    "currentSituation": [],
+    "behaviouralRules": []
+  }
+}
+```
+
+These fields are platform-defined and stable.
+
+Runtime prompt assembly should consume this structure directly.
+
+If `computedTraits` is missing or `null`, the system may fall back to the existing avatar description for compatibility, but the preferred runtime path is to use the computed traits.
+
+---
+
+## Target Runtime Context Order
+
+The Context Engine should assemble runtime context in the following order:
+
+```text
+Director Notes
+
+Response Rules
+
+Conversation State
+    - Working Memory
+    - Current Conversation Summary
+    - Active Conversation State
+
+User Persona
+
+World Context
+
+Retrieved Context
+
+Avatar Traits
+    - Identity
+    - Personality
+    - Speaking Style
+    - Background
+    - Timeline
+    - Current Situation
+    - Behavioural Rules
+```
+
+This order reflects operational priority.
+
+The avatar traits appear last because they define who the avatar is, while the earlier sections define what matters for the current turn.
+
+---
+
+## Director Notes
+
+Director Notes are the highest-priority runtime instruction.
+
+They are regenerated during the interaction and should therefore appear before static context.
+
+They guide the avatar’s next response without redefining the avatar itself.
+
+---
+
+## Response Rules
+
+Response Rules define global or scenario-level constraints for how the avatar should answer.
+
+They should be placed before conversation state and avatar traits because they influence the form and boundaries of the next response.
+
+---
+
+## Conversation State
+
+Conversation State becomes a dedicated runtime section for transient information.
+
+It may include:
+
+- working memory
+- current conversation summary
+- active conversation state
+
+This separates temporary interaction state from permanent avatar identity.
+
+---
+
+## User Persona
+
+The User Persona section describes the current conversation partner.
+
+It should be explicit enough to help the avatar adapt to the user without mixing this information into the avatar’s own identity.
+
+It may include:
+
+- user identity or role
+- relationship to the avatar
+- relevant expectations
+- dialogue guidance
+
+Only information relevant to the current interaction should be included.
+
+---
+
+## World Context
+
+World Context contains scenario-level facts that are not specific to one avatar.
+
+It should remain separate from Avatar Traits to avoid duplicating information that EPIC 8.1 intentionally kept out of the avatar-specific structure.
+
+---
+
+## Retrieved Context
+
+Retrieved Context contains information retrieved at runtime, such as memory or knowledge snippets.
+
+It should be grouped separately from static avatar traits.
+
+This keeps the distinction clear between:
+
+- who the avatar is
+- what the world is
+- what has been retrieved for this turn
+
+---
+
+## Avatar Traits
+
+Avatar Traits are the structured output of EPIC 8.1.
+
+They replace the previous idea of injecting a large canonical persona document.
+
+The runtime prompt should use the fixed trait fields:
+
+- Identity
+- Personality
+- Speaking Style
+- Background
+- Timeline
+- Current Situation
+- Behavioural Rules
+
+The prompt assembly should keep these traits concise and structured.
+
+It should not expand them into a large rewritten persona unless strictly needed for runtime clarity.
+
+The goal is to make the avatar’s stable character easy for the model to follow without hiding current-turn instructions behind static background material.
+
+---
+
+## Scope
+
+This EPIC includes:
+
+- refactoring runtime context assembly order
+- grouping context by operational responsibility
+- consuming EPIC 8.1 `computedTraits`
+- replacing raw persona-first assembly with structured avatar trait assembly
+- keeping dynamic runtime instructions before static avatar information
+- preserving existing avatar behaviour as much as possible
+
+This EPIC does not include:
+
+- generating traits
+- changing the trait schema
+- editing source avatar descriptions
+- changing memory file ingestion
+- changing world context ingestion
+- changing RAG retrieval logic
+
+---
+
+## Definition of Done
+
+- Runtime context is assembled according to operational priority.
+- Director Notes appear before static context.
+- Response Rules appear before conversation state and avatar traits.
+- Conversation State is grouped into a dedicated runtime section.
+- User Persona is represented as an explicit runtime component.
+- World Context remains separate from Avatar Traits.
+- Retrieved Context remains separate from Avatar Traits.
+- Avatar Prompt Assembly consumes `computedTraits` from EPIC 8.1.
+- Raw avatar persona text is no longer the preferred runtime input when computed traits exist.
+- Existing avatars preserve behavioural consistency.
+
+---
+
+## What Can Be Tested
+
+- Verify that runtime prompt assembly uses `computedTraits` when available.
+- Verify that Director Notes influence the next avatar reply.
+- Verify that Response Rules are respected.
+- Verify that Conversation State is grouped separately from Avatar Traits.
+- Verify that World Context is not duplicated inside Avatar Traits at runtime.
+- Verify that Retrieved Context is injected separately from static avatar information.
+- Compare behaviour before and after refactoring for an avatar with large source documents.
+- Verify fallback behaviour when `computedTraits` is missing or `null`.
+
+---
+
+## User Increment
+
+Avatar responses become more responsive to the current interaction while preserving long-term character consistency.
+
+The system now uses the structured avatar traits prepared in EPIC 8.1, making runtime prompts clearer, more predictable, and less dependent on the original free-form avatar description.
+
+---
+
+# EPIC 8.3 — Game Master Prompt Refinement
+
+## Purpose
+
+Improve the quality, consistency, and maintainability of the Game Master prompt by clarifying its responsibilities, simplifying its instructions, and strengthening its decision-making guidance without changing the existing architecture or runtime contracts.
+
+---
+
+## Description
+
+The Game Master is responsible for interpreting the latest interaction between the user and the active avatar, updating the discussion state, and producing orchestration decisions for the next turn.
+
+The current prompt already provides all the required information, but it combines multiple concerns into a single block of instructions:
+
+- Game Master role definition
+- orchestration objectives
+- product policies
+- output schema
+- formatting rules
+
+As the prompt grows, these responsibilities become harder for the model to prioritize, increasing prompt complexity without improving orchestration quality.
+
+This EPIC refactors the Game Master prompt to improve clarity while preserving its current inputs and outputs. The objective is not to change the Game Master's responsibilities, but to make them more explicit and easier for the model to follow.
+
+---
+
+## Goals
+
+- Improve the consistency of Game Master decisions.
+- Reduce prompt complexity without reducing functionality.
+- Clearly separate role, objectives, policies, and output contract.
+- Encourage evidence-based state updates.
+- Improve maintainability of the prompt.
+
+---
+
+## Scope
+
+Refine the existing Game Master prompt by:
+
+### Clarifying Responsibilities
+
+Explicitly describe the Game Master's role as:
+
+- interpreting the latest exchange
+- evaluating discussion progress
+- determining conversation state
+- deciding avatar progression
+- providing compact guidance to the Avatar
+
+while emphasizing that it must never respond directly to the user.
+
+---
+
+### Structuring Prompt Sections
+
+Reorganize the prompt into clearly separated sections, for example:
+
+- Role
+- Objectives
+- Decision Policies
+- Output Contract
+
+instead of one long sequence of rules.
+
+---
+
+### Strengthening Decision Guidance
+
+Provide explicit decision priorities such as:
+
+- Should the discussion state change?
+- Has trust evolved?
+- Has the emotional tone changed?
+- Has meaningful progress been made?
+- Should another avatar become available?
+- Should another avatar become active?
+- What guidance should be provided for the next response?
+
+The prompt should encourage stable decisions and avoid unnecessary state changes.
+
+---
+
+### Separating Static and Dynamic Context
+
+Improve readability by clearly distinguishing:
+
+Static Scenario Context
+
+- description
+- goals
+- available avatars
+
+from
+
+Current Discussion Context
+
+- recent exchanges
+- working memory
+- current runtime state
+
+This improves the model's understanding without changing the information provided.
+
+---
+
+### Simplifying Output Documentation
+
+Reduce repetitive documentation of the JSON contract while preserving all validation rules.
+
+The prompt should focus on orchestration behaviour rather than explaining every output field in detail.
+
+---
+
+## Out of Scope
+
+- Changes to the Game Master API.
+- Changes to the output JSON schema.
+- New runtime state fields.
+- New orchestration algorithms.
+- Changes to memory generation.
+
+---
+
+## DoD
+
+- Prompt is reorganized into clearly defined sections.
+- Responsibilities and objectives are explicitly stated.
+- Decision guidance is clearer and more deterministic.
+- Prompt size is reduced where possible without losing functionality.
+- Existing Game Master output contract remains unchanged.
+- Existing scenarios continue to function without modification.
+
+---
+
+## What Can Be Tested
+
+- Compare Game Master decisions before and after the prompt refinement.
+- Verify more stable state updates across similar conversations.
+- Verify avatar transition decisions remain consistent.
+- Measure prompt length reduction.
+- Validate that all existing scenarios continue to behave correctly.
+
+---
+
+## User Increment
+
+The Game Master produces more consistent orchestration decisions while remaining fully compatible with the existing runtime architecture.
+
+---
+
+# EPIC 8.4 — Working Memory Prompt Refinement
+
+## Purpose
+
+Improve the quality and usefulness of the conversation working memory by generating a more structured representation of the discussion while preserving the current lightweight memory architecture.
+
+---
+
+## Description
+
+The Working Memory prompt periodically compacts recent conversation history into a bounded memory that is later consumed by the Game Master.
+
+The current prompt already produces:
+
+- summary
+- unresolvedThreads
+- candidateFacts
+
+This provides good continuity, but it does not explicitly identify which discussion topics have already been explored.
+
+As a result, the Game Master must repeatedly infer discussion coverage from the free-text summary, making orchestration decisions more difficult than necessary.
+
+This EPIC refines the memory prompt to produce a slightly richer yet still lightweight memory representation that better supports discussion progression while keeping the responsibility of state interpretation within the Game Master.
+
+---
+
+## Goals
+
+- Improve the usefulness of working memory.
+- Better distinguish completed and unresolved discussion topics.
+- Preserve factual accuracy.
+- Keep memory compact and bounded.
+- Avoid expanding the responsibility of the memory system.
+
+---
+
+## Scope
+
+Refine the memory prompt to improve the generated working memory.
+
+### Improve Summary Quality
+
+Clarify that the summary should:
+
+- preserve important context
+- merge previous and recent discussion
+- eliminate repetition
+- remain concise
+- replace outdated information when superseded
+
+---
+
+### Introduce Covered Topics
+
+Extend the generated memory with a new field:
+
+- coveredTopics
+
+This field contains a compact list of normalized discussion subjects that have already been explored.
+
+Examples:
+
+- Mona quarantine
+- First death
+- Ava contamination
+- Peter identity
+
+The objective is to help the Game Master quickly understand discussion progression without reinterpreting the entire summary.
+
+---
+
+### Preserve Objective Facts
+
+Candidate facts should remain limited to objective, persistent information extracted from the conversation.
+
+The prompt should explicitly avoid generating inferred conversational state such as:
+
+- trust
+- emotional state
+- pacing
+- progression
+
+Those remain the responsibility of the Game Master.
+
+---
+
+### Improve Unresolved Threads
+
+Clarify that unresolved threads should:
+
+- carry forward unresolved discussions
+- remove resolved items
+- avoid duplicates
+- remain concise
+
+---
+
+## Out of Scope
+
+- Long-term memory.
+- Episodic memory.
+- Game Master state.
+- Trust or emotion inference.
+- Discussion progression computation.
+
+---
+
+## DoD
+
+- Working memory remains bounded.
+- Summary quality is improved.
+- Covered topics are generated.
+- Candidate facts remain factual.
+- Unresolved threads remain accurate across compaction cycles.
+- Existing memory architecture remains unchanged.
+
+---
+
+## What Can Be Tested
+
+- Compare summaries before and after refinement.
+- Verify covered topics accurately reflect completed discussions.
+- Verify resolved threads disappear over time.
+- Verify no inferred emotional or orchestration state appears in memory.
+- Verify Game Master prompt can use covered topics to reduce repeated discussion.
+
+---
+
+## User Increment
+
+The Game Master receives a clearer and more structured representation of the conversation history, improving discussion continuity and progression without increasing architectural complexity.
 
 ## Recommended implementation order
 
