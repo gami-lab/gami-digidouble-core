@@ -938,6 +938,34 @@ Started on: 2026-07-20
   - updated `docs/CONTEXT_CONTRACT_OWNERSHIP_MAP.md` to record the new internal section owners and precedence ownership
   - reviewed `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`, and `docs/TEST_STRATEGY.md`; no further changes were required because the external API/data-model/test-ownership statements remain accurate for this internal refactor slice
 
+### Current slice completed (avatar prompt assembly runtime order and trait consumption)
+
+- refactored `apps/core/src/domain/avatar/persona-prompt.service.ts` to use one canonical section-driven assembly path that now emits Avatar prompt sections in EPIC 8.2 runtime priority order: Director Notes, Response Rules, Conversation State, User Persona, World Context, Retrieved Context, and Avatar Traits
+- prompt identity now prefers prepared `computedTraits` directly at runtime and keeps the authored `personaPrompt` only as an explicit compatibility fallback when traits are absent or `null`
+- Avatar Traits rendering is now structured and deterministic instead of persona-first:
+  - the seven EPIC 8.1 trait fields render in fixed order as concise labeled blocks: Identity, Personality, Speaking Style, Background, Timeline, Current Situation, Behavioural Rules
+  - raw authored `personaPrompt` is no longer injected as a competing identity block when traits exist
+  - compatibility metadata is preserved by carrying name/tone into the trait section only when the structured traits do not already represent them
+- Conversation State now owns the bounded runtime memory and awareness content that was previously scattered across older prompt sections:
+  - recent exchanges remain bounded to the short-term window only
+  - working-memory summaries and remembered user facts stay grouped together
+  - avatar-awareness availability/scope/locked-avatar guidance is preserved and now lives under Conversation State because it is runtime/session-scoped rather than a stable world fact
+- typed retrieval semantics and world-context separation were preserved: scenario facts still render under World Context, while retrieved `memory` / `world` / `media` snippets remain grouped under Retrieved Context with their typed labels
+- focused unit coverage in `apps/core/src/domain/avatar/persona-prompt.service.test.ts` now asserts:
+  - exact runtime section order
+  - fixed trait-field order
+  - computed-trait preference over raw persona text
+  - explicit legacy fallback behavior
+  - optional-section omission
+  - bounded conversation-state rendering
+  - deterministic identical-input output
+- verification completed for this slice:
+  - `pnpm --filter @gami/core test -- --run src/domain/avatar/persona-prompt.service.test.ts`
+  - `pnpm --filter @gami/core exec tsc --noEmit`
+- docs reviewed and updated as part of the slice:
+  - updated `docs/TEST_COVERAGE_PLAN.md` so Avatar-module coverage explicitly owns prompt-order, trait-preference, fallback, bounded-conversation-state, and deterministic-output assertions
+  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/EPICS.md`; no changes were required because their current statements already match the implemented runtime behavior
+
 ---
 
 ## Sessions & Conversations
@@ -1044,6 +1072,7 @@ Started on: 2026-07-20
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (admin trigger and read-only trait inspection)              |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (test-gap closure, recomputation hardening, doc sync)       |
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (contract ownership baseline)                   |
+| 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (avatar prompt assembly runtime order + traits) |
 
 ---
 
@@ -1059,7 +1088,7 @@ Current implementation focus:
 - public web app operational hardening
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
 - EPIC 8.1 (Avatar Trait Structuring) is complete: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint, the admin trigger/read-only trait inspection UI, and the final test-gap-closure/recomputation-hardening/doc-sync pass are all delivered; EPIC 8.2 runtime consumption of `computedTraits` remains
-- EPIC 8.2 (Runtime Context Assembly Refactoring) is underway; the contract-ownership baseline is now in place so later prompt-order and trait-consumption slices can reuse canonical runtime and inspector contracts without reopening ownership questions
+- EPIC 8.2 (Runtime Context Assembly Refactoring) is underway; the contract-ownership baseline, semantic runtime sections/precedence, and Avatar prompt runtime-order + trait-consumption slices are now in place, with final hardening and broader runtime verification still remaining
 
 ---
 

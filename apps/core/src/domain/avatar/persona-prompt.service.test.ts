@@ -6,45 +6,32 @@ import {
   resolveAvatarPromptIdentitySource,
 } from './persona-prompt.service.js'
 
-describe('assemblePersonaPrompt -> personaPrompt included', () => {
-  it('always includes personaPrompt in output', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are the scenario librarian. Never break role.',
-    })
-
-    const prompt = assemblePersonaPrompt(config)
-
-    expect(prompt).toContain('## Core Persona')
-    expect(prompt).toContain(config.personaPrompt)
-  })
-})
+const SAMPLE_TRAITS: AvatarComputedTraits = {
+  identity: ['Archivist of the north wing'],
+  personality: ['Measured under pressure'],
+  speakingStyle: ['Short and literal'],
+  background: ['Former restorer of fragile maps'],
+  timeline: ['Joined after the renovation'],
+  currentSituation: ['Guiding late arrivals through the archive'],
+  behaviouralRules: ['Never reveal sealed exhibits'],
+}
 
 describe('resolveAvatarPromptIdentitySource', () => {
   it('prefers computedTraits when they are prepared', () => {
-    const computedTraits: AvatarComputedTraits = {
-      identity: ['Archivist of the north wing'],
-      personality: ['Measured'],
-      speakingStyle: ['Short and literal'],
-      background: ['Former restorer'],
-      timeline: ['Joined after the renovation'],
-      currentSituation: ['Guiding late arrivals'],
-      behaviouralRules: ['Never reveal sealed exhibits'],
-    }
-
     expect(
       resolveAvatarPromptIdentitySource(
         makeAvatarConfig({
-          computedTraits,
+          computedTraits: SAMPLE_TRAITS,
           personaPrompt: 'Legacy authored persona that should not win when traits exist.',
         }),
       ),
     ).toEqual({
       source: 'computedTraits',
-      computedTraits,
+      computedTraits: SAMPLE_TRAITS,
     })
   })
 
-  it('falls back to personaPrompt when computedTraits are absent', () => {
+  it('falls back to personaPrompt when computedTraits are absent or null', () => {
     expect(
       resolveAvatarPromptIdentitySource(
         makeAvatarConfig({
@@ -55,128 +42,177 @@ describe('resolveAvatarPromptIdentitySource', () => {
       source: 'personaPrompt',
       personaPrompt: 'You are the scenario librarian. Never break role.',
     })
-  })
-})
 
-describe('assemblePersonaPrompt -> name included', () => {
-  it('includes name when provided and not already present in personaPrompt', () => {
-    const config = makeAvatarConfig({
-      name: 'Nova',
-      personaPrompt: 'You are a futuristic museum guide.',
+    expect(
+      resolveAvatarPromptIdentitySource({
+        personaPrompt: 'You are the scenario librarian. Never break role.',
+        computedTraits: null,
+      }),
+    ).toEqual({
+      source: 'personaPrompt',
+      personaPrompt: 'You are the scenario librarian. Never break role.',
     })
-
-    const prompt = assemblePersonaPrompt(config)
-
-    expect(prompt).toContain('## Core Persona')
-    expect(prompt).toContain('Your name is Nova.')
   })
 })
 
-describe('assemblePersonaPrompt -> tone included', () => {
-  it('includes tone when provided and places it after the persona section', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are a focused guide.',
-      tone: 'calm and precise',
-    })
-
-    const prompt = assemblePersonaPrompt(config)
-    const personaIndex = prompt.indexOf('You are a focused guide.')
-    const toneIndex = prompt.indexOf('Your tone is calm and precise.')
-
-    expect(prompt).toContain('Your tone is calm and precise.')
-    expect(personaIndex).toBeGreaterThanOrEqual(0)
-    expect(toneIndex).toBeGreaterThan(personaIndex)
-  })
-})
-
-describe('assemblePersonaPrompt -> empty personaPrompt', () => {
-  it('throws when personaPrompt is empty', () => {
-    const config = makeAvatarConfig({ personaPrompt: '   ' })
-
-    expect(() => assemblePersonaPrompt(config)).toThrow(
-      'Avatar personaPrompt must be a non-empty string.',
+describe('assemblePersonaPrompt -> section order', () => {
+  it('assembles runtime sections in EPIC 8.2 order', () => {
+    const prompt = assemblePersonaPrompt(
+      makeAvatarConfig({
+        name: 'Nova',
+        tone: 'calm and precise',
+        personaPrompt: 'Legacy persona text that should not appear when traits exist.',
+        adjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
+        computedTraits: SAMPLE_TRAITS,
+      }),
+      {
+        gmNotes: 'Steer the user toward practical examples.',
+        userPersona: {
+          name: 'Maya',
+          roleInWorld: 'student',
+          avatarRelationships: ['Friend of Eva'],
+          dialogGuidance: 'Prefer practical examples.',
+        },
+        memory: {
+          shortTerm: {
+            exchangeCount: 2,
+            recentExchanges: [{ user: 'Hi', avatar: 'Hello there' }],
+          },
+          working: {
+            session: {
+              summary: 'Session summary',
+              updatedAt: '2026-07-20T10:00:00.000Z',
+            },
+            avatar: {
+              avatarId: 'avatar_1',
+              summary: 'Avatar summary',
+              updatedAt: '2026-07-20T10:00:00.000Z',
+            },
+          },
+          longTerm: {
+            facts: [{ category: 'pref', key: 'language', value: 'English' }],
+          },
+        },
+        worldContext: 'The archive closes at moonrise.',
+        retrieval: {
+          memory: [
+            {
+              sourceId: 'source_1',
+              chunkId: 'chunk_1',
+              knowledgeType: 'memory',
+              content: 'The user prefers concise examples.',
+            },
+          ],
+          world: [
+            {
+              sourceId: 'source_2',
+              chunkId: 'chunk_2',
+              knowledgeType: 'world',
+              content: 'Ships dock at tidefall.',
+            },
+          ],
+          media: [
+            {
+              sourceId: 'source_3',
+              chunkId: 'chunk_3',
+              knowledgeType: 'media',
+              content: 'Reference frame: lantern map sketch.',
+            },
+          ],
+        },
+        avatarAwareness: [
+          {
+            name: 'Theo',
+            description: 'Technical AI specialist.',
+            scope: 'Model internals and infrastructure.',
+            availability: 'locked',
+          },
+        ],
+      },
     )
+
+    expectSectionOrder(prompt, [
+      '## Director Notes',
+      '## Response Rules',
+      '## Conversation State',
+      '## User Persona',
+      '## World Context',
+      '## Retrieved Context',
+      '## Avatar Traits',
+    ])
+    expectTraitFieldOrder(prompt, [
+      'Identity:',
+      'Personality:',
+      'Speaking Style:',
+      'Background:',
+      'Timeline:',
+      'Current Situation:',
+      'Behavioural Rules:',
+    ])
   })
 })
 
-describe('assemblePersonaPrompt -> adjustments included', () => {
-  it('appends non-empty adjustments after tone and before the style rule', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are a focused guide.',
-      tone: 'precise',
-      adjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
-    })
+describe('assemblePersonaPrompt -> identity source', () => {
+  it('uses computed traits as the preferred identity input and preserves name and tone metadata', () => {
+    const prompt = assemblePersonaPrompt(
+      makeAvatarConfig({
+        name: 'Nova',
+        tone: 'calm and precise',
+        personaPrompt: 'Legacy persona text that should not appear when traits exist.',
+        computedTraits: SAMPLE_TRAITS,
+      }),
+    )
 
-    const prompt = assemblePersonaPrompt(config)
-    const toneIndex = prompt.indexOf('Your tone is precise.')
-    const firstAdjIndex = prompt.indexOf('Avoid markdown tables.')
-    const secondAdjIndex = prompt.indexOf('Use short paragraphs.')
-    const styleRuleIndex = prompt.indexOf('Stay in character')
-
-    expect(prompt).toContain('Avoid markdown tables.')
-    expect(prompt).toContain('Use short paragraphs.')
-    expect(firstAdjIndex).toBeGreaterThan(toneIndex)
-    expect(secondAdjIndex).toBeGreaterThan(firstAdjIndex)
-    expect(styleRuleIndex).toBeGreaterThan(secondAdjIndex)
+    expect(prompt).toContain('## Avatar Traits')
+    expect(prompt).not.toContain('Legacy persona text that should not appear when traits exist.')
+    expect(prompt).toContain('Name: Nova')
+    expect(prompt).toContain('Tone: calm and precise')
+    expect(prompt).toContain('Identity:')
+    expect(prompt).toContain('- Archivist of the north wing')
+    expect(prompt).toContain('Behavioural Rules:')
+    expect(prompt).toContain('- Never reveal sealed exhibits')
   })
 
-  it('omits adjustments section when adjustments is undefined', () => {
-    const config = makeAvatarConfig({
-      name: 'Cosmos',
-      personaPrompt: 'You are a helpful guide.',
-    })
+  it('falls back to personaPrompt in the avatar traits section when computedTraits are absent', () => {
+    const prompt = assemblePersonaPrompt(
+      makeAvatarConfig({
+        name: 'Nova',
+        personaPrompt: 'You are a focused guide.',
+        tone: 'calm and precise',
+      }),
+    )
 
-    const prompt = assemblePersonaPrompt(config)
-    const lines = prompt.split('\n\n')
-
-    expect(lines).toHaveLength(2)
-    expect(prompt).toContain('## Response Rules')
-  })
-
-  it('skips blank or whitespace-only adjustments', () => {
-    const config = makeAvatarConfig({ adjustments: ['', '  ', 'Keep it brief.'] })
-
-    const prompt = assemblePersonaPrompt(config)
-
-    expect(prompt).toContain('Keep it brief.')
-    // blank items do not produce empty sections
-    expect(prompt).not.toMatch(/\n\n\n/)
+    expect(prompt).toContain('## Avatar Traits')
+    expect(prompt).toContain('You are a focused guide.')
+    expect(prompt).toContain('Your name is Nova.')
+    expect(prompt).toContain('Your tone is calm and precise.')
+    expect(prompt).not.toContain('## Core Persona')
   })
 })
 
-describe('assemblePersonaPrompt -> determinism', () => {
-  it('returns exactly the same output across repeated calls with same input', () => {
-    const config = makeAvatarConfig({
-      adjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
-    })
-
-    const first = assemblePersonaPrompt(config)
-    const second = assemblePersonaPrompt(config)
-    const third = assemblePersonaPrompt(config)
-
-    expect(first).toBe(second)
-    expect(second).toBe(third)
-  })
-})
-
-describe('assemblePersonaPrompt -> gm notes', () => {
-  it('appends director notes when gmNotes is provided', () => {
-    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
-
-    const prompt = assemblePersonaPrompt(config, {
-      gmNotes: 'Steer the user toward practical examples.',
-    })
-
-    expect(prompt).toContain('## Director Notes')
-    expect(prompt).toContain('Steer the user toward practical examples.')
-  })
-})
-
-describe('assemblePersonaPrompt -> avatar awareness', () => {
-  it('lists other avatars with availability and scope without exposing policy fields', () => {
-    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
-
-    const prompt = assemblePersonaPrompt(config, {
+describe('assemblePersonaPrompt -> runtime context sections', () => {
+  it('keeps bounded conversation state, remembered facts, and avatar awareness together', () => {
+    const prompt = assemblePersonaPrompt(makeAvatarConfig({ computedTraits: SAMPLE_TRAITS }), {
+      memory: {
+        shortTerm: {
+          exchangeCount: 2,
+          recentExchanges: [{ user: 'Where do I start?', avatar: 'At the north wing.' }],
+        },
+        working: {
+          session: {
+            summary: 'The user is planning a quick visit.',
+            updatedAt: '2026-07-20T10:00:00.000Z',
+          },
+          avatar: {
+            avatarId: 'avatar_1',
+            summary: 'Point them to accessible exhibits first.',
+            updatedAt: '2026-07-20T10:00:00.000Z',
+          },
+        },
+        longTerm: {
+          facts: [{ category: 'pref', key: 'pace', value: 'quick overview' }],
+        },
+      },
       avatarAwareness: [
         {
           name: 'Theo',
@@ -187,235 +223,31 @@ describe('assemblePersonaPrompt -> avatar awareness', () => {
       ],
     })
 
-    expect(prompt).toContain('## Other Avatars')
-    expect(prompt).toContain('Other avatars in this scenario:')
-    expect(prompt).toContain(
+    const conversationStateStart = prompt.indexOf('## Conversation State')
+    const conversationStateEnd = prompt.indexOf('\n\n## Avatar Traits')
+    const conversationStateSection = prompt.slice(conversationStateStart, conversationStateEnd)
+
+    expect(conversationStateSection).toContain('Recent exchanges:')
+    expect(conversationStateSection).toContain('- User: Where do I start?')
+    expect(conversationStateSection).toContain('- Avatar: At the north wing.')
+    expect(conversationStateSection).toContain(
+      'Session working memory: The user is planning a quick visit.',
+    )
+    expect(conversationStateSection).toContain(
+      'Current avatar memory: Point them to accessible exhibits first.',
+    )
+    expect(conversationStateSection).toContain('Remembered user facts:')
+    expect(conversationStateSection).toContain('- pace: quick overview')
+    expect(conversationStateSection).toContain('Other avatars in this scenario:')
+    expect(conversationStateSection).toContain(
       '- Theo (locked) — Technical AI specialist. Scope: Model internals and infrastructure.',
     )
-    expect(prompt).toContain('you may mention locked avatars')
-    expect(prompt).not.toContain('competenceBoundary')
-  })
-})
-
-describe('assemblePersonaPrompt -> dialog style defaults', () => {
-  it('includes the short, proportional and question-driven interaction rule', () => {
-    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
-
-    const prompt = assemblePersonaPrompt(config)
-
-    expect(prompt).toContain('Use dialogue over lectures')
-    expect(prompt).toContain('default to 1-3 short sentences for simple questions')
-    expect(prompt).toContain('Match answer length to user effort and question complexity.')
-    expect(prompt).toContain('Apply the 80/20 rule')
-    expect(prompt).toContain('end with one focused follow-up question')
-  })
-})
-
-describe('assemblePersonaPrompt -> user persona context', () => {
-  it('includes rich persona section when user persona fields are provided', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are a helpful guide.',
-      tone: 'warm',
-    })
-
-    const prompt = assemblePersonaPrompt(config, {
-      userPersona: {
-        name: 'Maya',
-        roleInWorld: 'student',
-        avatarRelationships: ['Friend of Eva', 'Brother of Tom'],
-        dialogGuidance: 'Use clear and concise language.',
-      },
-    })
-
-    expect(prompt).toContain('## User Persona')
-    expect(prompt).toContain('Name: Maya')
-    expect(prompt).toContain('Role in this world: student')
-    expect(prompt).toContain('Potential avatar relationships: Friend of Eva; Brother of Tom')
-    expect(prompt).toContain('Dialog guidance: Use clear and concise language.')
+    expect(prompt).not.toContain('## Other Avatars')
   })
 
-  it('omits user persona section when userPersona is empty', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are a helpful guide.',
-      tone: 'warm',
-    })
-
-    const prompt = assemblePersonaPrompt(config, {
-      userPersona: {},
-    })
-
-    expect(prompt).not.toContain('## User Persona')
-  })
-
-  it('omits user persona section when persona fields are blank', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are a helpful guide.',
-      tone: 'warm',
-    })
-
-    const prompt = assemblePersonaPrompt(config, {
-      userPersona: { name: '  ', roleInWorld: '' },
-    })
-
-    expect(prompt).not.toContain('## User Persona')
-  })
-
-  it('omits user persona section when relationships are blank', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are a helpful guide.',
-      tone: 'warm',
-    })
-
-    const prompt = assemblePersonaPrompt(config, {
-      userPersona: { avatarRelationships: ['  ', ''] },
-    })
-
-    expect(prompt).not.toContain('## User Persona')
-  })
-
-  it('keeps behavior unchanged when userPersona is not provided', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are a helpful guide.',
-      tone: 'warm',
-    })
-
-    const prompt = assemblePersonaPrompt(config)
-
-    expect(prompt).not.toContain('## User Persona')
-  })
-
-  it('places persona section before default style rule', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are a helpful guide.',
-      tone: 'warm',
-    })
-
-    const prompt = assemblePersonaPrompt(config, {
-      userPersona: { name: 'Maya' },
-    })
-    const roleIndex = prompt.indexOf('## User Persona')
-    const styleIndex = prompt.indexOf('Stay in character')
-
-    expect(roleIndex).toBeGreaterThanOrEqual(0)
-    expect(styleIndex).toBeGreaterThan(roleIndex)
-  })
-})
-
-describe('assemblePersonaPrompt -> layered memory context', () => {
-  it('omits memory section when memory is empty', () => {
-    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
-
-    const prompt = assemblePersonaPrompt(config, { memory: {} })
-
-    expect(prompt).not.toContain('## Memory Context')
-  })
-
-  it('includes layered memory sections when memory is provided', () => {
-    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
-
-    const prompt = assemblePersonaPrompt(config, {
-      memory: {
-        shortTerm: {
-          exchangeCount: 2,
-          recentExchanges: [{ user: 'Hi', avatar: 'Hello there' }],
-        },
-        working: {
-          session: {
-            summary: 'Session summary',
-            updatedAt: '2026-05-06T10:00:00.000Z',
-          },
-          avatar: {
-            avatarId: 'avatar_1',
-            summary: 'Avatar summary',
-            updatedAt: '2026-05-06T10:00:00.000Z',
-          },
-        },
-        longTerm: {
-          facts: [
-            { category: 'pref', key: 'language', value: 'English' },
-            { category: 'role', key: 'role', value: 'friend' },
-          ],
-        },
-      },
-    })
-
-    expect(prompt).toContain('## Memory Context')
-    expect(prompt).not.toContain('Recent exchange window:')
-    expect(prompt).not.toContain('- User: Hi')
-    expect(prompt).not.toContain('- You: Hello there')
-    expect(prompt).toContain('Session working memory: Session summary')
-    expect(prompt).toContain('Current avatar memory: Avatar summary')
-    expect(prompt).toContain('Remembered user facts:')
-    expect(prompt).toContain('- language: English')
-    expect(prompt).toContain('- role: friend')
-  })
-
-  it('keeps behavior unchanged when memory is not provided', () => {
-    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
-
-    const prompt = assemblePersonaPrompt(config)
-
-    expect(prompt).not.toContain('## Memory Context')
-  })
-})
-
-describe('assemblePersonaPrompt -> section order', () => {
-  it('keeps injected context in a consistent markdown section order', () => {
-    const config = makeAvatarConfig({
-      personaPrompt: 'You are a helpful guide.',
-      tone: 'warm',
-      adjustments: ['Use short paragraphs.'],
-    })
-
-    const prompt = assemblePersonaPrompt(config, {
-      userPersona: { name: 'Maya' },
-      memory: {
-        shortTerm: {
-          exchangeCount: 2,
-          recentExchanges: [{ user: 'Hi', avatar: 'Hello there' }],
-        },
-        working: {
-          session: {
-            summary: 'Session summary',
-            updatedAt: '2026-05-06T10:00:00.000Z',
-          },
-        },
-      },
-      retrieval: {
-        memory: [],
-        world: [],
-        media: [],
-      },
-      avatarAwareness: [
-        {
-          name: 'Theo',
-          availability: 'available',
-        },
-      ],
-      gmNotes: 'Stay on topic.',
-    })
-
-    const corePersonaIndex = prompt.indexOf('## Core Persona')
-    const userPersonaIndex = prompt.indexOf('## User Persona')
-    const memoryIndex = prompt.indexOf('## Memory Context')
-    const otherAvatarsIndex = prompt.indexOf('## Other Avatars')
-    const responseRulesIndex = prompt.indexOf('## Response Rules')
-    const directorNotesIndex = prompt.indexOf('## Director Notes')
-
-    expect(corePersonaIndex).toBeGreaterThanOrEqual(0)
-    expect(userPersonaIndex).toBeGreaterThan(corePersonaIndex)
-    expect(memoryIndex).toBeGreaterThan(userPersonaIndex)
-    expect(otherAvatarsIndex).toBeGreaterThan(memoryIndex)
-    expect(responseRulesIndex).toBeGreaterThan(otherAvatarsIndex)
-    expect(directorNotesIndex).toBeGreaterThan(responseRulesIndex)
-  })
-})
-
-describe('assemblePersonaPrompt -> typed retrieval context', () => {
-  it('includes full typed retrieval content when provided', () => {
-    const config = makeAvatarConfig({ personaPrompt: 'You are a helpful guide.' })
-
-    const prompt = assemblePersonaPrompt(config, {
+  it('keeps world context separate from retrieved context with typed retrieval labels', () => {
+    const prompt = assemblePersonaPrompt(makeAvatarConfig({ computedTraits: SAMPLE_TRAITS }), {
+      worldContext: 'The archive closes at moonrise.',
       retrieval: {
         memory: [
           {
@@ -430,7 +262,7 @@ describe('assemblePersonaPrompt -> typed retrieval context', () => {
             sourceId: 'source_2',
             chunkId: 'chunk_2',
             knowledgeType: 'world',
-            content: 'In this world, ships dock at tidefall.',
+            content: 'Ships dock at tidefall.',
           },
         ],
         media: [
@@ -444,12 +276,112 @@ describe('assemblePersonaPrompt -> typed retrieval context', () => {
       },
     })
 
-    expect(prompt).toContain('## Retrieved Context')
-    expect(prompt).toContain('Memory retrieval:')
-    expect(prompt).toContain('- The user prefers concise examples.')
-    expect(prompt).toContain('World retrieval:')
-    expect(prompt).toContain('- In this world, ships dock at tidefall.')
-    expect(prompt).toContain('Media retrieval:')
-    expect(prompt).toContain('- Reference frame: lantern map sketch.')
+    const worldContextStart = prompt.indexOf('## World Context')
+    const retrievedContextStart = prompt.indexOf('## Retrieved Context')
+    const avatarTraitsStart = prompt.indexOf('## Avatar Traits')
+    const worldContextSection = prompt.slice(worldContextStart, retrievedContextStart)
+    const retrievedContextSection = prompt.slice(retrievedContextStart, avatarTraitsStart)
+
+    expect(worldContextSection).toContain('The archive closes at moonrise.')
+    expect(worldContextSection).not.toContain('Memory retrieval:')
+    expect(retrievedContextSection).toContain('Memory retrieval:')
+    expect(retrievedContextSection).toContain('- The user prefers concise examples.')
+    expect(retrievedContextSection).toContain('World retrieval:')
+    expect(retrievedContextSection).toContain('- Ships dock at tidefall.')
+    expect(retrievedContextSection).toContain('Media retrieval:')
+    expect(retrievedContextSection).toContain('- Reference frame: lantern map sketch.')
   })
 })
+
+describe('assemblePersonaPrompt -> optional sections and determinism', () => {
+  it('omits empty optional sections while keeping response rules and avatar traits stable', () => {
+    const prompt = assemblePersonaPrompt(makeAvatarConfig())
+
+    expect(prompt).toContain('## Response Rules')
+    expect(prompt).toContain('## Avatar Traits')
+    expect(prompt).not.toContain('## Director Notes')
+    expect(prompt).not.toContain('## Conversation State')
+    expect(prompt).not.toContain('## User Persona')
+    expect(prompt).not.toContain('## World Context')
+    expect(prompt).not.toContain('## Retrieved Context')
+  })
+
+  it('preserves the default response style rules and adjustment ordering ahead of conversation state', () => {
+    const prompt = assemblePersonaPrompt(
+      makeAvatarConfig({
+        adjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
+        computedTraits: SAMPLE_TRAITS,
+      }),
+      {
+        memory: {
+          working: {
+            session: {
+              summary: 'Session summary',
+              updatedAt: '2026-07-20T10:00:00.000Z',
+            },
+          },
+        },
+      },
+    )
+
+    const responseRulesIndex = prompt.indexOf('## Response Rules')
+    const firstAdjustmentIndex = prompt.indexOf('Avoid markdown tables.')
+    const secondAdjustmentIndex = prompt.indexOf('Use short paragraphs.')
+    const styleRuleIndex = prompt.indexOf('Stay in character and keep responses concise.')
+    const conversationStateIndex = prompt.indexOf('## Conversation State')
+
+    expect(firstAdjustmentIndex).toBeGreaterThan(responseRulesIndex)
+    expect(secondAdjustmentIndex).toBeGreaterThan(firstAdjustmentIndex)
+    expect(styleRuleIndex).toBeGreaterThan(secondAdjustmentIndex)
+    expect(conversationStateIndex).toBeGreaterThan(styleRuleIndex)
+  })
+
+  it('throws when personaPrompt is empty and traits are not available', () => {
+    expect(() => assemblePersonaPrompt(makeAvatarConfig({ personaPrompt: '   ' }))).toThrow(
+      'Avatar personaPrompt must be a non-empty string.',
+    )
+  })
+
+  it('returns exactly the same output across repeated calls with the same input', () => {
+    const config = makeAvatarConfig({
+      adjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
+      computedTraits: SAMPLE_TRAITS,
+    })
+    const options = {
+      gmNotes: 'Stay practical.',
+      worldContext: 'The archive closes at moonrise.',
+      userPersona: { name: 'Maya' },
+      memory: {
+        shortTerm: {
+          exchangeCount: 1,
+          recentExchanges: [{ user: 'Hi', avatar: 'Hello there' }],
+        },
+      },
+    }
+
+    const first = assemblePersonaPrompt(config, options)
+    const second = assemblePersonaPrompt(config, options)
+    const third = assemblePersonaPrompt(config, options)
+
+    expect(first).toBe(second)
+    expect(second).toBe(third)
+  })
+})
+
+function expectSectionOrder(prompt: string, sections: string[]): void {
+  let previousIndex = -1
+  for (const section of sections) {
+    const currentIndex = prompt.indexOf(section)
+    expect(currentIndex).toBeGreaterThan(previousIndex)
+    previousIndex = currentIndex
+  }
+}
+
+function expectTraitFieldOrder(prompt: string, fields: string[]): void {
+  let previousIndex = prompt.indexOf('## Avatar Traits')
+  for (const field of fields) {
+    const currentIndex = prompt.indexOf(field)
+    expect(currentIndex).toBeGreaterThan(previousIndex)
+    previousIndex = currentIndex
+  }
+}

@@ -62,6 +62,13 @@ Must test:
 Must test:
 
 - avatar input contract
+- prompt assembly section order: Director Notes, Response Rules, Conversation State, User Persona, World Context, Retrieved Context, Avatar Traits
+- prepared-avatar identity preference: `computedTraits` is used when present and raw `personaPrompt` does not compete as a second identity block
+- legacy/unprepared-avatar fallback: missing or `null` `computedTraits` still yields a valid prompt via the authored `personaPrompt`
+- all seven computed-trait fields render in stable order with concise labeled items
+- conversation-state prompt assembly stays bounded: recent exchanges remain short-term only (no full transcript replay), working memory stays grouped, and avatar-awareness availability/lock state stays preserved
+- world context stays separate from typed retrieved context (`memory` / `world` / `media`)
+- deterministic prompt output for identical runtime inputs
 - fallback handling on provider failure
 - structured output parsing when required
 - streaming assembly

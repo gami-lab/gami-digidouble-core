@@ -1,6 +1,7 @@
-import type { AvatarConfig } from './avatar.types.js'
+import type { AvatarComputedTraits, AvatarConfig } from './avatar.types.js'
 import type {
   AvatarAwarenessItem,
+  AvatarPromptIdentityConfig,
   AvatarPromptIdentityInput,
   AvatarPromptIdentitySource,
   AvatarPromptOptions,
@@ -15,17 +16,15 @@ const DEFAULT_STYLE_RULE = [
 ].join(' ')
 
 export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptOptions): string {
-  const personaPrompt = requirePersonaPrompt(config.personaPrompt)
-  const sections: string[] = [buildCorePersonaSection(personaPrompt, config)]
+  const sections: string[] = []
 
-  // Deterministic precedence for adaptive context: persona -> memory -> retrieval snippets.
-  sections.push(...buildWorldContext(opts?.worldContext))
-  sections.push(...buildUserPersonaContext(opts?.userPersona))
-  sections.push(...buildMemoryContext(opts?.memory))
-  sections.push(...buildRetrievalContext(opts?.retrieval))
-  sections.push(...buildAvatarAwareness(opts?.avatarAwareness))
-  sections.push(buildResponseRulesSection(config.adjustments))
   sections.push(...buildDirectorNotes(opts?.gmNotes))
+  sections.push(buildResponseRulesSection(config.adjustments))
+  sections.push(...buildConversationStateSection(opts?.memory, opts?.avatarAwareness))
+  sections.push(...buildUserPersonaContext(opts?.userPersona))
+  sections.push(...buildWorldContext(opts?.worldContext))
+  sections.push(...buildRetrievalContext(opts?.retrieval))
+  sections.push(buildAvatarTraitsSection(config))
   return sections.join('\n\n')
 }
 
@@ -37,7 +36,7 @@ export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptO
 export function resolveAvatarPromptIdentitySource(
   config: AvatarPromptIdentityInput,
 ): AvatarPromptIdentitySource {
-  if (config.computedTraits !== undefined) {
+  if (config.computedTraits !== undefined && config.computedTraits !== null) {
     return {
       source: 'computedTraits',
       computedTraits: config.computedTraits,
@@ -48,20 +47,6 @@ export function resolveAvatarPromptIdentitySource(
     source: 'personaPrompt',
     personaPrompt: requirePersonaPrompt(config.personaPrompt),
   }
-}
-
-function buildCorePersonaSection(personaPrompt: string, config: AvatarConfig): string {
-  const lines = ['## Core Persona', personaPrompt]
-
-  if (shouldAppendName(personaPrompt, config.name)) {
-    lines.push(`Your name is ${config.name.trim()}.`)
-  }
-
-  if (hasText(config.tone)) {
-    lines.push(`Your tone is ${config.tone.trim()}.`)
-  }
-
-  return lines.join('\n')
 }
 
 function buildWorldContext(worldContext: string | undefined): string[] {
@@ -92,32 +77,50 @@ function buildUserPersonaContext(userPersona: AvatarPromptOptions['userPersona']
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 
-function buildMemoryContext(memory: AvatarPromptOptions['memory']): string[] {
-  if (memory === undefined) return []
-  const lines: string[] = ['## Memory Context']
+function buildConversationStateSection(
+  memory: AvatarPromptOptions['memory'],
+  avatarAwareness: AvatarAwarenessItem[] | undefined,
+): string[] {
+  if (memory === undefined && (avatarAwareness === undefined || avatarAwareness.length === 0))
+    return []
+
+  const lines: string[] = ['## Conversation State']
+  appendRecentExchanges(lines, memory)
   appendWorkingMemory(lines, memory)
   appendLongTermMemory(lines, memory)
+  appendAvatarAwareness(lines, avatarAwareness)
 
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 
-function appendWorkingMemory(
-  lines: string[],
-  memory: NonNullable<AvatarPromptOptions['memory']>,
-): void {
-  if (hasText(memory.working?.session?.summary)) {
-    lines.push(`Session working memory: ${memory.working.session.summary}`)
-  }
-  if (hasText(memory.working?.avatar?.summary)) {
-    lines.push(`Current avatar memory: ${memory.working.avatar.summary}`)
+function appendRecentExchanges(lines: string[], memory: AvatarPromptOptions['memory']): void {
+  const recentExchanges = memory?.shortTerm?.recentExchanges ?? []
+  if (recentExchanges.length === 0) return
+
+  lines.push('Recent exchanges:')
+  for (const exchange of recentExchanges) {
+    if (hasText(exchange.user)) {
+      lines.push(`- User: ${exchange.user.trim()}`)
+    }
+    if (hasText(exchange.avatar)) {
+      lines.push(`- Avatar: ${exchange.avatar.trim()}`)
+    }
   }
 }
 
-function appendLongTermMemory(
-  lines: string[],
-  memory: NonNullable<AvatarPromptOptions['memory']>,
-): void {
-  const facts = memory.longTerm?.facts ?? []
+function appendWorkingMemory(lines: string[], memory: AvatarPromptOptions['memory']): void {
+  const sessionSummary = memory?.working?.session?.summary
+  if (hasText(sessionSummary)) {
+    lines.push(`Session working memory: ${sessionSummary}`)
+  }
+  const avatarSummary = memory?.working?.avatar?.summary
+  if (hasText(avatarSummary)) {
+    lines.push(`Current avatar memory: ${avatarSummary}`)
+  }
+}
+
+function appendLongTermMemory(lines: string[], memory: AvatarPromptOptions['memory']): void {
+  const facts = memory?.longTerm?.facts ?? []
   const validFacts = facts.filter((fact) => hasText(fact.key) && hasText(fact.value))
   if (validFacts.length === 0) return
   lines.push('Remembered user facts:')
@@ -178,23 +181,22 @@ function buildResponseRulesSection(adjustments: AvatarConfig['adjustments']): st
   return lines.join('\n')
 }
 
-function buildAvatarAwareness(avatars: AvatarAwarenessItem[] | undefined): string[] {
-  if (avatars === undefined || avatars.length === 0) return []
+function appendAvatarAwareness(lines: string[], avatars: AvatarAwarenessItem[] | undefined): void {
+  if (avatars === undefined || avatars.length === 0) return
 
-  const lines = avatars.map((avatar) => {
+  const awarenessLines = avatars.map((avatar) => {
     const details = [avatar.description, avatar.scope].filter(hasText).join(' Scope: ')
     const suffix = details.length > 0 ? ` — ${details}` : ''
     return `- ${avatar.name} (${avatar.availability})${suffix}`
   })
 
-  return [
-    [
-      '## Other Avatars',
-      'Other avatars in this scenario:',
-      ...lines,
-      'You may suggest that the user talk to another avatar when their scope is a better fit and you may mention locked avatars. Availability is managed by the director, who may unlock mentioned avatars automatically.',
-    ].join('\n'),
-  ]
+  // Awareness belongs to Conversation State because availability/lock status is
+  // runtime-scoped rather than a stable world fact.
+  lines.push('Other avatars in this scenario:')
+  lines.push(...awarenessLines)
+  lines.push(
+    'You may suggest that the user talk to another avatar when their scope is a better fit and you may mention locked avatars. Availability is managed by the director, who may unlock mentioned avatars automatically.',
+  )
 }
 
 function buildDirectorNotes(gmNotes: string | undefined): string[] {
@@ -202,8 +204,75 @@ function buildDirectorNotes(gmNotes: string | undefined): string[] {
   return [['## Director Notes', gmNotes.trim()].join('\n')]
 }
 
+function buildAvatarTraitsSection(config: AvatarPromptIdentityConfig): string {
+  const identitySource = resolveAvatarPromptIdentitySource(config)
+  const lines = ['## Avatar Traits']
+
+  if (identitySource.source === 'personaPrompt') {
+    lines.push(identitySource.personaPrompt)
+
+    if (shouldAppendName(identitySource.personaPrompt, config.name)) {
+      lines.push(`Your name is ${config.name.trim()}.`)
+    }
+
+    if (hasText(config.tone)) {
+      lines.push(`Your tone is ${config.tone.trim()}.`)
+    }
+
+    return lines.join('\n')
+  }
+
+  const traitText = flattenTraitText(identitySource.computedTraits)
+
+  if (shouldAppendName(traitText, config.name)) {
+    lines.push(`Name: ${config.name.trim()}`)
+  }
+  if (shouldAppendTone(traitText, config.tone)) {
+    lines.push(`Tone: ${config.tone.trim()}`)
+  }
+
+  lines.push(...buildTraitField('Identity', identitySource.computedTraits.identity))
+  lines.push(...buildTraitField('Personality', identitySource.computedTraits.personality))
+  lines.push(...buildTraitField('Speaking Style', identitySource.computedTraits.speakingStyle))
+  lines.push(...buildTraitField('Background', identitySource.computedTraits.background))
+  lines.push(...buildTraitField('Timeline', identitySource.computedTraits.timeline))
+  lines.push(
+    ...buildTraitField('Current Situation', identitySource.computedTraits.currentSituation),
+  )
+  lines.push(
+    ...buildTraitField('Behavioural Rules', identitySource.computedTraits.behaviouralRules),
+  )
+
+  return lines.join('\n')
+}
+
+function buildTraitField(label: string, items: string[]): string[] {
+  const lines = [`${label}:`]
+  const normalizedItems = items.map((item) => item.trim()).filter((item) => item.length > 0)
+  for (const item of normalizedItems) {
+    lines.push(`- ${item}`)
+  }
+  return lines
+}
+
 function hasText(value: string | undefined): value is string {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function shouldAppendTone(traitText: string, tone: string | undefined): tone is string {
+  return hasText(tone) && !traitText.toLocaleLowerCase().includes(tone.trim().toLocaleLowerCase())
+}
+
+function flattenTraitText(config: AvatarComputedTraits): string {
+  return [
+    ...config.identity,
+    ...config.personality,
+    ...config.speakingStyle,
+    ...config.background,
+    ...config.timeline,
+    ...config.currentSituation,
+    ...config.behaviouralRules,
+  ].join(' ')
 }
 
 function escapeForRegExp(value: string): string {

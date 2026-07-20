@@ -35,4 +35,9 @@ export type AvatarPromptIdentitySource =
       personaPrompt: string
     }
 
-export type AvatarPromptIdentityInput = Pick<AvatarConfig, 'computedTraits' | 'personaPrompt'>
+export type AvatarPromptIdentityInput = Pick<AvatarConfig, 'personaPrompt'> & {
+  computedTraits?: AvatarComputedTraits | null
+}
+export type AvatarPromptIdentityConfig = Omit<AvatarConfig, 'computedTraits'> & {
+  computedTraits?: AvatarComputedTraits | null
+}

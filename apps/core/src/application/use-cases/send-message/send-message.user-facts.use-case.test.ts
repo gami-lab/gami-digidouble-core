@@ -186,7 +186,7 @@ describe('SendMessageUseCase — user facts injection', () => {
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).toContain('## Memory Context')
+    expect(llmRequest.systemPrompt).toContain('## Conversation State')
     expect(llmRequest.systemPrompt).toContain('Remembered user facts:')
     expect(llmRequest.systemPrompt).toContain('- language: English')
     expect(llmRequest.systemPrompt).toContain('- role: friend')
