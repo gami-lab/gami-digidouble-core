@@ -1,11 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ApiResponse, AvatarComputedTraits, PrepareAvatarTraitsResponse } from '@gami/shared'
+import type {
+  ApiResponse,
+  AvatarComputedTraits,
+  CreateAvatarResponse,
+  CreateScenarioResponse,
+  ListScenarioAvatarsResponse,
+  PrepareAvatarTraitsResponse,
+} from '@gami/shared'
 import type { ILlmAdapter, LlmRequest } from '../../application/ports/ILlmAdapter.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
-
-type CreateScenarioRouteData = { scenario: { scenarioId: string } }
-type CreateAvatarRouteData = { avatar: { avatarId: string; computedTraits: unknown } }
 
 const sampleTraits: AvatarComputedTraits = {
   identity: ['A guide'],
@@ -42,7 +46,7 @@ async function createScenarioAndAvatar(
     payload: { name: 'Trait Prep Scenario' },
   })
   const scenarioId =
-    createScenarioResponse.json<ApiResponse<CreateScenarioRouteData>>().data?.scenario.scenarioId ??
+    createScenarioResponse.json<ApiResponse<CreateScenarioResponse>>().data?.scenario.scenarioId ??
     ''
 
   const createAvatarResponse = await app.inject({
@@ -52,7 +56,7 @@ async function createScenarioAndAvatar(
     payload: { name: 'Ava', personaPrompt: 'You are Ava, a warm local guide.' },
   })
   const avatarId =
-    createAvatarResponse.json<ApiResponse<CreateAvatarRouteData>>().data?.avatar.avatarId ?? ''
+    createAvatarResponse.json<ApiResponse<CreateAvatarResponse>>().data?.avatar.avatarId ?? ''
 
   return { scenarioId, avatarId }
 }
@@ -142,10 +146,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () 
       url: `/v1/scenarios/${scenarioId}/avatars`,
       headers: { 'x-api-key': 'test-secret' },
     })
-    const listBeforeBody =
-      listBeforeResponse.json<
-        ApiResponse<{ avatars: Array<{ avatarId: string; computedTraits: unknown }> }>
-      >()
+    const listBeforeBody = listBeforeResponse.json<ApiResponse<ListScenarioAvatarsResponse>>()
     expect(listBeforeBody.data?.avatars.find((a) => a.avatarId === avatarId)?.computedTraits).toBe(
       null,
     )
@@ -169,10 +170,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () 
       url: `/v1/scenarios/${scenarioId}/avatars`,
       headers: { 'x-api-key': 'test-secret' },
     })
-    const listAfterBody =
-      listAfterResponse.json<
-        ApiResponse<{ avatars: Array<{ avatarId: string; computedTraits: unknown }> }>
-      >()
+    const listAfterBody = listAfterResponse.json<ApiResponse<ListScenarioAvatarsResponse>>()
     expect(
       listAfterBody.data?.avatars.find((a) => a.avatarId === avatarId)?.computedTraits,
     ).toEqual(sampleTraits)
@@ -187,7 +185,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () 
       payload: { name: 'Empty Scenario' },
     })
     const scenarioId =
-      createScenarioResponse.json<ApiResponse<CreateScenarioRouteData>>().data?.scenario
+      createScenarioResponse.json<ApiResponse<CreateScenarioResponse>>().data?.scenario
         .scenarioId ?? ''
 
     const response = await app.inject({

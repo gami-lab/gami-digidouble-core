@@ -1,6 +1,10 @@
+import type { AvatarComputedTraits } from '@gami/shared'
 import { describe, expect, it } from 'vitest'
 import { makeAvatarConfig } from './avatar.fixtures.js'
-import { assemblePersonaPrompt } from './persona-prompt.service.js'
+import {
+  assemblePersonaPrompt,
+  resolveAvatarPromptIdentitySource,
+} from './persona-prompt.service.js'
 
 describe('assemblePersonaPrompt -> personaPrompt included', () => {
   it('always includes personaPrompt in output', () => {
@@ -12,6 +16,45 @@ describe('assemblePersonaPrompt -> personaPrompt included', () => {
 
     expect(prompt).toContain('## Core Persona')
     expect(prompt).toContain(config.personaPrompt)
+  })
+})
+
+describe('resolveAvatarPromptIdentitySource', () => {
+  it('prefers computedTraits when they are prepared', () => {
+    const computedTraits: AvatarComputedTraits = {
+      identity: ['Archivist of the north wing'],
+      personality: ['Measured'],
+      speakingStyle: ['Short and literal'],
+      background: ['Former restorer'],
+      timeline: ['Joined after the renovation'],
+      currentSituation: ['Guiding late arrivals'],
+      behaviouralRules: ['Never reveal sealed exhibits'],
+    }
+
+    expect(
+      resolveAvatarPromptIdentitySource(
+        makeAvatarConfig({
+          computedTraits,
+          personaPrompt: 'Legacy authored persona that should not win when traits exist.',
+        }),
+      ),
+    ).toEqual({
+      source: 'computedTraits',
+      computedTraits,
+    })
+  })
+
+  it('falls back to personaPrompt when computedTraits are absent', () => {
+    expect(
+      resolveAvatarPromptIdentitySource(
+        makeAvatarConfig({
+          personaPrompt: 'You are the scenario librarian. Never break role.',
+        }),
+      ),
+    ).toEqual({
+      source: 'personaPrompt',
+      personaPrompt: 'You are the scenario librarian. Never break role.',
+    })
   })
 })
 

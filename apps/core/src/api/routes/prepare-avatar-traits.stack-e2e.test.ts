@@ -17,15 +17,15 @@ import {
   AVATAR_COMPUTED_TRAIT_KEYS,
   type ApiResponse,
   type AvatarComputedTraits,
+  type CreateAvatarResponse,
+  type CreateScenarioResponse,
+  type ListScenarioAvatarsResponse,
   type PrepareAvatarTraitsResponse,
 } from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
 const UNKNOWN_ENDPOINT = `${APP_URL}/v1/scenarios/scenario_unknown/prepare-avatar-traits`
-
-type CreateScenarioResponse = { scenario: { scenarioId: string } }
-type CreateAvatarResponse = { avatar: { avatarId: string; computedTraits: unknown } }
 
 function authHeaders(apiKey = API_KEY): Record<string, string> {
   return {
@@ -183,14 +183,12 @@ async function prepareAvatarTraits(
 async function listScenarioAvatar(
   scenarioId: string,
   avatarId: string,
-): Promise<{ avatarId: string; computedTraits: AvatarComputedTraits | null } | undefined> {
+): Promise<ListScenarioAvatarsResponse['avatars'][number] | undefined> {
   const listRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
     method: 'GET',
     headers: { 'x-api-key': API_KEY },
   })
-  const listBody = (await listRes.json()) as ApiResponse<{
-    avatars: Array<{ avatarId: string; computedTraits: AvatarComputedTraits | null }>
-  }>
+  const listBody = (await listRes.json()) as ApiResponse<ListScenarioAvatarsResponse>
   return listBody.data?.avatars.find((avatar) => avatar.avatarId === avatarId)
 }
 
@@ -235,9 +233,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
         method: 'GET',
         headers: { 'x-api-key': API_KEY },
       })
-      const listBody = (await listRes.json()) as ApiResponse<{
-        avatars: Array<{ avatarId: string; computedTraits: unknown }>
-      }>
+      const listBody = (await listRes.json()) as ApiResponse<ListScenarioAvatarsResponse>
       const listedAvatar = listBody.data?.avatars.find((a) => a.avatarId === avatarId)
       if (isNullProvider) {
         expect(listedAvatar?.computedTraits).toBe(null)

@@ -251,83 +251,64 @@ export type EndConversationAdminActionRequest = {
 
 export type SessionContextScenarioSnapshot = SharedContextScenarioSnapshot
 
-export type SessionContextAvatarSnapshot = {
+export type SessionContextAvatarWorkingMemory = {
+  session?: SharedWorkingMemorySessionSummary
+  avatar?: SharedWorkingMemoryAvatarSummary
+}
+
+export type SessionContextRecentMessage = {
+  role: 'user' | 'avatar' | 'system'
+  content: string
+}
+
+export type SessionContextAvailableAvatar = {
+  avatarId: string
+  name: string
+  description?: string
+  scope?: string
+  availability?: 'available' | 'locked'
+}
+
+export type SessionContextGmMemory = {
+  shortTerm?: {
+    recentExchanges: SharedShortTermMemoryExchange[]
+  }
+  workingSummary?: string
+  longTermFacts?: SharedLongTermMemoryFact[]
+}
+
+type SharedSessionContextAvatarSnapshot<TKnowledge> = {
   avatarId?: string
   recentExchanges: SharedShortTermMemoryExchange[]
-  workingMemory: {
-    session?: SharedWorkingMemorySessionSummary
-    avatar?: SharedWorkingMemoryAvatarSummary
-  }
+  workingMemory: SessionContextAvatarWorkingMemory
   longTermFacts: SharedLongTermMemoryFact[]
-  knowledge?: SharedAvatarContextKnowledgeInjection
+  knowledge?: TKnowledge
   userPersona: UserPersona | null
   gmNotes: string | null
   scenario: SessionContextScenarioSnapshot
 }
 
-export type SessionContextGmSnapshot = {
-  recentMessages: Array<{
-    role: 'user' | 'avatar' | 'system'
-    content: string
-  }>
-  memory: {
-    shortTerm?: {
-      recentExchanges: SharedShortTermMemoryExchange[]
-    }
-    workingSummary?: string
-    longTermFacts?: SharedLongTermMemoryFact[]
-  }
-  knowledge?: SharedGmContextKnowledgeInjection
+type SharedSessionContextGmSnapshot<TKnowledge> = {
+  recentMessages: SessionContextRecentMessage[]
+  memory: SessionContextGmMemory
+  knowledge?: TKnowledge
   currentState: GmStateSummary
-  availableAvatars: Array<{
-    avatarId: string
-    name: string
-    description?: string
-    scope?: string
-    availability?: 'available' | 'locked'
-  }>
+  availableAvatars: SessionContextAvailableAvatar[]
   userPersona: UserPersona | null
   scenario: SessionContextScenarioSnapshot
 }
 
-export type RecordedAvatarContextSnapshot = {
-  avatarId?: string
-  recentExchanges: SharedShortTermMemoryExchange[]
-  workingMemory: {
-    session?: SharedWorkingMemorySessionSummary
-    avatar?: SharedWorkingMemoryAvatarSummary
-  }
-  longTermFacts: SharedLongTermMemoryFact[]
-  knowledge?: RecordedAvatarContextKnowledgeInjection
-  userPersona: UserPersona | null
-  gmNotes: string | null
-  scenario: SessionContextScenarioSnapshot
-}
+export type SessionContextAvatarSnapshot =
+  SharedSessionContextAvatarSnapshot<SharedAvatarContextKnowledgeInjection>
 
-export type RecordedGmContextSnapshot = {
-  recentMessages: Array<{
-    role: 'user' | 'avatar' | 'system'
-    content: string
-  }>
-  memory: {
-    shortTerm?: {
-      recentExchanges: SharedShortTermMemoryExchange[]
-    }
-    workingSummary?: string
-    longTermFacts?: SharedLongTermMemoryFact[]
-  }
-  knowledge?: RecordedGmContextKnowledgeInjection
-  currentState: GmStateSummary
-  availableAvatars: Array<{
-    avatarId: string
-    name: string
-    description?: string
-    scope?: string
-    availability?: 'available' | 'locked'
-  }>
-  userPersona: UserPersona | null
-  scenario: SessionContextScenarioSnapshot
-}
+export type SessionContextGmSnapshot =
+  SharedSessionContextGmSnapshot<SharedGmContextKnowledgeInjection>
+
+export type RecordedAvatarContextSnapshot =
+  SharedSessionContextAvatarSnapshot<RecordedAvatarContextKnowledgeInjection>
+
+export type RecordedGmContextSnapshot =
+  SharedSessionContextGmSnapshot<RecordedGmContextKnowledgeInjection>
 
 export type RecordedKnowledgeReference = RecordedKnowledgeReferenceDto
 

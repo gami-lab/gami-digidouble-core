@@ -4,7 +4,7 @@
 
 This document tracks the implementation status of Gami DigiDouble Core.
 
-Last updated: July 19, 2026
+Last updated: July 20, 2026
 Current phase: Phase A — MVP (April → July 2026)
 
 ---
@@ -892,6 +892,32 @@ Completed on: 2026-07-19
 
 ---
 
+## EPIC 8.2 — Runtime Context Assembly Refactoring
+
+Status: 🚧 In progress
+Started on: 2026-07-20
+
+### Current slice completed (runtime context contract ownership baseline)
+
+- audited the EPIC 8.2 runtime path before changing prompt behavior: `ContextEngine` input/output/trace types, session-context snapshots, avatar runtime config, prompt assembly, send-message wiring, runtime-inspector event projection, and shared runtime-inspector DTOs
+- confirmed the canonical ownership split remains explicit:
+  - domain/runtime contracts stay under `apps/core/src/domain/**`
+  - shared HTTP and inspector DTOs stay under `packages/shared/src/**`
+  - tests and adapters now import canonical shared response types instead of re-declaring avatar response fragments
+- consolidated real duplicate prompt/runtime shapes in code:
+  - added `apps/core/src/domain/avatar/persona-prompt.types.ts` as the canonical internal owner for prompt options, avatar-awareness items, and the `computedTraits` vs `personaPrompt` identity-source contract
+  - added `ContextAvailableAvatarSnapshot` in `apps/core/src/domain/context/session-context.types.ts` so GM-context availability shape has one internal owner on the runtime path
+  - collapsed repeated session-inspector DTO fragments inside `packages/shared/src/runtime-inspector-types.ts` behind shared `SessionContext*` building-block types so context and recorded-event snapshots no longer hand-copy the same recent-message, available-avatar, and memory fragments
+- made the EPIC 8.1 compatibility boundary explicit in code and docs: prepared `computedTraits` are the preferred runtime identity input, while missing/unprepared traits fall back to the authored `personaPrompt`; this preserves backward compatibility for avatars created before preparation ran
+- added focused regression proof for the compatibility rule in `apps/core/src/domain/avatar/persona-prompt.service.test.ts`
+- removed two remaining test-local avatar response duplicates in the trait-preparation route suites by switching them to canonical `@gami/shared` response types (`CreateScenarioResponse`, `CreateAvatarResponse`, `ListScenarioAvatarsResponse`)
+- docs reviewed and updated as part of the slice:
+  - updated `docs/CONTEXT_CONTRACT_OWNERSHIP_MAP.md` for recorded snapshots and prompt-identity ownership
+  - updated `docs/API_CONTRACT.md` to make `computedTraits: null` compatibility semantics explicit
+  - reviewed `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, and `docs/TEST_STRATEGY.md`; no changes were required because their current statements remain accurate for this contract-only slice
+
+---
+
 ## Sessions & Conversations
 
 - `POST /v1/sessions`
@@ -995,6 +1021,7 @@ Completed on: 2026-07-19
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (explicit trigger-preparation HTTP endpoint)                |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (admin trigger and read-only trait inspection)              |
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (test-gap closure, recomputation hardening, doc sync)       |
+| 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (contract ownership baseline)                   |
 
 ---
 
@@ -1010,6 +1037,7 @@ Current implementation focus:
 - public web app operational hardening
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
 - EPIC 8.1 (Avatar Trait Structuring) is complete: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint, the admin trigger/read-only trait inspection UI, and the final test-gap-closure/recomputation-hardening/doc-sync pass are all delivered; EPIC 8.2 runtime consumption of `computedTraits` remains
+- EPIC 8.2 (Runtime Context Assembly Refactoring) is underway; the contract-ownership baseline is now in place so later prompt-order and trait-consumption slices can reuse canonical runtime and inspector contracts without reopening ownership questions
 
 ---
 

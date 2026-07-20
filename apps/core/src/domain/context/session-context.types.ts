@@ -25,6 +25,14 @@ export type ContextScenarioSnapshot = {
   goals?: string[]
 }
 
+export type ContextAvailableAvatarSnapshot = {
+  avatarId: string
+  name: string
+  description?: string
+  scope?: string
+  availability?: 'available' | 'locked'
+}
+
 export type AvatarContextSnapshot = {
   avatarId?: string
   recentExchanges: ShortTermMemoryExchange[]
@@ -61,13 +69,7 @@ export type GmContextSnapshot = {
     media: RetrievedKnowledgeItem[]
   }
   currentState: GameMasterState
-  availableAvatars: Array<{
-    avatarId: string
-    name: string
-    description?: string
-    scope?: string
-    availability?: 'available' | 'locked'
-  }>
+  availableAvatars: ContextAvailableAvatarSnapshot[]
   userPersona: UserPersona | null
   scenario: ContextScenarioSnapshot
 }

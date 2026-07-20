@@ -163,6 +163,11 @@ memory documents, world context). See EPIC 8.1. Field names are stable — they 
 the trait generation prompt and by Avatar Prompt Assembly (EPIC 8.2). `null` on
 `AvatarSummary.computedTraits` means preparation has not run yet.
 
+Runtime compatibility note:
+
+- `computedTraits: null` is a supported compatibility state for avatars created before or outside the preparation flow
+- runtime prompt assembly must fall back to the existing authored `personaPrompt` when `computedTraits` is `null`; clients must not treat `null` as an invalid avatar configuration
+
 ```ts
 type AvatarComputedTraits = {
   identity: string[]

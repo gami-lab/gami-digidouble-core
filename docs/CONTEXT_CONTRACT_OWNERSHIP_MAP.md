@@ -4,7 +4,7 @@
 
 Define canonical ownership for Context Engine contracts (EPIC 5.2) to prevent drift across `apps/core`, `apps/console`, and `packages/shared`.
 
-Last updated: May 12, 2026
+Last updated: July 20, 2026
 
 ---
 
@@ -15,6 +15,7 @@ Last updated: May 12, 2026
 - Owner: `apps/core/src/domain/context/session-context.types.ts`
 - Contracts:
   - `ContextScenarioSnapshot`
+  - `ContextAvailableAvatarSnapshot`
   - `AvatarContextSnapshot`
   - `GmContextSnapshot`
   - `SessionContextSnapshot`
@@ -26,13 +27,31 @@ Last updated: May 12, 2026
 
 - Owner: `packages/shared/src/runtime-inspector-types.ts`
 - Contracts:
+  - `SessionContextRecentMessage`
+  - `SessionContextAvailableAvatar`
+  - `SessionContextAvatarWorkingMemory`
+  - `SessionContextGmMemory`
   - `SessionContextScenarioSnapshot`
   - `SessionContextAvatarSnapshot`
   - `SessionContextGmSnapshot`
+  - `RecordedAvatarContextSnapshot`
+  - `RecordedGmContextSnapshot`
   - `AdminSessionContextResponse`
 - Used by:
   - Core API routes
   - Console API client and runtime inspector UI
+
+### Internal Avatar Prompt Contracts (domain/runtime)
+
+- Owner: `apps/core/src/domain/avatar/persona-prompt.types.ts`
+- Contracts:
+  - `AvatarAwarenessItem`
+  - `AvatarPromptOptions`
+  - `AvatarPromptIdentitySource`
+- Used by:
+  - `assemblePersonaPrompt`
+  - avatar-awareness assembly
+  - later EPIC 8.2 prompt-order refactors
 
 ### API / Shared Conversation DTO Contracts (public/session)
 
@@ -73,11 +92,18 @@ Last updated: May 12, 2026
 - GM context snapshot:
   - Internal: `GmContextSnapshot`
   - API-facing: `SessionContextGmSnapshot`
+- Event-recorded runtime context snapshots:
+  - API-facing: `RecordedAvatarContextSnapshot`
+  - API-facing: `RecordedGmContextSnapshot`
+  - Rule: recorded snapshots reuse the same non-sensitive fragment owners as session-context DTOs and swap only the knowledge payload to provenance-only references
 - Token budget and trimming metadata:
   - No standalone shared DTO currently exposed in Phase A.
   - Existing bounded-selection observability remains in memory-layer contracts (`packages/shared/src/lifecycle-types.ts` -> `SessionMemoryLayers.observability`).
 - Context observability payloads:
   - Current API-facing observability is memory-centric and remains owned by shared lifecycle DTOs.
+- Avatar identity compatibility boundary:
+  - Internal owner: `apps/core/src/domain/avatar/persona-prompt.service.ts#resolveAvatarPromptIdentitySource`
+  - Rule: prepared `computedTraits` are the preferred runtime identity input; when traits are absent internally (`undefined`) or unprepared over HTTP (`computedTraits: null`), runtime prompt assembly must fall back to the authored `personaPrompt`
 
 ---
 

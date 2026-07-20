@@ -1,7 +1,10 @@
 import type { AvatarConfig } from './avatar.types.js'
-import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
-import type { UserPersona } from '../user/index.js'
-import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
+import type {
+  AvatarAwarenessItem,
+  AvatarPromptIdentityInput,
+  AvatarPromptIdentitySource,
+  AvatarPromptOptions,
+} from './persona-prompt.types.js'
 
 const DEFAULT_STYLE_RULE = [
   'Stay in character and keep responses concise.',
@@ -11,28 +14,7 @@ const DEFAULT_STYLE_RULE = [
   'Prioritize curiosity: end with one focused follow-up question when it helps the user go deeper.',
 ].join(' ')
 
-export type AvatarAwarenessItem = {
-  name: string
-  description?: string
-  scope?: string
-  availability: 'available' | 'locked'
-}
-
-export function assemblePersonaPrompt(
-  config: AvatarConfig,
-  opts?: {
-    gmNotes?: string
-    worldContext?: string
-    avatarAwareness?: AvatarAwarenessItem[]
-    userPersona?: UserPersona
-    memory?: LayeredMemorySnapshot
-    retrieval?: {
-      memory: RetrievedKnowledgeItem[]
-      world: RetrievedKnowledgeItem[]
-      media: RetrievedKnowledgeItem[]
-    }
-  },
-): string {
+export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptOptions): string {
   const personaPrompt = requirePersonaPrompt(config.personaPrompt)
   const sections: string[] = [buildCorePersonaSection(personaPrompt, config)]
 
@@ -45,6 +27,27 @@ export function assemblePersonaPrompt(
   sections.push(buildResponseRulesSection(config.adjustments))
   sections.push(...buildDirectorNotes(opts?.gmNotes))
   return sections.join('\n\n')
+}
+
+/**
+ * Compatibility boundary for EPIC 8.1 -> 8.2:
+ * prefer prepared `computedTraits`, otherwise fall back to authored
+ * `personaPrompt` so pre-preparation avatars still answer normally.
+ */
+export function resolveAvatarPromptIdentitySource(
+  config: AvatarPromptIdentityInput,
+): AvatarPromptIdentitySource {
+  if (config.computedTraits !== undefined) {
+    return {
+      source: 'computedTraits',
+      computedTraits: config.computedTraits,
+    }
+  }
+
+  return {
+    source: 'personaPrompt',
+    personaPrompt: requirePersonaPrompt(config.personaPrompt),
+  }
 }
 
 function buildCorePersonaSection(personaPrompt: string, config: AvatarConfig): string {
@@ -66,7 +69,7 @@ function buildWorldContext(worldContext: string | undefined): string[] {
   return [['## World Context', worldContext.trim()].join('\n')]
 }
 
-function buildUserPersonaContext(userPersona: UserPersona | undefined): string[] {
+function buildUserPersonaContext(userPersona: AvatarPromptOptions['userPersona']): string[] {
   if (userPersona === undefined) return []
 
   const lines: string[] = ['## User Persona']
@@ -89,7 +92,7 @@ function buildUserPersonaContext(userPersona: UserPersona | undefined): string[]
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 
-function buildMemoryContext(memory: LayeredMemorySnapshot | undefined): string[] {
+function buildMemoryContext(memory: AvatarPromptOptions['memory']): string[] {
   if (memory === undefined) return []
   const lines: string[] = ['## Memory Context']
   appendWorkingMemory(lines, memory)
@@ -98,7 +101,10 @@ function buildMemoryContext(memory: LayeredMemorySnapshot | undefined): string[]
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 
-function appendWorkingMemory(lines: string[], memory: LayeredMemorySnapshot): void {
+function appendWorkingMemory(
+  lines: string[],
+  memory: NonNullable<AvatarPromptOptions['memory']>,
+): void {
   if (hasText(memory.working?.session?.summary)) {
     lines.push(`Session working memory: ${memory.working.session.summary}`)
   }
@@ -107,7 +113,10 @@ function appendWorkingMemory(lines: string[], memory: LayeredMemorySnapshot): vo
   }
 }
 
-function appendLongTermMemory(lines: string[], memory: LayeredMemorySnapshot): void {
+function appendLongTermMemory(
+  lines: string[],
+  memory: NonNullable<AvatarPromptOptions['memory']>,
+): void {
   const facts = memory.longTerm?.facts ?? []
   const validFacts = facts.filter((fact) => hasText(fact.key) && hasText(fact.value))
   if (validFacts.length === 0) return
@@ -117,15 +126,7 @@ function appendLongTermMemory(lines: string[], memory: LayeredMemorySnapshot): v
   }
 }
 
-function buildRetrievalContext(
-  retrieval:
-    | {
-        memory: RetrievedKnowledgeItem[]
-        world: RetrievedKnowledgeItem[]
-        media: RetrievedKnowledgeItem[]
-      }
-    | undefined,
-): string[] {
+function buildRetrievalContext(retrieval: AvatarPromptOptions['retrieval']): string[] {
   if (retrieval === undefined) return []
 
   const memoryLines = formatRetrievalSection('Memory retrieval', retrieval.memory)
@@ -135,7 +136,12 @@ function buildRetrievalContext(
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 
-function formatRetrievalSection(label: string, items: RetrievedKnowledgeItem[]): string[] {
+function formatRetrievalSection(
+  label: string,
+  items: NonNullable<AvatarPromptOptions['retrieval']>[keyof NonNullable<
+    AvatarPromptOptions['retrieval']
+  >],
+): string[] {
   if (items.length === 0) return []
   const lines = [`${label}:`]
   for (const item of items) {

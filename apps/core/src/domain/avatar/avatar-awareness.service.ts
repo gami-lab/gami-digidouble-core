@@ -1,15 +1,11 @@
 import type { AvatarConfig } from './avatar.types.js'
+import type { AvatarAwarenessItem } from './persona-prompt.types.js'
 
 export function buildAvatarAwareness(
   currentAvatar: AvatarConfig,
   scenarioAvatars: AvatarConfig[],
   unlockedAvatarIds: string[] | undefined,
-): Array<{
-  name: string
-  description?: string
-  scope?: string
-  availability: 'available' | 'locked'
-}> {
+): AvatarAwarenessItem[] {
   return scenarioAvatars
     .filter((avatar) => avatar.status === 'active' && avatar.avatarId !== currentAvatar.avatarId)
     .map((avatar) => ({
