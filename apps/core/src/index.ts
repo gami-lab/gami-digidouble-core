@@ -1,3 +1,19 @@
+import { fileURLToPath } from 'node:url'
+
+// Load the root .env file into process.env before anything reads config —
+// mirrors vitest.setup.ts so `pnpm dev` works the same way tests do, whether
+// invoked directly or through Turbo. loadEnvFile does NOT overwrite vars
+// that are already set, so shell-exported vars, Turbo passThroughEnv vars,
+// and CI/Docker-injected secrets all still take precedence over .env.
+{
+  const envFile = fileURLToPath(new URL('../../../.env', import.meta.url))
+  try {
+    process.loadEnvFile(envFile)
+  } catch {
+    // .env is optional — CI and Docker inject secrets as env vars directly
+  }
+}
+
 import { loadConfig } from './config.js'
 import type { Config } from './config.js'
 import { createServer } from './api/server.js'
