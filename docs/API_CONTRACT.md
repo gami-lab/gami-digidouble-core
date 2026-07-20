@@ -1,63 +1,29 @@
-# API_CONTRACT.md
+# API Contract
 
-# Purpose
+## Purpose
 
-Define the public HTTP API contract for Gami DigiDouble Core Phase A.
+Compact HTTP contract reference for Gami DigiDouble Core Phase A.
 
-This document defines:
+Exact wire types live in:
 
-- public endpoints
-- admin endpoints
-- DTO contracts
-- validation rules
-- response/error formats
+- `packages/shared/src/entity-types.ts`
+- `packages/shared/src/conversation-contract-types.ts`
+- `packages/shared/src/web-contract-types.ts`
+- `packages/shared/src/knowledge-contract-types.ts`
+- `packages/shared/src/runtime-inspector-types.ts`
+- `packages/shared/src/lifecycle-types.ts`
 
-Architecture semantics are defined in:
+Use those files as the canonical field-level source of truth. This document keeps the stable surface area, invariants, and route inventory in one place.
 
-- `ARCHITECTURE.md`
-- `GAME_MASTER_CONTRACT.md`
-- `MEMORY_SYSTEM_SPEC.md`
+## Base Rules
 
----
-
-# Design Principles
-
-API-first, stable JSON contracts, headless core, additive evolution, bounded payloads, versioned endpoints (`/v1`). See `PRINCIPLES.md` for engineering philosophy.
-
----
-
-# Base Rules
-
-## Base URL
-
-```text
-/v1
-```
-
-## Content Types
-
-```text
-application/json
-text/event-stream
-```
-
-## Authentication
-
-```text
-x-api-key: <API_KEY>
-```
-
-## Conventions
-
-- timestamps are ISO-8601 UTC
-- IDs are opaque strings
-- all non-streaming responses use `ApiResponse<T>`
-
----
-
-# Common Contracts
-
-## ApiResponse
+- Base path: `/v1`
+- Compatibility route outside `/v1`: `GET /health`
+- Content types: `application/json`, `text/event-stream`
+- Auth: `x-api-key: <API_KEY>`
+- Timestamps: ISO-8601 UTC strings
+- IDs: opaque strings
+- Non-streaming responses use `ApiResponse<T>`
 
 ```ts
 type ApiResponse<T> = {
@@ -72,11 +38,7 @@ type ApiResponse<T> = {
     timestamp?: string
   }
 }
-```
 
-## ErrorCode
-
-```ts
 type ErrorCode =
   | 'UNAUTHORIZED'
   | 'VALIDATION_ERROR'
@@ -89,11 +51,9 @@ type ErrorCode =
   | 'INTERNAL_ERROR'
 ```
 
----
+## Core Shared Shapes
 
-# Core DTOs
-
-## UserPersona
+Only the highest-value DTOs are summarized here. For exact fields, read the shared types.
 
 ```ts
 type UserPersona = {
@@ -102,73 +62,7 @@ type UserPersona = {
   avatarRelationships?: string[]
   dialogGuidance?: string
 }
-```
 
-## ScenarioSummary
-
-```ts
-type ScenarioSummary = {
-  scenarioId: string
-  name: string
-  status: 'draft' | 'active' | 'archived'
-  objectives: string[]
-  worldContext: string
-  avatarAvailability: {
-    initialAvatarIds: string[]
-    unlockableAvatarIds?: string[]
-  }
-  modelSelection?: {
-    defaultProfile?: {
-      provider: 'openai' | 'anthropic' | 'mistral' | 'xai'
-      model: string
-    }
-    gameMasterOverride?: {
-      provider: 'openai' | 'anthropic' | 'mistral' | 'xai'
-      model: string
-    }
-  }
-  config: Record<string, unknown>
-  createdAt: string
-  updatedAt: string
-}
-```
-
-## AvatarSummary
-
-```ts
-type AvatarSummary = {
-  avatarId: string
-  scenarioId: string
-  name: string
-  status: 'draft' | 'active' | 'archived'
-  personaPrompt: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  llmOverride?: {
-    provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'
-    model?: string
-  }
-  computedTraits: AvatarComputedTraits | null
-  config: Record<string, unknown>
-  createdAt: string
-  updatedAt: string
-}
-```
-
-## AvatarComputedTraits
-
-Fixed, derived trait structure computed from an avatar's source material (author input,
-memory documents, world context). See EPIC 8.1. Field names are stable — they are reused by
-the trait generation prompt and by Avatar Prompt Assembly (EPIC 8.2). `null` on
-`AvatarSummary.computedTraits` means preparation has not run yet.
-
-Runtime compatibility note:
-
-- `computedTraits: null` is a supported compatibility state for avatars created before or outside the preparation flow
-- runtime prompt assembly must fall back to the existing authored `personaPrompt` when `computedTraits` is `null`; clients must not treat `null` as an invalid avatar configuration
-
-```ts
 type AvatarComputedTraits = {
   identity: string[]
   personality: string[]
@@ -178,69 +72,7 @@ type AvatarComputedTraits = {
   currentSituation: string[]
   behaviouralRules: string[]
 }
-```
 
-Persistence and write path:
-
-- stored in a dedicated `avatars.computed_traits JSONB` column, never inside `config`
-- written only through a narrow repository method (`IAvatarRepository.saveComputedTraits`),
-  never through the generic avatar create/update path
-- does not replace or modify the source `personaPrompt` / `description` / `tone` /
-  `adjustments` fields it is derived from
-
-## SessionSummary
-
-```ts
-type SessionSummary = {
-  sessionId: string
-  userId: string
-  scenarioId: string
-  activeAvatarId?: string
-  unlockedAvatarIds?: string[]
-  status: 'active' | 'closed' | 'archived'
-  startedAt: string
-  lastActivityAt: string
-  endedAt?: string
-}
-```
-
-## ConversationSummary
-
-```ts
-type ConversationSummary = {
-  conversationId: string
-  sessionId: string
-  avatarId: string
-  status: 'active' | 'closed' | 'archived'
-  startedAt: string
-  lastActivityAt: string
-  endedAt?: string
-}
-```
-
-## Message
-
-```ts
-type Message = {
-  messageId: string
-  conversationId: string
-  role: 'user' | 'avatar' | 'system'
-  content: string
-  createdAt: string
-  metadata?: {
-    model?: string
-    latencyMs?: number
-    inputTokens?: number
-    outputTokens?: number
-    totalTokens?: number
-    costUsd?: number
-  }
-}
-```
-
-## RuntimeState
-
-```ts
 type RuntimeState = {
   sessionId: string
   conversationId?: string
@@ -250,935 +82,160 @@ type RuntimeState = {
 }
 ```
 
----
+Compatibility rules:
 
-# Public API
+- `AvatarSummary.computedTraits: null` is valid for avatars that have not been prepared yet.
+- `AvailableAvatarSummary` is intentionally narrower than `AvatarSummary`; do not leak `config` or `llmOverride` into player-facing discovery routes.
+- `SessionSummary.activeAvatarId` is optional; use explicit `null` only where a route contract says so.
 
----
+## Public Routes
 
-# Sessions
+### Raw Exchange
 
-## Create Session
+- `GET /health` -> basic process health check
+- `POST /v1/exchange` -> raw provider smoke-test path. Request body: `{ message: string; systemPrompt?: string }`.
 
-```text
-POST /v1/sessions
-```
+### Sessions
 
-```ts
-type CreateSessionRequest = {
-  userId: string
-  scenarioId: string
-}
-```
+- `POST /v1/sessions` -> `StartSessionRequest` -> `StartSessionResponse`
+- `GET /v1/sessions/{sessionId}` -> `GetSessionResponse`
+- `GET /v1/sessions` -> `ListSessionsResponse`
+- `POST /v1/sessions/{sessionId}/reset` -> `ResetSessionResponse`
+- `GET /v1/sessions/{sessionId}/available-avatars` -> `GetAvailableAvatarsResponse`
+- `GET /v1/sessions/{sessionId}/avatar-transitions` -> `{ sessionId: string; transitions: AvatarTransitionRecord[] }`
 
-```ts
-type CreateSessionResponse = {
-  session: SessionSummary
-}
-```
+### Conversations
 
----
+- `POST /v1/sessions/{sessionId}/conversations` -> `StartConversationRequest` -> `StartConversationResponse`
+- `GET /v1/sessions/{sessionId}/conversations` -> `ListSessionConversationsResponse`
+- `POST /v1/sessions/{sessionId}/switch-avatar` -> `SwitchAvatarResponse`
+- `POST /v1/sessions/{sessionId}/conversations/{conversationId}/end` -> `EndConversationRequest` -> `EndConversationResponse`
+- `POST /v1/conversations/{conversationId}/messages` -> `SendMessageRequest` -> `SendMessageResponse`
+- `GET /v1/conversations/{conversationId}/history` -> `ConversationHistoryResponse`
 
-## Get Session
+### Runtime
 
-```text
-GET /v1/sessions/{sessionId}
-```
+- `GET /v1/sessions/{sessionId}/runtime-state` -> `{ runtimeState: RuntimeState }`
+- `GET /v1/sessions/{sessionId}/events/stream` -> SSE runtime events
 
----
+### Scenarios
 
-## List Sessions
+- `GET /v1/scenarios` -> `ListScenariosResponse`
+- `POST /v1/scenarios` -> `CreateScenarioRequest` -> `CreateScenarioResponse`
+- `GET /v1/scenarios/{scenarioId}` -> `GetScenarioResponse`
+- `PATCH /v1/scenarios/{scenarioId}` -> `UpdateScenarioRequest` -> `UpdateScenarioResponse`
+- `DELETE /v1/scenarios/{scenarioId}` -> `DeleteScenarioResponse`
+- `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` -> `PrepareAvatarTraitsResponse`
 
-```text
-GET /v1/sessions
-```
+### Avatars
 
-Query params:
+- `POST /v1/scenarios/{scenarioId}/avatars` -> `CreateAvatarRequest` -> `CreateAvatarResponse`
+- `GET /v1/scenarios/{scenarioId}/avatars` -> `ListScenarioAvatarsResponse`
+- `PATCH /v1/avatars/{avatarId}` -> `UpdateAvatarRequest` -> `UpdateAvatarResponse`
+- `DELETE /v1/avatars/{avatarId}` -> `DeleteAvatarResponse`
 
-- `scenarioId`
-- `userId`
-- `status`
+### Knowledge
 
----
+- `POST /v1/knowledge-sources` -> `CreateKnowledgeSourceRequest` -> `CreateKnowledgeSourceResponse`
+- `POST /v1/knowledge-sources/upload` -> `UploadKnowledgeSourceRequest` -> `UploadKnowledgeSourceResponse`
+- `PATCH /v1/knowledge-sources/{sourceId}` -> `UpdateKnowledgeSourceRequest` -> `UpdateKnowledgeSourceResponse`
+- `GET /v1/scenarios/{scenarioId}/knowledge-sources` -> `ListKnowledgeSourcesResponse`
+- `POST /v1/knowledge-sources/{sourceId}/ingest` -> `TriggerIngestionResponse`
+- `GET /v1/knowledge-sources/{sourceId}/ingestion-jobs` -> `ListIngestionJobsResponse`
+- `GET /v1/ingestion-jobs/{ingestionJobId}` -> `GetIngestionJobResponse`
 
-## Reset Session
+### User Persona And Memory
 
-```text
-POST /v1/sessions/{sessionId}/reset
-```
+- `PUT /v1/users/{userId}/persona` -> `UpsertUserPersonaRequest` -> `UpsertUserPersonaResponse`
+- `GET /v1/users/{userId}/persona` -> `UserPersonaResponse`
+- `GET /v1/users/{userId}/memory-facts` -> user fact list
+- `DELETE /v1/users/{userId}/memory-facts/{factId}` -> fact deletion result
 
-Resets runtime state while preserving session identity.
+## Admin Routes
 
----
+All admin endpoints live under `/v1/admin/*`.
 
-# Conversations
+### Health And Model Configuration
 
-## Start Conversation
+- `GET /v1/admin/health`
+- `GET /v1/admin/model-config` -> effective global/role config
+- `PUT /v1/admin/model-config` -> update global default plus optional role overrides
 
-```text
-POST /v1/sessions/{sessionId}/conversations
-```
+### Session Inspection
 
-```ts
-type StartConversationRequest = {
-  avatarId: string
-}
-```
+- `GET /v1/admin/sessions/{sessionId}/inspect` -> session, GM state, transition history, unlocks, notes, effective models
+- `GET /v1/admin/sessions/{sessionId}/events` -> safe event-log view
+- `GET /v1/admin/sessions/{sessionId}/context` -> bounded `avatarContext`, `gmContext`, and `contextTrace`
+- `GET /v1/admin/sessions/{sessionId}/metrics`
+- `GET /v1/admin/sessions/{sessionId}/memory`
+- `GET /v1/admin/sessions/{sessionId}/memory-layers`
 
----
+### Runtime Actions
 
-## Switch Avatar
+- `POST /v1/admin/sessions/{sessionId}/gm/replay`
+- `POST /v1/admin/sessions/{sessionId}/memory/refresh`
+- `POST /v1/admin/sessions/{sessionId}/memory/clear`
 
-```text
-POST /v1/sessions/{sessionId}/switch-avatar
-```
+### Knowledge Diagnostics
 
-```ts
-type SwitchAvatarRequest = {
-  avatarId: string
-  reason?: string
-}
-```
+- `POST /v1/admin/knowledge/retrieval` -> `QueryKnowledgeRetrievalResponse`
 
----
+## Route-Specific Invariants
 
-## End Conversation
-
-```text
-POST /v1/sessions/{sessionId}/conversations/{conversationId}/end
-```
-
-```ts
-type EndConversationRequest = {
-  reason?: 'user_end' | 'operator_end' | 'scenario_complete' | 'safety_stop'
-}
-```
-
----
-
-## Send Message
-
-```text
-POST /v1/conversations/{conversationId}/messages
-```
-
-```ts
-type SendMessageRequest = {
-  message: {
-    content: string
-  }
-}
-```
-
-```ts
-type SendMessageResponse = {
-  conversation: ConversationSummary
-  session: SessionSummary
-  userMessage: Message
-  avatarMessage: Message
-}
-```
-
----
-
-## Conversation History
-
-```text
-GET /v1/conversations/{conversationId}/history
-```
-
----
-
-# Runtime
-
-## Runtime State
-
-```text
-GET /v1/sessions/{sessionId}/runtime-state
-```
-
----
-
-## Runtime Events (SSE)
-
-```text
-GET /v1/sessions/{sessionId}/events/stream
-```
-
-Content-Type:
-
-```text
-text/event-stream
-```
-
----
-
-# Scenarios
-
-## List Scenarios
-
-```text
-GET /v1/scenarios
-```
-
----
-
-## Create Scenario
-
-```text
-POST /v1/scenarios
-```
-
-```ts
-type CreateScenarioRequest = {
-  name: string
-  status?: 'draft' | 'active' | 'archived'
-  objectives?: string[]
-  worldContext?: string
-  avatarAvailability?: ScenarioAvatarAvailability
-  modelSelection?: {
-    defaultProfile?: {
-      provider: 'openai' | 'anthropic' | 'mistral' | 'xai'
-      model: string
-    }
-    gameMasterOverride?: {
-      provider: 'openai' | 'anthropic' | 'mistral' | 'xai'
-      model: string
-    }
-  }
-  config?: Record<string, unknown>
-}
-```
-
-Validation:
-
-- if `modelSelection` is provided, it must define `defaultProfile` or `gameMasterOverride`
-- each provided profile must use an allowed `provider/model` pair from the canonical model catalog
-
-Response: `ApiResponse<{ scenario: ScenarioSummary }>`
-
----
-
-## Get Scenario
-
-```text
-GET /v1/scenarios/{scenarioId}
-```
-
-Response: `ApiResponse<{ scenario: ScenarioSummary }>`
-
----
-
-## Update Scenario
-
-```text
-PATCH /v1/scenarios/{scenarioId}
-```
-
-```ts
-type UpdateScenarioRequest = Partial<
-  Pick<
-    ScenarioSummary,
-    | 'name'
-    | 'status'
-    | 'objectives'
-    | 'worldContext'
-    | 'avatarAvailability'
-    | 'modelSelection'
-    | 'config'
-  >
->
-```
-
-Response: `ApiResponse<{ scenario: ScenarioSummary }>`
-
-At least one field is required (enforced by the use case, not the request schema).
-
-`modelSelection: null` clears stored scenario-scoped model selection.
-
----
-
-## Delete Scenario
-
-```text
-DELETE /v1/scenarios/{scenarioId}
-```
-
----
-
-# Avatars
-
-## Create Avatar
-
-```text
-POST /v1/scenarios/{scenarioId}/avatars
-```
-
-```ts
-type CreateAvatarRequest = {
-  name: string
-  personaPrompt: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  llmOverride?: {
-    provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'
-    model?: string
-  } | null
-  config?: Record<string, unknown>
-  status?: 'draft' | 'active' | 'archived'
-}
-```
-
-Validation:
-
-- if `llmOverride` is provided as an object, both `llmOverride.provider` and `llmOverride.model` are required
-- `llmOverride.provider` must be one of `openai | anthropic | mistral | xai`
-- `llmOverride.model` must be a non-empty allowed catalog model for the selected provider
-- sending `llmOverride: null` clears the stored override
-
----
-
-## List Scenario Avatars
-
-```text
-GET /v1/scenarios/{scenarioId}/avatars
-```
-
----
-
-## Update Avatar
-
-```text
-PATCH /v1/avatars/{avatarId}
-```
-
-```ts
-type UpdateAvatarRequest = {
-  name?: string
-  personaPrompt?: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  llmOverride?: {
-    provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'
-    model?: string
-  } | null
-  config?: Record<string, unknown>
-  status?: 'draft' | 'active' | 'archived'
-}
-```
-
----
-
-## Delete Avatar
-
-```text
-DELETE /v1/avatars/{avatarId}
-```
-
----
-
-## Prepare Scenario Avatar Traits (EPIC 8.1)
-
-```text
-POST /v1/scenarios/{scenarioId}/prepare-avatar-traits
-```
-
-Explicit, scenario-scoped, synchronous action that (re)computes `AvatarComputedTraits`
-for every avatar in the scenario and persists the result via the existing narrow
-`saveComputedTraits` write path. This is an explicit preparation step, not runtime
-prompt assembly — it must never be triggered implicitly from a `GET` route, and it
-is rerunnable at any time (each run overwrites `computedTraits` with a fresh result;
-author-authored avatar fields are never touched).
-
-No request body — the route rejects any parsed JSON body value with
-`400 VALIDATION_ERROR` (object, array, string, number, boolean, or `null`);
-sending no body at all is the expected call shape.
-
-Response: `ApiResponse<PrepareAvatarTraitsResponse>`
-
-```ts
-type PrepareAvatarTraitsResponse = {
-  scenarioId: string
-  results: AvatarTraitPreparationResult[]
-}
-
-type AvatarTraitPreparationResult =
-  | { avatarId: string; status: 'prepared'; computedTraits: AvatarComputedTraits }
-  | {
-      avatarId: string
-      status: 'failed'
-      reason: 'unparseable_output' | 'llm_error' | 'persistence_error' | 'unknown_error'
-    }
-```
-
-Behavior:
-
-- `404 NOT_FOUND` when `scenarioId` does not exist
-- one result per avatar in the scenario (empty `results` array for a scenario with no avatars)
-- per-avatar failures (unparseable LLM output, provider error) are isolated as a `failed`
-  entry and never fail the whole batch
-- uses the same `'avatar'` model-role resolution path as live avatar responses
-  (`avatar.llmOverride` -> `scenario.modelSelection` -> global config), so provider/model
-  choice for preparation matches the avatar's normal runtime configuration
-- source material is read only from existing canonical storage — avatar author fields,
-  `scenario.worldContext`, and `knowledge_sources` rows (`memory`/`world` types, inline
-  text only); no new storage or upload path is introduced by this endpoint
-
----
-
-# Knowledge
-
-## Register Knowledge Source
-
-```text
-POST /v1/knowledge-sources
-```
-
-Request body (`CreateKnowledgeSourceRequest`):
-
-- `scenarioId: string`
-- `name: string`
-- `knowledgeType: KnowledgeType` — `'world' | 'memory' | 'media'`
-- `format: KnowledgeSourceFormat`
-- `uriOrPath: string`
-- `visibilityPolicy?: KnowledgeVisibilityPolicy` — `'all' | 'avatars' | 'none'`; defaults to `'all'` when omitted
-- `visibleToAvatarIds?: string[]` — only meaningful when `visibilityPolicy === 'avatars'`
-- `metadata?: Record<string, unknown>` — set `metadata.inlineText` for inline text content
-
-Visibility policy semantics:
-
-- `'all'` — visible to all avatars (default; backward-compatible with pre-EPIC-6.1 records)
-- `'avatars'` — visible only to avatars listed in `visibleToAvatarIds`
-- `'none'` — GM-only; excluded from all avatar retrieval; still accessible via `bypassVisibilityFilter` (GM omniscience path)
-
-Normalization rules:
-
-- if `visibleToAvatarIds` is provided without `visibilityPolicy`, the server normalizes the source to `visibilityPolicy: 'avatars'`
-- if `visibilityPolicy` is `'all'` or `'none'`, any provided `visibleToAvatarIds` are ignored and cleared
-- if `visibilityPolicy` is `'avatars'`, `visibleToAvatarIds` must contain at least one avatar ID after trimming
-
----
-
-## Upload Knowledge Source (Text / PDF)
-
-```text
-POST /v1/knowledge-sources/upload
-```
-
-Request body (`UploadKnowledgeSourceRequest`):
-
-- `scenarioId: string`
-- `name: string`
-- `knowledgeType: KnowledgeType`
-- `content: string` — base64-encoded file bytes
-- `filename: string` — must end in `.pdf`, `.txt`, or `.text`; determines extraction path
-- `visibilityPolicy?: KnowledgeVisibilityPolicy` — same semantics as Register above
-- `visibleToAvatarIds?: string[]` — same normalization and validation rules as Register above
-
-Notes:
-
-- uploaded PDF/TXT bytes are parsed before dispatch to the knowledge-source use case; extracted text is stored as `metadata.inlineText`
-- Max base64 payload: ~14 MB (~10 MB raw); 400 returned if exceeded or extension unsupported
-- Returns the same `CreateKnowledgeSourceResponse` shape as POST /v1/knowledge-sources
-
----
-
-## Update Knowledge Source
-
-```text
-PATCH /v1/knowledge-sources/{sourceId}
-```
-
-Patch body (`UpdateKnowledgeSourceRequest`):
-
-- `name?: string`
-- `metadata?: Record<string, unknown>` — set `metadata.inlineText` to replace inline text content directly
-- `uriOrPath?: string`
-- `content?: string` — base64-encoded replacement file bytes for an existing PDF/TXT-backed source
-- `filename?: string` — replacement filename for `content`; must end in `.pdf`, `.txt`, or `.text`
-- `visibilityPolicy?: KnowledgeVisibilityPolicy`
-- `visibleToAvatarIds?: string[]`
-
-`visibilityPolicy` is patchable. Updates are idempotent and safe for partial edits.
-
-Patch normalization rules:
-
-- updating only `visibleToAvatarIds` normalizes the source to `visibilityPolicy: 'avatars'`
-- patching `visibilityPolicy: 'all'` or `'none'` clears any stored `visibleToAvatarIds`
-- patching `visibilityPolicy: 'avatars'` without avatar IDs returns `400 VALIDATION_ERROR`
-- `content` and `filename` must be provided together
-- `content`/`filename` replacement cannot be combined with direct `metadata`/`uriOrPath` patch fields in the same request
-- replacing inline text or a backing file resets source `status` to `pending` so ingestion can be rerun against the new content
-
----
-
-## List Knowledge Sources
-
-```text
-GET /v1/scenarios/{scenarioId}/knowledge-sources
-```
-
----
-
-## Trigger Ingestion
-
-```text
-POST /v1/knowledge-sources/{sourceId}/ingest
-```
-
----
-
-## List Ingestion Jobs For Source
-
-```text
-GET /v1/knowledge-sources/{sourceId}/ingestion-jobs
-```
-
----
-
-## Get Ingestion Job
-
-```text
-GET /v1/ingestion-jobs/{ingestionJobId}
-```
-
----
-
-## Query Typed Retrieval (Admin/Debug)
-
-```text
-POST /v1/admin/knowledge/retrieval
-```
-
-Notes:
-
-- admin/debug endpoint only (API-key protected in Phase A)
-- response remains typed (`memory`/`world`/`media` + trace metadata)
-- retrieved `content` is bounded/truncated for safe debug inspection payloads
-- retrieval items may expose `visibleToAvatarIds` metadata for visibility observability
-- optional `activeAvatarId` request field applies avatar-scoped visibility filtering before context assembly
-- retrieval trace may include bounded visibility explainability counts (`consideredChunkCount`, `excludedChunkCount`) per type
-- GM/runtime context diagnostics may include bounded `gmRetrievalCounts` with `gmUnrestricted=true` to show omniscient retrieval scope without exposing raw hidden content
-
----
-
-# User Persona
-
-## Upsert Persona
-
-```text
-PUT /v1/users/{userId}/persona
-```
-
----
-
-## Get Persona
-
-```text
-GET /v1/users/{userId}/persona
-```
-
----
-
-# User Memory Facts
-
-## List Facts
-
-```text
-GET /v1/users/{userId}/memory-facts
-```
-
----
-
-## Delete Fact
-
-```text
-DELETE /v1/users/{userId}/memory-facts/{factId}
-```
-
----
-
-# Metrics
-
-## Metrics Summary
-
-```text
-GET /v1/metrics/summary
-```
-
----
-
-# Admin API
-
-All admin endpoints are under:
-
-```text
-/v1/admin/*
-```
-
----
-
-# Health
-
-## Platform Health
-
-```text
-GET /v1/admin/health
-```
-
----
-
-# Model Configuration
-
-## Get Model Config
-
-```text
-GET /v1/admin/model-config
-```
-
-```ts
-type ModelConfigResponse = {
-  globalDefault: { provider: string; model: string }
-  roleOverrides: {
-    avatar?: { provider?: string; model?: string }
-    gameMaster?: { provider?: string; model?: string }
-    memory?: { provider?: string; model?: string }
-  }
-  updatedAt: string
-}
-```
-
-Response:
-
-```ts
-ApiResponse<{ modelConfig: ModelConfigResponse }>
-```
-
-Always returns `200` with effective config (falls back to default when no DB row exists).
-
-## Update Model Config
-
-```text
-PUT /v1/admin/model-config
-```
-
-Request:
-
-```ts
-type UpdateModelConfigRequest = {
-  globalDefault: { provider: string; model: string }
-  roleOverrides?: {
-    avatar?: { provider?: string; model?: string }
-    gameMaster?: { provider?: string; model?: string }
-    memory?: { provider?: string; model?: string }
-  }
-}
-```
-
-Validation:
-
-- provider fields must be one of `openai | anthropic | mistral | xai | null`
-- model fields must be non-empty strings when provided
-- `globalDefault.model` must be non-empty and at most 200 chars after trimming
-- unknown fields are rejected
-
-Response:
-
-```ts
-ApiResponse<{ modelConfig: ModelConfigResponse }>
-```
-
-Validation failures return `400` with `VALIDATION_ERROR`.
-
----
-
-# Inspector
-
-## Inspect Session
-
-```text
-GET /v1/admin/sessions/{sessionId}/inspect
-```
-
-Response:
-
-```ts
-ApiResponse<{
-  inspect: {
-    session: SessionSummary
-    gmState: GmStateSummary | null
-    transitionHistory: SessionTransitionRecord[]
-    unlockedAvatarIds: string[]
-    gmNotes: string | null
-    effectiveModels: {
-      avatar: { provider: string; model: string }
-      gameMaster: { provider: string; model: string }
-      memory: { provider: string; model: string }
-    }
-  }
-}>
-```
-
----
-
-## Session Events
-
-```text
-GET /v1/admin/sessions/{sessionId}/events
-```
-
-Response notes:
-
-- Returns `ApiResponse<AdminSessionEventsResponse>`
-- `gm_triggered` decision payloads may include bounded unlock diagnostics (`avatarId`, `avatarName`, `reason`, `outcome`)
-- `turn_completed` payloads may include per-turn retrieval timing (`retrievalLatencyMs`) and remaining non-LLM overhead (`otherOverheadMs`)
-- `turn_completed` payloads may include bounded `contextSelection` metadata such as selected counts and boolean presence flags (for example response-rule count or whether Avatar Traits were selected), but never raw prompt text, trait content, or retrieved snippet content
-
----
-
-## Session Context
-
-```text
-GET /v1/admin/sessions/{sessionId}/context
-```
-
-Response notes:
-
-- Returns `ApiResponse<AdminSessionContextResponse>`
-- Returns the canonical sectioned runtime snapshot: `avatarContext`, `gmContext`, and bounded `contextTrace`
-- `avatarContext` mirrors the runtime section order used for turn assembly: Director Notes, Response Rules, Conversation State, User Persona, World Context, optional Retrieved Context, and optional Avatar Traits
-- `gmContext` exposes the GM projection separately from the Avatar projection
-- `gmContext.sections.conversationState.memory.workingMemory`, when present, exposes the bounded GM-facing working-memory fragment (`summary`, `unresolvedThreads`, `coveredTopics`); `workingSummary` remains a summary-only compatibility mirror
-- `contextTrace` exposes bounded policy, selected-input, and kept/trimmed segment metadata without provider secrets or raw credential material
-- Session-context retrieval is a bounded current snapshot, not a replay of any specific past turn; per-turn retrieved provenance remains available through session events
-
----
-
-## Session Metrics
-
-```text
-GET /v1/admin/sessions/{sessionId}/metrics
-```
-
-Response notes:
-
-- Returns `ApiResponse<AdminSessionTurnMetricsResponse>`
-- Each turn entry includes `conversationId`
-- Each turn entry may include `retrievalLatencyMs` when typed retrieval ran for that turn
-
----
-
-## Session Memory
-
-```text
-GET /v1/admin/sessions/{sessionId}/memory
-```
-
----
-
-## Session Memory Layers
-
-```text
-GET /v1/admin/sessions/{sessionId}/memory-layers
-```
-
----
-
-# Runtime Actions
-
-## Replay GM
-
-```text
-POST /v1/admin/sessions/{sessionId}/gm/replay
-```
-
----
-
-## Refresh Memory
-
-```text
-POST /v1/admin/sessions/{sessionId}/memory/refresh
-```
-
----
-
-## Clear Session Memory
-
-```text
-POST /v1/admin/sessions/{sessionId}/memory/clear
-```
-
----
-
-# Jobs
-
-## List Jobs
-
-```text
-GET /v1/admin/jobs
-```
-
----
-
-## Retry Job
-
-```text
-POST /v1/admin/jobs/{jobId}/retry
-```
-
----
-
-# Audit & Errors
-
-## Recent Errors
-
-```text
-GET /v1/admin/errors
-```
-
----
-
-## Audit Log
-
-```text
-GET /v1/admin/audit-log
-```
-
----
-
-# Validation Rules
-
-## Message Content
-
-- required
-- trimmed non-empty
-- bounded max size
-
-## Config Objects
-
-- always JSON objects
-- never JSON-encoded strings
-
----
-
-# HTTP Status Rules
-
-## Success
-
-- `200 OK`
-- `201 Created`
-- `202 Accepted`
-- `204 No Content`
-
-## Errors
-
-- `400 Bad Request`
-- `401 Unauthorized`
-- `403 Forbidden`
-- `404 Not Found`
-- `409 Conflict`
-- `429 Too Many Requests`
-- `500 Internal Server Error`
-- `502/503/504 Upstream Errors`
-
----
-
-# Contract Ownership
-
-## Shared DTOs
-
-```text
-packages/shared/src/*
-```
-
-## Domain Contracts
-
-```text
-apps/core/src/domain/*
-```
-
-## Memory Contracts
-
-```text
-apps/core/src/domain/memory/*
-packages/shared/src/memory-contract-types.ts
-```
-
-## Runtime Inspector Contracts
-
-```text
-packages/shared/src/runtime-inspector-types.ts
-```
-
-## Knowledge/Retrieval Contracts
-
-```text
-apps/core/src/domain/knowledge/knowledge.types.ts
-packages/shared/src/knowledge-contract-types.ts
-```
-
-## Conversation Contracts
-
-```text
-packages/shared/src/conversation-contract-types.ts
-```
-
-## Scenario/Avatar Contracts (EPIC 6.1)
-
-```text
-apps/core/src/domain/scenario/scenario.types.ts
-apps/core/src/domain/avatar/avatar.types.ts
-packages/shared/src/entity-types.ts        -- summaries + create/update avatar shapes
-packages/shared/src/web-contract-types.ts  -- scenario/avatar route request/response wrappers
-```
-
-Route handlers (`apps/core/src/api/routes/scenarios.ts`, `avatars.ts`) must import these
-canonical types rather than re-declaring local request/response shapes.
-
-`AvatarComputedTraits` (EPIC 8.1) is defined once in `packages/shared/src/entity-types.ts`
-and re-exported (not re-declared) by `apps/core/src/domain/avatar/avatar.types.ts` for
-domain/internal use, following the same pattern as `AvatarLlmOverride`.
-
-`PrepareAvatarTraitsResponse` / `AvatarTraitPreparationResult` (EPIC 8.1) are defined once
-in `packages/shared/src/web-contract-types.ts`; the `PrepareScenarioAvatarTraitsUseCase`
-output type (`apps/core/.../prepare-scenario-avatar-traits.types.ts`) reuses them directly
-rather than re-declaring the same shape.
-
-## Model Configuration Contracts (EPIC 6.1)
-
-```text
-apps/core/src/domain/model-config/model-config.types.ts  -- ModelConfig, ModelRole, ProviderName
-packages/shared/src/runtime-inspector-types.ts            -- ModelConfigResponse, UpdateModelConfigRequest
-packages/shared/src/model-catalog.ts                     -- provider catalog + scenario model-selection contracts
-```
+### Scenario And Avatar Model Selection
+
+- Scenario `modelSelection` must contain `defaultProfile` or `gameMasterOverride` when present.
+- Avatar `llmOverride`, when provided as an object, requires both `provider` and `model`.
+- `modelSelection: null` clears stored scenario-level model selection.
+- `llmOverride: null` clears the stored avatar override.
+- Provider/model pairs must come from the canonical catalog in `packages/shared/src/model-catalog.ts`.
 
 Runtime precedence:
 
-- avatar runtime: `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` -> global avatar role override -> global default
-- Game Master runtime: `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` -> global Game Master role override -> global default
-- memory runtime: global memory role override -> global default
+- Avatar runtime: `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` -> global avatar override -> global default
+- GM runtime: `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` -> global GM override -> global default
+- Memory runtime: global memory override -> global default
 
----
+### Avatar Trait Preparation
 
-# Non Goals
+- `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` is explicit and synchronous.
+- The route accepts no request body; any JSON body returns `400 VALIDATION_ERROR`.
+- One failed avatar preparation must not fail the whole scenario batch.
+- Preparation overwrites `computedTraits` only; it never edits authored avatar fields.
 
-Not part of Phase A:
+### Knowledge Visibility
 
-- voice APIs
-- media playback orchestration
-- tenant management
-- fine-grained GM controls
-- raw prompt management
-- benchmark APIs
+- `KnowledgeVisibilityPolicy` is `'all' | 'avatars' | 'none'`.
+- `'none'` means GM-only: excluded from avatar retrieval, still visible to GM/debug paths where explicitly allowed.
+- Providing `visibleToAvatarIds` without `visibilityPolicy` normalizes to `'avatars'`.
+- `'all'` or `'none'` clears any provided `visibleToAvatarIds`.
+- `'avatars'` requires at least one avatar ID after trimming.
 
----
+### Knowledge Upload And Update
 
-# Evolution Rules
+- Upload accepts `.pdf`, `.txt`, and `.text` only.
+- Upload `content` is base64-encoded file bytes; extracted text is stored as `metadata.inlineText`.
+- Max upload size is approximately 14 MB base64 / 10 MB raw.
+- For updates, `content` and `filename` must be provided together.
+- File replacement cannot be combined with direct `metadata` or `uriOrPath` edits in the same request.
+- Replacing inline text or file content resets the source status to `pending`.
 
-- additive changes preferred
-- avoid changing field meanings
-- keep payloads stable
-- prefer new endpoints over polymorphic overloads
-- public contracts remain thinner than internal architecture
+### Runtime Diagnostics
+
+- Admin event payloads may include counts, flags, latency, effective models, and bounded selection metadata.
+- Admin event payloads must not include raw prompt text, secrets, or unbounded transcript content.
+- Session context is a bounded current snapshot, not a replay of a specific historical turn.
+
+## Validation And Status Rules
+
+- Message content must be non-empty after trimming and stay within route-specific limits.
+- Config fields are JSON objects, never JSON-encoded strings.
+- Success statuses: `200`, `201`, `202`, `204`
+- Common error statuses: `400`, `401`, `403`, `404`, `409`, `429`, `500`, `502`, `503`, `504`
+
+## Evolution Rules
+
+- Prefer additive changes.
+- Do not silently change field meaning.
+- Keep public payloads thinner than internal runtime state.
+- Reuse canonical shared DTOs instead of re-declaring route-local variants.
