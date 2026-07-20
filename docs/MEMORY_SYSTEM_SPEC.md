@@ -34,6 +34,9 @@ This specification complements:
 - Shared HTTP/admin DTO contracts owner:
   - `packages/shared/src/memory-contract-types.ts`
   - composed by `packages/shared/src/lifecycle-types.ts` and `packages/shared/src/runtime-inspector-types.ts`
+- Compatibility mirrors:
+  - internal/runtime-inspector fields such as `workingSummary` are summary-only mirrors of the richer conversation working-memory object
+  - no new working-memory field may live only on a compatibility mirror; additive fields such as `coveredTopics` must be added first to the canonical owner, then projected outward where needed
 - Nullability rule:
   - internal/domain optional fields use `undefined`
   - explicit `null` is reserved for API contracts that intentionally require `null`

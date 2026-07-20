@@ -1,5 +1,9 @@
 import crypto from 'node:crypto'
-import type { ConversationWorkingMemory } from '../../domain/memory/memory.types.js'
+import type {
+  ConversationWorkingMemory,
+  ConversationWorkingMemoryRefreshOutput,
+  MemoryFactRecord,
+} from '../../domain/memory/memory.types.js'
 import type { IEventLogRepository } from '../ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../ports/IMessageRepository.js'
@@ -176,11 +180,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
 
   private async rewriteWorkingMemory(
     messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
-    priorMemory: {
-      summary: string
-      unresolvedThreads: string[]
-      candidateFacts: Array<{ category: string; key: string; value: string }>
-    } | null,
+    priorMemory: ConversationWorkingMemoryRefreshOutput | null,
     context: {
       requestId: string
       sessionId: string
@@ -260,11 +260,7 @@ function countExchanges(
 
 function buildCompactionInput(
   messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
-  priorMemory: {
-    summary: string
-    unresolvedThreads: string[]
-    candidateFacts: Array<{ category: string; key: string; value: string }>
-  } | null,
+  priorMemory: ConversationWorkingMemoryRefreshOutput | null,
 ): string {
   const parts: string[] = []
 
@@ -289,11 +285,7 @@ function buildCompactionInput(
   return parts.join('\n')
 }
 
-function parseCompactionOutput(content: string): {
-  summary: string
-  unresolvedThreads: string[]
-  candidateFacts: Array<{ category: string; key: string; value: string }>
-} | null {
+function parseCompactionOutput(content: string): ConversationWorkingMemoryRefreshOutput | null {
   let parsed: unknown
   try {
     parsed = JSON.parse(stripMarkdownFences(content))
@@ -315,12 +307,10 @@ function parseCompactionOutput(content: string): {
   }
 }
 
-function readCandidateFacts(
-  value: unknown,
-): Array<{ category: string; key: string; value: string }> {
+function readCandidateFacts(value: unknown): MemoryFactRecord[] {
   if (!Array.isArray(value)) return []
 
-  const facts: Array<{ category: string; key: string; value: string }> = []
+  const facts: MemoryFactRecord[] = []
   for (const item of value) {
     if (!isRecord(item)) continue
     const category = readString(item['category'])

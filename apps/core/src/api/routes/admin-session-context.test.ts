@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ApiResponse, AdminSessionContextResponse } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
+import type { ConversationWorkingMemory } from '../../domain/memory/memory.types.js'
 import { createServer } from '../server.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
@@ -111,7 +112,7 @@ function makeMessages() {
   ]
 }
 
-function makeWorkingMemory() {
+function makeWorkingMemory(): ConversationWorkingMemory {
   return {
     conversationId: 'conversation_1',
     sessionId: 'session_1',

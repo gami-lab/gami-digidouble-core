@@ -65,11 +65,14 @@ export type {
 } from './conversation-contract-types.js'
 export type { RuntimeEvent, RuntimeState, GetRuntimeStateResponse } from './runtime-types.js'
 export type {
+  SharedMemoryFactRecord,
   SharedShortTermMemoryExchange,
   SharedShortTermMemorySnapshot,
+  SharedWorkingMemoryCurrent,
   SharedWorkingMemorySessionSummary,
   SharedWorkingMemoryAvatarSummary,
   SharedLongTermMemoryFact,
+  SharedLongTermAvatarMemory,
 } from './memory-contract-types.js'
 export type {
   KnowledgeType,

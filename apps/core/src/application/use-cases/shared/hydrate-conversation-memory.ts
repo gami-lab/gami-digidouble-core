@@ -1,5 +1,6 @@
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
+import type { ConversationWorkingMemoryRefreshOutput } from '../../../domain/memory/memory.types.js'
 
 export type HydrationInput = {
   conversationId: string
@@ -12,11 +13,7 @@ export type HydrationInput = {
 
 export type EpisodicMemoryHydrationService = {
   hydrateForNewConversationWithMetadata(input: HydrationInput): Promise<{
-    hydration: {
-      summary: string
-      unresolvedThreads: string[]
-      candidateFacts: Array<{ category: string; key: string; value: string }>
-    }
+    hydration: ConversationWorkingMemoryRefreshOutput
     selectedConversationIds: string[]
     consideredConversationIds: string[]
   }>

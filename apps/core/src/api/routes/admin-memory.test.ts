@@ -3,7 +3,13 @@ import type { ApiResponse, SessionMemoryLayers, SessionMemorySummary } from '@ga
 import type { FastifyInstance } from 'fastify'
 import type { Conversation } from '../../domain/conversation/session.types.js'
 import type { Session } from '../../domain/conversation/session.types.js'
-import type { UserFact } from '../../domain/memory/memory.types.js'
+import type {
+  AvatarSessionMemory,
+  ConversationMemory,
+  ConversationWorkingMemory,
+  SessionMemory,
+  UserFact,
+} from '../../domain/memory/memory.types.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryConversationMemoryRepository } from '../../infrastructure/db/in-memory-conversation-memory.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
@@ -62,14 +68,9 @@ type SeedConversation = {
   endedAt?: string
 }
 
-type SeedSessionMemory = { sessionId: string; summary: string; updatedAt: string }
+type SeedSessionMemory = SessionMemory
 
-type SeedAvatarMemory = {
-  sessionId: string
-  avatarId: string
-  summary: string
-  updatedAt: string
-}
+type SeedAvatarMemory = AvatarSessionMemory
 
 type SeedConversationMessage = {
   messageId: string
@@ -79,28 +80,9 @@ type SeedConversationMessage = {
   createdAt: string
 }
 
-type SeedConversationMemory = {
-  conversationId: string
-  sessionId: string
-  userId: string
-  avatarId: string
-  scenarioId: string
-  summary: string
-  keyDiscoveries: string[]
-  unresolvedTopics: string[]
-  factCandidates: Array<{ category: string; key: string; value: string }>
-  createdAt: string
-}
+type SeedConversationMemory = ConversationMemory
 
-type SeedConversationWorkingMemory = {
-  conversationId: string
-  sessionId: string
-  avatarId: string
-  summary: string
-  unresolvedThreads: string[]
-  candidateFacts: Array<{ category: string; key: string; value: string }>
-  updatedAt: string
-}
+type SeedConversationWorkingMemory = ConversationWorkingMemory
 
 type SeedEvent = {
   sessionId?: string

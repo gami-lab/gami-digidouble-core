@@ -32,11 +32,7 @@ export interface ConversationWorkingMemory {
   avatarId: string
   summary: string
   unresolvedThreads: string[]
-  candidateFacts: Array<{
-    category: string
-    key: string
-    value: string
-  }>
+  candidateFacts: MemoryFactRecord[]
   updatedAt: string
 }
 
@@ -49,11 +45,7 @@ export interface ConversationMemory {
   summary: string
   keyDiscoveries: string[]
   unresolvedTopics: string[]
-  factCandidates: Array<{
-    category: string
-    key: string
-    value: string
-  }>
+  factCandidates: MemoryFactRecord[]
   createdAt: string
 }
 
@@ -68,7 +60,9 @@ export interface UserFact {
   updatedAt: string
 }
 
-export type LongTermMemoryFact = Pick<UserFact, 'category' | 'key' | 'value'>
+export type MemoryFactRecord = Pick<UserFact, 'category' | 'key' | 'value'>
+
+export type LongTermMemoryFact = MemoryFactRecord
 
 export type ShortTermMemoryExchange = {
   user: string
@@ -100,10 +94,7 @@ export type LayeredMemorySnapshot = {
 }
 
 export type GameMasterMemoryContext = {
-  workingMemory?: {
-    summary: string
-    unresolvedThreads: string[]
-  }
+  workingMemory?: Pick<ConversationWorkingMemory, 'summary' | 'unresolvedThreads'>
   episodicMemories?: Array<{
     memoryId: string
     conversationId: string
@@ -117,10 +108,12 @@ export type GameMasterMemoryContext = {
   longTermFacts?: LongTermMemoryFact[]
 }
 
-export type ConversationWorkingMemoryRefreshOutput = Pick<
+export type ConversationWorkingMemorySnapshot = Pick<
   ConversationWorkingMemory,
   'summary' | 'unresolvedThreads' | 'candidateFacts'
 >
+
+export type ConversationWorkingMemoryRefreshOutput = ConversationWorkingMemorySnapshot
 
 export type MemorySelectionReason =
   | 'recency'
@@ -140,14 +133,16 @@ export type SelectedEpisodicMemory = {
   selectionReasons: MemorySelectionReason[]
 }
 
+export type SelectedWorkingMemory = Pick<
+  ConversationWorkingMemory,
+  'summary' | 'unresolvedThreads' | 'updatedAt'
+> & {
+  selectionReasons: MemorySelectionReason[]
+}
+
 export type SelectedMemoryPayload = {
   shortTermExchanges: ShortTermMemoryExchange[]
-  workingMemory?: {
-    summary: string
-    unresolvedThreads: string[]
-    updatedAt: string
-    selectionReasons: MemorySelectionReason[]
-  }
+  workingMemory?: SelectedWorkingMemory
   episodicMemories: SelectedEpisodicMemory[]
   longTermFacts: LongTermMemoryFact[]
 }

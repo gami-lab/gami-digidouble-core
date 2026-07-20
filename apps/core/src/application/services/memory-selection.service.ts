@@ -13,8 +13,8 @@ import type {
   GameMasterMemoryContext,
   LayeredMemorySnapshot,
   LongTermMemoryFact,
-  MemorySelectionReason,
   SelectedMemoryPayload,
+  SelectedWorkingMemory,
   ShortTermMemoryExchange,
 } from '../../domain/memory/memory.types.js'
 
@@ -153,15 +153,9 @@ export class MemorySelectionService {
     }
   }
 
-  private async loadWorkingMemory(conversationId: string): Promise<
-    | {
-        summary: string
-        unresolvedThreads: string[]
-        updatedAt: string
-        selectionReasons: MemorySelectionReason[]
-      }
-    | undefined
-  > {
+  private async loadWorkingMemory(
+    conversationId: string,
+  ): Promise<SelectedWorkingMemory | undefined> {
     if (this.conversationWorkingMemoryRepository === undefined) return undefined
     try {
       const memory =

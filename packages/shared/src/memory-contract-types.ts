@@ -27,20 +27,22 @@ export type SharedWorkingMemoryAvatarSummary = {
   updatedAt: string
 }
 
+export type SharedMemoryFactRecord = {
+  category: string
+  key: string
+  value: string
+}
+
 export type SharedWorkingMemoryCurrent = {
   conversationId: string
   avatarId: string
   summary: string
   unresolvedThreads: string[]
-  candidateFacts: SharedLongTermMemoryFact[]
+  candidateFacts: SharedMemoryFactRecord[]
   updatedAt: string
 }
 
-export type SharedLongTermMemoryFact = {
-  category: string
-  key: string
-  value: string
-}
+export type SharedLongTermMemoryFact = SharedMemoryFactRecord
 
 export type SharedLongTermAvatarMemory = {
   avatarId: string
@@ -49,7 +51,7 @@ export type SharedLongTermAvatarMemory = {
     summary: string
     keyDiscoveries: string[]
     unresolvedTopics: string[]
-    factCandidates: SharedLongTermMemoryFact[]
+    factCandidates: SharedMemoryFactRecord[]
     createdAt: string
   }>
 }

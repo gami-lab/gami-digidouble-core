@@ -1074,6 +1074,33 @@ Completed on: 2026-07-20
 
 ---
 
+## EPIC 8.4 — Working Memory Prompt Refinement
+
+Status: In progress
+Started on: 2026-07-20
+
+### Current slice completed (working-memory contract ownership baseline)
+
+- audited the current working-memory path end to end before adding `coveredTopics`: domain memory types, memory maintenance refresh output, memory selection, GM runtime input, context snapshots, admin/runtime DTOs, runtime event payloads, persistence adapters, and high-fanout tests
+- made canonical ownership explicit for the working-memory path:
+  - internal/domain working-memory contracts remain owned by `apps/core/src/domain/memory/memory.types.ts`
+  - shared HTTP/admin memory fragments remain owned by `packages/shared/src/memory-contract-types.ts` and composed shared DTOs in `packages/shared/src/lifecycle-types.ts` and `packages/shared/src/runtime-inspector-types.ts`
+  - persistence row mapping remains local to repository adapters such as `apps/core/src/infrastructure/db/repositories/postgres-conversation-working-memory.repository.ts`
+- consolidated drift-prone local shapes before the prompt slice:
+  - introduced canonical reusable aliases for fact-like memory fragments, GM-facing working-memory summaries, working-memory snapshots, and selected working-memory payloads under `apps/core/src/domain/memory/memory.types.ts`
+  - introduced the shared fact-fragment owner under `packages/shared/src/memory-contract-types.ts` and reused it for working-memory current snapshots, long-term memory fragments, and memory-refresh event payloads
+  - updated application helpers (`memory-maintenance`, episodic hydration, session memory layers, memory selection) to consume canonical owners instead of repeating inline working-memory shapes
+  - updated working-memory-heavy tests and fixtures to type against canonical contracts instead of local copies where the duplication risk was highest
+- preserved compatibility mirrors explicitly instead of letting them compete with canonical contracts:
+  - `workingSummary` remains a summary-only mirror for runtime diagnostics and inspector snapshots
+  - no new working-memory field may live only on a mirror path; later additive fields such as `coveredTopics` must be added to the canonical owner first, then projected outward deliberately
+- docs reviewed and updated for this slice:
+  - updated `docs/MEMORY_SYSTEM_SPEC.md` with the compatibility-mirror ownership rule
+  - updated `docs/GAME_MASTER_CONTRACT.md` to make the `workingSummary` mirror boundary explicit
+  - reviewed `docs/API_CONTRACT.md` and `docs/TEST_STRATEGY.md`; their current statements remain accurate because no public route shape or test-tier policy changed
+
+---
+
 ## Sessions & Conversations
 
 - `POST /v1/sessions`

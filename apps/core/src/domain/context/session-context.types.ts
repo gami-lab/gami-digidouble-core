@@ -2,6 +2,7 @@ import type { AvatarComputedTraits } from '../avatar/avatar.types.js'
 import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import type {
   ContextMessage,
+  GameMasterMemoryContext,
   LongTermMemoryFact,
   ShortTermMemoryExchange,
   AvatarWorkingMemorySummary,
@@ -75,8 +76,9 @@ export type GmContextConversationState = {
     shortTerm?: {
       recentExchanges: ShortTermMemoryExchange[]
     }
+    /** Compatibility mirror of GameMasterMemoryContext.workingMemory.summary only. */
     workingSummary?: string
-    longTermFacts?: LongTermMemoryFact[]
+    longTermFacts?: NonNullable<GameMasterMemoryContext['longTermFacts']>
   }
 }
 

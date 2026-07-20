@@ -4,7 +4,7 @@ import type { ILlmAdapter, LlmRequest } from '../../application/ports/ILlmAdapte
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Conversation, Session } from '../../domain/conversation/session.types.js'
 import type { KnowledgeChunk, KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
-import type { UserFact } from '../../domain/memory/memory.types.js'
+import type { ConversationWorkingMemory, UserFact } from '../../domain/memory/memory.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import type { User } from '../../domain/user/user.types.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
@@ -131,7 +131,7 @@ function makeMessages() {
   ]
 }
 
-function makeWorkingMemory() {
+function makeWorkingMemory(): ConversationWorkingMemory {
   return {
     conversationId: 'conversation_1',
     sessionId: 'session_1',

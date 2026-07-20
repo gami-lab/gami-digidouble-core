@@ -1,5 +1,4 @@
-import type { SessionMemoryLayers } from '@gami/shared'
-import type { SharedShortTermMemoryExchange } from '@gami/shared'
+import type { SessionMemoryLayers, SharedShortTermMemoryExchange } from '@gami/shared'
 import type { IAvatarSessionMemoryRepository } from '../../ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../ports/IConversationMemoryRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
@@ -15,10 +14,13 @@ import {
   ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT,
   MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
 } from '../../../domain/memory/memory.policy.js'
+import type { ConversationWorkingMemory } from '../../../domain/memory/memory.types.js'
 import type {
   GetSessionMemoryLayersInput,
   GetSessionMemoryLayersOutput,
 } from './get-session-memory-layers.types.js'
+
+type LongTermAvatarMemoryGroup = SessionMemoryLayers['longTerm']['avatars'][number]
 
 export class GetSessionMemoryLayersUseCase {
   private readonly selectionService?: MemorySelectionService
@@ -96,14 +98,7 @@ export class GetSessionMemoryLayersUseCase {
   }
 
   private buildWorkingLayer(
-    currentWorkingMemory: {
-      conversationId: string
-      avatarId: string
-      summary: string
-      unresolvedThreads: string[]
-      candidateFacts: Array<{ category: string; key: string; value: string }>
-      updatedAt: string
-    } | null,
+    currentWorkingMemory: ConversationWorkingMemory | null,
   ): SessionMemoryLayers['working'] {
     if (currentWorkingMemory === null) {
       return { avatars: [] }
@@ -160,14 +155,9 @@ export class GetSessionMemoryLayersUseCase {
     return exchanges.slice(-GetSessionMemoryLayersUseCase.ADMIN_SHORT_TERM_EXCHANGE_LIMIT)
   }
 
-  private async loadCurrentWorkingMemory(conversationId: string | undefined): Promise<{
-    conversationId: string
-    avatarId: string
-    summary: string
-    unresolvedThreads: string[]
-    candidateFacts: Array<{ category: string; key: string; value: string }>
-    updatedAt: string
-  } | null> {
+  private async loadCurrentWorkingMemory(
+    conversationId: string | undefined,
+  ): Promise<ConversationWorkingMemory | null> {
     if (conversationId === undefined || this.conversationWorkingMemoryRepository === undefined) {
       return null
     }
@@ -208,17 +198,7 @@ export class GetSessionMemoryLayersUseCase {
       }),
     )
 
-    const grouped = new Map<
-      string,
-      Array<{
-        conversationId: string
-        summary: string
-        keyDiscoveries: string[]
-        unresolvedTopics: string[]
-        factCandidates: Array<{ category: string; key: string; value: string }>
-        createdAt: string
-      }>
-    >()
+    const grouped = new Map<string, LongTermAvatarMemoryGroup['memories']>()
 
     for (const memory of episodicMemories) {
       if (memory === null) continue
@@ -235,11 +215,15 @@ export class GetSessionMemoryLayersUseCase {
     }
 
     return [...grouped.entries()]
-      .map(([avatarId, memories]) => ({
-        avatarId,
-        memories: memories.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
-      }))
-      .sort((a, b) => a.avatarId.localeCompare(b.avatarId))
+      .map(
+        ([avatarId, memories]): LongTermAvatarMemoryGroup => ({
+          avatarId,
+          memories: memories.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+        }),
+      )
+      .sort((a: LongTermAvatarMemoryGroup, b: LongTermAvatarMemoryGroup) =>
+        a.avatarId.localeCompare(b.avatarId),
+      )
   }
 
   private async buildObservability(session: {

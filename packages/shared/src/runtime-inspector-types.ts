@@ -4,6 +4,7 @@ import type {
   SessionMemorySummary,
 } from './lifecycle-types.js'
 import type {
+  SharedMemoryFactRecord,
   SharedLongTermMemoryFact,
   SharedShortTermMemoryExchange,
   SharedWorkingMemoryAvatarSummary,
@@ -161,7 +162,7 @@ export type MemoryRefreshEventPayload = {
   workingSummary?: string
   messageCount?: number
   unresolvedThreads?: string[]
-  candidateFacts?: Array<{ category: string; key: string; value: string }>
+  candidateFacts?: SharedMemoryFactRecord[]
   exchangeCount?: number
   error?: string
 }
@@ -275,6 +276,7 @@ export type SessionContextGmMemory = {
   shortTerm?: {
     recentExchanges: SharedShortTermMemoryExchange[]
   }
+  /** Compatibility mirror of the internal working-memory summary only. */
   workingSummary?: string
   longTermFacts?: SharedLongTermMemoryFact[]
 }

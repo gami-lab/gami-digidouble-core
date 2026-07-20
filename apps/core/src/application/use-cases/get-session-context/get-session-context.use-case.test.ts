@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DomainError } from '../../../domain/errors.js'
+import type { ConversationWorkingMemory } from '../../../domain/memory/memory.types.js'
 import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
@@ -107,7 +108,7 @@ function makeMessages() {
   ]
 }
 
-function makeWorkingMemory() {
+function makeWorkingMemory(): ConversationWorkingMemory {
   return {
     conversationId: 'conversation_1',
     sessionId: 'session_1',

@@ -3,6 +3,7 @@ import type { IConversationWorkingMemoryRepository } from '../ports/IConversatio
 import type { IMessageRepository } from '../ports/IMessageRepository.js'
 import type {
   ConversationMemory,
+  ConversationWorkingMemorySnapshot,
   ConversationWorkingMemoryRefreshOutput,
 } from '../../domain/memory/memory.types.js'
 import {
@@ -123,8 +124,8 @@ function unique(values: string[]): string[] {
 }
 
 function uniqueFacts(
-  facts: Array<{ category: string; key: string; value: string }>,
-): Array<{ category: string; key: string; value: string }> {
+  facts: ConversationWorkingMemorySnapshot['candidateFacts'],
+): ConversationWorkingMemorySnapshot['candidateFacts'] {
   const seen = new Set<string>()
   const deduped: Array<{ category: string; key: string; value: string }> = []
   for (const fact of facts) {
