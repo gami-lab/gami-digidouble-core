@@ -88,16 +88,22 @@ Last updated: July 20, 2026
 - Avatar context snapshot:
   - Internal: `AvatarContextSnapshot`
   - API-facing: `SessionContextAvatarSnapshot`
+  - Internal grouping owner: `AvatarContextSnapshot.sections`
+  - Canonical section order: Director Notes -> Response Rules -> Conversation State -> User Persona -> World Context -> Retrieved Context -> Avatar Traits
   - Retrieval sections: `knowledge.typedSections.memory|world|media` are canonical and additive (merged `retrievedItems` remains for compatibility)
 - GM context snapshot:
   - Internal: `GmContextSnapshot`
   - API-facing: `SessionContextGmSnapshot`
+  - Internal grouping owner: `GmContextSnapshot.sections`
+  - Rule: GM projection remains separate from Avatar projection; unrestricted retrieval stays internal and is only down-mapped to existing recorded/shared DTOs at the application boundary
 - Event-recorded runtime context snapshots:
   - API-facing: `RecordedAvatarContextSnapshot`
   - API-facing: `RecordedGmContextSnapshot`
   - Rule: recorded snapshots reuse the same non-sensitive fragment owners as session-context DTOs and swap only the knowledge payload to provenance-only references
 - Token budget and trimming metadata:
-  - No standalone shared DTO currently exposed in Phase A.
+  - Internal owner: `apps/core/src/domain/context/context-engine.types.ts` (`ContextEngineTrace`)
+  - Internal precedence owner: `apps/core/src/domain/context/context-engine.policy.ts`
+  - Rule: section precedence and segment trimming stay internal unless an existing shared runtime-inspector contract explicitly exposes them
   - Existing bounded-selection observability remains in memory-layer contracts (`packages/shared/src/lifecycle-types.ts` -> `SessionMemoryLayers.observability`).
 - Context observability payloads:
   - Current API-facing observability is memory-centric and remains owned by shared lifecycle DTOs.

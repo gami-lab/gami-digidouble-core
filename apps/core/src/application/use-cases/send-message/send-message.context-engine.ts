@@ -7,30 +7,31 @@ import type { LayeredMemorySnapshot } from '../../../domain/memory/memory.types.
 export function toLayeredSnapshotFromAvatarContext(
   assembled: ContextEngineOutput,
 ): LayeredMemorySnapshot | undefined {
+  const conversationState = assembled.avatar.sections.conversationState
   const memory = {
-    ...(assembled.avatar.recentExchanges.length > 0
+    ...(conversationState.recentExchanges.length > 0
       ? {
           shortTerm: {
-            exchangeCount: assembled.avatar.recentExchanges.length,
-            recentExchanges: assembled.avatar.recentExchanges,
+            exchangeCount: conversationState.recentExchanges.length,
+            recentExchanges: conversationState.recentExchanges,
           },
         }
       : {}),
-    ...(assembled.avatar.workingMemory.session !== undefined ||
-    assembled.avatar.workingMemory.avatar !== undefined
+    ...(conversationState.workingMemory.session !== undefined ||
+    conversationState.workingMemory.avatar !== undefined
       ? {
           working: {
-            ...(assembled.avatar.workingMemory.session !== undefined
-              ? { session: assembled.avatar.workingMemory.session }
+            ...(conversationState.workingMemory.session !== undefined
+              ? { session: conversationState.workingMemory.session }
               : {}),
-            ...(assembled.avatar.workingMemory.avatar !== undefined
-              ? { avatar: assembled.avatar.workingMemory.avatar }
+            ...(conversationState.workingMemory.avatar !== undefined
+              ? { avatar: conversationState.workingMemory.avatar }
               : {}),
           },
         }
       : {}),
-    ...(assembled.avatar.longTermFacts.length > 0
-      ? { longTerm: { facts: assembled.avatar.longTermFacts } }
+    ...(conversationState.longTermFacts.length > 0
+      ? { longTerm: { facts: conversationState.longTermFacts } }
       : {}),
   }
   return Object.keys(memory).length > 0 ? memory : undefined

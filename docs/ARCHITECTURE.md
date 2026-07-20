@@ -233,10 +233,11 @@ Contains:
 - deterministic avatar fixtures (`domain/avatar/avatar.fixtures.ts`)
 - style behavior rules used by persona prompt assembly
 - explicit, rerunnable trait preparation (`PrepareScenarioAvatarTraitsUseCase`, EPIC 8.1): derives the fixed `AvatarComputedTraits` structure from existing avatar/scenario/knowledge-source storage via the `avatar` LLM role, and persists it through `IAvatarRepository.saveComputedTraits` — a narrow write path kept separate from generic avatar create/update
+- runtime avatar-identity consumption (EPIC 8.2): prompt assembly prefers prepared `computedTraits` when present and falls back to the authored `personaPrompt` for compatibility
 
 The Avatar speaks.
 
-The Avatar module does not own response orchestration; `SendMessageUseCase` in the application layer coordinates history + LLM invocation. Trait preparation is a separate, explicit step — not part of runtime response orchestration, and not itself consumed at runtime until EPIC 8.2.
+The Avatar module does not own response orchestration; `SendMessageUseCase` in the application layer coordinates history + LLM invocation. Trait preparation remains a separate, explicit step; runtime orchestration now consumes the resulting structured traits through the existing prompt-assembly boundary rather than recomputing them inline.
 
 ---
 
@@ -351,6 +352,7 @@ Combines:
 
 Produces bounded context payloads.
 Context assembly is deterministic, inspectable, and testable.
+Avatar runtime context is grouped into semantic sections with explicit precedence: Director Notes, Response Rules, Conversation State, User Persona, World Context, Retrieved Context, and Avatar Traits. GM context keeps its own separate projection and retrieval visibility rules.
 
 ---
 

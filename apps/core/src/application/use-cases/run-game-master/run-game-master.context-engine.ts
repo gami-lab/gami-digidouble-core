@@ -16,36 +16,40 @@ export function buildGmContextSnapshot(args: {
   recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>
   memory: GameMasterInput['context']['memory'] | undefined
   retrieval: TypedRetrievalResult | undefined
-  userPersona: GmContextSnapshot['userPersona']
+  userPersona: GmContextSnapshot['sections']['userPersona']
 }): GmContextSnapshot {
   return {
-    recentMessages: args.recentMessages,
-    memory: {
-      ...(args.memory?.workingMemory !== undefined
-        ? { workingSummary: args.memory.workingMemory.summary }
-        : {}),
-      ...(args.memory?.longTermFacts !== undefined
-        ? { longTermFacts: args.memory.longTermFacts }
-        : {}),
-    },
-    ...(args.retrieval !== undefined
-      ? {
-          knowledge: {
-            memory: args.retrieval.memory,
-            world: args.retrieval.world,
-            media: args.retrieval.media,
-          },
-        }
-      : {}),
     currentState: args.currentState,
     availableAvatars: toGameMasterAvailableAvatars(args.scenarioAvatars, args.session),
-    userPersona: args.userPersona,
-    scenario: {
-      scenarioId: args.session?.scenarioId ?? '',
-      ...(args.scenarioContext.description !== undefined
-        ? { description: args.scenarioContext.description }
+    sections: {
+      conversationState: {
+        recentMessages: args.recentMessages,
+        memory: {
+          ...(args.memory?.workingMemory !== undefined
+            ? { workingSummary: args.memory.workingMemory.summary }
+            : {}),
+          ...(args.memory?.longTermFacts !== undefined
+            ? { longTermFacts: args.memory.longTermFacts }
+            : {}),
+        },
+      },
+      ...(args.retrieval !== undefined
+        ? {
+            retrievedContext: {
+              memory: args.retrieval.memory,
+              world: args.retrieval.world,
+              media: args.retrieval.media,
+            },
+          }
         : {}),
-      ...(args.scenarioContext.goals !== undefined ? { goals: args.scenarioContext.goals } : {}),
+      userPersona: args.userPersona,
+      worldContext: {
+        scenarioId: args.session?.scenarioId ?? '',
+        ...(args.scenarioContext.description !== undefined
+          ? { description: args.scenarioContext.description }
+          : {}),
+        ...(args.scenarioContext.goals !== undefined ? { goals: args.scenarioContext.goals } : {}),
+      },
     },
   }
 }

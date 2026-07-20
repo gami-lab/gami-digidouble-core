@@ -58,7 +58,7 @@ function toIncludedRetrievalCounts(assembledContext: ContextEngineOutput): {
   world: number
   media: number
 } {
-  const typedSections = assembledContext.avatar.knowledge?.typedSections
+  const typedSections = assembledContext.avatar.sections.retrievedContext?.typedSections
   if (typedSections !== undefined) {
     return {
       memory: typedSections.memory.length,
@@ -67,7 +67,7 @@ function toIncludedRetrievalCounts(assembledContext: ContextEngineOutput): {
     }
   }
 
-  const retrievedItems = assembledContext.avatar.knowledge?.retrievedItems ?? []
+  const retrievedItems = assembledContext.avatar.sections.retrievedContext?.retrievedItems ?? []
   return retrievedItems.reduce(
     (counts, item) => {
       counts[item.knowledgeType] += 1

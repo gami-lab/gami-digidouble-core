@@ -1,8 +1,9 @@
+import type { AvatarComputedTraits } from '../avatar/avatar.types.js'
 import type { GameMasterState } from '../game-master/game-master.types.js'
 import type { TypedRetrievalResult } from '../knowledge/knowledge.types.js'
 import type { LayeredMemorySnapshot, ContextMessage } from '../memory/memory.types.js'
 import type { UserPersona } from '../user/user.types.js'
-import type { ContextSegmentId } from './context-engine.policy.js'
+import type { ContextSectionId, ContextSegmentId } from './context-engine.policy.js'
 import type {
   ContextScenarioSnapshot,
   GmContextSnapshot,
@@ -22,6 +23,8 @@ export type ContextEngineInput = {
     retrievalForGm?: TypedRetrievalResult
     userPersona: UserPersona | null
     gmDirective: string | null
+    responseRules?: string[]
+    avatarTraits?: AvatarComputedTraits
   }
 }
 
@@ -32,6 +35,7 @@ export type ContextEngineTrace = {
       avatarMaxTokens: number
       gmMaxTokens: number
     }
+    sectionPrecedence: ContextSectionId[]
     protectedSegments: ContextSegmentId[]
     precedence: ContextSegmentId[]
   }
@@ -62,6 +66,8 @@ export type ContextEngineTrace = {
     }
     hasUserPersona: boolean
     hasGmDirective: boolean
+    responseRuleCount: number
+    hasAvatarTraits: boolean
   }
   rationale: {
     avatarProjection: string[]
@@ -70,12 +76,14 @@ export type ContextEngineTrace = {
   selection: {
     kept: Array<{
       projection: 'avatar' | 'gm'
+      sectionId: ContextSectionId
       segmentId: ContextSegmentId
       tokenEstimate: number
       reason: 'protected' | 'within_budget'
     }>
     trimmed: Array<{
       projection: 'avatar' | 'gm'
+      sectionId: ContextSectionId
       segmentId: ContextSegmentId
       tokenEstimate: number
       reason: 'budget_exceeded'

@@ -12,44 +12,44 @@ import type {
 import type { RetrievedKnowledgeItem } from '../../domain/knowledge/knowledge.types.js'
 
 type AvatarTypedSections = NonNullable<
-  NonNullable<AvatarContextSnapshot['knowledge']>['typedSections']
+  NonNullable<NonNullable<AvatarContextSnapshot['sections']['retrievedContext']>['typedSections']>
 >
 
 export function toRecordedAvatarContextSnapshot(
   snapshot: AvatarContextSnapshot,
 ): RecordedAvatarContextSnapshot {
-  const knowledge = toRecordedAvatarKnowledge(snapshot.knowledge)
+  const knowledge = toRecordedAvatarKnowledge(snapshot.sections.retrievedContext)
 
   return {
     ...(snapshot.avatarId !== undefined ? { avatarId: snapshot.avatarId } : {}),
-    recentExchanges: snapshot.recentExchanges,
-    workingMemory: snapshot.workingMemory,
-    longTermFacts: snapshot.longTermFacts,
+    recentExchanges: snapshot.sections.conversationState.recentExchanges,
+    workingMemory: snapshot.sections.conversationState.workingMemory,
+    longTermFacts: snapshot.sections.conversationState.longTermFacts,
     ...(knowledge !== undefined ? { knowledge } : {}),
-    userPersona: snapshot.userPersona,
-    gmNotes: snapshot.gmNotes,
-    scenario: snapshot.scenario,
+    userPersona: snapshot.sections.userPersona,
+    gmNotes: snapshot.sections.directorNotes,
+    scenario: snapshot.sections.worldContext,
   }
 }
 
 export function toRecordedGmContextSnapshot(
   snapshot: GmContextSnapshot,
 ): RecordedGmContextSnapshot {
-  const knowledge = toRecordedTypedKnowledgeSections(snapshot.knowledge)
+  const knowledge = toRecordedTypedKnowledgeSections(snapshot.sections.retrievedContext)
 
   return {
-    recentMessages: snapshot.recentMessages,
-    memory: snapshot.memory,
+    recentMessages: snapshot.sections.conversationState.recentMessages,
+    memory: snapshot.sections.conversationState.memory,
     ...(knowledge !== undefined ? { knowledge } : {}),
     currentState: snapshot.currentState,
     availableAvatars: snapshot.availableAvatars,
-    userPersona: snapshot.userPersona,
-    scenario: snapshot.scenario,
+    userPersona: snapshot.sections.userPersona,
+    scenario: snapshot.sections.worldContext,
   }
 }
 
 function toRecordedAvatarKnowledge(
-  knowledge: AvatarContextSnapshot['knowledge'],
+  knowledge: AvatarContextSnapshot['sections']['retrievedContext'],
 ): RecordedAvatarContextKnowledgeInjection | undefined {
   if (knowledge === undefined) return undefined
   const typedSections = toRecordedTypedKnowledgeSections(
@@ -59,7 +59,10 @@ function toRecordedAvatarKnowledge(
 }
 
 function toRecordedTypedKnowledgeSections(
-  knowledge: AvatarTypedSections | NonNullable<GmContextSnapshot['knowledge']> | undefined,
+  knowledge:
+    | AvatarTypedSections
+    | NonNullable<GmContextSnapshot['sections']['retrievedContext']>
+    | undefined,
 ): RecordedTypedKnowledgeSections | undefined {
   if (knowledge === undefined) return undefined
 

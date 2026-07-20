@@ -44,6 +44,97 @@ const llm = { complete: completeMock }
 const eventLogRepository = { append: appendEventMock }
 const userRepository = { findById: findUserByIdMock }
 
+function makeAssembledContext() {
+  return {
+    avatar: {
+      avatarId: 'avatar_1',
+      sections: {
+        directorNotes: 'Injected directive',
+        responseRules: { items: [] },
+        conversationState: {
+          recentExchanges: [],
+          workingMemory: {},
+          longTermFacts: [],
+        },
+        userPersona: null,
+        worldContext: {
+          scenarioId: 'scenario_1',
+          name: 'Scenario',
+        },
+      },
+    },
+    gm: {
+      currentState: {
+        progression: '',
+        topicsCovered: [],
+        interactionCount: 0,
+      },
+      availableAvatars: [{ avatarId: 'avatar_1', name: 'Ava', availability: 'available' }],
+      sections: {
+        conversationState: {
+          recentMessages: [],
+          memory: {},
+        },
+        userPersona: null,
+        worldContext: {
+          scenarioId: 'scenario_1',
+          name: 'Scenario',
+        },
+      },
+    },
+    trace: {
+      deterministic: true,
+      policy: {
+        tokenBudget: { avatarMaxTokens: 800, gmMaxTokens: 900 },
+        sectionPrecedence: [
+          'directorNotes',
+          'responseRules',
+          'conversationState',
+          'userPersona',
+          'worldContext',
+          'retrievedContext',
+          'avatarTraits',
+        ],
+        protectedSegments: ['directorNotes', 'responseRules', 'worldContext'],
+        precedence: [
+          'directorNotes',
+          'responseRules',
+          'conversationStateWorkingMemory',
+          'conversationStateLongTermFacts',
+          'conversationStateRecentExchanges',
+          'conversationStateRecentMessages',
+          'userPersona',
+          'worldContext',
+          'retrievedContextMemory',
+          'retrievedContextWorld',
+          'retrievedContextMedia',
+          'avatarTraits',
+        ],
+      },
+      selectedInputs: {
+        hasActiveAvatar: true,
+        recentMessageCount: 1,
+        shortTermExchangeCount: 0,
+        hasWorkingMemory: false,
+        longTermFactCount: 0,
+        retrievalCounts: { memory: 0, world: 0, media: 0 },
+        hasUserPersona: false,
+        hasGmDirective: true,
+        responseRuleCount: 0,
+        hasAvatarTraits: false,
+      },
+      rationale: {
+        avatarProjection: [],
+        gmProjection: [],
+      },
+      selection: {
+        kept: [],
+        trimmed: [],
+      },
+    },
+  }
+}
+
 function makeSession(overrides: Partial<Session> = {}): Session {
   return {
     sessionId: 'session_1',
@@ -116,72 +207,7 @@ beforeEach(() => {
 
 describe('SendMessageUseCase — context assembler dependency', () => {
   it('uses injected context assembler output for prompt context', async () => {
-    const assembleMock = vi.fn().mockReturnValue({
-      avatar: {
-        avatarId: 'avatar_1',
-        recentExchanges: [],
-        workingMemory: {},
-        longTermFacts: [],
-        userPersona: null,
-        gmNotes: 'Injected directive',
-        scenario: {
-          scenarioId: 'scenario_1',
-          name: 'Scenario',
-        },
-      },
-      gm: {
-        recentMessages: [],
-        memory: {},
-        currentState: {
-          progression: '',
-          topicsCovered: [],
-          interactionCount: 0,
-        },
-        availableAvatars: [{ avatarId: 'avatar_1', name: 'Ava', availability: 'available' }],
-        userPersona: null,
-        scenario: {
-          scenarioId: 'scenario_1',
-          name: 'Scenario',
-        },
-      },
-      trace: {
-        deterministic: true,
-        policy: {
-          tokenBudget: { avatarMaxTokens: 800, gmMaxTokens: 900 },
-          protectedSegments: ['gmDirective', 'scenario'],
-          precedence: [
-            'gmDirective',
-            'scenario',
-            'userPersona',
-            'shortTermMemory',
-            'workingMemory',
-            'longTermFacts',
-            'typedRetrievalMemory',
-            'typedRetrievalWorld',
-            'typedRetrievalMedia',
-            'recentMessages',
-          ],
-        },
-        selectedInputs: {
-          hasActiveAvatar: true,
-          recentMessageCount: 1,
-          shortTermExchangeCount: 0,
-          hasWorkingMemory: false,
-          longTermFactCount: 0,
-          retrievalCounts: { memory: 0, world: 0, media: 0 },
-          hasUserPersona: false,
-          hasGmDirective: true,
-        },
-        rationale: {
-          avatarProjection: [],
-          gmProjection: [],
-        },
-        selection: {
-          kept: [],
-          trimmed: [],
-        },
-      },
-    })
+    const assembleMock = vi.fn().mockReturnValue(makeAssembledContext())
 
     const useCase = new SendMessageUseCase(
       sessionRepository as never,

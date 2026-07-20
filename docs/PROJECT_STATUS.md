@@ -916,6 +916,28 @@ Started on: 2026-07-20
   - updated `docs/API_CONTRACT.md` to make `computedTraits: null` compatibility semantics explicit
   - reviewed `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, and `docs/TEST_STRATEGY.md`; no changes were required because their current statements remain accurate for this contract-only slice
 
+### Current slice completed (structured runtime context sections and precedence)
+
+- refactored the internal runtime context contract to group Avatar and GM projections by semantic responsibility instead of legacy flat fields: `apps/core/src/domain/context/session-context.types.ts` now owns `AvatarContextSnapshot.sections` and `GmContextSnapshot.sections` as the canonical internal runtime shape
+- Avatar runtime sections now map explicitly to the EPIC 8.2 target order: Director Notes, Response Rules, Conversation State, User Persona, World Context, Retrieved Context, and Avatar Traits; GM keeps a separate projection with its own conversation-state and retrieval view
+- `ContextEnginePolicy` now owns explicit section precedence and semantic segment IDs (`directorNotes`, `responseRules`, `conversationState*`, `retrievedContext*`, `avatarTraits`) so trimming rationale is inspectable without relying on legacy field names
+- deterministic token-budget behavior was preserved while changing priority semantics:
+  - Director Notes and Response Rules now outrank transient retrieved context and Avatar Traits
+  - protected segments remain explicit and world context stays separate from both retrieved context and traits
+- runtime trace metadata now records the semantic section for each kept/trimmed segment plus the active section precedence, while keeping the existing shared recorded-event DTO surface stable through application-layer mapping
+- send-message and GM execution now consume the new structured sections without changing retrieval behavior, visibility filtering, or trait generation:
+  - avatar prompt assembly receives `responseRules` and optional `avatarTraits` through the canonical `ContextEngine` input
+  - `computedTraits` remain optional at runtime; when absent, prompt assembly still falls back to the authored `personaPrompt`
+- focused regression coverage added for:
+  - grouped Avatar/GM sections
+  - explicit precedence metadata
+  - tiny-budget trimming that drops retrieved context and traits before higher-priority notes/rules
+  - stable application-layer projection into existing runtime-inspector recorded-event contracts
+- docs reviewed and updated as part of the slice:
+  - updated `docs/ARCHITECTURE.md` to reflect that EPIC 8.2 now consumes prepared traits at runtime and that Context produces semantic sections with explicit precedence
+  - updated `docs/CONTEXT_CONTRACT_OWNERSHIP_MAP.md` to record the new internal section owners and precedence ownership
+  - reviewed `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`, and `docs/TEST_STRATEGY.md`; no further changes were required because the external API/data-model/test-ownership statements remain accurate for this internal refactor slice
+
 ---
 
 ## Sessions & Conversations

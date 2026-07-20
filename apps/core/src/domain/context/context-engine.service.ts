@@ -4,17 +4,23 @@ import type { LongTermMemoryFact } from '../memory/memory.types.js'
 import type { ContextEngineInput, ContextEngineOutput } from './context-engine.types.js'
 import type {
   ContextProjection,
+  ContextSectionId,
   ContextSegmentId,
   ContextEnginePolicy,
 } from './context-engine.policy.js'
 import { DEFAULT_CONTEXT_ENGINE_POLICY, precedenceRank } from './context-engine.policy.js'
 
-const EMPTY_EXCHANGES: ContextEngineOutput['avatar']['recentExchanges'] = []
-const EMPTY_FACTS: ContextEngineOutput['avatar']['longTermFacts'] = []
-const EMPTY_MESSAGES: ContextEngineOutput['gm']['recentMessages'] = []
+const EMPTY_EXCHANGES: ContextEngineOutput['avatar']['sections']['conversationState']['recentExchanges'] =
+  []
+const EMPTY_FACTS: ContextEngineOutput['avatar']['sections']['conversationState']['longTermFacts'] =
+  []
+const EMPTY_MESSAGES: ContextEngineOutput['gm']['sections']['conversationState']['recentMessages'] =
+  []
+const EMPTY_RESPONSE_RULES: ContextEngineOutput['avatar']['sections']['responseRules']['items'] = []
 
 type CandidateSegment = {
   projection: ContextProjection
+  sectionId: ContextSectionId
   segmentId: ContextSegmentId
   tokenEstimate: number
   apply: (draft: MutableOutput) => void
@@ -47,6 +53,7 @@ function normalizeInput(input: ContextEngineInput) {
     longTermFacts: dedupeLongTermFacts(input.extensions.memory?.longTerm?.facts ?? EMPTY_FACTS),
     avatarRetrieval: dedupeRetrieval(input.extensions.retrieval),
     gmRetrieval: dedupeRetrieval(input.extensions.retrievalForGm ?? input.extensions.retrieval),
+    responseRules: normalizeResponseRules(input.extensions.responseRules),
   }
 }
 
@@ -54,20 +61,29 @@ function buildBaseOutput(input: ContextEngineInput): MutableOutput {
   return {
     avatar: {
       ...(input.activeAvatarId !== undefined ? { avatarId: input.activeAvatarId } : {}),
-      recentExchanges: EMPTY_EXCHANGES,
-      workingMemory: {},
-      longTermFacts: EMPTY_FACTS,
-      userPersona: null,
-      gmNotes: null,
-      scenario: input.scenario,
+      sections: {
+        directorNotes: null,
+        responseRules: { items: EMPTY_RESPONSE_RULES },
+        conversationState: {
+          recentExchanges: EMPTY_EXCHANGES,
+          workingMemory: {},
+          longTermFacts: EMPTY_FACTS,
+        },
+        userPersona: null,
+        worldContext: input.scenario,
+      },
     },
     gm: {
-      recentMessages: EMPTY_MESSAGES,
-      memory: {},
       currentState: input.gmState,
       availableAvatars: input.availableAvatars,
-      userPersona: null,
-      scenario: input.scenario,
+      sections: {
+        conversationState: {
+          recentMessages: EMPTY_MESSAGES,
+          memory: {},
+        },
+        userPersona: null,
+        worldContext: input.scenario,
+      },
     },
   }
 }
@@ -79,97 +95,47 @@ function buildCandidates(
   const memory = input.extensions.memory
   const candidates: CandidateSegment[] = []
 
-  pushScenarioCandidate(candidates, input)
-  pushGmDirectiveCandidate(candidates, input)
-  pushUserPersonaCandidate(candidates, input)
-  pushShortTermCandidates(candidates, memory?.shortTerm?.recentExchanges ?? EMPTY_EXCHANGES)
+  pushDirectorNotesCandidate(candidates, input)
+  pushResponseRulesCandidate(candidates, normalized.responseRules)
   pushWorkingMemoryCandidates(candidates, memory)
   pushLongTermFactCandidates(candidates, normalized.longTermFacts)
+  pushShortTermCandidates(candidates, memory?.shortTerm?.recentExchanges ?? EMPTY_EXCHANGES)
+  pushRecentMessageCandidate(candidates, input.recentMessages)
+  pushUserPersonaCandidate(candidates, input)
+  pushWorldContextCandidate(candidates, input)
   pushAvatarRetrievalCandidates(candidates, normalized.avatarRetrieval)
   pushGmRetrievalCandidates(candidates, normalized.gmRetrieval)
-  pushRecentMessageCandidate(candidates, input.recentMessages)
+  pushAvatarTraitsCandidate(candidates, input)
 
   return candidates
 }
 
-function pushScenarioCandidate(candidates: CandidateSegment[], input: ContextEngineInput): void {
-  const tokenEstimate = estimateTokens(
-    [input.scenario.name, input.scenario.description, ...(input.scenario.goals ?? [])].join(' '),
-  )
-  candidates.push({
-    projection: 'avatar',
-    segmentId: 'scenario',
-    tokenEstimate,
-    apply: () => {},
-  })
-  candidates.push({
-    projection: 'gm',
-    segmentId: 'scenario',
-    tokenEstimate,
-    apply: () => {},
-  })
-}
-
-function pushGmDirectiveCandidate(candidates: CandidateSegment[], input: ContextEngineInput): void {
+function pushDirectorNotesCandidate(
+  candidates: CandidateSegment[],
+  input: ContextEngineInput,
+): void {
   if (!hasText(input.extensions.gmDirective)) return
   const directive = input.extensions.gmDirective.trim()
-  const tokenEstimate = estimateTokens(input.extensions.gmDirective)
   candidates.push({
     projection: 'avatar',
-    segmentId: 'gmDirective',
-    tokenEstimate,
+    sectionId: 'directorNotes',
+    segmentId: 'directorNotes',
+    tokenEstimate: estimateTokens(input.extensions.gmDirective),
     apply: (draft) => {
-      draft.avatar.gmNotes = directive
+      draft.avatar.sections.directorNotes = directive
     },
   })
 }
 
-function pushUserPersonaCandidate(candidates: CandidateSegment[], input: ContextEngineInput): void {
-  if (input.extensions.userPersona === null) return
-  const persona = input.extensions.userPersona
-  const personaText = toPersonaText(input.extensions.userPersona)
-  if (personaText.length === 0) return
-  const tokenEstimate = estimateTokens(personaText)
+function pushResponseRulesCandidate(candidates: CandidateSegment[], responseRules: string[]): void {
+  if (responseRules.length === 0) return
   candidates.push({
     projection: 'avatar',
-    segmentId: 'userPersona',
-    tokenEstimate,
+    sectionId: 'responseRules',
+    segmentId: 'responseRules',
+    tokenEstimate: estimateTokens(responseRules.join(' ')),
     apply: (draft) => {
-      draft.avatar.userPersona = persona
-    },
-  })
-  candidates.push({
-    projection: 'gm',
-    segmentId: 'userPersona',
-    tokenEstimate,
-    apply: (draft) => {
-      draft.gm.userPersona = persona
-    },
-  })
-}
-
-function pushShortTermCandidates(
-  candidates: CandidateSegment[],
-  exchanges: ContextEngineOutput['avatar']['recentExchanges'],
-): void {
-  if (exchanges.length === 0) return
-  const tokenEstimate = estimateTokens(
-    exchanges.map((exchange) => `${exchange.user} ${exchange.avatar}`).join(' '),
-  )
-  candidates.push({
-    projection: 'avatar',
-    segmentId: 'shortTermMemory',
-    tokenEstimate,
-    apply: (draft) => {
-      draft.avatar.recentExchanges = exchanges
-    },
-  })
-  candidates.push({
-    projection: 'gm',
-    segmentId: 'shortTermMemory',
-    tokenEstimate,
-    apply: (draft) => {
-      draft.gm.memory.shortTerm = { recentExchanges: exchanges }
+      draft.avatar.sections.responseRules = { items: responseRules }
     },
   })
 }
@@ -182,13 +148,14 @@ function pushWorkingMemoryCandidates(
   const avatarSummary = memory?.working?.avatar?.summary
   const workingText = [sessionSummary, avatarSummary].filter(hasText).join(' ')
   if (workingText.length === 0) return
-  const tokenEstimate = estimateTokens(workingText)
+
   candidates.push({
     projection: 'avatar',
-    segmentId: 'workingMemory',
-    tokenEstimate,
+    sectionId: 'conversationState',
+    segmentId: 'conversationStateWorkingMemory',
+    tokenEstimate: estimateTokens(workingText),
     apply: (draft) => {
-      draft.avatar.workingMemory = {
+      draft.avatar.sections.conversationState.workingMemory = {
         ...(memory?.working?.session !== undefined ? { session: memory.working.session } : {}),
         ...(memory?.working?.avatar !== undefined ? { avatar: memory.working.avatar } : {}),
       }
@@ -196,12 +163,13 @@ function pushWorkingMemoryCandidates(
   })
   candidates.push({
     projection: 'gm',
-    segmentId: 'workingMemory',
-    tokenEstimate,
+    sectionId: 'conversationState',
+    segmentId: 'conversationStateWorkingMemory',
+    tokenEstimate: estimateTokens(workingText),
     apply: (draft) => {
       const workingSummary = toWorkingSummary(memory)
       if (workingSummary !== undefined) {
-        draft.gm.memory.workingSummary = workingSummary
+        draft.gm.sections.conversationState.memory.workingSummary = workingSummary
       }
     },
   })
@@ -217,19 +185,114 @@ function pushLongTermFactCandidates(
   )
   candidates.push({
     projection: 'avatar',
-    segmentId: 'longTermFacts',
+    sectionId: 'conversationState',
+    segmentId: 'conversationStateLongTermFacts',
     tokenEstimate,
     apply: (draft) => {
-      draft.avatar.longTermFacts = facts
+      draft.avatar.sections.conversationState.longTermFacts = facts
     },
   })
   candidates.push({
     projection: 'gm',
-    segmentId: 'longTermFacts',
+    sectionId: 'conversationState',
+    segmentId: 'conversationStateLongTermFacts',
     tokenEstimate,
     apply: (draft) => {
-      draft.gm.memory.longTermFacts = facts
+      draft.gm.sections.conversationState.memory.longTermFacts = facts
     },
+  })
+}
+
+function pushShortTermCandidates(
+  candidates: CandidateSegment[],
+  exchanges: ContextEngineOutput['avatar']['sections']['conversationState']['recentExchanges'],
+): void {
+  if (exchanges.length === 0) return
+  const tokenEstimate = estimateTokens(
+    exchanges.map((exchange) => `${exchange.user} ${exchange.avatar}`).join(' '),
+  )
+  candidates.push({
+    projection: 'avatar',
+    sectionId: 'conversationState',
+    segmentId: 'conversationStateRecentExchanges',
+    tokenEstimate,
+    apply: (draft) => {
+      draft.avatar.sections.conversationState.recentExchanges = exchanges
+    },
+  })
+  candidates.push({
+    projection: 'gm',
+    sectionId: 'conversationState',
+    segmentId: 'conversationStateRecentExchanges',
+    tokenEstimate,
+    apply: (draft) => {
+      draft.gm.sections.conversationState.memory.shortTerm = { recentExchanges: exchanges }
+    },
+  })
+}
+
+function pushRecentMessageCandidate(
+  candidates: CandidateSegment[],
+  recentMessages: ContextEngineInput['recentMessages'],
+): void {
+  if (recentMessages.length === 0) return
+  candidates.push({
+    projection: 'gm',
+    sectionId: 'conversationState',
+    segmentId: 'conversationStateRecentMessages',
+    tokenEstimate: estimateTokens(recentMessages.map((msg) => msg.content).join(' ')),
+    apply: (draft) => {
+      draft.gm.sections.conversationState.recentMessages = recentMessages
+    },
+  })
+}
+
+function pushUserPersonaCandidate(candidates: CandidateSegment[], input: ContextEngineInput): void {
+  if (input.extensions.userPersona === null) return
+  const persona = input.extensions.userPersona
+  const personaText = toPersonaText(input.extensions.userPersona)
+  if (personaText.length === 0) return
+  const tokenEstimate = estimateTokens(personaText)
+  candidates.push({
+    projection: 'avatar',
+    sectionId: 'userPersona',
+    segmentId: 'userPersona',
+    tokenEstimate,
+    apply: (draft) => {
+      draft.avatar.sections.userPersona = persona
+    },
+  })
+  candidates.push({
+    projection: 'gm',
+    sectionId: 'userPersona',
+    segmentId: 'userPersona',
+    tokenEstimate,
+    apply: (draft) => {
+      draft.gm.sections.userPersona = persona
+    },
+  })
+}
+
+function pushWorldContextCandidate(
+  candidates: CandidateSegment[],
+  input: ContextEngineInput,
+): void {
+  const tokenEstimate = estimateTokens(
+    [input.scenario.name, input.scenario.description, ...(input.scenario.goals ?? [])].join(' '),
+  )
+  candidates.push({
+    projection: 'avatar',
+    sectionId: 'worldContext',
+    segmentId: 'worldContext',
+    tokenEstimate,
+    apply: () => {},
+  })
+  candidates.push({
+    projection: 'gm',
+    sectionId: 'worldContext',
+    segmentId: 'worldContext',
+    tokenEstimate,
+    apply: () => {},
   })
 }
 
@@ -238,9 +301,9 @@ function pushAvatarRetrievalCandidates(
   retrieval: ReturnType<typeof dedupeRetrieval>,
 ): void {
   if (retrieval === undefined) return
-  pushAvatarRetrievalSegmentCandidate(candidates, 'typedRetrievalMemory', retrieval.memory)
-  pushAvatarRetrievalSegmentCandidate(candidates, 'typedRetrievalWorld', retrieval.world)
-  pushAvatarRetrievalSegmentCandidate(candidates, 'typedRetrievalMedia', retrieval.media)
+  pushAvatarRetrievalSegmentCandidate(candidates, 'retrievedContextMemory', retrieval.memory)
+  pushAvatarRetrievalSegmentCandidate(candidates, 'retrievedContextWorld', retrieval.world)
+  pushAvatarRetrievalSegmentCandidate(candidates, 'retrievedContextMedia', retrieval.media)
 }
 
 function pushGmRetrievalCandidates(
@@ -248,64 +311,64 @@ function pushGmRetrievalCandidates(
   retrieval: ReturnType<typeof dedupeRetrieval>,
 ): void {
   if (retrieval === undefined) return
-  pushGmRetrievalSegmentCandidate(candidates, 'typedRetrievalMemory', retrieval.memory)
-  pushGmRetrievalSegmentCandidate(candidates, 'typedRetrievalWorld', retrieval.world)
-  pushGmRetrievalSegmentCandidate(candidates, 'typedRetrievalMedia', retrieval.media)
+  pushGmRetrievalSegmentCandidate(candidates, 'retrievedContextMemory', retrieval.memory)
+  pushGmRetrievalSegmentCandidate(candidates, 'retrievedContextWorld', retrieval.world)
+  pushGmRetrievalSegmentCandidate(candidates, 'retrievedContextMedia', retrieval.media)
 }
 
 function pushAvatarRetrievalSegmentCandidate(
   candidates: CandidateSegment[],
-  segmentId: 'typedRetrievalMemory' | 'typedRetrievalWorld' | 'typedRetrievalMedia',
+  segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
   items: RetrievedKnowledgeItem[],
 ): void {
   if (items.length === 0) return
-  const tokenEstimate = estimateTokens(items.map((item) => item.content).join(' '))
   candidates.push({
     projection: 'avatar',
+    sectionId: 'retrievedContext',
     segmentId,
-    tokenEstimate,
+    tokenEstimate: estimateTokens(items.map((item) => item.content).join(' ')),
     apply: (draft) => {
-      applyAvatarKnowledgeSegment(draft, segmentId, items)
+      applyAvatarRetrievedContextSegment(draft, segmentId, items)
     },
   })
 }
 
 function pushGmRetrievalSegmentCandidate(
   candidates: CandidateSegment[],
-  segmentId: 'typedRetrievalMemory' | 'typedRetrievalWorld' | 'typedRetrievalMedia',
+  segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
   items: RetrievedKnowledgeItem[],
 ): void {
   if (items.length === 0) return
-  const tokenEstimate = estimateTokens(items.map((item) => item.content).join(' '))
   candidates.push({
     projection: 'gm',
+    sectionId: 'retrievedContext',
     segmentId,
-    tokenEstimate,
+    tokenEstimate: estimateTokens(items.map((item) => item.content).join(' ')),
     apply: (draft) => {
-      draft.gm.knowledge = {
+      draft.gm.sections.retrievedContext = {
         memory: [
-          ...(draft.gm.knowledge?.memory ?? []),
-          ...(segmentId === 'typedRetrievalMemory' ? items : []),
+          ...(draft.gm.sections.retrievedContext?.memory ?? []),
+          ...(segmentId === 'retrievedContextMemory' ? items : []),
         ],
         world: [
-          ...(draft.gm.knowledge?.world ?? []),
-          ...(segmentId === 'typedRetrievalWorld' ? items : []),
+          ...(draft.gm.sections.retrievedContext?.world ?? []),
+          ...(segmentId === 'retrievedContextWorld' ? items : []),
         ],
         media: [
-          ...(draft.gm.knowledge?.media ?? []),
-          ...(segmentId === 'typedRetrievalMedia' ? items : []),
+          ...(draft.gm.sections.retrievedContext?.media ?? []),
+          ...(segmentId === 'retrievedContextMedia' ? items : []),
         ],
       }
     },
   })
 }
 
-function applyAvatarKnowledgeSegment(
+function applyAvatarRetrievedContextSegment(
   draft: MutableOutput,
-  segmentId: 'typedRetrievalMemory' | 'typedRetrievalWorld' | 'typedRetrievalMedia',
+  segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
   items: RetrievedKnowledgeItem[],
 ): void {
-  const current = draft.avatar.knowledge
+  const current = draft.avatar.sections.retrievedContext
   const retrievedItems: RetrievedKnowledgeItem[] = []
   const typedSections = {
     memory: [] as RetrievedKnowledgeItem[],
@@ -323,33 +386,35 @@ function applyAvatarKnowledgeSegment(
   }
 
   retrievedItems.push(...items)
-  const targetSection = toTypedSectionKey(segmentId)
-  typedSections[targetSection].push(...items)
-  draft.avatar.knowledge = {
+  typedSections[toTypedSectionKey(segmentId)].push(...items)
+
+  draft.avatar.sections.retrievedContext = {
     retrievedItems,
     typedSections,
   }
 }
 
 function toTypedSectionKey(
-  segmentId: 'typedRetrievalMemory' | 'typedRetrievalWorld' | 'typedRetrievalMedia',
+  segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
 ): 'memory' | 'world' | 'media' {
-  if (segmentId === 'typedRetrievalMemory') return 'memory'
-  if (segmentId === 'typedRetrievalWorld') return 'world'
+  if (segmentId === 'retrievedContextMemory') return 'memory'
+  if (segmentId === 'retrievedContextWorld') return 'world'
   return 'media'
 }
 
-function pushRecentMessageCandidate(
+function pushAvatarTraitsCandidate(
   candidates: CandidateSegment[],
-  recentMessages: ContextEngineInput['recentMessages'],
+  input: ContextEngineInput,
 ): void {
-  if (recentMessages.length === 0) return
+  const traits = input.extensions.avatarTraits
+  if (traits === undefined) return
   candidates.push({
-    projection: 'gm',
-    segmentId: 'recentMessages',
-    tokenEstimate: estimateTokens(recentMessages.map((msg) => msg.content).join(' ')),
+    projection: 'avatar',
+    sectionId: 'avatarTraits',
+    segmentId: 'avatarTraits',
+    tokenEstimate: estimateTokens(flattenAvatarTraits(traits).join(' ')),
     apply: (draft) => {
-      draft.gm.recentMessages = recentMessages
+      draft.avatar.sections.avatarTraits = traits
     },
   })
 }
@@ -385,6 +450,7 @@ function applyBudgetAndSelection(
     if (!isProtected && exceedsProjectionBudget(budgetUsed, candidate, policy)) {
       trimmed.push({
         projection: candidate.projection,
+        sectionId: candidate.sectionId,
         segmentId: candidate.segmentId,
         tokenEstimate: candidate.tokenEstimate,
         reason: 'budget_exceeded',
@@ -396,6 +462,7 @@ function applyBudgetAndSelection(
     budgetUsed[candidate.projection] += candidate.tokenEstimate
     kept.push({
       projection: candidate.projection,
+      sectionId: candidate.sectionId,
       segmentId: candidate.segmentId,
       tokenEstimate: candidate.tokenEstimate,
       reason: isProtected ? 'protected' : 'within_budget',
@@ -428,11 +495,15 @@ function buildTrace(
     selectedInputs: buildTraceSelectedInputs(input),
     rationale: {
       avatarProjection: [
-        'policy-driven-precedence',
+        'section-driven-precedence',
         'single-pass-assembly',
         'deterministic-selection',
       ],
-      gmProjection: ['policy-driven-precedence', 'single-pass-assembly', 'deterministic-selection'],
+      gmProjection: [
+        'section-driven-precedence',
+        'single-pass-assembly',
+        'deterministic-selection',
+      ],
     },
     selection,
   }
@@ -444,6 +515,7 @@ function buildTracePolicy(policy: ContextEnginePolicy): ContextEngineOutput['tra
       avatarMaxTokens: policy.tokenBudget.avatarMaxTokens,
       gmMaxTokens: policy.tokenBudget.gmMaxTokens,
     },
+    sectionPrecedence: [...policy.sectionPrecedence],
     protectedSegments: [...policy.protectedSegments],
     precedence: [...policy.precedence],
   }
@@ -463,6 +535,8 @@ function buildTraceSelectedInputs(
     ...(visibility !== undefined ? { visibility } : {}),
     hasUserPersona: input.extensions.userPersona !== null,
     hasGmDirective: hasText(input.extensions.gmDirective),
+    responseRuleCount: normalizeResponseRules(input.extensions.responseRules).length,
+    hasAvatarTraits: input.extensions.avatarTraits !== undefined,
   }
 }
 
@@ -581,6 +655,31 @@ function estimateTokens(text: string): number {
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function normalizeResponseRules(rules: string[] | undefined): string[] {
+  if (rules === undefined) return []
+  return rules.map((rule) => rule.trim()).filter((rule) => rule.length > 0)
+}
+
+function flattenAvatarTraits(
+  traits: NonNullable<ContextEngineInput['extensions']['avatarTraits']>,
+): string[] {
+  return [
+    ...traits.identity,
+    ...traits.personality,
+    ...traits.speakingStyle,
+    ...traits.background,
+    ...traits.timeline,
+    ...traits.currentSituation,
+    ...traits.behaviouralRules,
+  ]
+}
+
+export function getContextSectionPrecedence(
+  policy: ContextEnginePolicy = DEFAULT_CONTEXT_ENGINE_POLICY,
+): ContextSectionId[] {
+  return [...policy.sectionPrecedence]
 }
 
 export function getContextSegmentPrecedence(

@@ -1,3 +1,4 @@
+import type { AvatarComputedTraits } from '../avatar/avatar.types.js'
 import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import type {
   ContextMessage,
@@ -33,28 +34,42 @@ export type ContextAvailableAvatarSnapshot = {
   availability?: 'available' | 'locked'
 }
 
-export type AvatarContextSnapshot = {
-  avatarId?: string
+export type AvatarContextConversationState = {
   recentExchanges: ShortTermMemoryExchange[]
   workingMemory: {
     session?: SessionWorkingMemorySummary
     avatar?: AvatarWorkingMemorySummary
   }
   longTermFacts: LongTermMemoryFact[]
-  knowledge?: {
-    retrievedItems: RetrievedKnowledgeItem[]
-    typedSections?: {
-      memory: RetrievedKnowledgeItem[]
-      world: RetrievedKnowledgeItem[]
-      media: RetrievedKnowledgeItem[]
-    }
-  }
-  userPersona: UserPersona | null
-  gmNotes: string | null
-  scenario: ContextScenarioSnapshot
 }
 
-export type GmContextSnapshot = {
+export type AvatarContextRetrievedContext = {
+  retrievedItems: RetrievedKnowledgeItem[]
+  typedSections?: {
+    memory: RetrievedKnowledgeItem[]
+    world: RetrievedKnowledgeItem[]
+    media: RetrievedKnowledgeItem[]
+  }
+}
+
+export type AvatarContextSections = {
+  directorNotes: string | null
+  responseRules: {
+    items: string[]
+  }
+  conversationState: AvatarContextConversationState
+  userPersona: UserPersona | null
+  worldContext: ContextScenarioSnapshot
+  retrievedContext?: AvatarContextRetrievedContext
+  avatarTraits?: AvatarComputedTraits
+}
+
+export type AvatarContextSnapshot = {
+  avatarId?: string
+  sections: AvatarContextSections
+}
+
+export type GmContextConversationState = {
   recentMessages: ContextMessage[]
   memory: {
     shortTerm?: {
@@ -63,15 +78,25 @@ export type GmContextSnapshot = {
     workingSummary?: string
     longTermFacts?: LongTermMemoryFact[]
   }
-  knowledge?: {
-    memory: RetrievedKnowledgeItem[]
-    world: RetrievedKnowledgeItem[]
-    media: RetrievedKnowledgeItem[]
-  }
+}
+
+export type GmContextRetrievedContext = {
+  memory: RetrievedKnowledgeItem[]
+  world: RetrievedKnowledgeItem[]
+  media: RetrievedKnowledgeItem[]
+}
+
+export type GmContextSections = {
+  conversationState: GmContextConversationState
+  userPersona: UserPersona | null
+  worldContext: ContextScenarioSnapshot
+  retrievedContext?: GmContextRetrievedContext
+}
+
+export type GmContextSnapshot = {
   currentState: GameMasterState
   availableAvatars: ContextAvailableAvatarSnapshot[]
-  userPersona: UserPersona | null
-  scenario: ContextScenarioSnapshot
+  sections: GmContextSections
 }
 
 export type SessionContextSnapshot = {

@@ -380,11 +380,11 @@ export class RunGameMasterUseCase {
     const context: GameMasterInput['context'] = {
       experience: {
         scenarioId: input.scenarioId,
-        ...(assembledGmContext.scenario.description !== undefined
-          ? { description: assembledGmContext.scenario.description }
+        ...(assembledGmContext.sections.worldContext.description !== undefined
+          ? { description: assembledGmContext.sections.worldContext.description }
           : {}),
-        ...(assembledGmContext.scenario.goals !== undefined
-          ? { goals: assembledGmContext.scenario.goals }
+        ...(assembledGmContext.sections.worldContext.goals !== undefined
+          ? { goals: assembledGmContext.sections.worldContext.goals }
           : {}),
       },
       availableAvatars: assembledGmContext.availableAvatars,
@@ -392,12 +392,12 @@ export class RunGameMasterUseCase {
     if (memory !== undefined) {
       context.memory = memory
     }
-    const rag = toGameMasterRagContext(assembledGmContext.knowledge)
+    const rag = toGameMasterRagContext(assembledGmContext.sections.retrievedContext)
     if (rag !== undefined) {
       context.rag = rag
     }
-    if (assembledGmContext.userPersona !== null) {
-      context.userPersona = assembledGmContext.userPersona
+    if (assembledGmContext.sections.userPersona !== null) {
+      context.userPersona = assembledGmContext.sections.userPersona
     }
 
     return {
@@ -405,8 +405,8 @@ export class RunGameMasterUseCase {
       gmInput: {
         session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
         userMessage: { text: input.userMessageText },
-        ...(assembledGmContext.recentMessages.length > 0
-          ? { recentMessages: assembledGmContext.recentMessages }
+        ...(assembledGmContext.sections.conversationState.recentMessages.length > 0
+          ? { recentMessages: assembledGmContext.sections.conversationState.recentMessages }
           : {}),
         state: currentState,
         context,

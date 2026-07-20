@@ -290,6 +290,12 @@ export class SendMessageUseCase {
         retrieval,
         userPersona: userPersona ?? null,
         gmDirective: args.session.gmNotes ?? null,
+        ...(args.avatar.adjustments !== undefined
+          ? { responseRules: args.avatar.adjustments }
+          : {}),
+        ...(args.avatar.computedTraits !== undefined
+          ? { avatarTraits: args.avatar.computedTraits }
+          : {}),
       },
     })
 
@@ -299,21 +305,21 @@ export class SendMessageUseCase {
         scenarioAvatars,
         args.session.unlockedAvatarIds,
       ),
-      ...(assembledContext.avatar.gmNotes !== null
-        ? { gmNotes: assembledContext.avatar.gmNotes }
+      ...(assembledContext.avatar.sections.directorNotes !== null
+        ? { gmNotes: assembledContext.avatar.sections.directorNotes }
         : {}),
-      ...(assembledContext.avatar.userPersona !== null
-        ? { userPersona: assembledContext.avatar.userPersona }
+      ...(assembledContext.avatar.sections.userPersona !== null
+        ? { userPersona: assembledContext.avatar.sections.userPersona }
         : {}),
       ...(() => {
         const snapshot = toLayeredSnapshotFromAvatarContext(assembledContext)
         return snapshot !== undefined ? { memory: snapshot } : {}
       })(),
-      ...(assembledContext.avatar.scenario.description !== undefined
-        ? { worldContext: assembledContext.avatar.scenario.description }
+      ...(assembledContext.avatar.sections.worldContext.description !== undefined
+        ? { worldContext: assembledContext.avatar.sections.worldContext.description }
         : {}),
-      ...(assembledContext.avatar.knowledge?.typedSections !== undefined
-        ? { retrieval: assembledContext.avatar.knowledge.typedSections }
+      ...(assembledContext.avatar.sections.retrievedContext?.typedSections !== undefined
+        ? { retrieval: assembledContext.avatar.sections.retrievedContext.typedSections }
         : {}),
     })
     return {

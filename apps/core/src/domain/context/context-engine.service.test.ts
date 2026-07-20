@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest'
+import type { AvatarComputedTraits } from '../avatar/avatar.types.js'
+import type { TypedRetrievalResult } from '../knowledge/knowledge.types.js'
+import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
+import type { ContextEnginePolicy } from './context-engine.policy.js'
 import { ContextEngine } from './context-engine.service.js'
 import type { ContextEngineInput } from './context-engine.types.js'
-import type { ContextEnginePolicy } from './context-engine.policy.js'
-import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
-import type { TypedRetrievalResult } from '../knowledge/knowledge.types.js'
+
+const SAMPLE_TRAITS: AvatarComputedTraits = {
+  identity: ['Harbor archivist'],
+  personality: ['Measured'],
+  speakingStyle: ['Short and literal'],
+  background: ['Former navigator'],
+  timeline: ['Joined after the storm'],
+  currentSituation: ['Guiding late arrivals'],
+  behaviouralRules: ['Never fabricate ship logs'],
+}
 
 function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineInput {
   return {
@@ -68,6 +79,8 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
       },
       userPersona: { name: 'Maya', roleInWorld: 'student' },
       gmDirective: 'Focus on concrete steps.',
+      responseRules: ['Use short paragraphs.'],
+      avatarTraits: SAMPLE_TRAITS,
     },
     ...overrides,
   }
@@ -112,9 +125,9 @@ function expectedTypedSections() {
   }
 }
 
-function assertBaselineAvatarKnowledge(output: ReturnType<ContextEngine['assemble']>): void {
-  expect(output.avatar.knowledge?.retrievedItems).toHaveLength(3)
-  expect(output.avatar.knowledge?.typedSections).toEqual(expectedTypedSections())
+function assertBaselineAvatarRetrievedContext(output: ReturnType<ContextEngine['assemble']>): void {
+  expect(output.avatar.sections.retrievedContext?.retrievedItems).toHaveLength(3)
+  expect(output.avatar.sections.retrievedContext?.typedSections).toEqual(expectedTypedSections())
 }
 
 function assertBaselineRetrievalCounts(output: ReturnType<ContextEngine['assemble']>): void {
@@ -124,6 +137,66 @@ function assertBaselineRetrievalCounts(output: ReturnType<ContextEngine['assembl
     world: 0,
     media: 0,
   })
+}
+
+function makeTinyBudgetPolicy(): ContextEnginePolicy {
+  return {
+    tokenBudget: {
+      avatarMaxTokens: 8,
+      gmMaxTokens: 8,
+    },
+    sectionPrecedence: [
+      'directorNotes',
+      'responseRules',
+      'conversationState',
+      'userPersona',
+      'worldContext',
+      'retrievedContext',
+      'avatarTraits',
+    ],
+    protectedSegments: ['directorNotes', 'responseRules', 'worldContext'],
+    precedence: [
+      'directorNotes',
+      'responseRules',
+      'conversationStateWorkingMemory',
+      'conversationStateLongTermFacts',
+      'conversationStateRecentExchanges',
+      'conversationStateRecentMessages',
+      'userPersona',
+      'worldContext',
+      'retrievedContextMemory',
+      'retrievedContextWorld',
+      'retrievedContextMedia',
+      'avatarTraits',
+    ],
+  }
+}
+
+function assertTinyBudgetOutput(output: ReturnType<ContextEngine['assemble']>): void {
+  expect(output.avatar.sections.directorNotes).toBe('Focus on concrete steps.')
+  expect(output.avatar.sections.responseRules.items).toEqual(['Use short paragraphs.'])
+  expect(output.avatar.sections.worldContext.scenarioId).toBe('scenario_1')
+  expect(output.avatar.sections.conversationState.recentExchanges).toEqual([])
+  expect(output.avatar.sections.conversationState.longTermFacts).toEqual([])
+  expect(output.avatar.sections.retrievedContext).toBeUndefined()
+  expect(output.avatar.sections.avatarTraits).toBeUndefined()
+  expect(output.gm.sections.retrievedContext).toBeUndefined()
+  expect(output.trace.selection.trimmed.length).toBeGreaterThan(0)
+  expect(
+    output.trace.selection.trimmed.some(
+      (item) => item.segmentId === 'avatarTraits' && item.projection === 'avatar',
+    ),
+  ).toBe(true)
+  expect(
+    output.trace.selection.trimmed.some(
+      (item) => item.segmentId === 'conversationStateRecentExchanges' && item.projection === 'gm',
+    ),
+  ).toBe(true)
+  expect(
+    output.trace.selection.kept.some(
+      (item) => item.segmentId === 'responseRules' && item.reason === 'protected',
+    ),
+  ).toBe(true)
 }
 
 function applyConflictingMemoryAndRetrieval(input: ContextEngineInput): void {
@@ -164,46 +237,65 @@ function applyConflictingMemoryAndRetrieval(input: ContextEngineInput): void {
 function assertDeterministicConflictResolution(
   output: ReturnType<ContextEngine['assemble']>,
 ): void {
-  expect(output.avatar.longTermFacts).toEqual([
+  expect(output.avatar.sections.conversationState.longTermFacts).toEqual([
     { category: 'preference', key: 'style', value: 'concise' },
   ])
   assertDeterministicTypedSections(output)
-  expect(output.gm.knowledge?.memory.map((item) => item.chunkId)).toContain('chunk_2')
-  expect(output.gm.knowledge?.world).toEqual([])
+  expect(output.gm.sections.retrievedContext?.memory.map((item) => item.chunkId)).toContain(
+    'chunk_2',
+  )
+  expect(output.gm.sections.retrievedContext?.world).toEqual([])
 }
 
 function assertDeterministicTypedSections(output: ReturnType<ContextEngine['assemble']>): void {
-  const avatarChunkIds = output.avatar.knowledge?.retrievedItems.map((item) => item.chunkId) ?? []
+  const avatarChunkIds =
+    output.avatar.sections.retrievedContext?.retrievedItems.map((item) => item.chunkId) ?? []
   expect(avatarChunkIds).toEqual(['chunk_1', 'chunk_2', 'chunk_3'])
-  expect(output.avatar.knowledge?.typedSections?.memory.map((item) => item.chunkId)).toEqual([
-    'chunk_1',
-    'chunk_2',
-  ])
-  expect(output.avatar.knowledge?.typedSections?.world).toEqual([])
-  expect(output.avatar.knowledge?.typedSections?.media.map((item) => item.chunkId)).toEqual([
-    'chunk_3',
-  ])
+  expect(
+    output.avatar.sections.retrievedContext?.typedSections?.memory.map((item) => item.chunkId),
+  ).toEqual(['chunk_1', 'chunk_2'])
+  expect(output.avatar.sections.retrievedContext?.typedSections?.world).toEqual([])
+  expect(
+    output.avatar.sections.retrievedContext?.typedSections?.media.map((item) => item.chunkId),
+  ).toEqual(['chunk_3'])
 }
 
 describe('ContextEngine baseline', () => {
-  it('assembles avatar and gm projections from one deterministic input', () => {
+  it('assembles structured avatar and gm sections from one deterministic input', () => {
     const engine = new ContextEngine()
-    const input = makeInput()
-    const output = engine.assemble(input)
+    const output = engine.assemble(makeInput())
 
     expect(output.avatar.avatarId).toBe('avatar_1')
-    expect(output.avatar.recentExchanges).toEqual([{ user: 'u1', avatar: 'a1' }])
-    assertBaselineAvatarKnowledge(output)
+    expect(output.avatar.sections.directorNotes).toBe('Focus on concrete steps.')
+    expect(output.avatar.sections.responseRules.items).toEqual(['Use short paragraphs.'])
+    expect(output.avatar.sections.conversationState.recentExchanges).toEqual([
+      { user: 'u1', avatar: 'a1' },
+    ])
+    expect(output.avatar.sections.avatarTraits).toEqual(SAMPLE_TRAITS)
+    assertBaselineAvatarRetrievedContext(output)
     expect(output.gm.currentState.progression).toBe('intro')
-    expect(output.gm.memory.workingSummary).toContain('Session summary')
-    expect(output.gm.memory.workingSummary).toContain('Avatar (avatar_1): Avatar summary')
-    expect(output.gm.knowledge?.world[0]?.chunkId).toBe('chunk_2')
+    expect(output.gm.sections.conversationState.memory.workingSummary).toContain('Session summary')
+    expect(output.gm.sections.conversationState.memory.workingSummary).toContain(
+      'Avatar (avatar_1): Avatar summary',
+    )
+    expect(output.gm.sections.retrievedContext?.world[0]?.chunkId).toBe('chunk_2')
     expect(output.trace.deterministic).toBe(true)
+    expect(output.trace.policy.sectionPrecedence).toEqual([
+      'directorNotes',
+      'responseRules',
+      'conversationState',
+      'userPersona',
+      'worldContext',
+      'retrievedContext',
+      'avatarTraits',
+    ])
+    expect(output.trace.selectedInputs.responseRuleCount).toBe(1)
+    expect(output.trace.selectedInputs.hasAvatarTraits).toBe(true)
     assertBaselineRetrievalCounts(output)
     expect(output.trace.selection.trimmed).toEqual([])
   })
 
-  it('stays deterministic with missing optional extensions', () => {
+  it('stays deterministic with missing optional structured sections', () => {
     const engine = new ContextEngine()
     const input = makeInput()
     delete input.activeAvatarId
@@ -217,62 +309,25 @@ describe('ContextEngine baseline', () => {
     const output = engine.assemble(input)
 
     expect(output.avatar.avatarId).toBeUndefined()
-    expect(output.avatar.recentExchanges).toEqual([])
-    expect(output.avatar.longTermFacts).toEqual([])
-    expect(output.avatar.knowledge).toBeUndefined()
-    expect(output.gm.memory).toEqual({})
-    expect(output.gm.knowledge).toBeUndefined()
+    expect(output.avatar.sections.directorNotes).toBeNull()
+    expect(output.avatar.sections.responseRules.items).toEqual([])
+    expect(output.avatar.sections.conversationState.recentExchanges).toEqual([])
+    expect(output.avatar.sections.conversationState.longTermFacts).toEqual([])
+    expect(output.avatar.sections.retrievedContext).toBeUndefined()
+    expect(output.avatar.sections.avatarTraits).toBeUndefined()
+    expect(output.gm.sections.conversationState.memory).toEqual({})
+    expect(output.gm.sections.retrievedContext).toBeUndefined()
     expect(output.trace.selectedInputs.hasUserPersona).toBe(false)
     expect(output.trace.selectedInputs.hasGmDirective).toBe(false)
+    expect(output.trace.selectedInputs.responseRuleCount).toBe(0)
+    expect(output.trace.selectedInputs.hasAvatarTraits).toBe(false)
     expect(output.trace.selectedInputs.recentMessageCount).toBe(0)
   })
 
-  it('trims non-protected segments deterministically under tiny budgets', () => {
-    const tinyBudgetPolicy: ContextEnginePolicy = {
-      tokenBudget: {
-        avatarMaxTokens: 8,
-        gmMaxTokens: 8,
-      },
-      protectedSegments: ['gmDirective', 'scenario'],
-      precedence: [
-        'gmDirective',
-        'scenario',
-        'userPersona',
-        'shortTermMemory',
-        'workingMemory',
-        'longTermFacts',
-        'typedRetrievalMemory',
-        'typedRetrievalWorld',
-        'typedRetrievalMedia',
-        'recentMessages',
-      ],
-    }
-
-    const engine = new ContextEngine(tinyBudgetPolicy)
+  it('keeps director notes and response rules ahead of traits and retrieved context under tiny budgets', () => {
+    const engine = new ContextEngine(makeTinyBudgetPolicy())
     const output = engine.assemble(makeInput())
-
-    expect(output.avatar.gmNotes).toBe('Focus on concrete steps.')
-    expect(output.avatar.scenario.scenarioId).toBe('scenario_1')
-    expect(output.avatar.recentExchanges).toEqual([])
-    expect(output.avatar.longTermFacts).toEqual([])
-    expect(output.avatar.knowledge).toBeUndefined()
-    expect(output.gm.knowledge).toBeUndefined()
-    expect(output.trace.selection.trimmed.length).toBeGreaterThan(0)
-    expect(
-      output.trace.selection.trimmed.some(
-        (item) => item.segmentId === 'typedRetrievalMemory' && item.projection === 'avatar',
-      ),
-    ).toBe(true)
-    expect(
-      output.trace.selection.trimmed.some(
-        (item) => item.segmentId === 'shortTermMemory' && item.projection === 'gm',
-      ),
-    ).toBe(true)
-    expect(
-      output.trace.selection.kept.some(
-        (item) => item.segmentId === 'gmDirective' && item.reason === 'protected',
-      ),
-    ).toBe(true)
+    assertTinyBudgetOutput(output)
   })
 })
 
@@ -286,7 +341,7 @@ describe('ContextEngine policy', () => {
     assertDeterministicConflictResolution(output)
   })
 
-  it('changes output deterministically when a single context layer is removed', () => {
+  it('changes output deterministically when one retrieved layer is removed', () => {
     const engine = new ContextEngine()
     const withRetrieval = makeInput()
     const withoutRetrieval = makeInput()
@@ -295,10 +350,10 @@ describe('ContextEngine policy', () => {
     const withOutput = engine.assemble(withRetrieval)
     const withoutOutput = engine.assemble(withoutRetrieval)
 
-    expect(withOutput.avatar.knowledge?.retrievedItems.length).toBe(3)
-    expect(withoutOutput.avatar.knowledge).toBeUndefined()
-    expect(withOutput.gm.knowledge?.memory.length).toBeGreaterThan(0)
-    expect(withoutOutput.gm.knowledge).toBeUndefined()
+    expect(withOutput.avatar.sections.retrievedContext?.retrievedItems.length).toBe(3)
+    expect(withoutOutput.avatar.sections.retrievedContext).toBeUndefined()
+    expect((withOutput.gm.sections.retrievedContext?.memory.length ?? 0) > 0).toBe(true)
+    expect(withoutOutput.gm.sections.retrievedContext).toBeUndefined()
     assertBaselineRetrievalCounts(withOutput)
     expect(withoutOutput.trace.selectedInputs.retrievalCounts).toEqual({
       memory: 0,
@@ -311,12 +366,15 @@ describe('ContextEngine policy', () => {
     const engine = new ContextEngine()
     const output = engine.assemble(makeInput())
 
-    const avatarFacts = output.avatar.longTermFacts
-    const gmFacts = output.gm.memory.longTermFacts ?? []
+    const avatarFacts = output.avatar.sections.conversationState.longTermFacts
+    const gmFacts = output.gm.sections.conversationState.memory.longTermFacts ?? []
     expect(gmFacts).toEqual(avatarFacts)
-    expect(output.gm.scenario.scenarioId).toBe(output.avatar.scenario.scenarioId)
+    expect(output.gm.sections.worldContext.scenarioId).toBe(
+      output.avatar.sections.worldContext.scenarioId,
+    )
     expect(output.trace.policy.tokenBudget.avatarMaxTokens).toBeGreaterThan(0)
     expect(output.trace.selection.kept.every((entry) => entry.tokenEstimate >= 0)).toBe(true)
+    expect(output.trace.selection.kept.every((entry) => entry.sectionId.length > 0)).toBe(true)
     expect(Array.isArray(output.trace.selection.trimmed)).toBe(true)
   })
 })
