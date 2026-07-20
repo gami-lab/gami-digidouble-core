@@ -26,7 +26,14 @@ export function buildGmContextSnapshot(args: {
         recentMessages: args.recentMessages,
         memory: {
           ...(args.memory?.workingMemory !== undefined
-            ? { workingSummary: args.memory.workingMemory.summary }
+            ? {
+                workingMemory: {
+                  summary: args.memory.workingMemory.summary,
+                  unresolvedThreads: args.memory.workingMemory.unresolvedThreads,
+                  coveredTopics: args.memory.workingMemory.coveredTopics,
+                },
+                workingSummary: args.memory.workingMemory.summary,
+              }
             : {}),
           ...(args.memory?.longTermFacts !== undefined
             ? { longTermFacts: args.memory.longTermFacts }

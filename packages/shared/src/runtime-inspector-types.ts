@@ -4,6 +4,7 @@ import type {
   SessionMemorySummary,
 } from './lifecycle-types.js'
 import type {
+  SharedGmWorkingMemory,
   SharedMemoryFactRecord,
   SharedLongTermMemoryFact,
   SharedShortTermMemoryExchange,
@@ -277,6 +278,7 @@ export type SessionContextGmMemory = {
   shortTerm?: {
     recentExchanges: SharedShortTermMemoryExchange[]
   }
+  workingMemory?: SharedGmWorkingMemory
   /** Compatibility mirror of the internal working-memory summary only. */
   workingSummary?: string
   longTermFacts?: SharedLongTermMemoryFact[]

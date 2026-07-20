@@ -63,7 +63,14 @@ function createGmSnapshotInput() {
     sections: {
       conversationState: {
         recentMessages: [{ role: 'user' as const, content: 'Who left last night?' }],
-        memory: {},
+        memory: {
+          workingMemory: {
+            summary: 'Working summary',
+            unresolvedThreads: ['Need dock confirmation'],
+            coveredTopics: ['dock_timeline'],
+          },
+          workingSummary: 'Working summary',
+        },
       },
       retrievedContext: {
         memory: [
@@ -126,6 +133,12 @@ describe('runtime inspector event context snapshots', () => {
   it('stores gm retrieval as typed provenance without content or metadata', () => {
     const snapshot = toRecordedGmContextSnapshot(createGmSnapshotInput())
 
+    expect(snapshot.sections.conversationState.memory.workingMemory).toEqual({
+      summary: 'Working summary',
+      unresolvedThreads: ['Need dock confirmation'],
+      coveredTopics: ['dock_timeline'],
+    })
+    expect(snapshot.sections.conversationState.memory.workingSummary).toBe('Working summary')
     expect(snapshot.sections.retrievedContext).toEqual({
       memory: [
         {

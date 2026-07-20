@@ -246,6 +246,11 @@ function makeGmContext(): RuntimeInspectorViewModel['context']['gmContext'] {
       conversationState: {
         recentMessages: [{ role: 'user', content: 'u' }, { role: 'avatar', content: 'a' }],
         memory: {
+          workingMemory: {
+            summary: 'active working summary',
+            unresolvedThreads: ['follow_up'],
+            coveredTopics: ['quality_goal'],
+          },
           workingSummary: 'active working summary',
         },
       },
@@ -578,6 +583,8 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('Memory evolution')
     expect(html).toContain('active working summary')
     expect(html).toContain('Working updated at')
+    expect(html).toContain('Covered topics')
+    expect(html).toContain('quality_goal')
     expect(html).toContain('Fact count')
     expect(html).toContain('conversation_old_1 [2026-05-07T09:00:00.000Z]: older memory')
     expect(html).toContain('New long-term avatar memory stored')
@@ -627,6 +634,8 @@ describe('RuntimeInspectorTabContent', () => {
     )
 
     expect(html).toContain('Events tab.')
+    expect(html).toContain('GM covered topics')
+    expect(html).toContain('quality_goal')
   })
 })
 

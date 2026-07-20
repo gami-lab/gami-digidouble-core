@@ -9,6 +9,7 @@ import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepos
 import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
+import type { ConversationWorkingMemory } from '../../../domain/memory/memory.types.js'
 import { ContextEngine } from '../../../domain/context/context-engine.service.js'
 import { DomainError } from '../../../domain/errors.js'
 import { MEMORY_LONG_TERM_FACT_LIMIT } from '../../../domain/memory/memory.policy.js'
@@ -58,6 +59,7 @@ export class GetSessionContextUseCase {
       avatar: runtimeData.avatar,
       scenario: runtimeData.scenario,
     })
+    applyStructuredGmWorkingMemory(assembled.gm, runtimeData.workingMemory)
 
     return {
       sessionId: session.sessionId,
@@ -206,6 +208,19 @@ function buildMemorySnapshot(
         }
       : {}),
   }
+}
+
+function applyStructuredGmWorkingMemory(
+  gmContext: GetSessionContextOutput['gmContext'],
+  workingMemory: ConversationWorkingMemory | null,
+): void {
+  if (workingMemory === null) return
+  gmContext.sections.conversationState.memory.workingMemory = {
+    summary: workingMemory.summary,
+    unresolvedThreads: [...workingMemory.unresolvedThreads],
+    coveredTopics: [...workingMemory.coveredTopics],
+  }
+  gmContext.sections.conversationState.memory.workingSummary = workingMemory.summary
 }
 
 function toScenarioSnapshot(

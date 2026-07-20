@@ -598,6 +598,7 @@ function readGmMemory(
 ): RecordedGmContextSnapshot['sections']['conversationState']['memory'] {
   const record = isRecord(value) ? value : {}
   const memory = isRecord(record['memory']) ? record['memory'] : record
+  const workingMemory = readOptionalGmWorkingMemory(memory['workingMemory'])
   const workingSummary = readOptionalString(memory['workingSummary'])
   return {
     ...(isRecord(memory['shortTerm'])
@@ -607,10 +608,24 @@ function readGmMemory(
           },
         }
       : {}),
+    ...(workingMemory !== undefined ? { workingMemory } : {}),
     ...(workingSummary !== undefined ? { workingSummary } : {}),
     ...(Array.isArray(memory['longTermFacts'])
       ? { longTermFacts: readLongTermFacts(memory['longTermFacts']) }
       : {}),
+  }
+}
+
+function readOptionalGmWorkingMemory(
+  value: unknown,
+): RecordedGmContextSnapshot['sections']['conversationState']['memory']['workingMemory'] {
+  if (!isRecord(value)) return undefined
+  const summary = readOptionalString(value['summary'])
+  if (summary === undefined) return undefined
+  return {
+    summary,
+    unresolvedThreads: readOptionalStringArray(value['unresolvedThreads']) ?? [],
+    coveredTopics: readOptionalStringArray(value['coveredTopics']) ?? [],
   }
 }
 

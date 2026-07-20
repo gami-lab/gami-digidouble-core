@@ -43,6 +43,11 @@ export type SharedWorkingMemoryCurrent = {
   updatedAt: string
 }
 
+export type SharedGmWorkingMemory = Pick<
+  SharedWorkingMemoryCurrent,
+  'summary' | 'unresolvedThreads' | 'coveredTopics'
+>
+
 export type SharedLongTermMemoryFact = SharedMemoryFactRecord
 
 export type SharedLongTermAvatarMemory = {

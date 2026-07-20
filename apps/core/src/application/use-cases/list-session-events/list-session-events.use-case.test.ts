@@ -37,6 +37,11 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
         recentMessages: [{ role: 'user', content: 'Who left last night?' }],
         memory: {
           shortTerm: { recentExchanges: [{ user: 'u', avatar: 'a' }] },
+          workingMemory: {
+            summary: 'Working summary',
+            unresolvedThreads: ['Need dock confirmation'],
+            coveredTopics: ['dock_timeline'],
+          },
           workingSummary: 'Working summary',
           longTermFacts: [
             {
@@ -224,6 +229,11 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
               recentMessages: [{ role: 'user', content: 'Who left last night?' }],
               memory: {
                 shortTerm: { recentExchanges: [{ user: 'u', avatar: 'a' }] },
+                workingMemory: {
+                  summary: 'Working summary',
+                  unresolvedThreads: ['Need dock confirmation'],
+                  coveredTopics: ['dock_timeline'],
+                },
                 workingSummary: 'Working summary',
                 longTermFacts: [
                   {
@@ -568,6 +578,7 @@ describe('ListSessionEventsUseCase — memory refresh mapping', () => {
             trigger: 'post_turn',
             workingSummary: 'User is planning a pilot and wants clear first steps.',
             messageCount: 6,
+            coveredTopics: ['pilot_scope', 'success_metric'],
             unresolvedThreads: ['Which metric to optimize first'],
             candidateFacts: [
               {
@@ -596,6 +607,7 @@ describe('ListSessionEventsUseCase — memory refresh mapping', () => {
           trigger: 'post_turn',
           workingSummary: 'User is planning a pilot and wants clear first steps.',
           messageCount: 6,
+          coveredTopics: ['pilot_scope', 'success_metric'],
           unresolvedThreads: ['Which metric to optimize first'],
           candidateFacts: [
             {

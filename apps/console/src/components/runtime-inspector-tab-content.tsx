@@ -207,6 +207,11 @@ function renderWorkingMemory(snapshot: RuntimeInspectorViewModel): JSX.Element {
       <Row label="Unresolved threads">
         {String(snapshot.memory.layers.working.current?.unresolvedThreads.length ?? 0)}
       </Row>
+      <Row label="Covered topics">
+        {snapshot.memory.layers.working.current?.coveredTopics.length
+          ? snapshot.memory.layers.working.current.coveredTopics.join(' | ')
+          : '-'}
+      </Row>
       <Row label="Candidate facts">
         {String(snapshot.memory.layers.working.current?.candidateFacts.length ?? 0)}
       </Row>
@@ -379,16 +384,7 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
         {avatarSections.avatarTraits !== undefined ? 'Prepared traits loaded' : 'Fallback only'}
       </Row>
 
-      <strong style={{ display: 'block', marginTop: '12px' }}>GM runtime context</strong>
-      <Row label="Current avatar">{snapshot.context.gmContext.currentState.currentAvatarId ?? '-'}</Row>
-      <Row label="Progression">{snapshot.context.gmContext.currentState.progression || '-'}</Row>
-      <Row label="Recent messages">
-        {String(gmSections.conversationState.recentMessages.length)}
-      </Row>
-      <Row label="GM working memory">{gmSections.conversationState.memory.workingSummary ?? '-'}</Row>
-      <Row label="Available avatars">
-        {snapshot.context.gmContext.availableAvatars.map((avatar) => avatar.name).join(' | ') || '-'}
-      </Row>
+      {renderGmRuntimeContext(snapshot, gmSections)}
 
       <strong style={{ display: 'block', marginTop: '12px' }}>Context trace</strong>
       <Row label="Protected segments">
@@ -405,6 +401,36 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
       </Row>
     </div>
   )
+}
+
+function renderGmRuntimeContext(
+  snapshot: RuntimeInspectorViewModel,
+  gmSections: RuntimeInspectorViewModel['context']['gmContext']['sections'],
+): JSX.Element {
+  const workingMemory = gmSections.conversationState.memory.workingMemory
+
+  return (
+    <>
+      <strong style={{ display: 'block', marginTop: '12px' }}>GM runtime context</strong>
+      <Row label="Current avatar">{snapshot.context.gmContext.currentState.currentAvatarId ?? '-'}</Row>
+      <Row label="Progression">{snapshot.context.gmContext.currentState.progression || '-'}</Row>
+      <Row label="Recent messages">
+        {String(gmSections.conversationState.recentMessages.length)}
+      </Row>
+      <Row label="GM working memory">
+        {workingMemory?.summary ?? gmSections.conversationState.memory.workingSummary ?? '-'}
+      </Row>
+      <Row label="GM unresolved threads">{formatInlineItems(workingMemory?.unresolvedThreads)}</Row>
+      <Row label="GM covered topics">{formatInlineItems(workingMemory?.coveredTopics)}</Row>
+      <Row label="Available avatars">
+        {snapshot.context.gmContext.availableAvatars.map((avatar) => avatar.name).join(' | ') || '-'}
+      </Row>
+    </>
+  )
+}
+
+function formatInlineItems(items: string[] | undefined): string {
+  return items !== undefined && items.length > 0 ? items.join(' | ') : '-'
 }
 
 function countKnowledgeSources(

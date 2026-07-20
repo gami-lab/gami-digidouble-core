@@ -395,8 +395,23 @@ function describeRecordedGmContext(
   const lines = [
     `GM input summary: ${String(sections.conversationState.recentMessages.length)} message(s), ${String(sections.conversationState.memory.longTermFacts?.length ?? 0)} long-term fact(s), user persona ${sections.userPersona ? 'present' : 'absent'}, active avatar ${activeAvatar}.`,
   ]
-  if (sections.conversationState.memory.workingSummary) {
-    lines.push(`GM working memory: ${sections.conversationState.memory.workingSummary}`)
+  const workingMemory =
+    sections.conversationState.memory.workingMemory ??
+    (sections.conversationState.memory.workingSummary
+      ? {
+          summary: sections.conversationState.memory.workingSummary,
+          unresolvedThreads: [],
+          coveredTopics: [],
+        }
+      : undefined)
+  if (workingMemory) {
+    lines.push(`GM working memory: ${workingMemory.summary}`)
+    if (workingMemory.unresolvedThreads.length > 0) {
+      lines.push(`GM unresolved threads: ${workingMemory.unresolvedThreads.join(', ')}`)
+    }
+    if (workingMemory.coveredTopics.length > 0) {
+      lines.push(`GM covered topics: ${workingMemory.coveredTopics.join(', ')}`)
+    }
   }
   return {
     summary: lines,

@@ -245,6 +245,7 @@ describe('RunGameMasterUseCase memory input', () => {
     expect(prompt).toContain('### Working Memory')
     expect(prompt).toContain('- Summary: Session working summary')
     expect(prompt).toContain('- Unresolved Threads: Follow up on budget')
+    expect(prompt).toContain('- Covered Topics: initial_budget_review')
     expect(prompt).not.toContain('### Episodic Memories')
     expect(prompt).toContain('### Long-Term Facts')
     expect(prompt).toContain('- preference / tone: concise')

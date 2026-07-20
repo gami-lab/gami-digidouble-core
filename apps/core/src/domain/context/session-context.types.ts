@@ -76,6 +76,7 @@ export type GmContextConversationState = {
     shortTerm?: {
       recentExchanges: ShortTermMemoryExchange[]
     }
+    workingMemory?: NonNullable<GameMasterMemoryContext['workingMemory']>
     /** Compatibility mirror of GameMasterMemoryContext.workingMemory.summary only. */
     workingSummary?: string
     longTermFacts?: NonNullable<GameMasterMemoryContext['longTermFacts']>

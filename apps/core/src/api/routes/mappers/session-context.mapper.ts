@@ -79,6 +79,21 @@ function toGmContext(snapshot: SessionContextSnapshot): AdminSessionContextRespo
                 },
               }
             : {}),
+          ...(snapshot.gmContext.sections.conversationState.memory.workingMemory !== undefined
+            ? {
+                workingMemory: {
+                  ...snapshot.gmContext.sections.conversationState.memory.workingMemory,
+                  unresolvedThreads: [
+                    ...snapshot.gmContext.sections.conversationState.memory.workingMemory
+                      .unresolvedThreads,
+                  ],
+                  coveredTopics: [
+                    ...snapshot.gmContext.sections.conversationState.memory.workingMemory
+                      .coveredTopics,
+                  ],
+                },
+              }
+            : {}),
           ...(snapshot.gmContext.sections.conversationState.memory.workingSummary !== undefined
             ? {
                 workingSummary: snapshot.gmContext.sections.conversationState.memory.workingSummary,

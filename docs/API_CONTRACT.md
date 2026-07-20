@@ -950,6 +950,7 @@ Response notes:
 - Returns the canonical sectioned runtime snapshot: `avatarContext`, `gmContext`, and bounded `contextTrace`
 - `avatarContext` mirrors the runtime section order used for turn assembly: Director Notes, Response Rules, Conversation State, User Persona, World Context, optional Retrieved Context, and optional Avatar Traits
 - `gmContext` exposes the GM projection separately from the Avatar projection
+- `gmContext.sections.conversationState.memory.workingMemory`, when present, exposes the bounded GM-facing working-memory fragment (`summary`, `unresolvedThreads`, `coveredTopics`); `workingSummary` remains a summary-only compatibility mirror
 - `contextTrace` exposes bounded policy, selected-input, and kept/trimmed segment metadata without provider secrets or raw credential material
 - Session-context retrieval is a bounded current snapshot, not a replay of any specific past turn; per-turn retrieved provenance remains available through session events
 

@@ -194,6 +194,14 @@ function assertCoreContextShape(body: ApiResponse<AdminSessionContextResponse>):
     { role: 'user', content: 'hello' },
     { role: 'avatar', content: 'hi' },
   ])
+  expect(body.data?.gmContext.sections.conversationState.memory.workingMemory).toEqual({
+    summary: 'Working summary',
+    unresolvedThreads: ['thread_1'],
+    coveredTopics: ['completed_intro'],
+  })
+  expect(body.data?.gmContext.sections.conversationState.memory.workingSummary).toBe(
+    'Working summary',
+  )
 }
 
 function assertContextTraceBounds(body: ApiResponse<AdminSessionContextResponse>): void {

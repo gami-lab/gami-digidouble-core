@@ -1078,7 +1078,7 @@ Completed on: 2026-07-20
 
 ## EPIC 8.4 — Working Memory Prompt Refinement
 
-Status: In progress
+Status: Complete
 Started on: 2026-07-20
 
 ### Current slice completed (coveredTopics contract and persistence baseline)
@@ -1124,6 +1124,38 @@ Started on: 2026-07-20
   - malformed fact rejection
   - resolved-thread disappearance across later refreshes while active loose ends persist
 - reviewed `docs/GAME_MASTER_CONTRACT.md` and `docs/TEST_STRATEGY.md`; both remain accurate for this slice because the GM runtime contract and test-tier policy did not change
+
+### Current slice completed (GM context and debug surface alignment)
+
+- propagated the canonical bounded GM working-memory fragment into operator-facing GM projections instead of collapsing the path back to `workingSummary` alone:
+  - GM session-context snapshots now carry `workingMemory.summary`, `workingMemory.unresolvedThreads`, and `workingMemory.coveredTopics`
+  - admin session-context DTO mapping now preserves the structured GM working-memory fragment alongside the `workingSummary` mirror
+  - session-event replay parsing now restores structured GM working memory from recorded diagnostics when present
+- completed the missing operator/debug-surface visibility promised by the EPIC:
+  - runtime inspector memory view now renders `coveredTopics`
+  - runtime inspector GM context view now renders the structured GM working-memory summary, unresolved threads, and covered topics
+  - GM impact trace now renders structured GM working-memory details while preserving summary-only fallback behavior for older recorded events
+- kept the remediation surgical:
+  - no new endpoint or persistence contract was introduced
+  - no broader context-engine abstraction was widened beyond this EPIC's need
+  - `workingSummary` remains an explicitly documented compatibility mirror rather than a competing canonical contract
+
+### Current slice completed (tests hardening and doc sync)
+
+- closed the EPIC's missing observable-behavior proof with consumer-boundary assertions that survive refactoring:
+  - GM use-case prompt coverage now proves the real rendered GM prompt includes `coveredTopics`
+  - admin session-context route coverage now proves the structured GM working-memory fragment is returned to operators
+  - session-events coverage now proves structured GM working memory survives event payload shaping
+  - runtime inspector and GM impact trace coverage now prove `coveredTopics` is visible in operator tooling
+- synchronized impacted source-of-truth docs:
+  - updated `docs/GAME_MASTER_CONTRACT.md` to keep runtime input, compatibility mirrors, and operator-facing GM projections aligned
+  - updated `docs/API_CONTRACT.md` to document the bounded GM working-memory fragment on the session-context route
+  - this project-status record now marks EPIC 8.4 complete with all slices delivered
+- final quality gates passed for the completed EPIC:
+  - `pnpm lint`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm test:coverage`
 
 ---
 

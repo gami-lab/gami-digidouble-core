@@ -201,6 +201,11 @@ function makeViewModel(): RuntimeInspectorViewModel {
                 recentMessages: [{ role: 'user', content: 'Who left last night?' }],
                 memory: {
                   shortTerm: { recentExchanges: [{ user: 'u1', avatar: 'a1' }] },
+                  workingMemory: {
+                    summary: 'GM working summary',
+                    unresolvedThreads: ['Confirm the dock number'],
+                    coveredTopics: ['witness_timeline'],
+                  },
                   workingSummary: 'GM working summary',
                   longTermFacts: [
                     {
@@ -396,6 +401,8 @@ describe('buildGmImpactTrace', () => {
     )
     expect(first.gmInput.join(' ')).toContain('GM input summary: 1 message(s)')
     expect(first.gmInput.join(' ')).toContain('GM working memory: GM working summary')
+    expect(first.gmInput.join(' ')).toContain('GM unresolved threads: Confirm the dock number')
+    expect(first.gmInput.join(' ')).toContain('GM covered topics: witness_timeline')
     expect(first.gmRetrieval).toEqual([
       {
         knowledgeType: 'world',

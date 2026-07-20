@@ -252,3 +252,47 @@ Minimal steps needed to reach A:
 **Rework before close**
 
 The repository is healthy and the core memory refinement is solid, but the EPIC definition of done is not met. The missing GM/operator/debug-surface alignment and the lack of consumer-boundary proof for those behaviors mean this should not be closed as a finished EPIC.
+
+## Remediation Outcome
+
+### Changes Made
+
+- propagated bounded structured GM working memory (`summary`, `unresolvedThreads`, `coveredTopics`) through session-context snapshots, shared DTOs, recorded GM diagnostics, and admin/session-event projections while keeping `workingSummary` as a compatibility mirror
+- aligned operator surfaces so the richer working-memory shape is visible in the runtime inspector memory tab, GM runtime context view, and GM impact trace
+- strengthened consumer-boundary tests to prove observable behavior for GM prompt input, admin session-context output, session-event shaping, and console/debug rendering
+- updated `docs/GAME_MASTER_CONTRACT.md`, `docs/API_CONTRACT.md`, and `docs/PROJECT_STATUS.md` to match the implemented contract and completion state
+
+### Findings Resolved
+
+- Resolved: GM session-context snapshots no longer drop structured working-memory fields.
+- Resolved: recorded GM event context and GM impact trace no longer remain summary-only when structured working memory is available.
+- Resolved: runtime inspector memory UI now renders `coveredTopics`.
+- Resolved: critical observable behaviors are now proven by consumer-boundary tests.
+- Resolved: documentation now supports closing the EPIC.
+
+### Findings Deferred
+
+- None.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`pnpm test:coverage` for `@gami/core`)
+
+### Final Feature Confidence
+
+- Working-memory compaction and normalization are proven with deterministic domain/service tests.
+- GM runtime input is proven to consume `coveredTopics` through the real use-case path.
+- Admin session-context output is proven to expose bounded structured GM working memory.
+- Recorded GM diagnostics and session-event payload shaping are proven to preserve structured GM working memory.
+- Runtime inspector and GM impact trace are proven to show `coveredTopics` and unresolved threads to operators.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- `workingSummary` still exists as a compatibility mirror, so future additive working-memory fields must continue to be added to the canonical `workingMemory` contract first and mirrored outward deliberately.
