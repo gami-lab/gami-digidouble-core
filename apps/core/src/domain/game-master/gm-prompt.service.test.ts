@@ -15,45 +15,39 @@ describe('buildGameMasterSystemPrompt', () => {
 
   it('keeps the Game Master role boundary and stability objectives explicit', () => {
     const prompt = buildGameMasterSystemPrompt()
+    const roleSection = readSection(prompt, '## Role', '## Objectives')
+    const objectivesSection = readSection(prompt, '## Objectives', '## Decision Policies')
+    const policySection = readSection(prompt, '## Decision Policies', '## Output Contract')
 
-    expect(prompt).toContain(
+    expect(roleSection).toContain(
       'You are the Game Master, a silent director for an avatar conversation.',
     )
-    expect(prompt).toContain('- Never speak directly to the user and never write the Avatar reply.')
-    expect(prompt).toContain('1. Preserve stable orchestration and conversation continuity.')
-    expect(prompt).toContain(
-      '2. Keep the current avatar and conversation unless the latest evidence supports a change.',
+    expect(roleSection).toContain(
+      '- Never speak directly to the user and never write the Avatar reply.',
     )
-    expect(prompt).toContain(
-      '- Bias toward conversationMode "continue" unless there is clear evidence for a switch.',
+    expect(objectivesSection).toContain(
+      'Preserve stable orchestration and conversation continuity.',
     )
-    expect(prompt).toContain(
-      '- Avoid increasing progression by default; keep progression stable unless the exchange clearly advances the discussion.',
+    expect(objectivesSection).toContain(
+      'Keep the current avatar and conversation unless the latest evidence supports a change.',
     )
-    expect(prompt).toContain(
+    expect(policySection).toContain('conversationMode "continue"')
+    expect(policySection).toContain('Avoid increasing progression by default')
+    expect(policySection).toContain(
       '- Prefer suggestedAvatarId over a forced switch when another avatar may help but is not yet necessary as the active speaker.',
     )
   })
 
   it('makes decision priorities explicit and evidence-based', () => {
     const prompt = buildGameMasterSystemPrompt()
+    const policySection = readSection(prompt, '## Decision Policies', '## Output Contract')
 
-    expect(prompt).toContain('Decision priority questions:')
-    expect(prompt).toContain(
-      '- Did the latest exchange materially change the discussion state, or should the current state remain stable?',
-    )
-    expect(prompt).toContain(
-      '- Did trust, clarity, or emotional tone change in a way that matters for orchestration?',
-    )
-    expect(prompt).toContain(
-      '- Was meaningful progress made, or should progression remain unchanged on this turn?',
-    )
-    expect(prompt).toContain(
-      '- Is another avatar merely relevant, newly unlockable, or actually necessary as the active speaker?',
-    )
-    expect(prompt).toContain(
-      '- Avoid unlocks based on weak association, generic mention, or broad category matching.',
-    )
+    expect(policySection).toContain('Decision priority questions:')
+    expect(policySection).toContain('materially change the discussion state')
+    expect(policySection).toContain('trust, clarity, or emotional tone')
+    expect(policySection).toContain('progression remain unchanged')
+    expect(policySection).toContain('newly unlockable')
+    expect(policySection).toContain('weak association')
   })
 
   it('preserves validation-critical output instructions', () => {
@@ -91,4 +85,14 @@ function expectSectionOrder(prompt: string, sections: string[]): void {
     expect(index).toBeGreaterThan(previousIndex)
     previousIndex = index
   }
+}
+
+function readSection(prompt: string, startMarker: string, endMarker: string): string {
+  const start = prompt.indexOf(startMarker)
+  const end = prompt.indexOf(endMarker)
+
+  expect(start).toBeGreaterThanOrEqual(0)
+  expect(end).toBeGreaterThan(start)
+
+  return prompt.slice(start, end)
 }

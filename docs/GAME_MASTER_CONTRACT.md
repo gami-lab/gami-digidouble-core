@@ -129,13 +129,6 @@ export type GameMasterInput = {
     }
 
     memory?: {
-      shortTerm?: {
-        recentExchanges: Array<{
-          user: string
-          avatar: string
-        }>
-      }
-      workingSummary?: string
       workingMemory?: {
         summary: string
         unresolvedThreads: string[]
@@ -160,7 +153,7 @@ export type GameMasterInput = {
     }
 
     rag?: {
-      avatarMemory?: Array<{ sourceId: string; excerpt: string }>
+      memory?: Array<{ sourceId: string; excerpt: string }>
       world?: Array<{ sourceId: string; excerpt: string }>
       media?: Array<{ sourceId: string; excerpt: string }>
     }
@@ -197,10 +190,13 @@ Contract ownership note:
 Compatibility boundary note:
 
 - `GameMasterInput` remains the only runtime input contract for GM evaluation.
+- `GameMasterInput.context.memory` owns only the structured GM-facing layers actually consumed at runtime: `workingMemory`, `episodicMemories`, and `longTermFacts`.
+- Compatibility mirrors such as `workingSummary`, `shortTerm`, or legacy `knowledge/avatarMemory` belong only to internal context snapshots or recorded diagnostics where explicitly documented; they are not part of the runtime `GameMasterInput`.
 - The LLM renderer is an internal serialization concern only; prompt wording/layout work must not add prompt-only fields or fork `GameMasterInput`.
 - The static GM system prompt is organized into explicit `Role`, `Objectives`, `Decision Policies`, and `Output Contract` sections; wording may evolve, but JSON-only output, avatar availability, unlock gating, `nextAvatarId`, `interactionIncrement`, `context.notes`, and session-start guidance must remain explicit.
 - The static GM decision-policy section must keep evidence-based priority questions explicit and bias toward stable orchestration: keep `conversationMode: "continue"` unless a switch is clearly warranted, avoid progression increases by default, avoid weak-association unlocks, and prefer suggestions over forced switches when a handoff is not necessary.
-- The dynamic GM runtime input is rendered into explicit `Current Turn`, `Current Discussion Context`, `Experience Context`, and `Output Reminder` sections; wording may evolve, but it must continue to consume the same `GameMasterInput` fields, preserve bounded recent messages and memory layers, and omit empty optional sections cleanly.
+- The dynamic GM runtime input is rendered into explicit `Current Turn`, `Current Discussion Context`, `Experience Context`, and `Output Reminder` sections; wording may evolve, but it must continue to consume the same `GameMasterInput` fields, preserve bounded recent messages and memory layers, surface the latest exchange explicitly when available, and omit empty optional sections cleanly.
+- Observability for the GM LLM completion path must carry safe prompt-shape identifiers so operators can correlate traces with a specific static prompt and input-renderer revision without logging raw prompt text in runtime events.
 
 ---
 

@@ -14,10 +14,16 @@ import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { ContextScenarioSnapshot } from '../../../domain/context/session-context.types.js'
-import { renderGameMasterInputForLlm } from '../../../domain/game-master/gm-input-renderer.js'
+import {
+  GAME_MASTER_INPUT_RENDERER_VERSION,
+  renderGameMasterInputForLlm,
+} from '../../../domain/game-master/gm-input-renderer.js'
 import { normalizeGameMasterOutput } from '../../../domain/game-master/gm-output-normalization.js'
 import { safeParseGameMasterOutput } from '../../../domain/game-master/gm-output-parser.js'
-import { buildGameMasterSystemPrompt } from '../../../domain/game-master/gm-prompt.service.js'
+import {
+  buildGameMasterSystemPrompt,
+  GAME_MASTER_SYSTEM_PROMPT_VERSION,
+} from '../../../domain/game-master/gm-prompt.service.js'
 import { reduceGmState } from '../../../domain/game-master/gm-state-reducer.js'
 import type {
   GameMasterInput,
@@ -285,6 +291,8 @@ export class RunGameMasterUseCase {
           turnIndex: input.turnIndex,
           effectiveProvider: resolvedLlm.provider,
           effectiveModel: resolvedLlm.effectiveModel,
+          gmSystemPromptVersion: GAME_MASTER_SYSTEM_PROMPT_VERSION,
+          gmInputRendererVersion: GAME_MASTER_INPUT_RENDERER_VERSION,
         },
       },
     }

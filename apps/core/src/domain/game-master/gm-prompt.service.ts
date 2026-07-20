@@ -1,3 +1,5 @@
+export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v2'
+
 export function buildGameMasterSystemPrompt(): string {
   const schema = JSON.stringify(
     {

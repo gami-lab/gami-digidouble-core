@@ -1,5 +1,7 @@
 import type { GameMasterInput } from './game-master.types.js'
 
+export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v2'
+
 /**
  * Internal LLM rendering for the Game Master input contract.
  *
@@ -10,13 +12,7 @@ import type { GameMasterInput } from './game-master.types.js'
  */
 export function renderGameMasterInputForLlm(input: GameMasterInput): string {
   return [
-    renderSection('Current Turn', [
-      `- Session ID: ${normalizeInlineText(input.session.sessionId)}`,
-      `- Turn Index: ${formatNumber(input.session.turnIndex)}`,
-      hasText(input.userMessage.text)
-        ? `- Latest User Message: ${normalizeInlineText(input.userMessage.text)}`
-        : '- Latest User Message: [none - session start; provide opening guidance for the Avatar].',
-    ]),
+    renderSection('Current Turn', renderCurrentTurn(input)),
     renderSection('Current Discussion Context', [
       ...renderRecentMessages(input.recentMessages),
       ...renderGameMasterState(input.state),
@@ -33,6 +29,23 @@ export function renderGameMasterInputForLlm(input: GameMasterInput): string {
       '- Base decisions on the labeled context above and do not repeat it back as prose.',
     ]),
   ].join('\n\n')
+}
+
+function renderCurrentTurn(input: GameMasterInput): string[] {
+  const lines = [
+    `- Session ID: ${normalizeInlineText(input.session.sessionId)}`,
+    `- Turn Index: ${formatNumber(input.session.turnIndex)}`,
+    hasText(input.userMessage.text)
+      ? `- Latest User Message: ${normalizeInlineText(input.userMessage.text)}`
+      : '- Latest User Message: [none - session start; provide opening guidance for the Avatar].',
+  ]
+
+  const latestAvatarReply = findLatestMessageByRole(input.recentMessages, 'avatar')
+  if (latestAvatarReply !== undefined) {
+    lines.push(`- Latest Avatar Reply: ${normalizeInlineText(latestAvatarReply.content)}`)
+  }
+
+  return lines
 }
 
 function renderSection(title: string, lines: string[]): string {
@@ -212,6 +225,24 @@ function renderRetrievedCategory(
         `${formatNumber(index + 1)}. [${normalizeInlineText(entry.sourceId)}] ${normalizeInlineText(entry.excerpt)}`,
     ),
   ]
+}
+
+function findLatestMessageByRole(
+  recentMessages: GameMasterInput['recentMessages'],
+  role: 'user' | 'avatar' | 'system',
+): { role: 'user' | 'avatar' | 'system'; content: string } | undefined {
+  if (recentMessages === undefined) {
+    return undefined
+  }
+
+  for (let index = recentMessages.length - 1; index >= 0; index -= 1) {
+    const message = recentMessages[index]
+    if (message?.role === role) {
+      return message
+    }
+  }
+
+  return undefined
 }
 
 function formatMessageRole(role: 'user' | 'avatar' | 'system'): string {

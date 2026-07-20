@@ -128,6 +128,7 @@ Must test:
 - static GM system prompt section order and validation-critical instructions
 - dynamic GM input renderer section order, experience/discussion separation, and empty-section omission
 - consumer-boundary GM request assertions for the actual `llm.complete` system prompt and rendered message content
+- integration-tier proof of the composed GM prompt path with real in-memory collaborators: memory selection, typed retrieval, state persistence, runtime event emission, and observability trace metadata
 - state reducer logic
 - duplicate topic handling
 - progression update rules

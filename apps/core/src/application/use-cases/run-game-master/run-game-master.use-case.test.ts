@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RuntimeEvent } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
-import { buildGameMasterSystemPrompt } from '../../../domain/game-master/gm-prompt.service.js'
+import { GAME_MASTER_SYSTEM_PROMPT_VERSION } from '../../../domain/game-master/gm-prompt.service.js'
+import { GAME_MASTER_INPUT_RENDERER_VERSION } from '../../../domain/game-master/gm-input-renderer.js'
 import { expectConsoleError } from '../../../test-utils/console.js'
 import { readRenderedGameMasterPrompt } from '../../../test-utils/game-master.js'
 import { LlmError } from '../../../infrastructure/llm/llm.error.js'
@@ -241,24 +242,28 @@ describe('RunGameMasterUseCase — refined prompt path', () => {
     const request = completeMock.mock.calls[0]?.[0] as {
       systemPrompt: string
       messages: Array<{ content: string }>
+      trace: { metadata: Record<string, unknown> }
     }
     const prompt = readRenderedGameMasterPrompt(request)
 
-    expect(request.systemPrompt).toBe(buildGameMasterSystemPrompt())
-    expect(request.systemPrompt).toContain('## Role')
-    expect(request.systemPrompt).toContain('## Objectives')
-    expect(request.systemPrompt).toContain('## Decision Policies')
-    expect(request.systemPrompt).toContain('Decision priority questions:')
+    expectSectionOrder(request.systemPrompt, [
+      '## Role',
+      '## Objectives',
+      '## Decision Policies',
+      '## Output Contract',
+    ])
+    expect(request.systemPrompt).toContain('Output ONLY a valid JSON object.')
     expect(request.systemPrompt).toContain(
-      '- Bias toward conversationMode "continue" unless there is clear evidence for a switch.',
-    )
-    expect(request.systemPrompt).toContain(
-      '- Avoid unlocks based on weak association, generic mention, or broad category matching.',
+      'stateUpdate.interactionIncrement must always be exactly 1.',
     )
     expect(prompt).toContain('## Current Turn')
     expect(prompt).toContain('## Current Discussion Context')
     expect(prompt).toContain('## Experience Context')
     expect(prompt).toContain('## Output Reminder')
+    expect(request.trace.metadata).toMatchObject({
+      gmSystemPromptVersion: GAME_MASTER_SYSTEM_PROMPT_VERSION,
+      gmInputRendererVersion: GAME_MASTER_INPUT_RENDERER_VERSION,
+    })
   })
 })
 
@@ -298,6 +303,42 @@ describe('RunGameMasterUseCase — optional and session-start prompt content', (
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
     const prompt = readRenderedGameMasterPrompt(request)
     expect(prompt).not.toContain('### User Persona')
+  })
+
+  it('surfaces the latest avatar reply explicitly in the current-turn section when recent exchanges exist', async () => {
+    const useCase = createUseCase()
+    findMessagesByConversationIdMock.mockResolvedValue([
+      {
+        messageId: 'message_1',
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'How can we stabilize the cleanup plan?',
+        createdAt: '2026-04-18T10:00:00.000Z',
+      },
+      {
+        messageId: 'message_2',
+        conversationId: 'conversation_1',
+        role: 'avatar',
+        content: 'Start with concrete examples from the harbor schedule.',
+        createdAt: '2026-04-18T10:00:01.000Z',
+      },
+    ])
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      conversationId: 'conversation_1',
+      userMessageText: 'hello',
+      turnIndex: 2,
+      correlationId: 'request_latest_exchange',
+    })
+
+    const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
+    const prompt = readRenderedGameMasterPrompt(request)
+    expect(prompt).toContain(
+      '- Latest Avatar Reply: Start with concrete examples from the harbor schedule.',
+    )
   })
 
   it('preserves session-start guidance when userMessage.text is empty', async () => {

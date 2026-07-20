@@ -108,6 +108,7 @@ describe('renderGameMasterInputForLlm', () => {
       '## Output Reminder',
     ])
     expect(prompt).toContain('- Latest User Message: How should we approach the harbor?')
+    expect(prompt).toContain('- Latest Avatar Reply: The docks were crowded at dusk.')
     expect(prompt).toContain('### Recent Exchanges')
     expect(prompt).toContain('1. User: What happened at the harbor?')
     expect(prompt).toContain('### Current GM State')
@@ -154,6 +155,7 @@ describe('renderGameMasterInputForLlm', () => {
     expect(prompt).toContain(
       '- Latest User Message: [none - session start; provide opening guidance for the Avatar].',
     )
+    expect(prompt).not.toContain('- Latest Avatar Reply:')
     expect(prompt).not.toContain('### Recent Exchanges')
     expect(prompt).not.toContain('### Working Memory')
     expect(prompt).not.toContain('### Episodic Memories')

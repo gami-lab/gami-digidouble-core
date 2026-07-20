@@ -1044,24 +1044,27 @@ Completed on: 2026-07-20
   - output-contract wording is shorter while preserving the validation-sensitive rules for `avatarId`, locked-avatar-only unlocks, `unlockDecisions`, `nextAvatarId`, `context.notes`, `interactionIncrement`, and empty-input session start guidance
 - refactored the canonical dynamic GM input renderer in place instead of reusing a raw JSON dump:
   - `apps/core/src/domain/game-master/gm-input-renderer.ts` now renders stable `## Current Turn`, `## Current Discussion Context`, `## Experience Context`, and `## Output Reminder` sections
-  - current-turn information is called out explicitly, including the empty `userMessage.text` session-start case
+  - current-turn information now calls out the latest user message, the latest avatar reply when available, and the empty `userMessage.text` session-start case explicitly
   - current discussion context now separates bounded recent exchanges, current GM state, working memory, episodic memories, long-term facts, and optional user persona when present
   - experience context now separates scenario description/goals, available avatars with availability when present, and bounded retrieved memory/world/media context
   - optional renderer blocks are omitted when empty; the underlying `GameMasterInput` field names, nullability, and ownership remain unchanged
 - added deterministic prompt-builder regression coverage:
   - `apps/core/src/domain/game-master/gm-prompt.service.test.ts` now asserts section presence/order plus the contract-critical instructions that must remain explicit in the static prompt
   - `apps/core/src/domain/game-master/gm-input-renderer.test.ts` now asserts dynamic section order, discussion/experience separation, and omission behavior for empty optional context
-  - GM use-case tests now assert the actual `llm.complete` request content: the canonical system prompt, the structured rendered runtime input, and the session-start empty-message path
+  - GM use-case tests now assert the actual `llm.complete` request content: the structured system prompt sections, the rendered runtime input, the session-start empty-message path, and prompt-version metadata in the trace payload
   - existing GM use-case and runtime-path unit suites remain green against the structured prompt wording
+- added one integration-tier proof for the composed refined GM path instead of relying only on mocked use-case tests:
+  - `apps/core/src/application/use-cases/run-game-master/run-game-master.integration.test.ts` now exercises real in-memory repositories/services plus the observed LLM wrapper and proves composed prompt rendering, memory/retrieval propagation, GM note/state persistence, runtime suggestion event emission, safe event logging, and trace metadata carrying prompt-version identifiers
 - strengthened GM decision-policy guidance without changing runtime guards:
   - the static prompt now asks explicit evidence-based priority questions before changing state, progression, unlocks, or speaker routing
   - the prompt now explicitly biases against unnecessary switches, weak-association unlocks, and default progression increases, and prefers suggestions over forced handoffs when possible
 - focused verification completed for this slice:
   - `pnpm --filter @gami/core test -- --run src/domain/game-master/gm-input-renderer.test.ts src/domain/game-master/gm-prompt.service.test.ts src/domain/game-master/gm-state-reducer.test.ts`
   - `pnpm --filter @gami/core test -- --run src/application/use-cases/run-game-master/run-game-master.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.memory-input.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.typed-retrieval.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-unlocks.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-switch.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.model-resolution.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.defensive.use-case.test.ts`
+  - `pnpm --filter @gami/core exec vitest run --config vitest.integration.config.ts src/application/use-cases/run-game-master/run-game-master.integration.test.ts`
   - `pnpm --filter @gami/core typecheck` now passes; the previous `get-session-context.use-case.ts` nullability blocker has been resolved
   - repository gates now pass for the refined prompt path without further code changes: `pnpm lint`, `pnpm typecheck`, and `pnpm test`
-  - no additional environment-gated integration or stack-e2e suite was required for this prompt-only slice; the blocking proof remains deterministic unit and in-process use-case coverage
+  - no additional HTTP-path or stack-e2e suite was required for this prompt-only slice because no endpoint changed; the blocking proof now combines deterministic unit coverage with one integration-tier composed runtime test
 - docs reviewed and updated as part of the slice:
   - updated `docs/GAME_MASTER_CONTRACT.md` to record the evidence-based static decision-policy boundary alongside the structured static and dynamic prompt boundaries
   - updated `docs/TEST_STRATEGY.md` to make consumer-boundary GM prompt request assertions explicit in the unit-test strategy

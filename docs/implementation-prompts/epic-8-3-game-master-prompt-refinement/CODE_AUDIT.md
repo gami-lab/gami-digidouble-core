@@ -203,3 +203,49 @@ Minimal steps needed to reach A:
 **Close with debt**
 
 The EPIC is functionally delivered and the repository is healthy, but the documentation drift and test/observability confidence gaps should be tracked before treating this as an A-grade foundation for future prompt iterations.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Updated the GM input renderer so the `Current Turn` section now surfaces the latest avatar reply when one exists, making the latest exchange explicit instead of implied only through history.
+- Added stable prompt-shape version identifiers to the GM LLM trace metadata so observability can distinguish prompt contract revisions without storing raw prompts.
+- Reworked prompt-focused unit tests to assert contract-critical structure and invariants instead of mirroring implementation prose.
+- Added an integration-tier `run-game-master` test that exercises the composed prompt path with real in-memory collaborators and proves request composition, state persistence, event persistence, runtime emission, and observability metadata.
+- Synchronized `docs/GAME_MASTER_CONTRACT.md`, `docs/TEST_STRATEGY.md`, `docs/TEST_COVERAGE_PLAN.md`, and `docs/PROJECT_STATUS.md` with the implemented runtime contract and proof strategy.
+
+### Findings Resolved
+
+- Resolved the stale `GameMasterInput` documentation drift in `docs/GAME_MASTER_CONTRACT.md`.
+- Resolved the missing composed-path behavioral proof by adding an in-process integration test for the refined GM runtime.
+- Resolved the implementation-coupled `buildGameMasterSystemPrompt()` oracle in `run-game-master.use-case.test.ts`.
+- Resolved the wording-coupled prompt assertions by narrowing tests to section order, required constraints, and observable request shape.
+- Resolved the prompt clarity gap by explicitly surfacing the latest avatar reply inside `Current Turn`.
+- Resolved the observability gap by attaching prompt version identifiers to GM trace metadata.
+
+### Findings Deferred
+
+- None for EPIC 8.3 closeout.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`pnpm test:coverage`), `@gami/core` all files 86.76% statements / 84.70% branches / 96.27% functions / 86.76% lines; `src/application/use-cases/run-game-master` 96.36% / 90.87% / 97.77% / 96.36%; `src/domain/game-master` 96.18% / 88.09% / 100% / 96.18%
+
+### Final Feature Confidence
+
+- Refined GM system prompt structure is proven at unit level through section-order and contract-invariant assertions.
+- Rendered GM input now explicitly exposes the latest exchange, preserves layered memory/context sections, and omits empty sections deterministically.
+- The composed `run-game-master` path is proven through real in-memory collaborators, including request assembly, GM note persistence, GM state transitions, `gm_triggered` event persistence, and runtime event emission.
+- GM observability now records prompt contract version identifiers, giving prompt revisions a stable trace handle without leaking raw prompt content.
+- Runtime contract and testing guidance documents now match the shipped implementation.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- Deterministic tests prove structure, persistence, contracts, and observability. Real-provider prompt quality remains a separate regression concern and should continue to be evaluated through ongoing prompt iteration rather than blocking EPIC close.

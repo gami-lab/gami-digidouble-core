@@ -107,10 +107,11 @@ No network. No real providers. No real DB. Always fast, always deterministic. Ha
 
 Real adapter collaboration: real PostgreSQL for repositories, real Redis when Redis semantics matter, mocked LLM providers unless specifically testing provider integration. Tests requiring live credentials use `describe.skipIf(!apiKey)` — skipped in CI without credentials, run in nightly with credentials.
 
-GM integration test files (guarded by `DB_AVAILABLE`):
+Representative GM integration test files:
 
 - `postgres-gm-state.repository.integration.test.ts` — verifies `findBySessionId`, `save` (insert and upsert), full `GameMasterState` field round-trip, and nullable `currentAvatarId` returned as `undefined`
 - `postgres-event-log.repository.integration.test.ts` — verifies `append` inserts rows, JSONB payload round-trip, nullable `sessionId`, and `correlation_id` lookup
+- `run-game-master.integration.test.ts` — verifies the composed refined GM prompt path with real in-memory adapters and services: bounded memory selection, typed retrieval, latest-exchange rendering, persisted GM notes/state, emitted runtime suggestion events, safe event logging, and observability trace metadata carrying prompt-version identifiers
 
 ### E2E (`*.e2e.test.ts`)
 
@@ -124,7 +125,7 @@ Real HTTP requests against a live Docker stack (production image + postgres + re
 ### Do not mix tiers in one file
 
 - `*.test.ts` — no network calls, no real providers
-- `*.integration.test.ts` — no assertions on prompt wording or prose quality
+- `*.integration.test.ts` — no assertions on prompt prose quality; structural request-contract assertions are allowed when the real consumer boundary is the actual LLM request
 - `*.e2e.test.ts` — no real TCP connections, uses `inject()` only
 - `*.stack-e2e.test.ts` — no Fastify imports, no internal state assertions
 
