@@ -312,6 +312,10 @@ function assertRenderedPrompt(request: Omit<LlmRequest, 'trace'> | undefined): v
     '## Decision Policies',
     '## Output Contract',
   ])
+  expect(systemPrompt).toContain('Output ONLY a valid JSON object.')
+  expect(systemPrompt).toContain(
+    'Bias toward conversationMode "continue" unless there is clear evidence for a switch.',
+  )
   expectSectionOrder(renderedPrompt, [
     '## Current Turn',
     '## Current Discussion Context',
@@ -324,10 +328,23 @@ function assertRenderedPrompt(request: Omit<LlmRequest, 'trace'> | undefined): v
   expect(renderedPrompt).toContain(
     '- Latest Avatar Reply: We should confirm the tide log before escalating.',
   )
+  expect(renderedPrompt).toContain('### Scenario')
+  expect(renderedPrompt).toContain('- Goal 1: Reconstruct the harbor timeline.')
+  expect(renderedPrompt).toContain('- Goal 2: Decide whether a specialist is needed.')
+  expect(renderedPrompt).toContain('### Available Avatars')
+  expect(renderedPrompt).toContain(
+    '- Ava (avatar_1) [available]; description: Harbor witness.; scope: Dock activity and local rumors.',
+  )
+  expect(renderedPrompt).toContain(
+    '- Theo (avatar_2) [locked]; description: Marine engineer.; scope: Tide mechanics and structural risk.',
+  )
   expect(renderedPrompt).toContain('### Working Memory')
+  expect(renderedPrompt).toContain('- Covered Topics: none')
   expect(renderedPrompt).toContain('### Episodic Memories')
   expect(renderedPrompt).toContain('### Long-Term Facts')
   expect(renderedPrompt).toContain('### User Persona')
+  expect(renderedPrompt).toContain('- Name: Lina')
+  expect(renderedPrompt).toContain('- Role In World: investigator')
   expect(renderedPrompt).toContain('### Retrieved Context')
 }
 
@@ -349,6 +366,8 @@ async function assertPersistenceAndEvents(harness: ReturnType<typeof createInteg
     correlationId: 'corr_integration',
   })
   expect(JSON.stringify(event?.payload ?? {})).not.toContain('systemPrompt')
+  expect(JSON.stringify(event?.payload ?? {})).not.toContain('## Role')
+  expect(JSON.stringify(event?.payload ?? {})).not.toContain('## Current Turn')
   expect(harness.publishedRuntimeEvents).toContain('runtime.avatar_suggested')
 }
 

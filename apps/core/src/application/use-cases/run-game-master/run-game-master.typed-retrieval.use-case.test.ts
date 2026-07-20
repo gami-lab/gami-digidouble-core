@@ -149,6 +149,7 @@ beforeEach(() => {
     workingMemory: {
       summary: 'The witness already shared a timeline contradiction.',
       unresolvedThreads: [],
+      coveredTopics: [],
       updatedAt: '2026-04-18T09:59:00.000Z',
       selectionReasons: ['working_memory', 'continuity'],
     },
@@ -159,6 +160,7 @@ beforeEach(() => {
     workingMemory: {
       summary: 'The witness already shared a timeline contradiction.',
       unresolvedThreads: [],
+      coveredTopics: [],
     },
   })
   retrieveTypedContextMock.mockResolvedValue({

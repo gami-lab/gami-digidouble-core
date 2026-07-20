@@ -382,14 +382,17 @@ describe('RunGameMasterUseCase — event log', () => {
       correlationId: 'corr_xyz',
     })
 
-    const event = eventLog.getAll()[0]
-    expect(event?.type).toBe('gm_triggered')
-    expect(event?.payload['triggerReason']).toBe('post_turn_observation')
-    expect(event?.payload['decision']).toBeDefined()
-    expect(event?.payload['decision']).toMatchObject({
+    const event = expectDefined(eventLog.getAll()[0])
+    const payload = event.payload
+    const payloadJson = JSON.stringify(payload)
+
+    expect(event.type).toBe('gm_triggered')
+    expect(payload['triggerReason']).toBe('post_turn_observation')
+    expect(payload['decision']).toBeDefined()
+    expect(payload['decision']).toMatchObject({
       injectedNote: 'Help the user move to concrete examples.',
     })
-    expect(event?.payload['gmContext']).toMatchObject({
+    expect(payload['gmContext']).toMatchObject({
       currentState: {
         currentAvatarId: 'avatar_1',
         progression: 'progressing',
@@ -401,8 +404,10 @@ describe('RunGameMasterUseCase — event log', () => {
         },
       },
     })
-    expect(JSON.stringify(event?.payload ?? {})).not.toContain('secret user input')
-    expect(JSON.stringify(event?.payload ?? {})).not.toContain('systemPrompt')
+    expect(payloadJson).not.toContain('secret user input')
+    expect(payloadJson).not.toContain('systemPrompt')
+    expect(payloadJson).not.toContain('## Current Turn')
+    expect(payloadJson).not.toContain('Output ONLY a valid JSON object.')
   })
 
   it('enriches gm_triggered payload with latency, token usage, and correlation id', async () => {
@@ -490,6 +495,11 @@ function expectSectionOrder(prompt: string, sections: string[]): void {
     expect(index).toBeGreaterThan(previousIndex)
     previousIndex = index
   }
+}
+
+function expectDefined<T>(value: T | undefined): T {
+  expect(value).toBeDefined()
+  return value as T
 }
 
 describe('RunGameMasterUseCase — runtime event publication unlocks', () => {

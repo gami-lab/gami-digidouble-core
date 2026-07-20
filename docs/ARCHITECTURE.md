@@ -301,6 +301,10 @@ Used for deterministic, inspectable control:
 - constraints
 
 This layer must be configurable and testable without prompt-only behavior.
+Static GM system instructions and dynamic GM input rendering remain separate canonical
+boundaries (`domain/game-master/gm-prompt.service.ts` and
+`domain/game-master/gm-input-renderer.ts` respectively); application orchestration wires
+those contracts without introducing a parallel prompt shape.
 
 #### 3) Avatar Routing / Transition Engine
 

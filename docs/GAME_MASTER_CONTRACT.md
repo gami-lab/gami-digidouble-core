@@ -469,14 +469,27 @@ The current MVP implementation runs GM as an async observer after each avatar tu
 
 ## 12.2 GM system prompt structure (MVP)
 
-The GM system prompt is intentionally short and role-focused:
+The GM system prompt is intentionally short and role-focused. It is organized into explicit
+`Role`, `Objectives`, `Decision Policies`, and `Output Contract` sections so wording can evolve
+without forking the runtime contract.
 
 - define GM as a silent director (not a chat responder)
 - require valid JSON-only output matching `GameMasterOutput`
 - constrain `context.notes` to one concise sentence
 - allow avatar selection only from provided `availableAvatars`
+- keep evidence-based stability rules explicit: bias toward `conversationMode: "continue"`,
+  avoid progression increases by default, avoid weak-association unlocks, and prefer
+  `suggestedAvatarId` over a forced switch when a handoff is not necessary
+- preserve the session-start rule for empty `userMessage.text` so GM gives opening guidance
+  rather than reacting to a nonexistent user message
 
 No scenario-specific content is hard-coded into the system prompt.
+
+The dynamic GM runtime input is rendered separately into `Current Turn`, `Current Discussion Context`,
+`Experience Context`, and `Output Reminder` sections. This renderer is an internal serialization
+boundary only; it must keep using the canonical `GameMasterInput` fields, preserve bounded recent
+messages and layered memory context, surface the latest exchange explicitly when available, and omit
+empty optional sections cleanly.
 
 ## 12.3 Session guidance notes storage decision
 

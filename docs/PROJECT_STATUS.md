@@ -1067,10 +1067,12 @@ Completed on: 2026-07-20
   - no additional HTTP-path or stack-e2e suite was required for this prompt-only slice because no endpoint changed; the blocking proof now combines deterministic unit coverage with one integration-tier composed runtime test
 - docs reviewed and updated as part of the slice:
   - updated `docs/GAME_MASTER_CONTRACT.md` to record the evidence-based static decision-policy boundary alongside the structured static and dynamic prompt boundaries
+  - updated `docs/ARCHITECTURE.md` to make GM prompt-assembly ownership explicit at the module boundary
   - updated `docs/TEST_STRATEGY.md` to make consumer-boundary GM prompt request assertions explicit in the unit-test strategy
   - updated `docs/TEST_COVERAGE_PLAN.md` to make real-request prompt assertions explicit for the GM module
   - updated `docs/EPICS.md` to mark EPIC 8.3 complete now that structure, consumer-boundary coverage, and blocking verification are in place
-  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, and `docs/MEMORY_SYSTEM_SPEC.md`; their current statements still match the implemented ownership, bounded-memory behavior, and orchestration flow, so no further edits were required
+  - reviewed `docs/API_CONTRACT.md` and `docs/MEMORY_SYSTEM_SPEC.md`; their current statements still match the implemented ownership, bounded-memory behavior, and orchestration flow, so no further edits were required
+  - final hardening added focused non-snapshot proof that the integration-path request still carries scenario goals, avatar availability, persona, layered memory, and retrieval context, while GM diagnostics still exclude raw prompt sections
 
 ---
 
@@ -1233,6 +1235,7 @@ Started on: 2026-07-20
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (send-message wiring + safe runtime inspection) |
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (final hardening, E2E proof, doc sync)          |
 | 2026-07-20 | EPIC 8.3 — Game Master Prompt Refinement (prompt contract ownership baseline)                   |
+| 2026-07-20 | EPIC 8.3 — Game Master Prompt Refinement (final hardening, verification, doc sync)              |
 
 ---
 
@@ -1249,7 +1252,7 @@ Current implementation focus:
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
 - EPIC 8.1 (Avatar Trait Structuring) is complete: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint, and the admin trigger/read-only trait inspection UI are all delivered
 - EPIC 8.2 (Runtime Context Assembly Refactoring) is complete: contract ownership, semantic section precedence, structured Avatar Traits runtime consumption, send-message consumer-boundary proof, bounded runtime diagnostics, and final documentation sync are all verified
-- EPIC 8.3 (Game Master Prompt Refinement) is in progress: the contract-ownership baseline is complete, so later prompt wording/layout slices can iterate without reopening GM runtime type, parser, state, or event-boundary questions
+- EPIC 8.3 (Game Master Prompt Refinement) is complete: prompt-structure coverage, consumer-boundary runtime verification, safe diagnostics, and documentation sync are all verified
 
 ---
 
