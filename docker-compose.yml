@@ -11,8 +11,8 @@
 #     docker compose up postgres redis
 #     pnpm dev
 #
-#   Full stack in containers:
-#     docker compose up
+#   Full stack in containers (--build avoids running a stale app image):
+#     docker compose up -d --build
 #
 #   Teardown (keep volumes):
 #     docker compose down

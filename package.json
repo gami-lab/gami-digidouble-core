@@ -20,7 +20,7 @@
     "format": "prettier --write \"**/*.{ts,json,md,yaml,yml}\" --ignore-path .prettierignore",
     "format:check": "prettier --check \"**/*.{ts,json,md,yaml,yml}\" --ignore-path .prettierignore",
     "infra:up": "docker compose up postgres redis -d",
-    "infra:up:all": "docker compose up -d",
+    "infra:up:all": "docker compose up -d --build",
     "infra:down": "docker compose down",
     "infra:reset": "docker compose down -v && docker compose build app",
     "infra:logs": "docker compose logs -f",
