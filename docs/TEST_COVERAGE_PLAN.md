@@ -63,6 +63,7 @@ Must test:
 
 - avatar input contract
 - prompt assembly section order: Director Notes, Response Rules, Conversation State, User Persona, World Context, Retrieved Context, Avatar Traits
+- consumer-boundary send-message assertions: the actual LLM request system prompt contains the required ordered sections and trait values, not just intermediate helper objects
 - prepared-avatar identity preference: `computedTraits` is used when present and raw `personaPrompt` does not compete as a second identity block
 - legacy/unprepared-avatar fallback: missing or `null` `computedTraits` still yields a valid prompt via the authored `personaPrompt`
 - all seven computed-trait fields render in stable order with concise labeled items
@@ -229,6 +230,7 @@ Must test:
 - GM trigger event logging
 - failure event logging
 - no raw sensitive data in logs
+- turn/runtime diagnostics stay bounded: no raw prompt text, raw trait text, hidden retrieval text, or credential values in event payloads
 
 ---
 

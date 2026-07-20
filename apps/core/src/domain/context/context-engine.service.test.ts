@@ -1,3 +1,4 @@
+/* eslint-disable max-lines, max-lines-per-function */
 import { describe, expect, it } from 'vitest'
 import type { AvatarComputedTraits } from '../avatar/avatar.types.js'
 import type { TypedRetrievalResult } from '../knowledge/knowledge.types.js'
@@ -197,6 +198,16 @@ function assertTinyBudgetOutput(output: ReturnType<ContextEngine['assemble']>): 
       (item) => item.segmentId === 'responseRules' && item.reason === 'protected',
     ),
   ).toBe(true)
+  expect(
+    output.trace.selection.kept
+      .filter((item) => item.reason === 'protected')
+      .map((item) => `${item.projection}:${item.segmentId}`),
+  ).toEqual([
+    'avatar:directorNotes',
+    'avatar:responseRules',
+    'avatar:worldContext',
+    'gm:worldContext',
+  ])
 }
 
 function applyConflictingMemoryAndRetrieval(input: ContextEngineInput): void {
@@ -328,6 +339,159 @@ describe('ContextEngine baseline', () => {
     const engine = new ContextEngine(makeTinyBudgetPolicy())
     const output = engine.assemble(makeInput())
     assertTinyBudgetOutput(output)
+  })
+
+  it('preserves avatar-filtered retrieval separately from larger GM retrieval with visibility metadata', () => {
+    const engine = new ContextEngine()
+    const input = makeInput()
+    input.extensions.retrieval = {
+      memory: [
+        {
+          sourceId: 'source_avatar_memory',
+          chunkId: 'chunk_avatar_memory',
+          knowledgeType: 'memory',
+          content: 'avatar-visible memory',
+        },
+      ],
+      world: [],
+      media: [],
+      trace: {
+        query: 'hello',
+        perType: {
+          memory: {
+            sourceIds: ['source_avatar_memory', 'source_hidden_memory'],
+            selectedChunkIds: ['chunk_avatar_memory'],
+            visibility: {
+              activeAvatarId: 'avatar_1',
+              consideredChunkCount: 2,
+              excludedChunkCount: 1,
+            },
+          },
+          world: {
+            sourceIds: [],
+            selectedChunkIds: [],
+            visibility: {
+              activeAvatarId: 'avatar_1',
+              consideredChunkCount: 2,
+              excludedChunkCount: 2,
+            },
+          },
+          media: {
+            sourceIds: [],
+            selectedChunkIds: [],
+            visibility: {
+              activeAvatarId: 'avatar_1',
+              consideredChunkCount: 0,
+              excludedChunkCount: 0,
+            },
+          },
+        },
+      },
+    }
+    input.extensions.retrievalForGm = {
+      memory: [
+        {
+          sourceId: 'source_avatar_memory',
+          chunkId: 'chunk_avatar_memory',
+          knowledgeType: 'memory',
+          content: 'avatar-visible memory',
+        },
+        {
+          sourceId: 'source_hidden_memory',
+          chunkId: 'chunk_hidden_memory',
+          knowledgeType: 'memory',
+          content: 'gm-hidden memory still visible to gm',
+        },
+      ],
+      world: [
+        {
+          sourceId: 'source_gm_world',
+          chunkId: 'chunk_gm_world',
+          knowledgeType: 'world',
+          content: 'gm world context',
+        },
+      ],
+      media: [
+        {
+          sourceId: 'source_gm_media',
+          chunkId: 'chunk_gm_media',
+          knowledgeType: 'media',
+          content: 'gm media context',
+        },
+      ],
+      trace: {
+        query: 'hello',
+        perType: {
+          memory: {
+            sourceIds: ['source_avatar_memory'],
+            selectedChunkIds: ['chunk_avatar_memory'],
+          },
+          world: { sourceIds: ['source_gm_world'], selectedChunkIds: ['chunk_gm_world'] },
+          media: { sourceIds: ['source_gm_media'], selectedChunkIds: ['chunk_gm_media'] },
+        },
+      },
+    }
+
+    const output = engine.assemble(input)
+
+    expect(output.avatar.sections.retrievedContext?.typedSections).toEqual({
+      memory: [
+        {
+          sourceId: 'source_avatar_memory',
+          chunkId: 'chunk_avatar_memory',
+          knowledgeType: 'memory',
+          content: 'avatar-visible memory',
+        },
+      ],
+      world: [],
+      media: [],
+    })
+    expect(output.gm.sections.retrievedContext).toEqual({
+      memory: [
+        {
+          sourceId: 'source_avatar_memory',
+          chunkId: 'chunk_avatar_memory',
+          knowledgeType: 'memory',
+          content: 'avatar-visible memory',
+        },
+        {
+          sourceId: 'source_hidden_memory',
+          chunkId: 'chunk_hidden_memory',
+          knowledgeType: 'memory',
+          content: 'gm-hidden memory still visible to gm',
+        },
+      ],
+      world: [
+        {
+          sourceId: 'source_gm_world',
+          chunkId: 'chunk_gm_world',
+          knowledgeType: 'world',
+          content: 'gm world context',
+        },
+      ],
+      media: [
+        {
+          sourceId: 'source_gm_media',
+          chunkId: 'chunk_gm_media',
+          knowledgeType: 'media',
+          content: 'gm media context',
+        },
+      ],
+    })
+    expect(output.trace.selectedInputs.visibility).toEqual({
+      activeAvatarId: 'avatar_1',
+      excludedCounts: {
+        memory: 1,
+        world: 2,
+        media: 0,
+      },
+      gmRetrievalCounts: {
+        memory: 2,
+        world: 1,
+        media: 1,
+      },
+      gmUnrestricted: true,
+    })
   })
 })
 

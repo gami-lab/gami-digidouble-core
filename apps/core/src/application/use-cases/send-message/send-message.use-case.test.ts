@@ -1,10 +1,13 @@
-/* eslint-disable max-lines */
+/* eslint-disable max-lines, max-lines-per-function */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConversationEndReason } from '@gami/shared'
+import type { AvatarComputedTraits } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import { expectConsoleError } from '../../../test-utils/console.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
+import type { MemorySelectionService } from '../../services/memory-selection.service.js'
+import type { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
 
@@ -75,6 +78,16 @@ const userMemoryFactRepository = {
   upsert: vi.fn(),
   findById: vi.fn(),
   deleteById: vi.fn(),
+}
+
+const SAMPLE_TRAITS: AvatarComputedTraits = {
+  identity: ['Harbor archivist'],
+  personality: ['Measured under pressure'],
+  speakingStyle: ['Short and literal'],
+  background: ['Former navigator'],
+  timeline: ['Joined after the storm'],
+  currentSituation: ['Guiding late arrivals'],
+  behaviouralRules: ['Never fabricate ship logs'],
 }
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -296,6 +309,165 @@ describe('SendMessageUseCase — llm request payload', () => {
     })
   })
 
+  it('assembles the actual llm system prompt in deterministic runtime section order', async () => {
+    const memorySelectionService = {
+      select: vi.fn().mockResolvedValue({
+        shortTermExchanges: [{ user: 'Where do I dock?', avatar: 'Follow the lantern markers.' }],
+        workingMemory: {
+          summary: 'The user wants concise harbor instructions.',
+          unresolvedThreads: [],
+          updatedAt: '2026-07-20T10:00:00.000Z',
+          selectionReasons: ['working_memory', 'continuity'],
+        },
+        episodicMemories: [],
+        longTermFacts: [{ category: 'preference', key: 'pace', value: 'quick overview' }],
+      }),
+      toAvatarMemorySnapshot: vi.fn().mockReturnValue({
+        shortTerm: {
+          exchangeCount: 1,
+          recentExchanges: [{ user: 'Where do I dock?', avatar: 'Follow the lantern markers.' }],
+        },
+        working: {
+          session: {
+            summary: 'The user wants concise harbor instructions.',
+            updatedAt: '2026-07-20T10:00:00.000Z',
+          },
+        },
+        longTerm: {
+          facts: [{ category: 'preference', key: 'pace', value: 'quick overview' }],
+        },
+      }),
+    }
+    const typedRetrievalService = {
+      retrieve: vi.fn().mockResolvedValue({
+        memory: [
+          {
+            sourceId: 'source_memory',
+            chunkId: 'chunk_memory',
+            knowledgeType: 'memory',
+            content: 'The user prefers checklist-style instructions.',
+          },
+        ],
+        world: [
+          {
+            sourceId: 'source_world',
+            chunkId: 'chunk_world',
+            knowledgeType: 'world',
+            content: 'Ships dock at tidefall in this harbor.',
+          },
+        ],
+        media: [
+          {
+            sourceId: 'source_media',
+            chunkId: 'chunk_media',
+            knowledgeType: 'media',
+            content: 'Reference frame: moonlit pier diagram.',
+          },
+        ],
+        trace: {
+          query:
+            'Keep the answer practical. | What should I do? | The user wants concise harbor instructions. User: Where do I dock? Avatar: Follow the lantern markers.',
+          perType: {
+            memory: { sourceIds: ['source_memory'], selectedChunkIds: ['chunk_memory'] },
+            world: { sourceIds: ['source_world'], selectedChunkIds: ['chunk_world'] },
+            media: { sourceIds: ['source_media'], selectedChunkIds: ['chunk_media'] },
+          },
+        },
+      }),
+    }
+    const useCase = new SendMessageUseCase(
+      sessionRepository,
+      conversationRepository,
+      avatarRepository,
+      scenarioRepository,
+      messageRepository,
+      llm,
+      eventLogRepository,
+      null,
+      userRepository,
+      null,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      memorySelectionService as unknown as MemorySelectionService,
+      typedRetrievalService as unknown as TypedRetrievalService,
+    )
+    findSessionByIdMock.mockResolvedValue(makeSession({ gmNotes: 'Keep the answer practical.' }))
+    updateSessionMock.mockResolvedValue(makeSession())
+    findAvatarByIdMock.mockResolvedValue(
+      makeAvatar({
+        name: 'Ava',
+        personaPrompt: 'Legacy persona text that should not be used when traits exist.',
+        adjustments: ['Use short paragraphs.'],
+        computedTraits: SAMPLE_TRAITS,
+      }),
+    )
+    findScenarioByIdMock.mockResolvedValue({
+      scenarioId: 'scenario_1',
+      name: 'Harbor Watch',
+      status: 'active',
+      objectives: ['Guide arrivals safely'],
+      worldContext: 'The harbor closes at moonrise.',
+      avatarAvailability: { initialAvatarIds: [] },
+      config: {},
+      createdAt: '2026-04-18T10:00:00.000Z',
+      updatedAt: '2026-04-18T10:00:00.000Z',
+    })
+    listAvatarsByScenarioIdMock.mockResolvedValue([
+      makeAvatar({
+        name: 'Ava',
+        adjustments: ['Use short paragraphs.'],
+        computedTraits: SAMPLE_TRAITS,
+      }),
+    ])
+    findUserByIdMock.mockResolvedValue({
+      userId: 'user_1',
+      persona: {
+        name: 'Maya',
+        roleInWorld: 'captain',
+        dialogGuidance: 'Keep it practical.',
+      },
+      createdAt: '2026-04-18T10:00:00.000Z',
+      updatedAt: '2026-04-18T10:00:00.000Z',
+    })
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'What should I do?' })
+
+    const llmArg = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
+    expectSectionOrder(llmArg.systemPrompt, [
+      '## Director Notes',
+      '## Response Rules',
+      '## Conversation State',
+      '## User Persona',
+      '## World Context',
+      '## Retrieved Context',
+      '## Avatar Traits',
+    ])
+    expect(llmArg.systemPrompt).toContain('Keep the answer practical.')
+    expect(llmArg.systemPrompt).toContain('Use short paragraphs.')
+    expect(llmArg.systemPrompt).toContain('Recent exchanges:')
+    expect(llmArg.systemPrompt).toContain(
+      'Session working memory: The user wants concise harbor instructions.',
+    )
+    expect(llmArg.systemPrompt).toContain('- pace: quick overview')
+    expect(llmArg.systemPrompt).toContain('Name: Maya')
+    expect(llmArg.systemPrompt).toContain('Role in this world: captain')
+    expect(llmArg.systemPrompt).toContain('The harbor closes at moonrise.')
+    expect(llmArg.systemPrompt).toContain('Memory retrieval:')
+    expect(llmArg.systemPrompt).toContain('The user prefers checklist-style instructions.')
+    expect(llmArg.systemPrompt).toContain('World retrieval:')
+    expect(llmArg.systemPrompt).toContain('Ships dock at tidefall in this harbor.')
+    expect(llmArg.systemPrompt).toContain('Media retrieval:')
+    expect(llmArg.systemPrompt).toContain('Reference frame: moonlit pier diagram.')
+    expect(llmArg.systemPrompt).toContain('Identity:')
+    expect(llmArg.systemPrompt).toContain('- Harbor archivist')
+    expect(llmArg.systemPrompt).not.toContain(
+      'Legacy persona text that should not be used when traits exist.',
+    )
+  })
+
   it('emits turn_completed event payload in a non-blocking path', async () => {
     const useCase = createUseCase(true)
     findMessagesByConversationIdMock.mockResolvedValue([
@@ -509,6 +681,95 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     expect(llmRequest.systemPrompt).toContain('Push user deeper into examples.')
   })
 
+  it('emits bounded runtime diagnostics without raw prompt, trait, retrieval, or credential leakage', async () => {
+    const typedRetrievalService = {
+      retrieve: vi.fn().mockResolvedValue({
+        memory: [
+          {
+            sourceId: 'source_hidden',
+            chunkId: 'chunk_hidden',
+            knowledgeType: 'memory',
+            content: 'Hidden retrieval text: sk-test-secret',
+            metadata: { inlineText: 'Hidden retrieval text: sk-test-secret' },
+          },
+        ],
+        world: [],
+        media: [],
+        trace: {
+          query: 'secret retrieval query',
+          perType: {
+            memory: { sourceIds: ['source_hidden'], selectedChunkIds: ['chunk_hidden'] },
+            world: { sourceIds: [], selectedChunkIds: [] },
+            media: { sourceIds: [], selectedChunkIds: [] },
+          },
+        },
+      }),
+    }
+    const useCase = new SendMessageUseCase(
+      sessionRepository,
+      conversationRepository,
+      avatarRepository,
+      scenarioRepository,
+      messageRepository,
+      llm,
+      eventLogRepository,
+      null,
+      userRepository,
+      null,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      typedRetrievalService as unknown as TypedRetrievalService,
+    )
+    findSessionByIdMock.mockResolvedValue(
+      makeSession({ gmNotes: 'Hidden directive: ask for the vault code.' }),
+    )
+    findAvatarByIdMock.mockResolvedValue(
+      makeAvatar({
+        personaPrompt: 'Legacy secret persona text.',
+        computedTraits: {
+          ...SAMPLE_TRAITS,
+          identity: ['Hidden trait identity'],
+          behaviouralRules: ['Never reveal the vault code.'],
+        },
+      }),
+    )
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
+    const eventArg = appendEventMock.mock.calls[0]?.[0] as { payload: Record<string, unknown> }
+    const serializedPayload = JSON.stringify(eventArg.payload)
+
+    expect(serializedPayload).not.toContain(llmRequest.systemPrompt)
+    expect(serializedPayload).not.toContain('Legacy secret persona text.')
+    expect(serializedPayload).not.toContain('Hidden trait identity')
+    expect(serializedPayload).not.toContain('Never reveal the vault code.')
+    expect(serializedPayload).not.toContain('Hidden retrieval text: sk-test-secret')
+    expect(serializedPayload).not.toContain('inlineText')
+    expect(serializedPayload).not.toContain('sk-test-secret')
+    expect(serializedPayload).not.toContain('test-secret')
+    expect(eventArg.payload['contextSelection']).toEqual({
+      shortTermExchangeCount: 0,
+      hasWorkingMemory: false,
+      longTermFactCount: 0,
+      retrieval: {
+        selectedForAssemblyCounts: { memory: 1, world: 0, media: 0 },
+        includedCounts: { memory: 1, world: 0, media: 0 },
+        omittedByAssemblyCounts: { memory: 0, world: 0, media: 0 },
+        excludedByVisibilityCounts: { memory: 0, world: 0, media: 0 },
+      },
+      hasUserPersona: false,
+      hasGmDirective: true,
+      responseRuleCount: 0,
+      hasAvatarTraits: true,
+    })
+  })
+
   it('clears gmNotes after the turn that consumes them', async () => {
     const useCase = createUseCase()
     findSessionByIdMock.mockResolvedValue(
@@ -612,3 +873,12 @@ describe('SendMessageUseCase — implicit end detection', () => {
     )
   })
 })
+
+function expectSectionOrder(prompt: string, sections: string[]): void {
+  let previousIndex = -1
+  for (const section of sections) {
+    const currentIndex = prompt.indexOf(section)
+    expect(currentIndex).toBeGreaterThan(previousIndex)
+    previousIndex = currentIndex
+  }
+}

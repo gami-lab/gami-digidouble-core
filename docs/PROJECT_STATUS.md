@@ -894,8 +894,9 @@ Completed on: 2026-07-19
 
 ## EPIC 8.2 — Runtime Context Assembly Refactoring
 
-Status: 🚧 In progress
+Status: ✅ Complete
 Started on: 2026-07-20
+Completed on: 2026-07-20
 
 ### Current slice completed (runtime context contract ownership baseline)
 
@@ -994,6 +995,24 @@ Started on: 2026-07-20
   - updated `docs/API_CONTRACT.md` so admin session-event docs explicitly describe the new bounded `turn_completed.contextSelection` metadata and re-state the no-prompt-content rule
   - updated `docs/PROJECT_STATUS.md` for the new EPIC 8.2 slice and its verification status
   - reviewed `docs/ARCHITECTURE.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/TEST_COVERAGE_PLAN.md`; no further changes were required because their existing statements already match the implemented runtime wiring and test ownership
+
+### Final slice completed (runtime context hardening and documentation sync)
+
+- closed the remaining EPIC 8.2 proof gaps at the real boundaries instead of adding new product behavior:
+  - `apps/core/src/domain/avatar/persona-prompt.service.test.ts` now proves explicit `computedTraits: null` compatibility fallback in the assembled Avatar Traits section, not only in the identity-source resolver
+  - `apps/core/src/domain/context/context-engine.service.test.ts` now proves protected-segment ordering under tight budgets and preserves asymmetric GM retrieval projection/visibility diagnostics when GM receives a broader retrieval set than the Avatar
+  - `apps/core/src/application/use-cases/send-message/send-message.use-case.test.ts` now asserts the actual LLM request system prompt contains the required ordered runtime sections, trait values, memory grouping, retrieval grouping, and legacy-fallback behavior
+  - `apps/core/src/api/routes/conversation-runtime-context.e2e.test.ts` adds an in-process HTTP-path regression proving prepared-avatar trait preference and legacy-avatar fallback through the normal send-message route wiring
+- hardened runtime diagnostics verification beyond helper-only coverage:
+  - turn-completed event tests now assert emitted payloads exclude the raw assembled prompt, raw trait text, hidden retrieval content, `inlineText`, and credential-like strings while still preserving bounded `contextSelection` counts/flags
+  - runtime inspector snapshot/event redaction coverage remains aligned with the same safe-content rule
+- focused verification completed for this final slice:
+  - `pnpm --filter @gami/core test -- --run src/domain/avatar/persona-prompt.service.test.ts src/domain/context/context-engine.service.test.ts src/application/use-cases/send-message/send-message.use-case.test.ts src/application/use-cases/send-message/send-message.context-assembler.use-case.test.ts src/application/use-cases/send-message/send-message.user-persona.use-case.test.ts src/application/services/runtime-inspector-event-context.test.ts src/application/use-cases/list-session-events/list-session-events.use-case.test.ts src/api/routes/conversations.test.ts src/api/routes/admin-session-context.test.ts`
+  - `pnpm --filter @gami/core exec vitest run --config vitest.integration.config.ts src/api/routes/conversation-runtime-context.e2e.test.ts`
+- docs synced for the verified EPIC-complete state:
+  - updated `docs/TEST_COVERAGE_PLAN.md` to make consumer-boundary prompt assertions and runtime-diagnostic redaction ownership explicit
+  - updated `docs/EPICS.md` to mark EPIC 8.2 done
+  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`, `docs/MEMORY_SYSTEM_SPEC.md`, and `docs/TEST_STRATEGY.md`; their current statements already match the implemented runtime-context, compatibility, and safe-diagnostics behavior, so no further edits were required
 
 ---
 
@@ -1103,6 +1122,7 @@ Started on: 2026-07-20
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (contract ownership baseline)                   |
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (avatar prompt assembly runtime order + traits) |
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (send-message wiring + safe runtime inspection) |
+| 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (final hardening, E2E proof, doc sync)          |
 
 ---
 
@@ -1117,8 +1137,8 @@ Current implementation focus:
 - retrieval observability
 - public web app operational hardening
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
-- EPIC 8.1 (Avatar Trait Structuring) is complete: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint, the admin trigger/read-only trait inspection UI, and the final test-gap-closure/recomputation-hardening/doc-sync pass are all delivered; EPIC 8.2 runtime consumption of `computedTraits` remains
-- EPIC 8.2 (Runtime Context Assembly Refactoring) is underway; the contract-ownership baseline, semantic runtime sections/precedence, Avatar prompt runtime-order + trait-consumption slice, and send-message/runtime-inspection wiring slice are now in place, with remaining EPIC work still pending
+- EPIC 8.1 (Avatar Trait Structuring) is complete: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint, and the admin trigger/read-only trait inspection UI are all delivered
+- EPIC 8.2 (Runtime Context Assembly Refactoring) is complete: contract ownership, semantic section precedence, structured Avatar Traits runtime consumption, send-message consumer-boundary proof, bounded runtime diagnostics, and final documentation sync are all verified
 
 ---
 

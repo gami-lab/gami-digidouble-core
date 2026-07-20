@@ -173,8 +173,8 @@ describe('assemblePersonaPrompt -> identity source', () => {
     expect(prompt).toContain('- Never reveal sealed exhibits')
   })
 
-  it('falls back to personaPrompt in the avatar traits section when computedTraits are absent', () => {
-    const prompt = assemblePersonaPrompt(
+  it('falls back to personaPrompt in the avatar traits section when computedTraits are absent, and null compatibility resolves to the same source', () => {
+    const withoutTraits = assemblePersonaPrompt(
       makeAvatarConfig({
         name: 'Nova',
         personaPrompt: 'You are a focused guide.',
@@ -182,11 +182,20 @@ describe('assemblePersonaPrompt -> identity source', () => {
       }),
     )
 
-    expect(prompt).toContain('## Avatar Traits')
-    expect(prompt).toContain('You are a focused guide.')
-    expect(prompt).toContain('Your name is Nova.')
-    expect(prompt).toContain('Your tone is calm and precise.')
-    expect(prompt).not.toContain('## Core Persona')
+    expect(
+      resolveAvatarPromptIdentitySource({
+        personaPrompt: 'You are a focused guide.',
+        computedTraits: null,
+      }),
+    ).toEqual({
+      source: 'personaPrompt',
+      personaPrompt: 'You are a focused guide.',
+    })
+    expect(withoutTraits).toContain('## Avatar Traits')
+    expect(withoutTraits).toContain('You are a focused guide.')
+    expect(withoutTraits).toContain('Your name is Nova.')
+    expect(withoutTraits).toContain('Your tone is calm and precise.')
+    expect(withoutTraits).not.toContain('## Core Persona')
   })
 })
 

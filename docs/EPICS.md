@@ -2142,7 +2142,7 @@ This makes avatar behaviour less dependent on prompt-writing quality while keepi
 
 ---
 
-# EPIC 8.2 — Runtime Context Assembly Refactoring
+# EPIC 8.2 — Runtime Context Assembly Refactoring ✅ Done
 
 ## Purpose
 

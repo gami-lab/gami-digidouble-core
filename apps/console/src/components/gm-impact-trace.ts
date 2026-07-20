@@ -300,8 +300,8 @@ function formatAvatarContext(turnPayload: TurnCompletedEventPayload): string {
   if (!selected) return 'Avatar context used for this reply: unavailable.'
 
   const includedCounts = selected.retrieval?.includedCounts ?? { memory: 0, world: 0, media: 0 }
-  const responseRuleCount = selected.responseRuleCount ?? 0
-  const hasAvatarTraits = selected.hasAvatarTraits ?? false
+  const responseRuleCount = selected.responseRuleCount
+  const hasAvatarTraits = selected.hasAvatarTraits
 
   return [
     `Avatar context used for this reply: ${formatCountSummary(selected.shortTermExchangeCount, 'recent exchange')}`,
