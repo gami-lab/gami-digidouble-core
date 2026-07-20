@@ -10,6 +10,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "report:commit-time": "node scripts/commit-time-report.mjs",
     "test": "turbo run test",
     "test:integration-e2e": "turbo run test:integration-e2e --filter=@gami/core",
     "test:stack-e2e": "turbo run test:stack-e2e --filter=@gami/core",
