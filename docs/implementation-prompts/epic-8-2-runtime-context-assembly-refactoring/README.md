@@ -30,11 +30,11 @@ Run the prompts in order. Keep each slice small enough to review independently. 
 
 ## Definition Of Done
 
-- [ ] Runtime context follows the target order: Director Notes, Response Rules, Conversation State, User Persona, World Context, Retrieved Context, Avatar Traits.
-- [ ] `computedTraits` is the preferred Avatar identity input when present.
-- [ ] Avatars without computed traits continue to use the existing authored persona as a compatibility fallback.
-- [ ] Conversation state, world context, retrieved context, and avatar traits remain semantically separate.
-- [ ] Context selection remains deterministic, bounded, and inspectable.
-- [ ] Existing Avatar behavior and non-trait runtime inputs are preserved unless the EPIC explicitly changes their order.
-- [ ] Tests cover ordering, fallback, trait consumption, token-budget behavior, and no-sensitive-content observability.
-- [ ] `docs/PROJECT_STATUS.md` and all impacted architecture, contract, data-model, epic, and testing documentation are accurate.
+- [x] Runtime context follows the target order: Director Notes, Response Rules, Conversation State, User Persona, World Context, Retrieved Context, Avatar Traits.
+- [x] `computedTraits` is the preferred Avatar identity input when present.
+- [x] Avatars without computed traits continue to use the existing authored persona as a compatibility fallback.
+- [x] Conversation state, world context, retrieved context, and avatar traits remain semantically separate.
+- [x] Context selection remains deterministic, bounded, and inspectable.
+- [x] Existing Avatar behavior and non-trait runtime inputs are preserved unless the EPIC explicitly changes their order.
+- [x] Tests cover ordering, fallback, trait consumption, token-budget behavior, and no-sensitive-content observability.
+- [x] `docs/PROJECT_STATUS.md` and all impacted architecture, contract, data-model, epic, and testing documentation are accurate.

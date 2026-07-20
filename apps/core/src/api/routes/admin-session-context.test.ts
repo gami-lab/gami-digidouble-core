@@ -173,20 +173,35 @@ function assertContextBody(body: ApiResponse<AdminSessionContextResponse>): void
 function assertCoreContextShape(body: ApiResponse<AdminSessionContextResponse>): void {
   expect(body.error).toBeNull()
   expect(body.data?.sessionId).toBe('session_1')
-  expect(body.data?.avatarPrompt).toBe('You are Guide.')
-  expect(body.data?.worldContext).toBe('World')
-  expect(body.data?.worldObjectives).toEqual(['Obj'])
-  expect(body.data?.gmInstruction).toBe('Follow up with concrete examples.')
-  expect(body.data?.workingMemory).toEqual({
+  expect(body.data?.avatarContext.sections.directorNotes).toBe('Follow up with concrete examples.')
+  expect(body.data?.avatarContext.sections.responseRules.items).toEqual([])
+  expect(body.data?.avatarContext.sections.conversationState.workingMemory.session).toEqual({
     summary: 'Working summary',
-    unresolvedThreads: ['thread_1'],
     updatedAt: '2026-05-01T10:00:30.000Z',
   })
-  expect(body.data?.currentExchanges).toEqual([{ user: 'hello', avatar: 'hi' }])
+  expect(body.data?.avatarContext.sections.conversationState.recentExchanges).toEqual([
+    { user: 'hello', avatar: 'hi' },
+  ])
+  expect(body.data?.avatarContext.sections.worldContext).toEqual({
+    scenarioId: 'scenario_1',
+    name: 'Scenario',
+    description: 'World',
+    goals: ['Obj'],
+  })
+  expect(body.data?.gmContext.sections.conversationState.recentMessages).toEqual([
+    { role: 'user', content: 'hello' },
+    { role: 'avatar', content: 'hi' },
+  ])
 }
 
 function assertContextTraceBounds(body: ApiResponse<AdminSessionContextResponse>): void {
-  expect(body.data?.currentExchanges.length).toBeLessThanOrEqual(1)
+  expect(body.data?.contextTrace.policy.protectedSegments).toEqual([
+    'directorNotes',
+    'responseRules',
+    'worldContext',
+  ])
+  expect(body.data?.contextTrace.selectedInputs.shortTermExchangeCount).toBeLessThanOrEqual(1)
+  expect(body.data?.contextTrace.selectedInputs.responseRuleCount).toBe(0)
 }
 
 function assertContextResponseRedaction(rawBody: string): void {

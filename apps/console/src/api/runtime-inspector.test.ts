@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  type AdminSessionContextResponse,
   getSessionContext,
   getRuntimeState,
   getSessionMemory,
@@ -50,9 +51,11 @@ describe('loadRuntimeInspectorViewModel', () => {
     expect(result.memory.layers.shortTerm.exchangeCount).toBe(2)
     expect(result.metrics.summary.totalTurns).toBe(1)
     expect(result.metrics.turns).toHaveLength(1)
-    expect(result.context.worldObjectives).toEqual(['Obj1'])
+    expect(result.context.avatarContext.sections.worldContext.goals).toEqual(['Obj1'])
     expect(result.knowledge.sources).toHaveLength(1)
-    expect(result.context.currentExchanges).toEqual([{ user: 'u1', avatar: 'a1' }])
+    expect(result.context.avatarContext.sections.conversationState.recentExchanges).toEqual([
+      { user: 'u1', avatar: 'a1' },
+    ])
     expect(result.persona?.name).toBe('Maya')
     expect(result.effectiveModels.avatar.provider).toBe('openai')
   })
@@ -98,19 +101,32 @@ function arrangeSession1(): void {
     isProcessing: false,
     updatedAt: '2026-05-01T10:01:00.000Z',
   })
-  vi.mocked(getSessionContext).mockResolvedValue({
-    sessionId: 'session_1',
-    avatarPrompt: 'You are a guide.',
-    worldContext: 'Scenario 1 world',
-    worldObjectives: ['Obj1'],
-    gmInstruction: null,
-    workingMemory: {
-      summary: 'working summary',
-      unresolvedThreads: ['thread_1'],
-      updatedAt: '2026-05-01T10:00:30.000Z',
-    },
-    currentExchanges: [{ user: 'u1', avatar: 'a1' }],
-  })
+  vi.mocked(getSessionContext).mockResolvedValue(
+    makeContextResponse('session_1', {
+      avatarContext: {
+        sections: {
+          directorNotes: null,
+          responseRules: { items: [] },
+          conversationState: {
+            recentExchanges: [{ user: 'u1', avatar: 'a1' }],
+            workingMemory: {
+              session: {
+                summary: 'working summary',
+                updatedAt: '2026-05-01T10:00:30.000Z',
+              },
+            },
+            longTermFacts: [],
+          },
+          userPersona: null,
+          worldContext: {
+            scenarioId: 'scenario_1',
+            description: 'Scenario 1 world',
+            goals: ['Obj1'],
+          },
+        },
+      },
+    }),
+  )
   vi.mocked(getSessionMemory).mockResolvedValue({
     session: {
       sessionId: 'session_1',
@@ -217,15 +233,23 @@ function arrangeSession2(): void {
     isProcessing: true,
     updatedAt: '2026-05-01T10:01:00.000Z',
   })
-  vi.mocked(getSessionContext).mockResolvedValue({
-    sessionId: 'session_2',
-    avatarPrompt: null,
-    worldContext: null,
-    worldObjectives: [],
-    gmInstruction: 'n',
-    workingMemory: null,
-    currentExchanges: [],
-  })
+  vi.mocked(getSessionContext).mockResolvedValue(
+    makeContextResponse('session_2', {
+      avatarContext: {
+        sections: {
+          directorNotes: 'n',
+          responseRules: { items: [] },
+          conversationState: {
+            recentExchanges: [],
+            workingMemory: {},
+            longTermFacts: [],
+          },
+          userPersona: null,
+          worldContext: { scenarioId: 'scenario_1' },
+        },
+      },
+    }),
+  )
   vi.mocked(getSessionMemory).mockResolvedValue({
     session: {
       sessionId: 'session_2',
@@ -258,4 +282,89 @@ function arrangeSession2(): void {
   vi.mocked(getUserPersona).mockResolvedValue({ persona: null })
   vi.mocked(listSessionEvents).mockResolvedValue({ events: [] })
   vi.mocked(listKnowledgeSources).mockResolvedValue({ sources: [] })
+}
+
+function makeContextResponse(
+  sessionId: string,
+  overrides: Partial<AdminSessionContextResponse> = {},
+): AdminSessionContextResponse {
+  return {
+    sessionId,
+    avatarContext: {
+      sections: {
+        directorNotes: null,
+        responseRules: { items: [] },
+        conversationState: {
+          recentExchanges: [],
+          workingMemory: {},
+          longTermFacts: [],
+        },
+        userPersona: null,
+        worldContext: { scenarioId: 'scenario_1' },
+      },
+      ...(overrides.avatarContext ?? {}),
+    },
+    gmContext: {
+      currentState: {
+        progression: '',
+        topicsCovered: [],
+        interactionCount: 0,
+      },
+      availableAvatars: [],
+      sections: {
+        conversationState: {
+          recentMessages: [],
+          memory: {},
+        },
+        userPersona: null,
+        worldContext: { scenarioId: 'scenario_1' },
+      },
+      ...(overrides.gmContext ?? {}),
+    },
+    contextTrace: {
+      deterministic: true,
+      policy: {
+        tokenBudget: { avatarMaxTokens: 4096, gmMaxTokens: 4096 },
+        sectionPrecedence: [
+          'directorNotes',
+          'responseRules',
+          'conversationState',
+          'userPersona',
+          'worldContext',
+          'retrievedContext',
+          'avatarTraits',
+        ],
+        protectedSegments: ['directorNotes', 'responseRules', 'worldContext'],
+        precedence: [
+          'directorNotes',
+          'responseRules',
+          'conversationStateWorkingMemory',
+          'conversationStateLongTermFacts',
+          'conversationStateRecentExchanges',
+          'conversationStateRecentMessages',
+          'userPersona',
+          'worldContext',
+          'retrievedContextMemory',
+          'retrievedContextWorld',
+          'retrievedContextMedia',
+          'avatarTraits',
+        ],
+      },
+      selectedInputs: {
+        hasActiveAvatar: true,
+        recentMessageCount: 0,
+        shortTermExchangeCount: 0,
+        hasWorkingMemory: false,
+        longTermFactCount: 0,
+        retrievalCounts: { memory: 0, world: 0, media: 0 },
+        hasUserPersona: false,
+        hasGmDirective: false,
+        responseRuleCount: 0,
+        hasAvatarTraits: false,
+      },
+      rationale: { avatarProjection: [], gmProjection: [] },
+      selection: { kept: [], trimmed: [] },
+    },
+    ...overrides,
+  }
 }

@@ -149,14 +149,16 @@ function assertStackContextCoreShape(
 ): void {
   expect(body.error).toBeNull()
   expect(body.data?.sessionId).toBe(sessionId)
-  expect(typeof body.data?.avatarPrompt === 'string' || body.data?.avatarPrompt === null).toBe(true)
-  expect(typeof body.data?.worldContext === 'string' || body.data?.worldContext === null).toBe(true)
-  expect(Array.isArray(body.data?.worldObjectives)).toBe(true)
-  expect(Array.isArray(body.data?.currentExchanges)).toBe(true)
+  expect(body.data?.avatarContext.sections.worldContext.scenarioId).toBeDefined()
+  expect(Array.isArray(body.data?.avatarContext.sections.responseRules.items)).toBe(true)
+  expect(Array.isArray(body.data?.gmContext.sections.conversationState.recentMessages)).toBe(true)
+  expect(body.data?.contextTrace.deterministic).toBe(true)
 }
 
 function assertStackContextTraceBounds(body: ApiResponse<AdminSessionContextResponse>): void {
-  expect((body.data?.currentExchanges.length ?? 0) >= 1).toBe(true)
+  expect(
+    (body.data?.avatarContext.sections.conversationState.recentExchanges.length ?? 0) >= 1,
+  ).toBe(true)
 }
 
 function assertStackContextRedaction(rawBody: string): void {

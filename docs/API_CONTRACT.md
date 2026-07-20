@@ -947,8 +947,11 @@ GET /v1/admin/sessions/{sessionId}/context
 Response notes:
 
 - Returns `ApiResponse<AdminSessionContextResponse>`
-- Returns the stable prompt inputs only: `avatarPrompt`, `worldContext`, `worldObjectives`, `gmInstruction`, `workingMemory`, and `currentExchanges`
-- Does not return retrieval output; turn-specific RAG usage must be inspected from session events
+- Returns the canonical sectioned runtime snapshot: `avatarContext`, `gmContext`, and bounded `contextTrace`
+- `avatarContext` mirrors the runtime section order used for turn assembly: Director Notes, Response Rules, Conversation State, User Persona, World Context, optional Retrieved Context, and optional Avatar Traits
+- `gmContext` exposes the GM projection separately from the Avatar projection
+- `contextTrace` exposes bounded policy, selected-input, and kept/trimmed segment metadata without provider secrets or raw credential material
+- Session-context retrieval is a bounded current snapshot, not a replay of any specific past turn; per-turn retrieved provenance remains available through session events
 
 ---
 

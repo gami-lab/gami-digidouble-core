@@ -18,33 +18,46 @@ type AvatarTypedSections = NonNullable<
 export function toRecordedAvatarContextSnapshot(
   snapshot: AvatarContextSnapshot,
 ): RecordedAvatarContextSnapshot {
-  const knowledge = toRecordedAvatarKnowledge(snapshot.sections.retrievedContext)
+  const retrievedContext = toRecordedAvatarKnowledge(snapshot.sections.retrievedContext)
+  const avatarTraits = toRecordedAvatarTraitsSummary(snapshot.sections.avatarTraits)
 
   return {
     ...(snapshot.avatarId !== undefined ? { avatarId: snapshot.avatarId } : {}),
-    recentExchanges: snapshot.sections.conversationState.recentExchanges,
-    workingMemory: snapshot.sections.conversationState.workingMemory,
-    longTermFacts: snapshot.sections.conversationState.longTermFacts,
-    ...(knowledge !== undefined ? { knowledge } : {}),
-    userPersona: snapshot.sections.userPersona,
-    gmNotes: snapshot.sections.directorNotes,
-    scenario: snapshot.sections.worldContext,
+    sections: {
+      directorNotes: snapshot.sections.directorNotes,
+      responseRules: {
+        count: snapshot.sections.responseRules.items.length,
+      },
+      conversationState: {
+        recentExchanges: snapshot.sections.conversationState.recentExchanges,
+        workingMemory: snapshot.sections.conversationState.workingMemory,
+        longTermFacts: snapshot.sections.conversationState.longTermFacts,
+      },
+      ...(retrievedContext !== undefined ? { retrievedContext } : {}),
+      userPersona: snapshot.sections.userPersona,
+      worldContext: snapshot.sections.worldContext,
+      ...(avatarTraits !== undefined ? { avatarTraits } : {}),
+    },
   }
 }
 
 export function toRecordedGmContextSnapshot(
   snapshot: GmContextSnapshot,
 ): RecordedGmContextSnapshot {
-  const knowledge = toRecordedTypedKnowledgeSections(snapshot.sections.retrievedContext)
+  const retrievedContext = toRecordedTypedKnowledgeSections(snapshot.sections.retrievedContext)
 
   return {
-    recentMessages: snapshot.sections.conversationState.recentMessages,
-    memory: snapshot.sections.conversationState.memory,
-    ...(knowledge !== undefined ? { knowledge } : {}),
     currentState: snapshot.currentState,
     availableAvatars: snapshot.availableAvatars,
-    userPersona: snapshot.sections.userPersona,
-    scenario: snapshot.sections.worldContext,
+    sections: {
+      conversationState: {
+        recentMessages: snapshot.sections.conversationState.recentMessages,
+        memory: snapshot.sections.conversationState.memory,
+      },
+      ...(retrievedContext !== undefined ? { retrievedContext } : {}),
+      userPersona: snapshot.sections.userPersona,
+      worldContext: snapshot.sections.worldContext,
+    },
   }
 }
 
@@ -112,4 +125,21 @@ function hasRecordedKnowledge(typedSections: RecordedTypedKnowledgeSections): bo
     typedSections.world.length > 0 ||
     typedSections.media.length > 0
   )
+}
+
+function toRecordedAvatarTraitsSummary(
+  traits: AvatarContextSnapshot['sections']['avatarTraits'],
+): RecordedAvatarContextSnapshot['sections']['avatarTraits'] | undefined {
+  if (traits === undefined) return undefined
+  return {
+    sectionCounts: {
+      identity: traits.identity.length,
+      personality: traits.personality.length,
+      speakingStyle: traits.speakingStyle.length,
+      background: traits.background.length,
+      timeline: traits.timeline.length,
+      currentSituation: traits.currentSituation.length,
+      behaviouralRules: traits.behaviouralRules.length,
+    },
+  }
 }

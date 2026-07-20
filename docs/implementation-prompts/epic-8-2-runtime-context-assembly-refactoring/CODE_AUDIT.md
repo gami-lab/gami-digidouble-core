@@ -205,3 +205,48 @@ Minimal steps needed to reach A:
 - Close with debt
 
 The core runtime refactor is solid and the build is healthy. I would close the EPIC for delivery of the main turn path, but not treat it as the final inspectability/maintainability end state until the operator-facing context contract is brought into line with the runtime model.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Replaced the legacy admin session-context contract with the canonical sectioned runtime snapshot: `avatarContext`, `gmContext`, and bounded `contextTrace`.
+- Refactored `GetSessionContextUseCase` to assemble the operator snapshot through `ContextEngine`, including current conversation state, response rules, computed-traits preference, user persona, and bounded trace data.
+- Aligned recorded runtime-inspection snapshots with the same section vocabulary and added bounded Response Rules / Avatar Traits diagnostics on the event path without leaking raw trait or retrieval content.
+- Updated the console runtime inspector to render the canonical runtime sections and trace metadata instead of the old stable-input fields.
+- Strengthened HTTP-path coverage so the normal conversation route now proves all seven runtime sections with seeded memory and typed retrieval.
+- Synced `README.md`, `docs/API_CONTRACT.md`, and `docs/PROJECT_STATUS.md` to the shipped contract.
+
+### Findings Resolved
+
+- Resolved: Admin session-context contract is still on the pre-EPIC runtime model.
+- Resolved: Recorded avatar event snapshots omit two runtime sections that materially affect replies.
+- Resolved: Full seven-section behavior is not proven at the route boundary.
+- Resolved: Documentation/status claims overstate current inspection capability.
+- Resolved: Runtime-inspection contracts now have two competing vocabularies.
+
+### Findings Deferred
+
+- None.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS (`pnpm test:coverage`; `@gami/core` totals: 86.45% statements, 84.4% branches, 96.07% functions, 86.45% lines)
+
+### Final Feature Confidence
+
+- Canonical admin session-context inspection now proves sectioned Avatar and GM runtime snapshots plus bounded `contextTrace`.
+- Normal HTTP message flow now proves all seven Avatar runtime sections with real memory and typed retrieval wiring.
+- Recorded turn diagnostics now expose bounded Response Rules / Avatar Traits summaries and typed retrieval provenance without leaking sensitive content.
+- `computedTraits` preference and authored fallback remain proven on both unit and HTTP paths.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- Stack E2E coverage outside the mandatory gate list (`pnpm test:stack-e2e`, `pnpm test:integration-e2e`) was not rerun during this remediation pass.

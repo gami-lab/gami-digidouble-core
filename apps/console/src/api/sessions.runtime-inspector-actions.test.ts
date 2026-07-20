@@ -83,15 +83,7 @@ describe('sessions runtime inspector action API wrappers', () => {
   })
 
   it('calls context and persona endpoints with canonical shapes', async () => {
-    const contextPayload: AdminSessionContextResponse = {
-      sessionId: 'session_1',
-      avatarPrompt: 'You are a guide.',
-      worldContext: 'Scenario world',
-      worldObjectives: ['Obj1'],
-      gmInstruction: null,
-      workingMemory: null,
-      currentExchanges: [],
-    }
+    const contextPayload: AdminSessionContextResponse = makeContextPayload()
     const personaPayload: UpsertUserPersonaResponse = {
       user: {
         userId: 'user_1',
@@ -117,7 +109,90 @@ describe('sessions runtime inspector action API wrappers', () => {
 
     expect(coreRequest).toHaveBeenNthCalledWith(1, 'GET', '/v1/admin/sessions/session_1/context')
     expect(coreRequest).toHaveBeenNthCalledWith(2, 'PUT', '/v1/users/user_1/persona', personaInput)
-    expect(context.avatarPrompt).toBe('You are a guide.')
+    expect(context.avatarContext.sections.worldContext.goals).toEqual(['Obj1'])
     expect(updatedPersona.user.persona?.name).toBe('Maya')
   })
 })
+
+function makeContextPayload(): AdminSessionContextResponse {
+  return {
+    sessionId: 'session_1',
+    avatarContext: {
+      sections: {
+        directorNotes: null,
+        responseRules: { items: [] },
+        conversationState: {
+          recentExchanges: [],
+          workingMemory: {},
+          longTermFacts: [],
+        },
+        userPersona: null,
+        worldContext: {
+          scenarioId: 'scenario_1',
+          description: 'Scenario world',
+          goals: ['Obj1'],
+        },
+      },
+    },
+    gmContext: {
+      currentState: {
+        progression: '',
+        topicsCovered: [],
+        interactionCount: 0,
+      },
+      availableAvatars: [],
+      sections: {
+        conversationState: {
+          recentMessages: [],
+          memory: {},
+        },
+        userPersona: null,
+        worldContext: { scenarioId: 'scenario_1' },
+      },
+    },
+    contextTrace: {
+      deterministic: true,
+      policy: {
+        tokenBudget: { avatarMaxTokens: 4096, gmMaxTokens: 4096 },
+        sectionPrecedence: [
+          'directorNotes',
+          'responseRules',
+          'conversationState',
+          'userPersona',
+          'worldContext',
+          'retrievedContext',
+          'avatarTraits',
+        ],
+        protectedSegments: ['directorNotes', 'responseRules', 'worldContext'],
+        precedence: [
+          'directorNotes',
+          'responseRules',
+          'conversationStateWorkingMemory',
+          'conversationStateLongTermFacts',
+          'conversationStateRecentExchanges',
+          'conversationStateRecentMessages',
+          'userPersona',
+          'worldContext',
+          'retrievedContextMemory',
+          'retrievedContextWorld',
+          'retrievedContextMedia',
+          'avatarTraits',
+        ],
+      },
+      selectedInputs: {
+        hasActiveAvatar: true,
+        recentMessageCount: 0,
+        shortTermExchangeCount: 0,
+        hasWorkingMemory: false,
+        longTermFactCount: 0,
+        retrievalCounts: { memory: 0, world: 0, media: 0 },
+        hasUserPersona: false,
+        hasGmDirective: false,
+        responseRuleCount: 0,
+        hasAvatarTraits: false,
+      },
+      rationale: { avatarProjection: [], gmProjection: [] },
+      selection: { kept: [], trimmed: [] },
+    },
+  }
+}

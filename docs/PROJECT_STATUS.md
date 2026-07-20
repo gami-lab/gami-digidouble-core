@@ -344,8 +344,8 @@ Completed on: 2026-05-11
 - send-message avatar prompt assembly now routes through Context Engine output mapping
 - run-game-master context input now consumes Context Engine gm projection (or preassembled context from turn path)
 - avatar and gm context paths share one assembly contract while preserving async non-blocking GM execution
-- admin session-context inspection now exposes bounded explainable `contextTrace` metadata (kept/trimmed/policy)
-- context trace mapping is canonicalized through shared DTO ownership with explicit boundary redaction/allowlisting
+- admin session-context inspection now exposes the canonical sectioned runtime snapshot (`avatarContext`, `gmContext`) plus bounded explainable `contextTrace` metadata (kept/trimmed/policy)
+- runtime-inspection DTO mapping is canonicalized through shared ownership with explicit boundary redaction/allowlisting, and recorded Avatar snapshots now surface bounded Response Rules and Avatar Traits summaries
 - regression hardening completed for precedence, deterministic budget trimming behavior, layer exclusion deltas, projection consistency, and trace structure
 - gm recent-messages path simplified to keep chronological exchanges only (working memory remains in context.memory)
 - shared runtime inspector trace contracts now use bounded segment-id typing to reduce drift

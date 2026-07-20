@@ -176,33 +176,28 @@ function readOptionalAvatarContextSnapshot(
 ): RecordedAvatarContextSnapshot | undefined {
   if (!isRecord(value)) return undefined
 
-  const knowledge = isRecord(value['knowledge'])
-    ? readAvatarKnowledge(value['knowledge'])
-    : undefined
+  if (isRecord(value['sections'])) {
+    return {
+      ...(typeof value['avatarId'] === 'string' ? { avatarId: value['avatarId'] } : {}),
+      sections: readAvatarSections(value['sections']),
+    }
+  }
+
   return {
     ...(typeof value['avatarId'] === 'string' ? { avatarId: value['avatarId'] } : {}),
-    recentExchanges: readRecentExchanges(value['recentExchanges']),
-    workingMemory: readAvatarWorkingMemory(value['workingMemory']),
-    longTermFacts: readLongTermFacts(value['longTermFacts']),
-    ...(knowledge !== undefined ? { knowledge } : {}),
-    userPersona: readUserPersona(value['userPersona']),
-    gmNotes: readStringOrNull(value['gmNotes']),
-    scenario: readScenarioSnapshot(value['scenario']),
+    sections: readLegacyAvatarSections(value),
   }
 }
 
 function readOptionalGmContextSnapshot(value: unknown): RecordedGmContextSnapshot | undefined {
   if (!isRecord(value)) return undefined
 
-  const knowledge = isRecord(value['knowledge']) ? readGmKnowledge(value['knowledge']) : undefined
   return {
-    recentMessages: readRecentMessages(value['recentMessages']),
-    memory: readGmMemory(value['memory']),
-    ...(knowledge !== undefined ? { knowledge } : {}),
     currentState: readFullStateSummary(value['currentState']),
     availableAvatars: readAvailableAvatars(value['availableAvatars']),
-    userPersona: readUserPersona(value['userPersona']),
-    scenario: readScenarioSnapshot(value['scenario']),
+    sections: isRecord(value['sections'])
+      ? readGmSections(value['sections'])
+      : readLegacyGmSections(value),
   }
 }
 
@@ -232,17 +227,17 @@ function readOptionalContextSelection(
                 memory: Math.max(
                   0,
                   readNumber(retrievalCountsValue['memory']) -
-                    (avatarContext?.knowledge?.memory.length ?? 0),
+                    (avatarContext?.sections.retrievedContext?.memory.length ?? 0),
                 ),
                 world: Math.max(
                   0,
                   readNumber(retrievalCountsValue['world']) -
-                    (avatarContext?.knowledge?.world.length ?? 0),
+                    (avatarContext?.sections.retrievedContext?.world.length ?? 0),
                 ),
                 media: Math.max(
                   0,
                   readNumber(retrievalCountsValue['media']) -
-                    (avatarContext?.knowledge?.media.length ?? 0),
+                    (avatarContext?.sections.retrievedContext?.media.length ?? 0),
                 ),
               },
               ...(visibility !== undefined
@@ -338,9 +333,9 @@ function readIncludedRetrievalCounts(avatarContext: RecordedAvatarContextSnapsho
   media: number
 } {
   return {
-    memory: avatarContext?.knowledge?.memory.length ?? 0,
-    world: avatarContext?.knowledge?.world.length ?? 0,
-    media: avatarContext?.knowledge?.media.length ?? 0,
+    memory: avatarContext?.sections.retrievedContext?.memory.length ?? 0,
+    world: avatarContext?.sections.retrievedContext?.world.length ?? 0,
+    media: avatarContext?.sections.retrievedContext?.media.length ?? 0,
   }
 }
 
@@ -415,9 +410,93 @@ function readOptionalUnlockEvaluations(value: unknown): GmUnlockEvaluation[] | u
   return unlockEvaluations.length > 0 ? unlockEvaluations : undefined
 }
 
-function readRecentExchanges(value: unknown): RecordedAvatarContextSnapshot['recentExchanges'] {
-  if (!Array.isArray(value)) return []
-  return value
+function readAvatarSections(
+  value: Record<string, unknown>,
+): RecordedAvatarContextSnapshot['sections'] {
+  const retrievedContext = isRecord(value['retrievedContext'])
+    ? readAvatarKnowledge(value['retrievedContext'])
+    : undefined
+  const avatarTraits = isRecord(value['avatarTraits'])
+    ? readRecordedAvatarTraits(value['avatarTraits'])
+    : undefined
+  return {
+    directorNotes: readStringOrNull(value['directorNotes']),
+    responseRules: readRecordedResponseRules(value['responseRules']),
+    conversationState: {
+      recentExchanges: readRecentExchanges(value['conversationState']),
+      workingMemory: readAvatarWorkingMemory(value['conversationState']),
+      longTermFacts: readLongTermFacts(value['conversationState']),
+    },
+    ...(retrievedContext !== undefined ? { retrievedContext } : {}),
+    userPersona: readUserPersona(value['userPersona']),
+    worldContext: readScenarioSnapshot(value['worldContext']),
+    ...(avatarTraits !== undefined ? { avatarTraits } : {}),
+  }
+}
+
+function readLegacyAvatarSections(
+  value: Record<string, unknown>,
+): RecordedAvatarContextSnapshot['sections'] {
+  const retrievedContext = isRecord(value['knowledge'])
+    ? readAvatarKnowledge(value['knowledge'])
+    : undefined
+  const avatarTraits = isRecord(value['avatarTraits'])
+    ? readRecordedAvatarTraits(value['avatarTraits'])
+    : undefined
+  return {
+    directorNotes: readStringOrNull(value['gmNotes']),
+    responseRules: { count: readNumber(value['responseRuleCount']) },
+    conversationState: {
+      recentExchanges: readRecentExchanges(value),
+      workingMemory: readAvatarWorkingMemory(value),
+      longTermFacts: readLongTermFacts(value),
+    },
+    ...(retrievedContext !== undefined ? { retrievedContext } : {}),
+    userPersona: readUserPersona(value['userPersona']),
+    worldContext: readScenarioSnapshot(value['scenario']),
+    ...(avatarTraits !== undefined ? { avatarTraits } : {}),
+  }
+}
+
+function readGmSections(value: Record<string, unknown>): RecordedGmContextSnapshot['sections'] {
+  const retrievedContext = isRecord(value['retrievedContext'])
+    ? readGmKnowledge(value['retrievedContext'])
+    : undefined
+  return {
+    conversationState: {
+      recentMessages: readRecentMessages(value['conversationState']),
+      memory: readGmMemory(value['conversationState']),
+    },
+    ...(retrievedContext !== undefined ? { retrievedContext } : {}),
+    userPersona: readUserPersona(value['userPersona']),
+    worldContext: readScenarioSnapshot(value['worldContext']),
+  }
+}
+
+function readLegacyGmSections(
+  value: Record<string, unknown>,
+): RecordedGmContextSnapshot['sections'] {
+  const retrievedContext = isRecord(value['knowledge'])
+    ? readGmKnowledge(value['knowledge'])
+    : undefined
+  return {
+    conversationState: {
+      recentMessages: readRecentMessages(value),
+      memory: readGmMemory(value),
+    },
+    ...(retrievedContext !== undefined ? { retrievedContext } : {}),
+    userPersona: readUserPersona(value['userPersona']),
+    worldContext: readScenarioSnapshot(value['scenario']),
+  }
+}
+
+function readRecentExchanges(
+  value: unknown,
+): RecordedAvatarContextSnapshot['sections']['conversationState']['recentExchanges'] {
+  const record = isRecord(value) ? value : {}
+  const rawValue = Array.isArray(record['recentExchanges']) ? record['recentExchanges'] : value
+  if (!Array.isArray(rawValue)) return []
+  return rawValue
     .map((entry) => {
       if (!isRecord(entry)) return null
       const user = readOptionalString(entry['user'])
@@ -426,21 +505,33 @@ function readRecentExchanges(value: unknown): RecordedAvatarContextSnapshot['rec
       return { user, avatar }
     })
     .filter(
-      (entry): entry is RecordedAvatarContextSnapshot['recentExchanges'][number] => entry !== null,
+      (
+        entry,
+      ): entry is RecordedAvatarContextSnapshot['sections']['conversationState']['recentExchanges'][number] =>
+        entry !== null,
     )
 }
 
-function readAvatarWorkingMemory(value: unknown): RecordedAvatarContextSnapshot['workingMemory'] {
+function readAvatarWorkingMemory(
+  value: unknown,
+): RecordedAvatarContextSnapshot['sections']['conversationState']['workingMemory'] {
   const record = isRecord(value) ? value : {}
+  const workingMemory = isRecord(record['workingMemory']) ? record['workingMemory'] : record
   return {
-    ...(isRecord(record['session']) ? { session: readWorkingSession(record['session']) } : {}),
-    ...(isRecord(record['avatar']) ? { avatar: readWorkingAvatar(record['avatar']) } : {}),
+    ...(isRecord(workingMemory['session'])
+      ? { session: readWorkingSession(workingMemory['session']) }
+      : {}),
+    ...(isRecord(workingMemory['avatar'])
+      ? { avatar: readWorkingAvatar(workingMemory['avatar']) }
+      : {}),
   }
 }
 
 function readWorkingSession(
   value: Record<string, unknown>,
-): NonNullable<RecordedAvatarContextSnapshot['workingMemory']['session']> {
+): NonNullable<
+  RecordedAvatarContextSnapshot['sections']['conversationState']['workingMemory']['session']
+> {
   return {
     summary: readString(value['summary']),
     updatedAt: readString(value['updatedAt']),
@@ -449,7 +540,9 @@ function readWorkingSession(
 
 function readWorkingAvatar(
   value: Record<string, unknown>,
-): NonNullable<RecordedAvatarContextSnapshot['workingMemory']['avatar']> {
+): NonNullable<
+  RecordedAvatarContextSnapshot['sections']['conversationState']['workingMemory']['avatar']
+> {
   return {
     avatarId: readString(value['avatarId']),
     summary: readString(value['summary']),
@@ -457,9 +550,13 @@ function readWorkingAvatar(
   }
 }
 
-function readLongTermFacts(value: unknown): RecordedAvatarContextSnapshot['longTermFacts'] {
-  if (!Array.isArray(value)) return []
-  return value
+function readLongTermFacts(
+  value: unknown,
+): RecordedAvatarContextSnapshot['sections']['conversationState']['longTermFacts'] {
+  const record = isRecord(value) ? value : {}
+  const rawValue = Array.isArray(record['longTermFacts']) ? record['longTermFacts'] : value
+  if (!Array.isArray(rawValue)) return []
+  return rawValue
     .map((entry) => {
       if (!isRecord(entry)) return null
       const category = readOptionalString(entry['category'])
@@ -471,13 +568,16 @@ function readLongTermFacts(value: unknown): RecordedAvatarContextSnapshot['longT
       return { category, key, value: factValue }
     })
     .filter(
-      (entry): entry is RecordedAvatarContextSnapshot['longTermFacts'][number] => entry !== null,
+      (
+        entry,
+      ): entry is RecordedAvatarContextSnapshot['sections']['conversationState']['longTermFacts'][number] =>
+        entry !== null,
     )
 }
 
 function readAvatarKnowledge(
   value: Record<string, unknown>,
-): RecordedAvatarContextSnapshot['knowledge'] | undefined {
+): RecordedAvatarContextSnapshot['sections']['retrievedContext'] | undefined {
   const typedSectionsValue = isRecord(value['typedSections']) ? value['typedSections'] : undefined
   const typedSections =
     typedSectionsValue !== undefined
@@ -491,34 +591,41 @@ function readAvatarKnowledge(
   return typedSections
 }
 
-function readGmMemory(value: unknown): RecordedGmContextSnapshot['memory'] {
+function readGmMemory(
+  value: unknown,
+): RecordedGmContextSnapshot['sections']['conversationState']['memory'] {
   const record = isRecord(value) ? value : {}
-  const workingSummary = readOptionalString(record['workingSummary'])
+  const memory = isRecord(record['memory']) ? record['memory'] : record
+  const workingSummary = readOptionalString(memory['workingSummary'])
   return {
-    ...(isRecord(record['shortTerm'])
+    ...(isRecord(memory['shortTerm'])
       ? {
           shortTerm: {
-            recentExchanges: readRecentExchanges(record['shortTerm']['recentExchanges']),
+            recentExchanges: readRecentExchanges(memory['shortTerm']),
           },
         }
       : {}),
     ...(workingSummary !== undefined ? { workingSummary } : {}),
-    ...(Array.isArray(record['longTermFacts'])
-      ? { longTermFacts: readLongTermFacts(record['longTermFacts']) }
+    ...(Array.isArray(memory['longTermFacts'])
+      ? { longTermFacts: readLongTermFacts(memory['longTermFacts']) }
       : {}),
   }
 }
 
 function readGmKnowledge(
   value: Record<string, unknown>,
-): RecordedGmContextSnapshot['knowledge'] | undefined {
+): RecordedGmContextSnapshot['sections']['retrievedContext'] | undefined {
   const typedSections = readRecordedTypedSections(value)
   return hasRecordedKnowledge(typedSections) ? typedSections : undefined
 }
 
-function readRecentMessages(value: unknown): RecordedGmContextSnapshot['recentMessages'] {
-  if (!Array.isArray(value)) return []
-  return value
+function readRecentMessages(
+  value: unknown,
+): RecordedGmContextSnapshot['sections']['conversationState']['recentMessages'] {
+  const record = isRecord(value) ? value : {}
+  const rawValue = Array.isArray(record['recentMessages']) ? record['recentMessages'] : value
+  if (!Array.isArray(rawValue)) return []
+  return rawValue
     .map((entry) => {
       if (!isRecord(entry)) return null
       const role = entry['role']
@@ -528,7 +635,12 @@ function readRecentMessages(value: unknown): RecordedGmContextSnapshot['recentMe
       }
       return { role, content }
     })
-    .filter((entry): entry is RecordedGmContextSnapshot['recentMessages'][number] => entry !== null)
+    .filter(
+      (
+        entry,
+      ): entry is RecordedGmContextSnapshot['sections']['conversationState']['recentMessages'][number] =>
+        entry !== null,
+    )
 }
 
 function readAvailableAvatars(value: unknown): RecordedGmContextSnapshot['availableAvatars'] {
@@ -567,7 +679,9 @@ function readUserPersona(value: unknown): UserPersona | null {
   return Object.keys(persona).length > 0 ? persona : null
 }
 
-function readScenarioSnapshot(value: unknown): RecordedAvatarContextSnapshot['scenario'] {
+function readScenarioSnapshot(
+  value: unknown,
+): RecordedAvatarContextSnapshot['sections']['worldContext'] {
   const record = isRecord(value) ? value : {}
   const name = readOptionalString(record['name'])
   const description = readOptionalString(record['description'])
@@ -576,6 +690,32 @@ function readScenarioSnapshot(value: unknown): RecordedAvatarContextSnapshot['sc
     ...(name !== undefined ? { name } : {}),
     ...(description !== undefined ? { description } : {}),
     ...(Array.isArray(record['goals']) ? { goals: readStringArray(record['goals']) } : {}),
+  }
+}
+
+function readRecordedResponseRules(
+  value: unknown,
+): RecordedAvatarContextSnapshot['sections']['responseRules'] {
+  const record = isRecord(value) ? value : {}
+  return {
+    count: readNumber(record['count'] ?? value),
+  }
+}
+
+function readRecordedAvatarTraits(
+  value: Record<string, unknown>,
+): NonNullable<RecordedAvatarContextSnapshot['sections']['avatarTraits']> {
+  const sectionCounts = isRecord(value['sectionCounts']) ? value['sectionCounts'] : value
+  return {
+    sectionCounts: {
+      identity: readNumber(sectionCounts['identity']),
+      personality: readNumber(sectionCounts['personality']),
+      speakingStyle: readNumber(sectionCounts['speakingStyle']),
+      background: readNumber(sectionCounts['background']),
+      timeline: readNumber(sectionCounts['timeline']),
+      currentSituation: readNumber(sectionCounts['currentSituation']),
+      behaviouralRules: readNumber(sectionCounts['behaviouralRules']),
+    },
   }
 }
 

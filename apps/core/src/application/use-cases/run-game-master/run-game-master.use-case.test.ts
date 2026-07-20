@@ -278,11 +278,15 @@ describe('RunGameMasterUseCase — event log', () => {
       injectedNote: 'Help the user move to concrete examples.',
     })
     expect(event?.payload['gmContext']).toMatchObject({
-      recentMessages: [],
       currentState: {
         currentAvatarId: 'avatar_1',
         progression: 'progressing',
         interactionCount: 1,
+      },
+      sections: {
+        conversationState: {
+          recentMessages: [],
+        },
       },
     })
     expect(JSON.stringify(event?.payload ?? {})).not.toContain('secret user input')

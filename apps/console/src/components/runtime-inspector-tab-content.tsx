@@ -315,12 +315,14 @@ function renderMemoryEvolution(
 // eslint-disable-next-line complexity
 function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
   const staticKnowledgeCounts = countKnowledgeSources(snapshot.knowledge.sources)
+  const avatarSections = snapshot.context.avatarContext.sections
+  const gmSections = snapshot.context.gmContext.sections
 
   return (
     <div style={{ marginTop: '12px' }}>
       <p style={{ margin: '0 0 10px', color: '#4b5563' }}>
-        This tab shows the stable context inputs shared across turns. Retrieval varies between the
-        Avatar and GM, so the exact RAG used for a turn is shown in the Events tab instead.
+        This tab shows the canonical runtime context snapshot and bounded assembly trace used by
+        the inspector. Turn-specific retrieval provenance still lives in the Events tab.
       </p>
       <strong>Static knowledge inventory</strong>
       <Row label="Scenario">{snapshot.session.scenarioId}</Row>
@@ -343,26 +345,64 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
         GM-only sources: {listGmOnlySourceNames(snapshot.knowledge.sources).join(', ') || 'none'}
       </p>
 
-      <strong style={{ display: 'block', marginTop: '12px' }}>Prompt context snapshot</strong>
-      <Row label="Avatar prompt">{snapshot.context.avatarPrompt ?? '-'}</Row>
-      <Row label="World context">{snapshot.context.worldContext ?? '-'}</Row>
-      <Row label="World objectives">
-        {snapshot.context.worldObjectives.length > 0
-          ? snapshot.context.worldObjectives.join(' | ')
+      <strong style={{ display: 'block', marginTop: '12px' }}>Avatar runtime context</strong>
+      <Row label="Director notes">{avatarSections.directorNotes ?? '-'}</Row>
+      <Row label="Response rules">
+        {avatarSections.responseRules.items.length > 0
+          ? avatarSections.responseRules.items.join(' | ')
           : '-'}
       </Row>
-      <Row label="GM instruction">{snapshot.context.gmInstruction ?? '-'}</Row>
-      <Row label="Working memory">{snapshot.context.workingMemory?.summary ?? '-'}</Row>
-      <Row label="Working updated at">{snapshot.context.workingMemory?.updatedAt ?? '-'}</Row>
-      <Row label="Unresolved threads">
-        {snapshot.context.workingMemory?.unresolvedThreads.join(' | ') || '-'}
+      <Row label="Recent exchanges">
+        {String(avatarSections.conversationState.recentExchanges.length)}
       </Row>
-      <Row label="Current exchanges">{String(snapshot.context.currentExchanges.length)}</Row>
-      {snapshot.context.currentExchanges.map((exchange, index) => (
+      {avatarSections.conversationState.recentExchanges.map((exchange, index) => (
         <p key={`context-exchange-${String(index)}`} style={{ margin: '4px 0', color: '#374151' }}>
           U: {exchange.user} / A: {exchange.avatar}
         </p>
       ))}
+      <Row label="Working memory">
+        {avatarSections.conversationState.workingMemory.avatar?.summary ??
+          avatarSections.conversationState.workingMemory.session?.summary ??
+          '-'}
+      </Row>
+      <Row label="Long-term facts">
+        {String(avatarSections.conversationState.longTermFacts.length)}
+      </Row>
+      <Row label="User persona">{avatarSections.userPersona?.name ?? '-'}</Row>
+      <Row label="World context">{avatarSections.worldContext.description ?? '-'}</Row>
+      <Row label="World goals">
+        {avatarSections.worldContext.goals?.length
+          ? avatarSections.worldContext.goals.join(' | ')
+          : '-'}
+      </Row>
+      <Row label="Avatar traits">
+        {avatarSections.avatarTraits !== undefined ? 'Prepared traits loaded' : 'Fallback only'}
+      </Row>
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>GM runtime context</strong>
+      <Row label="Current avatar">{snapshot.context.gmContext.currentState.currentAvatarId ?? '-'}</Row>
+      <Row label="Progression">{snapshot.context.gmContext.currentState.progression || '-'}</Row>
+      <Row label="Recent messages">
+        {String(gmSections.conversationState.recentMessages.length)}
+      </Row>
+      <Row label="GM working memory">{gmSections.conversationState.memory.workingSummary ?? '-'}</Row>
+      <Row label="Available avatars">
+        {snapshot.context.gmContext.availableAvatars.map((avatar) => avatar.name).join(' | ') || '-'}
+      </Row>
+
+      <strong style={{ display: 'block', marginTop: '12px' }}>Context trace</strong>
+      <Row label="Protected segments">
+        {snapshot.context.contextTrace.policy.protectedSegments.join(' | ')}
+      </Row>
+      <Row label="Response rules selected">
+        {String(snapshot.context.contextTrace.selectedInputs.responseRuleCount)}
+      </Row>
+      <Row label="Avatar traits selected">
+        {String(snapshot.context.contextTrace.selectedInputs.hasAvatarTraits)}
+      </Row>
+      <Row label="Kept / trimmed">
+        {`${String(snapshot.context.contextTrace.selection.kept.length)} / ${String(snapshot.context.contextTrace.selection.trimmed.length)}`}
+      </Row>
     </div>
   )
 }

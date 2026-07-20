@@ -212,30 +212,6 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
           topicsCovered: ['setup'],
         },
         gmContext: {
-          recentMessages: [{ role: 'user', content: 'Who left last night?' }],
-          memory: {
-            shortTerm: { recentExchanges: [{ user: 'u', avatar: 'a' }] },
-            workingSummary: 'Working summary',
-            longTermFacts: [
-              {
-                category: 'context',
-                key: 'k',
-                value: 'v',
-              },
-            ],
-          },
-          knowledge: {
-            memory: [],
-            world: [
-              {
-                sourceId: 'source_1',
-                chunkId: 'chunk_1',
-                knowledgeType: 'world',
-                visibleToAvatarIds: ['avatar_1'],
-              },
-            ],
-            media: [],
-          },
           currentState: {
             currentAvatarId: 'avatar_1',
             progression: 'intro',
@@ -243,8 +219,36 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
             interactionCount: 5,
           },
           availableAvatars: [{ avatarId: 'avatar_1', name: 'Clara', availability: 'available' }],
-          userPersona: { name: 'Maya', roleInWorld: 'inspector' },
-          scenario: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
+          sections: {
+            conversationState: {
+              recentMessages: [{ role: 'user', content: 'Who left last night?' }],
+              memory: {
+                shortTerm: { recentExchanges: [{ user: 'u', avatar: 'a' }] },
+                workingSummary: 'Working summary',
+                longTermFacts: [
+                  {
+                    category: 'context',
+                    key: 'k',
+                    value: 'v',
+                  },
+                ],
+              },
+            },
+            retrievedContext: {
+              memory: [],
+              world: [
+                {
+                  sourceId: 'source_1',
+                  chunkId: 'chunk_1',
+                  knowledgeType: 'world',
+                  visibleToAvatarIds: ['avatar_1'],
+                },
+              ],
+              media: [],
+            },
+            userPersona: { name: 'Maya', roleInWorld: 'inspector' },
+            worldContext: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
+          },
         },
         decision: {
           avatarId: 'avatar_2',
@@ -403,37 +407,42 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
           avatarId: 'avatar_1',
           avatarContext: {
             avatarId: 'avatar_1',
-            recentExchanges: [{ user: 'u1', avatar: 'a1' }],
-            workingMemory: {
-              session: { summary: 'Session memory', updatedAt: '2026-04-28T10:05:00.000Z' },
-              avatar: {
-                avatarId: 'avatar_1',
-                summary: 'Avatar memory',
-                updatedAt: '2026-04-28T10:05:00.000Z',
-              },
-            },
-            longTermFacts: [
-              {
-                category: 'goal',
-                key: 'focus',
-                value: 'truth',
-              },
-            ],
-            knowledge: {
-              memory: [],
-              world: [
-                {
-                  sourceId: 'source_1',
-                  chunkId: 'chunk_1',
-                  knowledgeType: 'world',
-                  visibleToAvatarIds: ['avatar_1'],
+            sections: {
+              directorNotes: 'Ask about the glass.',
+              responseRules: { count: 0 },
+              conversationState: {
+                recentExchanges: [{ user: 'u1', avatar: 'a1' }],
+                workingMemory: {
+                  session: { summary: 'Session memory', updatedAt: '2026-04-28T10:05:00.000Z' },
+                  avatar: {
+                    avatarId: 'avatar_1',
+                    summary: 'Avatar memory',
+                    updatedAt: '2026-04-28T10:05:00.000Z',
+                  },
                 },
-              ],
-              media: [],
+                longTermFacts: [
+                  {
+                    category: 'goal',
+                    key: 'focus',
+                    value: 'truth',
+                  },
+                ],
+              },
+              retrievedContext: {
+                memory: [],
+                world: [
+                  {
+                    sourceId: 'source_1',
+                    chunkId: 'chunk_1',
+                    knowledgeType: 'world',
+                    visibleToAvatarIds: ['avatar_1'],
+                  },
+                ],
+                media: [],
+              },
+              userPersona: { name: 'Maya', roleInWorld: 'inspector' },
+              worldContext: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
             },
-            userPersona: { name: 'Maya', roleInWorld: 'inspector' },
-            gmNotes: 'Ask about the glass.',
-            scenario: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
           },
           avatarLatencyMs: 8,
           totalTurnLatencyMs: 19,
@@ -528,16 +537,18 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
 
     expect(output.events[0]?.payload).toMatchObject({
       avatarContext: {
-        knowledge: {
-          world: [
-            {
-              sourceId: 'source_world_1',
-              chunkId: 'chunk_world_1',
-              knowledgeType: 'world',
-              score: 0.4444,
-              reason: 'token-overlap',
-            },
-          ],
+        sections: {
+          retrievedContext: {
+            world: [
+              {
+                sourceId: 'source_world_1',
+                chunkId: 'chunk_world_1',
+                knowledgeType: 'world',
+                score: 0.4444,
+                reason: 'token-overlap',
+              },
+            ],
+          },
         },
       },
     })

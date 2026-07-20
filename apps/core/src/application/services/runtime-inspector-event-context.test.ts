@@ -88,7 +88,19 @@ describe('runtime inspector event context snapshots', () => {
   it('stores avatar retrieval as typed provenance without content or metadata', () => {
     const snapshot = toRecordedAvatarContextSnapshot(createAvatarSnapshotInput())
 
-    expect(snapshot.knowledge).toEqual({
+    expect(snapshot.sections.responseRules).toEqual({ count: 0 })
+    expect(snapshot.sections.avatarTraits).toEqual({
+      sectionCounts: {
+        identity: 1,
+        personality: 1,
+        speakingStyle: 1,
+        background: 0,
+        timeline: 0,
+        currentSituation: 0,
+        behaviouralRules: 1,
+      },
+    })
+    expect(snapshot.sections.retrievedContext).toEqual({
       memory: [],
       world: [
         {
@@ -114,7 +126,7 @@ describe('runtime inspector event context snapshots', () => {
   it('stores gm retrieval as typed provenance without content or metadata', () => {
     const snapshot = toRecordedGmContextSnapshot(createGmSnapshotInput())
 
-    expect(snapshot.knowledge).toEqual({
+    expect(snapshot.sections.retrievedContext).toEqual({
       memory: [
         {
           sourceId: 'source_memory',

@@ -381,6 +381,12 @@ function buildAdminSessionContextRouteOptions(config: Config, adapters: ServerAd
       adapters.conversationWorkingMemoryRepository,
       new InMemoryConversationWorkingMemoryRepository(),
     ),
+    userRepository: withDefault(adapters.userRepository, new InMemoryUserRepository()),
+    gmStateRepository: withDefault(adapters.gmStateRepository, new InMemoryGmStateRepository()),
+    userMemoryFactRepository: withDefault(
+      adapters.userMemoryFactRepository,
+      new InMemoryUserMemoryFactRepository(),
+    ),
   }
 }
 

@@ -3,13 +3,19 @@ import type { ApiResponse, AvatarComputedTraits } from '@gami/shared'
 import type { ILlmAdapter, LlmRequest } from '../../application/ports/ILlmAdapter.js'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Conversation, Session } from '../../domain/conversation/session.types.js'
+import type { KnowledgeChunk, KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
+import type { UserFact } from '../../domain/memory/memory.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import type { User } from '../../domain/user/user.types.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
+import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
+import { InMemoryKnowledgeChunkRepository } from '../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
+import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
@@ -106,7 +112,90 @@ function makeUser(): User {
   }
 }
 
-function makeApp(llmAdapter: ILlmAdapter, avatar: AvatarConfig) {
+function makeMessages() {
+  return [
+    {
+      messageId: 'msg_1',
+      conversationId: 'conversation_1',
+      role: 'user' as const,
+      content: 'We already checked the north pier.',
+      createdAt: '2026-07-20T10:00:30.000Z',
+    },
+    {
+      messageId: 'msg_2',
+      conversationId: 'conversation_1',
+      role: 'avatar' as const,
+      content: 'The ledger still matters at moonrise.',
+      createdAt: '2026-07-20T10:00:31.000Z',
+    },
+  ]
+}
+
+function makeWorkingMemory() {
+  return {
+    conversationId: 'conversation_1',
+    sessionId: 'session_1',
+    avatarId: 'avatar_1',
+    summary: 'Track the north pier ledger and unresolved moonrise timing.',
+    unresolvedThreads: ['north_pier_ledger'],
+    candidateFacts: [],
+    updatedAt: '2026-07-20T10:00:00.000Z',
+  }
+}
+
+function makeUserFacts(): UserFact[] {
+  return [
+    {
+      id: 'fact_1',
+      userId: 'user_1',
+      category: 'preference',
+      key: 'preferred_route',
+      value: 'north pier',
+      createdAt: '2026-07-20T09:00:00.000Z',
+      updatedAt: '2026-07-20T09:00:00.000Z',
+    },
+  ]
+}
+
+function makeKnowledgeSources(): KnowledgeSource[] {
+  return [
+    {
+      sourceId: 'source_world_1',
+      scenarioId: 'scenario_1',
+      name: 'Harbor ledgers',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/tmp/harbor-ledgers.md',
+      status: 'ready',
+      createdAt: '2026-07-20T09:30:00.000Z',
+      updatedAt: '2026-07-20T09:30:00.000Z',
+    },
+  ]
+}
+
+function makeKnowledgeChunks(): KnowledgeChunk[] {
+  return [
+    {
+      chunkId: 'chunk_world_1',
+      sourceId: 'source_world_1',
+      chunkIndex: 0,
+      content: 'North pier ledger entries close at moonrise and must be checked before departure.',
+      createdAt: '2026-07-20T09:30:00.000Z',
+    },
+  ]
+}
+
+function makeApp(
+  llmAdapter: ILlmAdapter,
+  avatar: AvatarConfig,
+  options: {
+    messageRepository?: InMemoryMessageRepository
+    conversationWorkingMemoryRepository?: InMemoryConversationWorkingMemoryRepository
+    userMemoryFactRepository?: InMemoryUserMemoryFactRepository
+    knowledgeSourceRepository?: InMemoryKnowledgeSourceRepository
+    knowledgeChunkRepository?: InMemoryKnowledgeChunkRepository
+  } = {},
+) {
   return createServer(TEST_CONFIG, {
     llmAdapter,
     observabilityAdapter: new NullObservabilityAdapter(),
@@ -114,13 +203,25 @@ function makeApp(llmAdapter: ILlmAdapter, avatar: AvatarConfig) {
     avatarRepository: new InMemoryAvatarRepository([avatar]),
     sessionRepository: new InMemorySessionRepository([makeSession()]),
     conversationRepository: new InMemoryConversationRepository([makeConversation()]),
-    messageRepository: new InMemoryMessageRepository(),
+    messageRepository: options.messageRepository ?? new InMemoryMessageRepository(),
     userRepository: new InMemoryUserRepository([makeUser()]),
+    ...(options.conversationWorkingMemoryRepository !== undefined
+      ? { conversationWorkingMemoryRepository: options.conversationWorkingMemoryRepository }
+      : {}),
+    ...(options.userMemoryFactRepository !== undefined
+      ? { userMemoryFactRepository: options.userMemoryFactRepository }
+      : {}),
+    ...(options.knowledgeSourceRepository !== undefined
+      ? { knowledgeSourceRepository: options.knowledgeSourceRepository }
+      : {}),
+    ...(options.knowledgeChunkRepository !== undefined
+      ? { knowledgeChunkRepository: options.knowledgeChunkRepository }
+      : {}),
   })
 }
 
 describe('POST /v1/conversations/:conversationId/messages runtime context wiring', () => {
-  it('uses prepared traits on the HTTP path and keeps runtime sections in priority order', async () => {
+  it('uses all seven runtime sections on the HTTP path in the expected priority order', async () => {
     const llm = new CapturingLlmAdapter()
     const app = makeApp(
       llm,
@@ -128,6 +229,15 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
         personaPrompt: 'Legacy persona text that should not be preferred.',
         computedTraits: SAMPLE_TRAITS,
       }),
+      {
+        messageRepository: new InMemoryMessageRepository(makeMessages()),
+        conversationWorkingMemoryRepository: new InMemoryConversationWorkingMemoryRepository([
+          makeWorkingMemory(),
+        ]),
+        userMemoryFactRepository: new InMemoryUserMemoryFactRepository(makeUserFacts()),
+        knowledgeSourceRepository: new InMemoryKnowledgeSourceRepository(makeKnowledgeSources()),
+        knowledgeChunkRepository: new InMemoryKnowledgeChunkRepository(makeKnowledgeChunks()),
+      },
     )
 
     const response = await app.inject({
@@ -145,15 +255,22 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     expectSectionOrder(systemPrompt ?? '', [
       '## Director Notes',
       '## Response Rules',
+      '## Conversation State',
       '## User Persona',
       '## World Context',
+      '## Retrieved Context',
       '## Avatar Traits',
     ])
     expect(systemPrompt).toContain('Keep the answer practical.')
     expect(systemPrompt).toContain('Use short paragraphs.')
+    expect(systemPrompt).toContain('Recent exchanges:')
+    expect(systemPrompt).toContain('Session working memory: Track the north pier ledger')
+    expect(systemPrompt).toContain('Remembered user facts:')
+    expect(systemPrompt).toContain('- preferred_route: north pier')
     expect(systemPrompt).toContain('Name: Maya')
     expect(systemPrompt).toContain('Role in this world: captain')
     expect(systemPrompt).toContain('The harbor closes at moonrise.')
+    expect(systemPrompt).toContain('North pier ledger entries close at moonrise')
     expect(systemPrompt).toContain('Identity:')
     expect(systemPrompt).toContain('- Harbor archivist')
     expect(systemPrompt).not.toContain('Legacy persona text that should not be preferred.')

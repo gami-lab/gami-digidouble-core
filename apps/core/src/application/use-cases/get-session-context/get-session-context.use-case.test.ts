@@ -120,21 +120,33 @@ function makeWorkingMemory() {
 }
 
 describe('GetSessionContextUseCase', () => {
-  it('returns the stable prompt inputs without reassembling retrieval context', async () => {
+  it('returns the canonical runtime context snapshot without turn-specific retrieval', async () => {
     const output = await createUseCase().execute({ sessionId: 'session_1' })
 
-    expect(output).toEqual({
-      sessionId: 'session_1',
-      avatarPrompt: 'You are a guide.',
-      worldContext: 'Scenario world',
-      worldObjectives: ['Obj1', 'Goal1'],
-      gmInstruction: 'Focus on actionable steps.',
-      workingMemory: {
-        summary: 'Working summary',
-        unresolvedThreads: ['thread_1'],
-        updatedAt: '2026-05-01T10:01:30.000Z',
-      },
-      currentExchanges: [{ user: 'q2', avatar: 'a2' }],
+    expect(output.sessionId).toBe('session_1')
+    expect(output.avatarContext.sections.directorNotes).toBe('Focus on actionable steps.')
+    expect(output.avatarContext.sections.conversationState.workingMemory.session).toEqual({
+      summary: 'Working summary',
+      updatedAt: '2026-05-01T10:01:30.000Z',
+    })
+    expect(output.avatarContext.sections.conversationState.recentExchanges).toEqual([
+      { user: 'q2', avatar: 'a2' },
+    ])
+    expect(output.avatarContext.sections.worldContext).toEqual({
+      scenarioId: 'scenario_1',
+      name: 'Scenario One',
+      description: 'Scenario world',
+      goals: ['Obj1', 'Goal1'],
+    })
+    expect(output.avatarContext.sections.retrievedContext).toBeUndefined()
+    expect(output.gmContext.sections.conversationState.recentMessages).toEqual([
+      { role: 'user', content: 'q2' },
+      { role: 'avatar', content: 'a2' },
+    ])
+    expect(output.contextTrace.selectedInputs.retrievalCounts).toEqual({
+      memory: 0,
+      world: 0,
+      media: 0,
     })
   })
 
@@ -149,8 +161,8 @@ describe('GetSessionContextUseCase', () => {
 
     const output = await useCase.execute({ sessionId: 'session_1' })
 
-    expect(output.workingMemory).toBeNull()
-    expect(output.currentExchanges).toEqual([
+    expect(output.avatarContext.sections.conversationState.workingMemory).toEqual({})
+    expect(output.avatarContext.sections.conversationState.recentExchanges).toEqual([
       { user: 'q1', avatar: 'a1' },
       { user: 'q2', avatar: 'a2' },
     ])

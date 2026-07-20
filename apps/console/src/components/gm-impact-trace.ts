@@ -346,19 +346,26 @@ function describeRecordedAvatarContext(
   avatarNameById: Map<string, string>,
   knowledgeSourceNameById: Map<string, string>,
 ): { summary: string[]; retrieval: RetrievalTraceItem[] } {
+  const sections = avatarContext.sections
   const lines = [
-    `Avatar input summary: ${String(avatarContext.recentExchanges.length)} exchange(s), ${String(avatarContext.longTermFacts.length)} long-term fact(s), GM note ${avatarContext.gmNotes ? 'present' : 'absent'}, user persona ${avatarContext.userPersona ? 'present' : 'absent'}.`,
+    `Avatar input summary: ${String(sections.conversationState.recentExchanges.length)} exchange(s), ${String(sections.conversationState.longTermFacts.length)} long-term fact(s), GM note ${sections.directorNotes ? 'present' : 'absent'}, user persona ${sections.userPersona ? 'present' : 'absent'}.`,
   ]
-  if (avatarContext.workingMemory.avatar?.summary || avatarContext.workingMemory.session?.summary) {
+  if (
+    sections.conversationState.workingMemory.avatar?.summary ||
+    sections.conversationState.workingMemory.session?.summary
+  ) {
     lines.push(
-      `Avatar working memory: ${avatarContext.workingMemory.avatar?.summary ?? avatarContext.workingMemory.session?.summary ?? '-'}`,
+      `Avatar working memory: ${sections.conversationState.workingMemory.avatar?.summary ?? sections.conversationState.workingMemory.session?.summary ?? '-'}`,
     )
   }
-  const knowledgeItems = avatarContext.knowledge
+  lines.push(
+    `Response rules applied: ${String(sections.responseRules.count)}, avatar traits ${sections.avatarTraits ? 'present' : 'absent'}.`,
+  )
+  const knowledgeItems = sections.retrievedContext
     ? [
-        ...avatarContext.knowledge.memory,
-        ...avatarContext.knowledge.world,
-        ...avatarContext.knowledge.media,
+        ...sections.retrievedContext.memory,
+        ...sections.retrievedContext.world,
+        ...sections.retrievedContext.media,
       ]
     : []
   return {
@@ -375,20 +382,21 @@ function describeRecordedGmContext(
   avatarNameById: Map<string, string>,
   knowledgeSourceNameById: Map<string, string>,
 ): { summary: string[]; retrieval: RetrievalTraceItem[] } {
+  const sections = gmContext.sections
   const knowledgeItems = [
-    ...(gmContext.knowledge?.memory ?? []),
-    ...(gmContext.knowledge?.world ?? []),
-    ...(gmContext.knowledge?.media ?? []),
+    ...(sections.retrievedContext?.memory ?? []),
+    ...(sections.retrievedContext?.world ?? []),
+    ...(sections.retrievedContext?.media ?? []),
   ]
   const activeAvatar =
     gmContext.currentState.currentAvatarId === undefined
       ? 'none recorded'
       : formatAvatar(gmContext.currentState.currentAvatarId, avatarNameById)
   const lines = [
-    `GM input summary: ${String(gmContext.recentMessages.length)} message(s), ${String(gmContext.memory.longTermFacts?.length ?? 0)} long-term fact(s), user persona ${gmContext.userPersona ? 'present' : 'absent'}, active avatar ${activeAvatar}.`,
+    `GM input summary: ${String(sections.conversationState.recentMessages.length)} message(s), ${String(sections.conversationState.memory.longTermFacts?.length ?? 0)} long-term fact(s), user persona ${sections.userPersona ? 'present' : 'absent'}, active avatar ${activeAvatar}.`,
   ]
-  if (gmContext.memory.workingSummary) {
-    lines.push(`GM working memory: ${gmContext.memory.workingSummary}`)
+  if (sections.conversationState.memory.workingSummary) {
+    lines.push(`GM working memory: ${sections.conversationState.memory.workingSummary}`)
   }
   return {
     summary: lines,

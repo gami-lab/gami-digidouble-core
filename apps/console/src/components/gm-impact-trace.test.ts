@@ -97,12 +97,83 @@ function makeViewModel(): RuntimeInspectorViewModel {
     },
     context: {
       sessionId: 'session_1',
-      avatarPrompt: 'You are Clara.',
-      worldContext: 'Scenario world',
-      worldObjectives: ['Find the culprit'],
-      gmInstruction: null,
-      workingMemory: null,
-      currentExchanges: [],
+      avatarContext: {
+        sections: {
+          directorNotes: null,
+          responseRules: { items: [] },
+          conversationState: {
+            recentExchanges: [],
+            workingMemory: {},
+            longTermFacts: [],
+          },
+          userPersona: null,
+          worldContext: {
+            scenarioId: 'scenario_1',
+            description: 'Scenario world',
+            goals: ['Find the culprit'],
+          },
+        },
+      },
+      gmContext: {
+        currentState: {
+          progression: '',
+          topicsCovered: [],
+          interactionCount: 0,
+        },
+        availableAvatars: [],
+        sections: {
+          conversationState: {
+            recentMessages: [],
+            memory: {},
+          },
+          userPersona: null,
+          worldContext: { scenarioId: 'scenario_1' },
+        },
+      },
+      contextTrace: {
+        deterministic: true,
+        policy: {
+          tokenBudget: { avatarMaxTokens: 4096, gmMaxTokens: 4096 },
+          sectionPrecedence: [
+            'directorNotes',
+            'responseRules',
+            'conversationState',
+            'userPersona',
+            'worldContext',
+            'retrievedContext',
+            'avatarTraits',
+          ],
+          protectedSegments: ['directorNotes', 'responseRules', 'worldContext'],
+          precedence: [
+            'directorNotes',
+            'responseRules',
+            'conversationStateWorkingMemory',
+            'conversationStateLongTermFacts',
+            'conversationStateRecentExchanges',
+            'conversationStateRecentMessages',
+            'userPersona',
+            'worldContext',
+            'retrievedContextMemory',
+            'retrievedContextWorld',
+            'retrievedContextMedia',
+            'avatarTraits',
+          ],
+        },
+        selectedInputs: {
+          hasActiveAvatar: true,
+          recentMessageCount: 0,
+          shortTermExchangeCount: 0,
+          hasWorkingMemory: false,
+          longTermFactCount: 0,
+          retrievalCounts: { memory: 0, world: 0, media: 0 },
+          hasUserPersona: false,
+          hasGmDirective: false,
+          responseRuleCount: 0,
+          hasAvatarTraits: false,
+        },
+        rationale: { avatarProjection: [], gmProjection: [] },
+        selection: { kept: [], trimmed: [] },
+      },
     },
     persona: null,
     recentEvents: [
@@ -115,32 +186,6 @@ function makeViewModel(): RuntimeInspectorViewModel {
           turnIndex: 1,
           interactionCount: 2,
           gmContext: {
-            recentMessages: [{ role: 'user', content: 'Who left last night?' }],
-            memory: {
-              shortTerm: { recentExchanges: [{ user: 'u1', avatar: 'a1' }] },
-              workingSummary: 'GM working summary',
-              longTermFacts: [
-                {
-                  category: 'context',
-                  key: 'departure',
-                  value: 'Thomas left late',
-                },
-              ],
-            },
-            knowledge: {
-              memory: [],
-              world: [
-                {
-                  sourceId: 'source_1',
-                  chunkId: 'chunk_1',
-                  knowledgeType: 'world',
-                  score: 0.4444,
-                  reason: 'token-overlap',
-                  visibleToAvatarIds: ['avatar_1'],
-                },
-              ],
-              media: [],
-            },
             currentState: {
               currentAvatarId: 'avatar_1',
               progression: 'intro',
@@ -151,8 +196,38 @@ function makeViewModel(): RuntimeInspectorViewModel {
               { avatarId: 'avatar_1', name: 'Clara Whitcombe', availability: 'available' },
               { avatarId: 'avatar_2', name: 'Theo', availability: 'available' },
             ],
-            userPersona: { name: 'Maya', roleInWorld: 'investigator' },
-            scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
+            sections: {
+              conversationState: {
+                recentMessages: [{ role: 'user', content: 'Who left last night?' }],
+                memory: {
+                  shortTerm: { recentExchanges: [{ user: 'u1', avatar: 'a1' }] },
+                  workingSummary: 'GM working summary',
+                  longTermFacts: [
+                    {
+                      category: 'context',
+                      key: 'departure',
+                      value: 'Thomas left late',
+                    },
+                  ],
+                },
+              },
+              retrievedContext: {
+                memory: [],
+                world: [
+                  {
+                    sourceId: 'source_1',
+                    chunkId: 'chunk_1',
+                    knowledgeType: 'world',
+                    score: 0.4444,
+                    reason: 'token-overlap',
+                    visibleToAvatarIds: ['avatar_1'],
+                  },
+                ],
+                media: [],
+              },
+              userPersona: { name: 'Maya', roleInWorld: 'investigator' },
+              worldContext: { scenarioId: 'scenario_1', name: 'Scenario 1' },
+            },
           },
           stateBefore: {
             currentAvatarId: 'avatar_1',
@@ -195,39 +270,58 @@ function makeViewModel(): RuntimeInspectorViewModel {
           avatarId: 'avatar_2',
           avatarContext: {
             avatarId: 'avatar_2',
-            recentExchanges: [{ user: 'Did Thomas leave?', avatar: 'Not yet.' }],
-            workingMemory: {
-              session: { summary: 'Session summary', updatedAt: '2026-05-07T10:00:00.000Z' },
-              avatar: {
-                avatarId: 'avatar_2',
-                summary: 'Theo summary',
-                updatedAt: '2026-05-07T10:00:00.000Z',
-              },
-            },
-            longTermFacts: [
-              {
-                category: 'context',
-                key: 'terrace',
-                value: 'Door was ajar',
-              },
-            ],
-            knowledge: {
-              memory: [],
-              world: [
-                {
-                  sourceId: 'source_2',
-                  chunkId: 'chunk_2',
-                  knowledgeType: 'world',
-                  score: 0.8123,
-                  reason: 'token-overlap',
-                  visibleToAvatarIds: ['avatar_2'],
+            sections: {
+              directorNotes: 'Ask Theo for concrete implementation details next.',
+              responseRules: { count: 1 },
+              conversationState: {
+                recentExchanges: [{ user: 'Did Thomas leave?', avatar: 'Not yet.' }],
+                workingMemory: {
+                  session: {
+                    summary: 'Session summary',
+                    updatedAt: '2026-05-07T10:00:00.000Z',
+                  },
+                  avatar: {
+                    avatarId: 'avatar_2',
+                    summary: 'Theo summary',
+                    updatedAt: '2026-05-07T10:00:00.000Z',
+                  },
                 },
-              ],
-              media: [],
+                longTermFacts: [
+                  {
+                    category: 'context',
+                    key: 'terrace',
+                    value: 'Door was ajar',
+                  },
+                ],
+              },
+              retrievedContext: {
+                memory: [],
+                world: [
+                  {
+                    sourceId: 'source_2',
+                    chunkId: 'chunk_2',
+                    knowledgeType: 'world',
+                    score: 0.8123,
+                    reason: 'token-overlap',
+                    visibleToAvatarIds: ['avatar_2'],
+                  },
+                ],
+                media: [],
+              },
+              userPersona: { name: 'Maya', roleInWorld: 'investigator' },
+              worldContext: { scenarioId: 'scenario_1', name: 'Scenario 1' },
+              avatarTraits: {
+                sectionCounts: {
+                  identity: 1,
+                  personality: 1,
+                  speakingStyle: 0,
+                  background: 0,
+                  timeline: 0,
+                  currentSituation: 0,
+                  behaviouralRules: 0,
+                },
+              },
             },
-            userPersona: { name: 'Maya', roleInWorld: 'investigator' },
-            gmNotes: 'Ask Theo for concrete implementation details next.',
-            scenario: { scenarioId: 'scenario_1', name: 'Scenario 1' },
           },
           avatarLatencyMs: 80,
           totalTurnLatencyMs: 120,

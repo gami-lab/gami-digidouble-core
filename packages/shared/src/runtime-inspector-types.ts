@@ -19,7 +19,7 @@ import type {
 } from './knowledge-contract-types.js'
 import type { ModelProviderName } from './model-catalog.js'
 import type { RuntimeState } from './runtime-types.js'
-import type { SessionSummary } from './entity-types.js'
+import type { AvatarComputedTraits, SessionSummary } from './entity-types.js'
 
 export type UserPersona = {
   name?: string
@@ -279,52 +279,103 @@ export type SessionContextGmMemory = {
   longTermFacts?: SharedLongTermMemoryFact[]
 }
 
-type SharedSessionContextAvatarSnapshot<TKnowledge> = {
-  avatarId?: string
-  recentExchanges: SharedShortTermMemoryExchange[]
-  workingMemory: SessionContextAvatarWorkingMemory
-  longTermFacts: SharedLongTermMemoryFact[]
-  knowledge?: TKnowledge
+export type SessionContextResponseRules = {
+  items: string[]
+}
+
+export type RecordedResponseRulesSummary = {
+  count: number
+}
+
+export type RecordedAvatarTraitsSummary = {
+  sectionCounts: {
+    identity: number
+    personality: number
+    speakingStyle: number
+    background: number
+    timeline: number
+    currentSituation: number
+    behaviouralRules: number
+  }
+}
+
+type SharedSessionContextAvatarSections<TKnowledge, TResponseRules, TAvatarTraits> = {
+  directorNotes: string | null
+  responseRules: TResponseRules
+  conversationState: {
+    recentExchanges: SharedShortTermMemoryExchange[]
+    workingMemory: SessionContextAvatarWorkingMemory
+    longTermFacts: SharedLongTermMemoryFact[]
+  }
   userPersona: UserPersona | null
-  gmNotes: string | null
-  scenario: SessionContextScenarioSnapshot
+  worldContext: SessionContextScenarioSnapshot
+  retrievedContext?: TKnowledge
+  avatarTraits?: TAvatarTraits
+}
+
+type SharedSessionContextAvatarSnapshot<TKnowledge, TResponseRules, TAvatarTraits> = {
+  avatarId?: string
+  sections: SharedSessionContextAvatarSections<TKnowledge, TResponseRules, TAvatarTraits>
+}
+
+type SharedSessionContextGmSections<TKnowledge> = {
+  conversationState: {
+    recentMessages: SessionContextRecentMessage[]
+    memory: SessionContextGmMemory
+  }
+  userPersona: UserPersona | null
+  worldContext: SessionContextScenarioSnapshot
+  retrievedContext?: TKnowledge
 }
 
 type SharedSessionContextGmSnapshot<TKnowledge> = {
-  recentMessages: SessionContextRecentMessage[]
-  memory: SessionContextGmMemory
-  knowledge?: TKnowledge
   currentState: GmStateSummary
   availableAvatars: SessionContextAvailableAvatar[]
-  userPersona: UserPersona | null
-  scenario: SessionContextScenarioSnapshot
+  sections: SharedSessionContextGmSections<TKnowledge>
 }
 
-export type SessionContextAvatarSnapshot =
-  SharedSessionContextAvatarSnapshot<SharedAvatarContextKnowledgeInjection>
+export type SessionContextAvatarSnapshot = SharedSessionContextAvatarSnapshot<
+  SharedAvatarContextKnowledgeInjection,
+  SessionContextResponseRules,
+  AvatarComputedTraits
+>
 
 export type SessionContextGmSnapshot =
   SharedSessionContextGmSnapshot<SharedGmContextKnowledgeInjection>
 
-export type RecordedAvatarContextSnapshot =
-  SharedSessionContextAvatarSnapshot<RecordedAvatarContextKnowledgeInjection>
+export type RecordedAvatarContextSnapshot = SharedSessionContextAvatarSnapshot<
+  RecordedAvatarContextKnowledgeInjection,
+  RecordedResponseRulesSummary,
+  RecordedAvatarTraitsSummary
+>
 
 export type RecordedGmContextSnapshot =
   SharedSessionContextGmSnapshot<RecordedGmContextKnowledgeInjection>
 
 export type RecordedKnowledgeReference = RecordedKnowledgeReferenceDto
 
-export type SessionContextSegmentId =
-  | 'gmDirective'
-  | 'scenario'
+export type SessionContextSectionId =
+  | 'directorNotes'
+  | 'responseRules'
+  | 'conversationState'
   | 'userPersona'
-  | 'shortTermMemory'
-  | 'workingMemory'
-  | 'longTermFacts'
-  | 'typedRetrievalMemory'
-  | 'typedRetrievalWorld'
-  | 'typedRetrievalMedia'
-  | 'recentMessages'
+  | 'worldContext'
+  | 'retrievedContext'
+  | 'avatarTraits'
+
+export type SessionContextSegmentId =
+  | 'directorNotes'
+  | 'responseRules'
+  | 'conversationStateWorkingMemory'
+  | 'conversationStateLongTermFacts'
+  | 'conversationStateRecentExchanges'
+  | 'conversationStateRecentMessages'
+  | 'userPersona'
+  | 'worldContext'
+  | 'retrievedContextMemory'
+  | 'retrievedContextWorld'
+  | 'retrievedContextMedia'
+  | 'avatarTraits'
 
 export type SessionContextTrace = {
   deterministic: true
@@ -333,6 +384,7 @@ export type SessionContextTrace = {
       avatarMaxTokens: number
       gmMaxTokens: number
     }
+    sectionPrecedence: SessionContextSectionId[]
     protectedSegments: SessionContextSegmentId[]
     precedence: SessionContextSegmentId[]
   }
@@ -363,6 +415,8 @@ export type SessionContextTrace = {
     }
     hasUserPersona: boolean
     hasGmDirective: boolean
+    responseRuleCount: number
+    hasAvatarTraits: boolean
   }
   rationale: {
     avatarProjection: string[]
@@ -371,12 +425,14 @@ export type SessionContextTrace = {
   selection: {
     kept: Array<{
       projection: 'avatar' | 'gm'
+      sectionId: SessionContextSectionId
       segmentId: SessionContextSegmentId
       tokenEstimate: number
       reason: 'protected' | 'within_budget'
     }>
     trimmed: Array<{
       projection: 'avatar' | 'gm'
+      sectionId: SessionContextSectionId
       segmentId: SessionContextSegmentId
       tokenEstimate: number
       reason: 'budget_exceeded'
@@ -386,16 +442,9 @@ export type SessionContextTrace = {
 
 export type AdminSessionContextResponse = {
   sessionId: string
-  avatarPrompt: string | null
-  worldContext: string | null
-  worldObjectives: string[]
-  gmInstruction: string | null
-  workingMemory: {
-    summary: string
-    unresolvedThreads: string[]
-    updatedAt: string
-  } | null
-  currentExchanges: SharedShortTermMemoryExchange[]
+  avatarContext: SessionContextAvatarSnapshot
+  gmContext: SessionContextGmSnapshot
+  contextTrace: SessionContextTrace
 }
 
 export type AdminReplayGmResponse = {

@@ -191,16 +191,124 @@ function makeMetricsSummary(): RuntimeInspectorViewModel['metrics'] {
 function makeContextSummary(): RuntimeInspectorViewModel['context'] {
   return {
     sessionId: 'session_1',
-    avatarPrompt: 'You are Ava.',
-    worldContext: 'Scenario world',
-    worldObjectives: ['Obj1', 'Goal1'],
-    gmInstruction: 'Focus on examples.',
-    workingMemory: {
-      summary: 'active working summary',
-      unresolvedThreads: ['follow_up'],
-      updatedAt: '2026-05-07T10:00:00.000Z',
+    avatarContext: makeAvatarContext(),
+    gmContext: makeGmContext(),
+    contextTrace: makeContextTrace(),
+  }
+}
+
+function makeAvatarContext(): RuntimeInspectorViewModel['context']['avatarContext'] {
+  return {
+    avatarId: 'avatar_1',
+    sections: {
+      directorNotes: 'Focus on examples.',
+      responseRules: { items: ['Use short answers.'] },
+      conversationState: {
+        recentExchanges: [{ user: 'u', avatar: 'a' }],
+        workingMemory: {
+          session: {
+            summary: 'active working summary',
+            updatedAt: '2026-05-07T10:00:00.000Z',
+          },
+        },
+        longTermFacts: [{ category: 'goal', key: 'focus', value: 'quality' }],
+      },
+      userPersona: { name: 'Maya', roleInWorld: 'investigator' },
+      worldContext: {
+        scenarioId: 'scenario_1',
+        description: 'Scenario world',
+        goals: ['Obj1', 'Goal1'],
+      },
+      avatarTraits: {
+        identity: ['Ava'],
+        personality: ['Calm'],
+        speakingStyle: [],
+        background: [],
+        timeline: [],
+        currentSituation: [],
+        behaviouralRules: [],
+      },
     },
-    currentExchanges: [{ user: 'u', avatar: 'a' }],
+  }
+}
+
+function makeGmContext(): RuntimeInspectorViewModel['context']['gmContext'] {
+  return {
+    currentState: {
+      currentAvatarId: 'avatar_1',
+      progression: 'intro',
+      topicsCovered: [],
+      interactionCount: 1,
+    },
+    availableAvatars: [{ avatarId: 'avatar_1', name: 'Ava', availability: 'available' }],
+    sections: {
+      conversationState: {
+        recentMessages: [{ role: 'user', content: 'u' }, { role: 'avatar', content: 'a' }],
+        memory: {
+          workingSummary: 'active working summary',
+        },
+      },
+      userPersona: { name: 'Maya', roleInWorld: 'investigator' },
+      worldContext: { scenarioId: 'scenario_1', description: 'Scenario world' },
+    },
+  }
+}
+
+function makeContextTrace(): RuntimeInspectorViewModel['context']['contextTrace'] {
+  return {
+    deterministic: true,
+    policy: {
+      tokenBudget: { avatarMaxTokens: 4096, gmMaxTokens: 4096 },
+      sectionPrecedence: [
+        'directorNotes',
+        'responseRules',
+        'conversationState',
+        'userPersona',
+        'worldContext',
+        'retrievedContext',
+        'avatarTraits',
+      ],
+      protectedSegments: ['directorNotes', 'responseRules', 'worldContext'],
+      precedence: [
+        'directorNotes',
+        'responseRules',
+        'conversationStateWorkingMemory',
+        'conversationStateLongTermFacts',
+        'conversationStateRecentExchanges',
+        'conversationStateRecentMessages',
+        'userPersona',
+        'worldContext',
+        'retrievedContextMemory',
+        'retrievedContextWorld',
+        'retrievedContextMedia',
+        'avatarTraits',
+      ],
+    },
+    selectedInputs: {
+      hasActiveAvatar: true,
+      recentMessageCount: 2,
+      shortTermExchangeCount: 1,
+      hasWorkingMemory: true,
+      longTermFactCount: 1,
+      retrievalCounts: { memory: 0, world: 0, media: 0 },
+      hasUserPersona: true,
+      hasGmDirective: true,
+      responseRuleCount: 1,
+      hasAvatarTraits: true,
+    },
+    rationale: { avatarProjection: [], gmProjection: [] },
+    selection: {
+      kept: [
+        {
+          projection: 'avatar',
+          sectionId: 'responseRules',
+          segmentId: 'responseRules',
+          tokenEstimate: 5,
+          reason: 'protected',
+        },
+      ],
+      trimmed: [],
+    },
   }
 }
 
@@ -382,9 +490,9 @@ describe('RuntimeInspectorTabContent', () => {
 
     expect(html).toContain('Scenario')
     expect(html).toContain('scenario_1')
-    expect(html).toContain('Retrieval varies between the Avatar and GM')
+    expect(html).toContain('canonical runtime context snapshot')
     expect(html).toContain('Static knowledge inventory')
-    expect(html).toContain('Prompt context snapshot')
+    expect(html).toContain('Avatar runtime context')
     expect(html).toContain('Loaded sources')
     expect(html).toContain('Shared clues')
     expect(html).toContain('Clara private notes')
@@ -393,14 +501,16 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('GM-only sources')
     expect(html).toContain('GM truth')
     expect(html).toContain('GM truth v2')
-    expect(html).toContain('Avatar prompt')
-    expect(html).toContain('You are Ava.')
-    expect(html).toContain('World objectives')
-    expect(html).toContain('Obj1 | Goal1')
-    expect(html).toContain('GM instruction')
+    expect(html).toContain('Director notes')
     expect(html).toContain('Focus on examples.')
-    expect(html).toContain('Current exchanges')
+    expect(html).toContain('World goals')
+    expect(html).toContain('Obj1 | Goal1')
+    expect(html).toContain('Response rules')
+    expect(html).toContain('Use short answers.')
+    expect(html).toContain('Recent exchanges')
     expect(html).toContain('U: u / A: a')
+    expect(html).toContain('Context trace')
+    expect(html).toContain('Protected segments')
   })
 
   it('renders live runtime events in events tab', () => {
@@ -515,7 +625,7 @@ describe('RuntimeInspectorTabContent', () => {
       />,
     )
 
-    expect(html).toContain('Events tab instead')
+    expect(html).toContain('Events tab.')
   })
 })
 
