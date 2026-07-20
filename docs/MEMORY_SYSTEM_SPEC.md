@@ -157,10 +157,17 @@ Refresh output:
 
 - rewritten bounded summary
 - bounded covered topics carried as first-class working-memory state
-- extracted candidate user facts
+- extracted objective candidate user facts
 - optional candidate long-term episodic memory
 
 The memory must be rewritten, not blindly appended.
+
+Compaction quality rules:
+
+- summaries merge prior memory with newly integrated exchanges, remove repetition, and keep the latest superseding detail
+- `coveredTopics` records explored subjects already discussed, not unresolved next steps
+- `unresolvedThreads` keeps only active loose ends and should drop clearly resolved items on later refreshes
+- `candidateFacts` stays factual and persistent; inferred mood, trust, pacing, progression, or similar conversational interpretation must not be stored as memory facts
 
 The goal is bounded continuity regardless of conversation duration.
 

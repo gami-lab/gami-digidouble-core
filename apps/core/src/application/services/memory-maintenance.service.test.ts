@@ -131,6 +131,7 @@ function makeService() {
     complete: vi.fn().mockResolvedValue({
       content: JSON.stringify({
         summary: 'Conversation turns: user=3, avatar=3.',
+        coveredTopics: [],
         unresolvedThreads: [],
         candidateFacts: [],
       }),
@@ -212,7 +213,72 @@ describe('MemoryMaintenanceService — persistence and events', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('MemoryMaintenanceService — LLM compaction', () => {
+  it('sends a deterministic compaction prompt and input contract to the LLM', async () => {
+    const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository([
+      {
+        conversationId: 'conversation_1',
+        sessionId: 'session_1',
+        avatarId: 'avatar_1',
+        summary: 'Prior summary',
+        unresolvedThreads: ['Need workflow template'],
+        coveredTopics: ['privacy_workflows'],
+        candidateFacts: [{ category: 'context', key: 'profession', value: 'doctor' }],
+        updatedAt: '2026-05-06T09:59:00.000Z',
+      },
+    ])
+    const eventLogRepository = new InMemoryEventLogRepository()
+    const llmCompleteMock = vi.fn().mockResolvedValue({
+      content: JSON.stringify({
+        summary: 'Updated summary',
+        coveredTopics: ['privacy_workflows', 'hipaa_compliance'],
+        unresolvedThreads: ['Need workflow template'],
+        candidateFacts: [{ category: 'context', key: 'profession', value: 'doctor' }],
+      }),
+      model: 'test-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    })
+    const service = createCompactionService({
+      llm: { complete: llmCompleteMock },
+      conversationWorkingMemoryRepository,
+      eventLogRepository,
+    })
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+
+    const llmRequest = llmCompleteMock.mock.calls[0]?.[0] as {
+      systemPrompt: string
+      messages: Array<{ role: 'user'; content: string }>
+    }
+    expect(llmRequest.systemPrompt).toContain(
+      'Return JSON only with exactly these top-level keys: summary, coveredTopics, unresolvedThreads, candidateFacts.',
+    )
+    expect(llmRequest.systemPrompt).toContain(
+      'remove items that were clearly answered or resolved in the recent exchanges',
+    )
+    expect(llmRequest.systemPrompt).toContain(
+      'reject inferred trust, mood, pacing, progression state, emotional state, or other conversational interpretation',
+    )
+    expect(llmRequest.messages[0]?.content).toContain('## PRIOR WORKING MEMORY')
+    expect(llmRequest.messages[0]?.content).toContain('Covered topics:')
+    expect(llmRequest.messages[0]?.content).toContain('- privacy_workflows')
+    expect(llmRequest.messages[0]?.content).toContain('## RECENT EXCHANGES TO INTEGRATE')
+    expect(llmRequest.messages[0]?.content).toContain(
+      '1. USER: I am a doctor using AI for patient files.',
+    )
+    expect(llmRequest.messages[0]?.content).toContain(
+      '6. AVATAR: Apply role-based access and audit logs.',
+    )
+  })
+
   it('uses validated LLM compaction output for working memory when available', async () => {
     const {
       sessionMemoryRepository,
@@ -223,6 +289,7 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
     const llmCompleteMock = vi.fn().mockResolvedValue({
       content: JSON.stringify({
         summary: 'Compact clinical privacy summary.',
+        coveredTopics: ['privacy_safe_redaction', 'hipaa_compliance'],
         unresolvedThreads: ['Need HIPAA-safe workflow template'],
         candidateFacts: [
           {
@@ -262,10 +329,57 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
     ).resolves.toMatchObject({
       summary: 'Compact clinical privacy summary.',
       unresolvedThreads: ['Need HIPAA-safe workflow template'],
-      coveredTopics: [],
+      coveredTopics: ['privacy_safe_redaction', 'hipaa_compliance'],
       candidateFacts: [{ category: 'context', key: 'profession', value: 'doctor' }],
     })
     expect(llmCompleteMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('normalizes bounded output and rejects malformed inferred fact data', async () => {
+    const { conversationWorkingMemoryRepository, eventLogRepository } = makeService()
+    const llmCompleteMock = vi.fn().mockResolvedValue({
+      content: JSON.stringify({
+        summary: `  ${'S'.repeat(710)}  `,
+        coveredTopics: ['  privacy workflows  ', '', 'privacy workflows', 'x'.repeat(100), 42],
+        unresolvedThreads: ['  Need benchmark  ', '', 'Need benchmark', 'Y'.repeat(200)],
+        candidateFacts: [
+          { category: 'context', key: 'profession', value: '  doctor  ' },
+          { category: 'context', key: 'profession', value: 'doctor' },
+          { category: 'goal', key: 'conversation_pacing', value: 'fast' },
+          { category: 'unknown', key: 'bad', value: 'ignored' },
+          { category: 'goal', key: 'bad key', value: 'ignored' },
+          { category: 'goal', key: 'launch_target', value: 'Z'.repeat(200) },
+        ],
+      }),
+      model: 'test-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    })
+    const service = createCompactionService({
+      llm: { complete: llmCompleteMock },
+      conversationWorkingMemoryRepository,
+      eventLogRepository,
+    })
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+
+    await expect(
+      conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
+    ).resolves.toMatchObject({
+      summary: `${'S'.repeat(697)}...`,
+      coveredTopics: ['privacy workflows', `${'x'.repeat(77)}...`],
+      unresolvedThreads: ['Need benchmark', `${'Y'.repeat(157)}...`],
+      candidateFacts: [
+        { category: 'context', key: 'profession', value: 'doctor' },
+        { category: 'goal', key: 'launch_target', value: `${'Z'.repeat(157)}...` },
+      ],
+    })
   })
 })
 
@@ -359,6 +473,7 @@ describe('MemoryMaintenanceService — event payload contract', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('MemoryMaintenanceService — prior memory continuity', () => {
   it('incorporates prior working memory summary when refreshing', async () => {
     const { service, conversationWorkingMemoryRepository } = makeService()
@@ -385,6 +500,53 @@ describe('MemoryMaintenanceService — prior memory continuity', () => {
       await conversationWorkingMemoryRepository.findByConversationId('conversation_1')
     // The second summary should contain material from the first (prior memory preserved)
     expect(secondMemory?.summary).toContain(firstMemory?.summary)
+  })
+
+  it('lets resolved unresolved threads disappear while active ones carry forward cleanly', async () => {
+    const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository([
+      {
+        conversationId: 'conversation_1',
+        sessionId: 'session_1',
+        avatarId: 'avatar_1',
+        summary: 'Prior working memory',
+        unresolvedThreads: ['Need budget signoff', 'Need benchmark'],
+        coveredTopics: ['requirements_reviewed'],
+        candidateFacts: [],
+        updatedAt: '2026-05-06T09:59:00.000Z',
+      },
+    ])
+    const service = new MemoryMaintenanceService(
+      new InMemoryMessageRepository(compactionMessages),
+      conversationWorkingMemoryRepository,
+      new InMemoryEventLogRepository(),
+      {
+        complete: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            summary: 'Updated memory',
+            coveredTopics: ['requirements_reviewed', 'privacy_workflows'],
+            unresolvedThreads: ['Need benchmark', 'Need rollout checklist'],
+            candidateFacts: [],
+          }),
+          model: 'test',
+          inputTokens: 0,
+          outputTokens: 0,
+          latencyMs: 0,
+        }),
+      },
+    )
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+
+    await expect(
+      conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
+    ).resolves.toMatchObject({
+      unresolvedThreads: ['Need benchmark', 'Need rollout checklist'],
+    })
   })
 
   it('preserves prior covered topics when compaction output does not provide them yet', async () => {

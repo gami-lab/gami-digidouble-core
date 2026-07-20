@@ -10,6 +10,7 @@ describe('MemoryMaintenanceService model resolution', () => {
     const resolvedAdapterCompleteMock = vi.fn().mockResolvedValue({
       content: JSON.stringify({
         summary: 'Resolved memory summary.',
+        coveredTopics: [],
         unresolvedThreads: [],
         candidateFacts: [],
       }),

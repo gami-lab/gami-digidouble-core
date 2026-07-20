@@ -17,17 +17,32 @@ import { logResolvedLlmCall, resolveRoleLlmCall } from './model-resolution-runti
 const WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT = `You update a running working memory for a conversation.
 
 You will receive:
-- PRIOR MEMORY: the existing compacted memory from earlier exchanges (may be empty on first run).
-- RECENT EXCHANGES: the most recent messages that have not yet been integrated.
+- PRIOR WORKING MEMORY: the existing compacted memory from earlier exchanges (may be empty on first run).
+- RECENT EXCHANGES TO INTEGRATE: the most recent exchanges that have not yet been integrated.
 
 Rules:
-- Return JSON only, with shape { summary, unresolvedThreads, candidateFacts }.
-- summary must integrate prior memory with new information, bounded to ~700 chars. Never drop key facts from prior memory unless superseded.
-- unresolvedThreads: 0-6 concise unresolved user threads (carry forward unresolved ones from prior memory).
-- candidateFacts: 0-8 objects with { category, key, value } (merge and deduplicate with prior facts, update values if superseded).
+- Return JSON only with exactly these top-level keys: summary, coveredTopics, unresolvedThreads, candidateFacts.
+- summary:
+  - merge prior memory with the newly integrated exchanges
+  - remove repetition and stale wording
+  - keep the most current version when details were corrected or superseded
+  - stay concise, factual, and bounded to ~700 chars
+- coveredTopics:
+  - 0-8 short factual topic labels for subjects already explored
+  - list covered subjects, not unresolved next steps
+  - keep items normalized, non-duplicative, and grounded in the conversation
+- unresolvedThreads:
+  - 0-6 active loose ends that still need follow-up
+  - carry forward only threads that remain unresolved
+  - remove items that were clearly answered or resolved in the recent exchanges
+- candidateFacts:
+  - 0-8 objective persistent facts grounded in the discussion
+  - use only { category, key, value }
+  - merge with prior facts, deduplicate exact duplicates, and replace superseded values when warranted
+  - reject inferred trust, mood, pacing, progression state, emotional state, or other conversational interpretation
 - category must be one of: conversation_signal, preference, constraint, goal, identity, context.
 - key must be compact lowercase snake_case.
-- value must be concise and grounded in the conversation.
+- value must be concise, factual, and grounded in the conversation.
 - Do not invent facts.
 - If there is no strong signal, return empty arrays.`
 
@@ -39,7 +54,29 @@ const ALLOWED_FACT_CATEGORIES = new Set([
   'identity',
   'context',
 ])
+const REJECTED_FACT_KEYS = new Set([
+  'trust_level',
+  'user_trust',
+  'avatar_trust',
+  'mood',
+  'sentiment',
+  'emotional_state',
+  'rapport_state',
+  'engagement_level',
+  'conversation_pacing',
+  'pacing',
+  'progression_state',
+  'progression',
+])
 const WORKING_MEMORY_RECENT_MESSAGE_LIMIT = 10
+const WORKING_MEMORY_SUMMARY_MAX_LENGTH = 700
+const WORKING_MEMORY_THREAD_LIMIT = 6
+const WORKING_MEMORY_THREAD_MAX_LENGTH = 160
+const WORKING_MEMORY_COVERED_TOPIC_LIMIT = 8
+const WORKING_MEMORY_COVERED_TOPIC_MAX_LENGTH = 80
+const WORKING_MEMORY_FACT_LIMIT = 8
+const WORKING_MEMORY_FACT_KEY_MAX_LENGTH = 48
+const WORKING_MEMORY_FACT_VALUE_MAX_LENGTH = 160
 
 export class MemoryMaintenanceService implements IMemoryMaintenancePort {
   private readonly pendingRefreshes = new Map<string, Promise<void>>()
@@ -267,25 +304,16 @@ function buildCompactionInput(
   const parts: string[] = []
 
   if (priorMemory !== null) {
-    parts.push('--- PRIOR MEMORY ---')
+    parts.push('## PRIOR WORKING MEMORY')
     parts.push(`Summary: ${priorMemory.summary}`)
-    if (priorMemory.unresolvedThreads.length > 0) {
-      parts.push(`Unresolved threads: ${priorMemory.unresolvedThreads.join('; ')}`)
-    }
-    if (priorMemory.coveredTopics.length > 0) {
-      parts.push(`Covered topics: ${priorMemory.coveredTopics.join('; ')}`)
-    }
-    if (priorMemory.candidateFacts.length > 0) {
-      const facts = priorMemory.candidateFacts
-        .map((f) => `  [${f.category}] ${f.key}: ${f.value}`)
-        .join('\n')
-      parts.push(`Known facts:\n${facts}`)
-    }
+    parts.push(...renderPromptList('Covered topics', priorMemory.coveredTopics))
+    parts.push(...renderPromptList('Unresolved threads', priorMemory.unresolvedThreads))
+    parts.push(...renderPromptFacts(priorMemory.candidateFacts))
     parts.push('')
   }
 
-  parts.push('--- RECENT EXCHANGES ---')
-  parts.push(messages.map((m) => `${m.role}: ${m.content.trim()}`).join('\n'))
+  parts.push('## RECENT EXCHANGES TO INTEGRATE')
+  parts.push(...renderPromptMessages(messages))
 
   return parts.join('\n')
 }
@@ -302,17 +330,23 @@ function parseCompactionOutput(
   }
   if (!isRecord(parsed)) return null
 
-  const summary = readString(parsed['summary'])
+  const summary = readNormalizedString(parsed['summary'], WORKING_MEMORY_SUMMARY_MAX_LENGTH)
   if (summary === null) return null
 
-  const unresolvedThreads = readStringArray(parsed['unresolvedThreads']).slice(0, 6)
+  const unresolvedThreads = readStringArray(parsed['unresolvedThreads'], {
+    maxItems: WORKING_MEMORY_THREAD_LIMIT,
+    maxLength: WORKING_MEMORY_THREAD_MAX_LENGTH,
+  })
   const coveredTopics = Object.hasOwn(parsed, 'coveredTopics')
-    ? readStringArray(parsed['coveredTopics']).slice(0, 8)
+    ? readStringArray(parsed['coveredTopics'], {
+        maxItems: WORKING_MEMORY_COVERED_TOPIC_LIMIT,
+        maxLength: WORKING_MEMORY_COVERED_TOPIC_MAX_LENGTH,
+      })
     : (priorMemory?.coveredTopics ?? [])
-  const candidateFacts = readCandidateFacts(parsed['candidateFacts']).slice(0, 8)
+  const candidateFacts = readCandidateFacts(parsed['candidateFacts'])
 
   return {
-    summary: summary.length > 700 ? `${summary.slice(0, 700)}...` : summary,
+    summary,
     unresolvedThreads,
     coveredTopics,
     candidateFacts,
@@ -323,31 +357,99 @@ function readCandidateFacts(value: unknown): MemoryFactRecord[] {
   if (!Array.isArray(value)) return []
 
   const facts: MemoryFactRecord[] = []
+  const seen = new Set<string>()
   for (const item of value) {
-    if (!isRecord(item)) continue
-    const category = readString(item['category'])
-    const key = readString(item['key'])
-    const factValue = readString(item['value'])
-    if (category === null || key === null || factValue === null) continue
-    if (!ALLOWED_FACT_CATEGORIES.has(category)) continue
-    facts.push({ category, key, value: factValue })
+    const fact = toCandidateFact(item)
+    if (fact === null) continue
+    const dedupeKey = `${fact.category}::${fact.key}::${fact.value}`
+    if (seen.has(dedupeKey)) continue
+    seen.add(dedupeKey)
+    facts.push(fact)
+    if (facts.length >= WORKING_MEMORY_FACT_LIMIT) break
   }
   return facts
 }
 
-function readStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value.map(readString).filter((item): item is string => item !== null)
+function toCandidateFact(value: unknown): MemoryFactRecord | null {
+  if (!isRecord(value)) return null
+  const category = readNormalizedString(value['category'], 32)
+  const key = readFactKey(value['key'])
+  const factValue = readNormalizedString(value['value'], WORKING_MEMORY_FACT_VALUE_MAX_LENGTH)
+  if (category === null || key === null || factValue === null) return null
+  if (!ALLOWED_FACT_CATEGORIES.has(category)) return null
+  if (REJECTED_FACT_KEYS.has(key)) return null
+  return { category, key, value: factValue }
 }
 
-function readString(value: unknown): string | null {
+function readStringArray(
+  value: unknown,
+  options: { maxItems: number; maxLength: number },
+): string[] {
+  if (!Array.isArray(value)) return []
+  const items: string[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    const normalized = readNormalizedString(entry, options.maxLength)
+    if (normalized === null || seen.has(normalized)) continue
+    seen.add(normalized)
+    items.push(normalized)
+    if (items.length >= options.maxItems) break
+  }
+
+  return items
+}
+
+function readFactKey(value: unknown): string | null {
+  const normalized = readNormalizedString(value, WORKING_MEMORY_FACT_KEY_MAX_LENGTH)
+  if (normalized === null) return null
+  return /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(normalized) ? normalized : null
+}
+
+function readNormalizedString(value: unknown, maxLength: number): string | null {
   if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  return trimmed.length === 0 ? null : trimmed
+  const compacted = value.replace(/\s+/g, ' ').trim()
+  if (compacted.length === 0) return null
+  return truncateText(compacted, maxLength)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function truncateText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value
+  if (maxLength <= 3) return value.slice(0, maxLength)
+  return `${value.slice(0, maxLength - 3)}...`
+}
+
+function renderPromptList(label: string, items: string[]): string[] {
+  if (items.length === 0) {
+    return [`${label}: none`]
+  }
+  return [label + ':', ...items.map((item) => `- ${item}`)]
+}
+
+function renderPromptFacts(facts: MemoryFactRecord[]): string[] {
+  if (facts.length === 0) {
+    return ['Candidate facts: none']
+  }
+  return [
+    'Candidate facts:',
+    ...facts.map((fact) => `- [${fact.category}] ${fact.key}: ${fact.value}`),
+  ]
+}
+
+function renderPromptMessages(
+  messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
+): string[] {
+  if (messages.length === 0) {
+    return ['[none]']
+  }
+  return messages.map(
+    (message, index) =>
+      `${String(index + 1)}. ${message.role.toUpperCase()}: ${message.content.replace(/\s+/g, ' ').trim()}`,
+  )
 }
 
 function stripMarkdownFences(content: string): string {

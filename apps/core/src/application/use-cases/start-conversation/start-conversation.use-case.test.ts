@@ -118,7 +118,7 @@ function makeUseCaseWithPipeline(
   memoryMaintenance: { execute: ReturnType<typeof vi.fn> },
 ): StartConversationUseCase {
   const hydrate = vi.fn().mockResolvedValue({
-    hydration: { summary: '', unresolvedThreads: [], candidateFacts: [] },
+    hydration: { summary: '', coveredTopics: [], unresolvedThreads: [], candidateFacts: [] },
     selectedConversationIds: [],
     consideredConversationIds: [],
   })
@@ -220,6 +220,7 @@ describe('StartConversationUseCase', () => {
     const hydrateForNewConversationWithMetadata = vi.fn().mockResolvedValue({
       hydration: {
         summary: 'Hydrated summary',
+        coveredTopics: ['benchmark_scope'],
         unresolvedThreads: ['Need benchmark'],
         candidateFacts: [{ category: 'conversation_signal', key: 'k1', value: 'Need benchmark' }],
       },

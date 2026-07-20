@@ -133,6 +133,7 @@ beforeEach(() => {
   hydrateForNewConversationWithMetadataMock.mockResolvedValue({
     hydration: {
       summary: 'Hydrated memory for avatar_2',
+      coveredTopics: ['ai_bias_intro'],
       unresolvedThreads: ['follow_up'],
       candidateFacts: [{ category: 'context', key: 'topic', value: 'ai_bias' }],
     },
@@ -276,6 +277,7 @@ describe('SwitchAvatarUseCase episodic continuity', () => {
       sessionId: 'session_1',
       avatarId: 'avatar_2',
       summary: 'Hydrated memory for avatar_2',
+      coveredTopics: ['ai_bias_intro'],
       unresolvedThreads: ['follow_up'],
       candidateFacts: [{ category: 'context', key: 'topic', value: 'ai_bias' }],
     })

@@ -1105,6 +1105,24 @@ Started on: 2026-07-20
   - updated `docs/DATA_MODEL.md` to document `conversation_working_memories.covered_topics`
   - reviewed `docs/API_CONTRACT.md`, `docs/TEST_STRATEGY.md`, and `docs/TEST_COVERAGE_PLAN.md`; their current statements remain accurate because no public route shape or test-tier policy changed
 
+### Current slice completed (compaction prompt and normalization refinement)
+
+- refined the working-memory compaction system prompt so it now explicitly asks for higher-quality merged summaries, factual `coveredTopics`, active-only `unresolvedThreads`, and objective candidate facts
+- tightened compaction input rendering to present prior working memory and recent exchanges in a clearer deterministic structure before LLM normalization
+- extended compaction output normalization to accept bounded `coveredTopics` directly, while preserving prior values only when older outputs omit the field entirely
+- hardened normalization rules for all compacted working-memory lists:
+  - trims and compacts whitespace
+  - deduplicates exact duplicate topics, threads, and fact triples
+  - truncates oversized summary, topic, thread, and fact-value text to bounded lengths
+  - rejects blank strings, malformed fact objects, non-snake-case fact keys, unknown fact categories, and inferred conversational-state fact keys such as trust, mood, pacing, or progression
+- added deterministic unit coverage for:
+  - prompt contract content and compaction input rendering
+  - accepted `coveredTopics` output
+  - truncation and deduplication behavior
+  - malformed fact rejection
+  - resolved-thread disappearance across later refreshes while active loose ends persist
+- reviewed `docs/GAME_MASTER_CONTRACT.md` and `docs/TEST_STRATEGY.md`; both remain accurate for this slice because the GM runtime contract and test-tier policy did not change
+
 ---
 
 ## Sessions & Conversations
