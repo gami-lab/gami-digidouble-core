@@ -1055,7 +1055,7 @@ Started on: 2026-07-20
 - focused verification completed for this slice:
   - `pnpm --filter @gami/core test -- --run src/domain/game-master/gm-input-renderer.test.ts src/domain/game-master/gm-prompt.service.test.ts src/domain/game-master/gm-state-reducer.test.ts`
   - `pnpm --filter @gami/core test -- --run src/application/use-cases/run-game-master/run-game-master.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.memory-input.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.typed-retrieval.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-unlocks.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-switch.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.model-resolution.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.defensive.use-case.test.ts`
-  - attempted `pnpm --filter @gami/core typecheck`; currently blocked by pre-existing nullability errors in `apps/core/src/application/use-cases/get-session-context/get-session-context.use-case.ts`
+  - `pnpm --filter @gami/core typecheck` now passes; the previous `get-session-context.use-case.ts` nullability blocker has been resolved
 - docs reviewed and updated as part of the slice:
   - updated `docs/GAME_MASTER_CONTRACT.md` to record both the structured static prompt boundary and the structured dynamic-input rendering boundary
   - updated `docs/TEST_COVERAGE_PLAN.md` to make dynamic renderer section-order and omission coverage explicit for the GM module

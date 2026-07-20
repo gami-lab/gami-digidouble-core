@@ -181,4 +181,18 @@ describe('GetSessionContextUseCase', () => {
       code: 'NOT_FOUND',
     } satisfies Partial<DomainError>)
   })
+
+  it('throws not found when runtime context is incomplete', async () => {
+    const useCase = new GetSessionContextUseCase(
+      new InMemorySessionRepository([makeSession()]),
+      new InMemoryConversationRepository([makeConversation()]),
+      new InMemoryAvatarRepository([]),
+      new InMemoryScenarioRepository([makeScenario()]),
+      new InMemoryMessageRepository(makeMessages()),
+    )
+
+    await expect(useCase.execute({ sessionId: 'session_1' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    } satisfies Partial<DomainError>)
+  })
 })

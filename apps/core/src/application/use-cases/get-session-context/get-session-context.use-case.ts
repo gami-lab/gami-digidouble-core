@@ -23,6 +23,12 @@ import type {
 
 const DEFAULT_CONTEXT_ENGINE = new ContextEngine()
 
+type RuntimeData = Awaited<ReturnType<GetSessionContextUseCase['loadRuntimeData']>>
+type CompleteRuntimeData = RuntimeData & {
+  avatar: NonNullable<RuntimeData['avatar']>
+  scenario: NonNullable<RuntimeData['scenario']>
+}
+
 export class GetSessionContextUseCase {
   constructor(
     private readonly sessionRepository: ISessionRepository,
@@ -47,7 +53,11 @@ export class GetSessionContextUseCase {
       )
     }
 
-    const assembled = this.assembleContext(session, runtimeData)
+    const assembled = this.assembleContext(session, {
+      ...runtimeData,
+      avatar: runtimeData.avatar,
+      scenario: runtimeData.scenario,
+    })
 
     return {
       sessionId: session.sessionId,
@@ -93,10 +103,7 @@ export class GetSessionContextUseCase {
     }
   }
 
-  private assembleContext(
-    session: Session,
-    runtimeData: Awaited<ReturnType<GetSessionContextUseCase['loadRuntimeData']>>,
-  ) {
+  private assembleContext(session: Session, runtimeData: CompleteRuntimeData) {
     const recentExchanges = selectExchangeWindow(
       runtimeData.messages,
       runtimeData.workingMemory?.updatedAt,
