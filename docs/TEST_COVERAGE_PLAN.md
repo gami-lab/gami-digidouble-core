@@ -125,6 +125,7 @@ Must test:
 - init mode output
 - background post-turn output
 - every-turn GM invocation
+- static GM system prompt section order and validation-critical instructions
 - state reducer logic
 - duplicate topic handling
 - progression update rules

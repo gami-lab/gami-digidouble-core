@@ -1021,7 +1021,7 @@ Completed on: 2026-07-20
 Status: 🚧 In progress
 Started on: 2026-07-20
 
-### Current slice completed (prompt contract ownership baseline)
+### Current slice completed (prompt contract baseline + structured static prompt)
 
 - audited the current Game Master prompt path end to end before any wording refinement: static prompt instructions, dynamic LLM input serialization, output parsing/normalization, event emission, runtime-inspector-safe projections, and GM-focused unit suites
 - made the canonical ownership split explicit for the high-fanout GM path:
@@ -1036,9 +1036,22 @@ Started on: 2026-07-20
   - no `GameMasterInput` field names, nullability, or meaning changed
   - no `GameMasterOutput` schema, GM state fields, unlock logic, transition behavior, or runtime event payload fields changed
   - dynamic GM input rendering is now explicitly an internal formatter, not a second runtime contract
+- refactored the canonical static GM system prompt in place instead of adding a second builder:
+  - `apps/core/src/domain/game-master/gm-prompt.service.ts` now renders stable `## Role`, `## Objectives`, `## Decision Policies`, and `## Output Contract` sections
+  - the prompt now states the GM boundary explicitly: it interprets the latest exchange, evaluates progress/state, decides progression or routing when warranted, provides compact avatar guidance, and never speaks directly to the user
+  - orchestration objectives are ordered for stability first, with explicit bias toward preserving the current avatar and conversation unless recent evidence supports change
+  - output-contract wording is shorter while preserving the validation-sensitive rules for `avatarId`, locked-avatar-only unlocks, `unlockDecisions`, `nextAvatarId`, `context.notes`, `interactionIncrement`, and empty-input session start guidance
+- added deterministic prompt-builder regression coverage:
+  - `apps/core/src/domain/game-master/gm-prompt.service.test.ts` now asserts section presence/order plus the contract-critical instructions that must remain explicit in the static prompt
+  - existing GM use-case and runtime-path unit suites remain green against the refined prompt wording
+- focused verification completed for this slice:
+  - `pnpm --filter @gami/core test -- --run src/domain/game-master/gm-prompt.service.test.ts src/domain/game-master/gm-state-reducer.test.ts`
+  - `pnpm --filter @gami/core test -- --run src/application/use-cases/run-game-master/run-game-master.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-switch.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-unlocks.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.memory-input.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.typed-retrieval.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.model-resolution.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.defensive.use-case.test.ts`
+  - attempted `pnpm --filter @gami/core typecheck`; currently blocked by pre-existing nullability errors in `apps/core/src/application/use-cases/get-session-context/get-session-context.use-case.ts`
 - docs reviewed and updated as part of the slice:
-  - updated `docs/GAME_MASTER_CONTRACT.md` to record prompt-contract ownership and the compatibility boundary for future EPIC 8.3 slices
-  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/TEST_COVERAGE_PLAN.md`; no changes were required because their current statements already match the implemented ownership and guard boundaries
+  - updated `docs/GAME_MASTER_CONTRACT.md` to record the structured static-prompt boundary and the invariant instructions future prompt edits must keep explicit
+  - updated `docs/TEST_COVERAGE_PLAN.md` to make prompt-structure and invariant-instruction coverage explicit for the GM module
+  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/EPICS.md`; their current statements still match the implemented ownership, orchestration, and EPIC-progress state, so no further edits were required
 
 ---
 
