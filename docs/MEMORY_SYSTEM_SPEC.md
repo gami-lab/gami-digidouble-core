@@ -1,486 +1,216 @@
-# MEMORY_SYSTEM_SPEC.md
+# Memory System Spec
 
 ## Purpose
 
-Define the expected behavior of the Avatar and Game Master memory system.
+Compact behavioral spec for memory in the Avatar and Game Master runtime.
 
-The goal is not only to store memory, but to make conversations feel:
+This spec defines:
 
-- continuous
-- coherent
-- bounded
-- inspectable
-- reusable across conversations
+- memory layers
+- refresh and compaction boundaries
+- retrieval rules
+- ownership rules
 
-This document defines the target memory behavior for:
+Persistence details live in `DATA_MODEL.md`.
+GM-specific usage rules live in `GAME_MASTER_CONTRACT.md`.
 
-- Avatar continuity
-- Game Master orchestration
-- Context assembly
-- Long-running conversations
-- Cross-conversation recall
+## Ownership Rules
 
-This specification complements:
+- Domain/internal memory contracts: `apps/core/src/domain/memory/memory.types.ts`
+- Shared HTTP/admin DTOs: `packages/shared/src/memory-contract-types.ts`
+- Compatibility mirrors such as `workingSummary` are summary-only mirrors of canonical working memory.
+- New working-memory fields must be added to the canonical owner first, then projected outward deliberately.
 
-- `ARCHITECTURE.md`
-- `DATA_MODEL.md`
-- `GAME_MASTER_CONTRACT.md`
-- `PRINCIPLES.md`
+## Core Model
 
-## Contract Ownership Map
+The runtime uses three memory layers:
 
-- Domain/internal memory contracts owner:
-  - `apps/core/src/domain/memory/memory.types.ts`
-- Shared HTTP/admin DTO contracts owner:
-  - `packages/shared/src/memory-contract-types.ts`
-  - composed by `packages/shared/src/lifecycle-types.ts` and `packages/shared/src/runtime-inspector-types.ts`
-- Compatibility mirrors:
-  - internal/runtime-inspector fields such as `workingSummary` are summary-only mirrors of the richer conversation working-memory object
-  - no new working-memory field may live only on a compatibility mirror; additive fields such as `coveredTopics` must be added first to the canonical owner, then projected outward where needed
-- Nullability rule:
-  - internal/domain optional fields use `undefined`
-  - explicit `null` is reserved for API contracts that intentionally require `null`
+1. short-term memory
+2. conversation working memory
+3. long-term episodic memory
 
----
+The system does not rely on replaying full transcript history by default.
 
-# 1. Core Mental Model
+## Memory Layers
 
-The memory system is based on three memory layers:
-
-1. Short-Term Memory
-2. Conversation Working Memory
-3. Long-Term Episodic Memory
-
-The system does NOT replay full transcript history by default.
-
-The memory system exists to:
-
-- preserve continuity
-- bound context size
-- improve orchestration quality
-- allow avatars to remember previous interactions
-- allow the Game Master to reason over previous interactions
-
-The memory system is inspired more by human memory behavior than by transcript archival.
-
----
-
-# 2. Design Principles
-
-- **Bounded context** — never replay full transcript history; context must remain bounded regardless of duration
-- **Memory is reconstructed** — compact and useful, not archival; minor inaccuracies are acceptable
-- **Async by default** — memory maintenance must not delay avatar responses
-- **Observability is mandatory** — memory decisions must be inspectable
-
-See `PRINCIPLES.md` for full engineering philosophy.
-
----
-
-# 3. Memory Layers
-
----
-
-## 3.1 Short-Term Memory
-
-Short-term memory contains the most recent verbatim exchanges.
+### Short-Term Memory
 
 Purpose:
 
 - immediate conversational continuity
-- references to recent messages
-- preserve conversational flow
+- “what was just said” context
 
-This memory is assembled directly from messages.
+Rules:
 
-It is NOT stored as a dedicated memory entity.
+- assembled directly from recent messages
+- not persisted as a dedicated memory entity
+- default window is the last 2 complete exchanges
+- must remain bounded
 
-Default policy:
+### Conversation Working Memory
 
-- keep last 2 complete exchanges
-- optionally allow 3 exchanges for experimentation/debugging
-- never inject full transcript history
+Purpose:
 
-Example:
+- compact understanding of the active conversation
+- current direction, unresolved threads, covered topics, candidate facts
 
-```text
-User: ...
-Avatar: ...
-User: ...
-Avatar: ...
-```
+Rules:
 
-Success condition:
+- scoped to one conversation
+- refreshed asynchronously during the discussion
+- rewritten, not blindly appended
+- persisted in `conversation_working_memories`
 
-- the Avatar correctly understands “what was just said”
-- immediate references work naturally
-- context remains bounded
+Canonical working-memory content:
 
----
+- `summary`
+- `unresolvedThreads`
+- `coveredTopics`
+- `candidateFacts`
 
-## 3.2 Conversation Working Memory
+Default refresh triggers:
 
-Conversation working memory is the evolving summary of the CURRENT active conversation.
+- periodic post-turn refresh
+- conversation close
+- avatar switch
+- explicit admin trigger
 
-It answers:
+Quality rules:
 
-- what has happened so far?
-- what important information was exchanged?
-- what is the current direction of the discussion?
-- what unresolved threads still exist?
-- what topics have already been covered?
-- what should not be repeated?
+- summary merges prior memory with newly integrated exchanges
+- `coveredTopics` stores discussed subjects, not inferred orchestration state
+- `unresolvedThreads` keeps only active loose ends
+- candidate facts remain factual and persistent
+- inferred mood, trust, pacing, or progression do not become memory facts
 
-This memory belongs to one conversation.
+### Long-Term Episodic Memory
 
-Since a conversation is attached to one avatar, this memory is naturally avatar-scoped.
+Purpose:
 
-There is no separate “avatar working memory” layer.
+- cross-conversation continuity for one `user + avatar + scenario`
 
-The conversation working memory is updated asynchronously during the discussion.
+Rules:
 
-Default refresh policy:
+- created from closed conversations
+- stored in `conversation_memories`
+- retrieved as compact prior episodes, not transcript replay
+- minor summarization imprecision is acceptable
 
-- refresh every 3 exchanges
-- refresh on conversation close
-- refresh on avatar switch
-- refresh on explicit admin trigger
+Typical content:
 
-Refresh input:
-
-- previous working memory
-- recent verbatim exchanges
-- conversation metadata
-- avatar identity
-- scenario information
-
-Refresh output:
-
-- rewritten bounded summary
-- bounded covered topics carried as first-class working-memory state
-- extracted objective candidate user facts
-- optional candidate long-term episodic memory
-
-The memory must be rewritten, not blindly appended.
-
-Compaction quality rules:
-
-- summaries merge prior memory with newly integrated exchanges, remove repetition, and keep the latest superseding detail
-- `coveredTopics` records explored subjects already discussed, not unresolved next steps
-- `unresolvedThreads` keeps only active loose ends and should drop clearly resolved items on later refreshes
-- `candidateFacts` stays factual and persistent; inferred mood, trust, pacing, progression, or similar conversational interpretation must not be stored as memory facts
-
-The goal is bounded continuity regardless of conversation duration.
-
-Success condition:
-
-- after 30+ turns, the Avatar still understands the discussion
-- the system does not require full transcript replay
-- repeated information is compacted naturally
-
----
-
-## 3.3 Long-Term Episodic Memory
-
-Long-term memory represents completed previous interactions between:
-
-- one user
-- one avatar
-- one scenario
-
-This is episodic memory.
-
-It is NOT a generic fact database.
-
-Each completed conversation generates one long-term memory.
-
-This memory contains:
-
-- discussion summary
-- important discoveries
-- important explanations
+- summary
+- key discoveries
 - unresolved topics
-- emotional or relational continuity when relevant
-- extracted user facts
+- fact candidates
 
-Long-term memory is immutable during normal operation.
+## Conversation Lifecycle
 
-It represents:
+### During Conversation
 
-> what the avatar remembers from previous encounters
+- short-term memory evolves from recent exchanges
+- working memory is refreshed periodically
+- user fact candidates may be proposed
+- GM can observe current memory state
 
-Minor inconsistencies are acceptable and natural.
+### Conversation Close
 
-Long-term memory scope is:
+- final working-memory refresh runs
+- episodic memory is produced
+- structured user facts may be persisted
+- active conversation working state can be discarded
 
-- user + avatar + scenario
+### Starting A New Conversation
 
-Success condition:
+- prior episodic memories are selected
+- relevant memories are synthesized into bounded context
+- a new conversation working-memory record is established
+- Avatar starts with compact recall, not old transcript replay
 
-- the Avatar naturally remembers previous discussions
-- continuity exists across separate conversations
-- conversations feel persistent over time
+## Retrieval Rules
 
----
-
-# 4. Conversation Lifecycle
-
----
-
-## 4.1 During Conversation
-
-As the discussion progresses:
-
-1. short-term memory evolves naturally from recent exchanges
-2. conversation working memory is periodically refreshed
-3. extracted user facts may be proposed
-4. Game Master can observe the evolving memory state
-
-The full transcript should never become required context.
-
----
-
-## 4.2 Conversation Close
-
-When a conversation ends:
-
-1. final working memory refresh runs
-2. a long-term episodic memory is generated
-3. extracted user facts are persisted
-4. temporary working state may be discarded
-
-Each closed conversation produces exactly one episodic memory.
-
----
-
-## 4.3 Starting a New Conversation
-
-When a new conversation starts:
-
-1. previous long-term memories are fetched
-2. relevant memories are selected
-3. selected memories are synthesized
-4. an initial conversation working memory is created
-5. the Avatar starts already remembering previous interactions
-
-The Avatar does NOT receive raw previous transcripts.
-
-The Avatar receives a compact reconstructed memory.
-
-Success condition:
-
-- the first answer can naturally reference previous interactions when relevant
-
----
-
-# 5. Long-Term Memory Retrieval
-
-There is no strict hard limit on memory retrieval.
-
-Typical expected usage:
-
-- fewer than 10 interactions per avatar
-
-Implementation may still apply bounded retrieval windows for performance reasons.
-
-The system should prioritize:
+Selection should favor:
 
 - relevance
 - recency
 - continuity
 - unresolved topics
 
-The system should avoid:
+Selection should avoid:
 
 - duplicate memories
 - repetitive retrieval
-- irrelevant old discussions
+- irrelevant old episodes
 
----
+Hard requirement:
 
-# 6. User Facts
+- memory retrieval remains bounded even if the total number of prior conversations grows
 
-User facts are extracted from long-term episodic memories.
+## User Facts
 
-Facts are NOT extracted directly from raw transcripts.
+Purpose:
 
-This ensures:
+- stable structured cross-session memory
 
-- better signal quality
-- reduced noise
-- more stable memory evolution
+Rules:
 
-Examples:
+- facts are extracted from compacted memory outputs, not directly from raw transcripts
+- facts should represent stable preferences, expertise, goals, or recurring interests
+- greetings, fleeting conversational details, and unstable reactions are poor fact candidates
 
-Good user facts:
+## Game Master Access
 
-- preferred learning style
-- known expertise
-- long-term goals
-- stable preferences
-- recurring interests
+- GM can consume structured memory across layers.
+- GM does not replay full transcripts.
+- GM uses memory to avoid repetition, pace progression, unlock avatars, and improve routing decisions.
 
-Bad user facts:
+## Observability
 
-- greetings
-- temporary conversational details
-- irrelevant small talk
-- unstable emotional reactions
+Memory decisions must be inspectable.
 
----
+Important observable outputs:
 
-# 7. Game Master Access
+- selected memory layers
+- memory selection reasons
+- refresh trigger type
+- kept vs trimmed behavior where exposed
+- safe admin/runtime snapshots of working memory
 
-The Game Master can access all long-term memories.
+Observability must stay safe:
 
-The GM uses memory to:
+- no secrets
+- no raw prompt dumps
+- no unbounded transcript payloads
 
-- avoid repetition
-- unlock avatars
-- suggest avatar switches
-- understand progression
-- understand previous interactions
-- adapt pacing
-- adapt orchestration
+## Refresh Contract
 
-The GM receives memory as structured context.
-
-The GM does NOT replay full transcripts.
-
----
-
-## 7.1 Memory Selection Observability
-
-Memory selection decisions must be observable.
-
-The system should record:
-
-- what memories were selected
-- why they were selected
-- how they influenced GM reasoning
-- how they influenced avatar context assembly
-- typed retrieval inputs may be avatar-scoped; non-visible knowledge is excluded before avatar context assembly with bounded exclusion counts in context traces
-
-This becomes part of GM observability.
-
----
-
-# 8. Hydration Behavior
-
-Hydration starts immediately when a conversation is created.
-
-The ideal behavior is:
-
-1. create conversation
-2. hydrate memory
-3. assemble context
-4. Avatar answers
-
-If the user sends a message before hydration completes:
-
-- the additional delay is considered acceptable startup latency
-
-Correct memory continuity is more important than ultra-low startup latency.
-
----
-
-# 9. Memory Refresh Contract
-
-Memory refresh must be explicit and structured.
-
----
-
-## 9.1 Refresh Trigger Types
-
-Possible triggers:
+Trigger types used by the runtime:
 
 - `post_turn`
 - `conversation_closed`
 - `avatar_switch`
-- `manual_admin`
+- `admin_trigger`
 
----
+Refresh inputs conceptually include:
 
-## 9.2 Refresh Input
+- session and conversation identity
+- active avatar
+- previous working memory
+- recent exchanges
+- selected episodic memories when relevant
 
-```ts
-type MemoryRefreshInput = {
-  trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'manual_admin'
+Refresh outputs conceptually include:
 
-  sessionId: string
-  conversationId: string
-  avatarId: string
+- updated working memory
+- candidate episodic memory
+- extracted facts
+- optional diagnostic change metadata
 
-  previousWorkingMemory?: string
+All persisted outputs must be normalized and validated before storage.
 
-  recentExchanges: Array<{
-    user: string
-    avatar: string
-  }>
+## Non-Goals
 
-  longTermMemories?: Array<{
-    memoryId: string
-    summary: string
-  }>
-}
-```
-
----
-
-## 9.3 Refresh Output
-
-```ts
-type MemoryRefreshOutput = {
-  workingMemory: string
-
-  candidateLongTermMemory?: {
-    summary: string
-  }
-
-  extractedFacts?: Array<{
-    category: string
-    key: string
-    value: string
-  }>
-
-  changedSincePrevious?: string[]
-
-  droppedInformation?: string[]
-
-  warnings?: string[]
-}
-```
-
-All outputs must be schema validated.
-
-No raw free-form LLM output enters persistence directly.
-
----
-
-# 10. Entity Definitions
-
-Memory entity schema belongs in `DATA_MODEL.md`.
-
-Key entities:
-
-| Entity                          | Purpose                                                                                                          |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `conversation_working_memories` | active conversation-scoped working memory (`summary`, `unresolved_threads`, `covered_topics`, `candidate_facts`) |
-| `conversation_memories`         | long-term episodic memory per closed conversation                                                                |
-| `user_memory_facts`             | stable extracted user facts                                                                                      |
-| `avatar_session_memories`       | avatar-scoped session memory                                                                                     |
-
-The distinction between `user_memory_facts` (stable structured facts) and `conversation_memories` (episodic memory of previous interactions) is intentional — they serve different retrieval purposes.
-
----
-
-# 11. Non-Goals
-
-This version does NOT attempt:
-
-- perfect memory fidelity
-- emotional simulation
+- perfect transcript fidelity
 - infinite recall
+- emotional simulation as memory state
 - vector-only memory architecture
-- memory quality scoring inside runtime orchestration
-
-Coverage expectations and acceptance scenarios are in `TEST_COVERAGE_PLAN.md`.
+- letting memory replace Game Master orchestration logic

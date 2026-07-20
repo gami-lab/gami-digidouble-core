@@ -1,766 +1,120 @@
-# TECH_STACK.md
+# Tech Stack
 
 ## Purpose
 
-Define the technical stack for the MVP Core, starting with **Phase A** and making explicit what is already decided versus what still needs validation.
+Compact record of the technologies and constraints currently used by the Phase A core.
 
-This is a working document — decisions can evolve, but the current direction is now much clearer.
-
----
+For architecture boundaries, read `ARCHITECTURE.md`.
+For product principles, read `PRINCIPLES.md`.
 
 ## Core Constraints
 
-- Language: **TypeScript only**
-- Team: **2–3 devs**
-- Priority: **speed of iteration > performance > completeness**
-- Architecture: **modular monolith**
-- Principle: **we own the architecture, not a framework**
-- MVP target: **Scenario A = API + back-office first**
-- Core style: **headless, API-first, self-hostable**
+- Runtime language: TypeScript only
+- Runtime architecture: modular monolith
+- Priority order: learning speed -> correctness -> performance
+- Core product shape: headless, API-first, self-hostable
+- Orchestration ownership stays in product code, not in an external framework
 
----
+## Locked Stack
 
-## 1. Runtime & Backend
+### Runtime And Tooling
 
-### Choice
+- Node.js LTS
+- TypeScript in strict mode
+- pnpm workspaces
+- Turborepo
+- ESLint + `typescript-eslint`
+- Prettier
+- `simple-git-hooks` + `lint-staged`
+- GitHub Actions for format, lint, typecheck, and test gates
 
-- **Node.js (LTS)**
-- **TypeScript (strict)**
+### API And Backend
 
-### Why
+- Fastify for HTTP
+- SSE for runtime event streaming
+- REST-style JSON contracts under `/v1`
+- API-key auth for Phase A
 
-- aligned with team constraints and roadmap
-- one language across core and back-office
-- fast enough for MVP while keeping iteration simple
+### Persistence And Infra
 
-### Validation
+- PostgreSQL as primary datastore
+- pgvector for embeddings
+- Redis for cache and runtime coordination
+- Docker Compose for local infrastructure
 
-- async performance on conversational flows
-- stability under long-running sessions
-- support for streaming and background tasks
+### LLM Layer
 
----
+- Direct provider SDKs behind an internal wrapper
+- Provider/model selection resolved by runtime role
+- Current provider set supported in contracts: OpenAI, Anthropic, Mistral, xAI
 
-## 2. Monorepo & Tooling
+### Knowledge And Retrieval
 
-### Choice
+- In-house ingestion and typed retrieval pipeline
+- Knowledge types: `memory`, `world`, `media`
+- Retrieval is one bounded context source, not the architecture itself
 
-- **pnpm** — workspace package manager
-- **Turborepo** — task orchestration (build, lint, typecheck, test, format)
+### Observability
 
-### Why
+- Langfuse behind an internal observability abstraction for LLM traces
+- Fastify/Pino-style structured logs for application/runtime operations
+- Event-log persistence plus admin inspection routes for runtime diagnostics
 
-- aligned with team constraints and roadmap
-- supports a clean separation between core modules, back-office, shared types, and tooling
-- good fit for a small TS-only team
+### User-Facing Apps
 
-### Validation
+- `apps/console`: operator/debug UI
+- `apps/admin`: scenario-builder/admin UI
+- `apps/web`: public player-facing UI
+- Frontend stack: React + Vite + strict TypeScript
 
-- dev ergonomics
-- simple local setup
-- CI friendliness
+### Testing
 
----
+- Vitest-based package test suites
+- Unit, integration, e2e, and stack-e2e tiers
+- Contract-first testing for API/admin/runtime surfaces
 
-## 2b. Developer Quality Tooling
+## Non-Negotiable Technical Rules
 
-### Choice
+- All LLM calls go through the internal wrapper.
+- Domain and application code do not call provider SDKs directly.
+- No LangChain or LangGraph as architectural control layers in Phase A.
+- No dedicated vector database before pgvector proves insufficient.
+- No microservice split for the Phase A core.
+- No frontend assumptions inside core business logic.
 
-- **ESLint 9** with `typescript-eslint` `strictTypeChecked` preset
-- **Prettier 3** for consistent formatting
-- **simple-git-hooks** + **lint-staged** for pre-commit enforcement
-- **GitHub Actions** CI: format check → lint → typecheck → test on every push/PR
+## Runtime Patterns In Use
 
-### Code Quality Rules Enforced
+### Conversation Runtime
 
-- `complexity` ≤ 10 (cyclomatic)
-- `max-lines` ≤ 300 per file (excluding blanks and comments)
-- `max-lines-per-function` ≤ 50 (excluding blanks and comments)
-- `no-floating-promises` — all async calls must be awaited or handled
-- `explicit-module-boundary-types` — all exported functions must declare return types
+- Avatar responds directly to the user.
+- Game Master runs asynchronously after completed avatar turns.
+- Memory maintenance is asynchronous whenever possible.
+- Runtime state changes are exposed through SSE and admin inspection routes.
 
-### Why
+### Model Resolution
 
-- small team benefits from hard guardrails over convention
-- pre-commit hooks catch issues before CI
-- enforced rules prevent complexity from accumulating silently
+- Avatar role can be overridden per avatar and per scenario.
+- Game Master can be overridden per scenario.
+- Memory role uses global role override or global default.
+- Allowed provider/model pairs are owned centrally in shared contract/catalog code.
 
----
+### Retrieval And Context
 
-## Front-end (Manual Test Console)
+- Retrieval is typed and bounded.
+- Avatar retrieval may be visibility-filtered by active avatar.
+- Game Master retrieval remains unrestricted for orchestration.
+- Context assembly is deterministic and traceable.
 
-| Concern   | Choice                         | Notes                         |
-| --------- | ------------------------------ | ----------------------------- |
-| Framework | React 18                       | Via Vite template             |
-| Bundler   | Vite                           | Dev server + production build |
-| Language  | TypeScript (strict mode)       | Same tsconfig conventions     |
-| Styling   | Inline styles / CSS modules    | No external CSS framework     |
-| Env vars  | `VITE_API_URL`, `VITE_API_KEY` | Injected at dev time          |
+## Deferred Or Out Of Scope
 
----
-
-## 3. API Layer
-
-### Choice
-
-- **Fastify**
-
-### Why
-
-- lightweight
-- fast
-- strong TypeScript support
-- good fit for REST + SSE in a headless core
-
-### Scope
-
-The API layer is the single entry point to the Core.
-
-Expected early responsibilities:
-
-- session start
-- send message
-- history retrieval
-- state/debug endpoints
-- metrics/debug endpoints
-
-### Validation
-
-- request overhead
-- SSE support
-- clean contract design
-- local DX for fast iteration
-
----
-
-## 4. Orchestration (Core Engine)
-
-### Choice
-
-- **Custom orchestration (from scratch)**
-
-### Components
-
-We implement:
-
-- **Game Master**
-- **Avatar Agent**
-- **Context Manager**
-- **Memory / State update flow**
-- **Policy config layer** (editable scenario goals, pacing, transitions, constraints)
-
-### Rule
-
-External frameworks must **not** control:
-
-- state
-- flow
-- decision logic
-- orchestration semantics
-
-### Why
-
-The roadmap and core architecture now clearly favor:
-
-- an **async Director–Actor model**
-- explicit control over orchestration
-- modular A/B-testable architecture
-- no heavy LLM framework in the MVP
-
-### Alternative (later only)
-
-- **LangGraph**, only if the graph/state complexity genuinely justifies it in Phase B or later
-
-### Validation
-
-- can model async GM triggers cleanly
-- remains debuggable
-- supports headless evolution toward nodes / multi-scenarios later
-- supports deterministic policy decisions without prompt-only logic
-
----
-
-## 5. Conversation Architecture
-
-### Choice
-
-- **Async Director–Actor pattern**
-  - **Avatar** answers directly in most exchanges
-  - **Game Master** observes and intervenes asynchronously by triggers
-  - **Context Manager** assembles the 3 context dimensions
-  - **State update / memory save** should not block response when avoidable
-
-### Why
-
-This is now one of the strongest architectural decisions in the roadmap:
-
-- lower perceived latency
-- clearer role separation
-- better fit for experience orchestration than a single merged agent
-
-### Validation
-
-- Avatar-only latency remains acceptable
-- GM triggers improve quality without harming responsiveness
-- async behavior remains understandable in code and logs
-
----
-
-## 6. LLM Layer (CRITICAL)
-
-### Choice
-
-- **Direct provider SDKs by default**
-- **thin internal wrapper is mandatory**
-
-### Wrapper Responsibilities
-
-- provider abstraction
-- model selection by role
-- catalog-backed validation for operator-selected provider/model pairs
-- retries / timeouts
-- fallback strategy
-- JSON enforcement for structured calls
-- observability hooks
-- cost / token accounting
-- streaming abstraction
-
-### Rule
-
-- Wrapper is mandatory
-- SDKs are replaceable
-- allowed runtime model selections are owned centrally in shared contracts/catalog code, not duplicated in UI or business logic
-- architecture must never depend on LangChain, LangGraph, or another framework abstraction
-
-### Why
-
-The updated roadmap explicitly reinforces **systematic wrappers** for LLM, logging, and storage.
-
-### Validation
-
-- switch provider with config-level changes
-- structured output reliability for GM
-- robust timeout / fallback handling
-- streaming works consistently across providers
-
----
-
-## 7. LLM Providers (Initial)
-
-### Setup
-
-Use **LLM by role**:
-
-- **Avatar** → conversation model
-- **Game Master** → fast reasoning / orchestration model
-- **Quality agent** (later) → background evaluation model
-
-### Initial candidates
-
-- **OpenAI**
-  - GPT-4o-mini for frugal development baseline
-  - GPT-4o / stronger model when quality demands it
-- **Anthropic**
-  - Claude Sonnet as comparison / fallback
-- **Mistral**
-  - optional European/open alternative
-- aggregator/proxy support later if useful:
-  - **OpenRouter**
-  - **Featherless**
-- local/self-hosted SLM later if justified
-
-### Why
-
-The roadmap explicitly recommends:
-
-- **frugal models for development**
-- **role-based model allocation**
-- provider comparison as part of validation
-
-### Validation
-
-- latency per role
-- cost per interaction
-- in-character quality
-- GM structured reliability
-- provider swap readiness
-
----
-
-## 8. Persistence
-
-### Choice
-
-- **PostgreSQL**
-- **pgvector**
-
-### Rule
-
-- single datastore for MVP
-- no dedicated vector DB in Phase A
-
-### Why
-
-This is now a confirmed architecture decision:
-
-- one relational + vector store
-- lower operational complexity
-- enough for MVP volumes
-
-### Scope
-
-Store:
-
-- users
-- sessions
-- exchanges
-- user memory
-- avatar state
-- scenario config references
-- embeddings / retrieval metadata
-
-### Validation
-
-- retrieval latency
-- schema simplicity
-- migration path if vector needs outgrow pgvector later
-
----
-
-## 9. Cache / Session / Event Layer
-
-### Choice
-
-- **Redis**
-- **ioredis** client in Core infrastructure (`apps/core/src/infrastructure/cache/index.ts`)
-
-### Usage
-
-- session cache
-- context prefetch / hot data
-- pub/sub for async internal events
-- optional coordination for background workers
-
-### Why
-
-Redis is explicitly part of the 3-container MVP architecture.
-
-### Validation
-
-- measurable latency improvement
-- simple operational model
-- no accidental architecture drift toward distributed complexity
-
----
-
-## 10. Context / RAG
-
-### Choice
-
-- **Simple in-house RAG pipeline**
-
-### Components
-
-- ingestion
-- chunking
-- embeddings
-- retrieval
-- retrieval filtering based on current context
-- compacted injection into GM / Avatar flow
-
-### Inputs
-
-- PDF
-- markdown
-- text
-- media metadata / descriptions
-
-### Rule
-
-- no heavy RAG framework at MVP stage
-- RAG is a subsystem, not the architecture
-- retrieval remains one response path among others (not the only one)
-
-### Optional helpers
-
-- loaders or embeddings helpers from libraries only if they stay replaceable
-
-### Why
-
-The roadmap confirms:
-
-- Sprint 4 = RAG + Sources/Knowledge
-- sources include documents and media metadata
-- the real challenge is retrieval relevance + token discipline, not framework sophistication
-
-### Validation
-
-- retrieval relevance
-- latency
-- token impact
-- operational simplicity
-
----
-
-## 10b. Hybrid Response Composition (Directional)
-
-### MVP stance
-
-- Keep live generation as the baseline path
-
-### Optional layers (later, when justified)
-
-- canonical answer cache for recurring intents
-- retrieval-grounded response path
-- constrained generation templates for structured outputs
-- live generation fallback when deterministic paths do not apply
-
-### Rule
-
-- response path selection must be observable and testable
-- avoid hidden routing logic in giant prompts
-
----
-
-## 11. Memory Strategy
-
-### Choice
-
-Start with **2 layers**:
-
-- **Session memory**
-  - sliding window
-  - cumulative summary
-- **User memory**
-  - persistent structured facts / preferences
-
-### Later
-
-- **Node-level memory** in Phase B
-
-### Why
-
-This is now explicitly the roadmap baseline, and it directly addresses the main technical risk: context explosion over long sessions.
-
-### Rule
-
-- memory must be useful, not exhaustive
-- structured facts are preferred over raw transcript accumulation
-
-### Validation
-
-- 30+ exchanges without major degradation
-- memory coherence across sessions
-- compacted context stays within budget
-
----
-
-## 12. Observability — LLM Traces (CRITICAL)
-
-### Choice
-
-- **Langfuse (self-hosted preferred)**
-- wrapped behind an internal logging / observability abstraction
-
-### Scope
-
-**Langfuse covers LLM traces only.**
-
-Baseline completion/error Langfuse emission is guaranteed by the observed LLM adapter wrapper, not by duplicated use-case trace calls.
-
-It captures:
-
-- prompts and responses
-- latency and TTFT
-- token counts
-- cost estimates
-- model metadata per call
-- context size by role / session / scenario
-
-It does **not** cover:
-
-- general system health
-- session or GM state inspection
-- ingestion job status
-- admin actions
-- endpoint metrics
-- dependency health
-
-Those belong to the **Operational Stack** (see section 12b) and the **Operations module**.
-
-### Later additions
-
-- thumbs up / down user feedback
-- background quality analysis on a sample of conversations
-
-### Why
-
-The roadmap explicitly says **observability from Sprint 1** and via **wrapper abstraction**, not direct coupling.
-
-### Validation
-
-- debugging usefulness
-- comparison between models / prompts / architectures
-- low friction for dev workflow
-
----
-
-## 12b. Operational Stack
-
-### Purpose
-
-Beyond LLM traces, the platform needs operational visibility across the whole system.
-
-### Tooling
-
-| Concern                  | Tool / Approach                                                            |
-| ------------------------ | -------------------------------------------------------------------------- |
-| Structured logs          | JSON stdout (Pino / Fastify built-in) — already in place                   |
-| Health endpoints         | `GET /health` (flat), `GET /v1/admin/health` (rich)                        |
-| Admin inspection API     | Fastify admin routes — `/v1/admin/*`                                       |
-| Metrics overview         | Lightweight in-DB aggregation (session count, error rate, latency P50/P95) |
-| Dashboards               | Grafana or embedded back-office charts — Phase A simple                    |
-| Audit log                | `AdminActionLog` table — persisted in PostgreSQL                           |
-| Ingestion job visibility | `IngestionJob` table — status, attempts, error detail                      |
-
-### Constraints
-
-- No separate metrics server (Prometheus/Grafana) in Phase A unless it becomes clearly necessary
-- Keep admin API as part of the Core — not a separate service
-- Back-office UI reads admin API — no direct DB access from UI
-
-### Validation
-
-- operator can diagnose a failed session without a database query
-- operator can retry a failed ingestion job through the admin API
-- dependency health check covers postgres, redis, and LLM provider reachability
-
----
-
-## 13. Streaming
-
-### Choice
-
-- **SSE** (`text/event-stream`)
-
-### Why
-
-SSE provides simple, stable server-to-client runtime event streaming without WebSocket session complexity.
-
-### Validation
-
-- perceived latency improvement
-- frontend compatibility
-- reconnect/keepalive reliability
-
----
-
-## 14. Admin UI / Back-office (Phase A)
-
-### Choice
-
-- **Vite**
-- **React**
-- **TypeScript (strict)**
-- minimal styling (no mandatory design framework)
-
-### Scope
-
-Two distinct internal UIs share this stack, split by purpose:
-
-- `apps/console` — **manual test console and runtime/session debugging surface** (Session Inspector, GM debug panel, memory evolution workspace, model config editor).
-- `apps/admin` — **scenario builder / content-authoring app** for operators (EPIC 6.1): scenarios, avatars, knowledge sources, runtime model selection. Introduced as its own workspace so scenario-authoring UX can evolve independently of the debugging-focused console.
-
-Neither is a public product UI.
-
-### Rules
-
-- Both `apps/console` and `apps/admin` consume the Core only through **HTTP admin/public API contracts**
-- **No direct database access** from either UI
-- **No business logic duplication** in either UI
-- Keep both UIs thin: orchestration and runtime logic stay in the Core
-- Environment-driven Core connection (`VITE_API_URL`, `VITE_API_KEY`) for both
-- No routing library is used for in-app navigation in either app — simple state-based view switching is preferred (KISS/YAGNI); introduce one only if navigation complexity later justifies it
-
-### Why
-
-This choice fits the project constraints:
-
-- TypeScript-only team and codebase
-- API-first, headless Core
-- need for a production-level internal tool
-- maintainable UI for operators and non-developers
-- easy alignment with existing API contracts and admin endpoints
-
-### Validation
-
-- UI remains thin and easy to maintain
-- API contracts are reused directly
-- adding operational screens does not require architectural changes
-
----
-
-## 15. Infra / Deployment
-
-### Phase A choice
-
-- **docker-compose**
-- **3 core containers**
-  - app (TypeScript modular monolith)
-  - PostgreSQL + pgvector
-  - Redis
-
-### Optional local dev extras
-
-- Langfuse may run alongside in local/dev environments, but it should remain an attached tool, not something that changes the 3-container core architecture
-
-### Deployment direction
-
-- local-first in Phase A
-- Coolify / datacenter / European cloud later
-- self-hosting remains a hard requirement
-
-### Why
-
-The roadmap now clearly states:
-
-- local-first development in Phase A
-- 3-container MVP architecture
-- no microservices
-- production evolution later only if justified
-
-### Validation
-
-- full stack boot reliability
-- reproducible local environments
-- easy migration to self-hosted environments later
-
----
-
-## 16. Media Handling
-
-### Choice
-
-- media files stay **outside** the Core
-- Core stores:
-  - metadata
-  - references
-  - vectorized descriptions
-
-### Likely examples
-
-- video on Gumlet
-- external images / docs
-- player handled by outer layers
-
-### Why
-
-This is now an explicit architecture rule: the Core is headless and does not become a media storage system.
-
-### Validation
-
-- media can be triggered cleanly from conversation state
-- Core remains decoupled from rendering
-
----
-
-## 17. Testing & Validation
-
-### Test Runner
-
-- **Vitest 3** — fast, native TypeScript, Node environment
-- Tests colocated with source files (`*.test.ts` next to the file under test)
-- Unit tests are deterministic — no LLM calls
-
-### Phase A minimum
-
-- unit tests for core logic
-- integration tests for conversation API
-- manual scenario testing
-- latency / cost tracking
-- provider comparison
-
-### Required trajectory
-
-- golden conversation regression tests
-- LLM-as-judge evaluations
-- memory smoke tests
-- architecture A/B comparisons
-- load tests later in Phase B
-
-### Why
-
-The roadmap now includes an explicit validation framework and benchmarking strategy.
-
----
-
-## 18. Security / Auth
-
-### Phase A
-
-- **basic API key auth** is enough
-
-### Then
-
-- stronger auth later
-- JWT / refresh tokens in later phases
-- multi-tenant isolation in Phase C
-
-### Why
-
-This reflects the roadmap: keep security proportional in Phase A, harden later.
-
----
-
-## 19. Decisions Now Locked
-
-1. **TypeScript only**
-2. **Modular monolith**
-3. **Custom orchestration**
-4. **No heavy LLM framework in MVP**
-5. **Wrapper-first design**
-6. **PostgreSQL + pgvector**
-7. **Redis**
-8. **REST API + WebSocket streaming**
-9. **Observability from day 1**
-10. **Scenario A first: API + back-office**
-11. **Local-first Phase A**
-12. **Headless core, media external**
-
----
-
-## 20. Open Decisions / To Validate Early
-
-1. **Fastify** confirmed in practice after Sprint 1
-2. Direct provider SDKs vs light use of **Vercel AI SDK**
-3. embedding model choice
-4. exact Redis role after first latency measurements
-5. Next.js vs vibe-coded back-office implementation
-6. concrete provider mix for GM / Avatar
-7. Langfuse self-hosting ergonomics in the dev loop
-8. when to introduce canonical-answer caching in the hybrid response path
-9. criteria for enabling constrained-generation templates per scenario
-10. if/when parameter-efficient tuning (LoRA/fine-tuning) is justified by measured gaps
-
----
-
-## Final Rules
-
-1. No framework controls the architecture
-2. All LLM calls go through our wrapper
-3. Observability is mandatory from day 1
-4. Keep the Core headless
-5. Start simple, but leave clean extension points
-6. Optimize for learning speed, not architectural prestige
-
----
-
-## Anti-Patterns (DO NOT DO)
-
-- introducing LangChain or LangGraph as the architectural center
-- splitting into microservices early
-- adding voice into Phase A core scope
-- storing raw full context blindly
-- coupling the Core to UI or media rendering
-- letting observability depend on direct vendor calls
-- adding a dedicated vector DB before pgvector proves insufficient
+- Token streaming for avatar replies
+- Heavy orchestration frameworks
+- Dedicated vector database
+- OAuth / multi-tenant auth
+- Voice or media rendering inside core
+- Hybrid response caching as a default runtime path
+
+## Source Of Truth
+
+- Stack decisions here should describe current implementation, not earlier exploration.
+- If a technology is merely speculative, it does not belong in this file.
