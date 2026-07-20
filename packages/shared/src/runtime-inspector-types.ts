@@ -147,6 +147,8 @@ export type TurnCompletedEventPayload = {
     }
     hasUserPersona: boolean
     hasGmDirective: boolean
+    responseRuleCount: number
+    hasAvatarTraits: boolean
   }
   correlationId?: string
 }

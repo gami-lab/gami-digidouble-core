@@ -45,6 +45,8 @@ export function emitTurnCompletedEventNonBlocking(args: {
     }
     hasUserPersona: boolean
     hasGmDirective: boolean
+    responseRuleCount: number
+    hasAvatarTraits: boolean
   }
   eventLogRepository: IEventLogRepository
 }): void {

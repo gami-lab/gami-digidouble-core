@@ -264,6 +264,8 @@ function makeViewModel(): RuntimeInspectorViewModel {
             },
             hasUserPersona: false,
             hasGmDirective: true,
+            responseRuleCount: 1,
+            hasAvatarTraits: true,
           },
         },
       },
@@ -312,6 +314,8 @@ describe('buildGmImpactTrace', () => {
     ])
     expect(first.avatarInput.join(' ')).toContain('Avatar input summary: 1 exchange(s)')
     expect(first.avatarInput.join(' ')).toContain('Avatar working memory: Theo summary')
+    expect(first.avatarInput.join(' ')).toContain('1 response rule applied')
+    expect(first.avatarInput.join(' ')).toContain('avatar traits included')
     expect(first.avatarRetrieval).toEqual([
       {
         knowledgeType: 'world',
@@ -323,7 +327,7 @@ describe('buildGmImpactTrace', () => {
       },
     ])
     expect(first.avatarInput.join(' ')).toContain(
-      'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 1 retrieved reference included (0 memory / 1 world / 0 media), GM note included, no user persona',
+      'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 1 retrieved reference included (0 memory / 1 world / 0 media), 1 response rule applied, avatar traits included, GM note included, no user persona',
     )
     expect(first.avatarInput.join(' ')).toContain(
       'Avatar retrieval assembly: 3 hits selected for assembly, 1 included in the final avatar input, 0 excluded by avatar visibility, 2 omitted during final assembly',

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import type { AvatarComputedTraits } from '@gami/shared'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
+import type { ContextEngineOutput } from '../../../domain/context/context-engine.types.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
 
 const findSessionByIdMock = vi.fn()
@@ -43,14 +45,23 @@ const messageRepository = {
 const llm = { complete: completeMock }
 const eventLogRepository = { append: appendEventMock }
 const userRepository = { findById: findUserByIdMock }
+const SAMPLE_TRAITS: AvatarComputedTraits = {
+  identity: ['Archivist of the north wing'],
+  personality: ['Measured'],
+  speakingStyle: ['Short and literal'],
+  background: ['Former restorer'],
+  timeline: ['Joined after the renovation'],
+  currentSituation: ['Guiding late arrivals'],
+  behaviouralRules: ['Never reveal sealed exhibits'],
+}
 
-function makeAssembledContext() {
+function makeAssembledContext(): ContextEngineOutput {
   return {
     avatar: {
       avatarId: 'avatar_1',
       sections: {
         directorNotes: 'Injected directive',
-        responseRules: { items: [] },
+        responseRules: { items: ['Use short paragraphs.'] },
         conversationState: {
           recentExchanges: [],
           workingMemory: {},
@@ -60,7 +71,10 @@ function makeAssembledContext() {
         worldContext: {
           scenarioId: 'scenario_1',
           name: 'Scenario',
+          description: 'Scenario world context',
+          goals: ['Find the culprit'],
         },
+        avatarTraits: SAMPLE_TRAITS,
       },
     },
     gm: {
@@ -120,8 +134,8 @@ function makeAssembledContext() {
         retrievalCounts: { memory: 0, world: 0, media: 0 },
         hasUserPersona: false,
         hasGmDirective: true,
-        responseRuleCount: 0,
-        hasAvatarTraits: false,
+        responseRuleCount: 1,
+        hasAvatarTraits: true,
       },
       rationale: {
         avatarProjection: [],
@@ -174,7 +188,75 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   }
 }
 
+function createUseCase(assembleMock: ReturnType<typeof vi.fn>): SendMessageUseCase {
+  return new SendMessageUseCase(
+    sessionRepository as never,
+    conversationRepository as never,
+    avatarRepository as never,
+    scenarioRepository as never,
+    messageRepository as never,
+    llm,
+    eventLogRepository as never,
+    null,
+    userRepository as never,
+    null,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    { assemble: assembleMock },
+  )
+}
+
+function readSystemPrompt(): string {
+  return (completeMock.mock.calls[0]?.[0] as { systemPrompt: string }).systemPrompt
+}
+
+async function executeWithContext(
+  assembleMock: ReturnType<typeof vi.fn>,
+  avatarOverrides?: Partial<AvatarConfig>,
+): Promise<string> {
+  if (avatarOverrides !== undefined) {
+    findAvatarByIdMock.mockResolvedValue(makeAvatar(avatarOverrides))
+  }
+
+  await createUseCase(assembleMock).execute({
+    conversationId: 'conversation_1',
+    userMessage: 'Hello',
+  })
+
+  return readSystemPrompt()
+}
+
+function expectStructuredPromptSections(systemPrompt: string): void {
+  expect(systemPrompt).toContain('## Director Notes')
+  expect(systemPrompt).toContain('Injected directive')
+  expect(systemPrompt).toContain('Use short paragraphs.')
+  expect(systemPrompt).toContain('## World Context')
+  expect(systemPrompt).toContain('Scenario: Scenario')
+  expect(systemPrompt).toContain('Objectives:')
+  expect(systemPrompt).toContain('- Find the culprit')
+  expect(systemPrompt).toContain('## Avatar Traits')
+  expect(systemPrompt).toContain('- Archivist of the north wing')
+}
+
 beforeEach(() => {
+  findSessionByIdMock.mockReset()
+  updateSessionMock.mockReset()
+  findConversationByIdMock.mockReset()
+  updateConversationMock.mockReset()
+  findAvatarByIdMock.mockReset()
+  findScenarioByIdMock.mockReset()
+  listAvatarsByScenarioIdMock.mockReset()
+  findMessagesByConversationIdMock.mockReset()
+  saveMessageMock.mockReset()
+  completeMock.mockReset()
+  appendEventMock.mockReset()
+  findUserByIdMock.mockReset()
+
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession())
   findConversationByIdMock.mockResolvedValue(makeConversation())
@@ -208,33 +290,38 @@ beforeEach(() => {
 describe('SendMessageUseCase — context assembler dependency', () => {
   it('uses injected context assembler output for prompt context', async () => {
     const assembleMock = vi.fn().mockReturnValue(makeAssembledContext())
-
-    const useCase = new SendMessageUseCase(
-      sessionRepository as never,
-      conversationRepository as never,
-      avatarRepository as never,
-      scenarioRepository as never,
-      messageRepository as never,
-      llm,
-      eventLogRepository as never,
-      null,
-      userRepository as never,
-      null,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      { assemble: assembleMock },
-    )
-
-    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+    const systemPrompt = await executeWithContext(assembleMock)
 
     expect(assembleMock).toHaveBeenCalledTimes(1)
-    const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).toContain('## Director Notes')
-    expect(llmRequest.systemPrompt).toContain('Injected directive')
+    expectStructuredPromptSections(systemPrompt)
+  })
+
+  it('respects selected avatar traits instead of raw avatar config when prepared traits are present', async () => {
+    const assembleMock = vi.fn().mockReturnValue(makeAssembledContext())
+    const systemPrompt = await executeWithContext(assembleMock, {
+      personaPrompt: 'Legacy authored persona that should not appear.',
+      adjustments: ['Legacy rule that should not appear.'],
+      computedTraits: {
+        ...SAMPLE_TRAITS,
+        identity: ['Raw config trait that should not appear'],
+      },
+    })
+
+    expect(systemPrompt).toContain('- Archivist of the north wing')
+    expect(systemPrompt).not.toContain('Raw config trait that should not appear')
+    expect(systemPrompt).not.toContain('Legacy authored persona that should not appear.')
+    expect(systemPrompt).not.toContain('Legacy rule that should not appear.')
+  })
+
+  it('falls back to the authored personaPrompt when the avatar has no computed traits', async () => {
+    const contextWithoutTraits = makeAssembledContext()
+    delete contextWithoutTraits.avatar.sections.avatarTraits
+    contextWithoutTraits.trace.selectedInputs.hasAvatarTraits = false
+    const assembleMock = vi.fn().mockReturnValue(contextWithoutTraits)
+    const systemPrompt = await executeWithContext(assembleMock, {
+      personaPrompt: 'You are Ava, a careful guide.',
+    })
+
+    expect(systemPrompt).toContain('You are Ava, a careful guide.')
   })
 })

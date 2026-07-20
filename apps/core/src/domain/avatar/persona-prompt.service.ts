@@ -6,6 +6,11 @@ import type {
   AvatarPromptIdentitySource,
   AvatarPromptOptions,
 } from './persona-prompt.types.js'
+import type {
+  AvatarContextConversationState,
+  ContextScenarioSnapshot,
+} from '../context/session-context.types.js'
+import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
 
 const DEFAULT_STYLE_RULE = [
   'Stay in character and keep responses concise.',
@@ -16,16 +21,86 @@ const DEFAULT_STYLE_RULE = [
 ].join(' ')
 
 export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptOptions): string {
-  const sections: string[] = []
-
-  sections.push(...buildDirectorNotes(opts?.gmNotes))
-  sections.push(buildResponseRulesSection(config.adjustments))
-  sections.push(...buildConversationStateSection(opts?.memory, opts?.avatarAwareness))
-  sections.push(...buildUserPersonaContext(opts?.userPersona))
-  sections.push(...buildWorldContext(opts?.worldContext))
-  sections.push(...buildRetrievalContext(opts?.retrieval))
-  sections.push(buildAvatarTraitsSection(config))
+  const promptInputs = resolvePromptSectionInputs(config, opts)
+  const sections = [
+    ...buildDirectorNotes(promptInputs.directorNotes),
+    buildResponseRulesSection(promptInputs.responseRules),
+    ...buildConversationStateSection(promptInputs.memory, promptInputs.avatarAwareness),
+    ...buildUserPersonaContext(promptInputs.userPersona),
+    ...buildWorldContext(promptInputs.worldContext),
+    ...buildRetrievalContext(promptInputs.retrieval),
+  ]
+  const avatarTraitsSection = buildAvatarTraitsSection(config, opts)
+  if (avatarTraitsSection !== null) {
+    sections.push(avatarTraitsSection)
+  }
   return sections.join('\n\n')
+}
+
+function resolvePromptSectionInputs(
+  config: AvatarConfig,
+  opts?: AvatarPromptOptions,
+): {
+  directorNotes: string | undefined
+  responseRules: string[] | undefined
+  memory: AvatarPromptOptions['memory']
+  avatarAwareness: AvatarAwarenessItem[] | undefined
+  userPersona: AvatarPromptOptions['userPersona']
+  worldContext: string | ContextScenarioSnapshot | undefined
+  retrieval: AvatarPromptOptions['retrieval']
+} {
+  const promptSections = opts?.sections
+  if (promptSections === undefined) {
+    return resolveLegacyPromptSectionInputs(config, opts)
+  }
+
+  return resolveSelectedPromptSectionInputs(promptSections, opts)
+}
+
+function resolveLegacyPromptSectionInputs(
+  config: AvatarConfig,
+  opts?: AvatarPromptOptions,
+): {
+  directorNotes: string | undefined
+  responseRules: string[] | undefined
+  memory: AvatarPromptOptions['memory']
+  avatarAwareness: AvatarAwarenessItem[] | undefined
+  userPersona: AvatarPromptOptions['userPersona']
+  worldContext: string | ContextScenarioSnapshot | undefined
+  retrieval: AvatarPromptOptions['retrieval']
+} {
+  return {
+    directorNotes: opts?.gmNotes,
+    responseRules: config.adjustments,
+    memory: opts?.memory,
+    avatarAwareness: opts?.avatarAwareness,
+    userPersona: opts?.userPersona,
+    worldContext: opts?.worldContext,
+    retrieval: opts?.retrieval,
+  }
+}
+
+function resolveSelectedPromptSectionInputs(
+  promptSections: NonNullable<AvatarPromptOptions['sections']>,
+  opts?: AvatarPromptOptions,
+): {
+  directorNotes: string | undefined
+  responseRules: string[] | undefined
+  memory: AvatarPromptOptions['memory']
+  avatarAwareness: AvatarAwarenessItem[] | undefined
+  userPersona: AvatarPromptOptions['userPersona']
+  worldContext: string | ContextScenarioSnapshot | undefined
+  retrieval: AvatarPromptOptions['retrieval']
+} {
+  return {
+    directorNotes: promptSections.directorNotes ?? undefined,
+    responseRules: promptSections.responseRules.items,
+    memory: toLayeredMemorySnapshot(promptSections.conversationState),
+    avatarAwareness: opts?.avatarAwareness,
+    userPersona: promptSections.userPersona ?? undefined,
+    worldContext: promptSections.worldContext,
+    retrieval: promptSections.retrievedContext?.typedSections,
+  }
 }
 
 /**
@@ -49,9 +124,31 @@ export function resolveAvatarPromptIdentitySource(
   }
 }
 
-function buildWorldContext(worldContext: string | undefined): string[] {
-  if (!hasText(worldContext)) return []
-  return [['## World Context', worldContext.trim()].join('\n')]
+function buildWorldContext(worldContext: string | ContextScenarioSnapshot | undefined): string[] {
+  if (typeof worldContext === 'string') {
+    if (!hasText(worldContext)) return []
+    return [['## World Context', worldContext.trim()].join('\n')]
+  }
+  if (worldContext === undefined) return []
+
+  const lines = ['## World Context']
+  if (hasText(worldContext.name)) {
+    lines.push(`Scenario: ${worldContext.name.trim()}`)
+  }
+  if (hasText(worldContext.description)) {
+    lines.push(worldContext.description.trim())
+  }
+  const goals = (worldContext.goals ?? [])
+    .map((goal) => goal.trim())
+    .filter((goal) => goal.length > 0)
+  if (goals.length > 0) {
+    lines.push('Objectives:')
+    for (const goal of goals) {
+      lines.push(`- ${goal}`)
+    }
+  }
+
+  return lines.length > 1 ? [lines.join('\n')] : []
 }
 
 function buildUserPersonaContext(userPersona: AvatarPromptOptions['userPersona']): string[] {
@@ -176,8 +273,8 @@ function buildAdjustments(adjustments: AvatarConfig['adjustments']): string[] {
   return adjustments.map((a) => a.trim()).filter((a) => a.length > 0)
 }
 
-function buildResponseRulesSection(adjustments: AvatarConfig['adjustments']): string {
-  const lines = ['## Response Rules', ...buildAdjustments(adjustments), DEFAULT_STYLE_RULE]
+function buildResponseRulesSection(responseRules: string[] | undefined): string {
+  const lines = ['## Response Rules', ...buildAdjustments(responseRules), DEFAULT_STYLE_RULE]
   return lines.join('\n')
 }
 
@@ -204,8 +301,12 @@ function buildDirectorNotes(gmNotes: string | undefined): string[] {
   return [['## Director Notes', gmNotes.trim()].join('\n')]
 }
 
-function buildAvatarTraitsSection(config: AvatarPromptIdentityConfig): string {
-  const identitySource = resolveAvatarPromptIdentitySource(config)
+function buildAvatarTraitsSection(
+  config: AvatarPromptIdentityConfig,
+  opts?: AvatarPromptOptions,
+): string | null {
+  const identitySource = resolvePromptIdentitySource(config, opts)
+  if (identitySource === null) return null
   const lines = ['## Avatar Traits']
 
   if (identitySource.source === 'personaPrompt') {
@@ -273,6 +374,55 @@ function flattenTraitText(config: AvatarComputedTraits): string {
     ...config.currentSituation,
     ...config.behaviouralRules,
   ].join(' ')
+}
+
+function resolvePromptIdentitySource(
+  config: AvatarPromptIdentityConfig,
+  opts?: AvatarPromptOptions,
+): AvatarPromptIdentitySource | null {
+  if (opts?.identitySource !== undefined) {
+    return opts.identitySource
+  }
+  if (opts?.sections?.avatarTraits !== undefined) {
+    return {
+      source: 'computedTraits',
+      computedTraits: opts.sections.avatarTraits,
+    }
+  }
+  return resolveAvatarPromptIdentitySource(config)
+}
+
+function toLayeredMemorySnapshot(
+  conversationState: AvatarContextConversationState,
+): LayeredMemorySnapshot | undefined {
+  const memory = {
+    ...(conversationState.recentExchanges.length > 0
+      ? {
+          shortTerm: {
+            exchangeCount: conversationState.recentExchanges.length,
+            recentExchanges: conversationState.recentExchanges,
+          },
+        }
+      : {}),
+    ...(conversationState.workingMemory.session !== undefined ||
+    conversationState.workingMemory.avatar !== undefined
+      ? {
+          working: {
+            ...(conversationState.workingMemory.session !== undefined
+              ? { session: conversationState.workingMemory.session }
+              : {}),
+            ...(conversationState.workingMemory.avatar !== undefined
+              ? { avatar: conversationState.workingMemory.avatar }
+              : {}),
+          },
+        }
+      : {}),
+    ...(conversationState.longTermFacts.length > 0
+      ? { longTerm: { facts: conversationState.longTermFacts } }
+      : {}),
+  } satisfies Partial<LayeredMemorySnapshot>
+
+  return Object.keys(memory).length > 0 ? memory : undefined
 }
 
 function escapeForRegExp(value: string): string {

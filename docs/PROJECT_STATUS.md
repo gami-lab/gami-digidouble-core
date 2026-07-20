@@ -966,6 +966,35 @@ Started on: 2026-07-20
   - updated `docs/TEST_COVERAGE_PLAN.md` so Avatar-module coverage explicitly owns prompt-order, trait-preference, fallback, bounded-conversation-state, and deterministic-output assertions
   - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/EPICS.md`; no changes were required because their current statements already match the implemented runtime behavior
 
+### Current slice completed (send-message wiring and safe runtime inspection)
+
+- wired the standard Avatar turn path through the single canonical prompt-assembly path: `SendMessageUseCase` now passes the selected `ContextEngine` sections directly into `assemblePersonaPrompt(...)` instead of rebuilding parallel prompt inputs from raw avatar/scenario/session fields
+- runtime Avatar identity now comes from the canonical domain avatar contract end-to-end:
+  - when `avatar.computedTraits` exists and Avatar Traits were selected, the turn prompt uses those structured traits
+  - when `avatar.computedTraits` is absent, prompt assembly falls back to the authored `personaPrompt`
+  - when traits exist on the avatar but the selected prompt sections omit Avatar Traits, the prompt now omits that identity section instead of silently bypassing section selection
+- preserved canonical sourcing for the remaining prompt inputs while changing only grouping/order:
+  - scenario snapshot remains the source of World Context and objectives
+  - selected typed retrieval remains the source of Retrieved Context, including avatar visibility filtering and typed `memory` / `world` / `media` grouping
+  - bounded working memory, current summary, recent exchanges, and avatar-awareness guidance remain under Conversation State
+  - GM background execution and memory maintenance remain asynchronous and non-blocking
+- extended bounded turn-completed observability metadata without leaking prompt content:
+  - `contextSelection` now records `responseRuleCount` and `hasAvatarTraits` alongside the existing count/visibility fields
+  - event/context mapping tests explicitly prove raw trait text is not serialized into runtime-inspector-safe payloads
+  - console runtime inspection consumes only the shared metadata contract and surfaces the new response-rule/trait-presence summary without exposing prompt text
+- updated focused coverage across application, event-mapping, and console consumers:
+  - send-message assembly tests now prove structured traits are used on the normal runtime path and that legacy avatars still fall back to `personaPrompt`
+  - list-session-events and runtime-inspector tests now assert the bounded `contextSelection` contract shape
+  - console tests now assert the updated runtime-inspection summary string
+- verification completed for this slice:
+  - `pnpm --filter @gami/core exec tsc --noEmit`
+  - `pnpm --filter @gami/core test`
+  - `pnpm --filter @gami/console test`
+- docs reviewed and updated as part of the slice:
+  - updated `docs/API_CONTRACT.md` so admin session-event docs explicitly describe the new bounded `turn_completed.contextSelection` metadata and re-state the no-prompt-content rule
+  - updated `docs/PROJECT_STATUS.md` for the new EPIC 8.2 slice and its verification status
+  - reviewed `docs/ARCHITECTURE.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/TEST_COVERAGE_PLAN.md`; no further changes were required because their existing statements already match the implemented runtime wiring and test ownership
+
 ---
 
 ## Sessions & Conversations
@@ -1073,6 +1102,7 @@ Started on: 2026-07-20
 | 2026-07-19 | EPIC 8.1 — Avatar Trait Structuring (test-gap closure, recomputation hardening, doc sync)       |
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (contract ownership baseline)                   |
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (avatar prompt assembly runtime order + traits) |
+| 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (send-message wiring + safe runtime inspection) |
 
 ---
 
@@ -1088,7 +1118,7 @@ Current implementation focus:
 - public web app operational hardening
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
 - EPIC 8.1 (Avatar Trait Structuring) is complete: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint, the admin trigger/read-only trait inspection UI, and the final test-gap-closure/recomputation-hardening/doc-sync pass are all delivered; EPIC 8.2 runtime consumption of `computedTraits` remains
-- EPIC 8.2 (Runtime Context Assembly Refactoring) is underway; the contract-ownership baseline, semantic runtime sections/precedence, and Avatar prompt runtime-order + trait-consumption slices are now in place, with final hardening and broader runtime verification still remaining
+- EPIC 8.2 (Runtime Context Assembly Refactoring) is underway; the contract-ownership baseline, semantic runtime sections/precedence, Avatar prompt runtime-order + trait-consumption slice, and send-message/runtime-inspection wiring slice are now in place, with remaining EPIC work still pending
 
 ---
 

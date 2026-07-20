@@ -934,6 +934,7 @@ Response notes:
 - Returns `ApiResponse<AdminSessionEventsResponse>`
 - `gm_triggered` decision payloads may include bounded unlock diagnostics (`avatarId`, `avatarName`, `reason`, `outcome`)
 - `turn_completed` payloads may include per-turn retrieval timing (`retrievalLatencyMs`) and remaining non-LLM overhead (`otherOverheadMs`)
+- `turn_completed` payloads may include bounded `contextSelection` metadata such as selected counts and boolean presence flags (for example response-rule count or whether Avatar Traits were selected), but never raw prompt text, trait content, or retrieved snippet content
 
 ---
 

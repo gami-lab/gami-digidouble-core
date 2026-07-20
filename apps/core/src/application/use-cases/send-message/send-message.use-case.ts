@@ -51,7 +51,7 @@ import type { ModelConfig } from '../../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../../infrastructure/llm/llm-adapter-registry.js'
 import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master.avatar-unlocks.js'
 import {
-  toLayeredSnapshotFromAvatarContext,
+  toSelectedPromptIdentitySource,
   toScenarioSnapshot,
 } from './send-message.context-engine.js'
 import { buildSendMessageLlmRequest } from './send-message.llm-request.js'
@@ -299,28 +299,18 @@ export class SendMessageUseCase {
       },
     })
 
+    const selectedIdentitySource = toSelectedPromptIdentitySource(
+      args.avatar,
+      assembledContext.avatar.sections,
+    )
     const systemPrompt = assemblePersonaPrompt(args.avatar, {
+      sections: assembledContext.avatar.sections,
+      ...(selectedIdentitySource !== undefined ? { identitySource: selectedIdentitySource } : {}),
       avatarAwareness: buildAvatarAwareness(
         args.avatar,
         scenarioAvatars,
         args.session.unlockedAvatarIds,
       ),
-      ...(assembledContext.avatar.sections.directorNotes !== null
-        ? { gmNotes: assembledContext.avatar.sections.directorNotes }
-        : {}),
-      ...(assembledContext.avatar.sections.userPersona !== null
-        ? { userPersona: assembledContext.avatar.sections.userPersona }
-        : {}),
-      ...(() => {
-        const snapshot = toLayeredSnapshotFromAvatarContext(assembledContext)
-        return snapshot !== undefined ? { memory: snapshot } : {}
-      })(),
-      ...(assembledContext.avatar.sections.worldContext.description !== undefined
-        ? { worldContext: assembledContext.avatar.sections.worldContext.description }
-        : {}),
-      ...(assembledContext.avatar.sections.retrievedContext?.typedSections !== undefined
-        ? { retrieval: assembledContext.avatar.sections.retrievedContext.typedSections }
-        : {}),
     })
     return {
       systemPrompt,

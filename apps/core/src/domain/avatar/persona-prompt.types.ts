@@ -2,6 +2,7 @@ import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
 import type { UserPersona } from '../user/index.js'
 import type { AvatarComputedTraits, AvatarConfig } from './avatar.types.js'
+import type { AvatarContextSections } from '../context/session-context.types.js'
 
 export type AvatarAwarenessItem = {
   name: string
@@ -17,6 +18,8 @@ export type AvatarPromptRetrievalSections = {
 }
 
 export type AvatarPromptOptions = {
+  sections?: AvatarContextSections
+  identitySource?: AvatarPromptIdentitySource | null
   gmNotes?: string
   worldContext?: string
   avatarAwareness?: AvatarAwarenessItem[]

@@ -273,19 +273,43 @@ function formatTriggerReason(triggerReason: string | null): string {
   return triggerReason.replaceAll('_', ' ')
 }
 
+type TurnContextSelectionSummary = NonNullable<TurnCompletedEventPayload['contextSelection']> & {
+  responseRuleCount?: number
+  hasAvatarTraits?: boolean
+}
+
+function formatCountSummary(count: number, label: string): string {
+  return `${String(count)} ${label}${count === 1 ? '' : 's'}`
+}
+
+function sumTypedCounts(counts: { memory: number; world: number; media: number }): number {
+  return counts.memory + counts.world + counts.media
+}
+
+function formatRetrievalCounts(includedCounts: {
+  memory: number
+  world: number
+  media: number
+}): string {
+  const retrievalTotal = sumTypedCounts(includedCounts)
+  return `${formatCountSummary(retrievalTotal, 'retrieved reference')} included (${String(includedCounts.memory)} memory / ${String(includedCounts.world)} world / ${String(includedCounts.media)} media)`
+}
+
 function formatAvatarContext(turnPayload: TurnCompletedEventPayload): string {
-  const selected = turnPayload.contextSelection
+  const selected = turnPayload.contextSelection as TurnContextSelectionSummary | null | undefined
   if (!selected) return 'Avatar context used for this reply: unavailable.'
 
-  const retrieval = selected.retrieval
-  const includedCounts = retrieval?.includedCounts ?? { memory: 0, world: 0, media: 0 }
-  const retrievalTotal = includedCounts.memory + includedCounts.world + includedCounts.media
+  const includedCounts = selected.retrieval?.includedCounts ?? { memory: 0, world: 0, media: 0 }
+  const responseRuleCount = selected.responseRuleCount ?? 0
+  const hasAvatarTraits = selected.hasAvatarTraits ?? false
 
   return [
-    `Avatar context used for this reply: ${String(selected.shortTermExchangeCount)} recent exchange${selected.shortTermExchangeCount === 1 ? '' : 's'}`,
+    `Avatar context used for this reply: ${formatCountSummary(selected.shortTermExchangeCount, 'recent exchange')}`,
     selected.hasWorkingMemory ? 'working memory included' : 'no working memory',
-    `${String(selected.longTermFactCount)} long-term fact${selected.longTermFactCount === 1 ? '' : 's'}`,
-    `${String(retrievalTotal)} retrieved reference${retrievalTotal === 1 ? '' : 's'} included (${String(includedCounts.memory)} memory / ${String(includedCounts.world)} world / ${String(includedCounts.media)} media)`,
+    formatCountSummary(selected.longTermFactCount, 'long-term fact'),
+    formatRetrievalCounts(includedCounts),
+    `${formatCountSummary(responseRuleCount, 'response rule')} applied`,
+    hasAvatarTraits ? 'avatar traits included' : 'no selected avatar traits',
     selected.hasGmDirective ? 'GM note included' : 'no GM note',
     selected.hasUserPersona ? 'user persona included' : 'no user persona',
   ].join(', ')

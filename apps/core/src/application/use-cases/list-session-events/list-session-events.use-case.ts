@@ -217,7 +217,7 @@ function readOptionalContextSelection(
     ? value['retrievalCounts']
     : undefined
   const visibility = readOptionalVisibilitySelection(value['visibility'])
-  return {
+  const selection = {
     shortTermExchangeCount: readNumber(value['shortTermExchangeCount']),
     hasWorkingMemory: readBoolean(value['hasWorkingMemory']),
     longTermFactCount: readNumber(value['longTermFactCount']),
@@ -253,7 +253,11 @@ function readOptionalContextSelection(
         : {}),
     hasUserPersona: readBoolean(value['hasUserPersona']),
     hasGmDirective: readBoolean(value['hasGmDirective']),
+    responseRuleCount: readNumber(value['responseRuleCount']),
+    hasAvatarTraits: readBoolean(value['hasAvatarTraits']),
   }
+
+  return selection as NonNullable<TurnCompletedEventPayload['contextSelection']>
 }
 
 // eslint-disable-next-line complexity

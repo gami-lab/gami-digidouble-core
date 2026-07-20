@@ -431,6 +431,8 @@ describe('SendMessageUseCase — context selection observability', () => {
           }
           hasUserPersona: boolean
           hasGmDirective: boolean
+          responseRuleCount: number
+          hasAvatarTraits: boolean
         }
         retrievalLatencyMs?: number
         otherOverheadMs?: number
@@ -448,6 +450,8 @@ describe('SendMessageUseCase — context selection observability', () => {
       },
       hasUserPersona: true,
       hasGmDirective: false,
+      responseRuleCount: 0,
+      hasAvatarTraits: false,
     })
     expect(event.payload.retrievalLatencyMs).toBeTypeOf('number')
     expect(event.payload.otherOverheadMs).toBeTypeOf('number')

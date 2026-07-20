@@ -28,6 +28,8 @@ export function toContextSelectionMetadata(assembledContext: ContextEngineOutput
   }
   hasUserPersona: boolean
   hasGmDirective: boolean
+  responseRuleCount: number
+  hasAvatarTraits: boolean
 } {
   const selected = assembledContext.trace.selectedInputs
   const includedCounts = toIncludedRetrievalCounts(assembledContext)
@@ -50,6 +52,8 @@ export function toContextSelectionMetadata(assembledContext: ContextEngineOutput
     },
     hasUserPersona: selected.hasUserPersona,
     hasGmDirective: selected.hasGmDirective,
+    responseRuleCount: selected.responseRuleCount,
+    hasAvatarTraits: selected.hasAvatarTraits,
   }
 }
 
