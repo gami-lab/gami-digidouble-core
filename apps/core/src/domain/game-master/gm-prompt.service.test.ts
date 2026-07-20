@@ -27,6 +27,33 @@ describe('buildGameMasterSystemPrompt', () => {
     expect(prompt).toContain(
       '- Bias toward conversationMode "continue" unless there is clear evidence for a switch.',
     )
+    expect(prompt).toContain(
+      '- Avoid increasing progression by default; keep progression stable unless the exchange clearly advances the discussion.',
+    )
+    expect(prompt).toContain(
+      '- Prefer suggestedAvatarId over a forced switch when another avatar may help but is not yet necessary as the active speaker.',
+    )
+  })
+
+  it('makes decision priorities explicit and evidence-based', () => {
+    const prompt = buildGameMasterSystemPrompt()
+
+    expect(prompt).toContain('Decision priority questions:')
+    expect(prompt).toContain(
+      '- Did the latest exchange materially change the discussion state, or should the current state remain stable?',
+    )
+    expect(prompt).toContain(
+      '- Did trust, clarity, or emotional tone change in a way that matters for orchestration?',
+    )
+    expect(prompt).toContain(
+      '- Was meaningful progress made, or should progression remain unchanged on this turn?',
+    )
+    expect(prompt).toContain(
+      '- Is another avatar merely relevant, newly unlockable, or actually necessary as the active speaker?',
+    )
+    expect(prompt).toContain(
+      '- Avoid unlocks based on weak association, generic mention, or broad category matching.',
+    )
   })
 
   it('preserves validation-critical output instructions', () => {

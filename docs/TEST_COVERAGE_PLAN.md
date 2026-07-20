@@ -127,6 +127,7 @@ Must test:
 - every-turn GM invocation
 - static GM system prompt section order and validation-critical instructions
 - dynamic GM input renderer section order, experience/discussion separation, and empty-section omission
+- consumer-boundary GM request assertions for the actual `llm.complete` system prompt and rendered message content
 - state reducer logic
 - duplicate topic handling
 - progression update rules

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RuntimeEvent } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
+import { buildGameMasterSystemPrompt } from '../../../domain/game-master/gm-prompt.service.js'
 import { expectConsoleError } from '../../../test-utils/console.js'
 import { readRenderedGameMasterPrompt } from '../../../test-utils/game-master.js'
 import { LlmError } from '../../../infrastructure/llm/llm.error.js'
@@ -168,7 +169,7 @@ beforeEach(() => {
   findMessagesByConversationIdMock.mockResolvedValue([])
 })
 
-describe('RunGameMasterUseCase', () => {
+describe('RunGameMasterUseCase — state persistence', () => {
   it('calls the GM LLM after every turn and persists reduced state', async () => {
     const useCase = createUseCase()
 
@@ -193,7 +194,9 @@ describe('RunGameMasterUseCase', () => {
       gmNotes: 'Help the user move to concrete examples.',
     })
   })
+})
 
+describe('RunGameMasterUseCase — prompt request content', () => {
   it('renders scenario goals and avatar availability into structured GM prompt content', async () => {
     const useCase = createUseCase()
 
@@ -220,7 +223,46 @@ describe('RunGameMasterUseCase', () => {
     expect(prompt).toContain('### Available Avatars')
     expect(prompt).toContain('- Ava (avatar_1)')
   })
+})
 
+describe('RunGameMasterUseCase — refined prompt path', () => {
+  it('sends the refined GM system prompt and structured rendered context through llm.complete', async () => {
+    const useCase = createUseCase()
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: 'hello',
+      turnIndex: 2,
+      correlationId: 'request_prompt_path',
+    })
+
+    const request = completeMock.mock.calls[0]?.[0] as {
+      systemPrompt: string
+      messages: Array<{ content: string }>
+    }
+    const prompt = readRenderedGameMasterPrompt(request)
+
+    expect(request.systemPrompt).toBe(buildGameMasterSystemPrompt())
+    expect(request.systemPrompt).toContain('## Role')
+    expect(request.systemPrompt).toContain('## Objectives')
+    expect(request.systemPrompt).toContain('## Decision Policies')
+    expect(request.systemPrompt).toContain('Decision priority questions:')
+    expect(request.systemPrompt).toContain(
+      '- Bias toward conversationMode "continue" unless there is clear evidence for a switch.',
+    )
+    expect(request.systemPrompt).toContain(
+      '- Avoid unlocks based on weak association, generic mention, or broad category matching.',
+    )
+    expect(prompt).toContain('## Current Turn')
+    expect(prompt).toContain('## Current Discussion Context')
+    expect(prompt).toContain('## Experience Context')
+    expect(prompt).toContain('## Output Reminder')
+  })
+})
+
+describe('RunGameMasterUseCase — optional and session-start prompt content', () => {
   it('renders userPersona in the current discussion context when provided', async () => {
     const useCase = createUseCase()
 
@@ -256,6 +298,32 @@ describe('RunGameMasterUseCase', () => {
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
     const prompt = readRenderedGameMasterPrompt(request)
     expect(prompt).not.toContain('### User Persona')
+  })
+
+  it('preserves session-start guidance when userMessage.text is empty', async () => {
+    const useCase = createUseCase()
+
+    await useCase.execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      userMessageText: '',
+      turnIndex: 0,
+      correlationId: 'request_session_start',
+    })
+
+    const request = completeMock.mock.calls[0]?.[0] as {
+      systemPrompt: string
+      messages: Array<{ content: string }>
+    }
+    const prompt = readRenderedGameMasterPrompt(request)
+
+    expect(request.systemPrompt).toContain(
+      'When userMessage.text is empty, no user message has been sent yet. Treat this as conversation opening guidance, and use context.notes to tell the Avatar how to open instead of reacting to a message.',
+    )
+    expect(prompt).toContain(
+      '- Latest User Message: [none - session start; provide opening guidance for the Avatar].',
+    )
   })
 })
 

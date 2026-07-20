@@ -1050,15 +1050,18 @@ Started on: 2026-07-20
 - added deterministic prompt-builder regression coverage:
   - `apps/core/src/domain/game-master/gm-prompt.service.test.ts` now asserts section presence/order plus the contract-critical instructions that must remain explicit in the static prompt
   - `apps/core/src/domain/game-master/gm-input-renderer.test.ts` now asserts dynamic section order, discussion/experience separation, and omission behavior for empty optional context
-  - GM use-case tests now assert the actual rendered prompt content sent to the LLM instead of reparsing a raw JSON dump
+  - GM use-case tests now assert the actual `llm.complete` request content: the canonical system prompt, the structured rendered runtime input, and the session-start empty-message path
   - existing GM use-case and runtime-path unit suites remain green against the structured prompt wording
+- strengthened GM decision-policy guidance without changing runtime guards:
+  - the static prompt now asks explicit evidence-based priority questions before changing state, progression, unlocks, or speaker routing
+  - the prompt now explicitly biases against unnecessary switches, weak-association unlocks, and default progression increases, and prefers suggestions over forced handoffs when possible
 - focused verification completed for this slice:
   - `pnpm --filter @gami/core test -- --run src/domain/game-master/gm-input-renderer.test.ts src/domain/game-master/gm-prompt.service.test.ts src/domain/game-master/gm-state-reducer.test.ts`
   - `pnpm --filter @gami/core test -- --run src/application/use-cases/run-game-master/run-game-master.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.memory-input.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.typed-retrieval.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-unlocks.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-switch.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.model-resolution.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.defensive.use-case.test.ts`
   - `pnpm --filter @gami/core typecheck` now passes; the previous `get-session-context.use-case.ts` nullability blocker has been resolved
 - docs reviewed and updated as part of the slice:
-  - updated `docs/GAME_MASTER_CONTRACT.md` to record both the structured static prompt boundary and the structured dynamic-input rendering boundary
-  - updated `docs/TEST_COVERAGE_PLAN.md` to make dynamic renderer section-order and omission coverage explicit for the GM module
+  - updated `docs/GAME_MASTER_CONTRACT.md` to record the evidence-based static decision-policy boundary alongside the structured static and dynamic prompt boundaries
+  - updated `docs/TEST_COVERAGE_PLAN.md` to make real-request prompt assertions explicit for the GM module
   - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/EPICS.md`; their current statements still match the implemented ownership, bounded-memory behavior, orchestration flow, and EPIC-progress state, so no further edits were required
 
 ---
