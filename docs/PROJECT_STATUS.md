@@ -1018,8 +1018,9 @@ Completed on: 2026-07-20
 
 ## EPIC 8.3 — Game Master Prompt Refinement
 
-Status: 🚧 In progress
+Status: ✅ Complete
 Started on: 2026-07-20
+Completed on: 2026-07-20
 
 ### Current slice completed (prompt contract baseline + structured prompt assembly)
 
@@ -1059,10 +1060,14 @@ Started on: 2026-07-20
   - `pnpm --filter @gami/core test -- --run src/domain/game-master/gm-input-renderer.test.ts src/domain/game-master/gm-prompt.service.test.ts src/domain/game-master/gm-state-reducer.test.ts`
   - `pnpm --filter @gami/core test -- --run src/application/use-cases/run-game-master/run-game-master.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.memory-input.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.typed-retrieval.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-unlocks.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-switch.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.model-resolution.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.defensive.use-case.test.ts`
   - `pnpm --filter @gami/core typecheck` now passes; the previous `get-session-context.use-case.ts` nullability blocker has been resolved
+  - repository gates now pass for the refined prompt path without further code changes: `pnpm lint`, `pnpm typecheck`, and `pnpm test`
+  - no additional environment-gated integration or stack-e2e suite was required for this prompt-only slice; the blocking proof remains deterministic unit and in-process use-case coverage
 - docs reviewed and updated as part of the slice:
   - updated `docs/GAME_MASTER_CONTRACT.md` to record the evidence-based static decision-policy boundary alongside the structured static and dynamic prompt boundaries
+  - updated `docs/TEST_STRATEGY.md` to make consumer-boundary GM prompt request assertions explicit in the unit-test strategy
   - updated `docs/TEST_COVERAGE_PLAN.md` to make real-request prompt assertions explicit for the GM module
-  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/EPICS.md`; their current statements still match the implemented ownership, bounded-memory behavior, orchestration flow, and EPIC-progress state, so no further edits were required
+  - updated `docs/EPICS.md` to mark EPIC 8.3 complete now that structure, consumer-boundary coverage, and blocking verification are in place
+  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, and `docs/MEMORY_SYSTEM_SPEC.md`; their current statements still match the implemented ownership, bounded-memory behavior, and orchestration flow, so no further edits were required
 
 ---
 

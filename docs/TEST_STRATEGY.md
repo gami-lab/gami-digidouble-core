@@ -99,8 +99,9 @@ No network. No real providers. No real DB. Always fast, always deterministic. Ha
 
 **Game Master unit test categories:**
 
+- **Prompt contract** (`gm-prompt.service.test.ts`, `gm-input-renderer.test.ts`): static and dynamic GM prompt builders keep stable section order, preserve validation-critical instructions, omit empty optional sections cleanly, and keep the empty-input session-start path explicit.
 - **State reducer** (`gm-state-reducer.test.ts`): all `reduceGmState` field mutations — `interactionCount` increment, `progression` increase, `topicsCovered` append, `currentAvatarId` update, all-undefined update, and non-mutation of input state.
-- **Async use case** (`run-game-master.use-case.test.ts`): every completed avatar turn calls the GM LLM with a `vi.fn()` mock returning hardcoded JSON matching `GameMasterOutput`, state is reduced, notes are stored, valid unlocks are persisted, valid explicit switches open a new conversation, invalid avatar IDs are ignored, JSON parse/shape errors increment state and emit `gm_error`, LLM errors are caught silently, event log shape verifies `gm_triggered` / `gm_error` fields, and event payload security confirms no `userMessageText` or raw system prompt is emitted.
+- **Async use case** (`run-game-master.use-case.test.ts`): every completed avatar turn calls the GM LLM with a `vi.fn()` mock returning hardcoded JSON matching `GameMasterOutput`, the actual `systemPrompt` and rendered user message content are asserted from the `llm.complete` request, state is reduced, notes are stored, valid unlocks are persisted, valid explicit switches open a new conversation, invalid avatar IDs are ignored, JSON parse/shape errors increment state and emit `gm_error`, LLM errors are caught silently, event log shape verifies `gm_triggered` / `gm_error` fields, and event payload security confirms no `userMessageText` or raw system prompt is emitted.
 
 ### Integration (`*.integration.test.ts`)
 
