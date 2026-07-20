@@ -1011,8 +1011,34 @@ Completed on: 2026-07-20
   - `pnpm --filter @gami/core exec vitest run --config vitest.integration.config.ts src/api/routes/conversation-runtime-context.e2e.test.ts`
 - docs synced for the verified EPIC-complete state:
   - updated `docs/TEST_COVERAGE_PLAN.md` to make consumer-boundary prompt assertions and runtime-diagnostic redaction ownership explicit
-  - updated `docs/EPICS.md` to mark EPIC 8.2 done
-  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`, `docs/MEMORY_SYSTEM_SPEC.md`, and `docs/TEST_STRATEGY.md`; their current statements already match the implemented runtime-context, compatibility, and safe-diagnostics behavior, so no further edits were required
+- updated `docs/EPICS.md` to mark EPIC 8.2 done
+- reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`, `docs/MEMORY_SYSTEM_SPEC.md`, and `docs/TEST_STRATEGY.md`; their current statements already match the implemented runtime-context, compatibility, and safe-diagnostics behavior, so no further edits were required
+
+---
+
+## EPIC 8.3 — Game Master Prompt Refinement
+
+Status: 🚧 In progress
+Started on: 2026-07-20
+
+### Current slice completed (prompt contract ownership baseline)
+
+- audited the current Game Master prompt path end to end before any wording refinement: static prompt instructions, dynamic LLM input serialization, output parsing/normalization, event emission, runtime-inspector-safe projections, and GM-focused unit suites
+- made the canonical ownership split explicit for the high-fanout GM path:
+  - static GM system instructions remain owned by `apps/core/src/domain/game-master/gm-prompt.service.ts`
+  - dynamic GM LLM input rendering now has a named canonical owner in `apps/core/src/domain/game-master/gm-input-renderer.ts`
+  - runtime GM input/output/state contracts remain owned by `apps/core/src/domain/game-master/game-master.types.ts`
+  - output parse/normalize guards now live with the GM domain module in `apps/core/src/domain/game-master/gm-output-parser.ts` and `apps/core/src/domain/game-master/gm-output-normalization.ts`
+- removed prompt-shape duplication that would otherwise let EPIC 8.3 drift:
+  - deleted the application-local GM output helper/normalization files after moving those guards under the domain GM module
+  - updated GM use-case tests to read rendered prompt payloads through canonical `GameMasterInput` instead of re-declaring local memory/recent-message/request fragments
+- preserved the compatibility boundary explicitly:
+  - no `GameMasterInput` field names, nullability, or meaning changed
+  - no `GameMasterOutput` schema, GM state fields, unlock logic, transition behavior, or runtime event payload fields changed
+  - dynamic GM input rendering is now explicitly an internal formatter, not a second runtime contract
+- docs reviewed and updated as part of the slice:
+  - updated `docs/GAME_MASTER_CONTRACT.md` to record prompt-contract ownership and the compatibility boundary for future EPIC 8.3 slices
+  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/TEST_COVERAGE_PLAN.md`; no changes were required because their current statements already match the implemented ownership and guard boundaries
 
 ---
 
@@ -1123,6 +1149,7 @@ Completed on: 2026-07-20
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (avatar prompt assembly runtime order + traits) |
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (send-message wiring + safe runtime inspection) |
 | 2026-07-20 | EPIC 8.2 — Runtime Context Assembly Refactoring (final hardening, E2E proof, doc sync)          |
+| 2026-07-20 | EPIC 8.3 — Game Master Prompt Refinement (prompt contract ownership baseline)                   |
 
 ---
 
@@ -1139,6 +1166,7 @@ Current implementation focus:
 - EPIC 6.1 (Scenario Builder v1 admin app) is complete for the supported scenario-builder surfaces: contract cleanup, scenario/avatar editors, knowledge source management, runtime model selection, final hardening, and audit remediation all delivered
 - EPIC 8.1 (Avatar Trait Structuring) is complete: contract/source-ownership baseline, fixed `computedTraits` schema/persistence, the scenario avatar trait preparation service (`PrepareScenarioAvatarTraitsUseCase`), the explicit `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` HTTP endpoint, and the admin trigger/read-only trait inspection UI are all delivered
 - EPIC 8.2 (Runtime Context Assembly Refactoring) is complete: contract ownership, semantic section precedence, structured Avatar Traits runtime consumption, send-message consumer-boundary proof, bounded runtime diagnostics, and final documentation sync are all verified
+- EPIC 8.3 (Game Master Prompt Refinement) is in progress: the contract-ownership baseline is complete, so later prompt wording/layout slices can iterate without reopening GM runtime type, parser, state, or event-boundary questions
 
 ---
 

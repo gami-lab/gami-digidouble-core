@@ -37,20 +37,21 @@ Out of scope:
 - `docs/EPICS.md`
 - `docs/PROJECT_STATUS.md`
 - `apps/core/src/domain/game-master/gm-prompt.service.ts`
+- `apps/core/src/domain/game-master/gm-input-renderer.ts`
 - `apps/core/src/domain/game-master/game-master.types.ts`
+- `apps/core/src/domain/game-master/gm-output-parser.ts`
+- `apps/core/src/domain/game-master/gm-output-normalization.ts`
 - `apps/core/src/application/use-cases/run-game-master/run-game-master.use-case.ts`
 - `apps/core/src/application/use-cases/run-game-master/run-game-master.context-engine.ts`
-- `apps/core/src/application/use-cases/run-game-master/run-game-master.helpers.ts`
-- `apps/core/src/application/use-cases/run-game-master/run-game-master.normalization.ts`
 - `packages/shared/src/runtime-inspector-types.ts`
 
 # Implementation Guidance
 
 - Start with an inventory of the current prompt path:
   - static instructions from `buildGameMasterSystemPrompt`;
-  - dynamic input serialization inside `RunGameMasterUseCase.callLlm`;
+  - dynamic input rendering inside `renderGameMasterInputForLlm` / `RunGameMasterUseCase.callLlm`;
   - GM domain types in `game-master.types.ts`;
-  - parse/normalize guards in `run-game-master.helpers.ts` and `run-game-master.normalization.ts`;
+  - parse/normalize guards in `gm-output-parser.ts` and `gm-output-normalization.ts`;
   - event and inspector shapes that expose GM summaries without prompt leakage.
 - Search for duplicated GM request/response shapes in:
   - `apps/core/src/application/use-cases/run-game-master/*.test.ts`

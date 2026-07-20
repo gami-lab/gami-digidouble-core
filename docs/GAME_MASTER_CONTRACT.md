@@ -188,8 +188,16 @@ export type GameMasterInput = {
 Contract ownership note:
 
 - GM input/output domain types: `apps/core/src/domain/game-master/game-master.types.ts`
+- Static GM system instructions: `apps/core/src/domain/game-master/gm-prompt.service.ts`
+- Dynamic GM LLM input rendering: `apps/core/src/domain/game-master/gm-input-renderer.ts`
+- GM output parse/normalize guards: `apps/core/src/domain/game-master/gm-output-parser.ts` and `apps/core/src/domain/game-master/gm-output-normalization.ts`
 - GM memory sub-shape source (internal): `apps/core/src/domain/memory/memory.types.ts` (`GameMasterMemoryContext`)
 - HTTP-facing DTO memory fragments remain owned by `@gami/shared`.
+
+Compatibility boundary note:
+
+- `GameMasterInput` remains the only runtime input contract for GM evaluation.
+- The LLM renderer is an internal serialization concern only; prompt wording/layout work must not add prompt-only fields or fork `GameMasterInput`.
 
 ---
 
@@ -248,6 +256,11 @@ GM output can trigger RuntimeEvents (emitted by the system, not by GM directly),
 - `suggestedAvatarId` / `suggestedAvatarReason` → `runtime.avatar_suggested`
 - `recommendedChoices` present → `runtime.choice_required`
 - GM run start/end lifecycle → `runtime.processing_started` / `runtime.processing_finished`
+
+Compatibility boundary note:
+
+- `GameMasterOutput` remains the canonical runtime output contract.
+- Prompt refinement may change wording or formatting, but must continue to pass through the existing parse, normalization, unlock validation, state reduction, and event-payload guards.
 
 ---
 

@@ -1,4 +1,4 @@
-import type { GameMasterOutput } from '../../../domain/game-master/game-master.types.js'
+import type { GameMasterOutput } from './game-master.types.js'
 
 export function safeParseGameMasterOutput(content: string): GameMasterOutput | null {
   try {

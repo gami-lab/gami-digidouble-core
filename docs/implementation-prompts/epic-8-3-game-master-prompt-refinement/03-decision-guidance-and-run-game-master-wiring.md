@@ -32,10 +32,11 @@ Out of scope:
 - `docs/EPICS.md`
 - `docs/PROJECT_STATUS.md`
 - `apps/core/src/domain/game-master/gm-prompt.service.ts`
+- `apps/core/src/domain/game-master/gm-input-renderer.ts`
 - `apps/core/src/domain/game-master/game-master.types.ts`
+- `apps/core/src/domain/game-master/gm-output-parser.ts`
+- `apps/core/src/domain/game-master/gm-output-normalization.ts`
 - `apps/core/src/application/use-cases/run-game-master/run-game-master.use-case.ts`
-- `apps/core/src/application/use-cases/run-game-master/run-game-master.helpers.ts`
-- `apps/core/src/application/use-cases/run-game-master/run-game-master.normalization.ts`
 - `apps/core/src/application/use-cases/run-game-master/run-game-master.use-case.test.ts`
 - `apps/core/src/application/use-cases/run-game-master/run-game-master.avatar-unlocks.use-case.test.ts`
 

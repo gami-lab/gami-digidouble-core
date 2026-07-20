@@ -8,6 +8,13 @@ import type { ContextMessage, GameMasterMemoryContext } from '../memory/memory.t
  * injects guidance when needed. It never blocks the Avatar's response.
  *
  * Source of truth: docs/GAME_MASTER_CONTRACT.md
+ *
+ * Ownership:
+ * - Static system instructions: gm-prompt.service.ts
+ * - Dynamic LLM input rendering: gm-input-renderer.ts
+ * - Runtime contract types: this file
+ * - Output parsing/normalization guards: gm-output-parser.ts and
+ *   gm-output-normalization.ts
  */
 
 /** Minimal state maintained by the Game Master across turns. */

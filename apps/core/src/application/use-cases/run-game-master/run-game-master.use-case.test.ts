@@ -4,6 +4,7 @@ import type { RuntimeEvent } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
 import { expectConsoleError } from '../../../test-utils/console.js'
+import { readRenderedGameMasterInput } from '../../../test-utils/game-master.js'
 import { LlmError } from '../../../infrastructure/llm/llm.error.js'
 import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
@@ -206,9 +207,7 @@ describe('RunGameMasterUseCase', () => {
     })
 
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
-    const gmInput = JSON.parse(request.messages[0]?.content ?? '{}') as {
-      context: { experience: { goals: string[] }; availableAvatars: unknown[] }
-    }
+    const gmInput = readRenderedGameMasterInput(request)
     expect(gmInput.context.experience.goals).toEqual([
       'Understand the basics.',
       'Ask better questions.',
@@ -230,9 +229,7 @@ describe('RunGameMasterUseCase', () => {
     })
 
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
-    const gmInput = JSON.parse(request.messages[0]?.content ?? '{}') as {
-      context: { userPersona?: { roleInWorld?: string } }
-    }
+    const gmInput = readRenderedGameMasterInput(request)
     expect(gmInput.context.userPersona?.roleInWorld).toBe('friend')
   })
 
@@ -249,9 +246,7 @@ describe('RunGameMasterUseCase', () => {
     })
 
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
-    const gmInput = JSON.parse(request.messages[0]?.content ?? '{}') as {
-      context: Record<string, unknown>
-    }
+    const gmInput = readRenderedGameMasterInput(request)
     expect(Object.hasOwn(gmInput.context, 'userPersona')).toBe(false)
   })
 })

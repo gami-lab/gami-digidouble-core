@@ -14,6 +14,9 @@ import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { ContextScenarioSnapshot } from '../../../domain/context/session-context.types.js'
+import { renderGameMasterInputForLlm } from '../../../domain/game-master/gm-input-renderer.js'
+import { normalizeGameMasterOutput } from '../../../domain/game-master/gm-output-normalization.js'
+import { safeParseGameMasterOutput } from '../../../domain/game-master/gm-output-parser.js'
 import { buildGameMasterSystemPrompt } from '../../../domain/game-master/gm-prompt.service.js'
 import { reduceGmState } from '../../../domain/game-master/gm-state-reducer.js'
 import type {
@@ -29,8 +32,6 @@ import {
   logResolvedLlmCall,
   resolveRoleLlmCall,
 } from '../../services/model-resolution-runtime.service.js'
-import { safeParseGameMasterOutput } from './run-game-master.helpers.js'
-import { normalizeGameMasterOutput } from './run-game-master.normalization.js'
 import { type UnlockEvaluation, resolveAvatarUnlocks } from './run-game-master.avatar-unlocks.js'
 import { buildGmContextSnapshot } from './run-game-master.context-engine.js'
 import {
@@ -270,7 +271,7 @@ export class RunGameMasterUseCase {
     const gmTraceRequestId = `gm_${crypto.randomUUID()}`
     const llmRequest = {
       systemPrompt: buildGameMasterSystemPrompt(),
-      messages: [{ role: 'user' as const, content: JSON.stringify(gmInput) }],
+      messages: [{ role: 'user' as const, content: renderGameMasterInputForLlm(gmInput) }],
       ...(resolvedLlm.model !== undefined ? { model: resolvedLlm.model } : {}),
       trace: {
         requestId: gmTraceRequestId,

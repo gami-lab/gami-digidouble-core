@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { GameMasterInput } from '../../../domain/game-master/game-master.types.js'
+import { readRenderedGameMasterInput } from '../../../test-utils/game-master.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
@@ -59,26 +61,18 @@ const userMemoryFactRepository = {
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
 
-type GmMemory = {
-  workingMemory?: { summary: string; unresolvedThreads: string[] }
-  episodicMemories?: Array<{ conversationId: string; selectionReasons?: string[] }>
-  longTermFacts?: Array<{ category: string; key: string; value: string }>
+function readRecentMessages(): NonNullable<GameMasterInput['recentMessages']> {
+  return (
+    readRenderedGameMasterInput(
+      completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> },
+    ).recentMessages ?? []
+  )
 }
 
-type GmRecentMessage = { role: 'user' | 'avatar' | 'system'; content: string }
-
-function readRecentMessages(): GmRecentMessage[] {
-  const rawContent =
-    (completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }).messages[0]
-      ?.content ?? '{}'
-  return (JSON.parse(rawContent) as { recentMessages?: GmRecentMessage[] }).recentMessages ?? []
-}
-
-function readGmMemory(): GmMemory {
-  const rawContent =
-    (completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }).messages[0]
-      ?.content ?? '{}'
-  return (JSON.parse(rawContent) as { context: { memory: GmMemory } }).context.memory
+function readGmMemory(): NonNullable<GameMasterInput['context']['memory']> {
+  return readRenderedGameMasterInput(
+    completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> },
+  ).context.memory as NonNullable<GameMasterInput['context']['memory']>
 }
 
 function makeEpisodicMemory() {
@@ -262,7 +256,7 @@ describe('RunGameMasterUseCase memory input', () => {
     const first = memory.episodicMemories?.[0]
     expect(memory.episodicMemories?.length).toBeGreaterThan(0)
     expect(first?.conversationId).toBe('conv_past_1')
-    expect(first?.selectionReasons?.length).toBeGreaterThan(0)
+    expect(first?.selectionReasons.length).toBeGreaterThan(0)
   })
 })
 

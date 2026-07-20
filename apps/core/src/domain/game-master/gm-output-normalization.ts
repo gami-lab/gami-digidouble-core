@@ -1,26 +1,5 @@
-import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
-import type { GameMasterOutput } from '../../../domain/game-master/game-master.types.js'
-
-export function toRecentExchangeMessages(
-  messages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
-  exchangeLimit: number,
-): Array<{ role: 'user' | 'avatar' | 'system'; content: string }> {
-  const exchanges: Array<Array<{ role: 'user' | 'avatar' | 'system'; content: string }>> = []
-  let pendingUser: { role: 'user' | 'avatar' | 'system'; content: string } | undefined
-
-  for (const message of messages) {
-    if (message.role === 'user') {
-      pendingUser = message
-      continue
-    }
-    if (message.role === 'avatar' && pendingUser !== undefined) {
-      exchanges.push([pendingUser, message])
-      pendingUser = undefined
-    }
-  }
-
-  return exchanges.slice(-exchangeLimit).flat()
-}
+import type { AvatarConfig } from '../avatar/avatar.types.js'
+import type { GameMasterOutput } from './game-master.types.js'
 
 export function normalizeGameMasterOutput(
   output: GameMasterOutput,

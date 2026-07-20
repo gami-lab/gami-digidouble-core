@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
+import { readRenderedGameMasterInput } from '../../../test-utils/game-master.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
 const findBySessionIdMock = vi.fn()
@@ -241,15 +242,7 @@ describe('RunGameMasterUseCase typed retrieval input', () => {
     )
 
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
-    const gmInput = JSON.parse(request.messages[0]?.content ?? '{}') as {
-      context: {
-        rag?: {
-          memory?: Array<{ sourceId: string; excerpt: string }>
-          world?: Array<{ sourceId: string; excerpt: string }>
-          media?: Array<{ sourceId: string; excerpt: string }>
-        }
-      }
-    }
+    const gmInput = readRenderedGameMasterInput(request)
 
     expect(gmInput.context.rag).toEqual({
       memory: [
