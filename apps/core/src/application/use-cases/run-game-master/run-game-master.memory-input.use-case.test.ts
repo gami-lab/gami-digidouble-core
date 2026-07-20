@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GameMasterInput } from '../../../domain/game-master/game-master.types.js'
-import { readRenderedGameMasterInput } from '../../../test-utils/game-master.js'
+import { readRenderedGameMasterPrompt } from '../../../test-utils/game-master.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
@@ -62,17 +62,33 @@ const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
 
 function readRecentMessages(): NonNullable<GameMasterInput['recentMessages']> {
-  return (
-    readRenderedGameMasterInput(
-      completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> },
-    ).recentMessages ?? []
+  const prompt = readRenderedGameMasterPrompt(
+    completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> },
   )
+  const section = readSection(prompt, '### Recent Exchanges')
+
+  return section
+    .split('\n')
+    .filter((line) => /^\d+\./.test(line))
+    .map((line) => {
+      const userMatch = line.match(/^\d+\. User: (.+)$/)
+      if (userMatch !== null) {
+        return { role: 'user' as const, content: userMatch[1] ?? '' }
+      }
+
+      const avatarMatch = line.match(/^\d+\. Avatar: (.+)$/)
+      if (avatarMatch !== null) {
+        return { role: 'avatar' as const, content: avatarMatch[1] ?? '' }
+      }
+
+      return { role: 'system' as const, content: line }
+    })
 }
 
-function readGmMemory(): NonNullable<GameMasterInput['context']['memory']> {
-  return readRenderedGameMasterInput(
+function readRenderedPrompt(): string {
+  return readRenderedGameMasterPrompt(
     completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> },
-  ).context.memory as NonNullable<GameMasterInput['context']['memory']>
+  )
 }
 
 function makeEpisodicMemory() {
@@ -214,7 +230,7 @@ describe('RunGameMasterUseCase memory input', () => {
       correlationId: 'request_memory_layers',
     })
 
-    const memory = readGmMemory()
+    const prompt = readRenderedPrompt()
     const recentMessages = readRecentMessages()
 
     expect(recentMessages).toEqual([
@@ -225,16 +241,12 @@ describe('RunGameMasterUseCase memory input', () => {
       { role: 'user', content: 'U3' },
       { role: 'avatar', content: 'A3' },
     ])
-    expect(memory).not.toHaveProperty('shortTerm')
-    expect(memory).not.toHaveProperty('workingSummary')
-    expect(memory.workingMemory).toEqual({
-      summary: 'Session working summary',
-      unresolvedThreads: ['Follow up on budget'],
-    })
-    expect(memory.episodicMemories).toBeUndefined()
-    expect(memory.longTermFacts).toEqual([
-      { category: 'preference', key: 'tone', value: 'concise' },
-    ])
+    expect(prompt).toContain('### Working Memory')
+    expect(prompt).toContain('- Summary: Session working summary')
+    expect(prompt).toContain('- Unresolved Threads: Follow up on budget')
+    expect(prompt).not.toContain('### Episodic Memories')
+    expect(prompt).toContain('### Long-Term Facts')
+    expect(prompt).toContain('- preference / tone: concise')
   })
 
   it('injects bounded episodic memories with selection reasons when episodic candidates are present', async () => {
@@ -252,13 +264,25 @@ describe('RunGameMasterUseCase memory input', () => {
       turnIndex: 1,
       correlationId: 'request_episodic',
     })
-    const memory = readGmMemory()
-    const first = memory.episodicMemories?.[0]
-    expect(memory.episodicMemories?.length).toBeGreaterThan(0)
-    expect(first?.conversationId).toBe('conv_past_1')
-    expect(first?.selectionReasons.length).toBeGreaterThan(0)
+    const prompt = readRenderedPrompt()
+    const section = readSection(prompt, '### Episodic Memories')
+    expect(section).toContain('Memory ID:')
+    expect(section).toContain('Conversation ID: conv_past_1')
+    expect(section).toContain('Selection Reasons: ')
   })
 })
+
+function readSection(prompt: string, heading: string): string {
+  const start = prompt.indexOf(heading)
+  if (start === -1) return ''
+
+  const nextHeading = prompt.indexOf('\n### ', start + heading.length)
+  const nextSection = prompt.indexOf('\n## ', start + heading.length)
+  const endCandidates = [nextHeading, nextSection].filter((index) => index !== -1)
+  const end = endCandidates.length > 0 ? Math.min(...endCandidates) : prompt.length
+
+  return prompt.slice(start, end)
+}
 
 describe('RunGameMasterUseCase output normalization', () => {
   it('normalizes avatar name references to IDs before persisting state', async () => {

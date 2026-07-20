@@ -1021,7 +1021,7 @@ Completed on: 2026-07-20
 Status: 🚧 In progress
 Started on: 2026-07-20
 
-### Current slice completed (prompt contract baseline + structured static prompt)
+### Current slice completed (prompt contract baseline + structured prompt assembly)
 
 - audited the current Game Master prompt path end to end before any wording refinement: static prompt instructions, dynamic LLM input serialization, output parsing/normalization, event emission, runtime-inspector-safe projections, and GM-focused unit suites
 - made the canonical ownership split explicit for the high-fanout GM path:
@@ -1041,17 +1041,25 @@ Started on: 2026-07-20
   - the prompt now states the GM boundary explicitly: it interprets the latest exchange, evaluates progress/state, decides progression or routing when warranted, provides compact avatar guidance, and never speaks directly to the user
   - orchestration objectives are ordered for stability first, with explicit bias toward preserving the current avatar and conversation unless recent evidence supports change
   - output-contract wording is shorter while preserving the validation-sensitive rules for `avatarId`, locked-avatar-only unlocks, `unlockDecisions`, `nextAvatarId`, `context.notes`, `interactionIncrement`, and empty-input session start guidance
+- refactored the canonical dynamic GM input renderer in place instead of reusing a raw JSON dump:
+  - `apps/core/src/domain/game-master/gm-input-renderer.ts` now renders stable `## Current Turn`, `## Current Discussion Context`, `## Experience Context`, and `## Output Reminder` sections
+  - current-turn information is called out explicitly, including the empty `userMessage.text` session-start case
+  - current discussion context now separates bounded recent exchanges, current GM state, working memory, episodic memories, long-term facts, and optional user persona when present
+  - experience context now separates scenario description/goals, available avatars with availability when present, and bounded retrieved memory/world/media context
+  - optional renderer blocks are omitted when empty; the underlying `GameMasterInput` field names, nullability, and ownership remain unchanged
 - added deterministic prompt-builder regression coverage:
   - `apps/core/src/domain/game-master/gm-prompt.service.test.ts` now asserts section presence/order plus the contract-critical instructions that must remain explicit in the static prompt
-  - existing GM use-case and runtime-path unit suites remain green against the refined prompt wording
+  - `apps/core/src/domain/game-master/gm-input-renderer.test.ts` now asserts dynamic section order, discussion/experience separation, and omission behavior for empty optional context
+  - GM use-case tests now assert the actual rendered prompt content sent to the LLM instead of reparsing a raw JSON dump
+  - existing GM use-case and runtime-path unit suites remain green against the structured prompt wording
 - focused verification completed for this slice:
-  - `pnpm --filter @gami/core test -- --run src/domain/game-master/gm-prompt.service.test.ts src/domain/game-master/gm-state-reducer.test.ts`
-  - `pnpm --filter @gami/core test -- --run src/application/use-cases/run-game-master/run-game-master.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-switch.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-unlocks.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.memory-input.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.typed-retrieval.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.model-resolution.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.defensive.use-case.test.ts`
+  - `pnpm --filter @gami/core test -- --run src/domain/game-master/gm-input-renderer.test.ts src/domain/game-master/gm-prompt.service.test.ts src/domain/game-master/gm-state-reducer.test.ts`
+  - `pnpm --filter @gami/core test -- --run src/application/use-cases/run-game-master/run-game-master.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.memory-input.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.typed-retrieval.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-unlocks.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.avatar-switch.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.model-resolution.use-case.test.ts src/application/use-cases/run-game-master/run-game-master.defensive.use-case.test.ts`
   - attempted `pnpm --filter @gami/core typecheck`; currently blocked by pre-existing nullability errors in `apps/core/src/application/use-cases/get-session-context/get-session-context.use-case.ts`
 - docs reviewed and updated as part of the slice:
-  - updated `docs/GAME_MASTER_CONTRACT.md` to record the structured static-prompt boundary and the invariant instructions future prompt edits must keep explicit
-  - updated `docs/TEST_COVERAGE_PLAN.md` to make prompt-structure and invariant-instruction coverage explicit for the GM module
-  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/EPICS.md`; their current statements still match the implemented ownership, orchestration, and EPIC-progress state, so no further edits were required
+  - updated `docs/GAME_MASTER_CONTRACT.md` to record both the structured static prompt boundary and the structured dynamic-input rendering boundary
+  - updated `docs/TEST_COVERAGE_PLAN.md` to make dynamic renderer section-order and omission coverage explicit for the GM module
+  - reviewed `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`, `docs/MEMORY_SYSTEM_SPEC.md`, `docs/TEST_STRATEGY.md`, and `docs/EPICS.md`; their current statements still match the implemented ownership, bounded-memory behavior, orchestration flow, and EPIC-progress state, so no further edits were required
 
 ---
 

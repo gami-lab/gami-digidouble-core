@@ -4,7 +4,7 @@ import type { RuntimeEvent } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
 import { expectConsoleError } from '../../../test-utils/console.js'
-import { readRenderedGameMasterInput } from '../../../test-utils/game-master.js'
+import { readRenderedGameMasterPrompt } from '../../../test-utils/game-master.js'
 import { LlmError } from '../../../infrastructure/llm/llm.error.js'
 import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
@@ -194,7 +194,7 @@ describe('RunGameMasterUseCase', () => {
     })
   })
 
-  it('passes scenario goals and avatar availability into GM input', async () => {
+  it('renders scenario goals and avatar availability into structured GM prompt content', async () => {
     const useCase = createUseCase()
 
     await useCase.execute({
@@ -207,15 +207,21 @@ describe('RunGameMasterUseCase', () => {
     })
 
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
-    const gmInput = readRenderedGameMasterInput(request)
-    expect(gmInput.context.experience.goals).toEqual([
-      'Understand the basics.',
-      'Ask better questions.',
+    const prompt = readRenderedGameMasterPrompt(request)
+    expectSectionOrder(prompt, [
+      '## Current Turn',
+      '## Current Discussion Context',
+      '## Experience Context',
+      '## Output Reminder',
     ])
-    expect(gmInput.context.availableAvatars).toEqual([{ avatarId: 'avatar_1', name: 'Ava' }])
+    expect(prompt).toContain('### Scenario')
+    expect(prompt).toContain('- Goal 1: Understand the basics.')
+    expect(prompt).toContain('- Goal 2: Ask better questions.')
+    expect(prompt).toContain('### Available Avatars')
+    expect(prompt).toContain('- Ava (avatar_1)')
   })
 
-  it('passes userPersona through to GM input when provided', async () => {
+  it('renders userPersona in the current discussion context when provided', async () => {
     const useCase = createUseCase()
 
     await useCase.execute({
@@ -229,8 +235,10 @@ describe('RunGameMasterUseCase', () => {
     })
 
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
-    const gmInput = readRenderedGameMasterInput(request)
-    expect(gmInput.context.userPersona?.roleInWorld).toBe('friend')
+    const prompt = readRenderedGameMasterPrompt(request)
+    expect(prompt).toContain('### User Persona')
+    expect(prompt).toContain('- Name: Lina')
+    expect(prompt).toContain('- Role In World: friend')
   })
 
   it('does not inject empty userPersona when input has none', async () => {
@@ -246,8 +254,8 @@ describe('RunGameMasterUseCase', () => {
     })
 
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
-    const gmInput = readRenderedGameMasterInput(request)
-    expect(Object.hasOwn(gmInput.context, 'userPersona')).toBe(false)
+    const prompt = readRenderedGameMasterPrompt(request)
+    expect(prompt).not.toContain('### User Persona')
   })
 })
 
@@ -364,6 +372,16 @@ describe('RunGameMasterUseCase — runtime event publication lifecycle', () => {
     expect(eventPublisherSetProcessingMock).toHaveBeenLastCalledWith('session_1', false)
   })
 })
+
+function expectSectionOrder(prompt: string, sections: string[]): void {
+  let previousIndex = -1
+
+  for (const section of sections) {
+    const index = prompt.indexOf(section)
+    expect(index).toBeGreaterThan(previousIndex)
+    previousIndex = index
+  }
+}
 
 describe('RunGameMasterUseCase — runtime event publication unlocks', () => {
   it('emits runtime.avatar_unlocked when unlocks are produced', async () => {

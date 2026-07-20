@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
-import { readRenderedGameMasterInput } from '../../../test-utils/game-master.js'
+import { readRenderedGameMasterPrompt } from '../../../test-utils/game-master.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
 const findBySessionIdMock = vi.fn()
@@ -210,7 +210,7 @@ beforeEach(() => {
 })
 
 describe('RunGameMasterUseCase typed retrieval input', () => {
-  it('builds GM retrieval from world context plus current exchanges and injects it into the prompt payload', async () => {
+  it('builds GM retrieval from world context plus current exchanges and renders it under experience context', async () => {
     const useCase = createUseCase()
 
     await useCase.execute({
@@ -242,27 +242,14 @@ describe('RunGameMasterUseCase typed retrieval input', () => {
     )
 
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
-    const gmInput = readRenderedGameMasterInput(request)
+    const prompt = readRenderedGameMasterPrompt(request)
 
-    expect(gmInput.context.rag).toEqual({
-      memory: [
-        {
-          sourceId: 'memory_source_1',
-          excerpt: 'The witness already shared a timeline contradiction.',
-        },
-      ],
-      world: [
-        {
-          sourceId: 'world_source_1',
-          excerpt: 'Storm tide starts at dusk near the harbor.',
-        },
-      ],
-      media: [
-        {
-          sourceId: 'media_source_1',
-          excerpt: 'Harbor map with dock markers.',
-        },
-      ],
-    })
+    expect(prompt).toContain('## Experience Context')
+    expect(prompt).toContain('### Retrieved Context')
+    expect(prompt).toContain(
+      '1. [memory_source_1] The witness already shared a timeline contradiction.',
+    )
+    expect(prompt).toContain('1. [world_source_1] Storm tide starts at dusk near the harbor.')
+    expect(prompt).toContain('1. [media_source_1] Harbor map with dock markers.')
   })
 })

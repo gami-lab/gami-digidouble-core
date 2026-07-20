@@ -199,6 +199,7 @@ Compatibility boundary note:
 - `GameMasterInput` remains the only runtime input contract for GM evaluation.
 - The LLM renderer is an internal serialization concern only; prompt wording/layout work must not add prompt-only fields or fork `GameMasterInput`.
 - The static GM system prompt is organized into explicit `Role`, `Objectives`, `Decision Policies`, and `Output Contract` sections; wording may evolve, but JSON-only output, avatar availability, unlock gating, `nextAvatarId`, `interactionIncrement`, `context.notes`, and session-start guidance must remain explicit.
+- The dynamic GM runtime input is rendered into explicit `Current Turn`, `Current Discussion Context`, `Experience Context`, and `Output Reminder` sections; wording may evolve, but it must continue to consume the same `GameMasterInput` fields, preserve bounded recent messages and memory layers, and omit empty optional sections cleanly.
 
 ---
 
