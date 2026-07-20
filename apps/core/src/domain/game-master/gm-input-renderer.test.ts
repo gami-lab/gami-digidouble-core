@@ -31,6 +31,7 @@ function makeInput(overrides: Partial<GameMasterInput> = {}): GameMasterInput {
         workingMemory: {
           summary: 'The witness already contradicted the tide schedule.',
           unresolvedThreads: ['Confirm the dock number.'],
+          coveredTopics: ['witness_timeline'],
         },
         episodicMemories: [
           {
@@ -114,6 +115,7 @@ describe('renderGameMasterInputForLlm', () => {
     expect(prompt).toContain('### Current GM State')
     expect(prompt).toContain('- Progression: investigation')
     expect(prompt).toContain('### Working Memory')
+    expect(prompt).toContain('- Covered Topics: witness_timeline')
     expect(prompt).toContain('### Episodic Memories')
     expect(prompt).toContain('### Long-Term Facts')
     expect(prompt).toContain('### User Persona')

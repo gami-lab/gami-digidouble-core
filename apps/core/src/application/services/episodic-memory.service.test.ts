@@ -4,6 +4,7 @@ import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructur
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { EpisodicMemoryService } from './episodic-memory.service.js'
 
+// eslint-disable-next-line max-lines-per-function
 describe('EpisodicMemoryService', () => {
   it('creates one episodic memory on closed conversation generation', async () => {
     const conversationMemoryRepository = new InMemoryConversationMemoryRepository()
@@ -14,6 +15,7 @@ describe('EpisodicMemoryService', () => {
         avatarId: 'avatar_1',
         summary: 'Working summary',
         unresolvedThreads: ['Thread A'],
+        coveredTopics: ['topic_a'],
         candidateFacts: [{ category: 'conversation_signal', key: 'k1', value: 'v1' }],
         updatedAt: '2026-05-08T10:00:00.000Z',
       },
@@ -105,6 +107,7 @@ describe('EpisodicMemoryService', () => {
     expect(hydration.summary).not.toContain('Hydration context:')
     expect(hydration.summary).toContain('latency architecture')
     expect(hydration.unresolvedThreads).toContain('Need benchmark')
+    expect(hydration.coveredTopics).toEqual([])
     expect(hydration.summary).not.toContain('Other user memory')
   })
 })

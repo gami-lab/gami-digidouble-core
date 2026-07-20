@@ -203,6 +203,7 @@ describe('RunGameMasterUseCase memory input', () => {
       avatarId: 'avatar_1',
       summary: 'Session working summary',
       unresolvedThreads: ['Follow up on budget'],
+      coveredTopics: ['initial_budget_review'],
       candidateFacts: [],
       updatedAt: '2026-04-18T10:00:00.500Z', // after U0/A0 → U1–A3 are uncovered (3 exchanges)
     })

@@ -131,6 +131,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
         avatarId: input.avatarId,
         summary: rewritten.summary,
         unresolvedThreads: rewritten.unresolvedThreads,
+        coveredTopics: rewritten.coveredTopics,
         candidateFacts: rewritten.candidateFacts,
       })
 
@@ -148,6 +149,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
           workingSummary: rewritten.summary,
           messageCount: recentOrdered.length,
           unresolvedThreads: rewritten.unresolvedThreads,
+          coveredTopics: rewritten.coveredTopics,
           candidateFacts: rewritten.candidateFacts,
           exchangeCount,
         },
@@ -216,7 +218,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     })
     const response = await resolvedLlm.adapter.complete(llmRequest)
 
-    const parsed = parseCompactionOutput(response.content)
+    const parsed = parseCompactionOutput(response.content, priorMemory)
 
     if (parsed !== null) return parsed
     throw new Error('[memory-maintenance] LLM returned unparseable compaction output')
@@ -270,6 +272,9 @@ function buildCompactionInput(
     if (priorMemory.unresolvedThreads.length > 0) {
       parts.push(`Unresolved threads: ${priorMemory.unresolvedThreads.join('; ')}`)
     }
+    if (priorMemory.coveredTopics.length > 0) {
+      parts.push(`Covered topics: ${priorMemory.coveredTopics.join('; ')}`)
+    }
     if (priorMemory.candidateFacts.length > 0) {
       const facts = priorMemory.candidateFacts
         .map((f) => `  [${f.category}] ${f.key}: ${f.value}`)
@@ -285,7 +290,10 @@ function buildCompactionInput(
   return parts.join('\n')
 }
 
-function parseCompactionOutput(content: string): ConversationWorkingMemoryRefreshOutput | null {
+function parseCompactionOutput(
+  content: string,
+  priorMemory: ConversationWorkingMemoryRefreshOutput | null,
+): ConversationWorkingMemoryRefreshOutput | null {
   let parsed: unknown
   try {
     parsed = JSON.parse(stripMarkdownFences(content))
@@ -298,11 +306,15 @@ function parseCompactionOutput(content: string): ConversationWorkingMemoryRefres
   if (summary === null) return null
 
   const unresolvedThreads = readStringArray(parsed['unresolvedThreads']).slice(0, 6)
+  const coveredTopics = Object.hasOwn(parsed, 'coveredTopics')
+    ? readStringArray(parsed['coveredTopics']).slice(0, 8)
+    : (priorMemory?.coveredTopics ?? [])
   const candidateFacts = readCandidateFacts(parsed['candidateFacts']).slice(0, 8)
 
   return {
     summary: summary.length > 700 ? `${summary.slice(0, 700)}...` : summary,
     unresolvedThreads,
+    coveredTopics,
     candidateFacts,
   }
 }

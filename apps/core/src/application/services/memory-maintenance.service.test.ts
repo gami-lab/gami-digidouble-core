@@ -179,6 +179,7 @@ describe('MemoryMaintenanceService — persistence and events', () => {
       sessionId: 'session_1',
       avatarId: 'avatar_1',
       summary: 'Conversation turns: user=3, avatar=3.',
+      coveredTopics: [],
     })
     await expect(sessionMemoryRepository.findBySessionId('session_1')).resolves.toBeNull()
     await expect(
@@ -261,6 +262,7 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
     ).resolves.toMatchObject({
       summary: 'Compact clinical privacy summary.',
       unresolvedThreads: ['Need HIPAA-safe workflow template'],
+      coveredTopics: [],
       candidateFacts: [{ category: 'context', key: 'profession', value: 'doctor' }],
     })
     expect(llmCompleteMock).toHaveBeenCalledTimes(1)
@@ -305,6 +307,7 @@ describe('MemoryMaintenanceService — event payload contract', () => {
     const succeededPayload = succeeded?.payload
     expect(typeof succeededPayload?.workingSummary).toBe('string')
     expect(Array.isArray(succeededPayload?.unresolvedThreads)).toBe(true)
+    expect(Array.isArray(succeededPayload?.coveredTopics)).toBe(true)
     expect(Array.isArray(succeededPayload?.candidateFacts)).toBe(true)
     expect(succeeded?.correlationId).toBe('corr_1')
   })
@@ -382,6 +385,59 @@ describe('MemoryMaintenanceService — prior memory continuity', () => {
       await conversationWorkingMemoryRepository.findByConversationId('conversation_1')
     // The second summary should contain material from the first (prior memory preserved)
     expect(secondMemory?.summary).toContain(firstMemory?.summary)
+  })
+
+  it('preserves prior covered topics when compaction output does not provide them yet', async () => {
+    const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository([
+      {
+        conversationId: 'conversation_1',
+        sessionId: 'session_1',
+        avatarId: 'avatar_1',
+        summary: 'Prior working memory',
+        unresolvedThreads: ['Need follow-up'],
+        coveredTopics: ['intro_complete', 'requirements_reviewed'],
+        candidateFacts: [],
+        updatedAt: '2026-05-06T09:59:00.000Z',
+      },
+    ])
+    const eventLogRepository = new InMemoryEventLogRepository()
+    const service = new MemoryMaintenanceService(
+      new InMemoryMessageRepository(compactionMessages),
+      conversationWorkingMemoryRepository,
+      eventLogRepository,
+      {
+        complete: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            summary: 'Updated summary without covered topics field.',
+            unresolvedThreads: ['Need follow-up'],
+            candidateFacts: [],
+          }),
+          model: 'test',
+          inputTokens: 0,
+          outputTokens: 0,
+          latencyMs: 0,
+        }),
+      },
+    )
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      trigger: 'post_turn',
+    })
+
+    await expect(
+      conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
+    ).resolves.toMatchObject({
+      coveredTopics: ['intro_complete', 'requirements_reviewed'],
+    })
+    expect(
+      eventLogRepository.getAll().find((event) => event.type === 'memory_refresh_succeeded')
+        ?.payload,
+    ).toMatchObject({
+      coveredTopics: ['intro_complete', 'requirements_reviewed'],
+    })
   })
 })
 

@@ -101,6 +101,7 @@ function renderWorkingMemory(
     '### Working Memory',
     `- Summary: ${normalizeInlineText(workingMemory.summary)}`,
     `- Unresolved Threads: ${formatInlineList(workingMemory.unresolvedThreads)}`,
+    `- Covered Topics: ${formatInlineList(workingMemory.coveredTopics)}`,
   ]
 }
 

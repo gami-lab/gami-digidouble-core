@@ -86,7 +86,7 @@ export class EpisodicMemoryService {
     )
 
     return {
-      hydration: { summary, unresolvedThreads, candidateFacts: factCandidates },
+      hydration: { summary, unresolvedThreads, coveredTopics: [], candidateFacts: factCandidates },
       selectedConversationIds: selected.map((memory) => memory.conversationId),
       consideredConversationIds: scoped.map((memory) => memory.conversationId),
     }
@@ -115,7 +115,7 @@ export class EpisodicMemoryService {
       key: `thread_${String(index + 1)}`,
       value,
     }))
-    return { summary, unresolvedThreads, candidateFacts }
+    return { summary, unresolvedThreads, coveredTopics: [], candidateFacts }
   }
 }
 

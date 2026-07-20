@@ -138,6 +138,7 @@ function makeWorkingMemory(): ConversationWorkingMemory {
     avatarId: 'avatar_1',
     summary: 'Track the north pier ledger and unresolved moonrise timing.',
     unresolvedThreads: ['north_pier_ledger'],
+    coveredTopics: ['north_pier_search'],
     candidateFacts: [],
     updatedAt: '2026-07-20T10:00:00.000Z',
   }

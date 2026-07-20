@@ -132,6 +132,7 @@ export type GameMasterInput = {
       workingMemory?: {
         summary: string
         unresolvedThreads: string[]
+        coveredTopics: string[]
       }
       episodicMemories?: Array<{
         memoryId: string
@@ -193,6 +194,7 @@ Compatibility boundary note:
 - `GameMasterInput.context.memory` owns only the structured GM-facing layers actually consumed at runtime: `workingMemory`, `episodicMemories`, and `longTermFacts`.
 - Compatibility mirrors such as `workingSummary`, `shortTerm`, or legacy `knowledge/avatarMemory` belong only to internal context snapshots or recorded diagnostics where explicitly documented; they are not part of the runtime `GameMasterInput`.
 - `workingSummary` is a summary-only mirror of `GameMasterInput.context.memory.workingMemory.summary`; no additive working-memory field may be introduced only on the mirror path.
+- Additive working-memory fields such as `coveredTopics` must be added on `GameMasterInput.context.memory.workingMemory` itself and only mirrored elsewhere deliberately when a consumer requires them.
 - The LLM renderer is an internal serialization concern only; prompt wording/layout work must not add prompt-only fields or fork `GameMasterInput`.
 - The static GM system prompt is organized into explicit `Role`, `Objectives`, `Decision Policies`, and `Output Contract` sections; wording may evolve, but JSON-only output, avatar availability, unlock gating, `nextAvatarId`, `interactionIncrement`, `context.notes`, and session-start guidance must remain explicit.
 - The static GM decision-policy section must keep evidence-based priority questions explicit and bias toward stable orchestration: keep `conversationMode: "continue"` unless a switch is clearly warranted, avoid progression increases by default, avoid weak-association unlocks, and prefer suggestions over forced switches when a handoff is not necessary.

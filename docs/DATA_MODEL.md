@@ -286,6 +286,7 @@ Table: `conversation_working_memories`
 - avatar_id
 - summary
 - unresolved_threads
+- covered_topics
 - candidate_facts
 - updated_at
 
@@ -293,6 +294,7 @@ Table: `conversation_working_memories`
 
 - Canonical active working memory
 - Rewritten periodically
+- `covered_topics` stores first-class conversation topics already covered in the active exchange state
 - One row per conversation
 
 ---

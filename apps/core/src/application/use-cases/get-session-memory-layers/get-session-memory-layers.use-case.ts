@@ -110,6 +110,7 @@ export class GetSessionMemoryLayersUseCase {
         avatarId: currentWorkingMemory.avatarId,
         summary: currentWorkingMemory.summary,
         unresolvedThreads: currentWorkingMemory.unresolvedThreads,
+        coveredTopics: currentWorkingMemory.coveredTopics,
         candidateFacts: currentWorkingMemory.candidateFacts,
         updatedAt: currentWorkingMemory.updatedAt,
       },

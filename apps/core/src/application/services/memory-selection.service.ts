@@ -117,6 +117,7 @@ export class MemorySelectionService {
             workingMemory: {
               summary: payload.workingMemory.summary,
               unresolvedThreads: payload.workingMemory.unresolvedThreads,
+              coveredTopics: payload.workingMemory.coveredTopics,
             },
           }
         : {}),
@@ -164,6 +165,7 @@ export class MemorySelectionService {
       return {
         summary: memory.summary,
         unresolvedThreads: memory.unresolvedThreads,
+        coveredTopics: memory.coveredTopics,
         updatedAt: memory.updatedAt,
         selectionReasons: ['working_memory', 'continuity'],
       }

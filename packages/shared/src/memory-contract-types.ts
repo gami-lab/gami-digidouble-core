@@ -38,6 +38,7 @@ export type SharedWorkingMemoryCurrent = {
   avatarId: string
   summary: string
   unresolvedThreads: string[]
+  coveredTopics: string[]
   candidateFacts: SharedMemoryFactRecord[]
   updatedAt: string
 }

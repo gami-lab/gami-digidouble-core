@@ -42,6 +42,7 @@ export async function hydrateConversationMemoryForNewConversation(args: {
     avatarId: input.avatarId,
     summary: hydration.summary,
     unresolvedThreads: hydration.unresolvedThreads,
+    coveredTopics: hydration.coveredTopics,
     candidateFacts: hydration.candidateFacts,
   })
 

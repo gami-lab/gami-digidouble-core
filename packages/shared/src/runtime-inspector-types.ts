@@ -162,6 +162,7 @@ export type MemoryRefreshEventPayload = {
   workingSummary?: string
   messageCount?: number
   unresolvedThreads?: string[]
+  coveredTopics?: string[]
   candidateFacts?: SharedMemoryFactRecord[]
   exchangeCount?: number
   error?: string

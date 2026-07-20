@@ -124,6 +124,7 @@ function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRef
   const workingSummary = readOptionalString(payload['workingSummary'])
   const messageCount = readOptionalNumber(payload['messageCount'])
   const unresolvedThreads = readOptionalStringArray(payload['unresolvedThreads'])
+  const coveredTopics = readOptionalStringArray(payload['coveredTopics'])
   const candidateFacts = readOptionalCandidateFacts(payload['candidateFacts'])
   const exchangeCount = readOptionalNumber(payload['exchangeCount'])
   const error = readOptionalString(payload['error'])
@@ -132,6 +133,7 @@ function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRef
     ...(workingSummary !== undefined ? { workingSummary } : {}),
     ...(messageCount !== undefined ? { messageCount } : {}),
     ...(unresolvedThreads !== undefined ? { unresolvedThreads } : {}),
+    ...(coveredTopics !== undefined ? { coveredTopics } : {}),
     ...(candidateFacts !== undefined ? { candidateFacts } : {}),
     ...(exchangeCount !== undefined ? { exchangeCount } : {}),
     ...(error !== undefined ? { error } : {}),

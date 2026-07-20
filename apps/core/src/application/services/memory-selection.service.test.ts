@@ -15,6 +15,7 @@ describe('MemorySelectionService', () => {
           avatarId: 'avatar_1',
           summary: 'Active conversation summary',
           unresolvedThreads: ['Need budget plan'],
+          coveredTopics: ['intro_complete'],
           candidateFacts: [],
           updatedAt: '2026-05-08T09:00:00.000Z',
         }),
@@ -61,6 +62,7 @@ describe('MemorySelectionService', () => {
     })
 
     expect(selected.workingMemory?.summary).toBe('Active conversation summary')
+    expect(selected.workingMemory?.coveredTopics).toEqual(['intro_complete'])
     expect(selected.episodicMemories.length).toBe(2)
     expect(selected.episodicMemories[0]?.selectionReasons).toContain('continuity')
     expect(selected.episodicMemories[0]?.selectionReasons).toContain('relevance')
@@ -144,6 +146,7 @@ describe('MemorySelectionService', () => {
           avatarId: 'avatar_1',
           summary: 'Working summary',
           unresolvedThreads: [],
+          coveredTopics: [],
           candidateFacts: [],
           updatedAt: '2026-05-08T09:00:01.500Z',
         }),

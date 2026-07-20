@@ -8,7 +8,8 @@ type ConversationWorkingMemoryRow = {
   session_id: string
   avatar_id: string
   summary: string
-  unresolved_threads: string[]
+  unresolved_threads: unknown
+  covered_topics: unknown
   candidate_facts: unknown
   updated_at: Date
 }
@@ -22,7 +23,8 @@ function rowToConversationWorkingMemory(
     sessionId: `session_${row.session_id}`,
     avatarId: `avatar_${row.avatar_id}`,
     summary: row.summary,
-    unresolvedThreads: row.unresolved_threads,
+    unresolvedThreads: readStringArray(row.unresolved_threads),
+    coveredTopics: readStringArray(row.covered_topics),
     candidateFacts: candidateFacts
       .filter((fact) => isRecord(fact))
       .map((fact) => ({
@@ -43,7 +45,7 @@ export class PostgresConversationWorkingMemoryRepository implements IConversatio
     if (conversationUuid === null) return null
 
     const [row] = await this.sql<[ConversationWorkingMemoryRow?]>`
-      SELECT conversation_id, session_id, avatar_id, summary, unresolved_threads, candidate_facts, updated_at
+      SELECT conversation_id, session_id, avatar_id, summary, unresolved_threads, covered_topics, candidate_facts, updated_at
       FROM conversation_working_memories
       WHERE conversation_id = ${conversationUuid}
     `
@@ -64,6 +66,7 @@ export class PostgresConversationWorkingMemoryRepository implements IConversatio
         avatar_id,
         summary,
         unresolved_threads,
+        covered_topics,
         candidate_facts
       )
       VALUES (
@@ -72,6 +75,7 @@ export class PostgresConversationWorkingMemoryRepository implements IConversatio
         ${avatarUuid},
         ${memory.summary},
         ${memory.unresolvedThreads},
+        ${memory.coveredTopics},
         ${this.sql.json(memory.candidateFacts)}
       )
       ON CONFLICT (conversation_id)
@@ -80,9 +84,10 @@ export class PostgresConversationWorkingMemoryRepository implements IConversatio
         avatar_id = EXCLUDED.avatar_id,
         summary = EXCLUDED.summary,
         unresolved_threads = EXCLUDED.unresolved_threads,
+        covered_topics = EXCLUDED.covered_topics,
         candidate_facts = EXCLUDED.candidate_facts,
         updated_at = NOW()
-      RETURNING conversation_id, session_id, avatar_id, summary, unresolved_threads, candidate_facts, updated_at
+      RETURNING conversation_id, session_id, avatar_id, summary, unresolved_threads, covered_topics, candidate_facts, updated_at
     `
 
     if (row === undefined) {
@@ -112,4 +117,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function toStringOrEmpty(value: unknown): string {
   return typeof value === 'string' ? value : ''
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string')
 }

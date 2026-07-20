@@ -119,6 +119,7 @@ function makeWorkingMemory(): ConversationWorkingMemory {
     avatarId: 'avatar_1',
     summary: 'Working summary',
     unresolvedThreads: ['thread_1'],
+    coveredTopics: ['completed_intro'],
     candidateFacts: [],
     updatedAt: '2026-05-01T10:00:30.000Z',
   }

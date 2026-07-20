@@ -121,6 +121,7 @@ function makeMemorySummary(): RuntimeInspectorViewModel['memory'] {
           avatarId: 'avatar_1',
           summary: 'active working summary',
           unresolvedThreads: ['follow_up'],
+          coveredTopics: ['quality_goal'],
           candidateFacts: [{ category: 'goal', key: 'focus', value: 'quality' }],
           updatedAt: '2026-05-07T10:00:00.000Z',
         },

@@ -127,6 +127,7 @@ It answers:
 - what important information was exchanged?
 - what is the current direction of the discussion?
 - what unresolved threads still exist?
+- what topics have already been covered?
 - what should not be repeated?
 
 This memory belongs to one conversation.
@@ -155,6 +156,7 @@ Refresh input:
 Refresh output:
 
 - rewritten bounded summary
+- bounded covered topics carried as first-class working-memory state
 - extracted candidate user facts
 - optional candidate long-term episodic memory
 
@@ -453,12 +455,12 @@ Memory entity schema belongs in `DATA_MODEL.md`.
 
 Key entities:
 
-| Entity                          | Purpose                                           |
-| ------------------------------- | ------------------------------------------------- |
-| `conversation_working_memories` | active conversation-scoped working memory         |
-| `conversation_memories`         | long-term episodic memory per closed conversation |
-| `user_memory_facts`             | stable extracted user facts                       |
-| `avatar_session_memories`       | avatar-scoped session memory                      |
+| Entity                          | Purpose                                                                                                          |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `conversation_working_memories` | active conversation-scoped working memory (`summary`, `unresolved_threads`, `covered_topics`, `candidate_facts`) |
+| `conversation_memories`         | long-term episodic memory per closed conversation                                                                |
+| `user_memory_facts`             | stable extracted user facts                                                                                      |
+| `avatar_session_memories`       | avatar-scoped session memory                                                                                     |
 
 The distinction between `user_memory_facts` (stable structured facts) and `conversation_memories` (episodic memory of previous interactions) is intentional — they serve different retrieval purposes.
 

@@ -32,6 +32,7 @@ export interface ConversationWorkingMemory {
   avatarId: string
   summary: string
   unresolvedThreads: string[]
+  coveredTopics: string[]
   candidateFacts: MemoryFactRecord[]
   updatedAt: string
 }
@@ -94,7 +95,7 @@ export type LayeredMemorySnapshot = {
 }
 
 export type GameMasterMemoryContext = {
-  workingMemory?: Pick<ConversationWorkingMemory, 'summary' | 'unresolvedThreads'>
+  workingMemory?: Pick<ConversationWorkingMemory, 'summary' | 'unresolvedThreads' | 'coveredTopics'>
   episodicMemories?: Array<{
     memoryId: string
     conversationId: string
@@ -110,7 +111,7 @@ export type GameMasterMemoryContext = {
 
 export type ConversationWorkingMemorySnapshot = Pick<
   ConversationWorkingMemory,
-  'summary' | 'unresolvedThreads' | 'candidateFacts'
+  'summary' | 'unresolvedThreads' | 'coveredTopics' | 'candidateFacts'
 >
 
 export type ConversationWorkingMemoryRefreshOutput = ConversationWorkingMemorySnapshot
@@ -135,7 +136,7 @@ export type SelectedEpisodicMemory = {
 
 export type SelectedWorkingMemory = Pick<
   ConversationWorkingMemory,
-  'summary' | 'unresolvedThreads' | 'updatedAt'
+  'summary' | 'unresolvedThreads' | 'coveredTopics' | 'updatedAt'
 > & {
   selectionReasons: MemorySelectionReason[]
 }

@@ -1,11 +1,20 @@
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import type { ConversationWorkingMemory } from '../../domain/memory/memory.types.js'
 
+type StoredConversationWorkingMemory = Omit<ConversationWorkingMemory, 'coveredTopics'> & {
+  coveredTopics?: string[]
+}
+
 export class InMemoryConversationWorkingMemoryRepository implements IConversationWorkingMemoryRepository {
   private readonly memories: Map<string, ConversationWorkingMemory>
 
-  constructor(initialData: ConversationWorkingMemory[] = []) {
-    this.memories = new Map(initialData.map((memory) => [memory.conversationId, memory]))
+  constructor(initialData: StoredConversationWorkingMemory[] = []) {
+    this.memories = new Map(
+      initialData.map((memory) => [
+        memory.conversationId,
+        normalizeConversationWorkingMemory(memory),
+      ]),
+    )
   }
 
   findByConversationId(conversationId: string): Promise<ConversationWorkingMemory | null> {
@@ -16,7 +25,7 @@ export class InMemoryConversationWorkingMemoryRepository implements IConversatio
     const now = new Date().toISOString()
     const current = this.memories.get(memory.conversationId)
     const next: ConversationWorkingMemory = {
-      ...memory,
+      ...normalizeConversationWorkingMemory(memory),
       updatedAt: current?.updatedAt ?? now,
     }
     if (current !== undefined) {
@@ -35,5 +44,15 @@ export class InMemoryConversationWorkingMemoryRepository implements IConversatio
       }
     }
     return Promise.resolve(deleted)
+  }
+}
+
+function normalizeConversationWorkingMemory(
+  memory: StoredConversationWorkingMemory | Omit<ConversationWorkingMemory, 'updatedAt'>,
+): ConversationWorkingMemory {
+  return {
+    ...memory,
+    coveredTopics: memory.coveredTopics ?? [],
+    updatedAt: 'updatedAt' in memory ? memory.updatedAt : new Date(0).toISOString(),
   }
 }

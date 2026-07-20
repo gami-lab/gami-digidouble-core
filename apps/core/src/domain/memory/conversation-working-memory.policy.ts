@@ -4,7 +4,7 @@ import { buildSessionWorkingMemorySummary } from './working-memory-summary.polic
 
 type PriorMemory = Pick<
   ConversationWorkingMemoryRefreshOutput,
-  'summary' | 'unresolvedThreads' | 'candidateFacts'
+  'summary' | 'unresolvedThreads' | 'coveredTopics' | 'candidateFacts'
 >
 
 export function rewriteConversationWorkingMemory(
@@ -33,6 +33,7 @@ export function rewriteConversationWorkingMemory(
   return {
     summary: summary.length > 700 ? `${summary.slice(0, 700)}...` : summary,
     unresolvedThreads,
+    coveredTopics: priorMemory?.coveredTopics ?? [],
     candidateFacts,
   }
 }

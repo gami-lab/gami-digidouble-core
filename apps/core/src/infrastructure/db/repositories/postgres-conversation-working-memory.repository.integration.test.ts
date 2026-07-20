@@ -1,12 +1,18 @@
 import type { Sql } from 'postgres'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
+import {
+  DB_AVAILABLE,
+  createTestSql,
+  ensureSchemaAlignment,
+  truncateAllTables,
+} from '../test-helpers.js'
 import { PostgresAvatarRepository } from './postgres-avatar.repository.js'
 import { PostgresConversationRepository } from './postgres-conversation.repository.js'
 import { PostgresConversationWorkingMemoryRepository } from './postgres-conversation-working-memory.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 import { PostgresSessionRepository } from './postgres-session.repository.js'
 
+// eslint-disable-next-line max-lines-per-function
 describe.skipIf(!DB_AVAILABLE)('PostgresConversationWorkingMemoryRepository', () => {
   let sql!: Sql
   let scenarioId = ''
@@ -19,8 +25,9 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationWorkingMemoryRepository', ()
   let avatarRepo!: PostgresAvatarRepository
   let conversationRepo!: PostgresConversationRepository
 
-  beforeAll(() => {
+  beforeAll(async () => {
     sql = createTestSql()
+    await ensureSchemaAlignment(sql)
     repository = new PostgresConversationWorkingMemoryRepository(sql)
     scenarioRepo = new PostgresScenarioRepository(sql)
     sessionRepo = new PostgresSessionRepository(sql)
@@ -64,6 +71,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationWorkingMemoryRepository', ()
       avatarId,
       summary: 'First summary',
       unresolvedThreads: ['Need pricing clarity'],
+      coveredTopics: ['pricing_overview'],
       candidateFacts: [
         { category: 'conversation_signal', key: 'thread_1', value: 'Need pricing clarity' },
       ],
@@ -75,6 +83,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationWorkingMemoryRepository', ()
       avatarId,
       summary: 'Rewritten summary',
       unresolvedThreads: ['Need technical fit details'],
+      coveredTopics: ['technical_fit_review'],
       candidateFacts: [
         { category: 'conversation_signal', key: 'thread_1', value: 'Need technical fit details' },
       ],
@@ -83,6 +92,36 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationWorkingMemoryRepository', ()
     expect(updated.conversationId).toBe(created.conversationId)
     expect(updated.summary).toBe('Rewritten summary')
     expect(updated.unresolvedThreads).toEqual(['Need technical fit details'])
+    expect(updated.coveredTopics).toEqual(['technical_fit_review'])
     expect(Date.parse(updated.updatedAt)).toBeGreaterThanOrEqual(Date.parse(created.updatedAt))
+  })
+
+  it('defaults covered topics to an empty array for legacy rows', async () => {
+    const conversationUuid = conversationId.replace('conversation_', '')
+    const sessionUuid = sessionId.replace('session_', '')
+    const avatarUuid = avatarId.replace('avatar_', '')
+
+    await sql`
+      INSERT INTO conversation_working_memories (
+        conversation_id,
+        session_id,
+        avatar_id,
+        summary,
+        unresolved_threads,
+        candidate_facts
+      )
+      VALUES (
+        ${conversationUuid},
+        ${sessionUuid},
+        ${avatarUuid},
+        ${'Legacy summary'},
+        ${['Need follow up']},
+        ${sql.json([])}
+      )
+    `
+
+    await expect(repository.findByConversationId(conversationId)).resolves.toMatchObject({
+      coveredTopics: [],
+    })
   })
 })

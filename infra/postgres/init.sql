@@ -189,9 +189,13 @@ CREATE TABLE IF NOT EXISTS conversation_working_memories (
   avatar_id           UUID        NOT NULL REFERENCES avatars(id) ON DELETE CASCADE,
   summary             TEXT        NOT NULL,
   unresolved_threads  TEXT[]      NOT NULL DEFAULT '{}',
+  covered_topics      TEXT[]      NOT NULL DEFAULT '{}',
   candidate_facts     JSONB       NOT NULL DEFAULT '[]'::JSONB,
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE conversation_working_memories
+  ADD COLUMN IF NOT EXISTS covered_topics TEXT[] NOT NULL DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS conversation_memories (
   conversation_id     UUID        PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,

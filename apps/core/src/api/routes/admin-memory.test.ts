@@ -240,6 +240,7 @@ function makeLayeredMemoryApp(): FastifyInstance {
         avatarId: 'avatar_1',
         summary: 'Active avatar working memory',
         unresolvedThreads: ['follow_up_topic'],
+        coveredTopics: ['completed_intro'],
         candidateFacts: [{ category: 'context', key: 'topic', value: 'memory' }],
         updatedAt: '2026-05-01T10:11:00.000Z',
       },
@@ -290,6 +291,7 @@ function expectLayeredMemoryResponse(session: SessionMemoryLayers | undefined): 
     avatarId: 'avatar_1',
     summary: 'Active avatar working memory',
     unresolvedThreads: ['follow_up_topic'],
+    coveredTopics: ['completed_intro'],
     candidateFacts: [{ category: 'context', key: 'topic', value: 'memory' }],
     updatedAt: '2026-05-01T10:11:00.000Z',
   })
@@ -472,6 +474,7 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
           avatarId: 'avatar_1',
           summary: 'Canonical active conversation memory',
           unresolvedThreads: ['follow_up'],
+          coveredTopics: [],
           candidateFacts: [],
           updatedAt: '2026-05-01T10:12:00.000Z',
         },

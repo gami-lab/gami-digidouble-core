@@ -11,6 +11,7 @@ describe('InMemoryConversationWorkingMemoryRepository', () => {
       avatarId: 'avatar_1',
       summary: 'Summary',
       unresolvedThreads: ['Need scope'],
+      coveredTopics: ['scope_reviewed'],
       candidateFacts: [{ category: 'conversation_signal', key: 'thread_1', value: 'Need scope' }],
     })
 
@@ -29,6 +30,7 @@ describe('InMemoryConversationWorkingMemoryRepository', () => {
         avatarId: 'avatar_1',
         summary: 'S1',
         unresolvedThreads: [],
+        coveredTopics: [],
         candidateFacts: [],
         updatedAt: '2026-05-08T10:00:00.000Z',
       },
@@ -38,6 +40,7 @@ describe('InMemoryConversationWorkingMemoryRepository', () => {
         avatarId: 'avatar_2',
         summary: 'S2',
         unresolvedThreads: [],
+        coveredTopics: [],
         candidateFacts: [],
         updatedAt: '2026-05-08T10:00:00.000Z',
       },
@@ -47,6 +50,7 @@ describe('InMemoryConversationWorkingMemoryRepository', () => {
         avatarId: 'avatar_2',
         summary: 'S3',
         unresolvedThreads: [],
+        coveredTopics: [],
         candidateFacts: [],
         updatedAt: '2026-05-08T10:00:00.000Z',
       },
@@ -57,6 +61,24 @@ describe('InMemoryConversationWorkingMemoryRepository', () => {
     await expect(repository.findByConversationId('conversation_2')).resolves.toBeNull()
     await expect(repository.findByConversationId('conversation_3')).resolves.toMatchObject({
       sessionId: 'session_2',
+    })
+  })
+
+  it('defaults covered topics for legacy seeded rows', async () => {
+    const repository = new InMemoryConversationWorkingMemoryRepository([
+      {
+        conversationId: 'conversation_legacy',
+        sessionId: 'session_1',
+        avatarId: 'avatar_1',
+        summary: 'Legacy row',
+        unresolvedThreads: [],
+        candidateFacts: [],
+        updatedAt: '2026-05-08T10:00:00.000Z',
+      },
+    ])
+
+    await expect(repository.findByConversationId('conversation_legacy')).resolves.toMatchObject({
+      coveredTopics: [],
     })
   })
 })
