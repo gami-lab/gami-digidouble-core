@@ -18,6 +18,10 @@ type RequestRef = {
   current: number
 }
 
+type SequenceRef = {
+  current: number
+}
+
 export type AvatarDraftSetter = (
   value:
     | ChatThreadAvatarDraft
@@ -42,7 +46,8 @@ export async function streamMessageAndReconcile(
   pendingMessageId: string,
   setters: StreamMessageSetters,
 ): Promise<void> {
-  let lastSequence = -1
+  const pendingDeltas = new Map<number, string>()
+  const nextSequence: SequenceRef = { current: 0 }
   let terminalEventSeen = false
 
   try {
@@ -59,11 +64,7 @@ export async function streamMessageAndReconcile(
             return
           }
 
-          handleMessageStreamEvent(event, pendingMessageId, lastSequence, setters)
-
-          if (event.type === 'conversation.message.delta') {
-            lastSequence = Math.max(lastSequence, event.sequence)
-          }
+          handleMessageStreamEvent(event, pendingMessageId, pendingDeltas, nextSequence, setters)
           if (isTerminalEvent(event)) {
             terminalEventSeen = true
           }
@@ -92,7 +93,8 @@ export async function streamMessageAndReconcile(
 function handleMessageStreamEvent(
   event: MessageStreamEvent,
   pendingMessageId: string,
-  lastSequence: number,
+  pendingDeltas: Map<number, string>,
+  nextSequence: SequenceRef,
   setters: StreamMessageSetters,
 ): void {
   switch (event.type) {
@@ -111,10 +113,17 @@ function handleMessageStreamEvent(
         createdAt: new Date().toISOString(),
       })
       return
-    case 'conversation.message.delta':
-      if (event.sequence <= lastSequence) {
-        return
+    case 'conversation.message.delta': {
+      if (event.sequence < nextSequence.current) return
+      if (pendingDeltas.has(event.sequence)) return
+      pendingDeltas.set(event.sequence, event.delta)
+      const orderedDeltas: string[] = []
+      while (pendingDeltas.has(nextSequence.current)) {
+        orderedDeltas.push(pendingDeltas.get(nextSequence.current) as string)
+        pendingDeltas.delete(nextSequence.current)
+        nextSequence.current += 1
       }
+      if (orderedDeltas.length === 0) return
       setters.setAvatarDraft((current) => {
         const draft =
           current ??
@@ -123,9 +132,10 @@ function handleMessageStreamEvent(
             content: '',
             createdAt: new Date().toISOString(),
           } satisfies ChatThreadAvatarDraft)
-        return { ...draft, content: `${draft.content}${event.delta}` }
+        return { ...draft, content: `${draft.content}${orderedDeltas.join('')}` }
       })
       return
+    }
     case 'conversation.message.completed':
       setters.setMessages((current) =>
         reconcileSendSuccess(

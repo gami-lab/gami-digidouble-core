@@ -471,13 +471,15 @@ Admin app boundary (EPIC 6.1):
    - working memory summary
    - long-term facts/events
    - scenario + RAG + GM notes + optional user persona
-6. Avatar generates streamed response for the conversation avatar
-7. Messages saved under conversation
-8. Async tasks launched:
+6. Avatar generates a streamed response for the conversation avatar
+7. User message is already persisted; the avatar message is persisted once only after terminal
+   completion
+8. Async tasks launched after successful completion:
    - Game Master review
    - memory update
    - logs / metrics
-9. Response completes
+9. Response completes; an interrupted stream keeps the user message, discards partial avatar text,
+   and skips post-turn GM/memory work
 ```
 
 ---
@@ -594,7 +596,8 @@ The send-message application flow shares preparation and completion mechanics be
 message before yielding its started event, accumulates deltas server-side, persists the avatar
 message only after terminal completion, and schedules post-turn GM/memory work afterward. An
 abort leaves the user message persisted, skips partial avatar persistence, and yields an
-interruption event when the consumer remains writable.
+interruption event when the consumer remains writable. The API route removes its request-close
+listener and closes the provider iterator during cleanup, including client disconnects.
 
 The API conversations surface exposes `POST /v1/conversations/{conversationId}/messages/stream`
 as an additive SSE transport. It pulls the first application event before opening the stream so

@@ -125,6 +125,16 @@ async function consumeMessageStream(
   const decoder = new TextDecoder()
   let buffer = ''
   let terminalEventSeen = false
+  let readerCancelled = false
+  const cancelReader = (): void => {
+    if (readerCancelled) return
+    readerCancelled = true
+    void reader.cancel().catch(() => undefined)
+  }
+  const onAbort = (): void => {
+    cancelReader()
+  }
+  signal?.addEventListener('abort', onAbort, { once: true })
 
   try {
     while (signal?.aborted !== true) {
@@ -142,6 +152,8 @@ async function consumeMessageStream(
     }
     return terminalEventSeen
   } finally {
+    signal?.removeEventListener('abort', onAbort)
+    cancelReader()
     reader.releaseLock()
   }
 }

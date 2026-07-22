@@ -72,6 +72,43 @@ describe('message stream API client', () => {
       sendMessageStream('conversation_1', { message: { content: 'Hello' } }, { onEvent: vi.fn() }),
     ).rejects.toThrow('Message stream ended before completion')
   })
+
+  it('cancels the response reader when the caller aborts', async () => {
+    const controller = new AbortController()
+    let cancelCount = 0
+    const encoder = new TextEncoder()
+    const body = new ReadableStream<Uint8Array>({
+      start(streamController) {
+        streamController.enqueue(
+          encoder.encode(
+            'data: {"type":"conversation.message.delta","requestId":"request_1","conversationId":"conversation_1","sequence":0,"delta":"Partial"}\n\n',
+          ),
+        )
+      },
+      cancel() {
+        cancelCount += 1
+      },
+    })
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(body, {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      }),
+    )
+
+    await sendMessageStream(
+      'conversation_1',
+      { message: { content: 'Hello' } },
+      {
+        onEvent: () => {
+          controller.abort()
+        },
+      },
+      controller.signal,
+    )
+
+    expect(cancelCount).toBe(1)
+  })
 })
 
 function streamFromChunks(chunks: string[]): ReadableStream<Uint8Array> {

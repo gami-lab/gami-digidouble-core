@@ -150,7 +150,11 @@ Delivered the first player-facing web app with browser-owned identity, scenario 
 Delivered the public message-stream client and progressive avatar rendering in `apps/web`. The
 single active thread keeps optimistic user sends, renders one in-memory avatar draft while ordered
 deltas arrive, reconciles the terminal event with the persisted avatar message, and clears drafts on
-errors or interruptions.
+errors or interruptions. The shipped path is hardened by regression coverage for contiguous delta
+ordering, completion and interruption cleanup, exact-once avatar persistence, provider iterator and
+web reader cleanup, and backward-compatible JSON send-message responses. Documentation now records
+the stream as additive transport behavior: interruptions never persist partial avatar content or
+trigger post-turn Game Master/memory work.
 
 ### Phase A Refinements
 

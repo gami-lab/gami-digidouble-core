@@ -111,7 +111,7 @@ Compatibility rules:
 - `GET /v1/sessions/{sessionId}/conversations` -> `ListSessionConversationsResponse`
 - `POST /v1/sessions/{sessionId}/switch-avatar` -> `SwitchAvatarResponse`
 - `POST /v1/sessions/{sessionId}/conversations/{conversationId}/end` -> `EndConversationRequest` -> `EndConversationResponse`
-- `POST /v1/conversations/{conversationId}/messages` -> `SendMessageRequest` -> `SendMessageResponse`
+- `POST /v1/conversations/{conversationId}/messages` -> `SendMessageRequest` -> `ApiResponse<SendMessageResponse>`
 - `POST /v1/conversations/{conversationId}/messages/stream` -> `SendMessageRequest` -> SSE
   `MessageStreamEvent` frames
 - `GET /v1/conversations/{conversationId}/history` -> `ConversationHistoryResponse`
@@ -126,8 +126,11 @@ Message-stream contract ownership:
   capability behind `ILlmAdapter`; the use case persists the user before streaming, persists the
   final avatar only after terminal completion, and leaves the user message intact on interruption.
 - The streaming route emits one `data:` JSON payload per event with `event: conversation_message`
-  over `text/event-stream`; it is additive and does not change the existing JSON send-message
-  route.
+  over `text/event-stream`; events are emitted as `started`, zero or more monotonically sequenced
+  `delta` events, then exactly one terminal `completed` or `interrupted` event. A client/provider
+  abort never persists a partial avatar message or schedules post-turn GM/memory work. The route
+  is additive and does not change the existing JSON send-message route, which continues to return
+  `ApiResponse<SendMessageResponse>`.
 
 ### Runtime
 

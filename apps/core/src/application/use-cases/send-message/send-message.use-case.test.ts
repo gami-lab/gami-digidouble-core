@@ -942,6 +942,85 @@ describe('StreamingSendMessageUseCase', () => {
     expect(order.indexOf('gm:scheduled')).toBeGreaterThan(order.indexOf('persist:avatar'))
   })
 
+  it('persists the completed avatar message exactly once', async () => {
+    streamMock.mockImplementation(async function* () {
+      await Promise.resolve()
+      yield { type: 'delta', text: 'Answer' as const }
+      yield {
+        type: 'completed' as const,
+        response: {
+          content: 'provider fallback',
+          model: 'stream-model',
+          inputTokens: 3,
+          outputTokens: 2,
+          latencyMs: 8,
+        },
+      }
+      yield {
+        type: 'completed' as const,
+        response: {
+          content: 'duplicate terminal',
+          model: 'stream-model',
+          inputTokens: 3,
+          outputTokens: 2,
+          latencyMs: 8,
+        },
+      }
+    })
+
+    const events = []
+    for await (const event of new StreamingSendMessageUseCase(createUseCase()).execute({
+      conversationId: 'conversation_1',
+      userMessage: 'Hello',
+    })) {
+      events.push(event)
+    }
+
+    expect(events.map((event) => event.type)).toEqual(['started', 'delta', 'completed'])
+    expect(saveMessageMock.mock.calls.map(([message]) => (message as Message).role)).toEqual([
+      'user',
+      'avatar',
+    ])
+  })
+
+  it('closes the provider iterator when the consumer aborts before completion', async () => {
+    let iteratorClosed = false
+    streamMock.mockImplementation(() => {
+      const stream = {
+        next() {
+          return Promise.resolve({
+            done: false as const,
+            value: { type: 'delta' as const, text: 'Partial' },
+          })
+        },
+        return() {
+          iteratorClosed = true
+          return Promise.resolve({ done: true as const, value: undefined })
+        },
+        [Symbol.asyncIterator]() {
+          return this
+        },
+      }
+      return stream
+    })
+
+    const streamingUseCase = new StreamingSendMessageUseCase(createUseCase())
+    const stream = streamingUseCase.execute({
+      conversationId: 'conversation_1',
+      userMessage: 'Hello',
+    })
+    const iterator = stream[Symbol.asyncIterator]()
+
+    await iterator.next()
+    await iterator.next()
+    await iterator.return?.()
+
+    expect(iteratorClosed).toBe(true)
+    expect(saveMessageMock.mock.calls.map(([message]) => (message as Message).role)).toEqual([
+      'user',
+    ])
+  })
+
   it('keeps the user message on provider interruption and does not persist a partial avatar', async () => {
     streamMock.mockImplementation(async function* () {
       await Promise.resolve()

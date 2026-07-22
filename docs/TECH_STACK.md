@@ -31,7 +31,7 @@ For product principles, read `PRINCIPLES.md`.
 ### API And Backend
 
 - Fastify for HTTP
-- SSE for runtime event streaming
+- SSE for runtime event and progressive message streaming
 - REST-style JSON contracts under `/v1`
 - API-key auth for Phase A
 
@@ -90,6 +90,8 @@ For product principles, read `PRINCIPLES.md`.
 - Game Master runs asynchronously after completed avatar turns.
 - Memory maintenance is asynchronous whenever possible.
 - Runtime state changes are exposed through SSE and admin inspection routes.
+- Public avatar responses also use an additive SSE message route; the web client buffers late
+  deltas until sequence order is contiguous and cancels the response reader on interruption.
 
 ### Model Resolution
 
@@ -107,7 +109,6 @@ For product principles, read `PRINCIPLES.md`.
 
 ## Deferred Or Out Of Scope
 
-- Web UI consumption of the Core avatar SSE message stream; the Core transport is shipped
 - Heavy orchestration frameworks
 - Dedicated vector database
 - OAuth / multi-tenant auth

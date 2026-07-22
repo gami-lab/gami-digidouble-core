@@ -39,11 +39,15 @@ Terms:
 1. User message is received.
 2. Avatar responds immediately.
 3. Messages are persisted.
-4. GM runs asynchronously after the completed avatar turn.
+4. GM runs asynchronously after a successfully completed avatar turn, whether the avatar reply
+   was delivered as JSON or as a completed message stream.
 5. GM input is built from bounded recent messages, GM state, scenario context, user persona, memory, retrieval, and avatar availability.
 6. GM output is parsed, normalized, validated, reduced into state, and persisted.
 7. Safe runtime events are emitted.
 8. GM failures are caught and logged without affecting the user reply.
+
+An interrupted message stream is not a completed avatar turn: it keeps the persisted user message,
+does not persist partial avatar content, and does not trigger post-turn GM work.
 
 ## Runtime Input Contract
 

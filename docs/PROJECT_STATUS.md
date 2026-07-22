@@ -28,6 +28,9 @@ The platform is now a working headless conversational runtime with:
 - additive SSE message-stream route with stack-e2e contract coverage
 - web message-stream client and in-memory avatar-draft reconciliation with completion and
   interruption tests
+- streaming cleanup and ordering hardening: contiguous client delta rendering, abort listener and
+  reader cleanup, provider iterator cleanup, exact-once terminal persistence, and legacy JSON route
+  contract coverage
 
 ## What Is Shipped
 
@@ -85,9 +88,11 @@ The platform is now a working headless conversational runtime with:
   full request once, not individual deltas.
 - `StreamingSendMessageUseCase` reuses the synchronous turn preparation and completion mechanics;
   it persists the user message before provider iteration, persists no partial avatar message, and
-  schedules GM/memory work only after successful completion.
+  schedules GM/memory work only after successful completion. Provider/client interruption closes the
+  active iterator and skips final avatar persistence and post-turn work.
 - Generic SSE frame parsing is owned by `@gami/shared`; client-specific subscription and reconnect
-  behavior stays in each app.
+  behavior stays in each app. The web message client buffers out-of-order deltas until their
+  sequence is contiguous and cancels its reader/abort listener during cleanup.
 - Avatar reply latency takes priority over synchronous orchestration work.
 - Public contracts evolve additively whenever possible.
 - Retrieval visibility is asymmetric by design: avatar-filtered, GM-unrestricted.

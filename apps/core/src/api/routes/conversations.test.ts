@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { processSseFrames } from '@gami/shared'
-import type { ApiResponse, MessageStreamEvent } from '@gami/shared'
+import type { ApiResponse, MessageStreamEvent, SendMessageResponse } from '@gami/shared'
 import type { ILlmAdapter, LlmRequest } from '../../application/ports/ILlmAdapter.js'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../domain/conversation/session.types.js'
@@ -256,6 +256,7 @@ describe('session API', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('conversation message/history API', () => {
   it('sends message using conversationId and gets isolated history', async () => {
     const app = makeApp({
@@ -304,6 +305,44 @@ describe('conversation message/history API', () => {
     expect(body2.data?.messages.map((message) => message.content)).toEqual([
       'Only in conversation 2',
     ])
+  })
+
+  it('keeps the legacy JSON route on the documented ApiResponse<SendMessageResponse> contract', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/messages',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { message: { content: 'Legacy JSON message' } },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<SendMessageResponse>>()
+    expect(body.error).toBeNull()
+    expect(body.data).toMatchObject({
+      conversation: { conversationId: 'conversation_1' },
+      userMessage: {
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'Legacy JSON message',
+      },
+      avatarMessage: {
+        conversationId: 'conversation_1',
+        role: 'avatar',
+        content: 'Avatar reply',
+        metadata: {
+          model: 'null-model',
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
+      },
+      debug: {
+        model: 'null-model',
+        inputTokens: 10,
+        outputTokens: 20,
+      },
+    })
+    expect(typeof body.data?.debug.requestId).toBe('string')
   })
 
   it('returns 404 for invalid conversationId on send/history', async () => {
@@ -378,7 +417,8 @@ describe('conversation message stream API', () => {
   })
 
   it('frames ordered public stream events over text/event-stream', async () => {
-    const response = await makeApp({ llmAdapter: new StreamingLlmAdapter() }).inject({
+    const app = makeApp({ llmAdapter: new StreamingLlmAdapter() })
+    const response = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages/stream',
       headers: { 'x-api-key': 'test-secret' },
@@ -402,6 +442,18 @@ describe('conversation message stream API', () => {
       type: 'conversation.message.completed',
       response: { avatarMessage: { content: 'First second' } },
     })
+
+    const history = await app.inject({
+      method: 'GET',
+      url: '/v1/conversations/conversation_1/history',
+      headers: { 'x-api-key': 'test-secret' },
+    })
+    const historyBody = history.json<ApiResponse<{ messages: Message[] }>>()
+    expect(historyBody.data?.messages.map((message) => message.role)).toEqual(['user', 'avatar'])
+    expect(historyBody.data?.messages.map((message) => message.content)).toEqual([
+      'Hello stream',
+      'First second',
+    ])
   })
 })
 

@@ -36,7 +36,10 @@ Must cover:
 - session creation and listing
 - conversation start and history isolation
 - message persistence order
-- streaming message delta order, terminal persistence, and interruption cleanup
+- streaming message delta order including stale/out-of-order client events, terminal persistence
+  exactly once, provider/client interruption cleanup, provider iterator/reader cleanup, and no
+  partial avatar persistence
+- legacy JSON send-message response envelope remains `ApiResponse<SendMessageResponse>`
 - avatar switch behavior
 - available-avatar and avatar-transition endpoints
 - end-conversation behavior and compaction trigger

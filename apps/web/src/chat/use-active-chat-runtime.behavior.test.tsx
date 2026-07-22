@@ -103,15 +103,22 @@ describe('useActiveChatRuntime behavior', () => {
         type: 'conversation.message.delta',
         requestId: 'request_1',
         conversationId: 'conversation_1',
-        sequence: 0,
-        delta: 'First ',
+        sequence: 1,
+        delta: 'second',
       })
       streamEventHandler?.({
         type: 'conversation.message.delta',
         requestId: 'request_1',
         conversationId: 'conversation_1',
         sequence: 1,
-        delta: 'second',
+        delta: 'duplicate ',
+      })
+      streamEventHandler?.({
+        type: 'conversation.message.delta',
+        requestId: 'request_1',
+        conversationId: 'conversation_1',
+        sequence: 0,
+        delta: 'First ',
       })
     })
 

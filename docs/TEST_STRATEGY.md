@@ -34,6 +34,14 @@ Minimum assertions for orchestration updates:
 - policy rule changes produce expected behavior deltas
 - progression-driven routing does not regress into random switching
 
+## 4c. Streaming message contracts
+
+Streaming tests must protect both transport behavior and persistence boundaries. Cover ordered
+public delta delivery, stale or out-of-order client deltas, one terminal completion, provider and
+client interruption, provider-iterator/reader cleanup, no partial avatar persistence, and exactly
+one completed avatar persistence. Keep the legacy JSON send-message route covered separately as an
+`ApiResponse<SendMessageResponse>` contract so the additive stream cannot change it accidentally.
+
 ## 5. Assert from the consumer inward, not from the implementation outward
 
 The most dangerous test gap is a test that passes because it only checks what the code already does, not what the consumer requires.
