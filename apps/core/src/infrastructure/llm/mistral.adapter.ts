@@ -66,6 +66,7 @@ export class MistralAdapter implements ILlmAdapter {
     const signal = options?.signal
 
     try {
+      throwIfAborted(signal)
       const stream = await this.client.chat.stream(
         { model, messages: buildMessages(request), maxTokens: request.maxTokens, stream: true },
         {

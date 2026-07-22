@@ -11,7 +11,7 @@ import type {
   StartConversationRequest,
   StartConversationResponse,
 } from '@gami/shared'
-import { processSseFrames } from '@gami/shared'
+import { parseMessageStreamEvent, processSseFrames } from '@gami/shared'
 import { ApiError, webRequest } from './client'
 import { apiKey, apiUrl } from '../env'
 
@@ -145,7 +145,10 @@ async function consumeMessageStream(
 
       buffer += decoder.decode(chunk.value, { stream: true })
       buffer = processSseFrames(buffer, (event) => {
-        const streamEvent = event as MessageStreamEvent
+        const streamEvent = parseMessageStreamEvent(event)
+        if (streamEvent === null) {
+          throw new ApiError('NETWORK_ERROR', 'Invalid message stream event')
+        }
         onEvent(streamEvent)
         terminalEventSeen = isTerminalMessageStreamEvent(streamEvent) || terminalEventSeen
       })

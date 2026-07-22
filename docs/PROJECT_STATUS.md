@@ -85,14 +85,16 @@ The platform is now a working headless conversational runtime with:
 - `LlmStreamEvent` and `LlmStreamOptions` are owned by the internal `ILlmAdapter` port; provider
   streams emit ordered deltas followed by one terminal response with usage metadata.
 - `ObservedLlmAdapter` remains the single LLM observability boundary for streams and traces the
-  full request once, not individual deltas.
+  full request once, not individual deltas; interrupted streams record bounded outcome/reason
+  metadata on that same trace.
 - `StreamingSendMessageUseCase` reuses the synchronous turn preparation and completion mechanics;
   it persists the user message before provider iteration, persists no partial avatar message, and
   schedules GM/memory work only after successful completion. Provider/client interruption closes the
   active iterator and skips final avatar persistence and post-turn work.
 - Generic SSE frame parsing is owned by `@gami/shared`; client-specific subscription and reconnect
-  behavior stays in each app. The web message client buffers out-of-order deltas until their
-  sequence is contiguous and cancels its reader/abort listener during cleanup.
+  behavior stays in each app. `parseMessageStreamEvent` validates decoded public frames before
+  consumer state changes. The web message client buffers out-of-order deltas until their sequence
+  is contiguous and cancels its reader/abort listener during cleanup.
 - Avatar reply latency takes priority over synchronous orchestration work.
 - Public contracts evolve additively whenever possible.
 - Retrieval visibility is asymmetric by design: avatar-filtered, GM-unrestricted.

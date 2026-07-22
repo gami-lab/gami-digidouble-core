@@ -55,6 +55,7 @@ const request = {
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line max-lines-per-function
 describe('AnthropicAdapter', () => {
   beforeEach(() => {
     mockCreate.mockReset()
@@ -159,5 +160,18 @@ describe('AnthropicAdapter', () => {
       },
     })
     expect(mockStream.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal })
+  })
+
+  it('does not start the provider when already cancelled', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    const adapter = new AnthropicAdapter('sk-ant-test')
+
+    await expect(async () => {
+      for await (const event of adapter.stream(request, { signal: controller.signal })) {
+        void event
+      }
+    }).rejects.toThrow(/aborted/i)
+    expect(mockStream).not.toHaveBeenCalled()
   })
 })

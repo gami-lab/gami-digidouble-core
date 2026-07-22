@@ -1,7 +1,10 @@
+/* eslint-disable max-lines */
+
 import { describe, expect, it } from 'vitest'
 import { processSseFrames } from '@gami/shared'
 import type { ApiResponse, MessageStreamEvent, SendMessageResponse } from '@gami/shared'
 import type { ILlmAdapter, LlmRequest } from '../../application/ports/ILlmAdapter.js'
+import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../domain/conversation/session.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
@@ -88,6 +91,7 @@ function makeApp({
   conversations = [makeConversation()],
   messages = [],
   llmAdapter,
+  messageRepository,
   users = [],
 }: {
   scenarios?: Scenario[]
@@ -96,6 +100,7 @@ function makeApp({
   conversations?: Conversation[]
   messages?: Message[]
   llmAdapter?: ILlmAdapter
+  messageRepository?: IMessageRepository
   users?: User[]
 } = {}) {
   return createServer(TEST_CONFIG, {
@@ -105,7 +110,7 @@ function makeApp({
     avatarRepository: new InMemoryAvatarRepository(avatars),
     sessionRepository: new InMemorySessionRepository(sessions),
     conversationRepository: new InMemoryConversationRepository(conversations),
-    messageRepository: new InMemoryMessageRepository(messages),
+    messageRepository: messageRepository ?? new InMemoryMessageRepository(messages),
     userRepository: new InMemoryUserRepository(users),
   })
 }
@@ -149,6 +154,52 @@ class StreamingLlmAdapter implements ILlmAdapter {
         outputTokens: 20,
         latencyMs: 5,
       },
+    }
+  }
+}
+
+class InterruptibleLlmAdapter implements ILlmAdapter {
+  private resolveAbort: (() => void) | undefined
+  private resolveIteratorClose: (() => void) | undefined
+  readonly abortObserved = new Promise<void>((resolve) => {
+    this.resolveAbort = resolve
+  })
+  readonly iteratorClosed = new Promise<void>((resolve) => {
+    this.resolveIteratorClose = resolve
+  })
+
+  complete(_request: LlmRequest) {
+    return Promise.resolve({
+      content: 'Avatar reply',
+      model: 'interruptible-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    })
+  }
+
+  async *stream(_request: LlmRequest, options?: { signal?: AbortSignal }) {
+    const signal = options?.signal
+    if (signal === undefined) throw new Error('Expected an abort signal')
+
+    let onAbort: (() => void) | undefined
+    try {
+      if (signal.aborted) {
+        this.resolveAbort?.()
+        throw Object.assign(new Error('provider aborted'), { name: 'AbortError' })
+      }
+      yield { type: 'delta' as const, text: 'Partial answer' }
+      await new Promise<void>((resolve) => {
+        onAbort = () => {
+          this.resolveAbort?.()
+          resolve()
+        }
+        signal.addEventListener('abort', onAbort, { once: true })
+      })
+      throw Object.assign(new Error('provider aborted'), { name: 'AbortError' })
+    } finally {
+      if (onAbort !== undefined) signal.removeEventListener('abort', onAbort)
+      this.resolveIteratorClose?.()
     }
   }
 }
@@ -454,6 +505,36 @@ describe('conversation message stream API', () => {
       'Hello stream',
       'First second',
     ])
+  })
+
+  it('aborts the provider and preserves the persistence boundary when the client disconnects', async () => {
+    const llm = new InterruptibleLlmAdapter()
+    const messageRepository = new InMemoryMessageRepository()
+    const app = makeApp({ llmAdapter: llm, messageRepository })
+    app.addHook('preHandler', (request, _reply, done) => {
+      if (request.url.endsWith('/messages/stream')) {
+        setImmediate(() => request.raw.emit('close'))
+      }
+      done()
+    })
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/messages/stream',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { message: { content: 'Hello disconnect' } },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const events = parseMessageStream(response.body)
+    expect(events[0]?.type).toBe('conversation.message.started')
+    expect(events.at(-1)?.type).toBe('conversation.message.interrupted')
+    expect(events.some((event) => event.type === 'conversation.message.completed')).toBe(false)
+    await llm.abortObserved
+    await llm.iteratorClosed
+
+    const messages = await messageRepository.findByConversationId('conversation_1')
+    expect(messages.map((message) => message.role)).toEqual(['user'])
+    expect(messages[0]?.content).toBe('Hello disconnect')
   })
 })
 

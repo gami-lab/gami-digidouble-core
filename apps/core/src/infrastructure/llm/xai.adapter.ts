@@ -53,6 +53,7 @@ export class XaiAdapter implements ILlmAdapter {
     const signal = options?.signal
 
     try {
+      throwIfAborted(signal)
       const stream = await this.client.chat.completions.create(
         buildStreamingRequest(request, model),
         { signal },

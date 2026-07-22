@@ -590,6 +590,8 @@ terminal event containing the final `LlmResponse` metadata. `LlmStreamOptions.si
 cancellation to infrastructure adapters. The observed adapter traces the full stream once at
 terminal completion or failure; it does not create one trace per delta. Public HTTP stream events
 remain separate and are owned by `packages/shared/src/conversation-stream-contract-types.ts`.
+The shared package also owns `parseMessageStreamEvent`, the runtime decoder used by browser clients
+before stream events reach UI state.
 
 The send-message application flow shares preparation and completion mechanics between
 `SendMessageUseCase` and `StreamingSendMessageUseCase`. The streaming flow persists the user
@@ -602,7 +604,9 @@ listener and closes the provider iterator during cleanup, including client disco
 The API conversations surface exposes `POST /v1/conversations/{conversationId}/messages/stream`
 as an additive SSE transport. It pulls the first application event before opening the stream so
 validation and not-found failures retain the normal JSON error envelope, then maps internal events
-to shared `MessageStreamEvent` DTOs and writes one JSON `data:` frame per event.
+to shared `MessageStreamEvent` DTOs and writes one JSON `data:` frame per event. Client/provider
+interruption outcomes are recorded on the existing observed LLM trace with a bounded reason and
+latency, while no partial avatar persistence or background turn work is allowed.
 
 ## Logger Port
 

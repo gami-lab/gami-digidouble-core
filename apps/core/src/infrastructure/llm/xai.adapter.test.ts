@@ -210,4 +210,17 @@ describe('XaiAdapter', () => {
     })
     expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal })
   })
+
+  it('does not start the provider when already cancelled', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    const adapter = new XaiAdapter('xai-test')
+
+    await expect(async () => {
+      for await (const event of adapter.stream(request, { signal: controller.signal })) {
+        void event
+      }
+    }).rejects.toThrow(/aborted/i)
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
 })

@@ -2,6 +2,7 @@ import type { MessageStreamEvent } from '@gami/shared'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { sendMessageStream } from './conversations'
 
+// eslint-disable-next-line max-lines-per-function
 describe('message stream API client', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -62,15 +63,40 @@ describe('message stream API client', () => {
 
   it('rejects a stream that closes without a terminal event', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(streamFromChunks(['data: {"type":"conversation.message.delta"}\n\n']), {
-        status: 200,
-        headers: { 'Content-Type': 'text/event-stream' },
-      }),
+      new Response(
+        streamFromChunks([
+          'data: {"type":"conversation.message.delta","requestId":"request_1","conversationId":"conversation_1","sequence":0,"delta":"partial"}\n\n',
+        ]),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+        },
+      ),
     )
 
     await expect(
       sendMessageStream('conversation_1', { message: { content: 'Hello' } }, { onEvent: vi.fn() }),
     ).rejects.toThrow('Message stream ended before completion')
+  })
+
+  it('rejects malformed stream events before invoking the consumer', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        streamFromChunks([
+          'data: {"type":"conversation.message.delta","requestId":"request_1"}\n\n',
+        ]),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+        },
+      ),
+    )
+    const onEvent = vi.fn()
+
+    await expect(
+      sendMessageStream('conversation_1', { message: { content: 'Hello' } }, { onEvent }),
+    ).rejects.toThrow('Invalid message stream event')
+    expect(onEvent).not.toHaveBeenCalled()
   })
 
   it('cancels the response reader when the caller aborts', async () => {

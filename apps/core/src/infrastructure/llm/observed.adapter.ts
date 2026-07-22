@@ -28,9 +28,12 @@ export class ObservedLlmAdapter implements ILlmAdapter {
     }
   }
 
+  // eslint-disable-next-line complexity
   async *stream(request: LlmRequest, options?: LlmStreamOptions): AsyncIterable<LlmStreamEvent> {
     const { trace, ...providerRequest } = request
     const traceContext = this.buildTraceContext(trace, providerRequest)
+    const startedAt = Date.now()
+    let terminalTraceRecorded = false
 
     try {
       if (this.inner.stream === undefined) {
@@ -40,6 +43,7 @@ export class ObservedLlmAdapter implements ILlmAdapter {
           yield { type: 'delta', text: response.content }
         }
         this.traceSuccess(traceContext, response)
+        terminalTraceRecorded = true
         yield { type: 'completed', response }
         return
       }
@@ -47,12 +51,26 @@ export class ObservedLlmAdapter implements ILlmAdapter {
       for await (const event of this.inner.stream(providerRequest, options)) {
         if (event.type === 'completed') {
           this.traceSuccess(traceContext, event.response)
+          terminalTraceRecorded = true
         }
         yield event
       }
     } catch (error) {
-      this.traceFailure(traceContext, error)
+      if (isAbortError(error) || options?.signal?.aborted === true) {
+        this.traceInterruption(
+          traceContext,
+          options?.signal?.aborted === true ? 'client_aborted' : 'provider_aborted',
+          Date.now() - startedAt,
+        )
+        terminalTraceRecorded = true
+      } else {
+        this.traceFailure(traceContext, error)
+      }
       throw error
+    } finally {
+      if (!terminalTraceRecorded && options?.signal?.aborted === true) {
+        this.traceInterruption(traceContext, 'client_aborted', Date.now() - startedAt)
+      }
     }
   }
 
@@ -117,11 +135,34 @@ export class ObservedLlmAdapter implements ILlmAdapter {
     })
   }
 
+  private traceInterruption(
+    traceContext: ReturnType<ObservedLlmAdapter['buildTraceContext']>,
+    reason: 'client_aborted' | 'provider_aborted',
+    latencyMs: number,
+  ): void {
+    this.traceNonBlocking({
+      requestId: traceContext.requestId,
+      ...(traceContext.sessionId !== undefined ? { sessionId: traceContext.sessionId } : {}),
+      event: traceContext.successEvent,
+      input: traceContext.input,
+      latencyMs,
+      metadata: {
+        ...(traceContext.metadata ?? {}),
+        outcome: 'interrupted',
+        interruptionReason: reason,
+      },
+    })
+  }
+
   private traceNonBlocking(event: Parameters<IObservabilityAdapter['trace']>[0]): void {
     void this.observability.trace(event).catch((error: unknown) => {
       console.error('[observed-llm] Observability trace failed:', error)
     })
   }
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError'
 }
 
 function toTraceInput(request: Omit<LlmRequest, 'trace'>): {

@@ -76,6 +76,7 @@ const request = {
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line max-lines-per-function
 describe('OpenAiAdapter', () => {
   beforeEach(() => {
     mockCreate.mockReset()
@@ -179,5 +180,18 @@ describe('OpenAiAdapter', () => {
       stream_options: { include_usage: true },
     })
     expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal })
+  })
+
+  it('does not start the provider when already cancelled', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    const adapter = new OpenAiAdapter('sk-test')
+
+    await expect(async () => {
+      for await (const event of adapter.stream(request, { signal: controller.signal })) {
+        void event
+      }
+    }).rejects.toThrow(/aborted/i)
+    expect(mockCreate).not.toHaveBeenCalled()
   })
 })

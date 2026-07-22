@@ -91,7 +91,8 @@ For product principles, read `PRINCIPLES.md`.
 - Memory maintenance is asynchronous whenever possible.
 - Runtime state changes are exposed through SSE and admin inspection routes.
 - Public avatar responses also use an additive SSE message route; the web client buffers late
-  deltas until sequence order is contiguous and cancels the response reader on interruption.
+  deltas until sequence order is contiguous, validates decoded frames through the shared stream
+  contract decoder, and cancels the response reader on interruption.
 
 ### Model Resolution
 

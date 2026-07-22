@@ -72,6 +72,10 @@ export type {
   MessageStreamErrorEvent,
   MessageStreamEvent,
 } from './conversation-stream-contract-types.js'
+export {
+  isMessageStreamEvent,
+  parseMessageStreamEvent,
+} from './conversation-stream-contract-types.js'
 export { parseSseDataFrame, processSseFrames } from './sse.js'
 export type { RuntimeEvent, RuntimeState, GetRuntimeStateResponse } from './runtime-types.js'
 export type {

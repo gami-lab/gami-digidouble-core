@@ -39,8 +39,10 @@ Minimum assertions for orchestration updates:
 Streaming tests must protect both transport behavior and persistence boundaries. Cover ordered
 public delta delivery, stale or out-of-order client deltas, one terminal completion, provider and
 client interruption, provider-iterator/reader cleanup, no partial avatar persistence, and exactly
-one completed avatar persistence. Keep the legacy JSON send-message route covered separately as an
-`ApiResponse<SendMessageResponse>` contract so the additive stream cannot change it accidentally.
+one completed avatar persistence. Also validate malformed public frames at the client boundary and
+assert interruption outcome metadata at the observability boundary. Keep the legacy JSON
+send-message route covered separately as an `ApiResponse<SendMessageResponse>` contract so the
+additive stream cannot change it accidentally.
 
 ## 5. Assert from the consumer inward, not from the implementation outward
 

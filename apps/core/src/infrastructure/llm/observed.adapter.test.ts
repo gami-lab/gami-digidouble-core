@@ -194,4 +194,92 @@ describe('ObservedLlmAdapter', () => {
     expect(events.map((event) => event.type)).toEqual(['delta', 'completed'])
     expect(events[1]).toMatchObject({ type: 'completed', response: { content: 'hello' } })
   })
+
+  it('traces client interruption once with an explicit outcome', async () => {
+    const controller = new AbortController()
+    const inner = createInnerAdapter({
+      stream: async function* (_request: LlmRequest, options): AsyncIterable<LlmStreamEvent> {
+        yield { type: 'delta', text: 'partial' }
+        if (options?.signal?.aborted === true) {
+          throw Object.assign(new Error('request aborted'), { name: 'AbortError' })
+        }
+        await new Promise<void>((resolve) => {
+          options?.signal?.addEventListener(
+            'abort',
+            () => {
+              resolve()
+            },
+            { once: true },
+          )
+        })
+        throw Object.assign(new Error('request aborted'), { name: 'AbortError' })
+      },
+    })
+    const observability = createObservability()
+    const adapter = new ObservedLlmAdapter(inner, observability.adapter)
+    const events: LlmStreamEvent[] = []
+
+    await expect(
+      (async () => {
+        for await (const event of adapter.stream(
+          {
+            systemPrompt: 'system',
+            messages: [{ role: 'user', content: 'hello' }],
+            trace: { requestId: 'interrupted_req' },
+          },
+          { signal: controller.signal },
+        )) {
+          events.push(event)
+          controller.abort()
+        }
+      })(),
+    ).rejects.toThrow('request aborted')
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(events).toEqual([{ type: 'delta', text: 'partial' }])
+    expect(observability.trace).toHaveBeenCalledTimes(1)
+    expect(observability.trace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: 'interrupted_req',
+        metadata: {
+          outcome: 'interrupted',
+          interruptionReason: 'client_aborted',
+        },
+      }),
+    )
+  })
+
+  it('classifies provider aborts separately from client cancellation', async () => {
+    const inner = createInnerAdapter({
+      // eslint-disable-next-line @typescript-eslint/require-await, require-yield
+      stream: async function* (): AsyncIterable<LlmStreamEvent> {
+        throw Object.assign(new Error('provider aborted'), { name: 'AbortError' })
+      },
+    })
+    const observability = createObservability()
+    const adapter = new ObservedLlmAdapter(inner, observability.adapter)
+
+    await expect(async () => {
+      for await (const event of adapter.stream({
+        systemPrompt: 'system',
+        messages: [{ role: 'user', content: 'hello' }],
+        trace: { requestId: 'provider_interrupted_req' },
+      })) {
+        expect(event).toBeDefined()
+      }
+    }).rejects.toThrow('provider aborted')
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(observability.trace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: 'provider_interrupted_req',
+        metadata: {
+          outcome: 'interrupted',
+          interruptionReason: 'provider_aborted',
+        },
+      }),
+    )
+  })
 })

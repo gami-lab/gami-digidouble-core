@@ -130,7 +130,10 @@ Message-stream contract ownership:
   `delta` events, then exactly one terminal `completed` or `interrupted` event. A client/provider
   abort never persists a partial avatar message or schedules post-turn GM/memory work. The route
   is additive and does not change the existing JSON send-message route, which continues to return
-  `ApiResponse<SendMessageResponse>`.
+  `ApiResponse<SendMessageResponse>`. Public clients decode frames through the shared
+  `parseMessageStreamEvent` boundary before applying state changes. The observed provider wrapper
+  records interruption outcome and reason on the existing request trace without creating a trace
+  per delta.
 
 ### Runtime
 

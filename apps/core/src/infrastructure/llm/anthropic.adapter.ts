@@ -56,6 +56,7 @@ export class AnthropicAdapter implements ILlmAdapter {
     const signal = options?.signal
 
     try {
+      throwIfAborted(signal)
       const stream = this.client.messages.stream(
         {
           model,

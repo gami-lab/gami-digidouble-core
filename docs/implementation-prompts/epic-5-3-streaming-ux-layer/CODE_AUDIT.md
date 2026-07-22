@@ -173,3 +173,52 @@ Minimal steps:
 - Rework before close
 
 **Recommendation: Close with debt.** The normal shipped path is complete, backward-compatible, and well-tested. Track the five hardening items above before treating streaming interruption and operational diagnostics as an A-grade release foundation.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Added a shared runtime decoder for `MessageStreamEvent` and made the web client reject malformed frames before consumer state mutation.
+- Added shared contract tests for valid and invalid stream events, including canonical completion payloads and sequence validation.
+- Added a Fastify route-boundary disconnect test proving interruption delivery, provider cancellation, iterator cleanup, and user-only persistence.
+- Added explicit client/provider interruption outcomes and reasons to the existing observed LLM trace boundary, with tests proving single-trace behavior.
+- Added preflight abort checks to every concrete streaming provider adapter so an already-cancelled request never starts provider work.
+- Updated API, architecture, technology, testing, and project-status documentation to describe the hardened behavior and contract ownership.
+
+### Findings Resolved
+
+- HTTP disconnect cleanup is now proven at the route boundary, including abort propagation, iterator closure, no completed event, and no partial avatar persistence.
+- Public stream frames are runtime-validated through the shared decoder; malformed payloads are rejected before reaching the web consumer.
+- Stream interruption now has explicit, bounded observability metadata: `outcome: interrupted`, reason, latency, and the existing request/session trace context.
+- OpenAI, Anthropic, Mistral, and xAI adapters now reject already-cancelled requests before invoking their provider SDKs, with focused tests for each adapter.
+- Contract ownership is clearer: the shared package owns public stream decoding, while domain-to-public mapping remains an intentional API boundary protected by contract tests. No new parallel DTO family was introduced.
+
+### Findings Deferred
+
+- No material EPIC finding is deferred. The domain/public message contract split remains intentionally separate; future field additions still require mapper and contract review, which is a low residual risk rather than an EPIC blocker.
+- Live stack E2E execution still depends on the Docker-backed environment and was not available during this local audit; the route boundary is covered with an in-process Fastify integration test and the stack suite remains present for CI/nightly execution.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS — 181 test files, 992 tests
+- coverage: PASS — core coverage: 87.18% statements, 84.69% branches, 96.43% functions, 87.18% lines
+
+### Final Feature Confidence
+
+- Shared stream contract decoding: High — valid, malformed, unknown-type, sequence, and completion-shape behavior is directly tested.
+- Core streaming use case: High — observable ordering, persistence, interruption, and post-turn behavior are covered.
+- HTTP SSE route: High — success, compatibility, validation, auth, not-found, and disconnect behavior are covered at the Fastify boundary.
+- Provider cancellation: High — all four concrete provider adapters prove preflight cancellation and the observed adapter proves client/provider interruption classification.
+- Web stream consumption: High — chunk boundaries, malformed frames, incomplete terminal streams, cancellation, and consumer callbacks are covered.
+- Documentation and public contract alignment: High — impacted architecture, API, stack, testing, and status documents were synchronized.
+
+### Final Grade
+
+**A**
+
+### Remaining Risks
+
+- Live Docker stack E2E should run in CI/nightly to verify the deployed process boundary and provider wiring in an environment with the full stack available.
+- Domain and public message contracts remain separate by design; mapper-focused tests are the guard against future field drift.
