@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { ApiResponse } from '@gami/shared'
+import { processSseFrames } from '@gami/shared'
+import type { ApiResponse, MessageStreamEvent } from '@gami/shared'
 import type { ILlmAdapter, LlmRequest } from '../../application/ports/ILlmAdapter.js'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../domain/conversation/session.types.js'
@@ -122,6 +123,42 @@ class CapturingLlmAdapter implements ILlmAdapter {
       latencyMs: 5,
     })
   }
+}
+
+class StreamingLlmAdapter implements ILlmAdapter {
+  complete(_request: LlmRequest) {
+    return Promise.resolve({
+      content: 'Avatar reply',
+      model: 'stream-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    })
+  }
+
+  async *stream(_request: LlmRequest) {
+    await Promise.resolve()
+    yield { type: 'delta' as const, text: 'First ' }
+    yield { type: 'delta' as const, text: 'second' }
+    yield {
+      type: 'completed' as const,
+      response: {
+        content: 'provider fallback',
+        model: 'stream-model',
+        inputTokens: 10,
+        outputTokens: 20,
+        latencyMs: 5,
+      },
+    }
+  }
+}
+
+function parseMessageStream(body: string): MessageStreamEvent[] {
+  const events: MessageStreamEvent[] = []
+  processSseFrames(body, (event) => {
+    events.push(event as MessageStreamEvent)
+  })
+  return events
 }
 
 function makeUser(name: string, roleInWorld: string): User {
@@ -301,6 +338,70 @@ describe('conversation message/history API', () => {
     expect(mentorPrompt).toContain('Name: Lina')
     expect(mentorPrompt).toContain('Role in this world: mentor')
     expect(studentPrompt).not.toBe(mentorPrompt)
+  })
+})
+
+describe('conversation message stream API', () => {
+  it('returns 401 when the API key is missing', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/messages/stream',
+      payload: { message: { content: 'Hello' } },
+    })
+
+    expect(response.statusCode).toBe(401)
+    expect(response.json<ApiResponse<null>>().error?.code).toBe('UNAUTHORIZED')
+  })
+
+  it('returns 400 for an invalid message body', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/messages/stream',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { message: {} },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json<ApiResponse<null>>().error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 404 before opening SSE for an unknown conversation', async () => {
+    const response = await makeApp({ conversations: [] }).inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_missing/messages/stream',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { message: { content: 'Hello' } },
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(response.json<ApiResponse<null>>().error?.code).toBe('NOT_FOUND')
+  })
+
+  it('frames ordered public stream events over text/event-stream', async () => {
+    const response = await makeApp({ llmAdapter: new StreamingLlmAdapter() }).inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/messages/stream',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { message: { content: 'Hello stream' } },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['content-type']).toContain('text/event-stream')
+    expect(response.body).toContain('event: conversation_message')
+
+    const events = parseMessageStream(response.body)
+    expect(events.map((event) => event.type)).toEqual([
+      'conversation.message.started',
+      'conversation.message.delta',
+      'conversation.message.delta',
+      'conversation.message.completed',
+    ])
+    expect(events[1]).toMatchObject({ sequence: 0, delta: 'First ' })
+    expect(events[2]).toMatchObject({ sequence: 1, delta: 'second' })
+    expect(events[3]).toMatchObject({
+      type: 'conversation.message.completed',
+      response: { avatarMessage: { content: 'First second' } },
+    })
   })
 })
 

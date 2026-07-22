@@ -27,6 +27,7 @@ Must cover:
 - correct status/error-code mapping
 - contract shape for public and admin routes
 - SSE headers and basic stream behavior where applicable
+- message-stream route auth, validation, not-found, framing, and stack-e2e completion ordering
 
 ### Conversation Runtime
 

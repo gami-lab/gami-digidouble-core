@@ -112,18 +112,22 @@ Compatibility rules:
 - `POST /v1/sessions/{sessionId}/switch-avatar` -> `SwitchAvatarResponse`
 - `POST /v1/sessions/{sessionId}/conversations/{conversationId}/end` -> `EndConversationRequest` -> `EndConversationResponse`
 - `POST /v1/conversations/{conversationId}/messages` -> `SendMessageRequest` -> `SendMessageResponse`
+- `POST /v1/conversations/{conversationId}/messages/stream` -> `SendMessageRequest` -> SSE
+  `MessageStreamEvent` frames
 - `GET /v1/conversations/{conversationId}/history` -> `ConversationHistoryResponse`
 
 Message-stream contract ownership:
 
-- A future message-stream request reuses `SendMessageRequest`; no parallel stream request DTO is
+- The message-stream request reuses `SendMessageRequest`; no parallel stream request DTO is
   introduced.
 - Public stream events are defined by `MessageStreamEvent` in
   `packages/shared/src/conversation-stream-contract-types.ts`.
 - Provider adapters and the application streaming use case now expose the internal streaming
   capability behind `ILlmAdapter`; the use case persists the user before streaming, persists the
   final avatar only after terminal completion, and leaves the user message intact on interruption.
-  This slice does not add a streaming route or change the existing JSON send-message route.
+- The streaming route emits one `data:` JSON payload per event with `event: conversation_message`
+  over `text/event-stream`; it is additive and does not change the existing JSON send-message
+  route.
 
 ### Runtime
 

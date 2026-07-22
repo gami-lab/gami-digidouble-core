@@ -24,6 +24,7 @@ The platform is now a working headless conversational runtime with:
   observed adapter support
 - reusable streaming send-message execution with ordered deltas, terminal avatar persistence, and
   deterministic interruption handling
+- additive SSE message-stream route with stack-e2e contract coverage
 
 ## What Is Shipped
 
@@ -90,7 +91,7 @@ The platform is now a working headless conversational runtime with:
 
 ## Open Product Work
 
-- No public token-streaming route or web rendering for the streamed avatar send-message flow.
+- No web rendering migration to the streamed avatar send-message flow.
 - No standalone guided-progression engine beyond existing GM heuristics.
 - No completed hybrid response/cache path.
 - No completed real-scenario validation milestone.

@@ -206,7 +206,7 @@ Provide reset, replay-last-turn, and audit logging for operational recovery acti
 Runtime SSE exists for state changes, and the shared message-stream contract plus reusable client
 frame parser are established. The internal LLM streaming port, native provider/null/observed
 adapter support, and reusable streaming send-message execution are shipped; public route and UI
-streaming are not shipped.
+SSE transport are shipped; web UI streaming is not shipped.
 
 **Purpose**  
 Improve perceived responsiveness.

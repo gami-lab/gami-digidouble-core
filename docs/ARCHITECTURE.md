@@ -596,6 +596,11 @@ message only after terminal completion, and schedules post-turn GM/memory work a
 abort leaves the user message persisted, skips partial avatar persistence, and yields an
 interruption event when the consumer remains writable.
 
+The API conversations surface exposes `POST /v1/conversations/{conversationId}/messages/stream`
+as an additive SSE transport. It pulls the first application event before opening the stream so
+validation and not-found failures retain the normal JSON error envelope, then maps internal events
+to shared `MessageStreamEvent` DTOs and writes one JSON `data:` frame per event.
+
 ## Logger Port
 
 ```ts

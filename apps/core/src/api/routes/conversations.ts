@@ -1,6 +1,11 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
-import type { SendMessageResponse } from '@gami/shared'
+import type {
+  Message as SharedMessage,
+  MessageStreamEvent,
+  SendMessageRequest,
+  SendMessageResponse,
+} from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
@@ -25,7 +30,10 @@ import { EndConversationUseCase } from '../../application/use-cases/end-conversa
 import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
 import { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
 import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
+import { StreamingSendMessageUseCase } from '../../application/use-cases/send-message/streaming-send-message.use-case.js'
+import type { StreamingSendMessageEvent } from '../../application/use-cases/send-message/streaming-send-message.types.js'
 import type { SendMessageOutput } from '../../application/use-cases/send-message/send-message.types.js'
+import type { Message as DomainMessage } from '../../domain/conversation/session.types.js'
 import type { Config } from '../../config.js'
 import type { ModelConfig } from '../../domain/model-config/index.js'
 import { DomainError } from '../../domain/errors.js'
@@ -76,10 +84,6 @@ type ConversationsRouteOptions = {
 
 type ConversationParams = { conversationId: string }
 
-type SendMessageBody = {
-  message: { content: string }
-}
-
 const conversationParamsSchema = {
   type: 'object',
   required: ['conversationId'],
@@ -105,6 +109,7 @@ const sendMessageBodySchema = {
   additionalProperties: false,
 } as const
 
+// eslint-disable-next-line max-lines-per-function
 export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions> = (
   app,
   options,
@@ -121,7 +126,7 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
     await deps.observabilityAdapter.flush()
   })
 
-  app.post<{ Params: ConversationParams; Body: SendMessageBody }>(
+  app.post<{ Params: ConversationParams; Body: SendMessageRequest }>(
     '/:conversationId/messages',
     { schema: { params: conversationParamsSchema, body: sendMessageBodySchema } },
     async (request, reply) => {
@@ -135,6 +140,77 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
       } catch (error) {
         const mappedError = handleRouteError(error)
         return await reply.status(mappedError.statusCode).send(mappedError.body)
+      }
+    },
+  )
+
+  app.post<{ Params: ConversationParams; Body: SendMessageRequest }>(
+    '/:conversationId/messages/stream',
+    {
+      config: { rawBody: true },
+      schema: { params: conversationParamsSchema, body: sendMessageBodySchema, response: {} },
+    },
+    // eslint-disable-next-line complexity
+    async (request, reply) => {
+      const abortController = new AbortController()
+      const onClose = (): void => {
+        abortController.abort()
+      }
+      request.raw.once('close', onClose)
+
+      const stream = deps.streamingSendMessageUseCase.execute(
+        {
+          conversationId: request.params.conversationId,
+          userMessage: request.body.message.content,
+        },
+        { signal: abortController.signal },
+      )
+      const iterator = stream[Symbol.asyncIterator]()
+
+      let responseStarted = false
+      let streamRequestId: string | undefined
+      try {
+        const first = await iterator.next()
+        if (first.done) throw new Error('Streaming message flow ended before it started.')
+        streamRequestId = first.value.requestId
+
+        if (!isStreamWritable(reply)) return
+
+        reply.raw.setHeader('Content-Type', 'text/event-stream')
+        reply.raw.setHeader('Cache-Control', 'no-cache')
+        reply.raw.setHeader('Connection', 'keep-alive')
+        reply.raw.setHeader('X-Accel-Buffering', 'no')
+        await reply.hijack()
+        responseStarted = true
+        writeMessageStreamFrame(reply.raw, mapStreamingEvent(first.value))
+
+        let next = await iterator.next()
+        while (!next.done) {
+          if (!isStreamWritable(reply)) break
+          writeMessageStreamFrame(reply.raw, mapStreamingEvent(next.value))
+          next = await iterator.next()
+        }
+
+        if (!reply.raw.destroyed && !reply.raw.writableEnded) reply.raw.end()
+      } catch (error) {
+        if (!responseStarted) {
+          const mappedError = handleRouteError(error)
+          return await reply.status(mappedError.statusCode).send(mappedError.body)
+        }
+
+        if (isStreamWritable(reply)) {
+          writeMessageStreamFrame(reply.raw, {
+            type: 'conversation.message.error',
+            requestId: streamRequestId ?? request.params.conversationId,
+            conversationId: request.params.conversationId,
+            message: 'Internal server error',
+          })
+          reply.raw.end()
+        }
+      } finally {
+        request.raw.off('close', onClose)
+        abortController.abort()
+        await iterator.return?.()
       }
     },
   )
@@ -160,6 +236,7 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
 
 type RouteDependencies = {
   sendMessageUseCase: SendMessageUseCase
+  streamingSendMessageUseCase: StreamingSendMessageUseCase
   observabilityAdapter: IObservabilityAdapter
   conversationRepository: IConversationRepository
   messageRepository: IMessageRepository
@@ -212,43 +289,46 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     repositories.knowledgeChunkRepository,
   )
 
+  const sendMessageUseCase = new SendMessageUseCase(
+    repositories.sessionRepository,
+    repositories.conversationRepository,
+    repositories.avatarRepository,
+    repositories.scenarioRepository,
+    repositories.messageRepository,
+    llmAdapter,
+    repositories.eventLogRepository,
+    options.runGameMasterUseCase ?? null,
+    repositories.userRepository,
+    new EndConversationUseCase(
+      repositories.sessionRepository,
+      repositories.conversationRepository,
+      repositories.eventLogRepository,
+      memoryMaintenance,
+      undefined,
+      repositories.messageRepository,
+      undefined,
+      repositories.userMemoryFactRepository,
+      episodicMemoryService,
+    ),
+    undefined,
+    repositories.userMemoryFactRepository,
+    memoryMaintenance,
+    repositories.conversationWorkingMemoryRepository,
+    repositories.conversationMemoryRepository,
+    undefined,
+    typedRetrievalService,
+    undefined,
+    options.modelConfigRepository,
+    options.llmAdapterRegistry,
+    options.modelConfigFallback,
+  )
+
   return {
     observabilityAdapter,
     conversationRepository: repositories.conversationRepository,
     messageRepository: repositories.messageRepository,
-    sendMessageUseCase: new SendMessageUseCase(
-      repositories.sessionRepository,
-      repositories.conversationRepository,
-      repositories.avatarRepository,
-      repositories.scenarioRepository,
-      repositories.messageRepository,
-      llmAdapter,
-      repositories.eventLogRepository,
-      options.runGameMasterUseCase ?? null,
-      repositories.userRepository,
-      new EndConversationUseCase(
-        repositories.sessionRepository,
-        repositories.conversationRepository,
-        repositories.eventLogRepository,
-        memoryMaintenance,
-        undefined,
-        repositories.messageRepository,
-        undefined,
-        repositories.userMemoryFactRepository,
-        episodicMemoryService,
-      ),
-      undefined,
-      repositories.userMemoryFactRepository,
-      memoryMaintenance,
-      repositories.conversationWorkingMemoryRepository,
-      repositories.conversationMemoryRepository,
-      undefined,
-      typedRetrievalService,
-      undefined,
-      options.modelConfigRepository,
-      options.llmAdapterRegistry,
-      options.modelConfigFallback,
-    ),
+    sendMessageUseCase,
+    streamingSendMessageUseCase: new StreamingSendMessageUseCase(sendMessageUseCase),
   }
 }
 
@@ -365,6 +445,63 @@ function mapSendMessageResponse(output: SendMessageOutput): SendMessageResponse 
       outputTokens: output.avatarMessage.outputTokens,
     },
   }
+}
+
+function mapStreamingEvent(event: StreamingSendMessageEvent): MessageStreamEvent {
+  switch (event.type) {
+    case 'started':
+      return {
+        type: 'conversation.message.started',
+        requestId: event.requestId,
+        conversationId: event.conversationId,
+        userMessage: mapMessage(event.userMessage),
+      }
+    case 'delta':
+      return {
+        type: 'conversation.message.delta',
+        requestId: event.requestId,
+        conversationId: event.conversationId,
+        sequence: event.sequence,
+        delta: event.delta,
+      }
+    case 'completed':
+      return {
+        type: 'conversation.message.completed',
+        requestId: event.requestId,
+        conversationId: event.conversationId,
+        response: mapSendMessageResponse(event.output),
+      }
+    case 'interrupted':
+      return {
+        type: 'conversation.message.interrupted',
+        requestId: event.requestId,
+        conversationId: event.conversationId,
+        reason: event.reason,
+      }
+  }
+}
+
+function mapMessage(message: DomainMessage): SharedMessage {
+  return message
+}
+
+function writeMessageStreamFrame(
+  response: NodeJS.WritableStream & { write: (chunk: string) => boolean },
+  event: MessageStreamEvent,
+): void {
+  const id = getMessageStreamEventId(event)
+  response.write(`event: conversation_message\nid: ${id}\ndata: ${JSON.stringify(event)}\n\n`)
+}
+
+function getMessageStreamEventId(event: MessageStreamEvent): string {
+  if (event.type === 'conversation.message.delta') {
+    return `${event.requestId}:${String(event.sequence)}`
+  }
+  return `${event.requestId}:${event.type}`
+}
+
+function isStreamWritable(reply: { raw: { destroyed: boolean; writableEnded: boolean } }): boolean {
+  return !reply.raw.destroyed && !reply.raw.writableEnded
 }
 
 function handleRouteError(error: unknown): { statusCode: number; body: ReturnType<typeof fail> } {
