@@ -156,6 +156,7 @@ Must cover:
 Must cover:
 
 - SSE connection lifecycle
+- shared frame buffering, keepalive/comment handling, and malformed payload handling
 - session scoping with no cross-session leakage
 - reconnect stability
 - runtime-state snapshot consistency

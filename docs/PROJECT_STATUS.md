@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-20
+Last updated: 2026-07-22
 Current phase: Phase A core runtime delivered through EPIC 8.4
 
 ## Snapshot
@@ -19,6 +19,7 @@ The platform is now a working headless conversational runtime with:
 - public web chat surface
 - multi-model runtime configuration
 - request and turn observability
+- canonical shared message-stream DTOs and reusable SSE frame parsing for web and console clients
 
 ## What Is Shipped
 
@@ -69,6 +70,9 @@ The platform is now a working headless conversational runtime with:
 - Layering remains `API -> Application -> Domain -> Infrastructure`.
 - External input is validated at the API boundary.
 - `@gami/shared` owns public/shared DTOs; route-local contract duplication should not be reintroduced.
+- `MessageStreamEvent` is owned by `@gami/shared`; future stream requests reuse `SendMessageRequest`.
+- Generic SSE frame parsing is owned by `@gami/shared`; client-specific subscription and reconnect
+  behavior stays in each app.
 - Avatar reply latency takes priority over synchronous orchestration work.
 - Public contracts evolve additively whenever possible.
 - Retrieval visibility is asymmetric by design: avatar-filtered, GM-unrestricted.

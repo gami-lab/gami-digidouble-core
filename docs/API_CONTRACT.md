@@ -8,6 +8,7 @@ Exact wire types live in:
 
 - `packages/shared/src/entity-types.ts`
 - `packages/shared/src/conversation-contract-types.ts`
+- `packages/shared/src/conversation-stream-contract-types.ts`
 - `packages/shared/src/web-contract-types.ts`
 - `packages/shared/src/knowledge-contract-types.ts`
 - `packages/shared/src/runtime-inspector-types.ts`
@@ -112,6 +113,15 @@ Compatibility rules:
 - `POST /v1/sessions/{sessionId}/conversations/{conversationId}/end` -> `EndConversationRequest` -> `EndConversationResponse`
 - `POST /v1/conversations/{conversationId}/messages` -> `SendMessageRequest` -> `SendMessageResponse`
 - `GET /v1/conversations/{conversationId}/history` -> `ConversationHistoryResponse`
+
+Message-stream contract ownership:
+
+- A future message-stream request reuses `SendMessageRequest`; no parallel stream request DTO is
+  introduced.
+- Public stream events are defined by `MessageStreamEvent` in
+  `packages/shared/src/conversation-stream-contract-types.ts`.
+- This contract foundation does not add a streaming route or provider streaming behavior; the
+  existing JSON send-message route remains unchanged.
 
 ### Runtime
 

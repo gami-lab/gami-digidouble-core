@@ -148,6 +148,7 @@ export type GetAvailableAvatarsApiResponse = GetAvailableAvatarsResponse
 
 export type SwitchAvatarApiResponse = SwitchAvatarResponse
 
+// The future message-stream route reuses this request body unchanged.
 export type SendMessageRequest = {
   message: {
     content: string

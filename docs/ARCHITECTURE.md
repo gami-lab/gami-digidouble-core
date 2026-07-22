@@ -564,6 +564,11 @@ Keep folders boring and predictable.
 `apps/console/`, `apps/web/`, and `apps/admin/` are front-end consumer layers, not part of the backend 4-layer architecture.
 Each consumes Core HTTP APIs and has no direct access to backend domain or infrastructure modules.
 Cross-package HTTP DTO ownership for Core/console/web/admin contracts lives in `packages/shared/src/`.
+Conversation message-stream DTOs are owned by
+`packages/shared/src/conversation-stream-contract-types.ts`; backend execution inputs and outputs
+remain under `apps/core/src/application/use-cases/`. Generic SSE frame buffering and JSON extraction
+are shared from `packages/shared/src/sse.ts`, while each client retains its own subscription,
+reconnect, URL, and authentication behavior.
 
 ---
 

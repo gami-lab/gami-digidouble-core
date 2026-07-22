@@ -1,6 +1,9 @@
 import type { ConversationSummary, SessionSummary } from '@gami/shared'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 
+// Ownership: these are backend execution contracts. Public HTTP and stream
+// DTOs remain in packages/shared and are mapped at the API boundary.
+
 export interface SendMessageInput {
   conversationId: string
   userMessage: string

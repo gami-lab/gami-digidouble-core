@@ -1,4 +1,4 @@
-import type { RuntimeEvent } from '@gami/shared'
+import { processSseFrames, type RuntimeEvent } from '@gami/shared'
 import { apiKey, apiUrl } from '../env'
 
 const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
@@ -82,7 +82,9 @@ async function consumeEventStream(
         return
       }
       buffer += decoder.decode(chunk.value, { stream: true })
-      buffer = processFrames(buffer, onEvent)
+      buffer = processSseFrames(buffer, (event) => {
+        onEvent(event as RuntimeEvent)
+      })
     }
   } finally {
     reader.releaseLock()
@@ -124,44 +126,4 @@ async function waitForReconnectDelay(delayMs: number, signal: AbortSignal): Prom
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
-}
-
-function processFrames(buffer: string, onEvent: (event: RuntimeEvent) => void): string {
-  const frames = buffer.split('\n\n')
-  const remainder = frames.pop() ?? ''
-
-  for (const frame of frames) {
-    const event = parseRuntimeEventFrame(frame)
-    if (event !== null) {
-      onEvent(event)
-    }
-  }
-
-  return remainder
-}
-
-function parseRuntimeEventFrame(frame: string): RuntimeEvent | null {
-  if (frame.startsWith(':')) {
-    return null
-  }
-
-  const dataLine = frame
-    .split('\n')
-    .map((line) => line.trim())
-    .find((line) => line.startsWith('data:'))
-
-  if (dataLine === undefined) {
-    return null
-  }
-
-  const data = dataLine.slice(5).trim()
-  if (data.length === 0) {
-    return null
-  }
-
-  try {
-    return JSON.parse(data) as RuntimeEvent
-  } catch {
-    return null
-  }
 }

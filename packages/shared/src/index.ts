@@ -63,6 +63,16 @@ export type {
   GetAvailableAvatarsResponse,
   SwitchAvatarResponse,
 } from './conversation-contract-types.js'
+export type {
+  MessageStreamEventBase,
+  MessageStreamStartedEvent,
+  MessageStreamDeltaEvent,
+  MessageStreamCompletedEvent,
+  MessageStreamInterruptedEvent,
+  MessageStreamErrorEvent,
+  MessageStreamEvent,
+} from './conversation-stream-contract-types.js'
+export { parseSseDataFrame, processSseFrames } from './sse.js'
 export type { RuntimeEvent, RuntimeState, GetRuntimeStateResponse } from './runtime-types.js'
 export type {
   SharedMemoryFactRecord,

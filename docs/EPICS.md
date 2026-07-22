@@ -203,7 +203,8 @@ Provide reset, replay-last-turn, and audit logging for operational recovery acti
 ### `5.3 Streaming UX Layer`
 
 **Current state**  
-Runtime SSE exists for state changes, but token streaming for avatar replies is not shipped.
+Runtime SSE exists for state changes, and the shared message-stream contract plus reusable client
+frame parser are now established; token streaming for avatar replies is not shipped.
 
 **Purpose**  
 Improve perceived responsiveness.
