@@ -1,6 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { ILlmAdapter, LlmRequest, LlmResponse } from '../../application/ports/ILlmAdapter.js'
+import type {
+  ILlmAdapter,
+  LlmRequest,
+  LlmResponse,
+  LlmStreamEvent,
+  LlmStreamOptions,
+} from '../../application/ports/ILlmAdapter.js'
 import { LlmError } from './llm.error.js'
+import { completedEvent, deltaEvent, isAborted, throwIfAborted } from './streaming.js'
 
 const DEFAULT_MODEL = 'claude-haiku-4-5'
 const DEFAULT_MAX_TOKENS = 1024
@@ -38,6 +45,55 @@ export class AnthropicAdapter implements ILlmAdapter {
 
     return extractResponse(message, Date.now() - start)
   }
+
+  async *stream(request: LlmRequest, options?: LlmStreamOptions): AsyncIterable<LlmStreamEvent> {
+    const model = request.model ?? this.defaultModel
+    let responseModel = model
+    const start = Date.now()
+    let content = ''
+    let inputTokens = 0
+    let outputTokens = 0
+    const signal = options?.signal
+
+    try {
+      const stream = this.client.messages.stream(
+        {
+          model,
+          max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+          system: request.systemPrompt,
+          messages: request.messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        },
+        { signal },
+      )
+
+      for await (const event of stream) {
+        if (event.type === 'message_start') responseModel = event.message.model
+        const eventData = readAnthropicEvent(event, { inputTokens, outputTokens })
+        if (eventData.text.length > 0) {
+          content += eventData.text
+          yield deltaEvent(eventData.text)
+        }
+        inputTokens = eventData.inputTokens
+        outputTokens = eventData.outputTokens
+      }
+
+      throwIfAborted(signal)
+    } catch (err) {
+      if (isAborted(signal)) throw err
+      throw wrapAnthropicError(err)
+    }
+
+    yield completedEvent({
+      content,
+      model: responseModel,
+      inputTokens,
+      outputTokens,
+      latencyMs: Date.now() - start,
+    })
+  }
 }
 
 function extractResponse(message: Anthropic.Message, latencyMs: number): LlmResponse {
@@ -53,6 +109,34 @@ function extractResponse(message: Anthropic.Message, latencyMs: number): LlmResp
     outputTokens: message.usage.output_tokens,
     latencyMs,
   }
+}
+
+function readAnthropicEvent(
+  event: Anthropic.MessageStreamEvent,
+  currentUsage: { inputTokens: number; outputTokens: number },
+): {
+  text: string
+  inputTokens: number
+  outputTokens: number
+} {
+  if (event.type === 'message_start') {
+    return {
+      text: '',
+      inputTokens: event.message.usage.input_tokens,
+      outputTokens: currentUsage.outputTokens,
+    }
+  }
+  if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+    return { text: event.delta.text, ...currentUsage }
+  }
+  if (event.type === 'message_delta') {
+    return {
+      text: '',
+      inputTokens: currentUsage.inputTokens,
+      outputTokens: event.usage.output_tokens,
+    }
+  }
+  return { text: '', ...currentUsage }
 }
 
 function wrapAnthropicError(err: unknown): LlmError {

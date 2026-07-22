@@ -30,6 +30,23 @@ export interface LlmResponse {
   latencyMs: number
 }
 
+export interface LlmStreamOptions {
+  signal?: AbortSignal
+}
+
+export interface LlmStreamDeltaEvent {
+  type: 'delta'
+  text: string
+}
+
+export interface LlmStreamCompletedEvent {
+  type: 'completed'
+  response: LlmResponse
+}
+
+export type LlmStreamEvent = LlmStreamDeltaEvent | LlmStreamCompletedEvent
+
 export interface ILlmAdapter {
   complete(request: LlmRequest): Promise<LlmResponse>
+  stream?(request: LlmRequest, options?: LlmStreamOptions): AsyncIterable<LlmStreamEvent>
 }

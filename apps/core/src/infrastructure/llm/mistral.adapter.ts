@@ -1,8 +1,19 @@
 import { Mistral } from '@mistralai/mistralai'
-import type { ContentChunk, TextChunk } from '@mistralai/mistralai/models/components'
+import type {
+  CompletionChunk,
+  ContentChunk,
+  TextChunk,
+} from '@mistralai/mistralai/models/components'
 import { MistralError } from '@mistralai/mistralai/models/errors'
-import type { ILlmAdapter, LlmRequest, LlmResponse } from '../../application/ports/ILlmAdapter.js'
+import type {
+  ILlmAdapter,
+  LlmRequest,
+  LlmResponse,
+  LlmStreamEvent,
+  LlmStreamOptions,
+} from '../../application/ports/ILlmAdapter.js'
 import { LlmError } from './llm.error.js'
+import { completedEvent, deltaEvent, isAborted, throwIfAborted } from './streaming.js'
 
 const DEFAULT_MODEL = 'mistral-small-latest'
 const REQUEST_TIMEOUT_MS = 30_000
@@ -44,6 +55,53 @@ export class MistralAdapter implements ILlmAdapter {
       throw wrapMistralError(err)
     }
   }
+
+  async *stream(request: LlmRequest, options?: LlmStreamOptions): AsyncIterable<LlmStreamEvent> {
+    const model = request.model ?? this.defaultModel
+    let responseModel = model
+    const start = Date.now()
+    let content = ''
+    let inputTokens = 0
+    let outputTokens = 0
+    const signal = options?.signal
+
+    try {
+      const stream = await this.client.chat.stream(
+        { model, messages: buildMessages(request), maxTokens: request.maxTokens, stream: true },
+        {
+          timeoutMs: REQUEST_TIMEOUT_MS,
+          ...(signal === undefined ? {} : { signal }),
+        },
+      )
+
+      for await (const event of stream) {
+        const chunk = event.data
+        responseModel = chunk.model
+        const chunkData = readMistralChunk(chunk, { inputTokens, outputTokens })
+        const text = chunkData.text
+        if (text.length > 0) {
+          content += text
+          yield deltaEvent(text)
+        }
+
+        inputTokens = chunkData.inputTokens
+        outputTokens = chunkData.outputTokens
+      }
+
+      throwIfAborted(signal)
+    } catch (err) {
+      if (isAborted(signal)) throw err
+      throw wrapMistralError(err)
+    }
+
+    yield completedEvent({
+      content,
+      model: responseModel,
+      inputTokens,
+      outputTokens,
+      latencyMs: Date.now() - start,
+    })
+  }
 }
 
 type MistralMessages = Parameters<Mistral['chat']['complete']>[0]['messages']
@@ -69,6 +127,17 @@ function extractContent(content: string | Array<ContentChunk> | null | undefined
     .filter(isTextChunk)
     .map((c) => c.text)
     .join('')
+}
+
+function readMistralChunk(
+  chunk: CompletionChunk,
+  currentUsage: { inputTokens: number; outputTokens: number },
+): { text: string; inputTokens: number; outputTokens: number } {
+  return {
+    text: extractContent(chunk.choices[0]?.delta.content),
+    inputTokens: chunk.usage?.promptTokens ?? currentUsage.inputTokens,
+    outputTokens: chunk.usage?.completionTokens ?? currentUsage.outputTokens,
+  }
 }
 
 function wrapMistralError(err: unknown): LlmError {

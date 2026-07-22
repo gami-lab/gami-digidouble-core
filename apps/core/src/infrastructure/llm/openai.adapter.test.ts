@@ -47,6 +47,28 @@ function buildCompletion(content: string, model = 'gpt-4o-mini'): OpenAI.ChatCom
   }
 }
 
+function buildStreamChunk(
+  content: string,
+  model = 'gpt-4o-mini',
+  usage: OpenAI.CompletionUsage | null = null,
+): OpenAI.ChatCompletionChunk {
+  return {
+    id: 'chatcmpl-stream-test',
+    object: 'chat.completion.chunk',
+    created: 0,
+    model,
+    choices: [
+      {
+        index: 0,
+        finish_reason: null,
+        delta: { role: 'assistant', content },
+        logprobs: null,
+      },
+    ],
+    usage,
+  }
+}
+
 const request = {
   systemPrompt: 'You are a helpful assistant.',
   messages: [{ role: 'user' as const, content: 'Hello' }],
@@ -123,5 +145,39 @@ describe('OpenAiAdapter', () => {
       role: 'system',
       content: 'You are a helpful assistant.',
     })
+  })
+
+  it('streams ordered deltas and one terminal event with usage', async () => {
+    mockCreate.mockResolvedValue(
+      (function* () {
+        yield buildStreamChunk('Hello ')
+        yield buildStreamChunk('world')
+        yield {
+          ...buildStreamChunk(''),
+          choices: [],
+          usage: { prompt_tokens: 15, completion_tokens: 5, total_tokens: 20 },
+        }
+      })(),
+    )
+    const controller = new AbortController()
+    const adapter = new OpenAiAdapter('sk-test')
+    const events = []
+
+    for await (const event of adapter.stream(request, { signal: controller.signal })) {
+      events.push(event)
+    }
+
+    expect(events.map((event) => event.type)).toEqual(['delta', 'delta', 'completed'])
+    expect(events[0]).toEqual({ type: 'delta', text: 'Hello ' })
+    expect(events[2]).toMatchObject({
+      type: 'completed',
+      response: { content: 'Hello world', model: 'gpt-4o-mini', inputTokens: 15, outputTokens: 5 },
+    })
+    expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({
+      model: 'gpt-4o-mini',
+      stream: true,
+      stream_options: { include_usage: true },
+    })
+    expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal })
   })
 })

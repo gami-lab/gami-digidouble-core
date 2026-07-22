@@ -1,4 +1,11 @@
-import type { ILlmAdapter, LlmRequest, LlmResponse } from '../../application/ports/ILlmAdapter.js'
+import type {
+  ILlmAdapter,
+  LlmRequest,
+  LlmResponse,
+  LlmStreamOptions,
+  LlmStreamEvent,
+} from '../../application/ports/ILlmAdapter.js'
+import { completedEvent, deltaEvent, throwIfAborted } from './streaming.js'
 
 /**
  * Deterministic no-network adapter for tests and local development.
@@ -14,12 +21,29 @@ export class NullLlmAdapter implements ILlmAdapter {
   }
 
   complete(_request: LlmRequest): Promise<LlmResponse> {
-    return Promise.resolve({
+    return Promise.resolve(this.buildResponse())
+  }
+
+  // A deterministic generator has no asynchronous work until a consumer requests a value.
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async *stream(_request: LlmRequest, options?: LlmStreamOptions): AsyncIterable<LlmStreamEvent> {
+    throwIfAborted(options?.signal)
+
+    if (this.fixedContent.length > 0) {
+      yield deltaEvent(this.fixedContent)
+    }
+
+    throwIfAborted(options?.signal)
+    yield completedEvent(this.buildResponse())
+  }
+
+  private buildResponse(): LlmResponse {
+    return {
       content: this.fixedContent,
       model: this.fixedModel,
       inputTokens: 10,
       outputTokens: 20,
       latencyMs: 5,
-    })
+    }
   }
 }

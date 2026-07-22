@@ -6,6 +6,7 @@ import { AnthropicAdapter } from './anthropic.adapter.js'
 // ── SDK mock ────────────────────────────────────────────────────────────────
 
 const mockCreate = vi.fn()
+const mockStream = vi.fn()
 
 vi.mock('@anthropic-ai/sdk', () => {
   class MockAPIError extends Error {
@@ -25,7 +26,7 @@ vi.mock('@anthropic-ai/sdk', () => {
   }
 
   const MockAnthropic = vi.fn().mockImplementation(() => ({
-    messages: { create: mockCreate },
+    messages: { create: mockCreate, stream: mockStream },
   }))
   ;(MockAnthropic as unknown as Record<string, unknown>)['APIError'] = MockAPIError
 
@@ -57,6 +58,7 @@ const request = {
 describe('AnthropicAdapter', () => {
   beforeEach(() => {
     mockCreate.mockReset()
+    mockStream.mockReset()
   })
 
   it('maps a successful completion to LlmResponse', async () => {
@@ -124,5 +126,38 @@ describe('AnthropicAdapter', () => {
       message: 'network failure',
       statusCode: undefined,
     })
+  })
+
+  it('streams text deltas and terminal usage while forwarding cancellation', async () => {
+    mockStream.mockReturnValue(
+      (function* () {
+        yield {
+          type: 'message_start',
+          message: { model: 'claude-3-haiku-20240307', usage: { input_tokens: 12 } },
+        }
+        yield { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hello' } }
+        yield { type: 'content_block_delta', delta: { type: 'text_delta', text: ' world' } }
+        yield { type: 'message_delta', usage: { output_tokens: 5 } }
+      })(),
+    )
+    const controller = new AbortController()
+    const adapter = new AnthropicAdapter('sk-ant-test')
+    const events = []
+
+    for await (const event of adapter.stream(request, { signal: controller.signal })) {
+      events.push(event)
+    }
+
+    expect(events.map((event) => event.type)).toEqual(['delta', 'delta', 'completed'])
+    expect(events[2]).toMatchObject({
+      type: 'completed',
+      response: {
+        content: 'Hello world',
+        model: 'claude-3-haiku-20240307',
+        inputTokens: 12,
+        outputTokens: 5,
+      },
+    })
+    expect(mockStream.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal })
   })
 })

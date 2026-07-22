@@ -27,6 +27,39 @@ describe('NullLlmAdapter', () => {
     expect(response.latencyMs).toBe(5)
   })
 
+  it('emits one ordered delta followed by terminal completion metadata', async () => {
+    const adapter = new NullLlmAdapter('hello world', 'test-model')
+    const events = []
+    for await (const event of adapter.stream(request)) events.push(event)
+
+    expect(events).toEqual([
+      { type: 'delta', text: 'hello world' },
+      {
+        type: 'completed',
+        response: {
+          content: 'hello world',
+          model: 'test-model',
+          inputTokens: 10,
+          outputTokens: 20,
+          latencyMs: 5,
+        },
+      },
+    ])
+  })
+
+  it('honours cancellation before emitting stream events', async () => {
+    const controller = new AbortController()
+    controller.abort()
+
+    const adapter = new NullLlmAdapter()
+    await expect(async () => {
+      for await (const event of adapter.stream(request, { signal: controller.signal })) {
+        // Consume the stream to exercise the async generator.
+        void event
+      }
+    }).rejects.toThrow(/aborted/i)
+  })
+
   it('never calls any real network — complete is synchronous in spirit', async () => {
     const spy = vi.fn()
     const adapter = new NullLlmAdapter()

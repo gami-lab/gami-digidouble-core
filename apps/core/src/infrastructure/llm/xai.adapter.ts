@@ -1,6 +1,13 @@
 import OpenAI from 'openai'
-import type { ILlmAdapter, LlmRequest, LlmResponse } from '../../application/ports/ILlmAdapter.js'
+import type {
+  ILlmAdapter,
+  LlmRequest,
+  LlmResponse,
+  LlmStreamEvent,
+  LlmStreamOptions,
+} from '../../application/ports/ILlmAdapter.js'
 import { LlmError } from './llm.error.js'
+import { completedEvent, deltaEvent, isAborted, throwIfAborted } from './streaming.js'
 
 const DEFAULT_MODEL = 'grok-3'
 const BASE_URL = 'https://api.x.ai/v1'
@@ -35,6 +42,49 @@ export class XaiAdapter implements ILlmAdapter {
 
     return extractResponse(completion, Date.now() - start)
   }
+
+  async *stream(request: LlmRequest, options?: LlmStreamOptions): AsyncIterable<LlmStreamEvent> {
+    const model = request.model ?? this.defaultModel
+    let responseModel = model
+    const start = Date.now()
+    let content = ''
+    let inputTokens = 0
+    let outputTokens = 0
+    const signal = options?.signal
+
+    try {
+      const stream = await this.client.chat.completions.create(
+        buildStreamingRequest(request, model),
+        { signal },
+      )
+
+      for await (const chunk of stream) {
+        responseModel = chunk.model
+        const chunkData = readOpenAiChunk(chunk, { inputTokens, outputTokens })
+        const text = chunkData.text
+        if (text.length > 0) {
+          content += text
+          yield deltaEvent(text)
+        }
+
+        inputTokens = chunkData.inputTokens
+        outputTokens = chunkData.outputTokens
+      }
+
+      throwIfAborted(signal)
+    } catch (err) {
+      if (isAborted(signal)) throw err
+      throw wrapXaiError(err)
+    }
+
+    yield completedEvent({
+      content,
+      model: responseModel,
+      inputTokens,
+      outputTokens,
+      latencyMs: Date.now() - start,
+    })
+  }
 }
 
 function buildMessages(request: LlmRequest): OpenAI.ChatCompletionMessageParam[] {
@@ -47,6 +97,30 @@ function buildMessages(request: LlmRequest): OpenAI.ChatCompletionMessageParam[]
     content: m.content,
   }))
   return [system, ...turns]
+}
+
+function buildStreamingRequest(
+  request: LlmRequest,
+  model: string,
+): OpenAI.ChatCompletionCreateParamsStreaming {
+  return {
+    model,
+    messages: buildMessages(request),
+    stream: true,
+    stream_options: { include_usage: true },
+    ...(request.maxTokens === undefined ? {} : { max_tokens: request.maxTokens }),
+  }
+}
+
+function readOpenAiChunk(
+  chunk: OpenAI.ChatCompletionChunk,
+  currentUsage: { inputTokens: number; outputTokens: number },
+): { text: string; inputTokens: number; outputTokens: number } {
+  return {
+    text: chunk.choices[0]?.delta.content ?? '',
+    inputTokens: chunk.usage?.prompt_tokens ?? currentUsage.inputTokens,
+    outputTokens: chunk.usage?.completion_tokens ?? currentUsage.outputTokens,
+  }
 }
 
 function extractResponse(completion: OpenAI.ChatCompletion, latencyMs: number): LlmResponse {

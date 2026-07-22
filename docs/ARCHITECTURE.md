@@ -577,10 +577,17 @@ reconnect, URL, and authentication behavior.
 ## LLM Port
 
 ```ts
-generate(input): Promise<Result>
-stream(input): AsyncIterable<Token>
+complete(request): Promise<LlmResponse>
+stream?(request, options?): AsyncIterable<LlmStreamEvent>
 embed(input): Promise<Vector[]>
 ```
+
+`LlmStreamEvent` is an internal provider contract owned by
+`apps/core/src/application/ports/ILlmAdapter.ts`. It emits ordered text deltas followed by one
+terminal event containing the final `LlmResponse` metadata. `LlmStreamOptions.signal` carries
+cancellation to infrastructure adapters. The observed adapter traces the full stream once at
+terminal completion or failure; it does not create one trace per delta. Public HTTP stream events
+remain separate and are owned by `packages/shared/src/conversation-stream-contract-types.ts`.
 
 ## Logger Port
 

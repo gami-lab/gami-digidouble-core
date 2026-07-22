@@ -120,8 +120,8 @@ Message-stream contract ownership:
   introduced.
 - Public stream events are defined by `MessageStreamEvent` in
   `packages/shared/src/conversation-stream-contract-types.ts`.
-- This contract foundation does not add a streaming route or provider streaming behavior; the
-  existing JSON send-message route remains unchanged.
+- Provider adapters now expose the internal streaming capability behind `ILlmAdapter`; this slice
+  does not add a streaming route, persistence flow, or change the existing JSON send-message route.
 
 ### Runtime
 

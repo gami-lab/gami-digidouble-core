@@ -47,6 +47,27 @@ function buildCompletion(content: string, model = 'grok-3'): OpenAI.ChatCompleti
   }
 }
 
+function buildStreamChunk(
+  content: string,
+  usage: OpenAI.CompletionUsage | null = null,
+): OpenAI.ChatCompletionChunk {
+  return {
+    id: 'chatcmpl-stream-test',
+    object: 'chat.completion.chunk',
+    created: 0,
+    model: 'grok-3',
+    choices: [
+      {
+        index: 0,
+        finish_reason: null,
+        delta: { role: 'assistant', content },
+        logprobs: null,
+      },
+    ],
+    usage,
+  }
+}
+
 const request = {
   systemPrompt: 'You are a helpful assistant.',
   messages: [{ role: 'user' as const, content: 'Hello' }],
@@ -54,6 +75,8 @@ const request = {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
+// The adapter contract tests cover completion and streaming behavior together.
+// eslint-disable-next-line max-lines-per-function
 describe('XaiAdapter', () => {
   beforeEach(() => {
     mockCreate.mockReset()
@@ -158,5 +181,33 @@ describe('XaiAdapter', () => {
     const adapter = new XaiAdapter('xai-test')
 
     await expect(adapter.complete(request)).rejects.toBeInstanceOf(LlmError)
+  })
+
+  it('streams ordered deltas, terminal usage, and cancellation signal', async () => {
+    mockCreate.mockResolvedValue(
+      (function* () {
+        yield buildStreamChunk('Hi ')
+        yield buildStreamChunk('there')
+        yield {
+          ...buildStreamChunk(''),
+          choices: [],
+          usage: { prompt_tokens: 10, completion_tokens: 4, total_tokens: 14 },
+        }
+      })(),
+    )
+    const controller = new AbortController()
+    const adapter = new XaiAdapter('xai-test')
+    const events = []
+
+    for await (const event of adapter.stream(request, { signal: controller.signal })) {
+      events.push(event)
+    }
+
+    expect(events.map((event) => event.type)).toEqual(['delta', 'delta', 'completed'])
+    expect(events[2]).toMatchObject({
+      type: 'completed',
+      response: { content: 'Hi there', model: 'grok-3', inputTokens: 10, outputTokens: 4 },
+    })
+    expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal })
   })
 })

@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ILlmAdapter, LlmRequest, LlmResponse } from '../../application/ports/ILlmAdapter.js'
+import type {
+  ILlmAdapter,
+  LlmRequest,
+  LlmResponse,
+  LlmStreamEvent,
+} from '../../application/ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import { expectConsoleError } from '../../test-utils/console.js'
 import { ObservedLlmAdapter } from './observed.adapter.js'
@@ -34,6 +39,8 @@ function createObservability(): {
   }
 }
 
+// The observable stream tests intentionally live with the completion tests to protect the shared trace boundary.
+// eslint-disable-next-line max-lines-per-function
 describe('ObservedLlmAdapter', () => {
   it('traces successful completions with request context', async () => {
     const inner = createInnerAdapter()
@@ -126,5 +133,65 @@ describe('ObservedLlmAdapter', () => {
     )
 
     expect(result).toMatchObject({ content: 'hello' })
+  })
+
+  it('traces a stream once at terminal completion, not once per delta', async () => {
+    const inner = createInnerAdapter({
+      stream: async function* (): AsyncIterable<LlmStreamEvent> {
+        await Promise.resolve()
+        yield { type: 'delta', text: 'hel' }
+        yield { type: 'delta', text: 'lo' }
+        yield {
+          type: 'completed',
+          response: {
+            content: 'hello',
+            model: 'stream-model',
+            inputTokens: 12,
+            outputTokens: 4,
+            latencyMs: 21,
+          },
+        }
+      },
+    })
+    const observability = createObservability()
+    const adapter = new ObservedLlmAdapter(inner, observability.adapter)
+    const events = []
+
+    for await (const event of adapter.stream({
+      systemPrompt: 'system',
+      messages: [{ role: 'user', content: 'hello' }],
+      trace: { requestId: 'stream_req' },
+    })) {
+      events.push(event)
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(events).toHaveLength(3)
+    expect(observability.trace).toHaveBeenCalledTimes(1)
+    expect(observability.trace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: 'stream_req',
+        output: 'hello',
+        inputTokens: 12,
+        outputTokens: 4,
+      }),
+    )
+  })
+
+  it('falls back to a single chunk when the wrapped adapter only supports complete', async () => {
+    const inner = createInnerAdapter()
+    const adapter = new ObservedLlmAdapter(inner, createObservability().adapter)
+    const events = []
+
+    for await (const event of adapter.stream({
+      systemPrompt: 'system',
+      messages: [{ role: 'user', content: 'hello' }],
+    })) {
+      events.push(event)
+    }
+
+    expect(events.map((event) => event.type)).toEqual(['delta', 'completed'])
+    expect(events[1]).toMatchObject({ type: 'completed', response: { content: 'hello' } })
   })
 })

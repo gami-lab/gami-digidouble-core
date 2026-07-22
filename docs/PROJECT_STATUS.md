@@ -20,6 +20,8 @@ The platform is now a working headless conversational runtime with:
 - multi-model runtime configuration
 - request and turn observability
 - canonical shared message-stream DTOs and reusable SSE frame parsing for web and console clients
+- additive internal LLM streaming contracts with native OpenAI, Anthropic, Mistral, xAI, null, and
+  observed adapter support
 
 ## What Is Shipped
 
@@ -71,6 +73,10 @@ The platform is now a working headless conversational runtime with:
 - External input is validated at the API boundary.
 - `@gami/shared` owns public/shared DTOs; route-local contract duplication should not be reintroduced.
 - `MessageStreamEvent` is owned by `@gami/shared`; future stream requests reuse `SendMessageRequest`.
+- `LlmStreamEvent` and `LlmStreamOptions` are owned by the internal `ILlmAdapter` port; provider
+  streams emit ordered deltas followed by one terminal response with usage metadata.
+- `ObservedLlmAdapter` remains the single LLM observability boundary for streams and traces the
+  full request once, not individual deltas.
 - Generic SSE frame parsing is owned by `@gami/shared`; client-specific subscription and reconnect
   behavior stays in each app.
 - Avatar reply latency takes priority over synchronous orchestration work.
@@ -79,7 +85,7 @@ The platform is now a working headless conversational runtime with:
 
 ## Open Product Work
 
-- No token streaming for avatar replies.
+- No public token-streaming route or end-to-end streamed avatar send-message flow.
 - No standalone guided-progression engine beyond existing GM heuristics.
 - No completed hybrid response/cache path.
 - No completed real-scenario validation milestone.

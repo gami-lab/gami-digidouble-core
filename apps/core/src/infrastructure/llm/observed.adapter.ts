@@ -1,5 +1,11 @@
 import crypto from 'node:crypto'
-import type { ILlmAdapter, LlmRequest, LlmResponse } from '../../application/ports/ILlmAdapter.js'
+import type {
+  ILlmAdapter,
+  LlmRequest,
+  LlmResponse,
+  LlmStreamEvent,
+  LlmStreamOptions,
+} from '../../application/ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 
 export class ObservedLlmAdapter implements ILlmAdapter {
@@ -16,6 +22,34 @@ export class ObservedLlmAdapter implements ILlmAdapter {
       const response = await this.inner.complete(providerRequest)
       this.traceSuccess(traceContext, response)
       return response
+    } catch (error) {
+      this.traceFailure(traceContext, error)
+      throw error
+    }
+  }
+
+  async *stream(request: LlmRequest, options?: LlmStreamOptions): AsyncIterable<LlmStreamEvent> {
+    const { trace, ...providerRequest } = request
+    const traceContext = this.buildTraceContext(trace, providerRequest)
+
+    try {
+      if (this.inner.stream === undefined) {
+        options?.signal?.throwIfAborted()
+        const response = await this.inner.complete(providerRequest)
+        if (response.content.length > 0) {
+          yield { type: 'delta', text: response.content }
+        }
+        this.traceSuccess(traceContext, response)
+        yield { type: 'completed', response }
+        return
+      }
+
+      for await (const event of this.inner.stream(providerRequest, options)) {
+        if (event.type === 'completed') {
+          this.traceSuccess(traceContext, event.response)
+        }
+        yield event
+      }
     } catch (error) {
       this.traceFailure(traceContext, error)
       throw error

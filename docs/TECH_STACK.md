@@ -107,7 +107,8 @@ For product principles, read `PRINCIPLES.md`.
 
 ## Deferred Or Out Of Scope
 
-- Token streaming for avatar replies
+- Provider-layer token streaming contracts and native adapter support for avatar replies; public
+  streaming transport remains an EPIC 5.3 follow-up
 - Heavy orchestration frameworks
 - Dedicated vector database
 - OAuth / multi-tenant auth

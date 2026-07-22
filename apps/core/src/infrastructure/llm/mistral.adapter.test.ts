@@ -6,10 +6,11 @@ import { MistralAdapter } from './mistral.adapter.js'
 // ── SDK mocks ────────────────────────────────────────────────────────────────
 
 const mockComplete = vi.fn()
+const mockStream = vi.fn()
 
 vi.mock('@mistralai/mistralai', () => {
   const MockMistral = vi.fn().mockImplementation(() => ({
-    chat: { complete: mockComplete },
+    chat: { complete: mockComplete, stream: mockStream },
   }))
   return { Mistral: MockMistral }
 })
@@ -52,9 +53,12 @@ const request = {
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
+// The adapter contract tests cover completion and streaming behavior together.
+// eslint-disable-next-line max-lines-per-function
 describe('MistralAdapter', () => {
   beforeEach(() => {
     mockComplete.mockReset()
+    mockStream.mockReset()
   })
 
   it('maps a successful completion to LlmResponse', async () => {
@@ -141,5 +145,44 @@ describe('MistralAdapter', () => {
     const adapter = new MistralAdapter('test-key')
     const response = await adapter.complete(request)
     expect(response.content).toBe('Hello world')
+  })
+
+  it('streams ordered deltas and terminal usage while forwarding cancellation', async () => {
+    mockStream.mockResolvedValue(
+      (function* () {
+        yield {
+          data: { model: 'mistral-small-latest', choices: [{ delta: { content: 'Hello ' } }] },
+        }
+        yield {
+          data: { model: 'mistral-small-latest', choices: [{ delta: { content: 'world' } }] },
+        }
+        yield {
+          data: {
+            model: 'mistral-small-latest',
+            choices: [],
+            usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+          },
+        }
+      })(),
+    )
+    const controller = new AbortController()
+    const adapter = new MistralAdapter('test-key')
+    const events = []
+
+    for await (const event of adapter.stream(request, { signal: controller.signal })) {
+      events.push(event)
+    }
+
+    expect(events.map((event) => event.type)).toEqual(['delta', 'delta', 'completed'])
+    expect(events[2]).toMatchObject({
+      type: 'completed',
+      response: {
+        content: 'Hello world',
+        model: 'mistral-small-latest',
+        inputTokens: 10,
+        outputTokens: 5,
+      },
+    })
+    expect(mockStream.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal })
   })
 })
