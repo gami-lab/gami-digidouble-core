@@ -64,6 +64,7 @@ const en = {
     selectAvatar: 'Select an avatar to open your current thread.',
     noMessages: 'No messages yet. Send the first one.',
     avatarResponding: 'Avatar is responding…',
+    avatarDraft: 'Avatar response in progress',
     message: {
       label: 'Message',
       placeholder: 'Write your message...',
@@ -73,6 +74,7 @@ const en = {
     endConversation: 'End conversation',
     meta: {
       sending: ' · sending…',
+      streaming: ' · responding…',
       failed: ' · failed',
     },
   },
@@ -81,6 +83,7 @@ const en = {
     unableToStartChat: 'Unable to start chat',
     unableToRestoreConversation: 'Unable to restore previous conversation',
     unableToSendMessage: 'Unable to send message',
+    messageStreamInterrupted: 'Avatar response was interrupted. You can try again.',
     unableToEndConversation: 'Unable to end conversation',
     unableToLoadScenarios: 'Unable to load scenarios',
     unableToRefreshAvatars: 'Unable to refresh avatar availability',

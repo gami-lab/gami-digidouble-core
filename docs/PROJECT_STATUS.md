@@ -17,6 +17,7 @@ The platform is now a working headless conversational runtime with:
 - admin inspection, replay, and memory-control tooling
 - scenario-builder admin surfaces
 - public web chat surface
+- progressive avatar-response rendering in the public web chat surface
 - multi-model runtime configuration
 - request and turn observability
 - canonical shared message-stream DTOs and reusable SSE frame parsing for web and console clients
@@ -25,6 +26,8 @@ The platform is now a working headless conversational runtime with:
 - reusable streaming send-message execution with ordered deltas, terminal avatar persistence, and
   deterministic interruption handling
 - additive SSE message-stream route with stack-e2e contract coverage
+- web message-stream client and in-memory avatar-draft reconciliation with completion and
+  interruption tests
 
 ## What Is Shipped
 
@@ -91,7 +94,6 @@ The platform is now a working headless conversational runtime with:
 
 ## Open Product Work
 
-- No web rendering migration to the streamed avatar send-message flow.
 - No standalone guided-progression engine beyond existing GM heuristics.
 - No completed hybrid response/cache path.
 - No completed real-scenario validation milestone.

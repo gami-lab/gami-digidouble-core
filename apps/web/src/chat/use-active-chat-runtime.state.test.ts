@@ -9,6 +9,7 @@ import {
   reconcileSendSuccess,
 } from './use-active-chat-runtime'
 
+// eslint-disable-next-line max-lines-per-function
 describe('active chat runtime state helpers', () => {
   it('resets thread state when a new avatar is selected (current-chat-only behavior)', () => {
     expect(createThreadStateForAvatarSelection('avatar_9')).toEqual({
@@ -17,6 +18,7 @@ describe('active chat runtime state helpers', () => {
       conversationStatus: 'starting',
       conversationError: null,
       messages: [],
+      avatarDraft: null,
       composerValue: '',
       sendStatus: 'idle',
       sendError: null,
@@ -30,6 +32,7 @@ describe('active chat runtime state helpers', () => {
       conversationStatus: 'idle',
       conversationError: null,
       messages: [],
+      avatarDraft: null,
       composerValue: '',
       sendStatus: 'idle',
       sendError: null,
@@ -47,7 +50,7 @@ describe('active chat runtime state helpers', () => {
 
     expect(state).toEqual({
       composerValue: '',
-      sendStatus: 'sending',
+      sendStatus: 'streaming',
       sendError: null,
       messages: [
         {
@@ -58,6 +61,7 @@ describe('active chat runtime state helpers', () => {
           pending: true,
         },
       ],
+      avatarDraft: null,
     })
   })
 
@@ -113,5 +117,31 @@ describe('active chat runtime state helpers', () => {
         failed: true,
       },
     ])
+  })
+
+  it('keeps completion reconciliation idempotent when a terminal event is repeated', () => {
+    const messages: ChatThreadMessage[] = [
+      {
+        localId: 'msg_user_1',
+        role: 'user',
+        content: 'Question',
+        createdAt: '2026-06-01T12:05:01.000Z',
+      },
+      {
+        localId: 'msg_avatar_1',
+        role: 'avatar',
+        content: 'Answer',
+        createdAt: '2026-06-01T12:05:03.000Z',
+      },
+    ]
+
+    expect(
+      reconcileSendSuccess(
+        messages,
+        'pending-2',
+        messages[0] as ChatThreadMessage,
+        messages[1] as ChatThreadMessage,
+      ),
+    ).toEqual(messages)
   })
 })

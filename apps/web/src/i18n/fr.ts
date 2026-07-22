@@ -65,6 +65,7 @@ const fr = {
     selectAvatar: 'Sélectionnez un avatar pour ouvrir votre fil actuel.',
     noMessages: 'Aucun message pour le moment. Envoyez le premier.',
     avatarResponding: "L'avatar répond…",
+    avatarDraft: 'Réponse de l’avatar en cours',
     message: {
       label: 'Message',
       placeholder: 'Écrivez votre message...',
@@ -74,6 +75,7 @@ const fr = {
     endConversation: 'Terminer la conversation',
     meta: {
       sending: ' · envoi…',
+      streaming: ' · réponse en cours…',
       failed: ' · échec',
     },
   },
@@ -82,6 +84,7 @@ const fr = {
     unableToStartChat: 'Impossible de démarrer le chat',
     unableToRestoreConversation: 'Impossible de restaurer la conversation précédente',
     unableToSendMessage: "Impossible d'envoyer le message",
+    messageStreamInterrupted: "La réponse de l'avatar a été interrompue. Vous pouvez réessayer.",
     unableToEndConversation: 'Impossible de terminer la conversation',
     unableToLoadScenarios: 'Impossible de charger les scénarios',
     unableToRefreshAvatars: "Impossible d'actualiser la disponibilité des avatars",

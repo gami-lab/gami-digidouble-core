@@ -1,7 +1,7 @@
 import type { ConversationSummary, Message } from '@gami/shared'
 
 export type ConversationStatus = 'idle' | 'starting' | 'ready' | 'ending' | 'error'
-export type SendStatus = 'idle' | 'sending'
+export type SendStatus = 'idle' | 'streaming'
 
 export type ChatThreadMessage = {
   localId: string
@@ -12,12 +12,19 @@ export type ChatThreadMessage = {
   failed?: true
 }
 
+export type ChatThreadAvatarDraft = {
+  localId: string
+  content: string
+  createdAt: string
+}
+
 export type ChatThreadState = {
   activeAvatarId: string | null
   conversation: ConversationSummary | null
   conversationStatus: ConversationStatus
   conversationError: string | null
   messages: ChatThreadMessage[]
+  avatarDraft: ChatThreadAvatarDraft | null
   composerValue: string
   sendStatus: SendStatus
   sendError: string | null
@@ -28,6 +35,7 @@ export type OptimisticSendState = {
   sendStatus: SendStatus
   sendError: string | null
   messages: ChatThreadMessage[]
+  avatarDraft: ChatThreadAvatarDraft | null
 }
 
 export function createThreadStateForAvatarSelection(avatarId: string): ChatThreadState {
@@ -37,6 +45,7 @@ export function createThreadStateForAvatarSelection(avatarId: string): ChatThrea
     conversationStatus: 'starting',
     conversationError: null,
     messages: [],
+    avatarDraft: null,
     composerValue: '',
     sendStatus: 'idle',
     sendError: null,
@@ -50,6 +59,7 @@ export function createThreadStateForConversationEnd(): ChatThreadState {
     conversationStatus: 'idle',
     conversationError: null,
     messages: [],
+    avatarDraft: null,
     composerValue: '',
     sendStatus: 'idle',
     sendError: null,
@@ -79,8 +89,19 @@ export function reconcileSendSuccess(
   const withUser = messages.map((message) =>
     message.localId === pendingMessageId ? userMessage : message,
   )
+  const withoutExistingAvatar = withUser.filter(
+    (message) => message.localId !== avatarMessage.localId,
+  )
 
-  return [...withUser, avatarMessage]
+  return [...withoutExistingAvatar, avatarMessage]
+}
+
+export function reconcilePendingUserMessage(
+  messages: ChatThreadMessage[],
+  pendingMessageId: string,
+  userMessage: ChatThreadMessage,
+): ChatThreadMessage[] {
+  return messages.map((message) => (message.localId === pendingMessageId ? userMessage : message))
 }
 
 export function markSendFailure(
@@ -98,9 +119,10 @@ export function createOptimisticSendState(
 ): OptimisticSendState {
   return {
     composerValue: '',
-    sendStatus: 'sending',
+    sendStatus: 'streaming',
     sendError: null,
     messages: [...currentMessages, pendingMessage],
+    avatarDraft: null,
   }
 }
 

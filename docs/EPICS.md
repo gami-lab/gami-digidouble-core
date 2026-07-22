@@ -145,6 +145,13 @@ Delivered the admin authoring surface for scenario and avatar editing, knowledge
 
 Delivered the first player-facing web app with browser-owned identity, scenario discovery, available-avatar chat flow, and SSE-driven runtime updates.
 
+#### `5.3 Streaming UX Layer` ✅ Done
+
+Delivered the public message-stream client and progressive avatar rendering in `apps/web`. The
+single active thread keeps optimistic user sends, renders one in-memory avatar draft while ordered
+deltas arrive, reconciles the terminal event with the persisted avatar message, and clears drafts on
+errors or interruptions.
+
 ### Phase A Refinements
 
 #### `8.1 Avatar Trait Structuring` ✅ Done
@@ -199,42 +206,6 @@ Provide reset, replay-last-turn, and audit logging for operational recovery acti
 **User increment**
 
 - safe recovery tools without direct engineering support
-
-### `5.3 Streaming UX Layer`
-
-**Current state**  
-Runtime SSE exists for state changes, and the shared message-stream contract plus reusable client
-frame parser are established. The internal LLM streaming port, native provider/null/observed
-adapter support, and reusable streaming send-message execution are shipped; public route and UI
-SSE transport are shipped; web UI streaming is not shipped.
-
-**Purpose**  
-Improve perceived responsiveness.
-
-**Description**  
-Implement progressive avatar-response streaming over SSE or WebSocket so users see the answer forming instead of waiting for a complete payload.
-
-**Includes**
-
-- token streaming
-- streaming transport
-- progressive UI rendering
-
-**Definition of done**
-
-- users see progressive response generation
-- streamed chunks arrive in order
-- interruptions and completion are handled cleanly
-
-**What can be tested**
-
-1. response begins rendering quickly after send
-2. tokens stream in order to the client
-3. cancellation or interruption leaves the UI in a clean state
-
-**User increment**
-
-- live conversations feel faster even when total completion time is unchanged
 
 ### `5.4 Guided Progression Engine v1`
 

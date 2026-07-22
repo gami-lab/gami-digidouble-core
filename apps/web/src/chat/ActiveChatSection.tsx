@@ -1,7 +1,11 @@
 import type { JSX } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AvailableAvatarSummary } from '@gami/shared'
-import type { ActiveChatRuntimeState, ChatThreadMessage } from './use-active-chat-runtime'
+import type {
+  ActiveChatRuntimeState,
+  ChatThreadAvatarDraft,
+  ChatThreadMessage,
+} from './use-active-chat-runtime'
 
 type ActiveChatSectionProps = {
   avatars: AvailableAvatarSummary[]
@@ -40,7 +44,9 @@ function ChatEntryPanel({ avatars, chat }: ChatEntryPanelProps): JSX.Element {
         {avatars.map((avatar) => {
           const isActive = avatar.avatarId === chat.activeAvatarId
           const isStarting = chat.conversationStatus === 'starting' && isActive
-          const className = isActive ? 'chat-avatar-button chat-avatar-button-active' : 'chat-avatar-button'
+          const className = isActive
+            ? 'chat-avatar-button chat-avatar-button-active'
+            : 'chat-avatar-button'
 
           return (
             <button
@@ -53,7 +59,11 @@ function ChatEntryPanel({ avatars, chat }: ChatEntryPanelProps): JSX.Element {
             >
               <span>{avatar.name}</span>
               <span className="chat-avatar-button-meta">
-                {isStarting ? t('chat.starting') : isActive ? t('chat.currentThread') : t('chat.startChat')}
+                {isStarting
+                  ? t('chat.starting')
+                  : isActive
+                    ? t('chat.currentThread')
+                    : t('chat.startChat')}
               </span>
             </button>
           )
@@ -77,7 +87,8 @@ function ChatThreadPanel({ chat }: { chat: ActiveChatRuntimeState }): JSX.Elemen
       {chat.messages.map((message) => (
         <ChatBubble key={message.localId} message={message} />
       ))}
-      {chat.sendStatus === 'sending' ? <TypingIndicator /> : null}
+      {chat.avatarDraft !== null ? <AvatarDraftBubble draft={chat.avatarDraft} /> : null}
+      {chat.sendStatus === 'streaming' && chat.avatarDraft === null ? <TypingIndicator /> : null}
     </div>
   )
 }
@@ -102,6 +113,20 @@ function ChatBubble({ message }: { message: ChatThreadMessage }): JSX.Element {
 function TypingIndicator(): JSX.Element {
   const { t } = useTranslation()
   return <p className="muted">{t('chat.avatarResponding')}</p>
+}
+
+function AvatarDraftBubble({ draft }: { draft: ChatThreadAvatarDraft }): JSX.Element {
+  const { t } = useTranslation()
+
+  return (
+    <article className="chat-bubble chat-bubble-avatar" aria-label={t('chat.avatarDraft')}>
+      <p className="chat-bubble-content">{draft.content || '…'}</p>
+      <p className="chat-bubble-meta">
+        {new Date(draft.createdAt).toLocaleTimeString()}
+        {t('chat.meta.streaming')}
+      </p>
+    </article>
+  )
 }
 
 function ChatComposer({ chat }: { chat: ActiveChatRuntimeState }): JSX.Element {
@@ -132,7 +157,7 @@ function ChatComposer({ chat }: { chat: ActiveChatRuntimeState }): JSX.Element {
         </label>
         {chat.sendError !== null ? <p className="error">{chat.sendError}</p> : null}
         <button type="submit" className="button-primary" disabled={!chat.canSend}>
-          {chat.sendStatus === 'sending' ? t('chat.sending') : t('chat.send')}
+          {chat.sendStatus === 'streaming' ? t('chat.sending') : t('chat.send')}
         </button>
       </form>
       <button

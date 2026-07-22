@@ -46,6 +46,7 @@ describe('App onboarding behavior', () => {
       conversationStatus: 'idle',
       conversationError: null,
       messages: [],
+      avatarDraft: null,
       composerValue: '',
       sendStatus: 'idle',
       sendError: null,
@@ -89,9 +90,7 @@ describe('App onboarding behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save identity' }))
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Unable to save your identity. Please try again.'),
-      ).toBeTruthy()
+      expect(screen.getByText('Unable to save your identity. Please try again.')).toBeTruthy()
     })
 
     expect(screen.queryByRole('button', { name: 'Reset identity' })).toBeNull()

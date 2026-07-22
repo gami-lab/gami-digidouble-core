@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ConversationSummary, SessionSummary } from '@gami/shared'
 import i18n from '../i18n/index'
+import { endConversation, getConversationHistory, startConversation } from '../api/conversations'
 import {
-  endConversation,
-  getConversationHistory,
-  sendMessage,
-  startConversation,
-} from '../api/conversations'
+  streamMessageAndReconcile,
+  type AvatarDraftSetter,
+  type ActiveStreamControllerRef,
+} from './message-stream-runtime'
 import {
   createOptimisticSendState,
   createPendingUserMessage,
   createThreadStateForAvatarSelection,
   createThreadStateForConversationEnd,
   markSendFailure,
+  reconcilePendingUserMessage,
   reconcileSendSuccess,
+  type ChatThreadAvatarDraft,
   type ChatThreadMessage,
   type ChatThreadState,
   type ConversationStatus,
@@ -27,6 +29,7 @@ export type ActiveChatRuntimeState = {
   conversationStatus: ConversationStatus
   conversationError: string | null
   messages: ChatThreadMessage[]
+  avatarDraft: ChatThreadAvatarDraft | null
   composerValue: string
   sendStatus: SendStatus
   sendError: string | null
@@ -44,15 +47,17 @@ export {
   createThreadStateForAvatarSelection,
   createThreadStateForConversationEnd,
   markSendFailure,
+  reconcilePendingUserMessage,
   reconcileSendSuccess,
 }
-export type { ChatThreadMessage, ChatThreadState, OptimisticSendState }
+export type { ChatThreadAvatarDraft, ChatThreadMessage, ChatThreadState, OptimisticSendState }
 
 type ActiveChatRuntimeOptions = {
   initialActiveAvatarId?: string | null
   initialConversationId?: string | null
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function useActiveChatRuntime(
   session: SessionSummary | null,
   options?: ActiveChatRuntimeOptions,
@@ -64,10 +69,12 @@ export function useActiveChatRuntime(
   const [conversationStatus, setConversationStatus] = useState<ConversationStatus>('idle')
   const [conversationError, setConversationError] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatThreadMessage[]>([])
+  const [avatarDraft, setAvatarDraft] = useState<ChatThreadAvatarDraft | null>(null)
   const [composerValue, setComposerValue] = useState('')
   const [sendStatus, setSendStatus] = useState<SendStatus>('idle')
   const [sendError, setSendError] = useState<string | null>(null)
   const conversationRequestIdRef = useRef(0)
+  const activeStreamControllerRef = useRef<AbortController | null>(null)
   const previousSessionIdRef = useRef<string | null>(null)
   const rehydratedConversationRef = useRef(false)
   const threadSetters: ThreadStateSetters = {
@@ -76,6 +83,7 @@ export function useActiveChatRuntime(
     setConversationStatus,
     setConversationError,
     setMessages,
+    setAvatarDraft,
     setComposerValue,
     setSendStatus,
     setSendError,
@@ -87,7 +95,14 @@ export function useActiveChatRuntime(
     previousSessionIdRef,
     rehydratedConversationRef,
     threadSetters,
+    conversationRequestIdRef,
+    activeStreamControllerRef,
   )
+  useEffect(() => {
+    return () => {
+      activeStreamControllerRef.current?.abort()
+    }
+  }, [activeStreamControllerRef])
   useRehydrateConversationFromStorage(
     session,
     initialActiveAvatarId,
@@ -102,6 +117,7 @@ export function useActiveChatRuntime(
       setConversationStatus,
       setConversationError,
       conversationRequestIdRef,
+      activeStreamControllerRef,
     })
   }
   function sendCurrentMessage(): void {
@@ -114,6 +130,8 @@ export function useActiveChatRuntime(
       setSendStatus,
       setSendError,
       setMessages,
+      setAvatarDraft,
+      activeStreamControllerRef,
     )
   }
   function endCurrentConversation(): void {
@@ -128,15 +146,16 @@ export function useActiveChatRuntime(
       endSetters,
     )
   }
-  const canSend = conversation !== null && sendStatus !== 'sending'
+  const canSend = conversation !== null && sendStatus !== 'streaming'
   const canEndConversation =
-    conversation !== null && conversationStatus === 'ready' && sendStatus !== 'sending'
+    conversation !== null && conversationStatus === 'ready' && sendStatus !== 'streaming'
   return {
     activeAvatarId,
     conversation,
     conversationStatus,
     conversationError,
     messages,
+    avatarDraft,
     composerValue,
     sendStatus,
     sendError,
@@ -154,6 +173,8 @@ function useResetThreadOnSessionChange(
   previousSessionIdRef: { current: string | null },
   rehydratedConversationRef: { current: boolean },
   threadSetters: ThreadStateSetters,
+  conversationRequestIdRef: RequestRef,
+  activeStreamControllerRef: ActiveStreamControllerRef,
 ): void {
   useEffect(() => {
     const nextSessionId = session?.sessionId ?? null
@@ -163,8 +184,18 @@ function useResetThreadOnSessionChange(
 
     previousSessionIdRef.current = nextSessionId
     rehydratedConversationRef.current = false
+    conversationRequestIdRef.current += 1
+    activeStreamControllerRef.current?.abort()
+    activeStreamControllerRef.current = null
     applyThreadState(createThreadStateForConversationEnd(), threadSetters)
-  }, [session, previousSessionIdRef, rehydratedConversationRef, threadSetters])
+  }, [
+    session,
+    previousSessionIdRef,
+    rehydratedConversationRef,
+    threadSetters,
+    conversationRequestIdRef,
+    activeStreamControllerRef,
+  ])
 }
 
 function useRehydrateConversationFromStorage(
@@ -215,6 +246,8 @@ function startChat(
     return
   }
 
+  conversationSetters.activeStreamControllerRef.current?.abort()
+  conversationSetters.activeStreamControllerRef.current = null
   conversationRequestIdRef.current += 1
   const requestId = conversationRequestIdRef.current
   applyThreadState(createThreadStateForAvatarSelection(avatarId), threadSetters)
@@ -230,8 +263,10 @@ function sendMessageInActiveConversation(
   setSendStatus: (value: SendStatus) => void,
   setSendError: (value: string | null) => void,
   setMessages: (updater: (current: ChatThreadMessage[]) => ChatThreadMessage[]) => void,
+  setAvatarDraft: AvatarDraftSetter,
+  activeStreamControllerRef: ActiveStreamControllerRef,
 ): void {
-  if (conversation === null || sendStatus === 'sending') {
+  if (conversation === null || sendStatus === 'streaming') {
     return
   }
 
@@ -249,15 +284,22 @@ function sendMessageInActiveConversation(
   )
 
   setComposerValue('')
-  setSendStatus('sending')
+  setSendStatus('streaming')
   setSendError(null)
   setMessages((current) => createOptimisticSendState(current, pendingMessage).messages)
+  setAvatarDraft(null)
+  activeStreamControllerRef.current?.abort()
+  const streamController = new AbortController()
+  activeStreamControllerRef.current = streamController
 
-  void sendAndReconcile(conversation.conversationId, content, runId, pendingMessageId, {
+  void streamMessageAndReconcile(conversation.conversationId, content, runId, pendingMessageId, {
     setMessages,
+    setAvatarDraft,
     setSendStatus,
     setSendError,
     conversationRequestIdRef,
+    activeStreamControllerRef,
+    streamController,
   })
 }
 
@@ -274,7 +316,7 @@ function endActiveConversation(
   if (
     session === null ||
     conversation === null ||
-    sendStatus === 'sending' ||
+    sendStatus === 'streaming' ||
     conversationStatus === 'ending'
   ) {
     return
@@ -292,6 +334,7 @@ type ConversationSetters = {
   setConversationStatus: (value: ConversationStatus) => void
   setConversationError: (value: string | null) => void
   conversationRequestIdRef: RequestRef
+  activeStreamControllerRef: ActiveStreamControllerRef
 }
 
 type RequestRef = {
@@ -325,72 +368,17 @@ async function createConversation(
   }
 }
 
-type SendSetters = {
-  setMessages: (updater: (current: ChatThreadMessage[]) => ChatThreadMessage[]) => void
-  setSendStatus: (value: SendStatus) => void
-  setSendError: (value: string | null) => void
-  conversationRequestIdRef: RequestRef
-}
-
 type RestoreSetters = {
   setActiveAvatarId: (value: string | null) => void
   setConversation: (value: ConversationSummary | null) => void
   setConversationStatus: (value: ConversationStatus) => void
   setConversationError: (value: string | null) => void
   setMessages: (value: ChatThreadMessage[]) => void
+  setAvatarDraft: (value: ChatThreadAvatarDraft | null) => void
   setComposerValue: (value: string) => void
   setSendStatus: (value: SendStatus) => void
   setSendError: (value: string | null) => void
   conversationRequestIdRef: RequestRef
-}
-
-async function sendAndReconcile(
-  conversationId: string,
-  content: string,
-  runId: number,
-  pendingMessageId: string,
-  setters: SendSetters,
-): Promise<void> {
-  try {
-    const response = await sendMessage(conversationId, {
-      message: { content },
-    })
-
-    if (runId !== setters.conversationRequestIdRef.current) {
-      return
-    }
-
-    setters.setMessages((current) => {
-      return reconcileSendSuccess(
-        current,
-        pendingMessageId,
-        {
-          localId: response.userMessage.messageId,
-          role: response.userMessage.role,
-          content: response.userMessage.content,
-          createdAt: response.userMessage.createdAt,
-        },
-        {
-          localId: response.avatarMessage.messageId,
-          role: response.avatarMessage.role,
-          content: response.avatarMessage.content,
-          createdAt: response.avatarMessage.createdAt,
-        },
-      )
-    })
-    setters.setSendStatus('idle')
-    setters.setSendError(null)
-  } catch (error) {
-    if (runId !== setters.conversationRequestIdRef.current) {
-      return
-    }
-
-    setters.setMessages((current) => markSendFailure(current, pendingMessageId))
-    setters.setSendStatus('idle')
-    setters.setSendError(
-      error instanceof Error ? error.message : i18n.t('errors.unableToSendMessage'),
-    )
-  }
 }
 
 async function restoreConversation(
@@ -417,6 +405,7 @@ async function restoreConversation(
       })),
     )
     setters.setComposerValue('')
+    setters.setAvatarDraft(null)
     setters.setSendStatus('idle')
     setters.setSendError(null)
   } catch (error) {
@@ -430,6 +419,7 @@ async function restoreConversation(
       setConversationStatus: setters.setConversationStatus,
       setConversationError: setters.setConversationError,
       setMessages: setters.setMessages,
+      setAvatarDraft: setters.setAvatarDraft,
       setComposerValue: setters.setComposerValue,
       setSendStatus: setters.setSendStatus,
       setSendError: setters.setSendError,
@@ -446,6 +436,7 @@ type EndConversationSetters = {
   setConversationStatus: (value: ConversationStatus) => void
   setConversationError: (value: string | null) => void
   setMessages: (value: ChatThreadMessage[]) => void
+  setAvatarDraft: (value: ChatThreadAvatarDraft | null) => void
   setComposerValue: (value: string) => void
   setSendStatus: (value: SendStatus) => void
   setSendError: (value: string | null) => void
@@ -483,6 +474,7 @@ type ThreadStateSetters = {
   setConversationStatus: (value: ConversationStatus) => void
   setConversationError: (value: string | null) => void
   setMessages: (value: ChatThreadMessage[]) => void
+  setAvatarDraft: (value: ChatThreadAvatarDraft | null) => void
   setComposerValue: (value: string) => void
   setSendStatus: (value: SendStatus) => void
   setSendError: (value: string | null) => void
@@ -494,6 +486,7 @@ function applyThreadState(state: ChatThreadState, setters: ThreadStateSetters): 
   setters.setConversationStatus(state.conversationStatus)
   setters.setConversationError(state.conversationError)
   setters.setMessages(state.messages)
+  setters.setAvatarDraft(state.avatarDraft)
   setters.setComposerValue(state.composerValue)
   setters.setSendStatus(state.sendStatus)
   setters.setSendError(state.sendError)
