@@ -35,6 +35,7 @@ Must cover:
 - session creation and listing
 - conversation start and history isolation
 - message persistence order
+- streaming message delta order, terminal persistence, and interruption cleanup
 - avatar switch behavior
 - available-avatar and avatar-transition endpoints
 - end-conversation behavior and compaction trigger

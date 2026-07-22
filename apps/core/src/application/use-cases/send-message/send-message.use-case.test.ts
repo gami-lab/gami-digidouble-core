@@ -9,6 +9,7 @@ import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.
 import type { MemorySelectionService } from '../../services/memory-selection.service.js'
 import type { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
+import { StreamingSendMessageUseCase } from './streaming-send-message.use-case.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
 
 const findSessionByIdMock = vi.fn()
@@ -21,6 +22,7 @@ const listAvatarsByScenarioIdMock = vi.fn()
 const findMessagesByConversationIdMock = vi.fn()
 const saveMessageMock = vi.fn()
 const completeMock = vi.fn()
+const streamMock = vi.fn()
 const appendEventMock = vi.fn()
 const runGameMasterExecuteMock = vi.fn()
 const endConversationExecuteMock = vi.fn()
@@ -70,7 +72,7 @@ const messageRepository = {
   deleteByConversationId: vi.fn(),
 }
 
-const llm = { complete: completeMock }
+const llm = { complete: completeMock, stream: streamMock }
 const eventLogRepository = { append: appendEventMock, findBySessionId: vi.fn() }
 const userRepository = { findById: findUserByIdMock, upsert: vi.fn() }
 const userMemoryFactRepository = {
@@ -204,6 +206,7 @@ beforeEach(() => {
   findMessagesByConversationIdMock.mockReset()
   saveMessageMock.mockReset()
   completeMock.mockReset()
+  streamMock.mockReset()
   appendEventMock.mockReset()
   runGameMasterExecuteMock.mockReset()
   endConversationExecuteMock.mockReset()
@@ -875,6 +878,115 @@ describe('SendMessageUseCase — implicit end detection', () => {
         severity: 'warning',
       }),
     )
+  })
+})
+
+describe('StreamingSendMessageUseCase', () => {
+  it('persists the user first, preserves delta order, and schedules post-turn work after completion', async () => {
+    const order: string[] = []
+    saveMessageMock.mockImplementation((message: Message) => {
+      order.push(`persist:${message.role}`)
+      return Promise.resolve(message)
+    })
+    streamMock.mockImplementation(async function* () {
+      await Promise.resolve()
+      order.push('stream:start')
+      yield { type: 'delta', text: 'First ' as const }
+      yield { type: 'delta', text: 'second' as const }
+      yield {
+        type: 'completed' as const,
+        response: {
+          content: 'provider fallback',
+          model: 'stream-model',
+          inputTokens: 3,
+          outputTokens: 2,
+          latencyMs: 8,
+        },
+      }
+    })
+    runGameMasterExecuteMock.mockImplementation(() => {
+      order.push('gm:scheduled')
+      return Promise.resolve()
+    })
+
+    const streamingUseCase = new StreamingSendMessageUseCase(createUseCase(true))
+    const stream = streamingUseCase.execute({
+      conversationId: 'conversation_1',
+      userMessage: 'Hello',
+    })
+    const iterator = stream[Symbol.asyncIterator]()
+
+    const started = await iterator.next()
+    const firstDelta = await iterator.next()
+    const secondDelta = await iterator.next()
+    const completed = await iterator.next()
+
+    expect(started.value).toMatchObject({ type: 'started' })
+    expect(firstDelta.value).toMatchObject({ type: 'delta', sequence: 0, delta: 'First ' })
+    expect(secondDelta.value).toMatchObject({ type: 'delta', sequence: 1, delta: 'second' })
+    expect(completed.value).toMatchObject({
+      type: 'completed',
+      output: { avatarMessage: { content: 'First second' } },
+    })
+    expect(saveMessageMock.mock.calls.map(([message]) => (message as Message).role)).toEqual([
+      'user',
+      'avatar',
+    ])
+    expect(order.indexOf('persist:user')).toBeLessThan(order.indexOf('stream:start'))
+    expect(runGameMasterExecuteMock).not.toHaveBeenCalled()
+
+    const done = await iterator.next()
+
+    expect(done.done).toBe(true)
+    expect(runGameMasterExecuteMock).toHaveBeenCalledTimes(1)
+    expect(order.indexOf('gm:scheduled')).toBeGreaterThan(order.indexOf('persist:avatar'))
+  })
+
+  it('keeps the user message on provider interruption and does not persist a partial avatar', async () => {
+    streamMock.mockImplementation(async function* () {
+      await Promise.resolve()
+      yield { type: 'delta', text: 'Partial' as const }
+      throw Object.assign(new Error('provider aborted'), { name: 'AbortError' })
+    })
+
+    const streamingUseCase = new StreamingSendMessageUseCase(createUseCase(true))
+    const events = []
+    for await (const event of streamingUseCase.execute({
+      conversationId: 'conversation_1',
+      userMessage: 'Hello',
+    })) {
+      events.push(event)
+    }
+
+    expect(events.map((event) => event.type)).toEqual(['started', 'delta', 'interrupted'])
+    expect(events.at(-1)).toMatchObject({ type: 'interrupted', reason: 'provider_aborted' })
+    expect(saveMessageMock.mock.calls.map(([message]) => (message as Message).role)).toEqual([
+      'user',
+    ])
+    expect(runGameMasterExecuteMock).not.toHaveBeenCalled()
+  })
+
+  it('reports client interruption and skips final persistence after the signal is aborted', async () => {
+    const controller = new AbortController()
+    streamMock.mockImplementation(async function* () {
+      await Promise.resolve()
+      yield { type: 'delta', text: 'Partial' as const }
+      controller.abort()
+      throw new Error('request cancelled')
+    })
+
+    const streamingUseCase = new StreamingSendMessageUseCase(createUseCase(true))
+    const events = []
+    for await (const event of streamingUseCase.execute(
+      { conversationId: 'conversation_1', userMessage: 'Hello' },
+      { signal: controller.signal },
+    )) {
+      events.push(event)
+    }
+
+    expect(events.at(-1)).toMatchObject({ type: 'interrupted', reason: 'client_aborted' })
+    expect(saveMessageMock).toHaveBeenCalledTimes(1)
+    expect(runGameMasterExecuteMock).not.toHaveBeenCalled()
   })
 })
 

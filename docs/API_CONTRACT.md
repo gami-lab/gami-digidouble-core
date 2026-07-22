@@ -120,8 +120,10 @@ Message-stream contract ownership:
   introduced.
 - Public stream events are defined by `MessageStreamEvent` in
   `packages/shared/src/conversation-stream-contract-types.ts`.
-- Provider adapters now expose the internal streaming capability behind `ILlmAdapter`; this slice
-  does not add a streaming route, persistence flow, or change the existing JSON send-message route.
+- Provider adapters and the application streaming use case now expose the internal streaming
+  capability behind `ILlmAdapter`; the use case persists the user before streaming, persists the
+  final avatar only after terminal completion, and leaves the user message intact on interruption.
+  This slice does not add a streaming route or change the existing JSON send-message route.
 
 ### Runtime
 

@@ -589,6 +589,13 @@ cancellation to infrastructure adapters. The observed adapter traces the full st
 terminal completion or failure; it does not create one trace per delta. Public HTTP stream events
 remain separate and are owned by `packages/shared/src/conversation-stream-contract-types.ts`.
 
+The send-message application flow shares preparation and completion mechanics between
+`SendMessageUseCase` and `StreamingSendMessageUseCase`. The streaming flow persists the user
+message before yielding its started event, accumulates deltas server-side, persists the avatar
+message only after terminal completion, and schedules post-turn GM/memory work afterward. An
+abort leaves the user message persisted, skips partial avatar persistence, and yields an
+interruption event when the consumer remains writable.
+
 ## Logger Port
 
 ```ts

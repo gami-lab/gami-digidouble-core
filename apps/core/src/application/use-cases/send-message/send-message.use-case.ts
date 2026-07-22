@@ -1,4 +1,4 @@
-/* eslint-disable max-lines, max-lines-per-function */
+/* eslint-disable max-lines */
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
@@ -39,6 +39,7 @@ import {
   type ImplicitEndPolicy,
 } from '../../services/implicit-end-detection.service.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
+import type { PreparedSendMessageTurn, SendMessageTurnResponse } from './send-message.turn.types.js'
 import { tryImplicitClose } from './send-message.implicit-close.js'
 import {
   hasSelectedMemoryContent,
@@ -99,10 +100,16 @@ export class SendMessageUseCase {
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
+    const turn = await this.prepareTurn(input)
+    const response = await turn.adapter.complete(turn.llmRequest)
+    return this.completeTurn(turn, response)
+  }
+
+  async prepareTurn(input: SendMessageInput): Promise<PreparedSendMessageTurn> {
     this.validateInput(input)
 
     const requestId = crypto.randomUUID()
-    const start = Date.now()
+    const startedAtMs = Date.now()
 
     const conversation = await this.loadActiveConversation(input.conversationId)
     await this.awaitPendingWorkingMemoryRefresh(conversation.conversationId)
@@ -156,55 +163,71 @@ export class SendMessageUseCase {
       effectiveProvider: resolvedLlm.provider,
       effectiveModel: resolvedLlm.effectiveModel,
     })
-    const response = await resolvedLlm.adapter.complete(llmRequest)
-    const avatarMessage = await this.persistAvatarMessage(conversation.conversationId, {
+    return {
+      requestId,
+      startedAtMs,
+      input,
+      conversation,
+      session,
+      avatar,
+      userMessage,
+      userPersona,
+      selectedMemory,
+      assembledContext,
+      retrievalLatencyMs,
+      priorUserTurnCount,
+      adapter: resolvedLlm.adapter,
+      llmRequest,
+    }
+  }
+
+  async completeTurn(
+    turn: PreparedSendMessageTurn,
+    response: SendMessageTurnResponse,
+    options: { scheduleBackground?: boolean } = {},
+  ): Promise<SendMessageOutput> {
+    const avatarMessage = await this.persistAvatarMessage(turn.conversation.conversationId, {
       ...response,
     })
     const now = this.nowIso()
-    await this.conversationRepository.update(conversation.conversationId, { lastActivityAt: now })
-    const updatedSession = await this.sessionRepository.update(session.sessionId, {
+    await this.conversationRepository.update(turn.conversation.conversationId, {
       lastActivityAt: now,
-      ...(session.gmNotes !== undefined ? { gmNotes: null } : {}),
+    })
+    const updatedSession = await this.sessionRepository.update(turn.session.sessionId, {
+      lastActivityAt: now,
+      ...(turn.session.gmNotes !== undefined ? { gmNotes: null } : {}),
     })
 
-    const nextTurnIndex = priorUserTurnCount + 1
-    this.dispatchBackgroundUpdates({
-      requestId,
-      sessionId: session.sessionId,
-      scenarioId: session.scenarioId,
-      conversationId: conversation.conversationId,
-      avatarId: conversation.avatarId,
-      userMessage: input.userMessage,
-      turnIndex: nextTurnIndex,
-      userPersona,
-      ...(selectedMemory !== undefined ? { selectedMemory } : {}),
-    })
+    const nextTurnIndex = turn.priorUserTurnCount + 1
+    if (options.scheduleBackground !== false) {
+      this.schedulePostTurnWork(turn)
+    }
 
-    const latencyMs = Date.now() - start
-    const otherOverheadMs = Math.max(0, latencyMs - response.latencyMs - retrievalLatencyMs)
+    const latencyMs = Date.now() - turn.startedAtMs
+    const otherOverheadMs = Math.max(0, latencyMs - response.latencyMs - turn.retrievalLatencyMs)
     emitTurnCompletedEventNonBlocking({
-      requestId,
-      sessionId: session.sessionId,
-      conversationId: conversation.conversationId,
+      requestId: turn.requestId,
+      sessionId: turn.session.sessionId,
+      conversationId: turn.conversation.conversationId,
       turnIndex: nextTurnIndex,
-      avatarId: conversation.avatarId,
-      avatarContext: assembledContext.avatar,
+      avatarId: turn.conversation.avatarId,
+      avatarContext: turn.assembledContext.avatar,
       avatarLatencyMs: response.latencyMs,
       totalTurnLatencyMs: latencyMs,
       inputTokens: response.inputTokens,
       outputTokens: response.outputTokens,
       model: response.model,
       hasGm: this.runGameMasterUseCase !== null,
-      retrievalLatencyMs,
+      retrievalLatencyMs: turn.retrievalLatencyMs,
       otherOverheadMs,
-      contextSelection: toContextSelectionMetadata(assembledContext),
+      contextSelection: toContextSelectionMetadata(turn.assembledContext),
       eventLogRepository: this.eventLogRepository,
     })
     const output = buildSendMessageOutput({
-      requestId,
-      conversation,
+      requestId: turn.requestId,
+      conversation: turn.conversation,
       updatedSession,
-      userMessage,
+      userMessage: turn.userMessage,
       avatarMessage,
       response,
       now,
@@ -214,11 +237,11 @@ export class SendMessageUseCase {
       endConversationUseCase: this.endConversationUseCase,
       eventLogRepository: this.eventLogRepository,
       implicitEndPolicy: this.implicitEndPolicy,
-      requestId,
-      sessionId: session.sessionId,
-      conversationId: conversation.conversationId,
-      userMessage: input.userMessage,
-      lastActivityAtBeforeTurn: conversation.lastActivityAt,
+      requestId: turn.requestId,
+      sessionId: turn.session.sessionId,
+      conversationId: turn.conversation.conversationId,
+      userMessage: turn.input.userMessage,
+      lastActivityAtBeforeTurn: turn.conversation.lastActivityAt,
       now,
     })
     if (implicitEnd !== null) {
@@ -230,6 +253,20 @@ export class SendMessageUseCase {
     }
 
     return output
+  }
+
+  schedulePostTurnWork(turn: PreparedSendMessageTurn): void {
+    this.dispatchBackgroundUpdates({
+      requestId: turn.requestId,
+      sessionId: turn.session.sessionId,
+      scenarioId: turn.session.scenarioId,
+      conversationId: turn.conversation.conversationId,
+      avatarId: turn.conversation.avatarId,
+      userMessage: turn.input.userMessage,
+      turnIndex: turn.priorUserTurnCount + 1,
+      userPersona: turn.userPersona,
+      ...(turn.selectedMemory !== undefined ? { selectedMemory: turn.selectedMemory } : {}),
+    })
   }
 
   // eslint-disable-next-line complexity
