@@ -174,6 +174,56 @@ Strengthened the Game Master prompt contract with explicit structure and clearer
 
 Refined working-memory generation around structured fields such as `coveredTopics` and aligned the related operator-facing inspection surfaces.
 
+### `8.5 Game Master Post-Analysis Refinement`
+
+**Current state**
+The asynchronous Game Master already provides structured orchestration decisions after each Avatar response. However, its output still mixes orchestration concerns with application-owned state and working-memory responsibilities, while lacking explicit retrieval planning and dialogue-control semantics.
+
+**Purpose**
+Improve the quality, maintainability, and usefulness of asynchronous Game Master orchestration without changing the existing runtime architecture or introducing additional latency.
+
+**Description**
+Refine the Game Master so it focuses exclusively on preparing the next Avatar turn. Introduce first-class retrieval planning, explicit dialogue-control modes, simplified routing decisions, and clearer ownership boundaries between Game Master orchestration, application logic, and working-memory compaction.
+
+The Game Master remains a single asynchronous post-analysis step executed after the Avatar response. Its output is stored and consumed during the next Avatar turn, allowing richer orchestration without delaying the current interaction.
+
+**Includes**
+
+- explicit dialogue-control modes (`user_led`, `avatar_guided`, `avatar_led`, `repair`, `transition`)
+- first-class retrieval planning for the next Avatar turn
+- simplified and normalized Avatar routing contract
+- dynamic routing capabilities based on runtime scenario configuration
+- removal of application-owned fields from the GM output
+- clarification of ownership between Game Master and working-memory compaction
+- improved integration of stored GM guidance into the Avatar runtime
+
+**Definition of done**
+
+- the Game Master remains a single asynchronous post-analysis call
+- current Avatar responses are not delayed by Game Master execution
+- retrieval planning is generated and consumed during the next relevant Avatar turn
+- dialogue-control modes influence Avatar behaviour consistently
+- routing continues to support Avatar suggestion, switching, and unlocking
+- routing capabilities adapt dynamically to the current scenario configuration
+- application-owned state is removed from the Game Master contract
+- working-memory ownership remains exclusively within the memory-compaction pipeline
+- existing multi-Avatar behaviour and progression logic remain compatible
+
+**What can be tested**
+
+1. contradictions generate appropriate retrieval plans and repair dialogue mode
+2. stored retrieval planning is consumed during the next related Avatar turn
+3. unrelated user messages do not reuse stale retrieval plans
+4. dialogue-control modes produce the expected Avatar behaviour
+5. single-Avatar scenarios omit unnecessary routing instructions
+6. multi-Avatar scenarios continue to support switching and unlocking
+7. contradicted Avatar statements are not persisted as working-memory facts
+8. asynchronous execution remains non-blocking
+
+**User increment**
+
+- more consistent, context-aware Avatar conversations with improved factual grounding, clearer dialogue flow, and better orchestration, while preserving the existing low-latency conversation experience.
+
 ## Open Backlog
 
 ### `3.3 Replay & Recovery Tools`
