@@ -33,7 +33,6 @@ export function renderGameMasterInputForLlm(input: GameMasterInput): string {
 
 function renderCurrentTurn(input: GameMasterInput): string[] {
   const lines = [
-    `- Session ID: ${normalizeInlineText(input.session.sessionId)}`,
     `- Turn Index: ${formatNumber(input.session.turnIndex)}`,
     hasText(input.userMessage.text)
       ? `- Latest User Message: ${normalizeInlineText(input.userMessage.text)}`
@@ -195,7 +194,6 @@ function renderUserPersona(userPersona: GameMasterInput['context']['userPersona'
 function renderExperience(experience: GameMasterInput['context']['experience']): string[] {
   return [
     '### Scenario',
-    `- Scenario ID: ${normalizeInlineText(experience.scenarioId)}`,
     ...(hasText(experience.description)
       ? [`- Description: ${normalizeInlineText(experience.description)}`]
       : []),
