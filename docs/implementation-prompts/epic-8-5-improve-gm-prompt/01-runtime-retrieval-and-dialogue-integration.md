@@ -2,13 +2,14 @@
 
 ## Objective
 
-Integrate the new asynchronous Game Master output into the next Avatar-turn pipeline.
+Update Game Master output into the next Avatar-turn pipeline.
+The task is to update the existing flow to take into account the new output of the GM prompt.
 
 The GM must remain a post-analysis component. Its stored output prepares the next turn without delaying the current Avatar response.
 
 ## Required runtime flow
 
-The runtime flow must be:
+The runtime flow is not modified.
 
 ```text
 User message
@@ -21,8 +22,6 @@ User message
 → build Avatar prompt
 → Avatar response
 ```
-
-Do not add a synchronous GM call.
 
 ## 1. Store the GM result as next-turn orchestration state
 
@@ -76,103 +75,31 @@ When the next user message arrives:
 5. Inject the retrieved context into the Avatar prompt.
 6. Mark the retrieval plan as consumed for that turn.
 
-Do not execute the stored query unchanged without considering the new user message.
-
-Example:
-
-Stored GM query:
-
-```text
-Mona current location after grandfather
-```
-
-New user message:
-
-```text
-Est-ce que Mona est toujours chez son grand-père ?
-```
-
-Effective retrieval intent:
-
-```text
-Find Mona's current location, whether she is still with the grandfather,
-whether she was moved to a quarantine camp, and what Max knows.
-```
-
-## 3. Handle topic changes
-
-The stored retrieval plan may become stale if the user changes subject.
-
-Implement a simple relevance check between:
-
-- the latest user message;
-- `retrievalPlan.queries`;
-- `retrievalPlan.requiredFacts`.
-
-Preferred implementation:
-
-- calculate semantic relevance;
-- use the stored plan when the new message concerns the same topic or facts;
-- discard or de-prioritize it when the user clearly changes topic.
-
-Minimum acceptable implementation:
-
-- use the stored plan for only the immediately following turn;
-- always combine it with the latest user message;
-- never use the stored plan as the only retrieval input.
-
-## 4. Respect retrieval priority
-
-### `mandatory`
-
-The retrieval system must attempt to find the required facts before calling the Avatar.
-
-If the required facts are not found:
-
-- do not fabricate them;
-- inject explicit uncertainty into the Avatar context;
-- instruct the Avatar to answer from limited knowledge;
-- allow the Avatar to say that it does not know.
-
-Example internal context:
-
-```text
-Retrieval status: insufficient evidence.
-Do not assert Mona's current location as fact.
-The latest confirmed information is that she was previously with the grandfather,
-but the current location is unresolved.
-```
-
-### `helpful`
-
-Perform retrieval when possible.
-
-If no useful results are returned, continue using the available conversation and Avatar context.
-
-### `required: false`
-
-Do not execute retrieval solely because a retrieval-plan object exists.
-
 ## 5. Inject dialogue control into the Avatar prompt
 
 Add a structured section:
 
+Example for repaire mode, with followup question
+
 ```text
 ## Game Master Guidance
 
-Dialogue mode: repair
-Follow-up question: no
+Dialogue mode:
+Resolve the contradiction, misunderstanding, or unsupported claim before progressing.
+Do not introduce a new topic until the issue is clarified.
+Follow-up question: yes
 
 Director note:
 Resolve the location contradiction before progressing.
 ```
 
-Or:
+Example for user_led, without follow up question
 
 ```text
 ## Game Master Guidance
 
-Dialogue mode: user_led
+Dialogue mode:
+Answer the user's question directly. Let the user control the sequence. Do not add a generic follow-up question.
 Follow-up question: no
 ```
 
@@ -205,6 +132,8 @@ Update the permanent Avatar prompt rules to define the modes:
   When false, do not end with a question unless clarification is required to
   understand the user's request.
 ```
+
+Remove the generatic instruction for the avatar to Follow up on questions
 
 ## 6. Keep Director Notes simple
 
