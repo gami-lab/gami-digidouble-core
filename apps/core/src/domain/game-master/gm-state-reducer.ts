@@ -1,4 +1,4 @@
-import type { GameMasterOutput, GameMasterState } from './game-master.types.js'
+import type { GameMasterState, ProgressionUpdate, RoutingDecision } from './game-master.types.js'
 
 const NONE_PROGRESSION = 'none'
 const INITIAL_ADVANCED_PROGRESSION = 'advanced'
@@ -6,23 +6,27 @@ const ADVANCED_MARKER = '[advanced]'
 
 export function reduceGmState(
   current: GameMasterState,
-  update: GameMasterOutput['stateUpdate'],
+  update: { progressionUpdate: ProgressionUpdate; routing?: RoutingDecision },
 ): GameMasterState {
   const nextProgression =
-    update.progression === 'increase'
+    update.progressionUpdate.progression === 'increase'
       ? buildIncreasedProgression(current.progression)
       : current.progression
-  const nextTopicsCovered = hasText(update.topicCovered)
-    ? [...current.topicsCovered, update.topicCovered.trim()]
-    : [...current.topicsCovered]
+  const routedAvatarId = resolveRoutedAvatarId(update.routing)
 
   return {
     ...current,
     progression: nextProgression,
-    topicsCovered: nextTopicsCovered,
     interactionCount: current.interactionCount + 1,
-    ...(hasText(update.activeAvatarId) ? { currentAvatarId: update.activeAvatarId.trim() } : {}),
+    ...(routedAvatarId !== undefined ? { currentAvatarId: routedAvatarId } : {}),
   }
+}
+
+/** Only `switch`/`unlock_and_switch` move orchestration focus to a new avatar. */
+function resolveRoutedAvatarId(routing: RoutingDecision | undefined): string | undefined {
+  if (routing === undefined) return undefined
+  if (routing.action !== 'switch' && routing.action !== 'unlock_and_switch') return undefined
+  return routing.avatarId
 }
 
 function buildIncreasedProgression(progression: string): string {
@@ -34,8 +38,4 @@ function buildIncreasedProgression(progression: string): string {
     return current
   }
   return `${current} ${ADVANCED_MARKER}`
-}
-
-function hasText(value: string | undefined): value is string {
-  return typeof value === 'string' && value.trim().length > 0
 }

@@ -152,14 +152,10 @@ beforeEach(() => {
   })
   completeMock.mockResolvedValue({
     content: JSON.stringify({
-      avatarId: 'avatar_1',
-      conversationMode: 'continue',
-      context: { notes: 'Help the user move to concrete examples.' },
-      stateUpdate: {
-        progression: 'increase',
-        topicCovered: 'ocean_cleanup',
-        interactionIncrement: 1,
-      },
+      dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+      retrievalPlan: { required: false },
+      directorNotes: 'Help the user move to concrete examples.',
+      progressionUpdate: { progression: 'increase' },
     }),
     model: 'null-model',
     inputTokens: 10,
@@ -188,7 +184,7 @@ describe('RunGameMasterUseCase — state persistence', () => {
       'session_1',
       expect.objectContaining({
         interactionCount: 2,
-        topicsCovered: ['plastic', 'ocean_cleanup'],
+        topicsCovered: ['plastic'],
       }),
     )
     expect(updateSessionMock).toHaveBeenCalledWith('session_1', {
@@ -248,13 +244,14 @@ describe('RunGameMasterUseCase — refined prompt path', () => {
 
     expectSectionOrder(request.systemPrompt, [
       '## Role',
-      '## Objectives',
+      '## Responsibilities',
+      '## Fact Discipline',
       '## Decision Policies',
       '## Output Contract',
     ])
     expect(request.systemPrompt).toContain('Output ONLY a valid JSON object.')
     expect(request.systemPrompt).toContain(
-      'stateUpdate.interactionIncrement must always be exactly 1.',
+      '- askFollowUp must always be stated explicitly; never infer it from mode alone.',
     )
     expect(prompt).toContain('## Current Turn')
     expect(prompt).toContain('## Current Discussion Context')
@@ -360,7 +357,7 @@ describe('RunGameMasterUseCase — optional and session-start prompt content', (
     const prompt = readRenderedGameMasterPrompt(request)
 
     expect(request.systemPrompt).toContain(
-      'When userMessage.text is empty, no user message has been sent yet. Treat this as conversation opening guidance, and use context.notes to tell the Avatar how to open instead of reacting to a message.',
+      'When userMessage.text is empty, no user message has been sent yet. Treat this as conversation opening guidance, and use directorNotes to tell the Avatar how to open instead of reacting to a message.',
     )
     expect(prompt).toContain(
       '- Latest User Message: [none - session start; provide opening guidance for the Avatar].',
@@ -521,13 +518,10 @@ describe('RunGameMasterUseCase — runtime event publication unlocks', () => {
     })
     completeMock.mockResolvedValue({
       content: JSON.stringify({
-        avatarId: 'avatar_1',
-        conversationMode: 'continue',
-        unlockAvatarIds: ['avatar_2'],
-        stateUpdate: {
-          progression: 'increase',
-          interactionIncrement: 1,
-        },
+        dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+        retrievalPlan: { required: false },
+        routing: { action: 'unlock', avatarId: 'avatar_2', reason: 'Theo can help' },
+        progressionUpdate: { progression: 'increase' },
       }),
       model: 'null-model',
       inputTokens: 10,
@@ -591,14 +585,10 @@ describe('RunGameMasterUseCase — runtime event publication guidance', () => {
     ])
     completeMock.mockResolvedValue({
       content: JSON.stringify({
-        avatarId: 'avatar_1',
-        conversationMode: 'continue',
-        suggestedAvatarId: 'avatar_2',
-        suggestedAvatarReason: 'Better context',
-        stateUpdate: {
-          progression: 'increase',
-          interactionIncrement: 1,
-        },
+        dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+        retrievalPlan: { required: false },
+        routing: { action: 'suggest', avatarId: 'avatar_2', reason: 'Better context' },
+        progressionUpdate: { progression: 'increase' },
       }),
       model: 'null-model',
       inputTokens: 10,
@@ -620,46 +610,6 @@ describe('RunGameMasterUseCase — runtime event publication guidance', () => {
     expect(suggested?.payload).toEqual({
       suggestedAvatarId: 'avatar_2',
       reason: 'Better context',
-    })
-  })
-
-  it('emits runtime.choice_required when recommendedChoices are present', async () => {
-    const useCase = createUseCase()
-    completeMock.mockResolvedValue({
-      content: JSON.stringify({
-        avatarId: 'avatar_1',
-        conversationMode: 'continue',
-        recommendedChoices: [
-          { id: 'c1', label: 'Go deeper' },
-          { id: 'c2', label: 'Switch topic' },
-        ],
-        stateUpdate: {
-          progression: 'increase',
-          interactionIncrement: 1,
-        },
-      }),
-      model: 'null-model',
-      inputTokens: 10,
-      outputTokens: 20,
-      latencyMs: 4,
-    })
-
-    await useCase.execute({
-      sessionId: 'session_1',
-      scenarioId: 'scenario_1',
-      conversationId: 'conversation_1',
-      avatarId: 'avatar_1',
-      userMessageText: 'choices',
-      turnIndex: 2,
-      correlationId: 'choice_1',
-    })
-
-    const choiceRequired = runtimeEvents().find((event) => event.type === 'runtime.choice_required')
-    expect(choiceRequired?.payload).toEqual({
-      choices: [
-        { id: 'c1', label: 'Go deeper' },
-        { id: 'c2', label: 'Switch topic' },
-      ],
     })
   })
 })

@@ -21,6 +21,34 @@ export function toGameMasterAvailableAvatars(
     .map((avatar) => toAvailableAvatar(avatar, session))
 }
 
+/** Routing carries either a single unlock target (avatarId/reason) or multiple (unlockDecisions). */
+function deriveUnlockCandidates(routing: GameMasterOutput['routing']): {
+  avatarIds: string[]
+  reasonById: Map<string, string>
+} {
+  if (
+    routing === undefined ||
+    (routing.action !== 'unlock' && routing.action !== 'unlock_and_switch')
+  ) {
+    return { avatarIds: [], reasonById: new Map() }
+  }
+
+  const reasonById = new Map<string, string>(
+    (routing.unlockDecisions ?? []).map(
+      (decision) => [decision.avatarId, decision.reason] as const,
+    ),
+  )
+  const avatarIds = (routing.unlockDecisions ?? []).map((decision) => decision.avatarId)
+  if (routing.avatarId !== undefined) {
+    avatarIds.push(routing.avatarId)
+    if (routing.reason !== undefined && !reasonById.has(routing.avatarId)) {
+      reasonById.set(routing.avatarId, routing.reason)
+    }
+  }
+
+  return { avatarIds: [...new Set(avatarIds)], reasonById }
+}
+
 export function resolveAvatarUnlocks(
   session: Session | null,
   avatars: AvatarConfig[],
@@ -31,7 +59,10 @@ export function resolveAvatarUnlocks(
   newlyUnlockedAvatarIds: string[]
   evaluations: UnlockEvaluation[]
 } | null {
-  if (session?.unlockedAvatarIds === undefined || output.unlockAvatarIds === undefined) {
+  const { avatarIds: unlockAvatarIds, reasonById: unlockReasonById } = deriveUnlockCandidates(
+    output.routing,
+  )
+  if (session?.unlockedAvatarIds === undefined || unlockAvatarIds.length === 0) {
     return null
   }
 
@@ -45,10 +76,7 @@ export function resolveAvatarUnlocks(
   )
   const knownUnlockedIds = new Set(session.unlockedAvatarIds)
   const mentionedLockedAvatarIds = resolveMentionedLockedAvatarIds(session, avatars, recentMessages)
-  const unlockReasonById = new Map(
-    (output.unlockDecisions ?? []).map((decision) => [decision.avatarId, decision.reason] as const),
-  )
-  const evaluations = [...new Set(output.unlockAvatarIds)].reduce<UnlockEvaluation[]>(
+  const evaluations = [...new Set(unlockAvatarIds)].reduce<UnlockEvaluation[]>(
     (result, avatarId) => {
       if (!activeAvatarIds.has(avatarId)) return result
       const avatarName = activeAvatarNameById.get(avatarId) ?? avatarId

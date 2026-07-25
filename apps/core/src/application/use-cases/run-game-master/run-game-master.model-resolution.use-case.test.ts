@@ -65,10 +65,10 @@ describe('RunGameMasterUseCase model resolution', () => {
   it('uses scenario Game Master override before global role config', async () => {
     const completeMock = vi.fn().mockResolvedValue({
       content: JSON.stringify({
-        avatarId: 'avatar_1',
-        conversationMode: 'continue',
-        context: { notes: 'Role resolution.' },
-        stateUpdate: { progression: 'increase', interactionIncrement: 1 },
+        dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+        retrievalPlan: { required: false },
+        directorNotes: 'Role resolution.',
+        progressionUpdate: { progression: 'increase' },
       }),
       model: 'gm-role-model',
       inputTokens: 10,

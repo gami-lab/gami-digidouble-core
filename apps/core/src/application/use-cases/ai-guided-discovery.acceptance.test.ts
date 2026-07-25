@@ -98,25 +98,28 @@ function createHarness(unlockTarget: UnlockTarget = null) {
 
 function buildGmOutput(unlockTarget: UnlockTarget): Record<string, unknown> {
   return {
-    avatarId: 'avatar_mira',
-    conversationMode: 'continue',
+    dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+    retrievalPlan: { required: false },
     ...(unlockTarget === 'theo'
       ? {
-          unlockAvatarIds: ['avatar_theo'],
-          suggestedAvatarId: 'avatar_theo',
-          suggestedAvatarReason: 'Technical specialist is relevant now.',
+          routing: {
+            action: 'unlock',
+            avatarId: 'avatar_theo',
+            reason: 'Technical specialist is relevant now.',
+          },
         }
       : {}),
     ...(unlockTarget === 'eva'
       ? {
-          unlockAvatarIds: ['avatar_eva'],
-          suggestedAvatarId: 'avatar_eva',
-          suggestedAvatarReason: 'Responsible AI specialist is relevant now.',
+          routing: {
+            action: 'unlock',
+            avatarId: 'avatar_eva',
+            reason: 'Responsible AI specialist is relevant now.',
+          },
         }
       : {}),
-    stateUpdate: {
+    progressionUpdate: {
       progression: unlockTarget === null ? 'none' : 'increase',
-      interactionIncrement: 1,
     },
   }
 }

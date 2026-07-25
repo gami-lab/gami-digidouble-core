@@ -173,11 +173,10 @@ export class RunGameMasterUseCase {
       return
     }
 
-    const sanitizedStateUpdate = { ...normalizedOutput.stateUpdate }
-    if (normalizedOutput.conversationMode === 'new') {
-      delete sanitizedStateUpdate.activeAvatarId
-    }
-    const nextState = reduceGmState(currentState, sanitizedStateUpdate)
+    const nextState = reduceGmState(currentState, {
+      progressionUpdate: normalizedOutput.progressionUpdate,
+      ...(normalizedOutput.routing !== undefined ? { routing: normalizedOutput.routing } : {}),
+    })
     const routingResult = this.applyAvatarRoutingUpdates(
       input,
       currentState,
@@ -235,10 +234,9 @@ export class RunGameMasterUseCase {
     scenarioAvatars: AvatarConfig[]
   }): Promise<GameMasterOutput | null> {
     const parsed = safeParseGameMasterOutput(args.llmResponse.content)
-    const normalized =
-      parsed !== null ? normalizeGameMasterOutput(parsed, args.scenarioAvatars) : null
-
-    if (normalized !== null) return normalized
+    if (parsed !== null) {
+      return normalizeGameMasterOutput(parsed, args.scenarioAvatars)
+    }
 
     await handleInvalidGameMasterOutput({
       input: args.input,
@@ -276,7 +274,12 @@ export class RunGameMasterUseCase {
     const resolvedLlm = await this.resolveGameMasterLlmCall(scenarioContext.modelSelection)
     const gmTraceRequestId = `gm_${crypto.randomUUID()}`
     const llmRequest = {
-      systemPrompt: buildGameMasterSystemPrompt(),
+      systemPrompt: buildGameMasterSystemPrompt({
+        activeAvatarCount: gmInput.context.availableAvatars.length,
+        hasLockedAvatars: gmInput.context.availableAvatars.some(
+          (avatar) => avatar.availability === 'locked',
+        ),
+      }),
       messages: [{ role: 'user' as const, content: renderGameMasterInputForLlm(gmInput) }],
       ...(resolvedLlm.model !== undefined ? { model: resolvedLlm.model } : {}),
       trace: {
@@ -504,8 +507,8 @@ export class RunGameMasterUseCase {
   }
 
   private async persistTriggeredNotes(sessionId: string, output: GameMasterOutput): Promise<void> {
-    if (!hasText(output.context?.notes)) return
-    await this.sessionRepository.update(sessionId, { gmNotes: output.context.notes.trim() })
+    if (!hasText(output.directorNotes)) return
+    await this.sessionRepository.update(sessionId, { gmNotes: output.directorNotes.trim() })
   }
 
   private applyAvatarRoutingUpdates(
@@ -582,24 +585,14 @@ export class RunGameMasterUseCase {
       })
     }
 
-    if (output.suggestedAvatarId !== undefined) {
+    if (output.routing?.action === 'suggest' && output.routing.avatarId !== undefined) {
       this.emitRuntimeEvent({
         ...baseFields,
         type: 'runtime.avatar_suggested',
         payload: {
-          suggestedAvatarId: output.suggestedAvatarId,
-          ...(output.suggestedAvatarReason !== undefined
-            ? { reason: output.suggestedAvatarReason }
-            : {}),
+          suggestedAvatarId: output.routing.avatarId,
+          ...(output.routing.reason !== undefined ? { reason: output.routing.reason } : {}),
         },
-      })
-    }
-
-    if (output.recommendedChoices !== undefined && output.recommendedChoices.length > 0) {
-      this.emitRuntimeEvent({
-        ...baseFields,
-        type: 'runtime.choice_required',
-        payload: { choices: output.recommendedChoices },
       })
     }
   }

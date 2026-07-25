@@ -111,7 +111,7 @@ function toTraceEntry(
   gmRun.push(describeStateBefore(gmPayload, avatarNameById))
 
   if (decision) {
-    gmRun.push(describeDecision(decision, gmPayload, avatarNameById))
+    gmRun.push(describeDecision(decision))
     if (gmPayload.gmContext) {
       const gmContextDetails = describeRecordedGmContext(
         gmPayload.gmContext,
@@ -122,9 +122,13 @@ function toTraceEntry(
       gmRetrieval = gmContextDetails.retrieval
     }
 
-    if (decision.suggestedAvatarId) {
+    if (
+      (decision.routingAction === 'suggest' || decision.routingAction === 'switch') &&
+      decision.routingAvatarId
+    ) {
+      const verb = decision.routingAction === 'suggest' ? 'recommendation' : 'requested switch'
       gmOutput.push(
-        `GM recommendation: ${formatAvatar(decision.suggestedAvatarId, avatarNameById)}${decision.suggestedAvatarReason ? ` — ${decision.suggestedAvatarReason}` : ''}`,
+        `GM ${verb}: ${formatAvatar(decision.routingAvatarId, avatarNameById)}${decision.routingReason ? ` — ${decision.routingReason}` : ''}`,
       )
     }
 
@@ -154,9 +158,9 @@ function toTraceEntry(
       gmOutput.push('GM note added to the next avatar turn.')
     }
 
-    if (decision.directiveCount > 0) {
+    if (decision.retrievalRequired) {
       gmOutput.push(
-        `GM produced ${String(decision.directiveCount)} structured recommendation${decision.directiveCount === 1 ? '' : 's'}.`,
+        `GM planned retrieval for the next turn${decision.retrievalPriority ? ` (${decision.retrievalPriority})` : ''}.`,
       )
     }
   } else {
@@ -244,23 +248,13 @@ function describeStateBefore(
   return `Before the decision, ${avatarText} and ${progression}.`
 }
 
-function describeDecision(
-  decision: NonNullable<GmSessionEventPayload['decision']>,
-  payload: GmSessionEventPayload,
-  avatarNameById: Map<string, string>,
-): string {
-  const targetAvatar = formatAvatar(decision.avatarId, avatarNameById)
-  const sameAvatar = payload.stateBefore.currentAvatarId === decision.avatarId
+function describeDecision(decision: NonNullable<GmSessionEventPayload['decision']>): string {
+  const modeText = decision.dialogueMode.replaceAll('_', ' ')
+  const followUpText = decision.askFollowUp ? ' and allowed a follow-up question' : ''
+  const progressionText =
+    decision.progression === 'increase' ? ' Progression was marked as advanced.' : ''
 
-  if (decision.conversationMode === 'continue') {
-    return sameAvatar
-      ? `GM kept ${targetAvatar} as the active avatar.`
-      : `GM chose to continue with ${targetAvatar}.`
-  }
-
-  return sameAvatar
-    ? `GM asked for a fresh conversation with ${targetAvatar}, even though it is the same avatar as the current turn.`
-    : `GM asked to start a new conversation with ${targetAvatar}.`
+  return `GM set the next dialogue mode to "${modeText}"${followUpText}.${progressionText}`
 }
 
 function formatAvatar(avatarId: string, avatarNameById: Map<string, string>): string {

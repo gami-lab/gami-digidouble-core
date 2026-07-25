@@ -87,16 +87,20 @@ export type GmSessionEventPayload = {
   stateBefore: Omit<GmStateSummary, 'interactionCount'>
   gmContext?: RecordedGmContextSnapshot
   decision?: {
-    avatarId: string
-    conversationMode: 'new' | 'continue'
+    dialogueMode: 'user_led' | 'avatar_guided' | 'avatar_led' | 'repair' | 'transition'
+    askFollowUp: boolean
     notesInjected: boolean
     injectedNote?: string
-    directiveCount: number
+    retrievalRequired: boolean
+    retrievalPriority?: 'mandatory' | 'optional'
+    routingAction?: 'stay' | 'suggest' | 'switch' | 'unlock' | 'unlock_and_switch'
+    routingAvatarId?: string
+    routingReason?: string
     unlockedAvatarIds?: string[]
     unlockEvaluations?: GmUnlockEvaluation[]
-    suggestedAvatarId?: string
-    suggestedAvatarReason?: string
     switchedAvatarId?: string
+    progression: 'none' | 'increase'
+    objectiveId?: string
   }
   stateAfter?: Omit<GmStateSummary, 'interactionCount'>
   latencyMs: number

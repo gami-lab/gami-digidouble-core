@@ -128,30 +128,31 @@ Input invariants:
 
 ```ts
 type GameMasterOutput = {
-  avatarId: string
-  nextAvatarId?: string
-  transitionReason?: string
-  recommendedChoices?: Array<{
-    id: string
-    label: string
-  }>
-  contentTrigger?: string
-  unlockAvatarIds?: string[]
-  unlockDecisions?: Array<{
-    avatarId: string
-    reason: string
-  }>
-  suggestedAvatarId?: string
-  suggestedAvatarReason?: string
-  conversationMode: 'new' | 'continue'
-  context?: {
-    notes?: string
+  dialogueControl: {
+    mode: 'user_led' | 'avatar_guided' | 'avatar_led' | 'repair' | 'transition'
+    askFollowUp: boolean
   }
-  stateUpdate: {
-    progression?: 'none' | 'increase'
-    topicCovered?: string
-    activeAvatarId?: string
-    interactionIncrement: 1
+  retrievalPlan: {
+    required: boolean
+    priority?: 'mandatory' | 'optional'
+    queries?: string[]
+    requiredFacts?: string[]
+    scopes?: Array<'avatar_memory' | 'world_context' | 'scenario_knowledge'>
+  }
+  directorNotes?: string
+  routing?: {
+    action: 'stay' | 'suggest' | 'switch' | 'unlock' | 'unlock_and_switch'
+    avatarId?: string
+    reason?: string
+    unlockDecisions?: Array<{
+      avatarId: string
+      reason: string
+    }>
+  }
+  progressionUpdate: {
+    progression: 'none' | 'increase'
+    objectiveId?: string
+    reason?: string
   }
 }
 ```
@@ -159,9 +160,16 @@ type GameMasterOutput = {
 Output invariants:
 
 - `GameMasterOutput` is the canonical runtime output contract.
-- `suggestedAvatarId` is advisory only.
-- `nextAvatarId` can trigger a switch only when `conversationMode === 'new'` and runtime validation passes.
-- `stateUpdate.activeAvatarId` is context, not an instruction to bypass conversation-switch rules.
+- `dialogueControl.askFollowUp` must always be stated explicitly by the GM; it is never inferred from `mode` alone.
+- The GM does not perform retrieval — `retrievalPlan` only prepares queries/required facts for the next Avatar turn.
+- `directorNotes` is optional and must only carry guidance not already represented by another structured field.
+- `routing` is omitted entirely when routing is not applicable (single-Avatar scenarios). When present:
+  - `stay` does not require `avatarId`.
+  - `suggest` and `switch` require an active, unlocked `avatarId`.
+  - `unlock` requires a locked `avatarId`, or `unlockDecisions` for multiple targets.
+  - `unlock_and_switch` requires a locked `avatarId` that may immediately become active.
+- The GM does not repeat the current Avatar ID as a routing target when no change occurs.
+- `interactionIncrement` and `topicCovered` are not part of the output — interaction counting is app-owned, and covered-topic tracking belongs solely to memory compaction (`ConversationWorkingMemory.coveredTopics`).
 - Prompt refinement may change wording but must preserve this contract and its validation path.
 
 ## State Model
@@ -184,23 +192,24 @@ State meaning:
 
 Reducer rules:
 
-- `interactionCount` increments on every successful GM reduction.
-- `topicCovered`, when present, is appended to `topicsCovered` after normalization/deduplication.
-- `progression` changes only when GM explicitly requests it.
+- `interactionCount` increments on every successful GM reduction (app-owned; the GM never supplies an increment value).
+- `topicsCovered` is retained for schema/API compatibility only and is no longer written to by the reducer — memory compaction (`ConversationWorkingMemory.coveredTopics`) is the sole owner of covered-topic tracking.
+- `progression` changes only when `progressionUpdate.progression` is `"increase"`.
+- `currentAvatarId` updates only when `routing.action` is `switch` or `unlock_and_switch`.
 
 ## Validation Boundaries
 
 ### Avatar Switch
 
-1. GM may return `suggestedAvatarId` for a non-forcing recommendation.
-2. GM may return `nextAvatarId` only for `conversationMode: 'new'`.
+1. GM may return `routing.action: 'suggest'` for a non-forcing recommendation.
+2. GM may return `routing.action: 'switch'` or `'unlock_and_switch'` to request a new active Avatar.
 3. Runtime accepts a switch only when the target avatar belongs to the active scenario and is already unlocked or unlocked by the same valid GM output.
 4. If accepted, the active conversation is closed, a new GM-started conversation is created, and the session active avatar is updated.
 
 ### Avatar Unlock
 
 1. Session start seeds `session.unlockedAvatarIds` from `scenario.avatarAvailability.initialAvatarIds`.
-2. GM may return `unlockAvatarIds` for relevant locked avatars.
+2. GM may return `routing.action: 'unlock'` or `'unlock_and_switch'`, targeting a locked avatar via `avatarId`/`reason` or multiple via `unlockDecisions`.
 3. Runtime ignores inactive IDs, duplicate IDs, already-unlocked IDs, and invalid targets.
 4. `GET /v1/sessions/{sessionId}/available-avatars` remains the player-facing source of truth.
 
@@ -220,8 +229,9 @@ If a scenario has no explicit `modelSelection`, GM falls back to the global conf
 The static GM prompt is intentionally short and organized into:
 
 - `Role`
-- `Objectives`
-- `Decision Policies`
+- `Responsibilities`
+- `Fact Discipline`
+- `Decision Policies` (dialogue control, retrieval planning, director notes, avatar routing, progression)
 - `Output Contract`
 
 The dynamic GM input renderer is organized into:
@@ -231,13 +241,21 @@ The dynamic GM input renderer is organized into:
 - `Experience Context`
 - `Output Reminder`
 
+The static prompt is also built dynamically from the current avatar roster:
+
+- A single active Avatar omits routing entirely — from the prose, the field, and the JSON schema.
+- No locked Avatars omits unlock instructions, unlock actions, and locked-Avatar metadata.
+- Locked Avatars present includes only the valid locked targets.
+- Multiple active Avatars includes `stay`, `suggest`, `switch`, plus unlock actions when applicable.
+
 Prompt wording may evolve, but these rules must hold:
 
 - JSON-only output matching `GameMasterOutput`
-- evidence-based bias toward `conversationMode: 'continue'`
+- evidence-based bias toward `dialogueControl.mode: 'user_led'`/`'avatar_guided'` over forcing routing or progression changes
 - no default progression increase without evidence
-- prefer suggestion over forced handoff when possible
+- prefer `routing.action: 'suggest'` over a forced `'switch'` when possible
 - no prompt-only fields that fork `GameMasterInput`
+- no generic Director Notes that merely restate permanent Avatar rules
 
 ## Diagnostics
 

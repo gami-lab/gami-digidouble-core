@@ -240,11 +240,11 @@ function makeViewModel(): RuntimeInspectorViewModel {
             topicsCovered: [],
           },
           decision: {
-            avatarId: 'avatar_2',
-            conversationMode: 'new',
+            dialogueMode: 'transition',
+            askFollowUp: false,
             notesInjected: true,
             injectedNote: 'Ask Theo for concrete implementation details next.',
-            directiveCount: 1,
+            retrievalRequired: false,
             unlockedAvatarIds: ['avatar_2'],
             unlockEvaluations: [
               {
@@ -254,9 +254,11 @@ function makeViewModel(): RuntimeInspectorViewModel {
                 outcome: 'unlocked',
               },
             ],
-            suggestedAvatarId: 'avatar_2',
-            suggestedAvatarReason: 'topic depth',
+            routingAction: 'suggest',
+            routingAvatarId: 'avatar_2',
+            routingReason: 'topic depth',
             switchedAvatarId: 'avatar_2',
+            progression: 'increase',
           },
           stateAfter: {
             progression: 'deep_dive',
@@ -389,7 +391,7 @@ describe('buildGmImpactTrace', () => {
       'Before the decision, the active avatar was Clara Whitcombe (avatar_1)',
     )
     expect(first.gmRun.join(' ')).toContain(
-      'GM asked to start a new conversation with Theo (avatar_2).',
+      'GM set the next dialogue mode to "transition". Progression was marked as advanced.',
     )
     expect(first.gmOutput.join(' ')).toContain('Avatar unlocks: avatar_2 (Theo) [unlocked]')
     expect(first.gmOutput.join(' ')).toContain('GM recommendation: Theo (avatar_2) — topic depth')
@@ -448,23 +450,16 @@ describe('buildGmImpactTrace', () => {
           triggerReason: 'post_turn_observation',
           turnIndex: 5,
           interactionCount: 12,
-          stateBefore: {
-            currentAvatarId: 'avatar_1',
-            progression: 'advanced',
-            topicsCovered: [],
-          },
+          stateBefore: { currentAvatarId: 'avatar_1', progression: 'advanced', topicsCovered: [] },
           decision: {
-            avatarId: 'avatar_1',
-            conversationMode: 'continue',
+            dialogueMode: 'user_led',
+            askFollowUp: false,
             notesInjected: true,
             injectedNote: 'Older interaction.',
-            directiveCount: 0,
+            retrievalRequired: false,
+            progression: 'none',
           },
-          stateAfter: {
-            currentAvatarId: 'avatar_1',
-            progression: 'advanced',
-            topicsCovered: [],
-          },
+          stateAfter: { currentAvatarId: 'avatar_1', progression: 'advanced', topicsCovered: [] },
           latencyMs: 40,
         },
       },
@@ -476,23 +471,16 @@ describe('buildGmImpactTrace', () => {
           triggerReason: 'post_turn_observation',
           turnIndex: 1,
           interactionCount: 16,
-          stateBefore: {
-            currentAvatarId: 'avatar_2',
-            progression: 'advanced',
-            topicsCovered: [],
-          },
+          stateBefore: { currentAvatarId: 'avatar_2', progression: 'advanced', topicsCovered: [] },
           decision: {
-            avatarId: 'avatar_2',
-            conversationMode: 'continue',
+            dialogueMode: 'user_led',
+            askFollowUp: false,
             notesInjected: true,
             injectedNote: 'Newer interaction after avatar switch.',
-            directiveCount: 0,
+            retrievalRequired: false,
+            progression: 'none',
           },
-          stateAfter: {
-            currentAvatarId: 'avatar_2',
-            progression: 'advanced',
-            topicsCovered: [],
-          },
+          stateAfter: { currentAvatarId: 'avatar_2', progression: 'advanced', topicsCovered: [] },
           latencyMs: 42,
         },
       },

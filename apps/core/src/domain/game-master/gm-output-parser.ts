@@ -1,4 +1,36 @@
-import type { GameMasterOutput } from './game-master.types.js'
+import type {
+  DialogueControl,
+  DialogueControlMode,
+  GameMasterOutput,
+  ProgressionUpdate,
+  RetrievalPlan,
+  RetrievalPriority,
+  RetrievalScope,
+  RoutingAction,
+  RoutingDecision,
+} from './game-master.types.js'
+
+const DIALOGUE_CONTROL_MODES = new Set<DialogueControlMode>([
+  'user_led',
+  'avatar_guided',
+  'avatar_led',
+  'repair',
+  'transition',
+])
+const RETRIEVAL_PRIORITIES = new Set<RetrievalPriority>(['mandatory', 'optional'])
+const RETRIEVAL_SCOPES = new Set<RetrievalScope>([
+  'avatar_memory',
+  'world_context',
+  'scenario_knowledge',
+])
+const ROUTING_ACTIONS = new Set<RoutingAction>([
+  'stay',
+  'suggest',
+  'switch',
+  'unlock',
+  'unlock_and_switch',
+])
+const PROGRESSION_STATES = new Set(['none', 'increase'])
 
 export function safeParseGameMasterOutput(content: string): GameMasterOutput | null {
   try {
@@ -19,140 +51,121 @@ export function safeParseGameMasterOutput(content: string): GameMasterOutput | n
 }
 
 function toGameMasterOutput(value: unknown): GameMasterOutput | null {
-  if (!isRecord(value)) {
+  if (!isRecord(value)) return null
+
+  const dialogueControl = toDialogueControl(value['dialogueControl'])
+  if (dialogueControl === null) return null
+
+  const retrievalPlan = toRetrievalPlan(value['retrievalPlan'])
+  if (retrievalPlan === null) return null
+
+  const progressionUpdate = toProgressionUpdate(value['progressionUpdate'])
+  if (progressionUpdate === null) return null
+
+  const directorNotes = hasText(value['directorNotes']) ? value['directorNotes'].trim() : undefined
+  const routing = toRoutingDecision(value['routing'])
+
+  return {
+    dialogueControl,
+    retrievalPlan,
+    ...(directorNotes !== undefined ? { directorNotes } : {}),
+    ...(routing !== undefined ? { routing } : {}),
+    progressionUpdate,
+  }
+}
+
+function toDialogueControl(value: unknown): DialogueControl | null {
+  if (!isRecord(value)) return null
+  const mode = value['mode']
+  if (typeof mode !== 'string' || !DIALOGUE_CONTROL_MODES.has(mode as DialogueControlMode)) {
     return null
   }
-  const baseOutput = parseBaseOutput(value)
-  if (baseOutput === null) return null
+  if (typeof value['askFollowUp'] !== 'boolean') return null
 
-  const stateUpdate = toStateUpdate(value['stateUpdate'])
-  if (stateUpdate === null) return null
-
-  return {
-    avatarId: baseOutput.avatarId,
-    conversationMode: baseOutput.conversationMode,
-    ...parseOptionalOutputFields(value),
-    stateUpdate,
-  }
+  return { mode: mode as DialogueControlMode, askFollowUp: value['askFollowUp'] }
 }
 
-function parseBaseOutput(value: Record<string, unknown>): {
-  avatarId: string
-  conversationMode: 'new' | 'continue'
-} | null {
-  if (!hasText(value['avatarId']) || !isConversationMode(value['conversationMode'])) {
+function toRetrievalPlan(value: unknown): RetrievalPlan | null {
+  if (!isRecord(value)) return null
+  if (typeof value['required'] !== 'boolean') return null
+
+  const priority = value['priority']
+  if (priority !== undefined && !RETRIEVAL_PRIORITIES.has(priority as RetrievalPriority)) {
     return null
   }
+  const queries = toOptionalStringArray(value['queries'])
+  const requiredFacts = toOptionalStringArray(value['requiredFacts'])
+  const scopes = toOptionalScopes(value['scopes'])
+
   return {
-    avatarId: value['avatarId'].trim(),
-    conversationMode: value['conversationMode'],
+    required: value['required'],
+    ...(priority !== undefined ? { priority: priority as RetrievalPriority } : {}),
+    ...(queries !== undefined ? { queries } : {}),
+    ...(requiredFacts !== undefined ? { requiredFacts } : {}),
+    ...(scopes !== undefined ? { scopes } : {}),
   }
 }
 
-function parseOptionalOutputFields(value: Record<string, unknown>): {
-  nextAvatarId?: string
-  transitionReason?: string
-  recommendedChoices?: Array<{ id: string; label: string }>
-  context?: { notes: string }
-  unlockAvatarIds?: string[]
-  unlockDecisions?: Array<{ avatarId: string; reason: string }>
-  suggestedAvatarId?: string
-  suggestedAvatarReason?: string
-} {
+function toOptionalScopes(value: unknown): RetrievalScope[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const scopes = value.filter((entry): entry is RetrievalScope =>
+    RETRIEVAL_SCOPES.has(entry as RetrievalScope),
+  )
+  return scopes.length > 0 ? [...new Set(scopes)] : undefined
+}
+
+function toRoutingDecision(value: unknown): RoutingDecision | undefined {
+  if (!isRecord(value)) return undefined
+  const action = value['action']
+  if (typeof action !== 'string' || !ROUTING_ACTIONS.has(action as RoutingAction)) {
+    return undefined
+  }
+
+  const avatarId = hasText(value['avatarId']) ? value['avatarId'].trim() : undefined
+  const reason = hasText(value['reason']) ? value['reason'].trim() : undefined
+  const unlockDecisions = toUnlockDecisions(value['unlockDecisions'])
+
   return {
-    ...parseOptionalTextField(value, 'nextAvatarId'),
-    ...parseOptionalTextField(value, 'transitionReason'),
-    ...parseOptionalRecommendedChoices(value),
-    ...parseOptionalContext(value),
-    ...parseOptionalUnlockAvatarIds(value),
-    ...parseOptionalUnlockDecisions(value),
-    ...parseOptionalTextField(value, 'suggestedAvatarId'),
-    ...parseOptionalTextField(value, 'suggestedAvatarReason'),
+    action: action as RoutingAction,
+    ...(avatarId !== undefined ? { avatarId } : {}),
+    ...(reason !== undefined ? { reason } : {}),
+    ...(unlockDecisions !== undefined ? { unlockDecisions } : {}),
   }
 }
 
-function parseOptionalRecommendedChoices(value: Record<string, unknown>): {
-  recommendedChoices?: Array<{ id: string; label: string }>
-} {
-  if (!Array.isArray(value['recommendedChoices'])) return {}
-
-  const recommendedChoices = value['recommendedChoices']
-    .map((choice) => {
-      if (!isRecord(choice) || !hasText(choice['id']) || !hasText(choice['label'])) return null
-      return { id: choice['id'].trim(), label: choice['label'].trim() }
-    })
-    .filter((choice): choice is { id: string; label: string } => choice !== null)
-
-  return recommendedChoices.length > 0 ? { recommendedChoices } : {}
-}
-
-function parseOptionalTextField<
-  K extends 'nextAvatarId' | 'transitionReason' | 'suggestedAvatarId' | 'suggestedAvatarReason',
->(value: Record<string, unknown>, key: K): Partial<Record<K, string>> {
-  return hasText(value[key]) ? ({ [key]: value[key].trim() } as Partial<Record<K, string>>) : {}
-}
-
-function parseOptionalContext(value: Record<string, unknown>): { context?: { notes: string } } {
-  const context = value['context']
-  const notes = isRecord(context) && hasText(context['notes']) ? context['notes'].trim() : undefined
-  return notes !== undefined ? { context: { notes } } : {}
-}
-
-function parseOptionalUnlockAvatarIds(value: Record<string, unknown>): {
-  unlockAvatarIds?: string[]
-} {
-  if (!Array.isArray(value['unlockAvatarIds'])) return {}
-  return {
-    unlockAvatarIds: value['unlockAvatarIds'].filter(hasText).map((avatarId) => avatarId.trim()),
-  }
-}
-
-function parseOptionalUnlockDecisions(value: Record<string, unknown>): {
-  unlockDecisions?: Array<{ avatarId: string; reason: string }>
-} {
-  if (!Array.isArray(value['unlockDecisions'])) return {}
-  const unlockDecisions = value['unlockDecisions']
+function toUnlockDecisions(
+  value: unknown,
+): Array<{ avatarId: string; reason: string }> | undefined {
+  if (!Array.isArray(value)) return undefined
+  const unlockDecisions = value
     .map((entry) => {
       if (!isRecord(entry) || !hasText(entry['avatarId']) || !hasText(entry['reason'])) return null
-      return {
-        avatarId: entry['avatarId'].trim(),
-        reason: entry['reason'].trim(),
-      }
+      return { avatarId: entry['avatarId'].trim(), reason: entry['reason'].trim() }
     })
     .filter((entry): entry is { avatarId: string; reason: string } => entry !== null)
 
-  return unlockDecisions.length > 0 ? { unlockDecisions } : {}
+  return unlockDecisions.length > 0 ? unlockDecisions : undefined
 }
 
-function toStateUpdate(value: unknown): GameMasterOutput['stateUpdate'] | null {
-  if (!isRecord(value)) {
-    return null
-  }
-  if (value['interactionIncrement'] !== 1) {
-    return null
-  }
-  if (!isValidProgression(value['progression'])) {
-    return null
-  }
-  const topicCovered = hasText(value['topicCovered']) ? value['topicCovered'].trim() : undefined
-  const activeAvatarId = hasText(value['activeAvatarId'])
-    ? value['activeAvatarId'].trim()
-    : undefined
+function toProgressionUpdate(value: unknown): ProgressionUpdate | null {
+  if (!isRecord(value)) return null
+  const progression = value['progression']
+  if (typeof progression !== 'string' || !PROGRESSION_STATES.has(progression)) return null
+
+  const objectiveId = hasText(value['objectiveId']) ? value['objectiveId'].trim() : undefined
+  const reason = hasText(value['reason']) ? value['reason'].trim() : undefined
 
   return {
-    interactionIncrement: 1,
-    ...(value['progression'] !== undefined ? { progression: value['progression'] } : {}),
-    ...(topicCovered !== undefined ? { topicCovered } : {}),
-    ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
+    progression: progression as ProgressionUpdate['progression'],
+    ...(objectiveId !== undefined ? { objectiveId } : {}),
+    ...(reason !== undefined ? { reason } : {}),
   }
 }
 
-function isValidProgression(value: unknown): value is 'none' | 'increase' | undefined {
-  return value === undefined || value === 'none' || value === 'increase'
-}
-
-function isConversationMode(value: unknown): value is 'new' | 'continue' {
-  return value === 'new' || value === 'continue'
+function toOptionalStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const items = value.filter(hasText).map((item) => item.trim())
+  return items.length > 0 ? items : undefined
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

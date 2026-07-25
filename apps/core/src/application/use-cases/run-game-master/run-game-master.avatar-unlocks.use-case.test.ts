@@ -168,13 +168,15 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
       },
     ])
     mockGmOutput({
-      avatarId: 'avatar_1',
-      unlockAvatarIds: ['avatar_2', 'avatar_2'],
-      unlockDecisions: [{ avatarId: 'avatar_2', reason: 'Technical specialist is now relevant.' }],
-      suggestedAvatarId: 'avatar_2',
-      suggestedAvatarReason: 'Technical specialist is now relevant.',
-      conversationMode: 'continue',
-      stateUpdate: { interactionIncrement: 1 },
+      dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+      retrievalPlan: { required: false },
+      routing: {
+        action: 'unlock',
+        unlockDecisions: [
+          { avatarId: 'avatar_2', reason: 'Technical specialist is now relevant.' },
+        ],
+      },
+      progressionUpdate: { progression: 'none' },
     })
 
     await executeGm(useCase)
@@ -192,8 +194,7 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
           outcome: 'unlocked',
         },
       ],
-      suggestedAvatarId: 'avatar_2',
-      suggestedAvatarReason: 'Technical specialist is now relevant.',
+      routingAction: 'unlock',
     })
   })
 
@@ -221,13 +222,15 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
       },
     ])
     mockGmOutput({
-      avatarId: 'avatar_1',
-      unlockAvatarIds: ['avatar_2'],
-      unlockDecisions: [
-        { avatarId: 'avatar_2', reason: 'User requested direct conversation with Miss Margot.' },
-      ],
-      conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
+      dialogueControl: { mode: 'transition', askFollowUp: false },
+      retrievalPlan: { required: false },
+      routing: {
+        action: 'unlock',
+        unlockDecisions: [
+          { avatarId: 'avatar_2', reason: 'User requested direct conversation with Miss Margot.' },
+        ],
+      },
+      progressionUpdate: { progression: 'none' },
     })
 
     await executeGm(useCase)
@@ -251,10 +254,16 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
   it('ignores invalid and non-scenario avatar IDs from GM unlock output', async () => {
     const useCase = createUseCase()
     mockGmOutput({
-      avatarId: 'avatar_1',
-      unlockAvatarIds: ['avatar_1', 'avatar_missing'],
-      conversationMode: 'continue',
-      stateUpdate: { interactionIncrement: 1 },
+      dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+      retrievalPlan: { required: false },
+      routing: {
+        action: 'unlock',
+        unlockDecisions: [
+          { avatarId: 'avatar_1', reason: 'Already available.' },
+          { avatarId: 'avatar_missing', reason: 'Unknown avatar.' },
+        ],
+      },
+      progressionUpdate: { progression: 'none' },
     })
 
     await executeGm(useCase)
@@ -282,13 +291,15 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
       },
     ])
     mockGmOutput({
-      avatarId: 'avatar_1',
-      unlockAvatarIds: ['avatar_2'],
-      unlockDecisions: [
-        { avatarId: 'avatar_2', reason: 'The topic stayed with the current guide.' },
-      ],
-      conversationMode: 'continue',
-      stateUpdate: { interactionIncrement: 1 },
+      dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+      retrievalPlan: { required: false },
+      routing: {
+        action: 'unlock',
+        unlockDecisions: [
+          { avatarId: 'avatar_2', reason: 'The topic stayed with the current guide.' },
+        ],
+      },
+      progressionUpdate: { progression: 'none' },
     })
 
     await executeGm(useCase)
@@ -310,11 +321,13 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
     const eventLog = new InMemoryEventLogRepository()
     const useCase = createUseCase(eventLog)
     mockGmOutput({
-      avatarId: 'avatar_1',
-      unlockAvatarIds: ['avatar_1'],
-      unlockDecisions: [{ avatarId: 'avatar_1', reason: 'Already available.' }],
-      conversationMode: 'continue',
-      stateUpdate: { interactionIncrement: 1 },
+      dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+      retrievalPlan: { required: false },
+      routing: {
+        action: 'unlock',
+        unlockDecisions: [{ avatarId: 'avatar_1', reason: 'Already available.' }],
+      },
+      progressionUpdate: { progression: 'none' },
     })
 
     await executeGm(useCase)
@@ -335,9 +348,9 @@ describe('RunGameMasterUseCase — avatar unlock decisions', () => {
   it('does not unlock when GM output has no unlock decision', async () => {
     const useCase = createUseCase()
     mockGmOutput({
-      avatarId: 'avatar_1',
-      conversationMode: 'continue',
-      stateUpdate: { interactionIncrement: 1 },
+      dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+      retrievalPlan: { required: false },
+      progressionUpdate: { progression: 'none' },
     })
 
     await executeGm(useCase)

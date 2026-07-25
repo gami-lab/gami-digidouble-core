@@ -352,10 +352,10 @@ function makeGmEvent(): RuntimeInspectorViewModel['recentEvents'][number] {
         topicsCovered: [],
       },
       decision: {
-        avatarId: 'avatar_2',
-        conversationMode: 'continue',
+        dialogueMode: 'avatar_guided',
+        askFollowUp: false,
         notesInjected: true,
-        directiveCount: 2,
+        retrievalRequired: false,
         unlockedAvatarIds: ['avatar_2'],
         unlockEvaluations: [
           {
@@ -365,9 +365,11 @@ function makeGmEvent(): RuntimeInspectorViewModel['recentEvents'][number] {
             outcome: 'unlocked',
           },
         ],
-        suggestedAvatarId: 'avatar_2',
-        suggestedAvatarReason: 'user asked architecture question',
+        routingAction: 'suggest',
+        routingAvatarId: 'avatar_2',
+        routingReason: 'user asked architecture question',
         switchedAvatarId: 'avatar_2',
+        progression: 'increase',
       },
       stateAfter: {
         progression: 'deep_dive',
@@ -555,7 +557,6 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('User-visible effect')
     expect(html).toContain('Avatar unlocks: avatar_2 (Theo) [unlocked]')
     expect(html).toContain('GM recommendation: Theo (avatar_2) — user asked architecture question')
-    expect(html).toContain('GM produced 2 structured recommendations.')
     expect(html).toContain('Turn 1')
     expect(html).toContain('Correlation: corr_1')
   })

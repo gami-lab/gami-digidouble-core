@@ -172,9 +172,9 @@ beforeEach(() => {
   ])
   completeMock.mockResolvedValue({
     content: JSON.stringify({
-      avatarId: 'avatar_1',
-      conversationMode: 'continue',
-      stateUpdate: { interactionIncrement: 1 },
+      dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+      retrievalPlan: { required: false },
+      progressionUpdate: { progression: 'none' },
     }),
     model: 'null-model',
     inputTokens: 10,
@@ -318,13 +318,10 @@ describe('RunGameMasterUseCase output normalization', () => {
     ])
     completeMock.mockResolvedValueOnce({
       content: JSON.stringify({
-        avatarId: 'Eva',
-        conversationMode: 'continue',
-        suggestedAvatarId: 'Theo',
-        stateUpdate: {
-          activeAvatarId: 'Eva',
-          interactionIncrement: 1,
-        },
+        dialogueControl: { mode: 'transition', askFollowUp: false },
+        retrievalPlan: { required: false },
+        routing: { action: 'switch', avatarId: 'Theo' },
+        progressionUpdate: { progression: 'none' },
       }),
       model: 'null-model',
       inputTokens: 10,
@@ -343,7 +340,7 @@ describe('RunGameMasterUseCase output normalization', () => {
     })
 
     const persistedState = saveMock.mock.calls[0]?.[1] as { currentAvatarId?: string } | undefined
-    expect(persistedState?.currentAvatarId).toBe('avatar_1')
+    expect(persistedState?.currentAvatarId).toBe('avatar_2')
   })
 })
 

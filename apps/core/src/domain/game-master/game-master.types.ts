@@ -22,7 +22,11 @@ export interface GameMasterState {
   currentAvatarId?: string
   /** Textual description of where the user is in the experience. */
   progression: string
-  /** Topics already covered — used to avoid repetition. */
+  /**
+   * Retained for schema/API compatibility only. Covered-topic tracking is now
+   * owned exclusively by memory compaction (`ConversationWorkingMemory.coveredTopics`);
+   * the GM no longer reports or appends to this field.
+   */
   topicsCovered: string[]
   interactionCount: number
 }
@@ -61,35 +65,66 @@ export interface GameMasterInput {
   }
 }
 
-/** Decision output produced by the GM. */
-export interface GameMasterOutput {
-  avatarId: string
-  nextAvatarId?: string
-  transitionReason?: string
-  recommendedChoices?: Array<{
-    id: string
-    label: string
-  }>
-  contentTrigger?: string
-  unlockAvatarIds?: string[]
+/** How the next Avatar turn should be led. */
+export type DialogueControlMode =
+  | 'user_led'
+  | 'avatar_guided'
+  | 'avatar_led'
+  | 'repair'
+  | 'transition'
+
+export interface DialogueControl {
+  mode: DialogueControlMode
+  /** Must be stated explicitly — never inferred from `mode` alone. */
+  askFollowUp: boolean
+}
+
+export type RetrievalPriority = 'mandatory' | 'optional'
+export type RetrievalScope = 'avatar_memory' | 'world_context' | 'scenario_knowledge'
+
+/**
+ * Retrieval the GM wants prepared for the next related Avatar turn.
+ * The GM does not perform retrieval itself; it only plans it.
+ */
+export interface RetrievalPlan {
+  required: boolean
+  priority?: RetrievalPriority
+  queries?: string[]
+  requiredFacts?: string[]
+  scopes?: RetrievalScope[]
+}
+
+export type RoutingAction = 'stay' | 'suggest' | 'switch' | 'unlock' | 'unlock_and_switch'
+
+export interface RoutingDecision {
+  action: RoutingAction
+  /** Not required for `stay`; required for `suggest`/`switch`/`unlock_and_switch`. */
+  avatarId?: string
+  reason?: string
+  /** Multiple unlock targets for `unlock`/`unlock_and_switch`. */
   unlockDecisions?: Array<{
     avatarId: string
     reason: string
   }>
-  suggestedAvatarId?: string
-  suggestedAvatarReason?: string
-  conversationMode: 'new' | 'continue'
-  context?: {
-    /** Freeform guidance note injected into the Avatar's next context. */
-    notes?: string
-  }
-  stateUpdate: {
-    progression?: 'none' | 'increase'
-    topicCovered?: string
-    activeAvatarId?: string
-    /** Always 1 — increment applied by the state reducer. */
-    interactionIncrement: 1
-  }
+}
+
+export type ProgressionState = 'none' | 'increase'
+
+export interface ProgressionUpdate {
+  progression: ProgressionState
+  objectiveId?: string
+  reason?: string
+}
+
+/** Decision output produced by the GM. */
+export interface GameMasterOutput {
+  dialogueControl: DialogueControl
+  retrievalPlan: RetrievalPlan
+  /** Compact narrative guidance not already covered by the structured fields. */
+  directorNotes?: string
+  /** Omitted entirely when routing is not applicable (e.g. a single-Avatar scenario). */
+  routing?: RoutingDecision
+  progressionUpdate: ProgressionUpdate
 }
 
 /** Snapshot of GM state fields included in diagnostic event payloads. */
@@ -112,11 +147,15 @@ export type GameMasterEvent = {
     interactionCount: number
     stateBefore: GameMasterStateSummary
     decision?: {
-      avatarId: string
-      conversationMode: 'new' | 'continue'
+      dialogueMode: DialogueControlMode
+      askFollowUp: boolean
       notesInjected: boolean
       injectedNote?: string
-      directiveCount: number
+      retrievalRequired: boolean
+      retrievalPriority?: RetrievalPriority
+      routingAction?: RoutingAction
+      routingAvatarId?: string
+      routingReason?: string
       unlockedAvatarIds?: string[]
       unlockEvaluations?: Array<{
         avatarId: string
@@ -124,9 +163,9 @@ export type GameMasterEvent = {
         reason?: string
         outcome: 'unlocked' | 'already_unlocked' | 'rejected_not_mentioned'
       }>
-      suggestedAvatarId?: string
-      suggestedAvatarReason?: string
       switchedAvatarId?: string
+      progression: ProgressionState
+      objectiveId?: string
     }
     stateAfter?: GameMasterStateSummary
     latencyMs: number

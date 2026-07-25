@@ -1,48 +1,63 @@
 import type { AvatarConfig } from '../avatar/avatar.types.js'
-import type { GameMasterOutput } from './game-master.types.js'
+import type { GameMasterOutput, RoutingDecision } from './game-master.types.js'
 
 export function normalizeGameMasterOutput(
   output: GameMasterOutput,
   scenarioAvatars: AvatarConfig[],
-): GameMasterOutput | null {
+): GameMasterOutput {
   const activeAvatars = scenarioAvatars.filter((avatar) => avatar.status === 'active')
-  const avatarId = resolveAvatarReference(output.avatarId, activeAvatars)
-  if (avatarId === undefined) return null
-
-  const nextAvatarId = normalizeOptionalReference(output.nextAvatarId, activeAvatars)
-  if (!isValidOptionalReference(output.nextAvatarId, nextAvatarId)) return null
-
-  const suggestedAvatarId = normalizeOptionalReference(output.suggestedAvatarId, activeAvatars)
-  if (!isValidOptionalReference(output.suggestedAvatarId, suggestedAvatarId)) return null
-
-  const activeAvatarId = normalizeOptionalReference(
-    output.stateUpdate.activeAvatarId,
-    activeAvatars,
-  )
-
-  const unlockAvatarIdsFromList =
-    output.unlockAvatarIds !== undefined
-      ? output.unlockAvatarIds
-          .map((candidate) => resolveAvatarReference(candidate, activeAvatars))
-          .filter((candidate): candidate is string => candidate !== undefined)
-      : []
-  const unlockDecisions = normalizeUnlockDecisions(output.unlockDecisions, activeAvatars)
-  const unlockAvatarIds = dedupeStringList([
-    ...unlockAvatarIdsFromList,
-    ...unlockDecisions.map((decision) => decision.avatarId),
-  ])
+  const routing = normalizeRouting(output.routing, activeAvatars)
 
   return {
-    ...output,
+    dialogueControl: output.dialogueControl,
+    retrievalPlan: output.retrievalPlan,
+    ...(output.directorNotes !== undefined ? { directorNotes: output.directorNotes } : {}),
+    ...(routing !== undefined ? { routing } : {}),
+    progressionUpdate: output.progressionUpdate,
+  }
+}
+
+function normalizeRouting(
+  routing: RoutingDecision | undefined,
+  activeAvatars: AvatarConfig[],
+): RoutingDecision | undefined {
+  if (routing === undefined) return undefined
+
+  if (routing.action === 'stay') {
+    return { action: 'stay', ...(routing.reason !== undefined ? { reason: routing.reason } : {}) }
+  }
+
+  if (routing.action === 'unlock') {
+    return normalizeUnlockRouting(routing, activeAvatars)
+  }
+
+  // 'suggest' | 'switch' | 'unlock_and_switch' — all require a single resolvable avatarId.
+  const avatarId = normalizeOptionalReference(routing.avatarId, activeAvatars)
+  if (avatarId === undefined) return undefined
+
+  return {
+    action: routing.action,
     avatarId,
-    ...(nextAvatarId !== undefined ? { nextAvatarId } : {}),
-    ...(suggestedAvatarId !== undefined ? { suggestedAvatarId } : {}),
-    ...(unlockAvatarIds.length > 0 ? { unlockAvatarIds } : {}),
-    ...(unlockDecisions.length > 0 ? { unlockDecisions } : {}),
-    stateUpdate: {
-      ...output.stateUpdate,
-      ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
-    },
+    ...(routing.reason !== undefined ? { reason: routing.reason } : {}),
+  }
+}
+
+function normalizeUnlockRouting(
+  routing: RoutingDecision,
+  activeAvatars: AvatarConfig[],
+): RoutingDecision | undefined {
+  const unlockDecisions = normalizeUnlockDecisions(routing.unlockDecisions, activeAvatars)
+  if (unlockDecisions.length > 0) {
+    return { action: 'unlock', unlockDecisions }
+  }
+
+  const avatarId = normalizeOptionalReference(routing.avatarId, activeAvatars)
+  if (avatarId === undefined) return undefined
+
+  return {
+    action: 'unlock',
+    avatarId,
+    ...(routing.reason !== undefined ? { reason: routing.reason } : {}),
   }
 }
 
@@ -52,13 +67,6 @@ function normalizeOptionalReference(
 ): string | undefined {
   if (value === undefined) return undefined
   return resolveAvatarReference(value, avatars)
-}
-
-function isValidOptionalReference(
-  original: string | undefined,
-  normalized: string | undefined,
-): boolean {
-  return original === undefined || normalized !== undefined
 }
 
 function resolveAvatarReference(value: string, avatars: AvatarConfig[]): string | undefined {
@@ -74,7 +82,7 @@ function resolveAvatarReference(value: string, avatars: AvatarConfig[]): string 
 }
 
 function normalizeUnlockDecisions(
-  decisions: GameMasterOutput['unlockDecisions'],
+  decisions: RoutingDecision['unlockDecisions'],
   avatars: AvatarConfig[],
 ): Array<{ avatarId: string; reason: string }> {
   if (decisions === undefined) return []
@@ -86,8 +94,4 @@ function normalizeUnlockDecisions(
     normalized.push({ avatarId, reason: decision.reason })
     return normalized
   }, [])
-}
-
-function dedupeStringList(values: string[]): string[] {
-  return [...new Set(values)]
 }

@@ -724,7 +724,7 @@ function formatSuggestedAvatar(
   snapshot: RuntimeInspectorViewModel,
   decision: GmSessionEventPayload['decision'] | null,
 ): string {
-  if (decision?.suggestedAvatarId === undefined) return '-'
-  const reason = decision.suggestedAvatarReason ?? 'no reason recorded'
-  return `${decision.suggestedAvatarId} — ${reason}`
+  if (decision?.routingAction !== 'suggest' || decision.routingAvatarId === undefined) return '-'
+  const reason = decision.routingReason ?? 'no reason recorded'
+  return `${decision.routingAvatarId} — ${reason}`
 }

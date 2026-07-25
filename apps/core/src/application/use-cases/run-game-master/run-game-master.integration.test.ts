@@ -23,16 +23,15 @@ import { GAME_MASTER_SYSTEM_PROMPT_VERSION } from '../../../domain/game-master/g
 
 const GM_RESPONSE: LlmResponse = {
   content: JSON.stringify({
-    avatarId: 'avatar_1',
-    suggestedAvatarId: 'avatar_2',
-    suggestedAvatarReason: 'Marine engineering context may help next.',
-    conversationMode: 'continue',
-    context: { notes: 'Keep the next reply grounded in tide evidence.' },
-    stateUpdate: {
-      progression: 'increase',
-      topicCovered: 'harbor_timeline',
-      interactionIncrement: 1,
+    dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+    retrievalPlan: { required: false },
+    directorNotes: 'Keep the next reply grounded in tide evidence.',
+    routing: {
+      action: 'suggest',
+      avatarId: 'avatar_2',
+      reason: 'Marine engineering context may help next.',
     },
+    progressionUpdate: { progression: 'increase' },
   }),
   model: 'observed-null-model',
   inputTokens: 18,
@@ -308,13 +307,14 @@ function assertRenderedPrompt(request: Omit<LlmRequest, 'trace'> | undefined): v
 
   expectSectionOrder(systemPrompt, [
     '## Role',
-    '## Objectives',
+    '## Responsibilities',
+    '## Fact Discipline',
     '## Decision Policies',
     '## Output Contract',
   ])
   expect(systemPrompt).toContain('Output ONLY a valid JSON object.')
   expect(systemPrompt).toContain(
-    'Bias toward conversationMode "continue" unless there is clear evidence for a switch.',
+    '- Prefer stay unless the latest exchange provides clear evidence for routing.',
   )
   expectSectionOrder(renderedPrompt, [
     '## Current Turn',
@@ -356,7 +356,7 @@ async function assertPersistenceAndEvents(harness: ReturnType<typeof createInteg
   expect(await harness.gmStateRepository.findBySessionId('session_1')).toMatchObject({
     currentAvatarId: 'avatar_1',
     progression: 'intro [advanced]',
-    topicsCovered: ['setup', 'harbor_timeline'],
+    topicsCovered: ['setup'],
     interactionCount: 2,
   })
 

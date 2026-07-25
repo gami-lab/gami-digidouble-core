@@ -364,22 +364,56 @@ function readOptionalStateSummary(value: unknown): GameMasterStateSummary | unde
   return isRecord(value) ? readStateSummary(value) : undefined
 }
 
+type GmDecision = NonNullable<GmSessionEventPayload['decision']>
+
+const DIALOGUE_MODES = new Set<GmDecision['dialogueMode']>([
+  'user_led',
+  'avatar_guided',
+  'avatar_led',
+  'repair',
+  'transition',
+])
+const ROUTING_ACTIONS = new Set<NonNullable<GmDecision['routingAction']>>([
+  'stay',
+  'suggest',
+  'switch',
+  'unlock',
+  'unlock_and_switch',
+])
+
+function readDialogueMode(value: unknown): GmDecision['dialogueMode'] {
+  return DIALOGUE_MODES.has(value as GmDecision['dialogueMode'])
+    ? (value as GmDecision['dialogueMode'])
+    : 'user_led'
+}
+
+function readOptionalRoutingAction(value: unknown): Pick<GmDecision, 'routingAction'> | object {
+  return ROUTING_ACTIONS.has(value as NonNullable<GmDecision['routingAction']>)
+    ? { routingAction: value as NonNullable<GmDecision['routingAction']> }
+    : {}
+}
+
 function readDecision(value: unknown): GmSessionEventPayload['decision'] | undefined {
   if (!isRecord(value)) return undefined
-  const conversationMode = value['conversationMode']
+  const progression = value['progression']
   const unlockEvaluations = readOptionalUnlockEvaluations(value['unlockEvaluations'])
   return {
-    avatarId: typeof value['avatarId'] === 'string' ? value['avatarId'] : '',
-    conversationMode:
-      conversationMode === 'new' || conversationMode === 'continue' ? conversationMode : 'continue',
+    dialogueMode: readDialogueMode(value['dialogueMode']),
+    askFollowUp: value['askFollowUp'] === true,
     notesInjected: value['notesInjected'] === true,
     ...readOptionalStringField(value, 'injectedNote'),
-    directiveCount: readNumber(value['directiveCount']),
+    retrievalRequired: value['retrievalRequired'] === true,
+    ...(value['retrievalPriority'] === 'mandatory' || value['retrievalPriority'] === 'optional'
+      ? { retrievalPriority: value['retrievalPriority'] }
+      : {}),
+    ...readOptionalRoutingAction(value['routingAction']),
+    ...readOptionalStringField(value, 'routingAvatarId'),
+    ...readOptionalStringField(value, 'routingReason'),
     ...(unlockEvaluations !== undefined ? { unlockEvaluations } : {}),
-    ...readOptionalStringField(value, 'suggestedAvatarId'),
-    ...readOptionalStringField(value, 'suggestedAvatarReason'),
     ...readOptionalStringField(value, 'switchedAvatarId'),
     ...readOptionalStringArrayField(value, 'unlockedAvatarIds'),
+    progression: progression === 'increase' ? 'increase' : 'none',
+    ...readOptionalStringField(value, 'objectiveId'),
   }
 }
 
@@ -844,11 +878,12 @@ function readOptionalCandidateFacts(
 
 function readOptionalStringField<
   K extends
-    | 'suggestedAvatarId'
-    | 'suggestedAvatarReason'
+    | 'routingAvatarId'
+    | 'routingReason'
     | 'switchedAvatarId'
     | 'correlationId'
-    | 'injectedNote',
+    | 'injectedNote'
+    | 'objectiveId',
 >(value: Record<string, unknown>, key: K): Partial<Record<K, string>> {
   const field = readOptionalString(value[key])
   return field !== undefined ? ({ [key]: field } as Partial<Record<K, string>>) : {}

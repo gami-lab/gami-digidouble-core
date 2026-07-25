@@ -166,7 +166,7 @@ describe('renderGameMasterInputForLlm', () => {
     expect(prompt).not.toContain('### Retrieved Context')
     expect(prompt).toContain('- Current Avatar ID: none')
     expect(prompt).toContain('- Progression: none')
-    expect(prompt).toContain('- Topics Covered: none')
+    expect(prompt).not.toContain('- Topics Covered:')
     expect(prompt).toContain('### Available Avatars')
     expect(prompt).toContain('- None provided.')
   })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { GameMasterState } from './game-master.types.js'
+import type { GameMasterState, ProgressionUpdate, RoutingDecision } from './game-master.types.js'
 import { reduceGmState } from './gm-state-reducer.js'
 
 function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
@@ -11,17 +11,19 @@ function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
   }
 }
 
+const NONE: ProgressionUpdate = { progression: 'none' }
+const INCREASE: ProgressionUpdate = { progression: 'increase' }
+
 describe('reduceGmState', () => {
   it('always increments interactionCount', () => {
-    const result = reduceGmState(makeState(), { interactionIncrement: 1 })
+    const result = reduceGmState(makeState(), { progressionUpdate: NONE })
 
     expect(result.interactionCount).toBe(3)
   })
 
   it('appends [advanced] progression marker when progression increases', () => {
     const result = reduceGmState(makeState({ progression: 'intro' }), {
-      progression: 'increase',
-      interactionIncrement: 1,
+      progressionUpdate: INCREASE,
     })
 
     expect(result.progression).toBe('intro [advanced]')
@@ -29,34 +31,51 @@ describe('reduceGmState', () => {
 
   it('does not append duplicate [advanced] marker', () => {
     const result = reduceGmState(makeState({ progression: 'intro [advanced]' }), {
-      progression: 'increase',
-      interactionIncrement: 1,
+      progressionUpdate: INCREASE,
     })
 
     expect(result.progression).toBe('intro [advanced]')
   })
 
-  it('adds topicCovered when present', () => {
-    const result = reduceGmState(makeState(), {
-      topicCovered: 'ocean_cleanup',
-      interactionIncrement: 1,
-    })
+  it('never appends to topicsCovered — covered-topic tracking is owned by memory compaction', () => {
+    const result = reduceGmState(makeState(), { progressionUpdate: NONE })
 
-    expect(result.topicsCovered).toEqual(['plastic', 'ocean_cleanup'])
+    expect(result.topicsCovered).toEqual(['plastic'])
   })
 
-  it('updates currentAvatarId when activeAvatarId is provided', () => {
+  it('updates currentAvatarId when routing switches to another avatar', () => {
+    const routing: RoutingDecision = { action: 'switch', avatarId: 'avatar_2' }
     const result = reduceGmState(makeState({ currentAvatarId: 'avatar_1' }), {
-      activeAvatarId: 'avatar_2',
-      interactionIncrement: 1,
+      progressionUpdate: NONE,
+      routing,
     })
 
     expect(result.currentAvatarId).toBe('avatar_2')
   })
 
-  it('leaves all fields unchanged when stateUpdate has no optional fields', () => {
+  it('updates currentAvatarId when routing unlocks and switches', () => {
+    const routing: RoutingDecision = { action: 'unlock_and_switch', avatarId: 'avatar_3' }
+    const result = reduceGmState(makeState({ currentAvatarId: 'avatar_1' }), {
+      progressionUpdate: NONE,
+      routing,
+    })
+
+    expect(result.currentAvatarId).toBe('avatar_3')
+  })
+
+  it('leaves currentAvatarId unchanged for stay/suggest/unlock routing', () => {
+    const routing: RoutingDecision = { action: 'suggest', avatarId: 'avatar_2' }
+    const result = reduceGmState(makeState({ currentAvatarId: 'avatar_1' }), {
+      progressionUpdate: NONE,
+      routing,
+    })
+
+    expect(result.currentAvatarId).toBe('avatar_1')
+  })
+
+  it('leaves all fields unchanged when there is no routing or progression change', () => {
     const state = makeState()
-    const result = reduceGmState(state, { interactionIncrement: 1 })
+    const result = reduceGmState(state, { progressionUpdate: NONE })
 
     expect(result.progression).toBe(state.progression)
     expect(result.topicsCovered).toEqual(state.topicsCovered)
@@ -72,7 +91,7 @@ describe('reduceGmState', () => {
     }
     const topicsRef = original.topicsCovered
 
-    reduceGmState(original, { topicCovered: 'ocean', interactionIncrement: 1 })
+    reduceGmState(original, { progressionUpdate: NONE })
 
     expect(original.interactionCount).toBe(2)
     expect(original.topicsCovered).toBe(topicsRef)

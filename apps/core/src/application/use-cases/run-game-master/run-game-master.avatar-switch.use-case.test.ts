@@ -132,14 +132,13 @@ beforeEach(() => {
 })
 
 describe('RunGameMasterUseCase — async avatar switch safety', () => {
-  it('does not switch conversations when GM outputs conversationMode new', async () => {
+  it('does not switch conversations when GM routes a switch', async () => {
     const useCase = createUseCase()
     mockGmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: 'avatar_2',
-      transitionReason: 'specialist_handoff',
-      conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
+      dialogueControl: { mode: 'transition', askFollowUp: false },
+      retrievalPlan: { required: false },
+      routing: { action: 'switch', avatarId: 'avatar_2', reason: 'specialist_handoff' },
+      progressionUpdate: { progression: 'none' },
     })
 
     await useCase.execute({
@@ -156,7 +155,7 @@ describe('RunGameMasterUseCase — async avatar switch safety', () => {
     expect(updateSessionMock).not.toHaveBeenCalledWith('session_1', { activeAvatarId: 'avatar_2' })
   })
 
-  it('does not switch even when nextAvatarId is locked', async () => {
+  it('does not switch even when the routed avatarId is locked', async () => {
     const useCase = createUseCase()
     findSessionByIdMock.mockResolvedValue({
       sessionId: 'session_1',
@@ -169,10 +168,10 @@ describe('RunGameMasterUseCase — async avatar switch safety', () => {
       lastActivityAt: '2026-04-18T10:00:00.000Z',
     })
     mockGmOutput({
-      avatarId: 'avatar_1',
-      nextAvatarId: 'avatar_2',
-      conversationMode: 'new',
-      stateUpdate: { interactionIncrement: 1 },
+      dialogueControl: { mode: 'transition', askFollowUp: false },
+      retrievalPlan: { required: false },
+      routing: { action: 'switch', avatarId: 'avatar_2' },
+      progressionUpdate: { progression: 'none' },
     })
 
     await useCase.execute({

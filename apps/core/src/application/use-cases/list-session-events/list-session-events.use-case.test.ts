@@ -75,11 +75,13 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
         scenario: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
       },
       decision: {
-        avatarId: 'avatar_2',
-        conversationMode: 'new',
+        dialogueMode: 'transition',
+        askFollowUp: false,
         notesInjected: true,
         injectedNote: 'Ask Theo for concrete implementation details next.',
-        directiveCount: 1,
+        retrievalRequired: false,
+        routingAction: 'switch',
+        routingAvatarId: 'avatar_2',
         unlockEvaluations: [
           {
             avatarId: 'avatar_2',
@@ -88,6 +90,7 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
             outcome: 'unlocked',
           },
         ],
+        progression: 'none',
       },
       stateAfter: {
         currentAvatarId: 'avatar_2',
@@ -261,11 +264,13 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
           },
         },
         decision: {
-          avatarId: 'avatar_2',
-          conversationMode: 'new',
+          dialogueMode: 'transition',
+          askFollowUp: false,
           notesInjected: true,
           injectedNote: 'Ask Theo for concrete implementation details next.',
-          directiveCount: 1,
+          retrievalRequired: false,
+          routingAction: 'switch',
+          routingAvatarId: 'avatar_2',
           unlockEvaluations: [
             {
               avatarId: 'avatar_2',
@@ -274,6 +279,7 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
               outcome: 'unlocked',
             },
           ],
+          progression: 'none',
         },
         stateAfter: {
           currentAvatarId: 'avatar_2',

@@ -91,9 +91,9 @@ beforeEach(() => {
   listAvatarsByScenarioIdMock.mockResolvedValue([makeAvatar()])
   completeMock.mockResolvedValue({
     content: JSON.stringify({
-      avatarId: 'avatar_1',
-      conversationMode: 'continue',
-      stateUpdate: { activeAvatarId: 'avatar_1', interactionIncrement: 1 },
+      dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+      retrievalPlan: { required: false },
+      progressionUpdate: { progression: 'none' },
     }),
     model: 'null-model',
     inputTokens: 5,

@@ -195,23 +195,27 @@ export function buildTriggeredDecision(
   unlockEvaluations: UnlockEvaluation[],
   switchedAvatarId: string | undefined,
 ): Record<string, unknown> {
-  const injectedNote = normalizeInjectedNote(output.context?.notes)
+  const injectedNote = normalizeInjectedNote(output.directorNotes)
 
   return {
-    avatarId: output.avatarId,
-    conversationMode: output.conversationMode,
-    notesInjected: Boolean(output.context?.notes),
+    dialogueMode: output.dialogueControl.mode,
+    askFollowUp: output.dialogueControl.askFollowUp,
+    notesInjected: Boolean(output.directorNotes),
     ...(injectedNote !== undefined ? { injectedNote } : {}),
-    directiveCount: output.recommendedChoices?.length ?? 0,
+    retrievalRequired: output.retrievalPlan.required,
+    ...(output.retrievalPlan.priority !== undefined
+      ? { retrievalPriority: output.retrievalPlan.priority }
+      : {}),
+    ...(output.routing !== undefined ? { routingAction: output.routing.action } : {}),
+    ...(output.routing?.avatarId !== undefined ? { routingAvatarId: output.routing.avatarId } : {}),
+    ...(output.routing?.reason !== undefined ? { routingReason: output.routing.reason } : {}),
     ...(unlockedAvatarIds.length > 0 ? { unlockedAvatarIds } : {}),
     ...(unlockEvaluations.length > 0 ? { unlockEvaluations } : {}),
-    ...(output.suggestedAvatarId !== undefined
-      ? { suggestedAvatarId: output.suggestedAvatarId }
-      : {}),
-    ...(output.suggestedAvatarReason !== undefined
-      ? { suggestedAvatarReason: output.suggestedAvatarReason }
-      : {}),
     ...(switchedAvatarId !== undefined ? { switchedAvatarId } : {}),
+    progression: output.progressionUpdate.progression,
+    ...(output.progressionUpdate.objectiveId !== undefined
+      ? { objectiveId: output.progressionUpdate.objectiveId }
+      : {}),
   }
 }
 

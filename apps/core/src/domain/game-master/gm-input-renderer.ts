@@ -1,6 +1,6 @@
 import type { GameMasterInput } from './game-master.types.js'
 
-export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v2'
+export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v3'
 
 /**
  * Internal LLM rendering for the Game Master input contract.
@@ -96,6 +96,10 @@ function renderRecentMessages(recentMessages: GameMasterInput['recentMessages'])
   ]
 }
 
+/**
+ * Covered-topic tracking lives in Working Memory (memory compaction owns it) —
+ * GM state no longer reports its own topic list here.
+ */
 function renderGameMasterState(state: GameMasterInput['state']): string[] {
   return [
     '### Current GM State',
@@ -103,7 +107,6 @@ function renderGameMasterState(state: GameMasterInput['state']): string[] {
       hasText(state.currentAvatarId) ? normalizeInlineText(state.currentAvatarId) : 'none'
     }`,
     `- Progression: ${hasText(state.progression) ? normalizeInlineText(state.progression) : 'none'}`,
-    `- Topics Covered: ${formatInlineList(state.topicsCovered)}`,
     `- Interaction Count: ${formatNumber(state.interactionCount)}`,
   ]
 }
