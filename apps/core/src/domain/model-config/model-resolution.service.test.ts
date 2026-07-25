@@ -210,3 +210,51 @@ describe('ModelResolutionService.resolve -> scenario model selection', () => {
     })
   })
 })
+
+describe('ModelResolutionService.resolve -> memory scenario model selection', () => {
+  it('uses scenario default for memory when no memoryOverride is present', () => {
+    expect(
+      ModelResolutionService.resolve('memory', baseConfig, {
+        scenarioModelSelection: {
+          defaultProfile: {
+            provider: 'xai',
+            model: 'grok-4.3',
+          },
+        },
+      }),
+    ).toEqual({
+      provider: 'xai',
+      model: 'grok-4.3',
+    })
+  })
+
+  it('uses memoryOverride before scenario default and global config', () => {
+    const config: ModelConfig = {
+      ...baseConfig,
+      roleOverrides: {
+        memory: {
+          provider: 'mistral',
+          model: 'mistral-medium-3.5',
+        },
+      },
+    }
+
+    expect(
+      ModelResolutionService.resolve('memory', config, {
+        scenarioModelSelection: {
+          defaultProfile: {
+            provider: 'openai',
+            model: 'gpt-5.4-mini',
+          },
+          memoryOverride: {
+            provider: 'xai',
+            model: 'grok-4.3',
+          },
+        },
+      }),
+    ).toEqual({
+      provider: 'xai',
+      model: 'grok-4.3',
+    })
+  })
+})

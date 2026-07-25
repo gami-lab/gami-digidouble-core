@@ -169,6 +169,7 @@ describe('MemoryMaintenanceService — persistence and events', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
       correlationId: 'corr_1',
     })
@@ -195,6 +196,7 @@ describe('MemoryMaintenanceService — persistence and events', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
     const firstConversationMemory =
@@ -204,6 +206,7 @@ describe('MemoryMaintenanceService — persistence and events', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
     const secondConversationMemory =
@@ -251,6 +254,7 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
 
@@ -317,6 +321,7 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
 
@@ -366,6 +371,7 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
 
@@ -391,6 +397,7 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
       correlationId: 'corr_1',
     })
@@ -405,6 +412,7 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
     expect(triggered?.correlationId).toBe('corr_1')
@@ -414,6 +422,7 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
       messageCount: 6,
       exchangeCount: 3,
@@ -453,6 +462,7 @@ describe('MemoryMaintenanceService — event payload contract', () => {
         sessionId: 'session_1',
         conversationId: 'conversation_1',
         avatarId: 'avatar_1',
+        scenarioId: 'scenario_1',
         trigger: 'conversation_closed',
       }),
     ).resolves.toBeUndefined()
@@ -467,6 +477,7 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'conversation_closed',
       error: 'messages unavailable',
     })
@@ -483,6 +494,7 @@ describe('MemoryMaintenanceService — prior memory continuity', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
     const firstMemory =
@@ -494,6 +506,7 @@ describe('MemoryMaintenanceService — prior memory continuity', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
     const secondMemory =
@@ -539,6 +552,7 @@ describe('MemoryMaintenanceService — prior memory continuity', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
 
@@ -586,6 +600,7 @@ describe('MemoryMaintenanceService — prior memory continuity', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
 
@@ -640,6 +655,7 @@ describe('MemoryMaintenanceService — pending refresh coordination', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
 
@@ -699,6 +715,7 @@ describe('MemoryMaintenanceService — post_turn policy gate', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
 
@@ -742,6 +759,7 @@ describe('MemoryMaintenanceService — post_turn policy gate', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'post_turn',
     })
 

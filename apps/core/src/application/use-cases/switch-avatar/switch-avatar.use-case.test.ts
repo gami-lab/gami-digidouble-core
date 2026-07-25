@@ -209,6 +209,7 @@ describe('SwitchAvatarUseCase success flows', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'avatar_switch',
     })
   })
@@ -315,6 +316,7 @@ describe('SwitchAvatarUseCase episodic continuity', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'avatar_switch',
     })
     expect(generateForClosedConversationMock).not.toHaveBeenCalled()

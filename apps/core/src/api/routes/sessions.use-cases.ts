@@ -73,6 +73,7 @@ export function createSessionRouteUseCases(deps: {
     deps.modelConfigRepository,
     deps.llmAdapterRegistry,
     deps.modelConfigFallback,
+    deps.scenarioRepository,
   )
   const episodicMemoryService = new EpisodicMemoryService(
     deps.conversationMemoryRepository,

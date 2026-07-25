@@ -11,6 +11,7 @@ import type { IEventLogRepository } from '../../application/ports/IEventLogRepos
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../../application/ports/IMemoryMaintenancePort.js'
+import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
@@ -44,6 +45,7 @@ export type AdminRuntimeActionsRouteOptions = {
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
+  scenarioRepository?: IScenarioRepository
 }
 
 type SessionParams = {
@@ -79,6 +81,7 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
       options.modelConfigRepository,
       options.llmAdapterRegistry,
       options.modelConfigFallback,
+      options.scenarioRepository,
     )
 
   const useCase = new AdminRuntimeActionsUseCase(

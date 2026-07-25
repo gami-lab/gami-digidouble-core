@@ -24,6 +24,7 @@ export type ModelSelectionOverride = {
 export type ScenarioModelSelection = {
   defaultProfile?: ModelProfile
   gameMasterOverride?: ModelProfile
+  memoryOverride?: ModelProfile
 }
 
 const PROVIDER_MODEL_PRESETS: Record<ModelSelectionProviderName, readonly ModelPresetOption[]> = {

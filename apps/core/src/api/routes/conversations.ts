@@ -279,6 +279,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     options.modelConfigRepository,
     options.llmAdapterRegistry,
     options.modelConfigFallback,
+    repositories.scenarioRepository,
   )
   const episodicMemoryService = new EpisodicMemoryService(
     repositories.conversationMemoryRepository,

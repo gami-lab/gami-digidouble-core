@@ -101,6 +101,7 @@ export class EndConversationUseCase {
           sessionId: input.sessionId,
           conversationId: input.conversationId,
           avatarId: input.avatarId,
+          scenarioId: input.scenarioId,
           trigger: 'conversation_closed',
         })
       } catch (error: unknown) {

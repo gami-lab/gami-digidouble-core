@@ -168,6 +168,7 @@ export class StartConversationUseCase {
           sessionId: input.sessionId,
           conversationId: input.conversationId,
           avatarId: input.avatarId,
+          scenarioId: input.scenarioId,
           trigger: 'avatar_switch',
         })
       } catch (error: unknown) {

@@ -436,6 +436,7 @@ export class SendMessageUseCase {
   private dispatchMemoryMaintenance(args: {
     requestId: string
     sessionId: string
+    scenarioId: string
     conversationId: string
     avatarId: string
   }): void {
@@ -445,6 +446,7 @@ export class SendMessageUseCase {
         sessionId: args.sessionId,
         conversationId: args.conversationId,
         avatarId: args.avatarId,
+        scenarioId: args.scenarioId,
         trigger: 'post_turn',
         correlationId: args.requestId,
       }),

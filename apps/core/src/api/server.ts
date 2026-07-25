@@ -429,6 +429,9 @@ function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAd
     ...(adapters.modelConfigFallback !== undefined
       ? { modelConfigFallback: adapters.modelConfigFallback }
       : {}),
+    ...(adapters.scenarioRepository !== undefined
+      ? { scenarioRepository: adapters.scenarioRepository }
+      : {}),
   }
 }
 

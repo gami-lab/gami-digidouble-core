@@ -123,6 +123,7 @@ describe('EndConversationUseCase', () => {
       sessionId: 'session_1',
       conversationId: 'conversation_1',
       avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
       trigger: 'conversation_closed',
     })
 

@@ -9,6 +9,7 @@ export interface IMemoryMaintenancePort {
     sessionId: string
     conversationId: string
     avatarId: string
+    scenarioId: string
     trigger: MemoryRefreshTrigger
     correlationId?: string
   }): Promise<void>

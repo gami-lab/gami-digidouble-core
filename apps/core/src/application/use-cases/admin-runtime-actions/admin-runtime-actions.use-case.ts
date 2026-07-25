@@ -85,7 +85,7 @@ export class AdminRuntimeActionsUseCase {
   }
 
   async refreshMemory(input: RefreshMemoryInput): Promise<RefreshMemoryOutput> {
-    await this.requireSession(input.sessionId)
+    const session = await this.requireSession(input.sessionId)
     const conversation = await this.resolveLatestConversation(input.sessionId)
     if (conversation === null) {
       throw new DomainError(
@@ -103,6 +103,7 @@ export class AdminRuntimeActionsUseCase {
         sessionId: input.sessionId,
         conversationId: conversation.conversationId,
         avatarId: conversation.avatarId,
+        scenarioId: session.scenarioId,
         trigger: 'admin_trigger',
         correlationId,
       })

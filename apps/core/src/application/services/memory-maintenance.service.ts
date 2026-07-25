@@ -10,6 +10,7 @@ import type { IMessageRepository } from '../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../ports/IMemoryMaintenancePort.js'
 import type { IConversationWorkingMemoryRepository } from '../ports/IConversationWorkingMemoryRepository.js'
 import type { IModelConfigRepository } from '../ports/IModelConfigRepository.js'
+import type { IScenarioRepository } from '../ports/IScenarioRepository.js'
 import type { ModelConfig } from '../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 import { logResolvedLlmCall, resolveRoleLlmCall } from './model-resolution-runtime.service.js'
@@ -89,6 +90,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     private readonly modelConfigRepository?: IModelConfigRepository,
     private readonly llmAdapterRegistry?: LlmAdapterRegistry,
     private readonly modelConfigFallback?: ModelConfig,
+    private readonly scenarioRepository?: IScenarioRepository,
   ) {}
 
   async awaitPendingRefresh(conversationId: string): Promise<void> {
@@ -102,6 +104,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     sessionId: string
     conversationId: string
     avatarId: string
+    scenarioId: string
     trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
     correlationId?: string
   }): Promise<void> {
@@ -123,6 +126,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     sessionId: string
     conversationId: string
     avatarId: string
+    scenarioId: string
     trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
     correlationId?: string
   }): Promise<void> {
@@ -137,6 +141,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
         sessionId: input.sessionId,
         conversationId: input.conversationId,
         avatarId: input.avatarId,
+        scenarioId: input.scenarioId,
         trigger: input.trigger,
       },
     })
@@ -159,6 +164,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
         sessionId: input.sessionId,
         conversationId: input.conversationId,
         avatarId: input.avatarId,
+        scenarioId: input.scenarioId,
         trigger: input.trigger,
       })
 
@@ -182,6 +188,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
           sessionId: input.sessionId,
           conversationId: input.conversationId,
           avatarId: input.avatarId,
+          scenarioId: input.scenarioId,
           trigger: input.trigger,
           workingSummary: rewritten.summary,
           messageCount: recentOrdered.length,
@@ -202,6 +209,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
           sessionId: input.sessionId,
           conversationId: input.conversationId,
           avatarId: input.avatarId,
+          scenarioId: input.scenarioId,
           trigger: input.trigger,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
@@ -225,10 +233,11 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       sessionId: string
       conversationId: string
       avatarId: string
+      scenarioId: string
       trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
     },
   ) {
-    const resolvedLlm = await this.resolveMemoryLlmCall()
+    const resolvedLlm = await this.resolveMemoryLlmCall(context.scenarioId)
     const llmRequest = {
       systemPrompt: WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT,
       messages: [{ role: 'user' as const, content: buildCompactionInput(messages, priorMemory) }],
@@ -261,12 +270,13 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     throw new Error('[memory-maintenance] LLM returned unparseable compaction output')
   }
 
-  private async resolveMemoryLlmCall(): Promise<{
+  private async resolveMemoryLlmCall(scenarioId: string): Promise<{
     adapter: ILlmAdapter
     provider: string
     model?: string
     effectiveModel: string
   }> {
+    const scenario = await this.scenarioRepository?.findById(scenarioId)
     return await resolveRoleLlmCall({
       role: 'memory',
       legacyAdapter: this.llm,
@@ -274,7 +284,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       llmAdapterRegistry: this.llmAdapterRegistry,
       modelConfigFallback: this.modelConfigFallback,
       avatarOverride: undefined,
-      scenarioModelSelection: undefined,
+      scenarioModelSelection: scenario?.modelSelection,
     })
   }
 }

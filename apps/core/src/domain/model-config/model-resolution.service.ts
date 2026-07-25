@@ -20,9 +20,12 @@ function resolveScenarioSelection(
   role: ModelRole,
   scenarioModelSelection: ScenarioModelSelectionConfig | undefined,
 ): ScenarioModelSelectionConfig['defaultProfile'] | undefined {
-  if (role === 'memory' || scenarioModelSelection === undefined) return undefined
+  if (scenarioModelSelection === undefined) return undefined
   if (role === 'gameMaster') {
     return scenarioModelSelection.gameMasterOverride ?? scenarioModelSelection.defaultProfile
+  }
+  if (role === 'memory') {
+    return scenarioModelSelection.memoryOverride ?? scenarioModelSelection.defaultProfile
   }
 
   return scenarioModelSelection.defaultProfile
