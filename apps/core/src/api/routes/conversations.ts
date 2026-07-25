@@ -180,6 +180,7 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
         reply.raw.setHeader('Cache-Control', 'no-cache')
         reply.raw.setHeader('Connection', 'keep-alive')
         reply.raw.setHeader('X-Accel-Buffering', 'no')
+        reply.raw.setHeader('Access-Control-Allow-Origin', options.config.corsOrigin)
         await reply.hijack()
         responseStarted = true
         writeMessageStreamFrame(reply.raw, mapStreamingEvent(first.value))

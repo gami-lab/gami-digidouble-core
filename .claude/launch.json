@@ -15,6 +15,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "cd apps/admin && npm run dev"],
       "port": 5173
+    },
+    {
+      "name": "web-ui",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd apps/web && npm run dev -- --port 5174"],
+      "port": 5174
     }
   ]
 }
