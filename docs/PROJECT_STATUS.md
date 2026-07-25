@@ -1,7 +1,7 @@
 # Project Status
 
-Last updated: 2026-07-22
-Current phase: Phase A core runtime delivered through EPIC 8.4
+Last updated: 2026-07-25
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 2
 
 ## Snapshot
 
@@ -46,6 +46,8 @@ The platform is now a working headless conversational runtime with:
 - GM runs asynchronously after completed avatar turns and can also run on session start or manual replay.
 - GM can inject notes, suggest or switch avatars, unlock avatars, and update lightweight orchestration state.
 - GM decisions are validated by runtime guards before they affect conversations or session state.
+- GM output is stored as turn-scoped next-turn orchestration state; the next Avatar turn consumes matching dialogue guidance and retrieval intent exactly once.
+- Mandatory retrieval gaps inject explicit uncertainty guidance, and invalid routing falls back to `stay` without changing progression or memory ownership.
 - Safe GM diagnostics are recorded in the event log and exposed through admin APIs.
 
 ### Memory

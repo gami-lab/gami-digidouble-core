@@ -17,13 +17,25 @@ const DEFAULT_STYLE_RULE = [
   'Use dialogue over lectures: default to 1-3 short sentences for simple questions.',
   'Match answer length to user effort and question complexity.',
   'Apply the 80/20 rule: assume most context is already known and provide only the next useful 20%.',
-  'Prioritize curiosity: end with one focused follow-up question when it helps the user go deeper.',
 ].join(' ')
+
+const DIALOGUE_CONTROL_RULES = [
+  'Dialogue-control modes:',
+  "- user_led: Answer the user's question directly. Let the user control the sequence. Do not add a generic follow-up question.",
+  '- avatar_guided: Answer directly. You may offer one focused question or next direction.',
+  '- avatar_led: Take initiative. Introduce one meaningful topic, recollection, or question.',
+  '- repair: Resolve the contradiction, misunderstanding, or unsupported claim before progressing. Do not introduce a new topic until the issue is clarified.',
+  '- transition: Close the current topic naturally and move toward the indicated subject or Avatar.',
+  "- Respect the Game Master's askFollowUp value. When false, do not end with a question unless clarification is required to understand the user's request.",
+].join('\n')
 
 export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptOptions): string {
   const promptInputs = resolvePromptSectionInputs(config, opts)
   const sections = [
-    ...buildDirectorNotes(promptInputs.directorNotes),
+    ...buildGameMasterGuidance(promptInputs.gmGuidance),
+    ...(promptInputs.gmGuidance === undefined
+      ? buildDirectorNotes(promptInputs.directorNotes)
+      : []),
     buildResponseRulesSection(promptInputs.responseRules),
     ...buildConversationStateSection(promptInputs.memory, promptInputs.avatarAwareness),
     ...buildUserPersonaContext(promptInputs.userPersona),
@@ -48,6 +60,7 @@ function resolvePromptSectionInputs(
   userPersona: AvatarPromptOptions['userPersona']
   worldContext: string | ContextScenarioSnapshot | undefined
   retrieval: AvatarPromptOptions['retrieval']
+  gmGuidance: AvatarPromptOptions['gmGuidance']
 } {
   const promptSections = opts?.sections
   if (promptSections === undefined) {
@@ -68,6 +81,7 @@ function resolveLegacyPromptSectionInputs(
   userPersona: AvatarPromptOptions['userPersona']
   worldContext: string | ContextScenarioSnapshot | undefined
   retrieval: AvatarPromptOptions['retrieval']
+  gmGuidance: AvatarPromptOptions['gmGuidance']
 } {
   return {
     directorNotes: opts?.gmNotes,
@@ -77,6 +91,7 @@ function resolveLegacyPromptSectionInputs(
     userPersona: opts?.userPersona,
     worldContext: opts?.worldContext,
     retrieval: opts?.retrieval,
+    gmGuidance: opts?.gmGuidance,
   }
 }
 
@@ -91,6 +106,7 @@ function resolveSelectedPromptSectionInputs(
   userPersona: AvatarPromptOptions['userPersona']
   worldContext: string | ContextScenarioSnapshot | undefined
   retrieval: AvatarPromptOptions['retrieval']
+  gmGuidance: AvatarPromptOptions['gmGuidance']
 } {
   return {
     directorNotes: promptSections.directorNotes ?? undefined,
@@ -100,6 +116,7 @@ function resolveSelectedPromptSectionInputs(
     userPersona: promptSections.userPersona ?? undefined,
     worldContext: promptSections.worldContext,
     retrieval: promptSections.retrievedContext?.typedSections,
+    gmGuidance: opts?.gmGuidance,
   }
 }
 
@@ -274,7 +291,12 @@ function buildAdjustments(adjustments: AvatarConfig['adjustments']): string[] {
 }
 
 function buildResponseRulesSection(responseRules: string[] | undefined): string {
-  const lines = ['## Response Rules', ...buildAdjustments(responseRules), DEFAULT_STYLE_RULE]
+  const lines = [
+    '## Response Rules',
+    ...buildAdjustments(responseRules),
+    DEFAULT_STYLE_RULE,
+    DIALOGUE_CONTROL_RULES,
+  ]
   return lines.join('\n')
 }
 
@@ -299,6 +321,27 @@ function appendAvatarAwareness(lines: string[], avatars: AvatarAwarenessItem[] |
 function buildDirectorNotes(gmNotes: string | undefined): string[] {
   if (!hasText(gmNotes)) return []
   return [['## Director Notes', gmNotes.trim()].join('\n')]
+}
+
+function buildGameMasterGuidance(guidance: AvatarPromptOptions['gmGuidance']): string[] {
+  if (guidance === undefined) return []
+
+  const lines = [
+    '## Game Master Guidance',
+    `Dialogue mode: ${guidance.mode}`,
+    `Follow-up question: ${guidance.askFollowUp ? 'yes' : 'no'}`,
+  ]
+  if (hasText(guidance.directorNotes)) {
+    lines.push('', 'Director note:', guidance.directorNotes.trim())
+  }
+  if (guidance.retrievalStatus === 'insufficient_evidence') {
+    lines.push(
+      '',
+      'Retrieval status: insufficient evidence.',
+      'Do not assert the planned facts as certain. Answer from limited knowledge and say when you do not know.',
+    )
+  }
+  return [lines.join('\n')]
 }
 
 function buildAvatarTraitsSection(

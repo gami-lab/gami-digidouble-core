@@ -180,6 +180,18 @@ type GameMasterState = {
   progression: string
   topicsCovered: string[]
   interactionCount: number
+  nextTurnOrchestration?: {
+    activeAvatarId: string
+    generatedAfterTurn: number
+    generatedAt: string
+    dialogueControl: DialogueControl
+    retrievalPlan: RetrievalPlan
+    directorNotes?: string
+    routing?: RoutingDecision
+    progressionUpdate: ProgressionUpdate
+    consumedAfterTurn?: number
+    consumedAt?: string
+  }
 }
 ```
 
@@ -189,6 +201,7 @@ State meaning:
 - `progression`: lightweight progress marker
 - `topicsCovered`: repetition-avoidance signal
 - `interactionCount`: pacing context; it does not gate whether GM runs
+- `nextTurnOrchestration`: the latest result retained for the immediately following matching Avatar turn; it is replaced by newer GM output and marked consumed after use.
 
 Reducer rules:
 

@@ -11,6 +11,7 @@ import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepos
 import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../ports/IConversationMemoryRepository.js'
+import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { buildAvatarAwareness } from '../../../domain/avatar/avatar-awareness.service.js'
@@ -23,6 +24,10 @@ import type { UserPersona } from '../../../domain/user/user.types.js'
 import type { ConversationEndReason, EndConversationResponse } from '@gami/shared'
 import type { SelectedMemoryPayload } from '../../../domain/memory/memory.types.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
+import type {
+  GameMasterOrchestrationState,
+  GameMasterState,
+} from '../../../domain/game-master/game-master.types.js'
 import { emitTurnCompletedEventNonBlocking } from './send-message.observability.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import {
@@ -48,6 +53,7 @@ import {
   toRecentExchanges,
 } from './send-message.helpers.js'
 import type { ContextEngineOutput } from '../../../domain/context/context-engine.types.js'
+import type { TypedRetrievalResult } from '../../../domain/knowledge/knowledge.types.js'
 import type { ModelConfig } from '../../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../../infrastructure/llm/llm-adapter-registry.js'
 import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master.avatar-unlocks.js'
@@ -61,6 +67,13 @@ import { toContextSelectionMetadata } from './send-message.context-selection.js'
 
 const MESSAGE_HISTORY_FETCH_LIMIT = 30
 const MESSAGE_HISTORY_EXCHANGE_LIMIT = 3
+
+function hasRetrievedKnowledge(retrieval: TypedRetrievalResult | undefined): boolean {
+  return (
+    retrieval !== undefined &&
+    (retrieval.memory.length > 0 || retrieval.world.length > 0 || retrieval.media.length > 0)
+  )
+}
 
 type ContextAssembler = {
   assemble(input: Parameters<ContextEngine['assemble']>[0]): ContextEngineOutput
@@ -97,6 +110,7 @@ export class SendMessageUseCase {
     private readonly modelConfigRepository?: IModelConfigRepository,
     private readonly llmAdapterRegistry?: LlmAdapterRegistry,
     private readonly modelConfigFallback?: ModelConfig,
+    private readonly gmStateRepository?: IGmStateRepository,
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
@@ -115,6 +129,12 @@ export class SendMessageUseCase {
     await this.awaitPendingWorkingMemoryRefresh(conversation.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
+    const priorUserTurnCount = await this.loadRecentUserTurnCount(conversation.conversationId)
+    const orchestration = await this.consumeNextTurnOrchestration({
+      sessionId: session.sessionId,
+      avatarId: conversation.avatarId,
+      turnIndex: priorUserTurnCount + 1,
+    })
     const {
       systemPrompt,
       userPersona,
@@ -127,8 +147,8 @@ export class SendMessageUseCase {
       conversation,
       avatar,
       userMessage: input.userMessage,
+      orchestration,
     })
-    const priorUserTurnCount = await this.loadRecentUserTurnCount(conversation.conversationId)
     const historyMessages = await this.buildHistoryMessages(
       conversation.conversationId,
       selectedMemory,
@@ -269,12 +289,13 @@ export class SendMessageUseCase {
     })
   }
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity, max-lines-per-function
   private async buildTurnPromptContext(args: {
     session: Session
     conversation: Conversation
     avatar: AvatarConfig
     userMessage: string
+    orchestration: GameMasterOrchestrationState | undefined
   }): Promise<{
     systemPrompt: string
     userPersona: UserPersona | undefined
@@ -298,18 +319,34 @@ export class SendMessageUseCase {
         ? this.getMemorySelectionService().toAvatarMemorySnapshot(selectedMemory)
         : undefined
     const retrievalQueries = buildAvatarTypedRetrievalQueries({
-      gmGuideline: args.session.gmNotes,
+      gmGuideline: args.orchestration?.directorNotes ?? args.session.gmNotes,
+      gmRetrievalQueries: args.orchestration?.retrievalPlan.queries,
+      gmRequiredFacts: args.orchestration?.retrievalPlan.requiredFacts,
       lastUserInput: args.userMessage,
       workingMemorySummary: memory?.working?.avatar?.summary ?? memory?.working?.session?.summary,
       recentExchanges: memory?.shortTerm?.recentExchanges,
     })
     const retrievalStartMs = Date.now()
-    const retrieval = await this.loadTypedRetrieval(
-      args.session,
-      args.conversation.conversationId,
-      args.conversation.avatarId,
-      retrievalQueries,
-    )
+    let retrieval: Awaited<ReturnType<SendMessageUseCase['loadTypedRetrieval']>>
+    let retrievalFailed = false
+    try {
+      retrieval = await this.loadTypedRetrieval(
+        args.session,
+        args.conversation.conversationId,
+        args.conversation.avatarId,
+        retrievalQueries,
+      )
+    } catch (error: unknown) {
+      retrievalFailed = true
+      retrieval = undefined
+      console.error('[avatar-retrieval] Retrieval failed:', error)
+    }
+    const retrievalStatus =
+      args.orchestration?.retrievalPlan.required === true &&
+      (retrievalFailed || !hasRetrievedKnowledge(retrieval))
+        ? ('insufficient_evidence' as const)
+        : undefined
+    const directorNotes = args.orchestration?.directorNotes ?? args.session.gmNotes
     const retrievalLatencyMs = Date.now() - retrievalStartMs
     const assembledContext = this.contextAssembler.assemble({
       sessionId: args.session.sessionId,
@@ -326,7 +363,7 @@ export class SendMessageUseCase {
         memory,
         retrieval,
         userPersona: userPersona ?? null,
-        gmDirective: args.session.gmNotes ?? null,
+        gmDirective: directorNotes ?? null,
         ...(args.avatar.adjustments !== undefined
           ? { responseRules: args.avatar.adjustments }
           : {}),
@@ -348,6 +385,16 @@ export class SendMessageUseCase {
         scenarioAvatars,
         args.session.unlockedAvatarIds,
       ),
+      ...(args.orchestration !== undefined
+        ? {
+            gmGuidance: {
+              mode: args.orchestration.dialogueControl.mode,
+              askFollowUp: args.orchestration.dialogueControl.askFollowUp,
+              ...(directorNotes !== undefined ? { directorNotes } : {}),
+              ...(retrievalStatus !== undefined ? { retrievalStatus } : {}),
+            },
+          }
+        : {}),
     })
     return {
       systemPrompt,
@@ -381,6 +428,36 @@ export class SendMessageUseCase {
       queries,
       limitPerType: 3,
     })
+  }
+
+  private async consumeNextTurnOrchestration(input: {
+    sessionId: string
+    avatarId: string
+    turnIndex: number
+  }): Promise<GameMasterOrchestrationState | undefined> {
+    if (this.gmStateRepository === undefined) return undefined
+
+    const state = await this.gmStateRepository.findBySessionId(input.sessionId)
+    const pending = state?.nextTurnOrchestration
+    if (
+      pending === undefined ||
+      pending.consumedAfterTurn !== undefined ||
+      pending.activeAvatarId !== input.avatarId ||
+      pending.generatedAfterTurn !== input.turnIndex - 1
+    ) {
+      return undefined
+    }
+
+    const consumedState: GameMasterState = {
+      ...(state as GameMasterState),
+      nextTurnOrchestration: {
+        ...pending,
+        consumedAfterTurn: input.turnIndex,
+        consumedAt: new Date().toISOString(),
+      },
+    }
+    await this.gmStateRepository.save(input.sessionId, consumedState)
+    return pending
   }
 
   private dispatchBackgroundUpdates(args: {

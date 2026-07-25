@@ -132,7 +132,7 @@ beforeEach(() => {
 })
 
 describe('RunGameMasterUseCase — async avatar switch safety', () => {
-  it('does not switch conversations when GM routes a switch', async () => {
+  it('sets a valid routed Avatar as the next active Avatar without switching the current conversation', async () => {
     const useCase = createUseCase()
     mockGmOutput({
       dialogueControl: { mode: 'transition', askFollowUp: false },
@@ -152,7 +152,7 @@ describe('RunGameMasterUseCase — async avatar switch safety', () => {
 
     expect(updateConversationMock).not.toHaveBeenCalled()
     expect(createConversationMock).not.toHaveBeenCalled()
-    expect(updateSessionMock).not.toHaveBeenCalledWith('session_1', { activeAvatarId: 'avatar_2' })
+    expect(updateSessionMock).toHaveBeenCalledWith('session_1', { activeAvatarId: 'avatar_2' })
   })
 
   it('does not switch even when the routed avatarId is locked', async () => {

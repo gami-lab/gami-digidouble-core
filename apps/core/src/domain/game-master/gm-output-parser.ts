@@ -118,7 +118,7 @@ function toRoutingDecision(value: unknown): RoutingDecision | undefined {
   if (!isRecord(value)) return undefined
   const action = value['action']
   if (typeof action !== 'string' || !ROUTING_ACTIONS.has(action as RoutingAction)) {
-    return undefined
+    return { action: 'stay' }
   }
 
   const avatarId = hasText(value['avatarId']) ? value['avatarId'].trim() : undefined

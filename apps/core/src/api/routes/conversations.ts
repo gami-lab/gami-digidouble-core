@@ -23,6 +23,7 @@ import type { IConversationMemoryRepository } from '../../application/ports/ICon
 import type { IKnowledgeChunkRepository } from '../../application/ports/IKnowledgeChunkRepository.js'
 import type { IKnowledgeSourceRepository } from '../../application/ports/IKnowledgeSourceRepository.js'
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
+import type { IGmStateRepository } from '../../application/ports/IGmStateRepository.js'
 import { GetHistoryUseCase } from '../../application/use-cases/get-history/get-history.use-case.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
@@ -52,6 +53,7 @@ import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-me
 import { EpisodicMemoryService } from '../../application/services/episodic-memory.service.js'
 import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
+import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
 import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
 import type { LlmConfig } from '../../infrastructure/llm/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
@@ -80,6 +82,7 @@ type ConversationsRouteOptions = {
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
+  gmStateRepository?: IGmStateRepository
 }
 
 type ConversationParams = { conversationId: string }
@@ -258,6 +261,7 @@ type ConversationPersistenceDeps = {
   conversationMemoryRepository: IConversationMemoryRepository
   knowledgeSourceRepository: IKnowledgeSourceRepository
   knowledgeChunkRepository: IKnowledgeChunkRepository
+  gmStateRepository: IGmStateRepository
 }
 
 function createRouteDependencies(options: ConversationsRouteOptions): RouteDependencies {
@@ -323,6 +327,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     options.modelConfigRepository,
     options.llmAdapterRegistry,
     options.modelConfigFallback,
+    repositories.gmStateRepository,
   )
 
   return {
@@ -347,6 +352,7 @@ function resolvePersistenceDeps(options: ConversationsRouteOptions): Conversatio
       options.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
     ...resolveKnowledgeDeps(options),
     ...resolveWorkingMemoryDeps(options),
+    gmStateRepository: options.gmStateRepository ?? new InMemoryGmStateRepository(),
   }
 }
 

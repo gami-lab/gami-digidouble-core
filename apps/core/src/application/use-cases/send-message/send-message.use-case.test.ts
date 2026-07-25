@@ -9,6 +9,7 @@ import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.
 import type { MemorySelectionService } from '../../services/memory-selection.service.js'
 import type { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
+import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
 import { StreamingSendMessageUseCase } from './streaming-send-message.use-case.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
 
@@ -658,6 +659,116 @@ describe('SendMessageUseCase — memory maintenance', () => {
 })
 
 describe('SendMessageUseCase — validation and GM integration', () => {
+  it('consumes matching GM orchestration once and combines its retrieval intent with the user message', async () => {
+    let gmState: GameMasterState = {
+      progression: 'none',
+      topicsCovered: [],
+      interactionCount: 1,
+      nextTurnOrchestration: {
+        activeAvatarId: 'avatar_1',
+        generatedAfterTurn: 0,
+        generatedAt: '2026-07-25T10:00:00.000Z',
+        dialogueControl: { mode: 'repair', askFollowUp: false },
+        retrievalPlan: {
+          required: true,
+          priority: 'mandatory',
+          queries: ['Mona current location'],
+          requiredFacts: ['Mona last confirmed location'],
+        },
+        directorNotes: 'Resolve the contradiction before progressing.',
+        progressionUpdate: { progression: 'none' },
+      },
+    }
+    const retrieve = vi.fn().mockResolvedValue({
+      memory: [],
+      world: [],
+      media: [],
+      trace: {
+        query: '',
+        perType: {
+          memory: {
+            sourceIds: [],
+            selectedChunkIds: [],
+            visibility: { consideredChunkCount: 0, excludedChunkCount: 0 },
+          },
+          world: {
+            sourceIds: [],
+            selectedChunkIds: [],
+            visibility: { consideredChunkCount: 0, excludedChunkCount: 0 },
+          },
+          media: {
+            sourceIds: [],
+            selectedChunkIds: [],
+            visibility: { consideredChunkCount: 0, excludedChunkCount: 0 },
+          },
+        },
+      },
+    })
+    const gmStateRepository = {
+      findBySessionId: vi.fn().mockImplementation(() => Promise.resolve(structuredClone(gmState))),
+      save: vi.fn().mockImplementation((_sessionId: string, state: GameMasterState) => {
+        gmState = state
+        return Promise.resolve()
+      }),
+    }
+    const useCase = new SendMessageUseCase(
+      sessionRepository,
+      conversationRepository,
+      avatarRepository,
+      scenarioRepository,
+      messageRepository,
+      llm,
+      eventLogRepository,
+      null,
+      userRepository,
+      null,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { retrieve } as unknown as TypedRetrievalService,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      gmStateRepository,
+    )
+
+    await useCase.execute({
+      conversationId: 'conversation_1',
+      userMessage: "Is Mona still at her grandfather's house?",
+    })
+
+    const retrievalInput = retrieve.mock.calls[0]?.[0] as unknown as {
+      query: string
+      queries: Array<{ source: string; text: string }>
+    }
+    expect(retrievalInput.query).toBe(
+      "Resolve the contradiction before progressing. | Mona current location | Mona last confirmed location | Is Mona still at her grandfather's house?",
+    )
+    expect(retrievalInput.queries).toEqual(
+      expect.arrayContaining([
+        { source: 'gm_retrieval_plan', text: 'Mona current location' },
+        { source: 'gm_retrieval_plan', text: 'Mona last confirmed location' },
+        { source: 'last_user_input', text: "Is Mona still at her grandfather's house?" },
+      ]),
+    )
+    const requestUnknown: unknown = completeMock.mock.calls[0]?.[0]
+    if (
+      typeof requestUnknown !== 'object' ||
+      requestUnknown === null ||
+      typeof (requestUnknown as { systemPrompt?: unknown }).systemPrompt !== 'string'
+    ) {
+      throw new Error('Expected llm request with a string systemPrompt')
+    }
+    const request = requestUnknown as { systemPrompt: string }
+    expect(request.systemPrompt).toContain('Dialogue mode: repair')
+    expect(request.systemPrompt).toContain('Retrieval status: insufficient evidence.')
+    expect(gmState.nextTurnOrchestration?.consumedAfterTurn).toBe(1)
+  })
+
   it('returns NOT_FOUND for unknown conversation', async () => {
     const useCase = createUseCase()
     findConversationByIdMock.mockResolvedValue(null)

@@ -165,8 +165,11 @@ CREATE TABLE IF NOT EXISTS gm_states (
   progression       TEXT        NOT NULL DEFAULT '',
   topics_covered    TEXT[]      NOT NULL DEFAULT '{}',
   interaction_count INT         NOT NULL DEFAULT 0,
+  next_turn_orchestration JSONB,
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE gm_states ADD COLUMN IF NOT EXISTS next_turn_orchestration JSONB;
 
 -- ── Conversations ─────────────────────────────────────────────────────────────
 

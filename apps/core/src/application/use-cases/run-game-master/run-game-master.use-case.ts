@@ -27,6 +27,7 @@ import {
 import { reduceGmState } from '../../../domain/game-master/gm-state-reducer.js'
 import type {
   GameMasterInput,
+  GameMasterOrchestrationState,
   GameMasterOutput,
   GameMasterState,
 } from '../../../domain/game-master/game-master.types.js'
@@ -128,6 +129,7 @@ export class RunGameMasterUseCase {
     }
   }
 
+  // eslint-disable-next-line max-lines-per-function
   private async handleTriggeredTurn(
     input: RunGameMasterInput,
     currentState: GameMasterState,
@@ -173,17 +175,6 @@ export class RunGameMasterUseCase {
       return
     }
 
-    const nextState = reduceGmState(currentState, {
-      progressionUpdate: normalizedOutput.progressionUpdate,
-      ...(normalizedOutput.routing !== undefined ? { routing: normalizedOutput.routing } : {}),
-    })
-    const routingResult = this.applyAvatarRoutingUpdates(
-      input,
-      currentState,
-      session,
-      scenarioAvatars,
-      normalizedOutput,
-    )
     const unlockResult = await this.applyAvatarUnlocks(
       input,
       session,
@@ -191,20 +182,42 @@ export class RunGameMasterUseCase {
       normalizedOutput,
       gmInput.recentMessages,
     )
-    this.publishDecisionRuntimeEvents(input, normalizedOutput, unlockResult.newlyUnlockedAvatarIds)
+    const routingResult = await this.applyAvatarRoutingUpdates(
+      input,
+      session,
+      scenarioAvatars,
+      normalizedOutput,
+      unlockResult,
+    )
+    const effectiveOutput: GameMasterOutput = {
+      ...normalizedOutput,
+      ...(routingResult.routing !== undefined ? { routing: routingResult.routing } : {}),
+    }
+    const nextState = reduceGmState(currentState, {
+      progressionUpdate: effectiveOutput.progressionUpdate,
+      ...(effectiveOutput.routing !== undefined ? { routing: effectiveOutput.routing } : {}),
+    })
+    this.publishDecisionRuntimeEvents(input, effectiveOutput, unlockResult.newlyUnlockedAvatarIds)
 
     const reconciledState: GameMasterState =
       routingResult.switchedAvatarId !== undefined
         ? { ...nextState, currentAvatarId: routingResult.switchedAvatarId }
         : nextState
-    await this.gmStateRepository.save(input.sessionId, reconciledState)
-    await this.persistTriggeredNotes(input.sessionId, normalizedOutput)
+    await this.gmStateRepository.save(input.sessionId, {
+      ...reconciledState,
+      nextTurnOrchestration: this.buildNextTurnOrchestration(
+        input,
+        effectiveOutput,
+        routingResult.switchedAvatarId,
+      ),
+    })
+    await this.persistTriggeredNotes(input.sessionId, effectiveOutput)
 
     await emitTriggeredGameMasterTurn({
       input,
       currentState,
       reconciledState,
-      output: normalizedOutput,
+      output: effectiveOutput,
       gmContext: assembledGmContext,
       unlockedAvatarIds: unlockResult.newlyUnlockedAvatarIds,
       unlockEvaluations: unlockResult.evaluations,
@@ -511,14 +524,77 @@ export class RunGameMasterUseCase {
     await this.sessionRepository.update(sessionId, { gmNotes: output.directorNotes.trim() })
   }
 
-  private applyAvatarRoutingUpdates(
-    _input: RunGameMasterInput,
-    _currentState: GameMasterState,
-    _session: Session | null,
-    _scenarioAvatars: AvatarConfig[],
-    _output: GameMasterOutput,
-  ): AvatarRoutingResult {
-    return {}
+  // eslint-disable-next-line complexity
+  private async applyAvatarRoutingUpdates(
+    input: RunGameMasterInput,
+    session: Session | null,
+    scenarioAvatars: AvatarConfig[],
+    output: GameMasterOutput,
+    unlockResult: { newlyUnlockedAvatarIds: string[]; evaluations: UnlockEvaluation[] },
+  ): Promise<AvatarRoutingResult & { routing?: GameMasterOutput['routing'] }> {
+    const routing = output.routing
+    if (routing === undefined) return {}
+    if (routing.action === 'stay') return { routing }
+
+    const activeAvatarIds = new Set(
+      scenarioAvatars
+        .filter((avatar) => avatar.status === 'active')
+        .map((avatar) => avatar.avatarId),
+    )
+    const unlockedAvatarIds = new Set([
+      ...(session?.unlockedAvatarIds ?? scenarioAvatars.map((avatar) => avatar.avatarId)),
+      ...unlockResult.newlyUnlockedAvatarIds,
+    ])
+    const targetAvatarId = routing.avatarId
+
+    if (
+      (routing.action === 'suggest' || routing.action === 'switch') &&
+      targetAvatarId !== undefined &&
+      activeAvatarIds.has(targetAvatarId) &&
+      unlockedAvatarIds.has(targetAvatarId)
+    ) {
+      if (routing.action === 'switch') {
+        await this.sessionRepository.update(input.sessionId, { activeAvatarId: targetAvatarId })
+        return { switchedAvatarId: targetAvatarId, routing }
+      }
+      return { routing }
+    }
+
+    if (routing.action === 'unlock_and_switch' && targetAvatarId !== undefined) {
+      const wasLocked = session?.unlockedAvatarIds?.includes(targetAvatarId) !== true
+      const wasUnlocked = unlockResult.newlyUnlockedAvatarIds.includes(targetAvatarId)
+      if (activeAvatarIds.has(targetAvatarId) && wasLocked && wasUnlocked) {
+        await this.sessionRepository.update(input.sessionId, { activeAvatarId: targetAvatarId })
+        return { switchedAvatarId: targetAvatarId, routing }
+      }
+    }
+
+    if (
+      routing.action === 'unlock' &&
+      unlockResult.evaluations.length > 0 &&
+      unlockResult.evaluations.some((evaluation) => evaluation.outcome === 'unlocked')
+    ) {
+      return { routing }
+    }
+
+    return { routing: { action: 'stay' } }
+  }
+
+  private buildNextTurnOrchestration(
+    input: RunGameMasterInput,
+    output: GameMasterOutput,
+    switchedAvatarId: string | undefined,
+  ): GameMasterOrchestrationState {
+    return {
+      activeAvatarId: switchedAvatarId ?? input.avatarId,
+      generatedAfterTurn: input.turnIndex,
+      generatedAt: new Date().toISOString(),
+      dialogueControl: output.dialogueControl,
+      retrievalPlan: output.retrievalPlan,
+      ...(output.directorNotes !== undefined ? { directorNotes: output.directorNotes } : {}),
+      ...(output.routing !== undefined ? { routing: output.routing } : {}),
+      progressionUpdate: output.progressionUpdate,
+    }
   }
 
   private async applyAvatarUnlocks(

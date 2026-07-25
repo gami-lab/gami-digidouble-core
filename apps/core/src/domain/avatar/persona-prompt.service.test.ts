@@ -55,7 +55,27 @@ describe('resolveAvatarPromptIdentitySource', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('assemblePersonaPrompt -> section order', () => {
+  it('renders structured Game Master dialogue guidance and removes generic follow-up pressure', () => {
+    const prompt = assemblePersonaPrompt(makeAvatarConfig(), {
+      gmGuidance: {
+        mode: 'repair',
+        askFollowUp: false,
+        directorNotes: 'Resolve the location contradiction before progressing.',
+      },
+    })
+
+    expect(prompt).toContain('## Game Master Guidance')
+    expect(prompt).toContain('Dialogue mode: repair')
+    expect(prompt).toContain('Follow-up question: no')
+    expect(prompt).toContain(
+      'Director note:\nResolve the location contradiction before progressing.',
+    )
+    expect(prompt).toContain('Do not introduce a new topic until the issue is clarified.')
+    expect(prompt).not.toContain('end with one focused follow-up question when it helps')
+  })
+
   it('assembles runtime sections in EPIC 8.2 order', () => {
     const prompt = assemblePersonaPrompt(
       makeAvatarConfig({

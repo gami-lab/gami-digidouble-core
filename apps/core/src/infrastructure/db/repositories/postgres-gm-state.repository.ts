@@ -9,6 +9,7 @@ interface GmStateRow {
   progression: string
   topics_covered: string[]
   interaction_count: number
+  next_turn_orchestration: unknown
   updated_at: Date
 }
 
@@ -18,6 +19,13 @@ function rowToGameMasterState(row: GmStateRow): GameMasterState {
     progression: row.progression,
     topicsCovered: row.topics_covered,
     interactionCount: row.interaction_count,
+    ...(isRecord(row.next_turn_orchestration)
+      ? {
+          nextTurnOrchestration: row.next_turn_orchestration as unknown as NonNullable<
+            GameMasterState['nextTurnOrchestration']
+          >,
+        }
+      : {}),
   }
 }
 
@@ -29,7 +37,7 @@ export class PostgresGmStateRepository implements IGmStateRepository {
     if (sessionUuid === null) return null
 
     const [row] = await this.sql<[GmStateRow?]>`
-      SELECT session_id, current_avatar_id, progression, topics_covered, interaction_count, updated_at
+      SELECT session_id, current_avatar_id, progression, topics_covered, interaction_count, next_turn_orchestration, updated_at
       FROM gm_states
       WHERE session_id = ${sessionUuid}
     `
@@ -44,14 +52,16 @@ export class PostgresGmStateRepository implements IGmStateRepository {
         current_avatar_id,
         progression,
         topics_covered,
-        interaction_count
+        interaction_count,
+        next_turn_orchestration
       )
       VALUES (
         ${sessionUuid},
         ${state.currentAvatarId ?? null},
         ${state.progression},
         ${state.topicsCovered},
-        ${state.interactionCount}
+        ${state.interactionCount},
+        ${state.nextTurnOrchestration === undefined ? null : JSON.stringify(state.nextTurnOrchestration)}::JSONB
       )
       ON CONFLICT (session_id)
       DO UPDATE SET
@@ -59,7 +69,12 @@ export class PostgresGmStateRepository implements IGmStateRepository {
         progression = EXCLUDED.progression,
         topics_covered = EXCLUDED.topics_covered,
         interaction_count = EXCLUDED.interaction_count,
+        next_turn_orchestration = EXCLUDED.next_turn_orchestration,
         updated_at = NOW()
     `
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }

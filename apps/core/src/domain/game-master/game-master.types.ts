@@ -29,6 +29,8 @@ export interface GameMasterState {
    */
   topicsCovered: string[]
   interactionCount: number
+  /** Latest unconsumed GM result for the next Avatar turn. */
+  nextTurnOrchestration?: GameMasterOrchestrationState
 }
 
 /** Input provided to the GM on each background evaluation. */
@@ -114,6 +116,20 @@ export interface ProgressionUpdate {
   progression: ProgressionState
   objectiveId?: string
   reason?: string
+}
+
+/** GM output retained for exactly the next relevant Avatar turn. */
+export interface GameMasterOrchestrationState {
+  activeAvatarId: string
+  generatedAfterTurn: number
+  generatedAt: string
+  dialogueControl: DialogueControl
+  retrievalPlan: RetrievalPlan
+  directorNotes?: string
+  routing?: RoutingDecision
+  progressionUpdate: ProgressionUpdate
+  consumedAfterTurn?: number
+  consumedAt?: string
 }
 
 /** Decision output produced by the GM. */

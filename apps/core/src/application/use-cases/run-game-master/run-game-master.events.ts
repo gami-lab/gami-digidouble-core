@@ -230,5 +230,7 @@ function normalizeInjectedNote(value: string | undefined): string | undefined {
 }
 
 function incrementedState(currentState: GameMasterState): GameMasterState {
-  return { ...currentState, interactionCount: currentState.interactionCount + 1 }
+  const safeState = { ...currentState }
+  delete safeState.nextTurnOrchestration
+  return { ...safeState, interactionCount: currentState.interactionCount + 1 }
 }

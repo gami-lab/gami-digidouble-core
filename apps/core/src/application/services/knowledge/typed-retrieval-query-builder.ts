@@ -1,18 +1,30 @@
 import type { ShortTermMemoryExchange } from '../../../domain/memory/memory.types.js'
 
 export type TypedRetrievalQueryVariant = {
-  source: 'gm_guideline' | 'last_user_input' | 'working_memory' | 'world_context' | 'direct_query'
+  source:
+    | 'gm_guideline'
+    | 'gm_retrieval_plan'
+    | 'last_user_input'
+    | 'working_memory'
+    | 'world_context'
+    | 'direct_query'
   text: string
 }
 
 export function buildAvatarTypedRetrievalQueries(input: {
   gmGuideline?: string | null | undefined
+  gmRetrievalQueries?: string[] | null | undefined
+  gmRequiredFacts?: string[] | null | undefined
   lastUserInput?: string | null | undefined
   workingMemorySummary?: string | null | undefined
   recentExchanges?: ShortTermMemoryExchange[] | undefined
 }): TypedRetrievalQueryVariant[] {
   const candidates: TypedRetrievalQueryVariant[] = [
     toQueryVariant('gm_guideline', input.gmGuideline),
+    ...toQueryVariants('gm_retrieval_plan', [
+      ...(input.gmRetrievalQueries ?? []),
+      ...(input.gmRequiredFacts ?? []),
+    ]),
     toQueryVariant('last_user_input', input.lastUserInput),
     toQueryVariant(
       'working_memory',
@@ -63,6 +75,15 @@ function toQueryVariant(
   const text = value?.trim()
   if (text === undefined || text.length === 0) return undefined
   return { source, text }
+}
+
+function toQueryVariants(
+  source: TypedRetrievalQueryVariant['source'],
+  values: string[],
+): TypedRetrievalQueryVariant[] {
+  return values
+    .map((value) => toQueryVariant(source, value))
+    .filter((query): query is TypedRetrievalQueryVariant => query !== undefined)
 }
 
 function buildMemoryAndExchangeQuery(

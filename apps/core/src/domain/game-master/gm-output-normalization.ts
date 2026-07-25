@@ -33,7 +33,7 @@ function normalizeRouting(
 
   // 'suggest' | 'switch' | 'unlock_and_switch' — all require a single resolvable avatarId.
   const avatarId = normalizeOptionalReference(routing.avatarId, activeAvatars)
-  if (avatarId === undefined) return undefined
+  if (avatarId === undefined) return { action: 'stay' }
 
   return {
     action: routing.action,
@@ -52,7 +52,7 @@ function normalizeUnlockRouting(
   }
 
   const avatarId = normalizeOptionalReference(routing.avatarId, activeAvatars)
-  if (avatarId === undefined) return undefined
+  if (avatarId === undefined) return { action: 'stay' }
 
   return {
     action: 'unlock',

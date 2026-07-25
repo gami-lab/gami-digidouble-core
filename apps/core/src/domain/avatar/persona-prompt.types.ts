@@ -3,6 +3,7 @@ import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
 import type { UserPersona } from '../user/index.js'
 import type { AvatarComputedTraits, AvatarConfig } from './avatar.types.js'
 import type { AvatarContextSections } from '../context/session-context.types.js'
+import type { DialogueControlMode } from '../game-master/game-master.types.js'
 
 export type AvatarAwarenessItem = {
   name: string
@@ -26,6 +27,12 @@ export type AvatarPromptOptions = {
   userPersona?: UserPersona
   memory?: LayeredMemorySnapshot
   retrieval?: AvatarPromptRetrievalSections
+  gmGuidance?: {
+    mode: DialogueControlMode
+    askFollowUp: boolean
+    directorNotes?: string
+    retrievalStatus?: 'insufficient_evidence'
+  }
 }
 
 export type AvatarPromptIdentitySource =

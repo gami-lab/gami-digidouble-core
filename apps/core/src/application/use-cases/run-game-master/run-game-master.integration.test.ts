@@ -44,7 +44,7 @@ const INITIAL_SESSION = {
   userId: 'user_1',
   scenarioId: 'scenario_1',
   activeAvatarId: 'avatar_1',
-  unlockedAvatarIds: ['avatar_1'],
+  unlockedAvatarIds: ['avatar_1', 'avatar_2'],
   status: 'active' as const,
   startedAt: '2026-07-20T09:00:00.000Z',
   lastActivityAt: '2026-07-20T09:00:00.000Z',
@@ -336,7 +336,7 @@ function assertRenderedPrompt(request: Omit<LlmRequest, 'trace'> | undefined): v
     '- Ava (avatar_1) [available]; description: Harbor witness.; scope: Dock activity and local rumors.',
   )
   expect(renderedPrompt).toContain(
-    '- Theo (avatar_2) [locked]; description: Marine engineer.; scope: Tide mechanics and structural risk.',
+    '- Theo (avatar_2) [available]; description: Marine engineer.; scope: Tide mechanics and structural risk.',
   )
   expect(renderedPrompt).toContain('### Working Memory')
   expect(renderedPrompt).toContain('- Covered Topics: none')
@@ -351,13 +351,20 @@ function assertRenderedPrompt(request: Omit<LlmRequest, 'trace'> | undefined): v
 async function assertPersistenceAndEvents(harness: ReturnType<typeof createIntegrationHarness>) {
   expect(await harness.sessionRepository.findById('session_1')).toMatchObject({
     gmNotes: 'Keep the next reply grounded in tide evidence.',
-    unlockedAvatarIds: ['avatar_1'],
+    unlockedAvatarIds: ['avatar_1', 'avatar_2'],
   })
   expect(await harness.gmStateRepository.findBySessionId('session_1')).toMatchObject({
     currentAvatarId: 'avatar_1',
     progression: 'intro [advanced]',
     topicsCovered: ['setup'],
     interactionCount: 2,
+    nextTurnOrchestration: {
+      activeAvatarId: 'avatar_1',
+      generatedAfterTurn: 4,
+      dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+      retrievalPlan: { required: false },
+      directorNotes: 'Keep the next reply grounded in tide evidence.',
+    },
   })
 
   const event = harness.eventLogRepository.getAll()[0]
