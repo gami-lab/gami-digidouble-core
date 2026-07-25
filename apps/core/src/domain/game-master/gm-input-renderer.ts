@@ -14,7 +14,7 @@ export function renderGameMasterInputForLlm(input: GameMasterInput): string {
   return [
     renderSection('Current Turn', renderCurrentTurn(input)),
     renderSection('Current Discussion Context', [
-      ...renderRecentMessages(input.recentMessages),
+      ...renderRecentMessages(excludeCurrentTurnFromRecentMessages(input)),
       ...renderGameMasterState(input.state),
       ...renderMemoryContext(input.context.memory),
       ...renderUserPersona(input.context.userPersona),
@@ -46,6 +46,37 @@ function renderCurrentTurn(input: GameMasterInput): string[] {
   }
 
   return lines
+}
+
+/**
+ * `recentMessages` is fetched fresh from the conversation history and, on the
+ * normal post-turn path, already ends with the same user/avatar pair shown
+ * under "Current Turn". Trim that duplicated tail so it isn't repeated in
+ * "Recent Exchanges".
+ */
+function excludeCurrentTurnFromRecentMessages(
+  input: GameMasterInput,
+): GameMasterInput['recentMessages'] {
+  const recentMessages = input.recentMessages
+  if (recentMessages === undefined || recentMessages.length === 0) {
+    return recentMessages
+  }
+
+  let end = recentMessages.length
+  if (recentMessages[end - 1]?.role === 'avatar') {
+    end -= 1
+  }
+
+  const priorMessage = end > 0 ? recentMessages[end - 1] : undefined
+  if (
+    priorMessage?.role === 'user' &&
+    hasText(input.userMessage.text) &&
+    normalizeInlineText(priorMessage.content) === normalizeInlineText(input.userMessage.text)
+  ) {
+    end -= 1
+  }
+
+  return recentMessages.slice(0, end)
 }
 
 function renderSection(title: string, lines: string[]): string {

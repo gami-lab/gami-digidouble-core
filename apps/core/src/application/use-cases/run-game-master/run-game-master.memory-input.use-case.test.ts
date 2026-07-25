@@ -234,13 +234,14 @@ describe('RunGameMasterUseCase memory input', () => {
     const prompt = readRenderedPrompt()
     const recentMessages = readRecentMessages()
 
+    // A3 is the current turn's avatar reply, already surfaced under
+    // "Current Turn" — it is trimmed from "Recent Exchanges" here too.
     expect(recentMessages).toEqual([
       { role: 'user', content: 'U1' },
       { role: 'avatar', content: 'A1' },
       { role: 'user', content: 'U2' },
       { role: 'avatar', content: 'A2' },
       { role: 'user', content: 'U3' },
-      { role: 'avatar', content: 'A3' },
     ])
     expect(prompt).toContain('### Working Memory')
     expect(prompt).toContain('- Summary: Session working summary')
@@ -412,14 +413,15 @@ describe('RunGameMasterUseCase recent message loading', () => {
       correlationId: 'corr_assembled_ctx',
     })
 
+    // The trailing exchange ("Is he dead?" / "Yes, unfortunately.") is the
+    // current turn, already surfaced under "Current Turn" — it is trimmed
+    // from "Recent Exchanges" to avoid repeating it in the prompt.
     const recentMessages = readRecentMessages()
     expect(recentMessages).toEqual([
       { role: 'user', content: 'Hi Clara' },
       { role: 'avatar', content: 'Good evening.' },
       { role: 'user', content: 'Tell me what you saw' },
       { role: 'avatar', content: 'He was collapsed.' },
-      { role: 'user', content: 'Is he dead?' },
-      { role: 'avatar', content: 'Yes, unfortunately.' },
     ])
   })
 })

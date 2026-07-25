@@ -172,6 +172,46 @@ describe('renderGameMasterInputForLlm', () => {
   })
 })
 
+describe('renderGameMasterInputForLlm — current turn deduplication', () => {
+  it('does not repeat the current turn inside Recent Exchanges', () => {
+    const prompt = renderGameMasterInputForLlm(
+      makeInput({
+        userMessage: { text: 'Ready to talk about what happened?' },
+        recentMessages: [
+          { role: 'user', content: 'Hi Max, how are you?' },
+          { role: 'avatar', content: 'Holding up, still shaken.' },
+          { role: 'user', content: 'Ready to talk about what happened?' },
+          { role: 'avatar', content: 'I am ready, ask away.' },
+        ],
+      }),
+    )
+
+    expect(prompt).toContain('- Latest User Message: Ready to talk about what happened?')
+    expect(prompt).toContain('- Latest Avatar Reply: I am ready, ask away.')
+    expect(prompt).toContain('1. User: Hi Max, how are you?')
+    expect(prompt).toContain('2. Avatar: Holding up, still shaken.')
+    expect(prompt).not.toContain('3. User: Ready to talk about what happened?')
+    expect(prompt).not.toContain('4. Avatar: I am ready, ask away.')
+  })
+
+  it('keeps a non-matching prior user exchange when the current turn text differs', () => {
+    const prompt = renderGameMasterInputForLlm(
+      makeInput({
+        userMessage: { text: 'A brand new question not yet persisted.' },
+        recentMessages: [
+          { role: 'user', content: 'Earlier question.' },
+          { role: 'avatar', content: 'Earlier reply.' },
+        ],
+      }),
+    )
+
+    expect(prompt).toContain('- Latest User Message: A brand new question not yet persisted.')
+    expect(prompt).toContain('- Latest Avatar Reply: Earlier reply.')
+    expect(prompt).toContain('1. User: Earlier question.')
+    expect(prompt).not.toContain('2. Avatar: Earlier reply.')
+  })
+})
+
 function expectSectionOrder(prompt: string, sections: string[]): void {
   let previousIndex = -1
 
