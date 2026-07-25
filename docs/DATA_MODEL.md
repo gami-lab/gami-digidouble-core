@@ -48,6 +48,23 @@ deltas, and a partial avatar message is never saved.
 | `conversation_memories`         | Long-term episodic memory from closed conversations | `conversation_id`, `session_id`, `user_id`, `avatar_id`, `scenario_id`, `summary`, `key_discoveries`, `unresolved_topics`, `fact_candidates`, `created_at` | Retrieval scope is intentionally `user + avatar + scenario`. |
 | `user_memory_facts`             | Stable structured user facts                        | `id`, `user_id`, `category`, `key`, `value`, `confidence`, `updated_at`                                                                                    | Stores facts, not transcripts.                               |
 
+### Memory Field Semantics
+
+- The three most recent complete exchanges are derived at runtime from `messages`; they are not
+  persisted in a separate short-term table.
+- `conversation_working_memories` is the canonical mutable state for an active conversation. Its
+  `summary`, `covered_topics`, `unresolved_threads`, and `candidate_facts` are rewritten and
+  upserted on refresh; they are not append-only transcript fragments.
+- `covered_topics` records subjects already discussed. `unresolved_threads` records only active
+  loose ends. A thread is resolved by disappearing from the next rewritten list; no extra status
+  column is required.
+- `candidate_facts` are compacted, grounded candidates. They are not equivalent to a durable
+  `user_memory_facts` row and must not be treated as inferred mood, trust, pacing, or progression.
+- `conversation_memories` is immutable episodic output created at conversation close and is used
+  for bounded hydration/selection in later conversations.
+- `user_memory_facts` is user-scoped, deduplicated, and injected into prompts only through bounded
+  context assembly. It survives normal session reset.
+
 ### Knowledge
 
 | Table               | Purpose                                         | Key fields                                                                                                                                               | Notes                                                                                                    |

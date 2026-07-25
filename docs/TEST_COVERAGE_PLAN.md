@@ -84,9 +84,13 @@ Must cover:
 
 Must cover:
 
-- short-term bounded window
+- short-term window keeps at most the three most recent complete user/avatar exchanges, excludes
+  incomplete pairs, preserves chronological order, and does not replay the full transcript
+- short-term fallback after working-memory refresh still keeps at most three complete exchanges
 - working-memory rewrite persistence
-- `coveredTopics` and `unresolvedThreads` behavior
+- `coveredTopics` and `unresolvedThreads` behavior, including removal of resolved threads
+- candidate-fact filtering versus durable user-fact persistence/injection
+- post-turn compaction every third exchange plus close, avatar-switch, and admin triggers
 - episodic memory creation on close
 - user fact extraction rules
 - refresh trigger coverage

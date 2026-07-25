@@ -326,7 +326,7 @@ Owns persistence of useful memory.
 
 Contains:
 
-- short-term memory policy (last 2 exchanges, runtime-assembled)
+- short-term memory policy (last 3 complete exchanges, runtime-assembled)
 - conversation working memory (conversation-scoped, rewritten/bounded summary)
 - compatibility session/avatar summaries for existing admin/runtime surfaces
 - async memory maintenance pipeline (`IMemoryMaintenancePort` / `MemoryMaintenanceService`)
@@ -345,7 +345,7 @@ Builds runtime context for each turn.
 
 Combines:
 
-- short-term memory (last 2 exchanges)
+- short-term memory (last 3 complete exchanges)
 - working memory summary (derived from latest conversation working-memory refresh)
 - long-term user facts/events
 - user facts
@@ -467,7 +467,7 @@ Admin app boundary (EPIC 6.1):
 3. SendMessage use case starts
 4. Load conversation + parent session + scenario
 5. Context module builds runtime context for that conversation:
-   - short-term (last 2 exchanges)
+   - short-term (last 3 complete exchanges)
    - working memory summary
    - long-term facts/events
    - scenario + RAG + GM notes + optional user persona
