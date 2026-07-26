@@ -91,6 +91,7 @@ const WORKING_MEMORY_COVERED_TOPIC_MAX_LENGTH = 80
 const WORKING_MEMORY_FACT_LIMIT = 8
 const WORKING_MEMORY_FACT_KEY_MAX_LENGTH = 48
 const WORKING_MEMORY_FACT_VALUE_MAX_LENGTH = 160
+const WORKING_MEMORY_COMPACTION_MAX_TOKENS = 1000
 
 export class MemoryMaintenanceService implements IMemoryMaintenancePort {
   private readonly pendingRefreshes = new Map<string, Promise<void>>()
@@ -264,7 +265,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
         },
       ],
       ...(resolvedLlm.model !== undefined ? { model: resolvedLlm.model } : {}),
-      maxTokens: 500,
+      maxTokens: WORKING_MEMORY_COMPACTION_MAX_TOKENS,
       trace: {
         requestId: context.requestId,
         sessionId: context.sessionId,

@@ -261,7 +261,9 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
     const llmRequest = llmCompleteMock.mock.calls[0]?.[0] as {
       systemPrompt: string
       messages: Array<{ role: 'user'; content: string }>
+      maxTokens: number
     }
+    expect(llmRequest.maxTokens).toBe(1000)
     expect(llmRequest.systemPrompt).toContain(
       'Return JSON only with exactly these top-level keys: summary, coveredTopics, unresolvedThreads, candidateFacts.',
     )
