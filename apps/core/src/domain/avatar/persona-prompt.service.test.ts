@@ -94,8 +94,12 @@ describe('assemblePersonaPrompt -> section order', () => {
     })
 
     expect(prompt).toContain('## Game Master Guidance')
-    expect(prompt).toContain('Dialogue mode: repair')
-    expect(prompt).toContain('Follow-up question: no')
+    expect(prompt).toContain(DIALOGUE_RULES.repair)
+    expect(prompt).toContain(
+      "Do not end with a question unless clarification is required to understand the user's request.",
+    )
+    expect(prompt).not.toContain('Dialogue mode: repair')
+    expect(prompt).not.toContain('Follow-up question: no')
     expect(prompt).toContain(
       'Director note:\nResolve the location contradiction before progressing.',
     )
@@ -118,15 +122,19 @@ describe('assemblePersonaPrompt -> section order', () => {
       gmGuidance: { mode, askFollowUp },
     })
 
-    expect(prompt).toContain(`Dialogue mode: ${mode}`)
-    expect(prompt).toContain(`Follow-up question: ${askFollowUp ? 'yes' : 'no'}`)
     expect(prompt).toContain(rule)
+    expect(prompt).toContain(
+      askFollowUp
+        ? 'You may end with one focused follow-up question when it helps.'
+        : "Do not end with a question unless clarification is required to understand the user's request.",
+    )
+    expect(prompt).not.toContain('Dialogue mode:')
+    expect(prompt).not.toContain('Follow-up question:')
 
     const otherModes = ['user_led', 'avatar_guided', 'avatar_led', 'repair', 'transition'].filter(
       (otherMode) => otherMode !== mode,
     )
     for (const otherMode of otherModes) {
-      expect(prompt).not.toContain(`Dialogue mode: ${otherMode}`)
       expect(prompt).not.toContain(DIALOGUE_RULES[otherMode])
     }
     expect(prompt).not.toContain('Dialogue-control modes:')

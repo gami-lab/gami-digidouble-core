@@ -748,8 +748,14 @@ describe('SendMessageUseCase — validation and GM integration', () => {
 
     const request = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
     expect(request.systemPrompt).toContain('## Game Master Guidance')
-    expect(request.systemPrompt).toContain('Dialogue mode: user_led')
-    expect(request.systemPrompt).toContain('Follow-up question: no')
+    expect(request.systemPrompt).toContain(
+      "Answer the user's question directly. Let the user control the sequence. Do not add a generic follow-up question.",
+    )
+    expect(request.systemPrompt).toContain(
+      "Do not end with a question unless clarification is required to understand the user's request.",
+    )
+    expect(request.systemPrompt).not.toContain('Dialogue mode: user_led')
+    expect(request.systemPrompt).not.toContain('Follow-up question: no')
     const savedState = gmStateSaveMock.mock.calls[0]?.[1] as GameMasterState
     expect(savedState.nextTurnOrchestration?.consumedAfterTurn).toBe(3)
   })
@@ -779,8 +785,11 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Latest question' })
 
     const request = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(request.systemPrompt).toContain('Dialogue mode: user_led')
-    expect(request.systemPrompt).toContain('Follow-up question: no')
+    expect(request.systemPrompt).toContain(
+      "Answer the user's question directly. Let the user control the sequence. Do not add a generic follow-up question.",
+    )
+    expect(request.systemPrompt).not.toContain('Dialogue mode: user_led')
+    expect(request.systemPrompt).not.toContain('Follow-up question: no')
   })
 
   it('consumes matching GM orchestration once and combines its retrieval intent with the user message', async () => {
@@ -912,9 +921,15 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       throw new Error('Expected llm request with a string systemPrompt')
     }
     const request = requestUnknown as { systemPrompt: string }
-    expect(request.systemPrompt).toContain('Dialogue mode: repair')
+    expect(request.systemPrompt).toContain(
+      'Resolve the contradiction, misunderstanding, or unsupported claim before progressing. Do not introduce a new topic until the issue is clarified.',
+    )
     expect(request.systemPrompt).toContain('Retrieval status: insufficient evidence.')
-    expect(request.systemPrompt).toContain('Follow-up question: no')
+    expect(request.systemPrompt).toContain(
+      "Do not end with a question unless clarification is required to understand the user's request.",
+    )
+    expect(request.systemPrompt).not.toContain('Dialogue mode: repair')
+    expect(request.systemPrompt).not.toContain('Follow-up question: no')
     expect(request.systemPrompt).toContain(
       'Do not introduce a new topic until the issue is clarified.',
     )

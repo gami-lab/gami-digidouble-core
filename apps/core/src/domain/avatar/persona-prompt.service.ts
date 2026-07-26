@@ -38,7 +38,7 @@ export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptO
     ...(promptInputs.gmGuidance === undefined
       ? buildDirectorNotes(promptInputs.directorNotes)
       : []),
-    buildResponseRulesSection(promptInputs.responseRules, promptInputs.gmGuidance),
+    buildResponseRulesSection(promptInputs.responseRules),
     ...buildConversationStateSection(promptInputs.memory, promptInputs.avatarAwareness),
     ...buildUserPersonaContext(promptInputs.userPersona),
     ...buildWorldContext(promptInputs.worldContext),
@@ -267,18 +267,8 @@ function buildAdjustments(adjustments: AvatarConfig['adjustments']): string[] {
   return adjustments.map((a) => a.trim()).filter((a) => a.length > 0)
 }
 
-function buildResponseRulesSection(
-  responseRules: string[] | undefined,
-  gmGuidance: AvatarPromptOptions['gmGuidance'],
-): string {
+function buildResponseRulesSection(responseRules: string[] | undefined): string {
   const lines = ['## Response Rules', ...buildAdjustments(responseRules), DEFAULT_STYLE_RULE]
-  if (gmGuidance !== undefined) {
-    lines.push(
-      'Dialogue-control rule:',
-      DIALOGUE_CONTROL_RULES[gmGuidance.mode],
-      "Respect the Game Master's askFollowUp value. When false, do not end with a question unless clarification is required to understand the user's request.",
-    )
-  }
   return lines.join('\n')
 }
 
@@ -310,8 +300,10 @@ function buildGameMasterGuidance(guidance: AvatarPromptOptions['gmGuidance']): s
 
   const lines = [
     '## Game Master Guidance',
-    `Dialogue mode: ${guidance.mode}`,
-    `Follow-up question: ${guidance.askFollowUp ? 'yes' : 'no'}`,
+    DIALOGUE_CONTROL_RULES[guidance.mode],
+    guidance.askFollowUp
+      ? 'You may end with one focused follow-up question when it helps.'
+      : "Do not end with a question unless clarification is required to understand the user's request.",
   ]
   if (hasText(guidance.directorNotes)) {
     lines.push('', 'Director note:', guidance.directorNotes.trim())
