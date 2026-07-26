@@ -30,10 +30,16 @@ export function ScenarioKnowledgeRetrievalTester({
 }: ScenarioKnowledgeRetrievalTesterProps): JSX.Element {
   const [query, setQuery] = useState('')
   const [activeAvatarId, setActiveAvatarId] = useState('')
-  const [memoryScope, setMemoryScope] = useState<MemoryScope>({ sessionId: '', userId: '', conversationId: '' })
+  const [memoryScope, setMemoryScope] = useState<MemoryScope>({
+    sessionId: '',
+    userId: '',
+    conversationId: '',
+  })
   const [result, setResult] = useState<ResultState>({ status: 'idle' })
 
-  const sourceNamesById = new Map(knowledgeSources.map((source) => [source.sourceId, source.name] as const))
+  const sourceNamesById = new Map(
+    knowledgeSources.map((source) => [source.sourceId, source.name] as const),
+  )
   const loading = result.status === 'loading'
 
   async function handleSubmit(event: SyntheticEvent): Promise<void> {
@@ -41,10 +47,15 @@ export function ScenarioKnowledgeRetrievalTester({
     if (query.trim().length === 0) return
     setResult({ status: 'loading' })
     try {
-      const retrieval = await queryKnowledgeRetrieval(buildRetrievalRequest(scenarioId, query, activeAvatarId, memoryScope))
+      const retrieval = await queryKnowledgeRetrieval(
+        buildRetrievalRequest(scenarioId, query, activeAvatarId, memoryScope),
+      )
       setResult({ status: 'ready', retrieval })
     } catch (error: unknown) {
-      setResult({ status: 'error', message: formatApiError(error, 'UNKNOWN_ERROR: Retrieval failed') })
+      setResult({
+        status: 'error',
+        message: formatApiError(error, 'UNKNOWN_ERROR: Retrieval failed'),
+      })
     }
   }
 
@@ -57,12 +68,16 @@ export function ScenarioKnowledgeRetrievalTester({
         </button>
       </div>
       <p className="admin-muted">
-        Runs the same typed retrieval Avatars and the Game Master use at runtime, so you can see exactly
-        which chunks a query would surface — and why. Leave &quot;Active avatar&quot; empty to see the
-        Game Master&apos;s unrestricted view.
+        Runs the same typed retrieval Avatars and the Game Master use at runtime, so you can see
+        exactly which chunks a query would surface — and why. Leave &quot;Active avatar&quot; empty
+        to see the Game Master&apos;s unrestricted view.
       </p>
 
-      <form onSubmit={(event) => { void handleSubmit(event) }}>
+      <form
+        onSubmit={(event) => {
+          void handleSubmit(event)
+        }}
+      >
         <div className="admin-form-group">
           <label htmlFor="rag-query" className="admin-form-label">
             Query <span aria-hidden="true">*</span>
@@ -72,7 +87,9 @@ export function ScenarioKnowledgeRetrievalTester({
             type="text"
             className="admin-form-input"
             value={query}
-            onChange={(event) => { setQuery(event.target.value) }}
+            onChange={(event) => {
+              setQuery(event.target.value)
+            }}
             required
             disabled={loading}
           />
@@ -84,16 +101,28 @@ export function ScenarioKnowledgeRetrievalTester({
           loading={loading}
           onChange={setActiveAvatarId}
         />
-        <RetrievalMemoryScopeFields memoryScope={memoryScope} loading={loading} onChange={setMemoryScope} />
+        <RetrievalMemoryScopeFields
+          memoryScope={memoryScope}
+          loading={loading}
+          onChange={setMemoryScope}
+        />
 
         <div className="admin-form-actions">
-          <button type="submit" className="admin-button admin-button-primary" disabled={loading || query.trim().length === 0}>
+          <button
+            type="submit"
+            className="admin-button admin-button-primary"
+            disabled={loading || query.trim().length === 0}
+          >
             {loading ? 'Running…' : 'Run retrieval'}
           </button>
         </div>
       </form>
 
-      <RetrievalResult result={result} sourceNamesById={sourceNamesById} />
+      <RetrievalResult
+        result={result}
+        sourceNamesById={sourceNamesById}
+        knowledgeSources={knowledgeSources}
+      />
     </>
   )
 }
@@ -136,7 +165,9 @@ function RetrievalAvatarField({
         id="rag-avatar"
         className="admin-form-select"
         value={activeAvatarId}
-        onChange={(event) => { onChange(event.target.value) }}
+        onChange={(event) => {
+          onChange(event.target.value)
+        }}
         disabled={loading}
       >
         <option value="">— Game Master (unrestricted) —</option>
@@ -171,7 +202,9 @@ function RetrievalMemoryScopeFields({
           type="text"
           className="admin-form-input"
           value={memoryScope.sessionId}
-          onChange={(event) => { onChange({ ...memoryScope, sessionId: event.target.value }) }}
+          onChange={(event) => {
+            onChange({ ...memoryScope, sessionId: event.target.value })
+          }}
           disabled={loading}
         />
       </div>
@@ -184,7 +217,9 @@ function RetrievalMemoryScopeFields({
           type="text"
           className="admin-form-input"
           value={memoryScope.userId}
-          onChange={(event) => { onChange({ ...memoryScope, userId: event.target.value }) }}
+          onChange={(event) => {
+            onChange({ ...memoryScope, userId: event.target.value })
+          }}
           disabled={loading}
         />
       </div>
@@ -197,7 +232,9 @@ function RetrievalMemoryScopeFields({
           type="text"
           className="admin-form-input"
           value={memoryScope.conversationId}
-          onChange={(event) => { onChange({ ...memoryScope, conversationId: event.target.value }) }}
+          onChange={(event) => {
+            onChange({ ...memoryScope, conversationId: event.target.value })
+          }}
           disabled={loading}
         />
       </div>
@@ -208,9 +245,11 @@ function RetrievalMemoryScopeFields({
 function RetrievalResult({
   result,
   sourceNamesById,
+  knowledgeSources,
 }: {
   result: ResultState
   sourceNamesById: Map<string, string>
+  knowledgeSources: KnowledgeSourceDto[]
 }): JSX.Element | null {
   if (result.status === 'idle') return null
   if (result.status === 'loading') return <p>Running retrieval…</p>
@@ -218,6 +257,21 @@ function RetrievalResult({
 
   return (
     <>
+      <p className="admin-muted">
+        Inputs used:{' '}
+        {result.retrieval.trace.queries
+          ?.map((input) => `${input.source}=${input.text}`)
+          .join(' · ') ?? result.retrieval.trace.query}
+      </p>
+      {result.retrieval.memory.length === 0 &&
+      result.retrieval.world.length === 0 &&
+      result.retrieval.media.length === 0 ? (
+        <p className="admin-muted">
+          No chunks matched. Ready sources:{' '}
+          {String(knowledgeSources.filter((source) => source.status === 'ready').length)}. Ingestion
+          must be completed before retrieval can return chunks.
+        </p>
+      ) : null}
       {KNOWLEDGE_TYPES.map((type) => (
         <RetrievalTypeSection
           key={type}

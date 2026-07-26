@@ -10,6 +10,7 @@ import type {
   RetrievedKnowledgeItem,
   TypedRetrievalResult,
 } from '../../../domain/knowledge/knowledge.types.js'
+import { selectBalancedRetrievedItems } from '../../../domain/knowledge/retrieval-selection.js'
 import type { TypedRetrievalQueryVariant } from './typed-retrieval-query-builder.js'
 
 const DEFAULT_LIMIT_PER_TYPE = 3
@@ -45,6 +46,7 @@ export class TypedRetrievalService {
       media: media.items,
       trace: {
         query: input.query,
+        queries,
         perType: {
           memory: {
             sourceIds: memory.sourceIds,
@@ -127,18 +129,22 @@ export class TypedRetrievalService {
           return a.chunk.sourceId.localeCompare(b.chunk.sourceId)
         return a.chunk.chunkIndex - b.chunk.chunkIndex
       })
-    const selected = takeTopUniqueChunks(scored, limit)
-
-    return {
-      sourceIds,
-      items: selected.map((entry) =>
+    const selected = selectBalancedRetrievedItems(
+      scored.map((entry) =>
         toRetrievedItem(
           type,
           entry.chunk,
           entry.score,
           explainScore(type, entry.chunk, entry.query, input),
+          entry.query,
         ),
       ),
+      limit,
+    )
+
+    return {
+      sourceIds,
+      items: selected,
       visibility: {
         ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
         consideredChunkCount: chunks.length,
@@ -196,6 +202,7 @@ function toRetrievedItem(
   chunk: KnowledgeChunk,
   score: number,
   reason: string,
+  matchedQuery: TypedRetrievalQueryVariant,
 ): RetrievedKnowledgeItem {
   return {
     sourceId: chunk.sourceId,
@@ -204,6 +211,7 @@ function toRetrievedItem(
     content: chunk.content,
     score: Number(score.toFixed(4)),
     reason,
+    matchedQuery,
     ...(chunk.visibleToAvatarIds !== undefined
       ? { visibleToAvatarIds: chunk.visibleToAvatarIds }
       : {}),
@@ -311,21 +319,4 @@ function tokenize(text: string): string[] {
     .split(/[^a-z0-9]+/g)
     .map((token) => token.trim())
     .filter((token) => token.length >= 2)
-}
-
-function takeTopUniqueChunks<T extends { chunk: KnowledgeChunk }>(
-  entries: T[],
-  limit: number,
-): T[] {
-  const selected: T[] = []
-  const seenChunkIds = new Set<string>()
-
-  for (const entry of entries) {
-    if (seenChunkIds.has(entry.chunk.chunkId)) continue
-    seenChunkIds.add(entry.chunk.chunkId)
-    selected.push(entry)
-    if (selected.length >= limit) break
-  }
-
-  return selected
 }

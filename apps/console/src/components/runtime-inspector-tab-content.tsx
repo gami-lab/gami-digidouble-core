@@ -326,8 +326,8 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
   return (
     <div style={{ marginTop: '12px' }}>
       <p style={{ margin: '0 0 10px', color: '#4b5563' }}>
-        This tab shows the canonical runtime context snapshot and bounded assembly trace used by
-        the inspector. Turn-specific retrieval provenance still lives in the Events tab.
+        This tab shows the canonical runtime context snapshot and bounded assembly trace used by the
+        inspector. Turn-specific retrieval provenance still lives in the Events tab.
       </p>
       <strong>Static knowledge inventory</strong>
       <Row label="Scenario">{snapshot.session.scenarioId}</Row>
@@ -422,7 +422,8 @@ function renderGmRuntimeContext(
       <Row label="GM unresolved threads">{formatInlineItems(workingMemory?.unresolvedThreads)}</Row>
       <Row label="GM covered topics">{formatInlineItems(workingMemory?.coveredTopics)}</Row>
       <Row label="Available avatars">
-        {snapshot.context.gmContext.availableAvatars.map((avatar) => avatar.name).join(' | ') || '-'}
+        {snapshot.context.gmContext.availableAvatars.map((avatar) => avatar.name).join(' | ') ||
+          '-'}
       </Row>
     </>
   )
@@ -450,7 +451,8 @@ type KnowledgeSourceView = RuntimeInspectorViewModel['knowledge']['sources'][num
 // the canonical `visibilityPolicy: 'none'` field existed (EPIC 6.1).
 function isGmOnlySource(source: KnowledgeSourceView): boolean {
   return (
-    source.visibilityPolicy === 'none' || source.visibleToAvatarIds?.includes('__GM_ONLY__') === true
+    source.visibilityPolicy === 'none' ||
+    source.visibleToAvatarIds?.includes('__GM_ONLY__') === true
   )
 }
 
@@ -571,6 +573,14 @@ function TraceRetrievalSection({
           <div>
             <div>Match basis</div>
             <div style={{ color: '#6b7280', fontSize: '12px' }}>{item.matchBasis}</div>
+            {item.matchedQuery !== undefined ? (
+              <>
+                <div style={{ marginTop: '4px' }}>Matched input</div>
+                <div style={{ color: '#6b7280', fontSize: '12px' }}>
+                  {item.matchedQuery.source}: {item.matchedQuery.text}
+                </div>
+              </>
+            ) : null}
           </div>
           <div>
             <div>Score</div>
@@ -578,6 +588,12 @@ function TraceRetrievalSection({
               {item.score !== undefined ? item.score.toFixed(4) : '-'}
             </div>
           </div>
+          {item.content !== undefined ? (
+            <details style={{ gridColumn: '1 / -1' }}>
+              <summary>Chunk content</summary>
+              <pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0 0' }}>{item.content}</pre>
+            </details>
+          ) : null}
         </div>
       ))}
     </div>

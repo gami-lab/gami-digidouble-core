@@ -363,15 +363,71 @@ describe('TypedRetrievalService', () => {
       scenarioId: 'scenario_1',
       query: 'Emplacement actuel de Mona | Dernier emplacement confirmé de Mona',
       queries: [
-        { source: 'gm_retrieval_plan', text: 'Emplacement actuel de Mona' },
-        { source: 'gm_retrieval_plan', text: 'Dernier emplacement confirmé de Mona' },
+        { source: 'gm_retrieval_query', text: 'Emplacement actuel de Mona' },
+        { source: 'gm_required_fact', text: 'Dernier emplacement confirmé de Mona' },
       ],
     })
 
     expect(result.world.map((item) => item.content)).toEqual([
       'Le dernier emplacement confirmé de Mona est la maison de son grand-père.',
     ])
-    expect(result.world[0]?.reason).toContain('gm-retrieval-plan')
+    expect(result.world[0]?.reason).toContain('gm-retrieval-query')
+  })
+
+  it('keeps one best match for the user, GM queries, and required facts before global fill', async () => {
+    const sourceRepo = new InMemoryKnowledgeSourceRepository()
+    const chunkRepo = new InMemoryKnowledgeChunkRepository()
+    const world = await sourceRepo.create({
+      scenarioId: 'scenario_1',
+      name: 'Scenario world',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/scenario.md',
+    })
+    await sourceRepo.updateStatus(world.sourceId, 'ready')
+
+    const contents = [
+      'user question harbor answer',
+      'canonical harbor rule',
+      'last confirmed harbor location',
+      'user question secondary context',
+      'canonical harbor secondary context',
+      'required fact secondary context',
+      'fallback directive high signal',
+      'fallback memory high signal',
+    ]
+    for (const [chunkIndex, content] of contents.entries()) {
+      await chunkRepo.create({ sourceId: world.sourceId, chunkIndex, content })
+    }
+
+    const service = new TypedRetrievalService(sourceRepo, chunkRepo)
+    const result = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'user question harbor',
+      queries: [
+        { source: 'last_user_input', text: 'user question harbor' },
+        { source: 'gm_retrieval_query', text: 'canonical harbor rule' },
+        { source: 'gm_required_fact', text: 'last confirmed harbor location' },
+        { source: 'gm_guideline', text: 'fallback directive high signal' },
+        { source: 'working_memory', text: 'fallback memory high signal' },
+      ],
+      limitPerType: 5,
+    })
+
+    expect(result.world).toHaveLength(5)
+    expect(result.world.map((item) => item.content)).toEqual([
+      'user question harbor answer',
+      'canonical harbor rule',
+      'last confirmed harbor location',
+      'user question secondary context',
+      'canonical harbor secondary context',
+    ])
+    expect(result.world.slice(0, 3).map((item) => item.matchedQuery?.source)).toEqual([
+      'last_user_input',
+      'gm_retrieval_query',
+      'gm_required_fact',
+    ])
+    expect(result.world[0]?.matchedQuery?.text).toBe('user question harbor')
   })
 
   it('enforces visibilityPolicy none: blocks all avatar retrieval, passes GM bypass', async () => {

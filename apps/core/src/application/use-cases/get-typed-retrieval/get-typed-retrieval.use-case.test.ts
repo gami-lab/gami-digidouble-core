@@ -93,4 +93,16 @@ describe('GetTypedRetrievalUseCase', () => {
     expect(hidden.retrieval.trace.perType.world.visibility?.activeAvatarId).toBe('avatar_2')
     expect(hidden.retrieval.trace.perType.world.visibility?.excludedChunkCount).toBe(1)
   })
+
+  it('uses the unrestricted GM view when no active avatar is selected', async () => {
+    const useCase = buildUseCase()
+
+    const output = await useCase.execute({
+      scenarioId: 'scenario_1',
+      query: 'restricted',
+    })
+
+    expect(output.retrieval.world).toHaveLength(1)
+    expect(output.retrieval.world[0]?.content).toBe('restricted world lore')
+  })
 })

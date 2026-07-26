@@ -884,22 +884,22 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     expect(retrievalInput.queries).toEqual(
       expect.arrayContaining([
         {
-          source: 'gm_retrieval_plan',
+          source: 'gm_retrieval_query',
           text: 'Mona current location after staying with grandfather',
         },
-        { source: 'gm_retrieval_plan', text: 'Mona quarantine camp' },
-        { source: 'gm_retrieval_plan', text: "what Max knows about Mona's current location" },
-        { source: 'gm_retrieval_plan', text: 'whether Mona was ever at the chalet' },
-        { source: 'gm_retrieval_plan', text: "Mona's last confirmed location" },
+        { source: 'gm_retrieval_query', text: 'Mona quarantine camp' },
+        { source: 'gm_retrieval_query', text: "what Max knows about Mona's current location" },
+        { source: 'gm_retrieval_query', text: 'whether Mona was ever at the chalet' },
+        { source: 'gm_required_fact', text: "Mona's last confirmed location" },
         {
-          source: 'gm_retrieval_plan',
+          source: 'gm_required_fact',
           text: 'whether Mona is still with her grandfather',
         },
         {
-          source: 'gm_retrieval_plan',
+          source: 'gm_required_fact',
           text: 'what Max knows about her current location',
         },
-        { source: 'gm_retrieval_plan', text: 'whether Mona travelled to the chalet' },
+        { source: 'gm_required_fact', text: 'whether Mona travelled to the chalet' },
         { source: 'last_user_input', text: "Is Mona still at her grandfather's house?" },
       ]),
     )
@@ -987,8 +987,8 @@ describe('SendMessageUseCase — validation and GM integration', () => {
             sourceId: 'source_hidden',
             chunkId: 'chunk_hidden',
             knowledgeType: 'memory',
-            content: 'Hidden retrieval text: sk-test-secret',
-            metadata: { inlineText: 'Hidden retrieval text: sk-test-secret' },
+            content: 'Visible retrieval text.',
+            metadata: { inlineText: 'Hidden metadata: sk-test-secret' },
           },
         ],
         world: [],
@@ -1047,7 +1047,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     expect(serializedPayload).not.toContain('Legacy secret persona text.')
     expect(serializedPayload).not.toContain('Hidden trait identity')
     expect(serializedPayload).not.toContain('Never reveal the vault code.')
-    expect(serializedPayload).not.toContain('Hidden retrieval text: sk-test-secret')
+    expect(serializedPayload).toContain('Visible retrieval text.')
     expect(serializedPayload).not.toContain('inlineText')
     expect(serializedPayload).not.toContain('sk-test-secret')
     expect(serializedPayload).not.toContain('test-secret')

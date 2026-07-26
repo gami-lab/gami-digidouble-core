@@ -222,8 +222,10 @@ function makeViewModel(): RuntimeInspectorViewModel {
                     sourceId: 'source_1',
                     chunkId: 'chunk_1',
                     knowledgeType: 'world',
+                    content: 'GM clue content',
                     score: 0.4444,
                     reason: 'token-overlap',
+                    matchedQuery: { source: 'world_context', text: 'Scenario world' },
                     visibleToAvatarIds: ['avatar_1'],
                   },
                 ],
@@ -306,8 +308,10 @@ function makeViewModel(): RuntimeInspectorViewModel {
                     sourceId: 'source_2',
                     chunkId: 'chunk_2',
                     knowledgeType: 'world',
+                    content: 'Avatar clue content',
                     score: 0.8123,
                     reason: 'token-overlap',
+                    matchedQuery: { source: 'last_user_input', text: 'Who did it?' },
                     visibleToAvatarIds: ['avatar_2'],
                   },
                 ],
@@ -409,6 +413,8 @@ describe('buildGmImpactTrace', () => {
         access: 'Clara Whitcombe',
         score: 0.4444,
         matchBasis: 'keyword match',
+        content: 'GM clue content',
+        matchedQuery: { source: 'world_context', text: 'Scenario world' },
       },
     ])
     expect(first.avatarInput.join(' ')).toContain('Avatar input summary: 1 exchange(s)')
@@ -423,6 +429,8 @@ describe('buildGmImpactTrace', () => {
         access: 'Theo',
         score: 0.8123,
         matchBasis: 'keyword match',
+        content: 'Avatar clue content',
+        matchedQuery: { source: 'last_user_input', text: 'Who did it?' },
       },
     ])
     expect(first.avatarInput.join(' ')).toContain(

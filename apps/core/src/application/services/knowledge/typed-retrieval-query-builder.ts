@@ -1,15 +1,7 @@
 import type { ShortTermMemoryExchange } from '../../../domain/memory/memory.types.js'
+import type { RetrievalQueryVariant } from '../../../domain/knowledge/knowledge.types.js'
 
-export type TypedRetrievalQueryVariant = {
-  source:
-    | 'gm_guideline'
-    | 'gm_retrieval_plan'
-    | 'last_user_input'
-    | 'working_memory'
-    | 'world_context'
-    | 'direct_query'
-  text: string
-}
+export type TypedRetrievalQueryVariant = RetrievalQueryVariant
 
 export function buildAvatarTypedRetrievalQueries(input: {
   gmGuideline?: string | null | undefined
@@ -19,11 +11,16 @@ export function buildAvatarTypedRetrievalQueries(input: {
   workingMemorySummary?: string | null | undefined
   recentExchanges?: ShortTermMemoryExchange[] | undefined
 }): TypedRetrievalQueryVariant[] {
-  const plannedQueries = [...(input.gmRetrievalQueries ?? []), ...(input.gmRequiredFacts ?? [])]
-  const usePlannedRetrieval = shouldUsePlannedRetrieval(input.lastUserInput, plannedQueries)
+  const plannedQueries = input.gmRetrievalQueries ?? []
+  const requiredFacts = input.gmRequiredFacts ?? []
+  const usePlannedRetrieval = shouldUsePlannedRetrieval(input.lastUserInput, [
+    ...plannedQueries,
+    ...requiredFacts,
+  ])
   const candidates: TypedRetrievalQueryVariant[] = [
     toQueryVariant('gm_guideline', usePlannedRetrieval ? input.gmGuideline : undefined),
-    ...(usePlannedRetrieval ? toQueryVariants('gm_retrieval_plan', plannedQueries) : []),
+    ...(usePlannedRetrieval ? toQueryVariants('gm_retrieval_query', plannedQueries) : []),
+    ...(usePlannedRetrieval ? toQueryVariants('gm_required_fact', requiredFacts) : []),
     toQueryVariant('last_user_input', input.lastUserInput),
     toQueryVariant(
       'working_memory',

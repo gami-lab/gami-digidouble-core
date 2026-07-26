@@ -60,11 +60,11 @@ describe('typed retrieval query builder', () => {
 
     expect(queries.slice(0, 3)).toEqual([
       {
-        source: 'gm_retrieval_plan',
+        source: 'gm_retrieval_query',
         text: 'Mona current location after staying with grandfather',
       },
-      { source: 'gm_retrieval_plan', text: "Mona's last confirmed location" },
-      { source: 'gm_retrieval_plan', text: "what Max knows about Mona's current location" },
+      { source: 'gm_required_fact', text: "Mona's last confirmed location" },
+      { source: 'gm_required_fact', text: "what Max knows about Mona's current location" },
     ])
   })
 
@@ -81,7 +81,8 @@ describe('typed retrieval query builder', () => {
 
     expect(flattenTypedRetrievalQueries(queries)).toContain('Mona quarantine camp')
     expect(flattenTypedRetrievalQueries(queries)).toContain('Is Mona still with her grandfather?')
-    expect(queries.filter((query) => query.source === 'gm_retrieval_plan')).toHaveLength(3)
+    expect(queries.filter((query) => query.source === 'gm_retrieval_query')).toHaveLength(1)
+    expect(queries.filter((query) => query.source === 'gm_required_fact')).toHaveLength(2)
   })
 
   it('does not invent required planning for emotional reflection', () => {
@@ -92,7 +93,7 @@ describe('typed retrieval query builder', () => {
     expect(queries).toEqual([
       { source: 'last_user_input', text: 'How do you feel about all of this?' },
     ])
-    expect(queries.some((query) => query.source === 'gm_retrieval_plan')).toBe(false)
+    expect(queries.some((query) => query.source === 'gm_retrieval_query')).toBe(false)
   })
 
   it('keeps scenario-language GM queries and required facts in the retrieval set', () => {
@@ -103,8 +104,8 @@ describe('typed retrieval query builder', () => {
     })
 
     expect(queries).toEqual([
-      { source: 'gm_retrieval_plan', text: 'Emplacement actuel de Mona' },
-      { source: 'gm_retrieval_plan', text: 'Dernier emplacement confirmé de Mona' },
+      { source: 'gm_retrieval_query', text: 'Emplacement actuel de Mona' },
+      { source: 'gm_required_fact', text: 'Dernier emplacement confirmé de Mona' },
       { source: 'last_user_input', text: 'Où est Mona maintenant ?' },
     ])
   })

@@ -30,6 +30,11 @@ export type RetrievalTraceItem = {
   access: string
   score?: number
   matchBasis: string
+  content?: string
+  matchedQuery?: {
+    source: string
+    text: string
+  }
 }
 
 export function buildGmImpactTrace(snapshot: RuntimeInspectorViewModel): GmImpactTraceEntry[] {
@@ -408,6 +413,13 @@ function toRetrievalTraceItem(
     chunkId: string
     score?: number
     reason?: string
+    content?: string
+    matchedQuery?:
+      | {
+          source: string
+          text: string
+        }
+      | undefined
     visibleToAvatarIds?: string[]
   },
   avatarNameById: Map<string, string>,
@@ -427,6 +439,8 @@ function toRetrievalTraceItem(
     access,
     ...(item.score !== undefined ? { score: item.score } : {}),
     matchBasis: formatMatchBasis(item.reason),
+    ...(item.content !== undefined ? { content: item.content } : {}),
+    ...(item.matchedQuery !== undefined ? { matchedQuery: item.matchedQuery } : {}),
   }
 }
 

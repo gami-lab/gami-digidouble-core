@@ -200,7 +200,13 @@ All admin endpoints live under `/v1/admin/*`.
 
 ### Knowledge Diagnostics
 
-- `POST /v1/admin/knowledge/retrieval` -> `QueryKnowledgeRetrievalResponse`
+- `POST /v1/admin/knowledge/retrieval` -> `QueryKnowledgeRetrievalResponse`; an omitted
+  `activeAvatarId` requests the unrestricted GM diagnostic view, while an explicit avatar ID
+  applies avatar visibility filtering. The response trace includes the query variants used and
+  each result may include its matched query source/text.
+
+Runtime `turn_completed` event retrieval references include the selected chunk content and matched
+query source/text so the console can inspect the exact knowledge passed to the Avatar prompt.
 
 ## Route-Specific Invariants
 

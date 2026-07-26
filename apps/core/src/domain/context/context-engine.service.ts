@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
+import { selectBalancedRetrievedItems } from '../knowledge/retrieval-selection.js'
 import type { LongTermMemoryFact } from '../memory/memory.types.js'
 import type { ContextEngineInput, ContextEngineOutput } from './context-engine.types.js'
 import type {
@@ -302,10 +303,10 @@ function pushAvatarRetrievalCandidates(
   retrieval: ReturnType<typeof dedupeRetrieval>,
 ): void {
   if (retrieval === undefined) return
-  const selectedMemoryAndWorld = selectTopRetrievedItems([
-    ...retrieval.memory,
-    ...retrieval.world,
-  ]).slice(0, AVATAR_RETRIEVAL_LIMIT)
+  const selectedMemoryAndWorld = selectBalancedRetrievedItems(
+    [...retrieval.memory, ...retrieval.world],
+    AVATAR_RETRIEVAL_LIMIT,
+  )
   pushAvatarRetrievalSegmentCandidate(
     candidates,
     'retrievedContextMemory',
@@ -634,19 +635,6 @@ function dedupeRetrievedItems(
     output.push(item)
   }
   return output
-}
-
-function selectTopRetrievedItems(items: RetrievedKnowledgeItem[]): RetrievedKnowledgeItem[] {
-  return [...items].sort(compareRetrievedItems)
-}
-
-function compareRetrievedItems(a: RetrievedKnowledgeItem, b: RetrievedKnowledgeItem): number {
-  const scoreDifference = (b.score ?? 0) - (a.score ?? 0)
-  if (scoreDifference !== 0) return scoreDifference
-  if (a.knowledgeType !== b.knowledgeType) {
-    return a.knowledgeType.localeCompare(b.knowledgeType)
-  }
-  return a.chunkId.localeCompare(b.chunkId)
 }
 
 function toWorkingSummary(memory: ContextEngineInput['extensions']['memory']): string | undefined {

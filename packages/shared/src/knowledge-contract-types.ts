@@ -65,6 +65,17 @@ export type RetrievedKnowledgeItemDto = {
   content: string
   score?: number
   reason?: string
+  matchedQuery?: {
+    source:
+      | 'gm_guideline'
+      | 'gm_retrieval_query'
+      | 'gm_required_fact'
+      | 'last_user_input'
+      | 'working_memory'
+      | 'world_context'
+      | 'direct_query'
+    text: string
+  }
   metadata?: Record<string, unknown>
   visibleToAvatarIds?: string[]
 }
@@ -95,6 +106,8 @@ export type RecordedKnowledgeReferenceDto = {
   knowledgeType: KnowledgeType
   score?: number
   reason?: string
+  content?: string
+  matchedQuery?: RetrievedKnowledgeItemDto['matchedQuery']
   visibleToAvatarIds?: string[]
 }
 
@@ -215,6 +228,7 @@ export type TypedKnowledgeRetrievalDto = {
   media: RetrievedKnowledgeItemDto[]
   trace: {
     query: string
+    queries?: NonNullable<RetrievedKnowledgeItemDto['matchedQuery']>[]
     perType: Record<
       KnowledgeType,
       {

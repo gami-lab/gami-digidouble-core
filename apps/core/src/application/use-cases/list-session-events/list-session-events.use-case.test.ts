@@ -444,6 +444,7 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
                     sourceId: 'source_1',
                     chunkId: 'chunk_1',
                     knowledgeType: 'world',
+                    content: 'A clue',
                     visibleToAvatarIds: ['avatar_1'],
                   },
                 ],
@@ -496,7 +497,7 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
         },
       },
     ])
-    expect(JSON.stringify(output)).not.toContain('A clue')
+    expect(JSON.stringify(output)).toContain('A clue')
     expect(JSON.stringify(output)).not.toContain('inlineText')
   })
 

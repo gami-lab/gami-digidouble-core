@@ -114,8 +114,10 @@ function toRecordedKnowledgeReference(item: RetrievedKnowledgeItem): RecordedKno
     sourceId: item.sourceId,
     chunkId: item.chunkId,
     knowledgeType: item.knowledgeType,
+    content: item.content,
     ...(item.score !== undefined ? { score: item.score } : {}),
     ...(item.reason !== undefined ? { reason: item.reason } : {}),
+    ...(item.matchedQuery !== undefined ? { matchedQuery: item.matchedQuery } : {}),
     ...(item.visibleToAvatarIds !== undefined
       ? { visibleToAvatarIds: item.visibleToAvatarIds }
       : {}),

@@ -12,6 +12,7 @@ import type {
 } from '../context/session-context.types.js'
 import type { DialogueControlMode } from '../game-master/game-master.types.js'
 import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
+import { selectBalancedRetrievedItems } from '../knowledge/retrieval-selection.js'
 
 const DEFAULT_STYLE_RULE = [
   'Stay in character and keep responses concise.',
@@ -219,9 +220,7 @@ function appendLongTermMemory(lines: string[], memory: AvatarPromptOptions['memo
 function buildRetrievalContext(retrieval: AvatarPromptOptions['retrieval']): string[] {
   if (retrieval === undefined) return []
 
-  const memoryAndWorld = [...retrieval.memory, ...retrieval.world]
-    .sort(compareRetrievedItems)
-    .slice(0, 5)
+  const memoryAndWorld = selectBalancedRetrievedItems([...retrieval.memory, ...retrieval.world], 5)
   const contextLines = formatRetrievedItems(memoryAndWorld, 'Context')
   const mediaLines = formatRetrievedItems(retrieval.media, 'Media context')
   const lines = [
@@ -243,18 +242,6 @@ function formatRetrievedItems(
     lines.push(`${label} ${String(index + 1)} (${item.knowledgeType}):`, item.content.trim())
   })
   return lines
-}
-
-function compareRetrievedItems(
-  a: NonNullable<AvatarPromptOptions['retrieval']>['memory'][number],
-  b: NonNullable<AvatarPromptOptions['retrieval']>['memory'][number],
-): number {
-  const scoreDifference = (b.score ?? 0) - (a.score ?? 0)
-  if (scoreDifference !== 0) return scoreDifference
-  if (a.knowledgeType !== b.knowledgeType) {
-    return a.knowledgeType.localeCompare(b.knowledgeType)
-  }
-  return a.chunkId.localeCompare(b.chunkId)
 }
 
 function requirePersonaPrompt(personaPrompt: string): string {

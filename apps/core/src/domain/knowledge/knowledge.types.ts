@@ -69,6 +69,20 @@ export interface KnowledgeChunk {
   visibleToAvatarIds?: string[]
 }
 
+export type RetrievalQuerySource =
+  | 'gm_guideline'
+  | 'gm_retrieval_query'
+  | 'gm_required_fact'
+  | 'last_user_input'
+  | 'working_memory'
+  | 'world_context'
+  | 'direct_query'
+
+export type RetrievalQueryVariant = {
+  source: RetrievalQuerySource
+  text: string
+}
+
 export interface IngestionJob {
   ingestionJobId: string
   sourceId: string
@@ -88,6 +102,7 @@ export interface RetrievedKnowledgeItem {
   content: string
   score?: number
   reason?: string
+  matchedQuery?: RetrievalQueryVariant
   metadata?: Record<string, unknown>
   visibleToAvatarIds?: string[]
 }
@@ -98,6 +113,7 @@ export interface TypedRetrievalResult {
   media: RetrievedKnowledgeItem[]
   trace: {
     query: string
+    queries?: RetrievalQueryVariant[]
     perType: Record<
       KnowledgeType,
       {

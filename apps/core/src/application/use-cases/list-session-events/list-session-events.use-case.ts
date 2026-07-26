@@ -809,6 +809,7 @@ function hasRecordedKnowledge(value: {
   return value.memory.length > 0 || value.world.length > 0 || value.media.length > 0
 }
 
+// eslint-disable-next-line complexity
 function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeReference | null {
   if (!isRecord(entry)) return null
   const sourceId = readOptionalString(entry['sourceId'])
@@ -825,13 +826,38 @@ function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeRefere
     sourceId,
     chunkId,
     knowledgeType,
+    ...(typeof entry['content'] === 'string' ? { content: entry['content'] } : {}),
     ...(typeof entry['score'] === 'number' ? { score: entry['score'] } : {}),
     ...(typeof entry['reason'] === 'string' ? { reason: entry['reason'] } : {}),
+    ...(readRecordedMatchedQuery(entry['matchedQuery']) !== undefined
+      ? { matchedQuery: readRecordedMatchedQuery(entry['matchedQuery']) }
+      : {}),
     ...(Array.isArray(entry['visibleToAvatarIds'])
       ? { visibleToAvatarIds: readStringArray(entry['visibleToAvatarIds']) }
       : {}),
   }
   return item
+}
+
+function readRecordedMatchedQuery(
+  value: unknown,
+): NonNullable<RecordedKnowledgeReference['matchedQuery']> | undefined {
+  if (!isRecord(value)) return undefined
+  const source = value['source']
+  const text = readOptionalString(value['text'])
+  if (
+    (source !== 'gm_guideline' &&
+      source !== 'gm_retrieval_query' &&
+      source !== 'gm_required_fact' &&
+      source !== 'last_user_input' &&
+      source !== 'working_memory' &&
+      source !== 'world_context' &&
+      source !== 'direct_query') ||
+    text === undefined
+  ) {
+    return undefined
+  }
+  return { source, text }
 }
 
 function readStringArray(value: unknown): string[] {
