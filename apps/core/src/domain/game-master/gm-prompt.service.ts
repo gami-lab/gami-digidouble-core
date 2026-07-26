@@ -46,6 +46,8 @@ export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext
       'Use this shape; keep required keys exact and omit optional keys when they are not needed:',
       schema,
       'Field rules:',
+      '- dialogueControl and dialogueControl.askFollowUp are required.',
+      '- retrievalPlan and progressionUpdate are optional; omit them when no update is needed.',
       '- askFollowUp must always be stated explicitly; never infer it from mode alone.',
       '- retrievalPlan.queries and requiredFacts should be omitted or empty when required is false.',
       ...(routingMode !== 'none' ? renderRoutingFieldRules(routingMode) : []),

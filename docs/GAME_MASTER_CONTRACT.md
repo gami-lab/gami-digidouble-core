@@ -132,7 +132,7 @@ type GameMasterOutput = {
     mode: 'user_led' | 'avatar_guided' | 'avatar_led' | 'repair' | 'transition'
     askFollowUp: boolean
   }
-  retrievalPlan: {
+  retrievalPlan?: {
     required: boolean
     priority?: 'mandatory' | 'optional'
     queries?: string[]
@@ -149,7 +149,7 @@ type GameMasterOutput = {
       reason: string
     }>
   }
-  progressionUpdate: {
+  progressionUpdate?: {
     progression: 'none' | 'increase'
     objectiveId?: string
     reason?: string
@@ -161,6 +161,9 @@ Output invariants:
 
 - `GameMasterOutput` is the canonical runtime output contract.
 - `dialogueControl.askFollowUp` must always be stated explicitly by the GM; it is never inferred from `mode` alone.
+- `dialogueControl` is required. `retrievalPlan`, `directorNotes`, `routing`, and
+  `progressionUpdate` are optional; omitted retrieval/progression fields normalize to safe
+  no-op defaults before persistence.
 - The GM does not perform retrieval — `retrievalPlan` only prepares queries/required facts for the next Avatar turn.
 - `directorNotes` is optional and must only carry guidance not already represented by another structured field.
 - `routing` is omitted entirely when routing is not applicable (single-Avatar scenarios). When present:

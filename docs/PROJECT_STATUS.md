@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-07-25
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 3
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4
 
 ## Snapshot
 
@@ -51,6 +51,9 @@ The platform is now a working headless conversational runtime with:
 - Safe GM diagnostics are recorded in the event log and exposed through admin APIs.
 - GM state no longer persists legacy topic updates or interaction increments; session/conversation
   state owns Avatar routing and application code increments completed-exchange counts.
+- Prompt 4 regression coverage protects the output contract, dynamic routing schemas, next-turn
+  retrieval planning, dialogue-control modes, stale orchestration state, failure isolation, prompt
+  sizing, and the Mona contradiction flow.
 
 ### Memory
 

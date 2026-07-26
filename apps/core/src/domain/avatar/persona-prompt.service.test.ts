@@ -76,6 +76,26 @@ describe('assemblePersonaPrompt -> section order', () => {
     expect(prompt).not.toContain('end with one focused follow-up question when it helps')
   })
 
+  it.each([
+    ['user_led', false, 'Do not add a generic follow-up question.'],
+    ['avatar_guided', true, 'You may offer one focused question or next direction.'],
+    ['avatar_led', false, 'Introduce one meaningful topic, recollection, or question.'],
+    ['repair', false, 'Do not introduce a new topic until the issue is clarified.'],
+    [
+      'transition',
+      false,
+      'Close the current topic naturally and move toward the indicated subject or Avatar.',
+    ],
+  ] as const)('applies %s dialogue control', (mode, askFollowUp, rule) => {
+    const prompt = assemblePersonaPrompt(makeAvatarConfig(), {
+      gmGuidance: { mode, askFollowUp },
+    })
+
+    expect(prompt).toContain(`Dialogue mode: ${mode}`)
+    expect(prompt).toContain(`Follow-up question: ${askFollowUp ? 'yes' : 'no'}`)
+    expect(prompt).toContain(rule)
+  })
+
   it('assembles runtime sections in EPIC 8.2 order', () => {
     const prompt = assemblePersonaPrompt(
       makeAvatarConfig({

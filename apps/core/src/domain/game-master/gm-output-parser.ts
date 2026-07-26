@@ -56,10 +56,16 @@ function toGameMasterOutput(value: unknown): GameMasterOutput | null {
   const dialogueControl = toDialogueControl(value['dialogueControl'])
   if (dialogueControl === null) return null
 
-  const retrievalPlan = toRetrievalPlan(value['retrievalPlan'])
+  const retrievalPlan =
+    value['retrievalPlan'] === undefined
+      ? { required: false }
+      : toRetrievalPlan(value['retrievalPlan'])
   if (retrievalPlan === null) return null
 
-  const progressionUpdate = toProgressionUpdate(value['progressionUpdate'])
+  const progressionUpdate =
+    value['progressionUpdate'] === undefined
+      ? { progression: 'none' as const }
+      : toProgressionUpdate(value['progressionUpdate'])
   if (progressionUpdate === null) return null
 
   const directorNotes = hasText(value['directorNotes']) ? value['directorNotes'].trim() : undefined
@@ -115,7 +121,8 @@ function toOptionalScopes(value: unknown): RetrievalScope[] | undefined {
 }
 
 function toRoutingDecision(value: unknown): RoutingDecision | undefined {
-  if (!isRecord(value)) return undefined
+  if (value === undefined) return undefined
+  if (!isRecord(value)) return { action: 'stay' }
   const action = value['action']
   if (typeof action !== 'string' || !ROUTING_ACTIONS.has(action as RoutingAction)) {
     return { action: 'stay' }

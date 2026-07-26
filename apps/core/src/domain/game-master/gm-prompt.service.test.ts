@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildGameMasterSystemPrompt, type GmPromptAvatarContext } from './gm-prompt.service.js'
 
+/* eslint-disable max-lines-per-function */
 const SINGLE_AVATAR: GmPromptAvatarContext = { activeAvatarCount: 1, hasLockedAvatars: false }
 const MULTI_NO_LOCKED: GmPromptAvatarContext = { activeAvatarCount: 2, hasLockedAvatars: false }
 const MULTI_WITH_LOCKED: GmPromptAvatarContext = { activeAvatarCount: 2, hasLockedAvatars: true }
@@ -84,6 +85,28 @@ describe('buildGameMasterSystemPrompt', () => {
     expect(prompt).not.toContain('Avatar routing:')
     expect(prompt).not.toContain('"routing"')
     expect(prompt).not.toContain('- suggest and switch require')
+  })
+
+  it('keeps the dynamic schema capability matrix exact', () => {
+    const single = buildGameMasterSystemPrompt(SINGLE_AVATAR)
+    const multiple = buildGameMasterSystemPrompt(MULTI_NO_LOCKED)
+    const locked = buildGameMasterSystemPrompt(MULTI_WITH_LOCKED)
+
+    expect(single).not.toContain('"routing"')
+    expect(single).not.toContain('unlock')
+    expect(multiple).toContain('\\"stay\\" | \\"suggest\\" | \\"switch\\"')
+    expect(multiple).not.toContain('"unlock"')
+    expect(locked).toContain(
+      '\\"stay\\" | \\"suggest\\" | \\"switch\\" | \\"unlock\\" | \\"unlock_and_switch\\"',
+    )
+    expect(locked).toContain('unlockDecisions')
+  })
+
+  it('is materially smaller when routing is impossible', () => {
+    const singleLength = buildGameMasterSystemPrompt(SINGLE_AVATAR).length
+    const multiLength = buildGameMasterSystemPrompt(MULTI_WITH_LOCKED).length
+
+    expect(singleLength).toBeLessThan(multiLength)
   })
 
   it('preserves validation-critical output instructions', () => {

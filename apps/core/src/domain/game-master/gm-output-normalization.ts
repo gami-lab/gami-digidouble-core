@@ -6,7 +6,8 @@ export function normalizeGameMasterOutput(
   scenarioAvatars: AvatarConfig[],
 ): GameMasterOutput {
   const activeAvatars = scenarioAvatars.filter((avatar) => avatar.status === 'active')
-  const routing = normalizeRouting(output.routing, activeAvatars)
+  const routing =
+    activeAvatars.length > 1 ? normalizeRouting(output.routing, activeAvatars) : undefined
 
   return {
     dialogueControl: output.dialogueControl,

@@ -698,8 +698,18 @@ describe('SendMessageUseCase — validation and GM integration', () => {
         retrievalPlan: {
           required: true,
           priority: 'mandatory',
-          queries: ['Mona current location'],
-          requiredFacts: ['Mona last confirmed location'],
+          queries: [
+            'Mona current location after staying with grandfather',
+            'Mona quarantine camp',
+            "what Max knows about Mona's current location",
+            'whether Mona was ever at the chalet',
+          ],
+          requiredFacts: [
+            "Mona's last confirmed location",
+            'whether Mona is still with her grandfather',
+            'what Max knows about her current location',
+            'whether Mona travelled to the chalet',
+          ],
         },
         directorNotes: 'Resolve the contradiction before progressing.',
         progressionUpdate: { progression: 'none' },
@@ -772,12 +782,27 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       queries: Array<{ source: string; text: string }>
     }
     expect(retrievalInput.query).toBe(
-      "Resolve the contradiction before progressing. | Mona current location | Mona last confirmed location | Is Mona still at her grandfather's house?",
+      "Resolve the contradiction before progressing. | Mona current location after staying with grandfather | Mona quarantine camp | what Max knows about Mona's current location | whether Mona was ever at the chalet | Mona's last confirmed location | whether Mona is still with her grandfather | what Max knows about her current location | whether Mona travelled to the chalet | Is Mona still at her grandfather's house?",
     )
     expect(retrievalInput.queries).toEqual(
       expect.arrayContaining([
-        { source: 'gm_retrieval_plan', text: 'Mona current location' },
-        { source: 'gm_retrieval_plan', text: 'Mona last confirmed location' },
+        {
+          source: 'gm_retrieval_plan',
+          text: 'Mona current location after staying with grandfather',
+        },
+        { source: 'gm_retrieval_plan', text: 'Mona quarantine camp' },
+        { source: 'gm_retrieval_plan', text: "what Max knows about Mona's current location" },
+        { source: 'gm_retrieval_plan', text: 'whether Mona was ever at the chalet' },
+        { source: 'gm_retrieval_plan', text: "Mona's last confirmed location" },
+        {
+          source: 'gm_retrieval_plan',
+          text: 'whether Mona is still with her grandfather',
+        },
+        {
+          source: 'gm_retrieval_plan',
+          text: 'what Max knows about her current location',
+        },
+        { source: 'gm_retrieval_plan', text: 'whether Mona travelled to the chalet' },
         { source: 'last_user_input', text: "Is Mona still at her grandfather's house?" },
       ]),
     )
@@ -792,7 +817,37 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     const request = requestUnknown as { systemPrompt: string }
     expect(request.systemPrompt).toContain('Dialogue mode: repair')
     expect(request.systemPrompt).toContain('Retrieval status: insufficient evidence.')
+    expect(request.systemPrompt).toContain('Follow-up question: no')
+    expect(request.systemPrompt).toContain('Do not add a generic follow-up question.')
     expect(gmState.nextTurnOrchestration?.consumedAfterTurn).toBe(1)
+  })
+
+  it('ignores orchestration generated for an older turn or another Avatar', async () => {
+    gmStateFindMock.mockResolvedValue({
+      progression: 'none',
+      interactionCount: 1,
+      nextTurnOrchestration: {
+        activeAvatarId: 'avatar_2',
+        generatedAfterTurn: 99,
+        generatedAt: '2026-07-25T10:00:00.000Z',
+        dialogueControl: { mode: 'repair', askFollowUp: false },
+        retrievalPlan: {
+          required: true,
+          priority: 'mandatory',
+          queries: ['stale Mona claim'],
+        },
+        directorNotes: 'This must not be reused.',
+        progressionUpdate: { progression: 'increase' },
+      },
+    })
+
+    const useCase = createUseCase(false, true, false, false, false, true)
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'A new harbor topic.' })
+
+    const request = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
+    expect(request.systemPrompt).not.toContain('Dialogue mode: repair')
+    expect(request.systemPrompt).not.toContain('This must not be reused.')
+    expect(request.systemPrompt).not.toContain('stale Mona claim')
   })
 
   it('returns NOT_FOUND for unknown conversation', async () => {

@@ -5,6 +5,7 @@ import {
   flattenTypedRetrievalQueries,
 } from './typed-retrieval-query-builder.js'
 
+/* eslint-disable max-lines-per-function */
 describe('typed retrieval query builder', () => {
   it('builds avatar retrieval queries from GM notes, user input, and prompt memory', () => {
     const queries = buildAvatarTypedRetrievalQueries({
@@ -45,6 +46,66 @@ describe('typed retrieval query builder', () => {
     })
 
     expect(queries).toEqual([{ source: 'gm_guideline', text: 'Same' }])
+  })
+
+  it('prioritizes exact next-turn facts from a mandatory GM retrieval plan', () => {
+    const queries = buildAvatarTypedRetrievalQueries({
+      gmRetrievalQueries: ['Mona current location after staying with grandfather'],
+      gmRequiredFacts: [
+        "Mona's last confirmed location",
+        "what Max knows about Mona's current location",
+      ],
+      lastUserInput: 'Where is Mona now?',
+    })
+
+    expect(queries.slice(0, 3)).toEqual([
+      {
+        source: 'gm_retrieval_plan',
+        text: 'Mona current location after staying with grandfather',
+      },
+      { source: 'gm_retrieval_plan', text: "Mona's last confirmed location" },
+      { source: 'gm_retrieval_plan', text: "what Max knows about Mona's current location" },
+    ])
+  })
+
+  it('combines contradiction repair planning with the new related user question', () => {
+    const queries = buildAvatarTypedRetrievalQueries({
+      gmGuideline: 'Resolve the contradiction before progressing.',
+      gmRetrievalQueries: ['Mona quarantine camp'],
+      gmRequiredFacts: [
+        'what actually happened to Mona',
+        'what the active Avatar knows about Mona',
+      ],
+      lastUserInput: 'Is Mona still with her grandfather?',
+    })
+
+    expect(flattenTypedRetrievalQueries(queries)).toContain('Mona quarantine camp')
+    expect(flattenTypedRetrievalQueries(queries)).toContain('Is Mona still with her grandfather?')
+    expect(queries.filter((query) => query.source === 'gm_retrieval_plan')).toHaveLength(3)
+  })
+
+  it('does not invent mandatory planning for emotional reflection', () => {
+    const queries = buildAvatarTypedRetrievalQueries({
+      lastUserInput: 'How do you feel about all of this?',
+    })
+
+    expect(queries).toEqual([
+      { source: 'last_user_input', text: 'How do you feel about all of this?' },
+    ])
+    expect(queries.some((query) => query.source === 'gm_retrieval_plan')).toBe(false)
+  })
+
+  it('drops stale planning when the user explicitly changes topic', () => {
+    const queries = buildAvatarTypedRetrievalQueries({
+      gmGuideline: 'Resolve Mona location before progressing.',
+      gmRetrievalQueries: ['Mona quarantine camp'],
+      gmRequiredFacts: ["Mona's last confirmed location"],
+      lastUserInput: 'Let us discuss the harbor instead.',
+    })
+
+    expect(queries).toEqual([
+      { source: 'last_user_input', text: 'Let us discuss the harbor instead.' },
+    ])
   })
 
   it('builds GM retrieval queries from world context and current exchanges', () => {

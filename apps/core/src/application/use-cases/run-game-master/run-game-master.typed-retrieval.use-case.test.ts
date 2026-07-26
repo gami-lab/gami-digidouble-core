@@ -4,6 +4,7 @@ import type { GameMasterState } from '../../../domain/game-master/game-master.ty
 import { readRenderedGameMasterPrompt } from '../../../test-utils/game-master.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
+/* eslint-disable max-lines-per-function */
 const findBySessionIdMock = vi.fn()
 const saveGmStateMock = vi.fn()
 const findSessionByIdMock = vi.fn()
@@ -95,7 +96,6 @@ function createUseCase(): RunGameMasterUseCase {
   )
 }
 
-// eslint-disable-next-line max-lines-per-function
 beforeEach(() => {
   findBySessionIdMock.mockReset()
   saveGmStateMock.mockReset()
@@ -253,5 +253,85 @@ describe('RunGameMasterUseCase typed retrieval input', () => {
     )
     expect(prompt).toContain('1. [world_source_1] Storm tide starts at dusk near the harbor.')
     expect(prompt).toContain('1. [media_source_1] Harbor map with dock markers.')
+  })
+
+  it('stores targeted repair retrieval for the Mona contradiction as next-turn orchestration', async () => {
+    findMessagesByConversationIdMock.mockResolvedValue([
+      { role: 'user', content: 'Où est Mona maintenant?', createdAt: '2026-07-25T10:00:00.000Z' },
+      {
+        role: 'avatar',
+        content: 'Mona n’est plus avec nous; nous l’avons laissée derrière au chalet.',
+        createdAt: '2026-07-25T10:00:01.000Z',
+      },
+      {
+        role: 'user',
+        content: 'Ta réponse est contradictoire.',
+        createdAt: '2026-07-25T10:01:00.000Z',
+      },
+      {
+        role: 'avatar',
+        content: 'Tu as raison; Mona est restée chez son grand-père.',
+        createdAt: '2026-07-25T10:01:01.000Z',
+      },
+    ])
+    completeMock.mockResolvedValueOnce({
+      content: JSON.stringify({
+        dialogueControl: { mode: 'repair', askFollowUp: false },
+        retrievalPlan: {
+          required: true,
+          priority: 'mandatory',
+          queries: [
+            'Mona current location after staying with grandfather',
+            'Mona quarantine camp',
+            "what Max knows about Mona's current location",
+            'whether Mona was ever at the chalet',
+          ],
+          requiredFacts: [
+            "Mona's last confirmed location",
+            'whether Mona is still with her grandfather',
+            'what Max knows about her current location',
+            'whether Mona travelled to the chalet',
+          ],
+        },
+        directorNotes:
+          'Resolve the location issue factually before returning to the wider chalet discussion.',
+        progressionUpdate: { progression: 'none' },
+      }),
+      model: 'null-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 4,
+    })
+
+    await createUseCase().execute({
+      sessionId: 'session_1',
+      scenarioId: 'scenario_1',
+      avatarId: 'avatar_1',
+      conversationId: 'conversation_1',
+      userMessageText: 'Ta réponse est contradictoire.',
+      turnIndex: 4,
+      correlationId: 'corr_mona',
+    })
+
+    const savedState = saveGmStateMock.mock.calls[0]?.[1] as GameMasterState
+    const orchestration = savedState.nextTurnOrchestration
+    expect(orchestration).toBeDefined()
+    if (orchestration === undefined) throw new Error('Expected next-turn orchestration state')
+
+    expect(orchestration).toMatchObject({
+      activeAvatarId: 'avatar_1',
+      generatedAfterTurn: 4,
+      dialogueControl: { mode: 'repair', askFollowUp: false },
+      retrievalPlan: {
+        required: true,
+        priority: 'mandatory',
+      },
+      directorNotes:
+        'Resolve the location issue factually before returning to the wider chalet discussion.',
+    })
+    expect(orchestration.retrievalPlan.queries).toContain('Mona quarantine camp')
+    expect(orchestration.retrievalPlan.requiredFacts).toContain(
+      'what Max knows about her current location',
+    )
   })
 })

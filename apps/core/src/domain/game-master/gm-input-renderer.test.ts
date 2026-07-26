@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { GameMasterInput } from './game-master.types.js'
 import { renderGameMasterInputForLlm } from './gm-input-renderer.js'
 
+/* eslint-disable max-lines-per-function */
 function makeInput(overrides: Partial<GameMasterInput> = {}): GameMasterInput {
   const input: GameMasterInput = {
     session: {
@@ -169,6 +170,52 @@ describe('renderGameMasterInputForLlm', () => {
     expect(prompt).not.toContain('- Topics Covered:')
     expect(prompt).toContain('### Available Avatars')
     expect(prompt).toContain('- None provided.')
+  })
+
+  it('does not send a redundant Avatar list for a single-Avatar scenario', () => {
+    const prompt = renderGameMasterInputForLlm(
+      makeInput({
+        context: {
+          experience: { scenarioId: 'scenario_1' },
+          availableAvatars: [{ avatarId: 'avatar_1', name: 'Ava', availability: 'available' }],
+        },
+      }),
+    )
+
+    expect(prompt).not.toContain('### Available Avatars')
+    expect(prompt).not.toContain('Ava (avatar_1)')
+  })
+
+  it('does not include locked metadata when every Avatar is unlocked', () => {
+    const prompt = renderGameMasterInputForLlm(
+      makeInput({
+        context: {
+          experience: { scenarioId: 'scenario_1' },
+          availableAvatars: [
+            { avatarId: 'avatar_1', name: 'Ava', availability: 'available' },
+            { avatarId: 'avatar_2', name: 'Theo', availability: 'available' },
+          ],
+        },
+      }),
+    )
+
+    expect(prompt).toContain('### Available Avatars')
+    expect(prompt).toContain('Ava (avatar_1) [available]')
+    expect(prompt).not.toContain('[locked]')
+  })
+
+  it('makes the single-Avatar prompt materially smaller than a routed prompt', () => {
+    const singlePrompt = renderGameMasterInputForLlm(
+      makeInput({
+        context: {
+          experience: { scenarioId: 'scenario_1' },
+          availableAvatars: [{ avatarId: 'avatar_1', name: 'Ava', availability: 'available' }],
+        },
+      }),
+    )
+    const routedPrompt = renderGameMasterInputForLlm(makeInput())
+
+    expect(singlePrompt.length).toBeLessThan(routedPrompt.length * 0.95)
   })
 })
 
