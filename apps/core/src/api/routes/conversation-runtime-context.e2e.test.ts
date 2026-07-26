@@ -264,8 +264,8 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     ])
     expect(systemPrompt).toContain('Keep the answer practical.')
     expect(systemPrompt).toContain('Use short paragraphs.')
-    expect(systemPrompt).toContain('Recent exchanges:')
-    expect(systemPrompt).toContain('Session working memory: Track the north pier ledger')
+    expect(systemPrompt).not.toContain('Recent exchanges:')
+    expect(systemPrompt).not.toContain('Session working memory:')
     expect(systemPrompt).toContain('Remembered user facts:')
     expect(systemPrompt).toContain('- preferred_route: north pier')
     expect(systemPrompt).toContain('Name: Maya')
@@ -275,6 +275,12 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     expect(systemPrompt).toContain('Identity:')
     expect(systemPrompt).toContain('- Harbor archivist')
     expect(systemPrompt).not.toContain('Legacy persona text that should not be preferred.')
+
+    expect(llm.calls[0]?.messages).toContainEqual({
+      role: 'assistant',
+      content:
+        'Summary of previous conversation (context only, not a new reply):\nTrack the north pier ledger and unresolved moonrise timing.',
+    })
   })
 
   it('falls back to the authored personaPrompt on the HTTP path when traits are not prepared', async () => {
