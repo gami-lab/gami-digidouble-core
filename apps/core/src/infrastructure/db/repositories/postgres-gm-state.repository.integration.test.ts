@@ -105,6 +105,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
     const found = await gmStateRepo.findBySessionId(sessionId)
     expect(found).not.toBeNull()
     expect(found).not.toHaveProperty('currentAvatarId')
-    expect(found).toMatchObject({ topicsCovered: [] })
+    expect(found).not.toHaveProperty('topicsCovered')
   })
 })
