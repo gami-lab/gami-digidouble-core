@@ -17,7 +17,6 @@ export function reduceGmState(
   return {
     ...current,
     progression: nextProgression,
-    interactionCount: current.interactionCount + 1,
     ...(routedAvatarId !== undefined ? { currentAvatarId: routedAvatarId } : {}),
   }
 }

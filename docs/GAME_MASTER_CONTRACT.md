@@ -176,9 +176,7 @@ Output invariants:
 
 ```ts
 type GameMasterState = {
-  currentAvatarId?: string
   progression: string
-  topicsCovered: string[]
   interactionCount: number
   nextTurnOrchestration?: {
     activeAvatarId: string
@@ -197,18 +195,15 @@ type GameMasterState = {
 
 State meaning:
 
-- `currentAvatarId`: current orchestration focus
 - `progression`: lightweight progress marker
-- `topicsCovered`: repetition-avoidance signal
 - `interactionCount`: pacing context; it does not gate whether GM runs
 - `nextTurnOrchestration`: the latest result retained for the immediately following matching Avatar turn; it is replaced by newer GM output and marked consumed after use.
 
 Reducer rules:
 
-- `interactionCount` increments on every successful GM reduction (app-owned; the GM never supplies an increment value).
-- `topicsCovered` is retained for schema/API compatibility only and is no longer written to by the reducer — memory compaction (`ConversationWorkingMemory.coveredTopics`) is the sole owner of covered-topic tracking.
+- `interactionCount` is incremented exactly once by application code after each completed user/Avatar exchange. GM success, failure, and memory compaction do not change it.
 - `progression` changes only when `progressionUpdate.progression` is `"increase"`.
-- `currentAvatarId` updates only when `routing.action` is `switch` or `unlock_and_switch`.
+- Active-Avatar ownership remains in the session/conversation records; legacy GM current-avatar state is not used for routing decisions.
 
 ## Validation Boundaries
 
@@ -297,7 +292,7 @@ Diagnostics must never include:
 
 - Avatar context is sectioned for avatar runtime consumption.
 - GM context exposes bounded recent messages, GM state, user persona, memory, retrieval, scenario context, and avatar availability.
-- `workingSummary` may appear as a compatibility mirror, but canonical GM working memory remains `summary`, `unresolvedThreads`, and `coveredTopics`.
+- `workingSummary` may appear as a compatibility mirror, but canonical working memory remains owned by the memory-compaction pipeline.
 
 ## Ownership
 

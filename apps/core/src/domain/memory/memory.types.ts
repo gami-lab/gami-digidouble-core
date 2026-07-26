@@ -63,6 +63,11 @@ export interface UserFact {
 
 export type MemoryFactRecord = Pick<UserFact, 'category' | 'key' | 'value'>
 
+export type VerifiedMemoryContext = {
+  source: 'canonical' | 'retrieved' | 'application_confirmed'
+  content: string
+}
+
 export type LongTermMemoryFact = MemoryFactRecord
 
 export type ShortTermMemoryExchange = {

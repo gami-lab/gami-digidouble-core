@@ -1,3 +1,5 @@
+import type { VerifiedMemoryContext } from '../../domain/memory/memory.types.js'
+
 export type MemoryRefreshTrigger =
   | 'post_turn'
   | 'conversation_closed'
@@ -12,6 +14,7 @@ export interface IMemoryMaintenancePort {
     scenarioId: string
     trigger: MemoryRefreshTrigger
     correlationId?: string
+    verifiedContext?: VerifiedMemoryContext[]
   }): Promise<void>
   awaitPendingRefresh?(conversationId: string): Promise<void>
 }

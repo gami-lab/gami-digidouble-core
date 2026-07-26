@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-07-25
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 2
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 3
 
 ## Snapshot
 
@@ -49,12 +49,18 @@ The platform is now a working headless conversational runtime with:
 - GM output is stored as turn-scoped next-turn orchestration state; the next Avatar turn consumes matching dialogue guidance and retrieval intent exactly once.
 - Mandatory retrieval gaps inject explicit uncertainty guidance, and invalid routing falls back to `stay` without changing progression or memory ownership.
 - Safe GM diagnostics are recorded in the event log and exposed through admin APIs.
+- GM state no longer persists legacy topic updates or interaction increments; session/conversation
+  state owns Avatar routing and application code increments completed-exchange counts.
 
 ### Memory
 
 - Working memory, episodic memories, and long-term facts are all implemented.
 - Conversation closure triggers memory compaction instead of relying on full transcript replay.
 - Working memory now includes `summary`, `unresolvedThreads`, and `coveredTopics`.
+- Memory compaction is the sole writer of `summary`, `coveredTopics`, `unresolvedThreads`, and
+  `candidateFacts`; Avatar claims remain untrusted unless user-supported or provenance-labeled.
+- Legacy GM state and pending orchestration records remain readable through compatibility
+  normalization, with ambiguous legacy routing ignored.
 - Memory layers are inspectable through admin routes and runtime tooling.
 
 ### Knowledge And Context

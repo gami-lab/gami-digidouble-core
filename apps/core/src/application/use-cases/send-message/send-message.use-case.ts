@@ -218,6 +218,8 @@ export class SendMessageUseCase {
       ...(turn.session.gmNotes !== undefined ? { gmNotes: null } : {}),
     })
 
+    await this.incrementInteractionCount(turn.session.sessionId)
+
     const nextTurnIndex = turn.priorUserTurnCount + 1
     if (options.scheduleBackground !== false) {
       this.schedulePostTurnWork(turn)
@@ -286,6 +288,20 @@ export class SendMessageUseCase {
       turnIndex: turn.priorUserTurnCount + 1,
       userPersona: turn.userPersona,
       ...(turn.selectedMemory !== undefined ? { selectedMemory: turn.selectedMemory } : {}),
+    })
+  }
+
+  private async incrementInteractionCount(sessionId: string): Promise<void> {
+    if (this.gmStateRepository === undefined) return
+
+    const currentState = await this.gmStateRepository.findBySessionId(sessionId)
+    const state: GameMasterState = currentState ?? {
+      progression: '',
+      interactionCount: 0,
+    }
+    await this.gmStateRepository.save(sessionId, {
+      ...state,
+      interactionCount: state.interactionCount + 1,
     })
   }
 

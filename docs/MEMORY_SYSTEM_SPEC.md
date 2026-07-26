@@ -113,6 +113,18 @@ Quality rules:
 - candidate facts remain factual and persistent
 - inferred mood, trust, pacing, or progression do not become memory facts
 
+The compactor treats Avatar statements as conversational claims, not automatically canonical
+facts. A challenged or contradicted Avatar claim is not a candidate fact unless it is supported by
+an explicit user statement, labeled verified context, an application-confirmed fact, or a safe
+unchallenged stable fact. If a contradiction has no verified resolution, it remains an
+`unresolvedThread`; uncertainty is preserved rather than resolved by recency. Model-generated
+error explanations such as “my memories are confused” are not character facts unless the scenario
+explicitly establishes them.
+
+When canonical or retrieved material is supplied, the compactor input labels it under
+`## VERIFIED CONTEXT` with its provenance. The compactor is not expected to infer authority from
+raw conversation alone.
+
 Working-memory refresh is a rewrite, not an append. The refresh input contains the previous
 working-memory snapshot and a bounded recent message batch. The output is normalized before the
 single conversation-scoped row is upserted:

@@ -30,6 +30,8 @@ const endConversationExecuteMock = vi.fn()
 const findUserByIdMock = vi.fn()
 const findUserFactsByUserIdMock = vi.fn()
 const memoryMaintenanceExecuteMock = vi.fn()
+const gmStateFindMock = vi.fn()
+const gmStateSaveMock = vi.fn()
 
 const sessionRepository = {
   findById: findSessionByIdMock,
@@ -138,10 +140,17 @@ function createUseCase(
   withImplicitEnd = false,
   withUserMemoryFactRepository = false,
   withMemoryMaintenance = false,
+  withGmStateRepository = false,
 ): SendMessageUseCase {
   const runGameMasterUseCase = toRunGameMasterUseCase(withRunGameMaster)
   const endConversationUseCase = toConversationCloser(withImplicitEnd)
   const memoryMaintenance = toMemoryMaintenance(withMemoryMaintenance)
+  const gmStateRepository = withGmStateRepository
+    ? {
+        findBySessionId: gmStateFindMock,
+        save: gmStateSaveMock,
+      }
+    : undefined
   return new SendMessageUseCase(
     sessionRepository,
     conversationRepository,
@@ -156,6 +165,15 @@ function createUseCase(
     undefined,
     withUserMemoryFactRepository ? userMemoryFactRepository : undefined,
     memoryMaintenance,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    gmStateRepository,
   )
 }
 
@@ -214,6 +232,8 @@ beforeEach(() => {
   findUserByIdMock.mockReset()
   findUserFactsByUserIdMock.mockReset()
   memoryMaintenanceExecuteMock.mockReset()
+  gmStateFindMock.mockReset()
+  gmStateSaveMock.mockReset()
 
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession())
@@ -257,6 +277,12 @@ beforeEach(() => {
   })
   findUserByIdMock.mockResolvedValue(null)
   findUserFactsByUserIdMock.mockResolvedValue([])
+  gmStateFindMock.mockResolvedValue({
+    progression: '',
+    topicsCovered: [],
+    interactionCount: 4,
+  })
+  gmStateSaveMock.mockResolvedValue(undefined)
 })
 
 describe('SendMessageUseCase — message routing', () => {
@@ -928,6 +954,17 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     expect(gmInput['avatarId']).toBe('avatar_1')
     expect(gmInput['userMessageText']).toBe('Hello')
     expect(gmInput).not.toHaveProperty('assembledContext')
+  })
+
+  it('increments the interaction count once in application code after a completed exchange', async () => {
+    const useCase = createUseCase(false, true, false, false, false, true)
+
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    expect(gmStateSaveMock).toHaveBeenCalledWith(
+      'session_1',
+      expect.objectContaining({ interactionCount: 5 }),
+    )
   })
 
   it('passes selected memory payload to run game master when available', async () => {

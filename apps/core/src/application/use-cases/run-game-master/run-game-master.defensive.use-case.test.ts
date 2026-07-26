@@ -153,7 +153,7 @@ describe('RunGameMasterUseCase — defensive error paths', () => {
     )
 
     expect(completeMock).toHaveBeenCalledTimes(1)
-    expect(saveGmStateMock).toHaveBeenCalledOnce()
+    expect(saveGmStateMock).not.toHaveBeenCalled()
   })
 
   it('does not update session when activeAvatarId is unchanged', async () => {

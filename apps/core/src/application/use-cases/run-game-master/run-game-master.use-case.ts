@@ -45,7 +45,6 @@ import {
   emitGameMasterError,
   emitTriggeredGameMasterTurn,
   handleInvalidGameMasterOutput,
-  incrementInteractionAndSave,
 } from './run-game-master.events.js'
 import type { ModelConfig } from '../../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../../infrastructure/llm/llm-adapter-registry.js'
@@ -58,7 +57,6 @@ import {
 
 const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
   progression: '',
-  topicsCovered: [],
   interactionCount: 0,
 }
 const GM_RECENT_EXCHANGE_LIMIT = 3
@@ -129,7 +127,6 @@ export class RunGameMasterUseCase {
     }
   }
 
-  // eslint-disable-next-line max-lines-per-function
   private async handleTriggeredTurn(
     input: RunGameMasterInput,
     currentState: GameMasterState,
@@ -259,7 +256,6 @@ export class RunGameMasterUseCase {
       llmResponse: args.llmResponse,
       llmStart: args.llmStart,
       gmRunStartMs: args.gmRunStartMs,
-      gmStateRepository: this.gmStateRepository,
       observability: this.observability,
       ...(this.eventLogRepository !== undefined
         ? { eventLogRepository: this.eventLogRepository }
@@ -324,7 +320,6 @@ export class RunGameMasterUseCase {
       return { llmRequest, llmResponse, llmLatencyMs: Date.now() - llmCallStart }
     } catch (err: unknown) {
       console.error('[GM] LLM call failed:', err)
-      await incrementInteractionAndSave(this.gmStateRepository, input.sessionId, currentState)
       await emitGameMasterError(this.eventLogRepository, {
         input,
         currentState,

@@ -36,7 +36,13 @@ export class InspectSessionUseCase {
     return {
       inspect: {
         session: toSessionSummary(session),
-        gmState,
+        gmState:
+          gmState === null
+            ? null
+            : {
+                ...gmState,
+                topicsCovered: gmState.topicsCovered ?? [],
+              },
         transitionHistory: toTransitionHistory(conversations),
         unlockedAvatarIds: session.unlockedAvatarIds ?? [],
         gmNotes: session.gmNotes ?? null,

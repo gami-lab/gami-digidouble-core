@@ -110,7 +110,7 @@ No network. No real providers. No real DB. Always fast, always deterministic. Ha
 **Game Master unit test categories:**
 
 - **Prompt contract** (`gm-prompt.service.test.ts`, `gm-input-renderer.test.ts`): static and dynamic GM prompt builders keep stable section order, preserve validation-critical instructions, omit empty optional sections cleanly, and keep the empty-input session-start path explicit.
-- **State reducer** (`gm-state-reducer.test.ts`): all `reduceGmState` field mutations — `interactionCount` increment, `progression` increase, `topicsCovered` append, `currentAvatarId` update, all-undefined update, and non-mutation of input state.
+- **State reducer** (`gm-state-reducer.test.ts`): progression/routing mutations, preservation of application-owned interaction counts, all-undefined update, and non-mutation of input state. Covered topics and memory fields are not part of GM reduction.
 - **Async use case** (`run-game-master.use-case.test.ts`): every completed avatar turn calls the GM LLM with a `vi.fn()` mock returning hardcoded JSON matching `GameMasterOutput`, the actual `systemPrompt` and rendered user message content are asserted from the `llm.complete` request, state is reduced, notes are stored, valid unlocks are persisted, valid explicit switches open a new conversation, invalid avatar IDs are ignored, JSON parse/shape errors increment state and emit `gm_error`, LLM errors are caught silently, event log shape verifies `gm_triggered` / `gm_error` fields, and event payload security confirms no `userMessageText`, raw system prompt text, or rendered prompt sections are emitted.
 
 ### Integration (`*.integration.test.ts`)
@@ -119,7 +119,7 @@ Real adapter collaboration: real PostgreSQL for repositories, real Redis when Re
 
 Representative GM integration test files:
 
-- `postgres-gm-state.repository.integration.test.ts` — verifies `findBySessionId`, `save` (insert and upsert), full `GameMasterState` field round-trip, and nullable `currentAvatarId` returned as `undefined`
+- `postgres-gm-state.repository.integration.test.ts` — verifies `findBySessionId`, `save` (insert and upsert), orchestration/count round-trip, and legacy GM memory/avatar columns being ignored
 - `postgres-event-log.repository.integration.test.ts` — verifies `append` inserts rows, JSONB payload round-trip, nullable `sessionId`, and `correlation_id` lookup
 - `run-game-master.integration.test.ts` — verifies the composed refined GM prompt path with real in-memory adapters and services: bounded memory selection, typed retrieval, latest-exchange rendering, persisted GM notes/state, emitted runtime suggestion events, safe event logging, and observability trace metadata carrying prompt-version identifiers
 

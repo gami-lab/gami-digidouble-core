@@ -47,7 +47,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
   it('save inserts a new state row and findBySessionId returns it', async () => {
     const state: GameMasterState = {
       progression: 'intro',
-      topicsCovered: ['plastic', 'water'],
       interactionCount: 3,
     }
 
@@ -56,22 +55,18 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
     const found = await gmStateRepo.findBySessionId(sessionId)
     expect(found).not.toBeNull()
     expect(found?.progression).toBe('intro')
-    expect(found?.topicsCovered).toEqual(['plastic', 'water'])
     expect(found?.interactionCount).toBe(3)
-    expect(found?.currentAvatarId).toBeUndefined()
   })
 
   it('second save with same sessionId upserts (updates in place)', async () => {
     const initial: GameMasterState = {
       progression: 'intro',
-      topicsCovered: ['plastic'],
       interactionCount: 1,
     }
     await gmStateRepo.save(sessionId, initial)
 
     const updated: GameMasterState = {
       progression: 'advanced',
-      topicsCovered: ['plastic', 'ocean'],
       interactionCount: 5,
     }
     await gmStateRepo.save(sessionId, updated)
@@ -79,18 +74,15 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
     const found = await gmStateRepo.findBySessionId(sessionId)
     expect(found).not.toBeNull()
     expect(found?.progression).toBe('advanced')
-    expect(found?.topicsCovered).toEqual(['plastic', 'ocean'])
     expect(found?.interactionCount).toBe(5)
 
     const rows = await sql`SELECT COUNT(*) AS count FROM gm_states`
     expect(Number(rows[0]?.['count'])).toBe(1)
   })
 
-  it('all GameMasterState fields round-trip correctly through the DB', async () => {
+  it('orchestration and interaction fields round-trip correctly through the DB', async () => {
     const state: GameMasterState = {
-      currentAvatarId: 'avatar_some-uuid',
       progression: 'advanced [marker]',
-      topicsCovered: ['topic-a', 'topic-b', 'topic-c'],
       interactionCount: 42,
     }
 
@@ -98,16 +90,13 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
 
     const found = await gmStateRepo.findBySessionId(sessionId)
     expect(found).not.toBeNull()
-    expect(found?.currentAvatarId).toBe('avatar_some-uuid')
     expect(found?.progression).toBe('advanced [marker]')
-    expect(found?.topicsCovered).toEqual(['topic-a', 'topic-b', 'topic-c'])
     expect(found?.interactionCount).toBe(42)
   })
 
-  it('currentAvatarId is undefined (not null) when absent', async () => {
+  it('ignores legacy current-avatar and covered-topic columns when reading', async () => {
     const state: GameMasterState = {
       progression: 'none',
-      topicsCovered: [],
       interactionCount: 0,
     }
 
@@ -115,6 +104,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
 
     const found = await gmStateRepo.findBySessionId(sessionId)
     expect(found).not.toBeNull()
-    expect(found?.currentAvatarId).toBeUndefined()
+    expect(found).not.toHaveProperty('currentAvatarId')
+    expect(found).toMatchObject({ topicsCovered: [] })
   })
 })

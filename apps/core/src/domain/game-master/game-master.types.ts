@@ -19,6 +19,7 @@ import type { ContextMessage, GameMasterMemoryContext } from '../memory/memory.t
 
 /** Minimal state maintained by the Game Master across turns. */
 export interface GameMasterState {
+  /** Legacy persisted field; the session/conversation records own active-avatar state. */
   currentAvatarId?: string
   /** Textual description of where the user is in the experience. */
   progression: string
@@ -27,7 +28,8 @@ export interface GameMasterState {
    * owned exclusively by memory compaction (`ConversationWorkingMemory.coveredTopics`);
    * the GM no longer reports or appends to this field.
    */
-  topicsCovered: string[]
+  /** Legacy persisted field; never read for orchestration and never written by GM logic. */
+  topicsCovered?: string[]
   interactionCount: number
   /** Latest unconsumed GM result for the next Avatar turn. */
   nextTurnOrchestration?: GameMasterOrchestrationState

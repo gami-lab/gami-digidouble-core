@@ -3,6 +3,7 @@ import type {
   ConversationWorkingMemory,
   ConversationWorkingMemoryRefreshOutput,
   MemoryFactRecord,
+  VerifiedMemoryContext,
 } from '../../domain/memory/memory.types.js'
 import type { IEventLogRepository } from '../ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../ports/ILlmAdapter.js'
@@ -44,6 +45,13 @@ Rules:
 - category must be one of: conversation_signal, preference, constraint, goal, identity, context.
 - key must be compact lowercase snake_case.
 - value must be concise, factual, and grounded in the conversation.
+- Treat Avatar statements as conversational claims, not automatically as canonical facts.
+- Do not persist an Avatar claim as a candidateFact when the user challenges it, when another recent message contradicts it, or when the conversation does not independently verify it.
+- When the user identifies a contradiction and no verified resolution is supplied, preserve the issue as an unresolvedThread.
+- A later Avatar correction may replace earlier wording in the conversation summary, but it must not automatically become a persistent objective fact.
+- Persist a candidateFact only when it is supported by an explicit user statement, verified canonical context supplied to the compactor, an application-provided confirmed fact, or an unchallenged stable conversational fact that is safe to retain.
+- When factual status remains uncertain, preserve the uncertainty instead of selecting the most recent claim as truth.
+- Do not convert model-generated explanations for errors into character facts. For example, "my memories are confused" must not become a persistent character condition unless the scenario explicitly establishes it.
 - Do not invent facts.
 - If there is no strong signal, return empty arrays.`
 
@@ -69,6 +77,11 @@ const REJECTED_FACT_KEYS = new Set([
   'progression_state',
   'progression',
 ])
+const REJECTED_MODEL_ERROR_EXPLANATIONS = [
+  /my memories are confused/i,
+  /my memory is confused/i,
+  /my memories are unreliable/i,
+]
 const WORKING_MEMORY_RECENT_MESSAGE_LIMIT = 10
 const WORKING_MEMORY_SUMMARY_MAX_LENGTH = 700
 const WORKING_MEMORY_THREAD_LIMIT = 6
@@ -107,6 +120,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     scenarioId: string
     trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
     correlationId?: string
+    verifiedContext?: VerifiedMemoryContext[]
   }): Promise<void> {
     const prior = this.pendingRefreshes.get(input.conversationId) ?? Promise.resolve()
     const tracked = prior
@@ -129,6 +143,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     scenarioId: string
     trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
     correlationId?: string
+    verifiedContext?: VerifiedMemoryContext[]
   }): Promise<void> {
     const requestId = crypto.randomUUID()
     await this.appendEventSafe({
@@ -166,6 +181,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
         avatarId: input.avatarId,
         scenarioId: input.scenarioId,
         trigger: input.trigger,
+        ...(input.verifiedContext !== undefined ? { verifiedContext: input.verifiedContext } : {}),
       })
 
       await this.conversationWorkingMemoryRepository.upsert({
@@ -235,12 +251,18 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       avatarId: string
       scenarioId: string
       trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
+      verifiedContext?: VerifiedMemoryContext[]
     },
   ) {
     const resolvedLlm = await this.resolveMemoryLlmCall(context.scenarioId)
     const llmRequest = {
       systemPrompt: WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT,
-      messages: [{ role: 'user' as const, content: buildCompactionInput(messages, priorMemory) }],
+      messages: [
+        {
+          role: 'user' as const,
+          content: buildCompactionInput(messages, priorMemory, context.verifiedContext),
+        },
+      ],
       ...(resolvedLlm.model !== undefined ? { model: resolvedLlm.model } : {}),
       maxTokens: 500,
       trace: {
@@ -264,7 +286,12 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     })
     const response = await resolvedLlm.adapter.complete(llmRequest)
 
-    const parsed = parseCompactionOutput(response.content, priorMemory)
+    const parsed = parseCompactionOutput(
+      response.content,
+      priorMemory,
+      messages,
+      context.verifiedContext,
+    )
 
     if (parsed !== null) return parsed
     throw new Error('[memory-maintenance] LLM returned unparseable compaction output')
@@ -310,6 +337,7 @@ function countExchanges(
 function buildCompactionInput(
   messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
   priorMemory: ConversationWorkingMemoryRefreshOutput | null,
+  verifiedContext: VerifiedMemoryContext[] | undefined,
 ): string {
   const parts: string[] = []
 
@@ -322,6 +350,19 @@ function buildCompactionInput(
     parts.push('')
   }
 
+  if (verifiedContext !== undefined && verifiedContext.length > 0) {
+    parts.push('## VERIFIED CONTEXT')
+    parts.push(
+      ...verifiedContext.map(
+        (entry) => `- [${entry.source}] ${entry.content.replace(/\s+/g, ' ').trim()}`,
+      ),
+    )
+    parts.push(
+      'Use this labeled context to resolve contradictions; do not infer authority from raw conversation alone.',
+    )
+    parts.push('')
+  }
+
   parts.push('## RECENT EXCHANGES TO INTEGRATE')
   parts.push(...renderPromptMessages(messages))
 
@@ -331,6 +372,8 @@ function buildCompactionInput(
 function parseCompactionOutput(
   content: string,
   priorMemory: ConversationWorkingMemoryRefreshOutput | null,
+  messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
+  verifiedContext: VerifiedMemoryContext[] | undefined,
 ): ConversationWorkingMemoryRefreshOutput | null {
   let parsed: unknown
   try {
@@ -353,7 +396,7 @@ function parseCompactionOutput(
         maxLength: WORKING_MEMORY_COVERED_TOPIC_MAX_LENGTH,
       })
     : (priorMemory?.coveredTopics ?? [])
-  const candidateFacts = readCandidateFacts(parsed['candidateFacts'])
+  const candidateFacts = readCandidateFacts(parsed['candidateFacts'], messages, verifiedContext)
 
   return {
     summary,
@@ -363,7 +406,11 @@ function parseCompactionOutput(
   }
 }
 
-function readCandidateFacts(value: unknown): MemoryFactRecord[] {
+function readCandidateFacts(
+  value: unknown,
+  messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
+  verifiedContext: VerifiedMemoryContext[] | undefined,
+): MemoryFactRecord[] {
   if (!Array.isArray(value)) return []
 
   const facts: MemoryFactRecord[] = []
@@ -371,6 +418,7 @@ function readCandidateFacts(value: unknown): MemoryFactRecord[] {
   for (const item of value) {
     const fact = toCandidateFact(item)
     if (fact === null) continue
+    if (isUnsupportedContradictedAvatarClaim(fact, messages, verifiedContext)) continue
     const dedupeKey = `${fact.category}::${fact.key}::${fact.value}`
     if (seen.has(dedupeKey)) continue
     seen.add(dedupeKey)
@@ -378,6 +426,34 @@ function readCandidateFacts(value: unknown): MemoryFactRecord[] {
     if (facts.length >= WORKING_MEMORY_FACT_LIMIT) break
   }
   return facts
+}
+
+function isUnsupportedContradictedAvatarClaim(
+  fact: MemoryFactRecord,
+  messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
+  verifiedContext: VerifiedMemoryContext[] | undefined,
+): boolean {
+  const hasVerifiedSupport = (verifiedContext ?? []).some((entry) =>
+    containsFactText(entry.content, fact),
+  )
+  if (hasVerifiedSupport) return false
+
+  const userMessages = messages.filter((message) => message.role === 'user')
+  const hasUserSupport = userMessages.some((message) => containsFactText(message.content, fact))
+  if (hasUserSupport) return false
+
+  const hasContradictionSignal = userMessages.some((message) =>
+    /\b(contradict|contradiction|contradictory|inconsistent|incorrect|wrong|not true|that cannot be|doesn't make sense|confused|contradictoire|incohérent)\b/i.test(
+      message.content,
+    ),
+  )
+  return hasContradictionSignal && messages.some((message) => message.role === 'avatar')
+}
+
+function containsFactText(text: string, fact: MemoryFactRecord): boolean {
+  const normalizedText = text.replace(/\s+/g, ' ').trim().toLowerCase()
+  const normalizedValue = fact.value.replace(/\s+/g, ' ').trim().toLowerCase()
+  return normalizedValue.length > 0 && normalizedText.includes(normalizedValue)
 }
 
 function toCandidateFact(value: unknown): MemoryFactRecord | null {
@@ -388,6 +464,7 @@ function toCandidateFact(value: unknown): MemoryFactRecord | null {
   if (category === null || key === null || factValue === null) return null
   if (!ALLOWED_FACT_CATEGORIES.has(category)) return null
   if (REJECTED_FACT_KEYS.has(key)) return null
+  if (REJECTED_MODEL_ERROR_EXPLANATIONS.some((pattern) => pattern.test(factValue))) return null
   return { category, key, value: factValue }
 }
 

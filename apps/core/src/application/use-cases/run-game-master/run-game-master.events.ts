@@ -1,5 +1,4 @@
 import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
-import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import type {
   GameMasterOutput,
@@ -27,11 +26,9 @@ export async function handleInvalidGameMasterOutput(args: {
   }
   llmStart: number
   gmRunStartMs: number
-  gmStateRepository: IGmStateRepository
   observability: IObservabilityAdapter
   eventLogRepository?: IEventLogRepository
 }): Promise<void> {
-  await incrementInteractionAndSave(args.gmStateRepository, args.input.sessionId, args.currentState)
   await emitGameMasterError(args.eventLogRepository, {
     input: args.input,
     currentState: args.currentState,
@@ -69,7 +66,6 @@ export async function emitGameMasterError(
     outputTokens?: number
   },
 ): Promise<void> {
-  const updatedState = incrementedState(event.currentState)
   await emitEventSafe(eventLogRepository, {
     sessionId: event.input.sessionId,
     type: 'gm_error',
@@ -78,7 +74,7 @@ export async function emitGameMasterError(
     payload: {
       triggerReason: event.triggerReason,
       turnIndex: event.input.turnIndex,
-      interactionCount: updatedState.interactionCount,
+      interactionCount: event.currentState.interactionCount,
       stateBefore: buildStateSummary(event.currentState),
       latencyMs: event.latencyMs,
       errorCode: event.errorCode,
@@ -172,19 +168,11 @@ export async function emitEventSafe(
   }
 }
 
-export function incrementInteractionAndSave(
-  gmStateRepository: IGmStateRepository,
-  sessionId: string,
-  currentState: GameMasterState,
-): Promise<void> {
-  return gmStateRepository.save(sessionId, incrementedState(currentState))
-}
-
 export function buildStateSummary(state: GameMasterState): GameMasterStateSummary {
   return {
     ...(state.currentAvatarId !== undefined ? { currentAvatarId: state.currentAvatarId } : {}),
     progression: state.progression,
-    topicsCovered: state.topicsCovered,
+    topicsCovered: state.topicsCovered ?? [],
   }
 }
 
@@ -227,10 +215,4 @@ function normalizeInjectedNote(value: string | undefined): string | undefined {
   return normalized.length <= MAX_NOTE_LENGTH
     ? normalized
     : `${normalized.slice(0, MAX_NOTE_LENGTH - 1)}…`
-}
-
-function incrementedState(currentState: GameMasterState): GameMasterState {
-  const safeState = { ...currentState }
-  delete safeState.nextTurnOrchestration
-  return { ...safeState, interactionCount: currentState.interactionCount + 1 }
 }

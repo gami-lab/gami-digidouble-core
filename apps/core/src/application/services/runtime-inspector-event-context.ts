@@ -47,7 +47,10 @@ export function toRecordedGmContextSnapshot(
   const retrievedContext = toRecordedTypedKnowledgeSections(snapshot.sections.retrievedContext)
 
   return {
-    currentState: snapshot.currentState,
+    currentState: {
+      ...snapshot.currentState,
+      topicsCovered: snapshot.currentState.topicsCovered ?? [],
+    },
     availableAvatars: snapshot.availableAvatars,
     sections: {
       conversationState: {

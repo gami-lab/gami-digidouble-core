@@ -15,10 +15,10 @@ const NONE: ProgressionUpdate = { progression: 'none' }
 const INCREASE: ProgressionUpdate = { progression: 'increase' }
 
 describe('reduceGmState', () => {
-  it('always increments interactionCount', () => {
+  it('preserves interactionCount for application-owned updates', () => {
     const result = reduceGmState(makeState(), { progressionUpdate: NONE })
 
-    expect(result.interactionCount).toBe(3)
+    expect(result.interactionCount).toBe(2)
   })
 
   it('appends [advanced] progression marker when progression increases', () => {
@@ -80,7 +80,7 @@ describe('reduceGmState', () => {
     expect(result.progression).toBe(state.progression)
     expect(result.topicsCovered).toEqual(state.topicsCovered)
     expect(result.currentAvatarId).toBeUndefined()
-    expect(result.interactionCount).toBe(state.interactionCount + 1)
+    expect(result.interactionCount).toBe(state.interactionCount)
   })
 
   it('does not mutate the input state', () => {

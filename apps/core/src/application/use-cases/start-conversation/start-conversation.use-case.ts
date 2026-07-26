@@ -190,7 +190,6 @@ export class StartConversationUseCase {
     const currentState = await this.gmStateRepository.findBySessionId(sessionId)
     await this.gmStateRepository.save(sessionId, {
       progression: currentState?.progression ?? '',
-      topicsCovered: currentState?.topicsCovered ?? [],
       interactionCount: currentState?.interactionCount ?? 0,
       currentAvatarId: avatarId,
     })

@@ -202,7 +202,6 @@ describe('SwitchAvatarUseCase success flows', () => {
     expect(saveGmStateMock).toHaveBeenCalledWith('session_1', {
       currentAvatarId: 'avatar_2',
       progression: 'advanced',
-      topicsCovered: ['setup'],
       interactionCount: 4,
     })
     expect(memoryMaintenanceExecuteMock).toHaveBeenCalledWith({

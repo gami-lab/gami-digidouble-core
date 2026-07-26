@@ -184,7 +184,6 @@ describe('StartConversationUseCase', () => {
     expect(saveGmStateMock).toHaveBeenCalledWith('session_1', {
       currentAvatarId: 'avatar_1',
       progression: 'advanced',
-      topicsCovered: ['setup'],
       interactionCount: 9,
     })
   })

@@ -161,14 +161,14 @@ CREATE TABLE IF NOT EXISTS avatar_session_memories (
 
 CREATE TABLE IF NOT EXISTS gm_states (
   session_id        UUID        PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
-  current_avatar_id TEXT,
   progression       TEXT        NOT NULL DEFAULT '',
-  topics_covered    TEXT[]      NOT NULL DEFAULT '{}',
   interaction_count INT         NOT NULL DEFAULT 0,
   next_turn_orchestration JSONB,
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Existing volumes may retain legacy current_avatar_id/topics_covered columns. The repository
+-- ignores them while the session and memory-compaction stores own those responsibilities.
 ALTER TABLE gm_states ADD COLUMN IF NOT EXISTS next_turn_orchestration JSONB;
 
 -- ── Conversations ─────────────────────────────────────────────────────────────

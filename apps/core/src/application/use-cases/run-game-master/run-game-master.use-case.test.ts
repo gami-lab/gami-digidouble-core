@@ -183,7 +183,7 @@ describe('RunGameMasterUseCase — state persistence', () => {
     expect(saveGmStateMock).toHaveBeenCalledWith(
       'session_1',
       expect.objectContaining({
-        interactionCount: 2,
+        interactionCount: 1,
         topicsCovered: ['plastic'],
       }),
     )
@@ -615,7 +615,7 @@ describe('RunGameMasterUseCase — runtime event publication guidance', () => {
 })
 
 describe('RunGameMasterUseCase — error handling', () => {
-  it('does not propagate LlmError, increments state, and emits gm_error', async () => {
+  it('does not propagate LlmError or change interaction count, and emits gm_error', async () => {
     const eventLog = new InMemoryEventLogRepository()
     const useCase = createUseCase({ eventLog })
     completeMock.mockRejectedValue(new LlmError('null', 'provider down', 503))
@@ -633,10 +633,7 @@ describe('RunGameMasterUseCase — error handling', () => {
       /\[GM\] LLM call failed:/,
     )
 
-    expect(saveGmStateMock).toHaveBeenCalledWith(
-      'session_1',
-      expect.objectContaining({ interactionCount: 2 }),
-    )
+    expect(saveGmStateMock).not.toHaveBeenCalled()
     expect(eventLog.getAll()[0]?.type).toBe('gm_error')
     expect(eventLog.getAll()[0]?.payload['errorCode']).toBe('llm_error')
   })

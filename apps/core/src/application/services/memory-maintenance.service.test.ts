@@ -283,6 +283,110 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
     )
   })
 
+  it('keeps contradicted Avatar claims out of candidate facts and preserves the unresolved thread', async () => {
+    const messages = [
+      ['user', 'Where is Mona now?'],
+      ['avatar', 'Mona stayed with her grandfather.'],
+      ['user', 'Your answer is contradictory.'],
+      ['avatar', 'You are right; Mona was not at the chalet.'],
+      ['user', 'Can you clarify her confirmed location?'],
+      ['avatar', 'My memories are confused.'],
+    ].map(([role, content], index) => ({
+      messageId: `mona_${String(index)}`,
+      conversationId: 'conversation_1',
+      role: role as 'user' | 'avatar',
+      content: content ?? '',
+      createdAt: `2026-05-06T10:00:0${String(index)}.000Z`,
+    }))
+    const llmCompleteMock = vi.fn().mockResolvedValue({
+      content: JSON.stringify({
+        summary: 'Mona location remains unresolved.',
+        coveredTopics: ['Mona absence from the chalet'],
+        unresolvedThreads: ['Clarify Mona current confirmed location.'],
+        candidateFacts: [
+          { category: 'context', key: 'mona_current_location', value: 'with grandfather' },
+        ],
+      }),
+      model: 'test-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    })
+    const workingMemory = new InMemoryConversationWorkingMemoryRepository()
+    const service = new MemoryMaintenanceService(
+      new InMemoryMessageRepository(messages),
+      workingMemory,
+      new InMemoryEventLogRepository(),
+      { complete: llmCompleteMock },
+    )
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
+      trigger: 'post_turn',
+    })
+
+    await expect(workingMemory.findByConversationId('conversation_1')).resolves.toMatchObject({
+      unresolvedThreads: ['Clarify Mona current confirmed location.'],
+      candidateFacts: [],
+    })
+  })
+
+  it('labels verified context and allows it to resolve an otherwise unsupported claim', async () => {
+    const workingMemory = new InMemoryConversationWorkingMemoryRepository()
+    const llmCompleteMock = vi.fn().mockResolvedValue({
+      content: JSON.stringify({
+        summary: 'Verified context establishes Mona stayed with her grandfather.',
+        coveredTopics: ['Mona location'],
+        unresolvedThreads: [],
+        candidateFacts: [
+          { category: 'context', key: 'mona_current_location', value: 'with grandfather' },
+        ],
+      }),
+      model: 'test-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    })
+    const service = new MemoryMaintenanceService(
+      new InMemoryMessageRepository(compactionMessages),
+      workingMemory,
+      new InMemoryEventLogRepository(),
+      { complete: llmCompleteMock },
+    )
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
+      trigger: 'post_turn',
+      verifiedContext: [
+        {
+          source: 'canonical',
+          content: 'Mona initially stayed with her grandfather.',
+        },
+      ],
+    })
+
+    const request = llmCompleteMock.mock.calls[0]?.[0] as {
+      systemPrompt: string
+      messages: Array<{ content: string }>
+    }
+    expect(request.systemPrompt).toContain('Treat Avatar statements as conversational claims')
+    expect(request.messages[0]?.content).toContain('## VERIFIED CONTEXT')
+    expect(request.messages[0]?.content).toContain(
+      '- [canonical] Mona initially stayed with her grandfather.',
+    )
+    await expect(workingMemory.findByConversationId('conversation_1')).resolves.toMatchObject({
+      candidateFacts: [
+        { category: 'context', key: 'mona_current_location', value: 'with grandfather' },
+      ],
+    })
+  })
+
   it('uses validated LLM compaction output for working memory when available', async () => {
     const {
       sessionMemoryRepository,
@@ -351,6 +455,7 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
           { category: 'context', key: 'profession', value: '  doctor  ' },
           { category: 'context', key: 'profession', value: 'doctor' },
           { category: 'goal', key: 'conversation_pacing', value: 'fast' },
+          { category: 'context', key: 'memory_condition', value: 'my memories are confused' },
           { category: 'unknown', key: 'bad', value: 'ignored' },
           { category: 'goal', key: 'bad key', value: 'ignored' },
           { category: 'goal', key: 'launch_target', value: 'Z'.repeat(200) },
