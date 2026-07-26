@@ -132,6 +132,7 @@ export type {
   GmStateSummary,
   AdminSessionInspectResponse,
   GmUnlockEvaluation,
+  ConsumedGmRetrievalPlan,
   GmSessionEventPayload,
   MemoryRefreshEventPayload,
   TurnCompletedEventPayload,

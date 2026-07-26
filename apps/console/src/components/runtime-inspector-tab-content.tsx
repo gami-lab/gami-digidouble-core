@@ -4,7 +4,7 @@ import type { CSSProperties, JSX } from 'react'
 import type { GmSessionEventPayload, RuntimeEvent, UserPersona } from '@gami/shared'
 import type { RuntimeInspectorViewModel } from '../api'
 import { buildGmImpactTrace } from './gm-impact-trace'
-import type { RetrievalTraceItem } from './gm-impact-trace'
+import type { GmRetrievalPlanTrace, RetrievalTraceItem } from './gm-impact-trace'
 import type { MemoryEvolutionSnapshot } from './memory-evolution'
 import { computeMemoryDelta } from './memory-evolution'
 import { buildPersonaPayload, PersonaEditor } from './runtime-inspector-persona'
@@ -79,6 +79,14 @@ const traceSectionStyle: CSSProperties = {
   marginTop: '10px',
   paddingTop: '10px',
   borderTop: '1px solid #e5e7eb',
+}
+
+const tracePhaseStyle: CSSProperties = {
+  marginTop: '12px',
+  padding: '10px',
+  border: '1px solid #dbeafe',
+  borderRadius: '6px',
+  backgroundColor: '#f8fbff',
 }
 
 const traceListStyle: CSSProperties = {
@@ -492,15 +500,25 @@ function EventsTab({
             <p style={{ margin: '4px 0' }}>
               <strong>Trigger/context:</strong> {entry.triggerContext}
             </p>
-            <TraceTextSection title="GM run" lines={entry.gmRun} />
-            <TraceTextSection title="GM input" lines={entry.gmInput} />
-            <TraceRetrievalSection title="GM retrieval" items={entry.gmRetrieval} />
-            <TraceTextSection title="GM outputs" lines={entry.gmOutput} />
-            <TraceTextSection title="Avatar input used for the reply" lines={entry.avatarInput} />
-            <TraceRetrievalSection
-              title="Avatar retrieval used for the reply"
-              items={entry.avatarRetrieval}
-            />
+            <div style={tracePhaseStyle}>
+              <strong>GM prompt — generated after turn {String(entry.turnIndex ?? '-')}</strong>
+              <TraceTextSection title="GM run" lines={entry.gmRun} />
+              <TraceTextSection title="GM input" lines={entry.gmInput} />
+              <TraceRetrievalSection title="Knowledge given to GM" items={entry.gmRetrieval} />
+              <TraceRetrievalPlanSection plan={entry.gmRetrievalPlan} />
+              <TraceTextSection title="GM outputs" lines={entry.gmOutput} />
+            </div>
+            <div style={tracePhaseStyle}>
+              <strong>
+                Avatar prompt — answered turn{' '}
+                {String(entry.avatarTurnIndex ?? entry.turnIndex ?? '-')}
+              </strong>
+              <TraceTextSection title="Avatar input" lines={entry.avatarInput} />
+              <TraceRetrievalSection
+                title="Knowledge used by Avatar"
+                items={entry.avatarRetrieval}
+              />
+            </div>
             <TraceTextSection title="User-visible effect" lines={entry.userVisibleOutcome} />
             <TraceTextSection title="Errors" lines={entry.errors} />
           </div>
@@ -596,6 +614,55 @@ function TraceRetrievalSection({
           ) : null}
         </div>
       ))}
+    </div>
+  )
+}
+
+function TraceRetrievalPlanSection({
+  plan,
+}: {
+  plan: GmRetrievalPlanTrace | undefined
+}): JSX.Element | null {
+  if (plan === undefined) return null
+  return (
+    <div style={traceSectionStyle}>
+      <strong>RAG plan for the next Avatar turn</strong>
+      <div style={{ marginTop: '6px' }}>Retrieval required: {plan.required ? 'yes' : 'no'}</div>
+      <div style={{ marginTop: '4px' }}>
+        {plan.consumedByTurnIndex !== undefined
+          ? `Consumed by Avatar turn ${String(plan.consumedByTurnIndex)}.`
+          : 'Not consumed in the loaded event window.'}
+      </div>
+      <TraceProposalGroup title="Proposed GM queries" proposals={plan.queries} />
+      <TraceProposalGroup title="Proposed required facts" proposals={plan.requiredFacts} />
+    </div>
+  )
+}
+
+function TraceProposalGroup({
+  title,
+  proposals,
+}: {
+  title: string
+  proposals: GmRetrievalPlanTrace['queries']
+}): JSX.Element {
+  return (
+    <div style={{ marginTop: '8px' }}>
+      <strong>{title}</strong>
+      {proposals.length === 0 ? (
+        <div style={{ color: '#6b7280', marginTop: '4px' }}>None</div>
+      ) : (
+        <ul style={traceListStyle}>
+          {proposals.map((proposal) => (
+            <li key={`${title}-${proposal.text}`}>
+              {proposal.text} —{' '}
+              {proposal.matchedChunkIds.length > 0
+                ? `matched ${String(proposal.matchedChunkIds.length)} chunk(s): ${proposal.matchedChunkIds.join(', ')}`
+                : 'no matching chunk recorded'}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

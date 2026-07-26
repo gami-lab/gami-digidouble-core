@@ -18,6 +18,7 @@ export function normalizePersistedOrchestration(
   if (record === null) return undefined
 
   const activeAvatarId = readText(record['activeAvatarId'])
+  const generatedByCorrelationId = readText(record['generatedByCorrelationId'])
   const generatedAfterTurn = readNumber(record['generatedAfterTurn'])
   const generatedAt = readText(record['generatedAt'])
   if (
@@ -43,6 +44,7 @@ export function normalizePersistedOrchestration(
   const directorNotes = readText(record['directorNotes'])
 
   return {
+    ...(generatedByCorrelationId !== undefined ? { generatedByCorrelationId } : {}),
     activeAvatarId,
     generatedAfterTurn,
     generatedAt,

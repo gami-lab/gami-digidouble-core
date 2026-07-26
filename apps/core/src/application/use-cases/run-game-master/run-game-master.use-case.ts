@@ -580,6 +580,7 @@ export class RunGameMasterUseCase {
     switchedAvatarId: string | undefined,
   ): GameMasterOrchestrationState {
     return {
+      generatedByCorrelationId: input.correlationId,
       activeAvatarId: switchedAvatarId ?? input.avatarId,
       generatedAfterTurn: input.turnIndex,
       generatedAt: new Date().toISOString(),

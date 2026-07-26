@@ -119,6 +119,7 @@ export interface ProgressionUpdate {
 
 /** GM output retained for exactly the next relevant Avatar turn. */
 export interface GameMasterOrchestrationState {
+  generatedByCorrelationId?: string
   activeAvatarId: string
   generatedAfterTurn: number
   generatedAt: string
@@ -166,6 +167,11 @@ export type GameMasterEvent = {
       notesInjected: boolean
       injectedNote?: string
       retrievalRequired: boolean
+      retrievalPlan?: {
+        required: boolean
+        queries: string[]
+        requiredFacts: string[]
+      }
       routingAction?: RoutingAction
       routingAvatarId?: string
       routingReason?: string

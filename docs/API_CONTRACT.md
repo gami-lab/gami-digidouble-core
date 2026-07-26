@@ -206,7 +206,10 @@ All admin endpoints live under `/v1/admin/*`.
   each result may include its matched query source/text.
 
 Runtime `turn_completed` event retrieval references include the selected chunk content and matched
-query source/text so the console can inspect the exact knowledge passed to the Avatar prompt.
+query source/text so the console can inspect the exact knowledge passed to the Avatar prompt. GM
+events include the retrieval plan's required flag, proposed queries, and required facts. When a
+subsequent Avatar turn consumes that plan, its `turn_completed` event records the source turn and
+plan contents so the console can show which proposals produced matching chunks.
 
 ## Route-Specific Invariants
 

@@ -190,6 +190,11 @@ export function buildTriggeredDecision(
     notesInjected: Boolean(output.directorNotes),
     ...(injectedNote !== undefined ? { injectedNote } : {}),
     retrievalRequired: output.retrievalPlan.required,
+    retrievalPlan: {
+      required: output.retrievalPlan.required,
+      queries: output.retrievalPlan.queries ?? [],
+      requiredFacts: output.retrievalPlan.requiredFacts ?? [],
+    },
     ...(output.routing !== undefined ? { routingAction: output.routing.action } : {}),
     ...(output.routing?.avatarId !== undefined ? { routingAvatarId: output.routing.avatarId } : {}),
     ...(output.routing?.reason !== undefined ? { routingReason: output.routing.reason } : {}),

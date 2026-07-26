@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type {
   GmSessionEventPayload,
   SessionEventRecord,
@@ -11,9 +12,11 @@ export type GmImpactTraceEntry = {
   interactionCount: number
   timelinePosition: string
   triggerContext: string
+  avatarTurnIndex: number | null
   gmRun: string[]
   gmInput: string[]
   gmRetrieval: RetrievalTraceItem[]
+  gmRetrievalPlan?: GmRetrievalPlanTrace
   gmOutput: string[]
   avatarInput: string[]
   avatarRetrieval: RetrievalTraceItem[]
@@ -21,6 +24,18 @@ export type GmImpactTraceEntry = {
   errors: string[]
   createdAt: string
   status: 'applied' | 'error' | 'pending'
+}
+
+export type GmRetrievalPlanTrace = {
+  required: boolean
+  queries: RetrievalProposalTrace[]
+  requiredFacts: RetrievalProposalTrace[]
+  consumedByTurnIndex?: number
+}
+
+export type RetrievalProposalTrace = {
+  text: string
+  matchedChunkIds: string[]
 }
 
 export type RetrievalTraceItem = {
@@ -55,6 +70,7 @@ export function buildGmImpactTrace(snapshot: RuntimeInspectorViewModel): GmImpac
       toTraceEntry(
         correlationId,
         events,
+        snapshot.recentEvents,
         snapshot.gm.transitionHistory.length,
         avatarNameById,
         knowledgeSourceNameById,
@@ -82,6 +98,7 @@ export function buildGmImpactTrace(snapshot: RuntimeInspectorViewModel): GmImpac
 function toTraceEntry(
   correlationId: string,
   events: SessionEventRecord[],
+  allEvents: SessionEventRecord[],
   timelineCount: number,
   avatarNameById: Map<string, string>,
   knowledgeSourceNameById: Map<string, string>,
@@ -109,6 +126,7 @@ function toTraceEntry(
   const errors: string[] = []
   let gmRetrieval: RetrievalTraceItem[] = []
   let avatarRetrieval: RetrievalTraceItem[] = []
+  let gmRetrievalPlan: GmRetrievalPlanTrace | undefined
 
   gmRun.push(
     `GM ran after turn ${String(gmPayload.turnIndex)} because ${formatTriggerReason(gmPayload.triggerReason)}.`,
@@ -164,8 +182,15 @@ function toTraceEntry(
     }
 
     if (decision.retrievalRequired) {
-      gmOutput.push('GM planned retrieval for the next turn.')
+      gmOutput.push('GM planned retrieval for the next Avatar turn.')
     }
+    const consumedTurn = findConsumedTurn(allEvents, correlationId, gmPayload.turnIndex)
+    gmRetrievalPlan = toGmRetrievalPlanTrace(
+      decision.retrievalPlan,
+      consumedTurn,
+      avatarNameById,
+      knowledgeSourceNameById,
+    )
   } else {
     gmRun.push('Decision: no decision payload')
   }
@@ -202,9 +227,11 @@ function toTraceEntry(
     interactionCount: gmPayload.interactionCount,
     timelinePosition,
     triggerContext: gmPayload.triggerReason ?? 'none',
+    avatarTurnIndex: turnPayload?.turnIndex ?? null,
     gmRun,
     gmInput,
     gmRetrieval,
+    ...(gmRetrievalPlan !== undefined ? { gmRetrievalPlan } : {}),
     gmOutput,
     avatarInput,
     avatarRetrieval,
@@ -213,6 +240,72 @@ function toTraceEntry(
     createdAt: gmEvent.createdAt,
     status: gmEvent.type === 'gm_error' ? 'error' : turnEvent ? 'applied' : 'pending',
   }
+}
+
+function findConsumedTurn(
+  events: SessionEventRecord[],
+  generatedByCorrelationId: string,
+  generatedAfterTurn: number,
+): TurnCompletedEventPayload | undefined {
+  const event = events.find((candidate) => {
+    if (candidate.type !== 'turn_completed' || !isTurnPayload(candidate.payload)) return false
+    const plan = candidate.payload.consumedGmRetrievalPlan
+    return (
+      plan !== undefined &&
+      (plan.generatedByCorrelationId === generatedByCorrelationId ||
+        (plan.generatedByCorrelationId === undefined &&
+          plan.generatedAfterTurn === generatedAfterTurn))
+    )
+  })
+  return event !== undefined && isTurnPayload(event.payload) ? event.payload : undefined
+}
+
+function toGmRetrievalPlanTrace(
+  plan: NonNullable<GmSessionEventPayload['decision']>['retrievalPlan'] | undefined,
+  consumedTurn: TurnCompletedEventPayload | undefined,
+  avatarNameById: Map<string, string>,
+  knowledgeSourceNameById: Map<string, string>,
+): GmRetrievalPlanTrace | undefined {
+  if (plan === undefined) return undefined
+  const consumedRetrieval = consumedTurn?.avatarContext
+    ? describeRecordedAvatarContext(
+        consumedTurn.avatarContext,
+        avatarNameById,
+        knowledgeSourceNameById,
+      ).retrieval
+    : []
+  return {
+    required: plan.required,
+    queries: plan.queries.map((text) =>
+      toRetrievalProposal(text, 'gm_retrieval_query', consumedRetrieval),
+    ),
+    requiredFacts: plan.requiredFacts.map((text) =>
+      toRetrievalProposal(text, 'gm_required_fact', consumedRetrieval),
+    ),
+    ...(consumedTurn !== undefined ? { consumedByTurnIndex: consumedTurn.turnIndex } : {}),
+  }
+}
+
+function toRetrievalProposal(
+  text: string,
+  source: string,
+  retrievedItems: RetrievalTraceItem[],
+): RetrievalProposalTrace {
+  const normalizedText = normalizeTraceText(text)
+  return {
+    text,
+    matchedChunkIds: retrievedItems
+      .filter(
+        (item) =>
+          item.matchedQuery?.source === source &&
+          normalizeTraceText(item.matchedQuery.text) === normalizedText,
+      )
+      .map((item) => item.chunkId),
+  }
+}
+
+function normalizeTraceText(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase()
 }
 
 function buildAvatarNameById(snapshot: RuntimeInspectorViewModel): Map<string, string> {

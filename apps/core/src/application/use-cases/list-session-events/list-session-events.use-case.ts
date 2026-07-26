@@ -154,10 +154,12 @@ function readMemoryTrigger(value: unknown): MemoryRefreshEventPayload['trigger']
 function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompletedEventPayload {
   const avatarContext = readOptionalAvatarContextSnapshot(payload['avatarContext'])
   const contextSelection = readOptionalContextSelection(payload['contextSelection'], avatarContext)
+  const consumedGmRetrievalPlan = readConsumedGmRetrievalPlan(payload['consumedGmRetrievalPlan'])
   return {
     conversationId: readString(payload['conversationId']),
     turnIndex: readNumber(payload['turnIndex']),
     avatarId: readString(payload['avatarId']),
+    ...(consumedGmRetrievalPlan !== undefined ? { consumedGmRetrievalPlan } : {}),
     ...(avatarContext !== undefined ? { avatarContext } : {}),
     avatarLatencyMs: readNumber(payload['avatarLatencyMs']),
     totalTurnLatencyMs: readNumber(payload['totalTurnLatencyMs']),
@@ -394,12 +396,14 @@ function readDecision(value: unknown): GmSessionEventPayload['decision'] | undef
   if (!isRecord(value)) return undefined
   const progression = value['progression']
   const unlockEvaluations = readOptionalUnlockEvaluations(value['unlockEvaluations'])
+  const retrievalPlan = readRetrievalPlan(value['retrievalPlan'])
   return {
     dialogueMode: readDialogueMode(value['dialogueMode']),
     askFollowUp: value['askFollowUp'] === true,
     notesInjected: value['notesInjected'] === true,
     ...readOptionalStringField(value, 'injectedNote'),
     retrievalRequired: value['retrievalRequired'] === true,
+    ...(retrievalPlan !== undefined ? { retrievalPlan } : {}),
     ...readOptionalRoutingAction(value['routingAction']),
     ...readOptionalStringField(value, 'routingAvatarId'),
     ...readOptionalStringField(value, 'routingReason'),
@@ -408,6 +412,36 @@ function readDecision(value: unknown): GmSessionEventPayload['decision'] | undef
     ...readOptionalStringArrayField(value, 'unlockedAvatarIds'),
     progression: progression === 'increase' ? 'increase' : 'none',
     ...readOptionalStringField(value, 'objectiveId'),
+  }
+}
+
+function readRetrievalPlan(
+  value: unknown,
+): NonNullable<GmSessionEventPayload['decision']>['retrievalPlan'] | undefined {
+  if (!isRecord(value)) return undefined
+  return {
+    required: value['required'] === true,
+    queries: readStringArray(value['queries']),
+    requiredFacts: readStringArray(value['requiredFacts']),
+  }
+}
+
+function readConsumedGmRetrievalPlan(
+  value: unknown,
+): TurnCompletedEventPayload['consumedGmRetrievalPlan'] | undefined {
+  if (!isRecord(value)) return undefined
+  const generatedAt = readOptionalString(value['generatedAt'])
+  if (generatedAt === undefined) return undefined
+  return {
+    ...(typeof value['generatedByCorrelationId'] === 'string'
+      ? { generatedByCorrelationId: value['generatedByCorrelationId'] }
+      : {}),
+    generatedAfterTurn: readNumber(value['generatedAfterTurn']),
+    generatedAt,
+    consumedOnTurn: readNumber(value['consumedOnTurn']),
+    required: value['required'] === true,
+    queries: readStringArray(value['queries']),
+    requiredFacts: readStringArray(value['requiredFacts']),
   }
 }
 

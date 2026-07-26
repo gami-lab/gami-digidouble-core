@@ -196,6 +196,7 @@ export class SendMessageUseCase {
       userMessage,
       userPersona,
       selectedMemory,
+      orchestration,
       assembledContext,
       retrievalLatencyMs,
       priorUserTurnCount,
@@ -246,6 +247,21 @@ export class SendMessageUseCase {
       retrievalLatencyMs: turn.retrievalLatencyMs,
       otherOverheadMs,
       contextSelection: toContextSelectionMetadata(turn.assembledContext),
+      ...(turn.orchestration !== undefined
+        ? {
+            consumedGmRetrievalPlan: {
+              ...(turn.orchestration.generatedByCorrelationId !== undefined
+                ? { generatedByCorrelationId: turn.orchestration.generatedByCorrelationId }
+                : {}),
+              generatedAfterTurn: turn.orchestration.generatedAfterTurn,
+              generatedAt: turn.orchestration.generatedAt,
+              consumedOnTurn: nextTurnIndex,
+              required: turn.orchestration.retrievalPlan.required,
+              queries: turn.orchestration.retrievalPlan.queries ?? [],
+              requiredFacts: turn.orchestration.retrievalPlan.requiredFacts ?? [],
+            },
+          }
+        : {}),
       eventLogRepository: this.eventLogRepository,
     })
     const output = buildSendMessageOutput({
@@ -324,6 +340,7 @@ export class SendMessageUseCase {
     systemPrompt: string
     userPersona: UserPersona | undefined
     selectedMemory?: SelectedMemoryPayload
+    orchestration: GameMasterOrchestrationState | undefined
     assembledContext: ContextEngineOutput
     retrievalLatencyMs: number
     scenarioModelSelection: Scenario['modelSelection']
@@ -424,6 +441,7 @@ export class SendMessageUseCase {
       systemPrompt,
       userPersona,
       assembledContext,
+      orchestration: args.orchestration,
       retrievalLatencyMs,
       scenarioModelSelection: scenario.modelSelection,
       ...(selectedMemory !== undefined ? { selectedMemory } : {}),

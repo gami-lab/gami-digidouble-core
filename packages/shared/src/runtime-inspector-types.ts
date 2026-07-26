@@ -79,6 +79,16 @@ export type GmUnlockEvaluation = {
   outcome: 'unlocked' | 'already_unlocked' | 'rejected_not_mentioned'
 }
 
+export type ConsumedGmRetrievalPlan = {
+  generatedByCorrelationId?: string
+  generatedAfterTurn: number
+  generatedAt: string
+  consumedOnTurn: number
+  required: boolean
+  queries: string[]
+  requiredFacts: string[]
+}
+
 export type GmSessionEventPayload = {
   triggerReason: string | null
   turnIndex: number
@@ -91,6 +101,11 @@ export type GmSessionEventPayload = {
     notesInjected: boolean
     injectedNote?: string
     retrievalRequired: boolean
+    retrievalPlan?: {
+      required: boolean
+      queries: string[]
+      requiredFacts: string[]
+    }
     routingAction?: 'stay' | 'suggest' | 'switch' | 'unlock' | 'unlock_and_switch'
     routingAvatarId?: string
     routingReason?: string
@@ -113,6 +128,7 @@ export type TurnCompletedEventPayload = {
   conversationId: string
   turnIndex: number
   avatarId: string
+  consumedGmRetrievalPlan?: ConsumedGmRetrievalPlan
   avatarContext?: RecordedAvatarContextSnapshot
   avatarLatencyMs: number
   totalTurnLatencyMs: number

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import type { GmSessionEventPayload, TurnCompletedEventPayload } from '@gami/shared'
 import type { RuntimeInspectorViewModel } from '../api'
 import { buildGmImpactTrace } from './gm-impact-trace'
 
+/* eslint-disable max-lines */
 // eslint-disable-next-line max-lines-per-function
 function makeViewModel(): RuntimeInspectorViewModel {
   return {
@@ -441,6 +443,75 @@ describe('buildGmImpactTrace', () => {
     )
     expect(first.errors).toEqual([])
     expect(first.status).toBe('applied')
+  })
+
+  it('links a GM retrieval plan to the subsequent Avatar turn and reports matches', () => {
+    const snapshot = makeViewModel()
+    const gmEvent = snapshot.recentEvents.find((event) => event.type === 'gm_triggered')
+    const turnEvent = snapshot.recentEvents.find((event) => event.type === 'turn_completed')
+    if (gmEvent?.type !== 'gm_triggered' || turnEvent?.type !== 'turn_completed') return
+    const gmPayload = gmEvent.payload as GmSessionEventPayload
+    const turnPayload = turnEvent.payload as TurnCompletedEventPayload
+    if (turnPayload.avatarContext === undefined) return
+    if (gmPayload.decision === undefined) return
+
+    gmPayload.decision = {
+      ...gmPayload.decision,
+      retrievalRequired: true,
+      retrievalPlan: {
+        required: true,
+        queries: ['Mona harbor'],
+        requiredFacts: ['Mona current location'],
+      },
+    }
+
+    snapshot.recentEvents.push({
+      ...turnEvent,
+      correlationId: 'corr_2',
+      createdAt: '2026-05-07T10:00:02.000Z',
+      payload: {
+        ...turnPayload,
+        correlationId: 'corr_2',
+        turnIndex: 2,
+        consumedGmRetrievalPlan: {
+          generatedAfterTurn: 1,
+          generatedAt: '2026-05-07T10:00:01.000Z',
+          consumedOnTurn: 2,
+          required: true,
+          queries: ['Mona harbor'],
+          requiredFacts: ['Mona current location'],
+        },
+        avatarContext: {
+          ...turnPayload.avatarContext,
+          sections: {
+            ...turnPayload.avatarContext.sections,
+            retrievedContext: {
+              memory: [],
+              world: [
+                {
+                  sourceId: 'source_1',
+                  chunkId: 'chunk_plan_match',
+                  knowledgeType: 'world',
+                  content: 'Mona is currently in the harbor.',
+                  matchedQuery: { source: 'gm_retrieval_query', text: 'Mona harbor' },
+                },
+              ],
+              media: [],
+            },
+          },
+        },
+      },
+    })
+
+    const trace = buildGmImpactTrace(snapshot)
+    const first = trace.find((entry) => entry.correlationId === 'corr_1')
+
+    expect(first?.gmRetrievalPlan).toEqual({
+      required: true,
+      queries: [{ text: 'Mona harbor', matchedChunkIds: ['chunk_plan_match'] }],
+      requiredFacts: [{ text: 'Mona current location', matchedChunkIds: [] }],
+      consumedByTurnIndex: 2,
+    })
   })
 
   it('sorts trace entries by interactionCount when turnIndex resets after avatar switches', () => {

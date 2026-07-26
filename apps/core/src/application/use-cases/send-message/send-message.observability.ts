@@ -1,4 +1,5 @@
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
+import type { ConsumedGmRetrievalPlan } from '@gami/shared'
 import type { AvatarContextSnapshot } from '../../../domain/context/session-context.types.js'
 import { toRecordedAvatarContextSnapshot } from '../../services/runtime-inspector-event-context.js'
 
@@ -8,6 +9,7 @@ export function emitTurnCompletedEventNonBlocking(args: {
   conversationId: string
   turnIndex: number
   avatarId: string
+  consumedGmRetrievalPlan?: ConsumedGmRetrievalPlan
   avatarContext: AvatarContextSnapshot
   avatarLatencyMs: number
   totalTurnLatencyMs: number
@@ -55,6 +57,9 @@ export function emitTurnCompletedEventNonBlocking(args: {
     conversationId: args.conversationId,
     turnIndex: args.turnIndex,
     avatarId: args.avatarId,
+    ...(args.consumedGmRetrievalPlan !== undefined
+      ? { consumedGmRetrievalPlan: args.consumedGmRetrievalPlan }
+      : {}),
     avatarContext: toRecordedAvatarContextSnapshot(args.avatarContext),
     avatarLatencyMs: args.avatarLatencyMs,
     totalTurnLatencyMs: args.totalTurnLatencyMs,
