@@ -51,6 +51,30 @@ describe('buildGameMasterSystemPrompt', () => {
     expect(policySection).toContain('transition: the current subject should close')
     expect(policySection).toContain('retrievalPlan.required true when')
     expect(policySection).toContain(
+      'Treat retrieval planning as a forward-looking part of every substantive GM analysis, not as an exceptional repair action.',
+    )
+    expect(policySection).toContain(
+      'First anticipate the most likely next user direction on the current subject and prepare the context the Avatar will need for that turn.',
+    )
+    expect(policySection).toContain(
+      'Assume the current subject will continue unless the exchange clearly closes it or changes topic.',
+    )
+    expect(policySection).toContain(
+      'For a continuing narrative or factual subject, set retrievalPlan.required true when retrieval could help the next Avatar turn',
+    )
+    expect(policySection).toContain(
+      'For any factual who, what, where, when, which, or how-many question',
+    )
+    expect(policySection).toContain(
+      'When retrievalPlan.required is true, always provide one to three focused queries and one to three requiredFacts.',
+    )
+    expect(policySection).toContain(
+      'Set retrievalPlan.required false only for greetings, purely emotional or subjective reflection, or purely stylistic guidance where no factual, narrative, or character context would improve the next turn.',
+    )
+    expect(policySection).toContain(
+      'after the Avatar answers who accompanied them to a named place, prepare retrieval for that place',
+    )
+    expect(policySection).toContain(
       'Write every retrievalPlan query and requiredFact in the same language as context.experience.description',
     )
     expect(policySection).toContain('You do not perform retrieval yourself')
@@ -122,7 +146,7 @@ describe('buildGameMasterSystemPrompt', () => {
       '- askFollowUp must always be stated explicitly; never infer it from mode alone.',
     )
     expect(prompt).toContain(
-      '- retrievalPlan.queries and requiredFacts should be omitted or empty when required is false.',
+      '- retrievalPlan is required on every response; set required false with empty or omitted arrays only under the retrieval-planning exception above.',
     )
     expect(prompt).toContain(
       '- routing.avatarId must be one of the Avatars listed as available for this turn.',

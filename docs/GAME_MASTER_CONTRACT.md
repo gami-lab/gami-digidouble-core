@@ -134,7 +134,7 @@ type GameMasterOutput = {
     mode: 'user_led' | 'avatar_guided' | 'avatar_led' | 'repair' | 'transition'
     askFollowUp: boolean
   }
-  retrievalPlan?: {
+  retrievalPlan: {
     required: boolean
     queries?: string[]
     requiredFacts?: string[]
@@ -162,12 +162,23 @@ Output invariants:
 
 - `GameMasterOutput` is the canonical runtime output contract.
 - `dialogueControl.askFollowUp` must always be stated explicitly by the GM; it is never inferred from `mode` alone.
-- `dialogueControl` is required. `retrievalPlan`, `directorNotes`, `routing`, and
-  `progressionUpdate` are optional; omitted retrieval/progression fields normalize to safe
-  no-op defaults before persistence.
+- `dialogueControl` and `retrievalPlan` are required in current GM responses. `directorNotes`,
+  `routing`, and `progressionUpdate` are optional. The parser still accepts omitted retrieval
+  and progression fields for backwards compatibility and normalizes them to safe no-op defaults.
+  `retrievalPlan.required` should be false only for greetings, purely emotional or subjective
+  reflection, or purely stylistic guidance where no factual, narrative, or character context
+  would improve the next turn.
 - The GM does not perform retrieval — `retrievalPlan` prepares queries and required facts for the next Avatar turn, and the Avatar pipeline uses both to select RAG chunks.
-- When present, `retrievalPlan.queries` and `retrievalPlan.requiredFacts` must use the language of `context.experience.description` (the Scenario description), because the RAG documents are stored in that language.
+- `retrievalPlan.queries` and `retrievalPlan.requiredFacts` must use the language of `context.experience.description` (the Scenario description), because the RAG documents are stored in that language.
 - `retrievalPlan.required` marks retrieval as necessary for the next related Avatar turn; if retrieval fails or yields no knowledge, the Avatar receives explicit insufficient-evidence guidance.
+- The GM must anticipate the most likely next direction on the current subject. It should assume
+  the subject continues unless the exchange clearly closes or changes it, and prepare retrieval
+  for context that could help answer a likely follow-up, deepen the subject, connect related
+  events or characters, or preserve the Avatar's knowledge boundary.
+- Factual who/what/where/when/which/how-many questions and questions about named people, events,
+  places, objects, participants, relationships, actions, or timelines require a retrieval plan
+  even when the latest Avatar reply sounds coherent. A required plan must contain focused queries
+  and required facts for the next related turn.
 - `directorNotes` is optional and must only carry guidance not already represented by another structured field.
 - `routing` is omitted entirely when routing is not applicable (single-Avatar scenarios). When present:
   - `stay` does not require `avatarId`.

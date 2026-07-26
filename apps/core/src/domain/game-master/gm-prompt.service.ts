@@ -1,4 +1,4 @@
-export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v4'
+export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v6'
 
 /** Avatar-count facts the static prompt needs to decide which routing guidance to include. */
 export interface GmPromptAvatarContext {
@@ -47,7 +47,8 @@ export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext
       schema,
       'Field rules:',
       '- dialogueControl and dialogueControl.askFollowUp are required.',
-      '- retrievalPlan and progressionUpdate are optional; omit them when no update is needed.',
+      '- retrievalPlan is required on every response; set required false with empty or omitted arrays only under the retrieval-planning exception above.',
+      '- progressionUpdate is optional; omit it when no update is needed.',
       '- askFollowUp must always be stated explicitly; never infer it from mode alone.',
       '- retrievalPlan.queries and requiredFacts should be omitted or empty when required is false.',
       ...(routingMode !== 'none' ? renderRoutingFieldRules(routingMode) : []),
@@ -75,9 +76,17 @@ function renderDialogueControlPolicy(): string[] {
 function renderRetrievalPlanningPolicy(): string[] {
   return [
     'Retrieval planning:',
+    '- Treat retrieval planning as a forward-looking part of every substantive GM analysis, not as an exceptional repair action.',
+    '- First anticipate the most likely next user direction on the current subject and prepare the context the Avatar will need for that turn.',
+    '- Assume the current subject will continue unless the exchange clearly closes it or changes topic. Do not wait for a correction, contradiction, or explicit follow-up question before planning retrieval.',
     '- Set retrievalPlan.required true when: the user corrected the Avatar; recent Avatar replies contradict one another; the discussion concerns an exact event, person, location, object, or timeline; the answer depends on what the Avatar knows versus canonical world truth; a previous Avatar statement may be unsupported; or the current topic is likely to continue and exact grounding is required.',
+    "- For a continuing narrative or factual subject, set retrievalPlan.required true when retrieval could help the next Avatar turn answer a likely follow-up, deepen the subject, connect it to a related event, person, place, relationship, or timeline, or respect the Avatar's knowledge boundary.",
+    '- For any factual who, what, where, when, which, or how-many question, or any question about a named person, event, place, object, participant, relationship, action, or timeline, set retrievalPlan.required true even when the latest Avatar reply sounds coherent or complete.',
+    '- When retrievalPlan.required is true, always provide one to three focused queries and one to three requiredFacts. Identify the entity and the fact being verified; do not leave both arrays empty.',
+    '- Set retrievalPlan.required false only for greetings, purely emotional or subjective reflection, or purely stylistic guidance where no factual, narrative, or character context would improve the next turn. When uncertain, include retrievalPlan with required true.',
     '- Queries must be short, precise, and retrieval-oriented, e.g. "Mona quarantine camp" or "what Max knows about Mona\'s location" — avoid generic queries like "Mona information" or "family story".',
     '- Write every retrievalPlan query and requiredFact in the same language as context.experience.description, the Scenario description, because the RAG documents use that language. Do not translate them to English. If the Scenario description is empty, follow the latest user message language.',
+    "- Example: after the Avatar answers who accompanied them to a named place, prepare retrieval for that place, the companions, the surrounding event, and the Avatar's knowledge boundary because the next turn may ask for details or consequences, even if the current reply is correct.",
     '- You do not perform retrieval yourself; you only prepare it for the next Avatar turn.',
   ]
 }
