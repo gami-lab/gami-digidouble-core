@@ -341,6 +341,39 @@ describe('TypedRetrievalService', () => {
     expect(result.world[2]?.reason).toContain('last-user-input')
   })
 
+  it('uses GM queries and required facts to select matching RAG chunks', async () => {
+    const sourceRepo = new InMemoryKnowledgeSourceRepository()
+    const chunkRepo = new InMemoryKnowledgeChunkRepository()
+    const world = await sourceRepo.create({
+      scenarioId: 'scenario_1',
+      name: 'Scenario world',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/scenario.md',
+    })
+    await sourceRepo.updateStatus(world.sourceId, 'ready')
+    await chunkRepo.create({
+      sourceId: world.sourceId,
+      chunkIndex: 0,
+      content: 'Le dernier emplacement confirmé de Mona est la maison de son grand-père.',
+    })
+
+    const service = new TypedRetrievalService(sourceRepo, chunkRepo)
+    const result = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'Emplacement actuel de Mona | Dernier emplacement confirmé de Mona',
+      queries: [
+        { source: 'gm_retrieval_plan', text: 'Emplacement actuel de Mona' },
+        { source: 'gm_retrieval_plan', text: 'Dernier emplacement confirmé de Mona' },
+      ],
+    })
+
+    expect(result.world.map((item) => item.content)).toEqual([
+      'Le dernier emplacement confirmé de Mona est la maison de son grand-père.',
+    ])
+    expect(result.world[0]?.reason).toContain('gm-retrieval-plan')
+  })
+
   it('enforces visibilityPolicy none: blocks all avatar retrieval, passes GM bypass', async () => {
     const sourceRepo = new InMemoryKnowledgeSourceRepository()
     const chunkRepo = new InMemoryKnowledgeChunkRepository()

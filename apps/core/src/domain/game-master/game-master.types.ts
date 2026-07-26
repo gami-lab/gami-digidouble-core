@@ -82,7 +82,6 @@ export interface DialogueControl {
   askFollowUp: boolean
 }
 
-export type RetrievalPriority = 'mandatory' | 'optional'
 export type RetrievalScope = 'avatar_memory' | 'world_context' | 'scenario_knowledge'
 
 /**
@@ -91,7 +90,6 @@ export type RetrievalScope = 'avatar_memory' | 'world_context' | 'scenario_knowl
  */
 export interface RetrievalPlan {
   required: boolean
-  priority?: RetrievalPriority
   queries?: string[]
   requiredFacts?: string[]
   scopes?: RetrievalScope[]
@@ -168,7 +166,6 @@ export type GameMasterEvent = {
       notesInjected: boolean
       injectedNote?: string
       retrievalRequired: boolean
-      retrievalPriority?: RetrievalPriority
       routingAction?: RoutingAction
       routingAvatarId?: string
       routingReason?: string

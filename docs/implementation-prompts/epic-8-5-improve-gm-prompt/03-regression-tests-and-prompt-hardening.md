@@ -90,8 +90,7 @@ Expected:
 
 ```json
 {
-  "required": true,
-  "priority": "mandatory"
+  "required": true
 }
 ```
 
@@ -337,7 +336,6 @@ Expected GM post-analysis:
   },
   "retrievalPlan": {
     "required": true,
-    "priority": "mandatory",
     "queries": [
       "Mona current location after staying with grandfather",
       "Mona quarantine camp",

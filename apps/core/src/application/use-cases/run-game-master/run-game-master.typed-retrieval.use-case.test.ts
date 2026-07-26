@@ -278,7 +278,6 @@ describe('RunGameMasterUseCase typed retrieval input', () => {
         dialogueControl: { mode: 'repair', askFollowUp: false },
         retrievalPlan: {
           required: true,
-          priority: 'mandatory',
           queries: [
             'Mona current location after staying with grandfather',
             'Mona quarantine camp',
@@ -323,7 +322,6 @@ describe('RunGameMasterUseCase typed retrieval input', () => {
       dialogueControl: { mode: 'repair', askFollowUp: false },
       retrievalPlan: {
         required: true,
-        priority: 'mandatory',
       },
       directorNotes:
         'Resolve the location issue factually before returning to the wider chalet discussion.',

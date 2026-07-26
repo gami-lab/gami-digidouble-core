@@ -48,7 +48,7 @@ describe('typed retrieval query builder', () => {
     expect(queries).toEqual([{ source: 'gm_guideline', text: 'Same' }])
   })
 
-  it('prioritizes exact next-turn facts from a mandatory GM retrieval plan', () => {
+  it('prioritizes exact next-turn facts from a required GM retrieval plan', () => {
     const queries = buildAvatarTypedRetrievalQueries({
       gmRetrievalQueries: ['Mona current location after staying with grandfather'],
       gmRequiredFacts: [
@@ -84,7 +84,7 @@ describe('typed retrieval query builder', () => {
     expect(queries.filter((query) => query.source === 'gm_retrieval_plan')).toHaveLength(3)
   })
 
-  it('does not invent mandatory planning for emotional reflection', () => {
+  it('does not invent required planning for emotional reflection', () => {
     const queries = buildAvatarTypedRetrievalQueries({
       lastUserInput: 'How do you feel about all of this?',
     })
@@ -93,6 +93,20 @@ describe('typed retrieval query builder', () => {
       { source: 'last_user_input', text: 'How do you feel about all of this?' },
     ])
     expect(queries.some((query) => query.source === 'gm_retrieval_plan')).toBe(false)
+  })
+
+  it('keeps scenario-language GM queries and required facts in the retrieval set', () => {
+    const queries = buildAvatarTypedRetrievalQueries({
+      gmRetrievalQueries: ['Emplacement actuel de Mona'],
+      gmRequiredFacts: ['Dernier emplacement confirmé de Mona'],
+      lastUserInput: 'Où est Mona maintenant ?',
+    })
+
+    expect(queries).toEqual([
+      { source: 'gm_retrieval_plan', text: 'Emplacement actuel de Mona' },
+      { source: 'gm_retrieval_plan', text: 'Dernier emplacement confirmé de Mona' },
+      { source: 'last_user_input', text: 'Où est Mona maintenant ?' },
+    ])
   })
 
   it('drops stale planning when the user explicitly changes topic', () => {

@@ -136,7 +136,6 @@ type GameMasterOutput = {
   }
   retrievalPlan?: {
     required: boolean
-    priority?: 'mandatory' | 'optional'
     queries?: string[]
     requiredFacts?: string[]
     scopes?: Array<'avatar_memory' | 'world_context' | 'scenario_knowledge'>
@@ -166,7 +165,9 @@ Output invariants:
 - `dialogueControl` is required. `retrievalPlan`, `directorNotes`, `routing`, and
   `progressionUpdate` are optional; omitted retrieval/progression fields normalize to safe
   no-op defaults before persistence.
-- The GM does not perform retrieval — `retrievalPlan` only prepares queries/required facts for the next Avatar turn.
+- The GM does not perform retrieval — `retrievalPlan` prepares queries and required facts for the next Avatar turn, and the Avatar pipeline uses both to select RAG chunks.
+- When present, `retrievalPlan.queries` and `retrievalPlan.requiredFacts` must use the language of `context.experience.description` (the Scenario description), because the RAG documents are stored in that language.
+- `retrievalPlan.required` marks retrieval as necessary for the next related Avatar turn; if retrieval fails or yields no knowledge, the Avatar receives explicit insufficient-evidence guidance.
 - `directorNotes` is optional and must only carry guidance not already represented by another structured field.
 - `routing` is omitted entirely when routing is not applicable (single-Avatar scenarios). When present:
   - `stay` does not require `avatarId`.

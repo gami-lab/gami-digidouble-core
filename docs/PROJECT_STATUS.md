@@ -47,7 +47,8 @@ The platform is now a working headless conversational runtime with:
 - GM can inject notes, suggest or switch avatars, unlock avatars, and update lightweight orchestration state.
 - GM decisions are validated by runtime guards before they affect conversations or session state.
 - GM output is stored as turn-scoped next-turn orchestration state; the next Avatar turn consumes matching dialogue guidance and retrieval intent exactly once.
-- Mandatory retrieval gaps inject explicit uncertainty guidance, and invalid routing falls back to `stay` without changing progression or memory ownership.
+- GM retrieval queries and required facts are used as RAG query variants, and are instructed to follow the Scenario description language used by the knowledge documents.
+- Required retrieval gaps inject explicit uncertainty guidance, and invalid routing falls back to `stay` without changing progression or memory ownership.
 - Safe GM diagnostics are recorded in the event log and exposed through admin APIs.
 - GM state no longer persists legacy topic updates or interaction increments; session/conversation
   state owns Avatar routing and application code increments completed-exchange counts.

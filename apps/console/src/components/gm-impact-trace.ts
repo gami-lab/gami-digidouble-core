@@ -159,9 +159,7 @@ function toTraceEntry(
     }
 
     if (decision.retrievalRequired) {
-      gmOutput.push(
-        `GM planned retrieval for the next turn${decision.retrievalPriority ? ` (${decision.retrievalPriority})` : ''}.`,
-      )
+      gmOutput.push('GM planned retrieval for the next turn.')
     }
   } else {
     gmRun.push('Decision: no decision payload')

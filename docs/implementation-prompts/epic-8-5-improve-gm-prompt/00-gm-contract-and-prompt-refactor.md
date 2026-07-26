@@ -44,7 +44,6 @@ Replace them with the following logical structure:
   },
   "retrievalPlan": {
     "required": true,
-    "priority": "mandatory",
     "queries": ["Mona current location", "what Max knows about Mona's location"],
     "requiredFacts": [
       "Mona's last confirmed location",
@@ -104,7 +103,6 @@ Add:
 ```json
 "retrievalPlan": {
   "required": true,
-  "priority": "mandatory",
   "queries": [],
   "requiredFacts": []
 }
@@ -120,9 +118,9 @@ Optional source scopes may be included if supported:
 ]
 ```
 
-The GM does not perform retrieval. It prepares retrieval for the next Avatar turn.
+The GM does not perform retrieval. It prepares retrieval for the next Avatar turn. Queries and required facts must use the language of the Scenario description because the RAG documents use that language.
 
-Use `mandatory` when:
+Set `required` to `true` when:
 
 - the user corrected the Avatar;
 - recent Avatar replies contradict one another;

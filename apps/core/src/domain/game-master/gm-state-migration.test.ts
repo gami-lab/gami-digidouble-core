@@ -10,7 +10,7 @@ describe('normalizePersistedOrchestration', () => {
       topicCovered: 'Mona location',
       interactionIncrement: 1,
       dialogueControl: { mode: 'repair', askFollowUp: false },
-      retrievalPlan: { required: true, priority: 'mandatory', queries: ['Mona location'] },
+      retrievalPlan: { required: true, queries: ['Mona location'] },
       progressionUpdate: { progression: 'none' },
     })
 
@@ -19,7 +19,7 @@ describe('normalizePersistedOrchestration', () => {
       generatedAfterTurn: 3,
       generatedAt: '2026-07-25T10:00:00.000Z',
       dialogueControl: { mode: 'repair', askFollowUp: false },
-      retrievalPlan: { required: true, priority: 'mandatory', queries: ['Mona location'] },
+      retrievalPlan: { required: true, queries: ['Mona location'] },
       progressionUpdate: { progression: 'none' },
     })
     expect(normalized).not.toHaveProperty('topicCovered')

@@ -82,15 +82,10 @@ function readDialogueControl(value: unknown): DialogueControl | undefined {
 
 function readRetrievalPlan(value: unknown): RetrievalPlan | undefined {
   if (!isRecord(value) || typeof value['required'] !== 'boolean') return undefined
-  const priority =
-    value['priority'] === 'mandatory' || value['priority'] === 'optional'
-      ? value['priority']
-      : undefined
   const queries = readTextArray(value['queries'])
   const requiredFacts = readTextArray(value['requiredFacts'])
   return {
     required: value['required'],
-    ...(priority !== undefined ? { priority } : {}),
     ...(queries !== undefined ? { queries } : {}),
     ...(requiredFacts !== undefined ? { requiredFacts } : {}),
   }

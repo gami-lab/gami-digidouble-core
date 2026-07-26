@@ -4,7 +4,6 @@ import type {
   GameMasterOutput,
   ProgressionUpdate,
   RetrievalPlan,
-  RetrievalPriority,
   RetrievalScope,
   RoutingAction,
   RoutingDecision,
@@ -17,7 +16,6 @@ const DIALOGUE_CONTROL_MODES = new Set<DialogueControlMode>([
   'repair',
   'transition',
 ])
-const RETRIEVAL_PRIORITIES = new Set<RetrievalPriority>(['mandatory', 'optional'])
 const RETRIEVAL_SCOPES = new Set<RetrievalScope>([
   'avatar_memory',
   'world_context',
@@ -95,17 +93,12 @@ function toRetrievalPlan(value: unknown): RetrievalPlan | null {
   if (!isRecord(value)) return null
   if (typeof value['required'] !== 'boolean') return null
 
-  const priority = value['priority']
-  if (priority !== undefined && !RETRIEVAL_PRIORITIES.has(priority as RetrievalPriority)) {
-    return null
-  }
   const queries = toOptionalStringArray(value['queries'])
   const requiredFacts = toOptionalStringArray(value['requiredFacts'])
   const scopes = toOptionalScopes(value['scopes'])
 
   return {
     required: value['required'],
-    ...(priority !== undefined ? { priority: priority as RetrievalPriority } : {}),
     ...(queries !== undefined ? { queries } : {}),
     ...(requiredFacts !== undefined ? { requiredFacts } : {}),
     ...(scopes !== undefined ? { scopes } : {}),

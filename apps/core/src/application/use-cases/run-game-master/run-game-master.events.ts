@@ -190,9 +190,6 @@ export function buildTriggeredDecision(
     notesInjected: Boolean(output.directorNotes),
     ...(injectedNote !== undefined ? { injectedNote } : {}),
     retrievalRequired: output.retrievalPlan.required,
-    ...(output.retrievalPlan.priority !== undefined
-      ? { retrievalPriority: output.retrievalPlan.priority }
-      : {}),
     ...(output.routing !== undefined ? { routingAction: output.routing.action } : {}),
     ...(output.routing?.avatarId !== undefined ? { routingAvatarId: output.routing.avatarId } : {}),
     ...(output.routing?.reason !== undefined ? { routingReason: output.routing.reason } : {}),

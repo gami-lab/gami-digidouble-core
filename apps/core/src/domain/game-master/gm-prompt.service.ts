@@ -1,4 +1,4 @@
-export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v3'
+export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v4'
 
 /** Avatar-count facts the static prompt needs to decide which routing guidance to include. */
 export interface GmPromptAvatarContext {
@@ -75,8 +75,9 @@ function renderDialogueControlPolicy(): string[] {
 function renderRetrievalPlanningPolicy(): string[] {
   return [
     'Retrieval planning:',
-    '- Set retrievalPlan.required true with priority "mandatory" when: the user corrected the Avatar; recent Avatar replies contradict one another; the discussion concerns an exact event, person, location, object, or timeline; the answer depends on what the Avatar knows versus canonical world truth; a previous Avatar statement may be unsupported; or the current topic is likely to continue and exact grounding is required.',
+    '- Set retrievalPlan.required true when: the user corrected the Avatar; recent Avatar replies contradict one another; the discussion concerns an exact event, person, location, object, or timeline; the answer depends on what the Avatar knows versus canonical world truth; a previous Avatar statement may be unsupported; or the current topic is likely to continue and exact grounding is required.',
     '- Queries must be short, precise, and retrieval-oriented, e.g. "Mona quarantine camp" or "what Max knows about Mona\'s location" — avoid generic queries like "Mona information" or "family story".',
+    '- Write every retrievalPlan query and requiredFact in the same language as context.experience.description, the Scenario description, because the RAG documents use that language. Do not translate them to English. If the Scenario description is empty, follow the latest user message language.',
     '- You do not perform retrieval yourself; you only prepare it for the next Avatar turn.',
   ]
 }
@@ -135,7 +136,6 @@ function buildOutputSchema(routingMode: RoutingPromptMode): Record<string, unkno
     },
     retrievalPlan: {
       required: '<true | false>',
-      priority: '<"mandatory" | "optional" — omit when required is false>',
       queries: ['<short retrieval-oriented query>'],
       requiredFacts: ['<fact the next turn must ground>'],
     },

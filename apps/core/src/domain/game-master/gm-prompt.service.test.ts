@@ -49,7 +49,10 @@ describe('buildGameMasterSystemPrompt', () => {
     expect(policySection).toContain('user_led: the user is directing the discussion')
     expect(policySection).toContain('repair: the next response must resolve a contradiction')
     expect(policySection).toContain('transition: the current subject should close')
-    expect(policySection).toContain('retrievalPlan.required true with priority "mandatory"')
+    expect(policySection).toContain('retrievalPlan.required true when')
+    expect(policySection).toContain(
+      'Write every retrievalPlan query and requiredFact in the same language as context.experience.description',
+    )
     expect(policySection).toContain('You do not perform retrieval yourself')
     expect(policySection).toContain('Omit directorNotes rather than restate permanent Avatar rules')
     expect(policySection).toContain(
@@ -133,6 +136,7 @@ describe('buildGameMasterSystemPrompt', () => {
     expect(prompt).toContain('"dialogueControl"')
     expect(prompt).toContain('"retrievalPlan"')
     expect(prompt).toContain('"progressionUpdate"')
+    expect(prompt).not.toContain('priority')
     expect(prompt).not.toContain('interactionIncrement')
   })
 })

@@ -697,7 +697,6 @@ describe('SendMessageUseCase — validation and GM integration', () => {
         dialogueControl: { mode: 'repair', askFollowUp: false },
         retrievalPlan: {
           required: true,
-          priority: 'mandatory',
           queries: [
             'Mona current location after staying with grandfather',
             'Mona quarantine camp',
@@ -836,7 +835,6 @@ describe('SendMessageUseCase — validation and GM integration', () => {
         dialogueControl: { mode: 'repair', askFollowUp: false },
         retrievalPlan: {
           required: true,
-          priority: 'mandatory',
           queries: ['stale Mona claim'],
         },
         directorNotes: 'This must not be reused.',

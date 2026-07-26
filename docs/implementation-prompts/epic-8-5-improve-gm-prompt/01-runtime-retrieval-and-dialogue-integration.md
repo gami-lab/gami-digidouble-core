@@ -45,7 +45,6 @@ Example:
   },
   "retrievalPlan": {
     "required": true,
-    "priority": "mandatory",
     "queries": [
       "Mona current location",
       "Mona quarantine camp",

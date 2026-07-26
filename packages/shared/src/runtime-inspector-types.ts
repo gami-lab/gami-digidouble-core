@@ -91,7 +91,6 @@ export type GmSessionEventPayload = {
     notesInjected: boolean
     injectedNote?: string
     retrievalRequired: boolean
-    retrievalPriority?: 'mandatory' | 'optional'
     routingAction?: 'stay' | 'suggest' | 'switch' | 'unlock' | 'unlock_and_switch'
     routingAvatarId?: string
     routingReason?: string

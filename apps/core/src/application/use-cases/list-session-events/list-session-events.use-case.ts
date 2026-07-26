@@ -400,9 +400,6 @@ function readDecision(value: unknown): GmSessionEventPayload['decision'] | undef
     notesInjected: value['notesInjected'] === true,
     ...readOptionalStringField(value, 'injectedNote'),
     retrievalRequired: value['retrievalRequired'] === true,
-    ...(value['retrievalPriority'] === 'mandatory' || value['retrievalPriority'] === 'optional'
-      ? { retrievalPriority: value['retrievalPriority'] }
-      : {}),
     ...readOptionalRoutingAction(value['routingAction']),
     ...readOptionalStringField(value, 'routingAvatarId'),
     ...readOptionalStringField(value, 'routingReason'),
