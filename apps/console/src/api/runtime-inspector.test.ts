@@ -212,7 +212,6 @@ function arrangeSession2(): void {
         lastActivityAt: '2026-05-01T10:01:00.000Z',
       },
       gmState: {
-        currentAvatarId: 'avatar_1',
         progression: 'intro',
         topicsCovered: [],
         interactionCount: 1,

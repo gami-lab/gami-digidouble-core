@@ -236,7 +236,6 @@ function makeAvatarContext(): RuntimeInspectorViewModel['context']['avatarContex
 function makeGmContext(): RuntimeInspectorViewModel['context']['gmContext'] {
   return {
     currentState: {
-      currentAvatarId: 'avatar_1',
       progression: 'intro',
       topicsCovered: [],
       interactionCount: 1,

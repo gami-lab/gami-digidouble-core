@@ -16,7 +16,6 @@ const defaultScenarioModelSelection = {
 }
 
 const defaultGmState = {
-  currentAvatarId: 'avatar_2',
   progression: 'intro complete',
   topicsCovered: ['setup'],
   interactionCount: 4,
@@ -206,7 +205,6 @@ describe('InspectSessionUseCase', () => {
       lastActivityAt: '2026-04-28T10:05:00.000Z',
     })
     expect(output.inspect.gmState).toEqual({
-      currentAvatarId: 'avatar_2',
       progression: 'intro complete',
       topicsCovered: ['setup'],
       interactionCount: 4,

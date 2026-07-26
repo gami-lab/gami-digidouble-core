@@ -108,7 +108,6 @@ export function createSessionRouteUseCases(deps: {
       episodicMemoryService,
       deps.eventLogRepository,
       memoryMaintenance,
-      deps.gmStateRepository,
       deps.runGameMasterUseCase,
     ),
     listSessionConversationsUseCase: new ListSessionConversationsUseCase(
@@ -123,7 +122,6 @@ export function createSessionRouteUseCases(deps: {
       episodicMemoryService,
       deps.conversationWorkingMemoryRepository,
       deps.eventLogRepository,
-      deps.gmStateRepository,
       deps.runGameMasterUseCase,
     ),
     getAvailableAvatarsUseCase: new GetAvailableAvatarsUseCase(

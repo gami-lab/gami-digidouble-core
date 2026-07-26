@@ -55,7 +55,6 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
       turnIndex: 5,
       interactionCount: 5,
       stateBefore: {
-        currentAvatarId: 'avatar_1',
         progression: 'intro',
         topicsCovered: ['setup'],
       },
@@ -92,7 +91,6 @@ function makeApp(params?: {
       {
         sessionId: 'session_1',
         state: {
-          currentAvatarId: 'avatar_2',
           progression: 'intro complete',
           topicsCovered: ['setup'],
           interactionCount: 4,
@@ -188,7 +186,6 @@ describe('GET /v1/admin/sessions/:sessionId/inspect', () => {
     >()
     expect(body.error).toBeNull()
     expect(body.data?.inspect.gmState).toEqual({
-      currentAvatarId: 'avatar_2',
       progression: 'intro complete',
       topicsCovered: ['setup'],
       interactionCount: 4,
@@ -292,7 +289,6 @@ describe('GET /v1/admin/sessions/:sessionId/events behavior', () => {
       turnIndex: 5,
       interactionCount: 5,
       stateBefore: {
-        currentAvatarId: 'avatar_1',
         progression: 'intro',
         topicsCovered: ['setup'],
       },

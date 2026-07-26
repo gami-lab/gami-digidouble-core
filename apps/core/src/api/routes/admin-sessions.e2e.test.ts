@@ -63,7 +63,6 @@ function makeEvent(type: StoredEvent['type'], correlationId: string): StoredEven
       turnIndex: 5,
       interactionCount: 5,
       stateBefore: {
-        currentAvatarId: 'avatar_1',
         progression: 'intro',
         topicsCovered: ['setup'],
       },

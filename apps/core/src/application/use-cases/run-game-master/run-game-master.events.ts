@@ -170,7 +170,6 @@ export async function emitEventSafe(
 
 export function buildStateSummary(state: GameMasterState): GameMasterStateSummary {
   return {
-    ...(state.currentAvatarId !== undefined ? { currentAvatarId: state.currentAvatarId } : {}),
     progression: state.progression,
     topicsCovered: state.topicsCovered ?? [],
   }

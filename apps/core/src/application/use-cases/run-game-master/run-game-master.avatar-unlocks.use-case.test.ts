@@ -52,7 +52,6 @@ function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
     progression: 'progressing',
     topicsCovered: [],
     interactionCount: 1,
-    currentAvatarId: 'avatar_1',
     ...overrides,
   }
 }

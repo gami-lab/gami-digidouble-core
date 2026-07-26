@@ -145,7 +145,6 @@ beforeEach(() => {
     progression: 'none',
     topicsCovered: [],
     interactionCount: 1,
-    currentAvatarId: 'avatar_1',
   })
   saveMock.mockResolvedValue(undefined)
   findSessionByIdMock.mockResolvedValue({
@@ -339,8 +338,9 @@ describe('RunGameMasterUseCase output normalization', () => {
       correlationId: 'corr_name_to_id',
     })
 
-    const persistedState = saveMock.mock.calls[0]?.[1] as { currentAvatarId?: string } | undefined
-    expect(persistedState?.currentAvatarId).toBe('avatar_2')
+    const firstSaveCall = saveMock.mock.calls[0] as unknown[] | undefined
+    const persistedState = firstSaveCall?.[1]
+    expect(persistedState).not.toHaveProperty('currentAvatarId')
   })
 })
 

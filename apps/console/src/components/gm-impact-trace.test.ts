@@ -187,7 +187,6 @@ function makeViewModel(): RuntimeInspectorViewModel {
           interactionCount: 2,
           gmContext: {
             currentState: {
-              currentAvatarId: 'avatar_1',
               progression: 'intro',
               topicsCovered: [],
               interactionCount: 2,
@@ -235,7 +234,6 @@ function makeViewModel(): RuntimeInspectorViewModel {
             },
           },
           stateBefore: {
-            currentAvatarId: 'avatar_1',
             progression: 'intro',
             topicsCovered: [],
           },
@@ -387,9 +385,7 @@ describe('buildGmImpactTrace', () => {
     expect(first.interactionCount).toBe(2)
     expect(first.timelinePosition).toBe('1/1')
     expect(first.gmRun).toContain('GM ran after turn 1 because topic shift.')
-    expect(first.gmRun.join(' ')).toContain(
-      'Before the decision, the active avatar was Clara Whitcombe (avatar_1)',
-    )
+    expect(first.gmRun.join(' ')).toContain('Before the decision, progression was "intro".')
     expect(first.gmRun.join(' ')).toContain(
       'GM set the next dialogue mode to "transition". Progression was marked as advanced.',
     )
@@ -450,7 +446,7 @@ describe('buildGmImpactTrace', () => {
           triggerReason: 'post_turn_observation',
           turnIndex: 5,
           interactionCount: 12,
-          stateBefore: { currentAvatarId: 'avatar_1', progression: 'advanced', topicsCovered: [] },
+          stateBefore: { progression: 'advanced', topicsCovered: [] },
           decision: {
             dialogueMode: 'user_led',
             askFollowUp: false,
@@ -459,7 +455,7 @@ describe('buildGmImpactTrace', () => {
             retrievalRequired: false,
             progression: 'none',
           },
-          stateAfter: { currentAvatarId: 'avatar_1', progression: 'advanced', topicsCovered: [] },
+          stateAfter: { progression: 'advanced', topicsCovered: [] },
           latencyMs: 40,
         },
       },
@@ -471,7 +467,7 @@ describe('buildGmImpactTrace', () => {
           triggerReason: 'post_turn_observation',
           turnIndex: 1,
           interactionCount: 16,
-          stateBefore: { currentAvatarId: 'avatar_2', progression: 'advanced', topicsCovered: [] },
+          stateBefore: { progression: 'advanced', topicsCovered: [] },
           decision: {
             dialogueMode: 'user_led',
             askFollowUp: false,
@@ -480,7 +476,7 @@ describe('buildGmImpactTrace', () => {
             retrievalRequired: false,
             progression: 'none',
           },
-          stateAfter: { currentAvatarId: 'avatar_2', progression: 'advanced', topicsCovered: [] },
+          stateAfter: { progression: 'advanced', topicsCovered: [] },
           latencyMs: 42,
         },
       },

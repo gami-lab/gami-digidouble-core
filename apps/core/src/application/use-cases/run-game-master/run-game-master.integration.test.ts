@@ -208,7 +208,6 @@ function createIntegrationHarness() {
     {
       sessionId: 'session_1',
       state: {
-        currentAvatarId: 'avatar_1',
         progression: 'intro',
         topicsCovered: ['setup'],
         interactionCount: 1,
@@ -332,6 +331,7 @@ function assertRenderedPrompt(request: Omit<LlmRequest, 'trace'> | undefined): v
   expect(renderedPrompt).toContain('- Goal 1: Reconstruct the harbor timeline.')
   expect(renderedPrompt).toContain('- Goal 2: Decide whether a specialist is needed.')
   expect(renderedPrompt).toContain('### Available Avatars')
+  expect(renderedPrompt).toContain('- Current Avatar ID: avatar_1')
   expect(renderedPrompt).toContain(
     '- Ava (avatar_1) [available]; description: Harbor witness.; scope: Dock activity and local rumors.',
   )
@@ -354,7 +354,6 @@ async function assertPersistenceAndEvents(harness: ReturnType<typeof createInteg
     unlockedAvatarIds: ['avatar_1', 'avatar_2'],
   })
   expect(await harness.gmStateRepository.findBySessionId('session_1')).toMatchObject({
-    currentAvatarId: 'avatar_1',
     progression: 'intro [advanced]',
     topicsCovered: ['setup'],
     interactionCount: 2,

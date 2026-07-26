@@ -15,7 +15,7 @@ export function renderGameMasterInputForLlm(input: GameMasterInput): string {
     renderSection('Current Turn', renderCurrentTurn(input)),
     renderSection('Current Discussion Context', [
       ...renderRecentMessages(excludeCurrentTurnFromRecentMessages(input)),
-      ...renderGameMasterState(input.state),
+      ...renderGameMasterState(input),
       ...renderMemoryContext(input.context.memory),
       ...renderUserPersona(input.context.userPersona),
     ]),
@@ -100,14 +100,14 @@ function renderRecentMessages(recentMessages: GameMasterInput['recentMessages'])
  * Covered-topic tracking lives in Working Memory (memory compaction owns it) —
  * GM state no longer reports its own topic list here.
  */
-function renderGameMasterState(state: GameMasterInput['state']): string[] {
+function renderGameMasterState(input: GameMasterInput): string[] {
   return [
     '### Current GM State',
-    `- Current Avatar ID: ${
-      hasText(state.currentAvatarId) ? normalizeInlineText(state.currentAvatarId) : 'none'
-    }`,
-    `- Progression: ${hasText(state.progression) ? normalizeInlineText(state.progression) : 'none'}`,
-    `- Interaction Count: ${formatNumber(state.interactionCount)}`,
+    ...(input.context.availableAvatars.length > 1
+      ? [`- Current Avatar ID: ${normalizeInlineText(input.session.activeAvatarId)}`]
+      : []),
+    `- Progression: ${hasText(input.state.progression) ? normalizeInlineText(input.state.progression) : 'none'}`,
+    `- Interaction Count: ${formatNumber(input.state.interactionCount)}`,
   ]
 }
 

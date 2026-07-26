@@ -8,6 +8,7 @@ function makeInput(overrides: Partial<GameMasterInput> = {}): GameMasterInput {
     session: {
       sessionId: 'session_1',
       turnIndex: 2,
+      activeAvatarId: 'avatar_1',
       ...overrides.session,
     },
     userMessage: {
@@ -15,7 +16,6 @@ function makeInput(overrides: Partial<GameMasterInput> = {}): GameMasterInput {
       ...overrides.userMessage,
     },
     state: {
-      currentAvatarId: 'avatar_1',
       progression: 'investigation',
       topicsCovered: ['harbor'],
       interactionCount: 3,
@@ -111,6 +111,7 @@ describe('renderGameMasterInputForLlm', () => {
     ])
     expect(prompt).toContain('- Latest User Message: How should we approach the harbor?')
     expect(prompt).toContain('- Latest Avatar Reply: The docks were crowded at dusk.')
+    expect(prompt).toContain('- Current Avatar ID: avatar_1')
     expect(prompt).toContain('### Recent Exchanges')
     expect(prompt).toContain('1. User: What happened at the harbor?')
     expect(prompt).toContain('### Current GM State')
@@ -138,6 +139,7 @@ describe('renderGameMasterInputForLlm', () => {
       session: {
         sessionId: 'session_1',
         turnIndex: 0,
+        activeAvatarId: 'avatar_1',
       },
       userMessage: {
         text: '',
@@ -165,7 +167,7 @@ describe('renderGameMasterInputForLlm', () => {
     expect(prompt).not.toContain('### Long-Term Facts')
     expect(prompt).not.toContain('### User Persona')
     expect(prompt).not.toContain('### Retrieved Context')
-    expect(prompt).toContain('- Current Avatar ID: none')
+    expect(prompt).not.toContain('- Current Avatar ID:')
     expect(prompt).toContain('- Progression: none')
     expect(prompt).not.toContain('- Topics Covered:')
     expect(prompt).toContain('### Available Avatars')
@@ -184,6 +186,7 @@ describe('renderGameMasterInputForLlm', () => {
 
     expect(prompt).not.toContain('### Available Avatars')
     expect(prompt).not.toContain('Ava (avatar_1)')
+    expect(prompt).not.toContain('- Current Avatar ID:')
   })
 
   it('does not include locked metadata when every Avatar is unlocked', () => {

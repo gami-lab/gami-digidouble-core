@@ -29,7 +29,6 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
       turnIndex: 5,
       interactionCount: 5,
       stateBefore: {
-        currentAvatarId: 'avatar_1',
         progression: 'intro',
         topicsCovered: ['setup'],
       },
@@ -65,7 +64,6 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
           media: [],
         },
         currentState: {
-          currentAvatarId: 'avatar_1',
           progression: 'intro',
           topicsCovered: ['setup'],
           interactionCount: 5,
@@ -93,7 +91,6 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
         progression: 'none',
       },
       stateAfter: {
-        currentAvatarId: 'avatar_2',
         progression: 'advanced',
         topicsCovered: ['setup', 'handoff'],
       },
@@ -144,7 +141,7 @@ function makeErrorEvent(): StoredEvent {
       triggerReason: 'post_turn_observation',
       turnIndex: 6,
       interactionCount: 6,
-      stateBefore: { currentAvatarId: 'avatar_1', progression: 'intro', topicsCovered: ['setup'] },
+      stateBefore: { progression: 'intro', topicsCovered: ['setup'] },
       latencyMs: 2,
       errorCode: 'llm_error',
       userMessageText: 'secret skip input',
@@ -215,13 +212,11 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
         turnIndex: 5,
         interactionCount: 5,
         stateBefore: {
-          currentAvatarId: 'avatar_1',
           progression: 'intro',
           topicsCovered: ['setup'],
         },
         gmContext: {
           currentState: {
-            currentAvatarId: 'avatar_1',
             progression: 'intro',
             topicsCovered: ['setup'],
             interactionCount: 5,
@@ -282,7 +277,6 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
           progression: 'none',
         },
         stateAfter: {
-          currentAvatarId: 'avatar_2',
           progression: 'advanced',
           topicsCovered: ['setup', 'handoff'],
         },
@@ -313,7 +307,6 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
         turnIndex: 6,
         interactionCount: 6,
         stateBefore: {
-          currentAvatarId: 'avatar_1',
           progression: 'intro',
           topicsCovered: ['setup'],
         },

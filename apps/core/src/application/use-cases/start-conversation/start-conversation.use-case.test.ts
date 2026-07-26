@@ -13,8 +13,6 @@ const findActiveBySessionIdMock = vi.fn()
 const createConversationMock = vi.fn()
 const updateConversationMock = vi.fn()
 const appendEventMock = vi.fn()
-const findGmStateBySessionIdMock = vi.fn()
-const saveGmStateMock = vi.fn()
 
 const sessionRepository = {
   findById: findSessionByIdMock,
@@ -42,11 +40,6 @@ const conversationRepository = {
   listBySessionId: vi.fn(),
   deleteBySessionId: vi.fn(),
   update: updateConversationMock,
-}
-
-const gmStateRepository = {
-  findBySessionId: findGmStateBySessionIdMock,
-  save: saveGmStateMock,
 }
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -95,8 +88,6 @@ beforeEach(() => {
   createConversationMock.mockReset()
   updateConversationMock.mockReset()
   appendEventMock.mockReset()
-  findGmStateBySessionIdMock.mockReset()
-  saveGmStateMock.mockReset()
 
   findSessionByIdMock.mockResolvedValue(makeSession())
   updateSessionMock.mockResolvedValue(makeSession())
@@ -104,13 +95,6 @@ beforeEach(() => {
   findActiveBySessionIdMock.mockResolvedValue(null) // no prior conversation by default
   createConversationMock.mockResolvedValue(makeConversation())
   updateConversationMock.mockResolvedValue(makeConversation())
-  findGmStateBySessionIdMock.mockResolvedValue({
-    currentAvatarId: 'avatar_legacy',
-    progression: 'advanced',
-    topicsCovered: ['setup'],
-    interactionCount: 9,
-  })
-  saveGmStateMock.mockResolvedValue(undefined)
 })
 
 function makeUseCaseWithPipeline(
@@ -133,7 +117,6 @@ function makeUseCaseWithPipeline(
   )
 }
 
-// eslint-disable-next-line max-lines-per-function
 describe('StartConversationUseCase', () => {
   it('creates a conversation with the requested avatar', async () => {
     const useCase = new StartConversationUseCase(
@@ -165,27 +148,6 @@ describe('StartConversationUseCase', () => {
       'session_1',
       expect.objectContaining({ activeAvatarId: 'avatar_1' }),
     )
-  })
-
-  it('syncs gm currentAvatarId when conversation starts', async () => {
-    const useCase = new StartConversationUseCase(
-      sessionRepository,
-      avatarRepository,
-      conversationRepository,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      gmStateRepository,
-    )
-
-    await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' })
-
-    expect(saveGmStateMock).toHaveBeenCalledWith('session_1', {
-      currentAvatarId: 'avatar_1',
-      progression: 'advanced',
-      interactionCount: 9,
-    })
   })
 
   it('rejects avatar from another scenario', async () => {
@@ -266,7 +228,6 @@ describe('StartConversationUseCase initial GM run', () => {
       undefined,
       undefined,
       undefined,
-      gmStateRepository,
       { execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase,
     )
 
@@ -296,7 +257,6 @@ describe('StartConversationUseCase initial GM run', () => {
       undefined,
       undefined,
       undefined,
-      gmStateRepository,
       { execute: runGameMasterExecuteMock } as unknown as RunGameMasterUseCase,
     )
 

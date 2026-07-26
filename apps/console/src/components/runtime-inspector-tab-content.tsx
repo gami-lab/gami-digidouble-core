@@ -412,7 +412,6 @@ function renderGmRuntimeContext(
   return (
     <>
       <strong style={{ display: 'block', marginTop: '12px' }}>GM runtime context</strong>
-      <Row label="Current avatar">{snapshot.context.gmContext.currentState.currentAvatarId ?? '-'}</Row>
       <Row label="Progression">{snapshot.context.gmContext.currentState.progression || '-'}</Row>
       <Row label="Recent messages">
         {String(gmSections.conversationState.recentMessages.length)}

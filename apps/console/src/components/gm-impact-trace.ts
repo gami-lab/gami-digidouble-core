@@ -108,7 +108,7 @@ function toTraceEntry(
   gmRun.push(
     `GM ran after turn ${String(gmPayload.turnIndex)} because ${formatTriggerReason(gmPayload.triggerReason)}.`,
   )
-  gmRun.push(describeStateBefore(gmPayload, avatarNameById))
+  gmRun.push(describeStateBefore(gmPayload))
 
   if (decision) {
     gmRun.push(describeDecision(decision))
@@ -231,21 +231,13 @@ function buildAvatarNameById(snapshot: RuntimeInspectorViewModel): Map<string, s
   return avatarNameById
 }
 
-function describeStateBefore(
-  payload: GmSessionEventPayload,
-  avatarNameById: Map<string, string>,
-): string {
-  const currentAvatar = payload.stateBefore.currentAvatarId
-  const avatarText =
-    currentAvatar === undefined
-      ? 'no active avatar was recorded'
-      : `the active avatar was ${formatAvatar(currentAvatar, avatarNameById)}`
+function describeStateBefore(payload: GmSessionEventPayload): string {
   const progression =
     payload.stateBefore.progression.length > 0
       ? `progression was "${payload.stateBefore.progression}"`
       : 'no progression label was recorded'
 
-  return `Before the decision, ${avatarText} and ${progression}.`
+  return `Before the decision, ${progression}.`
 }
 
 function describeDecision(decision: NonNullable<GmSessionEventPayload['decision']>): string {
@@ -382,12 +374,8 @@ function describeRecordedGmContext(
     ...(sections.retrievedContext?.world ?? []),
     ...(sections.retrievedContext?.media ?? []),
   ]
-  const activeAvatar =
-    gmContext.currentState.currentAvatarId === undefined
-      ? 'none recorded'
-      : formatAvatar(gmContext.currentState.currentAvatarId, avatarNameById)
   const lines = [
-    `GM input summary: ${String(sections.conversationState.recentMessages.length)} message(s), ${String(sections.conversationState.memory.longTermFacts?.length ?? 0)} long-term fact(s), user persona ${sections.userPersona ? 'present' : 'absent'}, active avatar ${activeAvatar}.`,
+    `GM input summary: ${String(sections.conversationState.recentMessages.length)} message(s), ${String(sections.conversationState.memory.longTermFacts?.length ?? 0)} long-term fact(s), user persona ${sections.userPersona ? 'present' : 'absent'}.`,
   ]
   const workingMemory =
     sections.conversationState.memory.workingMemory ??

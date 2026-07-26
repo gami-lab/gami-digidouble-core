@@ -46,7 +46,6 @@ export type UpsertUserPersonaResponse = {
 }
 
 export type GmStateSummary = {
-  currentAvatarId?: string
   progression: string
   topicsCovered: string[]
   interactionCount: number

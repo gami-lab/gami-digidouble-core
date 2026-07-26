@@ -19,8 +19,6 @@ import type { ContextMessage, GameMasterMemoryContext } from '../memory/memory.t
 
 /** Minimal state maintained by the Game Master across turns. */
 export interface GameMasterState {
-  /** Legacy persisted field; the session/conversation records own active-avatar state. */
-  currentAvatarId?: string
   /** Textual description of where the user is in the experience. */
   progression: string
   /**
@@ -40,6 +38,7 @@ export interface GameMasterInput {
   session: {
     sessionId: string
     turnIndex: number
+    activeAvatarId: string
   }
   userMessage: {
     text: string
@@ -147,7 +146,6 @@ export interface GameMasterOutput {
 
 /** Snapshot of GM state fields included in diagnostic event payloads. */
 export type GameMasterStateSummary = {
-  currentAvatarId?: string
   progression: string
   topicsCovered: string[]
 }

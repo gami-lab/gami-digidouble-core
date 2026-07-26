@@ -70,7 +70,6 @@ function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
     progression: 'progressing',
     topicsCovered: ['plastic'],
     interactionCount: 1,
-    currentAvatarId: 'avatar_1',
     ...overrides,
   }
 }
@@ -391,7 +390,6 @@ describe('RunGameMasterUseCase — event log', () => {
     })
     expect(payload['gmContext']).toMatchObject({
       currentState: {
-        currentAvatarId: 'avatar_1',
         progression: 'progressing',
         interactionCount: 1,
       },

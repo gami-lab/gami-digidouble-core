@@ -56,6 +56,7 @@ type GameMasterInput = {
   session: {
     sessionId: string
     turnIndex: number
+    activeAvatarId: string
   }
   userMessage: {
     text: string
@@ -121,6 +122,7 @@ Input invariants:
 
 - `GameMasterInput` is the only runtime input contract for GM evaluation.
 - `recentMessages` is bounded short-term context, not transcript replay.
+- `session.activeAvatarId` is the authoritative active Avatar ID for the current GM run; it is not stored in `GameMasterState`.
 - `context.memory.workingMemory` is canonical; `workingSummary` is only a compatibility mirror in diagnostics.
 - Avatar retrieval may be visibility-filtered, but GM retrieval remains unrestricted.
 
@@ -255,6 +257,7 @@ The dynamic GM input renderer is organized into:
 The static prompt is also built dynamically from the current avatar roster:
 
 - A single active Avatar omits routing entirely — from the prose, the field, and the JSON schema.
+- A single active Avatar omits the current Avatar ID from the dynamic GM input because the identity is unambiguous.
 - No locked Avatars omits unlock instructions, unlock actions, and locked-Avatar metadata.
 - Locked Avatars present includes only the valid locked targets.
 - Multiple active Avatars includes `stay`, `suggest`, `switch`, plus unlock actions when applicable.

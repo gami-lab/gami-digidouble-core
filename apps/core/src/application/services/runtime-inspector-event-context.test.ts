@@ -54,7 +54,6 @@ function createAvatarSnapshotInput() {
 function createGmSnapshotInput() {
   return {
     currentState: {
-      currentAvatarId: 'avatar_1',
       progression: 'intro',
       topicsCovered: [],
       interactionCount: 1,

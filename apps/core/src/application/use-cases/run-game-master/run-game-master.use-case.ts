@@ -192,16 +192,11 @@ export class RunGameMasterUseCase {
     }
     const nextState = reduceGmState(currentState, {
       progressionUpdate: effectiveOutput.progressionUpdate,
-      ...(effectiveOutput.routing !== undefined ? { routing: effectiveOutput.routing } : {}),
     })
     this.publishDecisionRuntimeEvents(input, effectiveOutput, unlockResult.newlyUnlockedAvatarIds)
 
-    const reconciledState: GameMasterState =
-      routingResult.switchedAvatarId !== undefined
-        ? { ...nextState, currentAvatarId: routingResult.switchedAvatarId }
-        : nextState
     await this.gmStateRepository.save(input.sessionId, {
-      ...reconciledState,
+      ...nextState,
       nextTurnOrchestration: this.buildNextTurnOrchestration(
         input,
         effectiveOutput,
@@ -213,7 +208,7 @@ export class RunGameMasterUseCase {
     await emitTriggeredGameMasterTurn({
       input,
       currentState,
-      reconciledState,
+      reconciledState: nextState,
       output: effectiveOutput,
       gmContext: assembledGmContext,
       unlockedAvatarIds: unlockResult.newlyUnlockedAvatarIds,
@@ -423,7 +418,11 @@ export class RunGameMasterUseCase {
     return {
       assembledGmContext,
       gmInput: {
-        session: { sessionId: input.sessionId, turnIndex: input.turnIndex },
+        session: {
+          sessionId: input.sessionId,
+          turnIndex: input.turnIndex,
+          activeAvatarId: input.avatarId,
+        },
         userMessage: { text: input.userMessageText },
         ...(assembledGmContext.sections.conversationState.recentMessages.length > 0
           ? { recentMessages: assembledGmContext.sections.conversationState.recentMessages }

@@ -36,7 +36,6 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
       { avatarId: 'avatar_2', name: 'Specialist', availability: 'locked' },
     ],
     gmState: {
-      currentAvatarId: 'avatar_1',
       progression: 'intro',
       topicsCovered: ['setup'],
       interactionCount: 2,

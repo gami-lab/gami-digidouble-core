@@ -344,9 +344,6 @@ function readIncludedRetrievalCounts(avatarContext: RecordedAvatarContextSnapsho
 function readStateSummary(value: unknown): GameMasterStateSummary {
   const record = isRecord(value) ? value : {}
   return {
-    ...(typeof record['currentAvatarId'] === 'string'
-      ? { currentAvatarId: record['currentAvatarId'] }
-      : {}),
     progression: typeof record['progression'] === 'string' ? record['progression'] : '',
     topicsCovered: readStringArray(record['topicsCovered']),
   }
