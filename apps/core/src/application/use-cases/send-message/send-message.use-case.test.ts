@@ -301,7 +301,7 @@ describe('SendMessageUseCase — message routing', () => {
 
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
 
-    expect(findMessagesByConversationIdMock).toHaveBeenCalledWith('conversation_1', { limit: 30 })
+    expect(findMessagesByConversationIdMock).toHaveBeenCalledWith('conversation_1', { limit: 6 })
     expect(saveMessageMock.mock.calls[0]?.[0]).toMatchObject({
       conversationId: 'conversation_1',
       role: 'user',
@@ -754,11 +754,40 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     expect(savedState.nextTurnOrchestration?.consumedAfterTurn).toBe(3)
   })
 
+  it('uses the persisted GM turn count instead of the bounded message window', async () => {
+    findMessagesByConversationIdMock.mockResolvedValue(
+      Array.from({ length: 8 }, (_, index) => ({
+        role: index % 2 === 0 ? ('user' as const) : ('avatar' as const),
+        content: `message-${String(index)}`,
+        createdAt: `2026-07-25T10:0${String(index)}:00.000Z`,
+      })),
+    )
+    gmStateFindMock.mockResolvedValue({
+      progression: 'none',
+      interactionCount: 4,
+      nextTurnOrchestration: {
+        activeAvatarId: 'avatar_1',
+        generatedAfterTurn: 4,
+        generatedAt: '2026-07-25T10:05:00.000Z',
+        dialogueControl: { mode: 'user_led', askFollowUp: false },
+        retrievalPlan: { required: false },
+        progressionUpdate: { progression: 'none' },
+      },
+    })
+
+    const useCase = createUseCase(false, true, false, false, false, true)
+    await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Latest question' })
+
+    const request = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
+    expect(request.systemPrompt).toContain('Dialogue mode: user_led')
+    expect(request.systemPrompt).toContain('Follow-up question: no')
+  })
+
   it('consumes matching GM orchestration once and combines its retrieval intent with the user message', async () => {
     let gmState: GameMasterState = {
       progression: 'none',
       topicsCovered: [],
-      interactionCount: 1,
+      interactionCount: 0,
       nextTurnOrchestration: {
         activeAvatarId: 'avatar_1',
         generatedAfterTurn: 0,

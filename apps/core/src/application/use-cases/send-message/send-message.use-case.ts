@@ -65,8 +65,8 @@ import { buildSendMessageLlmRequest } from './send-message.llm-request.js'
 import { buildSendMessageOutput } from './send-message.output.js'
 import { toContextSelectionMetadata } from './send-message.context-selection.js'
 
-const MESSAGE_HISTORY_FETCH_LIMIT = 30
 const MESSAGE_HISTORY_EXCHANGE_LIMIT = 3
+const MESSAGE_HISTORY_FETCH_LIMIT = MESSAGE_HISTORY_EXCHANGE_LIMIT * 2
 
 function hasRetrievedKnowledge(retrieval: TypedRetrievalResult | undefined): boolean {
   return (
@@ -129,11 +129,14 @@ export class SendMessageUseCase {
     await this.awaitPendingWorkingMemoryRefresh(conversation.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
-    const priorUserTurnCount = await this.loadRecentUserTurnCount(conversation.conversationId)
+    const gmState = await this.loadGmState(session.sessionId)
+    const priorUserTurnCount =
+      gmState?.interactionCount ?? (await this.loadRecentUserTurnCount(conversation.conversationId))
     const orchestration = await this.consumeNextTurnOrchestration({
       sessionId: session.sessionId,
       avatarId: conversation.avatarId,
       turnIndex: priorUserTurnCount + 1,
+      state: gmState,
     })
     const {
       systemPrompt,
@@ -305,6 +308,11 @@ export class SendMessageUseCase {
     })
   }
 
+  private async loadGmState(sessionId: string): Promise<GameMasterState | null> {
+    if (this.gmStateRepository === undefined) return null
+    return await this.gmStateRepository.findBySessionId(sessionId)
+  }
+
   // eslint-disable-next-line complexity, max-lines-per-function
   private async buildTurnPromptContext(args: {
     session: Session
@@ -450,10 +458,11 @@ export class SendMessageUseCase {
     sessionId: string
     avatarId: string
     turnIndex: number
+    state: GameMasterState | null
   }): Promise<GameMasterOrchestrationState | undefined> {
     if (this.gmStateRepository === undefined) return undefined
 
-    const state = await this.gmStateRepository.findBySessionId(input.sessionId)
+    const state = input.state ?? (await this.gmStateRepository.findBySessionId(input.sessionId))
     const pending = state?.nextTurnOrchestration
     if (
       pending === undefined ||

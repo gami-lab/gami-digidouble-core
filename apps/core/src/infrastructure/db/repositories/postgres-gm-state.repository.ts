@@ -1,4 +1,4 @@
-import type { Sql } from 'postgres'
+import type { JSONValue, Sql } from 'postgres'
 import type { IGmStateRepository } from '../../../application/ports/IGmStateRepository.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
 import { normalizePersistedOrchestration } from '../../../domain/game-master/gm-state-migration.js'
@@ -49,13 +49,20 @@ export class PostgresGmStateRepository implements IGmStateRepository {
         ${sessionUuid},
         ${state.progression},
         ${state.interactionCount},
-        ${state.nextTurnOrchestration === undefined ? null : JSON.stringify(state.nextTurnOrchestration)}::JSONB
+        ${state.nextTurnOrchestration === undefined ? null : this.sql.json(state.nextTurnOrchestration as unknown as JSONValue)}
       )
       ON CONFLICT (session_id)
       DO UPDATE SET
         progression = EXCLUDED.progression,
-        interaction_count = EXCLUDED.interaction_count,
-        next_turn_orchestration = EXCLUDED.next_turn_orchestration,
+        interaction_count = GREATEST(gm_states.interaction_count, EXCLUDED.interaction_count),
+        next_turn_orchestration = CASE
+          WHEN EXCLUDED.next_turn_orchestration IS NULL THEN gm_states.next_turn_orchestration
+          WHEN gm_states.next_turn_orchestration IS NULL THEN EXCLUDED.next_turn_orchestration
+          WHEN (gm_states.next_turn_orchestration->>'generatedAfterTurn')::INT >
+            (EXCLUDED.next_turn_orchestration->>'generatedAfterTurn')::INT
+            THEN gm_states.next_turn_orchestration
+          ELSE EXCLUDED.next_turn_orchestration
+        END,
         updated_at = NOW()
     `
   }

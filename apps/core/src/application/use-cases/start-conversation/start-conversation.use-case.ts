@@ -96,7 +96,7 @@ export class StartConversationUseCase {
       ...(session.memorySummary !== undefined ? { queryText: session.memorySummary } : {}),
     })
 
-    this.dispatchInitialGameMasterRun({
+    await this.runInitialGameMaster({
       sessionId,
       scenarioId: session.scenarioId,
       avatarId,
@@ -183,19 +183,19 @@ export class StartConversationUseCase {
 
   /**
    * Runs the GM before any user message exists so the avatar's very first
-   * reply also carries director guidance (gmNotes), not just replies after
-   * the first exchange. Fire-and-forget: must not delay conversation creation.
+   * reply also carries director guidance. Session start is allowed to wait
+   * for this preparation; GM failures remain non-fatal to conversation start.
    */
-  private dispatchInitialGameMasterRun(args: {
+  private async runInitialGameMaster(args: {
     sessionId: string
     scenarioId: string
     avatarId: string
     conversationId: string
-  }): void {
+  }): Promise<void> {
     if (this.runGameMasterUseCase === undefined || this.runGameMasterUseCase === null) return
 
-    void this.runGameMasterUseCase
-      .execute({
+    try {
+      await this.runGameMasterUseCase.execute({
         sessionId: args.sessionId,
         scenarioId: args.scenarioId,
         avatarId: args.avatarId,
@@ -204,12 +204,8 @@ export class StartConversationUseCase {
         turnIndex: 0,
         correlationId: crypto.randomUUID(),
       })
-      .catch((err: unknown) => {
-        console.error(
-          '[start-conversation] Initial GM run failed for session:',
-          args.sessionId,
-          err,
-        )
-      })
+    } catch (err: unknown) {
+      console.error('[start-conversation] Initial GM run failed for session:', args.sessionId, err)
+    }
   }
 }

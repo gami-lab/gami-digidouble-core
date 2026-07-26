@@ -6,6 +6,7 @@ import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 import { PostgresSessionRepository } from './postgres-session.repository.js'
 import { PostgresGmStateRepository } from './postgres-gm-state.repository.js'
 
+// eslint-disable-next-line max-lines-per-function
 describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
   let sql: Sql
   let scenarioRepo: PostgresScenarioRepository
@@ -78,6 +79,38 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
 
     const rows = await sql`SELECT COUNT(*) AS count FROM gm_states`
     expect(Number(rows[0]?.['count'])).toBe(1)
+  })
+
+  it('does not let an older GM save roll back the interaction count or orchestration', async () => {
+    await gmStateRepo.save(sessionId, {
+      progression: 'advanced',
+      interactionCount: 2,
+      nextTurnOrchestration: {
+        activeAvatarId: 'avatar_1',
+        generatedAfterTurn: 1,
+        generatedAt: '2026-07-26T10:00:00.000Z',
+        dialogueControl: { mode: 'user_led', askFollowUp: false },
+        retrievalPlan: { required: false },
+        progressionUpdate: { progression: 'none' },
+      },
+    })
+
+    await gmStateRepo.save(sessionId, {
+      progression: 'stale',
+      interactionCount: 0,
+      nextTurnOrchestration: {
+        activeAvatarId: 'avatar_1',
+        generatedAfterTurn: 0,
+        generatedAt: '2026-07-26T09:59:00.000Z',
+        dialogueControl: { mode: 'repair', askFollowUp: true },
+        retrievalPlan: { required: true, queries: ['stale'] },
+        progressionUpdate: { progression: 'none' },
+      },
+    })
+
+    const found = await gmStateRepo.findBySessionId(sessionId)
+    expect(found?.interactionCount).toBe(2)
+    expect(found?.nextTurnOrchestration?.generatedAfterTurn).toBe(1)
   })
 
   it('orchestration and interaction fields round-trip correctly through the DB', async () => {

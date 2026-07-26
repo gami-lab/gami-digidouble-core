@@ -16,7 +16,25 @@ export class InMemoryGmStateRepository implements IGmStateRepository {
   }
 
   save(sessionId: string, state: GameMasterState): Promise<void> {
-    this.states.set(sessionId, structuredClone(state))
+    const current = this.states.get(sessionId)
+    const currentOrchestration = current?.nextTurnOrchestration
+    const incomingOrchestration = state.nextTurnOrchestration
+    const nextTurnOrchestration =
+      incomingOrchestration === undefined
+        ? currentOrchestration
+        : currentOrchestration !== undefined &&
+            currentOrchestration.generatedAfterTurn > incomingOrchestration.generatedAfterTurn
+          ? currentOrchestration
+          : incomingOrchestration
+
+    this.states.set(
+      sessionId,
+      structuredClone({
+        ...state,
+        interactionCount: Math.max(current?.interactionCount ?? 0, state.interactionCount),
+        ...(nextTurnOrchestration !== undefined ? { nextTurnOrchestration } : {}),
+      }),
+    )
     return Promise.resolve()
   }
 }

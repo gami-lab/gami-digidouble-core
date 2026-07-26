@@ -14,11 +14,12 @@ import type {
 export function normalizePersistedOrchestration(
   value: unknown,
 ): GameMasterOrchestrationState | undefined {
-  if (!isRecord(value)) return undefined
+  const record = toPersistedRecord(value)
+  if (record === null) return undefined
 
-  const activeAvatarId = readText(value['activeAvatarId'])
-  const generatedAfterTurn = readNumber(value['generatedAfterTurn'])
-  const generatedAt = readText(value['generatedAt'])
+  const activeAvatarId = readText(record['activeAvatarId'])
+  const generatedAfterTurn = readNumber(record['generatedAfterTurn'])
+  const generatedAt = readText(record['generatedAt'])
   if (
     activeAvatarId === undefined ||
     generatedAfterTurn === undefined ||
@@ -27,19 +28,19 @@ export function normalizePersistedOrchestration(
     return undefined
   }
 
-  const dialogueControl = readDialogueControl(value['dialogueControl']) ?? {
-    mode: readLegacyDialogueMode(value),
+  const dialogueControl = readDialogueControl(record['dialogueControl']) ?? {
+    mode: readLegacyDialogueMode(record),
     askFollowUp: false,
   }
-  const retrievalPlan = readRetrievalPlan(value['retrievalPlan']) ?? { required: false }
-  const progressionUpdate = readProgressionUpdate(value['progressionUpdate']) ??
-    readProgressionUpdate(isRecord(value['stateUpdate']) ? value['stateUpdate'] : undefined) ?? {
+  const retrievalPlan = readRetrievalPlan(record['retrievalPlan']) ?? { required: false }
+  const progressionUpdate = readProgressionUpdate(record['progressionUpdate']) ??
+    readProgressionUpdate(isRecord(record['stateUpdate']) ? record['stateUpdate'] : undefined) ?? {
       progression: 'none',
     }
-  const routing = readRouting(value['routing']) ?? readLegacyRouting(value)
-  const consumedAfterTurn = readNumber(value['consumedAfterTurn'])
-  const consumedAt = readText(value['consumedAt'])
-  const directorNotes = readText(value['directorNotes'])
+  const routing = readRouting(record['routing']) ?? readLegacyRouting(record)
+  const consumedAfterTurn = readNumber(record['consumedAfterTurn'])
+  const consumedAt = readText(record['consumedAt'])
+  const directorNotes = readText(record['directorNotes'])
 
   return {
     activeAvatarId,
@@ -53,6 +54,18 @@ export function normalizePersistedOrchestration(
     ...(consumedAfterTurn !== undefined ? { consumedAfterTurn } : {}),
     ...(consumedAt !== undefined ? { consumedAt } : {}),
   }
+}
+
+function toPersistedRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value) as unknown
+    } catch {
+      return null
+    }
+  }
+
+  return isRecord(value) ? value : null
 }
 
 function readLegacyDialogueMode(value: Record<string, unknown>): DialogueControl['mode'] {

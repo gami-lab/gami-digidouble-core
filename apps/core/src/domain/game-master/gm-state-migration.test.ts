@@ -45,4 +45,19 @@ describe('normalizePersistedOrchestration', () => {
       }),
     ).not.toHaveProperty('routing')
   })
+
+  it('normalizes orchestration persisted as a JSON string', () => {
+    const normalized = normalizePersistedOrchestration(
+      JSON.stringify({
+        activeAvatarId: 'avatar_1',
+        generatedAfterTurn: 1,
+        generatedAt: '2026-07-25T10:00:00.000Z',
+        dialogueControl: { mode: 'user_led', askFollowUp: false },
+        retrievalPlan: { required: false },
+        progressionUpdate: { progression: 'none' },
+      }),
+    )
+
+    expect(normalized?.dialogueControl).toEqual({ mode: 'user_led', askFollowUp: false })
+  })
 })

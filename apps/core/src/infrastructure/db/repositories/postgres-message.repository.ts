@@ -66,10 +66,14 @@ export class PostgresMessageRepository implements IMessageRepository {
           `
         : await this.sql<MessageRow[]>`
             SELECT id, conversation_id, role, content, created_at, metadata
-            FROM messages
-            WHERE conversation_id = ${uuid}
+            FROM (
+              SELECT id, conversation_id, role, content, created_at, metadata
+              FROM messages
+              WHERE conversation_id = ${uuid}
+              ORDER BY created_at DESC
+              LIMIT ${limit}
+            ) AS recent_messages
             ORDER BY created_at ASC
-            LIMIT ${limit}
           `
 
     return rows.map(rowToMessage)

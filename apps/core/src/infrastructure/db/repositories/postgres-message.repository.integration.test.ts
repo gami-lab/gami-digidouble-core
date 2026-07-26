@@ -76,7 +76,7 @@ function defineFindTests(): void {
     expect(messages[2]?.content).toBe('Third')
   })
 
-  it('findBySessionId respects the limit option', async () => {
+  it('findByConversationId returns the latest messages when applying the limit option', async () => {
     const t1 = new Date(Date.now() - 2000).toISOString()
     const t2 = new Date(Date.now() - 1000).toISOString()
     const t3 = new Date().toISOString()
@@ -105,6 +105,7 @@ function defineFindTests(): void {
 
     const limited = await messageRepo.findByConversationId(conversationId, { limit: 2 })
     expect(limited).toHaveLength(2)
+    expect(limited.map((message) => message.content)).toEqual(['B', 'C'])
   })
 
   it('findByConversationId returns empty array when conversation has no messages', async () => {

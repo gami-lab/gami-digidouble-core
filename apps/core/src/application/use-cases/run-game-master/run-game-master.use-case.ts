@@ -478,7 +478,7 @@ export class RunGameMasterUseCase {
   ): Promise<Array<{ role: 'user' | 'avatar' | 'system'; content: string }>> {
     if (conversationId === undefined || this.messageRepository === undefined) return []
     const messages = await this.messageRepository.findByConversationId(conversationId, {
-      limit: 24,
+      limit: GM_RECENT_EXCHANGE_LIMIT * 2,
     })
     return selectExchangeMessageWindow(messages, workingMemoryUpdatedAt, 0).slice(
       -GM_RECENT_EXCHANGE_LIMIT * 2,
