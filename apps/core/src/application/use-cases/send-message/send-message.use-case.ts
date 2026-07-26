@@ -442,7 +442,7 @@ export class SendMessageUseCase {
       ...(bypassVisibilityFilter ? { bypassVisibilityFilter: true } : {}),
       query,
       queries,
-      limitPerType: 3,
+      limitPerType: 5,
     })
   }
 

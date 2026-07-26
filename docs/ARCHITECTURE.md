@@ -375,6 +375,7 @@ Contains:
 - GM context assembly consumes an unrestricted retrieval channel to preserve Director omniscience, while avatar context consumes visibility-filtered retrieval
 - ingestion job lifecycle (`queued -> running -> completed | failed`) with retry
 - type-specific retrieval pipelines (`memory`, `world`, `media`) with deterministic merge output
+- Avatar retrieval selects one combined top-five set across memory and world items before prompt rendering; media remains a separate typed channel
 
 ---
 

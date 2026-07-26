@@ -219,25 +219,42 @@ function appendLongTermMemory(lines: string[], memory: AvatarPromptOptions['memo
 function buildRetrievalContext(retrieval: AvatarPromptOptions['retrieval']): string[] {
   if (retrieval === undefined) return []
 
-  const memoryLines = formatRetrievalSection('Memory retrieval', retrieval.memory)
-  const worldLines = formatRetrievalSection('World retrieval', retrieval.world)
-  const mediaLines = formatRetrievalSection('Media retrieval', retrieval.media)
-  const lines = ['## Retrieved Context', ...memoryLines, ...worldLines, ...mediaLines]
+  const memoryAndWorld = [...retrieval.memory, ...retrieval.world]
+    .sort(compareRetrievedItems)
+    .slice(0, 5)
+  const contextLines = formatRetrievedItems(memoryAndWorld, 'Context')
+  const mediaLines = formatRetrievedItems(retrieval.media, 'Media context')
+  const lines = [
+    '## Retrieved Context',
+    ...contextLines,
+    ...(mediaLines.length > 0 ? ['', 'Media retrieval:', ...mediaLines] : []),
+  ]
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 
-function formatRetrievalSection(
+function formatRetrievedItems(
+  items: NonNullable<AvatarPromptOptions['retrieval']>['memory'],
   label: string,
-  items: NonNullable<AvatarPromptOptions['retrieval']>[keyof NonNullable<
-    AvatarPromptOptions['retrieval']
-  >],
 ): string[] {
   if (items.length === 0) return []
-  const lines = [`${label}:`]
-  for (const item of items) {
-    lines.push(`- ${item.content.trim()}`)
-  }
+  const lines: string[] = []
+  items.forEach((item, index) => {
+    if (index > 0) lines.push('', '---', '')
+    lines.push(`${label} ${String(index + 1)} (${item.knowledgeType}):`, item.content.trim())
+  })
   return lines
+}
+
+function compareRetrievedItems(
+  a: NonNullable<AvatarPromptOptions['retrieval']>['memory'][number],
+  b: NonNullable<AvatarPromptOptions['retrieval']>['memory'][number],
+): number {
+  const scoreDifference = (b.score ?? 0) - (a.score ?? 0)
+  if (scoreDifference !== 0) return scoreDifference
+  if (a.knowledgeType !== b.knowledgeType) {
+    return a.knowledgeType.localeCompare(b.knowledgeType)
+  }
+  return a.chunkId.localeCompare(b.chunkId)
 }
 
 function requirePersonaPrompt(personaPrompt: string): string {

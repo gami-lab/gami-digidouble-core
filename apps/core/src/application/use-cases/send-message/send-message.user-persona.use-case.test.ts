@@ -361,9 +361,9 @@ describe('SendMessageUseCase — prompt assembly v2 context influence', () => {
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
     expect(llmRequest.systemPrompt).toContain('## Retrieved Context')
-    expect(llmRequest.systemPrompt).toContain('Memory retrieval:')
+    expect(llmRequest.systemPrompt).toContain('Context 1 (memory):')
     expect(llmRequest.systemPrompt).toContain('User prefers concrete checklists.')
-    expect(llmRequest.systemPrompt).toContain('World retrieval:')
+    expect(llmRequest.systemPrompt).toContain('Context 2 (world):')
     expect(llmRequest.systemPrompt).toContain('Ships dock at tidefall in this harbor.')
   })
 })

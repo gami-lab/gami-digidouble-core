@@ -305,6 +305,73 @@ describe('ContextEngine baseline', () => {
     expect(output.trace.selection.trimmed).toEqual([])
   })
 
+  it('selects one combined top-five set across avatar memory and world retrieval', () => {
+    const input = makeInput()
+    input.extensions.retrieval = {
+      ...requireRetrieval(input),
+      memory: [
+        {
+          sourceId: 'memory_source_1',
+          chunkId: 'memory_chunk_1',
+          knowledgeType: 'memory',
+          content: 'memory 0.8',
+          score: 0.8,
+        },
+        {
+          sourceId: 'memory_source_2',
+          chunkId: 'memory_chunk_2',
+          knowledgeType: 'memory',
+          content: 'memory 0.1',
+          score: 0.1,
+        },
+        {
+          sourceId: 'memory_source_3',
+          chunkId: 'memory_chunk_3',
+          knowledgeType: 'memory',
+          content: 'memory 0.05',
+          score: 0.05,
+        },
+      ],
+      world: [
+        {
+          sourceId: 'world_source_1',
+          chunkId: 'world_chunk_1',
+          knowledgeType: 'world',
+          content: 'world 0.95',
+          score: 0.95,
+        },
+        {
+          sourceId: 'world_source_2',
+          chunkId: 'world_chunk_2',
+          knowledgeType: 'world',
+          content: 'world 0.7',
+          score: 0.7,
+        },
+        {
+          sourceId: 'world_source_3',
+          chunkId: 'world_chunk_3',
+          knowledgeType: 'world',
+          content: 'world 0.6',
+          score: 0.6,
+        },
+      ],
+      media: [],
+    }
+
+    const output = new ContextEngine().assemble(input)
+    const selected = output.avatar.sections.retrievedContext?.typedSections
+    expect(selected?.memory.map((item) => item.chunkId)).toEqual([
+      'memory_chunk_1',
+      'memory_chunk_2',
+    ])
+    expect(selected?.world.map((item) => item.chunkId)).toEqual([
+      'world_chunk_1',
+      'world_chunk_2',
+      'world_chunk_3',
+    ])
+    expect(output.avatar.sections.retrievedContext?.retrievedItems).toHaveLength(5)
+  })
+
   it('stays deterministic with missing optional structured sections', () => {
     const engine = new ContextEngine()
     const input = makeInput()

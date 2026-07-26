@@ -17,6 +17,7 @@ const EMPTY_FACTS: ContextEngineOutput['avatar']['sections']['conversationState'
 const EMPTY_MESSAGES: ContextEngineOutput['gm']['sections']['conversationState']['recentMessages'] =
   []
 const EMPTY_RESPONSE_RULES: ContextEngineOutput['avatar']['sections']['responseRules']['items'] = []
+const AVATAR_RETRIEVAL_LIMIT = 5
 
 type CandidateSegment = {
   projection: ContextProjection
@@ -301,8 +302,20 @@ function pushAvatarRetrievalCandidates(
   retrieval: ReturnType<typeof dedupeRetrieval>,
 ): void {
   if (retrieval === undefined) return
-  pushAvatarRetrievalSegmentCandidate(candidates, 'retrievedContextMemory', retrieval.memory)
-  pushAvatarRetrievalSegmentCandidate(candidates, 'retrievedContextWorld', retrieval.world)
+  const selectedMemoryAndWorld = selectTopRetrievedItems([
+    ...retrieval.memory,
+    ...retrieval.world,
+  ]).slice(0, AVATAR_RETRIEVAL_LIMIT)
+  pushAvatarRetrievalSegmentCandidate(
+    candidates,
+    'retrievedContextMemory',
+    selectedMemoryAndWorld.filter((item) => item.knowledgeType === 'memory'),
+  )
+  pushAvatarRetrievalSegmentCandidate(
+    candidates,
+    'retrievedContextWorld',
+    selectedMemoryAndWorld.filter((item) => item.knowledgeType === 'world'),
+  )
   pushAvatarRetrievalSegmentCandidate(candidates, 'retrievedContextMedia', retrieval.media)
 }
 
@@ -621,6 +634,19 @@ function dedupeRetrievedItems(
     output.push(item)
   }
   return output
+}
+
+function selectTopRetrievedItems(items: RetrievedKnowledgeItem[]): RetrievedKnowledgeItem[] {
+  return [...items].sort(compareRetrievedItems)
+}
+
+function compareRetrievedItems(a: RetrievedKnowledgeItem, b: RetrievedKnowledgeItem): number {
+  const scoreDifference = (b.score ?? 0) - (a.score ?? 0)
+  if (scoreDifference !== 0) return scoreDifference
+  if (a.knowledgeType !== b.knowledgeType) {
+    return a.knowledgeType.localeCompare(b.knowledgeType)
+  }
+  return a.chunkId.localeCompare(b.chunkId)
 }
 
 function toWorkingSummary(memory: ContextEngineInput['extensions']['memory']): string | undefined {

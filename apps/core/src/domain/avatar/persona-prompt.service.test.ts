@@ -26,6 +26,23 @@ const DIALOGUE_RULES: Record<string, string> = {
   transition: 'Close the current topic naturally and move toward the indicated subject or Avatar.',
 }
 
+type RetrievedKnowledgeType = 'memory' | 'world' | 'media'
+
+function retrievalItem(
+  knowledgeType: RetrievedKnowledgeType,
+  chunkId: string,
+  content: string,
+  score?: number,
+) {
+  return {
+    sourceId: `${knowledgeType}_${chunkId}`,
+    chunkId,
+    knowledgeType,
+    content,
+    ...(score !== undefined ? { score } : {}),
+  }
+}
+
 describe('resolveAvatarPromptIdentitySource', () => {
   it('prefers computedTraits when they are prepared', () => {
     expect(
@@ -314,29 +331,16 @@ describe('assemblePersonaPrompt -> runtime context sections', () => {
       worldContext: 'The archive closes at moonrise.',
       retrieval: {
         memory: [
-          {
-            sourceId: 'source_1',
-            chunkId: 'chunk_1',
-            knowledgeType: 'memory',
-            content: 'The user prefers concise examples.',
-          },
+          retrievalItem('memory', 'chunk_1', 'The user prefers concise examples.', 0.8),
+          retrievalItem('memory', 'chunk_4', 'Secondary memory fact.', 0.05),
         ],
         world: [
-          {
-            sourceId: 'source_2',
-            chunkId: 'chunk_2',
-            knowledgeType: 'world',
-            content: 'Ships dock at tidefall.',
-          },
+          retrievalItem('world', 'chunk_2', 'Ships dock at tidefall.', 0.95),
+          retrievalItem('world', 'chunk_5', 'The harbor bell marks the tide.', 0.7),
+          retrievalItem('world', 'chunk_6', 'The old pier is closed.', 0.6),
+          retrievalItem('world', 'chunk_7', 'Low relevance world fact.', 0.01),
         ],
-        media: [
-          {
-            sourceId: 'source_3',
-            chunkId: 'chunk_3',
-            knowledgeType: 'media',
-            content: 'Reference frame: lantern map sketch.',
-          },
-        ],
+        media: [retrievalItem('media', 'chunk_3', 'Reference frame: lantern map sketch.')],
       },
     })
 
@@ -347,13 +351,19 @@ describe('assemblePersonaPrompt -> runtime context sections', () => {
     const retrievedContextSection = prompt.slice(retrievedContextStart, avatarTraitsStart)
 
     expect(worldContextSection).toContain('The archive closes at moonrise.')
-    expect(worldContextSection).not.toContain('Memory retrieval:')
-    expect(retrievedContextSection).toContain('Memory retrieval:')
-    expect(retrievedContextSection).toContain('- The user prefers concise examples.')
-    expect(retrievedContextSection).toContain('World retrieval:')
-    expect(retrievedContextSection).toContain('- Ships dock at tidefall.')
+    expect(worldContextSection).not.toContain('Retrieved Context')
+    expect(retrievedContextSection).toContain('Context 1 (world):\nShips dock at tidefall.')
+    expect(retrievedContextSection).toContain(
+      'Context 2 (memory):\nThe user prefers concise examples.',
+    )
+    expect(retrievedContextSection).toContain('---')
+    expect(retrievedContextSection).toContain('Context 4 (world):\nThe old pier is closed.')
+    expect(retrievedContextSection).toContain('Context 5 (memory):\nSecondary memory fact.')
+    expect(retrievedContextSection).not.toContain('Low relevance world fact.')
     expect(retrievedContextSection).toContain('Media retrieval:')
-    expect(retrievedContextSection).toContain('- Reference frame: lantern map sketch.')
+    expect(retrievedContextSection).toContain(
+      'Media context 1 (media):\nReference frame: lantern map sketch.',
+    )
   })
 })
 

@@ -234,6 +234,7 @@ describe('SendMessageUseCase typed retrieval query reuse', () => {
             text: 'The user wants concise docking advice. User: The tide is shifting. Avatar: Then watch the harbor markers.',
           },
         ],
+        limitPerType: 5,
       }),
     )
     expect(retrieveTypedContextMock).toHaveBeenCalledTimes(1)
