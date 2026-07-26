@@ -247,6 +247,16 @@ type ChunkSeed = {
   metadata: Record<string, unknown>
 }
 
+type ParsedParagraph = {
+  content: string
+  headers: string[]
+}
+
+type MarkdownHeading = {
+  level: number
+  content: string
+}
+
 function toChunkSeeds(
   source: KnowledgeSource,
   content: string,
@@ -264,21 +274,25 @@ function toChunkSeeds(
     ]
   }
 
-  const paragraphs = normalized
-    .split(/\n\s*\n/g)
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0)
+  const paragraphs = parseParagraphsWithHeaders(normalized)
   const chunks: ChunkSeed[] = []
   const maxLength = source.format === 'markdown' ? 1000 : 800
 
   let current = ''
-  for (const paragraph of paragraphs.length > 0 ? paragraphs : [normalized]) {
+  let currentHeaders: string[] = []
+  for (const paragraph of paragraphs.length > 0
+    ? paragraphs
+    : [{ content: normalized, headers: [] }]) {
+    const headerLines = headersToAdd(currentHeaders, paragraph.headers)
+    const paragraphWithHeaders = [...headerLines, paragraph.content].join('\n\n')
     if (current.length === 0) {
-      current = paragraph
+      current = paragraphWithHeaders
+      currentHeaders = paragraph.headers
       continue
     }
-    if (`${current}\n\n${paragraph}`.length <= maxLength) {
-      current = `${current}\n\n${paragraph}`
+    if (`${current}\n\n${paragraphWithHeaders}`.length <= maxLength) {
+      current = `${current}\n\n${paragraphWithHeaders}`
+      currentHeaders = paragraph.headers
       continue
     }
     chunks.push({
@@ -286,7 +300,8 @@ function toChunkSeeds(
       chunkIndex: chunks.length,
       metadata: buildChunkMetadata(source, loadedMetadata),
     })
-    current = paragraph
+    current = [...paragraph.headers, paragraph.content].join('\n\n')
+    currentHeaders = paragraph.headers
   }
 
   if (current.length > 0) {
@@ -298,6 +313,95 @@ function toChunkSeeds(
   }
 
   return chunks
+}
+
+function parseParagraphsWithHeaders(content: string): ParsedParagraph[] {
+  const lines = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n')
+  const paragraphs: ParsedParagraph[] = []
+  const activeHeaders: Array<string | undefined> = []
+  const paragraphLines: string[] = []
+  let insideCodeFence = false
+
+  const flushParagraph = (): void => {
+    const paragraph = paragraphLines.join('\n').trim()
+    paragraphLines.length = 0
+    if (paragraph.length === 0) return
+
+    paragraphs.push({
+      content: paragraph,
+      headers: activeHeaders.filter((header): header is string => header !== undefined),
+    })
+  }
+
+  for (const line of lines) {
+    if (insideCodeFence) {
+      paragraphLines.push(line)
+      if (isCodeFenceLine(line)) insideCodeFence = false
+      continue
+    }
+
+    if (isCodeFenceLine(line)) {
+      paragraphLines.push(line)
+      insideCodeFence = true
+      continue
+    }
+
+    const heading = parseMarkdownHeading(line)
+    if (heading !== null) {
+      flushParagraph()
+      activeHeaders.length = heading.level
+      activeHeaders[heading.level - 1] = heading.content
+      continue
+    }
+
+    if (line.trim().length === 0) {
+      flushParagraph()
+      continue
+    }
+
+    paragraphLines.push(line.trimEnd())
+  }
+
+  flushParagraph()
+  return paragraphs
+}
+
+function parseMarkdownHeading(line: string): MarkdownHeading | null {
+  const match = /^\s{0,3}(#{1,6})(?:[ \t]+|(?=[^\s#]))(.+?)\s*#*\s*$/.exec(line)
+  if (match === null) return null
+
+  const marker = match[1]
+  const headingText = match[2]
+  if (marker === undefined || headingText === undefined) return null
+
+  const content = headingText.replace(/\s+#+\s*$/, '').trim()
+  if (content.length === 0) return null
+
+  return {
+    level: marker.length,
+    content: line.trim(),
+  }
+}
+
+function isCodeFenceLine(line: string): boolean {
+  return /^\s*(```|~~~)/.test(line)
+}
+
+function headersToAdd(currentHeaders: string[], nextHeaders: string[]): string[] {
+  let commonPrefixLength = 0
+  while (
+    commonPrefixLength < currentHeaders.length &&
+    commonPrefixLength < nextHeaders.length &&
+    currentHeaders[commonPrefixLength] === nextHeaders[commonPrefixLength]
+  ) {
+    commonPrefixLength += 1
+  }
+
+  const startsAfterShorterHeaderPath = nextHeaders.length < currentHeaders.length
+  const startIndex = startsAfterShorterHeaderPath
+    ? Math.max(0, commonPrefixLength - 1)
+    : commonPrefixLength
+  return nextHeaders.slice(startIndex)
 }
 
 function toMediaChunk(

@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-25
+Last updated: 2026-07-26
 Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4
 
 ## Snapshot
@@ -70,6 +70,8 @@ The platform is now a working headless conversational runtime with:
 ### Knowledge And Context
 
 - Knowledge sources support typed ingestion (`memory`, `world`, `media`) with ingestion jobs.
+- Text ingestion keeps complete paragraphs together, packs them toward the target chunk size, and
+  carries the active Markdown header path into every relevant chunk before embedding.
 - Avatar-scoped visibility filtering is enforced before avatar context assembly.
 - GM retrieval is intentionally unrestricted for orchestration decisions.
 - Context Engine assembles bounded Avatar and GM projections with deterministic precedence and trace metadata.

@@ -160,6 +160,138 @@ describe('KnowledgeIngestionService — completion flow', () => {
   })
 })
 
+describe('KnowledgeIngestionService — paragraph chunking', () => {
+  it('packs complete paragraphs up to the target size without splitting a paragraph', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Paragraph guide',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/paragraph-guide.txt',
+    })
+    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const firstParagraph = 'A'.repeat(390)
+    const secondParagraph = 'B'.repeat(390)
+    const thirdParagraph = 'C'.repeat(100)
+
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new StubLoader(`${firstParagraph}\n\n${secondParagraph}\n\n${thirdParagraph}`),
+      new HashEmbeddingAdapter(),
+      eventLogRepository,
+    )
+
+    await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
+
+    const chunks = await chunkRepository.listBySourceId(source.sourceId)
+    expect(chunks.map((chunk) => chunk.content)).toEqual([
+      `${firstParagraph}\n\n${secondParagraph}`,
+      thirdParagraph,
+    ])
+  })
+
+  it('keeps an oversized paragraph intact instead of cutting it at the target size', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Long paragraph',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/long-paragraph.txt',
+    })
+    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const oversizedParagraph = 'A'.repeat(900)
+    const nextParagraph = 'B'.repeat(100)
+
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new StubLoader(`${oversizedParagraph}\n\n${nextParagraph}`),
+      new HashEmbeddingAdapter(),
+      eventLogRepository,
+    )
+
+    await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
+
+    const chunks = await chunkRepository.listBySourceId(source.sourceId)
+    expect(chunks.map((chunk) => chunk.content)).toEqual([oversizedParagraph, nextParagraph])
+  })
+})
+
+describe('KnowledgeIngestionService — header-aware chunking', () => {
+  it('stores the active markdown header path with every chunk that needs it', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Markdown guide',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/tmp/guide.md',
+    })
+    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const firstParagraph = `Introduction ${'A'.repeat(450)}`
+    const secondParagraph = `Harbor ${'B'.repeat(450)}`
+    const thirdParagraph = `Details ${'C'.repeat(450)}`
+
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new StubLoader(
+        `# Guide\n\n${firstParagraph}\n\n## Harbor\n\n${secondParagraph}\n\n####details\n\n${thirdParagraph}`,
+      ),
+      new HashEmbeddingAdapter(),
+      eventLogRepository,
+    )
+
+    await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
+
+    const chunks = await chunkRepository.listBySourceId(source.sourceId)
+    expect(chunks).toHaveLength(2)
+    expect(chunks[0]?.content).toContain('# Guide')
+    expect(chunks[0]?.content).toContain('## Harbor')
+    expect(chunks[1]?.content).toMatch(/^# Guide\n\n## Harbor\n\n####details\n\nDetails /)
+  })
+
+  it('repeats a section header when a section spans multiple chunks', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Section guide',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/tmp/section-guide.md',
+    })
+    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const firstParagraph = 'A'.repeat(850)
+    const secondParagraph = 'B'.repeat(850)
+
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new StubLoader(`## Section\n\n${firstParagraph}\n\n${secondParagraph}`),
+      new HashEmbeddingAdapter(),
+      eventLogRepository,
+    )
+
+    await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
+
+    const chunks = await chunkRepository.listBySourceId(source.sourceId)
+    expect(chunks).toHaveLength(2)
+    expect(chunks[0]?.content.startsWith('## Section\n\n')).toBe(true)
+    expect(chunks[1]?.content.startsWith('## Section\n\n')).toBe(true)
+  })
+})
+
 describe('KnowledgeIngestionService — failure and retry behavior', () => {
   it('marks job as failed and supports deterministic retry idempotency', async () => {
     const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
