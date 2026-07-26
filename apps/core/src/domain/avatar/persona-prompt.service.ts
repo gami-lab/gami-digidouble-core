@@ -10,6 +10,7 @@ import type {
   AvatarContextConversationState,
   ContextScenarioSnapshot,
 } from '../context/session-context.types.js'
+import type { DialogueControlMode } from '../game-master/game-master.types.js'
 import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
 
 const DEFAULT_STYLE_RULE = [
@@ -19,15 +20,15 @@ const DEFAULT_STYLE_RULE = [
   'Apply the 80/20 rule: assume most context is already known and provide only the next useful 20%.',
 ].join(' ')
 
-const DIALOGUE_CONTROL_RULES = [
-  'Dialogue-control modes:',
-  "- user_led: Answer the user's question directly. Let the user control the sequence. Do not add a generic follow-up question.",
-  '- avatar_guided: Answer directly. You may offer one focused question or next direction.',
-  '- avatar_led: Take initiative. Introduce one meaningful topic, recollection, or question.',
-  '- repair: Resolve the contradiction, misunderstanding, or unsupported claim before progressing. Do not introduce a new topic until the issue is clarified.',
-  '- transition: Close the current topic naturally and move toward the indicated subject or Avatar.',
-  "- Respect the Game Master's askFollowUp value. When false, do not end with a question unless clarification is required to understand the user's request.",
-].join('\n')
+const DIALOGUE_CONTROL_RULES: Record<DialogueControlMode, string> = {
+  user_led:
+    "Answer the user's question directly. Let the user control the sequence. Do not add a generic follow-up question.",
+  avatar_guided: 'Answer directly. You may offer one focused question or next direction.',
+  avatar_led: 'Take initiative. Introduce one meaningful topic, recollection, or question.',
+  repair:
+    'Resolve the contradiction, misunderstanding, or unsupported claim before progressing. Do not introduce a new topic until the issue is clarified.',
+  transition: 'Close the current topic naturally and move toward the indicated subject or Avatar.',
+}
 
 export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptOptions): string {
   const promptInputs = resolvePromptSectionInputs(config, opts)
@@ -36,7 +37,7 @@ export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptO
     ...(promptInputs.gmGuidance === undefined
       ? buildDirectorNotes(promptInputs.directorNotes)
       : []),
-    buildResponseRulesSection(promptInputs.responseRules),
+    buildResponseRulesSection(promptInputs.responseRules, promptInputs.gmGuidance),
     ...buildConversationStateSection(promptInputs.memory, promptInputs.avatarAwareness),
     ...buildUserPersonaContext(promptInputs.userPersona),
     ...buildWorldContext(promptInputs.worldContext),
@@ -290,13 +291,18 @@ function buildAdjustments(adjustments: AvatarConfig['adjustments']): string[] {
   return adjustments.map((a) => a.trim()).filter((a) => a.length > 0)
 }
 
-function buildResponseRulesSection(responseRules: string[] | undefined): string {
-  const lines = [
-    '## Response Rules',
-    ...buildAdjustments(responseRules),
-    DEFAULT_STYLE_RULE,
-    DIALOGUE_CONTROL_RULES,
-  ]
+function buildResponseRulesSection(
+  responseRules: string[] | undefined,
+  gmGuidance: AvatarPromptOptions['gmGuidance'],
+): string {
+  const lines = ['## Response Rules', ...buildAdjustments(responseRules), DEFAULT_STYLE_RULE]
+  if (gmGuidance !== undefined) {
+    lines.push(
+      'Dialogue-control rule:',
+      DIALOGUE_CONTROL_RULES[gmGuidance.mode],
+      "Respect the Game Master's askFollowUp value. When false, do not end with a question unless clarification is required to understand the user's request.",
+    )
+  }
   return lines.join('\n')
 }
 

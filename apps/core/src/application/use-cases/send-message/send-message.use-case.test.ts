@@ -818,7 +818,10 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     expect(request.systemPrompt).toContain('Dialogue mode: repair')
     expect(request.systemPrompt).toContain('Retrieval status: insufficient evidence.')
     expect(request.systemPrompt).toContain('Follow-up question: no')
-    expect(request.systemPrompt).toContain('Do not add a generic follow-up question.')
+    expect(request.systemPrompt).toContain(
+      'Do not introduce a new topic until the issue is clarified.',
+    )
+    expect(request.systemPrompt).not.toContain('Do not add a generic follow-up question.')
     expect(gmState.nextTurnOrchestration?.consumedAfterTurn).toBe(1)
   })
 

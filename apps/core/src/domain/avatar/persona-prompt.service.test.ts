@@ -16,6 +16,16 @@ const SAMPLE_TRAITS: AvatarComputedTraits = {
   behaviouralRules: ['Never reveal sealed exhibits'],
 }
 
+const DIALOGUE_RULES: Record<string, string> = {
+  user_led:
+    "Answer the user's question directly. Let the user control the sequence. Do not add a generic follow-up question.",
+  avatar_guided: 'Answer directly. You may offer one focused question or next direction.',
+  avatar_led: 'Take initiative. Introduce one meaningful topic, recollection, or question.',
+  repair:
+    'Resolve the contradiction, misunderstanding, or unsupported claim before progressing. Do not introduce a new topic until the issue is clarified.',
+  transition: 'Close the current topic naturally and move toward the indicated subject or Avatar.',
+}
+
 describe('resolveAvatarPromptIdentitySource', () => {
   it('prefers computedTraits when they are prepared', () => {
     expect(
@@ -94,6 +104,15 @@ describe('assemblePersonaPrompt -> section order', () => {
     expect(prompt).toContain(`Dialogue mode: ${mode}`)
     expect(prompt).toContain(`Follow-up question: ${askFollowUp ? 'yes' : 'no'}`)
     expect(prompt).toContain(rule)
+
+    const otherModes = ['user_led', 'avatar_guided', 'avatar_led', 'repair', 'transition'].filter(
+      (otherMode) => otherMode !== mode,
+    )
+    for (const otherMode of otherModes) {
+      expect(prompt).not.toContain(`Dialogue mode: ${otherMode}`)
+      expect(prompt).not.toContain(DIALOGUE_RULES[otherMode])
+    }
+    expect(prompt).not.toContain('Dialogue-control modes:')
   })
 
   it('assembles runtime sections in EPIC 8.2 order', () => {
