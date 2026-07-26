@@ -68,13 +68,17 @@ export class StreamingSendMessageUseCase {
       const output = await this.sendMessageUseCase.completeTurn(turn, terminalResponse, {
         scheduleBackground: false,
       })
+      // Schedule post-turn work before exposing completion to the client. The
+      // client may immediately start another turn or abort the stream after
+      // receiving the terminal event; GM scheduling must not depend on the
+      // consumer requesting one more iterator item.
+      this.sendMessageUseCase.schedulePostTurnWork(turn)
       yield {
         type: 'completed',
         requestId: turn.requestId,
         conversationId: turn.conversation.conversationId,
         output,
       }
-      this.sendMessageUseCase.schedulePostTurnWork(turn)
     } catch (error) {
       if (!isAbortError(error, options?.signal)) throw error
 

@@ -712,6 +712,48 @@ describe('SendMessageUseCase — memory maintenance', () => {
 })
 
 describe('SendMessageUseCase — validation and GM integration', () => {
+  it('injects matching guidance after two completed exchanges', async () => {
+    findMessagesByConversationIdMock.mockResolvedValue([
+      { role: 'user', content: 'Hello Max', createdAt: '2026-07-25T10:00:00.000Z' },
+      { role: 'avatar', content: 'Hello Thomas.', createdAt: '2026-07-25T10:00:01.000Z' },
+      {
+        role: 'user',
+        content: 'Avec qui es-tu monté au chalet ?',
+        createdAt: '2026-07-25T10:01:00.000Z',
+      },
+      {
+        role: 'avatar',
+        content: 'Avec Emma, Léo et Ava. Nous sommes partis tous les quatre.',
+        createdAt: '2026-07-25T10:01:01.000Z',
+      },
+    ])
+    gmStateFindMock.mockResolvedValue({
+      progression: 'none',
+      interactionCount: 2,
+      nextTurnOrchestration: {
+        activeAvatarId: 'avatar_1',
+        generatedAfterTurn: 2,
+        generatedAt: '2026-07-25T10:01:02.000Z',
+        dialogueControl: { mode: 'user_led', askFollowUp: false },
+        retrievalPlan: { required: true, queries: ['chalet companions'] },
+        progressionUpdate: { progression: 'none' },
+      },
+    })
+
+    const useCase = createUseCase(false, true, false, false, false, true)
+    await useCase.execute({
+      conversationId: 'conversation_1',
+      userMessage: 'Où est Mona maintenant ?',
+    })
+
+    const request = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
+    expect(request.systemPrompt).toContain('## Game Master Guidance')
+    expect(request.systemPrompt).toContain('Dialogue mode: user_led')
+    expect(request.systemPrompt).toContain('Follow-up question: no')
+    const savedState = gmStateSaveMock.mock.calls[0]?.[1] as GameMasterState
+    expect(savedState.nextTurnOrchestration?.consumedAfterTurn).toBe(3)
+  })
+
   it('consumes matching GM orchestration once and combines its retrieval intent with the user message', async () => {
     let gmState: GameMasterState = {
       progression: 'none',
@@ -1164,13 +1206,11 @@ describe('StreamingSendMessageUseCase', () => {
       'avatar',
     ])
     expect(order.indexOf('persist:user')).toBeLessThan(order.indexOf('stream:start'))
-    expect(runGameMasterExecuteMock).not.toHaveBeenCalled()
-
-    const done = await iterator.next()
-
-    expect(done.done).toBe(true)
     expect(runGameMasterExecuteMock).toHaveBeenCalledTimes(1)
     expect(order.indexOf('gm:scheduled')).toBeGreaterThan(order.indexOf('persist:avatar'))
+
+    const done = await iterator.next()
+    expect(done.done).toBe(true)
   })
 
   it('persists the completed avatar message exactly once', async () => {
