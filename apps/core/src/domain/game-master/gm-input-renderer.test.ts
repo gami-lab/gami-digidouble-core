@@ -174,7 +174,7 @@ describe('renderGameMasterInputForLlm', () => {
     expect(prompt).toContain('- None provided.')
   })
 
-  it('does not send a redundant Avatar list for a single-Avatar scenario', () => {
+  it('renders the single Avatar explicitly so the GM knows the scenario cardinality', () => {
     const prompt = renderGameMasterInputForLlm(
       makeInput({
         context: {
@@ -184,8 +184,8 @@ describe('renderGameMasterInputForLlm', () => {
       }),
     )
 
-    expect(prompt).not.toContain('### Available Avatars')
-    expect(prompt).not.toContain('Ava (avatar_1)')
+    expect(prompt).toContain('### Available Avatars')
+    expect(prompt).toContain('Ava (avatar_1) [available]')
     expect(prompt).not.toContain('- Current Avatar ID:')
   })
 

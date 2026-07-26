@@ -209,10 +209,6 @@ function renderExperience(experience: GameMasterInput['context']['experience']):
 }
 
 function renderAvailableAvatars(avatars: GameMasterInput['context']['availableAvatars']): string[] {
-  if (avatars.length === 1) {
-    return []
-  }
-
   return [
     '### Available Avatars',
     ...(avatars.length > 0

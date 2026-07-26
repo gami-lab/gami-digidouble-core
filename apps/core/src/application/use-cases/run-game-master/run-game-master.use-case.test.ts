@@ -216,8 +216,8 @@ describe('RunGameMasterUseCase — prompt request content', () => {
     expect(prompt).toContain('### Scenario')
     expect(prompt).toContain('- Goal 1: Understand the basics.')
     expect(prompt).toContain('- Goal 2: Ask better questions.')
-    expect(prompt).not.toContain('### Available Avatars')
-    expect(prompt).not.toContain('- Ava (avatar_1)')
+    expect(prompt).toContain('### Available Avatars')
+    expect(prompt).toContain('- Ava (avatar_1)')
   })
 })
 
