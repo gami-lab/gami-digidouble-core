@@ -136,8 +136,8 @@ export interface GameMasterOrchestrationState {
 export interface GameMasterOutput {
   dialogueControl: DialogueControl
   retrievalPlan: RetrievalPlan
-  /** Compact narrative guidance not already covered by the structured fields. */
-  directorNotes?: string
+  /** Compact narrative guidance for the next Avatar turn. */
+  directorNotes: string
   /** Omitted entirely when routing is not applicable (e.g. a single-Avatar scenario). */
   routing?: RoutingDecision
   progressionUpdate: ProgressionUpdate

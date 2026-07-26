@@ -1,4 +1,4 @@
-export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v6'
+export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v7'
 
 /** Avatar-count facts the static prompt needs to decide which routing guidance to include. */
 export interface GmPromptAvatarContext {
@@ -21,7 +21,7 @@ export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext
     renderSection('Responsibilities', [
       '- Decide how the next dialogue should be led.',
       '- Prepare focused retrieval for the next related turn.',
-      '- Provide compact narrative guidance when useful.',
+      '- Provide compact narrative guidance for the next Avatar turn.',
       ...(routingMode !== 'none' ? ['- Suggest, switch, or unlock Avatars when supported.'] : []),
       '- Update progression only when the exchange materially advances it.',
     ]),
@@ -48,6 +48,7 @@ export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext
       'Field rules:',
       '- dialogueControl and dialogueControl.askFollowUp are required.',
       '- retrievalPlan is required on every response; set required false with empty or omitted arrays only under the retrieval-planning exception above.',
+      '- directorNotes is required on every response and must be one concise sentence of useful next-turn guidance.',
       '- progressionUpdate is optional; omit it when no update is needed.',
       '- askFollowUp must always be stated explicitly; never infer it from mode alone.',
       '- retrievalPlan.queries and requiredFacts should be omitted or empty when required is false.',
@@ -94,8 +95,8 @@ function renderRetrievalPlanningPolicy(): string[] {
 function renderDirectorNotesPolicy(): string[] {
   return [
     'Director notes:',
-    '- directorNotes is optional. Include it only for narrative or character guidance not already represented by the structured fields above.',
-    '- Omit directorNotes rather than restate permanent Avatar rules such as "stay in character" or "remain concise".',
+    '- directorNotes is required on every response. Provide one concise sentence of narrative or character guidance that helps the next Avatar turn, even when the structured fields already cover the decision.',
+    '- Keep directorNotes specific to the current exchange and do not restate permanent Avatar rules such as "stay in character" or "remain concise".',
     '- When userMessage.text is empty, no user message has been sent yet. Treat this as conversation opening guidance, and use directorNotes to tell the Avatar how to open instead of reacting to a message.',
   ]
 }
@@ -148,7 +149,7 @@ function buildOutputSchema(routingMode: RoutingPromptMode): Record<string, unkno
       queries: ['<short retrieval-oriented query>'],
       requiredFacts: ['<fact the next turn must ground>'],
     },
-    directorNotes: '<optional one-sentence narrative guidance>',
+    directorNotes: '<one-sentence narrative guidance>',
   }
 
   if (routingMode !== 'none') {

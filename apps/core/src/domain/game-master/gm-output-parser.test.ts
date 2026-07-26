@@ -3,6 +3,7 @@ import { safeParseGameMasterOutput } from './gm-output-parser.js'
 
 const validDialogueControl = {
   dialogueControl: { mode: 'user_led', askFollowUp: false },
+  directorNotes: 'Keep the next answer focused on the current subject.',
 }
 
 afterEach(() => {
@@ -23,14 +24,17 @@ describe('safeParseGameMasterOutput', () => {
     'accepts dialogue mode %s',
     (mode) => {
       const parsed = safeParseGameMasterOutput(
-        JSON.stringify({ dialogueControl: { mode, askFollowUp: false } }),
+        JSON.stringify({
+          dialogueControl: { mode, askFollowUp: false },
+          directorNotes: 'Keep the next answer focused on the current subject.',
+        }),
       )
 
       expect(parsed?.dialogueControl).toEqual({ mode, askFollowUp: false })
     },
   )
 
-  it('accepts optional retrieval, notes, routing, and progression fields with safe defaults', () => {
+  it('requires directorNotes and accepts optional retrieval, routing, and progression fields', () => {
     const parsed = safeParseGameMasterOutput(JSON.stringify(validDialogueControl))
 
     expect(parsed).toMatchObject({
@@ -38,8 +42,20 @@ describe('safeParseGameMasterOutput', () => {
       retrievalPlan: { required: false },
       progressionUpdate: { progression: 'none' },
     })
-    expect(parsed).not.toHaveProperty('directorNotes')
+    expect(parsed).toHaveProperty('directorNotes', validDialogueControl.directorNotes)
     expect(parsed).not.toHaveProperty('routing')
+  })
+
+  it.each([undefined, '', '   '])('rejects missing or blank directorNotes: %j', (directorNotes) => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const output: Record<string, unknown> = { ...validDialogueControl }
+    if (directorNotes === undefined) {
+      delete output.directorNotes
+    } else {
+      output.directorNotes = directorNotes
+    }
+
+    expect(safeParseGameMasterOutput(JSON.stringify(output))).toBeNull()
   })
 
   it('rejects invalid dialogue modes and invalid retrieval shapes', () => {

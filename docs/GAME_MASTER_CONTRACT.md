@@ -140,7 +140,7 @@ type GameMasterOutput = {
     requiredFacts?: string[]
     scopes?: Array<'avatar_memory' | 'world_context' | 'scenario_knowledge'>
   }
-  directorNotes?: string
+  directorNotes: string
   routing?: {
     action: 'stay' | 'suggest' | 'switch' | 'unlock' | 'unlock_and_switch'
     avatarId?: string
@@ -179,7 +179,9 @@ Output invariants:
   places, objects, participants, relationships, actions, or timelines require a retrieval plan
   even when the latest Avatar reply sounds coherent. A required plan must contain focused queries
   and required facts for the next related turn.
-- `directorNotes` is optional and must only carry guidance not already represented by another structured field.
+- `directorNotes` is required on every response and must contain one concise sentence of useful
+  narrative or character guidance for the next Avatar turn. It should complement, not merely
+  restate, the structured fields.
 - `routing` is omitted entirely when routing is not applicable (single-Avatar scenarios). When present:
   - `stay` does not require `avatarId`.
   - `suggest` and `switch` require an active, unlocked `avatarId`.

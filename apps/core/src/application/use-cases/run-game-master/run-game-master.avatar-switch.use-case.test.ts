@@ -81,7 +81,10 @@ function createUseCase(): RunGameMasterUseCase {
 
 function mockGmOutput(content: Record<string, unknown>): void {
   completeMock.mockResolvedValue({
-    content: JSON.stringify(content),
+    content: JSON.stringify({
+      directorNotes: 'Keep the next answer focused on the current subject.',
+      ...content,
+    }),
     model: 'null-model',
     inputTokens: 10,
     outputTokens: 20,

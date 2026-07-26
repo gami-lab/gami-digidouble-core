@@ -99,7 +99,10 @@ function createUseCase(eventLog?: InMemoryEventLogRepository): RunGameMasterUseC
 
 function mockGmOutput(output: Record<string, unknown>): void {
   completeMock.mockResolvedValue({
-    content: JSON.stringify(output),
+    content: JSON.stringify({
+      directorNotes: 'Keep the next answer focused on the current subject.',
+      ...output,
+    }),
     model: 'null-model',
     inputTokens: 10,
     outputTokens: 20,

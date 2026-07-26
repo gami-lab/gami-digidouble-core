@@ -200,6 +200,7 @@ beforeEach(() => {
     content: JSON.stringify({
       dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
       retrievalPlan: { required: false },
+      directorNotes: 'Keep the next answer focused on the current subject.',
       progressionUpdate: { progression: 'none' },
     }),
     model: 'null-model',

@@ -100,6 +100,7 @@ function buildGmOutput(unlockTarget: UnlockTarget): Record<string, unknown> {
   return {
     dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
     retrievalPlan: { required: false },
+    directorNotes: 'Keep the next answer focused on the current subject.',
     ...(unlockTarget === 'theo'
       ? {
           routing: {

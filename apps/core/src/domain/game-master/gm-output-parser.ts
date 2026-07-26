@@ -66,16 +66,21 @@ function toGameMasterOutput(value: unknown): GameMasterOutput | null {
       : toProgressionUpdate(value['progressionUpdate'])
   if (progressionUpdate === null) return null
 
-  const directorNotes = hasText(value['directorNotes']) ? value['directorNotes'].trim() : undefined
+  const directorNotes = toRequiredDirectorNotes(value['directorNotes'])
+  if (directorNotes === null) return null
   const routing = toRoutingDecision(value['routing'])
 
   return {
     dialogueControl,
     retrievalPlan,
-    ...(directorNotes !== undefined ? { directorNotes } : {}),
+    directorNotes,
     ...(routing !== undefined ? { routing } : {}),
     progressionUpdate,
   }
+}
+
+function toRequiredDirectorNotes(value: unknown): string | null {
+  return hasText(value) ? value.trim() : null
 }
 
 function toDialogueControl(value: unknown): DialogueControl | null {

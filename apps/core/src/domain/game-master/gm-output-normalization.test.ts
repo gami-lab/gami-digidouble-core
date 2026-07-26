@@ -20,6 +20,7 @@ function makeOutput(routing?: GameMasterOutput['routing']): GameMasterOutput {
   return {
     dialogueControl: { mode: 'transition', askFollowUp: false },
     retrievalPlan: { required: false },
+    directorNotes: 'Keep the next answer focused on the current subject.',
     ...(routing !== undefined ? { routing } : {}),
     progressionUpdate: { progression: 'none' },
   }

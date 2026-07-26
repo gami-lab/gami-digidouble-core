@@ -586,7 +586,7 @@ export class RunGameMasterUseCase {
       generatedAt: new Date().toISOString(),
       dialogueControl: output.dialogueControl,
       retrievalPlan: output.retrievalPlan,
-      ...(output.directorNotes !== undefined ? { directorNotes: output.directorNotes } : {}),
+      directorNotes: output.directorNotes,
       ...(output.routing !== undefined ? { routing: output.routing } : {}),
       progressionUpdate: output.progressionUpdate,
     }

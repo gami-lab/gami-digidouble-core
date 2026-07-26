@@ -12,7 +12,7 @@ export function normalizeGameMasterOutput(
   return {
     dialogueControl: output.dialogueControl,
     retrievalPlan: output.retrievalPlan,
-    ...(output.directorNotes !== undefined ? { directorNotes: output.directorNotes } : {}),
+    directorNotes: output.directorNotes,
     ...(routing !== undefined ? { routing } : {}),
     progressionUpdate: output.progressionUpdate,
   }

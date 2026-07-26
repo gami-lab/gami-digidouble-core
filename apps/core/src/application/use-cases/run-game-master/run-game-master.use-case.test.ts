@@ -518,6 +518,7 @@ describe('RunGameMasterUseCase — runtime event publication unlocks', () => {
       content: JSON.stringify({
         dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
         retrievalPlan: { required: false },
+        directorNotes: 'Keep the next answer focused on the current subject.',
         routing: { action: 'unlock', avatarId: 'avatar_2', reason: 'Theo can help' },
         progressionUpdate: { progression: 'increase' },
       }),
@@ -585,6 +586,7 @@ describe('RunGameMasterUseCase — runtime event publication guidance', () => {
       content: JSON.stringify({
         dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
         retrievalPlan: { required: false },
+        directorNotes: 'Keep the next answer focused on the current subject.',
         routing: { action: 'suggest', avatarId: 'avatar_2', reason: 'Better context' },
         progressionUpdate: { progression: 'increase' },
       }),

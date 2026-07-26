@@ -78,7 +78,8 @@ describe('buildGameMasterSystemPrompt', () => {
       'Write every retrievalPlan query and requiredFact in the same language as context.experience.description',
     )
     expect(policySection).toContain('You do not perform retrieval yourself')
-    expect(policySection).toContain('Omit directorNotes rather than restate permanent Avatar rules')
+    expect(policySection).toContain('directorNotes is required on every response')
+    expect(policySection).toContain('Keep directorNotes specific to the current exchange')
     expect(policySection).toContain(
       'When userMessage.text is empty, no user message has been sent yet. Treat this as conversation opening guidance, and use directorNotes to tell the Avatar how to open instead of reacting to a message.',
     )
@@ -147,6 +148,9 @@ describe('buildGameMasterSystemPrompt', () => {
     )
     expect(prompt).toContain(
       '- retrievalPlan is required on every response; set required false with empty or omitted arrays only under the retrieval-planning exception above.',
+    )
+    expect(prompt).toContain(
+      '- directorNotes is required on every response and must be one concise sentence of useful next-turn guidance.',
     )
     expect(prompt).toContain(
       '- routing.avatarId must be one of the Avatars listed as available for this turn.',
