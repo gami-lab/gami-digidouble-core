@@ -467,8 +467,8 @@ Admin app boundary (EPIC 6.1):
 3. SendMessage use case starts
 4. Load conversation + parent session + scenario
 5. Context module builds runtime context for that conversation:
-   - short-term (last 3 complete exchanges)
-   - working memory summary
+   - short-term (last 3 complete exchanges) as dialogue messages
+   - working memory summary as an explicit assistant-role context message
    - long-term facts/events
    - scenario + RAG + GM notes + optional user persona
 6. Avatar generates a streamed response for the conversation avatar

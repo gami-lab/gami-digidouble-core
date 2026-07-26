@@ -259,7 +259,7 @@ describe('assemblePersonaPrompt -> identity source', () => {
 })
 
 describe('assemblePersonaPrompt -> runtime context sections', () => {
-  it('keeps bounded conversation state, remembered facts, and avatar awareness together', () => {
+  it('keeps durable user facts and avatar awareness in the system prompt', () => {
     const prompt = assemblePersonaPrompt(makeAvatarConfig({ computedTraits: SAMPLE_TRAITS }), {
       memory: {
         shortTerm: {
@@ -295,15 +295,11 @@ describe('assemblePersonaPrompt -> runtime context sections', () => {
     const conversationStateEnd = prompt.indexOf('\n\n## Avatar Traits')
     const conversationStateSection = prompt.slice(conversationStateStart, conversationStateEnd)
 
-    expect(conversationStateSection).toContain('Recent exchanges:')
-    expect(conversationStateSection).toContain('- User: Where do I start?')
-    expect(conversationStateSection).toContain('- Avatar: At the north wing.')
-    expect(conversationStateSection).toContain(
-      'Session working memory: The user is planning a quick visit.',
-    )
-    expect(conversationStateSection).toContain(
-      'Current avatar memory: Point them to accessible exhibits first.',
-    )
+    expect(conversationStateSection).not.toContain('Recent exchanges:')
+    expect(conversationStateSection).not.toContain('- User: Where do I start?')
+    expect(conversationStateSection).not.toContain('- Avatar: At the north wing.')
+    expect(conversationStateSection).not.toContain('Session working memory:')
+    expect(conversationStateSection).not.toContain('Current avatar memory:')
     expect(conversationStateSection).toContain('Remembered user facts:')
     expect(conversationStateSection).toContain('- pace: quick overview')
     expect(conversationStateSection).toContain('Other avatars in this scenario:')
@@ -374,7 +370,7 @@ describe('assemblePersonaPrompt -> optional sections and determinism', () => {
     expect(prompt).not.toContain('## Retrieved Context')
   })
 
-  it('preserves the default response style rules and adjustment ordering ahead of conversation state', () => {
+  it('preserves the default response style rules and omits working memory from the system prompt', () => {
     const prompt = assemblePersonaPrompt(
       makeAvatarConfig({
         adjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
@@ -396,12 +392,11 @@ describe('assemblePersonaPrompt -> optional sections and determinism', () => {
     const firstAdjustmentIndex = prompt.indexOf('Avoid markdown tables.')
     const secondAdjustmentIndex = prompt.indexOf('Use short paragraphs.')
     const styleRuleIndex = prompt.indexOf('Stay in character and keep responses concise.')
-    const conversationStateIndex = prompt.indexOf('## Conversation State')
-
     expect(firstAdjustmentIndex).toBeGreaterThan(responseRulesIndex)
     expect(secondAdjustmentIndex).toBeGreaterThan(firstAdjustmentIndex)
     expect(styleRuleIndex).toBeGreaterThan(secondAdjustmentIndex)
-    expect(conversationStateIndex).toBeGreaterThan(styleRuleIndex)
+    expect(prompt).not.toContain('## Conversation State')
+    expect(prompt).not.toContain('Session summary')
   })
 
   it('throws when personaPrompt is empty and traits are not available', () => {

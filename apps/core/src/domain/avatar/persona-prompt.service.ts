@@ -200,38 +200,10 @@ function buildConversationStateSection(
     return []
 
   const lines: string[] = ['## Conversation State']
-  appendRecentExchanges(lines, memory)
-  appendWorkingMemory(lines, memory)
   appendLongTermMemory(lines, memory)
   appendAvatarAwareness(lines, avatarAwareness)
 
   return lines.length > 1 ? [lines.join('\n')] : []
-}
-
-function appendRecentExchanges(lines: string[], memory: AvatarPromptOptions['memory']): void {
-  const recentExchanges = memory?.shortTerm?.recentExchanges ?? []
-  if (recentExchanges.length === 0) return
-
-  lines.push('Recent exchanges:')
-  for (const exchange of recentExchanges) {
-    if (hasText(exchange.user)) {
-      lines.push(`- User: ${exchange.user.trim()}`)
-    }
-    if (hasText(exchange.avatar)) {
-      lines.push(`- Avatar: ${exchange.avatar.trim()}`)
-    }
-  }
-}
-
-function appendWorkingMemory(lines: string[], memory: AvatarPromptOptions['memory']): void {
-  const sessionSummary = memory?.working?.session?.summary
-  if (hasText(sessionSummary)) {
-    lines.push(`Session working memory: ${sessionSummary}`)
-  }
-  const avatarSummary = memory?.working?.avatar?.summary
-  if (hasText(avatarSummary)) {
-    lines.push(`Current avatar memory: ${avatarSummary}`)
-  }
 }
 
 function appendLongTermMemory(lines: string[], memory: AvatarPromptOptions['memory']): void {

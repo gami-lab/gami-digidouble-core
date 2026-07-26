@@ -462,10 +462,29 @@ describe('SendMessageUseCase — llm request payload', () => {
       createdAt: '2026-04-18T10:00:00.000Z',
       updatedAt: '2026-04-18T10:00:00.000Z',
     })
+    findMessagesByConversationIdMock.mockResolvedValue([
+      {
+        messageId: 'message_user_1',
+        conversationId: 'conversation_1',
+        role: 'user',
+        content: 'Where do I dock?',
+        createdAt: '2026-07-20T09:59:00.000Z',
+      },
+      {
+        messageId: 'message_avatar_1',
+        conversationId: 'conversation_1',
+        role: 'avatar',
+        content: 'Follow the lantern markers.',
+        createdAt: '2026-07-20T09:59:01.000Z',
+      },
+    ])
 
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'What should I do?' })
 
-    const llmArg = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
+    const llmArg = completeMock.mock.calls[0]?.[0] as {
+      systemPrompt: string
+      messages: Array<{ role: 'user' | 'assistant'; content: string }>
+    }
     expectSectionOrder(llmArg.systemPrompt, [
       '## Director Notes',
       '## Response Rules',
@@ -477,10 +496,8 @@ describe('SendMessageUseCase — llm request payload', () => {
     ])
     expect(llmArg.systemPrompt).toContain('Keep the answer practical.')
     expect(llmArg.systemPrompt).toContain('Use short paragraphs.')
-    expect(llmArg.systemPrompt).toContain('Recent exchanges:')
-    expect(llmArg.systemPrompt).toContain(
-      'Session working memory: The user wants concise harbor instructions.',
-    )
+    expect(llmArg.systemPrompt).not.toContain('Recent exchanges:')
+    expect(llmArg.systemPrompt).not.toContain('Session working memory:')
     expect(llmArg.systemPrompt).toContain('- pace: quick overview')
     expect(llmArg.systemPrompt).toContain('Name: Maya')
     expect(llmArg.systemPrompt).toContain('Role in this world: captain')
@@ -496,6 +513,16 @@ describe('SendMessageUseCase — llm request payload', () => {
     expect(llmArg.systemPrompt).not.toContain(
       'Legacy persona text that should not be used when traits exist.',
     )
+    expect(llmArg.messages).toEqual([
+      {
+        role: 'assistant',
+        content:
+          'Summary of previous conversation (context only, not a new reply):\nThe user wants concise harbor instructions.',
+      },
+      { role: 'user', content: 'Where do I dock?' },
+      { role: 'assistant', content: 'Follow the lantern markers.' },
+      { role: 'user', content: 'What should I do?' },
+    ])
   })
 
   it('emits turn_completed event payload in a non-blocking path', async () => {

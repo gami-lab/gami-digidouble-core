@@ -609,9 +609,22 @@ export class SendMessageUseCase {
     conversationId: string,
     selectedMemory: SelectedMemoryPayload | undefined,
   ): Promise<Array<{ role: 'user' | 'assistant'; content: string }>> {
+    const sessionSummary = selectedMemory?.workingMemory?.summary.trim()
+    const summaryMessages =
+      sessionSummary !== undefined && sessionSummary.length > 0
+        ? [
+            {
+              role: 'assistant' as const,
+              content: `Summary of previous conversation (context only, not a new reply):\n${sessionSummary}`,
+            },
+          ]
+        : []
     const selectedShortTerm = selectedMemory?.shortTermExchanges ?? []
     if (selectedShortTerm.length >= MESSAGE_HISTORY_EXCHANGE_LIMIT) {
-      return toLlmDialogueMessages(selectedShortTerm.slice(-MESSAGE_HISTORY_EXCHANGE_LIMIT))
+      return [
+        ...summaryMessages,
+        ...toLlmDialogueMessages(selectedShortTerm.slice(-MESSAGE_HISTORY_EXCHANGE_LIMIT)),
+      ]
     }
 
     const history = await this.messageRepository.findByConversationId(conversationId, {
@@ -623,7 +636,7 @@ export class SendMessageUseCase {
       .slice(-MESSAGE_HISTORY_FETCH_LIMIT)
 
     const recentExchanges = toRecentExchanges(recentHistory, MESSAGE_HISTORY_EXCHANGE_LIMIT)
-    return toLlmDialogueMessages(recentExchanges)
+    return [...summaryMessages, ...toLlmDialogueMessages(recentExchanges)]
   }
 
   private async loadRecentUserTurnCount(conversationId: string): Promise<number> {
