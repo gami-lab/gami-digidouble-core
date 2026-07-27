@@ -403,6 +403,64 @@ Package the text-in/text-out core, usable back-office, validated scenario, and s
 
 - first external prototype ready for demonstration
 
+### `8.6 Scripted Conversation Response Evaluation`
+
+**Current state**
+No standalone, repeatable evaluation runner exists for comparing scripted Avatar conversations
+across configured runtime models.
+
+**Purpose**
+Make conversation quality, latency, token usage, and available cost data easy to compare without
+building a new product UI or changing the normal conversation flow.
+
+**Description**
+Add a TypeScript command-line evaluation tool that loads a versioned JSON conversation definition,
+starts a session through the existing API, resolves a deterministic initial-avatar selector, and
+sends questions sequentially through one conversation. Each response is evaluated semantically by
+an LLM judge through the existing authenticated raw-exchange boundary, then written to a structured
+JSON report and summarized in the console. Model comparison is achieved by running the same
+definition against separately configured runtime targets; the tool does not invent a per-request
+model override. Cost is recorded when the API supplies it and remains explicitly unavailable when
+it does not.
+
+**Includes**
+
+- versioned, manually editable JSON test definitions
+- scenario and initial-avatar selection using existing API contracts
+- sequential single-session execution
+- structured semantic judge results with pass/fail, score, explanation, missing elements, and contradictions
+- per-question and run-level latency and token metrics
+- nullable cost reporting with no local pricing estimation
+- partial-result persistence, error classification, and readable console output
+- one real seeded-scenario example and deterministic automated tests
+
+**Definition of done**
+
+- a local command can execute at least three ordered questions in one seeded scenario
+- every question uses the same session and conversation
+- Avatar and judge calls use existing authenticated API boundaries; provider SDKs are not imported by the tool
+- model labels/effective models are recorded and mismatches are visible
+- semantic judge output is validated and judge failures remain distinct from Avatar quality failures
+- JSON reports preserve per-question results and partial runs
+- latency and token usage are captured from API responses; cost is either captured or reported as unavailable
+- unit and integration-style tool tests cover ordering, paraphrases, missing facts, contradictions, API errors, judge errors, and partial reports
+- usage documentation and an example definition are available
+
+**What can be tested**
+
+1. questions are processed in definition order through one conversation
+2. the same definition can be rerun against a different configured runtime model
+3. a valid paraphrase passes semantic judging
+4. missing essential content and contradictions fail judging
+5. API errors and judge errors are classified separately from quality failures
+6. response latency and token counts match the API payloads
+7. unavailable cost is not reported as zero or estimated
+8. an interrupted run leaves a valid partial JSON report
+
+**User increment**
+
+- a repeatable baseline for conversation quality and runtime-cost comparisons without a dashboard or CI integration
+
 ## Superseded Or Absorbed Items
 
 ### `4.1b Game Master Context Awareness Upgrade`
