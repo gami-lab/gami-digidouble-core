@@ -187,7 +187,6 @@ describe('GET /v1/admin/sessions/:sessionId/inspect', () => {
     expect(body.error).toBeNull()
     expect(body.data?.inspect.gmState).toEqual({
       progression: 'intro complete',
-      topicsCovered: ['setup'],
       interactionCount: 4,
     })
     expect(body.data?.inspect.unlockedAvatarIds).toEqual(['avatar_1', 'avatar_2'])
@@ -290,7 +289,6 @@ describe('GET /v1/admin/sessions/:sessionId/events behavior', () => {
       interactionCount: 5,
       stateBefore: {
         progression: 'intro',
-        topicsCovered: ['setup'],
       },
       decision: {
         dialogueMode: 'transition',

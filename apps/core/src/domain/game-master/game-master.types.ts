@@ -146,7 +146,6 @@ export interface GameMasterOutput {
 /** Snapshot of GM state fields included in diagnostic event payloads. */
 export type GameMasterStateSummary = {
   progression: string
-  topicsCovered: string[]
 }
 
 /** Structured diagnostic event emitted by the GM after every post-turn run. */

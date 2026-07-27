@@ -174,10 +174,12 @@ Strengthened the Game Master prompt contract with explicit structure and clearer
 
 Refined working-memory generation around structured fields such as `coveredTopics` and aligned the related operator-facing inspection surfaces.
 
-### `8.5 Game Master Post-Analysis Refinement`
+### `8.5 Game Master Post-Analysis Refinement` ✅ Done
 
 **Current state**
-The asynchronous Game Master already provides structured orchestration decisions after each Avatar response. However, its output still mixes orchestration concerns with application-owned state and working-memory responsibilities, while lacking explicit retrieval planning and dialogue-control semantics.
+The asynchronous Game Master provides structured orchestration decisions after each Avatar response.
+Its output is focused on next-turn orchestration, with memory compaction and application state kept
+under their owning boundaries.
 
 **Purpose**
 Improve the quality, maintainability, and usefulness of asynchronous Game Master orchestration without changing the existing runtime architecture or introducing additional latency.

@@ -267,7 +267,6 @@ function resolveGmState(
   return {
     ...(activeAvatarId !== undefined ? { currentAvatarId: activeAvatarId } : {}),
     progression: '',
-    topicsCovered: [],
     interactionCount: 0,
   }
 }

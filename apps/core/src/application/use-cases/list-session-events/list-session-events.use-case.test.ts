@@ -213,12 +213,10 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
         interactionCount: 5,
         stateBefore: {
           progression: 'intro',
-          topicsCovered: ['setup'],
         },
         gmContext: {
           currentState: {
             progression: 'intro',
-            topicsCovered: ['setup'],
             interactionCount: 5,
           },
           availableAvatars: [{ avatarId: 'avatar_1', name: 'Clara', availability: 'available' }],
@@ -278,7 +276,6 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
         },
         stateAfter: {
           progression: 'advanced',
-          topicsCovered: ['setup', 'handoff'],
         },
         latencyMs: 12,
         totalLatencyMs: 18,
@@ -308,7 +305,6 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
         interactionCount: 6,
         stateBefore: {
           progression: 'intro',
-          topicsCovered: ['setup'],
         },
         latencyMs: 2,
         errorCode: 'llm_error',

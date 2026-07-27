@@ -237,13 +237,15 @@ function makeGmContext(): RuntimeInspectorViewModel['context']['gmContext'] {
   return {
     currentState: {
       progression: 'intro',
-      topicsCovered: [],
       interactionCount: 1,
     },
     availableAvatars: [{ avatarId: 'avatar_1', name: 'Ava', availability: 'available' }],
     sections: {
       conversationState: {
-        recentMessages: [{ role: 'user', content: 'u' }, { role: 'avatar', content: 'a' }],
+        recentMessages: [
+          { role: 'user', content: 'u' },
+          { role: 'avatar', content: 'a' },
+        ],
         memory: {
           workingMemory: {
             summary: 'active working summary',
@@ -348,7 +350,6 @@ function makeGmEvent(): RuntimeInspectorViewModel['recentEvents'][number] {
       interactionCount: 2,
       stateBefore: {
         progression: 'intro',
-        topicsCovered: [],
       },
       decision: {
         dialogueMode: 'avatar_guided',
@@ -372,7 +373,6 @@ function makeGmEvent(): RuntimeInspectorViewModel['recentEvents'][number] {
       },
       stateAfter: {
         progression: 'deep_dive',
-        topicsCovered: ['architecture'],
       },
       latencyMs: 123,
     },

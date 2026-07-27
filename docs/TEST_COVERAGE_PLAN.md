@@ -76,6 +76,7 @@ Must cover:
 - state reducer logic
 - unlock and switch validation
 - safe failure isolation and `gm_error` diagnostics
+- invalid-output diagnostics contain bounded metadata only and never raw prompt/user content
 - memory/persona/retrieval threading into GM input
 - consumer-boundary assertions for the actual `llm.complete` request
 - one integration-tier proof of the composed GM runtime path
@@ -90,6 +91,7 @@ Must cover:
 - working-memory rewrite persistence
 - `coveredTopics` and `unresolvedThreads` behavior, including removal of resolved threads
 - candidate-fact filtering versus durable user-fact persistence/injection
+- contradicted Avatar claims are excluded while user-supported and verified facts remain eligible
 - post-turn compaction every third exchange plus close, avatar-switch, and admin triggers
 - episodic memory creation on close
 - user fact extraction rules

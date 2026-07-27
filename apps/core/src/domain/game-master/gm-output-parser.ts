@@ -37,8 +37,8 @@ export function safeParseGameMasterOutput(content: string): GameMasterOutput | n
     if (output !== null) {
       return output
     }
-  } catch (parseError) {
-    console.error('[GM] Failed to parse Game Master output JSON:', content, parseError)
+  } catch {
+    console.error('[GM] Failed to parse Game Master output JSON.')
     return null
   }
 

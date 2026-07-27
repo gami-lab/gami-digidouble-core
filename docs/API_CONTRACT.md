@@ -259,6 +259,10 @@ Runtime precedence:
 - Admin event payloads may include counts, flags, latency, effective models, and bounded selection metadata.
 - Admin event payloads must not include raw prompt text, secrets, or unbounded transcript content.
 - Session context is a bounded current snapshot, not a replay of a specific historical turn.
+- Current shared GM state projections expose progression and interaction count; covered topics are
+  exposed only under memory-owned working-memory sections.
+- Legacy `gm_states.topics_covered` data may be read for persistence compatibility but is omitted
+  from current admin DTOs and runtime event summaries.
 
 ## Validation And Status Rules
 

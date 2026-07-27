@@ -305,6 +305,10 @@ Static GM system instructions and dynamic GM input rendering remain separate can
 boundaries (`domain/game-master/gm-prompt.service.ts` and
 `domain/game-master/gm-input-renderer.ts` respectively); application orchestration wires
 those contracts without introducing a parallel prompt shape.
+The application use case keeps workflow coordination explicit while context loading, routing
+validation, and result persistence live in focused collaborators. Legacy GM topic columns remain
+a persistence-compatibility concern; current runtime and inspection projections read topics from
+conversation working memory only.
 
 #### 3) Avatar Routing / Transition Engine
 
@@ -336,6 +340,8 @@ Contains:
 
 Avoid storing noise.
 No full transcript replay in context.
+Working-memory compaction rejects unsupported contradicted Avatar claims before persistence; Avatar
+statements are not canonical memory without user or verified-context support.
 
 ---
 

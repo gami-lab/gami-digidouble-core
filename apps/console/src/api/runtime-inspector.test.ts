@@ -213,7 +213,6 @@ function arrangeSession2(): void {
       },
       gmState: {
         progression: 'intro',
-        topicsCovered: [],
         interactionCount: 1,
       },
       transitionHistory: [],
@@ -306,7 +305,6 @@ function makeContextResponse(
     gmContext: {
       currentState: {
         progression: '',
-        topicsCovered: [],
         interactionCount: 0,
       },
       availableAvatars: [],

@@ -155,6 +155,47 @@ describe('RunGameMasterUseCase — defensive error paths', () => {
     expect(saveGmStateMock).not.toHaveBeenCalled()
   })
 
+  it('records only bounded metadata for invalid output diagnostics', async () => {
+    completeMock.mockResolvedValueOnce({
+      content: '{invalid_json with user secret}',
+      model: 'null-model',
+      inputTokens: 5,
+      outputTokens: 5,
+      latencyMs: 1,
+    })
+    const useCase = createUseCase()
+
+    await expectConsoleError(
+      () =>
+        useCase.execute({
+          sessionId: 'session_1',
+          scenarioId: 'scenario_1',
+          avatarId: 'avatar_1',
+          userMessageText: 'user secret',
+          turnIndex: 6,
+          correlationId: 'corr_bounded_trace',
+        }),
+      /Failed to parse Game Master output JSON/,
+    )
+
+    const invalidOutputTrace = traceMock.mock.calls
+      .map((call) => call[0] as Record<string, unknown>)
+      .find((event) => event['event'] === 'gm.invalid_output')
+
+    expect(invalidOutputTrace).toMatchObject({
+      event: 'gm.invalid_output',
+      input: { triggerReason: 'post_turn_observation' },
+      metadata: {
+        model: 'null-model',
+        failure: 'invalid_output',
+        responseLength: '{invalid_json with user secret}'.length,
+      },
+    })
+    expect(invalidOutputTrace).not.toHaveProperty('output')
+    expect(JSON.stringify(invalidOutputTrace)).not.toContain('user secret')
+    expect(JSON.stringify(invalidOutputTrace)).not.toContain('systemPrompt')
+  })
+
   it('does not update session when activeAvatarId is unchanged', async () => {
     const useCase = createUseCase()
 

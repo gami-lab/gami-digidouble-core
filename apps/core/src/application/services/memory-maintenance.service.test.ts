@@ -334,10 +334,7 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
 
     await expect(workingMemory.findByConversationId('conversation_1')).resolves.toMatchObject({
       unresolvedThreads: ['Clarify Mona current confirmed location.'],
-      candidateFacts: [
-        { category: 'context', key: 'mona_current_location', value: 'with grandfather' },
-        { category: 'preference', key: 'favorite_color', value: 'blue' },
-      ],
+      candidateFacts: [{ category: 'preference', key: 'favorite_color', value: 'blue' }],
     })
   })
 

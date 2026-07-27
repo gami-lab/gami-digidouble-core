@@ -35,7 +35,43 @@ export function isUnsupportedContradictedAvatarClaim(
 }
 
 function containsFactText(text: string, fact: MemoryFactRecord): boolean {
-  const normalizedText = text.replace(/\s+/g, ' ').trim().toLowerCase()
-  const normalizedValue = fact.value.replace(/\s+/g, ' ').trim().toLowerCase()
-  return normalizedValue.length > 0 && normalizedText.includes(normalizedValue)
+  const normalizedText = normalizeText(text)
+  const normalizedValue = normalizeText(fact.value)
+  if (normalizedValue.length === 0) return false
+  if (normalizedText.includes(normalizedValue)) return true
+
+  const valueTokens = significantTokens(normalizedValue)
+  if (valueTokens.length === 0) return false
+  const textTokens = significantTokens(normalizedText)
+  let nextTokenIndex = 0
+
+  return valueTokens.every((valueToken) => {
+    const matchingIndex = textTokens.indexOf(valueToken, nextTokenIndex)
+    if (matchingIndex === -1) return false
+    nextTokenIndex = matchingIndex + 1
+    return true
+  })
 }
+
+function normalizeText(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+function significantTokens(value: string): string[] {
+  return value
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length > 2 && !CONTRADICTION_STOP_WORDS.has(token))
+}
+
+const CONTRADICTION_STOP_WORDS = new Set([
+  'the',
+  'and',
+  'for',
+  'from',
+  'her',
+  'his',
+  'their',
+  'with',
+  'that',
+  'this',
+])

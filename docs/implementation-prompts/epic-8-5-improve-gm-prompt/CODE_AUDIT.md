@@ -170,3 +170,81 @@ Missing or insufficient tests:
 - **Rework before close**
 
 The EPIC can be closed after the critical memory contradiction behavior and diagnostic-safety issues are corrected and verified. The remaining coordinator size and compatibility projection debt can be tracked as follow-up if the team explicitly accepts it, but the current false-confidence test and raw diagnostic data path should not be carried forward as closed-EPIC quality.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Strengthened contradiction detection so natural-language Avatar claims such as “with her
+  grandfather” are matched against compact fact values such as “with grandfather”.
+- Corrected the Mona regression test to prove the contradicted candidate fact is excluded while the
+  unresolved thread remains.
+- Added direct contradiction-policy tests for natural-language contradiction, later user support,
+  and verified canonical context.
+- Removed raw invalid GM output, full prompt requests, and parser payloads from diagnostics. Invalid
+  output traces now contain only bounded failure metadata, response length, latency, and token
+  counts.
+- Removed `topicsCovered` from current shared GM state summaries, runtime event summaries, admin
+  inspection responses, and GM context projections. Legacy persisted columns remain readable only
+  through compatibility state handling.
+- Split the GM application coordinator into focused context-loading, routing-validation, and
+  result-persistence modules, and reduced the main use case below the lint complexity/size limits.
+- Added a behavior-level diagnostic redaction test and updated console/admin contract fixtures.
+- Synchronized `API_CONTRACT.md`, `ARCHITECTURE.md`, `DATA_MODEL.md`, `TEST_STRATEGY.md`,
+  `TEST_COVERAGE_PLAN.md`, `PROJECT_STATUS.md`, and `EPICS.md`.
+
+### Findings Resolved
+
+- **Contradicted Avatar claims:** Resolved. The durable working-memory path now rejects the
+  contradicted Mona claim, preserves the unresolved thread, and has focused policy coverage.
+- **Raw invalid-output diagnostics:** Resolved. The trace and parser failure paths no longer carry
+  raw prompts, user messages, or model response content.
+- **Legacy `topicsCovered` contract drift:** Resolved for current consumers. The field remains only
+  in the persisted/domain compatibility shape and is not emitted through current shared/admin
+  projections.
+- **Oversized GM coordinator:** Resolved. Context loading, routing validation, and result
+  persistence have explicit focused boundaries; the main use case is now 451 lines and passes
+  lint without a file-level size suppression.
+- **EPIC behavior confidence:** Resolved for the EPIC path. The full workspace suite passes, and the
+  composed GM runtime and platform-owned avatar handoff integration tests pass directly.
+
+### Findings Deferred
+
+- The aggregate integration/E2E command still requires the repository's external service
+  environment and did not complete in this audit shell. The two EPIC-specific integration tests
+  pass directly; Postgres-backed coverage remains a CI/stack execution responsibility rather than
+  an unresolved EPIC code defect.
+- The contradiction matcher is intentionally bounded and deterministic; deep semantic paraphrase
+  detection remains an LLM/data-contract concern and is not promoted into speculative policy logic.
+
+### Build Gates
+
+- lint: **PASS** — `pnpm lint`
+- typecheck: **PASS** — `pnpm typecheck`
+- tests: **PASS** — `pnpm test`; 141 core test files and 882 core tests passed, with all workspace packages passing
+- coverage: **PASS** — `pnpm test:coverage`; core reported 87.55% statements, 84.87% branches, 96.60% functions, and 87.55% lines
+- EPIC integration tests: **PASS** — composed GM runtime and platform-owned avatar handoff tests
+
+### Final Feature Confidence
+
+- Asynchronous single-call GM post-analysis: **High** — full unit coverage plus composed runtime
+  integration coverage.
+- Dialogue-control and retrieval-plan contract propagation: **High** — parser, prompt, next-turn
+  consumer, stale-plan, and insufficient-evidence tests pass.
+- Routing, unlocking, and platform-owned handoff: **High** — deterministic validation and focused
+  integration handoff coverage pass.
+- Memory ownership and contradiction filtering: **High** — corrected consumer persistence assertion
+  plus direct policy tests for contradiction, user support, and verified context.
+- Safe diagnostics and current shared/admin contracts: **High** — redaction behavior and consumer
+  projection tests pass.
+
+### Final Grade
+
+**A — safe foundation with strong behavioral proof**
+
+### Remaining Risks
+
+- Full Postgres/HTTP integration execution should remain part of CI with its documented service
+  prerequisites. This audit environment could not complete the aggregate command.
+- No test attempts to judge LLM writing quality; tests continue to verify contracts, state,
+  persistence, routing, retrieval safety, and diagnostics as required by the test strategy.

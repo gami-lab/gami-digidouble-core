@@ -47,7 +47,6 @@ export type UpsertUserPersonaResponse = {
 
 export type GmStateSummary = {
   progression: string
-  topicsCovered: string[]
   interactionCount: number
 }
 

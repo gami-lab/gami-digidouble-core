@@ -40,8 +40,8 @@ export class InspectSessionUseCase {
           gmState === null
             ? null
             : {
-                ...gmState,
-                topicsCovered: gmState.topicsCovered ?? [],
+                progression: gmState.progression,
+                interactionCount: gmState.interactionCount,
               },
         transitionHistory: toTransitionHistory(conversations),
         unlockedAvatarIds: session.unlockedAvatarIds ?? [],

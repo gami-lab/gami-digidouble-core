@@ -137,7 +137,6 @@ function makeContextPayload(): AdminSessionContextResponse {
     gmContext: {
       currentState: {
         progression: '',
-        topicsCovered: [],
         interactionCount: 0,
       },
       availableAvatars: [],

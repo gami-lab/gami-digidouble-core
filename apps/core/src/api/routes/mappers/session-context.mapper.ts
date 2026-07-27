@@ -60,8 +60,8 @@ function toAvatarContext(
 function toGmContext(snapshot: SessionContextSnapshot): AdminSessionContextResponse['gmContext'] {
   return {
     currentState: {
-      ...snapshot.gmContext.currentState,
-      topicsCovered: snapshot.gmContext.currentState.topicsCovered ?? [],
+      progression: snapshot.gmContext.currentState.progression,
+      interactionCount: snapshot.gmContext.currentState.interactionCount,
     },
     availableAvatars: snapshot.gmContext.availableAvatars.map((avatar) => ({ ...avatar })),
     sections: {

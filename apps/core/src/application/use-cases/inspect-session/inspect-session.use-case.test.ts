@@ -206,7 +206,6 @@ describe('InspectSessionUseCase', () => {
     })
     expect(output.inspect.gmState).toEqual({
       progression: 'intro complete',
-      topicsCovered: ['setup'],
       interactionCount: 4,
     })
     expect(output.inspect.unlockedAvatarIds).toEqual(['avatar_1', 'avatar_2'])

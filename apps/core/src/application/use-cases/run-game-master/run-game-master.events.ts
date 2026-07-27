@@ -14,10 +14,6 @@ export async function handleInvalidGameMasterOutput(args: {
   input: RunGameMasterInput
   currentState: GameMasterState
   triggerReason: string
-  llmRequest: {
-    systemPrompt: string
-    messages: Array<{ role: 'user'; content: string }>
-  }
   llmResponse: {
     content: string
     model: string
@@ -44,13 +40,15 @@ export async function handleInvalidGameMasterOutput(args: {
     event: 'gm.invalid_output',
     input: {
       triggerReason: args.triggerReason,
-      llmRequest: args.llmRequest,
     },
-    output: args.llmResponse.content,
     latencyMs: Date.now() - args.llmStart,
     inputTokens: args.llmResponse.inputTokens,
     outputTokens: args.llmResponse.outputTokens,
-    metadata: { model: args.llmResponse.model },
+    metadata: {
+      model: args.llmResponse.model,
+      failure: 'invalid_output',
+      responseLength: args.llmResponse.content.length,
+    },
   })
 }
 
@@ -97,10 +95,6 @@ export async function emitTriggeredGameMasterTurn(args: {
   gmRunStartMs: number
   llmStart: number
   llmLatencyMs: number
-  llmRequest: {
-    systemPrompt: string
-    messages: Array<{ role: 'user'; content: string }>
-  }
   llmResponse: {
     model: string
     inputTokens: number
@@ -171,7 +165,6 @@ export async function emitEventSafe(
 export function buildStateSummary(state: GameMasterState): GameMasterStateSummary {
   return {
     progression: state.progression,
-    topicsCovered: state.topicsCovered ?? [],
   }
 }
 

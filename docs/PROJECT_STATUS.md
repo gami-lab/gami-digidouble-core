@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4
 
 ## Snapshot
@@ -52,6 +52,8 @@ The platform is now a working headless conversational runtime with:
 - Avatar retrieval keeps the best distinct match for the user question, GM retrieval queries, and GM required facts before filling remaining slots by global score; retrieval diagnostics preserve the matched input and chunk content for console inspection. Runtime events now expose the GM retrieval plan and link it to the subsequent Avatar turn, including per-proposal match outcomes.
 - Required retrieval gaps inject explicit uncertainty guidance, and invalid routing falls back to `stay` without changing progression or memory ownership.
 - Safe GM diagnostics are recorded in the event log and exposed through admin APIs.
+- Invalid-output traces and parser failures record bounded metadata only; raw prompts, user
+  messages, and model responses are excluded.
 - GM state no longer persists legacy topic updates or interaction increments; session/conversation
   state owns Avatar routing and application code increments completed-exchange counts.
 - Prompt 4 regression coverage protects the output contract, dynamic routing schemas, next-turn
@@ -66,8 +68,12 @@ The platform is now a working headless conversational runtime with:
 - Working memory now includes `summary`, `unresolvedThreads`, and `coveredTopics`.
 - Memory compaction is the sole writer of `summary`, `coveredTopics`, `unresolvedThreads`, and
   `candidateFacts`; Avatar claims remain untrusted unless user-supported or provenance-labeled.
+- Contradicted Avatar claims are filtered before working-memory persistence, while user-supported
+  and verified-context claims remain eligible.
 - Legacy GM state and pending orchestration records remain readable through compatibility
   normalization, with ambiguous legacy routing ignored.
+- Legacy `topics_covered` values remain persistence-compatible but are omitted from current
+  shared/admin GM projections.
 - Memory layers are inspectable through admin routes and runtime tooling.
 
 ### Knowledge And Context

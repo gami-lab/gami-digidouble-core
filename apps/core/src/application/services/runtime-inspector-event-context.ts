@@ -48,8 +48,8 @@ export function toRecordedGmContextSnapshot(
 
   return {
     currentState: {
-      ...snapshot.currentState,
-      topicsCovered: snapshot.currentState.topicsCovered ?? [],
+      progression: snapshot.currentState.progression,
+      interactionCount: snapshot.currentState.interactionCount,
     },
     availableAvatars: snapshot.availableAvatars,
     sections: {

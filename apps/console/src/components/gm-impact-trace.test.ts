@@ -119,7 +119,6 @@ function makeViewModel(): RuntimeInspectorViewModel {
       gmContext: {
         currentState: {
           progression: '',
-          topicsCovered: [],
           interactionCount: 0,
         },
         availableAvatars: [],
@@ -190,7 +189,6 @@ function makeViewModel(): RuntimeInspectorViewModel {
           gmContext: {
             currentState: {
               progression: 'intro',
-              topicsCovered: [],
               interactionCount: 2,
             },
             availableAvatars: [
@@ -239,7 +237,6 @@ function makeViewModel(): RuntimeInspectorViewModel {
           },
           stateBefore: {
             progression: 'intro',
-            topicsCovered: [],
           },
           decision: {
             dialogueMode: 'transition',
@@ -264,7 +261,6 @@ function makeViewModel(): RuntimeInspectorViewModel {
           },
           stateAfter: {
             progression: 'deep_dive',
-            topicsCovered: ['architecture'],
           },
           latencyMs: 40,
         },
@@ -525,7 +521,7 @@ describe('buildGmImpactTrace', () => {
           triggerReason: 'post_turn_observation',
           turnIndex: 5,
           interactionCount: 12,
-          stateBefore: { progression: 'advanced', topicsCovered: [] },
+          stateBefore: { progression: 'advanced' },
           decision: {
             dialogueMode: 'user_led',
             askFollowUp: false,
@@ -534,7 +530,7 @@ describe('buildGmImpactTrace', () => {
             retrievalRequired: false,
             progression: 'none',
           },
-          stateAfter: { progression: 'advanced', topicsCovered: [] },
+          stateAfter: { progression: 'advanced' },
           latencyMs: 40,
         },
       },
@@ -546,7 +542,7 @@ describe('buildGmImpactTrace', () => {
           triggerReason: 'post_turn_observation',
           turnIndex: 1,
           interactionCount: 16,
-          stateBefore: { progression: 'advanced', topicsCovered: [] },
+          stateBefore: { progression: 'advanced' },
           decision: {
             dialogueMode: 'user_led',
             askFollowUp: false,
@@ -555,7 +551,7 @@ describe('buildGmImpactTrace', () => {
             retrievalRequired: false,
             progression: 'none',
           },
-          stateAfter: { progression: 'advanced', topicsCovered: [] },
+          stateAfter: { progression: 'advanced' },
           latencyMs: 42,
         },
       },

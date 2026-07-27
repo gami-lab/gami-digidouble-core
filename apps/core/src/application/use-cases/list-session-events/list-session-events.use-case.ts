@@ -347,7 +347,6 @@ function readStateSummary(value: unknown): GameMasterStateSummary {
   const record = isRecord(value) ? value : {}
   return {
     progression: typeof record['progression'] === 'string' ? record['progression'] : '',
-    topicsCovered: readStringArray(record['topicsCovered']),
   }
 }
 
