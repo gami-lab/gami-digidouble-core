@@ -1,243 +1,172 @@
-# Code Audit — EPIC 8.5: Game Master Post-Analysis Refinement
+# Code Audit — EPIC 8.5: Improve Game Master Prompt
 
 ## Scope audited
 
-This audit covers the EPIC README and prompts `00` through `03`, the implementation in `apps/core` and `packages/shared`, the related persistence and runtime-inspection paths, and the tests that exercise the Game Master, Avatar prompt, retrieval, routing, memory, and observability behavior.
+This audit covers the implementation described in:
 
-The review was aligned with `docs/VISION.md`, `docs/PRINCIPLES.md`, `docs/ARCHITECTURE.md`, `docs/TECH_STACK.md`, `docs/DATA_MODEL.md`, `docs/API_CONTRACT.md`, `docs/TEST_STRATEGY.md`, `docs/TEST_COVERAGE_PLAN.md`, `docs/EPICS.md`, `docs/PROJECT_STATUS.md`, `docs/GAME_MASTER_CONTRACT.md`, and `docs/MEMORY_SYSTEM_SPEC.md`.
+- `docs/implementation-prompts/epic-8-5-improve-gm-prompt/README.md`
+
+The review was aligned with:
+
+- `docs/VISION.md`
+- `docs/PRINCIPLES.md`
+- `docs/ARCHITECTURE.md`
+- `docs/TECH_STACK.md`
+- `docs/DATA_MODEL.md`
+- `docs/API_CONTRACT.md`
+- `docs/TEST_STRATEGY.md`
+- `docs/TEST_COVERAGE_PLAN.md`
+- `docs/EPICS.md`
+- `docs/PROJECT_STATUS.md`
+- `docs/GAME_MASTER_CONTRACT.md`
+- `docs/MEMORY_SYSTEM_SPEC.md`
+
+The implementation, tests, shared contracts, mappers, persistence paths, and observability paths were inspected. The mandatory workspace commands were executed from the repository root.
 
 ## Executive Summary
 
-EPIC 8.5 is substantially implemented. The code introduces the intended structured dialogue control, retrieval planning, dynamic routing prompt, next-turn orchestration state, memory-compaction ownership rules, failure isolation, diagnostics, and focused deterministic tests. The normal Avatar path remains separate from asynchronous GM execution, and the required repository checks are green.
+EPIC 8.5 is substantially implemented. The Game Master now performs an asynchronous post-analysis call, emits structured dialogue and retrieval guidance, supports dynamic routing/unlock instructions, persists next-turn orchestration, and keeps Avatar response generation on the critical path. The implementation also contains useful deterministic coverage for prompt structure, routing normalization, retrieval-plan consumption, stale-plan suppression, persistence failures, and platform-owned avatar switching.
 
-The implementation is substantially complete and the two previously disputed behaviors are intentional design choices. The remaining concerns are contract synchronization, missing negative-path proof, persistence compatibility, and maintainability:
+The implementation is not ready for an A-grade close. The most important failure is in the memory contradiction requirement: a test named for excluding contradicted Avatar claims actually expects the contradicted claim to remain in candidate facts, and the current contradiction policy does not recognize the test's natural-language contradiction. This is false confidence around a core data-integrity behavior. In addition, invalid-output tracing sends the raw LLM request, including rendered user content and prompts, into a diagnostic trace despite the project contract prohibiting raw prompts and raw user content in diagnostics. The obsolete `topicsCovered` field also remains in current shared/admin state projections even though memory compaction is intended to own that data.
 
-1. Stale retrieval suppression is heuristic and treats generic factual questions such as “What is your favorite color?” as continuation of the old plan. The EPIC explicitly requires unrelated messages not to reuse stale retrieval intent, but no negative test proves this.
-2. The persisted orchestration normalizer silently drops currently supported `scopes` and `unlockDecisions` fields.
-3. Memory contradiction filtering, post-LLM persistence diagnostics, and the large GM application coordinator retain meaningful structural debt.
-
-These are behavior, compatibility, and maintainability issues, not coverage-threshold failures. They should be tracked, but the accepted Director Notes and Avatar-switch ownership decisions do not by themselves prevent EPIC closure.
+The mandatory quality gates pass. Coverage is high, but coverage does not compensate for the incorrect memory assertion or for the unavailable integration/E2E environment.
 
 ## Final Grade
 
-**C — acceptable with meaningful follow-up debt; close with debt.**
+**C — acceptable but meaningful weaknesses**
 
-The grade is driven by stale-plan leakage into unrelated factual turns, persistence field loss, broad contradiction filtering, incomplete failure diagnostics, and avoidable coordinator coupling. The implementation intentionally requires non-empty Director Notes, and GM switching intentionally delegates conversation lifecycle to the platform mechanism; both decisions need source-of-truth documentation and boundary-level tests. Lint, typecheck, tests, and coverage are healthy, but coverage does not prove the missing consumer handoff behavior.
+The EPIC delivers most requested behavior and has a solid foundation, but the memory-safety DoD is not proven and the current diagnostic path violates the observability/privacy contract. These are fixable, but they should be addressed before treating the EPIC as fully closed.
 
 ## Build Health
 
-- lint: PASS
-- typecheck: PASS
-- tests: PASS — 874 core tests across 140 files; all workspace test tasks passed
-- coverage: PASS — 87.39% statements, 84.57% branches, 96.57% functions, 87.39% lines
-
-Commands run:
-
-- `pnpm lint`
-- `pnpm typecheck`
-- `pnpm test`
-- `pnpm test:coverage`
+- lint: **PASS** — `pnpm lint`
+- typecheck: **PASS** — `pnpm typecheck`
+- tests: **PASS** — `pnpm test`; 140 core test files and 878 core tests passed, with the workspace packages also passing
+- coverage: **PASS** — `pnpm test:coverage`; core reported 87.56% statements, 84.66% branches, 96.69% functions, and 87.56% lines
+- integration/E2E additional check: **INCOMPLETE/FAIL** — `pnpm test:integration-e2e` produced no test output and hung until interrupted; the command exited with code 1. This is an environment/runner confidence gap, not a failure of the mandatory unit command.
 
 ## Feature Confidence Matrix
 
-| Feature                                | Expected Behavior                                                                                                                     | Evidence                                                                                                                                       | Confidence (High/Medium/Low) | Notes                                                                                                                                                                            |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Async single-call GM lifecycle         | Avatar response completes without waiting for post-turn GM execution; one GM call prepares the next turn                              | `SendMessageUseCase.schedulePostTurnWork()` dispatches GM with `void` and a catch handler; async lifecycle tests and integration coverage pass | High                         | No second GM call was found in the normal message path.                                                                                                                          |
-| Dialogue-control contract              | Five modes and explicit `askFollowUp` reach the Avatar prompt; the accepted implementation contract requires non-empty Director Notes | `gm-output-parser.test.ts`, `persona-prompt.service.test.ts`, and send-message prompt assertions                                               | Medium                       | Structured prompt guidance is proven, but no test proves generated Avatar behavior. The EPIC README still describes Director Notes as optional.                                  |
-| Retrieval planning and consumption     | Stored intent is combined with the next related user message, retrieved, injected, and consumed once                                  | `send-message.use-case.test.ts`, typed retrieval query-builder tests, turn-completed metadata                                                  | Medium                       | The related-turn path works, but unrelated factual turns can retain stale planning.                                                                                              |
-| Mandatory retrieval failure safety     | Missing/failed required retrieval produces uncertainty guidance instead of fabricated certainty                                       | `send-message.use-case.ts` sets `insufficient_evidence`; send-message tests assert the prompt guidance                                         | High                         | This protects the prompt boundary; response-quality behavior remains model-dependent.                                                                                            |
-| Dynamic routing schema                 | Impossible routing actions are omitted; valid suggest/switch/unlock actions are validated                                             | `gm-prompt.service.test.ts`, unlock tests, normalization tests                                                                                 | Medium                       | Schema capability omission is covered. Conversation lifecycle is intentionally delegated to the platform switch mechanism.                                                       |
-| Avatar switch                          | GM records the next active Avatar; the platform owns conversation handoff                                                             | `run-game-master.avatar-switch.use-case.test.ts`; existing `SwitchAvatarUseCase` lifecycle path                                                | Medium                       | GM does not create/close conversations or emit a duplicate switch event by design. No end-to-end test proves which consumer invokes the platform handoff after GM state changes. |
-| Memory ownership                       | Compaction solely owns summary, covered topics, unresolved threads, and candidate facts                                               | `memory-maintenance.service.test.ts`, compaction prompt, working-memory repository paths                                                       | Medium                       | Ownership boundary is clear, but contradiction filtering is broader than the contradicted fact.                                                                                  |
-| Provenance and contradiction handling  | Unsupported Avatar claims are not persisted; verified context can support a fact                                                      | Mona and verified-context tests in `memory-maintenance.service.test.ts`                                                                        | Medium                       | The Mona case is covered; unrelated candidate facts in the same contradiction window are not.                                                                                    |
-| Observability and operator diagnostics | Safe GM events, latency/token metadata, correlation IDs, and retrieval links are available                                            | GM event tests, integration trace assertions, shared runtime inspector DTOs                                                                    | High                         | Persistence failure after LLM success is not converted into a `gm_error` diagnostic.                                                                                             |
-| Compatibility migration                | Existing persisted GM state remains readable without copying removed ownership fields                                                 | `gm-state-migration.test.ts`, Postgres repository normalization                                                                                | Medium                       | Current supported `scopes` and `unlockDecisions` fields are silently dropped on normalization.                                                                                   |
+| Feature                                     | Expected Behavior                                                                                                                                      | Evidence                                                                                                     | Confidence (High/Medium/Low) | Notes                                                                                                                                                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Asynchronous GM post-analysis               | Avatar response is not blocked by GM analysis; GM runs after the turn and persists guidance for a later turn                                           | `send-message.use-case.ts`, `run-game-master.use-case.ts`, async scheduling tests and event tests            | High                         | The critical-path separation is clear and covered at the application boundary.                                                                                                                |
+| Explicit dialogue control                   | GM emits one of the documented modes with explicit `askFollowUp`; Avatar receives the guidance                                                         | `gm-output-parser.ts`, `gm-prompt.service.ts`, `send-message.use-case.ts`, parser/prompt/Avatar prompt tests | Medium                       | Contract and prompt propagation are tested; there is limited consumer-level proof of the resulting conversation behavior because LLM writing is intentionally not tested.                     |
+| First-class retrieval planning              | Retrieval plan is consumed on the next relevant turn, combined with the latest user message, and mandatory retrieval failure prevents fabricated facts | `send-message.use-case.ts`, retrieval-plan query tests, stale-plan tests, insufficient-evidence prompt tests | Medium                       | Strong deterministic boundary coverage exists, but the available integration/E2E command could not be completed.                                                                              |
+| Dynamic routing and unlocks                 | Routing schema is emitted only when meaningful; invalid/unavailable targets do not cause invalid switches; platform owns the actual handoff            | `gm-prompt.service.ts`, normalization/use-case tests, avatar-switch integration test                         | Medium                       | The handoff test explicitly invokes the platform switch use case after GM output, which matches the architecture. The integration tier is not runnable in the current check.                  |
+| Memory ownership and contradiction handling | Compaction owns summary/topics/unresolved/candidate facts and contradicted Avatar claims are not automatically persisted                               | `memory-maintenance.service.ts`, `memory-contradiction.policy.ts`, memory maintenance tests                  | Low                          | Ownership is represented in prompts and persistence code, but the central contradiction regression test expects the prohibited claim to remain and the natural-language case is not filtered. |
+| Director Notes and next-turn state          | Non-empty notes and structured orchestration are persisted for the next relevant turn                                                                  | `gm-output-parser.ts`, `run-game-master.use-case.ts`, state/persistence tests                                | High                         | Required-note validation and persistence/error paths are directly tested.                                                                                                                     |
+| Operational diagnostics                     | Events and traces are safe, bounded, and useful for debugging without exposing raw prompts or user content                                             | `run-game-master.events.ts`, parser logging, adapter trace metadata, event tests                             | Low                          | Normal events are bounded, but the invalid-output trace and parser error log include raw request/response material.                                                                           |
 
 ## Strengths
 
-- The async Director–Actor boundary is preserved. GM work is launched after a completed Avatar turn and is isolated from the normal response promise.
-- GM contracts are separated into domain types, a parser, runtime normalization, static prompt construction, and dynamic input rendering. This is a clean replaceable boundary around LLM behavior.
-- Routing capability is derived from the runtime roster instead of always exposing every action. Single-Avatar and no-locked-Avatar prompts are materially smaller and omit impossible actions.
-- Retrieval queries and required facts are carried as typed variants, combined with the latest user message, and exposed in bounded turn diagnostics.
-- Memory compaction is the intended owner of `summary`, `coveredTopics`, `unresolvedThreads`, and `candidateFacts`; GM state reduction no longer updates those fields or the interaction count.
-- The compaction prompt explicitly distinguishes Avatar claims from canonical facts and labels verified context.
-- Event payloads avoid raw prompts and user text while retaining correlation, latency, token, routing, and retrieval metadata.
-- Deterministic tests cover parser rejection, dynamic prompt capability, retrieval composition, memory provenance, invalid routing, GM errors, and the composed in-memory GM path.
+- The implementation follows the intended API → Application → Domain → Infrastructure direction. Prompt assembly, parsing, and deterministic normalization are kept out of API handlers.
+- Provider access is routed through the internal LLM/model abstraction rather than leaking a vendor SDK into domain logic.
+- The Avatar remains the synchronous user-facing actor while Game Master work is scheduled asynchronously.
+- The prompt has explicit sections and versioning, and dynamic routing reduces schema/prompt noise for single-avatar or no-unlock scenarios.
+- Retrieval planning is represented as structured state rather than an untyped prompt-only convention. The next-turn consumer checks avatar and turn freshness and suppresses stale plans.
+- Routing validation is defensive: unavailable or invalid targets normalize to a safe stay decision, and the platform switch use case remains responsible for the lifecycle handoff.
+- Persistence failure handling is materially better than a best-effort silent write: GM state and notes persistence failures emit structured error events and rethrow.
+- The test suite is deterministic and behavior-oriented in several important areas, especially stale-plan suppression, retrieval failure guidance, parser contracts, dynamic prompt modes, and persistence failure events.
+- The implementation preserves compatibility migration paths for legacy persisted GM state while avoiding use of obsolete state in core GM decision logic.
 
 ## Findings
 
-### GM switch handoff ownership is not documented or end-to-end proven
+### Contradicted Avatar claims are not reliably excluded from memory
 
-- Severity: Medium
-- Category: Architecture / contract observability
-- Problem: `RunGameMasterUseCase` intentionally updates only the session’s `activeAvatarId` (`run-game-master.use-case.ts:544-553`). Conversation close/create and switch signaling are delegated to the platform’s existing avatar-switch mechanism, rather than being duplicated in GM (`run-game-master.use-case.ts:640-668`). The next-turn orchestration is stored with the switched Avatar ID (`run-game-master.use-case.ts:577-592`), while `SendMessageUseCase` only consumes state whose Avatar ID matches the supplied conversation Avatar (`send-message.use-case.ts:485-490`).
-- Why it matters: This is a valid boundary only if a known platform consumer completes the handoff. Without that documented path and an integration test, the old conversation can remain active and the new orchestration can be ignored until the handoff occurs. The current behavior also differs from the close/create wording in `docs/GAME_MASTER_CONTRACT.md:229-235`.
-- Evidence: The EPIC-specific test intentionally asserts no conversation update or creation (`run-game-master.avatar-switch.use-case.test.ts:137-158`). The repository contains a separate `SwitchAvatarUseCase` for platform-owned lifecycle, but no test follows a GM switch through that consumer boundary.
-- Recommendation: Document GM switching as an advisory/session-state update and identify the platform consumer responsible for invoking `SwitchAvatarUseCase`. Add a black-box test covering GM output → consumer handoff → conversation state → next message Avatar and consumed guidance. Only make GM own close/create or emit a separate event if the canonical platform contract requires it.
+- Severity: **Critical**
+- Category: Functional completeness / Test quality / Data integrity
+- Problem: The EPIC DoD requires contradicted Avatar claims not to be automatically persisted. The contradiction policy relies on exact value substring matching and does not recognize the natural-language example in the regression test. More importantly, the test titled `keeps contradicted Avatar claims out of candidate facts and preserves the unresolved thread` supplies `mona_current_location = with grandfather` after an Avatar message saying Mona stayed `with her grandfather`, then asserts that the Mona candidate fact is retained. That assertion confirms the prohibited behavior instead of preventing it.
+- Why it matters: Memory is durable state. Persisting an unsupported or contradicted claim can contaminate future context and make later Avatar responses confidently wrong. A green test run currently gives false confidence on the EPIC's explicit safety requirement.
+- Evidence: `apps/core/src/application/services/memory-maintenance.service.test.ts:288-342`; `apps/core/src/application/services/memory-contradiction.policy.ts`. The policy searches for the exact normalized fact value in prior Avatar messages, so `with grandfather` does not match `with her grandfather`.
+- Recommendation: Correct the regression assertion so the contradicted Mona fact is absent while the unresolved thread remains. Strengthen the policy boundary around entity/value matching or require compaction output to carry provenance/support classification that can be checked deterministically. Add direct policy tests for exact contradiction, paraphrase, later user verification, and unresolved-thread preservation.
 
-### Unrelated factual questions can reuse stale retrieval plans
+### Invalid-output diagnostics expose raw prompts and user content
 
-- Severity: High
-- Category: Retrieval correctness
-- Problem: `shouldUsePlannedRetrieval()` keeps old GM queries when any user token overlaps or when the message contains generic continuation/question words (`typed-retrieval-query-builder.ts:34-67`). The fallback includes `what`, `where`, `why`, and `how`; therefore a new unrelated question such as “What is your favorite color?” can retain a prior Mona-location plan despite having no topic overlap.
-- Why it matters: Old factual context can dominate retrieval for a new subject, produce a false `insufficient_evidence` instruction, and undermine the EPIC requirement that unrelated messages ignore or heavily de-prioritize stale plans.
-- Evidence: Existing tests only cover explicit topic-change phrases and emotional reflection (`typed-retrieval-query-builder.test.ts:88-124`). There is no unrelated factual negative case, no multilingual unrelated case, and no entity/topic fingerprint in the stored orchestration state.
-- Recommendation: Make the default safe behavior to omit planned queries unless the new message shares a meaningful topic/entity signal or an explicit continuation signal. Keep the latest user query and normal working-memory retrieval. Add deterministic tests for unrelated factual questions, topic changes without English trigger phrases, and scenario-language inputs.
+- Severity: **High**
+- Category: Observability / Privacy / Contract compliance
+- Problem: The invalid Game Master output trace passes the full LLM request as trace input and the raw LLM response as trace output. The request contains the system prompt and rendered user/recent conversation content. The parser also writes raw invalid content and the parse error to `console.error`.
+- Why it matters: The Game Master contract explicitly requires diagnostics to avoid raw prompts, raw user content, secrets, and unbounded transcripts. This creates an avoidable privacy and retention risk and makes operator tooling dependent on high-volume, sensitive payloads.
+- Evidence: `apps/core/src/application/services/run-game-master.events.ts:41-54` passes `llmRequest` and `llmResponse.content` to `gm.invalid_output`; `apps/core/src/domain/game-master/gm-output-parser.ts:40-42` logs raw content. The safe event payload path in the same events module demonstrates that bounded structural diagnostics are already available.
+- Recommendation: Emit only bounded metadata for parse failures: trigger reason, model/provider abstraction identifiers, prompt version, content length, parse error class, and a redacted/truncated error fingerprint if needed. Ensure the shared observability adapter applies the same policy to invalid traces and replace raw console logging with the structured logger.
 
-### Director Notes policy conflicts with EPIC documentation
+### Obsolete `topicsCovered` remains a current shared/admin GM contract
 
-- Severity: Medium
-- Category: Documentation / contract alignment
-- Problem: The implementation intentionally requires a non-empty `directorNotes` value: the parser rejects missing/blank notes (`gm-output-parser.ts:69-83`), the static prompt says they are required (`gm-prompt.service.ts:48-52`), and tests protect that behavior. This is accepted implementation policy, but the EPIC README and regression prompt still describe Director Notes as optional.
-- Why it matters: The current code and tests are internally consistent, but the stale EPIC wording can cause a future maintainer to “fix” intentional behavior or can lead clients to omit a value that the parser rejects. The source of truth is ambiguous.
-- Evidence: `gm-output-parser.test.ts` intentionally rejects missing/blank notes; `GameMasterOutput` types `directorNotes` as required; the EPIC README Definition of Done says notes remain optional.
-- Recommendation: Update the EPIC README, implementation prompts, `GAME_MASTER_CONTRACT.md`, and any shared contract documentation to state that Director Notes are required and non-empty. If product policy later returns to optional notes, change the parser/type/prompt/tests together rather than treating this as a parser-only change.
+- Severity: **Medium**
+- Category: Structural maintainability / Contract ownership
+- Problem: The EPIC moves summary, covered topics, unresolved threads, and candidate facts under memory compaction ownership, but `topicsCovered` remains present in the shared `GmStateSummary`, GM session event before/after payloads, runtime inspection context, and session-context mappers. The domain type labels the field as compatibility-only, but the field is still visible as a current GM state field across multiple consumers.
+- Why it matters: A future engineer can reasonably continue writing or consuming the field as authoritative GM state. Every added or renamed field now has multiple projection/mapping sites, increasing drift risk and preserving an ownership boundary the EPIC intended to remove.
+- Evidence: `packages/shared/src/runtime-inspector-types.ts:48-52,96-118`; `apps/core/src/application/services/runtime-inspector-event-context.ts:49-53`; `apps/core/src/api/routes/mappers/session-context.mapper.ts:60-65`; `apps/core/src/application/use-cases/inspect-session/inspect-session.use-case.ts:42-45`; `apps/core/src/application/use-cases/get-session-context/get-session-context.use-case.ts:262-272`.
+- Recommendation: Keep legacy database read compatibility in an explicit adapter, but remove `topicsCovered` from current shared/admin GM projections or clearly expose it under a legacy compatibility shape. Update API/runtime inspection contracts and tests so memory-owned topics are read from working memory only.
 
-### Contradiction filtering rejects unrelated candidate facts
+### The Game Master application use case remains an oversized coordinator
 
-- Severity: Medium
-- Category: Memory correctness
-- Problem: `isUnsupportedContradictedAvatarClaim()` first checks whether the candidate fact itself is user- or provenance-supported, but otherwise rejects it whenever any user message contains a broad contradiction signal and any Avatar message exists (`memory-maintenance.service.ts:432-452`). The contradiction is not associated with the fact’s entity, key, or value.
-- Why it matters: A conversation that challenges one Avatar claim can silently discard unrelated, otherwise safe candidate facts from the same compaction window. This reduces memory quality and makes fact retention depend on unrelated wording.
-- Evidence: The Mona test proves the desired rejection for the target claim, but no test includes a contradicted Mona claim plus an unrelated explicit/stable candidate fact.
-- Recommendation: Associate contradiction detection with the fact-bearing exchange/entity, or require the candidate fact to be traceably derived from the challenged claim before rejecting it. Add a regression test that preserves an unrelated supported fact while dropping the contradicted Mona fact.
+- Severity: **Medium**
+- Category: Architecture / Maintainability
+- Problem: `run-game-master.use-case.ts` is approximately 780 lines and disables the max-lines lint rule. It coordinates trigger decisions, context selection, retrieval, model resolution, prompt construction, LLM invocation, parsing, routing and unlock validation, state reduction, persistence, and event construction.
+- Why it matters: These responsibilities are all in the application layer, so the layer boundary is not violated outright, but the change and failure blast radius is large. A prompt change, routing change, persistence change, or diagnostics change can require editing and retesting the same high-coupling coordinator.
+- Evidence: `apps/core/src/application/use-cases/run-game-master/run-game-master.use-case.ts`, including the file-level max-lines disable and the separate orchestration, routing, persistence, and event concerns.
+- Recommendation: Incrementally extract cohesive, concrete collaborators for context/retrieval loading, output decision application, and result persistence/diagnostics. Keep the use case as the orchestration boundary and avoid introducing a generic workflow framework.
 
-### Persisted orchestration normalization drops supported fields
+### Integration confidence is lower than the green unit result suggests
 
-- Severity: Medium
-- Category: Structural maintainability / compatibility
-- Problem: The current domain contract supports retrieval `scopes` and multi-target routing `unlockDecisions`, but `normalizePersistedOrchestration()` only reads `required`, `queries`, and `requiredFacts` for retrieval and only reads `action`, `avatarId`, and `reason` for routing (`gm-state-migration.ts:98-140`). The Postgres repository normalizes every loaded JSONB orchestration through this function.
-- Why it matters: A state saved with current fields does not round-trip with the same shape after a process restart. `unlockDecisions` can disappear from diagnostics/inspection and future consumers, while `scopes` cannot be recovered if later used by the Avatar retrieval path.
-- Evidence: `RetrievalPlan` and `RoutingDecision` declare these fields in `game-master.types.ts`; migration tests cover legacy conversion but not a complete current-contract round trip.
-- Recommendation: Make the migration normalizer consume the canonical current fields, including scope validation and unlock-decision normalization, and add a persistence round-trip test for the complete current orchestration shape. Keep legacy conversion separate from current-shape parsing.
-
-### The GM application use case has accumulated avoidable coupling
-
-- Severity: Medium
-- Category: Architecture / maintainability
-- Problem: `RunGameMasterUseCase` has 15 constructor dependencies, many optional, suppresses the max-lines rule, and retains an injected `IConversationRepository` that is not used (`run-game-master.use-case.ts:1-89`). It also constructs fallback `MemorySelectionService` instances with casted repository stubs.
-- Why it matters: New orchestration features now expand a large coordinator instead of composing focused application services. Optional dependency combinations are difficult to reason about and can hide missing production wiring. The unused conversation port contributed to the misleading switch test and the incomplete transition behavior.
-- Evidence: Constructor shape and fallback creation in `run-game-master.use-case.ts`; `conversationRepository` has no runtime use in the class.
-- Recommendation: Remove the dead conversation dependency immediately. Then, in the next focused refactor, group required runtime collaborators behind small application ports/services for GM context loading, decision application, and persistence. Do not introduce a generic framework or abstraction layer beyond those concrete seams.
-
-### GM persistence failures are not consistently diagnosable
-
-- Severity: Medium
-- Category: Operations / observability
-- Problem: LLM and invalid-output failures emit `gm_error`, but state persistence and session-note failures after a valid LLM response propagate through the outer catch and only reach the background dispatch log (`run-game-master.use-case.ts:101-125`, `:198-208`). They do not emit a structured `gm_error` with an error code.
-- Why it matters: Operators can see a processing failure but cannot distinguish provider failure from state persistence failure through the documented event surface. This weakens supportability and replay diagnosis.
-- Evidence: `run-game-master.events.ts` defines safe error emission for `llm_error` and `invalid_output`; no equivalent persistence error path exists.
-- Recommendation: Wrap the post-LLM persistence boundary with a safe `gm_error` emission using a bounded persistence error code and correlation metadata, while preserving the non-blocking caller behavior.
+- Severity: **Medium**
+- Category: Test strategy / Operational readiness
+- Problem: The mandatory unit suite and coverage run pass, but the available integration/E2E command hangs without producing test output and exits only after interruption. Some repository integration tests are gated by database availability, and the avatar-switch integration test is not part of the default `pnpm test` command.
+- Why it matters: The EPIC changes persistence, next-turn state, retrieval threading, and cross-use-case handoff. Those are precisely the areas where in-memory/unit confidence can miss schema, serialization, transaction, or wiring defects.
+- Evidence: `pnpm test:integration-e2e` did not complete in the audit environment; `apps/core/src/infrastructure/db/repositories/postgres-gm-state.repository.integration.test.ts` guards execution on database availability; `apps/core/src/application/use-cases/run-game-master/run-game-master.avatar-switch.integration.test.ts` covers the handoff but is outside the default test run.
+- Recommendation: Make the integration test command deterministic in CI and document its required services. Include at least one persistence-backed test for the current next-turn/retrieval contract and one black-box send-message → async GM → next-turn consumption flow in the release gate.
 
 ## Architecture Review
 
-The implementation largely respects the modular monolith boundaries:
+The implementation is directionally aligned with the modular monolith. API mappers and handlers do not own Game Master policy; application use cases coordinate domain services and ports; prompt parsing and normalization are isolated; and LLM access remains behind the internal abstraction. The platform-owned avatar switch handoff is represented separately from the Game Master suggestion, which matches the documented lifecycle.
 
-- API routes remain thin and delegate to application use cases.
-- Domain prompt construction, parsing, normalization, memory policy, and retrieval-query policy are infrastructure-independent.
-- LLM access remains behind `ILlmAdapter` and model resolution/observability wrappers; no provider SDK leaks into domain logic.
-- Runtime side effects are coordinated in the application layer and published through the session event publisher.
-- GM and Avatar responsibilities are separated: GM prepares future-turn guidance; Avatar composes and generates the response.
+The principal architecture concern is not a direct layer violation but concentration of policy in the Game Master application coordinator. Its dependency list has been improved through an options object, but the use case still owns too many unrelated decisions. This is manageable short-term and should be addressed before more orchestration features accumulate.
 
-The main architecture concern is coordinator growth. `RunGameMasterUseCase` now owns context loading, retrieval preparation, LLM resolution, parsing, routing validation, unlocking, persistence, events, and diagnostics. That is still a valid application-layer location, but the optional-dependency constructor and unused conversation repository show the boundary is becoming harder to maintain. No separate infrastructure or vendor leakage was found.
+The shared `topicsCovered` projections are an ownership-boundary leak. The field is retained for compatibility, which is defensible at the persistence edge, but it should not remain indistinguishable from current authoritative GM state in shared runtime inspection contracts.
+
+The next-turn orchestration shape is coherent and typed. Retrieval plans, dialogue control, notes, routing, and progression are represented explicitly, and freshness/consumption is tracked. The main remaining risk is that multiple projection and persistence shapes mirror related fields without a single clearly authoritative public contract.
 
 ## Test Review
 
 Strong tests:
 
-- Parser tests reject malformed dialogue control, invalid modes, invalid retrieval shapes, and obsolete top-level fields.
-- Dynamic prompt tests verify routing capability omission for single-Avatar, unlocked, and locked configurations.
-- Send-message tests assert the actual retrieval request, query variants, consumed turn, dialogue guidance, and insufficient-evidence prompt.
-- Memory tests prove the Mona contradiction filter, verified-context labeling, working-memory persistence, and ownership of canonical fields.
-- Integration coverage verifies composed GM prompt rendering, persisted orchestration, runtime suggestions, event safety, and observability metadata.
-- Failure tests cover invalid JSON, LLM failures, event-log failures, and trace failures.
+- Parser tests cover valid modes, explicit follow-up behavior, required non-empty Director Notes, invalid routing normalization, and compatibility with obsolete output fields.
+- Prompt tests cover dynamic routing modes, single-avatar/no-unlock behavior, structured instructions, prompt sizing, and current-turn rendering.
+- Send-message tests cover retrieval query composition, matching plan consumption once, stale/other-avatar plan suppression, and mandatory retrieval failure guidance.
+- Game Master use-case tests cover asynchronous result persistence, routing/unlock behavior, state reduction, events, and persistence failures.
+- The avatar-switch integration test proves the important architectural split: GM records the target and the platform switch use case performs conversation/session handoff.
 
 Weak or implementation-coupled tests:
 
-- The switch test asserts that conversation update/create methods are _not_ called. This is valid evidence for the accepted GM/platform ownership boundary, but it does not prove that the platform consumer completes the subsequent handoff.
-- Many prompt tests assert exact English prose and absence of substrings. Some structural assertions are appropriate at the LLM boundary, but exact wording is brittle and does not prove the generated Avatar response behavior.
-- Coverage is high, but the missing behavior is exactly the kind coverage can miss: no test follows a GM decision through the public/runtime consumer boundary.
+- Several prompt tests necessarily assert structural text fragments. They are useful contract tests, but they do not prove that an actual Avatar response follows every mode.
+- Some use-case tests rely heavily on mocks and call assertions. Those are appropriate for adapter isolation, but they should not be treated as proof of end-to-end behavior.
+- The high coverage percentage is not evidence of memory correctness; the contradicted-claim test is the clearest example of a green but semantically wrong assertion.
 
-Missing regression tests:
+Missing or insufficient tests:
 
-- Unrelated factual user message after a mandatory GM plan; this must prove old queries are not sent.
-- GM switch followed by the platform consumer; this must prove the documented handoff, target Avatar, and guidance consumption. A GM-only conversation mutation test is not required under the accepted ownership model.
-- Postgres current-contract orchestration round trip including `scopes` and `unlockDecisions`.
-- A contradiction window containing one contradicted Avatar claim and one unrelated supported candidate fact.
-- State/session persistence failure after a valid GM response and its resulting operator-visible diagnostic.
+- A direct contradiction-policy suite covering natural-language paraphrases, user correction/verification, contradictory facts from multiple turns, and unresolved-thread preservation.
+- A black-box persistence-backed test for the current next-turn orchestration and retrieval-plan JSON contract.
+- A completed integration/E2E run for the asynchronous flow, including response completion before GM work and subsequent plan consumption.
+- A diagnostics contract test that asserts invalid-output traces and logs contain no raw prompts, raw user messages, or unbounded model output.
+- Consumer-level assertions for runtime inspection that verify memory-owned topics are used rather than the legacy GM `topicsCovered` field.
 
 ## Documentation Gaps
 
-- `docs/GAME_MASTER_CONTRACT.md:229-235` describes close/create behavior for accepted switches, while the implementation delegates that lifecycle to the platform switch mechanism. Document the ownership boundary and consumer handoff explicitly.
-- The EPIC README and implementation prompts say Director Notes are optional, while the system prompt, parser, and tests require them. Update the EPIC source documents to the accepted required-note contract.
-- `docs/PROJECT_STATUS.md` and `docs/EPICS.md` describe EPIC 8.5 as shipped/current, but should not claim complete switch and stale-plan regression coverage until the missing consumer tests and fixes exist.
-- `docs/API_CONTRACT.md` documents diagnostic retrieval fields but does not make the switch runtime event/next-conversation behavior explicit. Update it if the transition is made observable through the public runtime surface.
+- `docs/PROJECT_STATUS.md` describes the EPIC as having regression coverage for the Mona contradiction scenario, but the current test assertion does not prove exclusion of the contradicted claim. The status should be corrected after the test is fixed.
+- `docs/GAME_MASTER_CONTRACT.md` prohibits raw prompt/user content in diagnostics, while the invalid-output trace and parser logging paths violate that contract.
+- `docs/API_CONTRACT.md` and the shared runtime inspector types still expose `topicsCovered` as a current GM state field. The compatibility intent should be explicit and the authoritative memory-owned shape should be documented.
+- `docs/MEMORY_SYSTEM_SPEC.md` should remain the source of truth for contradiction semantics and should be reflected directly in deterministic policy tests.
 
 ## Path to A
 
-Minimal steps:
-
-1. Document the GM-switch/platform-handoff ownership boundary and add a consumer-level next-message test.
-2. Update the EPIC and Game Master contract documentation to make required, non-empty Director Notes canonical.
-3. Replace the stale-plan fallback with a safe relevance rule and add unrelated factual and multilingual negative tests.
-4. Narrow contradiction filtering and add the unrelated-fact regression.
-5. Fix current-contract persistence normalization and add a Postgres round-trip test.
-6. Add structured diagnostics for post-LLM persistence failures, remove the dead dependency, and synchronize the source-of-truth documentation.
+1. Fix the contradiction regression test and the policy so the documented natural-language contradiction cannot persist an unsupported Avatar claim; add direct policy tests. Verify with the focused memory suite and full test suite.
+2. Remove raw prompts, raw user content, and unbounded model output from invalid-output traces and parser logs. Add a diagnostics redaction contract test.
+3. Resolve the `topicsCovered` ownership boundary by isolating legacy persistence compatibility from current shared/admin contracts, then update the API/runtime documentation and consumer tests.
+4. Make the integration/E2E command runnable and add release-gate coverage for persistence-backed next-turn consumption and the asynchronous handoff flow.
+5. If additional EPIC 8.5 work is planned, split the large GM coordinator before adding more policy responsibilities.
 
 ## Final Recommendation
 
-- Close with debt
+- **Rework before close**
 
-## Remediation Outcome
-
-### Changes Made
-
-- Replaced generic question-word heuristics with conservative stale-plan reuse: unrelated factual questions now use only the current user query, while explicit continuation language can retain the plan.
-- Preserved `retrievalPlan.scopes` and `routing.unlockDecisions` in persisted-state normalization and added current-contract round-trip coverage, including a guarded Postgres integration case.
-- Scoped contradiction rejection to an Avatar claim containing the candidate value followed by a user contradiction. Unrelated candidate facts are retained, with a regression test covering both outcomes.
-- Added structured `persistence_error` GM diagnostics for state or GM-note persistence failures after a valid LLM response.
-- Removed the unused conversation repository from the GM use case, removed fake memory repository fallbacks, and replaced positional optional constructor arguments with an explicit options object.
-- Documented required non-empty Director Notes and the platform-owned Avatar-switch handoff across the EPIC, Game Master, API, status, and EPIC summary documents.
-- Added a behavior-level GM-to-platform switch test proving session target recording followed by old-conversation closure and new-conversation creation.
-
-### Findings Resolved
-
-- Unrelated factual questions reusing stale retrieval plans: resolved in policy and deterministic tests.
-- Persisted orchestration dropping `scopes` and `unlockDecisions`: resolved in normalization and round-trip tests.
-- Broad contradiction filtering: resolved by associating rejection with the contradicted Avatar claim and testing preservation of an unrelated fact.
-- Missing post-LLM persistence diagnostics: resolved with `persistence_error` events and failure coverage.
-- GM constructor coupling and dead fallback dependencies: resolved through explicit options, dead-port removal, and removal of casted fake repositories.
-- Director Notes contract drift: resolved by making the required/non-empty policy canonical in the EPIC and project documentation.
-- GM switch handoff ambiguity: resolved as an explicit platform-owned boundary, with a consumer-path behavior test. GM intentionally does not duplicate conversation lifecycle or emit a second switch event.
-
-### Findings Deferred
-
-- The GM application coordinator remains a relatively large application-layer class. Its dependency boundary is now explicit and the unused/fake collaborators are gone; splitting the remaining cohesive flow is deferred because it would add abstraction without changing behavior.
-- The full environment-dependent integration suite was not used as a build gate because its database/stack setup did not complete in this workspace. The targeted handoff integration test passed, and the mandatory unit gates plus coverage passed.
-
-### Build Gates
-
-- lint: PASS
-- typecheck: PASS
-- tests: PASS — 878 tests across 140 files
-- coverage: PASS — 87.56% statements, 84.65% branches, 96.69% functions, 87.56% lines
-
-### Final Feature Confidence
-
-- Async single-call GM execution remains non-blocking and is proven by unit and composed runtime tests.
-- Unrelated factual messages no longer inherit stale retrieval proposals; related overlap and explicit continuation remain supported.
-- Current retrieval scopes and multi-target unlock decisions survive normalization and the guarded Postgres persistence path.
-- Required Director Notes are enforced by parser, prompt, types, tests, and synchronized documentation.
-- Contradicted Avatar claims are rejected without discarding unrelated candidate facts.
-- State persistence failures emit bounded `gm_error` diagnostics with `persistence_error`.
-- GM switch decisions record the target, and the existing platform switch use case closes the old conversation and creates the new Avatar episode.
-
-### Final Grade
-
-**A — safe foundation with strong behavioral tests, explicit boundaries, and synchronized contracts.**
-
-### Remaining Risks
-
-- The quality of generated narrative guidance and retrieval relevance remains model-dependent and is intentionally outside deterministic CI proof.
-- The full Postgres integration path remains dependent on the configured database environment; its current-contract round-trip test is guarded by `DB_AVAILABLE`.
-- The platform client must invoke the documented switch endpoint after an advisory GM switch decision; this ownership is explicit and intentionally not duplicated inside GM.
+The EPIC can be closed after the critical memory contradiction behavior and diagnostic-safety issues are corrected and verified. The remaining coordinator size and compatibility projection debt can be tracked as follow-up if the team explicitly accepts it, but the current false-confidence test and raw diagnostic data path should not be carried forward as closed-EPIC quality.
