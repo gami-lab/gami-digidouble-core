@@ -14,6 +14,7 @@ import type { IModelConfigRepository } from '../ports/IModelConfigRepository.js'
 import type { IScenarioRepository } from '../ports/IScenarioRepository.js'
 import type { ModelConfig } from '../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
+import { isUnsupportedContradictedAvatarClaim } from './memory-contradiction.policy.js'
 import { logResolvedLlmCall, resolveRoleLlmCall } from './model-resolution-runtime.service.js'
 
 const WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT = `You update a running working memory for a conversation.
@@ -427,34 +428,6 @@ function readCandidateFacts(
     if (facts.length >= WORKING_MEMORY_FACT_LIMIT) break
   }
   return facts
-}
-
-function isUnsupportedContradictedAvatarClaim(
-  fact: MemoryFactRecord,
-  messages: Array<{ role: 'user' | 'avatar' | 'system'; createdAt: string; content: string }>,
-  verifiedContext: VerifiedMemoryContext[] | undefined,
-): boolean {
-  const hasVerifiedSupport = (verifiedContext ?? []).some((entry) =>
-    containsFactText(entry.content, fact),
-  )
-  if (hasVerifiedSupport) return false
-
-  const userMessages = messages.filter((message) => message.role === 'user')
-  const hasUserSupport = userMessages.some((message) => containsFactText(message.content, fact))
-  if (hasUserSupport) return false
-
-  const hasContradictionSignal = userMessages.some((message) =>
-    /\b(contradict|contradiction|contradictory|inconsistent|incorrect|wrong|not true|that cannot be|doesn't make sense|confused|contradictoire|incohérent)\b/i.test(
-      message.content,
-    ),
-  )
-  return hasContradictionSignal && messages.some((message) => message.role === 'avatar')
-}
-
-function containsFactText(text: string, fact: MemoryFactRecord): boolean {
-  const normalizedText = text.replace(/\s+/g, ' ').trim().toLowerCase()
-  const normalizedValue = fact.value.replace(/\s+/g, ' ').trim().toLowerCase()
-  return normalizedValue.length > 0 && normalizedText.includes(normalizedValue)
 }
 
 function toCandidateFact(value: unknown): MemoryFactRecord | null {

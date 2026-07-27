@@ -279,13 +279,14 @@ function createIntegrationHarness() {
     avatarRepository,
     llm,
     observability,
-    scenarioRepository,
-    eventLogRepository,
-    undefined,
-    messageRepository,
-    sessionEventPublisher,
-    memorySelectionService,
-    typedRetrievalService,
+    {
+      scenarioRepository,
+      eventLogRepository,
+      messageRepository,
+      sessionEventPublisher,
+      memorySelectionService,
+      typedRetrievalService,
+    },
   )
 
   return {

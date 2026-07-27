@@ -2,7 +2,6 @@
 import crypto from 'node:crypto'
 import type { RuntimeEvent } from '@gami/shared'
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
-import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { ILlmAdapter, LlmResponse } from '../../ports/ILlmAdapter.js'
@@ -35,6 +34,7 @@ import type { Session } from '../../../domain/conversation/session.types.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
+import { toGameMasterMemoryContext } from '../../services/memory-selection-context.js'
 import {
   logResolvedLlmCall,
   resolveRoleLlmCall,
@@ -69,6 +69,18 @@ type AvatarRoutingResult = {
   switchedAvatarId?: string
 }
 
+export type RunGameMasterOptions = {
+  scenarioRepository?: IScenarioRepository
+  eventLogRepository?: IEventLogRepository
+  messageRepository?: IMessageRepository
+  sessionEventPublisher?: ISessionEventPublisher
+  memorySelectionService?: MemorySelectionService
+  typedRetrievalService?: TypedRetrievalService
+  modelConfigRepository?: IModelConfigRepository
+  llmAdapterRegistry?: LlmAdapterRegistry
+  modelConfigFallback?: ModelConfig
+}
+
 export class RunGameMasterUseCase {
   constructor(
     private readonly gmStateRepository: IGmStateRepository,
@@ -76,21 +88,12 @@ export class RunGameMasterUseCase {
     private readonly avatarRepository: IAvatarRepository,
     private readonly llm: ILlmAdapter,
     private readonly observability: IObservabilityAdapter,
-    private readonly scenarioRepository?: IScenarioRepository,
-    private readonly eventLogRepository?: IEventLogRepository,
-    private readonly conversationRepository?: IConversationRepository,
-    private readonly messageRepository?: IMessageRepository,
-    private readonly sessionEventPublisher?: ISessionEventPublisher,
-    private readonly memorySelectionService?: MemorySelectionService,
-    private readonly typedRetrievalService?: TypedRetrievalService,
-    private readonly modelConfigRepository?: IModelConfigRepository,
-    private readonly llmAdapterRegistry?: LlmAdapterRegistry,
-    private readonly modelConfigFallback?: ModelConfig,
+    private readonly options: RunGameMasterOptions = {},
   ) {}
 
   async execute(input: RunGameMasterInput): Promise<void> {
     let success = true
-    this.sessionEventPublisher?.setProcessing(input.sessionId, true)
+    this.options.sessionEventPublisher?.setProcessing(input.sessionId, true)
     this.emitRuntimeEvent({
       sessionId: input.sessionId,
       type: 'runtime.processing_started',
@@ -117,7 +120,7 @@ export class RunGameMasterUseCase {
       success = false
       throw error
     } finally {
-      this.sessionEventPublisher?.setProcessing(input.sessionId, false)
+      this.options.sessionEventPublisher?.setProcessing(input.sessionId, false)
       this.emitRuntimeEvent({
         sessionId: input.sessionId,
         type: 'runtime.processing_finished',
@@ -195,15 +198,15 @@ export class RunGameMasterUseCase {
     })
     this.publishDecisionRuntimeEvents(input, effectiveOutput, unlockResult.newlyUnlockedAvatarIds)
 
-    await this.gmStateRepository.save(input.sessionId, {
-      ...nextState,
-      nextTurnOrchestration: this.buildNextTurnOrchestration(
-        input,
-        effectiveOutput,
-        routingResult.switchedAvatarId,
-      ),
+    await this.persistGameMasterResult({
+      input,
+      currentState,
+      nextState,
+      effectiveOutput,
+      switchedAvatarId: routingResult.switchedAvatarId,
+      triggerReason,
+      gmRunStartMs,
     })
-    await this.persistTriggeredNotes(input.sessionId, effectiveOutput)
 
     await emitTriggeredGameMasterTurn({
       input,
@@ -222,8 +225,8 @@ export class RunGameMasterUseCase {
       llmLatencyMs,
       llmRequest,
       llmResponse,
-      ...(this.eventLogRepository !== undefined
-        ? { eventLogRepository: this.eventLogRepository }
+      ...(this.options.eventLogRepository !== undefined
+        ? { eventLogRepository: this.options.eventLogRepository }
         : {}),
     })
   }
@@ -252,8 +255,8 @@ export class RunGameMasterUseCase {
       llmStart: args.llmStart,
       gmRunStartMs: args.gmRunStartMs,
       observability: this.observability,
-      ...(this.eventLogRepository !== undefined
-        ? { eventLogRepository: this.eventLogRepository }
+      ...(this.options.eventLogRepository !== undefined
+        ? { eventLogRepository: this.options.eventLogRepository }
         : {}),
     })
     return null
@@ -315,7 +318,7 @@ export class RunGameMasterUseCase {
       return { llmRequest, llmResponse, llmLatencyMs: Date.now() - llmCallStart }
     } catch (err: unknown) {
       console.error('[GM] LLM call failed:', err)
-      await emitGameMasterError(this.eventLogRepository, {
+      await emitGameMasterError(this.options.eventLogRepository, {
         input,
         currentState,
         triggerReason,
@@ -337,9 +340,9 @@ export class RunGameMasterUseCase {
     return await resolveRoleLlmCall({
       role: 'gameMaster',
       legacyAdapter: this.llm,
-      modelConfigRepository: this.modelConfigRepository,
-      llmAdapterRegistry: this.llmAdapterRegistry,
-      modelConfigFallback: this.modelConfigFallback,
+      modelConfigRepository: this.options.modelConfigRepository,
+      llmAdapterRegistry: this.options.llmAdapterRegistry,
+      modelConfigFallback: this.options.modelConfigFallback,
       avatarOverride: undefined,
       scenarioModelSelection,
     })
@@ -442,21 +445,23 @@ export class RunGameMasterUseCase {
   }> {
     if (input.selectedMemory !== undefined) {
       return {
-        memory: this.getMemorySelectionServiceForFallback().toGameMasterMemoryContext(
-          input.selectedMemory,
-        ),
+        memory: toGameMasterMemoryContext(input.selectedMemory),
         workingMemoryUpdatedAt: input.selectedMemory.workingMemory?.updatedAt,
       }
     }
     if (
       session === null ||
       input.conversationId === undefined ||
-      this.messageRepository === undefined
+      this.options.messageRepository === undefined
     ) {
       return { memory: undefined, workingMemoryUpdatedAt: undefined }
     }
+    const memorySelectionService = this.getMemorySelectionService()
+    if (memorySelectionService === undefined) {
+      return { memory: undefined, workingMemoryUpdatedAt: undefined }
+    }
     try {
-      const selectedMemory = await this.getMemorySelectionService().select({
+      const selectedMemory = await memorySelectionService.select({
         conversationId: input.conversationId,
         userId: session.userId,
         avatarId: input.avatarId,
@@ -464,7 +469,7 @@ export class RunGameMasterUseCase {
         userMessageText: input.userMessageText,
       })
       return {
-        memory: this.getMemorySelectionService().toGameMasterMemoryContext(selectedMemory),
+        memory: memorySelectionService.toGameMasterMemoryContext(selectedMemory),
         workingMemoryUpdatedAt: selectedMemory.workingMemory?.updatedAt,
       }
     } catch {
@@ -476,8 +481,8 @@ export class RunGameMasterUseCase {
     conversationId: string | undefined,
     workingMemoryUpdatedAt?: string,
   ): Promise<Array<{ role: 'user' | 'avatar' | 'system'; content: string }>> {
-    if (conversationId === undefined || this.messageRepository === undefined) return []
-    const messages = await this.messageRepository.findByConversationId(conversationId, {
+    if (conversationId === undefined || this.options.messageRepository === undefined) return []
+    const messages = await this.options.messageRepository.findByConversationId(conversationId, {
       limit: GM_RECENT_EXCHANGE_LIMIT * 2,
     })
     return selectExchangeMessageWindow(messages, workingMemoryUpdatedAt, 0).slice(
@@ -485,37 +490,49 @@ export class RunGameMasterUseCase {
     )
   }
 
-  private getMemorySelectionService(): MemorySelectionService {
-    return (
-      this.memorySelectionService ??
-      new MemorySelectionService(
-        this.messageRepository as IMessageRepository,
-        undefined,
-        undefined,
-        undefined,
-      )
-    )
-  }
-
-  private getMemorySelectionServiceForFallback(): MemorySelectionService {
-    return (
-      this.memorySelectionService ??
-      new MemorySelectionService(
-        {
-          save: () => Promise.reject(new Error('not_implemented')),
-          findByConversationId: () => Promise.resolve([]),
-          deleteByConversationId: () => Promise.resolve(0),
-        } satisfies IMessageRepository,
-        undefined,
-        undefined,
-        undefined,
-      )
-    )
+  private getMemorySelectionService(): MemorySelectionService | undefined {
+    if (this.options.memorySelectionService !== undefined) {
+      return this.options.memorySelectionService
+    }
+    if (this.options.messageRepository === undefined) return undefined
+    return new MemorySelectionService(this.options.messageRepository)
   }
 
   private async persistTriggeredNotes(sessionId: string, output: GameMasterOutput): Promise<void> {
     if (!hasText(output.directorNotes)) return
     await this.sessionRepository.update(sessionId, { gmNotes: output.directorNotes.trim() })
+  }
+
+  private async persistGameMasterResult(args: {
+    input: RunGameMasterInput
+    currentState: GameMasterState
+    nextState: GameMasterState
+    effectiveOutput: GameMasterOutput
+    switchedAvatarId: string | undefined
+    triggerReason: string
+    gmRunStartMs: number
+  }): Promise<void> {
+    try {
+      await this.gmStateRepository.save(args.input.sessionId, {
+        ...args.nextState,
+        nextTurnOrchestration: this.buildNextTurnOrchestration(
+          args.input,
+          args.effectiveOutput,
+          args.switchedAvatarId,
+        ),
+      })
+      await this.persistTriggeredNotes(args.input.sessionId, args.effectiveOutput)
+    } catch (error: unknown) {
+      console.error('[GM] State persistence failed:', error)
+      await emitGameMasterError(this.options.eventLogRepository, {
+        input: args.input,
+        currentState: args.currentState,
+        triggerReason: args.triggerReason,
+        latencyMs: Date.now() - args.gmRunStartMs,
+        errorCode: 'persistence_error',
+      })
+      throw error
+    }
   }
 
   // eslint-disable-next-line complexity
@@ -619,10 +636,10 @@ export class RunGameMasterUseCase {
   }
 
   private async loadScenarioContext(scenarioId: string): Promise<ScenarioContext> {
-    if (this.scenarioRepository === undefined) {
+    if (this.options.scenarioRepository === undefined) {
       return {}
     }
-    const scenario = await this.scenarioRepository.findById(scenarioId)
+    const scenario = await this.options.scenarioRepository.findById(scenarioId)
     if (scenario === null) {
       return {}
     }
@@ -669,14 +686,14 @@ export class RunGameMasterUseCase {
   }
 
   private emitRuntimeEvent(fields: Omit<RuntimeEvent, 'eventId' | 'occurredAt'>): void {
-    if (this.sessionEventPublisher === undefined) return
+    if (this.options.sessionEventPublisher === undefined) return
     try {
       const event: RuntimeEvent = {
         eventId: `rev_${crypto.randomUUID()}`,
         occurredAt: new Date().toISOString(),
         ...fields,
       }
-      this.sessionEventPublisher.emit(event)
+      this.options.sessionEventPublisher.emit(event)
     } catch (error: unknown) {
       console.warn('[GM] Runtime event emission failed:', error)
     }
@@ -690,7 +707,7 @@ export class RunGameMasterUseCase {
     memory: GameMasterInput['context']['memory'] | undefined,
   ) {
     if (
-      this.typedRetrievalService === undefined ||
+      this.options.typedRetrievalService === undefined ||
       session === null ||
       input.conversationId === undefined
     ) {
@@ -705,7 +722,7 @@ export class RunGameMasterUseCase {
     const query = flattenTypedRetrievalQueries(queries)
     if (!hasText(query)) return undefined
 
-    return this.typedRetrievalService.retrieve({
+    return this.options.typedRetrievalService.retrieve({
       scenarioId: input.scenarioId,
       sessionId: input.sessionId,
       userId: session.userId,

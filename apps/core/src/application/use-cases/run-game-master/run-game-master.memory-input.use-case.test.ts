@@ -119,12 +119,7 @@ function createUseCase(): RunGameMasterUseCase {
     avatarRepository,
     llm,
     observability,
-    undefined,
-    undefined,
-    undefined,
-    messageRepository,
-    undefined,
-    memorySelection,
+    { messageRepository, memorySelectionService: memorySelection },
   )
 }
 

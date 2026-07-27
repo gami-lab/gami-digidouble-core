@@ -110,24 +110,21 @@ describe('RunGameMasterUseCase model resolution', () => {
       { complete: vi.fn() },
       { trace: vi.fn(), flush: vi.fn() },
       {
-        findById: findScenarioByIdMock,
-        create: vi.fn(),
-        list: vi.fn(),
-        delete: vi.fn(),
-        update: vi.fn(),
+        scenarioRepository: {
+          findById: findScenarioByIdMock,
+          create: vi.fn(),
+          list: vi.fn(),
+          delete: vi.fn(),
+          update: vi.fn(),
+        },
+        messageRepository: {
+          save: vi.fn(),
+          findByConversationId: findMessagesByConversationIdMock,
+          deleteByConversationId: vi.fn(),
+        },
+        modelConfigRepository,
+        llmAdapterRegistry,
       },
-      undefined,
-      undefined,
-      {
-        save: vi.fn(),
-        findByConversationId: findMessagesByConversationIdMock,
-        deleteByConversationId: vi.fn(),
-      },
-      undefined,
-      undefined,
-      undefined,
-      modelConfigRepository,
-      llmAdapterRegistry,
     )
 
     await useCase.execute({

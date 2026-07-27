@@ -60,4 +60,42 @@ describe('normalizePersistedOrchestration', () => {
 
     expect(normalized?.dialogueControl).toEqual({ mode: 'user_led', askFollowUp: false })
   })
+
+  it('round-trips current retrieval scopes and multi-target unlock decisions', () => {
+    const normalized = normalizePersistedOrchestration({
+      activeAvatarId: 'avatar_1',
+      generatedAfterTurn: 4,
+      generatedAt: '2026-07-25T10:00:00.000Z',
+      dialogueControl: { mode: 'transition', askFollowUp: false },
+      retrievalPlan: {
+        required: true,
+        queries: ['Mona location'],
+        requiredFacts: ['Mona last confirmed location'],
+        scopes: ['world_context', 'scenario_knowledge', 'world_context', 'invalid'],
+      },
+      routing: {
+        action: 'unlock',
+        unlockDecisions: [
+          { avatarId: 'avatar_2', reason: 'Specialist context is needed.' },
+          { avatarId: 'avatar_3', reason: 'A second perspective is relevant.' },
+          { avatarId: '', reason: 'ignored' },
+        ],
+      },
+      progressionUpdate: { progression: 'none' },
+    })
+
+    expect(normalized?.retrievalPlan).toEqual({
+      required: true,
+      queries: ['Mona location'],
+      requiredFacts: ['Mona last confirmed location'],
+      scopes: ['world_context', 'scenario_knowledge'],
+    })
+    expect(normalized?.routing).toEqual({
+      action: 'unlock',
+      unlockDecisions: [
+        { avatarId: 'avatar_2', reason: 'Specialist context is needed.' },
+        { avatarId: 'avatar_3', reason: 'A second perspective is relevant.' },
+      ],
+    })
+  })
 })

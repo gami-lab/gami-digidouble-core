@@ -293,6 +293,7 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
       ['avatar', 'You are right; Mona was not at the chalet.'],
       ['user', 'Can you clarify her confirmed location?'],
       ['avatar', 'My memories are confused.'],
+      ['avatar', 'Your favorite color is blue.'],
     ].map(([role, content], index) => ({
       messageId: `mona_${String(index)}`,
       conversationId: 'conversation_1',
@@ -307,6 +308,7 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
         unresolvedThreads: ['Clarify Mona current confirmed location.'],
         candidateFacts: [
           { category: 'context', key: 'mona_current_location', value: 'with grandfather' },
+          { category: 'preference', key: 'favorite_color', value: 'blue' },
         ],
       }),
       model: 'test-model',
@@ -332,7 +334,10 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
 
     await expect(workingMemory.findByConversationId('conversation_1')).resolves.toMatchObject({
       unresolvedThreads: ['Clarify Mona current confirmed location.'],
-      candidateFacts: [],
+      candidateFacts: [
+        { category: 'context', key: 'mona_current_location', value: 'with grandfather' },
+        { category: 'preference', key: 'favorite_color', value: 'blue' },
+      ],
     })
   })
 

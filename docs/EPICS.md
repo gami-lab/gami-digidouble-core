@@ -196,6 +196,8 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 - removal of application-owned fields from the GM output
 - clarification of ownership between Game Master and working-memory compaction
 - improved integration of stored GM guidance into the Avatar runtime
+- required non-empty Director Notes as the canonical GM narrative guidance field
+- platform-owned conversation handoff after GM records a switch target
 
 **Definition of done**
 
@@ -219,6 +221,8 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 6. multi-Avatar scenarios continue to support switching and unlocking
 7. contradicted Avatar statements are not persisted as working-memory facts
 8. asynchronous execution remains non-blocking
+9. current persisted retrieval scopes and multi-target unlock decisions survive reload
+10. post-LLM persistence failures emit structured GM diagnostics
 
 **User increment**
 

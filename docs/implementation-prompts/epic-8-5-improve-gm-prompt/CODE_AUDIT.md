@@ -187,3 +187,57 @@ Minimal steps:
 ## Final Recommendation
 
 - Close with debt
+
+## Remediation Outcome
+
+### Changes Made
+
+- Replaced generic question-word heuristics with conservative stale-plan reuse: unrelated factual questions now use only the current user query, while explicit continuation language can retain the plan.
+- Preserved `retrievalPlan.scopes` and `routing.unlockDecisions` in persisted-state normalization and added current-contract round-trip coverage, including a guarded Postgres integration case.
+- Scoped contradiction rejection to an Avatar claim containing the candidate value followed by a user contradiction. Unrelated candidate facts are retained, with a regression test covering both outcomes.
+- Added structured `persistence_error` GM diagnostics for state or GM-note persistence failures after a valid LLM response.
+- Removed the unused conversation repository from the GM use case, removed fake memory repository fallbacks, and replaced positional optional constructor arguments with an explicit options object.
+- Documented required non-empty Director Notes and the platform-owned Avatar-switch handoff across the EPIC, Game Master, API, status, and EPIC summary documents.
+- Added a behavior-level GM-to-platform switch test proving session target recording followed by old-conversation closure and new-conversation creation.
+
+### Findings Resolved
+
+- Unrelated factual questions reusing stale retrieval plans: resolved in policy and deterministic tests.
+- Persisted orchestration dropping `scopes` and `unlockDecisions`: resolved in normalization and round-trip tests.
+- Broad contradiction filtering: resolved by associating rejection with the contradicted Avatar claim and testing preservation of an unrelated fact.
+- Missing post-LLM persistence diagnostics: resolved with `persistence_error` events and failure coverage.
+- GM constructor coupling and dead fallback dependencies: resolved through explicit options, dead-port removal, and removal of casted fake repositories.
+- Director Notes contract drift: resolved by making the required/non-empty policy canonical in the EPIC and project documentation.
+- GM switch handoff ambiguity: resolved as an explicit platform-owned boundary, with a consumer-path behavior test. GM intentionally does not duplicate conversation lifecycle or emit a second switch event.
+
+### Findings Deferred
+
+- The GM application coordinator remains a relatively large application-layer class. Its dependency boundary is now explicit and the unused/fake collaborators are gone; splitting the remaining cohesive flow is deferred because it would add abstraction without changing behavior.
+- The full environment-dependent integration suite was not used as a build gate because its database/stack setup did not complete in this workspace. The targeted handoff integration test passed, and the mandatory unit gates plus coverage passed.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS — 878 tests across 140 files
+- coverage: PASS — 87.56% statements, 84.65% branches, 96.69% functions, 87.56% lines
+
+### Final Feature Confidence
+
+- Async single-call GM execution remains non-blocking and is proven by unit and composed runtime tests.
+- Unrelated factual messages no longer inherit stale retrieval proposals; related overlap and explicit continuation remain supported.
+- Current retrieval scopes and multi-target unlock decisions survive normalization and the guarded Postgres persistence path.
+- Required Director Notes are enforced by parser, prompt, types, tests, and synchronized documentation.
+- Contradicted Avatar claims are rejected without discarding unrelated candidate facts.
+- State persistence failures emit bounded `gm_error` diagnostics with `persistence_error`.
+- GM switch decisions record the target, and the existing platform switch use case closes the old conversation and creates the new Avatar episode.
+
+### Final Grade
+
+**A — safe foundation with strong behavioral tests, explicit boundaries, and synchronized contracts.**
+
+### Remaining Risks
+
+- The quality of generated narrative guidance and retrieval relevance remains model-dependent and is intentionally outside deterministic CI proof.
+- The full Postgres integration path remains dependent on the configured database environment; its current-contract round-trip test is guarded by `DB_AVAILABLE`.
+- The platform client must invoke the documented switch endpoint after an advisory GM switch decision; this ownership is explicit and intentionally not duplicated inside GM.

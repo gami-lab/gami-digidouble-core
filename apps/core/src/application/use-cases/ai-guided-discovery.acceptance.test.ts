@@ -53,10 +53,7 @@ function createHarness(unlockTarget: UnlockTarget = null) {
     avatarRepository,
     gmLlm,
     observability,
-    scenarioRepository,
-    undefined,
-    conversationRepository,
-    messageRepository,
+    { scenarioRepository, messageRepository },
   )
 
   return {

@@ -98,11 +98,12 @@ function createUseCase(params?: {
     avatarRepository,
     llm,
     observability,
-    scenarioRepository,
-    params?.eventLog,
-    undefined,
-    messageRepository,
-    params?.withPublisher === false ? undefined : sessionEventPublisher,
+    {
+      scenarioRepository,
+      messageRepository,
+      ...(params?.eventLog !== undefined ? { eventLogRepository: params.eventLog } : {}),
+      ...(params?.withPublisher === false ? {} : { sessionEventPublisher }),
+    },
   )
 }
 
@@ -636,5 +637,29 @@ describe('RunGameMasterUseCase — error handling', () => {
     expect(saveGmStateMock).not.toHaveBeenCalled()
     expect(eventLog.getAll()[0]?.type).toBe('gm_error')
     expect(eventLog.getAll()[0]?.payload['errorCode']).toBe('llm_error')
+  })
+
+  it('emits a persistence gm_error after a valid GM response cannot be saved', async () => {
+    const eventLog = new InMemoryEventLogRepository()
+    const useCase = createUseCase({ eventLog })
+    saveGmStateMock.mockRejectedValueOnce(new Error('state store unavailable'))
+
+    await expectConsoleError(
+      () =>
+        expect(
+          useCase.execute({
+            sessionId: 'session_1',
+            scenarioId: 'scenario_1',
+            avatarId: 'avatar_1',
+            userMessageText: 'hello',
+            turnIndex: 2,
+            correlationId: 'corr_persistence',
+          }),
+        ).rejects.toThrow('state store unavailable'),
+      /\[GM\] State persistence failed:/,
+    )
+
+    expect(eventLog.getAll()[0]?.type).toBe('gm_error')
+    expect(eventLog.getAll()[0]?.payload['errorCode']).toBe('persistence_error')
   })
 })

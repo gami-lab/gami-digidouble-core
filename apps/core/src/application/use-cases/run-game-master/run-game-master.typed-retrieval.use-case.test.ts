@@ -85,13 +85,12 @@ function createUseCase(): RunGameMasterUseCase {
     avatarRepository,
     llm,
     observability,
-    scenarioRepository,
-    undefined,
-    undefined,
-    messageRepository,
-    undefined,
-    memorySelectionService as never,
-    { retrieve: retrieveTypedContextMock } as never,
+    {
+      scenarioRepository,
+      messageRepository,
+      memorySelectionService: memorySelectionService as never,
+      typedRetrievalService: { retrieve: retrieveTypedContextMock } as never,
+    },
   )
 }
 

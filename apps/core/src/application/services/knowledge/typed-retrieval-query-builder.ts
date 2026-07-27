@@ -60,9 +60,12 @@ function shouldUsePlannedRetrieval(
     return false
   }
 
-  return (
-    userTokens.length === 0 ||
-    /\b(and|also|still|then|next|more|what|where|why|how)\b/i.test(userText)
+  return userTokens.length === 0 || isExplicitContinuation(userText)
+}
+
+function isExplicitContinuation(userText: string): boolean {
+  return /\b(and|also|still|then|next|more about|tell me more|what about|how about)\b/i.test(
+    userText,
   )
 }
 

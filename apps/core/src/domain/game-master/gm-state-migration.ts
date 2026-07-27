@@ -99,10 +99,12 @@ function readRetrievalPlan(value: unknown): RetrievalPlan | undefined {
   if (!isRecord(value) || typeof value['required'] !== 'boolean') return undefined
   const queries = readTextArray(value['queries'])
   const requiredFacts = readTextArray(value['requiredFacts'])
+  const scopes = readRetrievalScopes(value['scopes'])
   return {
     required: value['required'],
     ...(queries !== undefined ? { queries } : {}),
     ...(requiredFacts !== undefined ? { requiredFacts } : {}),
+    ...(scopes !== undefined ? { scopes } : {}),
   }
 }
 
@@ -133,10 +135,12 @@ function readRouting(value: unknown): RoutingDecision | undefined {
   }
   const avatarId = readText(value['avatarId'])
   const reason = readText(value['reason'])
+  const unlockDecisions = readUnlockDecisions(value['unlockDecisions'])
   return {
     action,
     ...(avatarId !== undefined ? { avatarId } : {}),
     ...(reason !== undefined ? { reason } : {}),
+    ...(unlockDecisions !== undefined ? { unlockDecisions } : {}),
   }
 }
 
@@ -162,6 +166,28 @@ function readTextArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined
   const items = value.filter((item): item is string => typeof item === 'string')
   return items.length > 0 ? items : undefined
+}
+
+function readRetrievalScopes(value: unknown): RetrievalPlan['scopes'] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const scopes = value.filter(
+    (item): item is NonNullable<RetrievalPlan['scopes']>[number] =>
+      item === 'avatar_memory' || item === 'world_context' || item === 'scenario_knowledge',
+  )
+  return scopes.length > 0 ? [...new Set(scopes)] : undefined
+}
+
+function readUnlockDecisions(value: unknown): RoutingDecision['unlockDecisions'] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const decisions = value
+    .map((item) => {
+      if (!isRecord(item)) return null
+      const avatarId = readText(item['avatarId'])
+      const reason = readText(item['reason'])
+      return avatarId !== undefined && reason !== undefined ? { avatarId, reason } : null
+    })
+    .filter((item): item is { avatarId: string; reason: string } => item !== null)
+  return decisions.length > 0 ? decisions : undefined
 }
 
 function readText(value: unknown): string | undefined {

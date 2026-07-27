@@ -96,6 +96,27 @@ describe('typed retrieval query builder', () => {
     expect(queries.some((query) => query.source === 'gm_retrieval_query')).toBe(false)
   })
 
+  it('drops stale planning for an unrelated factual question', () => {
+    const queries = buildAvatarTypedRetrievalQueries({
+      gmGuideline: 'Resolve Mona location before progressing.',
+      gmRetrievalQueries: ['Mona quarantine camp'],
+      gmRequiredFacts: ["Mona's last confirmed location"],
+      lastUserInput: 'What is your favorite color?',
+    })
+
+    expect(queries).toEqual([{ source: 'last_user_input', text: 'What is your favorite color?' }])
+  })
+
+  it('keeps stale planning for an explicit continuation without topic overlap', () => {
+    const queries = buildAvatarTypedRetrievalQueries({
+      gmGuideline: 'Resolve Mona location before progressing.',
+      gmRetrievalQueries: ['Mona quarantine camp'],
+      lastUserInput: 'Tell me more about that.',
+    })
+
+    expect(queries.map((query) => query.source)).toContain('gm_retrieval_query')
+  })
+
   it('keeps scenario-language GM queries and required facts in the retrieval set', () => {
     const queries = buildAvatarTypedRetrievalQueries({
       gmRetrievalQueries: ['Emplacement actuel de Mona'],

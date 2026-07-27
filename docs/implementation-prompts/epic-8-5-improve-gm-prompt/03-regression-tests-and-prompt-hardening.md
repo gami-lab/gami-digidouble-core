@@ -21,7 +21,7 @@ transition
 
 - `askFollowUp` is required inside `dialogueControl`.
 - `retrievalPlan` is optional.
-- `directorNotes` is optional.
+- `directorNotes` is required and non-empty.
 - `routing` is optional.
 - `progressionUpdate` is optional.
 - obsolete fields are rejected or ignored:

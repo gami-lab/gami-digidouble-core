@@ -139,6 +139,9 @@ Message-stream contract ownership:
 
 - `GET /v1/sessions/{sessionId}/runtime-state` -> `{ runtimeState: RuntimeState }`
 - `GET /v1/sessions/{sessionId}/events/stream` -> SSE runtime events
+- GM switch decisions update the session’s next active Avatar only. They do not create or close
+  conversations and do not emit a second switch event; clients use the existing
+  `POST /v1/sessions/{sessionId}/switch-avatar` mechanism to complete the conversation handoff.
 
 ### Scenarios
 

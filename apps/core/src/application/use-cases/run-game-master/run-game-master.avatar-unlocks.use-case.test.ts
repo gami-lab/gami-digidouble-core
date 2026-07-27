@@ -90,10 +90,10 @@ function createUseCase(eventLog?: InMemoryEventLogRepository): RunGameMasterUseC
     avatarRepository,
     llm,
     observability,
-    undefined,
-    eventLog,
-    undefined,
-    messageRepository,
+    {
+      ...(eventLog !== undefined ? { eventLogRepository: eventLog } : {}),
+      messageRepository,
+    },
   )
 }
 

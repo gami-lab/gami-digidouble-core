@@ -61,7 +61,7 @@ export async function emitGameMasterError(
     currentState: GameMasterState
     triggerReason: string
     latencyMs: number
-    errorCode: 'llm_error' | 'invalid_output'
+    errorCode: 'llm_error' | 'invalid_output' | 'persistence_error'
     inputTokens?: number
     outputTokens?: number
   },

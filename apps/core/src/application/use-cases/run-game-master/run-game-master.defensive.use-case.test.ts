@@ -71,8 +71,7 @@ function createUseCase(eventLog?: {
     avatarRepository,
     llm,
     observability,
-    undefined,
-    eventLog,
+    { ...(eventLog !== undefined ? { eventLogRepository: eventLog } : {}) },
   )
 }
 

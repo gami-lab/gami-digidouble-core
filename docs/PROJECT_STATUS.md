@@ -45,7 +45,8 @@ The platform is now a working headless conversational runtime with:
 
 - GM runs asynchronously after completed avatar turns and can also run on session start or manual replay.
 - GM can inject notes, suggest or switch avatars, unlock avatars, and update lightweight orchestration state.
-- GM decisions are validated by runtime guards before they affect conversations or session state.
+- GM decisions are validated by runtime guards before they affect session state; conversation
+  lifecycle remains owned by the existing platform switch use case.
 - GM output is stored as turn-scoped next-turn orchestration state; the next Avatar turn consumes matching dialogue guidance and retrieval intent exactly once.
 - GM retrieval queries and required facts are used as RAG query variants, and are instructed to follow the Scenario description language used by the knowledge documents. The GM prompt treats retrieval as forward-looking preparation for the next related turn, anticipating likely continuation context in addition to handling exact questions, contradictions, and knowledge-boundary issues.
 - Avatar retrieval keeps the best distinct match for the user question, GM retrieval queries, and GM required facts before filling remaining slots by global score; retrieval diagnostics preserve the matched input and chunk content for console inspection. Runtime events now expose the GM retrieval plan and link it to the subsequent Avatar turn, including per-proposal match outcomes.
@@ -54,8 +55,9 @@ The platform is now a working headless conversational runtime with:
 - GM state no longer persists legacy topic updates or interaction increments; session/conversation
   state owns Avatar routing and application code increments completed-exchange counts.
 - Prompt 4 regression coverage protects the output contract, dynamic routing schemas, next-turn
-  retrieval planning, dialogue-control modes, stale orchestration state, failure isolation, prompt
-  sizing, and the Mona contradiction flow.
+  retrieval planning, unrelated-question stale-plan suppression, dialogue-control modes, stale
+  orchestration state, persistence failure diagnostics, prompt sizing, and the scoped Mona
+  contradiction flow.
 
 ### Memory
 

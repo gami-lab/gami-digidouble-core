@@ -8,9 +8,6 @@ const saveGmStateMock = vi.fn()
 const findSessionByIdMock = vi.fn()
 const updateSessionMock = vi.fn()
 const listAvatarsByScenarioIdMock = vi.fn()
-const findActiveBySessionIdMock = vi.fn()
-const createConversationMock = vi.fn()
-const updateConversationMock = vi.fn()
 const completeMock = vi.fn()
 const traceMock = vi.fn()
 
@@ -31,14 +28,6 @@ const avatarRepository = {
   delete: vi.fn(),
   update: vi.fn(),
   saveComputedTraits: vi.fn(),
-}
-const conversationRepository = {
-  findById: vi.fn(),
-  findActiveBySessionId: findActiveBySessionIdMock,
-  create: createConversationMock,
-  listBySessionId: vi.fn(),
-  deleteBySessionId: vi.fn(),
-  update: updateConversationMock,
 }
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
@@ -73,9 +62,6 @@ function createUseCase(): RunGameMasterUseCase {
     avatarRepository,
     llm,
     observability,
-    undefined,
-    undefined,
-    conversationRepository,
   )
 }
 
@@ -98,9 +84,6 @@ beforeEach(() => {
   findSessionByIdMock.mockReset()
   updateSessionMock.mockReset()
   listAvatarsByScenarioIdMock.mockReset()
-  findActiveBySessionIdMock.mockReset()
-  createConversationMock.mockReset()
-  updateConversationMock.mockReset()
   completeMock.mockReset()
   traceMock.mockReset()
 
@@ -120,16 +103,6 @@ beforeEach(() => {
     makeAvatar({ avatarId: 'avatar_1' }),
     makeAvatar({ avatarId: 'avatar_2', name: 'Nova' }),
   ])
-  findActiveBySessionIdMock.mockResolvedValue({
-    conversationId: 'conversation_old',
-    sessionId: 'session_1',
-    avatarId: 'avatar_1',
-    status: 'active',
-    startedAt: '2026-04-21T08:00:00.000Z',
-    lastActivityAt: '2026-04-21T08:00:00.000Z',
-  })
-  updateConversationMock.mockResolvedValue(undefined)
-  createConversationMock.mockResolvedValue(undefined)
   traceMock.mockResolvedValue(undefined)
 })
 
@@ -152,8 +125,6 @@ describe('RunGameMasterUseCase — async avatar switch safety', () => {
       correlationId: 'corr_1',
     })
 
-    expect(updateConversationMock).not.toHaveBeenCalled()
-    expect(createConversationMock).not.toHaveBeenCalled()
     expect(updateSessionMock).toHaveBeenCalledWith('session_1', { activeAvatarId: 'avatar_2' })
   })
 
@@ -185,7 +156,8 @@ describe('RunGameMasterUseCase — async avatar switch safety', () => {
       correlationId: 'corr_2',
     })
 
-    expect(updateConversationMock).not.toHaveBeenCalled()
-    expect(createConversationMock).not.toHaveBeenCalled()
+    expect(updateSessionMock).not.toHaveBeenCalledWith('session_1', {
+      activeAvatarId: 'avatar_2',
+    })
   })
 })

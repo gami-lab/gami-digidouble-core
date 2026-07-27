@@ -162,8 +162,9 @@ Output invariants:
 
 - `GameMasterOutput` is the canonical runtime output contract.
 - `dialogueControl.askFollowUp` must always be stated explicitly by the GM; it is never inferred from `mode` alone.
-- `dialogueControl` and `retrievalPlan` are required in current GM responses. `directorNotes`,
-  `routing`, and `progressionUpdate` are optional. The parser still accepts omitted retrieval
+- `dialogueControl`, `retrievalPlan`, and `directorNotes` are required in current GM responses.
+  `directorNotes` must be non-empty. `routing` and `progressionUpdate` are optional. The parser
+  still accepts omitted retrieval
   and progression fields for backwards compatibility and normalizes them to safe no-op defaults.
   `retrievalPlan.required` should be false only for greetings, purely emotional or subjective
   reflection, or purely stylistic guidance where no factual, narrative, or character context
@@ -231,7 +232,7 @@ Reducer rules:
 1. GM may return `routing.action: 'suggest'` for a non-forcing recommendation.
 2. GM may return `routing.action: 'switch'` or `'unlock_and_switch'` to request a new active Avatar.
 3. Runtime accepts a switch only when the target avatar belongs to the active scenario and is already unlocked or unlocked by the same valid GM output.
-4. If accepted, the active conversation is closed, a new GM-started conversation is created, and the session active avatar is updated.
+4. If accepted by the platform switch path, the active conversation is closed, a new conversation is created, and the session active avatar is updated. The asynchronous GM only records the target as the next active Avatar and does not perform this lifecycle transition or emit a duplicate switch event; the platform consumer invokes the existing switch mechanism.
 
 ### Avatar Unlock
 

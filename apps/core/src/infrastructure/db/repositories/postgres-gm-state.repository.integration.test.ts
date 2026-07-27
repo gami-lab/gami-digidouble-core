@@ -127,6 +127,43 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
     expect(found?.interactionCount).toBe(42)
   })
 
+  it('preserves current retrieval scopes and multi-target unlock decisions through the DB', async () => {
+    await gmStateRepo.save(sessionId, {
+      progression: 'advanced',
+      interactionCount: 4,
+      nextTurnOrchestration: {
+        activeAvatarId: 'avatar_1',
+        generatedAfterTurn: 4,
+        generatedAt: '2026-07-26T10:00:00.000Z',
+        dialogueControl: { mode: 'transition', askFollowUp: false },
+        retrievalPlan: {
+          required: true,
+          queries: ['Mona location'],
+          requiredFacts: ['Mona last confirmed location'],
+          scopes: ['world_context', 'scenario_knowledge'],
+        },
+        routing: {
+          action: 'unlock',
+          unlockDecisions: [
+            { avatarId: 'avatar_2', reason: 'Specialist context is needed.' },
+            { avatarId: 'avatar_3', reason: 'A second perspective is relevant.' },
+          ],
+        },
+        progressionUpdate: { progression: 'none' },
+      },
+    })
+
+    const found = await gmStateRepo.findBySessionId(sessionId)
+    expect(found?.nextTurnOrchestration?.retrievalPlan.scopes).toEqual([
+      'world_context',
+      'scenario_knowledge',
+    ])
+    expect(found?.nextTurnOrchestration?.routing?.unlockDecisions).toEqual([
+      { avatarId: 'avatar_2', reason: 'Specialist context is needed.' },
+      { avatarId: 'avatar_3', reason: 'A second perspective is relevant.' },
+    ])
+  })
+
   it('ignores legacy current-avatar and covered-topic columns when reading', async () => {
     const state: GameMasterState = {
       progression: 'none',

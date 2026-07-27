@@ -52,7 +52,7 @@ Prompt `03` is last because it validates the final contract, runtime behaviour, 
 - [ ] Application-owned fields such as interaction increments are removed from the GM output.
 - [ ] Memory compaction is the sole owner of `summary`, `coveredTopics`, `unresolvedThreads`, and `candidateFacts`.
 - [ ] Contradicted Avatar claims are not automatically persisted as facts.
-- [ ] Director Notes remain optional and contain only useful next-turn narrative guidance.
+- [ ] Director Notes are required, non-empty, and contain only useful next-turn narrative guidance.
 - [ ] Focused deterministic tests cover contracts, retrieval planning, dialogue modes, routing, memory ownership, failures, and prompt-size reduction.
 - [ ] Existing asynchronous behaviour and multi-Avatar regression scenarios continue to pass.
 - [ ] `docs/PROJECT_STATUS.md` and all impacted source-of-truth documentation are updated before the EPIC is considered complete.

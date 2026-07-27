@@ -148,7 +148,7 @@ Avoid generic queries such as:
 ["Mona information", "family story"]
 ```
 
-### 4. Keep Director Notes, but make them optional
+### 4. Keep Director Notes as a required concise guidance field
 
 Keep:
 
@@ -157,6 +157,9 @@ Keep:
 ```
 
 Director Notes should express narrative or character guidance that is not already represented by the structured fields.
+
+Director Notes are required on every valid GM response and must be non-empty. The parser rejects a
+missing or blank value, so a valid response cannot omit this field.
 
 Good:
 
