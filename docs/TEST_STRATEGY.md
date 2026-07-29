@@ -26,9 +26,10 @@ Contract breakage is one of the biggest risks in a modular API-first system. Pro
 Evaluation tooling follows the same contract-first rule as other API clients: shared response types
 are reused, untrusted API values are normalized at the tool boundary, and unavailable cost is
 asserted as `null` rather than zero. Tool unit tests remain deterministic and do not call
-providers or Core internals. Definition and configuration tests also prove unknown-field rejection,
-deterministic initial-avatar selection, duplicate-question handling, safe secret errors, and
-run-scoped user isolation before later network-backed slices are added.
+providers or Core internals. The evaluator's integration-style test uses one scripted `fetch` fake
+to prove the composed HTTP ordering, same-session reuse, and judge-before-next-question invariant;
+it is still local and credential-free, not a provider benchmark. The real seeded scenario remains
+opt-in and is never part of the default suite.
 
 ## 4b. Prefer deterministic policy tests for orchestration
 
@@ -129,6 +130,11 @@ No network. No real providers. No real DB. Always fast, always deterministic. Ha
 
 Real adapter collaboration: real PostgreSQL for repositories, real Redis when Redis semantics matter, mocked LLM providers unless specifically testing provider integration. Tests requiring live credentials use `describe.skipIf(!apiKey)` — skipped in CI without credentials, run in nightly with credentials.
 
+The evaluator package has one documented exception to the usual infrastructure-oriented integration
+examples: `evaluation.integration.test.ts` is an integration-style composition test over a fake
+HTTP boundary. It must remain deterministic and must not require Core, infrastructure, network
+access, or provider credentials.
+
 Representative GM integration test files:
 
 - `postgres-gm-state.repository.integration.test.ts` — verifies `findBySessionId`, `save` (insert and upsert), orchestration/count round-trip, and legacy GM memory/avatar columns being ignored
@@ -212,6 +218,7 @@ pnpm test                  # unit tests (PR gate)
 pnpm test:integration-e2e  # integration + E2E (main / nightly)
 pnpm test:stack-e2e        # stack E2E — requires a running Docker stack
 pnpm test:coverage         # unit tests with coverage report
+pnpm --filter @gami/conversation-evaluation test:integration-style # deterministic evaluator HTTP composition
 ```
 
 ---

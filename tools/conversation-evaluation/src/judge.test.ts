@@ -55,6 +55,20 @@ describe('semantic judge', () => {
     })
   })
 
+  it('accepts relevant additional information without requiring exact wording', () => {
+    expect(
+      parseJudgeResult(
+        JSON.stringify({
+          passed: true,
+          score: 4,
+          reason: 'The answer adds relevant context while preserving the required meaning.',
+          missingElements: [],
+          contradictions: [],
+        }),
+      ),
+    ).toMatchObject({ passed: true, score: 4, missingElements: [], contradictions: [] })
+  })
+
   it('represents missing criteria and contradictions as a valid quality failure', () => {
     expect(
       parseJudgeResult(
@@ -146,6 +160,27 @@ describe('semantic judge', () => {
       actualResponse: 'The storm caused it.',
     })
     expect(body.systemPrompt).toContain('semantic evaluator')
+  })
+
+  it('keeps a judge API error separate from a quality failure', async () => {
+    const fetchMock = vi
+      .fn<FetchLike>()
+      .mockResolvedValue(
+        jsonResponse(
+          { data: null, error: { code: 'UNAUTHORIZED', message: 'Invalid API key.' } },
+          401,
+        ),
+      )
+    const client = new SemanticJudgeClient({
+      baseUrl: 'https://judge.example',
+      apiKey: 'judge-key',
+      timeoutMs: 1000,
+      fetchImpl: fetchMock,
+    })
+
+    await expect(
+      client.evaluate({ question: 'Q', expectedResponse: 'E', actualResponse: 'A' }),
+    ).rejects.toMatchObject({ kind: 'judge_error', code: 'UNAUTHORIZED', status: 401 })
   })
 
   it('rejects oversized serialized evidence before making a request', async () => {

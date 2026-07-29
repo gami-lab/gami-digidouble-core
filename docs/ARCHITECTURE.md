@@ -30,7 +30,7 @@ See `PRINCIPLES.md` for full engineering philosophy.
 
 ---
 
-- background evaluations
+- external scripted evaluations
 
 ---
 
@@ -195,6 +195,9 @@ application/use-cases/
   get-turn-metrics/ -> Session-scoped metrics aggregation from event log
   upsert-user-persona/ -> Idempotent persona write for one user
   get-user-persona/ -> Persona read for one user
+
+tools/
+  conversation-evaluation/ -> External authenticated HTTP runner, semantic judge, and local reports
 ```
 
 ---

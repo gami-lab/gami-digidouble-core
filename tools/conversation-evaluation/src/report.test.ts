@@ -111,7 +111,10 @@ describe('evaluation reports', () => {
     await writeReportAtomically(outputPath, report)
     const written = JSON.parse(await readFile(outputPath, 'utf8')) as typeof report
     expect(written).toEqual(report)
-    expect(renderConsoleSummary(report)).toContain('Question 1: passed | score=5')
+    const summary = renderConsoleSummary(report)
+    expect(summary).toContain('Question 1: passed | score=5')
+    expect(summary).not.toContain('What happened')
+    expect(summary).not.toContain('answer')
   })
 
   it('creates a stable initial report with nullable execution identifiers', () => {

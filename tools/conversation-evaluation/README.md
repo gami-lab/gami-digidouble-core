@@ -62,6 +62,13 @@ The generated user ID prevents repeated runs from unintentionally sharing memory
 `--user-id` when deliberately testing continuity across runs. `--judge-base-url` defaults to the
 Avatar API base URL; it changes the judge target only and never changes Core model configuration.
 
+The default output path is `evaluation-report.json` in the current working directory. Use
+`--output` or `EVALUATION_OUTPUT_PATH` to place the report elsewhere. Reports contain one record per
+attempted question, including the Avatar response, observed model, latency, tokens, judge result,
+and error classification. `passRate` uses only successfully judged questions as its denominator;
+`api_error` and `judge_error` are not quality failures. Reports are written atomically after setup
+and after every attempted question, so a stopped run remains readable and preserves completed work.
+
 The package API exposes `validateTestDefinition`, `loadTestDefinition`, `loadEvaluationConfig`,
 `CoreApiClient`, and `runSequentialConversation` from `src/index.ts`. The runner creates one
 session, starts one conversation, and awaits each JSON Avatar response before sending the next
@@ -80,8 +87,45 @@ non-empty `reason`, and string arrays for `missingElements` and `contradictions`
 fenced-JSON form is accepted for compatibility. Invalid or unavailable judge responses are
 reported as `judge_error`, while valid `passed: false` results are quality `failed` results.
 
-Reports are written atomically after the initial setup and after every attempted question. A partial
-run remains valid JSON, and total cost is `null` unless every successful Avatar response in the
-completed run supplied cost data. The console summary shows statuses, scores, models, and bounded
-metrics without printing prompts or secrets. The package has no Core-internal, database, Redis,
-Langfuse, provider SDK, YAML, or new HTTP endpoint dependency.
+Total cost is `null` unless every successful Avatar response in the completed run supplied
+`costUsd`. No local pricing table or estimate is used; the current raw exchange contract does not
+guarantee cost, and judge cost is not included in the report. The console summary shows statuses,
+scores, models, and bounded metrics without printing prompts or secrets. The package has no
+Core-internal, database, Redis, Langfuse, provider SDK, YAML, or new HTTP endpoint dependency.
+
+## Opt-in Villa Miralac example
+
+The readable, versioned example at
+`tools/conversation-evaluation/definitions/murder-party-villa-miralac.json` uses the stable seed
+identifier `murder-party-villa-miralac` and resolves the initial Avatar by the exact name
+`Clara Whitcombe`. It is opt-in: default tests never execute it or contact a provider.
+
+First seed a Core environment using the documented API bootstrap, then run the evaluator explicitly:
+
+```sh
+MURDER_PARTY_API_BASE_URL=http://localhost:3000 \
+MURDER_PARTY_API_KEY="$API_KEY" \
+pnpm seed:murder-party:api
+
+EVALUATION_API_KEY="$API_KEY" \
+pnpm --filter @gami/conversation-evaluation evaluate -- \
+  --definition ./tools/conversation-evaluation/definitions/murder-party-villa-miralac.json \
+  --avatar-api-base-url http://localhost:3000 \
+  --output ./evaluation-report.json
+```
+
+Before a live run, Core must be running, the scenario and Avatar seed must exist, and the server's
+model-resolution configuration must point to an allowed provider/model with usable credentials.
+Definition `model` and `judgeModel` values are comparison metadata only; the evaluator does not
+override avatar, scenario, role, or global model configuration. Real execution is intentionally
+separate from the deterministic package and integration-style fake-HTTP tests.
+
+Quality checks for this package are:
+
+```sh
+pnpm --filter @gami/conversation-evaluation test
+pnpm --filter @gami/conversation-evaluation test:integration-style
+pnpm --filter @gami/conversation-evaluation typecheck
+pnpm --filter @gami/conversation-evaluation lint
+pnpm format:check
+```

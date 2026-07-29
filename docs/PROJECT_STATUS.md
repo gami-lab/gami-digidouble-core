@@ -18,8 +18,8 @@ The platform is now a working headless conversational runtime with:
 - scenario-builder admin surfaces
 - public web chat surface
 - authenticated scripted evaluation tooling with semantic judging through the raw exchange boundary,
-  strict JSON results, nullable cost semantics, model mismatch reporting, and atomic incremental
-  reports
+  strict JSON results, nullable cost semantics, model mismatch reporting, atomic incremental reports,
+  deterministic fake-HTTP composition coverage, and an opt-in Villa Miralac definition
 - progressive avatar-response rendering in the public web chat surface
 - multi-model runtime configuration
 - request and turn observability
@@ -115,7 +115,8 @@ The platform is now a working headless conversational runtime with:
   metadata only, not request-level overrides.
 - CLI and environment configuration resolves the Avatar API URL, API key, optional judge URL,
   report path, timeout, and a unique run-scoped user ID by default; explicit user IDs support
-  controlled continuity tests. The current foundation command makes no network requests.
+  controlled continuity tests. Definition validation is network-free, while the execution command
+  intentionally makes authenticated requests only when explicitly invoked.
 - The evaluator reuses shared conversation/entity and raw-exchange contracts. API-provided cost is
   preserved when present and normalized to `null` when absent; no pricing is inferred.
 - The typed evaluator HTTP client decodes only `ApiResponse<T>`, sends API-key headers, bounds
@@ -131,6 +132,8 @@ The platform is now a working headless conversational runtime with:
   judge model observations/mismatches, explicit pass-rate denominators, and nullable total cost.
   Report snapshots use atomic replacement after each attempted question, so partial runs remain
   valid JSON. Console summaries omit prompts, API keys, and unbounded payloads.
+- The package test suite includes deterministic unit coverage plus a fake-HTTP integration-style
+  three-question ordering test; the seeded Villa Miralac definition is readable and opt-in only.
 
 ## Current Architectural Invariants
 

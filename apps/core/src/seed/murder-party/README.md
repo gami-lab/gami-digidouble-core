@@ -130,3 +130,12 @@ The script prints a JSON summary with:
 - warnings
 
 Warnings are expected if seed-tagged knowledge sources already exist with different content and cannot be replaced through current API endpoints.
+
+## Scripted evaluation example
+
+The opt-in evaluator definition at
+`tools/conversation-evaluation/definitions/murder-party-villa-miralac.json` targets this seed's
+stable scenario identifier and selects `Clara Whitcombe` by name because seed-created Avatar IDs
+are generated dynamically. Use the evaluator only after this API seed completes and Core model
+configuration is available; its default tests use fake HTTP responses and do not require this
+scenario, a database, Redis, or provider credentials.

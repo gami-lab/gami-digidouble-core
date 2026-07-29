@@ -412,8 +412,9 @@ Package the text-in/text-out core, usable back-office, validated scenario, and s
 ### `8.6 Scripted Conversation Response Evaluation`
 
 **Current state**
-The contract cleanup, tool foundation, sequential HTTP runner, semantic judging, aggregation, report
-persistence, and CLI execution are shipped.
+EPIC 8.6 is complete: the contract cleanup, tool foundation, sequential HTTP runner, semantic
+judging, aggregation, atomic report persistence, CLI execution, deterministic hardening suite, and
+opt-in seeded-scenario definition are shipped.
 
 **Purpose**
 Make conversation quality, latency, token usage, and available cost data easy to compare without

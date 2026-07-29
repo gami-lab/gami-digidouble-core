@@ -38,6 +38,7 @@ const sessionResponse = {
   },
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('CoreApiClient', () => {
   it('normalizes the base URL, sends the API key, and decodes the standard envelope', async () => {
     const fetchMock = vi
@@ -93,6 +94,26 @@ describe('CoreApiClient', () => {
     expect(error).toMatchObject({ status: 404, code: 'NOT_FOUND', kind: 'api_error' })
     expect((error as CoreApiError).message.length).toBeLessThanOrEqual(500)
     expect((error as CoreApiError).message).not.toContain('do-not-expose')
+  })
+
+  it('preserves authentication failures as API errors', async () => {
+    const fetchMock = vi
+      .fn<FetchLike>()
+      .mockResolvedValue(jsonResponse(errorEnvelope('UNAUTHORIZED', 'Invalid API key.'), 401))
+    const client = new CoreApiClient({
+      baseUrl: 'https://core.example',
+      apiKey: 'test-key',
+      timeoutMs: 1000,
+      fetchImpl: fetchMock,
+    })
+
+    await expect(
+      client.createSession({ userId: 'user', scenarioId: 'scenario_1' }),
+    ).rejects.toMatchObject({
+      kind: 'api_error',
+      code: 'UNAUTHORIZED',
+      status: 401,
+    })
   })
 
   it('aborts a request when the configured timeout expires', async () => {

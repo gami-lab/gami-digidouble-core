@@ -1,6 +1,7 @@
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
@@ -41,6 +42,19 @@ describe('evaluation definition validation', () => {
     await writeFile(filePath, JSON.stringify(validDefinition), 'utf8')
 
     await expect(loadTestDefinition(filePath)).resolves.toEqual(validDefinition)
+  })
+
+  it('keeps the seeded Villa Miralac definition opt-in and executable by name', async () => {
+    const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+    const definition = await loadTestDefinition(
+      join(packageDirectory, 'definitions', 'murder-party-villa-miralac.json'),
+    )
+    expect(definition).toMatchObject({
+      version: 1,
+      scenarioId: 'murder-party-villa-miralac',
+      initialAvatarName: 'Clara Whitcombe',
+    })
+    expect(definition.questions.length).toBeGreaterThanOrEqual(3)
   })
 
   it('rejects missing required fields', () => {

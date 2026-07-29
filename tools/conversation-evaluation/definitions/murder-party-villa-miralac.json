@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "name": "The Last Glass at Villa Miralac — Clara baseline",
+  "scenarioId": "murder-party-villa-miralac",
+  "initialAvatarName": "Clara Whitcombe",
+  "questions": [
+    {
+      "question": "Please tell me what happened tonight.",
+      "expectedResponse": "Explain that Lionel Ardent was found dead in the winter garden during the storm; do not require exact wording or a direct accusation."
+    },
+    {
+      "question": "Who else was present at Villa Miralac that evening?",
+      "expectedResponse": "Identify the relevant people present, including Elias, Margot, and Thomas, while allowing natural additional context."
+    },
+    {
+      "question": "What should I investigate next?",
+      "expectedResponse": "Suggest a relevant next clue or line of inquiry without claiming that Clara knows the full hidden truth."
+    }
+  ]
+}

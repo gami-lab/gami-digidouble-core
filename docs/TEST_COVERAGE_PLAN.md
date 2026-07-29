@@ -218,11 +218,15 @@ Must cover:
   order and session/conversation identity, extracts response metrics, exposes model mismatches, and
   retains completed results when a message request fails
 - semantic judge serialization stays within raw-exchange body limits, accepts only validated
-  result objects (with deterministic fenced JSON), and distinguishes paraphrase passes, missing
-  criteria, contradictions, malformed judge output, and judge transport/API errors
+  result objects (with deterministic fenced JSON), and distinguishes paraphrase passes, relevant
+  additional information, missing criteria, contradictions, malformed judge output, and judge
+  transport/API errors
 - report aggregation uses valid judge results for the pass-rate denominator, keeps Avatar metrics
   separate from judge model metadata, leaves cost nullable when incomplete, and atomically writes
   valid incremental reports with bounded console summaries
+- the composed integration-style fake-HTTP test proves three ordered questions, one session and
+  conversation, authenticated request shaping, and judge completion before the next Avatar request
+- the seeded Villa Miralac definition is loadable but is not executed by default tests
 
 ## Critical Release Flows
 
