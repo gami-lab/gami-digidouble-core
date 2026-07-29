@@ -44,6 +44,13 @@ export type EvaluationError = {
   status?: number
 }
 
+export type ModelMismatch = {
+  role: 'avatar' | 'judge'
+  questionNumber: number
+  declaredModel: string
+  observedModel: string
+}
+
 export type QuestionResultStatus = 'completed' | 'api_error' | 'judge_error' | 'passed' | 'failed'
 
 export type QuestionResult = {
@@ -91,6 +98,8 @@ export type RunReport = {
   finishedAt: string | null
   questions: QuestionResult[]
   summary: RunSummary
+  modelMismatches: ModelMismatch[]
+  error: EvaluationError | null
 }
 
 /**

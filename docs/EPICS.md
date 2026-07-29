@@ -412,8 +412,8 @@ Package the text-in/text-out core, usable back-office, validated scenario, and s
 ### `8.6 Scripted Conversation Response Evaluation`
 
 **Current state**
-The contract-cleanup, tool-foundation, and sequential HTTP runner slices are shipped; semantic
-judging, aggregation, and report persistence remain.
+The contract cleanup, tool foundation, sequential HTTP runner, semantic judging, aggregation, report
+persistence, and CLI execution are shipped.
 
 **Purpose**
 Make conversation quality, latency, token usage, and available cost data easy to compare without

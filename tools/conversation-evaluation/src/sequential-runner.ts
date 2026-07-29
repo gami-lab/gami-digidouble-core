@@ -7,15 +7,21 @@ import type {
   TestDefinition,
 } from './contracts.js'
 import { normalizeMetrics } from './metrics.js'
-import { CoreApiClient, CoreApiError } from './core-api-client.js'
+import { CoreApiClient, CoreApiError, type CoreApiRequestOptions } from './core-api-client.js'
 
 export type SequentialRunnerInput = {
   definition: TestDefinition
   userId: string
+  signal?: AbortSignal
+  onResult?: (result: QuestionResult) => Promise<void> | void
 }
 
 function normalizeAvatarName(name: string): string {
   return name.trim().toLowerCase()
+}
+
+function requestOptions(signal: AbortSignal | undefined): CoreApiRequestOptions {
+  return signal === undefined ? {} : { signal }
 }
 
 function toEvaluationError(error: unknown): EvaluationError {
@@ -123,18 +129,10 @@ function createQuestionResult(
   }
 }
 
-function isConversationUnavailable(error: CoreApiError): boolean {
-  return (
-    error.code === 'NOT_FOUND' ||
-    error.code === 'CONFLICT' ||
-    error.status === 404 ||
-    error.status === 409
-  )
-}
-
 export async function resolveInitialAvatarId(
   client: CoreApiClient,
   definition: TestDefinition,
+  signal?: AbortSignal,
 ): Promise<string> {
   if (definition.initialAvatarId !== undefined) return definition.initialAvatarId
 
@@ -143,7 +141,7 @@ export async function resolveInitialAvatarId(
     throw new Error('Definition must provide an initial Avatar selector.')
   }
 
-  const response = await client.listScenarioAvatars(definition.scenarioId)
+  const response = await client.listScenarioAvatars(definition.scenarioId, requestOptions(signal))
   const matches = response.avatars.filter(
     (avatar) => normalizeAvatarName(avatar.name) === normalizeAvatarName(avatarName),
   )
@@ -184,13 +182,20 @@ export async function runSequentialConversation(
   input: SequentialRunnerInput,
 ): Promise<ConversationExecution> {
   const { definition, userId } = input
-  const avatarId = await resolveInitialAvatarId(client, definition)
-  const sessionResponse = await client.createSession({
-    userId,
-    scenarioId: definition.scenarioId,
-  })
+  const avatarId = await resolveInitialAvatarId(client, definition, input.signal)
+  const sessionResponse = await client.createSession(
+    {
+      userId,
+      scenarioId: definition.scenarioId,
+    },
+    requestOptions(input.signal),
+  )
   const sessionId = sessionResponse.session.sessionId
-  const conversationResponse = await client.startConversation(sessionId, { avatarId })
+  const conversationResponse = await client.startConversation(
+    sessionId,
+    { avatarId },
+    requestOptions(input.signal),
+  )
   const conversationId = conversationResponse.conversation.conversationId
   const results: QuestionResult[] = []
   const observedAvatarModels: string[] = []
@@ -208,8 +213,13 @@ export async function runSequentialConversation(
       avatarId,
     )
 
+    let shouldStop = false
     try {
-      const response = await client.sendMessage(conversationId, question.question)
+      const response = await client.sendMessage(
+        conversationId,
+        question.question,
+        requestOptions(input.signal),
+      )
       assertMessageResponseIdentity(response, sessionId, conversationId)
       assertMessageResponseMetrics(response)
       const metadata = response.avatarMessage.metadata
@@ -228,14 +238,15 @@ export async function runSequentialConversation(
     } catch (error: unknown) {
       result.status = 'api_error'
       result.error = toEvaluationError(error)
-      results.push(result)
-      if (error instanceof CoreApiError && isConversationUnavailable(error)) break
+      shouldStop = true
       // A failed/timed-out JSON request may have been committed by Core. Stopping avoids sending
       // the next scripted question into an unknown conversation state or duplicating a turn.
-      break
     }
 
+    if (input.onResult !== undefined) await input.onResult(result)
+
     results.push(result)
+    if (shouldStop) break
   }
 
   return {

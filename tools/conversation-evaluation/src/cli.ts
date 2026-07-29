@@ -2,9 +2,11 @@
 
 import { pathToFileURL } from 'node:url'
 
-import { loadEvaluationConfig, type EvaluationConfig } from './config.js'
+import { loadEvaluationConfig } from './config.js'
+import { CoreApiClient } from './core-api-client.js'
 import { loadTestDefinition } from './definition.js'
-import type { TestDefinition } from './contracts.js'
+import { runEvaluation } from './evaluation.js'
+import { SemanticJudgeClient } from './judge.js'
 
 export type CliIo = {
   log(message: string): void
@@ -25,46 +27,43 @@ export async function runCli(
     const config = loadEvaluationConfig(argv, environment)
     const definition = await loadTestDefinition(config.definitionPath)
 
-    io.log(JSON.stringify(createRunPlan(config, definition), null, 2))
-    return 0
+    const avatarClient = new CoreApiClient({
+      baseUrl: config.avatarApiBaseUrl,
+      apiKey: config.apiKey,
+      timeoutMs: config.timeoutMs,
+    })
+    const judgeClient = new SemanticJudgeClient({
+      baseUrl: config.judgeBaseUrl ?? config.avatarApiBaseUrl,
+      apiKey: config.apiKey,
+      timeoutMs: config.timeoutMs,
+    })
+    const interruption = new AbortController()
+    const onInterrupt = (): void => {
+      interruption.abort()
+    }
+    process.once('SIGINT', onInterrupt)
+    const output = await runEvaluation({
+      definition,
+      userId: config.userId,
+      avatarClient,
+      judgeClient,
+      outputPath: config.outputPath,
+      signal: interruption.signal,
+    }).finally(() => process.removeListener('SIGINT', onInterrupt))
+    io.log(output.consoleSummary)
+    return output.report.status === 'completed' ? 0 : 1
   } catch (error: unknown) {
     io.error(`[conversation-evaluation] ${getErrorMessage(error)}`)
     return 1
   }
 }
 
-function createRunPlan(
-  config: EvaluationConfig,
-  definition: TestDefinition,
-): Record<string, unknown> {
-  return {
-    definition: {
-      name: definition.name,
-      scenarioId: definition.scenarioId,
-      initialAvatarId: definition.initialAvatarId ?? null,
-      initialAvatarName: definition.initialAvatarName ?? null,
-      declaredModel: definition.model ?? null,
-      declaredJudgeModel: definition.judgeModel ?? null,
-      questions: definition.questions.length,
-    },
-    configuration: {
-      avatarApiBaseUrl: config.avatarApiBaseUrl,
-      judgeBaseUrl: config.judgeBaseUrl ?? null,
-      outputPath: config.outputPath,
-      timeoutMs: config.timeoutMs,
-      userId: config.userId,
-    },
-    networkRequests: 0,
-  }
-}
-
 function printHelp(io: CliIo): void {
   io.log(
     [
-      'Conversation evaluation foundation',
+      'Conversation evaluation',
       '',
-      'Validates a JSON definition and resolves local run configuration.',
-      'This foundation command does not make network requests.',
+      'Runs a sequential scripted conversation and semantically judges each Avatar response.',
       '',
       'Usage:',
       '  pnpm --filter @gami/conversation-evaluation evaluate -- --definition <path>',

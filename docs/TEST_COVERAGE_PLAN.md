@@ -217,6 +217,12 @@ Must cover:
 - the sequential runner resolves direct or unique normalized name-based Avatars, preserves request
   order and session/conversation identity, extracts response metrics, exposes model mismatches, and
   retains completed results when a message request fails
+- semantic judge serialization stays within raw-exchange body limits, accepts only validated
+  result objects (with deterministic fenced JSON), and distinguishes paraphrase passes, missing
+  criteria, contradictions, malformed judge output, and judge transport/API errors
+- report aggregation uses valid judge results for the pass-rate denominator, keeps Avatar metrics
+  separate from judge model metadata, leaves cost nullable when incomplete, and atomically writes
+  valid incremental reports with bounded console summaries
 
 ## Critical Release Flows
 

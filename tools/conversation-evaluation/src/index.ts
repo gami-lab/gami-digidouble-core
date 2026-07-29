@@ -4,6 +4,7 @@ export type {
   EvaluationError,
   EvaluationMetrics,
   JudgeResult,
+  ModelMismatch,
   QuestionResult,
   QuestionResultStatus,
   RunReport,
@@ -39,3 +40,31 @@ export {
   parseCliArgs,
 } from './config.js'
 export { normalizeCostUsd, normalizeMetrics } from './metrics.js'
+export type {
+  JudgeClientOptions,
+  JudgeErrorKind,
+  JudgeEvaluation,
+  JudgeInput,
+  JudgeRequestOptions,
+} from './judge.js'
+export {
+  JUDGE_SYSTEM_PROMPT,
+  MAX_EXCHANGE_MESSAGE_LENGTH,
+  MAX_EXCHANGE_SYSTEM_PROMPT_LENGTH,
+  MAX_JUDGE_REPLY_LENGTH,
+  JudgeClientError,
+  parseJudgeResult,
+  SemanticJudgeClient,
+  serializeSemanticJudgeInput,
+} from './judge.js'
+export type { EvaluationRunInput, EvaluationRunOutput } from './evaluation.js'
+export { runEvaluation } from './evaluation.js'
+export {
+  aggregateRunSummary,
+  buildReportFromExecution,
+  buildRunReport,
+  createRunReport,
+  renderConsoleSummary,
+  ReportWriteError,
+  writeReportAtomically,
+} from './report.js'

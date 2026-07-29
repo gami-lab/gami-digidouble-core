@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-07-29
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 contract cleanup, tool foundation, and sequential runner delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered
 
 ## Snapshot
 
@@ -17,8 +17,9 @@ The platform is now a working headless conversational runtime with:
 - admin inspection, replay, and memory-control tooling
 - scenario-builder admin surfaces
 - public web chat surface
-- evaluation-tool foundation with shared raw-exchange ownership, nullable cost semantics, strict JSON
-  definitions, and safe local configuration loading
+- authenticated scripted evaluation tooling with semantic judging through the raw exchange boundary,
+  strict JSON results, nullable cost semantics, model mismatch reporting, and atomic incremental
+  reports
 - progressive avatar-response rendering in the public web chat surface
 - multi-model runtime configuration
 - request and turn observability
@@ -104,9 +105,9 @@ The platform is now a working headless conversational runtime with:
 
 ### Evaluation Tooling
 
-- The EPIC 8.6 contract-cleanup, tool-foundation, and sequential HTTP runner slices are shipped in
-  `tools/conversation-evaluation`; semantic judging, aggregation, report persistence, and CLI
-  execution remain future slices.
+- The EPIC 8.6 contract cleanup, tool foundation, sequential HTTP runner, semantic judging,
+  aggregation, atomic report persistence, and CLI execution are shipped in
+  `tools/conversation-evaluation`.
 - `TestDefinition`, `QuestionResult`, `JudgeResult`, and `RunReport` are tool-owned types; Core
   domain and HTTP DTOs are not extended with evaluation-only state.
 - Versioned JSON definitions validate required fields, exact initial-avatar selection, duplicate
@@ -122,6 +123,14 @@ The platform is now a working headless conversational runtime with:
   one session and conversation, resolves an initial Avatar deterministically, awaits each JSON
   response in order, records shared message metrics, and returns partial `api_error` results
   without polling asynchronous Game Master or memory work.
+- The evaluator sends bounded, structured question/criteria/answer evidence to authenticated
+  `POST /v1/exchange` for semantic judging. Judge output is runtime-validated, including the
+  deterministic fenced-JSON compatibility form, and malformed or unavailable judges remain
+  `judge_error` rather than quality failures.
+- Reports preserve attempted question inputs, Avatar responses and metrics, separate Avatar and
+  judge model observations/mismatches, explicit pass-rate denominators, and nullable total cost.
+  Report snapshots use atomic replacement after each attempted question, so partial runs remain
+  valid JSON. Console summaries omit prompts, API keys, and unbounded payloads.
 
 ## Current Architectural Invariants
 

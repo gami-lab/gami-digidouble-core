@@ -576,6 +576,10 @@ Cross-package HTTP DTO ownership for Core/console/web/admin contracts lives in `
 Standalone tools under `tools/` are also external HTTP consumers. They may import shared wire DTOs,
 but keep tool-only execution and report contracts in their own package and never import Core domain,
 application repositories, provider SDKs, or infrastructure adapters.
+The scripted conversation evaluator uses the authenticated public conversation lifecycle for Avatar
+turns and the existing authenticated `POST /v1/exchange` boundary for provider-agnostic semantic
+judging; it does not add model-selection parameters or call provider adapters directly. Its JSON
+reports are local tool artifacts, not Core persistence.
 Conversation message-stream DTOs are owned by
 `packages/shared/src/conversation-stream-contract-types.ts`; backend execution inputs and outputs
 remain under `apps/core/src/application/use-cases/`. Generic SSE frame buffering and JSON extraction

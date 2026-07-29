@@ -1,8 +1,8 @@
-# Conversation Evaluation Foundation
+# Conversation Evaluation
 
 This package is the standalone local tooling boundary for EPIC 8.6 scripted conversation
-evaluation. It owns evaluation definitions and execution records, while Core HTTP DTOs remain
-owned by `@gami/shared`.
+evaluation. It owns definitions, semantic judge results, and local JSON reports, while Core HTTP
+DTOs remain owned by `@gami/shared`.
 
 ## Definition format
 
@@ -42,9 +42,11 @@ pnpm --filter @gami/conversation-evaluation evaluate -- \
   --api-key "$API_KEY"
 ```
 
-The command makes no network requests. It validates the JSON first, then prints a safe run plan.
-The API key is accepted only through `--api-key`, `EVALUATION_API_KEY`, or `API_KEY` and is never
-printed. Other options can be supplied by flag or environment variable:
+The command validates the definition before making requests, then creates one session and one
+conversation, sends questions in order, and judges each returned Avatar response through the
+authenticated `POST /v1/exchange` route. The API key is accepted only through `--api-key`,
+`EVALUATION_API_KEY`, or `API_KEY` and is never printed. Other options can be supplied by flag or
+environment variable:
 
 | Option                  | Environment                       | Default                  |
 | ----------------------- | --------------------------------- | ------------------------ |
@@ -57,8 +59,8 @@ printed. Other options can be supplied by flag or environment variable:
 | `--user-id`             | `EVALUATION_USER_ID`              | unique run-scoped ID     |
 
 The generated user ID prevents repeated runs from unintentionally sharing memory. Set
-`--user-id` when deliberately testing continuity across runs. Report writing remains owned by the
-later report layer; the output path is resolved now so later prompts can use the same foundation API.
+`--user-id` when deliberately testing continuity across runs. `--judge-base-url` defaults to the
+Avatar API base URL; it changes the judge target only and never changes Core model configuration.
 
 The package API exposes `validateTestDefinition`, `loadTestDefinition`, `loadEvaluationConfig`,
 `CoreApiClient`, and `runSequentialConversation` from `src/index.ts`. The runner creates one
@@ -72,6 +74,14 @@ error messages, and supports request timeout and caller abort signals. Missing `
 normalized to `null`; total tokens are derived only from input plus output tokens when the API
 omits the optional total.
 
-The CLI currently validates a definition and resolves configuration; report persistence and the
-semantic judge remain later slices. The package has no Core-internal, database, Redis, Langfuse,
-provider SDK, YAML, or new HTTP endpoint dependency.
+The judge sends bounded JSON evidence containing the question, expected criteria, and actual Avatar
+response. It requires a strict machine-readable result with `passed`, a 1–5 integer `score`, a
+non-empty `reason`, and string arrays for `missingElements` and `contradictions`; one deterministic
+fenced-JSON form is accepted for compatibility. Invalid or unavailable judge responses are
+reported as `judge_error`, while valid `passed: false` results are quality `failed` results.
+
+Reports are written atomically after the initial setup and after every attempted question. A partial
+run remains valid JSON, and total cost is `null` unless every successful Avatar response in the
+completed run supplied cost data. The console summary shows statuses, scores, models, and bounded
+metrics without printing prompts or secrets. The package has no Core-internal, database, Redis,
+Langfuse, provider SDK, YAML, or new HTTP endpoint dependency.
