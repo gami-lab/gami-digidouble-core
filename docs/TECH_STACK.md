@@ -70,7 +70,8 @@ For product principles, read `PRINCIPLES.md`.
 ### Evaluation Tooling
 
 - `tools/conversation-evaluation`: standalone TypeScript workspace package for scripted evaluation
-  contracts and later API-driven execution
+  definitions, configuration, reports, and later API-driven execution; its local CLI uses the
+  repository-standard `tsx` entry-point approach
 - Evaluation tooling uses public authenticated HTTP boundaries and shared DTOs; it does not import
   provider SDKs or Core runtime internals.
 

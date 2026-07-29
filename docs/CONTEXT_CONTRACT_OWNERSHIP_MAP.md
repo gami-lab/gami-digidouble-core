@@ -19,7 +19,7 @@ Last updated: July 29, 2026
   `packages/shared/src/conversation-contract-types.ts`
 - Model catalog and server model-selection contracts -> `packages/shared/src/model-catalog.ts`
 - Raw exchange response -> `packages/shared/src/raw-exchange-contract-types.ts`
-- Evaluation-only definitions and reports -> `tools/conversation-evaluation/src/contracts.ts`
+- Evaluation-only definitions, configuration, and reports -> `tools/conversation-evaluation/src/`
 
 The evaluator imports these shared HTTP contracts rather than redeclaring entity, message, or
 model-selection shapes. Its report types remain local to the tool.

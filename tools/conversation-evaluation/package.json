@@ -2,12 +2,16 @@
   "name": "@gami/conversation-evaluation",
   "version": "0.1.0",
   "private": true,
-  "description": "Standalone scripted conversation evaluation contracts",
+  "description": "Standalone scripted conversation evaluation foundation",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "conversation-evaluation": "dist/cli.js"
+  },
   "scripts": {
     "build": "tsc --build",
+    "evaluate": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vitest run",
@@ -17,6 +21,8 @@
     "@gami/shared": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.8.0",
     "vitest": "^3.2.6"
   }

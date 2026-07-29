@@ -26,7 +26,9 @@ Contract breakage is one of the biggest risks in a modular API-first system. Pro
 Evaluation tooling follows the same contract-first rule as other API clients: shared response types
 are reused, untrusted API values are normalized at the tool boundary, and unavailable cost is
 asserted as `null` rather than zero. Tool unit tests remain deterministic and do not call
-providers or Core internals.
+providers or Core internals. Definition and configuration tests also prove unknown-field rejection,
+deterministic initial-avatar selection, duplicate-question handling, safe secret errors, and
+run-scoped user isolation before later network-backed slices are added.
 
 ## 4b. Prefer deterministic policy tests for orchestration
 

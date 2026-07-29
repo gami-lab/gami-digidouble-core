@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-07-29
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 contract cleanup delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 contract cleanup and tool foundation delivered
 
 ## Snapshot
 
@@ -17,7 +17,8 @@ The platform is now a working headless conversational runtime with:
 - admin inspection, replay, and memory-control tooling
 - scenario-builder admin surfaces
 - public web chat surface
-- evaluation-tool contract foundation with shared raw-exchange ownership and nullable cost semantics
+- evaluation-tool foundation with shared raw-exchange ownership, nullable cost semantics, strict JSON
+  definitions, and safe local configuration loading
 - progressive avatar-response rendering in the public web chat surface
 - multi-model runtime configuration
 - request and turn observability
@@ -103,9 +104,16 @@ The platform is now a working headless conversational runtime with:
 
 ### Evaluation Tooling
 
-- The initial EPIC 8.6 contract-cleanup slice is shipped in `tools/conversation-evaluation`.
+- The EPIC 8.6 contract-cleanup and tool-foundation slices are shipped in
+  `tools/conversation-evaluation`; the sequential HTTP runner and judge remain future slices.
 - `TestDefinition`, `QuestionResult`, `JudgeResult`, and `RunReport` are tool-owned types; Core
   domain and HTTP DTOs are not extended with evaluation-only state.
+- Versioned JSON definitions validate required fields, exact initial-avatar selection, duplicate
+  questions, and unknown fields before any network work. Model fields are declared/expected
+  metadata only, not request-level overrides.
+- CLI and environment configuration resolves the Avatar API URL, API key, optional judge URL,
+  report path, timeout, and a unique run-scoped user ID by default; explicit user IDs support
+  controlled continuity tests. The current foundation command makes no network requests.
 - The evaluator reuses shared conversation/entity and raw-exchange contracts. API-provided cost is
   preserved when present and normalized to `null` when absent; no pricing is inferred.
 

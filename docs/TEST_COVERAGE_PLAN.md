@@ -203,6 +203,12 @@ Must cover:
 
 - shared API contracts are consumed without local Avatar, Scenario, Session, Conversation, or
   Message copies
+- valid JSON definitions load without network access
+- required fields, unknown fields, empty values, malformed model metadata, and exact initial-avatar
+  selector validation
+- duplicate-question rejection and ordered question preservation
+- CLI/environment precedence, URL and timeout validation, safe API-key errors, and unique default
+  run user IDs with explicit continuity override
 - absent `costUsd` normalizes to `null`, while supplied values remain unchanged
 - total-token derivation is limited to input plus output tokens when the API omits total tokens
 - tool-owned report types distinguish API errors, judge errors, and valid quality failures
