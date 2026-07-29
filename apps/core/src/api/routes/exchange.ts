@@ -1,5 +1,5 @@
 import type { FastifyPluginCallback } from 'fastify'
-import { fail, ok } from '@gami/shared'
+import { fail, ok, type RawExchangeResponse } from '@gami/shared'
 import { SendRawMessageUseCase } from '../../application/use-cases/send-raw-message/send-raw-message.use-case.js'
 import type { SendRawMessageOutput } from '../../application/use-cases/send-raw-message/send-raw-message.types.js'
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
@@ -14,6 +14,17 @@ export type ExchangeRouteOptions = {
   config: Config
   llmAdapter?: ILlmAdapter
   observabilityAdapter?: IObservabilityAdapter
+}
+
+function mapRawExchangeResponse(output: SendRawMessageOutput): RawExchangeResponse {
+  return {
+    requestId: output.requestId,
+    reply: output.reply,
+    model: output.model,
+    inputTokens: output.inputTokens,
+    outputTokens: output.outputTokens,
+    latencyMs: output.latencyMs,
+  }
 }
 
 type ExchangeRequestBody = {
@@ -75,7 +86,7 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
             ? { systemPrompt: request.body.systemPrompt }
             : {}),
         })
-        return await reply.send(ok<SendRawMessageOutput>(output))
+        return await reply.send(ok<RawExchangeResponse>(mapRawExchangeResponse(output)))
       } catch (error) {
         if (error instanceof LlmError) {
           return await reply.status(502).send(fail('EXTERNAL_SERVICE_ERROR', error.message))

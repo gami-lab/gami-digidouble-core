@@ -63,6 +63,8 @@ export type {
   GetAvailableAvatarsResponse,
   SwitchAvatarResponse,
 } from './conversation-contract-types.js'
+export type { LlmResponseMetrics } from './llm-contract-types.js'
+export type { RawExchangeResponse } from './raw-exchange-contract-types.js'
 export type {
   MessageStreamEventBase,
   MessageStreamStartedEvent,

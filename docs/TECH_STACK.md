@@ -67,6 +67,13 @@ For product principles, read `PRINCIPLES.md`.
 - `apps/web`: public player-facing UI
 - Frontend stack: React + Vite + strict TypeScript
 
+### Evaluation Tooling
+
+- `tools/conversation-evaluation`: standalone TypeScript workspace package for scripted evaluation
+  contracts and later API-driven execution
+- Evaluation tooling uses public authenticated HTTP boundaries and shared DTOs; it does not import
+  provider SDKs or Core runtime internals.
+
 ### Testing
 
 - Vitest-based package test suites

@@ -10,8 +10,7 @@
  * Do NOT mock anything here — the goal is to verify the end-to-end product.
  */
 import { describe, expect, it } from 'vitest'
-import type { ApiResponse } from '@gami/shared'
-import type { SendRawMessageOutput } from '../../application/use-cases/send-raw-message/send-raw-message.types.js'
+import type { ApiResponse, RawExchangeResponse } from '@gami/shared'
 import type { Config } from '../../config.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
@@ -53,7 +52,7 @@ describe.skipIf(!openaiKey)('E2E — POST /v1/exchange with real OpenAI', () => 
     await app.close()
 
     expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<SendRawMessageOutput>>()
+    const body = response.json<ApiResponse<RawExchangeResponse>>()
     expect(body.error).toBeNull()
     expect(body.data).not.toBeNull()
     expect(body.data?.reply).toBeTruthy()
@@ -86,7 +85,7 @@ describe.skipIf(!anthropicKey)('E2E — POST /v1/exchange with real Anthropic', 
     await app.close()
 
     expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<SendRawMessageOutput>>()
+    const body = response.json<ApiResponse<RawExchangeResponse>>()
     expect(body.error).toBeNull()
     expect(body.data?.reply).toBeTruthy()
     expect(body.data?.inputTokens).toBeGreaterThan(0)
@@ -115,7 +114,7 @@ describe.skipIf(!mistralKey)('E2E — POST /v1/exchange with real Mistral', () =
     await app.close()
 
     expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<SendRawMessageOutput>>()
+    const body = response.json<ApiResponse<RawExchangeResponse>>()
     expect(body.error).toBeNull()
     expect(body.data?.reply).toBeTruthy()
     expect(body.data?.inputTokens).toBeGreaterThan(0)

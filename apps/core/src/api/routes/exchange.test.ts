@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ApiResponse } from '@gami/shared'
-import type { SendRawMessageOutput } from '../../application/use-cases/send-raw-message/send-raw-message.types.js'
+import type { ApiResponse, RawExchangeResponse } from '@gami/shared'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import { LlmError, NullLlmAdapter } from '../../infrastructure/llm/index.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
@@ -30,7 +29,7 @@ describe('POST /v1/exchange — auth and validation', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<SendRawMessageOutput>>()
+    const body = response.json<ApiResponse<RawExchangeResponse>>()
     expect(body.error).toBeNull()
     expect(body.data).not.toBeNull()
     expect(body.data?.reply).toBe('Arrr, hello!')
@@ -148,7 +147,7 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<SendRawMessageOutput>>()
+    const body = response.json<ApiResponse<RawExchangeResponse>>()
     expect(body.data?.reply).toBe('Arr pir8!')
   })
 

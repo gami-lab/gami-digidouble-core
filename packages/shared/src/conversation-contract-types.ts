@@ -1,5 +1,7 @@
 import type { AvatarSummary, ConversationSummary, SessionSummary } from './entity-types.js'
 import type { SessionMemorySummary } from './lifecycle-types.js'
+import type { LlmResponseMetrics } from './llm-contract-types.js'
+export type { LlmResponseMetrics } from './llm-contract-types.js'
 
 export type MessageMetadata = {
   model?: string
@@ -20,15 +22,8 @@ export type Message = {
   metadata?: MessageMetadata
 }
 
-export type AvatarMessageMetadata = {
-  model: string
-  latencyMs: number
-  inputTokens: number
-  outputTokens: number
-  totalTokens?: number
-  costUsd?: number
-  triggerSource?: string
-}
+export type AvatarMessageMetadata = LlmResponseMetrics &
+  Pick<MessageMetadata, 'totalTokens' | 'costUsd' | 'triggerSource'>
 
 export type SendMessageResponse = {
   conversation: ConversationSummary
@@ -37,13 +32,7 @@ export type SendMessageResponse = {
   avatarMessage: Message & {
     metadata: AvatarMessageMetadata
   }
-  debug: {
-    requestId: string
-    model: string
-    latencyMs: number
-    inputTokens: number
-    outputTokens: number
-  }
+  debug: { requestId: string } & LlmResponseMetrics
 }
 
 export type GetHistoryResponse = {

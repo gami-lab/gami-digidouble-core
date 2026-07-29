@@ -412,8 +412,8 @@ Package the text-in/text-out core, usable back-office, validated scenario, and s
 ### `8.6 Scripted Conversation Response Evaluation`
 
 **Current state**
-No standalone, repeatable evaluation runner exists for comparing scripted Avatar conversations
-across configured runtime models.
+The contract-cleanup foundation is shipped; no standalone, repeatable evaluation runner yet exists
+for comparing scripted Avatar conversations across configured runtime models.
 
 **Purpose**
 Make conversation quality, latency, token usage, and available cost data easy to compare without

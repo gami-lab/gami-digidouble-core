@@ -197,6 +197,16 @@ Must cover:
 - trait-preparation trigger and read-only trait display
 - consumption of canonical shared DTOs only
 
+### `tools/conversation-evaluation`
+
+Must cover:
+
+- shared API contracts are consumed without local Avatar, Scenario, Session, Conversation, or
+  Message copies
+- absent `costUsd` normalizes to `null`, while supplied values remain unchanged
+- total-token derivation is limited to input plus output tokens when the API omits total tokens
+- tool-owned report types distinguish API errors, judge errors, and valid quality failures
+
 ## Critical Release Flows
 
 These flows should remain protected end to end:

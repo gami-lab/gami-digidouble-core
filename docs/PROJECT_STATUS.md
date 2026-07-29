@@ -1,7 +1,7 @@
 # Project Status
 
-Last updated: 2026-07-27
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4
+Last updated: 2026-07-29
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 contract cleanup delivered
 
 ## Snapshot
 
@@ -17,6 +17,7 @@ The platform is now a working headless conversational runtime with:
 - admin inspection, replay, and memory-control tooling
 - scenario-builder admin surfaces
 - public web chat surface
+- evaluation-tool contract foundation with shared raw-exchange ownership and nullable cost semantics
 - progressive avatar-response rendering in the public web chat surface
 - multi-model runtime configuration
 - request and turn observability
@@ -100,11 +101,23 @@ The platform is now a working headless conversational runtime with:
 - `apps/web` is the public player-facing chat surface.
 - Scenario-builder flows cover scenario/avatar editing, knowledge-source authoring, visibility policy, and model selection.
 
+### Evaluation Tooling
+
+- The initial EPIC 8.6 contract-cleanup slice is shipped in `tools/conversation-evaluation`.
+- `TestDefinition`, `QuestionResult`, `JudgeResult`, and `RunReport` are tool-owned types; Core
+  domain and HTTP DTOs are not extended with evaluation-only state.
+- The evaluator reuses shared conversation/entity and raw-exchange contracts. API-provided cost is
+  preserved when present and normalized to `null` when absent; no pricing is inferred.
+
 ## Current Architectural Invariants
 
 - Layering remains `API -> Application -> Domain -> Infrastructure`.
 - External input is validated at the API boundary.
 - `@gami/shared` owns public/shared DTOs; route-local contract duplication should not be reintroduced.
+- `RawExchangeResponse` and `LlmResponseMetrics` are owned by `packages/shared`; Core's raw exchange
+  application output remains internal and is mapped at the API boundary.
+- `tools/conversation-evaluation` is an external client/tool boundary; its report types remain
+  outside the Core domain.
 - `MessageStreamEvent` is owned by `@gami/shared`; future stream requests reuse `SendMessageRequest`.
 - `LlmStreamEvent` and `LlmStreamOptions` are owned by the internal `ILlmAdapter` port; provider
   streams emit ordered deltas followed by one terminal response with usage metadata.

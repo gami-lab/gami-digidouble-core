@@ -13,8 +13,7 @@
  * LLM_PROVIDER=${LLM_PROVIDER:-null} (see docker-compose.e2e.yml).
  */
 import { describe, expect, it } from 'vitest'
-import type { ApiResponse } from '@gami/shared'
-import type { SendRawMessageOutput } from '../../application/use-cases/send-raw-message/send-raw-message.types.js'
+import type { ApiResponse, RawExchangeResponse } from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
@@ -82,7 +81,7 @@ describe('Stack E2E — POST /v1/exchange — null provider (always-on)', () => 
 
     expect(res.status).toBe(200)
 
-    const body = (await res.json()) as ApiResponse<SendRawMessageOutput>
+    const body = (await res.json()) as ApiResponse<RawExchangeResponse>
     expect(body.error).toBeNull()
     expect(body.data).not.toBeNull()
     expect(body.data?.requestId).toMatch(
@@ -108,7 +107,7 @@ describe('Stack E2E — POST /v1/exchange — provider-backed flow', () => {
 
     expect(res.status).toBe(200)
 
-    const body = (await res.json()) as ApiResponse<SendRawMessageOutput>
+    const body = (await res.json()) as ApiResponse<RawExchangeResponse>
     expect(body.error).toBeNull()
     expect(body.data?.reply).toBeTruthy()
     expect(body.data?.inputTokens).toBeGreaterThan(0)

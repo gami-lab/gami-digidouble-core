@@ -23,6 +23,11 @@ We do not test OpenAI, Anthropic, or Mistral. We test our wrapper, our retry/tim
 
 Contract breakage is one of the biggest risks in a modular API-first system. Protect: HTTP request/response shapes, streaming event shapes, Game Master I/O contracts, scenario config schema, repository interfaces. Any breaking change requires a version bump and an update to [API_CONTRACT.md](API_CONTRACT.md).
 
+Evaluation tooling follows the same contract-first rule as other API clients: shared response types
+are reused, untrusted API values are normalized at the tool boundary, and unavailable cost is
+asserted as `null` rather than zero. Tool unit tests remain deterministic and do not call
+providers or Core internals.
+
 ## 4b. Prefer deterministic policy tests for orchestration
 
 When behavior is defined by transition rules, pacing rules, constraints, and scenario goals, test it as deterministic policy first. LLM reasoning should be layered on top, not used as the only test surface.

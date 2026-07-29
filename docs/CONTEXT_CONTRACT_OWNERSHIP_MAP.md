@@ -4,11 +4,25 @@
 
 Define canonical ownership for Context Engine contracts (EPIC 5.2) to prevent drift across `apps/core`, `apps/console`, and `packages/shared`.
 
-Last updated: July 20, 2026
+Last updated: July 29, 2026
 
 ---
 
 ## Canonical Owners
+
+### Evaluation-Consumed HTTP Contracts
+
+- `ApiResponse` -> `packages/shared/src/api-response.ts`
+- `AvatarSummary`, `ScenarioSummary`, `SessionSummary`, and `ConversationSummary` ->
+  `packages/shared/src/entity-types.ts`
+- `Message`, `MessageMetadata`, `AvatarMessageMetadata`, and `SendMessageResponse` ->
+  `packages/shared/src/conversation-contract-types.ts`
+- Model catalog and server model-selection contracts -> `packages/shared/src/model-catalog.ts`
+- Raw exchange response -> `packages/shared/src/raw-exchange-contract-types.ts`
+- Evaluation-only definitions and reports -> `tools/conversation-evaluation/src/contracts.ts`
+
+The evaluator imports these shared HTTP contracts rather than redeclaring entity, message, or
+model-selection shapes. Its report types remain local to the tool.
 
 ### Internal Context Engine Contracts (domain/internal)
 
@@ -68,6 +82,33 @@ Last updated: July 20, 2026
 - Used by:
   - Core conversation/session routes and use-case output typing
   - Console session/message API client wrappers
+
+### API / Shared LLM Exchange Contracts
+
+- Owner: `packages/shared/src/raw-exchange-contract-types.ts`
+- Contract:
+  - `RawExchangeResponse`
+- Owner: `packages/shared/src/llm-contract-types.ts`
+- Contract:
+  - `LlmResponseMetrics`
+- Used by:
+  - Core `/v1/exchange` route response mapping and route tests
+  - External tools such as `tools/conversation-evaluation`
+- Rule:
+  - The raw exchange wire shape remains additive and preserves the existing response fields.
+  - Cost is not part of the current raw exchange guarantee.
+
+### Evaluation Tool Contracts
+
+- Owner: `tools/conversation-evaluation/src/contracts.ts`
+- Contracts:
+  - `TestDefinition`
+  - `QuestionResult`
+  - `JudgeResult`
+  - `RunReport`
+- Rule:
+  - These are tool-owned report and execution types, not Core domain or HTTP DTOs.
+  - The tool imports shared HTTP DTOs at its client boundary and normalizes absent cost to `null`.
 
 ### Boundary Mapping
 

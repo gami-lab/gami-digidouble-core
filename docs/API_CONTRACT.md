@@ -95,6 +95,13 @@ Compatibility rules:
 
 - `GET /health` -> basic process health check
 - `POST /v1/exchange` -> raw provider smoke-test path. Request body: `{ message: string; systemPrompt?: string }`.
+  The success payload is `ApiResponse<RawExchangeResponse>` with `{ requestId, reply, model,
+inputTokens, outputTokens, latencyMs }`. The route does not guarantee `costUsd`; consumers must
+  treat cost as unavailable unless a future additive API field supplies it.
+
+`RawExchangeResponse` is owned by `packages/shared/src/raw-exchange-contract-types.ts`. The
+application use case keeps its internal `SendRawMessageOutput`, and the API route maps that output
+to the shared wire type.
 
 ### Sessions
 
