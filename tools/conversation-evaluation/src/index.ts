@@ -1,5 +1,6 @@
 export type {
   DeclaredModel,
+  ConversationExecution,
   EvaluationError,
   EvaluationMetrics,
   JudgeResult,
@@ -11,6 +12,19 @@ export type {
   TestDefinition,
   TestQuestion,
 } from './contracts.js'
+export type {
+  CoreApiClientOptions,
+  CoreApiErrorKind,
+  CoreApiRequestOptions,
+  FetchLike,
+} from './core-api-client.js'
+export { CoreApiClient, CoreApiError } from './core-api-client.js'
+export type { SequentialRunnerInput } from './sequential-runner.js'
+export {
+  SequentialConversationRunner,
+  resolveInitialAvatarId,
+  runSequentialConversation,
+} from './sequential-runner.js'
 export {
   DefinitionLoadError,
   DefinitionValidationError,

@@ -1,9 +1,8 @@
 # Conversation Evaluation Foundation
 
-This package is the standalone local foundation for EPIC 8.6 scripted conversation evaluation.
-It owns evaluation definitions and reports, while Core HTTP DTOs remain owned by `@gami/shared`.
-The current CLI only validates a definition and resolves configuration; later slices add the
-network runner and judge without changing the definition contract.
+This package is the standalone local tooling boundary for EPIC 8.6 scripted conversation
+evaluation. It owns evaluation definitions and execution records, while Core HTTP DTOs remain
+owned by `@gami/shared`.
 
 ## Definition format
 
@@ -58,9 +57,21 @@ printed. Other options can be supplied by flag or environment variable:
 | `--user-id`             | `EVALUATION_USER_ID`              | unique run-scoped ID     |
 
 The generated user ID prevents repeated runs from unintentionally sharing memory. Set
-`--user-id` when deliberately testing continuity across runs. Output/report writing is reserved
-for the runner slice; the path is resolved now so later prompts can use the same foundation API.
+`--user-id` when deliberately testing continuity across runs. Report writing remains owned by the
+later report layer; the output path is resolved now so later prompts can use the same foundation API.
 
-The package API exposes `validateTestDefinition`, `loadTestDefinition`, `loadEvaluationConfig`, and
-the tool-owned report types from `src/index.ts`. It has no Core-internal, database, Redis, Langfuse,
-provider SDK, YAML, or HTTP client dependency.
+The package API exposes `validateTestDefinition`, `loadTestDefinition`, `loadEvaluationConfig`,
+`CoreApiClient`, and `runSequentialConversation` from `src/index.ts`. The runner creates one
+session, starts one conversation, and awaits each JSON Avatar response before sending the next
+question. It never polls Game Master or memory work. Message failures are retained as partial
+`api_error` results and stop the run conservatively because a timed-out request may have been
+committed by Core.
+
+The client decodes only the standard `ApiResponse<T>` envelope, sends `x-api-key`, bounds surfaced
+error messages, and supports request timeout and caller abort signals. Missing `costUsd` is
+normalized to `null`; total tokens are derived only from input plus output tokens when the API
+omits the optional total.
+
+The CLI currently validates a definition and resolves configuration; report persistence and the
+semantic judge remain later slices. The package has no Core-internal, database, Redis, Langfuse,
+provider SDK, YAML, or new HTTP endpoint dependency.

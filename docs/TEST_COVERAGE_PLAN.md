@@ -212,6 +212,11 @@ Must cover:
 - absent `costUsd` normalizes to `null`, while supplied values remain unchanged
 - total-token derivation is limited to input plus output tokens when the API omits total tokens
 - tool-owned report types distinguish API errors, judge errors, and valid quality failures
+- the Core HTTP client normalizes base URLs, sends API-key headers, decodes `ApiResponse<T>`, bounds
+  error messages, and handles timeout/caller-abort paths
+- the sequential runner resolves direct or unique normalized name-based Avatars, preserves request
+  order and session/conversation identity, extracts response metrics, exposes model mismatches, and
+  retains completed results when a message request fails
 
 ## Critical Release Flows
 

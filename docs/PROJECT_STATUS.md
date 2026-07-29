@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-07-29
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 contract cleanup and tool foundation delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 contract cleanup, tool foundation, and sequential runner delivered
 
 ## Snapshot
 
@@ -104,8 +104,9 @@ The platform is now a working headless conversational runtime with:
 
 ### Evaluation Tooling
 
-- The EPIC 8.6 contract-cleanup and tool-foundation slices are shipped in
-  `tools/conversation-evaluation`; the sequential HTTP runner and judge remain future slices.
+- The EPIC 8.6 contract-cleanup, tool-foundation, and sequential HTTP runner slices are shipped in
+  `tools/conversation-evaluation`; semantic judging, aggregation, report persistence, and CLI
+  execution remain future slices.
 - `TestDefinition`, `QuestionResult`, `JudgeResult`, and `RunReport` are tool-owned types; Core
   domain and HTTP DTOs are not extended with evaluation-only state.
 - Versioned JSON definitions validate required fields, exact initial-avatar selection, duplicate
@@ -116,6 +117,11 @@ The platform is now a working headless conversational runtime with:
   controlled continuity tests. The current foundation command makes no network requests.
 - The evaluator reuses shared conversation/entity and raw-exchange contracts. API-provided cost is
   preserved when present and normalized to `null` when absent; no pricing is inferred.
+- The typed evaluator HTTP client decodes only `ApiResponse<T>`, sends API-key headers, bounds
+  surfaced error messages, and handles configured timeouts and caller aborts. The runner creates
+  one session and conversation, resolves an initial Avatar deterministically, awaits each JSON
+  response in order, records shared message metrics, and returns partial `api_error` results
+  without polling asynchronous Game Master or memory work.
 
 ## Current Architectural Invariants
 

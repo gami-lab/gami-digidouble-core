@@ -1,3 +1,5 @@
+import type { ConversationSummary, SessionSummary } from '@gami/shared'
+
 /** A model label declared by a definition for comparison, never a request override. */
 export type DeclaredModel = string
 
@@ -39,9 +41,10 @@ export type EvaluationError = {
   kind: 'api_error' | 'judge_error'
   message: string
   code?: string
+  status?: number
 }
 
-export type QuestionResultStatus = 'api_error' | 'judge_error' | 'passed' | 'failed'
+export type QuestionResultStatus = 'completed' | 'api_error' | 'judge_error' | 'passed' | 'failed'
 
 export type QuestionResult = {
   questionNumber: number
@@ -88,4 +91,28 @@ export type RunReport = {
   finishedAt: string | null
   questions: QuestionResult[]
   summary: RunSummary
+}
+
+/**
+ * The low-level result returned by the sequential Avatar runner.
+ *
+ * It intentionally contains no judge output or persisted report concerns. Prompt 03 can map
+ * these records into a RunReport after applying semantic judging and aggregation.
+ */
+export type ConversationExecution = {
+  status: 'completed' | 'api_error'
+  scenarioId: string
+  declaredModel: DeclaredModel | null
+  session: SessionSummary
+  conversation: ConversationSummary
+  sessionId: string
+  conversationId: string
+  avatarId: string
+  results: QuestionResult[]
+  observedAvatarModels: string[]
+  modelMismatches: Array<{
+    questionNumber: number
+    declaredModel: string
+    observedModel: string
+  }>
 }
