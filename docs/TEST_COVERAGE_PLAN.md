@@ -228,6 +228,8 @@ Must cover:
 - valid judge quality failures flow through `runEvaluation` into failed question/report outcomes;
   real-file interruption coverage proves readable partial output and temporary-file cleanup
 - direct CLI help and configuration-failure behavior preserve exit-code and secret-safety contracts
+- evaluator progress messages cover setup, request, judging, completion, and the five-second
+  inter-question wait required for asynchronous Game Master and memory work
 - the composed integration-style fake-HTTP test proves three ordered questions, one session and
   conversation, authenticated request shaping, and judge completion before the next Avatar request
 - the seeded Villa Miralac definition is loadable but is not executed by default tests

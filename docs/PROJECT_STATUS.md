@@ -128,6 +128,9 @@ The platform is now a working headless conversational runtime with:
   `POST /v1/exchange` for semantic judging. Judge output is runtime-validated, including the
   deterministic fenced-JSON compatibility form, and malformed or unavailable judges remain
   `judge_error` rather than quality failures.
+- The CLI emits progress for setup, Avatar requests, judging, and completion, and waits five
+  seconds between scripted questions so asynchronous Game Master and memory work can settle before
+  the next evaluation turn.
 - Reports preserve attempted question inputs, Avatar responses and metrics, judge results and
   latency/token metrics, separate Avatar and judge model observations/mismatches, explicit
   pass-rate denominators, phase-aware errors, and nullable total cost. Report snapshots use atomic

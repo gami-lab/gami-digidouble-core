@@ -305,4 +305,36 @@ describe('runEvaluation', () => {
     })
     expect((await readdir(directory)).filter((entry) => entry.endsWith('.tmp'))).toEqual([])
   })
+
+  it('reports progress and waits between questions for asynchronous runtime work', async () => {
+    const clients = createClients()
+    const progress: string[] = []
+    const delays: number[] = []
+
+    await runEvaluation({
+      definition,
+      userId: 'evaluation-user',
+      avatarClient: clients.avatarClient,
+      judgeClient: clients.judgeClient,
+      onProgress: (message) => progress.push(message),
+      interQuestionDelayMs: 5000,
+      waitBetweenQuestions: (durationMs) => {
+        delays.push(durationMs)
+        return Promise.resolve()
+      },
+      writeReport: vi.fn().mockResolvedValue(undefined),
+    })
+
+    expect(delays).toEqual([5000])
+    expect(progress).toEqual(
+      expect.arrayContaining([
+        'Starting evaluation: Evaluation run.',
+        'Question 1/2: sending Avatar request.',
+        'Question 1/2: judging Avatar response.',
+        'Question 1/2: passed.',
+        'Waiting 5 seconds for async runtime work before the next question.',
+        'Question 2/2: sending Avatar request.',
+      ]),
+    )
+  })
 })

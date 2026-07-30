@@ -11,6 +11,8 @@ import {
 } from './report.js'
 import { runSequentialConversation } from './sequential-runner.js'
 
+export const INTER_QUESTION_DELAY_MS = 5000
+
 export type EvaluationRunInput = {
   definition: TestDefinition
   userId: string
@@ -21,11 +23,28 @@ export type EvaluationRunInput = {
   startedAt?: string
   now?: () => string
   writeReport?: (report: RunReport) => Promise<void>
+  onProgress?: (message: string) => void
+  interQuestionDelayMs?: number
+  waitBetweenQuestions?: (durationMs: number, signal?: AbortSignal) => Promise<void>
 }
 
 export type EvaluationRunOutput = {
   report: RunReport
   consoleSummary: string
+}
+
+type EvaluationRuntime = {
+  onProgress: (message: string) => void
+  interQuestionDelayMs: number
+  waitBetweenQuestions: (durationMs: number, signal?: AbortSignal) => Promise<void>
+}
+
+function createEvaluationRuntime(input: EvaluationRunInput): EvaluationRuntime {
+  return {
+    onProgress: input.onProgress ?? (() => undefined),
+    interQuestionDelayMs: input.interQuestionDelayMs ?? 0,
+    waitBetweenQuestions: input.waitBetweenQuestions ?? wait,
+  }
 }
 
 function toEvaluationError(error: unknown, kind: EvaluationError['kind']): EvaluationError {
@@ -85,16 +104,24 @@ export async function runEvaluation(input: EvaluationRunInput): Promise<Evaluati
       ? (): Promise<void> => Promise.resolve()
       : (report: RunReport): Promise<void> =>
           writeReportAtomically(input.outputPath as string, report))
+  const runtime = createEvaluationRuntime(input)
 
   let report = createRunReport(input.definition, startedAt)
+  runtime.onProgress(`Starting evaluation: ${input.definition.name}.`)
   await writeReport(report)
 
   try {
     const execution = await runSequentialConversation(input.avatarClient, {
       definition: input.definition,
       userId: input.userId,
+      onProgress: runtime.onProgress,
+      interQuestionDelayMs: runtime.interQuestionDelayMs,
+      waitBetweenQuestions: runtime.waitBetweenQuestions,
       ...(input.signal === undefined ? {} : { signal: input.signal }),
       onResult: async (result) => {
+        runtime.onProgress(
+          `Question ${String(result.questionNumber)}/${String(input.definition.questions.length)}: judging Avatar response.`,
+        )
         await judgeQuestion(input.judgeClient, result, input.signal)
         report = buildRunReport({
           definition: input.definition,
@@ -105,6 +132,9 @@ export async function runEvaluation(input: EvaluationRunInput): Promise<Evaluati
           conversationId: result.conversationId,
         })
         await writeReport(report)
+        runtime.onProgress(
+          `Question ${String(result.questionNumber)}/${String(input.definition.questions.length)}: ${result.status}.`,
+        )
       },
     })
     report = buildReportFromExecution(input.definition, startedAt, execution, now())
@@ -125,4 +155,17 @@ export async function runEvaluation(input: EvaluationRunInput): Promise<Evaluati
     await writeReport(report)
     return { report, consoleSummary: renderConsoleSummary(report) }
   }
+}
+
+function wait(durationMs: number, signal?: AbortSignal): Promise<void> {
+  if (durationMs <= 0 || signal?.aborted === true) return Promise.resolve()
+  return new Promise((resolve) => {
+    const finish = (): void => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', finish)
+      resolve()
+    }
+    const timer = setTimeout(finish, durationMs)
+    signal?.addEventListener('abort', finish, { once: true })
+  })
 }

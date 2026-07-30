@@ -36,7 +36,7 @@ definition fields.
 Run the foundation command from the repository root:
 
 ```sh
-pnpm --filter @gami/conversation-evaluation evaluate -- \
+pnpm --filter @gami/conversation-evaluation evaluate \
   --definition ./path/to/definition.json \
   --avatar-api-base-url http://localhost:3000 \
   --api-key "$API_KEY"
@@ -69,6 +69,9 @@ judge model and judge latency/token metrics, and error classification. Error rec
 failing evaluation phase when known. `passRate` uses only successfully judged questions as its denominator;
 `api_error` and `judge_error` are not quality failures. Reports are written atomically after setup
 and after every attempted question, so a stopped run remains readable and preserves completed work.
+The CLI prints progress for setup, each Avatar request, judging, and question completion. It waits
+five seconds between questions so asynchronous Game Master and memory work can settle before the
+next scripted turn; an API failure stops without waiting.
 
 The package API exposes `validateTestDefinition`, `loadTestDefinition`, `loadEvaluationConfig`,
 `CoreApiClient`, and `runSequentialConversation` from `src/index.ts`. The runner creates one
@@ -112,7 +115,7 @@ MURDER_PARTY_API_KEY="$API_KEY" \
 pnpm seed:murder-party:api
 
 EVALUATION_API_KEY="$API_KEY" \
-pnpm --filter @gami/conversation-evaluation evaluate -- \
+pnpm --filter @gami/conversation-evaluation evaluate \
   --definition ./tools/conversation-evaluation/definitions/murder-party-villa-miralac.json \
   --avatar-api-base-url http://localhost:3000 \
   --output ./evaluation-report.json

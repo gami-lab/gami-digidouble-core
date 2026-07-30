@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url'
 import { loadEvaluationConfig } from './config.js'
 import { CoreApiClient } from './core-api-client.js'
 import { loadTestDefinition } from './definition.js'
-import { runEvaluation } from './evaluation.js'
+import { INTER_QUESTION_DELAY_MS, runEvaluation } from './evaluation.js'
 import { SemanticJudgeClient } from './judge.js'
 
 export type CliIo = {
@@ -49,6 +49,10 @@ export async function runCli(
       judgeClient,
       outputPath: config.outputPath,
       signal: interruption.signal,
+      interQuestionDelayMs: INTER_QUESTION_DELAY_MS,
+      onProgress: (message) => {
+        io.log(`[conversation-evaluation] ${message}`)
+      },
     }).finally(() => process.removeListener('SIGINT', onInterrupt))
     io.log(output.consoleSummary)
     return output.report.status === 'completed' ? 0 : 1
@@ -66,7 +70,7 @@ function printHelp(io: CliIo): void {
       'Runs a sequential scripted conversation and semantically judges each Avatar response.',
       '',
       'Usage:',
-      '  pnpm --filter @gami/conversation-evaluation evaluate -- --definition <path>',
+      '  pnpm --filter @gami/conversation-evaluation evaluate --definition <path>',
       '',
       'Options:',
       '  --definition <path>              or EVALUATION_DEFINITION_PATH',

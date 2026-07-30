@@ -14,6 +14,9 @@ export type SequentialRunnerInput = {
   userId: string
   signal?: AbortSignal
   onResult?: (result: QuestionResult) => Promise<void> | void
+  onProgress?: (message: string) => void
+  interQuestionDelayMs?: number
+  waitBetweenQuestions?: (durationMs: number, signal?: AbortSignal) => Promise<void>
 }
 
 function normalizeAvatarName(name: string): string {
@@ -22,6 +25,10 @@ function normalizeAvatarName(name: string): string {
 
 function requestOptions(signal: AbortSignal | undefined): CoreApiRequestOptions {
   return signal === undefined ? {} : { signal }
+}
+
+function reportProgress(input: SequentialRunnerInput, message: string): void {
+  input.onProgress?.(message)
 }
 
 function toEvaluationError(error: unknown): EvaluationError {
@@ -90,6 +97,20 @@ function createQuestionResult(
   }
 }
 
+async function waitBeforeNextQuestion(
+  input: SequentialRunnerInput,
+  index: number,
+  questionCount: number,
+): Promise<void> {
+  if (input.interQuestionDelayMs === undefined || index >= questionCount - 1) return
+  const delaySeconds = input.interQuestionDelayMs / 1000
+  reportProgress(
+    input,
+    `Waiting ${String(delaySeconds)} seconds for async runtime work before the next question.`,
+  )
+  await input.waitBetweenQuestions?.(input.interQuestionDelayMs, input.signal)
+}
+
 export async function resolveInitialAvatarId(
   client: CoreApiClient,
   definition: TestDefinition,
@@ -146,7 +167,9 @@ export async function runSequentialConversation(
   input: SequentialRunnerInput,
 ): Promise<ConversationExecution> {
   const { definition, userId } = input
+  reportProgress(input, 'Resolving initial Avatar.')
   const avatarId = await resolveInitialAvatarId(client, definition, input.signal)
+  reportProgress(input, 'Creating evaluation session.')
   const sessionResponse = await client.createSession(
     {
       userId,
@@ -155,6 +178,7 @@ export async function runSequentialConversation(
     requestOptions(input.signal),
   )
   const sessionId = sessionResponse.session.sessionId
+  reportProgress(input, 'Starting evaluation conversation.')
   const conversationResponse = await client.startConversation(
     sessionId,
     { avatarId },
@@ -175,6 +199,10 @@ export async function runSequentialConversation(
       sessionId,
       conversationId,
       avatarId,
+    )
+    reportProgress(
+      input,
+      `Question ${String(questionNumber)}/${String(definition.questions.length)}: sending Avatar request.`,
     )
 
     let shouldStop = false
@@ -210,6 +238,7 @@ export async function runSequentialConversation(
 
     results.push(result)
     if (shouldStop) break
+    await waitBeforeNextQuestion(input, index, definition.questions.length)
   }
 
   return {
