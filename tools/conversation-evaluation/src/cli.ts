@@ -36,6 +36,7 @@ export async function runCli(
       baseUrl: config.judgeBaseUrl ?? config.avatarApiBaseUrl,
       apiKey: config.apiKey,
       timeoutMs: config.timeoutMs,
+      ...(definition.judgeModel === undefined ? {} : { model: definition.judgeModel }),
     })
     const interruption = new AbortController()
     const onInterrupt = (): void => {

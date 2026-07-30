@@ -19,7 +19,10 @@ Definitions are versioned JSON files. The v1 shape is:
   "questions": [
     {
       "question": "What happened in the winter garden?",
-      "expectedResponse": "Mention the death and storm; wording may differ."
+      "expectedResponse": "Mention the death and storm; wording may differ.",
+      "requiredFacts": ["the death", "the storm"],
+      "acceptedAlternatives": ["the storm caused the death"],
+      "forbiddenClaims": ["the death was accidental"]
     }
   ]
 }
@@ -27,9 +30,11 @@ Definitions are versioned JSON files. The v1 shape is:
 
 Use exactly one of `initialAvatarId` or `initialAvatarName`. Exact duplicate question text is
 rejected. `expectedResponse` is criteria text for a later semantic judge, not an exact-match
-answer. `model` and `judgeModel` are declared/expected metadata for comparison and verification;
-they never override Core's server-side model resolution. API keys and other secrets are not valid
-definition fields.
+answer. `model` records the expected Avatar model for comparison. `judgeModel` selects the judge
+model used for the raw exchange request; use `provider/model` notation such as
+`openai/gpt-5.4-mini`, or a model name to use the Core-configured provider. If the observed response
+reports a different effective model, the report retains that mismatch. API keys and other secrets
+are not valid definition fields.
 
 ## Configuration and validation command
 
@@ -90,9 +95,12 @@ The judge sends bounded JSON evidence containing the question, expected criteria
 response. It requires a strict machine-readable result with `passed`, a 1–5 integer `score`, a
 non-empty `reason`, and string arrays for `missingElements` and `contradictions`; one deterministic
 fenced-JSON form is accepted for compatibility. Invalid or unavailable judge responses are
-reported as `judge_error`, while valid `passed: false` results are quality `failed` results. The
-judge rubric explicitly distinguishes essential facts, acceptable alternatives, omissions,
-contradictions, harmless extra detail, and the required score/`passed` consistency rules.
+reported as `judge_error`, while valid scores become quality outcomes: 4–5 are `passed`, 3 is
+`partial`, and 1–2 are `failed`. Structured `requiredFacts`, `acceptedAlternatives`, and
+`forbiddenClaims` are included as explicit judge criteria when provided. The judge rubric explicitly
+distinguishes essential facts, acceptable alternatives, omissions, contradictions, harmless extra
+detail, and the required score/`passed` consistency rules. Reports retain the judge reason, missing
+facts, and contradictions for each evaluated question, and the console summary displays them.
 
 Total cost is `null` unless every successful Avatar response in the completed run supplied
 `costUsd`. No local pricing table or estimate is used; the current raw exchange contract does not
@@ -125,9 +133,10 @@ pnpm --filter @gami/conversation-evaluation evaluate \
 
 Before a live run, Core must be running, the scenario and Avatar seed must exist, and the server's
 model-resolution configuration must point to an allowed provider/model with usable credentials.
-Definition `model` and `judgeModel` values are comparison metadata only; the evaluator does not
-override avatar, scenario, role, or global model configuration. Real execution is intentionally
-separate from the deterministic package and integration-style fake-HTTP tests.
+Definition `model` remains Avatar comparison metadata. `judgeModel` is sent as an explicit raw
+exchange model selection, so the declared judge model is requested rather than silently replaced by
+the Core default. Real execution is intentionally separate from the deterministic package and
+integration-style fake-HTTP tests.
 
 Quality checks for this package are:
 

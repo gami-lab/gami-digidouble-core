@@ -23,6 +23,9 @@ const validDefinition = {
     {
       question: 'What happened in the winter garden?',
       expectedResponse: 'Mention the death and the storm without requiring exact wording.',
+      requiredFacts: ['the death', 'the storm'],
+      acceptedAlternatives: ['a storm caused the death'],
+      forbiddenClaims: ['the death was accidental'],
     },
     {
       question: 'Who was present that evening?',
@@ -96,6 +99,23 @@ describe('evaluation definition validation', () => {
         }),
       ),
     ).toThrow(/duplicate questions are not allowed/)
+  })
+
+  it('rejects malformed structured evaluation criteria', () => {
+    expect(() =>
+      validateTestDefinition(
+        validDefinitionWith({
+          questions: [{ ...validDefinition.questions[0], requiredFacts: [] }],
+        }),
+      ),
+    ).toThrow(/requiredFacts must be a non-empty array/)
+    expect(() =>
+      validateTestDefinition(
+        validDefinitionWith({
+          questions: [{ ...validDefinition.questions[0], forbiddenClaims: [''] }],
+        }),
+      ),
+    ).toThrow(/forbiddenClaims must be a non-empty array/)
   })
 
   it('does not print a missing definition path', async () => {

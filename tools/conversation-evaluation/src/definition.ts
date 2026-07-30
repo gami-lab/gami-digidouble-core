@@ -13,7 +13,13 @@ const DEFINITION_KEYS = new Set([
   'questions',
 ])
 
-const QUESTION_KEYS = new Set(['question', 'expectedResponse'])
+const QUESTION_KEYS = new Set([
+  'question',
+  'expectedResponse',
+  'requiredFacts',
+  'acceptedAlternatives',
+  'forbiddenClaims',
+])
 
 export class DefinitionValidationError extends Error {
   readonly issues: readonly string[]
@@ -88,9 +94,44 @@ function validateQuestion(
   addUnknownFieldIssues(value, QUESTION_KEYS, location, issues)
   const question = readRequiredString(value, 'question', issues)
   const expectedResponse = readRequiredString(value, 'expectedResponse', issues)
+  const requiredFacts = readOptionalStringArray(value, 'requiredFacts', location, issues)
+  const acceptedAlternatives = readOptionalStringArray(
+    value,
+    'acceptedAlternatives',
+    location,
+    issues,
+  )
+  const forbiddenClaims = readOptionalStringArray(value, 'forbiddenClaims', location, issues)
   if (question === undefined || expectedResponse === undefined) return undefined
 
-  return { question, expectedResponse }
+  return {
+    question,
+    expectedResponse,
+    ...(requiredFacts === undefined ? {} : { requiredFacts }),
+    ...(acceptedAlternatives === undefined ? {} : { acceptedAlternatives }),
+    ...(forbiddenClaims === undefined ? {} : { forbiddenClaims }),
+  }
+}
+
+function readOptionalStringArray(
+  record: Record<string, unknown>,
+  field: string,
+  location: string,
+  issues: string[],
+): string[] | undefined {
+  const value = record[field]
+  if (value === undefined) return undefined
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some((item) => typeof item !== 'string' || item.trim().length === 0)
+  ) {
+    issues.push(
+      `${location}.${field} must be a non-empty array of non-empty strings when provided.`,
+    )
+    return undefined
+  }
+  return value.map((item) => (item as string).trim())
 }
 
 export function validateTestDefinition(value: unknown): TestDefinition {

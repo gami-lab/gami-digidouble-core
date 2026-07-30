@@ -53,7 +53,13 @@ const definition: TestDefinition = {
   model: 'declared-avatar',
   judgeModel: 'declared-judge',
   questions: [
-    { question: 'What happened?', expectedResponse: 'Mention the storm.' },
+    {
+      question: 'What happened?',
+      expectedResponse: 'Mention the storm.',
+      requiredFacts: ['the storm'],
+      acceptedAlternatives: ['the storm caused it'],
+      forbiddenClaims: ['there was no storm'],
+    },
     { question: 'Who was there?', expectedResponse: 'Name Clara.' },
   ],
 }
@@ -92,10 +98,10 @@ function messageResponse(content: string): SendMessageResponse {
   }
 }
 
-function judgeReply(passed: boolean): string {
+function judgeReply(passed: boolean, score = passed ? 5 : 2): string {
   return JSON.stringify({
     passed,
-    score: passed ? 5 : 2,
+    score,
     reason: passed ? 'Accurate paraphrase.' : 'The essential element is missing.',
     missingElements: passed ? [] : ['the storm'],
     contradictions: [],
@@ -106,6 +112,7 @@ function createClients(
   messageFailure = false,
   malformedJudge = false,
   judgePassed = true,
+  judgeScore?: 1 | 2 | 3 | 4 | 5,
 ): {
   avatarClient: CoreApiClient
   judgeClient: SemanticJudgeClient
@@ -130,7 +137,9 @@ function createClients(
       jsonResponse(
         okEnvelope({
           requestId: 'judge-request',
-          reply: malformedJudge ? '{"passed":true}' : judgeReply(judgePassed),
+          reply: malformedJudge
+            ? '{"passed":true}'
+            : judgeReply(judgePassed, judgeScore ?? (judgePassed ? 5 : 2)),
           model: 'observed-judge',
           inputTokens: 10,
           outputTokens: 5,
@@ -203,6 +212,20 @@ describe('runEvaluation', () => {
         observedModel: 'observed-judge',
       },
     ])
+    expect(output.report.questions[0]).toMatchObject({
+      requiredFacts: ['the storm'],
+      acceptedAlternatives: ['the storm caused it'],
+      forbiddenClaims: ['there was no storm'],
+    })
+    const firstJudgeRequest = clients.judgeFetch.mock.calls[0]?.[1]
+    const firstJudgeBody = JSON.parse(
+      typeof firstJudgeRequest?.body === 'string' ? firstJudgeRequest.body : '{}',
+    ) as { message?: string }
+    expect(JSON.parse(firstJudgeBody.message ?? '{}')).toMatchObject({
+      requiredFacts: ['the storm'],
+      acceptedAlternatives: ['the storm caused it'],
+      forbiddenClaims: ['there was no storm'],
+    })
     expect(snapshots).toHaveLength(4)
     const firstSnapshot = JSON.parse(snapshots[1] ?? '{}') as { questions?: unknown[] }
     expect(firstSnapshot.questions).toHaveLength(1)
@@ -270,9 +293,31 @@ describe('runEvaluation', () => {
       evaluated: 2,
       passed: 0,
       failed: 2,
+      partial: 0,
       passRate: 0,
       totalJudgeLatencyMs: 16,
       totalJudgeTokens: 30,
+    })
+  })
+
+  it('classifies score-three responses as partial quality outcomes', async () => {
+    const clients = createClients(false, false, false, 3)
+    const output = await runEvaluation({
+      definition,
+      userId: 'evaluation-user',
+      avatarClient: clients.avatarClient,
+      judgeClient: clients.judgeClient,
+      writeReport: vi.fn().mockResolvedValue(undefined),
+    })
+
+    expect(output.report.status).toBe('completed')
+    expect(output.report.questions.every((question) => question.status === 'partial')).toBe(true)
+    expect(output.report.summary).toMatchObject({
+      evaluated: 2,
+      passed: 0,
+      partial: 2,
+      failed: 0,
+      passRate: 0,
     })
   })
 

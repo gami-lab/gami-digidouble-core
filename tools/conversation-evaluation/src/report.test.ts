@@ -53,7 +53,7 @@ function result(
             costUsd: costUsd ?? null,
           },
     judgeMetrics:
-      status === 'passed' || status === 'failed'
+      status === 'passed' || status === 'partial' || status === 'failed'
         ? {
             model: 'observed-judge',
             latencyMs: 8,
@@ -64,13 +64,13 @@ function result(
         : null,
     judgeModel: status === 'judge_error' ? null : 'observed-judge',
     judge:
-      status === 'passed' || status === 'failed'
+      status === 'passed' || status === 'partial' || status === 'failed'
         ? {
             passed: status === 'passed',
-            score: status === 'passed' ? 5 : 2,
-            reason: 'Reason',
-            missingElements: [],
-            contradictions: [],
+            score: status === 'passed' ? 5 : status === 'partial' ? 3 : 2,
+            reason: status === 'partial' ? 'Only the main event is correct.' : 'Reason',
+            missingElements: status === 'partial' ? ['the date'] : [],
+            contradictions: status === 'partial' ? ['claims the wrong witness'] : [],
           }
         : null,
     status,
@@ -94,6 +94,7 @@ describe('evaluation reports', () => {
       questions: 3,
       evaluated: 2,
       passed: 1,
+      partial: 0,
       failed: 1,
       passRate: 0.5,
       totalLatencyMs: 30,
@@ -102,6 +103,16 @@ describe('evaluation reports', () => {
       totalJudgeTokens: 14,
     })
     expect(aggregateRunSummary(3, results).totalCostUsd).toBeCloseTo(0.6)
+  })
+
+  it('counts score-three results as partial without passing them', () => {
+    expect(aggregateRunSummary(1, [result(1, 'partial', 0.1)])).toMatchObject({
+      evaluated: 1,
+      passed: 0,
+      partial: 1,
+      failed: 0,
+      passRate: 0,
+    })
   })
 
   it('keeps cost unavailable when any successful Avatar response omits cost', () => {
@@ -126,6 +137,7 @@ describe('evaluation reports', () => {
     expect(written).toEqual(report)
     const summary = renderConsoleSummary(report)
     expect(summary).toContain('Question 1: passed | score=5')
+    expect(summary).toContain('Reason: Reason')
     expect(summary).not.toContain('What happened')
     expect(summary).not.toContain('answer')
   })

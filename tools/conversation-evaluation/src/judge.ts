@@ -1,4 +1,10 @@
-import type { ApiError, ApiResponse, RawExchangeResponse } from '@gami/shared'
+import {
+  isModelSelectionProviderName,
+  type ApiError,
+  type ApiResponse,
+  type ModelSelectionOverride,
+  type RawExchangeResponse,
+} from '@gami/shared'
 
 import type { FetchLike } from './core-api-client.js'
 import type { EvaluationPhase, JudgeMetrics, JudgeResult } from './contracts.js'
@@ -8,6 +14,8 @@ export const JUDGE_SYSTEM_PROMPT = [
   'You are a semantic evaluator for an Avatar response.',
   '',
   'Evaluate whether the actual response correctly answers the question according to the expected response.',
+  '',
+  'When provided, use requiredFacts, acceptedAlternatives, and forbiddenClaims as explicit structured evaluation criteria.',
   '',
   'Judge meaning, not exact wording.',
   '',
@@ -74,6 +82,9 @@ export const JUDGE_SYSTEM_PROMPT = [
   '{',
   '"question": "...",',
   '"expectedResponse": "...",',
+  '"requiredFacts": ["..."],',
+  '"acceptedAlternatives": ["..."],',
+  '"forbiddenClaims": ["..."],',
   '"actualResponse": "..."',
   '}',
 ].join('\n')
@@ -85,6 +96,9 @@ export const MAX_JUDGE_REPLY_LENGTH = 4000
 export type JudgeInput = {
   question: string
   expectedResponse: string
+  requiredFacts?: string[]
+  acceptedAlternatives?: string[]
+  forbiddenClaims?: string[]
   actualResponse: string
 }
 
@@ -92,6 +106,7 @@ export type JudgeClientOptions = {
   baseUrl: string
   apiKey: string
   timeoutMs: number
+  model?: string
   fetchImpl?: FetchLike
 }
 
@@ -197,10 +212,29 @@ function isSignalAborted(signal: AbortSignal | undefined): boolean {
   return signal?.aborted ?? false
 }
 
+function resolveModelOverride(
+  declaredModel: string | undefined,
+): ModelSelectionOverride | undefined {
+  if (declaredModel === undefined) return undefined
+  const separatorIndex = declaredModel.indexOf('/')
+  if (separatorIndex <= 0 || separatorIndex === declaredModel.length - 1) {
+    return { model: declaredModel }
+  }
+
+  const provider = declaredModel.slice(0, separatorIndex)
+  const model = declaredModel.slice(separatorIndex + 1)
+  return isModelSelectionProviderName(provider) ? { provider, model } : { model: declaredModel }
+}
+
 function serializeJudgeInput(input: JudgeInput): string {
   const message = JSON.stringify({
     question: input.question,
     expectedResponse: input.expectedResponse,
+    ...(input.requiredFacts === undefined ? {} : { requiredFacts: input.requiredFacts }),
+    ...(input.acceptedAlternatives === undefined
+      ? {}
+      : { acceptedAlternatives: input.acceptedAlternatives }),
+    ...(input.forbiddenClaims === undefined ? {} : { forbiddenClaims: input.forbiddenClaims }),
     actualResponse: input.actualResponse,
   })
   if (message.length > MAX_EXCHANGE_MESSAGE_LENGTH) {
@@ -307,6 +341,13 @@ export function parseJudgeResult(reply: string): JudgeResult {
       'contract_error',
     )
   }
+  if (passed !== score >= 4) {
+    throw createError(
+      'MALFORMED_JUDGE_OUTPUT',
+      'Judge passed must be true only for scores 4 and 5.',
+      'contract_error',
+    )
+  }
   if (typeof reason !== 'string' || reason.trim().length === 0 || reason.length > 500) {
     throw createError(
       'MALFORMED_JUDGE_OUTPUT',
@@ -330,12 +371,14 @@ export class SemanticJudgeClient {
   private readonly baseUrl: string
   private readonly apiKey: string
   private readonly timeoutMs: number
+  private readonly modelOverride: ModelSelectionOverride | undefined
   private readonly fetchImpl: FetchLike
 
   constructor(options: JudgeClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, '')
     this.apiKey = options.apiKey
     this.timeoutMs = options.timeoutMs
+    this.modelOverride = resolveModelOverride(options.model)
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis)
   }
 
@@ -375,7 +418,11 @@ export class SemanticJudgeClient {
             'x-api-key': this.apiKey,
           },
           signal: controller.signal,
-          body: JSON.stringify({ message, systemPrompt: JUDGE_SYSTEM_PROMPT }),
+          body: JSON.stringify({
+            message,
+            systemPrompt: JUDGE_SYSTEM_PROMPT,
+            ...(this.modelOverride === undefined ? {} : { model: this.modelOverride }),
+          }),
         })
       } catch {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

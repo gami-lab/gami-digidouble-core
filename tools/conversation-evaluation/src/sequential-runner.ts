@@ -84,6 +84,13 @@ function createQuestionResult(
     questionNumber,
     question: question.question,
     expectedResponse: question.expectedResponse,
+    ...(question.requiredFacts === undefined ? {} : { requiredFacts: question.requiredFacts }),
+    ...(question.acceptedAlternatives === undefined
+      ? {}
+      : { acceptedAlternatives: question.acceptedAlternatives }),
+    ...(question.forbiddenClaims === undefined
+      ? {}
+      : { forbiddenClaims: question.forbiddenClaims }),
     actualResponse: null,
     sessionId,
     conversationId,

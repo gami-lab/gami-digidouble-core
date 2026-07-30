@@ -4,6 +4,8 @@ export interface SendRawMessageInput {
   userMessage: string
   /** Optional system prompt override; defaults to a plain assistant prompt. */
   systemPrompt?: string
+  /** Optional model override; defaults to the configured provider model. */
+  model?: string
 }
 
 export interface SendRawMessageOutput extends Pick<

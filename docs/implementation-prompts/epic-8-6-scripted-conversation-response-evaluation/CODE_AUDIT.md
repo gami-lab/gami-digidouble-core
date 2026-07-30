@@ -337,3 +337,15 @@ A
   guarantee cost; judge cost therefore remains unavailable rather than estimated.
 - Runtime guards must be updated alongside intentional future changes to the shared wire contracts;
   this is explicit boundary ownership, not a duplicate domain contract.
+
+### Additional Improvements
+
+- The declared `judgeModel` is now parsed into an explicit provider/model selection and sent through
+  the authenticated raw-exchange boundary; Core no longer silently relies on its default model for
+  judge requests.
+- Definitions now support `requiredFacts`, `acceptedAlternatives`, and `forbiddenClaims`, with
+  validation and propagation tests.
+- Scores are mapped to `passed`, `partial`, and `failed` outcomes, while judge reasons, missing
+  elements, and contradictions are persisted and displayed in reports.
+- The raw-exchange contract and documentation now describe the additive model-selection request;
+  the full build gates remain green after the change.

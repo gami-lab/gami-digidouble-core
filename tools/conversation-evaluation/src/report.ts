@@ -40,6 +40,7 @@ export function aggregateRunSummary(
 ): RunSummary {
   const evaluated = results.filter((result) => result.judge !== null).length
   const passed = results.filter((result) => result.status === 'passed').length
+  const partial = results.filter((result) => result.status === 'partial').length
   const failed = results.filter((result) => result.status === 'failed').length
   const avatarResults = results.filter((result) => result.metrics !== null)
   const hasCompleteAvatarCost =
@@ -51,6 +52,7 @@ export function aggregateRunSummary(
     questions: questionCount,
     evaluated,
     passed,
+    partial,
     failed,
     passRate: evaluated === 0 ? null : passed / evaluated,
     totalLatencyMs: sumMetrics(results, (result) => result.metrics?.latencyMs ?? 0),
@@ -221,7 +223,7 @@ export async function writeReportAtomically(outputPath: string, report: RunRepor
 export function renderConsoleSummary(report: RunReport): string {
   const lines = [
     `Evaluation: ${report.testName}`,
-    `Status: ${report.status} | Questions: ${String(report.summary.questions)} | Evaluated: ${String(report.summary.evaluated)} | Passed: ${String(report.summary.passed)} | Failed: ${String(report.summary.failed)}`,
+    `Status: ${report.status} | Questions: ${String(report.summary.questions)} | Evaluated: ${String(report.summary.evaluated)} | Passed: ${String(report.summary.passed)} | Partial: ${String(report.summary.partial)} | Failed: ${String(report.summary.failed)}`,
     `Pass rate: ${report.summary.passRate === null ? 'n/a' : `${(report.summary.passRate * 100).toFixed(1)}%`}`,
     `Avatar model: declared=${report.declaredModel ?? 'n/a'} observed=${report.summary.observedAvatarModels.join(', ') || 'n/a'}`,
     `Judge model: declared=${report.declaredJudgeModel ?? 'n/a'} observed=${report.summary.observedJudgeModels.join(', ') || 'n/a'}`,
@@ -235,6 +237,15 @@ export function renderConsoleSummary(report: RunReport): string {
     lines.push(
       `Question ${String(question.questionNumber)}: ${question.status} | score=${score} | ${metrics}`,
     )
+    if (question.judge !== null) {
+      lines.push(`  Reason: ${singleLine(question.judge.reason)}`)
+      if (question.judge.missingElements.length > 0) {
+        lines.push(`  Missing: ${question.judge.missingElements.map(singleLine).join('; ')}`)
+      }
+      if (question.judge.contradictions.length > 0) {
+        lines.push(`  Contradictions: ${question.judge.contradictions.map(singleLine).join('; ')}`)
+      }
+    }
   })
   lines.push(
     `Totals: ${String(report.summary.totalLatencyMs)}ms/${String(report.summary.totalTokens)} tokens | cost=${report.summary.totalCostUsd === null ? 'unavailable' : String(report.summary.totalCostUsd)}`,
@@ -245,4 +256,9 @@ export function renderConsoleSummary(report: RunReport): string {
   }
   if (report.error !== null) lines.push(`Error: ${report.error.message}`)
   return lines.join('\n')
+}
+
+function singleLine(value: string): string {
+  const normalized = value.replace(/[\r\n\t]+/g, ' ').trim()
+  return normalized.length <= 300 ? normalized : `${normalized.slice(0, 299)}…`
 }

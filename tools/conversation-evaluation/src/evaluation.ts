@@ -66,6 +66,12 @@ function toEvaluationError(error: unknown, kind: EvaluationError['kind']): Evalu
   }
 }
 
+function qualityOutcome(score: 1 | 2 | 3 | 4 | 5): 'passed' | 'partial' | 'failed' {
+  if (score >= 4) return 'passed'
+  if (score === 3) return 'partial'
+  return 'failed'
+}
+
 async function judgeQuestion(
   judgeClient: SemanticJudgeClient,
   result: QuestionResult,
@@ -77,6 +83,13 @@ async function judgeQuestion(
       {
         question: result.question,
         expectedResponse: result.expectedResponse,
+        ...(result.requiredFacts === undefined ? {} : { requiredFacts: result.requiredFacts }),
+        ...(result.acceptedAlternatives === undefined
+          ? {}
+          : { acceptedAlternatives: result.acceptedAlternatives }),
+        ...(result.forbiddenClaims === undefined
+          ? {}
+          : { forbiddenClaims: result.forbiddenClaims }),
         actualResponse: result.actualResponse,
       },
       signal === undefined ? undefined : { signal },
@@ -84,7 +97,7 @@ async function judgeQuestion(
     result.judge = evaluation.result
     result.judgeModel = evaluation.metrics.model
     result.judgeMetrics = evaluation.metrics
-    result.status = evaluation.result.passed ? 'passed' : 'failed'
+    result.status = qualityOutcome(evaluation.result.score)
     result.error = null
   } catch (error: unknown) {
     result.status = 'judge_error'

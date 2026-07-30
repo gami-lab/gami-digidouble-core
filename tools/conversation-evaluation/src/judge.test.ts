@@ -119,9 +119,20 @@ describe('semantic judge', () => {
         }),
       ),
     ).toThrow(/unsupported fields/)
+    expect(() =>
+      parseJudgeResult(
+        JSON.stringify({
+          passed: true,
+          score: 3,
+          reason: 'Partially correct.',
+          missingElements: [],
+          contradictions: [],
+        }),
+      ),
+    ).toThrow(/scores 4 and 5/)
   })
 
-  it('uses the authenticated raw exchange boundary and keeps judge model metadata separate', async () => {
+  it('uses the authenticated raw exchange boundary and requests the declared judge model', async () => {
     const fetchMock = vi.fn<FetchLike>().mockResolvedValue(
       jsonResponse(
         okEnvelope(
@@ -142,12 +153,16 @@ describe('semantic judge', () => {
       apiKey: 'judge-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
+      model: 'openai/gpt-5.4-mini',
     })
 
     await expect(
       client.evaluate({
         question: 'What happened?',
         expectedResponse: 'Mention the storm.',
+        requiredFacts: ['the storm'],
+        acceptedAlternatives: ['the storm caused it'],
+        forbiddenClaims: ['there was no storm'],
         actualResponse: 'The storm caused it.',
       }),
     ).resolves.toMatchObject({
@@ -164,12 +179,20 @@ describe('semantic judge', () => {
     expect(url).toBe('https://judge.example/v1/exchange')
     expect(init?.headers).toMatchObject({ 'x-api-key': 'judge-key' })
     const rawBody = typeof init?.body === 'string' ? init.body : '{}'
-    const body = JSON.parse(rawBody) as { message: string; systemPrompt: string }
+    const body = JSON.parse(rawBody) as {
+      message: string
+      systemPrompt: string
+      model?: { provider?: string; model?: string }
+    }
     expect(JSON.parse(body.message)).toEqual({
       question: 'What happened?',
       expectedResponse: 'Mention the storm.',
+      requiredFacts: ['the storm'],
+      acceptedAlternatives: ['the storm caused it'],
+      forbiddenClaims: ['there was no storm'],
       actualResponse: 'The storm caused it.',
     })
+    expect(body.model).toEqual({ provider: 'openai', model: 'gpt-5.4-mini' })
     expect(body.systemPrompt).toBe(JUDGE_SYSTEM_PROMPT)
     expect(body.systemPrompt).toContain('“my father” is equivalent to “Max’s father”')
     expect(body.systemPrompt).toContain('passed must be true for scores 4 and 5.')

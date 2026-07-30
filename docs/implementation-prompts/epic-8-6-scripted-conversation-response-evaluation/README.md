@@ -11,8 +11,9 @@ This pack is aligned with the current repository rather than the original EPIC a
 
 - the test definition selects an initial Avatar explicitly by ID or unique name because the current
   session API requires an Avatar to start a conversation;
-- model selection remains owned by the server's existing avatar/scenario/global precedence, so the
-  tool records and verifies effective models instead of adding a request-level override;
+- Avatar model selection remains owned by the server's existing avatar/scenario/global precedence.
+  The declared judge model is an explicit request-level selection for the raw exchange judge path,
+  and the tool records and verifies the effective model returned by Core;
 - current APIs expose latency and token counts, while cost is nullable and must remain explicitly
   unavailable when no API field supplies it;
 - the judge uses the authenticated `/v1/exchange` boundary and never imports provider SDKs.
@@ -63,6 +64,8 @@ wire shape, the same EPIC must update that route's existing tests and stack-E2E 
       and nullable cost metadata.
 - [ ] The judge uses the existing authenticated raw-exchange boundary and returns validated,
       machine-readable semantic results.
+- [ ] Judge definitions can provide required facts, accepted alternatives, and forbidden claims;
+      scores map to passed, partial, and failed outcomes with reason and contradiction diagnostics.
 - [ ] API failures, judge failures, and quality failures remain distinguishable.
 - [ ] Partial reports are persisted without losing completed results.
 - [ ] A readable console summary and a real seeded-scenario example exist.

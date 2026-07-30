@@ -220,12 +220,14 @@ Must cover:
   retains completed results when a message request fails
 - semantic judge serialization stays within raw-exchange body limits, accepts only validated
   result objects (with deterministic fenced JSON), and distinguishes paraphrase passes, relevant
-  additional information, missing criteria, contradictions, malformed judge output, and judge
-  transport/API errors
+  additional information, structured required facts/alternatives/forbidden claims, missing
+  criteria, contradictions, score-three partial outcomes, malformed judge output, and judge
+  transport/API errors; the declared judge model is asserted in the raw request
 - report aggregation uses valid judge results for the pass-rate denominator, keeps Avatar metrics
   separate from judge model metadata, retains judge latency/token metrics, leaves cost nullable when
   incomplete, and atomically writes valid incremental reports with bounded console summaries
-- valid judge quality failures flow through `runEvaluation` into failed question/report outcomes;
+- valid judge quality results flow through `runEvaluation` into passed, partial, or failed
+  question/report outcomes;
   real-file interruption coverage proves readable partial output and temporary-file cleanup
 - direct CLI help and configuration-failure behavior preserve exit-code and secret-safety contracts
 - evaluator progress messages cover setup, request, judging, completion, and the five-second

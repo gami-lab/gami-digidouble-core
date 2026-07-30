@@ -152,6 +152,30 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
     expect(body.data?.reply).toBe('Arr pir8!')
   })
 
+  it('forwards an explicit model override to the LLM adapter', async () => {
+    const complete = vi.fn().mockResolvedValue({
+      content: 'Model-specific reply',
+      model: 'gpt-5.4-mini',
+      inputTokens: 1,
+      outputTokens: 2,
+      latencyMs: 3,
+    })
+    const app = createServer(TEST_CONFIG, {
+      llmAdapter: { complete },
+      observabilityAdapter: new NullObservabilityAdapter(),
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/exchange',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { message: 'Hello', model: { model: 'gpt-5.4-mini' } },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(complete).toHaveBeenCalledWith(expect.objectContaining({ model: 'gpt-5.4-mini' }))
+  })
+
   it('emits observability traces when route creates the adapter from config', async () => {
     const trace = vi.fn<IObservabilityAdapter['trace']>().mockResolvedValue(undefined)
     const observability: IObservabilityAdapter = {

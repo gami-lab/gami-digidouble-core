@@ -1,5 +1,11 @@
 import type { FastifyPluginCallback } from 'fastify'
-import { fail, ok, type RawExchangeResponse } from '@gami/shared'
+import {
+  fail,
+  MODEL_SELECTION_PROVIDER_NAMES,
+  ok,
+  type RawExchangeRequest,
+  type RawExchangeResponse,
+} from '@gami/shared'
 import { SendRawMessageUseCase } from '../../application/use-cases/send-raw-message/send-raw-message.use-case.js'
 import type { SendRawMessageOutput } from '../../application/use-cases/send-raw-message/send-raw-message.types.js'
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
@@ -27,17 +33,20 @@ function mapRawExchangeResponse(output: SendRawMessageOutput): RawExchangeRespon
   }
 }
 
-type ExchangeRequestBody = {
-  message: string
-  systemPrompt?: string
-}
-
 const exchangeBodySchema = {
   type: 'object',
   required: ['message'],
   properties: {
     message: { type: 'string', minLength: 1, maxLength: 4000 },
     systemPrompt: { type: 'string', maxLength: 4000 },
+    model: {
+      type: 'object',
+      properties: {
+        provider: { type: 'string', enum: MODEL_SELECTION_PROVIDER_NAMES },
+        model: { type: 'string', minLength: 1, maxLength: 200 },
+      },
+      additionalProperties: false,
+    },
   },
   additionalProperties: false,
 } as const
@@ -71,20 +80,26 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
     await observabilityAdapter.flush()
   })
 
-  app.post<{ Body: ExchangeRequestBody }>(
+  app.post<{ Body: RawExchangeRequest }>(
     '/v1/exchange',
     {
       schema: { body: exchangeBodySchema },
       preHandler: authenticateApiKey(options.config.apiKeySecret),
     },
     async (request, reply) => {
-      const useCase = new SendRawMessageUseCase(llmAdapter)
+      const requestedProvider = request.body.model?.provider
+      const requestLlmAdapter =
+        requestedProvider === undefined || requestedProvider === options.config.llmProvider
+          ? llmAdapter
+          : createLlmAdapter({ ...llmConfig, provider: requestedProvider }, observabilityAdapter)
+      const useCase = new SendRawMessageUseCase(requestLlmAdapter)
       try {
         const output = await useCase.execute({
           userMessage: request.body.message,
           ...(request.body.systemPrompt !== undefined
             ? { systemPrompt: request.body.systemPrompt }
             : {}),
+          ...(request.body.model?.model !== undefined ? { model: request.body.model.model } : {}),
         })
         return await reply.send(ok<RawExchangeResponse>(mapRawExchangeResponse(output)))
       } catch (error) {

@@ -111,8 +111,9 @@ The platform is now a working headless conversational runtime with:
 - `TestDefinition`, `QuestionResult`, `JudgeResult`, and `RunReport` are tool-owned types; Core
   domain and HTTP DTOs are not extended with evaluation-only state.
 - Versioned JSON definitions validate required fields, exact initial-avatar selection, duplicate
-  questions, and unknown fields before any network work. Model fields are declared/expected
-  metadata only, not request-level overrides.
+  questions, structured evaluation criteria, and unknown fields before any network work. The
+  Avatar model field remains comparison metadata; the judge model field is sent as an explicit
+  raw-exchange request selection.
 - CLI and environment configuration resolves the Avatar API URL, API key, optional judge URL,
   report path, timeout, and a unique run-scoped user ID by default; explicit user IDs support
   controlled continuity tests. Definition validation is network-free, while the execution command
@@ -128,6 +129,8 @@ The platform is now a working headless conversational runtime with:
   `POST /v1/exchange` for semantic judging. Judge output is runtime-validated, including the
   deterministic fenced-JSON compatibility form, and malformed or unavailable judges remain
   `judge_error` rather than quality failures.
+- Judge scores map to explicit `passed` (4–5), `partial` (3), and `failed` (1–2) outcomes;
+  reports and console summaries retain the judge reason, missing facts, and contradictions.
 - The CLI emits progress for setup, Avatar requests, judging, and completion, and waits five
   seconds between scripted questions so asynchronous Game Master and memory work can settle before
   the next evaluation turn.

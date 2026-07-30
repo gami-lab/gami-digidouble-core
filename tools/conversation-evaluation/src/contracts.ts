@@ -1,6 +1,6 @@
 import type { ConversationSummary, SessionSummary } from '@gami/shared'
 
-/** A model label declared by a definition for comparison, never a request override. */
+/** A model label declared by a definition and requested from the selected LLM provider. */
 export type DeclaredModel = string
 
 export type EvaluationPhase =
@@ -14,6 +14,9 @@ export type EvaluationPhase =
 export type TestQuestion = {
   question: string
   expectedResponse: string
+  requiredFacts?: string[]
+  acceptedAlternatives?: string[]
+  forbiddenClaims?: string[]
 }
 
 export type TestDefinition = {
@@ -53,6 +56,8 @@ export type JudgeResult = {
   contradictions: string[]
 }
 
+export type QualityOutcome = 'passed' | 'partial' | 'failed'
+
 export type EvaluationError = {
   kind: 'api_error' | 'judge_error'
   message: string
@@ -68,12 +73,15 @@ export type ModelMismatch = {
   observedModel: string
 }
 
-export type QuestionResultStatus = 'completed' | 'api_error' | 'judge_error' | 'passed' | 'failed'
+export type QuestionResultStatus = 'completed' | 'api_error' | 'judge_error' | QualityOutcome
 
 export type QuestionResult = {
   questionNumber: number
   question: string
   expectedResponse: string
+  requiredFacts?: string[]
+  acceptedAlternatives?: string[]
+  forbiddenClaims?: string[]
   actualResponse: string | null
   sessionId: string | null
   conversationId: string | null
@@ -92,6 +100,7 @@ export type RunSummary = {
   questions: number
   evaluated: number
   passed: number
+  partial: number
   failed: number
   passRate: number | null
   totalLatencyMs: number
