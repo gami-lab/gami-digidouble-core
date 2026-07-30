@@ -1,13 +1,19 @@
 import type {
   ApiError,
   ApiResponse,
+  AvatarSummary,
+  ConversationSummary,
   ListScenarioAvatarsResponse,
+  Message,
   SendMessageApiResponse,
+  SessionSummary,
   StartConversationRequest,
   StartConversationResponse,
   StartSessionRequest,
   StartSessionResponse,
 } from '@gami/shared'
+
+import type { EvaluationPhase } from './contracts.js'
 
 type HttpMethod = 'GET' | 'POST'
 
@@ -32,6 +38,7 @@ export class CoreApiError extends Error {
   readonly path: string
   readonly kind: CoreApiErrorKind
   readonly safeMessage: string
+  readonly phase: EvaluationPhase | undefined
 
   constructor(options: {
     status: number | null
@@ -39,6 +46,7 @@ export class CoreApiError extends Error {
     message: string
     path: string
     kind: CoreApiErrorKind
+    phase?: EvaluationPhase
   }) {
     const safeMessage = boundSafeMessage(options.message)
     super(safeMessage)
@@ -48,6 +56,7 @@ export class CoreApiError extends Error {
     this.path = options.path
     this.kind = options.kind
     this.safeMessage = safeMessage
+    this.phase = options.phase
   }
 }
 
@@ -71,6 +80,173 @@ function normalizePath(value: string): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string'
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return isString(value) && value.trim().length > 0
+}
+
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+}
+
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || isString(value)
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isString)
+}
+
+function hasRequiredStrings(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  return keys.every((key) => isString(value[key]))
+}
+
+function hasOptionalStringProperty(value: Record<string, unknown>, key: string): boolean {
+  return isOptionalString(value[key])
+}
+
+function hasOptionalStringArrayProperty(value: Record<string, unknown>, key: string): boolean {
+  return value[key] === undefined || isStringArray(value[key])
+}
+
+function isLifecycleStatus(value: unknown): boolean {
+  return value === 'active' || value === 'closed' || value === 'archived'
+}
+
+function isSessionSummary(value: unknown): value is SessionSummary {
+  if (!isRecord(value)) return false
+  return (
+    ['sessionId', 'userId', 'scenarioId'].every((key) => isNonEmptyString(value[key])) &&
+    isLifecycleStatus(value['status']) &&
+    hasRequiredStrings(value, ['startedAt', 'lastActivityAt']) &&
+    hasOptionalStringProperty(value, 'activeAvatarId') &&
+    hasOptionalStringArrayProperty(value, 'unlockedAvatarIds') &&
+    hasOptionalStringProperty(value, 'endedAt')
+  )
+}
+
+function isConversationSummary(value: unknown): value is ConversationSummary {
+  return (
+    isRecord(value) &&
+    isNonEmptyString(value['conversationId']) &&
+    isNonEmptyString(value['sessionId']) &&
+    isNonEmptyString(value['avatarId']) &&
+    isLifecycleStatus(value['status']) &&
+    isString(value['startedAt']) &&
+    isString(value['lastActivityAt']) &&
+    isOptionalString(value['endedAt'])
+  )
+}
+
+function isAvatarSummary(value: unknown): value is AvatarSummary {
+  if (!isRecord(value)) return false
+  return [
+    isNonEmptyString(value['avatarId']) && isNonEmptyString(value['scenarioId']),
+    isString(value['name']),
+    isAvatarStatus(value['status']),
+    isString(value['personaPrompt']),
+    hasOptionalStringProperty(value, 'tone'),
+    hasOptionalStringProperty(value, 'description'),
+    hasOptionalStringArrayProperty(value, 'adjustments'),
+    isLlmOverride(value['llmOverride']),
+    isComputedTraits(value['computedTraits']),
+    isRecord(value['config']),
+    hasRequiredStrings(value, ['createdAt', 'updatedAt']),
+  ].every(Boolean)
+}
+
+function isAvatarStatus(value: unknown): boolean {
+  return value === 'draft' || value === 'active' || value === 'archived'
+}
+
+function isLlmOverride(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (isRecord(value) &&
+      hasOptionalStringProperty(value, 'provider') &&
+      hasOptionalStringProperty(value, 'model'))
+  )
+}
+
+function isComputedTraits(value: unknown): boolean {
+  if (value === null) return true
+  if (!isRecord(value)) return false
+  return [
+    'identity',
+    'personality',
+    'speakingStyle',
+    'background',
+    'timeline',
+    'currentSituation',
+    'behaviouralRules',
+  ].every((key) => isStringArray(value[key]))
+}
+
+function isAvatarMessageMetadata(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isNonEmptyString(value['model']) &&
+    isNonNegativeFiniteNumber(value['latencyMs']) &&
+    isNonNegativeFiniteNumber(value['inputTokens']) &&
+    isNonNegativeFiniteNumber(value['outputTokens']) &&
+    (value['totalTokens'] === undefined || isNonNegativeFiniteNumber(value['totalTokens'])) &&
+    (value['costUsd'] === undefined || isNonNegativeFiniteNumber(value['costUsd'])) &&
+    isOptionalString(value['triggerSource'])
+  )
+}
+
+function isMessage(value: unknown, role: Message['role']): value is Message {
+  return (
+    isRecord(value) &&
+    isNonEmptyString(value['messageId']) &&
+    isNonEmptyString(value['conversationId']) &&
+    value['role'] === role &&
+    isString(value['content']) &&
+    isString(value['createdAt'])
+  )
+}
+
+function isSendMessageResponse(value: unknown): value is SendMessageApiResponse {
+  if (!isRecord(value)) return false
+  const avatarMessage = value['avatarMessage']
+  return (
+    isSessionSummary(value['session']) &&
+    isConversationSummary(value['conversation']) &&
+    isMessage(value['userMessage'], 'user') &&
+    isMessage(avatarMessage, 'avatar') &&
+    isRecord(avatarMessage) &&
+    isAvatarMessageMetadata(avatarMessage['metadata']) &&
+    isDebugMetrics(value['debug'])
+  )
+}
+
+function isDebugMetrics(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasRequiredStrings(value, ['requestId', 'model']) &&
+    isNonNegativeFiniteNumber(value['latencyMs']) &&
+    isNonNegativeFiniteNumber(value['inputTokens']) &&
+    isNonNegativeFiniteNumber(value['outputTokens'])
+  )
+}
+
+function isStartSessionResponse(value: unknown): value is StartSessionResponse {
+  return isRecord(value) && isSessionSummary(value['session'])
+}
+
+function isListScenarioAvatarsResponse(value: unknown): value is ListScenarioAvatarsResponse {
+  return (
+    isRecord(value) && Array.isArray(value['avatars']) && value['avatars'].every(isAvatarSummary)
+  )
+}
+
+function isStartConversationResponse(value: unknown): value is StartConversationResponse {
+  return isRecord(value) && isConversationSummary(value['conversation'])
 }
 
 function isApiResponseError(value: unknown): value is ApiResponseError {
@@ -98,8 +274,16 @@ function createError(
   code: string,
   message: string,
   kind: CoreApiErrorKind,
+  phase?: EvaluationPhase,
 ): CoreApiError {
-  return new CoreApiError({ status, code, message, path, kind })
+  return new CoreApiError({
+    status,
+    code,
+    message,
+    path,
+    kind,
+    ...(phase !== undefined ? { phase } : {}),
+  })
 }
 
 function isSignalAborted(signal: AbortSignal | undefined): boolean {
@@ -113,21 +297,48 @@ async function fetchResponse(
   path: string,
   state: RequestState,
   signal: AbortSignal | undefined,
+  phase: EvaluationPhase,
 ): Promise<Response> {
   try {
     return await fetchImpl(url, init)
   } catch {
     if (state.timedOut) {
-      throw createError(path, null, 'TIMEOUT', 'Core API request timed out.', 'transport_error')
+      throw createError(
+        path,
+        null,
+        'TIMEOUT',
+        'Core API request timed out.',
+        'transport_error',
+        phase,
+      )
     }
     if (isSignalAborted(signal)) {
-      throw createError(path, null, 'ABORTED', 'Core API request was aborted.', 'transport_error')
+      throw createError(
+        path,
+        null,
+        'ABORTED',
+        'Core API request was aborted.',
+        'transport_error',
+        phase,
+      )
     }
-    throw createError(path, null, 'NETWORK_ERROR', 'Core API request failed.', 'transport_error')
+    throw createError(
+      path,
+      null,
+      'NETWORK_ERROR',
+      'Core API request failed.',
+      'transport_error',
+      phase,
+    )
   }
 }
 
-async function decodeResponse<T>(response: Response, path: string): Promise<T> {
+async function decodeResponse<T>(
+  response: Response,
+  path: string,
+  phase: EvaluationPhase,
+  validate: (value: unknown) => value is T,
+): Promise<T> {
   let payload: unknown
   try {
     payload = await response.json()
@@ -138,6 +349,7 @@ async function decodeResponse<T>(response: Response, path: string): Promise<T> {
       'INVALID_RESPONSE',
       'Core API returned invalid JSON.',
       'contract_error',
+      phase,
     )
   }
 
@@ -148,6 +360,7 @@ async function decodeResponse<T>(response: Response, path: string): Promise<T> {
       'INVALID_RESPONSE',
       'Core API returned an invalid response envelope.',
       'contract_error',
+      phase,
     )
   }
 
@@ -158,6 +371,7 @@ async function decodeResponse<T>(response: Response, path: string): Promise<T> {
       payload.error.code,
       safeApiMessage(payload.error),
       'api_error',
+      phase,
     )
   }
 
@@ -168,10 +382,22 @@ async function decodeResponse<T>(response: Response, path: string): Promise<T> {
       'INVALID_RESPONSE',
       'Core API returned an unsuccessful response.',
       'contract_error',
+      phase,
     )
   }
 
-  return payload.data as T
+  if (!validate(payload.data)) {
+    throw createError(
+      path,
+      response.status,
+      'INVALID_RESPONSE',
+      'Core API returned an invalid response body.',
+      'contract_error',
+      phase,
+    )
+  }
+
+  return payload.data
 }
 
 export class CoreApiClient {
@@ -191,17 +417,26 @@ export class CoreApiClient {
     input: StartSessionRequest,
     options?: CoreApiRequestOptions,
   ): Promise<StartSessionResponse> {
-    return this.request<StartSessionResponse>('POST', '/v1/sessions', input, options)
+    return this.request(
+      'POST',
+      '/v1/sessions',
+      input,
+      isStartSessionResponse,
+      'session_bootstrap',
+      options,
+    )
   }
 
   async listScenarioAvatars(
     scenarioId: string,
     options?: CoreApiRequestOptions,
   ): Promise<ListScenarioAvatarsResponse> {
-    return this.request<ListScenarioAvatarsResponse>(
+    return this.request(
       'GET',
       `/v1/scenarios/${encodeURIComponent(scenarioId)}/avatars`,
       undefined,
+      isListScenarioAvatarsResponse,
+      'avatar_resolution',
       options,
     )
   }
@@ -211,10 +446,12 @@ export class CoreApiClient {
     input: StartConversationRequest,
     options?: CoreApiRequestOptions,
   ): Promise<StartConversationResponse> {
-    return this.request<StartConversationResponse>(
+    return this.request(
       'POST',
       `/v1/sessions/${encodeURIComponent(sessionId)}/conversations`,
       input,
+      isStartConversationResponse,
+      'conversation_bootstrap',
       options,
     )
   }
@@ -224,10 +461,12 @@ export class CoreApiClient {
     content: string,
     options?: CoreApiRequestOptions,
   ): Promise<SendMessageApiResponse> {
-    return this.request<SendMessageApiResponse>(
+    return this.request(
       'POST',
       `/v1/conversations/${encodeURIComponent(conversationId)}/messages`,
       { message: { content } },
+      isSendMessageResponse,
+      'avatar_message',
       options,
     )
   }
@@ -235,7 +474,9 @@ export class CoreApiClient {
   private async request<T>(
     method: HttpMethod,
     path: string,
-    body?: unknown,
+    body: unknown,
+    validate: (value: unknown) => value is T,
+    phase: EvaluationPhase,
     options?: CoreApiRequestOptions,
   ): Promise<T> {
     const normalizedPath = normalizePath(path)
@@ -247,6 +488,7 @@ export class CoreApiClient {
         'ABORTED',
         'Core API request was aborted.',
         'transport_error',
+        phase,
       )
     }
     const state: RequestState = { timedOut: false }
@@ -276,8 +518,9 @@ export class CoreApiClient {
         normalizedPath,
         state,
         options?.signal,
+        phase,
       )
-      return await decodeResponse<T>(response, normalizedPath)
+      return await decodeResponse(response, normalizedPath, phase, validate)
     } finally {
       clearTimeout(timeout)
       options?.signal?.removeEventListener('abort', onAbort)

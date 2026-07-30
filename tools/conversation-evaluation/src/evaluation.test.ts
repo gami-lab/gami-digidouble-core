@@ -1,3 +1,7 @@
+import { mkdtemp, readFile, readdir } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
 import { describe, expect, it, vi } from 'vitest'
 
 import type { ApiResponse, SendMessageResponse } from '@gami/shared'
@@ -6,6 +10,7 @@ import { CoreApiClient, type FetchLike } from './core-api-client.js'
 import { runEvaluation } from './evaluation.js'
 import type { TestDefinition } from './contracts.js'
 import { SemanticJudgeClient } from './judge.js'
+import { writeReportAtomically } from './report.js'
 
 function jsonResponse(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), {
@@ -100,6 +105,7 @@ function judgeReply(passed: boolean): string {
 function createClients(
   messageFailure = false,
   malformedJudge = false,
+  judgePassed = true,
 ): {
   avatarClient: CoreApiClient
   judgeClient: SemanticJudgeClient
@@ -124,7 +130,7 @@ function createClients(
       jsonResponse(
         okEnvelope({
           requestId: 'judge-request',
-          reply: malformedJudge ? '{"passed":true}' : judgeReply(true),
+          reply: malformedJudge ? '{"passed":true}' : judgeReply(judgePassed),
           model: 'observed-judge',
           inputTokens: 10,
           outputTokens: 5,
@@ -150,6 +156,7 @@ function createClients(
   }
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('runEvaluation', () => {
   it('judges ordered responses, preserves mismatches, and writes incremental snapshots', async () => {
     const clients = createClients()
@@ -234,5 +241,68 @@ describe('runEvaluation', () => {
     expect(output.report.questions.every((question) => question.status === 'judge_error')).toBe(
       true,
     )
+  })
+
+  it('records a valid quality failure without classifying it as an infrastructure error', async () => {
+    const clients = createClients(false, false, false)
+    const output = await runEvaluation({
+      definition,
+      userId: 'evaluation-user',
+      avatarClient: clients.avatarClient,
+      judgeClient: clients.judgeClient,
+      writeReport: vi.fn().mockResolvedValue(undefined),
+    })
+
+    expect(output.report.status).toBe('completed')
+    expect(output.report.questions.every((question) => question.status === 'failed')).toBe(true)
+    expect(output.report.questions[0]).toMatchObject({
+      judge: {
+        passed: false,
+        missingElements: ['the storm'],
+      },
+      judgeMetrics: {
+        model: 'observed-judge',
+        totalTokens: 15,
+      },
+      error: null,
+    })
+    expect(output.report.summary).toMatchObject({
+      evaluated: 2,
+      passed: 0,
+      failed: 2,
+      passRate: 0,
+      totalJudgeLatencyMs: 16,
+      totalJudgeTokens: 30,
+    })
+  })
+
+  it('leaves a valid real-file partial report when the caller aborts after a completed question', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'conversation-evaluation-abort-'))
+    const outputPath = join(directory, 'report.json')
+    const interruption = new AbortController()
+    const clients = createClients()
+
+    const output = await runEvaluation({
+      definition,
+      userId: 'evaluation-user',
+      avatarClient: clients.avatarClient,
+      judgeClient: clients.judgeClient,
+      signal: interruption.signal,
+      outputPath,
+      writeReport: async (report) => {
+        await writeReportAtomically(outputPath, report)
+        if (report.questions.length === 1) interruption.abort()
+      },
+    })
+
+    const persisted = JSON.parse(await readFile(outputPath, 'utf8')) as typeof output.report
+    expect(output.report.status).toBe('api_error')
+    expect(persisted.questions.map((question) => question.status)).toEqual(['passed', 'api_error'])
+    expect(persisted.questions[1]?.error).toMatchObject({
+      kind: 'api_error',
+      code: 'ABORTED',
+      phase: 'avatar_message',
+    })
+    expect((await readdir(directory)).filter((entry) => entry.endsWith('.tmp'))).toEqual([])
   })
 })

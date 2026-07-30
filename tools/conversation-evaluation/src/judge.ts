@@ -1,7 +1,8 @@
 import type { ApiError, ApiResponse, RawExchangeResponse } from '@gami/shared'
 
 import type { FetchLike } from './core-api-client.js'
-import type { JudgeResult } from './contracts.js'
+import type { EvaluationPhase, JudgeMetrics, JudgeResult } from './contracts.js'
+import { normalizeJudgeMetrics } from './metrics.js'
 
 export const JUDGE_SYSTEM_PROMPT = [
   'You are a semantic evaluator for an Avatar response.',
@@ -37,10 +38,7 @@ export type JudgeRequestOptions = {
 
 export type JudgeEvaluation = {
   result: JudgeResult
-  model: string
-  latencyMs: number
-  inputTokens: number
-  outputTokens: number
+  metrics: JudgeMetrics
 }
 
 export type JudgeErrorKind = 'transport_error' | 'contract_error' | 'judge_error'
@@ -51,6 +49,7 @@ export class JudgeClientError extends Error {
   readonly path: string
   readonly kind: JudgeErrorKind
   readonly safeMessage: string
+  readonly phase: EvaluationPhase
 
   constructor(options: {
     status: number | null
@@ -58,6 +57,7 @@ export class JudgeClientError extends Error {
     message: string
     path: string
     kind: JudgeErrorKind
+    phase?: EvaluationPhase
   }) {
     const safeMessage = boundMessage(options.message)
     super(safeMessage)
@@ -67,6 +67,7 @@ export class JudgeClientError extends Error {
     this.path = options.path
     this.kind = options.kind
     this.safeMessage = safeMessage
+    this.phase = options.phase ?? 'judge_exchange'
   }
 }
 
@@ -97,6 +98,10 @@ function isApiResponseEnvelope(value: unknown): value is ApiResponse<unknown> {
   return value['data'] === null && isApiResponseError(value['error'])
 }
 
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && value >= 0 && Number.isFinite(value)
+}
+
 function createError(
   code: string,
   message: string,
@@ -119,9 +124,9 @@ function isRawExchangeResponse(value: unknown): value is RawExchangeResponse {
     typeof value['reply'] === 'string' &&
     typeof value['model'] === 'string' &&
     value['model'].trim().length > 0 &&
-    Number.isFinite(value['inputTokens']) &&
-    Number.isFinite(value['outputTokens']) &&
-    Number.isFinite(value['latencyMs'])
+    isNonNegativeFiniteNumber(value['inputTokens']) &&
+    isNonNegativeFiniteNumber(value['outputTokens']) &&
+    isNonNegativeFiniteNumber(value['latencyMs'])
   )
 }
 
@@ -357,10 +362,7 @@ export class SemanticJudgeClient {
       const exchange = payload.data
       return {
         result: parseJudgeResult(exchange.reply),
-        model: exchange.model,
-        latencyMs: exchange.latencyMs,
-        inputTokens: exchange.inputTokens,
-        outputTokens: exchange.outputTokens,
+        metrics: normalizeJudgeMetrics(exchange),
       }
     } finally {
       clearTimeout(timeout)

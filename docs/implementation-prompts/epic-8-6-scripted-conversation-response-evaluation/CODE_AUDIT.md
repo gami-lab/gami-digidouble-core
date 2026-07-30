@@ -264,7 +264,7 @@ Minimal steps:
    unused return fields and explicitly scope observability to Avatar responses.
 5. Preserve error phase/path in reports and add a small `runCli` test suite.
 
-## Final Recommendation
+## Final Recommendation (Pre-remediation)
 
 - **Close EPIC with debt**
 
@@ -272,3 +272,68 @@ The requested workflow is usable and the evaluator package is well structured, s
 not warranted. Close only with the findings recorded as follow-up debt, and do not call the EPIC an
 A-quality foundation until the workspace checks and the contract/test/observability gaps above are
 resolved.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Added runtime validation for every successful Core response consumed by the evaluator, including
+  session, conversation, Avatar-list, and message contracts, with non-negative finite metrics and
+  phase-aware contract errors.
+- Preserved evaluation phase on API, judge, and report-persistence failures so partial reports are
+  diagnostically actionable without exposing raw request details.
+- Retained judge model, latency, input-token, output-token, and derived total-token metrics in
+  question results, run summaries, JSON reports, and console totals.
+- Added behavior-focused coverage for valid `passed: false` judge results flowing through
+  `runEvaluation`, malformed successful response bodies, direct CLI help/configuration behavior,
+  and a real-file abort with atomic partial-report verification.
+- Updated the evaluator README, test coverage plan, and project status to document the resulting
+  runtime validation, judge telemetry, phase-aware errors, and exit-code semantics.
+- Repaired the workspace dependency installation so the repository’s mandatory gates execute from a
+  complete pnpm workspace.
+
+### Findings Resolved
+
+- Successful HTTP payloads are now runtime-validated at the evaluator boundary.
+- Semantic quality failures are now proven through the full judge-to-report behavior path rather
+  than parser-only fixtures.
+- Judge latency and token metadata are retained and aggregated.
+- Operational phase context is preserved in report errors.
+- Real-file partial-report durability is verified across caller interruption, including temporary
+  file cleanup.
+- Direct CLI help and configuration-failure behavior now have focused contract coverage.
+- Mandatory repository lint, typecheck, test, and available coverage gates pass.
+
+### Findings Deferred
+
+None of the audit’s material findings are deferred. Live-provider execution remains opt-in by
+design and is outside deterministic build-gate coverage.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS — 7 workspace packages successful; evaluator 10 files / 47 tests; Core 141 files / 882 tests
+- coverage: PASS — Core 87.54% statements, 84.88% branches, 96.61% functions
+
+### Final Feature Confidence
+
+- Definition/configuration and CLI safety: High — validation, precedence, help, safe failure, and
+  secret handling are directly tested.
+- Sequential Core execution: High — fake-HTTP behavior proves ordering, identity, metrics,
+  failure classification, and runtime contract rejection.
+- Semantic judging: High — raw exchange shaping, strict parsing, valid quality failures, malformed
+  output, and judge transport failures are covered through both client and evaluation flows.
+- Reporting and resilience: High — Avatar and judge telemetry, pass-rate semantics, phase-aware
+  errors, atomic writes, and real-file interrupted partial output are proven.
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- The evaluator intentionally does not infer LLM cost because the raw exchange contract does not
+  guarantee cost; judge cost therefore remains unavailable rather than estimated.
+- Runtime guards must be updated alongside intentional future changes to the shared wire contracts;
+  this is explicit boundary ownership, not a duplicate domain contract.

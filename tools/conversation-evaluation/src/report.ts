@@ -25,6 +25,15 @@ function sumMetrics(
   }, 0)
 }
 
+function sumJudgeMetrics(
+  results: readonly QuestionResult[],
+  selector: (result: QuestionResult) => number,
+): number {
+  return results.reduce((total, result) => {
+    return result.judgeMetrics === null ? total : total + selector(result)
+  }, 0)
+}
+
 export function aggregateRunSummary(
   questionCount: number,
   results: readonly QuestionResult[],
@@ -51,6 +60,16 @@ export function aggregateRunSummary(
     totalCostUsd: hasCompleteAvatarCost
       ? avatarResults.reduce((total, result) => total + (result.metrics?.costUsd ?? 0), 0)
       : null,
+    totalJudgeLatencyMs: sumJudgeMetrics(results, (result) => result.judgeMetrics?.latencyMs ?? 0),
+    totalJudgeInputTokens: sumJudgeMetrics(
+      results,
+      (result) => result.judgeMetrics?.inputTokens ?? 0,
+    ),
+    totalJudgeOutputTokens: sumJudgeMetrics(
+      results,
+      (result) => result.judgeMetrics?.outputTokens ?? 0,
+    ),
+    totalJudgeTokens: sumJudgeMetrics(results, (result) => result.judgeMetrics?.totalTokens ?? 0),
     observedAvatarModels: uniqueStrings(
       avatarResults.flatMap((result) => (result.metrics === null ? [] : [result.metrics.model])),
     ),
@@ -219,6 +238,7 @@ export function renderConsoleSummary(report: RunReport): string {
   })
   lines.push(
     `Totals: ${String(report.summary.totalLatencyMs)}ms/${String(report.summary.totalTokens)} tokens | cost=${report.summary.totalCostUsd === null ? 'unavailable' : String(report.summary.totalCostUsd)}`,
+    `Judge totals: ${String(report.summary.totalJudgeLatencyMs)}ms/${String(report.summary.totalJudgeTokens)} tokens`,
   )
   if (report.modelMismatches.length > 0) {
     lines.push(`Model mismatches: ${String(report.modelMismatches.length)}`)

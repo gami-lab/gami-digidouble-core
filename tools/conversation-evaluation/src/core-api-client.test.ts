@@ -96,6 +96,32 @@ describe('CoreApiClient', () => {
     expect((error as CoreApiError).message).not.toContain('do-not-expose')
   })
 
+  it('rejects malformed successful bodies at the endpoint contract boundary', async () => {
+    const fetchMock = vi
+      .fn<FetchLike>()
+      .mockResolvedValueOnce(jsonResponse(okEnvelope({ session: {} })))
+      .mockResolvedValueOnce(jsonResponse(okEnvelope({})))
+    const client = new CoreApiClient({
+      baseUrl: 'https://core.example',
+      apiKey: 'test-key',
+      timeoutMs: 1000,
+      fetchImpl: fetchMock,
+    })
+
+    await expect(
+      client.createSession({ userId: 'user', scenarioId: 'scenario_1' }),
+    ).rejects.toMatchObject({
+      kind: 'contract_error',
+      code: 'INVALID_RESPONSE',
+      phase: 'session_bootstrap',
+    })
+    await expect(client.sendMessage('conversation_1', 'Question')).rejects.toMatchObject({
+      kind: 'contract_error',
+      code: 'INVALID_RESPONSE',
+      phase: 'avatar_message',
+    })
+  })
+
   it('preserves authentication failures as API errors', async () => {
     const fetchMock = vi
       .fn<FetchLike>()

@@ -27,6 +27,7 @@ const definition: TestDefinition = {
   ],
 }
 
+// eslint-disable-next-line complexity
 function result(
   questionNumber: number,
   status: QuestionResult['status'],
@@ -51,6 +52,16 @@ function result(
             totalTokens: 5,
             costUsd: costUsd ?? null,
           },
+    judgeMetrics:
+      status === 'passed' || status === 'failed'
+        ? {
+            model: 'observed-judge',
+            latencyMs: 8,
+            inputTokens: 4,
+            outputTokens: 3,
+            totalTokens: 7,
+          }
+        : null,
     judgeModel: status === 'judge_error' ? null : 'observed-judge',
     judge:
       status === 'passed' || status === 'failed'
@@ -87,6 +98,8 @@ describe('evaluation reports', () => {
       passRate: 0.5,
       totalLatencyMs: 30,
       totalTokens: 15,
+      totalJudgeLatencyMs: 16,
+      totalJudgeTokens: 14,
     })
     expect(aggregateRunSummary(3, results).totalCostUsd).toBeCloseTo(0.6)
   })

@@ -6,6 +6,7 @@ import {
   buildRunReport,
   createRunReport,
   renderConsoleSummary,
+  ReportWriteError,
   writeReportAtomically,
 } from './report.js'
 import { runSequentialConversation } from './sequential-runner.js'
@@ -28,12 +29,16 @@ export type EvaluationRunOutput = {
 }
 
 function toEvaluationError(error: unknown, kind: EvaluationError['kind']): EvaluationError {
+  if (error instanceof ReportWriteError) {
+    return { kind, message: error.message, phase: 'report_persistence' }
+  }
   if (error instanceof CoreApiError || error instanceof JudgeClientError) {
     return {
       kind,
       message: error.safeMessage,
       code: error.code,
-      ...(error.status !== null ? { status: error.status } : {}),
+      ...(error.phase === undefined ? {} : { phase: error.phase }),
+      ...(error.status === null ? {} : { status: error.status }),
     }
   }
   return {
@@ -58,13 +63,15 @@ async function judgeQuestion(
       signal === undefined ? undefined : { signal },
     )
     result.judge = evaluation.result
-    result.judgeModel = evaluation.model
+    result.judgeModel = evaluation.metrics.model
+    result.judgeMetrics = evaluation.metrics
     result.status = evaluation.result.passed ? 'passed' : 'failed'
     result.error = null
   } catch (error: unknown) {
     result.status = 'judge_error'
     result.judge = null
     result.judgeModel = null
+    result.judgeMetrics = null
     result.error = toEvaluationError(error, 'judge_error')
   }
 }

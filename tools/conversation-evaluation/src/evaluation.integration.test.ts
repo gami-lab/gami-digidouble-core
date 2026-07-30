@@ -36,6 +36,18 @@ const conversation = {
   lastActivityAt: '2026-07-29T00:00:00.000Z',
 }
 
+const avatar = {
+  avatarId: 'avatar_clara',
+  scenarioId: session.scenarioId,
+  name: 'Clara Whitcombe',
+  status: 'active' as const,
+  personaPrompt: 'You are Clara Whitcombe.',
+  computedTraits: null,
+  config: {},
+  createdAt: '2026-07-29T00:00:00.000Z',
+  updatedAt: '2026-07-29T00:00:00.000Z',
+}
+
 const definition: TestDefinition = {
   version: 1,
   name: 'Villa Miralac scripted ordering',
@@ -125,9 +137,7 @@ function createScriptedFetch(events: string[]): {
     const path = new URL(url).pathname
 
     if (path === `/v1/scenarios/${session.scenarioId}/avatars`) {
-      return jsonResponse(
-        okEnvelope({ avatars: [{ avatarId: 'avatar_clara', name: 'Clara Whitcombe' }] }),
-      )
+      return jsonResponse(okEnvelope({ avatars: [avatar] }))
     }
     if (path === '/v1/sessions') return jsonResponse(okEnvelope({ session }), 201)
     if (path === `/v1/sessions/${session.sessionId}/conversations`) {
@@ -251,6 +261,8 @@ describe('composed scripted evaluation', () => {
       passed: 3,
       totalLatencyMs: 36,
       totalTokens: 30,
+      totalJudgeLatencyMs: 24,
+      totalJudgeTokens: 45,
       totalCostUsd: null,
     })
     expect(output.report.modelMismatches).toHaveLength(6)

@@ -2,8 +2,10 @@ export type {
   DeclaredModel,
   ConversationExecution,
   EvaluationError,
+  EvaluationPhase,
   EvaluationMetrics,
   JudgeResult,
+  JudgeMetrics,
   ModelMismatch,
   QuestionResult,
   QuestionResultStatus,
@@ -39,7 +41,7 @@ export {
   loadEvaluationConfig,
   parseCliArgs,
 } from './config.js'
-export { normalizeCostUsd, normalizeMetrics } from './metrics.js'
+export { normalizeCostUsd, normalizeJudgeMetrics, normalizeMetrics } from './metrics.js'
 export type {
   JudgeClientOptions,
   JudgeErrorKind,

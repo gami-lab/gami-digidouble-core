@@ -29,6 +29,7 @@ function toEvaluationError(error: unknown): EvaluationError {
     return {
       kind: 'api_error',
       message: error.safeMessage,
+      ...(error.phase !== undefined ? { phase: error.phase } : {}),
       code: error.code,
       ...(error.status !== null ? { status: error.status } : {}),
     }
@@ -40,33 +41,12 @@ function toEvaluationError(error: unknown): EvaluationError {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isMessageResponse(value: unknown): value is SendMessageResponse {
-  if (!isRecord(value)) return false
-  const session = value['session']
-  const conversation = value['conversation']
-  const avatarMessage = value['avatarMessage']
-  if (!isRecord(session) || !isRecord(conversation) || !isRecord(avatarMessage)) return false
-  const metadata = avatarMessage['metadata']
-  return (
-    isRecord(metadata) &&
-    typeof session['sessionId'] === 'string' &&
-    typeof conversation['sessionId'] === 'string' &&
-    typeof conversation['conversationId'] === 'string' &&
-    typeof avatarMessage['conversationId'] === 'string'
-  )
-}
-
 function assertMessageResponseIdentity(
-  response: unknown,
+  response: SendMessageResponse,
   sessionId: string,
   conversationId: string,
-): asserts response is SendMessageResponse {
+): void {
   if (
-    !isMessageResponse(response) ||
     response.session.sessionId !== sessionId ||
     response.conversation.sessionId !== sessionId ||
     response.conversation.conversationId !== conversationId ||
@@ -78,27 +58,7 @@ function assertMessageResponseIdentity(
       message: 'Core API returned mismatched conversation identity.',
       path: `/v1/conversations/${conversationId}/messages`,
       kind: 'contract_error',
-    })
-  }
-}
-
-function assertMessageResponseMetrics(response: SendMessageResponse): void {
-  const metadata = response.avatarMessage.metadata
-  if (
-    typeof response.avatarMessage.content !== 'string' ||
-    typeof metadata.model !== 'string' ||
-    !Number.isFinite(metadata.latencyMs) ||
-    !Number.isFinite(metadata.inputTokens) ||
-    !Number.isFinite(metadata.outputTokens) ||
-    (metadata.totalTokens !== undefined && !Number.isFinite(metadata.totalTokens)) ||
-    (metadata.costUsd !== undefined && !Number.isFinite(metadata.costUsd))
-  ) {
-    throw new CoreApiError({
-      status: null,
-      code: 'INVALID_RESPONSE',
-      message: 'Core API returned incomplete Avatar response metadata.',
-      path: '/v1/conversations/messages',
-      kind: 'contract_error',
+      phase: 'avatar_message',
     })
   }
 }
@@ -123,6 +83,7 @@ function createQuestionResult(
     avatarId,
     metrics: null,
     judgeModel: null,
+    judgeMetrics: null,
     judge: null,
     status: 'api_error',
     error: null,
@@ -152,6 +113,7 @@ export async function resolveInitialAvatarId(
       message: `No Avatar matched the configured initial Avatar name.`,
       path: `/v1/scenarios/${definition.scenarioId}/avatars`,
       kind: 'api_error',
+      phase: 'avatar_resolution',
     })
   }
   if (matches.length !== 1) {
@@ -161,6 +123,7 @@ export async function resolveInitialAvatarId(
       message: 'The configured initial Avatar name matched multiple Avatars.',
       path: `/v1/scenarios/${definition.scenarioId}/avatars`,
       kind: 'api_error',
+      phase: 'avatar_resolution',
     })
   }
 
@@ -172,6 +135,7 @@ export async function resolveInitialAvatarId(
       message: 'No Avatar matched the configured initial Avatar name.',
       path: `/v1/scenarios/${definition.scenarioId}/avatars`,
       kind: 'api_error',
+      phase: 'avatar_resolution',
     })
   }
   return match.avatarId
@@ -221,7 +185,6 @@ export async function runSequentialConversation(
         requestOptions(input.signal),
       )
       assertMessageResponseIdentity(response, sessionId, conversationId)
-      assertMessageResponseMetrics(response)
       const metadata = response.avatarMessage.metadata
       result.actualResponse = response.avatarMessage.content
       result.metrics = normalizeMetrics(metadata)

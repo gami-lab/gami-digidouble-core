@@ -51,6 +51,18 @@ const conversation = {
   lastActivityAt: '2026-07-29T00:00:00.000Z',
 }
 
+const avatar = {
+  avatarId: 'avatar_1',
+  scenarioId: 'scenario_1',
+  name: 'Clara',
+  status: 'active' as const,
+  personaPrompt: 'You are Clara.',
+  computedTraits: null,
+  config: {},
+  createdAt: '2026-07-29T00:00:00.000Z',
+  updatedAt: '2026-07-29T00:00:00.000Z',
+}
+
 function messageResponse(content: string, model = 'observed-model'): SendMessageResponse {
   return {
     conversation,
@@ -175,7 +187,7 @@ describe('runSequentialConversation', () => {
         return Promise.resolve(
           jsonResponse(
             okEnvelope({
-              avatars: [{ avatarId: 'avatar_1', name: '  Clara  ' }],
+              avatars: [{ ...avatar, name: '  Clara  ' }],
             }),
           ),
         )
@@ -205,7 +217,9 @@ describe('runSequentialConversation', () => {
     const fetchMock = vi
       .fn<FetchLike>()
       .mockResolvedValue(
-        jsonResponse(okEnvelope({ avatars: [{ avatarId: 'other', name: 'Other Avatar' }] })),
+        jsonResponse(
+          okEnvelope({ avatars: [{ ...avatar, avatarId: 'other', name: 'Other Avatar' }] }),
+        ),
       )
     const nameDefinition = definitionWithAvatarName('Missing Avatar')
 
@@ -223,8 +237,8 @@ describe('runSequentialConversation', () => {
       jsonResponse(
         okEnvelope({
           avatars: [
-            { avatarId: 'avatar_1', name: 'Clara' },
-            { avatarId: 'avatar_2', name: ' clara ' },
+            { ...avatar, name: 'Clara' },
+            { ...avatar, avatarId: 'avatar_2', name: ' clara ' },
           ],
         }),
       ),

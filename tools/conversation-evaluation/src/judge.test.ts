@@ -148,7 +148,16 @@ describe('semantic judge', () => {
         expectedResponse: 'Mention the storm.',
         actualResponse: 'The storm caused it.',
       }),
-    ).resolves.toMatchObject({ model: 'observed-judge-model', result: { passed: true } })
+    ).resolves.toMatchObject({
+      metrics: {
+        model: 'observed-judge-model',
+        latencyMs: 30,
+        inputTokens: 20,
+        outputTokens: 10,
+        totalTokens: 30,
+      },
+      result: { passed: true },
+    })
     const [url, init] = fetchMock.mock.calls[0] ?? []
     expect(url).toBe('https://judge.example/v1/exchange')
     expect(init?.headers).toMatchObject({ 'x-api-key': 'judge-key' })

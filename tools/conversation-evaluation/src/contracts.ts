@@ -3,6 +3,14 @@ import type { ConversationSummary, SessionSummary } from '@gami/shared'
 /** A model label declared by a definition for comparison, never a request override. */
 export type DeclaredModel = string
 
+export type EvaluationPhase =
+  | 'avatar_resolution'
+  | 'session_bootstrap'
+  | 'conversation_bootstrap'
+  | 'avatar_message'
+  | 'judge_exchange'
+  | 'report_persistence'
+
 export type TestQuestion = {
   question: string
   expectedResponse: string
@@ -29,6 +37,14 @@ export type EvaluationMetrics = {
   costUsd: number | null
 }
 
+export type JudgeMetrics = {
+  model: string
+  latencyMs: number
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+}
+
 export type JudgeResult = {
   passed: boolean
   score: 1 | 2 | 3 | 4 | 5
@@ -40,6 +56,7 @@ export type JudgeResult = {
 export type EvaluationError = {
   kind: 'api_error' | 'judge_error'
   message: string
+  phase?: EvaluationPhase
   code?: string
   status?: number
 }
@@ -63,6 +80,7 @@ export type QuestionResult = {
   avatarId: string | null
   metrics: EvaluationMetrics | null
   judgeModel: string | null
+  judgeMetrics: JudgeMetrics | null
   judge: JudgeResult | null
   status: QuestionResultStatus
   error: EvaluationError | null
@@ -81,6 +99,10 @@ export type RunSummary = {
   totalOutputTokens: number
   totalTokens: number
   totalCostUsd: number | null
+  totalJudgeLatencyMs: number
+  totalJudgeInputTokens: number
+  totalJudgeOutputTokens: number
+  totalJudgeTokens: number
   observedAvatarModels: string[]
   observedJudgeModels: string[]
 }

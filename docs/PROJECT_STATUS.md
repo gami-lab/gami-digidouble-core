@@ -119,19 +119,20 @@ The platform is now a working headless conversational runtime with:
   intentionally makes authenticated requests only when explicitly invoked.
 - The evaluator reuses shared conversation/entity and raw-exchange contracts. API-provided cost is
   preserved when present and normalized to `null` when absent; no pricing is inferred.
-- The typed evaluator HTTP client decodes only `ApiResponse<T>`, sends API-key headers, bounds
-  surfaced error messages, and handles configured timeouts and caller aborts. The runner creates
-  one session and conversation, resolves an initial Avatar deterministically, awaits each JSON
-  response in order, records shared message metrics, and returns partial `api_error` results
-  without polling asynchronous Game Master or memory work.
+- The typed evaluator HTTP client decodes only `ApiResponse<T>`, sends API-key headers, validates
+  consumed successful payloads at runtime, and handles configured timeouts and caller aborts with
+  phase-aware contract errors. The runner creates one session and conversation, resolves an initial
+  Avatar deterministically, awaits each JSON response in order, records shared message metrics, and
+  returns partial `api_error` results without polling asynchronous Game Master or memory work.
 - The evaluator sends bounded, structured question/criteria/answer evidence to authenticated
   `POST /v1/exchange` for semantic judging. Judge output is runtime-validated, including the
   deterministic fenced-JSON compatibility form, and malformed or unavailable judges remain
   `judge_error` rather than quality failures.
-- Reports preserve attempted question inputs, Avatar responses and metrics, separate Avatar and
-  judge model observations/mismatches, explicit pass-rate denominators, and nullable total cost.
-  Report snapshots use atomic replacement after each attempted question, so partial runs remain
-  valid JSON. Console summaries omit prompts, API keys, and unbounded payloads.
+- Reports preserve attempted question inputs, Avatar responses and metrics, judge results and
+  latency/token metrics, separate Avatar and judge model observations/mismatches, explicit
+  pass-rate denominators, phase-aware errors, and nullable total cost. Report snapshots use atomic
+  replacement after each attempted question, so partial runs remain valid JSON even across an
+  interruption. Console summaries omit prompts, API keys, and unbounded payloads.
 - The package test suite includes deterministic unit coverage plus a fake-HTTP integration-style
   three-question ordering test; the seeded Villa Miralac definition is readable and opt-in only.
 

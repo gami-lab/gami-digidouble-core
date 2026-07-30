@@ -65,7 +65,8 @@ Avatar API base URL; it changes the judge target only and never changes Core mod
 The default output path is `evaluation-report.json` in the current working directory. Use
 `--output` or `EVALUATION_OUTPUT_PATH` to place the report elsewhere. Reports contain one record per
 attempted question, including the Avatar response, observed model, latency, tokens, judge result,
-and error classification. `passRate` uses only successfully judged questions as its denominator;
+judge model and judge latency/token metrics, and error classification. Error records include the
+failing evaluation phase when known. `passRate` uses only successfully judged questions as its denominator;
 `api_error` and `judge_error` are not quality failures. Reports are written atomically after setup
 and after every attempted question, so a stopped run remains readable and preserves completed work.
 
@@ -76,8 +77,9 @@ question. It never polls Game Master or memory work. Message failures are retain
 `api_error` results and stop the run conservatively because a timed-out request may have been
 committed by Core.
 
-The client decodes only the standard `ApiResponse<T>` envelope, sends `x-api-key`, bounds surfaced
-error messages, and supports request timeout and caller abort signals. Missing `costUsd` is
+The client decodes only the standard `ApiResponse<T>` envelope, sends `x-api-key`, validates
+consumed successful response payloads at runtime, bounds surfaced error messages, and supports
+request timeout and caller abort signals. Missing `costUsd` is
 normalized to `null`; total tokens are derived only from input plus output tokens when the API
 omits the optional total.
 
@@ -89,8 +91,10 @@ reported as `judge_error`, while valid `passed: false` results are quality `fail
 
 Total cost is `null` unless every successful Avatar response in the completed run supplied
 `costUsd`. No local pricing table or estimate is used; the current raw exchange contract does not
-guarantee cost, and judge cost is not included in the report. The console summary shows statuses,
-scores, models, and bounded metrics without printing prompts or secrets. The package has no
+guarantee cost, and judge cost is not included in the report. Judge latency and token totals are
+retained for operational comparison. The console summary shows statuses, scores, models, and
+bounded Avatar/judge metrics without printing prompts or secrets. A completed run exits
+successfully; setup, API, judge, or interrupted runs return a non-zero exit code. The package has no
 Core-internal, database, Redis, Langfuse, provider SDK, YAML, or new HTTP endpoint dependency.
 
 ## Opt-in Villa Miralac example

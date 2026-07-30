@@ -212,8 +212,9 @@ Must cover:
 - absent `costUsd` normalizes to `null`, while supplied values remain unchanged
 - total-token derivation is limited to input plus output tokens when the API omits total tokens
 - tool-owned report types distinguish API errors, judge errors, and valid quality failures
-- the Core HTTP client normalizes base URLs, sends API-key headers, decodes `ApiResponse<T>`, bounds
-  error messages, and handles timeout/caller-abort paths
+- the Core HTTP client normalizes base URLs, sends API-key headers, decodes `ApiResponse<T>`, validates
+  successful session/conversation/avatar/message payloads, and handles timeout/caller-abort paths
+  with phase-aware contract errors
 - the sequential runner resolves direct or unique normalized name-based Avatars, preserves request
   order and session/conversation identity, extracts response metrics, exposes model mismatches, and
   retains completed results when a message request fails
@@ -222,8 +223,11 @@ Must cover:
   additional information, missing criteria, contradictions, malformed judge output, and judge
   transport/API errors
 - report aggregation uses valid judge results for the pass-rate denominator, keeps Avatar metrics
-  separate from judge model metadata, leaves cost nullable when incomplete, and atomically writes
-  valid incremental reports with bounded console summaries
+  separate from judge model metadata, retains judge latency/token metrics, leaves cost nullable when
+  incomplete, and atomically writes valid incremental reports with bounded console summaries
+- valid judge quality failures flow through `runEvaluation` into failed question/report outcomes;
+  real-file interruption coverage proves readable partial output and temporary-file cleanup
+- direct CLI help and configuration-failure behavior preserve exit-code and secret-safety contracts
 - the composed integration-style fake-HTTP test proves three ordered questions, one session and
   conversation, authenticated request shaping, and judge completion before the next Avatar request
 - the seeded Villa Miralac definition is loadable but is not executed by default tests
