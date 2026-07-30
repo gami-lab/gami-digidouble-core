@@ -160,8 +160,9 @@ pnpm --filter @gami/conversation-evaluation view \
 
 Open the printed `http://127.0.0.1:4173` URL. The viewer shows the run summary, pass/partial/fail
 counts, model and token metrics, expected versus actual responses, structured criteria, judge
-diagnostics, and model-comparison tables. For comparison reports, use the model selector to inspect
-the full question details for any completed model. It refreshes every two seconds, so it can display incremental report snapshots while
+diagnostics, provider and model comparison tables. Provider rows aggregate all selected models for
+each provider, while model rows retain the individual result. For comparison reports, use the model
+selector to inspect the full question details for any completed model. It refreshes every two seconds, so it can display incremental report snapshots while
 an evaluation is running. The server binds to `127.0.0.1` by default and serves only the selected
 report; use `--host` and `--port` to change the local binding. Press `Ctrl+C` to stop it.
 

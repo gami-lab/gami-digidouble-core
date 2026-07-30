@@ -88,33 +88,24 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         return avatarText + ' | ' + judgeText;
       };
       const costText = (cost) => cost === null || cost === undefined ? 'unavailable' : '$' + Number(cost).toFixed(6);
-      const comparisonPanel = () => {
-        if (!comparison) return null;
-        const panel = el('section', 'panel');
-        panel.append(el('h2', '', 'Model comparison'));
+      const providerOf = (model) => {
+        const separator = String(model).indexOf('/');
+        return separator > 0 ? String(model).slice(0, separator) : 'unknown';
+      };
+      const comparisonTable = (headers, rows) => {
         const table = document.createElement('table');
         table.style.width = '100%';
         table.style.borderCollapse = 'collapse';
         const header = document.createElement('tr');
-        ['Model', 'Status', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Estimated cost'].forEach((label) => {
+        headers.forEach((label) => {
           const cell = el('th', 'label', label);
           cell.style.textAlign = 'left';
           cell.style.padding = '8px 6px';
           header.append(cell);
         });
         table.append(header);
-        comparison.runs.forEach((run) => {
+        rows.forEach((values) => {
           const row = document.createElement('tr');
-          const summary = run.report.summary || {};
-          const values = [
-            run.model,
-            run.report.status,
-            value(summary.passed, 0),
-            value(summary.partial, 0),
-            value(summary.failed, 0),
-            summary.passRate === null || summary.passRate === undefined ? 'n/a' : Math.round(summary.passRate * 100) + '%',
-            costText(run.report.costEstimate && run.report.costEstimate.totalCostUsd),
-          ];
           values.forEach((item) => {
             const cell = el('td', '', item);
             cell.style.padding = '8px 6px';
@@ -123,7 +114,54 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           });
           table.append(row);
         });
-        panel.append(table);
+        return table;
+      };
+      const comparisonPanel = () => {
+        if (!comparison) return null;
+        const panel = el('section', 'panel');
+        const providerStats = new Map();
+        comparison.runs.forEach((run) => {
+          const provider = providerOf(run.model);
+          const summary = run.report.summary || {};
+          const existing = providerStats.get(provider) || { runs: 0, completed: 0, passed: 0, partial: 0, failed: 0, evaluated: 0, cost: 0, costKnown: true };
+          existing.runs += 1;
+          existing.completed += run.report.status === 'completed' ? 1 : 0;
+          existing.passed += Number(summary.passed || 0);
+          existing.partial += Number(summary.partial || 0);
+          existing.failed += Number(summary.failed || 0);
+          existing.evaluated += Number(summary.evaluated || 0);
+          const runCost = run.report.costEstimate && run.report.costEstimate.totalCostUsd;
+          if (runCost === null || runCost === undefined) existing.costKnown = false;
+          else existing.cost += Number(runCost);
+          providerStats.set(provider, existing);
+        });
+        const providerRows = [...providerStats.entries()].map(([provider, stats]) => [
+          provider,
+          stats.runs,
+          stats.completed,
+          stats.passed,
+          stats.partial,
+          stats.failed,
+          stats.evaluated === 0 ? 'n/a' : Math.round(stats.passed / stats.evaluated * 100) + '%',
+          stats.costKnown ? costText(stats.cost) : 'unavailable',
+        ]);
+        panel.append(el('h2', '', 'Provider comparison'));
+        panel.append(comparisonTable(['Provider', 'Runs', 'Completed', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Estimated cost'], providerRows));
+        panel.append(el('h2', '', 'Model comparison'));
+        const modelRows = comparison.runs.map((run) => {
+          const summary = run.report.summary || {};
+          return [
+            providerOf(run.model),
+            run.model,
+            run.report.status,
+            value(summary.passed, 0),
+            value(summary.partial, 0),
+            value(summary.failed, 0),
+            summary.passRate === null || summary.passRate === undefined ? 'n/a' : Math.round(summary.passRate * 100) + '%',
+            costText(run.report.costEstimate && run.report.costEstimate.totalCostUsd),
+          ];
+        });
+        panel.append(comparisonTable(['Provider', 'Model', 'Status', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Estimated cost'], modelRows));
         return panel;
       };
       const questionCard = (question) => {
