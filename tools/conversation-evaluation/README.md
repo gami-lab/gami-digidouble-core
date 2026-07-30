@@ -18,11 +18,18 @@ Definitions are versioned JSON files. The v1 shape is:
   "judgeModel": "openai/gpt-5.4-mini",
   "questions": [
     {
-      "question": "What happened in the winter garden?",
-      "expectedResponse": "Mention the death and storm; wording may differ.",
-      "requiredFacts": ["the death", "the storm"],
-      "acceptedAlternatives": ["the storm caused the death"],
-      "forbiddenClaims": ["the death was accidental"]
+      "question": "Avec qui es-tu monté au chalet ?",
+      "expectedResponse": "Avec Emma, Léo et Ava.",
+      "requiredFacts": [
+        "Emma a participé au voyage",
+        "Léo a participé au voyage",
+        "Ava a participé au voyage"
+      ],
+      "acceptedAlternatives": [
+        "Avec ma compagne Emma et mes enfants Léo et Ava",
+        "Avec Emma et nos deux enfants Léo et Ava"
+      ],
+      "forbiddenClaims": ["Mona a participé au voyage vers le chalet"]
     }
   ]
 }
@@ -35,6 +42,13 @@ model used for the raw exchange request; use `provider/model` notation such as
 `openai/gpt-5.4-mini`, or a model name to use the Core-configured provider. If the observed response
 reports a different effective model, the report retains that mismatch. API keys and other secrets
 are not valid definition fields.
+
+The three structured criteria fields are optional per question and are evaluated semantically:
+`requiredFacts` lists the essential facts the answer must convey, `acceptedAlternatives` lists
+equivalent answer forms where any one acceptable alternative is sufficient, and `forbiddenClaims`
+lists explicit factual claims that must not appear. They are sent to the LLM judge as criteria, not
+matched as exact strings. Missing required facts and forbidden claims are retained in the question's
+judge diagnostics.
 
 ## Configuration and validation command
 
@@ -77,6 +91,21 @@ and after every attempted question, so a stopped run remains readable and preser
 The CLI prints progress for setup, each Avatar request, judging, and question completion. It waits
 five seconds between questions so asynchronous Game Master and memory work can settle before the
 next scripted turn; an API failure stops without waiting.
+
+## Local report viewer
+
+Start a local browser viewer for a generated report from the repository root:
+
+```sh
+pnpm --filter @gami/conversation-evaluation view \
+  --report ./evaluation-report.json
+```
+
+Open the printed `http://127.0.0.1:4173` URL. The viewer shows the run summary, pass/partial/fail
+counts, model and token metrics, expected versus actual responses, structured criteria, and judge
+diagnostics. It refreshes every two seconds, so it can display incremental report snapshots while
+an evaluation is running. The server binds to `127.0.0.1` by default and serves only the selected
+report; use `--host` and `--port` to change the local binding. Press `Ctrl+C` to stop it.
 
 The package API exposes `validateTestDefinition`, `loadTestDefinition`, `loadEvaluationConfig`,
 `CoreApiClient`, and `runSequentialConversation` from `src/index.ts`. The runner creates one

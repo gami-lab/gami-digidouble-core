@@ -226,6 +226,8 @@ Must cover:
 - report aggregation uses valid judge results for the pass-rate denominator, keeps Avatar metrics
   separate from judge model metadata, retains judge latency/token metrics, leaves cost nullable when
   incomplete, and atomically writes valid incremental reports with bounded console summaries
+- the local report viewer serves the dashboard and report JSON on loopback, rejects unknown paths,
+  and reads updated report snapshots without restarting
 - valid judge quality results flow through `runEvaluation` into passed, partial, or failed
   question/report outcomes;
   real-file interruption coverage proves readable partial output and temporary-file cleanup

@@ -12,6 +12,7 @@
   "scripts": {
     "build": "tsc --build",
     "evaluate": "tsx src/cli.ts",
+    "view": "tsx src/viewer-cli.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vitest run",

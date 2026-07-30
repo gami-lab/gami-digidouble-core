@@ -139,6 +139,9 @@ The platform is now a working headless conversational runtime with:
   pass-rate denominators, phase-aware errors, and nullable total cost. Report snapshots use atomic
   replacement after each attempted question, so partial runs remain valid JSON even across an
   interruption. Console summaries omit prompts, API keys, and unbounded payloads.
+- The evaluator includes a local dependency-free report viewer that serves the selected JSON file
+  on loopback, displays question-level responses, criteria, diagnostics, and metrics, and refreshes
+  incremental report snapshots automatically.
 - The package test suite includes deterministic unit coverage plus a fake-HTTP integration-style
   three-question ordering test; the seeded Villa Miralac definition is readable and opt-in only.
 
