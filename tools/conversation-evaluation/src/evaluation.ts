@@ -40,6 +40,8 @@ type EvaluationRuntime = {
   waitBetweenQuestions: (durationMs: number, signal?: AbortSignal) => Promise<void>
 }
 
+export const MAX_JUDGE_ATTEMPTS = 3
+
 function createEvaluationRuntime(input: EvaluationRunInput): EvaluationRuntime {
   return {
     onProgress: input.onProgress ?? (() => undefined),
@@ -73,39 +75,55 @@ function qualityOutcome(score: 1 | 2 | 3 | 4 | 5): 'passed' | 'partial' | 'faile
   return 'failed'
 }
 
+// eslint-disable-next-line complexity
 async function judgeQuestion(
   judgeClient: SemanticJudgeClient,
   result: QuestionResult,
   signal: AbortSignal | undefined,
+  onProgress: (message: string) => void,
+  questionCount: number,
 ): Promise<void> {
   if (result.status !== 'completed' || result.actualResponse === null) return
-  try {
-    const evaluation = await judgeClient.evaluate(
-      {
-        question: result.question,
-        expectedResponse: result.expectedResponse,
-        ...(result.requiredFacts === undefined ? {} : { requiredFacts: result.requiredFacts }),
-        ...(result.acceptedAlternatives === undefined
-          ? {}
-          : { acceptedAlternatives: result.acceptedAlternatives }),
-        ...(result.forbiddenClaims === undefined
-          ? {}
-          : { forbiddenClaims: result.forbiddenClaims }),
-        actualResponse: result.actualResponse,
-      },
-      signal === undefined ? undefined : { signal },
-    )
-    result.judge = evaluation.result
-    result.judgeModel = evaluation.metrics.model
-    result.judgeMetrics = evaluation.metrics
-    result.status = qualityOutcome(evaluation.result.score)
-    result.error = null
-  } catch (error: unknown) {
-    result.status = 'judge_error'
-    result.judge = null
-    result.judgeModel = null
-    result.judgeMetrics = null
-    result.error = toEvaluationError(error, 'judge_error')
+  for (let attempt = 1; attempt <= MAX_JUDGE_ATTEMPTS; attempt += 1) {
+    try {
+      const evaluation = await judgeClient.evaluate(
+        {
+          question: result.question,
+          expectedResponse: result.expectedResponse,
+          ...(result.requiredFacts === undefined ? {} : { requiredFacts: result.requiredFacts }),
+          ...(result.acceptedAlternatives === undefined
+            ? {}
+            : { acceptedAlternatives: result.acceptedAlternatives }),
+          ...(result.forbiddenClaims === undefined
+            ? {}
+            : { forbiddenClaims: result.forbiddenClaims }),
+          actualResponse: result.actualResponse,
+        },
+        signal === undefined ? undefined : { signal },
+      )
+      result.judge = evaluation.result
+      result.judgeModel = evaluation.metrics.model
+      result.judgeMetrics = evaluation.metrics
+      result.status = qualityOutcome(evaluation.result.score)
+      result.error = null
+      return
+    } catch (error: unknown) {
+      const message = toEvaluationError(error, 'judge_error').message
+      if (attempt < MAX_JUDGE_ATTEMPTS && signal?.aborted !== true) {
+        onProgress(
+          `Question ${String(result.questionNumber)}/${String(questionCount)}: judge attempt ${String(attempt)}/${String(MAX_JUDGE_ATTEMPTS)} failed (${message}); retrying.`,
+        )
+        continue
+      }
+      onProgress(
+        `Question ${String(result.questionNumber)}/${String(questionCount)}: judge failed after ${String(MAX_JUDGE_ATTEMPTS)} attempts (${message}).`,
+      )
+      result.status = 'judge_error'
+      result.judge = null
+      result.judgeModel = null
+      result.judgeMetrics = null
+      result.error = toEvaluationError(error, 'judge_error')
+    }
   }
 }
 
@@ -137,7 +155,13 @@ export async function runEvaluation(input: EvaluationRunInput): Promise<Evaluati
         runtime.onProgress(
           `Question ${String(result.questionNumber)}/${String(input.definition.questions.length)}: judging Avatar response.`,
         )
-        await judgeQuestion(input.judgeClient, result, input.signal)
+        await judgeQuestion(
+          input.judgeClient,
+          result,
+          input.signal,
+          runtime.onProgress,
+          input.definition.questions.length,
+        )
         report = buildRunReport({
           definition: input.definition,
           startedAt,

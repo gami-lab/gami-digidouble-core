@@ -137,6 +137,8 @@ The platform is now a working headless conversational runtime with:
   the next evaluation turn.
 - A definition can provide `models` to run the same script once per Avatar model. Per-model reports
   and an incrementally updated comparison report are available to the local viewer.
+- Judge failures receive three total attempts with progress logging. Model comparison continues
+  past isolated API/judge failures and stops only after three consecutive failed runs.
 - Reports preserve attempted question inputs, Avatar responses and metrics, judge results and
   latency/token metrics, separate Avatar and judge model observations/mismatches, explicit
   pass-rate denominators, phase-aware errors, and token-based cost estimates with pricing provenance.

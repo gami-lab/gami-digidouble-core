@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { runCli, type CliIo } from './cli.js'
+import {
+  countConsecutiveModelFailures,
+  MAX_CONSECUTIVE_MODEL_FAILURES,
+  runCli,
+  type CliIo,
+} from './cli.js'
 
 function createIo(): CliIo & { errors: string[]; logs: string[] } {
   const logs: string[] = []
@@ -14,6 +19,13 @@ function createIo(): CliIo & { errors: string[]; logs: string[] } {
 }
 
 describe('runCli', () => {
+  it('requires three consecutive infrastructure failures before stopping comparison', () => {
+    expect(countConsecutiveModelFailures('api_error', 0)).toBe(1)
+    expect(countConsecutiveModelFailures('judge_error', 1)).toBe(2)
+    expect(countConsecutiveModelFailures('judge_error', 2)).toBe(MAX_CONSECUTIVE_MODEL_FAILURES)
+    expect(countConsecutiveModelFailures('completed', 2)).toBe(0)
+  })
+
   it('prints help without requiring configuration or network access', async () => {
     const io = createIo()
 

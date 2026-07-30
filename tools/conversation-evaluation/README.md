@@ -149,6 +149,12 @@ for example `evaluation-report.openai-gpt-5-4.json`, and maintains the configure
 comparison report. The comparison report is updated after each model, so an interrupted run keeps
 completed model results.
 
+Judge transport, contract, and malformed-output failures are retried up to three total attempts per
+question. Each retry and final failure is printed in progress logs. A model run with a final
+`judge_error` or `api_error` is retained in the comparison report, and the evaluator continues with
+the next model. Comparison stops only after three consecutive model runs end with one of those
+infrastructure failures; valid quality failures do not count toward this threshold.
+
 ## Local report viewer
 
 Start a local browser viewer for a generated report from the repository root:

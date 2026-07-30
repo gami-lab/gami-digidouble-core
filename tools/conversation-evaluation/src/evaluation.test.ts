@@ -113,6 +113,7 @@ function createClients(
   malformedJudge = false,
   judgePassed = true,
   judgeScore?: 1 | 2 | 3 | 4 | 5,
+  malformedJudgeAttempts = malformedJudge ? Number.POSITIVE_INFINITY : 0,
 ): {
   avatarClient: CoreApiClient
   judgeClient: SemanticJudgeClient
@@ -132,14 +133,17 @@ function createClients(
     }
     return Promise.resolve(jsonResponse(okEnvelope(messageResponse(`q${String(messageCount)}`))))
   })
+  let judgeRequestCount = 0
   const judgeFetch = vi.fn<FetchLike>().mockImplementation(() => {
+    judgeRequestCount += 1
     return Promise.resolve(
       jsonResponse(
         okEnvelope({
           requestId: 'judge-request',
-          reply: malformedJudge
-            ? '{"passed":true}'
-            : judgeReply(judgePassed, judgeScore ?? (judgePassed ? 5 : 2)),
+          reply:
+            judgeRequestCount <= malformedJudgeAttempts
+              ? '{"passed":true}'
+              : judgeReply(judgePassed, judgeScore ?? (judgePassed ? 5 : 2)),
           model: 'observed-judge',
           inputTokens: 10,
           outputTokens: 5,
@@ -252,17 +256,46 @@ describe('runEvaluation', () => {
 
   it('classifies malformed judge output separately from Avatar quality failure', async () => {
     const clients = createClients(false, true)
+    const progress: string[] = []
     const output = await runEvaluation({
       definition,
       userId: 'evaluation-user',
       avatarClient: clients.avatarClient,
       judgeClient: clients.judgeClient,
+      onProgress: (message) => progress.push(message),
       writeReport: vi.fn().mockResolvedValue(undefined),
     })
     expect(output.report.status).toBe('judge_error')
     expect(output.report.summary.evaluated).toBe(0)
     expect(output.report.questions.every((question) => question.status === 'judge_error')).toBe(
       true,
+    )
+    expect(clients.judgeFetch).toHaveBeenCalledTimes(6)
+    expect(progress).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Question 1/2: judge attempt 1/3 failed'),
+        expect.stringContaining('Question 1/2: judge failed after 3 attempts'),
+      ]),
+    )
+  })
+
+  it('retries a transient judge failure and then records the successful result', async () => {
+    const clients = createClients(false, true, true, undefined, 2)
+    const progress: string[] = []
+    const output = await runEvaluation({
+      definition,
+      userId: 'evaluation-user',
+      avatarClient: clients.avatarClient,
+      judgeClient: clients.judgeClient,
+      onProgress: (message) => progress.push(message),
+      writeReport: vi.fn().mockResolvedValue(undefined),
+    })
+
+    expect(output.report.status).toBe('completed')
+    expect(output.report.questions.map((question) => question.status)).toEqual(['passed', 'passed'])
+    expect(clients.judgeFetch).toHaveBeenCalledTimes(4)
+    expect(progress).toEqual(
+      expect.arrayContaining([expect.stringContaining('Question 1/2: judge attempt 2/3 failed')]),
     )
   })
 

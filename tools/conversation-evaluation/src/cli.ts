@@ -15,10 +15,20 @@ import { CoreApiClient } from './core-api-client.js'
 import { loadTestDefinition } from './definition.js'
 import { INTER_QUESTION_DELAY_MS, runEvaluation } from './evaluation.js'
 import { SemanticJudgeClient } from './judge.js'
+import type { RunReportStatus } from './contracts.js'
 
 export type CliIo = {
   log(message: string): void
   error(message: string): void
+}
+
+export const MAX_CONSECUTIVE_MODEL_FAILURES = 3
+
+export function countConsecutiveModelFailures(
+  status: RunReportStatus,
+  previousCount: number,
+): number {
+  return status === 'completed' ? 0 : previousCount + 1
 }
 
 // eslint-disable-next-line complexity
@@ -71,6 +81,7 @@ export async function runCli(
     }
 
     let comparison = createModelComparisonReport(definition)
+    let consecutiveFailures = 0
     try {
       await writeModelComparisonReport(config.outputPath, comparison)
       for (const model of definition.models) {
@@ -93,7 +104,16 @@ export async function runCli(
           modelRunEntry(model, output.report, reportPath),
         ])
         await writeModelComparisonReport(config.outputPath, comparison)
-        if (output.report.status !== 'completed') break
+        consecutiveFailures = countConsecutiveModelFailures(
+          output.report.status,
+          consecutiveFailures,
+        )
+        if (consecutiveFailures >= MAX_CONSECUTIVE_MODEL_FAILURES) {
+          progress(
+            `Stopping model comparison after ${String(MAX_CONSECUTIVE_MODEL_FAILURES)} consecutive failed runs.`,
+          )
+          break
+        }
       }
     } finally {
       process.removeListener('SIGINT', onInterrupt)

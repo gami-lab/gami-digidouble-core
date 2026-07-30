@@ -237,6 +237,8 @@ Must cover:
   question/report outcomes;
   real-file interruption coverage proves readable partial output and temporary-file cleanup
 - direct CLI help and configuration-failure behavior preserve exit-code and secret-safety contracts
+- judge transport/contract failures retry twice after the initial attempt, log each retry/final
+  failure, and comparison stops only after three consecutive infrastructure-failed model runs
 - evaluator progress messages cover setup, request, judging, completion, and the five-second
   inter-question wait required for asynchronous Game Master and memory work
 - the composed integration-style fake-HTTP test proves three ordered questions, one session and
