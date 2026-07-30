@@ -90,7 +90,9 @@ The judge sends bounded JSON evidence containing the question, expected criteria
 response. It requires a strict machine-readable result with `passed`, a 1–5 integer `score`, a
 non-empty `reason`, and string arrays for `missingElements` and `contradictions`; one deterministic
 fenced-JSON form is accepted for compatibility. Invalid or unavailable judge responses are
-reported as `judge_error`, while valid `passed: false` results are quality `failed` results.
+reported as `judge_error`, while valid `passed: false` results are quality `failed` results. The
+judge rubric explicitly distinguishes essential facts, acceptable alternatives, omissions,
+contradictions, harmless extra detail, and the required score/`passed` consistency rules.
 
 Total cost is `null` unless every successful Avatar response in the completed run supplied
 `costUsd`. No local pricing table or estimate is used; the current raw exchange contract does not

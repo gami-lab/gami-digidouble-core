@@ -139,11 +139,12 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
   })
 
   it('respects the systemPrompt field when provided', async () => {
+    const systemPrompt = 'x'.repeat(3000)
     const response = await makeApp('Arr pir8!').inject({
       method: 'POST',
       url: '/v1/exchange',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { message: 'Hello', systemPrompt: 'You are a pirate.' },
+      payload: { message: 'Hello', systemPrompt },
     })
 
     expect(response.statusCode).toBe(200)

@@ -37,7 +37,7 @@ const exchangeBodySchema = {
   required: ['message'],
   properties: {
     message: { type: 'string', minLength: 1, maxLength: 4000 },
-    systemPrompt: { type: 'string', maxLength: 2000 },
+    systemPrompt: { type: 'string', maxLength: 4000 },
   },
   additionalProperties: false,
 } as const

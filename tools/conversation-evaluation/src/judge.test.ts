@@ -4,8 +4,10 @@ import type { ApiResponse, RawExchangeResponse } from '@gami/shared'
 
 import { type FetchLike } from './core-api-client.js'
 import {
+  JUDGE_SYSTEM_PROMPT,
   JudgeClientError,
   MAX_EXCHANGE_MESSAGE_LENGTH,
+  MAX_EXCHANGE_SYSTEM_PROMPT_LENGTH,
   parseJudgeResult,
   SemanticJudgeClient,
   serializeSemanticJudgeInput,
@@ -168,7 +170,10 @@ describe('semantic judge', () => {
       expectedResponse: 'Mention the storm.',
       actualResponse: 'The storm caused it.',
     })
-    expect(body.systemPrompt).toContain('semantic evaluator')
+    expect(body.systemPrompt).toBe(JUDGE_SYSTEM_PROMPT)
+    expect(body.systemPrompt).toContain('“my father” is equivalent to “Max’s father”')
+    expect(body.systemPrompt).toContain('passed must be true for scores 4 and 5.')
+    expect(body.systemPrompt.length).toBeLessThanOrEqual(MAX_EXCHANGE_SYSTEM_PROMPT_LENGTH)
   })
 
   it('keeps a judge API error separate from a quality failure', async () => {
