@@ -55,6 +55,20 @@ describe('ModelResolutionService.resolve -> role overrides', () => {
 })
 
 describe('ModelResolutionService.resolve -> avatar overrides', () => {
+  it('gives an explicit request override highest precedence for the Avatar role', () => {
+    const config: ModelConfig = {
+      ...baseConfig,
+      roleOverrides: { avatar: { provider: 'anthropic', model: 'claude-sonnet-4-6' } },
+    }
+
+    expect(
+      ModelResolutionService.resolve('avatar', config, {
+        avatarOverride: { provider: 'xai', model: 'grok-4.3' },
+        requestOverride: { provider: 'openai', model: 'gpt-5.4-mini' },
+      }),
+    ).toEqual({ provider: 'openai', model: 'gpt-5.4-mini' })
+  })
+
   it('uses avatar override provider and falls back model to lower precedence', () => {
     const config: ModelConfig = {
       ...baseConfig,

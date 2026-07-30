@@ -118,6 +118,22 @@ describe('evaluation definition validation', () => {
     ).toThrow(/forbiddenClaims must be a non-empty array/)
   })
 
+  it('accepts comparison model selectors and rejects ambiguous lists', () => {
+    expect(
+      validateTestDefinition(
+        validDefinitionWith({ models: ['openai/gpt-5.4', 'xai/grok-4.3'], model: undefined }),
+      ),
+    ).toMatchObject({ models: ['openai/gpt-5.4', 'xai/grok-4.3'] })
+    expect(() =>
+      validateTestDefinition(
+        validDefinitionWith({ models: ['openai/gpt-5.4'], model: 'openai/gpt-5.4' }),
+      ),
+    ).toThrow(/model and models cannot both be provided/)
+    expect(() => validateTestDefinition(validDefinitionWith({ models: ['gpt-5.4'] }))).toThrow(
+      /must use provider\/model notation/,
+    )
+  })
+
   it('does not print a missing definition path', async () => {
     await expect(loadTestDefinition('/path/that/does/not/exist')).rejects.toThrow(
       DefinitionLoadError,

@@ -55,6 +55,8 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
     (() => {
       const app = document.getElementById('app');
       let report = null;
+      let comparison = null;
+      let selectedModel = '';
       let filter = 'all';
       const el = (tag, className, content) => {
         const node = document.createElement(tag);
@@ -84,6 +86,45 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         const avatarText = avatar ? 'Avatar ' + avatar.latencyMs + 'ms · ' + avatar.totalTokens + ' tokens · ' + avatar.model : 'Avatar metrics unavailable';
         const judgeText = judge ? 'Judge ' + judge.latencyMs + 'ms · ' + judge.totalTokens + ' tokens · ' + judge.model : 'Judge metrics unavailable';
         return avatarText + ' | ' + judgeText;
+      };
+      const costText = (cost) => cost === null || cost === undefined ? 'unavailable' : '$' + Number(cost).toFixed(6);
+      const comparisonPanel = () => {
+        if (!comparison) return null;
+        const panel = el('section', 'panel');
+        panel.append(el('h2', '', 'Model comparison'));
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        const header = document.createElement('tr');
+        ['Model', 'Status', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Estimated cost'].forEach((label) => {
+          const cell = el('th', 'label', label);
+          cell.style.textAlign = 'left';
+          cell.style.padding = '8px 6px';
+          header.append(cell);
+        });
+        table.append(header);
+        comparison.runs.forEach((run) => {
+          const row = document.createElement('tr');
+          const summary = run.report.summary || {};
+          const values = [
+            run.model,
+            run.report.status,
+            value(summary.passed, 0),
+            value(summary.partial, 0),
+            value(summary.failed, 0),
+            summary.passRate === null || summary.passRate === undefined ? 'n/a' : Math.round(summary.passRate * 100) + '%',
+            costText(run.report.costEstimate && run.report.costEstimate.totalCostUsd),
+          ];
+          values.forEach((item) => {
+            const cell = el('td', '', item);
+            cell.style.padding = '8px 6px';
+            cell.style.borderTop = '1px solid #2c3850';
+            row.append(cell);
+          });
+          table.append(row);
+        });
+        panel.append(table);
+        return panel;
       };
       const questionCard = (question) => {
         const card = el('article', 'question');
@@ -132,6 +173,22 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         const toolbar = el('div', 'toolbar');
         const refresh = el('button', '', 'Refresh now');
         refresh.addEventListener('click', load);
+        if (comparison) {
+          const modelSelect = document.createElement('select');
+          comparison.runs.forEach((run) => {
+            const option = el('option', '', run.model);
+            option.value = run.model;
+            option.selected = run.model === selectedModel;
+            modelSelect.append(option);
+          });
+          modelSelect.addEventListener('change', () => {
+            selectedModel = modelSelect.value;
+            const selected = comparison.runs.find((run) => run.model === selectedModel);
+            if (selected) report = selected.report;
+            render();
+          });
+          toolbar.append(el('span', 'muted', 'Model:'), modelSelect);
+        }
         const select = document.createElement('select');
         [['all', 'All questions'], ['passed', 'Passed'], ['partial', 'Partial'], ['failed', 'Failed'], ['api_error', 'API errors'], ['judge_error', 'Judge errors']].forEach(([key, label]) => {
           const option = el('option', '', label);
@@ -147,10 +204,12 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         const stats = el('div', 'grid');
         stats.append(stat('Questions', value(summary.questions, 0)), stat('Evaluated', value(summary.evaluated, 0)), stat('Passed', value(summary.passed, 0)), stat('Partial', value(summary.partial, 0)), stat('Failed', value(summary.failed, 0)), stat('Pass rate', summary.passRate === null || summary.passRate === undefined ? 'n/a' : Math.round(summary.passRate * 100) + '%'));
         app.append(stats);
+        const comparisonView = comparisonPanel();
+        if (comparisonView) app.append(comparisonView);
         const overview = el('section', 'panel');
         overview.append(el('h2', '', 'Run overview'));
         const meta = el('div', 'meta');
-        [['Status', report.status], ['Avatar model', value(report.declaredModel)], ['Observed Avatar', (summary.observedAvatarModels || []).join(', ') || '—'], ['Judge model', value(report.declaredJudgeModel)], ['Observed judge', (summary.observedJudgeModels || []).join(', ') || '—'], ['Tokens', value(summary.totalTokens, 0) + ' Avatar · ' + value(summary.totalJudgeTokens, 0) + ' judge']].forEach(([label, content]) => {
+        [['Status', report.status], ['Avatar model', value(report.declaredModel)], ['Observed Avatar', (summary.observedAvatarModels || []).join(', ') || '—'], ['Judge model', value(report.declaredJudgeModel)], ['Observed judge', (summary.observedJudgeModels || []).join(', ') || '—'], ['Tokens', value(summary.totalTokens, 0) + ' Avatar · ' + value(summary.totalJudgeTokens, 0) + ' judge'], ['Estimated cost', costText(report.costEstimate && report.costEstimate.totalCostUsd)]].forEach(([label, content]) => {
           const item = el('span');
           item.append(el('b', '', label + ': '), el('span', '', content));
           meta.append(item);
@@ -171,7 +230,20 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         try {
           const response = await fetch('/report.json?ts=' + Date.now(), { cache: 'no-store' });
           if (!response.ok) throw new Error('Report request failed with HTTP ' + response.status);
-          report = await response.json();
+          const payload = await response.json();
+          if (payload && payload.reportType === 'model_comparison') {
+            comparison = payload;
+            if (!comparison.runs.length) {
+              report = null;
+            } else {
+              const selected = comparison.runs.find((run) => run.model === selectedModel) || comparison.runs[0];
+              selectedModel = selected.model;
+              report = selected.report;
+            }
+          } else {
+            comparison = null;
+            report = payload;
+          }
           render();
         } catch (error) {
           app.replaceChildren(el('div', 'error-state', error instanceof Error ? error.message : 'Unable to load report.'));

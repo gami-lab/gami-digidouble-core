@@ -12,6 +12,7 @@ import type {
   StartSessionRequest,
   StartSessionResponse,
 } from '@gami/shared'
+import type { ModelSelectionOverride } from '@gami/shared'
 
 import type { EvaluationPhase } from './contracts.js'
 
@@ -460,11 +461,15 @@ export class CoreApiClient {
     conversationId: string,
     content: string,
     options?: CoreApiRequestOptions,
+    model?: ModelSelectionOverride,
   ): Promise<SendMessageApiResponse> {
     return this.request(
       'POST',
       `/v1/conversations/${encodeURIComponent(conversationId)}/messages`,
-      { message: { content } },
+      {
+        message: { content },
+        ...(model === undefined ? {} : { model }),
+      },
       isSendMessageResponse,
       'avatar_message',
       options,

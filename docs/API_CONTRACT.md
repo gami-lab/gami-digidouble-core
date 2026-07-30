@@ -123,6 +123,13 @@ to the shared wire type.
   `MessageStreamEvent` frames
 - `GET /v1/conversations/{conversationId}/history` -> `ConversationHistoryResponse`
 
+`SendMessageRequest` requires `{ message: { content: string } }` and accepts an optional additive
+`model` selection `{ provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'; model?: string }`.
+When supplied, its provider/model fields take precedence for that Avatar request only; omitted
+fields continue through the normal server model-resolution precedence. The same request shape is
+used by the streaming route. This is intended for controlled clients such as evaluation tooling,
+not as a replacement for persisted scenario or Avatar configuration.
+
 Message-stream contract ownership:
 
 - The message-stream request reuses `SendMessageRequest`; no parallel stream request DTO is

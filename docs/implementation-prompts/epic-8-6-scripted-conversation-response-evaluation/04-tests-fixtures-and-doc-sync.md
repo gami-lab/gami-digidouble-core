@@ -73,7 +73,9 @@ Out of scope:
   and corresponding `*.stack-e2e.test.ts` file in the same EPIC. Since this EPIC adds no endpoint,
   do not create a speculative evaluator stack-E2E route file.
 - Update documentation from observed implementation, not from the original attachment's claims.
-  In particular, state that model selection is server-configured and cost may be unavailable.
+  In particular, state that single-run model selection remains server-configured by default,
+  comparison definitions can send explicit model selectors, and estimates may be unavailable for
+  models without a maintained public-price entry.
 
 ## Constraints
 

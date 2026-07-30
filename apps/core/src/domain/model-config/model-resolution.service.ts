@@ -45,11 +45,13 @@ function resolveAvatarOverrideModel(
   return role === 'avatar' ? avatarOverride?.model : undefined
 }
 
+// eslint-disable-next-line complexity
 function resolve(
   role: ModelRole,
   config: ModelConfig,
   options?: {
     avatarOverride?: AvatarLlmOverride
+    requestOverride?: AvatarLlmOverride
     scenarioModelSelection?: ScenarioModelSelectionConfig
   },
 ): { provider: ProviderName; model: string } {
@@ -58,10 +60,12 @@ function resolve(
   const scenarioSelection = resolveScenarioSelection(role, options?.scenarioModelSelection)
   const avatarProvider = resolveAvatarOverrideProvider(role, options?.avatarOverride)
   const avatarModel = resolveAvatarOverrideModel(role, options?.avatarOverride)
+  const requestProvider = resolveAvatarOverrideProvider(role, options?.requestOverride)
+  const requestModel = resolveAvatarOverrideModel(role, options?.requestOverride)
 
   return {
-    provider: avatarProvider ?? scenarioSelection?.provider ?? baseProvider,
-    model: avatarModel ?? scenarioSelection?.model ?? baseModel,
+    provider: requestProvider ?? avatarProvider ?? scenarioSelection?.provider ?? baseProvider,
+    model: requestModel ?? avatarModel ?? scenarioSelection?.model ?? baseModel,
   }
 }
 

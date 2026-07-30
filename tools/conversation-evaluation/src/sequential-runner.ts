@@ -12,6 +12,7 @@ import { CoreApiClient, CoreApiError, type CoreApiRequestOptions } from './core-
 export type SequentialRunnerInput = {
   definition: TestDefinition
   userId: string
+  modelOverride?: string
   signal?: AbortSignal
   onResult?: (result: QuestionResult) => Promise<void> | void
   onProgress?: (message: string) => void
@@ -169,6 +170,7 @@ export async function resolveInitialAvatarId(
   return match.avatarId
 }
 
+// eslint-disable-next-line complexity
 export async function runSequentialConversation(
   client: CoreApiClient,
   input: SequentialRunnerInput,
@@ -218,6 +220,7 @@ export async function runSequentialConversation(
         conversationId,
         question.question,
         requestOptions(input.signal),
+        input.modelOverride === undefined ? undefined : parseDeclaredModel(input.modelOverride),
       )
       assertMessageResponseIdentity(response, sessionId, conversationId)
       const metadata = response.avatarMessage.metadata
@@ -261,6 +264,26 @@ export async function runSequentialConversation(
     observedAvatarModels: [...new Set(observedAvatarModels)],
     modelMismatches,
   }
+}
+
+function parseDeclaredModel(declaredModel: string): {
+  provider: 'openai' | 'anthropic' | 'mistral' | 'xai'
+  model: string
+} {
+  const separatorIndex = declaredModel.indexOf('/')
+  if (separatorIndex <= 0 || separatorIndex === declaredModel.length - 1) {
+    throw new Error('Avatar model must use provider/model notation for request-level selection.')
+  }
+  const provider = declaredModel.slice(0, separatorIndex)
+  if (
+    provider !== 'openai' &&
+    provider !== 'anthropic' &&
+    provider !== 'mistral' &&
+    provider !== 'xai'
+  ) {
+    throw new Error('Avatar model provider is not supported for request-level selection.')
+  }
+  return { provider, model: declaredModel.slice(separatorIndex + 1) }
 }
 
 export class SequentialConversationRunner {

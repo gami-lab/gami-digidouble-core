@@ -211,13 +211,18 @@ Must cover:
   run user IDs with explicit continuity override
 - absent `costUsd` normalizes to `null`, while supplied values remain unchanged
 - total-token derivation is limited to input plus output tokens when the API omits total tokens
+- public-price cost estimation uses input/output token arithmetic, records pricing provenance, and
+  reports unknown models as unavailable
+- comparison definitions validate provider/model selectors, send the selected Avatar model at the
+  shared API boundary, write per-model reports, and update the comparison report incrementally
 - tool-owned report types distinguish API errors, judge errors, and valid quality failures
 - the Core HTTP client normalizes base URLs, sends API-key headers, decodes `ApiResponse<T>`, validates
   successful session/conversation/avatar/message payloads, and handles timeout/caller-abort paths
   with phase-aware contract errors
 - the sequential runner resolves direct or unique normalized name-based Avatars, preserves request
   order and session/conversation identity, extracts response metrics, exposes model mismatches, and
-  retains completed results when a message request fails
+  retains completed results when a message request fails; comparison runs prove the selected model
+  is included in each Avatar message request
 - semantic judge serialization stays within raw-exchange body limits, accepts only validated
   result objects (with deterministic fenced JSON), and distinguishes paraphrase passes, relevant
   additional information, structured required facts/alternatives/forbidden claims, missing

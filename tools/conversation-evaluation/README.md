@@ -35,9 +35,32 @@ Definitions are versioned JSON files. The v1 shape is:
 }
 ```
 
+To compare several Avatar models with the same questions, replace `model` with a `models` array:
+
+```json
+{
+  "version": 1,
+  "name": "Model comparison",
+  "scenarioId": "scenario_villa_miralac",
+  "initialAvatarName": "Clara Whitcombe",
+  "models": ["openai/gpt-5.4", "openai/gpt-5.4-mini", "xai/grok-4.3"],
+  "judgeModel": "openai/gpt-5.4-mini",
+  "questions": [
+    {
+      "question": "Avec qui es-tu monté au chalet ?",
+      "expectedResponse": "Avec Emma, Léo et Ava."
+    }
+  ]
+}
+```
+
 Use exactly one of `initialAvatarId` or `initialAvatarName`. Exact duplicate question text is
 rejected. `expectedResponse` is criteria text for a later semantic judge, not an exact-match
-answer. `model` records the expected Avatar model for comparison. `judgeModel` selects the judge
+answer. `model` records the expected Avatar model for a single run. `models` is an explicit
+comparison list; the evaluator runs the same definition once per provider/model selector and sends
+that selector to Core for each Avatar request. Use `provider/model` notation such as
+`openai/gpt-5.4`, `anthropic/claude-sonnet-4-6`, `mistral/mistral-small-4`, or `xai/grok-4.3`.
+`model` and `models` cannot be used together. `judgeModel` selects the judge
 model used for the raw exchange request; use `provider/model` notation such as
 `openai/gpt-5.4-mini`, or a model name to use the Core-configured provider. If the observed response
 reports a different effective model, the report retains that mismatch. API keys and other secrets
@@ -92,6 +115,11 @@ The CLI prints progress for setup, each Avatar request, judging, and question co
 five seconds between questions so asynchronous Game Master and memory work can settle before the
 next scripted turn; an API failure stops without waiting.
 
+When `models` is present, the command writes one report per model next to the configured output,
+for example `evaluation-report.openai-gpt-5-4.json`, and maintains the configured output as a
+comparison report. The comparison report is updated after each model, so an interrupted run keeps
+completed model results.
+
 ## Local report viewer
 
 Start a local browser viewer for a generated report from the repository root:
@@ -102,8 +130,9 @@ pnpm --filter @gami/conversation-evaluation view \
 ```
 
 Open the printed `http://127.0.0.1:4173` URL. The viewer shows the run summary, pass/partial/fail
-counts, model and token metrics, expected versus actual responses, structured criteria, and judge
-diagnostics. It refreshes every two seconds, so it can display incremental report snapshots while
+counts, model and token metrics, expected versus actual responses, structured criteria, judge
+diagnostics, and model-comparison tables. For comparison reports, use the model selector to inspect
+the full question details for any completed model. It refreshes every two seconds, so it can display incremental report snapshots while
 an evaluation is running. The server binds to `127.0.0.1` by default and serves only the selected
 report; use `--host` and `--port` to change the local binding. Press `Ctrl+C` to stop it.
 
@@ -131,11 +160,15 @@ distinguishes essential facts, acceptable alternatives, omissions, contradiction
 detail, and the required score/`passed` consistency rules. Reports retain the judge reason, missing
 facts, and contradictions for each evaluated question, and the console summary displays them.
 
-Total cost is `null` unless every successful Avatar response in the completed run supplied
-`costUsd`. No local pricing table or estimate is used; the current raw exchange contract does not
-guarantee cost, and judge cost is not included in the report. Judge latency and token totals are
-retained for operational comparison. The console summary shows statuses, scores, models, and
-bounded Avatar/judge metrics without printing prompts or secrets. A completed run exits
+Each report includes a `costEstimate` for Avatar, judge, and total cost when the model is in the
+tool's manually maintained public-price table. The estimate is calculated as
+`inputTokens / 1,000,000 * inputPrice + outputTokens / 1,000,000 * outputPrice` using standard
+short-context list pricing, with no cache, batch, long-context, or provider-specific discount
+adjustments. Every estimate records its pricing source and `pricingAsOf` date. Unknown models make
+the affected estimate, and therefore the total, `null` while listing `unavailableModels`; this is
+intentional because the API may expose token usage without a public price entry. Judge latency and
+token totals are retained for operational comparison. The console summary shows statuses, scores,
+models, bounded Avatar/judge metrics, and estimated cost without printing prompts or secrets. A completed run exits
 successfully; setup, API, judge, or interrupted runs return a non-zero exit code. The package has no
 Core-internal, database, Redis, Langfuse, provider SDK, YAML, or new HTTP endpoint dependency.
 
@@ -161,10 +194,10 @@ pnpm --filter @gami/conversation-evaluation evaluate \
 ```
 
 Before a live run, Core must be running, the scenario and Avatar seed must exist, and the server's
-model-resolution configuration must point to an allowed provider/model with usable credentials.
-Definition `model` remains Avatar comparison metadata. `judgeModel` is sent as an explicit raw
-exchange model selection, so the declared judge model is requested rather than silently replaced by
-the Core default. Real execution is intentionally separate from the deterministic package and
+provider credentials must support every selected model. Definition `model` remains single-run
+metadata; `models` sends explicit Avatar model selections, and `judgeModel` is sent as an explicit
+raw exchange model selection, so declared models are requested rather than silently replaced by
+Core defaults. Real execution is intentionally separate from the deterministic package and
 integration-style fake-HTTP tests.
 
 Quality checks for this package are:

@@ -3,6 +3,14 @@
 import { pathToFileURL } from 'node:url'
 
 import { loadEvaluationConfig } from './config.js'
+import {
+  createModelComparisonReport,
+  createModelRunDefinition,
+  modelReportPath,
+  modelRunEntry,
+  renderModelComparisonSummary,
+  writeModelComparisonReport,
+} from './comparison.js'
 import { CoreApiClient } from './core-api-client.js'
 import { loadTestDefinition } from './definition.js'
 import { INTER_QUESTION_DELAY_MS, runEvaluation } from './evaluation.js'
@@ -13,6 +21,7 @@ export type CliIo = {
   error(message: string): void
 }
 
+// eslint-disable-next-line complexity
 export async function runCli(
   argv: readonly string[] = process.argv.slice(2),
   environment: Readonly<Record<string, string | undefined>> = process.env,
@@ -43,20 +52,54 @@ export async function runCli(
       interruption.abort()
     }
     process.once('SIGINT', onInterrupt)
-    const output = await runEvaluation({
-      definition,
-      userId: config.userId,
-      avatarClient,
-      judgeClient,
-      outputPath: config.outputPath,
-      signal: interruption.signal,
-      interQuestionDelayMs: INTER_QUESTION_DELAY_MS,
-      onProgress: (message) => {
-        io.log(`[conversation-evaluation] ${message}`)
-      },
-    }).finally(() => process.removeListener('SIGINT', onInterrupt))
-    io.log(output.consoleSummary)
-    return output.report.status === 'completed' ? 0 : 1
+    const progress = (message: string): void => {
+      io.log(`[conversation-evaluation] ${message}`)
+    }
+    if (definition.models === undefined) {
+      const output = await runEvaluation({
+        definition,
+        userId: config.userId,
+        avatarClient,
+        judgeClient,
+        outputPath: config.outputPath,
+        signal: interruption.signal,
+        interQuestionDelayMs: INTER_QUESTION_DELAY_MS,
+        onProgress: progress,
+      }).finally(() => process.removeListener('SIGINT', onInterrupt))
+      io.log(output.consoleSummary)
+      return output.report.status === 'completed' ? 0 : 1
+    }
+
+    let comparison = createModelComparisonReport(definition)
+    try {
+      await writeModelComparisonReport(config.outputPath, comparison)
+      for (const model of definition.models) {
+        const modelDefinition = createModelRunDefinition(definition, model)
+        const reportPath = modelReportPath(config.outputPath, model)
+        progress(`Starting model comparison run for ${model}.`)
+        const output = await runEvaluation({
+          definition: modelDefinition,
+          userId: `${config.userId}-${model.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+          avatarClient,
+          judgeClient,
+          avatarModel: model,
+          outputPath: reportPath,
+          signal: interruption.signal,
+          interQuestionDelayMs: INTER_QUESTION_DELAY_MS,
+          onProgress: progress,
+        })
+        comparison = createModelComparisonReport(definition, [
+          ...comparison.runs,
+          modelRunEntry(model, output.report, reportPath),
+        ])
+        await writeModelComparisonReport(config.outputPath, comparison)
+        if (output.report.status !== 'completed') break
+      }
+    } finally {
+      process.removeListener('SIGINT', onInterrupt)
+    }
+    io.log(renderModelComparisonSummary(comparison))
+    return comparison.runs.every(({ report }) => report.status === 'completed') ? 0 : 1
   } catch (error: unknown) {
     io.error(`[conversation-evaluation] ${getErrorMessage(error)}`)
     return 1

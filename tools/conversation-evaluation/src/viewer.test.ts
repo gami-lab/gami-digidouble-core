@@ -16,7 +16,9 @@ describe('report viewer', () => {
     try {
       const page = await fetch(viewer.url)
       expect(page.status).toBe(200)
-      expect(await page.text()).toContain('Conversation evaluation report')
+      const pageHtml = await page.text()
+      expect(pageHtml).toContain('Conversation evaluation report')
+      expect(pageHtml).toContain('Model comparison')
 
       const report = await fetch(`${viewer.url}/report.json`)
       expect(report.status).toBe(200)

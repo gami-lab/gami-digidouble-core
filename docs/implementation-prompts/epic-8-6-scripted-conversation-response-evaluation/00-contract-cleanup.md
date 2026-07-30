@@ -10,8 +10,9 @@ cost value as zero.
 
 The current public conversation response exposes Avatar model, latency, and token counts. The
 current raw exchange response exposes model, latency, and token counts. Neither current route
-guarantees an end-to-end `costUsd` value. This is a contract fact to preserve, not a reason to add
-provider pricing logic to the evaluator.
+guarantees an end-to-end `costUsd` value. This remains a contract fact at the API boundary; the
+evaluator may add a separately labeled, manually maintained public-price estimate but must never
+present that estimate as provider-reported `costUsd`.
 
 ## Scope
 
@@ -26,15 +27,15 @@ In scope:
   consumes the contracts;
 - establish the evaluator's own canonical internal types for a test definition, question result,
   judge result, and run report without putting evaluation-only DTOs in the Core domain;
-- make cost semantics explicit: `number` when present, `null` when absent, never an inferred price;
+- make cost semantics explicit: `number` when present, `null` when absent, with any evaluator price
+  estimate represented in a separate field;
 - if the raw exchange response has no shared wire-type owner and the tool needs one, add the
   smallest additive shared type and use it from the route/tests rather than importing Core
   internals into the tool.
 
 Out of scope:
 
-- per-request Avatar or judge model override;
-- pricing tables, provider-specific cost calculation, or Langfuse scraping;
+- Langfuse scraping;
 - new HTTP endpoints;
 - evaluation UI, dashboards, CI automation, or historical persistence;
 - behavior changes to Session, Conversation, Memory, Game Master, or Avatar runtime logic.

@@ -9,6 +9,7 @@ const DEFINITION_KEYS = new Set([
   'initialAvatarId',
   'initialAvatarName',
   'model',
+  'models',
   'judgeModel',
   'questions',
 ])
@@ -158,6 +159,7 @@ export function validateTestDefinition(value: unknown): TestDefinition {
       ? { initialAvatarName: fields.initialAvatarName }
       : {}),
     ...(fields.model !== undefined ? { model: fields.model } : {}),
+    ...(fields.models !== undefined ? { models: fields.models } : {}),
     ...(fields.judgeModel !== undefined ? { judgeModel: fields.judgeModel } : {}),
     questions,
   }
@@ -169,9 +171,11 @@ type DefinitionFields = {
   initialAvatarId?: string
   initialAvatarName?: string
   model?: string
+  models?: string[]
   judgeModel?: string
 }
 
+// eslint-disable-next-line complexity
 function readDefinitionFields(value: Record<string, unknown>, issues: string[]): DefinitionFields {
   if (value['version'] !== 1) issues.push('version must be 1.')
   const name = readRequiredString(value, 'name', issues)
@@ -179,7 +183,17 @@ function readDefinitionFields(value: Record<string, unknown>, issues: string[]):
   const initialAvatarId = readOptionalString(value, 'initialAvatarId', issues)
   const initialAvatarName = readOptionalString(value, 'initialAvatarName', issues)
   const model = readOptionalString(value, 'model', issues)
+  const models = readOptionalStringArray(value, 'models', 'definition', issues)
   const judgeModel = readOptionalString(value, 'judgeModel', issues)
+  if (models !== undefined) {
+    if (model !== undefined) issues.push('model and models cannot both be provided.')
+    models.forEach((candidate, index) => {
+      if (!isProviderModelSelector(candidate)) {
+        issues.push(`models[${String(index)}] must use provider/model notation.`)
+      }
+    })
+    if (new Set(models).size !== models.length) issues.push('models must not contain duplicates.')
+  }
   if ((initialAvatarId !== undefined) === (initialAvatarName !== undefined)) {
     issues.push('Exactly one of initialAvatarId or initialAvatarName must be provided.')
   }
@@ -190,8 +204,21 @@ function readDefinitionFields(value: Record<string, unknown>, issues: string[]):
     ...(initialAvatarId !== undefined ? { initialAvatarId } : {}),
     ...(initialAvatarName !== undefined ? { initialAvatarName } : {}),
     ...(model !== undefined ? { model } : {}),
+    ...(models !== undefined ? { models } : {}),
     ...(judgeModel !== undefined ? { judgeModel } : {}),
   }
+}
+
+function isProviderModelSelector(value: string): boolean {
+  const separatorIndex = value.indexOf('/')
+  if (separatorIndex <= 0 || separatorIndex === value.length - 1) return false
+  const provider = value.slice(0, separatorIndex)
+  return (
+    provider === 'openai' ||
+    provider === 'anthropic' ||
+    provider === 'mistral' ||
+    provider === 'xai'
+  )
 }
 
 function readQuestions(value: Record<string, unknown>, issues: string[]): TestQuestion[] {

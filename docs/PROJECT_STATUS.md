@@ -118,8 +118,9 @@ The platform is now a working headless conversational runtime with:
   report path, timeout, and a unique run-scoped user ID by default; explicit user IDs support
   controlled continuity tests. Definition validation is network-free, while the execution command
   intentionally makes authenticated requests only when explicitly invoked.
-- The evaluator reuses shared conversation/entity and raw-exchange contracts. API-provided cost is
-  preserved when present and normalized to `null` when absent; no pricing is inferred.
+- The evaluator reuses shared conversation/entity and raw-exchange contracts. It supports explicit
+  per-run Avatar model selection for controlled comparisons and calculates separately labeled
+  public-price cost estimates from observed token usage; unknown pricing remains unavailable.
 - The typed evaluator HTTP client decodes only `ApiResponse<T>`, sends API-key headers, validates
   consumed successful payloads at runtime, and handles configured timeouts and caller aborts with
   phase-aware contract errors. The runner creates one session and conversation, resolves an initial
@@ -134,9 +135,12 @@ The platform is now a working headless conversational runtime with:
 - The CLI emits progress for setup, Avatar requests, judging, and completion, and waits five
   seconds between scripted questions so asynchronous Game Master and memory work can settle before
   the next evaluation turn.
+- A definition can provide `models` to run the same script once per Avatar model. Per-model reports
+  and an incrementally updated comparison report are available to the local viewer.
 - Reports preserve attempted question inputs, Avatar responses and metrics, judge results and
   latency/token metrics, separate Avatar and judge model observations/mismatches, explicit
-  pass-rate denominators, phase-aware errors, and nullable total cost. Report snapshots use atomic
+  pass-rate denominators, phase-aware errors, and token-based cost estimates with pricing provenance.
+  Report snapshots use atomic
   replacement after each attempted question, so partial runs remain valid JSON even across an
   interruption. Console summaries omit prompts, API keys, and unbounded payloads.
 - The evaluator includes a local dependency-free report viewer that serves the selected JSON file

@@ -1,4 +1,4 @@
-import type { ConversationSummary, SessionSummary } from '@gami/shared'
+import type { ConversationSummary, ModelSelectionOverride, SessionSummary } from '@gami/shared'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
 
 // Ownership: these are backend execution contracts. Public HTTP and stream
@@ -7,6 +7,7 @@ import type { Conversation, Session } from '../../../domain/conversation/session
 export interface SendMessageInput {
   conversationId: string
   userMessage: string
+  model?: ModelSelectionOverride
 }
 
 export type { SessionSummary, ConversationSummary }

@@ -11,11 +11,13 @@ This pack is aligned with the current repository rather than the original EPIC a
 
 - the test definition selects an initial Avatar explicitly by ID or unique name because the current
   session API requires an Avatar to start a conversation;
-- Avatar model selection remains owned by the server's existing avatar/scenario/global precedence.
-  The declared judge model is an explicit request-level selection for the raw exchange judge path,
-  and the tool records and verifies the effective model returned by Core;
-- current APIs expose latency and token counts, while cost is nullable and must remain explicitly
-  unavailable when no API field supplies it;
+- the definition can provide an explicit `models` list for controlled Avatar model comparisons;
+  each selector is sent through the additive shared message contract while persisted scenario and
+  Avatar configuration remains the default when no override is supplied. The declared judge model
+  is an explicit request-level selection for the raw exchange judge path, and the tool records and
+  verifies the effective model returned by Core;
+- current APIs expose latency and token counts. The evaluator adds separately labeled estimates from
+  a manually maintained public-price table, preserving `null` when the model is unknown;
 - the judge uses the authenticated `/v1/exchange` boundary and never imports provider SDKs.
 
 ## Generated

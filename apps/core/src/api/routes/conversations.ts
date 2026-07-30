@@ -1,5 +1,6 @@
+/* eslint-disable max-lines */
 import type { FastifyPluginCallback } from 'fastify'
-import { fail, ok } from '@gami/shared'
+import { fail, MODEL_SELECTION_PROVIDER_NAMES, ok } from '@gami/shared'
 import type {
   Message as SharedMessage,
   MessageStreamEvent,
@@ -108,6 +109,15 @@ const sendMessageBodySchema = {
       },
       additionalProperties: false,
     },
+    model: {
+      type: 'object',
+      required: ['provider', 'model'],
+      properties: {
+        provider: { type: 'string', enum: MODEL_SELECTION_PROVIDER_NAMES },
+        model: { type: 'string', minLength: 1, maxLength: 200 },
+      },
+      additionalProperties: false,
+    },
   },
   additionalProperties: false,
 } as const
@@ -137,6 +147,7 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
         const output = await deps.sendMessageUseCase.execute({
           conversationId: request.params.conversationId,
           userMessage: request.body.message.content,
+          ...(request.body.model !== undefined ? { model: request.body.model } : {}),
         })
         const response = mapSendMessageResponse(output)
         return await reply.send(ok<SendMessageResponse>(response))
@@ -165,6 +176,7 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
         {
           conversationId: request.params.conversationId,
           userMessage: request.body.message.content,
+          ...(request.body.model !== undefined ? { model: request.body.model } : {}),
         },
         { signal: abortController.signal },
       )

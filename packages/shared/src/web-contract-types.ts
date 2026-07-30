@@ -15,6 +15,7 @@ import type {
   SwitchAvatarResponse,
 } from './conversation-contract-types.js'
 import type { ConversationEndReason, EndConversationResponse } from './lifecycle-types.js'
+import type { ModelSelectionOverride } from './model-catalog.js'
 import type {
   UpsertUserPersonaResponse,
   UserPersona,
@@ -153,6 +154,7 @@ export type SendMessageRequest = {
   message: {
     content: string
   }
+  model?: ModelSelectionOverride
 }
 
 export type SendMessageApiResponse = SendMessageResponse

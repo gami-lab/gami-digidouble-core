@@ -12,6 +12,10 @@ export type {
   RunReport,
   RunReportStatus,
   RunSummary,
+  RunCostEstimate,
+  TokenCostEstimate,
+  ModelComparisonReport,
+  ModelComparisonRun,
   TestDefinition,
   TestQuestion,
 } from './contracts.js'
@@ -62,6 +66,13 @@ export {
 export type { EvaluationRunInput, EvaluationRunOutput } from './evaluation.js'
 export { runEvaluation } from './evaluation.js'
 export { INTER_QUESTION_DELAY_MS } from './evaluation.js'
+export { estimateTokenCost } from './pricing.js'
+export {
+  createModelComparisonReport,
+  createModelRunDefinition,
+  modelReportPath,
+  renderModelComparisonSummary,
+} from './comparison.js'
 export {
   aggregateRunSummary,
   buildReportFromExecution,
@@ -70,4 +81,5 @@ export {
   renderConsoleSummary,
   ReportWriteError,
   writeReportAtomically,
+  writeJsonAtomically,
 } from './report.js'

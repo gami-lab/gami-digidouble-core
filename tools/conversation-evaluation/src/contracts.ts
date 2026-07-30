@@ -26,6 +26,7 @@ export type TestDefinition = {
   initialAvatarId?: string
   initialAvatarName?: string
   model?: DeclaredModel
+  models?: DeclaredModel[]
   judgeModel?: DeclaredModel
   questions: TestQuestion[]
 }
@@ -131,6 +132,42 @@ export type RunReport = {
   summary: RunSummary
   modelMismatches: ModelMismatch[]
   error: EvaluationError | null
+  costEstimate: RunCostEstimate
+}
+
+export type TokenCostEstimate = {
+  model: string
+  inputTokens: number
+  outputTokens: number
+  inputPriceUsdPerMillionTokens: number
+  outputPriceUsdPerMillionTokens: number
+  inputCostUsd: number
+  outputCostUsd: number
+  totalCostUsd: number
+  pricingSource: string
+  pricingAsOf: string
+}
+
+export type RunCostEstimate = {
+  avatar: TokenCostEstimate | null
+  judge: TokenCostEstimate | null
+  totalCostUsd: number | null
+  unavailableModels: string[]
+}
+
+export type ModelComparisonRun = {
+  model: DeclaredModel
+  reportPath: string
+  report: RunReport
+}
+
+export type ModelComparisonReport = {
+  version: 1
+  reportType: 'model_comparison'
+  testName: string
+  scenarioId: string
+  generatedAt: string
+  runs: ModelComparisonRun[]
 }
 
 /**

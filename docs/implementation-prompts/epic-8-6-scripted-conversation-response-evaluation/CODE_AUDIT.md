@@ -86,8 +86,8 @@ be resolved before a release-grade close.
   converted into an infrastructure failure.
 - Atomic replacement, bounded error messages, bounded judge input/output, and secret-free console
   rendering are good operational safeguards.
-- Cost handling is honest: absent cost becomes `null`; no local pricing or token-based estimate is
-  introduced.
+- Cost handling is explicit: API-provided cost remains nullable, while the evaluator separately
+  reports token-based public-price estimates with source and date provenance when a model is known.
 - The fake-HTTP composition test verifies a real consumer-visible ordering invariant rather than
   only checking mock call counts.
 - Documentation is unusually well synchronized for the new tool: architecture, stack, test
@@ -333,8 +333,9 @@ A
 
 ### Remaining Risks
 
-- The evaluator intentionally does not infer LLM cost because the raw exchange contract does not
-  guarantee cost; judge cost therefore remains unavailable rather than estimated.
+- Public prices are manually maintained and can change; estimates intentionally exclude provider
+  discounts, caching, batch pricing, and long-context surcharges. Unknown model entries remain
+  unavailable rather than being guessed.
 - Runtime guards must be updated alongside intentional future changes to the shared wire contracts;
   this is explicit boundary ownership, not a duplicate domain contract.
 
@@ -349,3 +350,7 @@ A
   elements, and contradictions are persisted and displayed in reports.
 - The raw-exchange contract and documentation now describe the additive model-selection request;
   the full build gates remain green after the change.
+- Definitions now support a `models` list for repeatable Avatar model comparisons. Each model gets a
+  separate report and the configured output becomes an incrementally updated comparison report.
+- Run reports include Avatar, judge, and total token-based cost estimates, and the local viewer
+  displays comparison rows, estimated cost, and per-model details.

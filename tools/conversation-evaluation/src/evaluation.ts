@@ -16,6 +16,7 @@ export const INTER_QUESTION_DELAY_MS = 5000
 export type EvaluationRunInput = {
   definition: TestDefinition
   userId: string
+  avatarModel?: string
   avatarClient: CoreApiClient
   judgeClient: SemanticJudgeClient
   outputPath?: string
@@ -127,6 +128,7 @@ export async function runEvaluation(input: EvaluationRunInput): Promise<Evaluati
     const execution = await runSequentialConversation(input.avatarClient, {
       definition: input.definition,
       userId: input.userId,
+      ...(input.avatarModel === undefined ? {} : { modelOverride: input.avatarModel }),
       onProgress: runtime.onProgress,
       interQuestionDelayMs: runtime.interQuestionDelayMs,
       waitBetweenQuestions: runtime.waitBetweenQuestions,

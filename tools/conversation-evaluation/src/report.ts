@@ -8,12 +8,39 @@ import type {
   ModelMismatch,
   QuestionResult,
   RunReport,
+  RunCostEstimate,
   RunSummary,
   TestDefinition,
 } from './contracts.js'
+import { estimateTokenCost } from './pricing.js'
 
 function uniqueStrings(values: readonly string[]): string[] {
   return [...new Set(values)]
+}
+
+// eslint-disable-next-line complexity
+function estimateRunCost(definition: TestDefinition, summary: RunSummary): RunCostEstimate {
+  const avatarModel = definition.model ?? summary.observedAvatarModels[0]
+  const judgeModel = definition.judgeModel ?? summary.observedJudgeModels[0]
+  const avatar =
+    avatarModel === undefined
+      ? null
+      : estimateTokenCost(avatarModel, summary.totalInputTokens, summary.totalOutputTokens)
+  const judge =
+    judgeModel === undefined
+      ? null
+      : estimateTokenCost(judgeModel, summary.totalJudgeInputTokens, summary.totalJudgeOutputTokens)
+  const unavailableModels = [
+    ...(avatar === null && avatarModel !== undefined ? [avatarModel] : []),
+    ...(judge === null && judgeModel !== undefined ? [judgeModel] : []),
+  ]
+  return {
+    avatar,
+    judge,
+    totalCostUsd:
+      avatar === null || judge === null ? null : avatar.totalCostUsd + judge.totalCostUsd,
+    unavailableModels,
+  }
 }
 
 function sumMetrics(
@@ -130,6 +157,7 @@ function reportStatus(
 }
 
 export function createRunReport(definition: TestDefinition, startedAt: string): RunReport {
+  const summary = aggregateRunSummary(definition.questions.length, [])
   return {
     version: 1,
     testName: definition.name,
@@ -142,9 +170,10 @@ export function createRunReport(definition: TestDefinition, startedAt: string): 
     startedAt,
     finishedAt: null,
     questions: [],
-    summary: aggregateRunSummary(definition.questions.length, []),
+    summary,
     modelMismatches: [],
     error: null,
+    costEstimate: estimateRunCost(definition, summary),
   }
 }
 
@@ -158,6 +187,7 @@ export function buildRunReport(options: {
   error?: EvaluationError | null
 }): RunReport {
   const error = options.error ?? null
+  const summary = aggregateRunSummary(options.definition.questions.length, options.results)
   return {
     version: 1,
     testName: options.definition.name,
@@ -170,9 +200,10 @@ export function buildRunReport(options: {
     startedAt: options.startedAt,
     finishedAt: options.finishedAt,
     questions: [...options.results],
-    summary: aggregateRunSummary(options.definition.questions.length, options.results),
+    summary,
     modelMismatches: findModelMismatches(options.definition, options.results),
     error,
+    costEstimate: estimateRunCost(options.definition, summary),
   }
 }
 
@@ -200,6 +231,10 @@ export class ReportWriteError extends Error {
 }
 
 export async function writeReportAtomically(outputPath: string, report: RunReport): Promise<void> {
+  await writeJsonAtomically(outputPath, report)
+}
+
+export async function writeJsonAtomically(outputPath: string, value: unknown): Promise<void> {
   const targetPath = isAbsolute(outputPath) ? outputPath : resolve(outputPath)
   const targetDirectory = dirname(targetPath)
   const temporaryPath = join(
@@ -208,7 +243,7 @@ export async function writeReportAtomically(outputPath: string, report: RunRepor
   )
   try {
     await mkdir(targetDirectory, { recursive: true })
-    await writeFile(temporaryPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8')
+    await writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
     await rename(temporaryPath, targetPath)
   } catch {
     try {

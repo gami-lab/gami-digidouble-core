@@ -71,7 +71,8 @@ For product principles, read `PRINCIPLES.md`.
 
 - `tools/conversation-evaluation`: standalone TypeScript workspace package for scripted evaluation
   definitions, authenticated sequential API execution, semantic judging through `/v1/exchange`,
-  structured reports, console summaries, and a dependency-free local report viewer; its local CLI
+  structured reports, multi-model comparison runs, token-based public-price cost estimates, console
+  summaries, and a dependency-free local report viewer; its local CLI
   uses the repository-standard `tsx` entry-point approach. Deterministic unit and fake-HTTP
   integration-style tests run without Core, infrastructure, network access, or provider credentials.
 - Evaluation tooling uses public authenticated HTTP boundaries and shared DTOs; it does not import

@@ -219,6 +219,7 @@ describe('composed scripted evaluation', () => {
       judgeClient,
       startedAt: '2026-07-29T00:00:00.000Z',
       now: () => '2026-07-29T00:03:00.000Z',
+      avatarModel: 'openai/gpt-5.4',
       writeReport: (report) => {
         snapshots.push(JSON.stringify(report))
         return Promise.resolve()
@@ -295,7 +296,12 @@ describe('composed scripted evaluation', () => {
     ).toMatchObject({ method: 'POST', body: { avatarId: conversation.avatarId } })
     expect(
       scripted.calls.filter((call) => call.url.endsWith('/messages')).map((call) => call.body),
-    ).toEqual(definition.questions.map((question) => ({ message: { content: question.question } })))
+    ).toEqual(
+      definition.questions.map((question) => ({
+        message: { content: question.question },
+        model: { provider: 'openai', model: 'gpt-5.4' },
+      })),
+    )
     const exchangeBody = scripted.calls.filter((call) => call.url.endsWith('/v1/exchange'))[0]?.body
     if (!isRecord(exchangeBody)) {
       throw new Error('Expected a structured judge request body.')

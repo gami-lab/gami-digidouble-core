@@ -32,12 +32,13 @@ In scope:
 
 Out of scope:
 
-- direct provider SDK calls, pricing tables, or Langfuse access;
+- direct provider SDK calls or Langfuse access; public-price estimates remain evaluator-owned and
+  explicitly separate from API-reported cost;
 - exact-string response grading;
 - human review workflows, dashboards, CI scheduling, or historical database storage;
 - automatic retries that could duplicate conversation turns;
-- changing `/v1/exchange` to add model selection unless a separate contract decision is explicitly
-  approved and all existing route tests/docs are updated.
+- changing `/v1/exchange` without updating its existing contract tests/docs. The additive model
+  selection field is now supported by the raw exchange and conversation message contracts.
 
 ## Relevant Docs
 
