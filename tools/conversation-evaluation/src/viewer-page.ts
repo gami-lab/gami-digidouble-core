@@ -78,6 +78,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
       let selectedModel = '';
       let filter = 'all';
       let printMode = 'screen';
+      let reportFingerprint = null;
       let modelSortColumn = 1;
       let modelSortDirection = 1;
       const el = (tag, className, content) => {
@@ -125,7 +126,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           .map((question) => question.metrics && Number(question.metrics.latencyMs))
           .filter((latency) => Number.isFinite(latency))
           .sort((left, right) => left - right);
-        if (!latencies.length) return { median: null, p90: null, max: null };
+        if (!latencies.length) return { median: null, p90: null };
         const percentile = (fraction) => {
           const index = (latencies.length - 1) * fraction;
           const lower = Math.floor(index);
@@ -136,7 +137,6 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         return {
           median: percentile(0.5),
           p90: percentile(0.9),
-          max: latencies[latencies.length - 1],
         };
       };
       const providerOf = (model) => {
@@ -247,11 +247,10 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
             runTokens(summary),
             latencyText(latency.median),
             latencyText(latency.p90),
-            latencyText(latency.max),
             costText(runCost(run.report.costEstimate)),
           ];
         });
-        panel.append(comparisonTable(['Provider', 'Model', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Tokens (send/receive)', 'Median latency', 'P90 latency', 'Max latency', 'Estimated cost'], modelRows, true));
+        panel.append(comparisonTable(['Provider', 'Model', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Tokens (send/receive)', 'Median latency', 'P90 latency', 'Estimated cost'], modelRows, true));
         return panel;
       };
       const questionCard = (question) => {
@@ -329,8 +328,6 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         title.append(el('p', 'muted', 'Scenario ' + value(report.scenarioId) + ' · Last updated ' + value(report.finishedAt || report.startedAt)));
         header.append(title);
         const toolbar = el('div', 'toolbar');
-        const refresh = el('button', 'no-print', 'Refresh now');
-        refresh.addEventListener('click', load);
         if (comparison) {
           const modelSelect = document.createElement('select');
           modelSelect.className = 'no-print';
@@ -363,7 +360,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           render();
           window.setTimeout(() => window.print(), 0);
         });
-        toolbar.append(refresh, select, printCurrent);
+        toolbar.append(select, printCurrent);
         if (comparison) {
           const printModels = el('button', 'no-print', 'Print all models');
           printModels.addEventListener('click', () => {
@@ -388,6 +385,9 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           const response = await fetch('/report.json?ts=' + Date.now(), { cache: 'no-store' });
           if (!response.ok) throw new Error('Report request failed with HTTP ' + response.status);
           const payload = await response.json();
+          const nextFingerprint = JSON.stringify(payload);
+          if (nextFingerprint === reportFingerprint) return;
+          reportFingerprint = nextFingerprint;
           if (payload && payload.reportType === 'model_comparison') {
             comparison = payload;
             if (!comparison.runs.length) {

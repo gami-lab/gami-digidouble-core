@@ -189,7 +189,7 @@ Open the printed `http://127.0.0.1:4173` URL. The viewer shows the run summary, 
 counts, model and token metrics, expected versus actual responses, structured criteria, judge
 diagnostics, provider and model comparison tables. Provider rows aggregate all selected models for
 each provider, while model rows retain only completed individual results. The model comparison shows
-full-run send/receive token counts, Avatar response median/P90/max latency, and estimated prices in
+full-run send/receive token counts, Avatar response median/P90 latency, and estimated prices in
 cents for easier scanning; latency excludes judge calls, and the JSON report continues to store
 monetary values in USD. Percentiles use linear interpolation between sorted Avatar response latency
 observations. Click any model-comparison column
@@ -197,8 +197,9 @@ header to sort it; click again to reverse the order. For comparison reports, use
 selector to inspect the full question details for any completed model. Use **Print current model** to
 print the selected model, or **Print all models** to print the comparison summary followed by the
 complete overview and question details for every model. In the browser print dialog, choose **Save as
-PDF** to share the report. It refreshes every two seconds, so it can display incremental report snapshots while
-an evaluation is running. The server binds to `127.0.0.1` by default and serves only the selected
+PDF** to share the report. It checks the report every two seconds and redraws only when the report
+content changes, so dropdown and filter selections remain stable while an evaluation is running.
+The server binds to `127.0.0.1` by default and serves only the selected
 report; use `--host` and `--port` to change the local binding. Press `Ctrl+C` to stop it.
 
 The package API exposes `validateTestDefinition`, `loadTestDefinition`, `loadEvaluationConfig`,
