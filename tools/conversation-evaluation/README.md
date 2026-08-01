@@ -76,28 +76,40 @@ judge diagnostics.
 ## Supported model selectors
 
 The evaluator accepts `provider/model` selectors for the providers below. These entries are also
-the models covered by the built-in token-cost estimate table as of `2026-07-30`:
+the models covered by the built-in token-cost estimate table as of `2026-08-01`:
 
-| Provider  | Supported selector            | Estimated pricing |
-| --------- | ----------------------------- | ----------------- |
-| OpenAI    | `openai/gpt-5.5`              | Yes               |
-| OpenAI    | `openai/gpt-5.4`              | Yes               |
-| OpenAI    | `openai/gpt-4o`               | Yes               |
-| OpenAI    | `openai/gpt-4o-mini`          | Yes               |
-| OpenAI    | `openai/gpt-5.4-mini`         | Yes               |
-| OpenAI    | `openai/gpt-5.4-nano`         | Yes               |
-| Anthropic | `anthropic/claude-opus-4-7`   | Yes               |
-| Anthropic | `anthropic/claude-sonnet-4-6` | Yes               |
-| Anthropic | `anthropic/claude-haiku-4-5`  | Yes               |
-| Mistral   | `mistral/mistral-medium-3.5`  | Yes               |
-| Mistral   | `mistral/mistral-small-4`     | Yes               |
-| Mistral   | `mistral/mistral-large-3`     | Yes               |
-| Mistral   | `mistral/ministral-3b`        | Yes               |
-| xAI       | `xai/grok-4.3`                | Yes               |
-| xAI       | `xai/grok-build-0.1`          | Yes               |
+| Provider  | Supported selector                     | Estimated pricing |
+| --------- | -------------------------------------- | ----------------- |
+| OpenAI    | `openai/gpt-5.6-sol`                   | Yes               |
+| OpenAI    | `openai/gpt-5.6-terra`                 | Yes               |
+| OpenAI    | `openai/gpt-5.6-luna`                  | Yes               |
+| OpenAI    | `openai/gpt-5.6` (Sol alias)           | Yes               |
+| OpenAI    | `openai/gpt-5.5`                       | Yes               |
+| OpenAI    | `openai/gpt-5.4`                       | Yes               |
+| OpenAI    | `openai/gpt-4o`                        | Yes               |
+| OpenAI    | `openai/gpt-4o-mini`                   | Yes               |
+| OpenAI    | `openai/gpt-5.4-mini`                  | Yes               |
+| OpenAI    | `openai/gpt-5.4-nano`                  | Yes               |
+| Anthropic | `anthropic/claude-fable-5`             | Yes               |
+| Anthropic | `anthropic/claude-opus-5`              | Yes               |
+| Anthropic | `anthropic/claude-opus-4-8`            | Yes               |
+| Anthropic | `anthropic/claude-opus-4-7`            | Yes               |
+| Anthropic | `anthropic/claude-opus-4-6`            | Yes               |
+| Anthropic | `anthropic/claude-opus-4-5-20251101`   | Yes               |
+| Anthropic | `anthropic/claude-sonnet-5`            | Yes               |
+| Anthropic | `anthropic/claude-sonnet-4-6`          | Yes               |
+| Anthropic | `anthropic/claude-sonnet-4-5-20250929` | Yes               |
+| Anthropic | `anthropic/claude-haiku-4-5`           | Yes               |
+| Anthropic | `anthropic/claude-haiku-4-5-20251001`  | Yes               |
+| Mistral   | `mistral/mistral-medium-3.5`           | Yes               |
+| Mistral   | `mistral/mistral-small-4`              | Yes               |
+| Mistral   | `mistral/mistral-large-3`              | Yes               |
+| Mistral   | `mistral/ministral-3b`                 | Yes               |
+| xAI       | `xai/grok-4.3`                         | Yes               |
+| xAI       | `xai/grok-build-0.1`                   | Yes               |
 
-The following aliases are normalized to a priced entry: `openai/gpt-4o-mini-2024-07-18`,
-`anthropic/claude-haiku-4-5-20251001`, `mistral/mistral-medium-3-5`, and
+The following aliases are normalized to a priced entry: `openai/gpt-5.6`,
+`openai/gpt-4o-mini-2024-07-18`, `anthropic/claude-haiku-4-5-20251001`, `mistral/mistral-medium-3-5`, and
 `xai/grok-4.3-latest`. Other provider/model selectors may still be accepted by Core, but their
 `costEstimate` is `null` until a price entry is added. Provider credentials and model availability
 are environment-dependent.

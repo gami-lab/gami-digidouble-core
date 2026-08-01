@@ -29,6 +29,10 @@ export type ScenarioModelSelection = {
 
 const PROVIDER_MODEL_PRESETS: Record<ModelSelectionProviderName, readonly ModelPresetOption[]> = {
   openai: [
+    { value: 'gpt-5.6-sol', label: 'gpt-5.6-sol (frontier)' },
+    { value: 'gpt-5.6-terra', label: 'gpt-5.6-terra (balanced)' },
+    { value: 'gpt-5.6-luna', label: 'gpt-5.6-luna (cost-sensitive)' },
+    { value: 'gpt-5.6', label: 'gpt-5.6 (Sol alias)' },
     { value: 'gpt-5.5', label: 'gpt-5.5 (frontier)' },
     { value: 'gpt-5.4', label: 'gpt-5.4 (balanced)' },
     { value: 'gpt-4o', label: 'gpt-4o (fast & cheap)' },
@@ -37,8 +41,15 @@ const PROVIDER_MODEL_PRESETS: Record<ModelSelectionProviderName, readonly ModelP
     { value: 'gpt-5.4-nano', label: 'gpt-5.4-nano (lowest cost)' },
   ],
   anthropic: [
+    { value: 'claude-fable-5', label: 'claude-fable-5 (frontier)' },
+    { value: 'claude-opus-5', label: 'claude-opus-5 (most capable)' },
+    { value: 'claude-opus-4-8', label: 'claude-opus-4-8 (frontier)' },
     { value: 'claude-opus-4-7', label: 'claude-opus-4-7 (most capable)' },
+    { value: 'claude-opus-4-6', label: 'claude-opus-4-6 (long context)' },
+    { value: 'claude-opus-4-5-20251101', label: 'claude-opus-4-5-20251101 (pinned)' },
+    { value: 'claude-sonnet-5', label: 'claude-sonnet-5 (balanced)' },
     { value: 'claude-sonnet-4-6', label: 'claude-sonnet-4-6 (balanced)' },
+    { value: 'claude-sonnet-4-5-20250929', label: 'claude-sonnet-4-5-20250929 (pinned)' },
     { value: 'claude-haiku-4-5', label: 'claude-haiku-4-5 (fastest alias)' },
     { value: 'claude-haiku-4-5-20251001', label: 'claude-haiku-4-5-20251001 (pinned)' },
   ],

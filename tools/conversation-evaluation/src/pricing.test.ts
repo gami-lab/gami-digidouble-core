@@ -10,8 +10,38 @@ describe('public token pricing estimates', () => {
       inputCostUsd: 2.5,
       outputCostUsd: 30,
       totalCostUsd: 32.5,
-      pricingAsOf: '2026-07-30',
+      pricingAsOf: '2026-08-01',
     })
+  })
+
+  it('prices the current OpenAI frontier models', () => {
+    expect(estimateTokenCost('openai/gpt-5.6-sol', 1_000_000, 1_000_000)).toMatchObject({
+      inputPriceUsdPerMillionTokens: 5,
+      outputPriceUsdPerMillionTokens: 30,
+      totalCostUsd: 35,
+    })
+    expect(estimateTokenCost('openai/gpt-5.6-terra', 1_000_000, 1_000_000)?.totalCostUsd).toBe(14)
+    expect(estimateTokenCost('openai/gpt-5.6-luna', 1_000_000, 1_000_000)?.totalCostUsd).toBe(1.4)
+    expect(estimateTokenCost('openai/gpt-5.6', 100, 200)?.model).toBe('openai/gpt-5.6-sol')
+  })
+
+  it('prices every active Anthropic model selector', () => {
+    const activeModels = [
+      'claude-fable-5',
+      'claude-opus-5',
+      'claude-opus-4-8',
+      'claude-opus-4-7',
+      'claude-opus-4-6',
+      'claude-opus-4-5-20251101',
+      'claude-sonnet-5',
+      'claude-sonnet-4-6',
+      'claude-sonnet-4-5-20250929',
+      'claude-haiku-4-5-20251001',
+    ]
+
+    for (const model of activeModels) {
+      expect(estimateTokenCost(`anthropic/${model}`, 100, 200)).not.toBeNull()
+    }
   })
 
   it('resolves supported provider aliases', () => {

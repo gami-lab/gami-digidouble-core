@@ -6,8 +6,23 @@ type PublicPricing = {
   source: string
 }
 
-const PRICING_AS_OF = '2026-07-30'
+const PRICING_AS_OF = '2026-08-01'
 const PRICING: Record<string, PublicPricing> = {
+  'openai/gpt-5.6-sol': {
+    inputUsdPerMillionTokens: 5,
+    outputUsdPerMillionTokens: 30,
+    source: 'https://developers.openai.com/api/docs/models',
+  },
+  'openai/gpt-5.6-terra': {
+    inputUsdPerMillionTokens: 2,
+    outputUsdPerMillionTokens: 12,
+    source: 'https://developers.openai.com/api/docs/models',
+  },
+  'openai/gpt-5.6-luna': {
+    inputUsdPerMillionTokens: 0.2,
+    outputUsdPerMillionTokens: 1.2,
+    source: 'https://developers.openai.com/api/docs/models',
+  },
   'openai/gpt-5.5': {
     inputUsdPerMillionTokens: 5,
     outputUsdPerMillionTokens: 30,
@@ -41,17 +56,52 @@ const PRICING: Record<string, PublicPricing> = {
   'anthropic/claude-opus-4-7': {
     inputUsdPerMillionTokens: 5,
     outputUsdPerMillionTokens: 25,
-    source: 'https://docs.anthropic.com/en/docs/about-claude/pricing',
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
+  'anthropic/claude-fable-5': {
+    inputUsdPerMillionTokens: 10,
+    outputUsdPerMillionTokens: 50,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
+  'anthropic/claude-opus-5': {
+    inputUsdPerMillionTokens: 5,
+    outputUsdPerMillionTokens: 25,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
+  'anthropic/claude-opus-4-8': {
+    inputUsdPerMillionTokens: 5,
+    outputUsdPerMillionTokens: 25,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
+  'anthropic/claude-opus-4-6': {
+    inputUsdPerMillionTokens: 5,
+    outputUsdPerMillionTokens: 25,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
+  'anthropic/claude-opus-4-5-20251101': {
+    inputUsdPerMillionTokens: 5,
+    outputUsdPerMillionTokens: 25,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
   },
   'anthropic/claude-sonnet-4-6': {
     inputUsdPerMillionTokens: 3,
     outputUsdPerMillionTokens: 15,
-    source: 'https://docs.anthropic.com/en/docs/about-claude/pricing',
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
+  'anthropic/claude-sonnet-5': {
+    inputUsdPerMillionTokens: 2,
+    outputUsdPerMillionTokens: 10,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
+  'anthropic/claude-sonnet-4-5-20250929': {
+    inputUsdPerMillionTokens: 3,
+    outputUsdPerMillionTokens: 15,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
   },
   'anthropic/claude-haiku-4-5': {
     inputUsdPerMillionTokens: 1,
     outputUsdPerMillionTokens: 5,
-    source: 'https://docs.anthropic.com/en/docs/about-claude/pricing',
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
   },
   'mistral/mistral-medium-3.5': {
     inputUsdPerMillionTokens: 1.5,
@@ -86,6 +136,7 @@ const PRICING: Record<string, PublicPricing> = {
 }
 
 const ALIASES: Record<string, string> = {
+  'openai/gpt-5.6': 'openai/gpt-5.6-sol',
   'openai/gpt-4o-mini-2024-07-18': 'openai/gpt-4o-mini',
   'anthropic/claude-haiku-4-5-20251001': 'anthropic/claude-haiku-4-5',
   'mistral/mistral-medium-3-5': 'mistral/mistral-medium-3.5',

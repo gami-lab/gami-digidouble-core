@@ -33,6 +33,7 @@ export class OpenAiAdapter implements ILlmAdapter {
       completion = await this.client.chat.completions.create({
         model,
         messages: buildMessages(request),
+        ...reasoningEffort(model),
         ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       })
     } catch (err) {
@@ -109,8 +110,16 @@ function buildStreamingRequest(
     messages: buildMessages(request),
     stream: true,
     stream_options: { include_usage: true },
+    ...reasoningEffort(model),
     ...(request.maxTokens === undefined ? {} : { max_tokens: request.maxTokens }),
   }
+}
+
+function reasoningEffort(model: string): { reasoning_effort: 'none' } | Record<string, never> {
+  const normalizedModel = model.trim().toLowerCase()
+  return normalizedModel.startsWith('gpt-5') && !normalizedModel.includes('-pro')
+    ? { reasoning_effort: 'none' }
+    : {}
 }
 
 function readOpenAiChunk(

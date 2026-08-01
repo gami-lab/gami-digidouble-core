@@ -103,6 +103,27 @@ describe('OpenAiAdapter', () => {
     expect(calledWith.model).toBe('gpt-4o')
   })
 
+  it('disables reasoning explicitly for GPT-5 family completions', async () => {
+    mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-5.6-sol'))
+    const adapter = new OpenAiAdapter('sk-test')
+
+    await adapter.complete({ ...request, model: 'gpt-5.6-sol' })
+
+    expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({
+      model: 'gpt-5.6-sol',
+      reasoning_effort: 'none',
+    })
+  })
+
+  it('does not send unsupported reasoning settings to pre-GPT-5 models', async () => {
+    mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-4o'))
+    const adapter = new OpenAiAdapter('sk-test')
+
+    await adapter.complete({ ...request, model: 'gpt-4o' })
+
+    expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('reasoning_effort')
+  })
+
   it('wraps OpenAI.APIError in LlmError with status code', async () => {
     const apiErr = new OpenAI.APIError(429, 'rate limited', undefined, new Headers())
     mockCreate.mockRejectedValue(apiErr)
@@ -179,7 +200,31 @@ describe('OpenAiAdapter', () => {
       stream: true,
       stream_options: { include_usage: true },
     })
+    expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('reasoning_effort')
     expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal })
+  })
+
+  it('disables reasoning explicitly for GPT-5 family streams', async () => {
+    mockCreate.mockResolvedValue(
+      (function* () {
+        yield buildStreamChunk('ok', 'gpt-5.4')
+        yield {
+          ...buildStreamChunk('', 'gpt-5.4'),
+          choices: [],
+          usage: { prompt_tokens: 15, completion_tokens: 5, total_tokens: 20 },
+        }
+      })(),
+    )
+    const adapter = new OpenAiAdapter('sk-test')
+
+    for await (const event of adapter.stream({ ...request, model: 'gpt-5.4' })) {
+      void event
+    }
+
+    expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({
+      model: 'gpt-5.4',
+      reasoning_effort: 'none',
+    })
   })
 
   it('does not start the provider when already cancelled', async () => {
