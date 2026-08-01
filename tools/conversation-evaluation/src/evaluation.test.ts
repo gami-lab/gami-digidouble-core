@@ -402,7 +402,7 @@ describe('runEvaluation', () => {
       writeReport: vi.fn().mockResolvedValue(undefined),
     })
 
-    expect(delays).toEqual([5000])
+    expect(delays).toEqual([5000, 5000])
     expect(progress).toEqual(
       expect.arrayContaining([
         'Starting evaluation: Evaluation run.',

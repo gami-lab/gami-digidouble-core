@@ -57,7 +57,7 @@ export function renderModelComparisonSummary(report: ModelComparisonReport): str
   ]
   report.runs.forEach(({ model, report: runReport }) => {
     const summary = runReport.summary
-    const cost = runReport.costEstimate.avatar?.totalCostUsd ?? null
+    const cost = runReport.costEstimate.totalCostUsd
     lines.push(
       `${model} | ${runReport.status} | ${String(summary.passed)} | ${String(summary.partial)} | ${String(summary.failed)} | ${summary.passRate === null ? 'n/a' : `${(summary.passRate * 100).toFixed(1)}%`} | ${cost === null ? 'unavailable' : `$${cost.toFixed(6)}`}`,
     )

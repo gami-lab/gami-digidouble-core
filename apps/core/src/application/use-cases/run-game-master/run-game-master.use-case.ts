@@ -158,13 +158,14 @@ export class RunGameMasterUseCase {
     )
     if (llmCallResult === null) return
 
-    const { llmResponse, llmLatencyMs } = llmCallResult
+    const { llmResponse, llmLatencyMs, llmProvider } = llmCallResult
 
     const normalizedOutput = await this.parseAndNormalizeOutput({
       input,
       currentState,
       triggerReason,
       llmResponse,
+      llmProvider,
       llmStart,
       gmRunStartMs,
       scenarioAvatars,
@@ -208,6 +209,7 @@ export class RunGameMasterUseCase {
       llmStart,
       llmLatencyMs,
       llmResponse,
+      llmProvider,
     })
   }
 
@@ -224,6 +226,7 @@ export class RunGameMasterUseCase {
     llmStart: number
     llmLatencyMs: number
     llmResponse: LlmResponse
+    llmProvider: string
   }): Promise<void> {
     this.publishDecisionRuntimeEvents(
       args.input,
@@ -260,6 +263,7 @@ export class RunGameMasterUseCase {
       llmStart: args.llmStart,
       llmLatencyMs: args.llmLatencyMs,
       llmResponse: args.llmResponse,
+      llmProvider: args.llmProvider,
       ...(this.options.eventLogRepository !== undefined
         ? { eventLogRepository: this.options.eventLogRepository }
         : {}),
@@ -271,6 +275,7 @@ export class RunGameMasterUseCase {
     currentState: GameMasterState
     triggerReason: string
     llmResponse: LlmResponse
+    llmProvider: string
     llmStart: number
     gmRunStartMs: number
     scenarioAvatars: AvatarConfig[]
@@ -285,6 +290,7 @@ export class RunGameMasterUseCase {
       currentState: args.currentState,
       triggerReason: args.triggerReason,
       llmResponse: args.llmResponse,
+      llmProvider: args.llmProvider,
       llmStart: args.llmStart,
       gmRunStartMs: args.gmRunStartMs,
       observability: this.observability,
@@ -306,6 +312,7 @@ export class RunGameMasterUseCase {
   ): Promise<{
     llmResponse: LlmResponse
     llmLatencyMs: number
+    llmProvider: string
   } | null> {
     const resolvedLlm = await this.resolveGameMasterLlmCall(scenarioContext.modelSelection)
     const gmTraceRequestId = `gm_${crypto.randomUUID()}`
@@ -344,7 +351,11 @@ export class RunGameMasterUseCase {
       })
       const llmCallStart = Date.now()
       const llmResponse = await resolvedLlm.adapter.complete(llmRequest)
-      return { llmResponse, llmLatencyMs: Date.now() - llmCallStart }
+      return {
+        llmResponse,
+        llmLatencyMs: Date.now() - llmCallStart,
+        llmProvider: resolvedLlm.provider,
+      }
     } catch (err: unknown) {
       console.error('[GM] LLM call failed:', err)
       await emitGameMasterError(this.options.eventLogRepository, {
@@ -353,6 +364,8 @@ export class RunGameMasterUseCase {
         triggerReason,
         latencyMs: Date.now() - gmRunStartMs,
         errorCode: 'llm_error',
+        provider: resolvedLlm.provider,
+        model: resolvedLlm.effectiveModel,
       })
       return null
     }

@@ -9,6 +9,7 @@ export type EvaluationPhase =
   | 'conversation_bootstrap'
   | 'avatar_message'
   | 'judge_exchange'
+  | 'runtime_usage'
   | 'report_persistence'
 
 export type TestQuestion = {
@@ -106,9 +107,25 @@ export type RunSummary = {
   totalOutputTokens: number
   totalTokens: number
   totalCostUsd: number | null
+  totalRunInputTokens: number
+  totalRunOutputTokens: number
+  totalRunTokens: number
   totalJudgeLatencyMs: number
+  gameMasterUsage: RuntimeRoleUsage
+  memoryUsage: RuntimeRoleUsage
+  runtimeUsageStatus: RuntimeUsageStatus
   observedAvatarModels: string[]
   observedJudgeModels: string[]
+}
+
+export type RuntimeUsageStatus = 'pending' | 'complete' | 'unavailable'
+
+export type RuntimeRoleUsage = {
+  calls: number
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  observedModels: string[]
 }
 
 export type RunReport = {
@@ -144,6 +161,8 @@ export type TokenCostEstimate = {
 
 export type RunCostEstimate = {
   avatar: TokenCostEstimate | null
+  gameMaster: TokenCostEstimate | null
+  memory: TokenCostEstimate | null
   totalCostUsd: number | null
   unavailableModels: string[]
 }

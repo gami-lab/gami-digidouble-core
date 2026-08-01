@@ -117,6 +117,8 @@ export type GmSessionEventPayload = {
   stateAfter?: Omit<GmStateSummary, 'interactionCount'>
   latencyMs: number
   totalLatencyMs?: number
+  provider?: string
+  model?: string
   inputTokens?: number
   outputTokens?: number
   errorCode?: string
@@ -183,6 +185,10 @@ export type MemoryRefreshEventPayload = {
   coveredTopics?: string[]
   candidateFacts?: SharedMemoryFactRecord[]
   exchangeCount?: number
+  provider?: string
+  model?: string
+  inputTokens?: number
+  outputTokens?: number
   error?: string
 }
 

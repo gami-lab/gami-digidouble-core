@@ -20,6 +20,7 @@ export async function handleInvalidGameMasterOutput(args: {
     inputTokens: number
     outputTokens: number
   }
+  llmProvider?: string
   llmStart: number
   gmRunStartMs: number
   observability: IObservabilityAdapter
@@ -31,6 +32,8 @@ export async function handleInvalidGameMasterOutput(args: {
     triggerReason: args.triggerReason,
     latencyMs: Date.now() - args.gmRunStartMs,
     errorCode: 'invalid_output',
+    model: args.llmResponse.model,
+    ...(args.llmProvider === undefined ? {} : { provider: args.llmProvider }),
     inputTokens: args.llmResponse.inputTokens,
     outputTokens: args.llmResponse.outputTokens,
   })
@@ -60,6 +63,8 @@ export async function emitGameMasterError(
     triggerReason: string
     latencyMs: number
     errorCode: 'llm_error' | 'invalid_output' | 'persistence_error'
+    provider?: string
+    model?: string
     inputTokens?: number
     outputTokens?: number
   },
@@ -76,6 +81,8 @@ export async function emitGameMasterError(
       stateBefore: buildStateSummary(event.currentState),
       latencyMs: event.latencyMs,
       errorCode: event.errorCode,
+      ...(event.provider === undefined ? {} : { provider: event.provider }),
+      ...(event.model === undefined ? {} : { model: event.model }),
       ...(event.inputTokens !== undefined ? { inputTokens: event.inputTokens } : {}),
       ...(event.outputTokens !== undefined ? { outputTokens: event.outputTokens } : {}),
     },
@@ -100,6 +107,7 @@ export async function emitTriggeredGameMasterTurn(args: {
     inputTokens: number
     outputTokens: number
   }
+  llmProvider?: string
   eventLogRepository?: IEventLogRepository
 }): Promise<void> {
   await emitEventSafe(args.eventLogRepository, {
@@ -122,6 +130,8 @@ export async function emitTriggeredGameMasterTurn(args: {
       stateAfter: buildStateSummary(args.reconciledState),
       latencyMs: args.llmLatencyMs,
       totalLatencyMs: Date.now() - args.gmRunStartMs,
+      ...(args.llmProvider === undefined ? {} : { provider: args.llmProvider }),
+      model: args.llmResponse.model,
       inputTokens: args.llmResponse.inputTokens,
       outputTokens: args.llmResponse.outputTokens,
       correlationId: args.input.correlationId,

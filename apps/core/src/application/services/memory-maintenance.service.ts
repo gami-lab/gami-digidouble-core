@@ -94,6 +94,14 @@ const WORKING_MEMORY_FACT_KEY_MAX_LENGTH = 48
 const WORKING_MEMORY_FACT_VALUE_MAX_LENGTH = 160
 const WORKING_MEMORY_COMPACTION_MAX_TOKENS = 1000
 
+type MemoryCompactionResult = {
+  memory: ConversationWorkingMemoryRefreshOutput
+  provider: string
+  model: string
+  inputTokens: number
+  outputTokens: number
+}
+
 export class MemoryMaintenanceService implements IMemoryMaintenancePort {
   private readonly pendingRefreshes = new Map<string, Promise<void>>()
 
@@ -190,10 +198,10 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
         conversationId: input.conversationId,
         sessionId: input.sessionId,
         avatarId: input.avatarId,
-        summary: rewritten.summary,
-        unresolvedThreads: rewritten.unresolvedThreads,
-        coveredTopics: rewritten.coveredTopics,
-        candidateFacts: rewritten.candidateFacts,
+        summary: rewritten.memory.summary,
+        unresolvedThreads: rewritten.memory.unresolvedThreads,
+        coveredTopics: rewritten.memory.coveredTopics,
+        candidateFacts: rewritten.memory.candidateFacts,
       })
 
       await this.appendEventSafe({
@@ -208,12 +216,16 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
           avatarId: input.avatarId,
           scenarioId: input.scenarioId,
           trigger: input.trigger,
-          workingSummary: rewritten.summary,
+          workingSummary: rewritten.memory.summary,
           messageCount: recentOrdered.length,
-          unresolvedThreads: rewritten.unresolvedThreads,
-          coveredTopics: rewritten.coveredTopics,
-          candidateFacts: rewritten.candidateFacts,
+          unresolvedThreads: rewritten.memory.unresolvedThreads,
+          coveredTopics: rewritten.memory.coveredTopics,
+          candidateFacts: rewritten.memory.candidateFacts,
           exchangeCount,
+          provider: rewritten.provider,
+          model: rewritten.model,
+          inputTokens: rewritten.inputTokens,
+          outputTokens: rewritten.outputTokens,
         },
       })
     } catch (error) {
@@ -255,7 +267,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       trigger: 'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
       verifiedContext?: VerifiedMemoryContext[]
     },
-  ) {
+  ): Promise<MemoryCompactionResult> {
     const resolvedLlm = await this.resolveMemoryLlmCall(context.scenarioId)
     const llmRequest = {
       systemPrompt: WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT,
@@ -295,7 +307,15 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       context.verifiedContext,
     )
 
-    if (parsed !== null) return parsed
+    if (parsed !== null) {
+      return {
+        memory: parsed,
+        provider: resolvedLlm.provider,
+        model: response.model,
+        inputTokens: response.inputTokens,
+        outputTokens: response.outputTokens,
+      }
+    }
     throw new Error('[memory-maintenance] LLM returned unparseable compaction output')
   }
 

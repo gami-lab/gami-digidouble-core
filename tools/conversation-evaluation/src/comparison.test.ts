@@ -42,13 +42,37 @@ function report(model: string): RunReport {
       totalOutputTokens: 10,
       totalTokens: 20,
       totalCostUsd: null,
+      totalRunInputTokens: 10,
+      totalRunOutputTokens: 10,
+      totalRunTokens: 20,
       totalJudgeLatencyMs: 1,
+      gameMasterUsage: {
+        calls: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        observedModels: [],
+      },
+      memoryUsage: {
+        calls: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        observedModels: [],
+      },
+      runtimeUsageStatus: 'complete',
       observedAvatarModels: [model],
       observedJudgeModels: [],
     },
     modelMismatches: [],
     error: null,
-    costEstimate: { avatar: null, totalCostUsd: null, unavailableModels: [] },
+    costEstimate: {
+      avatar: null,
+      gameMaster: null,
+      memory: null,
+      totalCostUsd: null,
+      unavailableModels: [],
+    },
   }
 }
 

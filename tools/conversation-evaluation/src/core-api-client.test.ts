@@ -66,6 +66,31 @@ describe('CoreApiClient', () => {
     expect(init?.body).toBe(JSON.stringify({ userId: 'evaluation-user', scenarioId: 'scenario_1' }))
   })
 
+  it('lists session events through the runtime usage contract', async () => {
+    const events = [
+      {
+        type: 'gm_triggered',
+        correlationId: 'corr_1',
+        createdAt: '2026-07-30T00:00:00.000Z',
+        payload: { inputTokens: 10, outputTokens: 5 },
+      },
+    ]
+    const fetchMock = vi
+      .fn<FetchLike>()
+      .mockResolvedValue(jsonResponse(okEnvelope({ events }), 200))
+    const client = new CoreApiClient({
+      baseUrl: 'https://core.example',
+      apiKey: 'test-key',
+      timeoutMs: 1000,
+      fetchImpl: fetchMock,
+    })
+
+    await expect(client.listSessionEvents('session/1')).resolves.toEqual({ events })
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      'https://core.example/v1/admin/sessions/session%2F1/events?limit=200',
+    )
+  })
+
   it('surfaces bounded envelope errors with status and code without exposing details', async () => {
     const fetchMock = vi.fn<FetchLike>().mockResolvedValue(
       jsonResponse(

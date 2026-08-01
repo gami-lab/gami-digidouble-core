@@ -535,6 +535,10 @@ describe('MemoryMaintenanceService — event payload contract', () => {
       trigger: 'post_turn',
       messageCount: 6,
       exchangeCount: 3,
+      provider: 'legacy',
+      model: 'test-model',
+      inputTokens: 10,
+      outputTokens: 20,
     })
     const succeededPayload = succeeded?.payload
     expect(typeof succeededPayload?.workingSummary).toBe('string')

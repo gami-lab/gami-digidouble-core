@@ -98,6 +98,8 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
   const stateAfter = readOptionalStateSummary(payload['stateAfter'])
   const gmContext = readOptionalGmContextSnapshot(payload['gmContext'])
   const totalLatencyMs = readOptionalNumber(payload['totalLatencyMs'])
+  const provider = readOptionalString(payload['provider'])
+  const model = readOptionalString(payload['model'])
   const inputTokens = readOptionalNumber(payload['inputTokens'])
   const outputTokens = readOptionalNumber(payload['outputTokens'])
   const errorCode = readOptionalString(payload['errorCode'])
@@ -108,12 +110,15 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
     ...(decision !== undefined ? { decision } : {}),
     ...(stateAfter !== undefined ? { stateAfter } : {}),
     ...(totalLatencyMs !== undefined ? { totalLatencyMs } : {}),
+    ...(provider !== undefined ? { provider } : {}),
+    ...(model !== undefined ? { model } : {}),
     ...(inputTokens !== undefined ? { inputTokens } : {}),
     ...(outputTokens !== undefined ? { outputTokens } : {}),
     ...(errorCode !== undefined ? { errorCode } : {}),
   }
 }
 
+// eslint-disable-next-line complexity
 function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRefreshEventPayload {
   const base: MemoryRefreshEventPayload = {
     sessionId: readString(payload['sessionId']),
@@ -127,6 +132,10 @@ function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRef
   const coveredTopics = readOptionalStringArray(payload['coveredTopics'])
   const candidateFacts = readOptionalCandidateFacts(payload['candidateFacts'])
   const exchangeCount = readOptionalNumber(payload['exchangeCount'])
+  const provider = readOptionalString(payload['provider'])
+  const model = readOptionalString(payload['model'])
+  const inputTokens = readOptionalNumber(payload['inputTokens'])
+  const outputTokens = readOptionalNumber(payload['outputTokens'])
   const error = readOptionalString(payload['error'])
   return {
     ...base,
@@ -136,6 +145,10 @@ function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRef
     ...(coveredTopics !== undefined ? { coveredTopics } : {}),
     ...(candidateFacts !== undefined ? { candidateFacts } : {}),
     ...(exchangeCount !== undefined ? { exchangeCount } : {}),
+    ...(provider !== undefined ? { provider } : {}),
+    ...(model !== undefined ? { model } : {}),
+    ...(inputTokens !== undefined ? { inputTokens } : {}),
+    ...(outputTokens !== undefined ? { outputTokens } : {}),
     ...(error !== undefined ? { error } : {}),
   }
 }

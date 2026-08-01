@@ -10,6 +10,7 @@ import {
   writeReportAtomically,
 } from './report.js'
 import { runSequentialConversation } from './sequential-runner.js'
+import { collectRuntimeUsage, emptyRuntimeUsage } from './runtime-usage.js'
 
 export const INTER_QUESTION_DELAY_MS = 5000
 
@@ -127,6 +128,7 @@ async function judgeQuestion(
   }
 }
 
+// eslint-disable-next-line complexity
 export async function runEvaluation(input: EvaluationRunInput): Promise<EvaluationRunOutput> {
   const startedAt = input.startedAt ?? new Date().toISOString()
   const now = input.now ?? (() => new Date().toISOString())
@@ -176,7 +178,23 @@ export async function runEvaluation(input: EvaluationRunInput): Promise<Evaluati
         )
       },
     })
-    report = buildReportFromExecution(input.definition, startedAt, execution, now())
+    runtime.onProgress(
+      'Waiting for asynchronous Game Master and memory work before collecting usage.',
+    )
+    await runtime.waitBetweenQuestions(runtime.interQuestionDelayMs, input.signal)
+    let runtimeUsage = emptyRuntimeUsage('unavailable')
+    try {
+      runtimeUsage = await collectRuntimeUsage(
+        input.avatarClient,
+        execution.sessionId,
+        input.signal === undefined ? undefined : { signal: input.signal },
+      )
+    } catch (error: unknown) {
+      runtime.onProgress(
+        `Unable to collect asynchronous runtime usage (${error instanceof Error ? error.message : 'unknown error'}).`,
+      )
+    }
+    report = buildReportFromExecution(input.definition, startedAt, execution, now(), runtimeUsage)
     await writeReport(report)
     return { report, consoleSummary: renderConsoleSummary(report) }
   } catch (error: unknown) {

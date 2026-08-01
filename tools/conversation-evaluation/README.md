@@ -214,16 +214,23 @@ distinguishes essential facts, acceptable alternatives, omissions, contradiction
 detail, and the required score/`passed` consistency rules. Reports retain the judge reason, missing
 facts, and contradictions for each evaluated question, and the console summary displays them.
 
-Each report includes a `costEstimate` for Avatar and total Avatar cost when the model is in the
-tool's manually maintained public-price table. Judge execution is required for scoring, but judge
-tokens and judge price are intentionally excluded from evaluation measurements. The estimate is calculated as
-`inputTokens / 1,000,000 * inputPrice + outputTokens / 1,000,000 * outputPrice` using standard
-short-context list pricing, with no cache, batch, long-context, or provider-specific discount
-adjustments. Every estimate records its pricing source and `pricingAsOf` date. Unknown Avatar models
-make the affected estimate, and therefore the total, `null` while listing `unavailableModels`; this is
-intentional because the API may expose token usage without a public price entry. Judge latency and
-model identity are retained for operational comparison. The console summary shows statuses, scores,
-models, Avatar token metrics, judge latency, and estimated Avatar cost without printing prompts or secrets. A completed run exits
+Each report includes token usage for the Avatar responses, asynchronous Game Master calls, and
+memory-compaction calls. The `totalRunTokens` and `totalRunInputTokens`/`totalRunOutputTokens`
+fields are the full run measurement. Judge tokens and judge price are intentionally excluded from
+these measurements; judge latency and model identity remain available for operational comparison.
+Runtime usage is collected from Core session events after the final asynchronous work-settling wait.
+If the event data is unavailable or incomplete, the role breakdown is retained but the full cost is
+reported as unavailable.
+
+The `costEstimate` contains separate Avatar, Game Master, and memory estimates, plus the full
+`totalCostUsd`, when all observed models are present in the tool's manually maintained public-price
+table. The estimate is calculated as `inputTokens / 1,000,000 * inputPrice + outputTokens /
+1,000,000 * outputPrice` using standard short-context list pricing, with no cache, batch,
+long-context, or provider-specific discount adjustments. Every estimate records its pricing source
+and `pricingAsOf` date. Unknown models make the affected estimate, and therefore the full total,
+`null` while listing `unavailableModels`; this is intentional because the API may expose token usage
+without a public price entry. The console summary and HTML viewer show the Avatar, Game Master,
+memory, and full-run token totals and costs without printing prompts or secrets. A completed run exits
 successfully; setup, API, judge, or interrupted runs return a non-zero exit code. The package has no
 Core-internal, database, Redis, Langfuse, provider SDK, YAML, or new HTTP endpoint dependency.
 

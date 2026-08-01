@@ -13,6 +13,8 @@ export type {
   RunReportStatus,
   RunSummary,
   RunCostEstimate,
+  RuntimeRoleUsage,
+  RuntimeUsageStatus,
   TokenCostEstimate,
   ModelComparisonReport,
   ModelComparisonRun,
@@ -64,6 +66,7 @@ export {
   serializeSemanticJudgeInput,
 } from './judge.js'
 export type { EvaluationRunInput, EvaluationRunOutput } from './evaluation.js'
+export type { RuntimeUsage } from './runtime-usage.js'
 export { runEvaluation } from './evaluation.js'
 export { INTER_QUESTION_DELAY_MS, MAX_JUDGE_ATTEMPTS } from './evaluation.js'
 export { estimateTokenCost } from './pricing.js'

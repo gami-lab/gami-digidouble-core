@@ -1,6 +1,7 @@
 import type {
   ApiError,
   ApiResponse,
+  AdminSessionEventsResponse,
   AvatarSummary,
   ConversationSummary,
   ListScenarioAvatarsResponse,
@@ -15,6 +16,7 @@ import type {
 import type { ModelSelectionOverride } from '@gami/shared'
 
 import type { EvaluationPhase } from './contracts.js'
+import { isAdminSessionEventsResponse } from './core-api-contracts.js'
 
 type HttpMethod = 'GET' | 'POST'
 
@@ -472,6 +474,20 @@ export class CoreApiClient {
       },
       isSendMessageResponse,
       'avatar_message',
+      options,
+    )
+  }
+
+  async listSessionEvents(
+    sessionId: string,
+    options?: CoreApiRequestOptions,
+  ): Promise<AdminSessionEventsResponse> {
+    return this.request(
+      'GET',
+      `/v1/admin/sessions/${encodeURIComponent(sessionId)}/events?limit=200`,
+      undefined,
+      isAdminSessionEventsResponse,
+      'runtime_usage',
       options,
     )
   }

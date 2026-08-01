@@ -12,6 +12,7 @@ import {
   createRunReport,
   buildRunReport,
 } from './report.js'
+import { emptyRuntimeUsage } from './runtime-usage.js'
 
 const definition: TestDefinition = {
   version: 1,
@@ -80,6 +81,7 @@ function result(
   }
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('evaluation reports', () => {
   it('uses evaluated judge results as the pass-rate denominator', () => {
     const results = [
@@ -117,6 +119,48 @@ describe('evaluation reports', () => {
     expect(aggregateRunSummary(2, []).passRate).toBeNull()
   })
 
+  // eslint-disable-next-line complexity
+  it('includes Avatar, Game Master, and memory usage while excluding judge cost', () => {
+    const runtimeUsage = emptyRuntimeUsage('complete')
+    runtimeUsage.gameMaster = {
+      calls: 1,
+      inputTokens: 10,
+      outputTokens: 5,
+      totalTokens: 15,
+      observedModels: ['openai/gpt-5.4'],
+    }
+    runtimeUsage.memory = {
+      calls: 1,
+      inputTokens: 4,
+      outputTokens: 6,
+      totalTokens: 10,
+      observedModels: ['openai/gpt-5.4'],
+    }
+    const report = buildRunReport({
+      definition: { ...definition, model: 'openai/gpt-5.4', judgeModel: 'unknown/judge' },
+      startedAt: '2026-07-29T00:00:00.000Z',
+      finishedAt: '2026-07-29T00:01:00.000Z',
+      results: [result(1, 'passed', 0.1)],
+      runtimeUsage,
+    })
+
+    expect(report.summary.totalRunTokens).toBe(30)
+    expect(
+      (report.costEstimate.gameMaster?.inputTokens ?? 0) +
+        (report.costEstimate.gameMaster?.outputTokens ?? 0),
+    ).toBe(15)
+    expect(
+      (report.costEstimate.memory?.inputTokens ?? 0) +
+        (report.costEstimate.memory?.outputTokens ?? 0),
+    ).toBe(10)
+    expect(report.costEstimate.totalCostUsd).toBe(
+      (report.costEstimate.avatar?.totalCostUsd ?? 0) +
+        (report.costEstimate.gameMaster?.totalCostUsd ?? 0) +
+        (report.costEstimate.memory?.totalCostUsd ?? 0),
+    )
+    expect(report.costEstimate).not.toHaveProperty('judge')
+  })
+
   it('writes a valid atomically replaced JSON report and renders a bounded summary', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'conversation-evaluation-report-'))
     const outputPath = join(directory, 'nested', 'report.json')
@@ -140,7 +184,7 @@ describe('evaluation reports', () => {
     expect(summary).not.toContain('answer')
   })
 
-  it('estimates Avatar cost without adding judge cost', () => {
+  it('keeps the full cost unavailable until runtime usage is collected', () => {
     const report = buildRunReport({
       definition: {
         ...definition,
@@ -153,8 +197,9 @@ describe('evaluation reports', () => {
     })
 
     expect(report.costEstimate).not.toHaveProperty('judge')
-    expect(report.costEstimate.totalCostUsd).toBe(report.costEstimate.avatar?.totalCostUsd)
-    expect(report.costEstimate.unavailableModels).toEqual([])
+    expect(report.costEstimate.avatar?.totalCostUsd).toBeGreaterThan(0)
+    expect(report.costEstimate.totalCostUsd).toBeNull()
+    expect(report.costEstimate.unavailableModels).toContain('runtime-usage')
   })
 
   it('creates a stable initial report with nullable execution identifiers', () => {

@@ -27,6 +27,9 @@ describe('report viewer', () => {
       expect(pageHtml).toContain('@media print')
       expect(pageHtml).not.toContain('totalJudgeTokens')
       expect(pageHtml).toContain('avatarCost')
+      expect(pageHtml).toContain('gameMasterUsage')
+      expect(pageHtml).toContain('memoryUsage')
+      expect(pageHtml).toContain('runCost')
 
       const report = await fetch(`${viewer.url}/report.json`)
       expect(report.status).toBe(200)

@@ -10,9 +10,11 @@ import type {
   RunReport,
   RunCostEstimate,
   RunSummary,
+  RuntimeRoleUsage,
   TestDefinition,
 } from './contracts.js'
 import { estimateTokenCost } from './pricing.js'
+import { emptyRuntimeUsage, type RuntimeUsage } from './runtime-usage.js'
 
 function uniqueStrings(values: readonly string[]): string[] {
   return [...new Set(values)]
@@ -24,12 +26,62 @@ function estimateRunCost(definition: TestDefinition, summary: RunSummary): RunCo
     avatarModel === undefined
       ? null
       : estimateTokenCost(avatarModel, summary.totalInputTokens, summary.totalOutputTokens)
-  const unavailableModels = avatar === null && avatarModel !== undefined ? [avatarModel] : []
+  const gameMaster = estimateRoleCost(summary.gameMasterUsage)
+  const memory = estimateRoleCost(summary.memoryUsage)
+  const unavailableModels = unavailableCostModels(avatarModel, avatar, summary, gameMaster, memory)
+  const totalCostUsd = canEstimateFullCost(summary, avatar, gameMaster, memory)
+    ? avatar.totalCostUsd + (gameMaster?.totalCostUsd ?? 0) + (memory?.totalCostUsd ?? 0)
+    : null
   return {
     avatar,
-    totalCostUsd: avatar?.totalCostUsd ?? null,
+    gameMaster,
+    memory,
+    totalCostUsd,
     unavailableModels,
   }
+}
+
+function unavailableCostModels(
+  avatarModel: string | undefined,
+  avatar: RunCostEstimate['avatar'],
+  summary: RunSummary,
+  gameMaster: RunCostEstimate['gameMaster'],
+  memory: RunCostEstimate['memory'],
+): string[] {
+  const models = avatar === null && avatarModel !== undefined ? [avatarModel] : []
+  if (summary.runtimeUsageStatus !== 'complete') models.push('runtime-usage')
+  appendUnavailableRole(models, 'game-master', summary.gameMasterUsage, gameMaster)
+  appendUnavailableRole(models, 'memory', summary.memoryUsage, memory)
+  return models
+}
+
+function canEstimateFullCost(
+  summary: RunSummary,
+  avatar: RunCostEstimate['avatar'],
+  gameMaster: RunCostEstimate['gameMaster'],
+  memory: RunCostEstimate['memory'],
+): avatar is NonNullable<RunCostEstimate['avatar']> {
+  return (
+    summary.runtimeUsageStatus === 'complete' &&
+    avatar !== null &&
+    (summary.gameMasterUsage.calls === 0 || gameMaster !== null) &&
+    (summary.memoryUsage.calls === 0 || memory !== null)
+  )
+}
+
+function estimateRoleCost(usage: RuntimeRoleUsage) {
+  if (usage.calls === 0 || usage.observedModels.length !== 1) return null
+  return estimateTokenCost(usage.observedModels[0] ?? '', usage.inputTokens, usage.outputTokens)
+}
+
+function appendUnavailableRole(
+  unavailableModels: string[],
+  role: string,
+  usage: RuntimeRoleUsage,
+  estimate: ReturnType<typeof estimateRoleCost>,
+): void {
+  if (usage.calls === 0 || estimate !== null) return
+  unavailableModels.push(...(usage.observedModels.length > 0 ? usage.observedModels : [role]))
 }
 
 function sumMetrics(
@@ -53,6 +105,7 @@ function sumJudgeMetrics(
 export function aggregateRunSummary(
   questionCount: number,
   results: readonly QuestionResult[],
+  runtimeUsage: RuntimeUsage = emptyRuntimeUsage('pending'),
 ): RunSummary {
   const evaluated = results.filter((result) => result.judge !== null).length
   const passed = results.filter((result) => result.status === 'passed').length
@@ -78,7 +131,22 @@ export function aggregateRunSummary(
     totalCostUsd: hasCompleteAvatarCost
       ? avatarResults.reduce((total, result) => total + (result.metrics?.costUsd ?? 0), 0)
       : null,
+    totalRunInputTokens:
+      sumMetrics(results, (result) => result.metrics?.inputTokens ?? 0) +
+      runtimeUsage.gameMaster.inputTokens +
+      runtimeUsage.memory.inputTokens,
+    totalRunOutputTokens:
+      sumMetrics(results, (result) => result.metrics?.outputTokens ?? 0) +
+      runtimeUsage.gameMaster.outputTokens +
+      runtimeUsage.memory.outputTokens,
+    totalRunTokens:
+      sumMetrics(results, (result) => result.metrics?.totalTokens ?? 0) +
+      runtimeUsage.gameMaster.totalTokens +
+      runtimeUsage.memory.totalTokens,
     totalJudgeLatencyMs: sumJudgeMetrics(results, (result) => result.judgeMetrics?.latencyMs ?? 0),
+    gameMasterUsage: runtimeUsage.gameMaster,
+    memoryUsage: runtimeUsage.memory,
+    runtimeUsageStatus: runtimeUsage.status,
     observedAvatarModels: uniqueStrings(
       avatarResults.flatMap((result) => (result.metrics === null ? [] : [result.metrics.model])),
     ),
@@ -137,7 +205,7 @@ function reportStatus(
 }
 
 export function createRunReport(definition: TestDefinition, startedAt: string): RunReport {
-  const summary = aggregateRunSummary(definition.questions.length, [])
+  const summary = aggregateRunSummary(definition.questions.length, [], emptyRuntimeUsage('pending'))
   return {
     version: 1,
     testName: definition.name,
@@ -162,12 +230,17 @@ export function buildRunReport(options: {
   startedAt: string
   finishedAt: string | null
   results: readonly QuestionResult[]
+  runtimeUsage?: RuntimeUsage
   sessionId?: string | null
   conversationId?: string | null
   error?: EvaluationError | null
 }): RunReport {
   const error = options.error ?? null
-  const summary = aggregateRunSummary(options.definition.questions.length, options.results)
+  const summary = aggregateRunSummary(
+    options.definition.questions.length,
+    options.results,
+    options.runtimeUsage ?? emptyRuntimeUsage('pending'),
+  )
   return {
     version: 1,
     testName: options.definition.name,
@@ -192,12 +265,14 @@ export function buildReportFromExecution(
   startedAt: string,
   execution: ConversationExecution,
   finishedAt: string | null,
+  runtimeUsage?: RuntimeUsage,
 ): RunReport {
   return buildRunReport({
     definition,
     startedAt,
     finishedAt,
     results: execution.results,
+    ...(runtimeUsage === undefined ? {} : { runtimeUsage }),
     sessionId: execution.sessionId,
     conversationId: execution.conversationId,
   })
@@ -263,7 +338,8 @@ export function renderConsoleSummary(report: RunReport): string {
     }
   })
   lines.push(
-    `Totals: ${String(report.summary.totalLatencyMs)}ms/${String(report.summary.totalTokens)} tokens | cost=${report.summary.totalCostUsd === null ? 'unavailable' : String(report.summary.totalCostUsd)}`,
+    `Totals: ${String(report.summary.totalRunTokens)} tokens | cost=${report.costEstimate.totalCostUsd === null ? 'unavailable' : String(report.costEstimate.totalCostUsd)}`,
+    `Usage: Avatar ${String(report.summary.totalTokens)} · Game Master ${String(report.summary.gameMasterUsage.totalTokens)} · Memory ${String(report.summary.memoryUsage.totalTokens)}`,
     `Judge latency: ${String(report.summary.totalJudgeLatencyMs)}ms`,
   )
   if (report.modelMismatches.length > 0) {

@@ -229,8 +229,10 @@ Must cover:
   criteria, contradictions, score-three partial outcomes, malformed judge output, and judge
   transport/API errors; the declared judge model is asserted in the raw request
 - report aggregation uses valid judge results for the pass-rate denominator, keeps Avatar metrics
-  separate from judge model metadata, retains judge latency metrics, leaves cost nullable when
-  incomplete, and atomically writes valid incremental reports with bounded console summaries
+  separate from judge model metadata, retains judge latency metrics, aggregates Avatar, Game Master,
+  and memory-compaction token usage, excludes judge tokens and cost, leaves full-run cost nullable
+  when runtime usage or pricing is incomplete, and atomically writes valid incremental reports with
+  bounded console summaries
 - the local report viewer serves the dashboard and report JSON on loopback, rejects unknown paths,
   and reads updated report snapshots without restarting
 - valid judge quality results flow through `runEvaluation` into passed, partial, or failed
