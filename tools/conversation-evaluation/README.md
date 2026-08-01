@@ -181,7 +181,8 @@ pnpm --filter @gami/conversation-evaluation view \
 Open the printed `http://127.0.0.1:4173` URL. The viewer shows the run summary, pass/partial/fail
 counts, model and token metrics, expected versus actual responses, structured criteria, judge
 diagnostics, provider and model comparison tables. Provider rows aggregate all selected models for
-each provider, while model rows retain the individual result. For comparison reports, use the model
+each provider, while model rows retain the individual result. Click any model-comparison column
+header to sort it; click again to reverse the order. For comparison reports, use the model
 selector to inspect the full question details for any completed model. Use **Print current model** to
 print the selected model, or **Print all models** to print the comparison summary followed by the
 complete overview and question details for every model. In the browser print dialog, choose **Save as

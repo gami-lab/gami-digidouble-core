@@ -38,6 +38,9 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
     .block { min-width: 0; }
     .label { color: #8e9ab0; font-size: .76rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
     .answer { white-space: pre-wrap; line-height: 1.5; color: #dce4f2; }
+    .sort-button { border: 0; background: transparent; color: inherit; padding: 0; font: inherit; font-weight: inherit; letter-spacing: inherit; text-transform: inherit; }
+    .sort-button:hover { background: transparent; color: #fff; text-decoration: underline; }
+    .print-sort-label { display: none; }
     .criteria { margin-top: 16px; padding-top: 14px; border-top: 1px solid #2c3850; }
     .criteria ul, .diagnostics ul { margin: 6px 0 0; padding-left: 20px; color: #c5d0e2; }
     .diagnostics { margin-top: 16px; padding: 14px; border-radius: 8px; background: #131a27; }
@@ -59,6 +62,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
       .diagnostics { background: #f2f2f2; }
       .model-print-section { break-before: page; }
       .model-print-section.first-model { break-before: auto; }
+      .print-sort-label { display: inline; }
       .question, table { break-inside: avoid; }
       h1, h2, h3 { color: #111; }
     }
@@ -74,6 +78,8 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
       let selectedModel = '';
       let filter = 'all';
       let printMode = 'screen';
+      let modelSortColumn = 1;
+      let modelSortDirection = 1;
       const el = (tag, className, content) => {
         const node = document.createElement(tag);
         if (className) node.className = className;
@@ -108,19 +114,52 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         const separator = String(model).indexOf('/');
         return separator > 0 ? String(model).slice(0, separator) : 'unknown';
       };
-      const comparisonTable = (headers, rows) => {
+      const comparisonTable = (headers, rows, sortable = false) => {
         const table = document.createElement('table');
         table.style.width = '100%';
         table.style.borderCollapse = 'collapse';
         const header = document.createElement('tr');
-        headers.forEach((label) => {
-          const cell = el('th', 'label', label);
+        headers.forEach((label, columnIndex) => {
+          const cell = el('th', 'label');
           cell.style.textAlign = 'left';
           cell.style.padding = '8px 6px';
+          if (sortable) {
+            const button = el('button', 'sort-button no-print', label);
+            button.type = 'button';
+            button.title = 'Sort by ' + label;
+            button.addEventListener('click', () => {
+              if (modelSortColumn === columnIndex) modelSortDirection *= -1;
+              else {
+                modelSortColumn = columnIndex;
+                modelSortDirection = 1;
+              }
+              render();
+            });
+            if (modelSortColumn === columnIndex) {
+              button.textContent = label + (modelSortDirection === 1 ? ' ↑' : ' ↓');
+              cell.setAttribute('aria-sort', modelSortDirection === 1 ? 'ascending' : 'descending');
+            }
+            cell.append(button, el('span', 'print-sort-label', label));
+          } else {
+            cell.textContent = label;
+          }
           header.append(cell);
         });
         table.append(header);
-        rows.forEach((values) => {
+        const sortedRows = sortable
+          ? [...rows].sort((left, right) => {
+              const leftValue = left[modelSortColumn];
+              const rightValue = right[modelSortColumn];
+              if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+                return (leftValue - rightValue) * modelSortDirection;
+              }
+              return String(leftValue).localeCompare(String(rightValue), undefined, {
+                numeric: true,
+                sensitivity: 'base',
+              }) * modelSortDirection;
+            })
+          : rows;
+        sortedRows.forEach((values) => {
           const row = document.createElement('tr');
           values.forEach((item) => {
             const cell = el('td', '', item);
@@ -177,7 +216,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
             costText(run.report.costEstimate && run.report.costEstimate.totalCostUsd),
           ];
         });
-        panel.append(comparisonTable(['Provider', 'Model', 'Status', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Estimated cost'], modelRows));
+        panel.append(comparisonTable(['Provider', 'Model', 'Status', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Estimated cost'], modelRows, true));
         return panel;
       };
       const questionCard = (question) => {
