@@ -31,6 +31,10 @@ describe('report viewer', () => {
       expect(pageHtml).toContain('memoryUsage')
       expect(pageHtml).toContain('runCost')
       expect(pageHtml).toContain('Tokens (send/receive)')
+      expect(pageHtml).toContain('Median latency')
+      expect(pageHtml).toContain('P90 latency')
+      expect(pageHtml).toContain('Max latency')
+      expect(pageHtml).toContain('latencyStats')
       expect(pageHtml).toContain('cents')
       expect(pageHtml).toContain("run.report.status === 'completed'")
 

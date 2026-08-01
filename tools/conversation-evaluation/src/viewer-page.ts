@@ -119,6 +119,26 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         ? costEstimate.totalCostUsd
         : avatarCost(costEstimate);
       const runTokens = (summary) => value(summary.totalRunInputTokens, summary.totalInputTokens || 0) + ' / ' + value(summary.totalRunOutputTokens, summary.totalOutputTokens || 0);
+      const latencyText = (latency) => latency === null ? 'n/a' : Math.round(latency) + ' ms';
+      const latencyStats = (runReport) => {
+        const latencies = (runReport.questions || [])
+          .map((question) => question.metrics && Number(question.metrics.latencyMs))
+          .filter((latency) => Number.isFinite(latency))
+          .sort((left, right) => left - right);
+        if (!latencies.length) return { median: null, p90: null, max: null };
+        const percentile = (fraction) => {
+          const index = (latencies.length - 1) * fraction;
+          const lower = Math.floor(index);
+          const upper = Math.ceil(index);
+          const weight = index - lower;
+          return latencies[lower] + (latencies[upper] - latencies[lower]) * weight;
+        };
+        return {
+          median: percentile(0.5),
+          p90: percentile(0.9),
+          max: latencies[latencies.length - 1],
+        };
+      };
       const providerOf = (model) => {
         const separator = String(model).indexOf('/');
         return separator > 0 ? String(model).slice(0, separator) : 'unknown';
@@ -159,8 +179,10 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           ? [...rows].sort((left, right) => {
               const leftValue = left[modelSortColumn];
               const rightValue = right[modelSortColumn];
-              if (typeof leftValue === 'number' && typeof rightValue === 'number') {
-                return (leftValue - rightValue) * modelSortDirection;
+              const leftNumber = typeof leftValue === 'number' ? leftValue : Number.parseFloat(String(leftValue));
+              const rightNumber = typeof rightValue === 'number' ? rightValue : Number.parseFloat(String(rightValue));
+              if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+                return (leftNumber - rightNumber) * modelSortDirection;
               }
               return String(leftValue).localeCompare(String(rightValue), undefined, {
                 numeric: true,
@@ -214,6 +236,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         panel.append(el('h2', '', 'Model comparison'));
         const modelRows = comparison.runs.filter((run) => run.report.status === 'completed').map((run) => {
           const summary = run.report.summary || {};
+          const latency = latencyStats(run.report);
           return [
             providerOf(run.model),
             run.model,
@@ -222,10 +245,13 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
             value(summary.failed, 0),
             summary.passRate === null || summary.passRate === undefined ? 'n/a' : Math.round(summary.passRate * 100) + '%',
             runTokens(summary),
+            latencyText(latency.median),
+            latencyText(latency.p90),
+            latencyText(latency.max),
             costText(runCost(run.report.costEstimate)),
           ];
         });
-        panel.append(comparisonTable(['Provider', 'Model', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Tokens (send/receive)', 'Estimated cost'], modelRows, true));
+        panel.append(comparisonTable(['Provider', 'Model', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Tokens (send/receive)', 'Median latency', 'P90 latency', 'Max latency', 'Estimated cost'], modelRows, true));
         return panel;
       };
       const questionCard = (question) => {
