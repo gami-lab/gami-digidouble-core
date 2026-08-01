@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
 <html lang="en">
 <head>
@@ -15,6 +16,8 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
     h3 { font-size: 1rem; }
     .muted { color: #9aa7bd; }
     .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .tabs { display: flex; gap: 6px; }
+    .tab-button.active { background: #2f4367; border-color: #6b8bc4; }
     button, select { border: 1px solid #3d4b68; border-radius: 8px; background: #1a2232; color: #e9edf5; padding: 8px 12px; font: inherit; }
     button { cursor: pointer; }
     button:hover { background: #26344e; }
@@ -75,7 +78,10 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
       const app = document.getElementById('app');
       let report = null;
       let comparison = null;
+      const ALL_MODELS = '__all_models__';
       let selectedModel = '';
+      let selectedQuestion = 'all';
+      let activeTab = 'overview';
       let filter = 'all';
       let printMode = 'screen';
       let reportFingerprint = null;
@@ -147,6 +153,8 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         const separator = String(model).indexOf('/');
         return separator > 0 ? String(model).slice(separator + 1) : String(model);
       };
+      const questionNumbers = (comparisonReport) => [...new Set(comparisonReport.runs.flatMap((run) => (run.report.questions || []).map((question) => question.questionNumber)))].sort((left, right) => left - right);
+      const questionResultFor = (run, questionNumber) => (run.report.questions || []).find((question) => question.questionNumber === questionNumber) || null;
       const comparisonTable = (headers, rows, sortable = false) => {
         const table = document.createElement('table');
         table.style.width = '100%';
@@ -257,6 +265,76 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         panel.append(comparisonTable(['Provider', 'Model', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Tokens (send/receive)', 'Median latency', 'P90 latency', 'Estimated cost'], modelRows, true));
         return panel;
       };
+      const questionDifficultyPanel = () => {
+        if (!comparison) return null;
+        const runs = comparison.runs.filter((run) => run.report.status === 'completed');
+        const panel = el('section', 'panel');
+        panel.append(el('h2', '', 'Question difficulty'));
+        panel.append(el('p', 'muted', 'Easy means every completed model passed. Hard means every completed model failed.'));
+        if (!runs.length) {
+          panel.append(el('div', 'empty', 'No completed model runs are available.'));
+          return panel;
+        }
+        const rows = questionNumbers(comparison).map((questionNumber) => {
+          const results = runs.map((run) => questionResultFor(run, questionNumber)).filter((question) => question !== null);
+          const passed = results.filter((question) => question.status === 'passed').length;
+          const partial = results.filter((question) => question.status === 'partial').length;
+          const failed = results.filter((question) => question.status === 'failed').length;
+          const complete = results.length === runs.length;
+          const difficulty = complete && passed === runs.length
+            ? 'Easy · all passed'
+            : complete && failed === runs.length
+              ? 'Hard · all failed'
+              : results.length < runs.length
+                ? 'Incomplete'
+                : 'Mixed';
+          const question = results[0];
+          return [questionNumber, question ? question.question : 'Question unavailable', passed, partial, failed, difficulty];
+        });
+        panel.append(comparisonTable(['Question', 'Prompt', 'Passed', 'Partial', 'Failed', 'Difficulty'], rows));
+        return panel;
+      };
+      const comparisonQuestionCard = (run, questionNumber) => {
+        const question = questionResultFor(run, questionNumber);
+        const card = el('article', 'question');
+        const head = el('div', 'question-head');
+        head.append(el('h3', '', modelNameOf(run.model) + ' (' + providerOf(run.model) + ')'));
+        head.append(el('span', 'badge ' + (question ? question.status : 'api_error'), question ? question.status : 'unavailable'));
+        card.append(head);
+        if (!question) {
+          card.append(el('p', 'error', 'No result recorded for this model.'));
+          return card;
+        }
+        const columns = el('div', 'columns');
+        columns.append(section('Question', el('div', 'answer', question.question)));
+        columns.append(section('Expected response', el('div', 'answer', question.expectedResponse)));
+        columns.append(section('Actual response', el('div', 'answer', value(question.actualResponse))));
+        card.append(columns);
+        if (question.judge) {
+          const diagnostics = el('div', 'diagnostics');
+          diagnostics.append(el('div', 'label', 'Judge diagnostics'));
+          diagnostics.append(el('p', 'reason', question.judge.reason));
+          card.append(diagnostics);
+        }
+        if (question.error) card.append(el('p', 'error', question.error.kind + ': ' + question.error.message));
+        card.append(el('div', 'metrics', metricText(question)));
+        return card;
+      };
+      const questionComparisonPanel = () => {
+        if (!comparison || selectedQuestion === 'all') return null;
+        const questionNumber = Number(selectedQuestion);
+        const panel = el('section', 'panel');
+        panel.append(el('h2', '', 'Question ' + questionNumber + ' across models'));
+        const question = comparison.runs.map((run) => questionResultFor(run, questionNumber)).find((result) => result !== null);
+        if (question) {
+          panel.append(section('Question', el('div', 'answer', question.question)));
+          panel.append(section('Expected response', el('div', 'answer', question.expectedResponse)));
+        }
+        const responses = el('div', 'question-list');
+        comparison.runs.forEach((run) => responses.append(comparisonQuestionCard(run, questionNumber)));
+        panel.append(responses);
+        return panel;
+      };
       const questionCard = (question) => {
         const card = el('article', 'question');
         const head = el('div', 'question-head');
@@ -313,7 +391,10 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         overview.append(meta);
         if (runReport.error) overview.append(el('p', 'error', runReport.error.kind + ': ' + runReport.error.message));
         container.append(overview);
-        const questions = (runReport.questions || []).filter((question) => printable || filter === 'all' || question.status === filter);
+        const questions = (runReport.questions || []).filter((question) =>
+          (printable || filter === 'all' || question.status === filter) &&
+          (printable || selectedQuestion === 'all' || String(question.questionNumber) === selectedQuestion),
+        );
         const panel = el('section', 'panel');
         panel.append(el('h2', '', 'Question details'));
         const questionList = el('div', 'question-list');
@@ -333,8 +414,25 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         header.append(title);
         const toolbar = el('div', 'toolbar');
         if (comparison) {
+          const tabs = el('div', 'tabs no-print');
+          [['overview', 'Overview'], ['questions', 'Questions']].forEach(([key, label]) => {
+            const tab = el('button', 'tab-button' + (activeTab === key ? ' active' : ''), label);
+            tab.type = 'button';
+            tab.addEventListener('click', () => {
+              activeTab = key;
+              render();
+            });
+            tabs.append(tab);
+          });
+          toolbar.append(tabs);
+        }
+        if (comparison) {
           const modelSelect = document.createElement('select');
           modelSelect.className = 'no-print';
+          const allModelsOption = el('option', '', 'All models');
+          allModelsOption.value = ALL_MODELS;
+          allModelsOption.selected = selectedModel === ALL_MODELS;
+          modelSelect.append(allModelsOption);
           comparison.runs.forEach((run) => {
             const option = el('option', '', run.model);
             option.value = run.model;
@@ -343,11 +441,33 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           });
           modelSelect.addEventListener('change', () => {
             selectedModel = modelSelect.value;
-            const selected = comparison.runs.find((run) => run.model === selectedModel);
-            if (selected) report = selected.report;
+            if (selectedModel !== ALL_MODELS) {
+              const selected = comparison.runs.find((run) => run.model === selectedModel);
+              if (selected) report = selected.report;
+            }
             render();
           });
           toolbar.append(el('span', 'muted no-print', 'Model:'), modelSelect);
+        }
+        if (comparison) {
+          const questionSelect = document.createElement('select');
+          questionSelect.className = 'no-print';
+          const allQuestionsOption = el('option', '', 'All questions');
+          allQuestionsOption.value = 'all';
+          allQuestionsOption.selected = selectedQuestion === 'all';
+          questionSelect.append(allQuestionsOption);
+          questionNumbers(comparison).forEach((questionNumber) => {
+            const option = el('option', '', 'Question ' + questionNumber);
+            option.value = String(questionNumber);
+            option.selected = selectedQuestion === option.value;
+            questionSelect.append(option);
+          });
+          questionSelect.addEventListener('change', () => {
+            selectedQuestion = questionSelect.value;
+            activeTab = 'questions';
+            render();
+          });
+          toolbar.append(el('span', 'muted no-print', 'Question:'), questionSelect);
         }
         const select = document.createElement('select');
         select.className = 'no-print';
@@ -376,11 +496,18 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         }
         header.append(toolbar);
         app.append(header);
-        const comparisonView = comparisonPanel();
-        if (comparisonView) app.append(comparisonView);
+        if (comparison && activeTab === 'questions') {
+          const difficultyView = questionDifficultyPanel();
+          if (difficultyView) app.append(difficultyView);
+          const questionView = questionComparisonPanel();
+          if (questionView) app.append(questionView);
+        } else {
+          const comparisonView = comparisonPanel();
+          if (comparisonView) app.append(comparisonView);
+        }
         if (printMode === 'all' && comparison) {
           comparison.runs.forEach((run, index) => app.append(renderRunDetails(run.report, run.model, true, index === 0)));
-        } else {
+        } else if (!comparison || activeTab === 'overview') {
           app.append(renderRunDetails(report, selectedModel || report.declaredModel || 'current model', printMode === 'current', true));
         }
       };
@@ -397,8 +524,10 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
             if (!comparison.runs.length) {
               report = null;
             } else {
-              const selected = comparison.runs.find((run) => run.model === selectedModel) || comparison.runs[0];
-              selectedModel = selected.model;
+              const selected = selectedModel === ALL_MODELS
+                ? comparison.runs[0]
+                : comparison.runs.find((run) => run.model === selectedModel) || comparison.runs[0];
+              if (selectedModel !== ALL_MODELS) selectedModel = selected.model;
               report = selected.report;
             }
           } else {

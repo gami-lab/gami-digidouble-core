@@ -192,7 +192,11 @@ each provider, while model rows retain only completed individual results. The mo
 full-run send/receive token counts, Avatar response median/P90 latency, and estimated prices in
 cents for easier scanning; latency excludes judge calls, and the JSON report continues to store
 monetary values in USD. Percentiles use linear interpolation between sorted Avatar response latency
-observations. Click any model-comparison column
+observations. Select **All models** to see per-question difficulty: questions where every completed
+model passes are marked easy, and questions where every completed model fails are marked hard. Select
+a specific question with **All models** to compare every model's actual response, judge result, and
+diagnostics side by side in the **Questions** tab. The **Overview** tab contains provider/model
+summaries and run details. Click any model-comparison column
 header to sort it; click again to reverse the order. For comparison reports, use the model
 selector to inspect the full question details for any completed model. Use **Print current model** to
 print the selected model, or **Print all models** to print the comparison summary followed by the
