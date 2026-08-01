@@ -20,6 +20,9 @@ describe('report viewer', () => {
       expect(pageHtml).toContain('Conversation evaluation report')
       expect(pageHtml).toContain('Model comparison')
       expect(pageHtml).toContain('Provider comparison')
+      expect(pageHtml).toContain('Print current model')
+      expect(pageHtml).toContain('Print all models')
+      expect(pageHtml).toContain('@media print')
 
       const report = await fetch(`${viewer.url}/report.json`)
       expect(report.status).toBe(200)

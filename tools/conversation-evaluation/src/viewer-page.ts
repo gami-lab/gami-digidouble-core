@@ -47,6 +47,21 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
     .empty, .loading, .error-state { padding: 28px; text-align: center; color: #9aa7bd; }
     .error-state { color: #ffabb0; }
     @media (max-width: 680px) { header { display: block; } .toolbar { margin-top: 16px; } }
+    @media print {
+      @page { margin: 12mm; }
+      :root { color-scheme: light; background: #fff; color: #111; }
+      body { background: #fff; color: #111; }
+      main { max-width: none; padding: 0; }
+      .no-print { display: none !important; }
+      .panel, .stat, .question { background: #fff; color: #111; box-shadow: none; border-color: #bbb; }
+      .muted, .stat span, .metrics, .label { color: #444; }
+      .answer, .reason { color: #111; }
+      .diagnostics { background: #f2f2f2; }
+      .model-print-section { break-before: page; }
+      .model-print-section.first-model { break-before: auto; }
+      .question, table { break-inside: avoid; }
+      h1, h2, h3 { color: #111; }
+    }
   </style>
 </head>
 <body>
@@ -58,6 +73,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
       let comparison = null;
       let selectedModel = '';
       let filter = 'all';
+      let printMode = 'screen';
       const el = (tag, className, content) => {
         const node = document.createElement(tag);
         if (className) node.className = className;
@@ -200,6 +216,34 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         card.append(el('div', 'metrics', metricText(question)));
         return card;
       };
+      const renderRunDetails = (runReport, model, printable, firstModel) => {
+        const container = el('div', printable ? 'model-print-section' + (firstModel ? ' first-model' : '') : '');
+        if (printable) container.append(el('h2', '', 'Model: ' + model));
+        const summary = runReport.summary || {};
+        const stats = el('div', 'grid');
+        stats.append(stat('Questions', value(summary.questions, 0)), stat('Evaluated', value(summary.evaluated, 0)), stat('Passed', value(summary.passed, 0)), stat('Partial', value(summary.partial, 0)), stat('Failed', value(summary.failed, 0)), stat('Pass rate', summary.passRate === null || summary.passRate === undefined ? 'n/a' : Math.round(summary.passRate * 100) + '%'));
+        container.append(stats);
+        const overview = el('section', 'panel');
+        overview.append(el('h2', '', 'Run overview'));
+        const meta = el('div', 'meta');
+        [['Status', runReport.status], ['Avatar model', value(runReport.declaredModel)], ['Observed Avatar', (summary.observedAvatarModels || []).join(', ') || '—'], ['Judge model', value(runReport.declaredJudgeModel)], ['Observed judge', (summary.observedJudgeModels || []).join(', ') || '—'], ['Tokens', value(summary.totalTokens, 0) + ' Avatar · ' + value(summary.totalJudgeTokens, 0) + ' judge'], ['Estimated cost', costText(runReport.costEstimate && runReport.costEstimate.totalCostUsd)]].forEach(([label, content]) => {
+          const item = el('span');
+          item.append(el('b', '', label + ': '), el('span', '', content));
+          meta.append(item);
+        });
+        overview.append(meta);
+        if (runReport.error) overview.append(el('p', 'error', runReport.error.kind + ': ' + runReport.error.message));
+        container.append(overview);
+        const questions = (runReport.questions || []).filter((question) => printable || filter === 'all' || question.status === filter);
+        const panel = el('section', 'panel');
+        panel.append(el('h2', '', 'Question details'));
+        const questionList = el('div', 'question-list');
+        if (!questions.length) questionList.append(el('div', 'empty', 'No questions match this filter.'));
+        questions.forEach((question) => questionList.append(questionCard(question)));
+        panel.append(questionList);
+        container.append(panel);
+        return container;
+      };
       const render = () => {
         if (!report) return;
         app.replaceChildren();
@@ -209,10 +253,11 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         title.append(el('p', 'muted', 'Scenario ' + value(report.scenarioId) + ' · Last updated ' + value(report.finishedAt || report.startedAt)));
         header.append(title);
         const toolbar = el('div', 'toolbar');
-        const refresh = el('button', '', 'Refresh now');
+        const refresh = el('button', 'no-print', 'Refresh now');
         refresh.addEventListener('click', load);
         if (comparison) {
           const modelSelect = document.createElement('select');
+          modelSelect.className = 'no-print';
           comparison.runs.forEach((run) => {
             const option = el('option', '', run.model);
             option.value = run.model;
@@ -225,9 +270,10 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
             if (selected) report = selected.report;
             render();
           });
-          toolbar.append(el('span', 'muted', 'Model:'), modelSelect);
+          toolbar.append(el('span', 'muted no-print', 'Model:'), modelSelect);
         }
         const select = document.createElement('select');
+        select.className = 'no-print';
         [['all', 'All questions'], ['passed', 'Passed'], ['partial', 'Partial'], ['failed', 'Failed'], ['api_error', 'API errors'], ['judge_error', 'Judge errors']].forEach(([key, label]) => {
           const option = el('option', '', label);
           option.value = key;
@@ -235,34 +281,31 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           select.append(option);
         });
         select.addEventListener('change', () => { filter = select.value; render(); });
-        toolbar.append(refresh, select);
+        const printCurrent = el('button', 'no-print', 'Print current model');
+        printCurrent.addEventListener('click', () => {
+          printMode = 'current';
+          render();
+          window.setTimeout(() => window.print(), 0);
+        });
+        toolbar.append(refresh, select, printCurrent);
+        if (comparison) {
+          const printModels = el('button', 'no-print', 'Print all models');
+          printModels.addEventListener('click', () => {
+            printMode = 'all';
+            render();
+            window.setTimeout(() => window.print(), 0);
+          });
+          toolbar.append(printModels);
+        }
         header.append(toolbar);
         app.append(header);
-        const summary = report.summary || {};
-        const stats = el('div', 'grid');
-        stats.append(stat('Questions', value(summary.questions, 0)), stat('Evaluated', value(summary.evaluated, 0)), stat('Passed', value(summary.passed, 0)), stat('Partial', value(summary.partial, 0)), stat('Failed', value(summary.failed, 0)), stat('Pass rate', summary.passRate === null || summary.passRate === undefined ? 'n/a' : Math.round(summary.passRate * 100) + '%'));
-        app.append(stats);
         const comparisonView = comparisonPanel();
         if (comparisonView) app.append(comparisonView);
-        const overview = el('section', 'panel');
-        overview.append(el('h2', '', 'Run overview'));
-        const meta = el('div', 'meta');
-        [['Status', report.status], ['Avatar model', value(report.declaredModel)], ['Observed Avatar', (summary.observedAvatarModels || []).join(', ') || '—'], ['Judge model', value(report.declaredJudgeModel)], ['Observed judge', (summary.observedJudgeModels || []).join(', ') || '—'], ['Tokens', value(summary.totalTokens, 0) + ' Avatar · ' + value(summary.totalJudgeTokens, 0) + ' judge'], ['Estimated cost', costText(report.costEstimate && report.costEstimate.totalCostUsd)]].forEach(([label, content]) => {
-          const item = el('span');
-          item.append(el('b', '', label + ': '), el('span', '', content));
-          meta.append(item);
-        });
-        overview.append(meta);
-        if (report.error) overview.append(el('p', 'error', report.error.kind + ': ' + report.error.message));
-        app.append(overview);
-        const questions = (report.questions || []).filter((question) => filter === 'all' || question.status === filter);
-        const panel = el('section', 'panel');
-        panel.append(el('h2', '', 'Question details'));
-        const questionList = el('div', 'question-list');
-        if (!questions.length) questionList.append(el('div', 'empty', 'No questions match this filter.'));
-        questions.forEach((question) => questionList.append(questionCard(question)));
-        panel.append(questionList);
-        app.append(panel);
+        if (printMode === 'all' && comparison) {
+          comparison.runs.forEach((run, index) => app.append(renderRunDetails(run.report, run.model, true, index === 0)));
+        } else {
+          app.append(renderRunDetails(report, selectedModel || report.declaredModel || 'current model', printMode === 'current', true));
+        }
       };
       async function load() {
         try {
@@ -287,6 +330,12 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           app.replaceChildren(el('div', 'error-state', error instanceof Error ? error.message : 'Unable to load report.'));
         }
       }
+      window.addEventListener('afterprint', () => {
+        if (printMode !== 'screen') {
+          printMode = 'screen';
+          render();
+        }
+      });
       void load();
       window.setInterval(load, 2000);
     })();
