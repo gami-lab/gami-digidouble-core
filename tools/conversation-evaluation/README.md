@@ -140,6 +140,7 @@ environment variable:
 | `--output`              | `EVALUATION_OUTPUT_PATH`          | `reports/evaluation-report.json` |
 | `--timeout-ms`          | `EVALUATION_TIMEOUT_MS`           | `30000`                          |
 | `--user-id`             | `EVALUATION_USER_ID`              | unique run-scoped ID             |
+| `--append`              | —                                 | `false`                          |
 
 The generated user ID prevents repeated runs from unintentionally sharing memory. Set
 `--user-id` when deliberately testing continuity across runs. `--judge-base-url` defaults to the
@@ -161,6 +162,12 @@ When `models` is present, the command writes one report per model next to the co
 for example `evaluation-report.openai-gpt-5-4.json`, and maintains the configured output as a
 comparison report. The comparison report is updated after each model, so an interrupted run keeps
 completed model results.
+
+Use `--append` with a multi-model definition to load the existing comparison report, preserve
+models already stored there, and rerun/upsert each model declared by the current definition. This
+allows a later run to add new models or replace previous results for the same model without
+discarding the rest of the comparison. The existing report must belong to the same test name and
+scenario; `--append` is not supported for a single-model report.
 
 Judge transport, contract, and malformed-output failures are retried up to three total attempts per
 question. Each retry and final failure is printed in progress logs. A model run with a final

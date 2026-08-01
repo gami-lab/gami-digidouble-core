@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 
 import type {
@@ -8,6 +9,13 @@ import type {
   TestDefinition,
 } from './contracts.js'
 import { writeJsonAtomically } from './report.js'
+
+export class ModelComparisonReportLoadError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ModelComparisonReportLoadError'
+  }
+}
 
 export function createModelRunDefinition(
   definition: TestDefinition,
@@ -48,6 +56,72 @@ export async function writeModelComparisonReport(
   report: ModelComparisonReport,
 ): Promise<void> {
   await writeJsonAtomically(outputPath, report)
+}
+
+export async function loadModelComparisonReport(
+  outputPath: string,
+): Promise<ModelComparisonReport | null> {
+  let content: string
+  try {
+    content = await readFile(outputPath, 'utf8')
+  } catch (error: unknown) {
+    if (isFileNotFound(error)) return null
+    throw new ModelComparisonReportLoadError('Unable to read the existing comparison report.')
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(content)
+  } catch {
+    throw new ModelComparisonReportLoadError('The existing comparison report is invalid JSON.')
+  }
+  if (!isModelComparisonReport(parsed)) {
+    throw new ModelComparisonReportLoadError(
+      'The existing output is not a valid model comparison report.',
+    )
+  }
+  return parsed
+}
+
+export function upsertModelRun(
+  report: ModelComparisonReport,
+  entry: ModelComparisonRun,
+): ModelComparisonReport {
+  const existingIndex = report.runs.findIndex((run) => run.model === entry.model)
+  const runs = [...report.runs]
+  if (existingIndex >= 0) runs[existingIndex] = entry
+  else runs.push(entry)
+  return { ...report, generatedAt: new Date().toISOString(), runs }
+}
+
+function isFileNotFound(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT'
+}
+
+function isModelComparisonReport(value: unknown): value is ModelComparisonReport {
+  if (!isRecord(value)) return false
+  if (
+    value['version'] !== 1 ||
+    value['reportType'] !== 'model_comparison' ||
+    typeof value['testName'] !== 'string' ||
+    typeof value['scenarioId'] !== 'string' ||
+    typeof value['generatedAt'] !== 'string' ||
+    !Array.isArray(value['runs'])
+  ) {
+    return false
+  }
+  return value['runs'].every((run) => {
+    if (!isRecord(run)) return false
+    return (
+      typeof run['model'] === 'string' &&
+      typeof run['reportPath'] === 'string' &&
+      isRecord(run['report'])
+    )
+  })
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export function renderModelComparisonSummary(report: ModelComparisonReport): string {

@@ -6,9 +6,11 @@ import { loadEvaluationConfig } from './config.js'
 import {
   createModelComparisonReport,
   createModelRunDefinition,
+  loadModelComparisonReport,
   modelReportPath,
   modelRunEntry,
   renderModelComparisonSummary,
+  upsertModelRun,
   writeModelComparisonReport,
 } from './comparison.js'
 import { CoreApiClient } from './core-api-client.js'
@@ -31,7 +33,7 @@ export function countConsecutiveModelFailures(
   return status === 'completed' ? 0 : previousCount + 1
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity, max-lines-per-function
 export async function runCli(
   argv: readonly string[] = process.argv.slice(2),
   environment: Readonly<Record<string, string | undefined>> = process.env,
@@ -65,6 +67,9 @@ export async function runCli(
     const progress = (message: string): void => {
       io.log(`[conversation-evaluation] ${message}`)
     }
+    if (config.append && definition.models === undefined) {
+      throw new Error('--append requires a definition with multiple models.')
+    }
     if (definition.models === undefined) {
       const output = await runEvaluation({
         definition,
@@ -80,10 +85,21 @@ export async function runCli(
       return output.report.status === 'completed' ? 0 : 1
     }
 
-    let comparison = createModelComparisonReport(definition)
+    const existingComparison = config.append
+      ? await loadModelComparisonReport(config.outputPath)
+      : null
+    let comparison = existingComparison ?? createModelComparisonReport(definition)
+    if (
+      comparison.testName !== definition.name ||
+      comparison.scenarioId !== definition.scenarioId
+    ) {
+      throw new Error('The existing comparison report belongs to a different definition.')
+    }
     let consecutiveFailures = 0
     try {
-      await writeModelComparisonReport(config.outputPath, comparison)
+      if (existingComparison === null) {
+        await writeModelComparisonReport(config.outputPath, comparison)
+      }
       for (const model of definition.models) {
         const modelDefinition = createModelRunDefinition(definition, model)
         const reportPath = modelReportPath(config.outputPath, model)
@@ -99,10 +115,7 @@ export async function runCli(
           interQuestionDelayMs: INTER_QUESTION_DELAY_MS,
           onProgress: progress,
         })
-        comparison = createModelComparisonReport(definition, [
-          ...comparison.runs,
-          modelRunEntry(model, output.report, reportPath),
-        ])
+        comparison = upsertModelRun(comparison, modelRunEntry(model, output.report, reportPath))
         await writeModelComparisonReport(config.outputPath, comparison)
         consecutiveFailures = countConsecutiveModelFailures(
           output.report.status,
@@ -144,6 +157,7 @@ function printHelp(io: CliIo): void {
       '  --output <path>                  or EVALUATION_OUTPUT_PATH',
       '  --timeout-ms <milliseconds>      or EVALUATION_TIMEOUT_MS',
       '  --user-id <id>                   or EVALUATION_USER_ID',
+      '  --append                         preserve and update an existing model comparison report',
     ].join('\n'),
   )
 }

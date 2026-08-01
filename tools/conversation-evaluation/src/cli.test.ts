@@ -31,6 +31,7 @@ describe('runCli', () => {
 
     await expect(runCli(['--help'], {}, io)).resolves.toBe(0)
     expect(io.logs[0]).toContain('Conversation evaluation')
+    expect(io.logs[0]).toContain('--append')
     expect(io.errors).toEqual([])
   })
 

@@ -1,11 +1,17 @@
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import type { RunReport, TestDefinition } from './contracts.js'
 import {
   createModelComparisonReport,
   createModelRunDefinition,
+  loadModelComparisonReport,
   modelReportPath,
   renderModelComparisonSummary,
+  upsertModelRun,
 } from './comparison.js'
 
 const definition: TestDefinition = {
@@ -99,5 +105,48 @@ describe('model comparison reports', () => {
       'Model | Status | Passed | Partial | Failed | Pass rate | Estimated cost',
     )
     expect(renderModelComparisonSummary(comparison)).toContain('openai/gpt-5.4')
+  })
+
+  it('upserts a rerun while preserving models from the existing comparison', () => {
+    const first = report('openai/gpt-5.4')
+    const second = report('xai/grok-4.3')
+    const comparison = createModelComparisonReport(definition, [
+      { model: first.declaredModel ?? 'openai/gpt-5.4', report: first, reportPath: 'first.json' },
+      { model: second.declaredModel ?? 'xai/grok-4.3', report: second, reportPath: 'second.json' },
+    ])
+    const rerun = { ...first, status: 'judge_error' as const }
+
+    const updated = upsertModelRun(comparison, {
+      model: 'openai/gpt-5.4',
+      report: rerun,
+      reportPath: 'rerun.json',
+    })
+
+    expect(updated.runs).toHaveLength(2)
+    expect(updated.runs[0]).toMatchObject({ model: 'openai/gpt-5.4', report: rerun })
+    expect(updated.runs[1]).toMatchObject({ model: 'xai/grok-4.3', report: second })
+  })
+
+  it('loads a valid existing comparison and returns null when it does not exist', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'conversation-evaluation-comparison-'))
+    const outputPath = join(directory, 'comparison.json')
+    const comparison = createModelComparisonReport(definition, [
+      { model: 'openai/gpt-5.4', report: report('openai/gpt-5.4'), reportPath: 'one.json' },
+    ])
+    await writeFile(outputPath, `${JSON.stringify(comparison)}\n`, 'utf8')
+
+    await expect(loadModelComparisonReport(outputPath)).resolves.toEqual(comparison)
+    await expect(loadModelComparisonReport(join(directory, 'missing.json'))).resolves.toBeNull()
+    await expect(readFile(outputPath, 'utf8')).resolves.toContain('model_comparison')
+  })
+
+  it('rejects malformed existing comparison reports', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'conversation-evaluation-comparison-'))
+    const outputPath = join(directory, 'comparison.json')
+    await writeFile(outputPath, '{"reportType":"run"}', 'utf8')
+
+    await expect(loadModelComparisonReport(outputPath)).rejects.toThrow(
+      'not a valid model comparison report',
+    )
   })
 })

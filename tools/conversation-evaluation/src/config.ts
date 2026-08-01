@@ -10,6 +10,7 @@ export type EvaluationConfig = {
   outputPath: string
   timeoutMs: number
   userId: string
+  append: boolean
 }
 
 export type EvaluationCliOptions = {
@@ -20,6 +21,7 @@ export type EvaluationCliOptions = {
   output?: string
   'timeout-ms'?: string
   'user-id'?: string
+  append?: boolean
   help?: boolean
 }
 
@@ -31,9 +33,9 @@ export class ConfigurationError extends Error {
 }
 
 export type EvaluationEnvironment = Readonly<Record<string, string | undefined>>
-type ValueOptionName = Exclude<keyof EvaluationCliOptions, 'help'>
+type ValueOptionName = Exclude<keyof EvaluationCliOptions, 'help' | 'append'>
 type ParsedToken = {
-  name: ValueOptionName | 'help'
+  name: ValueOptionName | 'append' | 'help'
   inlineValue?: string
 }
 
@@ -45,6 +47,7 @@ const OPTION_NAMES = new Set([
   'output',
   'timeout-ms',
   'user-id',
+  'append',
   'help',
 ])
 
@@ -97,6 +100,10 @@ export function parseCliArgs(argv: readonly string[]): EvaluationCliOptions {
       options.help = true
       continue
     }
+    if (parsedToken.name === 'append') {
+      options.append = true
+      continue
+    }
 
     const value = parsedToken.inlineValue ?? readNextValue(argv, index, parsedToken.name)
     if (parsedToken.inlineValue === undefined) {
@@ -115,8 +122,8 @@ function parseToken(token: string | undefined): ParsedToken {
   const separatorIndex = token.indexOf('=')
   const name = separatorIndex >= 0 ? token.slice(2, separatorIndex) : token.slice(2)
   if (!OPTION_NAMES.has(name)) throw new ConfigurationError(`Unknown option --${name}.`)
-  if (name === 'help' && separatorIndex >= 0) {
-    throw new ConfigurationError('--help does not accept a value.')
+  if ((name === 'help' || name === 'append') && separatorIndex >= 0) {
+    throw new ConfigurationError(`--${name} does not accept a value.`)
   }
 
   return {
@@ -182,6 +189,7 @@ export function loadEvaluationConfig(
     outputPath,
     timeoutMs,
     userId,
+    append: options.append === true,
   }
 }
 

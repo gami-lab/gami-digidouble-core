@@ -73,8 +73,11 @@ export { estimateTokenCost } from './pricing.js'
 export {
   createModelComparisonReport,
   createModelRunDefinition,
+  ModelComparisonReportLoadError,
+  loadModelComparisonReport,
   modelReportPath,
   renderModelComparisonSummary,
+  upsertModelRun,
 } from './comparison.js'
 export {
   aggregateRunSummary,

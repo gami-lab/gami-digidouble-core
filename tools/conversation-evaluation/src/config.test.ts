@@ -28,6 +28,7 @@ describe('evaluation configuration', () => {
         '--output',
         './reports/run.json',
         '--timeout-ms=1200',
+        '--append',
       ],
       environment,
     )
@@ -38,6 +39,7 @@ describe('evaluation configuration', () => {
       judgeBaseUrl: 'https://judge.example',
       outputPath: './reports/run.json',
       timeoutMs: 1200,
+      append: true,
     })
     expect(config.userId).toMatch(/^evaluation-/)
   })
@@ -51,6 +53,7 @@ describe('evaluation configuration', () => {
 
   it('uses the repository reports directory by default', () => {
     expect(loadEvaluationConfig([], environment).outputPath).toBe(DEFAULT_EVALUATION_OUTPUT_PATH)
+    expect(loadEvaluationConfig([], environment).append).toBe(false)
   })
 
   it('rejects missing secrets without including the secret in the error', () => {
@@ -86,5 +89,7 @@ describe('evaluation configuration', () => {
   it('rejects unknown options and options without values', () => {
     expect(() => parseCliArgs(['--unknown', 'value'])).toThrow(/Unknown option --unknown/)
     expect(() => parseCliArgs(['--definition'])).toThrow(/requires a value/)
+    expect(parseCliArgs(['--append'])).toEqual({ append: true })
+    expect(() => parseCliArgs(['--append=true'])).toThrow(/does not accept a value/)
   })
 })
