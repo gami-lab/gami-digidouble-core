@@ -30,6 +30,9 @@ describe('report viewer', () => {
       expect(pageHtml).toContain('gameMasterUsage')
       expect(pageHtml).toContain('memoryUsage')
       expect(pageHtml).toContain('runCost')
+      expect(pageHtml).toContain('Tokens (send/receive)')
+      expect(pageHtml).toContain('cents')
+      expect(pageHtml).toContain("run.report.status === 'completed'")
 
       const report = await fetch(`${viewer.url}/report.json`)
       expect(report.status).toBe(200)
