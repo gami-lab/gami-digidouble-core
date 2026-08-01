@@ -27,14 +27,9 @@ export function normalizeMetrics(metadata: {
 export function normalizeJudgeMetrics(metadata: {
   model: string
   latencyMs: number
-  inputTokens: number
-  outputTokens: number
 }): JudgeMetrics {
   return {
     model: metadata.model,
     latencyMs: metadata.latencyMs,
-    inputTokens: metadata.inputTokens,
-    outputTokens: metadata.outputTokens,
-    totalTokens: metadata.inputTokens + metadata.outputTokens,
   }
 }

@@ -106,10 +106,11 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         const avatar = question.metrics;
         const judge = question.judgeMetrics;
         const avatarText = avatar ? 'Avatar ' + avatar.latencyMs + 'ms · ' + avatar.totalTokens + ' tokens · ' + avatar.model : 'Avatar metrics unavailable';
-        const judgeText = judge ? 'Judge ' + judge.latencyMs + 'ms · ' + judge.totalTokens + ' tokens · ' + judge.model : 'Judge metrics unavailable';
+        const judgeText = judge ? 'Judge ' + judge.latencyMs + 'ms · ' + judge.model : 'Judge metrics unavailable';
         return avatarText + ' | ' + judgeText;
       };
       const costText = (cost) => cost === null || cost === undefined ? 'unavailable' : '$' + Number(cost).toFixed(6);
+      const avatarCost = (costEstimate) => costEstimate && costEstimate.avatar ? costEstimate.avatar.totalCostUsd : null;
       const providerOf = (model) => {
         const separator = String(model).indexOf('/');
         return separator > 0 ? String(model).slice(0, separator) : 'unknown';
@@ -185,7 +186,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           existing.partial += Number(summary.partial || 0);
           existing.failed += Number(summary.failed || 0);
           existing.evaluated += Number(summary.evaluated || 0);
-          const runCost = run.report.costEstimate && run.report.costEstimate.totalCostUsd;
+          const runCost = avatarCost(run.report.costEstimate);
           if (runCost === null || runCost === undefined) existing.costKnown = false;
           else existing.cost += Number(runCost);
           providerStats.set(provider, existing);
@@ -213,7 +214,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
             value(summary.partial, 0),
             value(summary.failed, 0),
             summary.passRate === null || summary.passRate === undefined ? 'n/a' : Math.round(summary.passRate * 100) + '%',
-            costText(run.report.costEstimate && run.report.costEstimate.totalCostUsd),
+            costText(avatarCost(run.report.costEstimate)),
           ];
         });
         panel.append(comparisonTable(['Provider', 'Model', 'Status', 'Passed', 'Partial', 'Failed', 'Pass rate', 'Estimated cost'], modelRows, true));
@@ -265,7 +266,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         const overview = el('section', 'panel');
         overview.append(el('h2', '', 'Run overview'));
         const meta = el('div', 'meta');
-        [['Status', runReport.status], ['Avatar model', value(runReport.declaredModel)], ['Observed Avatar', (summary.observedAvatarModels || []).join(', ') || '—'], ['Judge model', value(runReport.declaredJudgeModel)], ['Observed judge', (summary.observedJudgeModels || []).join(', ') || '—'], ['Tokens', value(summary.totalTokens, 0) + ' Avatar · ' + value(summary.totalJudgeTokens, 0) + ' judge'], ['Estimated cost', costText(runReport.costEstimate && runReport.costEstimate.totalCostUsd)]].forEach(([label, content]) => {
+        [['Status', runReport.status], ['Avatar model', value(runReport.declaredModel)], ['Observed Avatar', (summary.observedAvatarModels || []).join(', ') || '—'], ['Judge model', value(runReport.declaredJudgeModel)], ['Observed judge', (summary.observedJudgeModels || []).join(', ') || '—'], ['Tokens', value(summary.totalTokens, 0) + ' Avatar'], ['Estimated cost', costText(avatarCost(runReport.costEstimate))]].forEach(([label, content]) => {
           const item = el('span');
           item.append(el('b', '', label + ': '), el('span', '', content));
           meta.append(item);

@@ -149,7 +149,7 @@ The default output path is `reports/evaluation-report.json` relative to the
 `tools/conversation-evaluation` package. Use
 `--output` or `EVALUATION_OUTPUT_PATH` to place the report elsewhere. Reports contain one record per
 attempted question, including the Avatar response, observed model, latency, tokens, judge result,
-judge model and judge latency/token metrics, and error classification. Error records include the
+judge model and judge latency, and error classification. Error records include the
 failing evaluation phase when known. `passRate` uses only successfully judged questions as its denominator;
 `api_error` and `judge_error` are not quality failures. Reports are written atomically after setup
 and after every attempted question, so a stopped run remains readable and preserves completed work.
@@ -214,15 +214,16 @@ distinguishes essential facts, acceptable alternatives, omissions, contradiction
 detail, and the required score/`passed` consistency rules. Reports retain the judge reason, missing
 facts, and contradictions for each evaluated question, and the console summary displays them.
 
-Each report includes a `costEstimate` for Avatar, judge, and total cost when the model is in the
-tool's manually maintained public-price table. The estimate is calculated as
+Each report includes a `costEstimate` for Avatar and total Avatar cost when the model is in the
+tool's manually maintained public-price table. Judge execution is required for scoring, but judge
+tokens and judge price are intentionally excluded from evaluation measurements. The estimate is calculated as
 `inputTokens / 1,000,000 * inputPrice + outputTokens / 1,000,000 * outputPrice` using standard
 short-context list pricing, with no cache, batch, long-context, or provider-specific discount
-adjustments. Every estimate records its pricing source and `pricingAsOf` date. Unknown models make
-the affected estimate, and therefore the total, `null` while listing `unavailableModels`; this is
+adjustments. Every estimate records its pricing source and `pricingAsOf` date. Unknown Avatar models
+make the affected estimate, and therefore the total, `null` while listing `unavailableModels`; this is
 intentional because the API may expose token usage without a public price entry. Judge latency and
-token totals are retained for operational comparison. The console summary shows statuses, scores,
-models, bounded Avatar/judge metrics, and estimated cost without printing prompts or secrets. A completed run exits
+model identity are retained for operational comparison. The console summary shows statuses, scores,
+models, Avatar token metrics, judge latency, and estimated Avatar cost without printing prompts or secrets. A completed run exits
 successfully; setup, API, judge, or interrupted runs return a non-zero exit code. The package has no
 Core-internal, database, Redis, Langfuse, provider SDK, YAML, or new HTTP endpoint dependency.
 

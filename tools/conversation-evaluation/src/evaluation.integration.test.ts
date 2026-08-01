@@ -263,7 +263,6 @@ describe('composed scripted evaluation', () => {
       totalLatencyMs: 36,
       totalTokens: 30,
       totalJudgeLatencyMs: 24,
-      totalJudgeTokens: 45,
       totalCostUsd: null,
     })
     expect(output.report.modelMismatches).toHaveLength(6)

@@ -18,27 +18,16 @@ function uniqueStrings(values: readonly string[]): string[] {
   return [...new Set(values)]
 }
 
-// eslint-disable-next-line complexity
 function estimateRunCost(definition: TestDefinition, summary: RunSummary): RunCostEstimate {
   const avatarModel = definition.model ?? summary.observedAvatarModels[0]
-  const judgeModel = definition.judgeModel ?? summary.observedJudgeModels[0]
   const avatar =
     avatarModel === undefined
       ? null
       : estimateTokenCost(avatarModel, summary.totalInputTokens, summary.totalOutputTokens)
-  const judge =
-    judgeModel === undefined
-      ? null
-      : estimateTokenCost(judgeModel, summary.totalJudgeInputTokens, summary.totalJudgeOutputTokens)
-  const unavailableModels = [
-    ...(avatar === null && avatarModel !== undefined ? [avatarModel] : []),
-    ...(judge === null && judgeModel !== undefined ? [judgeModel] : []),
-  ]
+  const unavailableModels = avatar === null && avatarModel !== undefined ? [avatarModel] : []
   return {
     avatar,
-    judge,
-    totalCostUsd:
-      avatar === null || judge === null ? null : avatar.totalCostUsd + judge.totalCostUsd,
+    totalCostUsd: avatar?.totalCostUsd ?? null,
     unavailableModels,
   }
 }
@@ -90,15 +79,6 @@ export function aggregateRunSummary(
       ? avatarResults.reduce((total, result) => total + (result.metrics?.costUsd ?? 0), 0)
       : null,
     totalJudgeLatencyMs: sumJudgeMetrics(results, (result) => result.judgeMetrics?.latencyMs ?? 0),
-    totalJudgeInputTokens: sumJudgeMetrics(
-      results,
-      (result) => result.judgeMetrics?.inputTokens ?? 0,
-    ),
-    totalJudgeOutputTokens: sumJudgeMetrics(
-      results,
-      (result) => result.judgeMetrics?.outputTokens ?? 0,
-    ),
-    totalJudgeTokens: sumJudgeMetrics(results, (result) => result.judgeMetrics?.totalTokens ?? 0),
     observedAvatarModels: uniqueStrings(
       avatarResults.flatMap((result) => (result.metrics === null ? [] : [result.metrics.model])),
     ),
@@ -284,7 +264,7 @@ export function renderConsoleSummary(report: RunReport): string {
   })
   lines.push(
     `Totals: ${String(report.summary.totalLatencyMs)}ms/${String(report.summary.totalTokens)} tokens | cost=${report.summary.totalCostUsd === null ? 'unavailable' : String(report.summary.totalCostUsd)}`,
-    `Judge totals: ${String(report.summary.totalJudgeLatencyMs)}ms/${String(report.summary.totalJudgeTokens)} tokens`,
+    `Judge latency: ${String(report.summary.totalJudgeLatencyMs)}ms`,
   )
   if (report.modelMismatches.length > 0) {
     lines.push(`Model mismatches: ${String(report.modelMismatches.length)}`)

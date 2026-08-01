@@ -318,7 +318,7 @@ describe('runEvaluation', () => {
       },
       judgeMetrics: {
         model: 'observed-judge',
-        totalTokens: 15,
+        latencyMs: 8,
       },
       error: null,
     })
@@ -329,7 +329,6 @@ describe('runEvaluation', () => {
       partial: 0,
       passRate: 0,
       totalJudgeLatencyMs: 16,
-      totalJudgeTokens: 30,
     })
   })
 

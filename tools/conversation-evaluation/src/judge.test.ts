@@ -169,9 +169,6 @@ describe('semantic judge', () => {
       metrics: {
         model: 'observed-judge-model',
         latencyMs: 30,
-        inputTokens: 20,
-        outputTokens: 10,
-        totalTokens: 30,
       },
       result: { passed: true },
     })

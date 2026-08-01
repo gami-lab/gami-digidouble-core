@@ -43,15 +43,12 @@ function report(model: string): RunReport {
       totalTokens: 20,
       totalCostUsd: null,
       totalJudgeLatencyMs: 1,
-      totalJudgeInputTokens: 10,
-      totalJudgeOutputTokens: 10,
-      totalJudgeTokens: 20,
       observedAvatarModels: [model],
       observedJudgeModels: [],
     },
     modelMismatches: [],
     error: null,
-    costEstimate: { avatar: null, judge: null, totalCostUsd: null, unavailableModels: [] },
+    costEstimate: { avatar: null, totalCostUsd: null, unavailableModels: [] },
   }
 }
 

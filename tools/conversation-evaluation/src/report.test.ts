@@ -57,9 +57,6 @@ function result(
         ? {
             model: 'observed-judge',
             latencyMs: 8,
-            inputTokens: 4,
-            outputTokens: 3,
-            totalTokens: 7,
           }
         : null,
     judgeModel: status === 'judge_error' ? null : 'observed-judge',
@@ -100,7 +97,6 @@ describe('evaluation reports', () => {
       totalLatencyMs: 30,
       totalTokens: 15,
       totalJudgeLatencyMs: 16,
-      totalJudgeTokens: 14,
     })
     expect(aggregateRunSummary(3, results).totalCostUsd).toBeCloseTo(0.6)
   })
@@ -138,8 +134,27 @@ describe('evaluation reports', () => {
     const summary = renderConsoleSummary(report)
     expect(summary).toContain('Question 1: passed | score=5')
     expect(summary).toContain('Reason: Reason')
+    expect(summary).toContain('Judge latency:')
+    expect(summary).not.toContain('Judge totals:')
     expect(summary).not.toContain('What happened')
     expect(summary).not.toContain('answer')
+  })
+
+  it('estimates Avatar cost without adding judge cost', () => {
+    const report = buildRunReport({
+      definition: {
+        ...definition,
+        model: 'openai/gpt-5.4',
+        judgeModel: 'unknown/judge',
+      },
+      startedAt: '2026-07-29T00:00:00.000Z',
+      finishedAt: '2026-07-29T00:01:00.000Z',
+      results: [result(1, 'passed', 0.1)],
+    })
+
+    expect(report.costEstimate).not.toHaveProperty('judge')
+    expect(report.costEstimate.totalCostUsd).toBe(report.costEstimate.avatar?.totalCostUsd)
+    expect(report.costEstimate.unavailableModels).toEqual([])
   })
 
   it('creates a stable initial report with nullable execution identifiers', () => {

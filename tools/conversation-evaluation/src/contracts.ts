@@ -44,9 +44,6 @@ export type EvaluationMetrics = {
 export type JudgeMetrics = {
   model: string
   latencyMs: number
-  inputTokens: number
-  outputTokens: number
-  totalTokens: number
 }
 
 export type JudgeResult = {
@@ -110,9 +107,6 @@ export type RunSummary = {
   totalTokens: number
   totalCostUsd: number | null
   totalJudgeLatencyMs: number
-  totalJudgeInputTokens: number
-  totalJudgeOutputTokens: number
-  totalJudgeTokens: number
   observedAvatarModels: string[]
   observedJudgeModels: string[]
 }
@@ -150,7 +144,6 @@ export type TokenCostEstimate = {
 
 export type RunCostEstimate = {
   avatar: TokenCostEstimate | null
-  judge: TokenCostEstimate | null
   totalCostUsd: number | null
   unavailableModels: string[]
 }
