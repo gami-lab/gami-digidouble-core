@@ -143,6 +143,10 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         const separator = String(model).indexOf('/');
         return separator > 0 ? String(model).slice(0, separator) : 'unknown';
       };
+      const modelNameOf = (model) => {
+        const separator = String(model).indexOf('/');
+        return separator > 0 ? String(model).slice(separator + 1) : String(model);
+      };
       const comparisonTable = (headers, rows, sortable = false) => {
         const table = document.createElement('table');
         table.style.width = '100%';
@@ -239,7 +243,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           const latency = latencyStats(run.report);
           return [
             providerOf(run.model),
-            run.model,
+            modelNameOf(run.model),
             value(summary.passed, 0),
             value(summary.partial, 0),
             value(summary.failed, 0),
