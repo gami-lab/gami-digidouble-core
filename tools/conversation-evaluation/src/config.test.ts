@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   ConfigurationError,
+  DEFAULT_EVALUATION_OUTPUT_PATH,
   createRunScopedUserId,
   loadEvaluationConfig,
   parseCliArgs,
@@ -46,6 +47,10 @@ describe('evaluation configuration', () => {
     expect(
       loadEvaluationConfig([], { ...environment, EVALUATION_USER_ID: 'controlled-user' }).userId,
     ).toBe('controlled-user')
+  })
+
+  it('uses the repository reports directory by default', () => {
+    expect(loadEvaluationConfig([], environment).outputPath).toBe(DEFAULT_EVALUATION_OUTPUT_PATH)
   })
 
   it('rejects missing secrets without including the secret in the error', () => {

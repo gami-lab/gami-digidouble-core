@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
+export const DEFAULT_EVALUATION_OUTPUT_PATH = 'reports/evaluation-report.json'
+
 export type EvaluationConfig = {
   definitionPath: string
   avatarApiBaseUrl: string
@@ -160,7 +162,7 @@ export function loadEvaluationConfig(
   )
   const outputPath = requireNonEmpty(
     resolveValue(options, 'output', environment, 'EVALUATION_OUTPUT_PATH') ??
-      'evaluation-report.json',
+      DEFAULT_EVALUATION_OUTPUT_PATH,
     'Output path must be a non-empty string.',
   )
   const timeoutMs = readTimeout(

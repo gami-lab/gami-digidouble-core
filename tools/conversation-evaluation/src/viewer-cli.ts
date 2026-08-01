@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { DEFAULT_EVALUATION_OUTPUT_PATH } from './config.js'
 import { startReportViewer } from './viewer.js'
 
 export type ViewerCliIo = {
@@ -43,7 +44,7 @@ export async function runViewerCli(
 
 function parseViewerArgs(argv: readonly string[]): ViewerConfig | null {
   const config: ViewerConfig = {
-    reportPath: 'evaluation-report.json',
+    reportPath: DEFAULT_EVALUATION_OUTPUT_PATH,
     host: '127.0.0.1',
     port: 4173,
   }
@@ -79,10 +80,10 @@ function printHelp(io: ViewerCliIo): void {
       'Conversation evaluation report viewer',
       '',
       'Usage:',
-      '  pnpm --filter @gami/conversation-evaluation view --report ./evaluation-report.json',
+      `  pnpm --filter @gami/conversation-evaluation view --report ./${DEFAULT_EVALUATION_OUTPUT_PATH}`,
       '',
       'Options:',
-      '  --report <path>  JSON report path (default: ./evaluation-report.json)',
+      `  --report <path>  JSON report path (default: ./${DEFAULT_EVALUATION_OUTPUT_PATH})`,
       '  --host <host>    Bind host (default: 127.0.0.1)',
       '  --port <port>    Bind port (default: 4173; use 0 for an available port)',
     ].join('\n'),

@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "name": "Max Lorenzo corrected baseline",
+  "scenarioId": "scenario_c1a8ec89-6eb2-40a6-88a8-fabe4b3ed10a",
+  "initialAvatarId": "avatar_248e29c5-73cc-47e1-95ac-b1e78c7ddea1",
+  "models": [
+    "openai/gpt-5.6-terra",
+    "openai/gpt-5.6-luna",
+    "anthropic/claude-sonnet-5",
+    "mistral/mistral-small-4"
+  ],
+  "judgeModel": "openai/gpt-5.4-mini",
+  "questions": [
+    {
+      "question": "Avec qui es-tu monté au chalet ?",
+      "expectedResponse": "Avec Emma, Léo et Ava.",
+      "requiredFacts": [
+        "Emma a participé au voyage",
+        "Léo a participé au voyage",
+        "Ava a participé au voyage"
+      ],
+      "acceptedAlternatives": [
+        "Avec ma compagne Emma et mes enfants Léo et Ava",
+        "Avec Emma et nos deux enfants Léo et Ava"
+      ],
+      "forbiddenClaims": ["Mona a participé au voyage vers le chalet"]
+    },
+    {
+      "question": "Où est Mona maintenant ?",
+      "expectedResponse": "Mona est dans un camp de quarantaine.",
+      "requiredFacts": ["Mona se trouve dans un camp de quarantaine"],
+      "acceptedAlternatives": [
+        "Elle est enfermée dans un camp",
+        "Elle a été placée dans un camp de quarantaine"
+      ],
+      "forbiddenClaims": [
+        "Mona est toujours chez son grand-père",
+        "Mona était au chalet avec la famille"
+      ]
+    },
+    {
+      "question": "Est-ce qu'Ava a été contaminée ?",
+      "expectedResponse": "Oui. Ava annonce à la fin qu'elle est devenue un garçon.",
+      "requiredFacts": ["Ava a été contaminée ou transformée"],
+      "acceptedAlternatives": [
+        "Oui",
+        "Oui, elle est devenue protogyne",
+        "Oui, elle annonce être devenue un garçon"
+      ],
+      "forbiddenClaims": ["Ava n'a pas été contaminée", "La contamination d'Ava reste inconnue"]
+    },
+    {
+      "question": "Qui est le premier humain mort dans les événements du chalet ?",
+      "expectedResponse": "Lise ou l'homme que Max prenait alors pour Peter.",
+      "requiredFacts": ["Le premier mort humain est la personne que Max avait attachée à l'abri"],
+      "acceptedAlternatives": [
+        "Lise",
+        "Le faux Peter",
+        "La sœur de Peter",
+        "La personne attachée sous l'abri"
+      ],
+      "forbiddenClaims": [
+        "Le vrai Peter est le premier mort",
+        "Philippe est le premier mort",
+        "Agotha est la première morte"
+      ]
+    },
+    {
+      "question": "Quelles personnes as-tu directement tuées avec une arme ?",
+      "expectedResponse": "Max a abattu l'homme à la casquette à l'hôtel et a tiré avec Anne sur Philippe.",
+      "requiredFacts": [
+        "Max a abattu l'homme à la casquette à l'hôtel",
+        "Max a participé avec Anne à la mort de Philippe"
+      ],
+      "acceptedAlternatives": [
+        "L'homme à la casquette et Philippe",
+        "Un homme armé à l'hôtel et Philippe",
+        "J'ai tué l'homme à la casquette et j'ai tiré sur Philippe avec Anne"
+      ],
+      "forbiddenClaims": [
+        "Max a tué Agotha",
+        "Max a tué Karine",
+        "Max a tué l'homme roux",
+        "Max a tué Peter"
+      ]
+    },
+    {
+      "question": "Combien de fois avez-vous rencontré un chevreuil ?",
+      "expectedResponse": "Deux fois : une première fois à l'arrivée au chalet et une seconde fois après la confrontation finale avec Ava.",
+      "requiredFacts": ["Il y a eu deux rencontres avec un chevreuil"],
+      "acceptedAlternatives": [
+        "Deux fois",
+        "À l'arrivée au chalet et à la fin",
+        "Une première fois dans la neige, puis une autre fois avec Ava"
+      ],
+      "forbiddenClaims": [
+        "Il n'y a eu qu'une seule rencontre avec un chevreuil",
+        "Il n'y a eu aucun chevreuil"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,386 @@
+{
+  "version": 1,
+  "name": "Max Lorenzo corrected baseline",
+  "scenarioId": "scenario_c1a8ec89-6eb2-40a6-88a8-fabe4b3ed10a",
+  "initialAvatarId": "avatar_248e29c5-73cc-47e1-95ac-b1e78c7ddea1",
+  "models": [
+    "openai/gpt-5.6-terra",
+    "openai/gpt-5.6-luna",
+    "openai/gpt-5.4",
+    "openai/gpt-5.4-mini",
+    "openai/gpt-4o-mini",
+    "anthropic/claude-sonnet-5",
+    "anthropic/claude-sonnet-4-6",
+    "anthropic/claude-haiku-4-5",
+    "xai/grok-4.3",
+    "mistral/mistral-small-4"
+  ],
+  "judgeModel": "openai/gpt-5.4-mini",
+  "questions": [
+    {
+      "question": "Avec qui es-tu monté au chalet ?",
+      "expectedResponse": "Avec Emma, Léo et Ava.",
+      "requiredFacts": [
+        "Emma a participé au voyage",
+        "Léo a participé au voyage",
+        "Ava a participé au voyage"
+      ],
+      "acceptedAlternatives": [
+        "Avec ma compagne Emma et mes enfants Léo et Ava",
+        "Avec Emma et nos deux enfants Léo et Ava"
+      ],
+      "forbiddenClaims": ["Mona a participé au voyage vers le chalet"]
+    },
+    {
+      "question": "Où est Mona maintenant ?",
+      "expectedResponse": "Mona est dans un camp de quarantaine.",
+      "requiredFacts": ["Mona se trouve dans un camp de quarantaine"],
+      "acceptedAlternatives": [
+        "Elle est enfermée dans un camp",
+        "Elle a été placée dans un camp de quarantaine"
+      ],
+      "forbiddenClaims": [
+        "Mona est toujours chez son grand-père",
+        "Mona était au chalet avec la famille"
+      ]
+    },
+    {
+      "question": "Qui a envoyé Mona dans un camp de quarantaine ?",
+      "expectedResponse": "Le père de Max, qui est le grand-père de Mona.",
+      "requiredFacts": ["Le père de Max a envoyé Mona dans le camp"],
+      "acceptedAlternatives": ["Mon père", "Son grand-père", "Le grand-père de Mona"],
+      "forbiddenClaims": ["Max a envoyé Mona dans le camp", "Emma a envoyé Mona dans le camp"]
+    },
+    {
+      "question": "Est-ce qu'Ava a été contaminée ?",
+      "expectedResponse": "Oui. Ava annonce à la fin qu'elle est devenue un garçon.",
+      "requiredFacts": ["Ava a été contaminée ou transformée"],
+      "acceptedAlternatives": [
+        "Oui",
+        "Oui, elle est devenue protogyne",
+        "Oui, elle annonce être devenue un garçon"
+      ],
+      "forbiddenClaims": ["Ava n'a pas été contaminée", "La contamination d'Ava reste inconnue"]
+    },
+    {
+      "question": "La contamination ou la transformation d'Emma est-elle confirmée ?",
+      "expectedResponse": "Non, elle n'est pas encore confirmée. Emma prend toutefois Ava transformée dans ses bras, ce qui l'expose au virus.",
+      "requiredFacts": [
+        "La contamination ou la transformation d'Emma n'est pas explicitement confirmée"
+      ],
+      "acceptedAlternatives": [
+        "Non, pas encore",
+        "On ne sait pas encore",
+        "Elle a été exposée en prenant Ava dans ses bras",
+        "Elle risque d'avoir été contaminée, mais ce n'est pas confirmé"
+      ],
+      "forbiddenClaims": [
+        "Emma est explicitement devenue un homme",
+        "Le récit confirme avec certitude qu'Emma est transformée",
+        "Emma ne court aucun risque de contamination"
+      ]
+    },
+    {
+      "question": "Qui est le premier humain mort dans les événements du chalet ?",
+      "expectedResponse": "Lise ou l'homme que Max prenait alors pour Peter.",
+      "requiredFacts": ["Le premier mort est la personne que Max avait attachée à l'abri"],
+      "acceptedAlternatives": [
+        "Lise",
+        "Le faux Peter",
+        "La sœur de Peter",
+        "La personne attachée sous l'abri"
+      ],
+      "forbiddenClaims": [
+        "Le vrai Peter est le premier mort",
+        "Philippe est le premier mort",
+        "Agotha est la première morte"
+      ]
+    },
+    {
+      "question": "Qui était le faux Peter en réalité ?",
+      "expectedResponse": "Lise, la sœur du vrai Peter, devenue protogyne.",
+      "requiredFacts": ["Le faux Peter était Lise", "Lise était la sœur du vrai Peter"],
+      "acceptedAlternatives": ["Lise", "La sœur de Peter", "Lise, devenue protogyne"],
+      "forbiddenClaims": [
+        "Son identité est inconnue",
+        "C'était un inconnu sans lien avec Peter",
+        "C'était le vrai Peter"
+      ]
+    },
+    {
+      "question": "Quelles personnes as-tu directement tuées avec une arme ?",
+      "expectedResponse": "Max a abattu l'homme à la casquette à l'hôtel et a tiré avec Anne sur Philippe.",
+      "requiredFacts": [
+        "Max a abattu l'homme à la casquette à l'hôtel",
+        "Max a participé avec Anne à la mort de Philippe"
+      ],
+      "acceptedAlternatives": [
+        "L'homme à la casquette et Philippe",
+        "Un homme armé à l'hôtel et Philippe",
+        "J'ai tué l'homme à la casquette et j'ai tiré sur Philippe avec Anne"
+      ],
+      "forbiddenClaims": [
+        "Max a tué Agotha",
+        "Max a tué Karine",
+        "Max a tué l'homme roux",
+        "Max a tué Peter"
+      ]
+    },
+    {
+      "question": "Qu'avez-vous fait des corps après la confrontation finale au chalet ?",
+      "expectedResponse": "Les corps de Philippe, Agotha et Karine ont été placés dans la grange. Le corps de Peter a été ramené à son chalet avec Anne et Louise.",
+      "requiredFacts": [
+        "Philippe, Agotha et Karine ont été placés dans la grange",
+        "Peter a été ramené à son chalet avec Anne et Louise"
+      ],
+      "acceptedAlternatives": [
+        "Nous avons mis les trois corps dans la grange et ramené Peter chez lui",
+        "Léo et moi avons placé Philippe, Agotha et Karine dans la grange"
+      ],
+      "forbiddenClaims": [
+        "Tous les corps ont été placés dans la grange",
+        "Lise a été placée dans la grange",
+        "Peter a été placé dans la grange"
+      ]
+    },
+    {
+      "question": "Qu'avez-vous fait du corps de Lise ?",
+      "expectedResponse": "Max, Peter et Anne ont dégagé son corps de l'abri, puis l'ont jeté dans un gouffre.",
+      "requiredFacts": [
+        "Le corps de Lise a été dégagé de l'abri effondré",
+        "Le corps a été jeté dans un gouffre"
+      ],
+      "acceptedAlternatives": [
+        "Nous l'avons jetée dans un gouffre",
+        "Peter, Anne et moi avons transporté le corps jusqu'au gouffre"
+      ],
+      "forbiddenClaims": [
+        "Le corps de Lise a été placé dans la grange",
+        "Le corps de Lise a été ramené à Lausanne"
+      ]
+    },
+    {
+      "question": "Que s'est-il passé avec le vrai Peter ?",
+      "expectedResponse": "Agotha lui a tiré dessus pendant la confrontation finale et l'a tué.",
+      "requiredFacts": ["Agotha a tiré sur Peter", "Peter est mort de tir"],
+      "acceptedAlternatives": [
+        "Agotha l'a tué",
+        "Il a été mortellement touché par Agotha",
+        "Le pistolet d'Agotha est parti pendant qu'ils se tenaient en joue"
+      ],
+      "forbiddenClaims": [
+        "Max a tué Peter",
+        "Peter est mort sous l'abri",
+        "Peter a été tué à l'hôtel"
+      ]
+    },
+    {
+      "question": "Es-tu responsable de la mort d'une autre personne que Lise ?",
+      "expectedResponse": "Oui. Max a tué l'homme à la casquette à l'hôtel et a participé avec Anne à la mort de Philippe.",
+      "requiredFacts": [
+        "La réponse est oui",
+        "Au moins l'homme à la casquette ou Philippe est correctement mentionné"
+      ],
+      "acceptedAlternatives": [
+        "Oui, Philippe",
+        "Oui, l'homme à la casquette",
+        "Oui, l'homme à la casquette et Philippe"
+      ],
+      "forbiddenClaims": [
+        "Max n'est responsable d'aucune autre mort",
+        "Max a tué Agotha",
+        "Max a tué Karine"
+      ]
+    },
+    {
+      "question": "Combien de personnes as-tu directement tuées avec une arme ?",
+      "expectedResponse": "Deux : l'homme à la casquette à l'hôtel et Philippe, sur lequel Max et Anne ont tiré simultanément.",
+      "requiredFacts": [
+        "Le nombre est deux",
+        "L'homme à la casquette est l'une des deux personnes",
+        "Philippe est l'autre personne"
+      ],
+      "acceptedAlternatives": [
+        "Deux",
+        "L'homme à la casquette et Philippe",
+        "Deux, dont Philippe avec Anne"
+      ],
+      "forbiddenClaims": [
+        "Max a directement tué Agotha",
+        "Max a directement tué Karine",
+        "Max a directement tué l'homme roux",
+        "Max a directement tué Peter"
+      ]
+    },
+    {
+      "question": "Combien de fois avez-vous rencontré un chevreuil ?",
+      "expectedResponse": "Deux fois : une première fois à l'arrivée au chalet et une seconde fois après la confrontation finale avec Ava.",
+      "requiredFacts": ["Il y a eu deux rencontres avec un chevreuil"],
+      "acceptedAlternatives": [
+        "Deux fois",
+        "À l'arrivée au chalet et à la fin",
+        "Une première fois dans la neige, puis une autre fois avec Ava"
+      ],
+      "forbiddenClaims": [
+        "Il n'y a eu qu'une seule rencontre avec un chevreuil",
+        "Il n'y a eu aucun chevreuil"
+      ]
+    },
+    {
+      "question": "Que s'est-il passé lors de la première rencontre avec le chevreuil ?",
+      "expectedResponse": "À leur arrivée, la famille a trouvé un chevreuil agonisant dans la neige devant le chalet. Il a ensuite disparu.",
+      "requiredFacts": [
+        "Le chevreuil était agonisant dans la neige à l'arrivée",
+        "Le chevreuil a ensuite disparu"
+      ],
+      "acceptedAlternatives": [
+        "Nous l'avons trouvé blessé devant le chalet, puis il n'était plus là",
+        "Il gisait dans la neige et avait disparu quand Max est ressorti"
+      ],
+      "forbiddenClaims": [
+        "Ava lui a donné une barre de céréales lors de la première rencontre",
+        "Max a tué le chevreuil"
+      ]
+    },
+    {
+      "question": "Pourquoi êtes-vous partis vous réfugier à la montagne ?",
+      "expectedResponse": "La famille voulait quitter Lausanne pour protéger Emma et Ava après le retour de Mona, devenue protogyne, devant l'appartement. Le père de Max leur a proposé le chalet d'Éric.",
+      "requiredFacts": [
+        "La famille voulait protéger Emma et Ava",
+        "Le départ est lié au danger créé par la protogynie et au retour de Mona"
+      ],
+      "acceptedAlternatives": [
+        "Pour mettre Emma et Ava en sécurité",
+        "Parce que la situation à Lausanne était devenue trop dangereuse",
+        "Après la scène avec Mona devant l'appartement"
+      ],
+      "forbiddenClaims": [
+        "La famille est partie uniquement pour des vacances",
+        "Mona est partie avec eux"
+      ]
+    },
+    {
+      "question": "Pourquoi Mona ne pouvait-elle plus vivre avec vous ?",
+      "expectedResponse": "Mona était devenue protogyne. Max et Emma craignaient qu'elle contamine Emma ou Ava et l'ont donc envoyée temporairement chez son grand-père.",
+      "requiredFacts": [
+        "Mona était devenue protogyne",
+        "La famille craignait une contamination d'Emma ou Ava"
+      ],
+      "acceptedAlternatives": [
+        "Parce qu'elle risquait de contaminer Emma et Ava",
+        "Nous l'avons envoyée chez son grand-père après sa transformation"
+      ],
+      "forbiddenClaims": [
+        "Mona a été chassée parce qu'elle avait commis un crime",
+        "Mona vivait encore normalement dans l'appartement"
+      ]
+    },
+    {
+      "question": "Pourquoi avez-vous eu un pneu crevé sur la route du chalet ?",
+      "expectedResponse": "Le pneu a été percé par un chausse-trape placé sur la route.",
+      "requiredFacts": ["Un chausse-trape a percé le pneu"],
+      "acceptedAlternatives": [
+        "À cause d'un piège métallique",
+        "Quelqu'un avait placé un chausse-trape sur la route"
+      ],
+      "forbiddenClaims": [
+        "La crevaison a été causée par un nid-de-poule",
+        "La crevaison a été causée uniquement par le mauvais état de la route",
+        "Le pneu s'est dégonflé naturellement"
+      ]
+    },
+    {
+      "question": "Pourquoi Emma a-t-elle pensé que ce n'était peut-être pas le chalet d'Éric ?",
+      "expectedResponse": "Les clés ne fonctionnaient pas et un autre chalet avait été aperçu à proximité. Éric n'apparaissait également sur aucune des photos trouvées dans le chalet.",
+      "requiredFacts": ["Les clés ne fonctionnaient pas"],
+      "acceptedAlternatives": [
+        "Les clés ne permettaient pas d'ouvrir la porte",
+        "Elle avait vu un autre chalet à proximité",
+        "Éric n'apparaissait sur aucune photo",
+        "Plusieurs indices lui faisaient penser qu'ils s'étaient trompés de chalet"
+      ],
+      "forbiddenClaims": [
+        "Max connaissait parfaitement le chalet",
+        "Max était certain que ce n'était pas le chalet d'Éric",
+        "Éric leur avait confirmé qu'ils étaient au mauvais endroit"
+      ]
+    },
+    {
+      "question": "Qu'est-ce qui vous a fait comprendre que quelqu'un était récemment passé près du chalet ?",
+      "expectedResponse": "Max a trouvé un thermos contenant encore une boisson chaude dans le minibus. Un carton de nourriture fraîche a ensuite été déposé près du chalet.",
+      "requiredFacts": ["Le thermos encore chaud indiquait une présence récente"],
+      "acceptedAlternatives": [
+        "Le thermos encore chaud",
+        "Le thermos et le carton de nourriture fraîche",
+        "Quelqu'un avait laissé une boisson encore chaude dans le véhicule"
+      ],
+      "forbiddenClaims": [
+        "Le pneu crevé du minibus prouvait à lui seul une présence récente",
+        "Le minibus était vide et aucun indice ne suggérait une présence récente"
+      ]
+    },
+    {
+      "question": "Pourquoi as-tu attaché l'homme que tu croyais être Peter ?",
+      "expectedResponse": "Max craignait qu'il ait approché ou contaminé Ava. Il l'a neutralisé pendant qu'il allait vérifier son histoire et retrouver sa prétendue famille.",
+      "requiredFacts": ["Max voulait neutraliser l'homme pendant qu'il vérifiait son histoire"],
+      "acceptedAlternatives": [
+        "Pour l'empêcher de partir pendant que je vérifiais son histoire",
+        "Parce que je le considérais comme une menace pour Ava",
+        "Pour retrouver sa femme et sa fille avant de le libérer"
+      ],
+      "forbiddenClaims": [
+        "Max l'a attaché pour le tuer",
+        "Max savait déjà que cet homme était Lise"
+      ]
+    },
+    {
+      "question": "Comment as-tu découvert que le vrai Peter était encore vivant ?",
+      "expectedResponse": "À l'hôtel, Max et Anne ont trouvé le vrai Peter attaché, bâillonné et enfermé derrière une porte.",
+      "requiredFacts": [
+        "Le vrai Peter a été retrouvé à l'hôtel",
+        "Il était attaché ou retenu prisonnier"
+      ],
+      "acceptedAlternatives": [
+        "Nous l'avons trouvé prisonnier à l'hôtel",
+        "Anne l'a découvert attaché et bâillonné derrière une porte"
+      ],
+      "forbiddenClaims": [
+        "Peter a été retrouvé sous l'abri effondré",
+        "Peter est revenu seul au chalet",
+        "Le faux Peter avait pris sa place à l'hôtel"
+      ]
+    },
+    {
+      "question": "Quels faits importants as-tu cachés à Emma pendant le séjour ?",
+      "expectedResponse": "Max a caché que Mona avait été envoyée dans un camp, que le thermos du minibus était encore chaud et que l'homme qu'il croyait être Peter était mort sous l'abri.",
+      "requiredFacts": [
+        "Max a caché à Emma que Mona avait été envoyée dans un camp",
+        "Max a caché la présence révélée par le thermos ou la mort supposée de Peter"
+      ],
+      "acceptedAlternatives": [
+        "Le camp de Mona et la mort supposée de Peter",
+        "Le thermos chaud, le camp de Mona et la mort de l'homme attaché",
+        "J'ai caché plusieurs choses, surtout ce qui était arrivé à Mona"
+      ],
+      "forbiddenClaims": [
+        "Max n'a rien caché à Emma",
+        "Emma savait depuis le début que Mona était dans un camp"
+      ]
+    },
+    {
+      "question": "Pourquoi Emma s'est-elle sentie trahie par Max ?",
+      "expectedResponse": "Max lui avait caché que Mona avait été envoyée dans un camp, alors qu'il l'avait révélé à Philippe pendant sa soirée arrosée. Il avait également pris plusieurs décisions importantes sans en parler à Emma.",
+      "requiredFacts": ["Max a caché à Emma que Mona était dans un camp"],
+      "acceptedAlternatives": [
+        "Parce que Philippe savait pour Mona avant elle",
+        "Parce que je lui avais caché ce qui était arrivé à Mona",
+        "Parce que je prenais des décisions et lui cachais des informations importantes"
+      ],
+      "forbiddenClaims": [
+        "Emma s'est sentie trahie uniquement à cause du minibus",
+        "Emma savait déjà tout concernant Mona",
+        "Philippe avait appris l'information directement du père de Max"
+      ]
+    }
+  ]
+}

@@ -131,21 +131,22 @@ authenticated `POST /v1/exchange` route. The API key is accepted only through `-
 `EVALUATION_API_KEY`, or `API_KEY` and is never printed. Other options can be supplied by flag or
 environment variable:
 
-| Option                  | Environment                       | Default                  |
-| ----------------------- | --------------------------------- | ------------------------ |
-| `--definition`          | `EVALUATION_DEFINITION_PATH`      | required                 |
-| `--avatar-api-base-url` | `AVATAR_API_BASE_URL`             | required                 |
-| `--api-key`             | `EVALUATION_API_KEY` or `API_KEY` | required                 |
-| `--judge-base-url`      | `JUDGE_API_BASE_URL`              | omitted                  |
-| `--output`              | `EVALUATION_OUTPUT_PATH`          | `evaluation-report.json` |
-| `--timeout-ms`          | `EVALUATION_TIMEOUT_MS`           | `30000`                  |
-| `--user-id`             | `EVALUATION_USER_ID`              | unique run-scoped ID     |
+| Option                  | Environment                       | Default                          |
+| ----------------------- | --------------------------------- | -------------------------------- |
+| `--definition`          | `EVALUATION_DEFINITION_PATH`      | required                         |
+| `--avatar-api-base-url` | `AVATAR_API_BASE_URL`             | required                         |
+| `--api-key`             | `EVALUATION_API_KEY` or `API_KEY` | required                         |
+| `--judge-base-url`      | `JUDGE_API_BASE_URL`              | omitted                          |
+| `--output`              | `EVALUATION_OUTPUT_PATH`          | `reports/evaluation-report.json` |
+| `--timeout-ms`          | `EVALUATION_TIMEOUT_MS`           | `30000`                          |
+| `--user-id`             | `EVALUATION_USER_ID`              | unique run-scoped ID             |
 
 The generated user ID prevents repeated runs from unintentionally sharing memory. Set
 `--user-id` when deliberately testing continuity across runs. `--judge-base-url` defaults to the
 Avatar API base URL; it changes the judge target only and never changes Core model configuration.
 
-The default output path is `evaluation-report.json` in the current working directory. Use
+The default output path is `reports/evaluation-report.json` relative to the
+`tools/conversation-evaluation` package. Use
 `--output` or `EVALUATION_OUTPUT_PATH` to place the report elsewhere. Reports contain one record per
 attempted question, including the Avatar response, observed model, latency, tokens, judge result,
 judge model and judge latency/token metrics, and error classification. Error records include the
@@ -169,11 +170,12 @@ infrastructure failures; valid quality failures do not count toward this thresho
 
 ## Local report viewer
 
-Start a local browser viewer for a generated report from the repository root:
+Start a local browser viewer with the command run from the repository root. Paths passed to this
+filtered command are resolved relative to the `tools/conversation-evaluation` package:
 
 ```sh
 pnpm --filter @gami/conversation-evaluation view \
-  --report ./evaluation-report.json
+  --report ./reports/evaluation-report.json
 ```
 
 Open the printed `http://127.0.0.1:4173` URL. The viewer shows the run summary, pass/partial/fail
@@ -239,9 +241,9 @@ pnpm seed:murder-party:api
 
 EVALUATION_API_KEY="$API_KEY" \
 pnpm --filter @gami/conversation-evaluation evaluate \
-  --definition ./tools/conversation-evaluation/definitions/murder-party-villa-miralac.json \
+  --definition ./definitions/murder-party-villa-miralac.json \
   --avatar-api-base-url http://localhost:3000 \
-  --output ./evaluation-report.json
+  --output ./reports/evaluation-report.json
 ```
 
 Before a live run, Core must be running, the scenario and Avatar seed must exist, and the server's
