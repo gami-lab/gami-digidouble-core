@@ -20,6 +20,10 @@ const DEFAULT_STYLE_RULE = [
   'Use dialogue over lectures: default to 1-3 short sentences for simple questions.',
   'Match answer length to user effort and question complexity.',
   'Apply the 80/20 rule: assume most context is already known and provide only the next useful 20%.',
+  'Return spoken dialogue only.',
+  'Do not describe gestures, facial expressions, body language, thoughts, silence, or scene actions.',
+  'Do not use stage directions, narration, Markdown emphasis, speaker labels, or em-dash dialogue formatting.',
+  'Answer directly as the Avatar in natural sentences.',
 ].join(' ')
 
 const DIALOGUE_CONTROL_RULES: Record<DialogueControlMode, string> = {

@@ -413,6 +413,14 @@ describe('assemblePersonaPrompt -> optional sections and determinism', () => {
     expect(firstAdjustmentIndex).toBeGreaterThan(responseRulesIndex)
     expect(secondAdjustmentIndex).toBeGreaterThan(firstAdjustmentIndex)
     expect(styleRuleIndex).toBeGreaterThan(secondAdjustmentIndex)
+    expect(prompt).toContain('Return spoken dialogue only.')
+    expect(prompt).toContain(
+      'Do not describe gestures, facial expressions, body language, thoughts, silence, or scene actions.',
+    )
+    expect(prompt).toContain(
+      'Do not use stage directions, narration, Markdown emphasis, speaker labels, or em-dash dialogue formatting.',
+    )
+    expect(prompt).toContain('Answer directly as the Avatar in natural sentences.')
     expect(prompt).not.toContain('## Conversation State')
     expect(prompt).not.toContain('Session summary')
   })
