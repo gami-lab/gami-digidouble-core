@@ -80,7 +80,10 @@ The three structured criteria fields are optional per question and are evaluated
 `requiredFacts` lists the essential facts the answer must convey, `acceptedAlternatives` lists
 equivalent answer forms where any one acceptable alternative is sufficient, and `forbiddenClaims`
 lists explicit factual claims that must not appear. They are sent to the LLM judge as criteria, not
-matched as exact strings. Missing required facts and forbidden claims are retained in the question's
+matched as exact strings. Required facts and accepted alternatives are independent acceptance paths:
+satisfying all required facts is sufficient, or matching any one accepted alternative is sufficient.
+The judge must not combine alternatives or require expected response details that are not part of the
+selected acceptance path. Missing required facts and forbidden claims are retained in the question's
 judge diagnostics.
 
 `avatarOptions` is applied once when the evaluator creates the session, so every scripted question
@@ -245,11 +248,11 @@ fenced-JSON form is accepted for compatibility. Invalid or unavailable judge res
 reported as `judge_error`, while valid scores become quality outcomes: 4–5 are `passed`, 3 is
 `partial`, and 1–2 are `failed`. Structured `requiredFacts`, `acceptedAlternatives`, and
 `forbiddenClaims` are included as explicit judge criteria when provided. The judge rubric explicitly
-distinguishes essential facts, acceptable alternatives, omissions, contradictions, harmless extra
-detail, and the required score/`passed` consistency rules. Additional compatible details are accepted
-by default; only explicit contradictions or asserted forbidden claims should penalize an otherwise
-correct answer. Reports retain the judge reason, missing facts, and contradictions for each evaluated
-question, and the console summary displays them.
+distinguishes essential facts, independent acceptance paths, omissions, contradictions, harmless extra
+detail, and the required score/`passed` consistency rules. Additional compatible or unrelated details
+are accepted by default; only explicit contradictions or asserted forbidden claims should penalize an
+otherwise correct answer. Reports retain the judge reason, missing facts, and contradictions for each
+evaluated question, and the console summary displays them.
 
 Each report includes token usage for the Avatar responses, asynchronous Game Master calls, and
 memory-compaction calls. The `totalRunTokens` and `totalRunInputTokens`/`totalRunOutputTokens`
