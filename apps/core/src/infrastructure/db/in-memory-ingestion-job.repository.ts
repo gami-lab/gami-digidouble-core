@@ -19,6 +19,7 @@ export class InMemoryIngestionJobRepository implements IIngestionJobRepository {
       sourceId: params.sourceId,
       status: params.status ?? 'queued',
       attempts: params.attempts ?? 0,
+      ...(params.chunkSize !== undefined ? { chunkSize: params.chunkSize } : {}),
       createdAt: now,
       updatedAt: now,
       ...(params.startedAt !== undefined ? { startedAt: params.startedAt } : {}),

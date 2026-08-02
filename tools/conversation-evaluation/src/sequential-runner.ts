@@ -183,6 +183,9 @@ export async function runSequentialConversation(
     {
       userId,
       scenarioId: definition.scenarioId,
+      ...(definition.avatarOptions !== undefined
+        ? { avatarOptions: definition.avatarOptions }
+        : {}),
     },
     requestOptions(input.signal),
   )

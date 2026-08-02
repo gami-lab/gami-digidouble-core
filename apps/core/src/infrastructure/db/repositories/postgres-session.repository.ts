@@ -1,4 +1,4 @@
-import type { Sql } from 'postgres'
+import type { JSONValue, Sql } from 'postgres'
 import type {
   CreateSessionParams,
   ISessionRepository,
@@ -14,6 +14,7 @@ interface SessionRow {
   scenario_id: string
   active_avatar_id: string | null
   unlocked_avatar_ids: string[] | null
+  avatar_options: unknown
   gm_notes: string | null
   memory_summary: string | null
   status: string
@@ -30,6 +31,9 @@ function rowToSession(row: SessionRow): Session {
     ...(row.active_avatar_id !== null ? { activeAvatarId: `avatar_${row.active_avatar_id}` } : {}),
     ...(row.unlocked_avatar_ids !== null
       ? { unlockedAvatarIds: row.unlocked_avatar_ids.map((avatarId) => `avatar_${avatarId}`) }
+      : {}),
+    ...(row.avatar_options !== null && row.avatar_options !== undefined
+      ? { avatarOptions: row.avatar_options as NonNullable<Session['avatarOptions']> }
       : {}),
     ...(row.gm_notes !== null ? { gmNotes: row.gm_notes } : {}),
     ...(row.memory_summary !== null ? { memorySummary: row.memory_summary } : {}),
@@ -48,9 +52,9 @@ export class PostgresSessionRepository implements ISessionRepository {
     const unlockedAvatarUuids =
       params.unlockedAvatarIds?.map((avatarId) => stripPrefix('avatar_', avatarId)) ?? null
     const [row] = await this.sql<[SessionRow]>`
-      INSERT INTO sessions (user_id, scenario_id, active_avatar_id, unlocked_avatar_ids)
-      VALUES (${params.userId}, ${scenarioUuid}, NULL, ${unlockedAvatarUuids}::UUID[])
-      RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
+      INSERT INTO sessions (user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, avatar_options)
+      VALUES (${params.userId}, ${scenarioUuid}, NULL, ${unlockedAvatarUuids}::UUID[], ${this.sql.json((params.avatarOptions ?? null) as unknown as JSONValue)}::JSONB)
+      RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, avatar_options, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
     `
     return rowToSession(row)
   }
@@ -59,7 +63,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     const uuid = extractUuid('session_', sessionId)
     if (uuid === null) return null
     const [row] = await this.sql<[SessionRow?]>`
-      SELECT id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
+      SELECT id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, avatar_options, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
       FROM sessions
       WHERE id = ${uuid}
     `
@@ -102,7 +106,7 @@ export class PostgresSessionRepository implements ISessionRepository {
           ELSE memory_summary
         END
       WHERE id = ${uuid}
-      RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
+      RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, avatar_options, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
     `
 
     if (!row) {
@@ -169,7 +173,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     const status = filter?.status ?? null
 
     const rows = await this.sql<SessionRow[]>`
-      SELECT id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
+      SELECT id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, avatar_options, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
       FROM sessions
       WHERE (${scenarioUuid}::UUID IS NULL OR scenario_id = ${scenarioUuid}::UUID)
         AND (${userId}::TEXT IS NULL OR user_id = ${userId}::TEXT)

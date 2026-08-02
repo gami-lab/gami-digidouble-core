@@ -123,6 +123,30 @@ to the shared wire type.
   `MessageStreamEvent` frames
 - `GET /v1/conversations/{conversationId}/history` -> `ConversationHistoryResponse`
 
+`StartSessionRequest` accepts optional session-scoped Avatar retrieval settings:
+
+```json
+{
+  "userId": "user_1",
+  "scenarioId": "scenario_1",
+  "avatarOptions": {
+    "retrieval": {
+      "maxChunks": 5,
+      "minimumChunksBySource": {
+        "gm_required_fact": 1,
+        "gm_retrieval_query": 1,
+        "last_user_input": 1
+      }
+    }
+  }
+}
+```
+
+`maxChunks` is an integer from 1 to 9 and defaults to 5. Source minimums default to 1 and are
+bounded by available retrieval results and the total chunk limit. The settings are stored on the
+session and reused for every synchronous and streaming message in that session; they are not
+changed per message.
+
 `SendMessageRequest` requires `{ message: { content: string } }` and accepts an optional additive
 `model` selection `{ provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'; model?: string }`.
 When supplied, its provider/model fields take precedence for that Avatar request only; omitted
@@ -183,9 +207,13 @@ Message-stream contract ownership:
 - `POST /v1/knowledge-sources/upload` -> `UploadKnowledgeSourceRequest` -> `UploadKnowledgeSourceResponse`
 - `PATCH /v1/knowledge-sources/{sourceId}` -> `UpdateKnowledgeSourceRequest` -> `UpdateKnowledgeSourceResponse`
 - `GET /v1/scenarios/{scenarioId}/knowledge-sources` -> `ListKnowledgeSourcesResponse`
-- `POST /v1/knowledge-sources/{sourceId}/ingest` -> `TriggerIngestionResponse`
+- `POST /v1/knowledge-sources/{sourceId}/ingest` -> `TriggerIngestionRequest` -> `TriggerIngestionResponse`
 - `GET /v1/knowledge-sources/{sourceId}/ingestion-jobs` -> `ListIngestionJobsResponse`
 - `GET /v1/ingestion-jobs/{ingestionJobId}` -> `GetIngestionJobResponse`
+
+`TriggerIngestionRequest` accepts an optional `chunkSize` integer from 100 to 10000. It controls
+the target character size for that asynchronous ingestion job, is persisted for retries, and keeps
+the existing format defaults when omitted (Markdown 1000; other text-like formats 800).
 
 ### User Persona And Memory
 

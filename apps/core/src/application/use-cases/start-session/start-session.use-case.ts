@@ -38,6 +38,7 @@ export class StartSessionUseCase {
       userId,
       scenarioId,
       ...(unlockedAvatarIds !== undefined ? { unlockedAvatarIds } : {}),
+      ...(input.avatarOptions !== undefined ? { avatarOptions: input.avatarOptions } : {}),
     })
 
     return {
@@ -49,6 +50,7 @@ export class StartSessionUseCase {
         ...(session.unlockedAvatarIds !== undefined
           ? { unlockedAvatarIds: session.unlockedAvatarIds }
           : {}),
+        ...(session.avatarOptions !== undefined ? { avatarOptions: session.avatarOptions } : {}),
         status: session.status,
         startedAt: session.startedAt,
         lastActivityAt: session.lastActivityAt,

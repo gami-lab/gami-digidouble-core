@@ -16,6 +16,16 @@ Definitions are versioned JSON files. The v1 shape is:
   "initialAvatarName": "Clara Whitcombe",
   "model": "openai/gpt-5.4",
   "judgeModel": "openai/gpt-5.4-mini",
+  "avatarOptions": {
+    "retrieval": {
+      "maxChunks": 5,
+      "minimumChunksBySource": {
+        "gm_required_fact": 1,
+        "gm_retrieval_query": 1,
+        "last_user_input": 1
+      }
+    }
+  },
   "questions": [
     {
       "question": "Avec qui es-tu monté au chalet ?",
@@ -73,6 +83,14 @@ lists explicit factual claims that must not appear. They are sent to the LLM jud
 matched as exact strings. Missing required facts and forbidden claims are retained in the question's
 judge diagnostics.
 
+`avatarOptions` is applied once when the evaluator creates the session, so every scripted question
+in that run uses the same Avatar retrieval configuration. `retrieval.maxChunks` controls the number
+of memory/world chunks selected for the Avatar prompt and must be between 1 and 9 (the default is 5).
+`minimumChunksBySource` optionally sets the minimum requested chunks for `gm_required_fact`,
+`gm_retrieval_query`, and `last_user_input`; the default is 1 for each source. Guarantees are bounded
+by the total chunk limit and by chunks actually returned by retrieval, so a `maxChunks` of 1 cannot
+include one chunk from all three sources.
+
 ## Supported model selectors
 
 The evaluator accepts `provider/model` selectors for the providers below. These entries are also
@@ -127,7 +145,7 @@ pnpm --filter @gami/conversation-evaluation evaluate \
 
 The command validates the definition before making requests, then creates one session and one
 conversation, sends questions in order, and judges each returned Avatar response through the
-authenticated `POST /v1/exchange` route. The API key is accepted only through `--api-key`,
+authenticated conversation API routes. The API key is accepted only through `--api-key`,
 `EVALUATION_API_KEY`, or `API_KEY` and is never printed. Other options can be supplied by flag or
 environment variable:
 
@@ -252,6 +270,20 @@ without a public price entry. The console summary and HTML viewer show the Avata
 memory, and full-run token totals and costs without printing prompts or secrets. A completed run exits
 successfully; setup, API, judge, or interrupted runs return a non-zero exit code. The package has no
 Core-internal, database, Redis, Langfuse, provider SDK, YAML, or new HTTP endpoint dependency.
+
+## Configurable ingestion chunk size
+
+The ingestion API accepts an optional `chunkSize` on the trigger request. It is measured in
+characters, must be an integer from 100 to 10000, and is persisted on the asynchronous ingestion
+job, including retries. Existing behavior remains unchanged when it is omitted: Markdown uses
+1000 characters and other text-like formats use 800 characters. For example:
+
+```sh
+curl -X POST http://localhost:3000/v1/knowledge-sources/knowledge_source_123/ingest \
+  -H 'content-type: application/json' \
+  -H 'x-api-key: e2e-stack-secret' \
+  -d '{"chunkSize":500}'
+```
 
 ## Opt-in Villa Miralac example
 

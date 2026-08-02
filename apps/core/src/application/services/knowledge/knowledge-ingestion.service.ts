@@ -45,7 +45,11 @@ export class KnowledgeIngestionService {
     }
     const { job, nextAttempts, requestId, source } = context
     try {
-      const chunkCount = await this.persistIngestionChunks(source, job.ingestionJobId)
+      const chunkCount = await this.persistIngestionChunks(
+        source,
+        job.ingestionJobId,
+        job.chunkSize,
+      )
       return await this.completeJob({
         input,
         source,
@@ -78,7 +82,7 @@ export class KnowledgeIngestionService {
 
   private async loadExecutionContext(input: IngestionExecutionInput): Promise<{
     source: KnowledgeSource
-    job: { ingestionJobId: string; attempts: number }
+    job: { ingestionJobId: string; attempts: number; chunkSize?: number }
     requestId: string
     nextAttempts: number
   } | null> {
@@ -110,9 +114,13 @@ export class KnowledgeIngestionService {
     return { source, job, requestId, nextAttempts }
   }
 
-  private async persistIngestionChunks(source: KnowledgeSource, jobId: string): Promise<number> {
+  private async persistIngestionChunks(
+    source: KnowledgeSource,
+    jobId: string,
+    chunkSize: number | undefined,
+  ): Promise<number> {
     const loaded = await this.contentLoader.load(source)
-    const chunkSeeds = toChunkSeeds(source, loaded.content, loaded.metadata)
+    const chunkSeeds = toChunkSeeds(source, loaded.content, loaded.metadata, chunkSize)
     const embeddings =
       chunkSeeds.length === 0
         ? []
@@ -261,6 +269,7 @@ function toChunkSeeds(
   source: KnowledgeSource,
   content: string,
   loadedMetadata?: Record<string, unknown>,
+  chunkSize?: number,
 ): ChunkSeed[] {
   if (source.format === 'media') return toMediaChunk(source, loadedMetadata)
   const normalized = content.trim()
@@ -276,7 +285,7 @@ function toChunkSeeds(
 
   const paragraphs = parseParagraphsWithHeaders(normalized)
   const chunks: ChunkSeed[] = []
-  const maxLength = source.format === 'markdown' ? 1000 : 800
+  const maxLength = chunkSize ?? (source.format === 'markdown' ? 1000 : 800)
 
   let current = ''
   let currentHeaders: string[] = []

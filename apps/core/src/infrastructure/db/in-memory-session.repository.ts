@@ -29,6 +29,7 @@ export class InMemorySessionRepository implements ISessionRepository {
       ...(params.unlockedAvatarIds !== undefined
         ? { unlockedAvatarIds: [...params.unlockedAvatarIds] }
         : {}),
+      ...(params.avatarOptions !== undefined ? { avatarOptions: params.avatarOptions } : {}),
       status: 'active',
       startedAt: now,
       lastActivityAt: now,

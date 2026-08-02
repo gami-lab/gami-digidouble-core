@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+import { AVATAR_RETRIEVAL_MAX_CHUNKS, AVATAR_RETRIEVAL_MINIMUM_CHUNKS } from '@gami/shared'
 
 import type { TestDefinition, TestQuestion } from './contracts.js'
 
@@ -11,6 +12,7 @@ const DEFINITION_KEYS = new Set([
   'model',
   'models',
   'judgeModel',
+  'avatarOptions',
   'questions',
 ])
 
@@ -135,6 +137,7 @@ function readOptionalStringArray(
   return value.map((item) => (item as string).trim())
 }
 
+// eslint-disable-next-line complexity
 export function validateTestDefinition(value: unknown): TestDefinition {
   if (!isRecord(value)) {
     throw new DefinitionValidationError(['The root value must be a JSON object.'])
@@ -161,6 +164,7 @@ export function validateTestDefinition(value: unknown): TestDefinition {
     ...(fields.model !== undefined ? { model: fields.model } : {}),
     ...(fields.models !== undefined ? { models: fields.models } : {}),
     ...(fields.judgeModel !== undefined ? { judgeModel: fields.judgeModel } : {}),
+    ...(fields.avatarOptions !== undefined ? { avatarOptions: fields.avatarOptions } : {}),
     questions,
   }
 }
@@ -173,6 +177,7 @@ type DefinitionFields = {
   model?: string
   models?: string[]
   judgeModel?: string
+  avatarOptions?: TestDefinition['avatarOptions']
 }
 
 // eslint-disable-next-line complexity
@@ -185,6 +190,7 @@ function readDefinitionFields(value: Record<string, unknown>, issues: string[]):
   const model = readOptionalString(value, 'model', issues)
   const models = readOptionalStringArray(value, 'models', 'definition', issues)
   const judgeModel = readOptionalString(value, 'judgeModel', issues)
+  const avatarOptions = readAvatarOptions(value['avatarOptions'], issues)
   if (models !== undefined) {
     if (model !== undefined) issues.push('model and models cannot both be provided.')
     models.forEach((candidate, index) => {
@@ -206,7 +212,102 @@ function readDefinitionFields(value: Record<string, unknown>, issues: string[]):
     ...(model !== undefined ? { model } : {}),
     ...(models !== undefined ? { models } : {}),
     ...(judgeModel !== undefined ? { judgeModel } : {}),
+    ...(avatarOptions !== undefined ? { avatarOptions } : {}),
   }
+}
+
+function readAvatarOptions(
+  value: unknown,
+  issues: string[],
+): TestDefinition['avatarOptions'] | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value)) {
+    issues.push('avatarOptions must be an object when provided.')
+    return undefined
+  }
+  addUnknownFieldIssues(value, new Set(['retrieval']), 'definition.avatarOptions', issues)
+  const retrievalValue = value['retrieval']
+  if (retrievalValue === undefined) return {}
+  if (!isRecord(retrievalValue)) {
+    issues.push('definition.avatarOptions.retrieval must be an object when provided.')
+    return undefined
+  }
+  addUnknownFieldIssues(
+    retrievalValue,
+    new Set(['maxChunks', 'minimumChunksBySource']),
+    'definition.avatarOptions.retrieval',
+    issues,
+  )
+  const maxChunks = readOptionalInteger(
+    retrievalValue,
+    'maxChunks',
+    1,
+    AVATAR_RETRIEVAL_MAX_CHUNKS,
+    issues,
+    'definition.avatarOptions.retrieval',
+  )
+  const minimumChunksBySource = readMinimumChunksBySource(
+    retrievalValue['minimumChunksBySource'],
+    issues,
+  )
+  return {
+    retrieval: {
+      ...(maxChunks === undefined ? {} : { maxChunks }),
+      ...(minimumChunksBySource === undefined ? {} : { minimumChunksBySource }),
+    },
+  }
+}
+
+function readMinimumChunksBySource(
+  value: unknown,
+  issues: string[],
+):
+  | NonNullable<NonNullable<TestDefinition['avatarOptions']>['retrieval']>['minimumChunksBySource']
+  | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value)) {
+    issues.push('definition.avatarOptions.retrieval.minimumChunksBySource must be an object.')
+    return undefined
+  }
+  const allowedSources = ['gm_required_fact', 'gm_retrieval_query', 'last_user_input'] as const
+  addUnknownFieldIssues(
+    value,
+    new Set(allowedSources),
+    'definition.avatarOptions.retrieval.minimumChunksBySource',
+    issues,
+  )
+  const parsed: Record<string, number> = {}
+  for (const source of allowedSources) {
+    const minimum = readOptionalInteger(
+      value,
+      source,
+      AVATAR_RETRIEVAL_MINIMUM_CHUNKS,
+      AVATAR_RETRIEVAL_MAX_CHUNKS,
+      issues,
+      'definition.avatarOptions.retrieval.minimumChunksBySource',
+    )
+    if (minimum !== undefined) parsed[source] = minimum
+  }
+  return parsed
+}
+
+function readOptionalInteger(
+  record: Record<string, unknown>,
+  field: string,
+  minimum: number,
+  maximum: number,
+  issues: string[],
+  location: string,
+): number | undefined {
+  const value = record[field]
+  if (value === undefined) return undefined
+  if (!Number.isInteger(value) || (value as number) < minimum || (value as number) > maximum) {
+    issues.push(
+      `${location}.${field} must be an integer between ${String(minimum)} and ${String(maximum)}.`,
+    )
+    return undefined
+  }
+  return value as number
 }
 
 function isProviderModelSelector(value: string): boolean {

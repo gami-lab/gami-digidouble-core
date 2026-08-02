@@ -4,6 +4,7 @@ import type { UserPersona } from '../user/index.js'
 import type { AvatarComputedTraits, AvatarConfig } from './avatar.types.js'
 import type { AvatarContextSections } from '../context/session-context.types.js'
 import type { DialogueControlMode } from '../game-master/game-master.types.js'
+import type { RetrievalSelectionOptions } from '../knowledge/retrieval-selection.js'
 
 export type AvatarAwarenessItem = {
   name: string
@@ -27,6 +28,7 @@ export type AvatarPromptOptions = {
   userPersona?: UserPersona
   memory?: LayeredMemorySnapshot
   retrieval?: AvatarPromptRetrievalSections
+  retrievalOptions?: RetrievalSelectionOptions
   gmGuidance?: {
     mode: DialogueControlMode
     askFollowUp: boolean

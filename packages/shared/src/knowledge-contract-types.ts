@@ -14,6 +14,9 @@ export type KnowledgeSourceStatus = 'pending' | 'ready' | 'error'
 
 export type IngestionJobStatus = 'queued' | 'running' | 'completed' | 'failed'
 
+export const INGESTION_CHUNK_SIZE_MIN = 100
+export const INGESTION_CHUNK_SIZE_MAX = 10_000
+
 /**
  * Explicit visibility policy for a knowledge source.
  *
@@ -52,6 +55,7 @@ export type IngestionJobDto = {
   sourceId: string
   status: IngestionJobStatus
   attempts: number
+  chunkSize?: number
   startedAt?: string
   completedAt?: string
   errorMessage?: string
@@ -193,6 +197,7 @@ export type UploadKnowledgeSourceResponse = {
 
 export type TriggerIngestionRequest = {
   correlationId?: string
+  chunkSize?: number
 }
 
 export type TriggerIngestionResponse = {

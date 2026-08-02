@@ -35,6 +35,7 @@ export class RetryIngestionJobUseCase {
       sourceId: job.sourceId,
       status: 'queued',
       attempts: 0,
+      ...(job.chunkSize !== undefined ? { chunkSize: job.chunkSize } : {}),
     })
 
     void this.ingestionService

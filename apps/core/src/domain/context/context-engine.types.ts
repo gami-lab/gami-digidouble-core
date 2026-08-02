@@ -9,6 +9,7 @@ import type {
   GmContextSnapshot,
   AvatarContextSnapshot,
 } from './session-context.types.js'
+import type { RetrievalSelectionOptions } from '../knowledge/retrieval-selection.js'
 
 export type ContextEngineInput = {
   sessionId: string
@@ -20,6 +21,7 @@ export type ContextEngineInput = {
   extensions: {
     memory: LayeredMemorySnapshot | undefined
     retrieval: TypedRetrievalResult | undefined
+    avatarRetrievalOptions?: RetrievalSelectionOptions
     retrievalForGm?: TypedRetrievalResult
     userPersona: UserPersona | null
     gmDirective: string | null

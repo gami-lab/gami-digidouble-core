@@ -12,6 +12,7 @@ type IngestionJobRow = {
   source_id: string
   status: IngestionJob['status']
   attempts: number
+  chunk_size: number | null
   started_at: Date | null
   completed_at: Date | null
   error_message: string | null
@@ -25,6 +26,7 @@ function rowToIngestionJob(row: IngestionJobRow): IngestionJob {
     sourceId: `knowledge_source_${row.source_id}`,
     status: row.status,
     attempts: row.attempts,
+    ...(row.chunk_size !== null ? { chunkSize: row.chunk_size } : {}),
     ...(row.started_at !== null ? { startedAt: row.started_at.toISOString() } : {}),
     ...(row.completed_at !== null ? { completedAt: row.completed_at.toISOString() } : {}),
     ...(row.error_message !== null ? { errorMessage: row.error_message } : {}),
@@ -44,6 +46,7 @@ export class PostgresIngestionJobRepository implements IIngestionJobRepository {
         source_id,
         status,
         attempts,
+        chunk_size,
         started_at,
         completed_at,
         error_message
@@ -52,11 +55,12 @@ export class PostgresIngestionJobRepository implements IIngestionJobRepository {
         ${sourceUuid},
         ${params.status ?? 'queued'},
         ${params.attempts ?? 0},
+        ${params.chunkSize ?? null},
         ${params.startedAt ?? null}::timestamptz,
         ${params.completedAt ?? null}::timestamptz,
         ${params.errorMessage ?? null}
       )
-      RETURNING id, source_id, status, attempts, started_at, completed_at, error_message, created_at, updated_at
+      RETURNING id, source_id, status, attempts, chunk_size, started_at, completed_at, error_message, created_at, updated_at
     `
 
     if (row === undefined) {
@@ -71,7 +75,7 @@ export class PostgresIngestionJobRepository implements IIngestionJobRepository {
     if (jobUuid === null) return null
 
     const [row] = await this.sql<[IngestionJobRow?]>`
-      SELECT id, source_id, status, attempts, started_at, completed_at, error_message, created_at, updated_at
+      SELECT id, source_id, status, attempts, chunk_size, started_at, completed_at, error_message, created_at, updated_at
       FROM ingestion_jobs
       WHERE id = ${jobUuid}
     `
@@ -84,7 +88,7 @@ export class PostgresIngestionJobRepository implements IIngestionJobRepository {
     if (sourceUuid === null) return []
 
     const rows = await this.sql<IngestionJobRow[]>`
-      SELECT id, source_id, status, attempts, started_at, completed_at, error_message, created_at, updated_at
+      SELECT id, source_id, status, attempts, chunk_size, started_at, completed_at, error_message, created_at, updated_at
       FROM ingestion_jobs
       WHERE source_id = ${sourceUuid}
       ORDER BY created_at DESC
@@ -113,7 +117,7 @@ export class PostgresIngestionJobRepository implements IIngestionJobRepository {
         END,
         updated_at = NOW()
       WHERE id = ${jobUuid}
-      RETURNING id, source_id, status, attempts, started_at, completed_at, error_message, created_at, updated_at
+      RETURNING id, source_id, status, attempts, chunk_size, started_at, completed_at, error_message, created_at, updated_at
     `
 
     return row === undefined ? null : rowToIngestionJob(row)

@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS ingestion_jobs (
   source_id       UUID        NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
   status          TEXT        NOT NULL DEFAULT 'queued',
   attempts        INT         NOT NULL DEFAULT 0,
+  chunk_size      INT,
   started_at      TIMESTAMPTZ,
   completed_at    TIMESTAMPTZ,
   error_message   TEXT,
@@ -117,6 +118,8 @@ CREATE TABLE IF NOT EXISTS ingestion_jobs (
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (status IN ('queued', 'running', 'completed', 'failed'))
 );
+
+ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS chunk_size INT;
 
 -- ── Sessions ──────────────────────────────────────────────────────────────────
 
@@ -126,6 +129,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   scenario_id      UUID        NOT NULL REFERENCES scenarios(id),
   active_avatar_id UUID        REFERENCES avatars(id) ON DELETE SET NULL,
   unlocked_avatar_ids UUID[],
+  avatar_options   JSONB,
   gm_notes         TEXT,
   memory_summary   TEXT,
   status           TEXT        NOT NULL DEFAULT 'active',

@@ -19,6 +19,16 @@ const validDefinition = {
   initialAvatarName: 'Clara Whitcombe',
   model: 'openai/gpt-5.4',
   judgeModel: 'openai/gpt-5.4-mini',
+  avatarOptions: {
+    retrieval: {
+      maxChunks: 5,
+      minimumChunksBySource: {
+        gm_required_fact: 1,
+        gm_retrieval_query: 1,
+        last_user_input: 1,
+      },
+    },
+  },
   questions: [
     {
       question: 'What happened in the winter garden?',
@@ -34,6 +44,7 @@ const validDefinition = {
   ],
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('evaluation definition validation', () => {
   it('accepts a valid definition and preserves criteria text', () => {
     expect(validateTestDefinition(validDefinition)).toEqual(validDefinition)
@@ -116,6 +127,21 @@ describe('evaluation definition validation', () => {
         }),
       ),
     ).toThrow(/forbiddenClaims must be a non-empty array/)
+  })
+
+  it('rejects Avatar retrieval options outside the API limits', () => {
+    expect(() =>
+      validateTestDefinition(
+        validDefinitionWith({ avatarOptions: { retrieval: { maxChunks: 10 } } }),
+      ),
+    ).toThrow(/maxChunks must be an integer between 1 and 9/)
+    expect(() =>
+      validateTestDefinition(
+        validDefinitionWith({
+          avatarOptions: { retrieval: { minimumChunksBySource: { last_user_input: -1 } } },
+        }),
+      ),
+    ).toThrow(/last_user_input must be an integer between 0 and 9/)
   })
 
   it('accepts comparison model selectors and rejects ambiguous lists', () => {

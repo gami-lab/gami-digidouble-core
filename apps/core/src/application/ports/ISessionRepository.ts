@@ -21,6 +21,7 @@ export interface CreateSessionParams {
   userId: string
   scenarioId: string
   unlockedAvatarIds?: string[]
+  avatarOptions?: Session['avatarOptions']
 }
 
 /** Partial update — only supplied fields will be persisted. */

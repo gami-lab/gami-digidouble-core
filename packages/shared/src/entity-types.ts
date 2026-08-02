@@ -12,6 +12,7 @@
  */
 
 import type { ModelSelectionOverride, ScenarioModelSelection } from './model-catalog.js'
+import type { AvatarRequestOptions } from './web-contract-types.js'
 export type { ScenarioModelSelection } from './model-catalog.js'
 
 /** Avatar status union — matches domain AvatarStatus. */
@@ -111,6 +112,7 @@ export type SessionSummary = {
   activeAvatarId?: string
   unlockedAvatarIds?: string[]
   status: LifecycleStatus
+  avatarOptions?: AvatarRequestOptions
   startedAt: string
   lastActivityAt: string
   endedAt?: string

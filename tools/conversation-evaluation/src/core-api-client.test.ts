@@ -121,6 +121,33 @@ describe('CoreApiClient', () => {
     expect((error as CoreApiError).message).not.toContain('do-not-expose')
   })
 
+  it('sends Avatar retrieval options when creating a session', async () => {
+    const fetchMock = vi
+      .fn<FetchLike>()
+      .mockResolvedValue(jsonResponse(okEnvelope(sessionResponse)))
+    const client = new CoreApiClient({
+      baseUrl: 'https://core.example',
+      apiKey: 'test-key',
+      timeoutMs: 1000,
+      fetchImpl: fetchMock,
+    })
+
+    await expect(
+      client.createSession({
+        userId: 'evaluation-user',
+        scenarioId: 'scenario_1',
+        avatarOptions: { retrieval: { maxChunks: 7 } },
+      }),
+    ).resolves.toEqual(sessionResponse)
+    expect(fetchMock.mock.calls[0]?.[1]?.body).toBe(
+      JSON.stringify({
+        userId: 'evaluation-user',
+        scenarioId: 'scenario_1',
+        avatarOptions: { retrieval: { maxChunks: 7 } },
+      }),
+    )
+  })
+
   it('rejects malformed successful bodies at the endpoint contract boundary', async () => {
     const fetchMock = vi
       .fn<FetchLike>()

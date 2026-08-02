@@ -255,6 +255,10 @@ export class SwitchAvatarUseCase {
       startedAt: session.startedAt,
       lastActivityAt: session.lastActivityAt,
       ...(session.activeAvatarId !== undefined ? { activeAvatarId: session.activeAvatarId } : {}),
+      ...(session.unlockedAvatarIds !== undefined
+        ? { unlockedAvatarIds: [...session.unlockedAvatarIds] }
+        : {}),
+      ...(session.avatarOptions !== undefined ? { avatarOptions: session.avatarOptions } : {}),
       ...(session.endedAt !== undefined ? { endedAt: session.endedAt } : {}),
     }
   }

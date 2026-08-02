@@ -4,6 +4,7 @@ export type CreateIngestionJobParams = {
   sourceId: string
   status?: IngestionJobStatus
   attempts?: number
+  chunkSize?: number
   startedAt?: string
   completedAt?: string
   errorMessage?: string

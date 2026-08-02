@@ -10,6 +10,7 @@ import type {
   ContextEnginePolicy,
 } from './context-engine.policy.js'
 import { DEFAULT_CONTEXT_ENGINE_POLICY, precedenceRank } from './context-engine.policy.js'
+import { AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS } from '@gami/shared'
 
 const EMPTY_EXCHANGES: ContextEngineOutput['avatar']['sections']['conversationState']['recentExchanges'] =
   []
@@ -18,7 +19,6 @@ const EMPTY_FACTS: ContextEngineOutput['avatar']['sections']['conversationState'
 const EMPTY_MESSAGES: ContextEngineOutput['gm']['sections']['conversationState']['recentMessages'] =
   []
 const EMPTY_RESPONSE_RULES: ContextEngineOutput['avatar']['sections']['responseRules']['items'] = []
-const AVATAR_RETRIEVAL_LIMIT = 5
 
 type CandidateSegment = {
   projection: ContextProjection
@@ -105,7 +105,11 @@ function buildCandidates(
   pushRecentMessageCandidate(candidates, input.recentMessages)
   pushUserPersonaCandidate(candidates, input)
   pushWorldContextCandidate(candidates, input)
-  pushAvatarRetrievalCandidates(candidates, normalized.avatarRetrieval)
+  pushAvatarRetrievalCandidates(
+    candidates,
+    normalized.avatarRetrieval,
+    input.extensions.avatarRetrievalOptions,
+  )
   pushGmRetrievalCandidates(candidates, normalized.gmRetrieval)
   pushAvatarTraitsCandidate(candidates, input)
 
@@ -301,11 +305,13 @@ function pushWorldContextCandidate(
 function pushAvatarRetrievalCandidates(
   candidates: CandidateSegment[],
   retrieval: ReturnType<typeof dedupeRetrieval>,
+  options: ContextEngineInput['extensions']['avatarRetrievalOptions'],
 ): void {
   if (retrieval === undefined) return
   const selectedMemoryAndWorld = selectBalancedRetrievedItems(
     [...retrieval.memory, ...retrieval.world],
-    AVATAR_RETRIEVAL_LIMIT,
+    options?.maxChunks ?? AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
+    options,
   )
   pushAvatarRetrievalSegmentCandidate(
     candidates,

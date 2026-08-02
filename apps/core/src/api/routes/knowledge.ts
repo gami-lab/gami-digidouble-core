@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
-import { fail, ok } from '@gami/shared'
+import { INGESTION_CHUNK_SIZE_MAX, INGESTION_CHUNK_SIZE_MIN, fail, ok } from '@gami/shared'
 import crypto from 'node:crypto'
 import type {
   CreateKnowledgeSourceRequest,
@@ -144,7 +144,14 @@ const jobParamsSchema = {
 
 const triggerBodySchema = {
   type: 'object',
-  properties: { correlationId: { type: 'string', minLength: 1 } },
+  properties: {
+    correlationId: { type: 'string', minLength: 1 },
+    chunkSize: {
+      type: 'integer',
+      minimum: INGESTION_CHUNK_SIZE_MIN,
+      maximum: INGESTION_CHUNK_SIZE_MAX,
+    },
+  },
   additionalProperties: false,
 } as const
 
@@ -363,6 +370,7 @@ function registerTriggerIngestionRoute(app: FastifyInstance, useCases: UseCases)
           ...(request.body.correlationId !== undefined
             ? { correlationId: request.body.correlationId }
             : {}),
+          ...(request.body.chunkSize !== undefined ? { chunkSize: request.body.chunkSize } : {}),
         })
         return await reply.status(202).send(ok<TriggerIngestionResponse>(output))
       } catch (error) {

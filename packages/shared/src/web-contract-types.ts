@@ -103,6 +103,7 @@ export type PrepareAvatarTraitsResponse = {
 export type StartSessionRequest = {
   userId: string
   scenarioId: string
+  avatarOptions?: AvatarRequestOptions
 }
 
 export type StartSessionResponse = {
@@ -148,6 +149,21 @@ export type ConversationHistoryApiResponse = ConversationHistoryResponse
 export type GetAvailableAvatarsApiResponse = GetAvailableAvatarsResponse
 
 export type SwitchAvatarApiResponse = SwitchAvatarResponse
+
+export const AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS = 5
+export const AVATAR_RETRIEVAL_MAX_CHUNKS = 9
+export const AVATAR_RETRIEVAL_MINIMUM_CHUNKS = 0
+
+export type AvatarRetrievalSource = 'gm_required_fact' | 'gm_retrieval_query' | 'last_user_input'
+
+export type AvatarRetrievalOptions = {
+  maxChunks?: number
+  minimumChunksBySource?: Partial<Record<AvatarRetrievalSource, number>>
+}
+
+export type AvatarRequestOptions = {
+  retrieval?: AvatarRetrievalOptions
+}
 
 // The future message-stream route reuses this request body unchanged.
 export type SendMessageRequest = {

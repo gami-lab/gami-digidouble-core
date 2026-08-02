@@ -1,3 +1,5 @@
+import type { AvatarRequestOptions } from '@gami/shared'
+
 /** Runtime session — owns the lifecycle of one conversation. */
 export interface Session {
   sessionId: string
@@ -8,6 +10,7 @@ export interface Session {
   gmNotes?: string
   memorySummary?: string
   status: 'active' | 'closed' | 'archived'
+  avatarOptions?: AvatarRequestOptions
   startedAt: string
   lastActivityAt: string
   endedAt?: string

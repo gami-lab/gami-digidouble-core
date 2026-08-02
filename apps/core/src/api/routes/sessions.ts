@@ -4,6 +4,7 @@ import type {
   EndConversationResponse,
   GetAvailableAvatarsResponse,
   LifecycleStatus,
+  StartSessionRequest,
 } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
@@ -55,6 +56,7 @@ import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructur
 import { InMemoryConversationMemoryRepository } from '../../infrastructure/db/in-memory-conversation-memory.repository.js'
 import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-memory-session-event-publisher.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
+import { startSessionBodySchema } from './start-session.schema.js'
 import { registerRuntimeEventsRoutes } from './runtime-events.js'
 import { registerDeleteSessionRoute } from './sessions.delete-route.js'
 import { createSessionRouteUseCases } from './sessions.use-cases.js'
@@ -87,6 +89,7 @@ export type SessionsRouteOptions = {
 type StartSessionRequestBody = {
   userId: string
   scenarioId: string
+  avatarOptions?: StartSessionRequest['avatarOptions']
 }
 
 type StartConversationRequestBody = {
@@ -119,16 +122,6 @@ type ListSessionsQuerystring = {
   userId?: string
   status?: LifecycleStatus
 }
-
-const startSessionBodySchema = {
-  type: 'object',
-  required: ['userId', 'scenarioId'],
-  properties: {
-    userId: { type: 'string', minLength: 1 },
-    scenarioId: { type: 'string', minLength: 1 },
-  },
-  additionalProperties: false,
-} as const
 
 const startConversationBodySchema = {
   type: 'object',
@@ -336,6 +329,9 @@ function registerStartSessionRoute(app: FastifyInstance, useCase: StartSessionUs
         const output = await useCase.execute({
           userId: request.body.userId,
           scenarioId: request.body.scenarioId,
+          ...(request.body.avatarOptions !== undefined
+            ? { avatarOptions: request.body.avatarOptions }
+            : {}),
         })
         return await reply.status(201).send(ok<StartSessionOutput>(output))
       } catch (error) {

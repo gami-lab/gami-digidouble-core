@@ -88,6 +88,7 @@ export interface IngestionJob {
   sourceId: string
   status: IngestionJobStatus
   attempts: number
+  chunkSize?: number
   createdAt: string
   updatedAt: string
   startedAt?: string

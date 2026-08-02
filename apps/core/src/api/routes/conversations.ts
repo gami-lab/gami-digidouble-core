@@ -432,6 +432,9 @@ function mapSendMessageResponse(output: SendMessageOutput): SendMessageResponse 
       ...(output.session.unlockedAvatarIds !== undefined
         ? { unlockedAvatarIds: output.session.unlockedAvatarIds }
         : {}),
+      ...(output.session.avatarOptions !== undefined
+        ? { avatarOptions: output.session.avatarOptions }
+        : {}),
       status: output.session.status,
       startedAt: output.session.startedAt,
       lastActivityAt: output.session.lastActivityAt,

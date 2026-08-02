@@ -13,10 +13,16 @@ const FALLBACK_QUERY_SOURCES: RetrievalQuerySource[] = [
   'direct_query',
 ]
 
+export type RetrievalSelectionOptions = {
+  maxChunks?: number
+  minimumChunksBySource?: Partial<Record<RetrievalQuerySource, number>>
+}
+
 // eslint-disable-next-line complexity
 export function selectBalancedRetrievedItems(
   items: RetrievedKnowledgeItem[],
   limit: number,
+  options: RetrievalSelectionOptions = {},
 ): RetrievedKnowledgeItem[] {
   const selected: RetrievedKnowledgeItem[] = []
   const selectedChunkIds = new Set<string>()
@@ -30,10 +36,16 @@ export function selectBalancedRetrievedItems(
   }
 
   for (const source of BALANCED_QUERY_SOURCES) {
-    const match = (bySource.get(source) ?? []).find((item) => !selectedChunkIds.has(item.chunkId))
-    if (match === undefined) continue
-    selected.push(match)
-    selectedChunkIds.add(match.chunkId)
+    const minimum = options.minimumChunksBySource?.[source] ?? 1
+    const candidates = bySource.get(source) ?? []
+    let selectedForSource = 0
+    for (const item of [...candidates].sort(compareRetrievedItems)) {
+      if (selectedForSource >= minimum || selected.length >= limit) break
+      if (selectedChunkIds.has(item.chunkId)) continue
+      selected.push(item)
+      selectedChunkIds.add(item.chunkId)
+      selectedForSource += 1
+    }
     if (selected.length >= limit) return sortRetrievedItems(selected)
   }
 

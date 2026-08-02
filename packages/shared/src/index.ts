@@ -126,6 +126,7 @@ export type {
   TypedKnowledgeRetrievalDto,
   QueryKnowledgeRetrievalResponse,
 } from './knowledge-contract-types.js'
+export { INGESTION_CHUNK_SIZE_MIN, INGESTION_CHUNK_SIZE_MAX } from './knowledge-contract-types.js'
 export type {
   UserPersona,
   UserSummary,
@@ -196,10 +197,18 @@ export type {
   GetAvailableAvatarsApiResponse,
   SwitchAvatarApiResponse,
   SendMessageRequest,
+  AvatarRetrievalSource,
+  AvatarRetrievalOptions,
+  AvatarRequestOptions,
   SendMessageApiResponse,
   GetUserPersonaResponse,
   UpsertUserPersonaRequest,
   UpsertUserPersonaApiResponse,
   EndConversationApiResponse,
   LocalWebIdentity,
+} from './web-contract-types.js'
+export {
+  AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
+  AVATAR_RETRIEVAL_MAX_CHUNKS,
+  AVATAR_RETRIEVAL_MINIMUM_CHUNKS,
 } from './web-contract-types.js'

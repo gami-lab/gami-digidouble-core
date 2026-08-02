@@ -127,4 +127,28 @@ describe('StartSessionUseCase', () => {
       status: 'active',
     })
   })
+
+  it('persists session-scoped Avatar retrieval options', async () => {
+    const useCase = new StartSessionUseCase(sessionRepository, scenarioRepository, avatarRepository)
+    const avatarOptions = {
+      retrieval: {
+        maxChunks: 7,
+        minimumChunksBySource: { gm_required_fact: 2 },
+      },
+    }
+    createSessionMock.mockResolvedValue(makeSession({ avatarOptions }))
+
+    const output = await useCase.execute({
+      userId: 'user_1',
+      scenarioId: 'scenario_1',
+      avatarOptions,
+    })
+
+    expect(createSessionMock).toHaveBeenCalledWith({
+      userId: 'user_1',
+      scenarioId: 'scenario_1',
+      avatarOptions,
+    })
+    expect(output.session.avatarOptions).toEqual(avatarOptions)
+  })
 })

@@ -22,7 +22,11 @@ import type { Conversation, Message, Session } from '../../../domain/conversatio
 import { DomainError } from '../../../domain/errors.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { UserPersona } from '../../../domain/user/user.types.js'
-import type { ConversationEndReason, EndConversationResponse } from '@gami/shared'
+import {
+  AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
+  type ConversationEndReason,
+  type EndConversationResponse,
+} from '@gami/shared'
 import type { SelectedMemoryPayload } from '../../../domain/memory/memory.types.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import type {
@@ -379,6 +383,7 @@ export class SendMessageUseCase {
         args.conversation.conversationId,
         args.conversation.avatarId,
         retrievalQueries,
+        args.session.avatarOptions?.retrieval,
       )
     } catch (error: unknown) {
       retrievalFailed = true
@@ -406,6 +411,9 @@ export class SendMessageUseCase {
       extensions: {
         memory,
         retrieval,
+        ...(args.session.avatarOptions?.retrieval !== undefined
+          ? { avatarRetrievalOptions: args.session.avatarOptions.retrieval }
+          : {}),
         userPersona: userPersona ?? null,
         gmDirective: directorNotes ?? null,
         ...(args.avatar.adjustments !== undefined
@@ -439,6 +447,9 @@ export class SendMessageUseCase {
             },
           }
         : {}),
+      ...(args.session.avatarOptions?.retrieval !== undefined
+        ? { retrievalOptions: args.session.avatarOptions.retrieval }
+        : {}),
     })
     return {
       systemPrompt,
@@ -456,6 +467,7 @@ export class SendMessageUseCase {
     conversationId: string,
     avatarId: string | undefined,
     queries: ReturnType<typeof buildAvatarTypedRetrievalQueries>,
+    retrievalOptions: NonNullable<Session['avatarOptions']>['retrieval'] | undefined,
     bypassVisibilityFilter = false,
   ) {
     if (this.typedRetrievalService === undefined) return undefined
@@ -471,7 +483,7 @@ export class SendMessageUseCase {
       ...(bypassVisibilityFilter ? { bypassVisibilityFilter: true } : {}),
       query,
       queries,
-      limitPerType: 5,
+      limitPerType: retrievalOptions?.maxChunks ?? AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
     })
   }
 

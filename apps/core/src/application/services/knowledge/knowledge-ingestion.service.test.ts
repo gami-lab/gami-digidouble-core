@@ -161,6 +161,37 @@ describe('KnowledgeIngestionService — completion flow', () => {
 })
 
 describe('KnowledgeIngestionService — paragraph chunking', () => {
+  it('uses the chunk size stored on the ingestion job', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Configured guide',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/configured-guide.txt',
+    })
+    const job = await jobRepository.create({
+      sourceId: source.sourceId,
+      status: 'queued',
+      chunkSize: 500,
+    })
+
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new StubLoader(`${'A'.repeat(300)}\n\n${'B'.repeat(300)}`),
+      new HashEmbeddingAdapter(),
+      eventLogRepository,
+    )
+
+    await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
+
+    const chunks = await chunkRepository.listBySourceId(source.sourceId)
+    expect(chunks).toHaveLength(2)
+  })
+
   it('packs complete paragraphs up to the target size without splitting a paragraph', async () => {
     const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
       createDefaultIngestionDeps()

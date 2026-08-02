@@ -1,4 +1,4 @@
-import type { ConversationSummary, SessionSummary } from '@gami/shared'
+import type { AvatarRequestOptions, ConversationSummary, SessionSummary } from '@gami/shared'
 
 /** A model label declared by a definition and requested from the selected LLM provider. */
 export type DeclaredModel = string
@@ -29,6 +29,7 @@ export type TestDefinition = {
   model?: DeclaredModel
   models?: DeclaredModel[]
   judgeModel?: DeclaredModel
+  avatarOptions?: AvatarRequestOptions
   questions: TestQuestion[]
 }
 

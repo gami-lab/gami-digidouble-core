@@ -32,6 +32,7 @@ export interface SendMessageOutput {
     | 'scenarioId'
     | 'activeAvatarId'
     | 'unlockedAvatarIds'
+    | 'avatarOptions'
     | 'status'
     | 'startedAt'
     | 'lastActivityAt'

@@ -1,4 +1,5 @@
 import type { AvatarComputedTraits, AvatarConfig } from './avatar.types.js'
+import { AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS } from '@gami/shared'
 import type {
   AvatarAwarenessItem,
   AvatarPromptIdentityConfig,
@@ -42,7 +43,7 @@ export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptO
     ...buildConversationStateSection(promptInputs.memory, promptInputs.avatarAwareness),
     ...buildUserPersonaContext(promptInputs.userPersona),
     ...buildWorldContext(promptInputs.worldContext),
-    ...buildRetrievalContext(promptInputs.retrieval),
+    ...buildRetrievalContext(promptInputs.retrieval, opts?.retrievalOptions),
   ]
   const avatarTraitsSection = buildAvatarTraitsSection(config, opts)
   if (avatarTraitsSection !== null) {
@@ -217,10 +218,17 @@ function appendLongTermMemory(lines: string[], memory: AvatarPromptOptions['memo
   }
 }
 
-function buildRetrievalContext(retrieval: AvatarPromptOptions['retrieval']): string[] {
+function buildRetrievalContext(
+  retrieval: AvatarPromptOptions['retrieval'],
+  options: AvatarPromptOptions['retrievalOptions'],
+): string[] {
   if (retrieval === undefined) return []
 
-  const memoryAndWorld = selectBalancedRetrievedItems([...retrieval.memory, ...retrieval.world], 5)
+  const memoryAndWorld = selectBalancedRetrievedItems(
+    [...retrieval.memory, ...retrieval.world],
+    options?.maxChunks ?? AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
+    options,
+  )
   const contextLines = formatRetrievedItems(memoryAndWorld, 'Context')
   const mediaLines = formatRetrievedItems(retrieval.media, 'Media context')
   const lines = [

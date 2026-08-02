@@ -148,6 +148,9 @@ The platform is now a working headless conversational runtime with:
 - The evaluator includes a local dependency-free report viewer that serves the selected JSON file
   on loopback, displays question-level responses, criteria, diagnostics, and metrics, and refreshes
   incremental report snapshots automatically.
+- Evaluation definitions can configure session-scoped Avatar retrieval (`maxChunks` 1–9 and
+  per-source minimums), while the knowledge ingestion trigger can persist a per-job `chunkSize`
+  (100–10000 characters) through asynchronous execution and retry.
 - The package test suite includes deterministic unit coverage plus a fake-HTTP integration-style
   three-question ordering test; the seeded Villa Miralac definition is readable and opt-in only.
 

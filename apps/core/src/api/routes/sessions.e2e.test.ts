@@ -149,6 +149,37 @@ describe('GET /:sessionId/available-avatars auth', () => {
   })
 })
 
+describe('POST /v1/sessions Avatar retrieval configuration', () => {
+  it('accepts and persists session-scoped retrieval options', async () => {
+    const app = registerApp(makeApp())
+    const createScenario = await app.inject({
+      method: 'POST',
+      url: '/v1/scenarios',
+      headers: authHeaders(),
+      payload: { name: `Retrieval Scenario ${String(Date.now())}` },
+    })
+    const scenarioBody = createScenario.json<ApiResponse<{ scenario: { scenarioId: string } }>>()
+    const scenarioId = requireId(scenarioBody.data?.scenario, 'scenarioId')
+    const avatarOptions = {
+      retrieval: {
+        maxChunks: 7,
+        minimumChunksBySource: { gm_required_fact: 2 },
+      },
+    }
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      headers: authHeaders(),
+      payload: { userId: 'retrieval-user', scenarioId, avatarOptions },
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body = response.json<ApiResponse<{ session: { avatarOptions?: unknown } }>>()
+    expect(body.data?.session.avatarOptions).toEqual(avatarOptions)
+  })
+})
+
 describe('GET /:sessionId/available-avatars behavior', () => {
   it('returns 404 NOT_FOUND when sessionId does not exist', async () => {
     const app = registerApp(makeApp())
