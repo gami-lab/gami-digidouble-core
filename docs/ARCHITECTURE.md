@@ -482,13 +482,15 @@ Admin app boundary (EPIC 6.1):
    - long-term facts/events
    - scenario + RAG + GM notes + optional user persona
 6. Avatar generates a streamed response for the conversation avatar
-7. User message is already persisted; the avatar message is persisted once only after terminal
+7. Presentation-only speaker labels and stage directions are removed from the Avatar text while
+   preserving dialogue, including the final persisted and streamed response
+8. User message is already persisted; the avatar message is persisted once only after terminal
    completion
-8. Async tasks launched after successful completion:
+9. Async tasks launched after successful completion:
    - Game Master review
    - memory update
    - logs / metrics
-9. Response completes; an interrupted stream keeps the user message, discards partial avatar text,
+10. Response completes; an interrupted stream keeps the user message, discards partial avatar text,
    and skips post-turn GM/memory work
 ```
 

@@ -12,6 +12,7 @@ import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.us
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
 import { StreamingSendMessageUseCase } from './streaming-send-message.use-case.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
+import type { StreamingSendMessageEvent } from './streaming-send-message.types.js'
 
 const findSessionByIdMock = vi.fn()
 const updateSessionMock = vi.fn()
@@ -310,6 +311,25 @@ describe('SendMessageUseCase — message routing', () => {
       conversationId: 'conversation_1',
       role: 'avatar',
     })
+  })
+
+  it('removes presentation-only Avatar annotations before persistence and response output', async () => {
+    completeMock.mockResolvedValueOnce({
+      content: '**Max :** The hotel was dark.\n\n*Max pauses.*\n\nPeter was behind the door.',
+      model: 'null-model',
+      inputTokens: 10,
+      outputTokens: 20,
+      latencyMs: 5,
+    })
+
+    const output = await createUseCase().execute({
+      conversationId: 'conversation_1',
+      userMessage: 'What happened?',
+    })
+
+    const expectedContent = 'The hotel was dark.\n\nPeter was behind the door.'
+    expect(output.avatarMessage.content).toBe(expectedContent)
+    expect(saveMessageMock.mock.calls[1]?.[0]).toMatchObject({ content: expectedContent })
   })
 })
 
@@ -1255,6 +1275,44 @@ describe('StreamingSendMessageUseCase', () => {
 
     const done = await iterator.next()
     expect(done.done).toBe(true)
+  })
+
+  it('removes presentation-only Avatar annotations from streamed deltas and completion output', async () => {
+    streamMock.mockImplementation(async function* () {
+      await Promise.resolve()
+      yield { type: 'delta', text: '**Max :** The hotel was dark.\n\n' as const }
+      yield { type: 'delta', text: '*Max pauses.*\n\nPeter was behind the door.' as const }
+      yield {
+        type: 'completed' as const,
+        response: {
+          content: 'provider fallback',
+          model: 'stream-model',
+          inputTokens: 3,
+          outputTokens: 2,
+          latencyMs: 8,
+        },
+      }
+    })
+
+    const events: StreamingSendMessageEvent[] = []
+    for await (const event of new StreamingSendMessageUseCase(createUseCase()).execute({
+      conversationId: 'conversation_1',
+      userMessage: 'What happened?',
+    })) {
+      events.push(event)
+    }
+
+    const deltas = events
+      .filter(
+        (event): event is Extract<(typeof events)[number], { type: 'delta' }> =>
+          event.type === 'delta',
+      )
+      .map((event) => event.delta)
+    expect(deltas.join('')).toBe('The hotel was dark.\n\nPeter was behind the door.')
+    expect(events.at(-1)).toMatchObject({
+      type: 'completed',
+      output: { avatarMessage: { content: 'The hotel was dark.\n\nPeter was behind the door.' } },
+    })
   })
 
   it('persists the completed avatar message exactly once', async () => {

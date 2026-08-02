@@ -1,4 +1,5 @@
 import type { LlmResponse, LlmStreamOptions } from '../../ports/ILlmAdapter.js'
+import { cleanAvatarResponse } from '../../../domain/avatar/avatar-response-cleaner.js'
 import { SendMessageUseCase } from './send-message.use-case.js'
 import type { SendMessageInput } from './send-message.types.js'
 import type { StreamingSendMessageEvent } from './streaming-send-message.types.js'
@@ -21,19 +22,29 @@ export class StreamingSendMessageUseCase {
 
     let sequence = 0
     let accumulatedContent = ''
+    let emittedContent = ''
     let terminalResponse: LlmResponse | undefined
+
+    const emitCleanDelta = (rawContent: string): string => {
+      const cleanedContent = cleanAvatarResponse(rawContent)
+      if (!cleanedContent.startsWith(emittedContent)) return ''
+      const delta = cleanedContent.slice(emittedContent.length)
+      emittedContent = cleanedContent
+      return delta
+    }
 
     try {
       if (turn.adapter.stream === undefined) {
         const response = await turn.adapter.complete(turn.llmRequest)
         accumulatedContent = response.content
-        if (response.content.length > 0) {
+        const cleanedDelta = emitCleanDelta(accumulatedContent)
+        if (cleanedDelta.length > 0) {
           yield {
             type: 'delta',
             requestId: turn.requestId,
             conversationId: turn.conversation.conversationId,
             sequence: sequence++,
-            delta: response.content,
+            delta: cleanedDelta,
           }
         }
         terminalResponse = response
@@ -41,19 +52,23 @@ export class StreamingSendMessageUseCase {
         for await (const event of turn.adapter.stream(turn.llmRequest, options)) {
           if (event.type === 'delta') {
             accumulatedContent += event.text
-            yield {
-              type: 'delta',
-              requestId: turn.requestId,
-              conversationId: turn.conversation.conversationId,
-              sequence: sequence++,
-              delta: event.text,
+            const cleanedDelta = emitCleanDelta(accumulatedContent)
+            if (cleanedDelta.length > 0) {
+              yield {
+                type: 'delta',
+                requestId: turn.requestId,
+                conversationId: turn.conversation.conversationId,
+                sequence: sequence++,
+                delta: cleanedDelta,
+              }
             }
             continue
           }
 
+          if (accumulatedContent.length === 0) accumulatedContent = event.response.content
           terminalResponse = {
             ...event.response,
-            content: accumulatedContent.length > 0 ? accumulatedContent : event.response.content,
+            content: accumulatedContent,
           }
           break
         }
@@ -61,6 +76,17 @@ export class StreamingSendMessageUseCase {
 
       if (terminalResponse === undefined) {
         throw new Error('LLM stream ended without a terminal completion event.')
+      }
+
+      const finalDelta = emitCleanDelta(accumulatedContent)
+      if (finalDelta.length > 0) {
+        yield {
+          type: 'delta',
+          requestId: turn.requestId,
+          conversationId: turn.conversation.conversationId,
+          sequence: sequence++,
+          delta: finalDelta,
+        }
       }
 
       options?.signal?.throwIfAborted()

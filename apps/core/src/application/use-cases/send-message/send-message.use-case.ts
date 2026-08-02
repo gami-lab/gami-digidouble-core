@@ -15,6 +15,7 @@ import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { buildAvatarAwareness } from '../../../domain/avatar/avatar-awareness.service.js'
+import { cleanAvatarResponse } from '../../../domain/avatar/avatar-response-cleaner.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
 import { ContextEngine } from '../../../domain/context/context-engine.service.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
@@ -211,8 +212,9 @@ export class SendMessageUseCase {
     response: SendMessageTurnResponse,
     options: { scheduleBackground?: boolean } = {},
   ): Promise<SendMessageOutput> {
+    const cleanedResponse = { ...response, content: cleanAvatarResponse(response.content) }
     const avatarMessage = await this.persistAvatarMessage(turn.conversation.conversationId, {
-      ...response,
+      ...cleanedResponse,
     })
     const now = this.nowIso()
     await this.conversationRepository.update(turn.conversation.conversationId, {
@@ -271,7 +273,7 @@ export class SendMessageUseCase {
       updatedSession,
       userMessage: turn.userMessage,
       avatarMessage,
-      response,
+      response: cleanedResponse,
       now,
     })
 

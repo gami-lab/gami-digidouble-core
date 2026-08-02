@@ -130,6 +130,10 @@ fields continue through the normal server model-resolution precedence. The same 
 used by the streaming route. This is intended for controlled clients such as evaluation tooling,
 not as a replacement for persisted scenario or Avatar configuration.
 
+Avatar responses are cleaned before persistence and before they are returned or streamed to clients.
+Presentation-only labels or stage-direction blocks that begin a line with `*` or `**` are removed
+through their closing marker; dialogue following a leading speaker label is preserved.
+
 Message-stream contract ownership:
 
 - The message-stream request reuses `SendMessageRequest`; no parallel stream request DTO is
