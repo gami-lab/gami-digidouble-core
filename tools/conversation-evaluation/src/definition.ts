@@ -198,7 +198,6 @@ function readDefinitionFields(value: Record<string, unknown>, issues: string[]):
         issues.push(`models[${String(index)}] must use provider/model notation.`)
       }
     })
-    if (new Set(models).size !== models.length) issues.push('models must not contain duplicates.')
   }
   if ((initialAvatarId !== undefined) === (initialAvatarName !== undefined)) {
     issues.push('Exactly one of initialAvatarId or initialAvatarName must be provided.')

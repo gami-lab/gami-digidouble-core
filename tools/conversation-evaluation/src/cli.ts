@@ -8,6 +8,7 @@ import {
   createModelRunDefinition,
   loadModelComparisonReport,
   modelReportPath,
+  modelRunKey,
   renderModelComparisonSummary,
   writeModelComparisonReport,
   writeModelComparisonSnapshot,
@@ -95,17 +96,22 @@ export async function runCli(
       throw new Error('The existing comparison report belongs to a different definition.')
     }
     let consecutiveFailures = 0
+    const modelTotals = countModelOccurrences(definition.models)
+    const modelOccurrences = new Map<string, number>()
     try {
       if (existingComparison === null) {
         await writeModelComparisonReport(config.outputPath, comparison)
       }
       for (const model of definition.models) {
+        const occurrence = modelOccurrences.get(model) ?? 0
+        modelOccurrences.set(model, occurrence + 1)
+        const runKey = modelRunKey(model, occurrence, modelTotals.get(model) ?? 1)
         const modelDefinition = createModelRunDefinition(definition, model)
-        const reportPath = modelReportPath(config.outputPath, model)
-        progress(`Starting model comparison run for ${model}.`)
+        const reportPath = modelReportPath(config.outputPath, model, runKey)
+        progress(`Starting model comparison run for ${modelRunLabel(model, runKey)}.`)
         const output = await runEvaluation({
           definition: modelDefinition,
-          userId: `${config.userId}-${model.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+          userId: `${config.userId}-${runKey.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
           avatarClient,
           judgeClient,
           avatarModel: model,
@@ -114,6 +120,7 @@ export async function runCli(
               comparisonOutputPath: config.outputPath,
               comparison,
               model,
+              runKey,
               report,
               reportPath,
             })
@@ -142,6 +149,17 @@ export async function runCli(
     io.error(`[conversation-evaluation] ${getErrorMessage(error)}`)
     return 1
   }
+}
+
+function countModelOccurrences(models: readonly string[]): Map<string, number> {
+  const totals = new Map<string, number>()
+  models.forEach((model) => totals.set(model, (totals.get(model) ?? 0) + 1))
+  return totals
+}
+
+function modelRunLabel(model: string, runKey: string): string {
+  if (runKey === model) return model
+  return `${model} (run ${runKey.slice(model.length + 1)})`
 }
 
 function printHelp(io: CliIo): void {

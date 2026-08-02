@@ -154,6 +154,13 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         const separator = String(model).indexOf('/');
         return separator > 0 ? String(model).slice(separator + 1) : String(model);
       };
+      const runKeyOf = (run) => run.runKey || run.model;
+      const modelDisplayName = (run, runs) => {
+        const sameModelRuns = runs.filter((candidate) => candidate.model === run.model);
+        const baseName = modelNameOf(run.model);
+        if (sameModelRuns.length < 2) return baseName;
+        return baseName + ' (run ' + (sameModelRuns.indexOf(run) + 1) + ')';
+      };
       const questionNumbers = (comparisonReport) => [...new Set(comparisonReport.runs.flatMap((run) => (run.report.questions || []).map((question) => question.questionNumber)))].sort((left, right) => left - right);
       const questionResultFor = (run, questionNumber) => (run.report.questions || []).find((question) => question.questionNumber === questionNumber) || null;
       const questionStatusFor = (run, questionNumber) => {
@@ -266,7 +273,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           const latency = latencyStats(run.report);
           return [
             providerOf(run.model),
-            modelNameOf(run.model),
+            modelDisplayName(run, comparison.runs),
             value(summary.passed, 0),
             value(summary.partial, 0),
             value(summary.failed, 0),
@@ -318,7 +325,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         const question = questionResultFor(run, questionNumber);
         const card = el('article', 'question');
         const head = el('div', 'question-head');
-        head.append(el('h3', '', modelNameOf(run.model) + ' (' + providerOf(run.model) + ')'));
+        head.append(el('h3', '', modelDisplayName(run, comparison.runs) + ' (' + providerOf(run.model) + ')'));
         head.append(el('span', 'badge ' + (question ? question.status : 'api_error'), question ? question.status : 'unavailable'));
         card.append(head);
         if (!question) {
@@ -451,14 +458,14 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           const modelSelect = document.createElement('select');
           modelSelect.className = 'no-print';
           comparison.runs.forEach((run) => {
-            const option = el('option', '', run.model);
-            option.value = run.model;
-            option.selected = run.model === selectedModel;
+            const option = el('option', '', modelDisplayName(run, comparison.runs));
+            option.value = runKeyOf(run);
+            option.selected = runKeyOf(run) === selectedModel;
             modelSelect.append(option);
           });
           modelSelect.addEventListener('change', () => {
             selectedModel = modelSelect.value;
-            const selected = comparison.runs.find((run) => run.model === selectedModel);
+            const selected = comparison.runs.find((run) => runKeyOf(run) === selectedModel);
             if (selected) report = selected.report;
             render();
           });
@@ -530,9 +537,11 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           if (comparisonView) app.append(comparisonView);
         }
         if (printMode === 'all' && comparison) {
-          comparison.runs.forEach((run, index) => app.append(renderRunDetails(run.report, run.model, true, index === 0)));
+          comparison.runs.forEach((run, index) => app.append(renderRunDetails(run.report, modelDisplayName(run, comparison.runs), true, index === 0)));
         } else if (!comparison || activeTab === 'overview') {
-          app.append(renderRunDetails(report, selectedModel || report.declaredModel || 'current model', printMode === 'current', true));
+          const selectedRun = comparison ? comparison.runs.find((run) => runKeyOf(run) === selectedModel) : null;
+          const selectedLabel = selectedRun ? modelDisplayName(selectedRun, comparison.runs) : (selectedModel || report.declaredModel || 'current model');
+          app.append(renderRunDetails(report, selectedLabel, printMode === 'current', true));
         }
       };
       async function load() {
@@ -548,8 +557,8 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
             if (!comparison.runs.length) {
               report = null;
             } else {
-              const selected = comparison.runs.find((run) => run.model === selectedModel) || comparison.runs[0];
-              selectedModel = selected.model;
+              const selected = comparison.runs.find((run) => runKeyOf(run) === selectedModel) || comparison.runs[0];
+              selectedModel = runKeyOf(selected);
               const numbers = questionNumbers(comparison);
               if (!numbers.some((questionNumber) => String(questionNumber) === selectedQuestion)) selectedQuestion = numbers.length ? String(numbers[0]) : '1';
               report = selected.report;

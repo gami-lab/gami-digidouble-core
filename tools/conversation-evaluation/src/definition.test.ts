@@ -144,12 +144,17 @@ describe('evaluation definition validation', () => {
     ).toThrow(/last_user_input must be an integer between 0 and 9/)
   })
 
-  it('accepts comparison model selectors and rejects ambiguous lists', () => {
+  it('accepts comparison model selectors including repeated runs', () => {
     expect(
       validateTestDefinition(
-        validDefinitionWith({ models: ['openai/gpt-5.4', 'xai/grok-4.3'], model: undefined }),
+        validDefinitionWith({
+          models: ['openai/gpt-5.4', 'openai/gpt-5.4', 'xai/grok-4.3'],
+          model: undefined,
+        }),
       ),
-    ).toMatchObject({ models: ['openai/gpt-5.4', 'xai/grok-4.3'] })
+    ).toMatchObject({
+      models: ['openai/gpt-5.4', 'openai/gpt-5.4', 'xai/grok-4.3'],
+    })
     expect(() =>
       validateTestDefinition(
         validDefinitionWith({ models: ['openai/gpt-5.4'], model: 'openai/gpt-5.4' }),

@@ -70,11 +70,23 @@ answer. `model` records the expected Avatar model for a single run. `models` is 
 comparison list; the evaluator runs the same definition once per provider/model selector and sends
 that selector to Core for each Avatar request. Use `provider/model` notation such as
 `openai/gpt-5.4`, `anthropic/claude-sonnet-4-6`, `mistral/mistral-small-4`, or `xai/grok-4.3`.
-`model` and `models` cannot be used together. `judgeModel` selects the judge
+`model` and `models` cannot be used together. Repeating a selector in `models` runs that same model
+again as a separate comparison entry; each occurrence gets its own report file and isolated
+run-scoped user ID. `judgeModel` selects the judge
 model used for the raw exchange request; use `provider/model` notation such as
 `openai/gpt-5.4-mini`, or a model name to use the Core-configured provider. If the observed response
 reports a different effective model, the report retains that mismatch. API keys and other secrets
 are not valid definition fields.
+
+For example, this runs GPT-5.4 twice and Grok once, then compares all three completed runs:
+
+```json
+"models": [
+  "openai/gpt-5.4",
+  "openai/gpt-5.4",
+  "xai/grok-4.3"
+]
+```
 
 The three structured criteria fields are optional per question and are evaluated semantically:
 `requiredFacts` lists the essential facts the answer must convey, `acceptedAlternatives` lists
@@ -181,15 +193,17 @@ next scripted turn; an API failure stops without waiting.
 
 When `models` is present, the command writes one report per model next to the configured output,
 for example `evaluation-report.openai-gpt-5-4.json`, and maintains the configured output as a
-comparison report. Both the per-model report and the comparison report are updated after every
+comparison report. Repeated selectors use numbered paths such as
+`evaluation-report.openai-gpt-5-4-run-2.json`. Both the per-model report and the comparison report are updated after every
 question, so the HTML viewer can show progress while a model is still running and an interrupted
 run keeps completed work.
 
 Use `--append` with a multi-model definition to load the existing comparison report, preserve
-models already stored there, and rerun/upsert each model declared by the current definition. This
-allows a later run to add new models or replace previous results for the same model without
-discarding the rest of the comparison. The existing report must belong to the same test name and
-scenario; `--append` is not supported for a single-model report.
+models already stored there, and rerun/upsert each model occurrence declared by the current
+definition. Repeated occurrences are matched by their position (`model` for the first and
+`model#2`, `model#3`, and so on for later occurrences). This allows a later run to add new models
+or repeated runs without discarding the rest of the comparison. The existing report must belong to
+the same test name and scenario; `--append` is not supported for a single-model report.
 
 Judge transport, contract, and malformed-output failures are retried up to three total attempts per
 question. Each retry and final failure is printed in progress logs. A model run with a final
@@ -220,7 +234,8 @@ model passes are marked easy, and questions where every completed model fails ar
 **Questions** tab selects one question (question 1 by default) and compares all models, with a
 model-result filter for that question. Click any model-comparison or question-difficulty column
 header to sort it; click again to reverse the order. For comparison reports, use the model
-selector to inspect the full question details for any completed model. Use **Print current model** to
+selector to inspect the full question details for any completed model or repeated run. Repeated
+selectors are shown as numbered runs, such as `gpt-5.4 (run 1)` and `gpt-5.4 (run 2)`. Use **Print current model** to
 print the selected model, or **Print all models** to print the comparison summary followed by the
 complete overview and question details for every model. In the browser print dialog, choose **Save as
 PDF** to share the report. It checks the report every two seconds and redraws only when the report

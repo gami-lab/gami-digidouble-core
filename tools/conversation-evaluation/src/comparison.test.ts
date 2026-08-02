@@ -10,6 +10,7 @@ import {
   createModelRunDefinition,
   loadModelComparisonReport,
   modelReportPath,
+  modelRunKey,
   renderModelComparisonSummary,
   upsertModelRun,
   writeModelComparisonSnapshot,
@@ -83,6 +84,7 @@ function report(model: string): RunReport {
   }
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('model comparison reports', () => {
   it('creates an independent run definition and deterministic report path', () => {
     expect(createModelRunDefinition(definition, 'openai/gpt-5.4')).toEqual({
@@ -95,6 +97,11 @@ describe('model comparison reports', () => {
     })
     expect(modelReportPath('./evaluation-report.json', 'openai/gpt-5.4')).toContain(
       'evaluation-report.openai-gpt-5-4.json',
+    )
+    const secondRunKey = modelRunKey('openai/gpt-5.4', 1, 2)
+    expect(secondRunKey).toBe('openai/gpt-5.4#2')
+    expect(modelReportPath('./evaluation-report.json', 'openai/gpt-5.4', secondRunKey)).toContain(
+      'evaluation-report.openai-gpt-5-4-run-2.json',
     )
   })
 
@@ -126,6 +133,37 @@ describe('model comparison reports', () => {
     expect(updated.runs).toHaveLength(2)
     expect(updated.runs[0]).toMatchObject({ model: 'openai/gpt-5.4', report: rerun })
     expect(updated.runs[1]).toMatchObject({ model: 'xai/grok-4.3', report: second })
+  })
+
+  it('keeps repeated runs of the same model as separate comparison entries', () => {
+    const first = report('openai/gpt-5.4')
+    const second = { ...first, sessionId: 'session_2' }
+    const comparison = createModelComparisonReport(definition, [
+      {
+        model: 'openai/gpt-5.4',
+        runKey: 'openai/gpt-5.4',
+        report: first,
+        reportPath: 'first.json',
+      },
+      {
+        model: 'openai/gpt-5.4',
+        runKey: 'openai/gpt-5.4#2',
+        report: second,
+        reportPath: 'second.json',
+      },
+    ])
+
+    const rerun = { ...second, status: 'judge_error' as const }
+    const updated = upsertModelRun(comparison, {
+      model: 'openai/gpt-5.4',
+      runKey: 'openai/gpt-5.4#2',
+      report: rerun,
+      reportPath: 'rerun-second.json',
+    })
+
+    expect(updated.runs).toHaveLength(2)
+    expect(updated.runs[0]?.report).toBe(first)
+    expect(updated.runs[1]).toMatchObject({ runKey: 'openai/gpt-5.4#2', report: rerun })
   })
 
   it('writes the individual and comparison reports for each progress snapshot', async () => {
