@@ -227,8 +227,10 @@ reported as `judge_error`, while valid scores become quality outcomes: 4–5 are
 `partial`, and 1–2 are `failed`. Structured `requiredFacts`, `acceptedAlternatives`, and
 `forbiddenClaims` are included as explicit judge criteria when provided. The judge rubric explicitly
 distinguishes essential facts, acceptable alternatives, omissions, contradictions, harmless extra
-detail, and the required score/`passed` consistency rules. Reports retain the judge reason, missing
-facts, and contradictions for each evaluated question, and the console summary displays them.
+detail, and the required score/`passed` consistency rules. Additional compatible details are accepted
+by default; only explicit contradictions or asserted forbidden claims should penalize an otherwise
+correct answer. Reports retain the judge reason, missing facts, and contradictions for each evaluated
+question, and the console summary displays them.
 
 Each report includes token usage for the Avatar responses, asynchronous Game Master calls, and
 memory-compaction calls. The `totalRunTokens` and `totalRunInputTokens`/`totalRunOutputTokens`
