@@ -11,6 +11,7 @@ import type {
   ListKnowledgeSourcesResponse,
   QueryKnowledgeRetrievalRequest,
   QueryKnowledgeRetrievalResponse,
+  TriggerIngestionRequest,
   TriggerIngestionResponse,
   TypedKnowledgeRetrievalDto,
   UpdateKnowledgeSourceRequest,
@@ -68,11 +69,14 @@ export async function deleteKnowledgeSource(sourceId: string): Promise<void> {
   await adminRequest<DeleteKnowledgeSourceResponse>('DELETE', `/v1/knowledge-sources/${sourceId}`)
 }
 
-export async function triggerIngestion(sourceId: string): Promise<IngestionJobDto> {
+export async function triggerIngestion(
+  sourceId: string,
+  input: TriggerIngestionRequest = {},
+): Promise<IngestionJobDto> {
   const payload = await adminRequest<TriggerIngestionResponse>(
     'POST',
     `/v1/knowledge-sources/${sourceId}/ingest`,
-    {},
+    input,
   )
   return payload.ingestionJob
 }

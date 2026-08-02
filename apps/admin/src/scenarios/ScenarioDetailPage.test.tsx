@@ -458,10 +458,13 @@ describe('ScenarioDetailPage knowledge ingestion feedback', () => {
     await waitForScenario()
 
     const knowledgeRow = screen.getByText('Secret lore').closest('tr')
+    fireEvent.change(within(knowledgeRow as HTMLTableRowElement).getByLabelText('Chunk size for Secret lore'), {
+      target: { value: '500' },
+    })
     fireEvent.click(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Ingest' }))
 
     await waitFor(() => {
-      expect(triggerIngestion).toHaveBeenCalledWith('knowledge_source_1')
+      expect(triggerIngestion).toHaveBeenCalledWith('knowledge_source_1', { chunkSize: 500 })
     })
     await waitFor(() => {
       expect(getIngestionJob).toHaveBeenCalledWith('job_1')

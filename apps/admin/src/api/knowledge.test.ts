@@ -134,6 +134,29 @@ describe('knowledge API wrappers', () => {
   })
 })
 
+describe('knowledge ingestion chunk size', () => {
+  it('passes a requested chunk size when triggering ingestion', async () => {
+    vi.mocked(adminRequest).mockResolvedValue({
+      scheduled: true,
+      ingestionJob: {
+        ingestionJobId: 'job_1',
+        sourceId: 'source_1',
+        status: 'queued',
+        attempts: 0,
+        chunkSize: 500,
+        createdAt: '2026-07-01T00:00:00.000Z',
+      },
+    })
+
+    const result = await triggerIngestion('source_1', { chunkSize: 500 })
+
+    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/knowledge-sources/source_1/ingest', {
+      chunkSize: 500,
+    })
+    expect(result.chunkSize).toBe(500)
+  })
+})
+
 describe('knowledge ingestion inspection and retrieval API wrappers', () => {
   beforeEach(() => {
     vi.clearAllMocks()

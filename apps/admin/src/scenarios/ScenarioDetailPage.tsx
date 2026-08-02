@@ -436,10 +436,12 @@ function ScenarioViewContainer({
     }
   }
 
-  async function handleTriggerIngestion(sourceId: string): Promise<void> {
+  async function handleTriggerIngestion(sourceId: string, chunkSize?: number): Promise<void> {
     onSetIngestStatus((prev) => ({ ...prev, [sourceId]: { phase: 'running' } }))
     try {
-      const job = await triggerIngestion(sourceId)
+      const job = chunkSize === undefined
+        ? await triggerIngestion(sourceId)
+        : await triggerIngestion(sourceId, { chunkSize })
       const finalJob = await pollIngestionJob(job.ingestionJobId)
       const refreshedSources = await listKnowledgeSources(data.scenario.scenarioId)
       onSetState(makeReady({ data: { ...data, knowledgeSources: refreshedSources }, actionError: null }))
@@ -489,7 +491,7 @@ function ScenarioViewContainer({
       onAddKnowledge={() => { setMode({ kind: 'creating-knowledge' }) }}
       onEditKnowledge={(sourceId) => { setMode({ kind: 'editing-knowledge', sourceId }) }}
       onDeleteKnowledge={(sourceId) => { void handleDeleteKnowledge(sourceId) }}
-      onTriggerIngestion={(sourceId) => { void handleTriggerIngestion(sourceId) }}
+      onTriggerIngestion={(sourceId, chunkSize) => { void handleTriggerIngestion(sourceId, chunkSize) }}
       onViewKnowledgeChunks={(sourceId) => { setMode({ kind: 'viewing-knowledge-chunks', sourceId }) }}
       onTestRetrieval={() => { setMode({ kind: 'testing-retrieval' }) }}
     />

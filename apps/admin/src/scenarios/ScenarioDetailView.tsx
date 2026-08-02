@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import type { JSX } from 'react'
+import { INGESTION_CHUNK_SIZE_MAX, INGESTION_CHUNK_SIZE_MIN } from '@gami/shared'
 import type { AvatarSummary, ScenarioSummary } from '@gami/shared'
 import type { KnowledgeSourceDto } from '../api/knowledge'
 
@@ -26,7 +28,7 @@ type ScenarioViewProps = {
   onAddKnowledge: () => void
   onEditKnowledge: (sourceId: string) => void
   onDeleteKnowledge: (sourceId: string) => void
-  onTriggerIngestion: (sourceId: string) => void
+  onTriggerIngestion: (sourceId: string, chunkSize?: number) => void
   onViewKnowledgeChunks: (sourceId: string) => void
   onTestRetrieval: () => void
 }
@@ -263,7 +265,7 @@ type KnowledgeSourceListSectionProps = {
   onAddKnowledge: () => void
   onEditKnowledge: (sourceId: string) => void
   onDeleteKnowledge: (sourceId: string) => void
-  onTriggerIngestion: (sourceId: string) => void
+  onTriggerIngestion: (sourceId: string, chunkSize?: number) => void
   onViewKnowledgeChunks: (sourceId: string) => void
   onTestRetrieval: () => void
 }
@@ -333,7 +335,7 @@ type KnowledgeSourceRowProps = {
   ingestState: IngestUiStatus | undefined
   onEditKnowledge: (sourceId: string) => void
   onDeleteKnowledge: (sourceId: string) => void
-  onTriggerIngestion: (sourceId: string) => void
+  onTriggerIngestion: (sourceId: string, chunkSize?: number) => void
   onViewKnowledgeChunks: (sourceId: string) => void
 }
 
@@ -346,7 +348,10 @@ function KnowledgeSourceRow({
   onTriggerIngestion,
   onViewKnowledgeChunks,
 }: KnowledgeSourceRowProps): JSX.Element {
+  const [chunkSize, setChunkSize] = useState('')
   const isIngesting = ingestState?.phase === 'running'
+  const parsedChunkSize = parseChunkSize(chunkSize)
+  const hasInvalidChunkSize = chunkSize.trim().length > 0 && parsedChunkSize === null
   const ingestLabel = isIngesting ? 'Ingesting…' : source.status === 'ready' ? 'Re-ingest' : 'Ingest'
   const ingestTitle =
     source.status === 'ready'
@@ -363,6 +368,28 @@ function KnowledgeSourceRow({
           <span className="admin-status-pill">{source.status}</span>
         </td>
         <td>
+          <label className="admin-form-label" htmlFor={`chunk-size-${source.sourceId}`}>
+            Chunk size
+          </label>
+          <input
+            id={`chunk-size-${source.sourceId}`}
+            aria-label={`Chunk size for ${source.name}`}
+            type="number"
+            min={INGESTION_CHUNK_SIZE_MIN}
+            max={INGESTION_CHUNK_SIZE_MAX}
+            step="1"
+            placeholder="Default"
+            value={chunkSize}
+            onChange={(event) => { setChunkSize(event.target.value) }}
+            disabled={isIngesting}
+            style={{ width: '7rem', marginRight: '8px' }}
+          />
+          {hasInvalidChunkSize ? (
+            <span className="admin-error">
+              Use {String(INGESTION_CHUNK_SIZE_MIN)}–{String(INGESTION_CHUNK_SIZE_MAX)}.
+            </span>
+          ) : null}
+          {' '}
           <button
             type="button"
             className="admin-button admin-button-secondary"
@@ -383,8 +410,10 @@ function KnowledgeSourceRow({
             type="button"
             className="admin-button admin-button-secondary"
             title={ingestTitle}
-            onClick={() => { onTriggerIngestion(source.sourceId) }}
-            disabled={isIngesting}
+            onClick={() => {
+              onTriggerIngestion(source.sourceId, parsedChunkSize ?? undefined)
+            }}
+            disabled={isIngesting || hasInvalidChunkSize}
           >
             {ingestLabel}
           </button>
@@ -407,6 +436,20 @@ function KnowledgeSourceRow({
       ) : null}
     </>
   )
+}
+
+function parseChunkSize(value: string): number | null {
+  const trimmed = value.trim()
+  if (trimmed.length === 0) return null
+  const parsed = Number(trimmed)
+  if (
+    !Number.isInteger(parsed) ||
+    parsed < INGESTION_CHUNK_SIZE_MIN ||
+    parsed > INGESTION_CHUNK_SIZE_MAX
+  ) {
+    return null
+  }
+  return parsed
 }
 
 function formatKnowledgeVisibility(
