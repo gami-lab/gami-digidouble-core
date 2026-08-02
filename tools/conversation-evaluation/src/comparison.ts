@@ -8,7 +8,7 @@ import type {
   RunReport,
   TestDefinition,
 } from './contracts.js'
-import { writeJsonAtomically } from './report.js'
+import { writeJsonAtomically, writeReportAtomically } from './report.js'
 
 export class ModelComparisonReportLoadError extends Error {
   constructor(message: string) {
@@ -56,6 +56,22 @@ export async function writeModelComparisonReport(
   report: ModelComparisonReport,
 ): Promise<void> {
   await writeJsonAtomically(outputPath, report)
+}
+
+export async function writeModelComparisonSnapshot(args: {
+  comparisonOutputPath: string
+  comparison: ModelComparisonReport
+  model: DeclaredModel
+  report: RunReport
+  reportPath: string
+}): Promise<ModelComparisonReport> {
+  await writeReportAtomically(args.reportPath, args.report)
+  const updatedComparison = upsertModelRun(
+    args.comparison,
+    modelRunEntry(args.model, args.report, args.reportPath),
+  )
+  await writeModelComparisonReport(args.comparisonOutputPath, updatedComparison)
+  return updatedComparison
 }
 
 export async function loadModelComparisonReport(

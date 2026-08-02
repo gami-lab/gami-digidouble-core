@@ -160,8 +160,9 @@ next scripted turn; an API failure stops without waiting.
 
 When `models` is present, the command writes one report per model next to the configured output,
 for example `evaluation-report.openai-gpt-5-4.json`, and maintains the configured output as a
-comparison report. The comparison report is updated after each model, so an interrupted run keeps
-completed model results.
+comparison report. Both the per-model report and the comparison report are updated after every
+question, so the HTML viewer can show progress while a model is still running and an interrupted
+run keeps completed work.
 
 Use `--append` with a multi-model definition to load the existing comparison report, preserve
 models already stored there, and rerun/upsert each model declared by the current definition. This

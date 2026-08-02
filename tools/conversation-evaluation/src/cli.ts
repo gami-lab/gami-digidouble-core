@@ -8,10 +8,9 @@ import {
   createModelRunDefinition,
   loadModelComparisonReport,
   modelReportPath,
-  modelRunEntry,
   renderModelComparisonSummary,
-  upsertModelRun,
   writeModelComparisonReport,
+  writeModelComparisonSnapshot,
 } from './comparison.js'
 import { CoreApiClient } from './core-api-client.js'
 import { loadTestDefinition } from './definition.js'
@@ -110,13 +109,19 @@ export async function runCli(
           avatarClient,
           judgeClient,
           avatarModel: model,
-          outputPath: reportPath,
+          writeReport: async (report) => {
+            comparison = await writeModelComparisonSnapshot({
+              comparisonOutputPath: config.outputPath,
+              comparison,
+              model,
+              report,
+              reportPath,
+            })
+          },
           signal: interruption.signal,
           interQuestionDelayMs: INTER_QUESTION_DELAY_MS,
           onProgress: progress,
         })
-        comparison = upsertModelRun(comparison, modelRunEntry(model, output.report, reportPath))
-        await writeModelComparisonReport(config.outputPath, comparison)
         consecutiveFailures = countConsecutiveModelFailures(
           output.report.status,
           consecutiveFailures,

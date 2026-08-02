@@ -12,6 +12,7 @@ import {
   modelReportPath,
   renderModelComparisonSummary,
   upsertModelRun,
+  writeModelComparisonSnapshot,
 } from './comparison.js'
 
 const definition: TestDefinition = {
@@ -125,6 +126,31 @@ describe('model comparison reports', () => {
     expect(updated.runs).toHaveLength(2)
     expect(updated.runs[0]).toMatchObject({ model: 'openai/gpt-5.4', report: rerun })
     expect(updated.runs[1]).toMatchObject({ model: 'xai/grok-4.3', report: second })
+  })
+
+  it('writes the individual and comparison reports for each progress snapshot', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'conversation-evaluation-comparison-'))
+    const comparisonPath = join(directory, 'comparison.json')
+    const modelPath = join(directory, 'model.json')
+    const snapshot = report('openai/gpt-5.4')
+    snapshot.finishedAt = null
+
+    const updated = await writeModelComparisonSnapshot({
+      comparisonOutputPath: comparisonPath,
+      comparison: createModelComparisonReport(definition),
+      model: 'openai/gpt-5.4',
+      report: snapshot,
+      reportPath: modelPath,
+    })
+
+    const storedModel = JSON.parse(await readFile(modelPath, 'utf8')) as RunReport
+    const storedComparison = JSON.parse(await readFile(comparisonPath, 'utf8')) as {
+      runs: Array<{ report: RunReport }>
+    }
+    expect(storedModel.finishedAt).toBeNull()
+    expect(storedComparison.runs[0]?.report.finishedAt).toBeNull()
+    expect(updated.runs).toHaveLength(1)
+    expect(updated.runs[0]?.report.finishedAt).toBeNull()
   })
 
   it('loads a valid existing comparison and returns null when it does not exist', async () => {
