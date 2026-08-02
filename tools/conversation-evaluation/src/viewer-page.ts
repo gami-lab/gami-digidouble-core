@@ -78,15 +78,16 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
       const app = document.getElementById('app');
       let report = null;
       let comparison = null;
-      const ALL_MODELS = '__all_models__';
       let selectedModel = '';
-      let selectedQuestion = 'all';
+      let selectedQuestion = '1';
       let activeTab = 'overview';
-      let filter = 'all';
+      let overviewFilter = 'all';
+      let questionFilter = 'all';
       let printMode = 'screen';
       let reportFingerprint = null;
       let modelSortColumn = 1;
       let modelSortDirection = 1;
+      const questionSortState = { column: 0, direction: 1 };
       const el = (tag, className, content) => {
         const node = document.createElement(tag);
         if (className) node.className = className;
@@ -155,7 +156,11 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
       };
       const questionNumbers = (comparisonReport) => [...new Set(comparisonReport.runs.flatMap((run) => (run.report.questions || []).map((question) => question.questionNumber)))].sort((left, right) => left - right);
       const questionResultFor = (run, questionNumber) => (run.report.questions || []).find((question) => question.questionNumber === questionNumber) || null;
-      const comparisonTable = (headers, rows, sortable = false) => {
+      const questionStatusFor = (run, questionNumber) => {
+        const question = questionResultFor(run, questionNumber);
+        return question ? question.status : run.report.status === 'completed' ? 'unavailable' : run.report.status;
+      };
+      const comparisonTable = (headers, rows, sortable = false, sortState = null) => {
         const table = document.createElement('table');
         table.style.width = '100%';
         table.style.borderCollapse = 'collapse';
@@ -165,20 +170,28 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           cell.style.textAlign = 'left';
           cell.style.padding = '8px 6px';
           if (sortable) {
+            const activeSortColumn = sortState ? sortState.column : modelSortColumn;
+            const activeSortDirection = sortState ? sortState.direction : modelSortDirection;
             const button = el('button', 'sort-button no-print', label);
             button.type = 'button';
             button.title = 'Sort by ' + label;
             button.addEventListener('click', () => {
-              if (modelSortColumn === columnIndex) modelSortDirection *= -1;
+              if (sortState) {
+                if (sortState.column === columnIndex) sortState.direction *= -1;
+                else {
+                  sortState.column = columnIndex;
+                  sortState.direction = 1;
+                }
+              } else if (modelSortColumn === columnIndex) modelSortDirection *= -1;
               else {
                 modelSortColumn = columnIndex;
                 modelSortDirection = 1;
               }
               render();
             });
-            if (modelSortColumn === columnIndex) {
-              button.textContent = label + (modelSortDirection === 1 ? ' ↑' : ' ↓');
-              cell.setAttribute('aria-sort', modelSortDirection === 1 ? 'ascending' : 'descending');
+            if (activeSortColumn === columnIndex) {
+              button.textContent = label + (activeSortDirection === 1 ? ' ↑' : ' ↓');
+              cell.setAttribute('aria-sort', activeSortDirection === 1 ? 'ascending' : 'descending');
             }
             cell.append(button, el('span', 'print-sort-label', label));
           } else {
@@ -189,17 +202,19 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         table.append(header);
         const sortedRows = sortable
           ? [...rows].sort((left, right) => {
-              const leftValue = left[modelSortColumn];
-              const rightValue = right[modelSortColumn];
+              const activeSortColumn = sortState ? sortState.column : modelSortColumn;
+              const activeSortDirection = sortState ? sortState.direction : modelSortDirection;
+              const leftValue = left[activeSortColumn];
+              const rightValue = right[activeSortColumn];
               const leftNumber = typeof leftValue === 'number' ? leftValue : Number.parseFloat(String(leftValue));
               const rightNumber = typeof rightValue === 'number' ? rightValue : Number.parseFloat(String(rightValue));
               if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
-                return (leftNumber - rightNumber) * modelSortDirection;
+                return (leftNumber - rightNumber) * activeSortDirection;
               }
               return String(leftValue).localeCompare(String(rightValue), undefined, {
                 numeric: true,
                 sensitivity: 'base',
-              }) * modelSortDirection;
+              }) * activeSortDirection;
             })
           : rows;
         sortedRows.forEach((values) => {
@@ -291,7 +306,12 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           const question = results[0];
           return [questionNumber, question ? question.question : 'Question unavailable', passed, partial, failed, difficulty];
         });
-        panel.append(comparisonTable(['Question', 'Prompt', 'Passed', 'Partial', 'Failed', 'Difficulty'], rows));
+        panel.append(comparisonTable(
+          ['Question', 'Prompt', 'Passed', 'Partial', 'Failed', 'Difficulty'],
+          rows,
+          true,
+          questionSortState,
+        ));
         return panel;
       };
       const comparisonQuestionCard = (run, questionNumber) => {
@@ -331,7 +351,9 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           panel.append(section('Expected response', el('div', 'answer', question.expectedResponse)));
         }
         const responses = el('div', 'question-list');
-        comparison.runs.forEach((run) => responses.append(comparisonQuestionCard(run, questionNumber)));
+        const matchingRuns = comparison.runs.filter((run) => questionFilter === 'all' || questionStatusFor(run, questionNumber) === questionFilter);
+        if (!matchingRuns.length) responses.append(el('div', 'empty', 'No models match this filter.'));
+        matchingRuns.forEach((run) => responses.append(comparisonQuestionCard(run, questionNumber)));
         panel.append(responses);
         return panel;
       };
@@ -392,8 +414,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         if (runReport.error) overview.append(el('p', 'error', runReport.error.kind + ': ' + runReport.error.message));
         container.append(overview);
         const questions = (runReport.questions || []).filter((question) =>
-          (printable || filter === 'all' || question.status === filter) &&
-          (printable || selectedQuestion === 'all' || String(question.questionNumber) === selectedQuestion),
+          printable || overviewFilter === 'all' || question.status === overviewFilter,
         );
         const panel = el('section', 'panel');
         panel.append(el('h2', '', 'Question details'));
@@ -429,10 +450,6 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         if (comparison) {
           const modelSelect = document.createElement('select');
           modelSelect.className = 'no-print';
-          const allModelsOption = el('option', '', 'All models');
-          allModelsOption.value = ALL_MODELS;
-          allModelsOption.selected = selectedModel === ALL_MODELS;
-          modelSelect.append(allModelsOption);
           comparison.runs.forEach((run) => {
             const option = el('option', '', run.model);
             option.value = run.model;
@@ -441,21 +458,15 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           });
           modelSelect.addEventListener('change', () => {
             selectedModel = modelSelect.value;
-            if (selectedModel !== ALL_MODELS) {
-              const selected = comparison.runs.find((run) => run.model === selectedModel);
-              if (selected) report = selected.report;
-            }
+            const selected = comparison.runs.find((run) => run.model === selectedModel);
+            if (selected) report = selected.report;
             render();
           });
-          toolbar.append(el('span', 'muted no-print', 'Model:'), modelSelect);
+          if (!comparison || activeTab === 'overview') toolbar.append(el('span', 'muted no-print', 'Model:'), modelSelect);
         }
-        if (comparison) {
+        if (comparison && activeTab === 'questions') {
           const questionSelect = document.createElement('select');
           questionSelect.className = 'no-print';
-          const allQuestionsOption = el('option', '', 'All questions');
-          allQuestionsOption.value = 'all';
-          allQuestionsOption.selected = selectedQuestion === 'all';
-          questionSelect.append(allQuestionsOption);
           questionNumbers(comparison).forEach((questionNumber) => {
             const option = el('option', '', 'Question ' + questionNumber);
             option.value = String(questionNumber);
@@ -464,27 +475,40 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           });
           questionSelect.addEventListener('change', () => {
             selectedQuestion = questionSelect.value;
-            activeTab = 'questions';
             render();
           });
           toolbar.append(el('span', 'muted no-print', 'Question:'), questionSelect);
         }
-        const select = document.createElement('select');
-        select.className = 'no-print';
-        [['all', 'All questions'], ['passed', 'Passed'], ['partial', 'Partial'], ['failed', 'Failed'], ['api_error', 'API errors'], ['judge_error', 'Judge errors']].forEach(([key, label]) => {
-          const option = el('option', '', label);
-          option.value = key;
-          option.selected = key === filter;
-          select.append(option);
-        });
-        select.addEventListener('change', () => { filter = select.value; render(); });
+        if (!comparison || activeTab === 'overview') {
+          const select = document.createElement('select');
+          select.className = 'no-print';
+          [['all', 'All questions'], ['passed', 'Passed'], ['partial', 'Partial'], ['failed', 'Failed'], ['api_error', 'API errors'], ['judge_error', 'Judge errors']].forEach(([key, label]) => {
+            const option = el('option', '', label);
+            option.value = key;
+            option.selected = key === overviewFilter;
+            select.append(option);
+          });
+          select.addEventListener('change', () => { overviewFilter = select.value; render(); });
+          toolbar.append(el('span', 'muted no-print', 'Question result:'), select);
+        } else {
+          const select = document.createElement('select');
+          select.className = 'no-print';
+          [['all', 'All models'], ['passed', 'Passed'], ['partial', 'Partial'], ['failed', 'Failed'], ['api_error', 'API errors'], ['judge_error', 'Judge errors'], ['unavailable', 'Unavailable']].forEach(([key, label]) => {
+            const option = el('option', '', label);
+            option.value = key;
+            option.selected = key === questionFilter;
+            select.append(option);
+          });
+          select.addEventListener('change', () => { questionFilter = select.value; render(); });
+          toolbar.append(el('span', 'muted no-print', 'Model result:'), select);
+        }
         const printCurrent = el('button', 'no-print', 'Print current model');
         printCurrent.addEventListener('click', () => {
           printMode = 'current';
           render();
           window.setTimeout(() => window.print(), 0);
         });
-        toolbar.append(select, printCurrent);
+        toolbar.append(printCurrent);
         if (comparison) {
           const printModels = el('button', 'no-print', 'Print all models');
           printModels.addEventListener('click', () => {
@@ -524,10 +548,10 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
             if (!comparison.runs.length) {
               report = null;
             } else {
-              const selected = selectedModel === ALL_MODELS
-                ? comparison.runs[0]
-                : comparison.runs.find((run) => run.model === selectedModel) || comparison.runs[0];
-              if (selectedModel !== ALL_MODELS) selectedModel = selected.model;
+              const selected = comparison.runs.find((run) => run.model === selectedModel) || comparison.runs[0];
+              selectedModel = selected.model;
+              const numbers = questionNumbers(comparison);
+              if (!numbers.some((questionNumber) => String(questionNumber) === selectedQuestion)) selectedQuestion = numbers.length ? String(numbers[0]) : '1';
               report = selected.report;
             }
           } else {
