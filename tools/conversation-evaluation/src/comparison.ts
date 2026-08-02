@@ -47,6 +47,18 @@ export function modelRunKey(
   return totalOccurrences > 1 && occurrence > 0 ? `${model}#${String(occurrence + 1)}` : model
 }
 
+export function nextModelRunKey(
+  model: DeclaredModel,
+  existingRuns: readonly ModelComparisonRun[],
+): string {
+  const highestOccurrence = existingRuns.reduce((highest, run) => {
+    if (run.model !== model) return highest
+    return Math.max(highest, runOccurrence(run))
+  }, 0)
+  const nextOccurrence = highestOccurrence + 1
+  return nextOccurrence === 1 ? model : `${model}#${String(nextOccurrence)}`
+}
+
 export function createModelComparisonReport(
   definition: TestDefinition,
   runs: readonly ModelComparisonRun[] = [],
@@ -186,4 +198,11 @@ export function modelRunEntry(
 function modelRunLabel(run: ModelComparisonRun): string {
   if (run.runKey === undefined || run.runKey === run.model) return run.model
   return `${run.model} (run ${run.runKey.slice(run.model.length + 1)})`
+}
+
+function runOccurrence(run: ModelComparisonRun): number {
+  if (run.runKey === undefined || run.runKey === run.model) return 1
+  const suffix = run.runKey.slice(run.model.length + 1)
+  const occurrence = Number.parseInt(suffix, 10)
+  return Number.isInteger(occurrence) && occurrence > 1 ? occurrence : 1
 }

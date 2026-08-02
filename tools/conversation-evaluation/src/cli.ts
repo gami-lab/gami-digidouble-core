@@ -9,6 +9,7 @@ import {
   loadModelComparisonReport,
   modelReportPath,
   modelRunKey,
+  nextModelRunKey,
   renderModelComparisonSummary,
   writeModelComparisonReport,
   writeModelComparisonSnapshot,
@@ -105,7 +106,10 @@ export async function runCli(
       for (const model of definition.models) {
         const occurrence = modelOccurrences.get(model) ?? 0
         modelOccurrences.set(model, occurrence + 1)
-        const runKey = modelRunKey(model, occurrence, modelTotals.get(model) ?? 1)
+        const runKey =
+          config.append && existingComparison !== null
+            ? nextModelRunKey(model, comparison.runs)
+            : modelRunKey(model, occurrence, modelTotals.get(model) ?? 1)
         const modelDefinition = createModelRunDefinition(definition, model)
         const reportPath = modelReportPath(config.outputPath, model, runKey)
         progress(`Starting model comparison run for ${modelRunLabel(model, runKey)}.`)
@@ -180,7 +184,7 @@ function printHelp(io: CliIo): void {
       '  --output <path>                  or EVALUATION_OUTPUT_PATH',
       '  --timeout-ms <milliseconds>      or EVALUATION_TIMEOUT_MS',
       '  --user-id <id>                   or EVALUATION_USER_ID',
-      '  --append                         preserve and update an existing model comparison report',
+      '  --append                         append new runs to an existing model comparison report',
     ].join('\n'),
   )
 }

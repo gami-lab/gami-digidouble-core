@@ -11,6 +11,7 @@ import {
   loadModelComparisonReport,
   modelReportPath,
   modelRunKey,
+  nextModelRunKey,
   renderModelComparisonSummary,
   upsertModelRun,
   writeModelComparisonSnapshot,
@@ -164,6 +165,28 @@ describe('model comparison reports', () => {
     expect(updated.runs).toHaveLength(2)
     expect(updated.runs[0]?.report).toBe(first)
     expect(updated.runs[1]).toMatchObject({ runKey: 'openai/gpt-5.4#2', report: rerun })
+  })
+
+  it('allocates the next run key without replacing existing runs', () => {
+    const first = report('openai/gpt-5.4')
+    const second = { ...first, sessionId: 'session_2' }
+    const comparison = createModelComparisonReport(definition, [
+      {
+        model: 'openai/gpt-5.4',
+        report: first,
+        reportPath: 'first.json',
+      },
+      {
+        model: 'openai/gpt-5.4',
+        runKey: 'openai/gpt-5.4#2',
+        report: second,
+        reportPath: 'second.json',
+      },
+    ])
+
+    expect(nextModelRunKey('openai/gpt-5.4', [])).toBe('openai/gpt-5.4')
+    expect(nextModelRunKey('openai/gpt-5.4', comparison.runs)).toBe('openai/gpt-5.4#3')
+    expect(nextModelRunKey('xai/grok-4.3', comparison.runs)).toBe('xai/grok-4.3')
   })
 
   it('writes the individual and comparison reports for each progress snapshot', async () => {

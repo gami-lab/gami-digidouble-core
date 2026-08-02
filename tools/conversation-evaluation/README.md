@@ -198,12 +198,12 @@ comparison report. Repeated selectors use numbered paths such as
 question, so the HTML viewer can show progress while a model is still running and an interrupted
 run keeps completed work.
 
-Use `--append` with a multi-model definition to load the existing comparison report, preserve
-models already stored there, and rerun/upsert each model occurrence declared by the current
-definition. Repeated occurrences are matched by their position (`model` for the first and
-`model#2`, `model#3`, and so on for later occurrences). This allows a later run to add new models
-or repeated runs without discarding the rest of the comparison. The existing report must belong to
-the same test name and scenario; `--append` is not supported for a single-model report.
+Use `--append` with a `models` definition to load the existing comparison report, preserve all
+models and runs already stored there, and append a new run for every model occurrence declared by
+the current definition. New runs receive the next available identity (`model` for the first run,
+then `model#2`, `model#3`, and so on) and therefore never replace an existing run. The existing
+report must belong to the same test name and scenario; `--append` is not supported for a single
+`model` definition.
 
 Judge transport, contract, and malformed-output failures are retried up to three total attempts per
 question. Each retry and final failure is printed in progress logs. A model run with a final
