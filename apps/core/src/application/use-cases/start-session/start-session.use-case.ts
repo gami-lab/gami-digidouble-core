@@ -12,6 +12,7 @@ export class StartSessionUseCase {
     private readonly avatarRepository: IAvatarRepository,
   ) {}
 
+  // eslint-disable-next-line complexity
   async execute(input: StartSessionInput): Promise<StartSessionOutput> {
     // TODO(EPIC-4.2): expand to full StartSessionRequest shape (nested user, initialContext)
     const userId = input.userId.trim()
@@ -38,6 +39,7 @@ export class StartSessionUseCase {
       userId,
       scenarioId,
       ...(unlockedAvatarIds !== undefined ? { unlockedAvatarIds } : {}),
+      ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
       ...(input.avatarOptions !== undefined ? { avatarOptions: input.avatarOptions } : {}),
     })
 

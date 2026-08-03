@@ -98,8 +98,10 @@ The judge must not combine alternatives or require expected response details tha
 selected acceptance path. Missing required facts and forbidden claims are retained in the question's
 judge diagnostics.
 
-`avatarOptions` is applied once when the evaluator creates the session, so every scripted question
-in that run uses the same Avatar retrieval configuration. `retrieval.maxChunks` controls the number
+The definition's `model` is sent once when the evaluator creates the session, so the selected model
+is used by the Avatar, Game Master, and memory-compaction calls for the entire run. `avatarOptions`
+is also applied once when the evaluator creates the session, so every scripted question in that run
+uses the same Avatar retrieval configuration. `retrieval.maxChunks` controls the number
 of memory/world chunks selected for the Avatar prompt and must be between 1 and 9 (the default is 7).
 `minimumChunksBySource` optionally sets the minimum requested chunks for `gm_required_fact`,
 `gm_retrieval_query`, and `last_user_input`; defaults are 1, 1, and 3 respectively. Guarantees are bounded
@@ -286,8 +288,9 @@ memory-compaction calls. The `totalRunTokens` and `totalRunInputTokens`/`totalRu
 fields are the full run measurement. Judge tokens and judge price are intentionally excluded from
 these measurements; judge latency and model identity remain available for operational comparison.
 Runtime usage is collected from Core session events after the final asynchronous work-settling wait.
-If the event data is unavailable or incomplete, the role breakdown is retained but the full cost is
-reported as unavailable.
+Failed GM or memory events that report no token usage are treated as zero billable usage. If a
+successful runtime call, or a failed call with partial token data, is missing token or model
+information, the role breakdown is retained but the full cost is reported as unavailable.
 
 The `costEstimate` contains separate Avatar, Game Master, and memory estimates, plus the full
 `totalCostUsd`, when all observed models are present in the tool's manually maintained public-price

@@ -55,6 +55,24 @@ describe('ModelResolutionService.resolve -> role overrides', () => {
 })
 
 describe('ModelResolutionService.resolve -> avatar overrides', () => {
+  it('applies a session override consistently to every model role', () => {
+    const sessionOverride = {
+      provider: 'openai' as const,
+      model: 'gpt-5.6-luna',
+      serviceTier: 'fast' as const,
+    }
+
+    expect(ModelResolutionService.resolve('avatar', baseConfig, { sessionOverride })).toEqual(
+      sessionOverride,
+    )
+    expect(ModelResolutionService.resolve('gameMaster', baseConfig, { sessionOverride })).toEqual(
+      sessionOverride,
+    )
+    expect(ModelResolutionService.resolve('memory', baseConfig, { sessionOverride })).toEqual(
+      sessionOverride,
+    )
+  })
+
   it('gives an explicit request override highest precedence for the Avatar role', () => {
     const config: ModelConfig = {
       ...baseConfig,

@@ -9,6 +9,7 @@ import {
   type ProviderName,
   type ScenarioModelSelectionConfig,
 } from '../../domain/model-config/index.js'
+import type { ModelSelectionOverride } from '@gami/shared'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 import { LlmError } from '../../infrastructure/llm/llm.error.js'
 
@@ -40,6 +41,7 @@ export async function resolveRoleLlmCall(args: {
   modelConfigFallback: ModelConfig | undefined
   avatarOverride: AvatarLlmOverride | undefined
   requestOverride?: AvatarLlmOverride
+  sessionOverride?: ModelSelectionOverride
   scenarioModelSelection: ScenarioModelSelectionConfig | undefined
 }): Promise<{
   adapter: ILlmAdapter
@@ -57,6 +59,7 @@ export async function resolveRoleLlmCall(args: {
   const resolved = ModelResolutionService.resolve(args.role, config, {
     ...(args.avatarOverride !== undefined ? { avatarOverride: args.avatarOverride } : {}),
     ...(args.requestOverride !== undefined ? { requestOverride: args.requestOverride } : {}),
+    ...(args.sessionOverride !== undefined ? { sessionOverride: args.sessionOverride } : {}),
     ...(args.scenarioModelSelection !== undefined
       ? { scenarioModelSelection: args.scenarioModelSelection }
       : {}),

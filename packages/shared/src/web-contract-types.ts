@@ -103,6 +103,7 @@ export type PrepareAvatarTraitsResponse = {
 export type StartSessionRequest = {
   userId: string
   scenarioId: string
+  model?: ModelSelectionOverride
   avatarOptions?: AvatarRequestOptions
 }
 

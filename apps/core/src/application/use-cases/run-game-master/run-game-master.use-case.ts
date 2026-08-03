@@ -155,6 +155,7 @@ export class RunGameMasterUseCase {
       triggerReason,
       llmStart,
       gmRunStartMs,
+      session?.modelOverride,
     )
     if (llmCallResult === null) return
 
@@ -309,12 +310,16 @@ export class RunGameMasterUseCase {
     triggerReason: string,
     llmStart: number,
     gmRunStartMs: number,
+    sessionOverride: Session['modelOverride'],
   ): Promise<{
     llmResponse: LlmResponse
     llmLatencyMs: number
     llmProvider: string
   } | null> {
-    const resolvedLlm = await this.resolveGameMasterLlmCall(scenarioContext.modelSelection)
+    const resolvedLlm = await this.resolveGameMasterLlmCall(
+      scenarioContext.modelSelection,
+      sessionOverride,
+    )
     const gmTraceRequestId = `gm_${crypto.randomUUID()}`
     const llmRequest = {
       systemPrompt: buildGameMasterSystemPrompt({
@@ -373,6 +378,7 @@ export class RunGameMasterUseCase {
 
   private async resolveGameMasterLlmCall(
     scenarioModelSelection: Scenario['modelSelection'],
+    sessionOverride: Session['modelOverride'],
   ): Promise<{
     adapter: ILlmAdapter
     provider: string
@@ -386,6 +392,7 @@ export class RunGameMasterUseCase {
       llmAdapterRegistry: this.options.llmAdapterRegistry,
       modelConfigFallback: this.options.modelConfigFallback,
       avatarOverride: undefined,
+      ...(sessionOverride !== undefined ? { sessionOverride } : {}),
       scenarioModelSelection,
     })
   }

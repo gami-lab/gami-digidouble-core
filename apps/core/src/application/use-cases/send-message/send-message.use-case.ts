@@ -173,6 +173,7 @@ export class SendMessageUseCase {
       modelConfigFallback: this.modelConfigFallback,
       avatarOverride: avatar.llmOverride,
       ...(input.model !== undefined ? { requestOverride: input.model } : {}),
+      ...(session.modelOverride !== undefined ? { sessionOverride: session.modelOverride } : {}),
       scenarioModelSelection,
     })
     const llmRequest = buildSendMessageLlmRequest({

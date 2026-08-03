@@ -151,4 +151,21 @@ describe('StartSessionUseCase', () => {
     })
     expect(output.session.avatarOptions).toEqual(avatarOptions)
   })
+
+  it('persists a session-scoped model override for all runtime roles', async () => {
+    const useCase = new StartSessionUseCase(sessionRepository, scenarioRepository, avatarRepository)
+    const modelOverride = { provider: 'openai' as const, model: 'gpt-5.6-luna' }
+
+    await useCase.execute({
+      userId: 'user_1',
+      scenarioId: 'scenario_1',
+      modelOverride,
+    })
+
+    expect(createSessionMock).toHaveBeenCalledWith({
+      userId: 'user_1',
+      scenarioId: 'scenario_1',
+      modelOverride,
+    })
+  })
 })

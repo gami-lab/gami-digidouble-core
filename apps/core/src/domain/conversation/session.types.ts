@@ -1,4 +1,4 @@
-import type { AvatarRequestOptions } from '@gami/shared'
+import type { AvatarRequestOptions, ModelSelectionOverride } from '@gami/shared'
 
 /** Runtime session — owns the lifecycle of one conversation. */
 export interface Session {
@@ -10,6 +10,7 @@ export interface Session {
   gmNotes?: string
   memorySummary?: string
   status: 'active' | 'closed' | 'archived'
+  modelOverride?: ModelSelectionOverride
   avatarOptions?: AvatarRequestOptions
   startedAt: string
   lastActivityAt: string

@@ -82,6 +82,7 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
       options.llmAdapterRegistry,
       options.modelConfigFallback,
       options.scenarioRepository,
+      options.sessionRepository,
     )
 
   const useCase = new AdminRuntimeActionsUseCase(

@@ -12,6 +12,7 @@ import type { IMemoryMaintenancePort } from '../ports/IMemoryMaintenancePort.js'
 import type { IConversationWorkingMemoryRepository } from '../ports/IConversationWorkingMemoryRepository.js'
 import type { IModelConfigRepository } from '../ports/IModelConfigRepository.js'
 import type { IScenarioRepository } from '../ports/IScenarioRepository.js'
+import type { ISessionRepository } from '../ports/ISessionRepository.js'
 import type { ModelConfig } from '../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 import { isUnsupportedContradictedAvatarClaim } from './memory-contradiction.policy.js'
@@ -114,6 +115,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     private readonly llmAdapterRegistry?: LlmAdapterRegistry,
     private readonly modelConfigFallback?: ModelConfig,
     private readonly scenarioRepository?: IScenarioRepository,
+    private readonly sessionRepository?: ISessionRepository,
   ) {}
 
   async awaitPendingRefresh(conversationId: string): Promise<void> {
@@ -268,7 +270,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       verifiedContext?: VerifiedMemoryContext[]
     },
   ): Promise<MemoryCompactionResult> {
-    const resolvedLlm = await this.resolveMemoryLlmCall(context.scenarioId)
+    const resolvedLlm = await this.resolveMemoryLlmCall(context.scenarioId, context.sessionId)
     const llmRequest = {
       systemPrompt: WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT,
       messages: [
@@ -319,13 +321,17 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     throw new Error('[memory-maintenance] LLM returned unparseable compaction output')
   }
 
-  private async resolveMemoryLlmCall(scenarioId: string): Promise<{
+  private async resolveMemoryLlmCall(
+    scenarioId: string,
+    sessionId: string,
+  ): Promise<{
     adapter: ILlmAdapter
     provider: string
     model?: string
     effectiveModel: string
   }> {
     const scenario = await this.scenarioRepository?.findById(scenarioId)
+    const session = await this.sessionRepository?.findById(sessionId)
     return await resolveRoleLlmCall({
       role: 'memory',
       legacyAdapter: this.llm,
@@ -333,6 +339,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       llmAdapterRegistry: this.llmAdapterRegistry,
       modelConfigFallback: this.modelConfigFallback,
       avatarOverride: undefined,
+      ...(session?.modelOverride !== undefined ? { sessionOverride: session.modelOverride } : {}),
       scenarioModelSelection: scenario?.modelSelection,
     })
   }

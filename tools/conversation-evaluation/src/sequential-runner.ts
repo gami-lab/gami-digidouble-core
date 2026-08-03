@@ -177,6 +177,8 @@ export async function runSequentialConversation(
   input: SequentialRunnerInput,
 ): Promise<ConversationExecution> {
   const { definition, userId } = input
+  const modelOverride =
+    input.modelOverride === undefined ? undefined : parseDeclaredModel(input.modelOverride)
   reportProgress(input, 'Resolving initial Avatar.')
   const avatarId = await resolveInitialAvatarId(client, definition, input.signal)
   reportProgress(input, 'Creating evaluation session.')
@@ -184,6 +186,7 @@ export async function runSequentialConversation(
     {
       userId,
       scenarioId: definition.scenarioId,
+      ...(modelOverride === undefined ? {} : { model: modelOverride }),
       ...(definition.avatarOptions !== undefined
         ? { avatarOptions: definition.avatarOptions }
         : {}),
@@ -224,7 +227,7 @@ export async function runSequentialConversation(
         conversationId,
         question.question,
         requestOptions(input.signal),
-        input.modelOverride === undefined ? undefined : parseDeclaredModel(input.modelOverride),
+        modelOverride,
       )
       assertMessageResponseIdentity(response, sessionId, conversationId)
       const metadata = response.avatarMessage.metadata

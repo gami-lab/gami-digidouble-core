@@ -89,6 +89,7 @@ export type SessionsRouteOptions = {
 type StartSessionRequestBody = {
   userId: string
   scenarioId: string
+  model?: StartSessionRequest['model']
   avatarOptions?: StartSessionRequest['avatarOptions']
 }
 
@@ -329,6 +330,7 @@ function registerStartSessionRoute(app: FastifyInstance, useCase: StartSessionUs
         const output = await useCase.execute({
           userId: request.body.userId,
           scenarioId: request.body.scenarioId,
+          ...(request.body.model !== undefined ? { modelOverride: request.body.model } : {}),
           ...(request.body.avatarOptions !== undefined
             ? { avatarOptions: request.body.avatarOptions }
             : {}),

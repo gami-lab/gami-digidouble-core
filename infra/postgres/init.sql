@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   scenario_id      UUID        NOT NULL REFERENCES scenarios(id),
   active_avatar_id UUID        REFERENCES avatars(id) ON DELETE SET NULL,
   unlocked_avatar_ids UUID[],
+  model_override   JSONB,
   avatar_options   JSONB,
   gm_notes         TEXT,
   memory_summary   TEXT,
@@ -143,6 +144,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS unlocked_avatar_ids UUID[];
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS gm_notes TEXT;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS memory_summary TEXT;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS model_override JSONB;
 
 -- ── Working Memory ────────────────────────────────────────────────────────────
 

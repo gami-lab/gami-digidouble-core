@@ -5,6 +5,7 @@ import type {
   ProviderName,
   ScenarioModelSelectionConfig,
 } from './model-config.types.js'
+import type { ModelSelectionOverride } from '@gami/shared'
 
 function resolveBaseProvider(role: ModelRole, config: ModelConfig): ProviderName {
   const roleProvider = config.roleOverrides[role]?.provider
@@ -52,6 +53,7 @@ function resolve(
   options?: {
     avatarOverride?: AvatarLlmOverride
     requestOverride?: AvatarLlmOverride
+    sessionOverride?: ModelSelectionOverride
     scenarioModelSelection?: ScenarioModelSelectionConfig
   },
 ): { provider: ProviderName; model: string; serviceTier?: 'fast' } {
@@ -63,11 +65,20 @@ function resolve(
   const requestProvider = resolveAvatarOverrideProvider(role, options?.requestOverride)
   const requestModel = resolveAvatarOverrideModel(role, options?.requestOverride)
   const requestServiceTier = role === 'avatar' ? options?.requestOverride?.serviceTier : undefined
+  const sessionProvider = options?.sessionOverride?.provider
+  const sessionModel = options?.sessionOverride?.model
+  const sessionServiceTier = options?.sessionOverride?.serviceTier
+  const serviceTier = requestServiceTier ?? sessionServiceTier
 
   return {
-    provider: requestProvider ?? avatarProvider ?? scenarioSelection?.provider ?? baseProvider,
-    model: requestModel ?? avatarModel ?? scenarioSelection?.model ?? baseModel,
-    ...(requestServiceTier === undefined ? {} : { serviceTier: requestServiceTier }),
+    provider:
+      sessionProvider ??
+      requestProvider ??
+      avatarProvider ??
+      scenarioSelection?.provider ??
+      baseProvider,
+    model: sessionModel ?? requestModel ?? avatarModel ?? scenarioSelection?.model ?? baseModel,
+    ...(serviceTier === undefined ? {} : { serviceTier }),
   }
 }
 

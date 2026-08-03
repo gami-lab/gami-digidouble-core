@@ -121,6 +121,37 @@ function definitionWithAvatarName(name: string, questions = definition.questions
 // until the first Avatar response has completed.
 // eslint-disable-next-line max-lines-per-function
 describe('runSequentialConversation', () => {
+  it('sends the selected model when creating the session and Avatar messages', async () => {
+    const firstQuestion = definition.questions[0]
+    if (firstQuestion === undefined) throw new Error('Test definition has no first question.')
+    const fetchMock = vi.fn<FetchLike>().mockImplementation((url) => {
+      if (url.endsWith('/v1/sessions'))
+        return Promise.resolve(jsonResponse(okEnvelope({ session })))
+      if (url.endsWith('/v1/sessions/session_1/conversations')) {
+        return Promise.resolve(jsonResponse(okEnvelope({ conversation }), 201))
+      }
+      return Promise.resolve(jsonResponse(okEnvelope(messageResponse('First question'))))
+    })
+
+    await runSequentialConversation(createClient(fetchMock), {
+      definition: { ...definition, questions: [firstQuestion] },
+      userId: 'evaluation-user',
+      modelOverride: 'openai/gpt-5.6-luna-fast',
+    })
+
+    const sessionRequest = fetchMock.mock.calls[0]?.[1]
+    const messageRequest = fetchMock.mock.calls[2]?.[1]
+    if (typeof sessionRequest?.body !== 'string' || typeof messageRequest?.body !== 'string') {
+      throw new Error('Expected JSON request bodies.')
+    }
+    expect(JSON.parse(sessionRequest.body)).toMatchObject({
+      model: { provider: 'openai', model: 'gpt-5.6-luna', serviceTier: 'fast' },
+    })
+    expect(JSON.parse(messageRequest.body)).toMatchObject({
+      model: { provider: 'openai', model: 'gpt-5.6-luna', serviceTier: 'fast' },
+    })
+  })
+
   it('uses one session and conversation and sends questions in strict order', async () => {
     const calls: string[] = []
     let resolveFirst: ((response: Response) => void) | undefined

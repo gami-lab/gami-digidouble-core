@@ -1,8 +1,9 @@
-import type { SessionSummary } from '@gami/shared'
+import type { ModelSelectionOverride, SessionSummary } from '@gami/shared'
 
 export interface StartSessionInput {
   userId: string
   scenarioId: string
+  modelOverride?: ModelSelectionOverride
   avatarOptions?: SessionSummary['avatarOptions']
 }
 

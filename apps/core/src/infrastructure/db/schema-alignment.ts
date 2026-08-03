@@ -9,6 +9,7 @@ const SCHEMA_ALIGNMENT_STATEMENTS = [
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS unlocked_avatar_ids UUID[]',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS gm_notes TEXT',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS memory_summary TEXT',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS model_override JSONB',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS avatar_options JSONB',
   'ALTER TABLE gm_states ADD COLUMN IF NOT EXISTS next_turn_orchestration JSONB',
   'ALTER TABLE avatars ADD COLUMN IF NOT EXISTS computed_traits JSONB',

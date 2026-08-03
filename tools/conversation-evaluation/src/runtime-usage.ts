@@ -63,14 +63,22 @@ function addEventUsage(usage: RuntimeUsage, event: { type: string; payload: unkn
     case 'gm_triggered':
       return addUsage(usage.gameMaster, event.payload)
     case 'gm_error':
-      return addUsage(usage.gameMaster, event.payload)
+      return addFailedUsage(usage.gameMaster, event.payload)
     case 'memory_refresh_succeeded':
       return addUsage(usage.memory, event.payload)
     case 'memory_refresh_failed':
-      return false
+      return true
     default:
       return true
   }
+}
+
+function addFailedUsage(usage: RuntimeRoleUsage, payload: unknown): boolean {
+  if (!isRecord(payload)) return true
+  const hasInputTokens = typeof payload.inputTokens === 'number'
+  const hasOutputTokens = typeof payload.outputTokens === 'number'
+  if (!hasInputTokens && !hasOutputTokens) return true
+  return addUsage(usage, payload)
 }
 
 type RuntimeUsagePayload = {

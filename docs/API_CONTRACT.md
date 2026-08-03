@@ -123,12 +123,19 @@ to the shared wire type.
   `MessageStreamEvent` frames
 - `GET /v1/conversations/{conversationId}/history` -> `ConversationHistoryResponse`
 
-`StartSessionRequest` accepts optional session-scoped Avatar retrieval settings:
+`StartSessionRequest` accepts an optional session-scoped `model` override and Avatar retrieval
+settings. The model override is reused for Avatar, Game Master, and memory-compaction calls in the
+session:
 
 ```json
 {
   "userId": "user_1",
   "scenarioId": "scenario_1",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-5.6-luna",
+    "serviceTier": "fast"
+  },
   "avatarOptions": {
     "retrieval": {
       "maxChunks": 7,
@@ -274,8 +281,11 @@ plan contents so the console can show which proposals produced matching chunks.
 Runtime precedence:
 
 - Avatar runtime: `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` -> global avatar override -> global default
-- GM runtime: `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` -> global GM override -> global default
-- Memory runtime: global memory override -> global default
+- When a session `model` override is present, it takes precedence for all three runtime roles,
+  including over per-message Avatar model overrides.
+- Avatar runtime without a session override: request `model` -> `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` -> global avatar override -> global default
+- GM runtime without a session override: `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` -> global GM override -> global default
+- Memory runtime without a session override: scenario memory/default profile -> global memory override -> global default
 
 ### Avatar Trait Preparation
 
