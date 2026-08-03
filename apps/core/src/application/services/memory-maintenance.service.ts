@@ -512,9 +512,8 @@ function truncateText(value: string, maxLength: number): string {
 }
 
 function renderPromptList(label: string, items: string[]): string[] {
-  return items.length === 0
-    ? [`${label}: none`]
-    : [label + ':', ...items.map((item) => `- ${item}`)]
+  if (items.length === 0) return [`${label}: none`]
+  return [label + ':', ...items.map((item) => `- ${item}`)]
 }
 
 function renderPromptFacts(facts: MemoryFactRecord[]): string[] {

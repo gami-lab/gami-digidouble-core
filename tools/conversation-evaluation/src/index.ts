@@ -77,7 +77,6 @@ export {
   createModelRunDefinition,
   ModelComparisonReportLoadError,
   loadModelComparisonReport,
-  modelReportPath,
   renderModelComparisonSummary,
   upsertModelRun,
 } from './comparison.js'

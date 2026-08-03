@@ -9,7 +9,6 @@ import {
   createModelComparisonReport,
   createModelRunDefinition,
   loadModelComparisonReport,
-  modelReportPath,
   modelRunKey,
   nextModelRunKey,
   renderModelComparisonSummary,
@@ -87,7 +86,7 @@ function report(model: string): RunReport {
 
 // eslint-disable-next-line max-lines-per-function
 describe('model comparison reports', () => {
-  it('creates an independent run definition and deterministic report path', () => {
+  it('creates an independent run definition and stable run keys', () => {
     expect(createModelRunDefinition(definition, 'openai/gpt-5.4')).toEqual({
       version: 1,
       name: definition.name,
@@ -96,19 +95,13 @@ describe('model comparison reports', () => {
       questions: definition.questions,
       model: 'openai/gpt-5.4',
     })
-    expect(modelReportPath('./evaluation-report.json', 'openai/gpt-5.4')).toContain(
-      'evaluation-report.openai-gpt-5-4.json',
-    )
     const secondRunKey = modelRunKey('openai/gpt-5.4', 1, 2)
     expect(secondRunKey).toBe('openai/gpt-5.4#2')
-    expect(modelReportPath('./evaluation-report.json', 'openai/gpt-5.4', secondRunKey)).toContain(
-      'evaluation-report.openai-gpt-5-4-run-2.json',
-    )
   })
 
   it('renders comparable pass and cost columns', () => {
     const comparison = createModelComparisonReport(definition, [
-      { model: 'openai/gpt-5.4', report: report('openai/gpt-5.4'), reportPath: 'one.json' },
+      { model: 'openai/gpt-5.4', report: report('openai/gpt-5.4') },
     ])
     expect(renderModelComparisonSummary(comparison)).toContain(
       'Model | Status | Passed | Partial | Failed | Pass rate | Estimated cost',
@@ -120,15 +113,14 @@ describe('model comparison reports', () => {
     const first = report('openai/gpt-5.4')
     const second = report('xai/grok-4.3')
     const comparison = createModelComparisonReport(definition, [
-      { model: first.declaredModel ?? 'openai/gpt-5.4', report: first, reportPath: 'first.json' },
-      { model: second.declaredModel ?? 'xai/grok-4.3', report: second, reportPath: 'second.json' },
+      { model: first.declaredModel ?? 'openai/gpt-5.4', report: first },
+      { model: second.declaredModel ?? 'xai/grok-4.3', report: second },
     ])
     const rerun = { ...first, status: 'judge_error' as const }
 
     const updated = upsertModelRun(comparison, {
       model: 'openai/gpt-5.4',
       report: rerun,
-      reportPath: 'rerun.json',
     })
 
     expect(updated.runs).toHaveLength(2)
@@ -144,13 +136,11 @@ describe('model comparison reports', () => {
         model: 'openai/gpt-5.4',
         runKey: 'openai/gpt-5.4',
         report: first,
-        reportPath: 'first.json',
       },
       {
         model: 'openai/gpt-5.4',
         runKey: 'openai/gpt-5.4#2',
         report: second,
-        reportPath: 'second.json',
       },
     ])
 
@@ -159,7 +149,6 @@ describe('model comparison reports', () => {
       model: 'openai/gpt-5.4',
       runKey: 'openai/gpt-5.4#2',
       report: rerun,
-      reportPath: 'rerun-second.json',
     })
 
     expect(updated.runs).toHaveLength(2)
@@ -174,13 +163,11 @@ describe('model comparison reports', () => {
       {
         model: 'openai/gpt-5.4',
         report: first,
-        reportPath: 'first.json',
       },
       {
         model: 'openai/gpt-5.4',
         runKey: 'openai/gpt-5.4#2',
         report: second,
-        reportPath: 'second.json',
       },
     ])
 
@@ -189,10 +176,9 @@ describe('model comparison reports', () => {
     expect(nextModelRunKey('xai/grok-4.3', comparison.runs)).toBe('xai/grok-4.3')
   })
 
-  it('writes the individual and comparison reports for each progress snapshot', async () => {
+  it('writes the comparison report for each progress snapshot', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'conversation-evaluation-comparison-'))
     const comparisonPath = join(directory, 'comparison.json')
-    const modelPath = join(directory, 'model.json')
     const snapshot = report('openai/gpt-5.4')
     snapshot.finishedAt = null
 
@@ -201,14 +187,11 @@ describe('model comparison reports', () => {
       comparison: createModelComparisonReport(definition),
       model: 'openai/gpt-5.4',
       report: snapshot,
-      reportPath: modelPath,
     })
 
-    const storedModel = JSON.parse(await readFile(modelPath, 'utf8')) as RunReport
     const storedComparison = JSON.parse(await readFile(comparisonPath, 'utf8')) as {
       runs: Array<{ report: RunReport }>
     }
-    expect(storedModel.finishedAt).toBeNull()
     expect(storedComparison.runs[0]?.report.finishedAt).toBeNull()
     expect(updated.runs).toHaveLength(1)
     expect(updated.runs[0]?.report.finishedAt).toBeNull()
@@ -218,7 +201,7 @@ describe('model comparison reports', () => {
     const directory = await mkdtemp(join(tmpdir(), 'conversation-evaluation-comparison-'))
     const outputPath = join(directory, 'comparison.json')
     const comparison = createModelComparisonReport(definition, [
-      { model: 'openai/gpt-5.4', report: report('openai/gpt-5.4'), reportPath: 'one.json' },
+      { model: 'openai/gpt-5.4', report: report('openai/gpt-5.4') },
     ])
     await writeFile(outputPath, `${JSON.stringify(comparison)}\n`, 'utf8')
 

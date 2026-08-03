@@ -1,5 +1,4 @@
 import { readFile } from 'node:fs/promises'
-import { basename, dirname, extname, join, resolve } from 'node:path'
 
 import type {
   DeclaredModel,
@@ -8,7 +7,7 @@ import type {
   RunReport,
   TestDefinition,
 } from './contracts.js'
-import { writeJsonAtomically, writeReportAtomically } from './report.js'
+import { writeJsonAtomically } from './report.js'
 
 export class ModelComparisonReportLoadError extends Error {
   constructor(message: string) {
@@ -24,19 +23,6 @@ export function createModelRunDefinition(
   const baseDefinition = { ...definition }
   delete baseDefinition.models
   return { ...baseDefinition, model }
-}
-
-export function modelReportPath(outputPath: string, model: DeclaredModel, runKey?: string): string {
-  const targetPath = resolve(outputPath)
-  const extension = extname(targetPath) || '.json'
-  const stem = basename(targetPath, extension)
-  const modelSlug = model
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-  const runSuffix =
-    runKey !== undefined && runKey !== model ? `-run-${runKey.slice(model.length + 1)}` : ''
-  return join(dirname(targetPath), `${stem}.${modelSlug || 'model'}${runSuffix}${extension}`)
 }
 
 export function modelRunKey(
@@ -86,12 +72,10 @@ export async function writeModelComparisonSnapshot(args: {
   model: DeclaredModel
   runKey?: string
   report: RunReport
-  reportPath: string
 }): Promise<ModelComparisonReport> {
-  await writeReportAtomically(args.reportPath, args.report)
   const updatedComparison = upsertModelRun(
     args.comparison,
-    modelRunEntry(args.model, args.report, args.reportPath, args.runKey),
+    modelRunEntry(args.model, args.report, args.runKey),
   )
   await writeModelComparisonReport(args.comparisonOutputPath, updatedComparison)
   return updatedComparison
@@ -155,7 +139,7 @@ function isModelComparisonReport(value: unknown): value is ModelComparisonReport
     return (
       typeof run['model'] === 'string' &&
       (run['runKey'] === undefined || typeof run['runKey'] === 'string') &&
-      typeof run['reportPath'] === 'string' &&
+      (run['reportPath'] === undefined || typeof run['reportPath'] === 'string') &&
       isRecord(run['report'])
     )
   })
@@ -184,14 +168,12 @@ export function renderModelComparisonSummary(report: ModelComparisonReport): str
 export function modelRunEntry(
   model: DeclaredModel,
   report: RunReport,
-  reportPath: string,
   runKey?: string,
 ): ModelComparisonRun {
   return {
     model,
     ...(runKey !== undefined ? { runKey } : {}),
     report,
-    reportPath,
   }
 }
 

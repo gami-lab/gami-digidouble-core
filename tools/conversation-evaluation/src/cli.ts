@@ -7,7 +7,6 @@ import {
   createModelComparisonReport,
   createModelRunDefinition,
   loadModelComparisonReport,
-  modelReportPath,
   modelRunKey,
   nextModelRunKey,
   renderModelComparisonSummary,
@@ -111,7 +110,6 @@ export async function runCli(
             ? nextModelRunKey(model, comparison.runs)
             : modelRunKey(model, occurrence, modelTotals.get(model) ?? 1)
         const modelDefinition = createModelRunDefinition(definition, model)
-        const reportPath = modelReportPath(config.outputPath, model, runKey)
         progress(`Starting model comparison run for ${modelRunLabel(model, runKey)}.`)
         const output = await runEvaluation({
           definition: modelDefinition,
@@ -126,7 +124,6 @@ export async function runCli(
               model,
               runKey,
               report,
-              reportPath,
             })
           },
           signal: interruption.signal,

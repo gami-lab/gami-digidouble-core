@@ -200,12 +200,11 @@ The CLI prints progress for setup, each Avatar request, judging, and question co
 five seconds between questions so asynchronous Game Master and memory work can settle before the
 next scripted turn; an API failure stops without waiting.
 
-When `models` is present, the command writes one report per model next to the configured output,
-for example `evaluation-report.openai-gpt-5-4.json`, and maintains the configured output as a
-comparison report. Repeated selectors use numbered paths such as
-`evaluation-report.openai-gpt-5-4-run-2.json`. Both the per-model report and the comparison report are updated after every
-question, so the HTML viewer can show progress while a model is still running and an interrupted
-run keeps completed work.
+When `models` is present, the configured output is a model-comparison report containing the complete
+report for every model run. Repeated selectors use stable run keys such as
+`openai/gpt-5.4#2`. The comparison report is updated after every question, so the HTML viewer can
+show progress while a model is still running and an interrupted run keeps completed work. No
+additional per-model JSON files are created.
 
 Use `--append` with a `models` definition to load the existing comparison report, preserve all
 models and runs already stored there, and append a new run for every model occurrence declared by
@@ -252,7 +251,7 @@ content changes, so dropdown and filter selections remain stable while an evalua
 For every judged question, the viewer provides **Accept**, **Partial**, and **Reject** controls to
 correct the LLM judge. The original LLM outcome remains in `humanReview.originalStatus`, while the
 question status and all pass/partial/fail statistics use the human decision. The local viewer saves
-corrections to the report JSON (including the selected run's individual report in a comparison); use
+corrections directly to the combined report JSON; use
 **Download corrected JSON** if the report is read-only or the save fails.
 The server binds to `127.0.0.1` by default and serves only the selected
 report; use `--host` and `--port` to change the local binding. Press `Ctrl+C` to stop it.

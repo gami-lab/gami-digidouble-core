@@ -162,10 +162,9 @@ describe('report viewer', () => {
     }
   })
 
-  it('persists a human review in both comparison and model reports', async () => {
+  it('persists a human review in the comparison report', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'conversation-evaluation-viewer-'))
     const reportPath = join(directory, 'evaluation-report.json')
-    const modelReportPath = join(directory, 'model.json')
     const runReport = createViewerReport()
     const comparison = {
       version: 1 as const,
@@ -178,12 +177,10 @@ describe('report viewer', () => {
           model: 'openai/gpt-5.4',
           runKey: 'openai/gpt-5.4',
           report: runReport,
-          reportPath: modelReportPath,
         },
       ],
     }
     await writeFile(reportPath, JSON.stringify(comparison), 'utf8')
-    await writeFile(modelReportPath, JSON.stringify(runReport), 'utf8')
     const viewer = await startReportViewer({ reportPath, port: 0 })
 
     try {
@@ -194,11 +191,7 @@ describe('report viewer', () => {
       })
       expect(response.status).toBe(200)
       const savedComparison = JSON.parse(await readFile(reportPath, 'utf8')) as typeof comparison
-      const savedModel = JSON.parse(await readFile(modelReportPath, 'utf8')) as ReturnType<
-        typeof createViewerReport
-      >
       expect(savedComparison.runs[0]?.report.questions[0]?.status).toBe('partial')
-      expect(savedModel.questions[0]).toMatchObject({ status: 'partial' })
       expect(savedComparison.runs[0]?.report.summary).toMatchObject({ partial: 1, passRate: 0 })
     } finally {
       await viewer.close()

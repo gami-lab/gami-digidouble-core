@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { readFile } from 'node:fs/promises'
-import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { resolve } from 'node:path'
 
 import type { ModelComparisonReport, QualityOutcome, RunReport } from './contracts.js'
 import { applyHumanReview, writeJsonAtomically } from './report.js'
@@ -102,11 +102,6 @@ async function applyReview(reportPath: string, correction: ReviewRequest): Promi
         candidate === run ? { ...candidate, report: updatedRun } : candidate,
       ),
     }
-    const modelReportPath = resolve(run.reportPath)
-    if (!isWithinReportDirectory(reportPath, modelReportPath)) {
-      throw new Error('The selected model report path is outside the viewer report directory.')
-    }
-    await writeJsonAtomically(modelReportPath, updatedRun)
     await writeJsonAtomically(reportPath, updatedComparison)
     return updatedComparison
   }
@@ -175,7 +170,7 @@ function isModelComparisonReport(value: unknown): value is ModelComparisonReport
       (run) =>
         isRecord(run) &&
         typeof run['model'] === 'string' &&
-        typeof run['reportPath'] === 'string' &&
+        (run['reportPath'] === undefined || typeof run['reportPath'] === 'string') &&
         isRunReport(run['report']),
     )
   )
@@ -190,11 +185,6 @@ function isRunReport(value: unknown): value is RunReport {
     Array.isArray(value['questions']) &&
     isRecord(value['summary'])
   )
-}
-
-function isWithinReportDirectory(reportPath: string, candidatePath: string): boolean {
-  const relativePath = relative(dirname(resolve(reportPath)), candidatePath)
-  return relativePath !== '' && !relativePath.startsWith('..') && !isAbsolute(relativePath)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
