@@ -307,6 +307,7 @@ describe('ContextEngine baseline', () => {
 
   it('selects one combined top-five set across avatar memory and world retrieval', () => {
     const input = makeInput()
+    input.extensions.avatarRetrievalOptions = { maxChunks: 5 }
     input.extensions.retrieval = {
       ...requireRetrieval(input),
       memory: [

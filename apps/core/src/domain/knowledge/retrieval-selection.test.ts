@@ -37,6 +37,23 @@ describe('selectBalancedRetrievedItems', () => {
     ])
   })
 
+  it('defaults to three chunks from the latest user input when available', () => {
+    const selected = selectBalancedRetrievedItems(
+      [
+        item('fact-1', 'gm_required_fact'),
+        item('query-1', 'gm_retrieval_query'),
+        item('user-1', 'last_user_input'),
+        item('user-2', 'last_user_input'),
+        item('user-3', 'last_user_input'),
+      ],
+      7,
+    )
+
+    expect(
+      selected.filter((entry) => entry.matchedQuery?.source === 'last_user_input'),
+    ).toHaveLength(3)
+  })
+
   it('honors configured source minimums within the total chunk budget', () => {
     const selected = selectBalancedRetrievedItems(
       [

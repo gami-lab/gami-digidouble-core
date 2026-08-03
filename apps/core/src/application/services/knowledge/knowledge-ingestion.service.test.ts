@@ -160,7 +160,34 @@ describe('KnowledgeIngestionService — completion flow', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('KnowledgeIngestionService — paragraph chunking', () => {
+  it('uses the default chunk size when the ingestion job does not specify one', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Default guide',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/default-guide.txt',
+    })
+    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new StubLoader(`${'A'.repeat(700)}\n\n${'B'.repeat(700)}`),
+      new HashEmbeddingAdapter(),
+      eventLogRepository,
+    )
+
+    await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
+
+    await expect(chunkRepository.listBySourceId(source.sourceId)).resolves.toHaveLength(1)
+  })
+
   it('uses the chunk size stored on the ingestion job', async () => {
     const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
       createDefaultIngestionDeps()
@@ -202,7 +229,11 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       format: 'text',
       uriOrPath: '/tmp/paragraph-guide.txt',
     })
-    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const job = await jobRepository.create({
+      sourceId: source.sourceId,
+      status: 'queued',
+      chunkSize: 800,
+    })
     const firstParagraph = 'A'.repeat(390)
     const secondParagraph = 'B'.repeat(390)
     const thirdParagraph = 'C'.repeat(100)
@@ -235,7 +266,11 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       format: 'text',
       uriOrPath: '/tmp/long-paragraph.txt',
     })
-    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const job = await jobRepository.create({
+      sourceId: source.sourceId,
+      status: 'queued',
+      chunkSize: 800,
+    })
     const oversizedParagraph = 'A'.repeat(900)
     const nextParagraph = 'B'.repeat(100)
 
@@ -266,7 +301,11 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
       format: 'markdown',
       uriOrPath: '/tmp/guide.md',
     })
-    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const job = await jobRepository.create({
+      sourceId: source.sourceId,
+      status: 'queued',
+      chunkSize: 1000,
+    })
     const firstParagraph = `Introduction ${'A'.repeat(450)}`
     const secondParagraph = `Harbor ${'B'.repeat(450)}`
     const thirdParagraph = `Details ${'C'.repeat(450)}`
@@ -401,7 +440,11 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
     ])
     const jobRepository = new InMemoryIngestionJobRepository()
     const eventLogRepository = new InMemoryEventLogRepository()
-    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const job = await jobRepository.create({
+      sourceId: source.sourceId,
+      status: 'queued',
+      chunkSize: 800,
+    })
 
     const longParagraphA = 'A'.repeat(700)
     const longParagraphB = 'B'.repeat(700)

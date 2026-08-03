@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { INGESTION_CHUNK_SIZE_DEFAULT } from '@gami/shared'
 import { stripNonDescriptiveMetadata } from '../../../domain/knowledge/knowledge-source-presenter.js'
 import type { IEmbeddingAdapter } from '../../ports/IEmbeddingAdapter.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
@@ -285,7 +286,7 @@ function toChunkSeeds(
 
   const paragraphs = parseParagraphsWithHeaders(normalized)
   const chunks: ChunkSeed[] = []
-  const maxLength = chunkSize ?? (source.format === 'markdown' ? 1000 : 800)
+  const maxLength = chunkSize ?? INGESTION_CHUNK_SIZE_DEFAULT
 
   let current = ''
   let currentHeaders: string[] = []

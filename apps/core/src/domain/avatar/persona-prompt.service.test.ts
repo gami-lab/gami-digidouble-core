@@ -350,6 +350,7 @@ describe('assemblePersonaPrompt -> runtime context sections', () => {
         ],
         media: [retrievalItem('media', 'chunk_3', 'Reference frame: lantern map sketch.')],
       },
+      retrievalOptions: { maxChunks: 5 },
     })
 
     const worldContextStart = prompt.indexOf('## World Context')

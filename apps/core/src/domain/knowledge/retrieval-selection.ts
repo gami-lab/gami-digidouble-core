@@ -1,4 +1,5 @@
 import type { RetrievedKnowledgeItem, RetrievalQuerySource } from './knowledge.types.js'
+import { AVATAR_RETRIEVAL_DEFAULT_MINIMUM_CHUNKS_BY_SOURCE } from '@gami/shared'
 
 const BALANCED_QUERY_SOURCES: RetrievalQuerySource[] = [
   'last_user_input',
@@ -36,7 +37,7 @@ export function selectBalancedRetrievedItems(
   }
 
   for (const source of BALANCED_QUERY_SOURCES) {
-    const minimum = options.minimumChunksBySource?.[source] ?? 1
+    const minimum = options.minimumChunksBySource?.[source] ?? defaultMinimumForSource(source)
     const candidates = bySource.get(source) ?? []
     let selectedForSource = 0
     for (const item of [...candidates].sort(compareRetrievedItems)) {
@@ -74,6 +75,17 @@ export function selectBalancedRetrievedItems(
   }
 
   return sortRetrievedItems(selected)
+}
+
+function defaultMinimumForSource(source: RetrievalQuerySource): number {
+  if (
+    source === 'gm_required_fact' ||
+    source === 'gm_retrieval_query' ||
+    source === 'last_user_input'
+  ) {
+    return AVATAR_RETRIEVAL_DEFAULT_MINIMUM_CHUNKS_BY_SOURCE[source]
+  }
+  return 0
 }
 
 function sortRetrievedItems(items: RetrievedKnowledgeItem[]): RetrievedKnowledgeItem[] {

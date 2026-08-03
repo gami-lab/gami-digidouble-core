@@ -16,6 +16,7 @@ export type IngestionJobStatus = 'queued' | 'running' | 'completed' | 'failed'
 
 export const INGESTION_CHUNK_SIZE_MIN = 100
 export const INGESTION_CHUNK_SIZE_MAX = 10_000
+export const INGESTION_CHUNK_SIZE_DEFAULT = 1500
 
 /**
  * Explicit visibility policy for a knowledge source.

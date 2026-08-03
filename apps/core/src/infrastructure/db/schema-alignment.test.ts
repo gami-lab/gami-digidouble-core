@@ -11,5 +11,8 @@ describe('alignPostgresSchema', () => {
     const recordedStatements = unsafe.mock.calls.map((call) => String(call[0]))
 
     expect(recordedStatements).toEqual(getSchemaAlignmentStatements())
+    expect(recordedStatements).toContain(
+      'ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS chunk_size INT',
+    )
   })
 })

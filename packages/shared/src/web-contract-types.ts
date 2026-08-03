@@ -150,11 +150,17 @@ export type GetAvailableAvatarsApiResponse = GetAvailableAvatarsResponse
 
 export type SwitchAvatarApiResponse = SwitchAvatarResponse
 
-export const AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS = 5
+export const AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS = 7
 export const AVATAR_RETRIEVAL_MAX_CHUNKS = 9
 export const AVATAR_RETRIEVAL_MINIMUM_CHUNKS = 0
 
 export type AvatarRetrievalSource = 'gm_required_fact' | 'gm_retrieval_query' | 'last_user_input'
+
+export const AVATAR_RETRIEVAL_DEFAULT_MINIMUM_CHUNKS_BY_SOURCE = {
+  gm_required_fact: 1,
+  gm_retrieval_query: 1,
+  last_user_input: 3,
+} as const satisfies Record<AvatarRetrievalSource, number>
 
 export type AvatarRetrievalOptions = {
   maxChunks?: number

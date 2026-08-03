@@ -333,11 +333,11 @@ describe('TypedRetrievalService', () => {
     expect(result.world).toHaveLength(3)
     expect(result.world.map((item) => item.content)).toEqual([
       'concise operational guidance chart rope',
-      'harbor protocol checklist',
       'dock before storm tide',
+      'harbor storm rope',
     ])
     expect(result.world[0]?.reason).toContain('working-memory')
-    expect(result.world[1]?.reason).toContain('gm-guideline')
+    expect(result.world[1]?.reason).toContain('last-user-input')
     expect(result.world[2]?.reason).toContain('last-user-input')
   })
 
@@ -374,7 +374,7 @@ describe('TypedRetrievalService', () => {
     expect(result.world[0]?.reason).toContain('gm-retrieval-query')
   })
 
-  it('keeps one best match for the user, GM queries, and required facts before global fill', async () => {
+  it('prioritizes available user-input matches before global fill', async () => {
     const sourceRepo = new InMemoryKnowledgeSourceRepository()
     const chunkRepo = new InMemoryKnowledgeChunkRepository()
     const world = await sourceRepo.create({
@@ -415,18 +415,22 @@ describe('TypedRetrievalService', () => {
     })
 
     expect(result.world).toHaveLength(5)
-    expect(result.world.map((item) => item.content)).toEqual([
-      'user question harbor answer',
-      'canonical harbor rule',
-      'last confirmed harbor location',
-      'user question secondary context',
-      'canonical harbor secondary context',
-    ])
-    expect(result.world.slice(0, 3).map((item) => item.matchedQuery?.source)).toEqual([
-      'last_user_input',
-      'gm_retrieval_query',
-      'gm_required_fact',
-    ])
+    expect(result.world.map((item) => item.content)).toEqual(
+      expect.arrayContaining([
+        'user question harbor answer',
+        'canonical harbor rule',
+        'last confirmed harbor location',
+        'user question secondary context',
+        'canonical harbor secondary context',
+      ]),
+    )
+    expect(
+      result.world.filter((item) => item.matchedQuery?.source === 'last_user_input'),
+    ).toHaveLength(3)
+    expect(result.world.some((item) => item.matchedQuery?.source === 'gm_retrieval_query')).toBe(
+      true,
+    )
+    expect(result.world.some((item) => item.matchedQuery?.source === 'gm_required_fact')).toBe(true)
     expect(result.world[0]?.matchedQuery?.text).toBe('user question harbor')
   })
 

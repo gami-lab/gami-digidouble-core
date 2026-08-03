@@ -126,7 +126,11 @@ export type {
   TypedKnowledgeRetrievalDto,
   QueryKnowledgeRetrievalResponse,
 } from './knowledge-contract-types.js'
-export { INGESTION_CHUNK_SIZE_MIN, INGESTION_CHUNK_SIZE_MAX } from './knowledge-contract-types.js'
+export {
+  INGESTION_CHUNK_SIZE_MIN,
+  INGESTION_CHUNK_SIZE_MAX,
+  INGESTION_CHUNK_SIZE_DEFAULT,
+} from './knowledge-contract-types.js'
 export type {
   UserPersona,
   UserSummary,
@@ -209,6 +213,7 @@ export type {
 } from './web-contract-types.js'
 export {
   AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
+  AVATAR_RETRIEVAL_DEFAULT_MINIMUM_CHUNKS_BY_SOURCE,
   AVATAR_RETRIEVAL_MAX_CHUNKS,
   AVATAR_RETRIEVAL_MINIMUM_CHUNKS,
 } from './web-contract-types.js'

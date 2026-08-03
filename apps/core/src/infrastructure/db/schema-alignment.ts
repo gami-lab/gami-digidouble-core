@@ -2,6 +2,7 @@ import type { Sql } from 'postgres'
 
 const SCHEMA_ALIGNMENT_STATEMENTS = [
   'ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS model_selection JSONB',
+  'ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS chunk_size INT',
   'ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[]',
   'ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[]',
   "ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visibility_policy TEXT CHECK (visibility_policy IN ('all', 'avatars', 'none'))",

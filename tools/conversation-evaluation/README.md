@@ -18,11 +18,11 @@ Definitions are versioned JSON files. The v1 shape is:
   "judgeModel": "openai/gpt-5.4-mini",
   "avatarOptions": {
     "retrieval": {
-      "maxChunks": 5,
+      "maxChunks": 7,
       "minimumChunksBySource": {
         "gm_required_fact": 1,
         "gm_retrieval_query": 1,
-        "last_user_input": 1
+        "last_user_input": 3
       }
     }
   },
@@ -100,9 +100,9 @@ judge diagnostics.
 
 `avatarOptions` is applied once when the evaluator creates the session, so every scripted question
 in that run uses the same Avatar retrieval configuration. `retrieval.maxChunks` controls the number
-of memory/world chunks selected for the Avatar prompt and must be between 1 and 9 (the default is 5).
+of memory/world chunks selected for the Avatar prompt and must be between 1 and 9 (the default is 7).
 `minimumChunksBySource` optionally sets the minimum requested chunks for `gm_required_fact`,
-`gm_retrieval_query`, and `last_user_input`; the default is 1 for each source. Guarantees are bounded
+`gm_retrieval_query`, and `last_user_input`; defaults are 1, 1, and 3 respectively. Guarantees are bounded
 by the total chunk limit and by chunks actually returned by retrieval, so a `maxChunks` of 1 cannot
 include one chunk from all three sources.
 
@@ -305,8 +305,8 @@ Core-internal, database, Redis, Langfuse, provider SDK, YAML, or new HTTP endpoi
 
 The ingestion API accepts an optional `chunkSize` on the trigger request. It is measured in
 characters, must be an integer from 100 to 10000, and is persisted on the asynchronous ingestion
-job, including retries. Existing behavior remains unchanged when it is omitted: Markdown uses
-1000 characters and other text-like formats use 800 characters. For example:
+job, including retries. When it is omitted, text-like formats use the default 1500-character target.
+For example:
 
 ```sh
 curl -X POST http://localhost:3000/v1/knowledge-sources/knowledge_source_123/ingest \
