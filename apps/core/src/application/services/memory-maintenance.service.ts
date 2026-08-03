@@ -512,20 +512,18 @@ function truncateText(value: string, maxLength: number): string {
 }
 
 function renderPromptList(label: string, items: string[]): string[] {
-  if (items.length === 0) {
-    return [`${label}: none`]
-  }
-  return [label + ':', ...items.map((item) => `- ${item}`)]
+  return items.length === 0
+    ? [`${label}: none`]
+    : [label + ':', ...items.map((item) => `- ${item}`)]
 }
 
 function renderPromptFacts(facts: MemoryFactRecord[]): string[] {
-  if (facts.length === 0) {
-    return ['Candidate facts: none']
-  }
-  return [
-    'Candidate facts:',
-    ...facts.map((fact) => `- [${fact.category}] ${fact.key}: ${fact.value}`),
-  ]
+  return facts.length === 0
+    ? ['Candidate facts: none']
+    : [
+        'Candidate facts:',
+        ...facts.map((fact) => `- [${fact.category}] ${fact.key}: ${fact.value}`),
+      ]
 }
 
 function renderPromptMessages(

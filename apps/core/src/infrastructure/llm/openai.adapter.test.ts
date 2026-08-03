@@ -127,6 +127,26 @@ describe('OpenAiAdapter', () => {
     })
   })
 
+  it('uses the GPT-5 completion token parameter', async () => {
+    mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-5.6-luna'))
+    const adapter = new OpenAiAdapter('sk-test')
+
+    await adapter.complete({ ...request, model: 'gpt-5.6-luna', maxTokens: 3000 })
+
+    expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({ max_completion_tokens: 3000 })
+    expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('max_tokens')
+  })
+
+  it('keeps the legacy completion token parameter for pre-GPT-5 models', async () => {
+    mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-4o-mini'))
+    const adapter = new OpenAiAdapter('sk-test')
+
+    await adapter.complete({ ...request, model: 'gpt-4o-mini', maxTokens: 3000 })
+
+    expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({ max_tokens: 3000 })
+    expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('max_completion_tokens')
+  })
+
   it('does not send unsupported reasoning settings to pre-GPT-5 models', async () => {
     mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-4o'))
     const adapter = new OpenAiAdapter('sk-test')
@@ -237,6 +257,27 @@ describe('OpenAiAdapter', () => {
       model: 'gpt-5.4',
       reasoning_effort: 'none',
     })
+  })
+
+  it('uses the GPT-5 completion token parameter for streams', async () => {
+    mockCreate.mockResolvedValue(
+      (function* () {
+        yield buildStreamChunk('ok', 'gpt-5.4')
+        yield {
+          ...buildStreamChunk('', 'gpt-5.4'),
+          choices: [],
+          usage: { prompt_tokens: 15, completion_tokens: 5, total_tokens: 20 },
+        }
+      })(),
+    )
+    const adapter = new OpenAiAdapter('sk-test')
+
+    for await (const event of adapter.stream({ ...request, model: 'gpt-5.4', maxTokens: 3000 })) {
+      void event
+    }
+
+    expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({ max_completion_tokens: 3000 })
+    expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('max_tokens')
   })
 
   it('does not start the provider when already cancelled', async () => {

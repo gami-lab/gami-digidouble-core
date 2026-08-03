@@ -35,7 +35,7 @@ export class OpenAiAdapter implements ILlmAdapter {
         messages: buildMessages(request),
         ...reasoningEffort(model),
         ...(request.serviceTier === undefined ? {} : { service_tier: 'priority' as const }),
-        ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
+        ...completionTokenLimit(model, maxTokens),
       })
     } catch (err) {
       throw wrapOpenAiError(err)
@@ -113,15 +113,26 @@ function buildStreamingRequest(
     stream_options: { include_usage: true },
     ...reasoningEffort(model),
     ...(request.serviceTier === undefined ? {} : { service_tier: 'priority' as const }),
-    ...(request.maxTokens === undefined ? {} : { max_tokens: request.maxTokens }),
+    ...completionTokenLimit(model, request.maxTokens),
   }
 }
 
+function completionTokenLimit(
+  model: string,
+  maxTokens: number | undefined,
+): { max_completion_tokens: number } | { max_tokens: number } | Record<string, never> {
+  if (maxTokens === undefined) return {}
+  return isGpt5Model(model) ? { max_completion_tokens: maxTokens } : { max_tokens: maxTokens }
+}
+
 function reasoningEffort(model: string): { reasoning_effort: 'none' } | Record<string, never> {
-  const normalizedModel = model.trim().toLowerCase()
-  return normalizedModel.startsWith('gpt-5') && !normalizedModel.includes('-pro')
+  return isGpt5Model(model) && !model.trim().toLowerCase().includes('-pro')
     ? { reasoning_effort: 'none' }
     : {}
+}
+
+function isGpt5Model(model: string): boolean {
+  return model.trim().toLowerCase().startsWith('gpt-5')
 }
 
 function readOpenAiChunk(
