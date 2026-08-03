@@ -240,6 +240,11 @@ print the selected model, or **Print all models** to print the comparison summar
 complete overview and question details for every model. In the browser print dialog, choose **Save as
 PDF** to share the report. It checks the report every two seconds and redraws only when the report
 content changes, so dropdown and filter selections remain stable while an evaluation is running.
+For every judged question, the viewer provides **Accept**, **Partial**, and **Reject** controls to
+correct the LLM judge. The original LLM outcome remains in `humanReview.originalStatus`, while the
+question status and all pass/partial/fail statistics use the human decision. The local viewer saves
+corrections to the report JSON (including the selected run's individual report in a comparison); use
+**Download corrected JSON** if the report is read-only or the save fails.
 The server binds to `127.0.0.1` by default and serves only the selected
 report; use `--host` and `--port` to change the local binding. Press `Ctrl+C` to stop it.
 

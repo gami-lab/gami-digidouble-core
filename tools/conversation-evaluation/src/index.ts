@@ -6,6 +6,8 @@ export type {
   EvaluationMetrics,
   JudgeResult,
   JudgeMetrics,
+  HumanReview,
+  QualityOutcome,
   ModelMismatch,
   QuestionResult,
   QuestionResultStatus,
@@ -81,6 +83,7 @@ export {
 } from './comparison.js'
 export {
   aggregateRunSummary,
+  applyHumanReview,
   buildReportFromExecution,
   buildRunReport,
   createRunReport,

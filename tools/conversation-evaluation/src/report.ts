@@ -5,6 +5,7 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import type {
   ConversationExecution,
   EvaluationError,
+  HumanReview,
   ModelMismatch,
   QuestionResult,
   RunReport,
@@ -153,6 +154,42 @@ export function aggregateRunSummary(
     observedJudgeModels: uniqueStrings(
       results.flatMap((result) => (result.judgeModel === null ? [] : [result.judgeModel])),
     ),
+  }
+}
+
+export function applyHumanReview(
+  report: RunReport,
+  questionNumber: number,
+  status: HumanReview['status'],
+  reviewedAt: string = new Date().toISOString(),
+): RunReport {
+  const existingQuestion = report.questions.find(
+    (question) => question.questionNumber === questionNumber,
+  )
+  if (existingQuestion === undefined) {
+    throw new Error(`Question ${String(questionNumber)} was not found in the report.`)
+  }
+  const questions = report.questions.map((question) => {
+    if (question.questionNumber !== questionNumber) return question
+    return {
+      ...question,
+      humanReview: {
+        status,
+        originalStatus: question.humanReview?.originalStatus ?? toQualityOutcome(question.status),
+        reviewedAt,
+      },
+      status,
+    }
+  })
+
+  return {
+    ...report,
+    questions,
+    summary: aggregateRunSummary(report.summary.questions, questions, {
+      status: report.summary.runtimeUsageStatus,
+      gameMaster: report.summary.gameMasterUsage,
+      memory: report.summary.memoryUsage,
+    }),
   }
 }
 
@@ -352,4 +389,9 @@ export function renderConsoleSummary(report: RunReport): string {
 function singleLine(value: string): string {
   const normalized = value.replace(/[\r\n\t]+/g, ' ').trim()
   return normalized.length <= 300 ? normalized : `${normalized.slice(0, 299)}…`
+}
+
+function toQualityOutcome(status: QuestionResult['status']): HumanReview['status'] {
+  if (status === 'passed' || status === 'partial' || status === 'failed') return status
+  throw new Error('Only judged questions can receive a human review.')
 }

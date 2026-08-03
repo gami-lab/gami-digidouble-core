@@ -58,6 +58,12 @@ export type JudgeResult = {
 
 export type QualityOutcome = 'passed' | 'partial' | 'failed'
 
+export type HumanReview = {
+  status: QualityOutcome
+  originalStatus: QualityOutcome
+  reviewedAt: string
+}
+
 export type EvaluationError = {
   kind: 'api_error' | 'judge_error'
   message: string
@@ -90,6 +96,7 @@ export type QuestionResult = {
   judgeModel: string | null
   judgeMetrics: JudgeMetrics | null
   judge: JudgeResult | null
+  humanReview?: HumanReview
   status: QuestionResultStatus
   error: EvaluationError | null
 }

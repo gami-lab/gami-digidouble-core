@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 import type { QuestionResult, TestDefinition } from './contracts.js'
 import {
   aggregateRunSummary,
+  applyHumanReview,
   renderConsoleSummary,
   writeReportAtomically,
   createRunReport,
@@ -111,6 +112,28 @@ describe('evaluation reports', () => {
       failed: 0,
       passRate: 0,
     })
+  })
+
+  it('recomputes statistics while retaining the original judge outcome', () => {
+    const report = buildRunReport({
+      definition: { ...definition, questions: definition.questions.slice(0, 2) },
+      startedAt: '2026-07-29T00:00:00.000Z',
+      finishedAt: '2026-07-29T00:01:00.000Z',
+      results: [result(1, 'failed', 0.1), result(2, 'passed', 0.1)],
+    })
+
+    const reviewed = applyHumanReview(report, 1, 'passed', '2026-07-29T00:02:00.000Z')
+
+    expect(report.questions[0]?.status).toBe('failed')
+    expect(reviewed.questions[0]).toMatchObject({
+      status: 'passed',
+      humanReview: {
+        status: 'passed',
+        originalStatus: 'failed',
+        reviewedAt: '2026-07-29T00:02:00.000Z',
+      },
+    })
+    expect(reviewed.summary).toMatchObject({ passed: 2, partial: 0, failed: 0, passRate: 1 })
   })
 
   it('keeps cost unavailable when any successful Avatar response omits cost', () => {

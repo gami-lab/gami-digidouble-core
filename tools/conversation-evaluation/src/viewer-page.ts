@@ -48,6 +48,10 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
     .criteria ul, .diagnostics ul { margin: 6px 0 0; padding-left: 20px; color: #c5d0e2; }
     .diagnostics { margin-top: 16px; padding: 14px; border-radius: 8px; background: #131a27; }
     .reason { line-height: 1.5; color: #dce4f2; }
+    .review-controls { margin-top: 16px; padding-top: 14px; border-top: 1px solid #2c3850; }
+    .review-controls button.active { border-color: #9df0bd; background: #214b39; }
+    .review-controls .review-label { color: #9aa7bd; margin-right: 8px; }
+    .review-notice { margin-top: 10px; color: #ffd58a; }
     .metrics { margin-top: 14px; color: #9aa7bd; font-size: .85rem; }
     .error { margin-top: 14px; color: #ffabb0; white-space: pre-wrap; }
     .empty, .loading, .error-state { padding: 28px; text-align: center; color: #9aa7bd; }
@@ -85,6 +89,8 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
       let questionFilter = 'all';
       let printMode = 'screen';
       let reportFingerprint = null;
+      let reviewNotice = '';
+      let reviewBusy = false;
       let modelSortColumn = 1;
       let modelSortDirection = 1;
       const questionSortState = { column: 0, direction: 1 };
@@ -321,6 +327,68 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         ));
         return panel;
       };
+      const applyLocalReview = (runReport, questionNumber, status) => {
+        const questions = (runReport.questions || []).map((question) => question.questionNumber === questionNumber
+          ? { ...question, humanReview: { status, originalStatus: question.humanReview ? question.humanReview.originalStatus : question.status, reviewedAt: new Date().toISOString() }, status }
+          : question);
+        const evaluated = questions.filter((question) => question.judge !== null).length;
+        const passed = questions.filter((question) => question.status === 'passed').length;
+        const partial = questions.filter((question) => question.status === 'partial').length;
+        const failed = questions.filter((question) => question.status === 'failed').length;
+        return { ...runReport, questions, summary: { ...runReport.summary, evaluated, passed, partial, failed, passRate: evaluated === 0 ? null : passed / evaluated } };
+      };
+      const downloadReport = () => {
+        const payload = comparison || report;
+        if (!payload) return;
+        const blob = new Blob([JSON.stringify(payload, null, 2) + '\n'], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'evaluation-report-corrected.json';
+        link.click();
+        URL.revokeObjectURL(url);
+      };
+      const submitReview = async (runKey, questionNumber, status) => {
+        reviewBusy = true;
+        reviewNotice = '';
+        render();
+        try {
+          const body = { questionNumber, status, ...(runKey === undefined ? {} : { runKey }) };
+          const response = await fetch('/review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          const result = await response.json().catch(() => null);
+          if (!response.ok) throw new Error(result && result.error ? result.error : 'Unable to save the review.');
+          reviewNotice = 'Human review saved to the JSON report.';
+          reportFingerprint = null;
+          await load();
+        } catch (error) {
+          if (comparison && runKey !== undefined) {
+            comparison = { ...comparison, runs: comparison.runs.map((run) => runKeyOf(run) === runKey ? { ...run, report: applyLocalReview(run.report, questionNumber, status) } : run) };
+            const selected = comparison.runs.find((run) => runKeyOf(run) === selectedModel);
+            if (selected) report = selected.report;
+          } else if (report) {
+            report = applyLocalReview(report, questionNumber, status);
+          }
+          reviewNotice = 'The report could not be updated on disk. The correction is kept in this page; use Download corrected JSON.';
+          render();
+        } finally {
+          reviewBusy = false;
+          render();
+        }
+      };
+      const reviewControls = (runKey, question) => {
+        if (!question.judge) return null;
+        const controls = el('div', 'review-controls no-print');
+        const originalStatus = question.humanReview ? question.humanReview.originalStatus : question.status;
+        controls.append(el('span', 'review-label', question.humanReview ? 'Human review (LLM: ' + originalStatus + '):' : 'Correct judge:'));
+        [['passed', 'Accept'], ['partial', 'Partial'], ['failed', 'Reject']].forEach(([status, label]) => {
+          const button = el('button', question.humanReview && question.humanReview.status === status ? 'active' : '', label);
+          button.type = 'button';
+          button.disabled = reviewBusy;
+          button.addEventListener('click', () => { void submitReview(runKey, question.questionNumber, status); });
+          controls.append(button);
+        });
+        return controls;
+      };
       const comparisonQuestionCard = (run, questionNumber) => {
         const question = questionResultFor(run, questionNumber);
         const card = el('article', 'question');
@@ -344,6 +412,8 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           card.append(diagnostics);
         }
         if (question.error) card.append(el('p', 'error', question.error.kind + ': ' + question.error.message));
+        const controls = reviewControls(runKeyOf(run), question);
+        if (controls) card.append(controls);
         card.append(el('div', 'metrics', metricText(question)));
         return card;
       };
@@ -364,7 +434,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         panel.append(responses);
         return panel;
       };
-      const questionCard = (question) => {
+      const questionCard = (question, runKey) => {
         const card = el('article', 'question');
         const head = el('div', 'question-head');
         head.append(el('h3', '', 'Question ' + question.questionNumber));
@@ -396,6 +466,8 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           if (diagnosticColumns.childElementCount) diagnostics.append(diagnosticColumns);
           card.append(diagnostics);
         }
+        const controls = reviewControls(runKey, question);
+        if (controls) card.append(controls);
         if (question.error) card.append(el('p', 'error', question.error.kind + ': ' + question.error.message));
         card.append(el('div', 'metrics', metricText(question)));
         return card;
@@ -427,7 +499,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         panel.append(el('h2', '', 'Question details'));
         const questionList = el('div', 'question-list');
         if (!questions.length) questionList.append(el('div', 'empty', 'No questions match this filter.'));
-        questions.forEach((question) => questionList.append(questionCard(question)));
+        questions.forEach((question) => questionList.append(questionCard(question, comparison ? selectedModel : undefined)));
         panel.append(questionList);
         container.append(panel);
         return container;
@@ -441,6 +513,10 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
         title.append(el('p', 'muted', 'Scenario ' + value(report.scenarioId) + ' · Last updated ' + value(report.finishedAt || report.startedAt)));
         header.append(title);
         const toolbar = el('div', 'toolbar');
+        const download = el('button', 'no-print', 'Download corrected JSON');
+        download.type = 'button';
+        download.addEventListener('click', downloadReport);
+        toolbar.append(download);
         if (comparison) {
           const tabs = el('div', 'tabs no-print');
           [['overview', 'Overview'], ['questions', 'Questions']].forEach(([key, label]) => {
@@ -526,6 +602,7 @@ export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
           toolbar.append(printModels);
         }
         header.append(toolbar);
+        if (reviewNotice) header.append(el('p', 'review-notice no-print', reviewNotice));
         app.append(header);
         if (comparison && activeTab === 'questions') {
           const difficultyView = questionDifficultyPanel();
