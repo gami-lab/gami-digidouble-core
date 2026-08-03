@@ -54,7 +54,7 @@ function resolve(
     requestOverride?: AvatarLlmOverride
     scenarioModelSelection?: ScenarioModelSelectionConfig
   },
-): { provider: ProviderName; model: string } {
+): { provider: ProviderName; model: string; serviceTier?: 'fast' } {
   const baseProvider = resolveBaseProvider(role, config)
   const baseModel = resolveBaseModel(role, config)
   const scenarioSelection = resolveScenarioSelection(role, options?.scenarioModelSelection)
@@ -62,10 +62,12 @@ function resolve(
   const avatarModel = resolveAvatarOverrideModel(role, options?.avatarOverride)
   const requestProvider = resolveAvatarOverrideProvider(role, options?.requestOverride)
   const requestModel = resolveAvatarOverrideModel(role, options?.requestOverride)
+  const requestServiceTier = role === 'avatar' ? options?.requestOverride?.serviceTier : undefined
 
   return {
     provider: requestProvider ?? avatarProvider ?? scenarioSelection?.provider ?? baseProvider,
     model: requestModel ?? avatarModel ?? scenarioSelection?.model ?? baseModel,
+    ...(requestServiceTier === undefined ? {} : { serviceTier: requestServiceTier }),
   }
 }
 

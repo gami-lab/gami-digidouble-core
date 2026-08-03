@@ -93,6 +93,7 @@ describe('POST /v1/exchange — auth and validation', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('POST /v1/exchange — error handling and response shaping', () => {
   it('returns 502 when the LLM adapter throws a LlmError', async () => {
     const failingLlm = {
@@ -174,6 +175,35 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
 
     expect(response.statusCode).toBe(200)
     expect(complete).toHaveBeenCalledWith(expect.objectContaining({ model: 'gpt-5.4-mini' }))
+  })
+
+  it('forwards the Fast service tier to the LLM adapter', async () => {
+    const complete = vi.fn().mockResolvedValue({
+      content: 'Fast reply',
+      model: 'gpt-5.6-luna',
+      inputTokens: 1,
+      outputTokens: 2,
+      latencyMs: 3,
+    })
+    const app = createServer(TEST_CONFIG, {
+      llmAdapter: { complete },
+      observabilityAdapter: new NullObservabilityAdapter(),
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/exchange',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        message: 'Hello',
+        model: { model: 'gpt-5.6-luna', serviceTier: 'fast' },
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(complete).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'gpt-5.6-luna', serviceTier: 'fast' }),
+    )
   })
 
   it('emits observability traces when route creates the adapter from config', async () => {

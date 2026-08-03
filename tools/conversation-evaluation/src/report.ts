@@ -15,6 +15,7 @@ import type {
   TestDefinition,
 } from './contracts.js'
 import { estimateTokenCost } from './pricing.js'
+import { baseDeclaredModel } from './model-selection.js'
 import { emptyRuntimeUsage, type RuntimeUsage } from './runtime-usage.js'
 
 function uniqueStrings(values: readonly string[]): string[] {
@@ -203,7 +204,7 @@ function findModelMismatches(
     if (
       definition.model !== undefined &&
       observedAvatarModel !== undefined &&
-      definition.model !== observedAvatarModel
+      baseDeclaredModel(definition.model) !== observedAvatarModel
     ) {
       mismatches.push({
         role: 'avatar',
@@ -215,7 +216,7 @@ function findModelMismatches(
     if (
       definition.judgeModel !== undefined &&
       result.judgeModel !== null &&
-      definition.judgeModel !== result.judgeModel
+      baseDeclaredModel(definition.judgeModel) !== result.judgeModel
     ) {
       mismatches.push({
         role: 'judge',

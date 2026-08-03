@@ -19,6 +19,7 @@ export type ModelProfile = {
 export type ModelSelectionOverride = {
   provider?: ModelSelectionProviderName
   model?: string
+  serviceTier?: 'fast'
 }
 
 export type ScenarioModelSelection = {

@@ -69,6 +69,14 @@ describe('ModelResolutionService.resolve -> avatar overrides', () => {
     ).toEqual({ provider: 'openai', model: 'gpt-5.4-mini' })
   })
 
+  it('preserves a request-level Fast service tier for the Avatar role', () => {
+    expect(
+      ModelResolutionService.resolve('avatar', baseConfig, {
+        requestOverride: { provider: 'openai', model: 'gpt-5.6-luna', serviceTier: 'fast' },
+      }),
+    ).toEqual({ provider: 'openai', model: 'gpt-5.6-luna', serviceTier: 'fast' })
+  })
+
   it('uses avatar override provider and falls back model to lower precedence', () => {
     const config: ModelConfig = {
       ...baseConfig,

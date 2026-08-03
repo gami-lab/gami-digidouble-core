@@ -8,6 +8,7 @@ import type {
 } from './contracts.js'
 import { normalizeMetrics } from './metrics.js'
 import { CoreApiClient, CoreApiError, type CoreApiRequestOptions } from './core-api-client.js'
+import { baseDeclaredModel, parseDeclaredModel } from './model-selection.js'
 
 export type SequentialRunnerInput = {
   definition: TestDefinition
@@ -232,7 +233,10 @@ export async function runSequentialConversation(
       result.status = 'completed'
       result.error = null
       observedAvatarModels.push(metadata.model)
-      if (definition.model !== undefined && definition.model !== metadata.model) {
+      if (
+        definition.model !== undefined &&
+        baseDeclaredModel(definition.model) !== metadata.model
+      ) {
         modelMismatches.push({
           questionNumber,
           declaredModel: definition.model,
@@ -267,26 +271,6 @@ export async function runSequentialConversation(
     observedAvatarModels: [...new Set(observedAvatarModels)],
     modelMismatches,
   }
-}
-
-function parseDeclaredModel(declaredModel: string): {
-  provider: 'openai' | 'anthropic' | 'mistral' | 'xai'
-  model: string
-} {
-  const separatorIndex = declaredModel.indexOf('/')
-  if (separatorIndex <= 0 || separatorIndex === declaredModel.length - 1) {
-    throw new Error('Avatar model must use provider/model notation for request-level selection.')
-  }
-  const provider = declaredModel.slice(0, separatorIndex)
-  if (
-    provider !== 'openai' &&
-    provider !== 'anthropic' &&
-    provider !== 'mistral' &&
-    provider !== 'xai'
-  ) {
-    throw new Error('Avatar model provider is not supported for request-level selection.')
-  }
-  return { provider, model: declaredModel.slice(separatorIndex + 1) }
 }
 
 export class SequentialConversationRunner {

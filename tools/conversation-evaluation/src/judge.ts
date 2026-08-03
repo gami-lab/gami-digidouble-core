@@ -1,5 +1,4 @@
 import {
-  isModelSelectionProviderName,
   type ApiError,
   type ApiResponse,
   type ModelSelectionOverride,
@@ -9,6 +8,7 @@ import {
 import type { FetchLike } from './core-api-client.js'
 import type { EvaluationPhase, JudgeMetrics, JudgeResult } from './contracts.js'
 import { normalizeJudgeMetrics } from './metrics.js'
+import { parseJudgeModel } from './model-selection.js'
 
 export const JUDGE_SYSTEM_PROMPT = [
   'You are a semantic evaluator for an Avatar response.',
@@ -208,20 +208,6 @@ function isSignalAborted(signal: AbortSignal | undefined): boolean {
   return signal?.aborted ?? false
 }
 
-function resolveModelOverride(
-  declaredModel: string | undefined,
-): ModelSelectionOverride | undefined {
-  if (declaredModel === undefined) return undefined
-  const separatorIndex = declaredModel.indexOf('/')
-  if (separatorIndex <= 0 || separatorIndex === declaredModel.length - 1) {
-    return { model: declaredModel }
-  }
-
-  const provider = declaredModel.slice(0, separatorIndex)
-  const model = declaredModel.slice(separatorIndex + 1)
-  return isModelSelectionProviderName(provider) ? { provider, model } : { model: declaredModel }
-}
-
 function serializeJudgeInput(input: JudgeInput): string {
   const message = JSON.stringify({
     question: input.question,
@@ -374,7 +360,7 @@ export class SemanticJudgeClient {
     this.baseUrl = options.baseUrl.replace(/\/+$/, '')
     this.apiKey = options.apiKey
     this.timeoutMs = options.timeoutMs
-    this.modelOverride = resolveModelOverride(options.model)
+    this.modelOverride = options.model === undefined ? undefined : parseJudgeModel(options.model)
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis)
   }
 

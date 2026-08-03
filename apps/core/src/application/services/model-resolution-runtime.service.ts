@@ -41,7 +41,13 @@ export async function resolveRoleLlmCall(args: {
   avatarOverride: AvatarLlmOverride | undefined
   requestOverride?: AvatarLlmOverride
   scenarioModelSelection: ScenarioModelSelectionConfig | undefined
-}): Promise<{ adapter: ILlmAdapter; provider: string; model?: string; effectiveModel: string }> {
+}): Promise<{
+  adapter: ILlmAdapter
+  provider: string
+  model?: string
+  serviceTier?: 'fast'
+  effectiveModel: string
+}> {
   if (args.modelConfigRepository === undefined || args.llmAdapterRegistry === undefined) {
     return { adapter: args.legacyAdapter, provider: 'legacy', effectiveModel: 'legacy' }
   }
@@ -61,6 +67,7 @@ export async function resolveRoleLlmCall(args: {
     adapter: resolveAdapterOrThrow(args.llmAdapterRegistry, resolved.provider, args.role),
     provider: resolved.provider,
     ...(normalizedModel !== undefined ? { model: normalizedModel } : {}),
+    ...(resolved.serviceTier === undefined ? {} : { serviceTier: resolved.serviceTier }),
     effectiveModel: normalizedModel ?? 'adapter_default',
   }
 }

@@ -10,7 +10,7 @@ describe('public token pricing estimates', () => {
       inputCostUsd: 2.5,
       outputCostUsd: 30,
       totalCostUsd: 32.5,
-      pricingAsOf: '2026-08-01',
+      pricingAsOf: '2026-08-03',
     })
   })
 
@@ -23,6 +23,16 @@ describe('public token pricing estimates', () => {
     expect(estimateTokenCost('openai/gpt-5.6-terra', 1_000_000, 1_000_000)?.totalCostUsd).toBe(14)
     expect(estimateTokenCost('openai/gpt-5.6-luna', 1_000_000, 1_000_000)?.totalCostUsd).toBe(1.4)
     expect(estimateTokenCost('openai/gpt-5.6', 100, 200)?.model).toBe('openai/gpt-5.6-sol')
+  })
+
+  it('prices supported OpenAI Fast mode selectors', () => {
+    expect(estimateTokenCost('openai/gpt-5.6-luna-fast', 1_000_000, 1_000_000)).toMatchObject({
+      inputPriceUsdPerMillionTokens: 0.4,
+      outputPriceUsdPerMillionTokens: 2.4,
+      totalCostUsd: 2.8,
+      pricingSource: 'https://openai.com/api-fast-mode/',
+    })
+    expect(estimateTokenCost('openai/gpt-5.4-fast', 1_000_000, 1_000_000)?.totalCostUsd).toBe(35)
   })
 
   it('prices every active Anthropic model selector', () => {

@@ -6,7 +6,7 @@ type PublicPricing = {
   source: string
 }
 
-const PRICING_AS_OF = '2026-08-01'
+const PRICING_AS_OF = '2026-08-03'
 const PRICING: Record<string, PublicPricing> = {
   'openai/gpt-5.6-sol': {
     inputUsdPerMillionTokens: 5,
@@ -52,6 +52,46 @@ const PRICING: Record<string, PublicPricing> = {
     inputUsdPerMillionTokens: 0.2,
     outputUsdPerMillionTokens: 1.25,
     source: 'https://developers.openai.com/api/docs/models/gpt-5.4-nano',
+  },
+  'openai/gpt-5.6-sol-fast': {
+    inputUsdPerMillionTokens: 10,
+    outputUsdPerMillionTokens: 60,
+    source: 'https://openai.com/api-fast-mode/',
+  },
+  'openai/gpt-5.6-terra-fast': {
+    inputUsdPerMillionTokens: 4,
+    outputUsdPerMillionTokens: 24,
+    source: 'https://openai.com/api-fast-mode/',
+  },
+  'openai/gpt-5.6-luna-fast': {
+    inputUsdPerMillionTokens: 0.4,
+    outputUsdPerMillionTokens: 2.4,
+    source: 'https://openai.com/api-fast-mode/',
+  },
+  'openai/gpt-5.5-fast': {
+    inputUsdPerMillionTokens: 12.5,
+    outputUsdPerMillionTokens: 75,
+    source: 'https://openai.com/api-fast-mode/',
+  },
+  'openai/gpt-5.4-fast': {
+    inputUsdPerMillionTokens: 5,
+    outputUsdPerMillionTokens: 30,
+    source: 'https://openai.com/api-fast-mode/',
+  },
+  'openai/gpt-4o-fast': {
+    inputUsdPerMillionTokens: 4.25,
+    outputUsdPerMillionTokens: 17,
+    source: 'https://openai.com/api-fast-mode/',
+  },
+  'openai/gpt-4o-mini-fast': {
+    inputUsdPerMillionTokens: 0.25,
+    outputUsdPerMillionTokens: 1,
+    source: 'https://openai.com/api-fast-mode/',
+  },
+  'openai/gpt-5.4-mini-fast': {
+    inputUsdPerMillionTokens: 1.5,
+    outputUsdPerMillionTokens: 9,
+    source: 'https://openai.com/api-fast-mode/',
   },
   'anthropic/claude-opus-4-7': {
     inputUsdPerMillionTokens: 5,
@@ -145,7 +185,10 @@ const ALIASES: Record<string, string> = {
 
 function normalizeModel(model: string): string {
   const normalized = model.trim().toLowerCase()
-  return ALIASES[normalized] ?? normalized
+  const fast = normalized.endsWith('-fast')
+  const base = fast ? normalized.slice(0, -'-fast'.length) : normalized
+  const resolved = ALIASES[base] ?? base
+  return fast ? `${resolved}-fast` : resolved
 }
 
 function resolvePricingKey(model: string, providerHint?: string): string | undefined {

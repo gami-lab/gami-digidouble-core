@@ -93,6 +93,13 @@ describe('SendRawMessageUseCase', () => {
     expect(llmArg.messages[0]).toEqual({ role: 'user', content: 'Tell me a joke.' })
   })
 
+  it('forwards the requested service tier to the LLM port', async () => {
+    await useCase.execute({ userMessage: 'Hello', serviceTier: 'fast' })
+
+    const llmArg = completeMock.mock.calls[0]?.[0] as LlmRequest
+    expect(llmArg.serviceTier).toBe('fast')
+  })
+
   it('propagates LLM errors to the caller', async () => {
     completeMock.mockRejectedValue(new Error('LLM timeout'))
     await expect(useCase.execute({ userMessage: 'Hi' })).rejects.toThrow('LLM timeout')

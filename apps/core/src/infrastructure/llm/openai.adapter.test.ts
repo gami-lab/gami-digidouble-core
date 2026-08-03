@@ -103,6 +103,18 @@ describe('OpenAiAdapter', () => {
     expect(calledWith.model).toBe('gpt-4o')
   })
 
+  it('maps the Fast service tier to the OpenAI priority wire value', async () => {
+    mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-5.6-luna'))
+    const adapter = new OpenAiAdapter('sk-test')
+
+    await adapter.complete({ ...request, model: 'gpt-5.6-luna', serviceTier: 'fast' })
+
+    expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({
+      model: 'gpt-5.6-luna',
+      service_tier: 'priority',
+    })
+  })
+
   it('disables reasoning explicitly for GPT-5 family completions', async () => {
     mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-5.6-sol'))
     const adapter = new OpenAiAdapter('sk-test')

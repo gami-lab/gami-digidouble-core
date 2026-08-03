@@ -7,12 +7,14 @@ export function buildSendMessageLlmRequest(args: {
   historyMessages: Array<{ role: 'user' | 'assistant'; content: string }>
   userMessage: string
   model?: string
+  serviceTier?: 'fast'
   effectiveProvider: string
   effectiveModel: string
 }): {
   systemPrompt: string
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
   model?: string
+  serviceTier?: 'fast'
   trace: {
     requestId: string
     sessionId: string
@@ -29,6 +31,7 @@ export function buildSendMessageLlmRequest(args: {
     systemPrompt: args.systemPrompt,
     messages: [...args.historyMessages, { role: 'user' as const, content: args.userMessage }],
     ...(args.model !== undefined ? { model: args.model } : {}),
+    ...(args.serviceTier === undefined ? {} : { serviceTier: args.serviceTier }),
     trace: {
       requestId: args.requestId,
       sessionId: args.sessionId,

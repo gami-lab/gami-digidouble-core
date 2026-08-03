@@ -109,7 +109,7 @@ include one chunk from all three sources.
 ## Supported model selectors
 
 The evaluator accepts `provider/model` selectors for the providers below. These entries are also
-the models covered by the built-in token-cost estimate table as of `2026-08-01`:
+the models covered by the built-in token-cost estimate table as of `2026-08-03`:
 
 | Provider  | Supported selector                     | Estimated pricing |
 | --------- | -------------------------------------- | ----------------- |
@@ -140,6 +140,13 @@ the models covered by the built-in token-cost estimate table as of `2026-08-01`:
 | Mistral   | `mistral/ministral-3b`                 | Yes               |
 | xAI       | `xai/grok-4.3`                         | Yes               |
 | xAI       | `xai/grok-build-0.1`                   | Yes               |
+
+For OpenAI selectors, append `-fast` to request Fast mode, for example
+`openai/gpt-5.6-luna-fast` or `openai/gpt-5.4-fast`. The evaluator removes the suffix from the
+model ID and sends a request-level Fast service tier to Core; the `-fast` selector remains in the
+report so Standard and Fast runs remain distinct. Fast-mode cost estimates use the public prices
+listed on [OpenAI Fast mode](https://openai.com/api-fast-mode/). If a Fast selector has no published
+price, its estimate is shown as unavailable.
 
 The following aliases are normalized to a priced entry: `openai/gpt-5.6`,
 `openai/gpt-4o-mini-2024-07-18`, `anthropic/claude-haiku-4-5-20251001`, `mistral/mistral-medium-3-5`, and

@@ -6,6 +6,8 @@ export interface SendRawMessageInput {
   systemPrompt?: string
   /** Optional model override; defaults to the configured provider model. */
   model?: string
+  /** Optional provider processing tier. */
+  serviceTier?: 'fast'
 }
 
 export interface SendRawMessageOutput extends Pick<

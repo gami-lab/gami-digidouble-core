@@ -115,6 +115,7 @@ const sendMessageBodySchema = {
       properties: {
         provider: { type: 'string', enum: MODEL_SELECTION_PROVIDER_NAMES },
         model: { type: 'string', minLength: 1, maxLength: 200 },
+        serviceTier: { type: 'string', enum: ['fast'] },
       },
       additionalProperties: false,
     },

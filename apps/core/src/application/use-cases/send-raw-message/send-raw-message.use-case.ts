@@ -14,6 +14,7 @@ export class SendRawMessageUseCase {
       systemPrompt: input.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
       messages: [{ role: 'user' as const, content: input.userMessage }],
       ...(input.model === undefined ? {} : { model: input.model }),
+      ...(input.serviceTier === undefined ? {} : { serviceTier: input.serviceTier }),
       trace: {
         requestId,
         metadata: { surface: 'send_raw_message' },

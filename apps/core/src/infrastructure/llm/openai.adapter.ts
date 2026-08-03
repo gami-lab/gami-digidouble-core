@@ -34,6 +34,7 @@ export class OpenAiAdapter implements ILlmAdapter {
         model,
         messages: buildMessages(request),
         ...reasoningEffort(model),
+        ...(request.serviceTier === undefined ? {} : { service_tier: 'priority' as const }),
         ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       })
     } catch (err) {
@@ -111,6 +112,7 @@ function buildStreamingRequest(
     stream: true,
     stream_options: { include_usage: true },
     ...reasoningEffort(model),
+    ...(request.serviceTier === undefined ? {} : { service_tier: 'priority' as const }),
     ...(request.maxTokens === undefined ? {} : { max_tokens: request.maxTokens }),
   }
 }

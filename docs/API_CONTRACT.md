@@ -94,7 +94,7 @@ Compatibility rules:
 ### Raw Exchange
 
 - `GET /health` -> basic process health check
-- `POST /v1/exchange` -> raw provider smoke-test path. Request body: `{ message: string; systemPrompt?: string; model?: { provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'; model?: string } }`; `message` and `systemPrompt` are limited to 4000 characters and `model.model` to 200 characters. When provided, `model` is an explicit request-level selection for this exchange; omitted fields continue to use the configured provider/model resolution.
+- `POST /v1/exchange` -> raw provider smoke-test path. Request body: `{ message: string; systemPrompt?: string; model?: { provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'; model?: string; serviceTier?: 'fast' } }`; `message` and `systemPrompt` are limited to 4000 characters and `model.model` to 200 characters. When provided, `model` is an explicit request-level selection for this exchange; `serviceTier: 'fast'` requests OpenAI Fast mode; omitted fields continue to use the configured provider/model resolution.
   The success payload is `ApiResponse<RawExchangeResponse>` with `{ requestId, reply, model,
 inputTokens, outputTokens, latencyMs }`. The route does not guarantee `costUsd`; consumers must
   treat cost as unavailable unless a future additive API field supplies it.
@@ -148,7 +148,7 @@ session and reused for every synchronous and streaming message in that session; 
 changed per message.
 
 `SendMessageRequest` requires `{ message: { content: string } }` and accepts an optional additive
-`model` selection `{ provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'; model?: string }`.
+`model` selection `{ provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'; model?: string; serviceTier?: 'fast' }`.
 When supplied, its provider/model fields take precedence for that Avatar request only; omitted
 fields continue through the normal server model-resolution precedence. The same request shape is
 used by the streaming route. This is intended for controlled clients such as evaluation tooling,

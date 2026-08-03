@@ -10,6 +10,8 @@ export interface LlmRequest {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
   /** Optional model override — defaults to role-assigned model. */
   model?: string
+  /** Optional low-latency processing tier; currently supported by OpenAI adapters. */
+  serviceTier?: 'fast'
   /** Optional max output tokens hint for provider adapters. */
   maxTokens?: number
   /** Optional observability context consumed by the observed adapter wrapper. */

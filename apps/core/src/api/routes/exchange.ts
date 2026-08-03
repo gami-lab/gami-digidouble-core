@@ -44,6 +44,7 @@ const exchangeBodySchema = {
       properties: {
         provider: { type: 'string', enum: MODEL_SELECTION_PROVIDER_NAMES },
         model: { type: 'string', minLength: 1, maxLength: 200 },
+        serviceTier: { type: 'string', enum: ['fast'] },
       },
       additionalProperties: false,
     },
@@ -86,6 +87,7 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
       schema: { body: exchangeBodySchema },
       preHandler: authenticateApiKey(options.config.apiKeySecret),
     },
+    // eslint-disable-next-line complexity
     async (request, reply) => {
       const requestedProvider = request.body.model?.provider
       const requestLlmAdapter =
@@ -100,6 +102,9 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
             ? { systemPrompt: request.body.systemPrompt }
             : {}),
           ...(request.body.model?.model !== undefined ? { model: request.body.model.model } : {}),
+          ...(request.body.model?.serviceTier !== undefined
+            ? { serviceTier: request.body.model.serviceTier }
+            : {}),
         })
         return await reply.send(ok<RawExchangeResponse>(mapRawExchangeResponse(output)))
       } catch (error) {

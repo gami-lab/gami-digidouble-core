@@ -184,6 +184,7 @@ export class SendMessageUseCase {
       historyMessages,
       userMessage: userMessage.content,
       ...(resolvedLlm.model !== undefined ? { model: resolvedLlm.model } : {}),
+      ...(resolvedLlm.serviceTier === undefined ? {} : { serviceTier: resolvedLlm.serviceTier }),
       effectiveProvider: resolvedLlm.provider,
       effectiveModel: resolvedLlm.effectiveModel,
     })
