@@ -70,11 +70,7 @@ export interface GameMasterInput {
 
 /** How the next Avatar turn should be led. */
 export type DialogueControlMode =
-  | 'user_led'
-  | 'avatar_guided'
-  | 'avatar_led'
-  | 'repair'
-  | 'transition'
+  'user_led' | 'avatar_guided' | 'avatar_led' | 'repair' | 'transition'
 
 export interface DialogueControl {
   mode: DialogueControlMode

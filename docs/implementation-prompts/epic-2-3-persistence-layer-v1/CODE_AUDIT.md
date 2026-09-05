@@ -354,38 +354,38 @@ the sprint produces user-visible avatar creation flows.
 
 ### Changes Made
 
-| File                                                                            | Change                                                                                                                               |
+| File | Change |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `infrastructure/db/migrations/002_avatar_adjustments.sql`                       | New migration — `ALTER TABLE avatars ADD COLUMN IF NOT EXISTS adjustments TEXT[]`                                                    |
-| `infrastructure/db/repositories/postgres-avatar.repository.ts`                  | Added `adjustments: string[]                                                                                                         | null`to`AvatarRow`; updated `rowToAvatarConfig`to map`null → undefined`; added `adjustments` to INSERT and both SELECT statements; removed "runtime-only" NOTE comment |
-| `infrastructure/db/repositories/postgres-avatar.repository.integration.test.ts` | Added two integration tests: "persists and returns adjustments" and "adjustments are undefined when not provided"                    |
-| `domain/conversation/session.types.ts`                                          | Removed `                                                                                                                            | null`from`endedAt?: string                                                                                                                                             | null`→`endedAt?: string` |
-| `infrastructure/db/repositories/postgres-session.repository.ts`                 | Removed dead `=== null` branch from `endedAtValue` computation                                                                       |
-| `infrastructure/db/in-memory-session.repository.ts`                             | Removed `endedAt: null` from `create()` (field now absent, consistent with Postgres path)                                            |
-| `api/routes/conversations.test.ts`                                              | Removed `                                                                                                                            | null`from local`SessionSummary`type; removed`endedAt: null` from fixture                                                                                               |
-| `api/routes/messages.test.ts`                                                   | Removed `endedAt: null` from session fixture; added `config: {}` to avatar fixture                                                   |
-| `api/routes/messages.e2e.test.ts`                                               | Removed `endedAt: null` from session fixture; added `config: {}` to avatar fixture                                                   |
-| `application/use-cases/start-session/start-session.use-case.test.ts`            | Removed `endedAt: null` from session fixture                                                                                         |
-| `application/use-cases/send-message/send-message.use-case.test.ts`              | Removed `endedAt: null` from session fixture; added `config: {}` to avatar fixture                                                   |
-| `application/use-cases/reset-session/reset-session.use-case.test.ts`            | Removed `endedAt: null` from session fixture                                                                                         |
-| `application/use-cases/get-history/get-history.use-case.test.ts`                | Removed `endedAt: null` from session fixture                                                                                         |
-| `domain/avatar/avatar.types.ts`                                                 | Made `AvatarConfig.config` required (`config?: …` → `config: …`)                                                                     |
-| `infrastructure/db/in-memory-avatar.repository.ts`                              | Changed conditional `config` spread to `config: params.config ?? {}`                                                                 |
-| `application/use-cases/create-avatar/create-avatar.use-case.test.ts`            | Added `config: {}` to local `makeAvatarConfig` fixture                                                                               |
-| `infrastructure/db/client.test.ts`                                              | New unit test file — 4 tests covering: returns client, same instance on same URL, throws on different URL, allows reinit after close |
-| `infrastructure/db/repositories/persistence.e2e.test.ts`                        | Added `truncateAllTables` in `beforeAll`; replaced hard-coded message UUID with `crypto.randomUUID()`                                |
-| `docs/PROJECT_STATUS.md`                                                        | Updated "Overall Progress" paragraph to include EPIC 2.3                                                                             |
+| `infrastructure/db/migrations/002_avatar_adjustments.sql` | New migration — `ALTER TABLE avatars ADD COLUMN IF NOT EXISTS adjustments TEXT[]` |
+| `infrastructure/db/repositories/postgres-avatar.repository.ts` | Added `adjustments: string[]                                                                                                         | null`to`AvatarRow`; updated `rowToAvatarConfig`to map`null → undefined`; added `adjustments` to INSERT and both SELECT statements; removed "runtime-only" NOTE comment |
+| `infrastructure/db/repositories/postgres-avatar.repository.integration.test.ts` | Added two integration tests: "persists and returns adjustments" and "adjustments are undefined when not provided" |
+| `domain/conversation/session.types.ts` | Removed `                                                                                                                            | null`from`endedAt?: string                                                                                                                                             | null`→`endedAt?: string` |
+| `infrastructure/db/repositories/postgres-session.repository.ts` | Removed dead `=== null` branch from `endedAtValue` computation |
+| `infrastructure/db/in-memory-session.repository.ts` | Removed `endedAt: null` from `create()` (field now absent, consistent with Postgres path) |
+| `api/routes/conversations.test.ts` | Removed `                                                                                                                            | null`from local`SessionSummary`type; removed`endedAt: null` from fixture |
+| `api/routes/messages.test.ts` | Removed `endedAt: null` from session fixture; added `config: {}` to avatar fixture |
+| `api/routes/messages.e2e.test.ts` | Removed `endedAt: null` from session fixture; added `config: {}` to avatar fixture |
+| `application/use-cases/start-session/start-session.use-case.test.ts` | Removed `endedAt: null` from session fixture |
+| `application/use-cases/send-message/send-message.use-case.test.ts` | Removed `endedAt: null` from session fixture; added `config: {}` to avatar fixture |
+| `application/use-cases/reset-session/reset-session.use-case.test.ts` | Removed `endedAt: null` from session fixture |
+| `application/use-cases/get-history/get-history.use-case.test.ts` | Removed `endedAt: null` from session fixture |
+| `domain/avatar/avatar.types.ts` | Made `AvatarConfig.config` required (`config?: …` → `config: …`) |
+| `infrastructure/db/in-memory-avatar.repository.ts` | Changed conditional `config` spread to `config: params.config ?? {}` |
+| `application/use-cases/create-avatar/create-avatar.use-case.test.ts` | Added `config: {}` to local `makeAvatarConfig` fixture |
+| `infrastructure/db/client.test.ts` | New unit test file — 4 tests covering: returns client, same instance on same URL, throws on different URL, allows reinit after close |
+| `infrastructure/db/repositories/persistence.e2e.test.ts` | Added `truncateAllTables` in `beforeAll`; replaced hard-coded message UUID with `crypto.randomUUID()` |
+| `docs/PROJECT_STATUS.md` | Updated "Overall Progress" paragraph to include EPIC 2.3 |
 
 ### Findings Resolved
 
-| Finding                                             | Severity | Status                                                                      |
+| Finding | Severity | Status |
 | --------------------------------------------------- | -------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| F-01 — `adjustments` silently dropped               | High     | ✅ Resolved — migration + repo update + 2 integration tests prove roundtrip |
-| F-02 — PROJECT_STATUS.md stale header               | Medium   | ✅ Resolved — paragraph updated                                             |
-| F-03 — `Session.endedAt` typed `string              | null`    | Low                                                                         | ✅ Resolved — type tightened; all fixtures updated |
-| F-04 — `AvatarConfig.config` typed optional         | Low      | ✅ Resolved — field made required; in-memory repo and 3 fixtures updated    |
-| F-05 — `client.ts` URL guard untested               | Low      | ✅ Resolved — `client.test.ts` with 4 behavioral tests                      |
-| F-06 — e2e test hard-coded UUID / no pre-truncation | Low      | ✅ Resolved — `beforeAll` truncation; random UUID                           |
+| F-01 — `adjustments` silently dropped | High | ✅ Resolved — migration + repo update + 2 integration tests prove roundtrip |
+| F-02 — PROJECT_STATUS.md stale header | Medium | ✅ Resolved — paragraph updated |
+| F-03 — `Session.endedAt` typed `string              | null` | Low | ✅ Resolved — type tightened; all fixtures updated |
+| F-04 — `AvatarConfig.config` typed optional | Low | ✅ Resolved — field made required; in-memory repo and 3 fixtures updated |
+| F-05 — `client.ts` URL guard untested | Low | ✅ Resolved — `client.test.ts` with 4 behavioral tests |
+| F-06 — e2e test hard-coded UUID / no pre-truncation | Low | ✅ Resolved — `beforeAll` truncation; random UUID |
 
 ### Findings Deferred
 

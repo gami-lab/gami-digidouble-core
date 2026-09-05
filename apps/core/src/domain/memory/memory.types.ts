@@ -122,11 +122,7 @@ export type ConversationWorkingMemorySnapshot = Pick<
 export type ConversationWorkingMemoryRefreshOutput = ConversationWorkingMemorySnapshot
 
 export type MemorySelectionReason =
-  | 'recency'
-  | 'relevance'
-  | 'continuity'
-  | 'unresolved_topic'
-  | 'working_memory'
+  'recency' | 'relevance' | 'continuity' | 'unresolved_topic' | 'working_memory'
 
 export type SelectedEpisodicMemory = {
   memoryId: string

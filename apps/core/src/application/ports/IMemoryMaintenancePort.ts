@@ -1,10 +1,7 @@
 import type { VerifiedMemoryContext } from '../../domain/memory/memory.types.js'
 
 export type MemoryRefreshTrigger =
-  | 'post_turn'
-  | 'conversation_closed'
-  | 'avatar_switch'
-  | 'admin_trigger'
+  'post_turn' | 'conversation_closed' | 'avatar_switch' | 'admin_trigger'
 
 export interface IMemoryMaintenancePort {
   execute(input: {

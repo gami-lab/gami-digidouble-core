@@ -8,7 +8,7 @@ export function cleanAvatarResponse(content: string): string {
   const lines = content.replace(/\r\n?/g, '\n').split('\n')
   const cleanedLines: string[] = []
 
-  for (let lineIndex = 0; lineIndex < lines.length; ) {
+  for (let lineIndex = 0; lineIndex < lines.length;) {
     const line = lines[lineIndex] ?? ''
     const markerMatch = line.match(/^[ \t]*(\*{1,2})/)
     const marker = markerMatch?.[1]

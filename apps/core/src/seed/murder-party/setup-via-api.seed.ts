@@ -13,12 +13,7 @@ export type AvatarSeed = {
 }
 
 export type SourceVisibility =
-  | 'public'
-  | 'gm-only'
-  | 'avatar-clara'
-  | 'avatar-elias'
-  | 'avatar-margot'
-  | 'avatar-thomas'
+  'public' | 'gm-only' | 'avatar-clara' | 'avatar-elias' | 'avatar-margot' | 'avatar-thomas'
 
 export type SourceSeed = {
   slug: string

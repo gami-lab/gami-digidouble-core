@@ -6,15 +6,14 @@ import { ObservedLlmAdapter } from './observed.adapter.js'
 
 function createLlm(content: string): ILlmAdapter {
   return {
-    complete: vi.fn(
-      (_request: LlmRequest): Promise<LlmResponse> =>
-        Promise.resolve({
-          content,
-          model: 'test-model',
-          inputTokens: 10,
-          outputTokens: 10,
-          latencyMs: 5,
-        }),
+    complete: vi.fn((_request: LlmRequest): Promise<LlmResponse> =>
+      Promise.resolve({
+        content,
+        model: 'test-model',
+        inputTokens: 10,
+        outputTokens: 10,
+        latencyMs: 5,
+      }),
     ),
   }
 }

@@ -163,17 +163,17 @@ though the API returns it.
 
 #### Where types are defined
 
-| File                                                             | Type                                | Fields vs domain `Session`                                                |
+| File | Type | Fields vs domain `Session` |
 | ---------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------- | ------------------------ |
-| `domain/conversation/session.types.ts`                           | `Session`                           | Canonical                                                                 |
-| `application/use-cases/start-session/start-session.types.ts`     | `SessionSummary`                    | Pick of all 9 fields                                                      |
-| `application/use-cases/get-session/get-session.types.ts`         | `SessionSummary`                    | **Identical** to start-session                                            |
-| `application/use-cases/switch-avatar/switch-avatar.types.ts`     | `SessionSummary`                    | Missing `unlockedAvatarIds`                                               |
-| `application/use-cases/inspect-session/inspect-session.types.ts` | `InspectSessionSummary`             | Same 9 fields as start-session `SessionSummary` but a distinct named type |
-| `application/use-cases/send-message/send-message.types.ts`       | `SendMessageSessionSummary`         | Missing `endedAt`                                                         |
-| `application/ports/IConversationRepository.ts`                   | `SessionSummary`                    | Missing `unlockedAvatarIds`, `gmNotes`                                    |
-| `apps/console/src/api/sessions.ts`                               | `SessionSummary`                    | Adds `                                                                    | null` to optional fields |
-| `api/routes/conversations.ts`                                    | _(inline in `SendMessageResponse`)_ | Missing `endedAt`                                                         |
+| `domain/conversation/session.types.ts` | `Session` | Canonical |
+| `application/use-cases/start-session/start-session.types.ts` | `SessionSummary` | Pick of all 9 fields |
+| `application/use-cases/get-session/get-session.types.ts` | `SessionSummary` | **Identical** to start-session |
+| `application/use-cases/switch-avatar/switch-avatar.types.ts` | `SessionSummary` | Missing `unlockedAvatarIds` |
+| `application/use-cases/inspect-session/inspect-session.types.ts` | `InspectSessionSummary` | Same 9 fields as start-session `SessionSummary` but a distinct named type |
+| `application/use-cases/send-message/send-message.types.ts` | `SendMessageSessionSummary` | Missing `endedAt` |
+| `application/ports/IConversationRepository.ts` | `SessionSummary` | Missing `unlockedAvatarIds`, `gmNotes` |
+| `apps/console/src/api/sessions.ts` | `SessionSummary` | Adds `                                                                    | null` to optional fields |
+| `api/routes/conversations.ts` | _(inline in `SendMessageResponse`)_ | Missing `endedAt` |
 
 #### Key issues
 
@@ -195,16 +195,16 @@ though the API returns it.
 
 #### Where types are defined
 
-| File                                                                                   | Type                                | Fields                                                     |
+| File | Type | Fields |
 | -------------------------------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------- | ---------------- |
-| `domain/conversation/session.types.ts`                                                 | `Conversation`                      | Canonical                                                  |
-| `application/use-cases/start-conversation/start-conversation.types.ts`                 | `ConversationSummary`               | Pick of 7 fields                                           |
-| `application/use-cases/list-session-conversations/list-session-conversations.types.ts` | `ConversationSummary`               | **Identical** to start-conversation                        |
-| `application/use-cases/get-history/get-history.types.ts`                               | `ConversationSummary`               | **Identical** to start-conversation                        |
-| `application/use-cases/switch-avatar/switch-avatar.types.ts`                           | `ConversationSummary`               | **Identical** to start-conversation                        |
-| `application/use-cases/send-message/send-message.types.ts`                             | _(inline Pick)_                     | Missing `startedBy`, `reason`, `handoffFromConversationId` |
-| `api/routes/conversations.ts`                                                          | _(inline in `SendMessageResponse`)_ | Missing `endedAt`                                          |
-| `apps/console/src/api/sessions.ts`                                                     | `ConversationSummary`               | Adds `                                                     | null`to`endedAt` |
+| `domain/conversation/session.types.ts` | `Conversation` | Canonical |
+| `application/use-cases/start-conversation/start-conversation.types.ts` | `ConversationSummary` | Pick of 7 fields |
+| `application/use-cases/list-session-conversations/list-session-conversations.types.ts` | `ConversationSummary` | **Identical** to start-conversation |
+| `application/use-cases/get-history/get-history.types.ts` | `ConversationSummary` | **Identical** to start-conversation |
+| `application/use-cases/switch-avatar/switch-avatar.types.ts` | `ConversationSummary` | **Identical** to start-conversation |
+| `application/use-cases/send-message/send-message.types.ts` | _(inline Pick)_ | Missing `startedBy`, `reason`, `handoffFromConversationId` |
+| `api/routes/conversations.ts` | _(inline in `SendMessageResponse`)_ | Missing `endedAt` |
+| `apps/console/src/api/sessions.ts` | `ConversationSummary` | Adds `                                                     | null`to`endedAt` |
 
 #### Key issues
 

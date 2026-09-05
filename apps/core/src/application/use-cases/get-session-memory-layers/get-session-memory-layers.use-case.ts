@@ -216,12 +216,10 @@ export class GetSessionMemoryLayersUseCase {
     }
 
     return [...grouped.entries()]
-      .map(
-        ([avatarId, memories]): LongTermAvatarMemoryGroup => ({
-          avatarId,
-          memories: memories.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
-        }),
-      )
+      .map(([avatarId, memories]): LongTermAvatarMemoryGroup => ({
+        avatarId,
+        memories: memories.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+      }))
       .sort((a: LongTermAvatarMemoryGroup, b: LongTermAvatarMemoryGroup) =>
         a.avatarId.localeCompare(b.avatarId),
       )

@@ -11,15 +11,14 @@ import { ObservedLlmAdapter } from './observed.adapter.js'
 
 function createInnerAdapter(overrides: Partial<ILlmAdapter> = {}): ILlmAdapter {
   return {
-    complete: vi.fn(
-      (_request: LlmRequest): Promise<LlmResponse> =>
-        Promise.resolve({
-          content: 'hello',
-          model: 'test-model',
-          inputTokens: 11,
-          outputTokens: 7,
-          latencyMs: 13,
-        }),
+    complete: vi.fn((_request: LlmRequest): Promise<LlmResponse> =>
+      Promise.resolve({
+        content: 'hello',
+        model: 'test-model',
+        inputTokens: 11,
+        outputTokens: 7,
+        latencyMs: 13,
+      }),
     ),
     ...overrides,
   }

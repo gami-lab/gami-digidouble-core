@@ -12,8 +12,7 @@ export type UploadedKnowledgeSource = {
 }
 
 export type UploadValidationResult<T> =
-  | { success: true; value: T }
-  | { success: false; message: string }
+  { success: true; value: T } | { success: false; message: string }
 
 export async function validateUploadedKnowledgeSource(
   content: string,

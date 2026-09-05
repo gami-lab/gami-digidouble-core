@@ -67,11 +67,11 @@ deltas, and a partial avatar message is never saved.
 
 ### Knowledge
 
-| Table               | Purpose                                         | Key fields                                                                                                                                               | Notes                                                                                                    |
+| Table | Purpose | Key fields | Notes |
 | ------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------- | -------------------------------- |
-| `knowledge_sources` | Scenario-scoped knowledge assets                | `id`, `scenario_id`, `name`, `knowledge_type`, `format`, `uri_or_path`, `status`, `metadata`, `visible_to_avatar_ids`, `visibility_policy`, `created_at` | Visibility policies are `'all'                                                                           | 'avatars' | 'none'`; `'none'` means GM-only. |
-| `knowledge_chunks`  | Retrieval chunks derived from knowledge sources | `id`, `source_id`, `content`, `chunk_index`, `embedding`, `metadata`, `visible_to_avatar_ids`, `created_at`                                              | Stored in PostgreSQL with pgvector embeddings. Chunk visibility usually inherits from source visibility. |
-| `ingestion_jobs`    | Knowledge ingestion lifecycle tracking          | `id`, `source_id`, `status`, `attempts`, `chunk_size`, `started_at`, `completed_at`, `error_message`, `created_at`, `updated_at`                         | Tracks queued/running/completed/failed ingestion work and its optional per-job chunk-size experiment.    |
+| `knowledge_sources` | Scenario-scoped knowledge assets | `id`, `scenario_id`, `name`, `knowledge_type`, `format`, `uri_or_path`, `status`, `metadata`, `visible_to_avatar_ids`, `visibility_policy`, `created_at` | Visibility policies are `'all'                                                                           | 'avatars' | 'none'`; `'none'` means GM-only. |
+| `knowledge_chunks` | Retrieval chunks derived from knowledge sources | `id`, `source_id`, `content`, `chunk_index`, `embedding`, `metadata`, `visible_to_avatar_ids`, `created_at` | Stored in PostgreSQL with pgvector embeddings. Chunk visibility usually inherits from source visibility. |
+| `ingestion_jobs` | Knowledge ingestion lifecycle tracking | `id`, `source_id`, `status`, `attempts`, `chunk_size`, `started_at`, `completed_at`, `error_message`, `created_at`, `updated_at` | Tracks queued/running/completed/failed ingestion work and its optional per-job chunk-size experiment. |
 
 ## Relationships
 

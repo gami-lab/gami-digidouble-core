@@ -1,8 +1,7 @@
 import pdfParse from 'pdf-parse'
 
 export type ParseUploadedKnowledgeSourceContentResult =
-  | { text: string; error: null }
-  | { text: ''; error: string }
+  { text: string; error: null } | { text: ''; error: string }
 
 export async function parseUploadedKnowledgeSourceContent(
   content: string,

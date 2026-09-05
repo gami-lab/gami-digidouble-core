@@ -159,8 +159,7 @@ describe('SwitchAvatarUseCase success flows', () => {
     const output = await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_2' })
 
     const closeCall = updateConversationMock.mock.calls[0] as
-      | [string, { status?: string; endedAt?: string }]
-      | undefined
+      [string, { status?: string; endedAt?: string }] | undefined
     expect(closeCall?.[0]).toBe('conversation_1')
     expect(closeCall?.[1].status).toBe('closed')
     expect(typeof closeCall?.[1].endedAt).toBe('string')
@@ -172,8 +171,7 @@ describe('SwitchAvatarUseCase success flows', () => {
       handoffFromConversationId: 'conversation_1',
     })
     const sessionUpdateCall = updateSessionMock.mock.calls[0] as
-      | [string, { activeAvatarId?: string; lastActivityAt?: string }]
-      | undefined
+      [string, { activeAvatarId?: string; lastActivityAt?: string }] | undefined
     expect(sessionUpdateCall?.[0]).toBe('session_1')
     expect(sessionUpdateCall?.[1].activeAvatarId).toBe('avatar_2')
     expect(typeof sessionUpdateCall?.[1].lastActivityAt).toBe('string')
