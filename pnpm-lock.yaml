@@ -5,11 +5,11 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  fast-uri: '>=3.1.2'
+  fast-uri: '>=4.1.0'
   ws: '>=8.21.0'
-  vitest>vite: '>=7.3.5'
-  vite-node>vite: '>=7.3.5'
-  '@vitest/mocker>vite': '>=7.3.5'
+  vitest>vite: '>=8.1.4'
+  vite-node>vite: '>=8.1.4'
+  '@vitest/mocker>vite': '>=8.1.4'
 
 importers:
 
@@ -55,7 +55,7 @@ importers:
         specifier: ^19.2.0
         version: 19.2.5(react@19.2.5)
       vite:
-        specifier: ^8.0.16
+        specifier: ^8.1.4
         version: 8.1.4(@types/node@22.19.17)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3)
     devDependencies:
       '@testing-library/react':
@@ -80,7 +80,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
       vitest:
-        specifier: ^3.2.6
+        specifier: ^3.2.7
         version: 3.2.7(@types/node@22.19.17)(esbuild@0.27.7)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.3)
 
   apps/console:
@@ -98,7 +98,7 @@ importers:
         specifier: ^19.2.0
         version: 19.2.5(react@19.2.5)
       vite:
-        specifier: ^8.0.16
+        specifier: ^8.1.4
         version: 8.1.4(@types/node@22.19.17)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3)
     devDependencies:
       '@types/react':
@@ -114,7 +114,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
       vitest:
-        specifier: ^3.2.6
+        specifier: ^3.2.7
         version: 3.2.7(@types/node@22.19.17)(esbuild@0.27.7)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.3)
 
   apps/core:
@@ -157,7 +157,7 @@ importers:
         specifier: ^1.1.5
         version: 1.1.5
       '@vitest/coverage-v8':
-        specifier: ^3.2.6
+        specifier: ^3.2.7
         version: 3.2.7(vitest@3.2.7(@types/node@22.19.17)(esbuild@0.27.7)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.3))
       tsx:
         specifier: ^4.19.0
@@ -166,7 +166,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
       vitest:
-        specifier: ^3.2.6
+        specifier: ^3.2.7
         version: 3.2.7(@types/node@22.19.17)(esbuild@0.27.7)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.3)
 
   apps/web:
@@ -193,7 +193,7 @@ importers:
         specifier: ^17.0.8
         version: 17.0.8(i18next@26.3.1(typescript@5.9.3))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3)
       vite:
-        specifier: ^8.0.16
+        specifier: ^8.1.4
         version: 8.1.4(@types/node@22.19.17)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3)
     devDependencies:
       '@testing-library/react':
@@ -218,7 +218,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
       vitest:
-        specifier: ^3.2.6
+        specifier: ^3.2.7
         version: 3.2.7(@types/node@22.19.17)(esbuild@0.27.7)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.3)
 
   packages/shared:
@@ -227,7 +227,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
       vitest:
-        specifier: ^3.2.6
+        specifier: ^3.2.7
         version: 3.2.7(@types/node@22.19.17)(esbuild@0.27.7)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.3)
 
   tools/conversation-evaluation:
@@ -246,7 +246,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
       vitest:
-        specifier: ^3.2.6
+        specifier: ^3.2.7
         version: 3.2.7(@types/node@22.19.17)(esbuild@0.27.7)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.3)
 
 packages:

@@ -54,11 +54,11 @@
   "packageManager": "pnpm@9.15.0",
   "pnpm": {
     "overrides": {
-      "fast-uri": ">=3.1.2",
+      "fast-uri": ">=4.1.0",
       "ws": ">=8.21.0",
-      "vitest>vite": ">=7.3.5",
-      "vite-node>vite": ">=7.3.5",
-      "@vitest/mocker>vite": ">=7.3.5"
+      "vitest>vite": ">=8.1.4",
+      "vite-node>vite": ">=8.1.4",
+      "@vitest/mocker>vite": ">=8.1.4"
     }
   }
 }
