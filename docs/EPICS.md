@@ -232,6 +232,18 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 
 ## Open Backlog
 
+### `5.1c Real Embedding Infrastructure & Reindexing`
+
+Replace the deterministic test vector with a provider-neutral embedding port, an initial OpenAI adapter, explicit embedding model/dimension metadata, and a safe full-reindex workflow whenever the active embedding profile changes.
+
+### `5.1d Vector Retrieval Runtime`
+
+Replace lexical token-overlap retrieval with pgvector nearest-neighbor search for Avatar, Game Master, and admin diagnostics, while preserving scope, visibility, bounded selection, prompt integration, and retrieval observability.
+
+### `4.2d Memory Domain Separation`
+
+Separate shared scenario/avatar/world knowledge from user-bound conversational memory: static documents remain in the knowledge/RAG pipeline, while short-term, working, episodic, and long-term user memory remain non-RAG conversation state with explicit ownership and lifecycle boundaries.
+
 ### `3.3 Replay & Recovery Tools`
 
 **Current state**  
