@@ -19,7 +19,7 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
+    "@anthropic-ai/sdk": "^0.91.1",
     "@fastify/cors": "^11.2.0",
     "@gami/shared": "workspace:*",
     "@mistralai/mistralai": "^2.2.0",
