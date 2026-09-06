@@ -97,7 +97,7 @@ describe('adminRequest', () => {
         ok: true,
         status: 200,
         json: () => Promise.reject(new Error('bad json')),
-      } as unknown as Response),
+      }),
     )
 
     await expect(adminRequest('GET', '/v1/scenarios')).rejects.toMatchObject({
