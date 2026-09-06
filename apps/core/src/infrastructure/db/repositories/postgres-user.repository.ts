@@ -1,4 +1,4 @@
-import type { JSONValue, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { IUserRepository } from '../../../application/ports/IUserRepository.js'
 import type { User, UserPersona } from '../../../domain/user/user.types.js'
 
@@ -24,10 +24,10 @@ export class PostgresUserRepository implements IUserRepository {
   async upsert(userId: string, persona: UserPersona): Promise<User> {
     const [row] = await this.sql<UserRow[]>`
       INSERT INTO users (id, persona)
-      VALUES (${userId}, ${this.sql.json(persona as JSONValue)})
+      VALUES (${userId}, ${this.sql.json(persona)})
       ON CONFLICT (id)
       DO UPDATE SET
-        persona = ${this.sql.json(persona as JSONValue)},
+        persona = ${this.sql.json(persona)},
         updated_at = NOW()
       RETURNING id, persona, created_at, updated_at
     `

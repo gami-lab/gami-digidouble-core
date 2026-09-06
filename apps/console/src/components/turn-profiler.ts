@@ -30,10 +30,8 @@ const DEFAULT_LIMIT = 20
 
 export function buildTurnProfilerRows(
   turns: TurnMetrics[],
-  recentEvents: SessionEventRecord[],
+  _recentEvents: SessionEventRecord[],
 ): TurnProfilerRow[] {
-  void recentEvents
-
   return turns.map((turn) => ({
     turnIndex: turn.turnIndex,
     correlationId: turn.correlationId,

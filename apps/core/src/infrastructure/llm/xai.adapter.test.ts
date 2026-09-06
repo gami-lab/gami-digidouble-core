@@ -10,12 +10,10 @@ const mockCreate = vi.fn()
 vi.mock('openai', () => {
   const APIError = class extends Error {
     status: number
-    constructor(status: number, message: string, error: unknown, headers: Headers) {
+    constructor(status: number, message: string, _error: unknown, _headers: Headers) {
       super(message)
       this.name = 'APIError'
       this.status = status
-      void error
-      void headers
     }
   }
 
@@ -218,7 +216,7 @@ describe('XaiAdapter', () => {
 
     await expect(async () => {
       for await (const event of adapter.stream(request, { signal: controller.signal })) {
-        void event
+        expect(event).toBeDefined()
       }
     }).rejects.toThrow(/aborted/i)
     expect(mockCreate).not.toHaveBeenCalled()

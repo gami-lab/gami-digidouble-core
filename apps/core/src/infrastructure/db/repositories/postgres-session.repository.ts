@@ -1,4 +1,4 @@
-import type { JSONValue, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type {
   CreateSessionParams,
   ISessionRepository,
@@ -34,10 +34,10 @@ function rowToSession(row: SessionRow): Session {
       ? { unlockedAvatarIds: row.unlocked_avatar_ids.map((avatarId) => `avatar_${avatarId}`) }
       : {}),
     ...(row.model_override !== null && row.model_override !== undefined
-      ? { modelOverride: row.model_override as NonNullable<Session['modelOverride']> }
+      ? { modelOverride: row.model_override }
       : {}),
     ...(row.avatar_options !== null && row.avatar_options !== undefined
-      ? { avatarOptions: row.avatar_options as NonNullable<Session['avatarOptions']> }
+      ? { avatarOptions: row.avatar_options }
       : {}),
     ...(row.gm_notes !== null ? { gmNotes: row.gm_notes } : {}),
     ...(row.memory_summary !== null ? { memorySummary: row.memory_summary } : {}),
@@ -57,7 +57,7 @@ export class PostgresSessionRepository implements ISessionRepository {
       params.unlockedAvatarIds?.map((avatarId) => stripPrefix('avatar_', avatarId)) ?? null
     const [row] = await this.sql<[SessionRow]>`
       INSERT INTO sessions (user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options)
-      VALUES (${params.userId}, ${scenarioUuid}, NULL, ${unlockedAvatarUuids}::UUID[], ${this.sql.json((params.modelOverride ?? null) as unknown as JSONValue)}::JSONB, ${this.sql.json((params.avatarOptions ?? null) as unknown as JSONValue)}::JSONB)
+      VALUES (${params.userId}, ${scenarioUuid}, NULL, ${unlockedAvatarUuids}::UUID[], ${this.sql.json(params.modelOverride ?? null)}::JSONB, ${this.sql.json(params.avatarOptions ?? null)}::JSONB)
       RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
     `
     return rowToSession(row)

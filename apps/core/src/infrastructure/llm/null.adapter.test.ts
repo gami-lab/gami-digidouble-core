@@ -55,7 +55,7 @@ describe('NullLlmAdapter', () => {
     await expect(async () => {
       for await (const event of adapter.stream(request, { signal: controller.signal })) {
         // Consume the stream to exercise the async generator.
-        void event
+        expect(event).toBeDefined()
       }
     }).rejects.toThrow(/aborted/i)
   })

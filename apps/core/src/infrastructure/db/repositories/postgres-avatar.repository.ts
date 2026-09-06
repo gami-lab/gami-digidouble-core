@@ -283,7 +283,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
 
     const [row] = await this.sql<[AvatarRow?]>`
       UPDATE avatars
-      SET computed_traits = ${this.sql.json(computedTraits as unknown as JSONValue)}, updated_at = NOW()
+      SET computed_traits = ${this.sql.json(computedTraits)}, updated_at = NOW()
       WHERE id = ${uuid}
       RETURNING
         id, scenario_id, name, status,

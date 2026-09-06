@@ -33,7 +33,7 @@ function parseConfigPayload(payload: unknown): ModelConfig {
       provider: globalDefault['provider'] as ModelConfig['globalDefault']['provider'],
       model: globalDefault['model'],
     },
-    roleOverrides: roleOverrides as ModelConfig['roleOverrides'],
+    roleOverrides: roleOverrides,
     updatedAt,
   }
 }

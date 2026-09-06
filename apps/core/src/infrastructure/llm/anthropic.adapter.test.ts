@@ -13,15 +13,13 @@ vi.mock('@anthropic-ai/sdk', () => {
     status: number | undefined
     constructor(
       status: number | undefined,
-      error: unknown,
+      _error: unknown,
       message: string | undefined,
-      headers: Headers | undefined,
+      _headers: Headers | undefined,
     ) {
       super(message ?? '')
       this.name = 'APIError'
       this.status = status
-      void error
-      void headers
     }
   }
 
@@ -169,7 +167,7 @@ describe('AnthropicAdapter', () => {
 
     await expect(async () => {
       for await (const event of adapter.stream(request, { signal: controller.signal })) {
-        void event
+        expect(event).toBeDefined()
       }
     }).rejects.toThrow(/aborted/i)
     expect(mockStream).not.toHaveBeenCalled()

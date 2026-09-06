@@ -27,12 +27,12 @@ interface ScenarioRow {
 
 function normalizeConfig(config: unknown): Scenario['config'] {
   if (isRecord(config)) {
-    return config as Scenario['config']
+    return config
   }
   if (typeof config === 'string') {
     try {
       const parsed: unknown = JSON.parse(config)
-      return isRecord(parsed) ? (parsed as Scenario['config']) : {}
+      return isRecord(parsed) ? parsed : {}
     } catch {
       return {}
     }
@@ -178,7 +178,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
         ${params.worldContext ?? ''},
         ${this.sql.json((params.avatarAvailability ?? { initialAvatarIds: [] }) as unknown as JSONValue)},
         ${this.sql.json((params.config ?? {}) as JSONValue)},
-        ${this.sql.json((params.modelSelection ?? null) as unknown as JSONValue)}
+        ${this.sql.json(params.modelSelection ?? null)}
       )
       RETURNING id, name, status, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
     `

@@ -208,10 +208,10 @@ function toConversationCloser(enabled: boolean): {
 
 function toMemoryMaintenance(enabled: boolean): IMemoryMaintenancePort | undefined {
   return enabled
-    ? ({
+    ? {
         execute: memoryMaintenanceExecuteMock,
         awaitPendingRefresh: vi.fn().mockResolvedValue(undefined),
-      } as IMemoryMaintenancePort)
+      }
     : undefined
 }
 

@@ -269,7 +269,7 @@ function readOptionalContextSelection(
     hasAvatarTraits: readBoolean(value['hasAvatarTraits']),
   }
 
-  return selection as NonNullable<TurnCompletedEventPayload['contextSelection']>
+  return selection
 }
 
 // eslint-disable-next-line complexity

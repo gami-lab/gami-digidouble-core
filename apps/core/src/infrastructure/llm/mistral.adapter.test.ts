@@ -193,7 +193,7 @@ describe('MistralAdapter', () => {
 
     await expect(async () => {
       for await (const event of adapter.stream(request, { signal: controller.signal })) {
-        void event
+        expect(event).toBeDefined()
       }
     }).rejects.toThrow(/aborted/i)
     expect(mockStream).not.toHaveBeenCalled()

@@ -10,12 +10,10 @@ const mockCreate = vi.fn()
 vi.mock('openai', () => {
   const APIError = class extends Error {
     status: number
-    constructor(status: number, message: string, error: unknown, headers: Headers) {
+    constructor(status: number, message: string, _error: unknown, _headers: Headers) {
       super(message)
       this.name = 'APIError'
       this.status = status
-      void error
-      void headers
     }
   }
 
@@ -250,7 +248,7 @@ describe('OpenAiAdapter', () => {
     const adapter = new OpenAiAdapter('sk-test')
 
     for await (const event of adapter.stream({ ...request, model: 'gpt-5.4' })) {
-      void event
+      expect(event).toBeDefined()
     }
 
     expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({
@@ -273,7 +271,7 @@ describe('OpenAiAdapter', () => {
     const adapter = new OpenAiAdapter('sk-test')
 
     for await (const event of adapter.stream({ ...request, model: 'gpt-5.4', maxTokens: 3000 })) {
-      void event
+      expect(event).toBeDefined()
     }
 
     expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({ max_completion_tokens: 3000 })
@@ -287,7 +285,7 @@ describe('OpenAiAdapter', () => {
 
     await expect(async () => {
       for await (const event of adapter.stream(request, { signal: controller.signal })) {
-        void event
+        expect(event).toBeDefined()
       }
     }).rejects.toThrow(/aborted/i)
     expect(mockCreate).not.toHaveBeenCalled()
