@@ -3,7 +3,10 @@ import { InMemoryIngestionJobRepository } from '../../../infrastructure/db/in-me
 import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
-import { HashEmbeddingAdapter } from '../../../infrastructure/knowledge/hash-embedding.adapter.js'
+import {
+  DETERMINISTIC_HASH_EMBEDDING_PROFILE,
+  HashEmbeddingAdapter,
+} from '../../../infrastructure/knowledge/test-support/hash-embedding.adapter.js'
 import type { IKnowledgeChunkRepository } from '../../ports/IKnowledgeChunkRepository.js'
 import type { IKnowledgeSourceContentLoader } from '../../ports/IKnowledgeSourceContentLoader.js'
 import { KnowledgeIngestionService } from './knowledge-ingestion.service.js'
@@ -93,7 +96,7 @@ describe('KnowledgeIngestionService — completion flow', () => {
       chunkRepository,
       jobRepository,
       new StubLoader('A\n\nB\n\nC'),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 
@@ -147,7 +150,7 @@ describe('KnowledgeIngestionService — completion flow', () => {
       chunkRepository,
       jobRepository,
       new InlineTextLoader(),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 
@@ -179,7 +182,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       chunkRepository,
       jobRepository,
       new StubLoader(`${'A'.repeat(700)}\n\n${'B'.repeat(700)}`),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 
@@ -209,7 +212,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       chunkRepository,
       jobRepository,
       new StubLoader(`${'A'.repeat(300)}\n\n${'B'.repeat(300)}`),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 
@@ -243,7 +246,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       chunkRepository,
       jobRepository,
       new StubLoader(`${firstParagraph}\n\n${secondParagraph}\n\n${thirdParagraph}`),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 
@@ -279,7 +282,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       chunkRepository,
       jobRepository,
       new StubLoader(`${oversizedParagraph}\n\n${nextParagraph}`),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 
@@ -317,7 +320,7 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
       new StubLoader(
         `# Guide\n\n${firstParagraph}\n\n## Harbor\n\n${secondParagraph}\n\n####details\n\n${thirdParagraph}`,
       ),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 
@@ -349,7 +352,7 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
       chunkRepository,
       jobRepository,
       new StubLoader(`## Section\n\n${firstParagraph}\n\n${secondParagraph}`),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 
@@ -381,7 +384,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       chunkRepository,
       jobRepository,
       new StubLoader('', true),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 
@@ -399,7 +402,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       chunkRepository,
       jobRepository,
       new StubLoader('First\n\nSecond'),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 
@@ -453,7 +456,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       chunkRepository,
       jobRepository,
       new StubLoader(`${longParagraphA}\n\n${longParagraphB}`),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
     )
 

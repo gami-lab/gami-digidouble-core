@@ -1,7 +1,6 @@
-export type AvatarSlug = 'clara' | 'elias' | 'margot' | 'thomas'
+import type { KnowledgeSourceFormat, KnowledgeType } from '@gami/shared'
 
-export type KnowledgeType = 'memory' | 'world' | 'media'
-export type KnowledgeFormat = 'pdf' | 'text' | 'markdown' | 'url' | 'media'
+export type AvatarSlug = 'clara' | 'elias' | 'margot' | 'thomas'
 
 export type AvatarSeed = {
   slug: AvatarSlug
@@ -20,7 +19,7 @@ export type SourceSeed = {
   fileName: string
   name: string
   knowledgeType: KnowledgeType
-  format: KnowledgeFormat
+  format: KnowledgeSourceFormat
   visibility: SourceVisibility
 }
 

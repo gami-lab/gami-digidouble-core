@@ -386,6 +386,34 @@ Contains:
 - type-specific retrieval pipelines (`memory`, `world`, `media`) with deterministic merge output
 - Avatar retrieval selects one combined top-five set across memory and world items before prompt rendering, preserving one distinct best match for the user question, GM retrieval queries, and GM required facts before global fill; media remains a separate typed channel
 
+### Embedding contract boundary (EPIC 5.1c foundation)
+
+Embedding contracts are separate from `ILlmAdapter` and chat-role model selection. The canonical
+application port is `apps/core/src/application/ports/IEmbeddingAdapter.ts`:
+
+- `EmbeddingProfile` owns the provider-neutral `{ provider, model, dimensions }` identity.
+- `EmbeddingBatchRequest` owns ordered input text; `EmbeddingBatchResult` owns ordered vectors and
+  effective profile/usage/latency metadata.
+- `EmbeddingFailure` is a finite provider-neutral failure model for invalid input, provider
+  rejection, rate limiting, malformed/count-mismatched responses, and dimension mismatch.
+- `EmbeddingVector` is a readonly domain value used by `KnowledgeChunk` and repositories.
+
+`@gami/shared` remains the owner of public source, chunk, ingestion-job, and retrieval DTOs. The
+current public DTOs intentionally do not expose vectors or embedding profiles. Persisted vector
+profile/corpus identity will be owned by the Core knowledge persistence contract and mapped by
+Infrastructure when the database slice lands; it will not be added to shared DTOs unless an
+operator API later exposes it. Reindex-operation types will likewise be Application-owned until a
+deliberate admin API requires shared DTOs.
+
+The existing `KnowledgeIngestionService` is the ingestion embedding boundary. EPIC 5.1d must use
+one application-owned `KnowledgeQueryEmbeddingService` between retrieval callers and
+`IEmbeddingAdapter`; `TypedRetrievalService`, Avatar, Game Master, and admin retrieval must not
+embed text independently.
+
+Profile-aware migration call sites are therefore limited to the ingestion service, embedding
+composition/configuration, chunk persistence, the future query-vectorization service, and future
+reindex orchestration. Existing console/admin clients continue consuming the shared wire DTOs.
+
 ---
 
 ## Module: Scenario
@@ -600,7 +628,6 @@ reconnect, URL, and authentication behavior.
 ```ts
 complete(request): Promise<LlmResponse>
 stream?(request, options?): AsyncIterable<LlmStreamEvent>
-embed(input): Promise<Vector[]>
 ```
 
 `LlmStreamEvent` is an internal provider contract owned by
@@ -648,6 +675,9 @@ searchKnowledge(query)
 Business code depends on these ports only.
 
 Runtime provider/model choice is role-based at the application layer. The runtime roles are `avatar`, `gameMaster`, and `memory`. Each LLM-calling use case resolves an effective `{ provider, model }` through `ModelResolutionService` (avatar override → role override → global default), then fetches the concrete adapter from `LlmAdapterRegistry` in infrastructure. The observed adapter wrapper remains the single tracing boundary, and each request carries `effectiveProvider`/`effectiveModel` metadata for operations.
+
+Embedding calls do not use this port. They go through `IEmbeddingAdapter` and carry
+`EmbeddingBatchMetadata.profile` separately from chat-role configuration.
 
 For technology choices (DB, Redis, observability, LLM providers), see `TECH_STACK.md`.
 

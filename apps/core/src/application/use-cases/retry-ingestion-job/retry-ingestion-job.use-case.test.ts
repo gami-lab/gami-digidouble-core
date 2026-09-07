@@ -5,7 +5,10 @@ import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in
 import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryKnowledgeSourceContentLoader } from '../../../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
-import { HashEmbeddingAdapter } from '../../../infrastructure/knowledge/hash-embedding.adapter.js'
+import {
+  DETERMINISTIC_HASH_EMBEDDING_PROFILE,
+  HashEmbeddingAdapter,
+} from '../../../infrastructure/knowledge/test-support/hash-embedding.adapter.js'
 import { KnowledgeIngestionService } from '../../services/knowledge/knowledge-ingestion.service.js'
 import { RetryIngestionJobUseCase } from './retry-ingestion-job.use-case.js'
 
@@ -37,7 +40,7 @@ describe('RetryIngestionJobUseCase — retry scheduling', () => {
       new InMemoryKnowledgeChunkRepository(),
       jobRepo,
       new InMemoryKnowledgeSourceContentLoader(),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       new InMemoryEventLogRepository(),
     )
     const executeSpy = vi.spyOn(service, 'execute').mockResolvedValue({
@@ -91,7 +94,7 @@ describe('RetryIngestionJobUseCase — retry scheduling', () => {
       new InMemoryKnowledgeChunkRepository(),
       jobRepo,
       new InMemoryKnowledgeSourceContentLoader(),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       new InMemoryEventLogRepository(),
     )
     const executeSpy = vi.spyOn(service, 'execute')
@@ -127,7 +130,7 @@ describe('RetryIngestionJobUseCase — validation', () => {
       new InMemoryKnowledgeChunkRepository(),
       jobRepo,
       new InMemoryKnowledgeSourceContentLoader(),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       new InMemoryEventLogRepository(),
     )
 

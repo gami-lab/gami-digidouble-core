@@ -4,7 +4,10 @@ This document describes the RAG code that is currently in this repository. It do
 
 ## Important conclusion
 
-The current system **generates and stores an embedding for every ingested chunk, but does not use embeddings during retrieval**.
+The current deterministic test composition **generates and stores an embedding for every ingested
+chunk, but does not use embeddings during retrieval**. Production composition no longer falls back
+to that test vector; until the real provider slice lands, an unconfigured embedding adapter rejects
+production ingestion explicitly.
 
 Runtime retrieval currently:
 
@@ -22,7 +25,7 @@ Knowledge source
   -> ingestion job
   -> source content loader
   -> paragraph/header chunking
-  -> HashEmbeddingAdapter creates one stored vector per chunk
+  -> explicitly injected deterministic test adapter creates one stored vector per chunk
   -> chunks persisted in PostgreSQL
 
 Avatar turn
@@ -47,7 +50,7 @@ The main implementation files are:
 - [typed-retrieval-query-builder.ts](../apps/core/src/application/services/knowledge/typed-retrieval-query-builder.ts)
 - [typed-retrieval.service.ts](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts)
 - [retrieval-selection.ts](../apps/core/src/domain/knowledge/retrieval-selection.ts)
-- [hash-embedding.adapter.ts](../apps/core/src/infrastructure/knowledge/hash-embedding.adapter.ts)
+- [hash-embedding.adapter.ts](../apps/core/src/infrastructure/knowledge/test-support/hash-embedding.adapter.ts)
 - [Postgres knowledge chunk repository](../apps/core/src/infrastructure/db/repositories/postgres-knowledge-chunk.repository.ts)
 
 ## 1. Where the knowledge comes from
@@ -127,9 +130,9 @@ A media source produces exactly one chunk. Its content is:
 
 The chunk metadata also contains `mediaUri: <uriOrPath>`. The current implementation therefore retrieves media descriptions/references; it does not create a deep multimodal embedding.
 
-## 3. How the chunk vector is computed
+## 3. How the deterministic test chunk vector is computed
 
-The application wires [HashEmbeddingAdapter](../apps/core/src/infrastructure/knowledge/hash-embedding.adapter.ts) as the default embedding adapter in [index.ts](../apps/core/src/index.ts#L200-L209). The adapter is also the server fallback in [server.ts](../apps/core/src/api/server.ts#L254-L268).
+Tests may explicitly inject [HashEmbeddingAdapter](../apps/core/src/infrastructure/knowledge/test-support/hash-embedding.adapter.ts) with a supplied `EmbeddingProfile`. It is not a production default or server fallback. The production composition currently uses an unconfigured adapter until the real provider implementation is added.
 
 Despite its name, this is not a cryptographic hash and it is not a model-generated semantic embedding. It is a deterministic character-code accumulator.
 
@@ -149,10 +152,10 @@ norm = sqrt(sum(values[bucket] squared))
 vector[bucket] = round(values[bucket] / norm, 6 decimal places)
 ```
 
-The default `D` is **16**. In ingestion, the adapter receives the final chunk text only:
+The deterministic test profile currently supplies `D = 16`. In ingestion, the adapter receives the final chunk text only:
 
 ```ts
-embeddingAdapter.embed(chunkSeeds.map((chunk) => chunk.content))
+embeddingAdapter.embed({ inputs: chunkSeeds.map((chunk) => chunk.content) })
 ```
 
 Therefore:
@@ -163,7 +166,7 @@ Therefore:
 - source type, visibility, and IDs are not embedded;
 - the vector is L2-normalized and rounded to six decimal places.
 
-The database schema stores the value as `VECTOR(16)` in [infra/postgres/init.sql](../infra/postgres/init.sql#L74-L84). The ingestion test verifies that the default vector has length 16 in [knowledge-ingestion.service.test.ts](../apps/core/src/application/services/knowledge/knowledge-ingestion.service.test.ts#L111-L120).
+The database schema still stores the value as `VECTOR(16)` in [infra/postgres/init.sql](../infra/postgres/init.sql#L74-L84). The ingestion test verifies that the explicitly injected deterministic test profile produces vectors of length 16 in [knowledge-ingestion.service.test.ts](../apps/core/src/application/services/knowledge/knowledge-ingestion.service.test.ts#L111-L120).
 
 ## 4. How runtime query text is built
 
@@ -327,8 +330,9 @@ The admin retrieval route performs retrieval immediately for the submitted query
 
 The following pieces exist:
 
-- `IEmbeddingAdapter.embed(inputs)`;
-- the default deterministic `HashEmbeddingAdapter`;
+- `IEmbeddingAdapter.embed({ inputs })` with ordered batch/result metadata;
+- the explicitly injected deterministic test `HashEmbeddingAdapter`;
+- the production `UnconfiguredEmbeddingAdapter` placeholder until a real provider is wired;
 - `embedding` on the domain chunk type;
 - `knowledge_chunks.embedding VECTOR(16)` in PostgreSQL;
 - an IVFFlat index using `vector_cosine_ops`.
@@ -352,11 +356,11 @@ These are concrete gaps in the current implementation, not claims about behavior
 
 The main improvement is to add a query-embedding path and a repository method for pgvector nearest-neighbor search. The query and chunk embeddings must use the same embedding model and dimension. The repository should apply scenario/type/status/visibility scope in SQL and order by cosine distance before returning candidates.
 
-The current `HashEmbeddingAdapter` should be replaced or made explicitly test-only. Its character-position buckets do not represent semantic similarity, so two conceptually similar strings can score poorly and two unrelated strings can collide.
+The deterministic `HashEmbeddingAdapter` is now explicitly test-only. Its character-position buckets do not represent semantic similarity, so two conceptually similar strings can score poorly and two unrelated strings can collide. The next provider slice must replace the production placeholder with a real provider adapter without changing the application port.
 
 ### 2. Make the pgvector dimension a single enforced configuration
 
-The database is fixed at `VECTOR(16)`, while `HashEmbeddingAdapter` accepts a constructor dimension. The production wiring uses the default 16, but a custom adapter dimension could conflict with the database. The embedding model identity and dimension should be persisted/configured together and validated at ingestion and query time.
+The database is still fixed at `VECTOR(16)`, while the deterministic test adapter now requires an explicit profile and has no implicit dimension. The embedding model identity and dimension still need to be persisted/configured together and validated at ingestion and query time in the remaining 5.1c slices.
 
 ### 3. Use a transaction for replacing a source's chunks
 

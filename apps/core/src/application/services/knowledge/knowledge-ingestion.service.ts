@@ -122,10 +122,13 @@ export class KnowledgeIngestionService {
   ): Promise<number> {
     const loaded = await this.contentLoader.load(source)
     const chunkSeeds = toChunkSeeds(source, loaded.content, loaded.metadata, chunkSize)
-    const embeddings =
+    const embeddingResult =
       chunkSeeds.length === 0
-        ? []
-        : await this.embeddingAdapter.embed(chunkSeeds.map((chunk) => chunk.content))
+        ? null
+        : await this.embeddingAdapter.embed({
+            inputs: chunkSeeds.map((chunk) => chunk.content),
+          })
+    const embeddings = embeddingResult?.vectors ?? []
 
     const previousChunks = await this.chunkRepository.listBySourceId(source.sourceId)
     await this.chunkRepository.deleteBySourceId(source.sourceId)

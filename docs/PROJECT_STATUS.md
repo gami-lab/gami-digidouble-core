@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-29
+Last updated: 2026-09-07
 Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered
 
 ## Snapshot
@@ -12,6 +12,8 @@ The platform is now a working headless conversational runtime with:
 - async Game Master orchestration
 - deterministic layered memory
 - typed knowledge ingestion and retrieval
+- provider-neutral embedding contract foundation with explicit profile identity, ordered batch
+  metadata, finite typed failures, and an explicitly injected deterministic test fake
 - deterministic context assembly for Avatar and GM
 - runtime SSE events and runtime-state snapshots
 - admin inspection, replay, and memory-control tooling
@@ -89,6 +91,17 @@ The platform is now a working headless conversational runtime with:
 - Admin retrieval diagnostics use the unrestricted GM view when no active avatar is selected.
 - Context Engine assembles bounded Avatar and GM projections with deterministic precedence and trace metadata.
 - Avatar prompt assembly consumes structured runtime sections, including prepared avatar traits when available.
+
+#### EPIC 5.1c contract foundation (in progress)
+
+The application embedding port now owns `EmbeddingProfile`, ordered batch request/result metadata,
+provider-neutral usage, and finite typed failures. `KnowledgeChunk` stores a readonly vector value,
+and ingestion consumes the canonical batch result. The hash adapter is test support only and
+requires an explicit profile; production composition no longer falls back to hash vectors.
+
+The OpenAI adapter, persisted vector-profile/corpus identity, profile-aware ingestion promotion,
+and full reindex operation remain open. Public source/chunk/ingestion-job DTOs are unchanged and
+continue to be owned by `@gami/shared`.
 
 ### Operations
 

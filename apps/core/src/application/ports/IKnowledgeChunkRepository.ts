@@ -1,10 +1,10 @@
-import type { KnowledgeChunk } from '../../domain/knowledge/knowledge.types.js'
+import type { EmbeddingVector, KnowledgeChunk } from '../../domain/knowledge/knowledge.types.js'
 
 export type CreateKnowledgeChunkParams = {
   sourceId: string
   content: string
   chunkIndex: number
-  embedding?: number[]
+  embedding?: EmbeddingVector
   metadata?: Record<string, unknown>
   visibleToAvatarIds?: string[]
 }

@@ -1,21 +1,34 @@
 // Canonical read shape — imported (not re-declared) so this seed script picks up
 // AvatarSummary changes (e.g. computedTraits) automatically.
-import type { AvatarSummary } from '@gami/shared'
-import type { KnowledgeFormat, KnowledgeType } from './setup-via-api.seed.js'
+import type {
+  ApiResponse,
+  AvatarSummary,
+  CreateKnowledgeSourceResponse,
+  CreateKnowledgeSourceRequest,
+  DeleteKnowledgeSourceResponse,
+  GetIngestionJobResponse,
+  IngestionJobDto,
+  KnowledgeSourceDto,
+  KnowledgeSourceFormat,
+  KnowledgeType,
+  KnowledgeVisibilityPolicy,
+  ListKnowledgeSourcesResponse,
+  TriggerIngestionResponse,
+  UpdateKnowledgeSourceRequest,
+  UpdateKnowledgeSourceResponse,
+} from '@gami/shared'
 
 export type { AvatarSummary }
 
-// Mirrors the canonical `KnowledgeVisibilityPolicy` from `@gami/shared` (out of scope for this pass).
-export type KnowledgeVisibilityPolicy = 'all' | 'avatars' | 'none'
-
-export type ApiEnvelope<T> = {
-  data: T | null
-  error: {
-    code: string
-    message: string
-    details?: unknown
-  } | null
+export type {
+  IngestionJobDto,
+  KnowledgeSourceDto,
+  KnowledgeSourceFormat,
+  KnowledgeType,
+  KnowledgeVisibilityPolicy,
 }
+
+export type ApiEnvelope<T> = ApiResponse<T>
 
 export type ScenarioAvatarAvailability = {
   initialAvatarIds: string[]
@@ -30,26 +43,6 @@ export type ScenarioSummary = {
   worldContext: string
   avatarAvailability: ScenarioAvatarAvailability
   config: Record<string, unknown>
-}
-
-export type KnowledgeSourceDto = {
-  sourceId: string
-  scenarioId: string
-  name: string
-  knowledgeType: KnowledgeType
-  format: KnowledgeFormat
-  uriOrPath: string
-  status: 'pending' | 'ready' | 'error'
-  metadata?: Record<string, unknown>
-  visibleToAvatarIds?: string[]
-  visibilityPolicy?: KnowledgeVisibilityPolicy
-}
-
-export type IngestionJobDto = {
-  ingestionJobId: string
-  sourceId: string
-  status: 'queued' | 'running' | 'completed' | 'failed'
-  errorMessage?: string
 }
 
 export type CliOptions = {
@@ -192,47 +185,32 @@ export class ApiClient {
     return this.request('PATCH', `/v1/avatars/${avatarId}`, input)
   }
 
-  listKnowledgeSources(scenarioId: string): Promise<{ sources: KnowledgeSourceDto[] }> {
+  listKnowledgeSources(scenarioId: string): Promise<ListKnowledgeSourcesResponse> {
     return this.request('GET', `/v1/scenarios/${scenarioId}/knowledge-sources`)
   }
 
-  createKnowledgeSource(input: {
-    scenarioId: string
-    name: string
-    knowledgeType: KnowledgeType
-    format: KnowledgeFormat
-    uriOrPath: string
-    metadata: Record<string, unknown>
-    visibleToAvatarIds?: string[]
-    visibilityPolicy?: KnowledgeVisibilityPolicy
-  }): Promise<{ source: KnowledgeSourceDto }> {
+  createKnowledgeSource(
+    input: CreateKnowledgeSourceRequest,
+  ): Promise<CreateKnowledgeSourceResponse> {
     return this.request('POST', '/v1/knowledge-sources', input, [201])
   }
 
   updateKnowledgeSource(
     sourceId: string,
-    input: Partial<{
-      name: string
-      metadata: Record<string, unknown>
-      visibleToAvatarIds: string[]
-      visibilityPolicy: KnowledgeVisibilityPolicy
-      uriOrPath: string
-    }>,
-  ): Promise<{ source: KnowledgeSourceDto }> {
+    input: UpdateKnowledgeSourceRequest,
+  ): Promise<UpdateKnowledgeSourceResponse> {
     return this.request('PATCH', `/v1/knowledge-sources/${sourceId}`, input)
   }
 
-  deleteKnowledgeSource(sourceId: string): Promise<{ sourceId: string; deleted: boolean }> {
+  deleteKnowledgeSource(sourceId: string): Promise<DeleteKnowledgeSourceResponse> {
     return this.request('DELETE', `/v1/knowledge-sources/${sourceId}`)
   }
 
-  triggerIngestion(
-    sourceId: string,
-  ): Promise<{ ingestionJob: IngestionJobDto; scheduled: boolean }> {
+  triggerIngestion(sourceId: string): Promise<TriggerIngestionResponse> {
     return this.request('POST', `/v1/knowledge-sources/${sourceId}/ingest`, {}, [202])
   }
 
-  getIngestionJob(ingestionJobId: string): Promise<{ ingestionJob: IngestionJobDto }> {
+  getIngestionJob(ingestionJobId: string): Promise<GetIngestionJobResponse> {
     return this.request('GET', `/v1/ingestion-jobs/${ingestionJobId}`)
   }
 }

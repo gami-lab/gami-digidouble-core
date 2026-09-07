@@ -3,6 +3,10 @@ import type { ApiResponse } from '@gami/shared'
 import type { KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
 import { InMemoryKnowledgeChunkRepository } from '../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-memory-knowledge-source.repository.js'
+import {
+  DETERMINISTIC_HASH_EMBEDDING_PROFILE,
+  HashEmbeddingAdapter,
+} from '../../infrastructure/knowledge/test-support/hash-embedding.adapter.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
 
@@ -29,6 +33,7 @@ function makeApp({
   return createServer(TEST_CONFIG, {
     knowledgeSourceRepository: new InMemoryKnowledgeSourceRepository(sources),
     knowledgeChunkRepository: new InMemoryKnowledgeChunkRepository(),
+    embeddingAdapter: new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
   })
 }
 

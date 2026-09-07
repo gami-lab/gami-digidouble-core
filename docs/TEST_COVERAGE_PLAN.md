@@ -118,6 +118,8 @@ Must cover:
 - source registration and update
 - upload validation
 - ingestion job lifecycle
+- embedding port contract: ordered vectors, effective profile metadata, copy-safe deterministic
+  fake output, and finite typed failure categories
 - typed retrieval by `memory` / `world` / `media`
 - avatar visibility filtering
 - GM unrestricted retrieval behavior

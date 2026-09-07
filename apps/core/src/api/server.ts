@@ -62,7 +62,7 @@ import { InMemoryKnowledgeChunkRepository } from '../infrastructure/db/in-memory
 import { InMemoryIngestionJobRepository } from '../infrastructure/db/in-memory-ingestion-job.repository.js'
 import { InMemoryModelConfigRepository } from '../infrastructure/db/in-memory-model-config.repository.js'
 import { InMemoryKnowledgeSourceContentLoader } from '../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
-import { HashEmbeddingAdapter } from '../infrastructure/knowledge/hash-embedding.adapter.js'
+import { UnconfiguredEmbeddingAdapter } from '../infrastructure/knowledge/unconfigured-embedding.adapter.js'
 import { adminModelConfigRoute } from './routes/admin-model-config.js'
 
 export interface ServerAdapters {
@@ -263,7 +263,7 @@ function registerKnowledgeRoute(
     ingestionJobRepository: adapters.ingestionJobRepository ?? new InMemoryIngestionJobRepository(),
     sourceContentLoader:
       adapters.knowledgeSourceContentLoader ?? new InMemoryKnowledgeSourceContentLoader(),
-    embeddingAdapter: adapters.embeddingAdapter ?? new HashEmbeddingAdapter(),
+    embeddingAdapter: adapters.embeddingAdapter ?? new UnconfiguredEmbeddingAdapter(),
     eventLogRepository: withDefault(adapters.eventLogRepository, new InMemoryEventLogRepository()),
   })
 }

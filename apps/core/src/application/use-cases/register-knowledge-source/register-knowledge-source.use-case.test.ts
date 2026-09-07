@@ -5,7 +5,10 @@ import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in
 import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryKnowledgeSourceContentLoader } from '../../../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
-import { HashEmbeddingAdapter } from '../../../infrastructure/knowledge/hash-embedding.adapter.js'
+import {
+  DETERMINISTIC_HASH_EMBEDDING_PROFILE,
+  HashEmbeddingAdapter,
+} from '../../../infrastructure/knowledge/test-support/hash-embedding.adapter.js'
 import { KnowledgeIngestionService } from '../../services/knowledge/knowledge-ingestion.service.js'
 import { RegisterKnowledgeSourceUseCase } from './register-knowledge-source.use-case.js'
 
@@ -18,7 +21,7 @@ describe('RegisterKnowledgeSourceUseCase', () => {
       new InMemoryKnowledgeChunkRepository(),
       jobRepo,
       new InMemoryKnowledgeSourceContentLoader(),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       new InMemoryEventLogRepository(),
     )
 
@@ -55,7 +58,7 @@ describe('RegisterKnowledgeSourceUseCase', () => {
       new InMemoryKnowledgeChunkRepository(),
       jobRepo,
       new InMemoryKnowledgeSourceContentLoader(),
-      new HashEmbeddingAdapter(),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       new InMemoryEventLogRepository(),
     )
     const useCase = new RegisterKnowledgeSourceUseCase(sourceRepo, jobRepo, service)

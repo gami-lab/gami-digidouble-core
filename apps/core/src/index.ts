@@ -58,7 +58,7 @@ import {
   PostgresModelConfigRepository,
 } from './infrastructure/db/index.js'
 import { FileUrlKnowledgeSourceContentLoader } from './infrastructure/knowledge/file-url-knowledge-source-content-loader.js'
-import { HashEmbeddingAdapter } from './infrastructure/knowledge/hash-embedding.adapter.js'
+import { UnconfiguredEmbeddingAdapter } from './infrastructure/knowledge/unconfigured-embedding.adapter.js'
 
 type CoreRepositories = ReturnType<typeof buildCoreRepositories>
 
@@ -205,7 +205,7 @@ function buildKnowledgeAdapters(sql: ReturnType<typeof getDbClient>, config: Con
     knowledgeSourceContentLoader: new FileUrlKnowledgeSourceContentLoader({
       allowedRoots: config.knowledgeSourceAllowedRoots,
     }),
-    embeddingAdapter: new HashEmbeddingAdapter(),
+    embeddingAdapter: new UnconfiguredEmbeddingAdapter(),
   }
 }
 
