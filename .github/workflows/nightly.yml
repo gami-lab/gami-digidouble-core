@@ -46,7 +46,24 @@ jobs:
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL }}
-        run: pnpm test:integration-e2e
+        run: |
+          set -o pipefail
+          pnpm test:integration-e2e 2>&1 | tee real-provider-smoke.log
+
+      - name: Summarize provider smoke diagnostics
+        if: always()
+        run: |
+          {
+            echo '## Real-provider smoke diagnostics'
+            if grep -q '\[provider-smoke\]' real-provider-smoke.log 2>/dev/null; then
+              echo 'Provider-dependent tests were skipped:'
+              echo '```text'
+              grep '\[provider-smoke\]' real-provider-smoke.log
+              echo '```'
+            else
+              echo 'No provider availability skips were reported.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # TODO(TEST_STRATEGY): Add mutation and conversation regression suites once scripts exist.
       # TODO(TEST_STRATEGY): Add performance smoke/soak jobs once baseline thresholds are implemented.
@@ -101,7 +118,24 @@ jobs:
           LLM_PROVIDER: openai
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: pnpm test:stack-e2e
+        run: |
+          set -o pipefail
+          pnpm test:stack-e2e 2>&1 | tee stack-e2e.log
+
+      - name: Summarize stack provider diagnostics
+        if: always()
+        run: |
+          {
+            echo '## Stack E2E provider diagnostics'
+            if grep -q '\[provider-smoke\]' stack-e2e.log 2>/dev/null; then
+              echo 'Provider-dependent tests were skipped:'
+              echo '```text'
+              grep '\[provider-smoke\]' stack-e2e.log
+              echo '```'
+            else
+              echo 'No provider availability skips were reported.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Collect container logs on failure
         if: failure()

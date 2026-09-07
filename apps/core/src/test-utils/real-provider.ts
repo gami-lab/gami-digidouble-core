@@ -11,8 +11,11 @@ export function skipIfTransientProviderError(
   provider: string,
   error: unknown,
 ): never {
-  if (error instanceof LlmError && isTransientProviderFailure(error.statusCode, error.message)) {
-    context.skip(formatSkipReason(provider, error.statusCode))
+  if (error instanceof LlmError) {
+    const category = classifyTransientProviderFailure(error.statusCode, error.message)
+    if (category !== undefined) {
+      skipProviderSmokeTest(context, provider, category, error.statusCode)
+    }
   }
 
   throw error
@@ -24,8 +27,11 @@ export function skipIfTransientProviderHttpError(
   statusCode: number,
   message: string | undefined,
 ): void {
-  if (statusCode === 502 && isTransientProviderFailure(undefined, message ?? '')) {
-    context.skip(formatSkipReason(provider))
+  if (statusCode === 502) {
+    const category = classifyTransientProviderFailure(undefined, message ?? '')
+    if (category !== undefined) {
+      skipProviderSmokeTest(context, provider, category, statusCode)
+    }
   }
 }
 
@@ -35,20 +41,46 @@ export function skipIfTransientProviderReason(
   reason: string | undefined,
 ): void {
   if (reason === 'provider_unavailable') {
-    context.skip(formatSkipReason(provider))
+    skipProviderSmokeTest(context, provider, 'provider_unavailable')
   }
 }
 
-function isTransientProviderFailure(statusCode: number | undefined, message: string): boolean {
-  if (statusCode === 429 || (statusCode !== undefined && statusCode >= 500)) return true
-
-  return /(?:\b429\b|\b5\d{2}\b|rate[ _-]?limit|rate_limited|no credits|temporarily unavailable|service unavailable|timeout|network|connection|fetch failed|econnreset|etimedout)/i.test(
-    message,
-  )
+function skipProviderSmokeTest(
+  context: TestContext,
+  provider: string,
+  category: 'quota_or_rate_limit' | 'provider_unavailable',
+  statusCode?: number,
+): void {
+  const reason = formatSkipReason(provider, category, statusCode)
+  console.warn(`[provider-smoke] ${reason}`)
+  context.skip(reason)
 }
 
-function formatSkipReason(provider: string, statusCode?: number): string {
-  const status =
-    statusCode === undefined ? 'temporarily unavailable' : `returned ${String(statusCode)}`
-  return `${provider} live API ${status}; skipping provider smoke test`
+function classifyTransientProviderFailure(
+  statusCode: number | undefined,
+  message: string,
+): 'quota_or_rate_limit' | 'provider_unavailable' | undefined {
+  if (statusCode === 429 || /(?:\b429\b|rate[ _-]?limit|rate_limited|no credits)/i.test(message)) {
+    return 'quota_or_rate_limit'
+  }
+
+  if (
+    (statusCode !== undefined && statusCode >= 500) ||
+    /(?:\b5\d{2}\b|temporarily unavailable|service unavailable|timeout|network|connection|fetch failed|econnreset|etimedout)/i.test(
+      message,
+    )
+  ) {
+    return 'provider_unavailable'
+  }
+
+  return undefined
+}
+
+function formatSkipReason(
+  provider: string,
+  category: 'quota_or_rate_limit' | 'provider_unavailable',
+  statusCode?: number,
+): string {
+  const status = statusCode === undefined ? '' : ` status=${String(statusCode)}`
+  return `SKIPPED provider=${provider} category=${category}${status}; live provider smoke test`
 }
