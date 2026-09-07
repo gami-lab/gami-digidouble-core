@@ -63,6 +63,13 @@ export type StagedKnowledgeChunk = Readonly<{
   visibleToAvatarIds?: string[]
 }>
 
+export type ActiveSourceChunkReplacement = Readonly<{
+  sourceId: string
+  embeddingProfileId: string
+  corpusGenerationId: string
+  chunks: readonly StagedKnowledgeChunk[]
+}>
+
 export type CorpusValidation = Readonly<{
   valid: boolean
   corpusGenerationId: string
@@ -125,6 +132,7 @@ export interface IKnowledgeCorpusRepository {
     sourceId: string,
     chunks: readonly StagedKnowledgeChunk[],
   ): Promise<number>
+  replaceActiveSourceChunks(replacement: ActiveSourceChunkReplacement): Promise<number>
   validateCorpusGeneration(reindexOperationId: string): Promise<CorpusValidation>
   promoteCorpusGeneration(reindexOperationId: string): Promise<ActiveCorpus>
   getActiveCorpus(): Promise<ActiveCorpus | null>

@@ -94,7 +94,7 @@ The platform is now a working headless conversational runtime with:
 - Context Engine assembles bounded Avatar and GM projections with deterministic precedence and trace metadata.
 - Avatar prompt assembly consumes structured runtime sections, including prepared avatar traits when available.
 
-#### EPIC 5.1c contract foundation (in progress)
+#### EPIC 5.1c embedding and corpus foundation (in progress)
 
 The application embedding port now owns `EmbeddingProfile`, ordered batch request/result metadata,
 provider-neutral usage, and finite typed failures. `KnowledgeChunk` stores a readonly vector value,
@@ -108,6 +108,11 @@ The OpenAI adapter is now wired into production composition. The default profile
 slice now stores immutable profiles and corpus generations, tracks reindex operation/source
 progress, invalidates legacy unprofiled vectors, isolates staged chunks, validates completeness,
 and atomically promotes one active generation/profile through a database-owned singleton pointer.
+Normal source ingestion now snapshots the active profile/generation, requires one compatible finite
+vector per chunk, and publishes the replacement transactionally with source readiness. Stale
+profile/generation work is rejected without replacing the previous active source. The application
+also exposes `KnowledgeQueryEmbeddingService` as the single profile-tagged query-vector boundary
+for EPIC 5.1d; nearest-neighbor retrieval is not implemented yet.
 The deployed schema remains fixed at `VECTOR(16)` with `vector_cosine_ops`; configuration rejects
 another dimension until its migration and full staged reindex exist. Full reindex orchestration and
 vector retrieval remain open.

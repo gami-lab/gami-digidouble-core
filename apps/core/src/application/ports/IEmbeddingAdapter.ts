@@ -71,6 +71,13 @@ export type EmbeddingFailure =
       actualDimensions: number
       inputIndex?: number
     }>
+  | Readonly<{
+      code: 'profile_mismatch'
+      message: string
+      retryable: true
+      expectedProfile: EmbeddingProfile
+      actualProfile: EmbeddingProfile
+    }>
 
 /** Typed application failure for an embedding batch. */
 export class EmbeddingAdapterError extends Error {

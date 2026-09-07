@@ -239,7 +239,10 @@ provider/model/dimension profile identity, deterministic batching and ordering, 
 validation, typed failures, safe observability, and an explicitly injected deterministic test
 fake. The persistence foundation is now shipped: profiles, immutable generations, operation/source
 progress, legacy-vector invalidation, staged source replacement, completeness validation, and
-atomic active-corpus promotion are implemented. Full reindex orchestration remains open.
+atomic active-corpus promotion are implemented. Normal ingestion now snapshots the active profile,
+publishes source replacement transactionally, rejects stale work, and preserves prior active
+vectors on failure. Query embedding has a profile-tagged application boundary for EPIC 5.1d.
+Full reindex orchestration and nearest-neighbor retrieval remain open.
 
 ### `5.1d Vector Retrieval Runtime`
 

@@ -151,4 +151,70 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
       { content: 'active' },
     ])
   })
+
+  it('publishes an active source replacement transactionally and rejects stale snapshots', async () => {
+    const [firstSource] = await seedSources()
+    const profile = await corpusRepository.createEmbeddingProfile({
+      provider: 'test',
+      model: 'test-embedding',
+      dimensions: 16,
+    })
+    const operation = await corpusRepository.createReindexOperation({
+      embeddingProfileId: profile.embeddingProfileId,
+      sourceIds: [firstSource],
+    })
+    await corpusRepository.replaceStagedSourceChunks(operation.reindexOperationId, firstSource, [
+      {
+        sourceId: firstSource,
+        content: 'active',
+        chunkIndex: 0,
+        embedding: vector16(1, 0),
+        embeddingProfileId: operation.embeddingProfileId,
+        corpusGenerationId: operation.corpusGenerationId,
+      },
+    ])
+    await corpusRepository.promoteCorpusGeneration(operation.reindexOperationId)
+
+    await expect(
+      corpusRepository.replaceActiveSourceChunks({
+        sourceId: firstSource,
+        embeddingProfileId: operation.embeddingProfileId,
+        corpusGenerationId: operation.corpusGenerationId,
+        chunks: [
+          {
+            sourceId: firstSource,
+            content: 'replacement',
+            chunkIndex: 0,
+            embedding: vector16(0, 1),
+            embeddingProfileId: operation.embeddingProfileId,
+            corpusGenerationId: operation.corpusGenerationId,
+          },
+        ],
+      }),
+    ).resolves.toBe(1)
+    await expect(chunkRepository.listBySourceId(firstSource)).resolves.toMatchObject([
+      { content: 'replacement' },
+    ])
+
+    await expect(
+      corpusRepository.replaceActiveSourceChunks({
+        sourceId: firstSource,
+        embeddingProfileId: operation.embeddingProfileId,
+        corpusGenerationId: 'corpus_generation_00000000-0000-0000-0000-000000000000',
+        chunks: [
+          {
+            sourceId: firstSource,
+            content: 'stale replacement',
+            chunkIndex: 0,
+            embedding: vector16(0, 1),
+            embeddingProfileId: operation.embeddingProfileId,
+            corpusGenerationId: 'corpus_generation_00000000-0000-0000-0000-000000000000',
+          },
+        ],
+      }),
+    ).rejects.toThrow('changed')
+    await expect(chunkRepository.listBySourceId(firstSource)).resolves.toMatchObject([
+      { content: 'replacement' },
+    ])
+  })
 })

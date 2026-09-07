@@ -4,6 +4,7 @@ import type {
 } from '../../application/ports/IKnowledgeChunkRepository.js'
 import type { KnowledgeChunk } from '../../domain/knowledge/knowledge.types.js'
 import type { ActiveCorpus } from '../../application/ports/IKnowledgeCorpusRepository.js'
+import type { StagedKnowledgeChunk } from '../../application/ports/IKnowledgeCorpusRepository.js'
 
 function normalizeVisibleToAvatarIds(
   visibleToAvatarIds: string[] | undefined,
@@ -80,6 +81,32 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
     )
     for (const chunk of toDelete) this.chunks.delete(chunk.chunkId)
     return toDelete.length
+  }
+
+  replaceChunksForGeneration(
+    sourceId: string,
+    corpusGenerationId: string,
+    chunks: readonly StagedKnowledgeChunk[],
+  ): number {
+    this.deleteBySourceIdAndGeneration(sourceId, corpusGenerationId)
+    for (const chunk of chunks) {
+      const stored: KnowledgeChunk = {
+        chunkId: `knowledge_chunk_${crypto.randomUUID()}`,
+        sourceId: chunk.sourceId,
+        content: chunk.content,
+        chunkIndex: chunk.chunkIndex,
+        embedding: [...chunk.embedding],
+        embeddingProfileId: chunk.embeddingProfileId,
+        corpusGenerationId: chunk.corpusGenerationId,
+        ...(chunk.metadata !== undefined ? { metadata: { ...chunk.metadata } } : {}),
+        ...(chunk.visibleToAvatarIds !== undefined
+          ? { visibleToAvatarIds: [...chunk.visibleToAvatarIds] }
+          : {}),
+        createdAt: new Date().toISOString(),
+      }
+      this.chunks.set(stored.chunkId, stored)
+    }
+    return chunks.length
   }
 
   setActiveCorpus(activeCorpus: ActiveCorpus | null): void {

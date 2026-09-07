@@ -5,6 +5,7 @@ import type { EmbeddingProfile } from '../../../application/ports/IEmbeddingAdap
 import { MAX_REINDEX_FAILURE_DETAILS_LENGTH } from '../../../application/ports/IKnowledgeCorpusRepository.js'
 import type {
   ActiveCorpus,
+  ActiveSourceChunkReplacement,
   CorpusValidation,
   CreateReindexOperationParams,
   IKnowledgeCorpusRepository,
@@ -320,6 +321,84 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
         WHERE id = ${operationUuid}
       `
       return chunks.length
+    })
+  }
+
+  async replaceActiveSourceChunks(replacement: ActiveSourceChunkReplacement): Promise<number> {
+    const sourceUuid = requireUuid('knowledge_source_', replacement.sourceId)
+    const profileUuid = requireUuid('embedding_profile_', replacement.embeddingProfileId)
+    const generationUuid = requireUuid('corpus_generation_', replacement.corpusGenerationId)
+    if (replacement.chunks.length === 0) {
+      throw new Error('At least one vectorized chunk is required.')
+    }
+    for (const chunk of replacement.chunks) {
+      if (
+        chunk.sourceId !== replacement.sourceId ||
+        chunk.embeddingProfileId !== replacement.embeddingProfileId ||
+        chunk.corpusGenerationId !== replacement.corpusGenerationId ||
+        chunk.embedding.some((value) => !Number.isFinite(value))
+      ) {
+        throw new Error('Active source chunk identity or vector is invalid.')
+      }
+    }
+
+    // eslint-disable-next-line complexity
+    return this.sql.begin(async (tx) => {
+      const [active] = await tx<
+        {
+          generation_id: string | null
+          profile_id: string | null
+          dimensions: number | null
+        }[]
+      >`
+        SELECT state.active_generation_id AS generation_id,
+          state.active_profile_id AS profile_id,
+          profile.dimensions
+        FROM knowledge_corpus_state state
+        JOIN embedding_profiles profile ON profile.id = state.active_profile_id
+        WHERE state.id = 1
+        FOR UPDATE
+      `
+      if (
+        active === undefined ||
+        active.generation_id === null ||
+        active.profile_id === null ||
+        active.dimensions === null
+      ) {
+        throw new Error('No active knowledge corpus is configured.')
+      }
+      if (active.generation_id !== generationUuid || active.profile_id !== profileUuid) {
+        throw new Error('Active embedding profile or corpus generation changed.')
+      }
+      if (replacement.chunks.some((chunk) => chunk.embedding.length !== active.dimensions)) {
+        throw new Error('Active source chunk vector dimension does not match the active profile.')
+      }
+
+      await tx`
+        DELETE FROM knowledge_chunks
+        WHERE source_id = ${sourceUuid}
+          AND corpus_generation_id = ${generationUuid}
+          AND embedding_profile_id = ${profileUuid}
+      `
+      for (const chunk of replacement.chunks) {
+        await tx`
+          INSERT INTO knowledge_chunks (
+            source_id, content, chunk_index, embedding, embedding_profile_id,
+            corpus_generation_id, metadata, visible_to_avatar_ids
+          ) VALUES (
+            ${sourceUuid}, ${chunk.content}, ${chunk.chunkIndex},
+            ${JSON.stringify(chunk.embedding)}::vector, ${profileUuid},
+            ${generationUuid}, ${tx.json((chunk.metadata ?? {}) as JSONValue)},
+            ${chunk.visibleToAvatarIds ?? null}
+          )
+        `
+      }
+      await tx`
+        UPDATE knowledge_sources
+        SET status = 'ready', updated_at = NOW()
+        WHERE id = ${sourceUuid}
+      `
+      return replacement.chunks.length
     })
   }
 

@@ -122,6 +122,10 @@ Must cover:
   fake output, and finite typed failure categories
 - OpenAI adapter: configured batching and request shape, index-based ordering, response validation,
   provider failure translation, and bounded profile/usage/batch observability with a fake client
+- profile-aware ingestion: immutable active snapshot, exact vector count/dimension/profile checks,
+  stale publication rejection, rollback preservation, source readiness, and retry diagnostics
+- query embedding boundary: active profile resolution, profile-tagged copy-safe output, and typed
+  malformed/profile/dimension failures
 - typed retrieval by `memory` / `world` / `media`
 - avatar visibility filtering
 - GM unrestricted retrieval behavior
@@ -255,7 +259,8 @@ Must cover:
 
 Must cover staged-generation invisibility, source replacement, profile/dimension validation,
 completeness checks, active-generation switching, PostgreSQL constraints, legacy-vector
-invalidation, failed promotion, and atomic active-pointer visibility.
+invalidation, failed promotion, active-source transactional replacement, stale publication
+rejection, and atomic active-pointer visibility.
 
 ## Critical Release Flows
 

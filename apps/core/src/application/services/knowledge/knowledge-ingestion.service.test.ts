@@ -3,12 +3,13 @@ import { InMemoryIngestionJobRepository } from '../../../infrastructure/db/in-me
 import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
+import { InMemoryKnowledgeCorpusRepository } from '../../../infrastructure/db/in-memory-knowledge-corpus.repository.js'
 import {
   DETERMINISTIC_HASH_EMBEDDING_PROFILE,
   HashEmbeddingAdapter,
 } from '../../../infrastructure/knowledge/test-support/hash-embedding.adapter.js'
-import type { IKnowledgeChunkRepository } from '../../ports/IKnowledgeChunkRepository.js'
 import type { IKnowledgeSourceContentLoader } from '../../ports/IKnowledgeSourceContentLoader.js'
+import type { EmbeddingBatchResult, IEmbeddingAdapter } from '../../ports/IEmbeddingAdapter.js'
 import { KnowledgeIngestionService } from './knowledge-ingestion.service.js'
 
 class StubLoader implements IKnowledgeSourceContentLoader {
@@ -25,53 +26,26 @@ class StubLoader implements IKnowledgeSourceContentLoader {
   }
 }
 
-class FlakyChunkRepository implements IKnowledgeChunkRepository {
-  private readonly inner: InMemoryKnowledgeChunkRepository
-  private createCalls = 0
-
-  constructor(initialData: ConstructorParameters<typeof InMemoryKnowledgeChunkRepository>[0] = []) {
-    this.inner = new InMemoryKnowledgeChunkRepository(initialData)
-  }
-
-  async create(
-    params: Parameters<InMemoryKnowledgeChunkRepository['create']>[0],
-  ): Promise<Awaited<ReturnType<InMemoryKnowledgeChunkRepository['create']>>> {
-    this.createCalls += 1
-    if (this.createCalls === 2) {
-      throw new Error('chunk write failed')
-    }
-
-    return this.inner.create(params)
-  }
-
-  listBySourceId(
-    sourceId: string,
-  ): Promise<Awaited<ReturnType<InMemoryKnowledgeChunkRepository['listBySourceId']>>> {
-    return this.inner.listBySourceId(sourceId)
-  }
-
-  listBySourceIds(
-    sourceIds: string[],
-  ): Promise<Awaited<ReturnType<InMemoryKnowledgeChunkRepository['listBySourceIds']>>> {
-    return this.inner.listBySourceIds(sourceIds)
-  }
-
-  deleteBySourceId(sourceId: string): Promise<number> {
-    return this.inner.deleteBySourceId(sourceId)
-  }
-}
+const TEST_ACTIVE_CORPUS = {
+  corpusGenerationId: 'corpus_generation_test',
+  embeddingProfileId: 'embedding_profile_test',
+  profile: DETERMINISTIC_HASH_EMBEDDING_PROFILE,
+} as const
 
 function createDefaultIngestionDeps(): {
   sourceRepository: InMemoryKnowledgeSourceRepository
   chunkRepository: InMemoryKnowledgeChunkRepository
   jobRepository: InMemoryIngestionJobRepository
   eventLogRepository: InMemoryEventLogRepository
+  corpusRepository: InMemoryKnowledgeCorpusRepository
 } {
+  const chunkRepository = new InMemoryKnowledgeChunkRepository()
   return {
     sourceRepository: new InMemoryKnowledgeSourceRepository(),
-    chunkRepository: new InMemoryKnowledgeChunkRepository(),
+    chunkRepository,
     jobRepository: new InMemoryIngestionJobRepository(),
     eventLogRepository: new InMemoryEventLogRepository(),
+    corpusRepository: new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
   }
 }
 
@@ -98,6 +72,7 @@ describe('KnowledgeIngestionService — completion flow', () => {
       new StubLoader('A\n\nB\n\nC'),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
     )
 
     const result = await service.execute({
@@ -152,6 +127,7 @@ describe('KnowledgeIngestionService — completion flow', () => {
       new InlineTextLoader(),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
     )
 
     await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
@@ -184,6 +160,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       new StubLoader(`${'A'.repeat(700)}\n\n${'B'.repeat(700)}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
     )
 
     await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
@@ -214,6 +191,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       new StubLoader(`${'A'.repeat(300)}\n\n${'B'.repeat(300)}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
     )
 
     await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
@@ -248,6 +226,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       new StubLoader(`${firstParagraph}\n\n${secondParagraph}\n\n${thirdParagraph}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
     )
 
     await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
@@ -284,6 +263,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       new StubLoader(`${oversizedParagraph}\n\n${nextParagraph}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
     )
 
     await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
@@ -322,6 +302,7 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
       ),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
     )
 
     await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
@@ -354,6 +335,7 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
       new StubLoader(`## Section\n\n${firstParagraph}\n\n${secondParagraph}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
     )
 
     await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
@@ -365,6 +347,7 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('KnowledgeIngestionService — failure and retry behavior', () => {
   it('marks job as failed and supports deterministic retry idempotency', async () => {
     const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
@@ -386,6 +369,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       new StubLoader('', true),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
     )
 
     const failed = await failingService.execute({
@@ -404,6 +388,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       new StubLoader('First\n\nSecond'),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
     )
 
     const firstRun = await successService.execute({
@@ -422,7 +407,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
     expect(chunks).toHaveLength(1)
   })
 
-  it('restores previous chunks if replacement ingestion fails mid-write', async () => {
+  it('preserves the previous active corpus when transactional publication fails', async () => {
     const sourceRepository = new InMemoryKnowledgeSourceRepository()
     const source = await sourceRepository.create({
       scenarioId: 'scenario_1',
@@ -432,17 +417,25 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       uriOrPath: '/tmp/guide.txt',
     })
 
-    const chunkRepository = new FlakyChunkRepository([
+    const chunkRepository = new InMemoryKnowledgeChunkRepository([
       {
         chunkId: 'knowledge_chunk_old',
         sourceId: source.sourceId,
         content: 'stable old chunk',
         chunkIndex: 0,
+        embedding: Array.from({ length: 16 }, () => 0),
+        embeddingProfileId: TEST_ACTIVE_CORPUS.embeddingProfileId,
+        corpusGenerationId: TEST_ACTIVE_CORPUS.corpusGenerationId,
         createdAt: '2026-05-11T10:00:00.000Z',
       },
     ])
+    const corpusRepository = new InMemoryKnowledgeCorpusRepository(
+      chunkRepository,
+      TEST_ACTIVE_CORPUS,
+    )
     const jobRepository = new InMemoryIngestionJobRepository()
     const eventLogRepository = new InMemoryEventLogRepository()
+    await sourceRepository.updateStatus(source.sourceId, 'ready')
     const job = await jobRepository.create({
       sourceId: source.sourceId,
       status: 'queued',
@@ -458,6 +451,12 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       new StubLoader(`${longParagraphA}\n\n${longParagraphB}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
       eventLogRepository,
+      {
+        getActiveCorpus: () => corpusRepository.getActiveCorpus(),
+        listActiveChunksBySourceIds: (sourceIds) =>
+          corpusRepository.listActiveChunksBySourceIds(sourceIds),
+        replaceActiveSourceChunks: () => Promise.reject(new Error('transaction rolled back')),
+      },
     )
 
     const result = await service.execute({
@@ -467,10 +466,89 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
 
     expect(result.status).toBe('failed')
     expect((await jobRepository.findById(job.ingestionJobId))?.status).toBe('failed')
-    expect((await sourceRepository.findById(source.sourceId))?.status).toBe('error')
+    expect((await sourceRepository.findById(source.sourceId))?.status).toBe('ready')
 
     const chunksAfterFailure = await chunkRepository.listBySourceId(source.sourceId)
     expect(chunksAfterFailure).toHaveLength(1)
     expect(chunksAfterFailure[0]?.content).toBe('stable old chunk')
+  })
+
+  it('fails ingestion when the provider returns the wrong vector dimension', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Dimension check',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/dimension.txt',
+    })
+    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const adapter: IEmbeddingAdapter = {
+      embed: (): Promise<EmbeddingBatchResult> =>
+        Promise.resolve({
+          vectors: [Array.from({ length: 15 }, () => 0)],
+          metadata: {
+            profile: DETERMINISTIC_HASH_EMBEDDING_PROFILE,
+            inputCount: 1,
+            batchCount: 1,
+          },
+        }),
+    }
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new StubLoader('content'),
+      adapter,
+      eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
+    )
+
+    const result = await service.execute({
+      sourceId: source.sourceId,
+      ingestionJobId: job.ingestionJobId,
+    })
+
+    expect(result.status).toBe('failed')
+    if (result.status === 'failed') expect(result.errorMessage).toContain('dimensions')
+    expect(await chunkRepository.listBySourceId(source.sourceId)).toHaveLength(0)
+  })
+
+  it('rejects stale active-corpus work before publication', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Stale profile check',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/stale.txt',
+    })
+    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const activeCorpus = new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS)
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new StubLoader('content'),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
+      eventLogRepository,
+      {
+        getActiveCorpus: () => activeCorpus.getActiveCorpus(),
+        listActiveChunksBySourceIds: (sourceIds) =>
+          activeCorpus.listActiveChunksBySourceIds(sourceIds),
+        replaceActiveSourceChunks: () =>
+          Promise.reject(new Error('Active embedding profile or corpus generation changed.')),
+      },
+    )
+
+    const result = await service.execute({
+      sourceId: source.sourceId,
+      ingestionJobId: job.ingestionJobId,
+    })
+
+    expect(result.status).toBe('failed')
+    expect((await jobRepository.findById(job.ingestionJobId))?.status).toBe('failed')
   })
 })

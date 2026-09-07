@@ -21,6 +21,7 @@ import type {
 } from '@gami/shared'
 import type { IIngestionJobRepository } from '../../application/ports/IIngestionJobRepository.js'
 import type { IKnowledgeChunkRepository } from '../../application/ports/IKnowledgeChunkRepository.js'
+import type { IKnowledgeCorpusRepository } from '../../application/ports/IKnowledgeCorpusRepository.js'
 import type { IKnowledgeSourceRepository } from '../../application/ports/IKnowledgeSourceRepository.js'
 import type { IEmbeddingAdapter } from '../../application/ports/IEmbeddingAdapter.js'
 import type { IKnowledgeSourceContentLoader } from '../../application/ports/IKnowledgeSourceContentLoader.js'
@@ -49,6 +50,7 @@ export type KnowledgeRouteOptions = {
   config: Config
   sourceRepository: IKnowledgeSourceRepository
   chunkRepository: IKnowledgeChunkRepository
+  knowledgeCorpusRepository: IKnowledgeCorpusRepository
   ingestionJobRepository: IIngestionJobRepository
   sourceContentLoader: IKnowledgeSourceContentLoader
   embeddingAdapter: IEmbeddingAdapter
@@ -211,6 +213,7 @@ function buildUseCases(options: KnowledgeRouteOptions): UseCases {
     options.sourceContentLoader,
     options.embeddingAdapter,
     options.eventLogRepository,
+    options.knowledgeCorpusRepository,
   )
 
   return {

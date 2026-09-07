@@ -20,6 +20,7 @@ import type { IConversationWorkingMemoryRepository } from '../application/ports/
 import type { IConversationMemoryRepository } from '../application/ports/IConversationMemoryRepository.js'
 import type { IKnowledgeSourceRepository } from '../application/ports/IKnowledgeSourceRepository.js'
 import type { IKnowledgeChunkRepository } from '../application/ports/IKnowledgeChunkRepository.js'
+import type { IKnowledgeCorpusRepository } from '../application/ports/IKnowledgeCorpusRepository.js'
 import type { IIngestionJobRepository } from '../application/ports/IIngestionJobRepository.js'
 import type { IKnowledgeSourceContentLoader } from '../application/ports/IKnowledgeSourceContentLoader.js'
 import type { IEmbeddingAdapter } from '../application/ports/IEmbeddingAdapter.js'
@@ -59,6 +60,7 @@ import { usersRoute } from './routes/users.js'
 import { knowledgeRoute } from './routes/knowledge.js'
 import { InMemoryKnowledgeSourceRepository } from '../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { InMemoryKnowledgeChunkRepository } from '../infrastructure/db/in-memory-knowledge-chunk.repository.js'
+import { InMemoryKnowledgeCorpusRepository } from '../infrastructure/db/in-memory-knowledge-corpus.repository.js'
 import { InMemoryIngestionJobRepository } from '../infrastructure/db/in-memory-ingestion-job.repository.js'
 import { InMemoryModelConfigRepository } from '../infrastructure/db/in-memory-model-config.repository.js'
 import { InMemoryKnowledgeSourceContentLoader } from '../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
@@ -86,6 +88,7 @@ export interface ServerAdapters {
   probes?: IDependencyProbe[]
   knowledgeSourceRepository?: IKnowledgeSourceRepository
   knowledgeChunkRepository?: IKnowledgeChunkRepository
+  knowledgeCorpusRepository?: IKnowledgeCorpusRepository
   ingestionJobRepository?: IIngestionJobRepository
   knowledgeSourceContentLoader?: IKnowledgeSourceContentLoader
   embeddingAdapter?: IEmbeddingAdapter
@@ -256,10 +259,20 @@ function registerKnowledgeRoute(
   config: Config,
   adapters: ServerAdapters,
 ): void {
+  const chunkRepository =
+    adapters.knowledgeChunkRepository ?? new InMemoryKnowledgeChunkRepository()
+  const corpusRepository =
+    adapters.knowledgeCorpusRepository ??
+    new InMemoryKnowledgeCorpusRepository(
+      chunkRepository instanceof InMemoryKnowledgeChunkRepository
+        ? chunkRepository
+        : new InMemoryKnowledgeChunkRepository(),
+    )
   app.register(knowledgeRoute, {
     config,
     sourceRepository: adapters.knowledgeSourceRepository ?? new InMemoryKnowledgeSourceRepository(),
-    chunkRepository: adapters.knowledgeChunkRepository ?? new InMemoryKnowledgeChunkRepository(),
+    chunkRepository,
+    knowledgeCorpusRepository: corpusRepository,
     ingestionJobRepository: adapters.ingestionJobRepository ?? new InMemoryIngestionJobRepository(),
     sourceContentLoader:
       adapters.knowledgeSourceContentLoader ?? new InMemoryKnowledgeSourceContentLoader(),

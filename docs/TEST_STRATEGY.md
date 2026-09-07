@@ -93,6 +93,11 @@ Required tests:
 - **OpenAI embedding adapter:** use a fake SDK client to verify safe batching, index reassembly,
   finite/count/model/dimension validation, retry-aware provider failures, and redacted bounded
   observability; keep live embedding checks opt-in behind `OPENAI_API_KEY`
+- **Profile-aware ingestion:** verify one active-corpus snapshot per run, exact vector counts,
+  profile/dimension validation, stale-generation rejection, transactional rollback preservation,
+  source readiness, and retry-safe diagnostics
+- **Query embedding boundary:** verify active-profile resolution, profile-tagged vectors, copy-safe
+  output, and rejection of profile/dimension/malformed results before retrieval is added
 - **Typed retrieval:** verify domain separation (`memory` / `world` / `media`), deterministic ranking under fixed fixtures, and trace metadata (`sourceId`, `chunkId`, `score`, `reason`)
 - **Avatar-scoped visibility:** verify deterministic exclusion of non-visible knowledge per active avatar, avatar-switch scope updates, and bounded visibility explainability counters in retrieval/context traces
 - **Visibility asymmetry:** verify avatar filtering remains enforced while GM retrieval diagnostics prove unrestricted omniscient scope (`gmUnrestricted`, `gmRetrievalCounts`) without content leakage
@@ -280,5 +285,6 @@ Do not only patch behavior. If the bug escaped because of a test gap, add the te
 Knowledge corpus persistence tests cover deterministic in-memory parity and PostgreSQL lifecycle
 behavior. The PostgreSQL suite verifies fixed-dimension/profile constraints, legacy vector
 invalidation assumptions, staging isolation, idempotent source replacement, failed promotion
-preservation, and the atomic active-pointer switch. Integration tests remain skipped when
+preservation, active-source transactional replacement, stale publication rejection, and the atomic
+active-pointer switch. Integration tests remain skipped when
 `DATABASE_URL` is unavailable.

@@ -2,6 +2,7 @@ import type { EmbeddingProfile } from '../../application/ports/IEmbeddingAdapter
 import { MAX_REINDEX_FAILURE_DETAILS_LENGTH } from '../../application/ports/IKnowledgeCorpusRepository.js'
 import type {
   ActiveCorpus,
+  ActiveSourceChunkReplacement,
   CorpusGeneration,
   CorpusValidation,
   CreateReindexOperationParams,
@@ -15,6 +16,15 @@ import type {
 } from '../../application/ports/IKnowledgeCorpusRepository.js'
 import type { KnowledgeChunk } from '../../domain/knowledge/knowledge.types.js'
 import { InMemoryKnowledgeChunkRepository } from './in-memory-knowledge-chunk.repository.js'
+
+type InMemoryCorpusChunkRepository = Pick<
+  InMemoryKnowledgeChunkRepository,
+  | 'create'
+  | 'deleteBySourceIdAndGeneration'
+  | 'listAllBySourceIds'
+  | 'replaceChunksForGeneration'
+  | 'setActiveCorpus'
+>
 
 type MutableOperation = {
   reindexOperationId: string
@@ -38,7 +48,13 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
   private readonly progress = new Map<string, ReindexSourceProgress>()
   private activeCorpus: ActiveCorpus | null = null
 
-  constructor(private readonly chunkRepository: InMemoryKnowledgeChunkRepository) {}
+  constructor(
+    private readonly chunkRepository: InMemoryCorpusChunkRepository,
+    activeCorpus: ActiveCorpus | null = null,
+  ) {
+    this.activeCorpus = activeCorpus
+    this.chunkRepository.setActiveCorpus(activeCorpus)
+  }
 
   createEmbeddingProfile(profile: EmbeddingProfile): Promise<PersistedEmbeddingProfile> {
     if (!Number.isInteger(profile.dimensions) || profile.dimensions <= 0) {
@@ -187,6 +203,36 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       completedAt: new Date().toISOString(),
     })
     return chunks.length
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await, complexity
+  async replaceActiveSourceChunks(replacement: ActiveSourceChunkReplacement): Promise<number> {
+    const active = this.activeCorpus
+    if (active === null) throw new Error('No active knowledge corpus is configured.')
+    if (
+      replacement.embeddingProfileId !== active.embeddingProfileId ||
+      replacement.corpusGenerationId !== active.corpusGenerationId
+    ) {
+      throw new Error('Active embedding profile or corpus generation changed.')
+    }
+    if (replacement.chunks.length === 0)
+      throw new Error('At least one vectorized chunk is required.')
+    for (const chunk of replacement.chunks) {
+      if (
+        chunk.sourceId !== replacement.sourceId ||
+        chunk.embeddingProfileId !== active.embeddingProfileId ||
+        chunk.corpusGenerationId !== active.corpusGenerationId ||
+        chunk.embedding.length !== active.profile.dimensions ||
+        chunk.embedding.some((value) => !Number.isFinite(value))
+      ) {
+        throw new Error('Active source chunk does not match the active embedding profile.')
+      }
+    }
+    return this.chunkRepository.replaceChunksForGeneration(
+      replacement.sourceId,
+      active.corpusGenerationId,
+      replacement.chunks,
+    )
   }
 
   async validateCorpusGeneration(reindexOperationId: string): Promise<CorpusValidation> {

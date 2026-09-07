@@ -144,4 +144,61 @@ describe('InMemoryKnowledgeCorpusRepository', () => {
       ]),
     ).rejects.toThrow('dimension')
   })
+
+  it('replaces only the active source and rejects stale publication', async () => {
+    const chunks = new InMemoryKnowledgeChunkRepository([
+      {
+        chunkId: 'knowledge_chunk_old',
+        sourceId: 'knowledge_source_1',
+        content: 'old active content',
+        chunkIndex: 0,
+        embedding: [0.1, 0.2],
+        embeddingProfileId: 'embedding_profile_active',
+        corpusGenerationId: 'corpus_generation_active',
+        createdAt: '2026-05-11T10:00:00.000Z',
+      },
+    ])
+    const repository = new InMemoryKnowledgeCorpusRepository(chunks, {
+      corpusGenerationId: 'corpus_generation_active',
+      embeddingProfileId: 'embedding_profile_active',
+      profile,
+    })
+
+    await expect(
+      repository.replaceActiveSourceChunks({
+        sourceId: 'knowledge_source_1',
+        embeddingProfileId: 'embedding_profile_active',
+        corpusGenerationId: 'corpus_generation_active',
+        chunks: [
+          stagedChunk({
+            sourceId: 'knowledge_source_1',
+            profileId: 'embedding_profile_active',
+            generationId: 'corpus_generation_active',
+            content: 'new active content',
+          }),
+        ],
+      }),
+    ).resolves.toBe(1)
+    await expect(chunks.listBySourceId('knowledge_source_1')).resolves.toMatchObject([
+      { content: 'new active content' },
+    ])
+    await expect(
+      repository.replaceActiveSourceChunks({
+        sourceId: 'knowledge_source_1',
+        embeddingProfileId: 'embedding_profile_other',
+        corpusGenerationId: 'corpus_generation_other',
+        chunks: [
+          stagedChunk({
+            sourceId: 'knowledge_source_1',
+            profileId: 'embedding_profile_other',
+            generationId: 'corpus_generation_other',
+            content: 'stale content',
+          }),
+        ],
+      }),
+    ).rejects.toThrow('changed')
+    await expect(chunks.listBySourceId('knowledge_source_1')).resolves.toMatchObject([
+      { content: 'new active content' },
+    ])
+  })
 })

@@ -412,10 +412,18 @@ profile/corpus identity is owned by the Core knowledge persistence contract and 
 Infrastructure; it is not added to shared DTOs unless an operator API later exposes it. Reindex-
 operation types are likewise Application-owned until a deliberate admin API requires shared DTOs.
 
-The existing `KnowledgeIngestionService` is the ingestion embedding boundary. EPIC 5.1d must use
-one application-owned `KnowledgeQueryEmbeddingService` between retrieval callers and
-`IEmbeddingAdapter`; `TypedRetrievalService`, Avatar, Game Master, and admin retrieval must not
-embed text independently.
+`KnowledgeIngestionService` snapshots `{ activeCorpus, profile }` before chunking, validates the
+provider result against that immutable snapshot, and publishes one source through
+`IKnowledgeCorpusRepository.replaceActiveSourceChunks`. PostgreSQL locks the singleton active
+pointer while deleting/inserting the source's chunks and marking the source ready; a stale
+profile/generation rejects the transaction, preserving the previous active source corpus. A
+source with no valid active vectors is not ready for vector retrieval.
+
+`KnowledgeQueryEmbeddingService` is now the application boundary for EPIC 5.1d query vectors. It
+resolves the active corpus once, embeds through `IEmbeddingAdapter`, validates the effective
+profile and dimension, and returns a vector tagged with profile and generation identity. It does
+not perform retrieval. `TypedRetrievalService`, Avatar, Game Master, and admin retrieval must use
+this boundary rather than embedding text independently.
 
 ### Versioned knowledge corpus persistence
 
@@ -432,9 +440,9 @@ alignment invalidates pre-profile vectors by clearing only their embedding ident
 retaining source content and metadata. A dimension change requires a matching schema migration and
 full staged reindex; configuration alone cannot select a mixed vector space.
 
-Profile-aware migration call sites are therefore limited to the ingestion service, embedding
-composition/configuration, chunk persistence, the future query-vectorization service, and future
-reindex orchestration. Existing console/admin clients continue consuming the shared wire DTOs.
+Profile-aware migration call sites are therefore limited to the ingestion service, query-vector
+application boundary, embedding composition/configuration, chunk persistence, and future reindex
+orchestration. Existing console/admin clients continue consuming the shared wire DTOs.
 
 ---
 

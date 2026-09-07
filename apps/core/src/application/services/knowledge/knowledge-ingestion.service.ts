@@ -1,13 +1,25 @@
+/* eslint-disable max-lines */
+
 import crypto from 'node:crypto'
 import { INGESTION_CHUNK_SIZE_DEFAULT } from '@gami/shared'
 import { stripNonDescriptiveMetadata } from '../../../domain/knowledge/knowledge-source-presenter.js'
-import type { IEmbeddingAdapter } from '../../ports/IEmbeddingAdapter.js'
+import {
+  EmbeddingAdapterError,
+  type EmbeddingBatchResult,
+  type EmbeddingProfile,
+  type IEmbeddingAdapter,
+} from '../../ports/IEmbeddingAdapter.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IIngestionJobRepository } from '../../ports/IIngestionJobRepository.js'
 import type { IKnowledgeChunkRepository } from '../../ports/IKnowledgeChunkRepository.js'
+import type {
+  ActiveCorpus,
+  IKnowledgeCorpusRepository,
+  StagedKnowledgeChunk,
+} from '../../ports/IKnowledgeCorpusRepository.js'
 import type { IKnowledgeSourceContentLoader } from '../../ports/IKnowledgeSourceContentLoader.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
-import type { KnowledgeChunk, KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
+import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 
 export type IngestionExecutionInput = {
   sourceId: string
@@ -29,6 +41,22 @@ export type IngestionExecutionResult =
       errorMessage: string
     }
 
+export class KnowledgeIngestionError extends Error {
+  constructor(
+    readonly code:
+      | 'no_active_corpus'
+      | 'vector_count_mismatch'
+      | 'profile_mismatch'
+      | 'dimension_mismatch'
+      | 'malformed_response'
+      | 'stale_profile',
+    message: string,
+    readonly retryable: boolean,
+  ) {
+    super(message)
+    this.name = 'KnowledgeIngestionError'
+  }
+}
 export class KnowledgeIngestionService {
   constructor(
     private readonly sourceRepository: IKnowledgeSourceRepository,
@@ -37,6 +65,10 @@ export class KnowledgeIngestionService {
     private readonly contentLoader: IKnowledgeSourceContentLoader,
     private readonly embeddingAdapter: IEmbeddingAdapter,
     private readonly eventLogRepository: IEventLogRepository,
+    private readonly knowledgeCorpusRepository?: Pick<
+      IKnowledgeCorpusRepository,
+      'getActiveCorpus' | 'listActiveChunksBySourceIds' | 'replaceActiveSourceChunks'
+    >,
   ) {}
 
   async execute(input: IngestionExecutionInput): Promise<IngestionExecutionResult> {
@@ -44,12 +76,13 @@ export class KnowledgeIngestionService {
     if (context === null) {
       return this.notFoundResult(input)
     }
-    const { job, nextAttempts, requestId, source } = context
+    const { activeCorpus, hadActiveSource, job, nextAttempts, requestId, source } = context
     try {
       const chunkCount = await this.persistIngestionChunks(
         source,
         job.ingestionJobId,
         job.chunkSize,
+        activeCorpus,
       )
       return await this.completeJob({
         input,
@@ -58,6 +91,7 @@ export class KnowledgeIngestionService {
         nextAttempts,
         chunkCount,
         jobId: job.ingestionJobId,
+        activeCorpus,
       })
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown ingestion error.'
@@ -68,6 +102,9 @@ export class KnowledgeIngestionService {
         nextAttempts,
         errorMessage,
         jobId: job.ingestionJobId,
+        activeCorpus,
+        hadActiveSource,
+        error,
       })
     }
   }
@@ -86,10 +123,25 @@ export class KnowledgeIngestionService {
     job: { ingestionJobId: string; attempts: number; chunkSize?: number }
     requestId: string
     nextAttempts: number
+    activeCorpus: ActiveCorpus | null
+    hadActiveSource: boolean
   } | null> {
     const source = await this.sourceRepository.findById(input.sourceId)
     const job = await this.jobRepository.findById(input.ingestionJobId)
     if (source === null || job === null || job.sourceId !== source.sourceId) return null
+    if (this.knowledgeCorpusRepository === undefined) {
+      throw new KnowledgeIngestionError(
+        'no_active_corpus',
+        'An active knowledge corpus repository is required for ingestion.',
+        false,
+      )
+    }
+    const activeCorpus = await this.knowledgeCorpusRepository.getActiveCorpus()
+    const activeChunks =
+      activeCorpus === null
+        ? []
+        : await this.knowledgeCorpusRepository.listActiveChunksBySourceIds([source.sourceId])
+    const hadActiveSource = source.status === 'ready' && activeChunks.length > 0
 
     const requestId = crypto.randomUUID()
     const nextAttempts = job.attempts + 1
@@ -109,66 +161,78 @@ export class KnowledgeIngestionService {
         scenarioId: source.scenarioId,
         knowledgeType: source.knowledgeType,
         format: source.format,
+        ...(activeCorpus !== null ? embeddingDiagnostics(activeCorpus) : {}),
       },
     })
 
-    return { source, job, requestId, nextAttempts }
+    return { source, job, requestId, nextAttempts, activeCorpus, hadActiveSource }
   }
 
   private async persistIngestionChunks(
     source: KnowledgeSource,
     jobId: string,
     chunkSize: number | undefined,
+    activeCorpus: ActiveCorpus | null,
   ): Promise<number> {
+    if (activeCorpus === null) {
+      throw new KnowledgeIngestionError(
+        'no_active_corpus',
+        'No active embedding profile is available for ingestion.',
+        true,
+      )
+    }
+    const corpusRepository = this.knowledgeCorpusRepository
+    if (corpusRepository === undefined) {
+      throw new KnowledgeIngestionError(
+        'no_active_corpus',
+        'An active knowledge corpus repository is required for ingestion.',
+        false,
+      )
+    }
     const loaded = await this.contentLoader.load(source)
     const chunkSeeds = toChunkSeeds(source, loaded.content, loaded.metadata, chunkSize)
-    const embeddingResult =
-      chunkSeeds.length === 0
-        ? null
-        : await this.embeddingAdapter.embed({
-            inputs: chunkSeeds.map((chunk) => chunk.content),
-          })
-    const embeddings = embeddingResult?.vectors ?? []
-
-    const previousChunks = await this.chunkRepository.listBySourceId(source.sourceId)
-    await this.chunkRepository.deleteBySourceId(source.sourceId)
-    try {
-      for (const [index, chunk] of chunkSeeds.entries()) {
-        await this.chunkRepository.create({
-          sourceId: source.sourceId,
-          content: chunk.content,
-          chunkIndex: chunk.chunkIndex,
-          ...(embeddings[index] !== undefined ? { embedding: embeddings[index] } : {}),
-          ...(source.visibleToAvatarIds !== undefined
-            ? { visibleToAvatarIds: source.visibleToAvatarIds }
-            : {}),
-          metadata: {
-            ...chunk.metadata,
-            ingestionJobId: jobId,
-          },
-        })
-      }
-    } catch (error) {
-      await this.restorePreviousChunks(source.sourceId, previousChunks)
-      throw error
+    if (chunkSeeds.length === 0) {
+      throw new KnowledgeIngestionError(
+        'vector_count_mismatch',
+        'Ingestion produced no chunks to vectorize.',
+        false,
+      )
     }
-
-    return chunkSeeds.length
-  }
-
-  private async restorePreviousChunks(
-    sourceId: string,
-    previousChunks: KnowledgeChunk[],
-  ): Promise<void> {
-    await this.chunkRepository.deleteBySourceId(sourceId)
-    for (const chunk of previousChunks) {
-      await this.chunkRepository.create({
-        sourceId,
-        content: chunk.content,
-        chunkIndex: chunk.chunkIndex,
-        ...(chunk.embedding !== undefined ? { embedding: chunk.embedding } : {}),
-        ...(chunk.metadata !== undefined ? { metadata: chunk.metadata } : {}),
+    const embeddingResult = await this.embeddingAdapter.embed({
+      inputs: chunkSeeds.map((chunk) => chunk.content),
+    })
+    validateEmbeddingResult(embeddingResult, activeCorpus.profile, chunkSeeds.length)
+    const chunks: StagedKnowledgeChunk[] = chunkSeeds.map((chunk, index) => ({
+      sourceId: source.sourceId,
+      content: chunk.content,
+      chunkIndex: chunk.chunkIndex,
+      embedding: [...(embeddingResult.vectors[index] ?? [])],
+      embeddingProfileId: activeCorpus.embeddingProfileId,
+      corpusGenerationId: activeCorpus.corpusGenerationId,
+      ...(source.visibleToAvatarIds !== undefined
+        ? { visibleToAvatarIds: [...source.visibleToAvatarIds] }
+        : {}),
+      metadata: {
+        ...chunk.metadata,
+        ingestionJobId: jobId,
+      },
+    }))
+    try {
+      return await corpusRepository.replaceActiveSourceChunks({
+        sourceId: source.sourceId,
+        embeddingProfileId: activeCorpus.embeddingProfileId,
+        corpusGenerationId: activeCorpus.corpusGenerationId,
+        chunks,
       })
+    } catch (error) {
+      if (isStaleCorpusError(error)) {
+        throw new KnowledgeIngestionError(
+          'stale_profile',
+          'The active embedding profile or corpus generation changed during ingestion.',
+          true,
+        )
+      }
+      throw error
     }
   }
 
@@ -179,6 +243,7 @@ export class KnowledgeIngestionService {
     nextAttempts: number
     chunkCount: number
     jobId: string
+    activeCorpus: ActiveCorpus | null
   }): Promise<IngestionExecutionResult> {
     await this.sourceRepository.updateStatus(args.source.sourceId, 'ready')
     await this.jobRepository.updateStatus(args.jobId, {
@@ -198,6 +263,8 @@ export class KnowledgeIngestionService {
         sourceId: args.source.sourceId,
         chunkCount: args.chunkCount,
         attempts: args.nextAttempts,
+        ...embeddingDiagnostics(args.activeCorpus),
+        vectorCount: args.chunkCount,
       },
     })
     return {
@@ -215,8 +282,13 @@ export class KnowledgeIngestionService {
     nextAttempts: number
     errorMessage: string
     jobId: string
+    activeCorpus: ActiveCorpus | null
+    hadActiveSource: boolean
+    error: unknown
   }): Promise<IngestionExecutionResult> {
-    await this.sourceRepository.updateStatus(args.source.sourceId, 'error')
+    if (!args.hadActiveSource) {
+      await this.sourceRepository.updateStatus(args.source.sourceId, 'error')
+    }
     await this.jobRepository.updateStatus(args.jobId, {
       status: 'failed',
       completedAt: new Date().toISOString(),
@@ -234,6 +306,15 @@ export class KnowledgeIngestionService {
         sourceId: args.source.sourceId,
         attempts: args.nextAttempts,
         errorMessage: args.errorMessage,
+        ...embeddingDiagnostics(args.activeCorpus),
+        vectorCount: 0,
+        staleProfile: isStaleCorpusError(args.error),
+        ...(args.error instanceof KnowledgeIngestionError
+          ? { ingestionFailureCode: args.error.code }
+          : {}),
+        ...(args.error instanceof EmbeddingAdapterError
+          ? { embeddingFailureCode: args.error.failure.code }
+          : {}),
       },
     })
     return {
@@ -251,6 +332,78 @@ export class KnowledgeIngestionService {
       console.error('[knowledge-ingestion] Event log append failed:', error)
     }
   }
+}
+
+function embeddingDiagnostics(activeCorpus: ActiveCorpus | null): Record<string, unknown> {
+  if (activeCorpus === null) return {}
+  return {
+    embeddingProfileId: activeCorpus.embeddingProfileId,
+    provider: activeCorpus.profile.provider,
+    model: activeCorpus.profile.model,
+    dimensions: activeCorpus.profile.dimensions,
+    corpusGenerationId: activeCorpus.corpusGenerationId,
+  }
+}
+
+function validateEmbeddingResult(
+  result: EmbeddingBatchResult,
+  expectedProfile: EmbeddingProfile,
+  expectedCount: number,
+): void {
+  const actualCount = Array.isArray(result.vectors) ? result.vectors.length : 0
+  if (!Array.isArray(result.vectors) || actualCount !== expectedCount) {
+    throw new KnowledgeIngestionError(
+      'vector_count_mismatch',
+      `Embedding result returned ${String(actualCount)} vectors for ${String(expectedCount)} chunks.`,
+      false,
+    )
+  }
+  if (!sameProfile(result.metadata.profile, expectedProfile)) {
+    throw new KnowledgeIngestionError(
+      'profile_mismatch',
+      'Embedding result profile does not match the active profile snapshot.',
+      true,
+    )
+  }
+  for (const [index, vector] of result.vectors.entries()) {
+    if (!Array.isArray(vector)) {
+      throw new KnowledgeIngestionError(
+        'malformed_response',
+        `Embedding vector ${String(index)} is not an array.`,
+        false,
+      )
+    }
+    if (vector.length !== expectedProfile.dimensions) {
+      throw new KnowledgeIngestionError(
+        'dimension_mismatch',
+        `Embedding vector ${String(index)} has ${String(vector.length)} dimensions; expected ${String(expectedProfile.dimensions)}.`,
+        false,
+      )
+    }
+    if (vector.some((value) => !Number.isFinite(value))) {
+      throw new KnowledgeIngestionError(
+        'dimension_mismatch',
+        `Embedding vector ${String(index)} contains a non-finite value.`,
+        false,
+      )
+    }
+  }
+}
+
+function sameProfile(left: EmbeddingProfile, right: EmbeddingProfile): boolean {
+  return (
+    left.provider === right.provider &&
+    left.model === right.model &&
+    left.dimensions === right.dimensions
+  )
+}
+
+function isStaleCorpusError(error: unknown): boolean {
+  return (
+    (error instanceof KnowledgeIngestionError && error.code === 'stale_profile') ||
+    (error instanceof Error &&
+      error.message.includes('active embedding profile or corpus generation changed'))
+  )
 }
 
 type ChunkSeed = {
