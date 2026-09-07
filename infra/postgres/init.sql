@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
   metadata        JSONB       NOT NULL DEFAULT '{}',
   visible_to_avatar_ids TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (source_id, chunk_index)
+  UNIQUE (source_id, corpus_generation_id, chunk_index)
 );
 
 -- Backward-compatible schema alignment for existing local volumes.

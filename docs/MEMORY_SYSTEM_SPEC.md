@@ -325,6 +325,10 @@ All persisted outputs must be normalized and validated before storage.
 
 ## Non-Goals
 
+The embedding lifecycle applies to shared knowledge only. Session memory, episodic memory, and
+user facts remain non-vectorized conversation state and are not included in profile changes or
+full knowledge reindex operations.
+
 - perfect transcript fidelity
 - infinite recall
 - emotional simulation as memory state

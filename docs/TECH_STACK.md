@@ -64,6 +64,8 @@ For product principles, read `PRINCIPLES.md`.
   dimension other than 16 is rejected until a matching migration and full staged reindex exist.
   Schema alignment clears legacy vectors that have no profile/generation identity but keeps source
   content available for regeneration.
+- The supported profile, fixed-dimension migration procedure, operator lifecycle, recovery rules,
+  and safe observability fields are documented in [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md).
 
 ### Observability
 

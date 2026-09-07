@@ -288,6 +288,10 @@ Prompt wording may evolve, but these rules must hold:
 
 ## Diagnostics
 
+Knowledge embedding and reindex work remains outside the Game Master timing contract. It runs
+through the knowledge application boundary and does not block Avatar responses or change GM chat
+model selection; future retrieval may consume the profile-tagged query-vector boundary.
+
 Successful runs emit `gm_triggered`; safe failures emit `gm_error`.
 
 Required diagnostic properties:

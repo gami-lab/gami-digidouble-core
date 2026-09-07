@@ -102,6 +102,64 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
     await expect(
       chunkRepository.listBySourceIds([firstSource, secondSource]),
     ).resolves.toMatchObject([{ content: 'first' }, { content: 'second' }])
+
+    const replacement = await corpusRepository.createReindexOperation({
+      embeddingProfileId: profile.embeddingProfileId,
+      sourceIds: [firstSource, secondSource],
+    })
+    await corpusRepository.replaceStagedSourceChunks(replacement.reindexOperationId, firstSource, [
+      {
+        sourceId: firstSource,
+        content: 'replacement first',
+        chunkIndex: 0,
+        embedding: vector16(0.5, 0),
+        embeddingProfileId: replacement.embeddingProfileId,
+        corpusGenerationId: replacement.corpusGenerationId,
+      },
+    ])
+    await expect(chunkRepository.listBySourceId(firstSource)).resolves.toMatchObject([
+      { content: 'first' },
+    ])
+
+    await corpusRepository.replaceStagedSourceChunks(replacement.reindexOperationId, secondSource, [
+      {
+        sourceId: secondSource,
+        content: 'replacement second',
+        chunkIndex: 0,
+        embedding: vector16(0, 0.5),
+        embeddingProfileId: replacement.embeddingProfileId,
+        corpusGenerationId: replacement.corpusGenerationId,
+      },
+    ])
+    await corpusRepository.promoteCorpusGeneration(replacement.reindexOperationId)
+    await expect(
+      chunkRepository.listBySourceIds([firstSource, secondSource]),
+    ).resolves.toMatchObject([{ content: 'replacement first' }, { content: 'replacement second' }])
+  })
+
+  it('enforces the deployed vector typmod, cosine index, and profile dimension guard', async () => {
+    const [column] = await sql<{ formatted_type: string }[]>`
+      SELECT format_type(a.atttypid, a.atttypmod) AS formatted_type
+      FROM pg_attribute a
+      JOIN pg_class c ON c.oid = a.attrelid
+      WHERE c.relname = 'knowledge_chunks' AND a.attname = 'embedding'
+    `
+    expect(column?.formatted_type).toBe('vector(16)')
+
+    const [index] = await sql<{ indexdef: string }[]>`
+      SELECT indexdef
+      FROM pg_indexes
+      WHERE tablename = 'knowledge_chunks' AND indexname = 'idx_knowledge_chunks_embedding'
+    `
+    expect(index?.indexdef).toContain('vector_cosine_ops')
+
+    await expect(
+      corpusRepository.createEmbeddingProfile({
+        provider: 'test',
+        model: 'wrong-dimension',
+        dimensions: 8,
+      }),
+    ).rejects.toThrow('VECTOR(16)')
   })
 
   it('rejects unprofiled vectors and preserves the prior active generation on failure', async () => {

@@ -115,6 +115,15 @@ Optional:
 - `LANGFUSE_SECRET_KEY`
 - `LANGFUSE_BASE_URL`
 
+Embedding deployment notes:
+
+- Keep `EMBEDDING_PROVIDER=openai`, `EMBEDDING_MODEL=text-embedding-3-small`, and
+  `EMBEDDING_DIMENSIONS=16` together with the deployed `VECTOR(16)` schema.
+- A provider/model/dimension change requires the matching PostgreSQL migration and a complete
+  staged reindex through the authenticated admin routes before the new profile can become active.
+- Review [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md) for the start, status, retry, and
+  restart-recovery procedure.
+
 ### Web runtime (`web`)
 
 Required build arguments:

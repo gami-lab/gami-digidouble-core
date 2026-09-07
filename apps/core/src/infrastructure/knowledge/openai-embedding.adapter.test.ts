@@ -156,6 +156,9 @@ describe('OpenAiEmbeddingAdapter', () => {
       },
     })
     expect(event).not.toHaveProperty('output')
+    expect(event).not.toHaveProperty('vectors')
+    expect(JSON.stringify(event)).not.toContain('private source text')
+    expect(JSON.stringify(event)).not.toContain('sk-test')
   })
 
   it('rejects empty and blank input before making a provider request', async () => {

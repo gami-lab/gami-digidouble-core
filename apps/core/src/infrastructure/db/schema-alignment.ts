@@ -35,6 +35,7 @@ const SCHEMA_ALIGNMENT_STATEMENTS = [
   `INSERT INTO knowledge_corpus_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING`,
   'ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS embedding_profile_id UUID',
   'ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS corpus_generation_id UUID',
+  'ALTER TABLE knowledge_chunks DROP CONSTRAINT IF EXISTS knowledge_chunks_source_id_chunk_index_key',
   `UPDATE knowledge_chunks
    SET embedding = NULL, embedding_profile_id = NULL, corpus_generation_id = NULL
    WHERE embedding IS NOT NULL
@@ -118,6 +119,8 @@ const SCHEMA_ALIGNMENT_STATEMENTS = [
    WITH (lists = 100) WHERE embedding IS NOT NULL`,
   `CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_active_generation
    ON knowledge_chunks(corpus_generation_id, embedding_profile_id, source_id, chunk_index)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS knowledge_chunks_source_generation_chunk_key
+   ON knowledge_chunks(source_id, corpus_generation_id, chunk_index)`,
   `CREATE INDEX IF NOT EXISTS idx_reindex_operations_status
    ON reindex_operations(status, created_at DESC)`,
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS unlocked_avatar_ids UUID[]',

@@ -91,6 +91,8 @@ POST   /v1/exchange                                        # Raw LLM exchange (n
 
 See [API_GUIDE.md](API_GUIDE.md) for curl examples, the full integration flow, and frontend notes.
 See [docs/API_CONTRACT.md](docs/API_CONTRACT.md) for the full formal spec.
+See [docs/EMBEDDING_OPERATIONS.md](docs/EMBEDDING_OPERATIONS.md) for production profile settings,
+safe reindexing, recovery, and operator procedures.
 
 ---
 

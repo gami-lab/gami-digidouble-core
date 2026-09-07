@@ -442,7 +442,7 @@ retaining source content and metadata. A dimension change requires a matching sc
 full staged reindex; configuration alone cannot select a mixed vector space.
 
 Profile-aware migration call sites are therefore limited to the ingestion service, query-vector
-application boundary, embedding composition/configuration, chunk persistence, and future reindex
+application boundary, embedding composition/configuration, chunk persistence, and reindex
 orchestration. Existing console/admin clients continue consuming the shared wire DTOs.
 
 ### Full reindex and operator control flow

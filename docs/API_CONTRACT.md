@@ -242,6 +242,19 @@ All three routes require `x-api-key`. Invalid bodies or path parameters return `
 VALIDATION_ERROR`. Reindex status is asynchronous: the active corpus remains unchanged until all
 snapshotted sources validate and promotion commits atomically.
 
+The shared reindex projections are:
+
+- `KnowledgeReindexOperationDto`: `reindexOperationId`, `corpusGenerationId`,
+  `embeddingProfileId`, `profile { provider, model, dimensions }`, `status`, `attempts`,
+  `expectedSourceCount`, `completedSourceCount`, `createdAt`, optional `startedAt`,
+  `completedAt`, and bounded optional `failureDetails`.
+- `KnowledgeReindexSourceProgressDto`: `reindexOperationId`, `sourceId`, `status`, `attempts`,
+  `completedChunkCount`, optional `expectedChunkCount`, optional timestamps, and bounded optional
+  `failureDetails`.
+
+These projections are the only public profile/reindex identity surface. Vectors, source content,
+credentials, raw provider payloads, and persistence rows remain internal.
+
 ### User Persona And Memory
 
 - `PUT /v1/users/{userId}/persona` -> `UpsertUserPersonaRequest` -> `UpsertUserPersonaResponse`

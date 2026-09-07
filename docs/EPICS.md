@@ -127,6 +127,15 @@ Delivered typed knowledge ingestion, chunking, embeddings, retrieval pipelines, 
 
 Added avatar-scoped retrieval visibility so avatars only see allowed knowledge while the Game Master keeps unrestricted orchestration access.
 
+#### `5.1c Real Embedding Infrastructure & Reindexing` ✅ Done
+
+Delivered the provider-neutral embedding contract, production OpenAI adapter, fixed-dimension
+profile-aware persistence, transactional ingestion, safe full reindexing, atomic corpus promotion,
+and authenticated operator start/status/retry controls. Deterministic, PostgreSQL, and opt-in
+provider hardening checks cover batching, failure translation, staging isolation, rollback,
+stale-work rejection, recovery, idempotency, and safe observability. Nearest-neighbor retrieval
+remains the separate `5.1d` scope.
+
 #### `5.2 Context Engine v2` ✅ Done
 
 Established deterministic context assembly, precedence rules, token budgeting, trimming, and explainable trace output for Avatar and GM runtime contexts.
@@ -231,20 +240,6 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 - more consistent, context-aware Avatar conversations with improved factual grounding, clearer dialogue flow, and better orchestration, while preserving the existing low-latency conversation experience.
 
 ## Open Backlog
-
-### `5.1c Real Embedding Infrastructure & Reindexing`
-
-In progress. The behavior-neutral contract foundation and production OpenAI adapter now own
-provider/model/dimension profile identity, deterministic batching and ordering, response
-validation, typed failures, safe observability, and an explicitly injected deterministic test
-fake. The persistence foundation is now shipped: profiles, immutable generations, operation/source
-progress, legacy-vector invalidation, staged source replacement, completeness validation, and
-atomic active-corpus promotion are implemented. Normal ingestion now snapshots the active profile,
-publishes source replacement transactionally, rejects stale work, and preserves prior active
-vectors on failure. Query embedding has a profile-tagged application boundary for EPIC 5.1d. Full
-reindex orchestration is now available through authenticated start/status/retry controls, with
-immutable source snapshots, idempotent per-source staging, interrupted-worker recovery, bounded
-diagnostics, and atomic promotion. Nearest-neighbor retrieval remains open.
 
 ### `5.1d Vector Retrieval Runtime`
 

@@ -264,6 +264,16 @@ rejection, atomic active-pointer visibility, full reindex source enumeration, du
 worker claims, retry/restart recovery, bounded operator diagnostics, and admin route auth,
 validation, not-found, start/status/retry, and opt-in stack-e2e paths.
 
+### EPIC 5.1c Requirements-to-tests matrix
+
+| Requirement                                    | Deterministic evidence                                                                                                                                                      | PostgreSQL/stack evidence                                                                                          |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Ordered, batched, validated provider vectors   | `openai-embedding.adapter.test.ts` covers multi-batch order, count/index corruption, finite values, dimensions, usage, latency, and failure codes                           | Opt-in live adapter test; no credentials required for normal CI                                                    |
+| Explicit production provider wiring            | Adapter factory tests reject unsupported providers/missing credentials; `index.ts` is the only production composition path                                                  | Stack configuration uses OpenAI variables; live provider test is opt-in                                            |
+| Profile-aware ingestion/query vectors          | `knowledge-ingestion.service.test.ts` and `knowledge-query-embedding.service.test.ts` cover stale, rollback, profile, dimension, and copy-safe identity behavior            | Repository active-pointer and source replacement integration tests                                                 |
+| Complete replacement corpus and retry recovery | `knowledge-reindex.service.test.ts` and admin route tests cover source enumeration, duplicate starts, competing workers, failure/retry, promotion, and interrupted recovery | PostgreSQL staging isolation, claim/recovery, typmod, cosine index, and promotion tests; stack route contract test |
+| Safe observability                             | Adapter and reindex event assertions allow bounded identifiers/usage/latency and reject source text, vectors, keys, and raw payloads                                        | Admin DTOs expose only bounded status/progress fields                                                              |
+
 ## Critical Release Flows
 
 These flows should remain protected end to end:

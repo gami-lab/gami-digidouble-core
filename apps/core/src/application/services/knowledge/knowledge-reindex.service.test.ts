@@ -49,7 +49,10 @@ class CountingEmbeddingAdapter implements IEmbeddingAdapter {
   }
 }
 
-async function makeService(adapter = new CountingEmbeddingAdapter()) {
+async function makeService(
+  adapter = new CountingEmbeddingAdapter(),
+  configuredProfile: EmbeddingProfile = targetProfile,
+) {
   const sourceRepository = new InMemoryKnowledgeSourceRepository()
   await sourceRepository.create({
     scenarioId: 'scenario_1',
@@ -77,7 +80,7 @@ async function makeService(adapter = new CountingEmbeddingAdapter()) {
     sourceContentLoader,
     adapter,
     eventLogRepository,
-    targetProfile,
+    configuredProfile,
     1000,
   )
   return {
@@ -90,9 +93,10 @@ async function makeService(adapter = new CountingEmbeddingAdapter()) {
   }
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('KnowledgeReindexService', () => {
   it('stages every source and promotes only the complete target corpus', async () => {
-    const { service, corpusRepository } = await makeService()
+    const { service, corpusRepository, eventLogRepository } = await makeService()
 
     const started = await service.start()
     expect(started.status).toBe('started')
@@ -111,6 +115,15 @@ describe('KnowledgeReindexService', () => {
     expect(
       await corpusRepository.listActiveChunksBySourceIds(['missing-source-is-not-used']),
     ).toEqual([])
+    const events = eventLogRepository.getAll()
+    expect(events.map((event) => event.type)).toEqual([
+      'knowledge_reindex_started',
+      'knowledge_reindex_source_completed',
+      'knowledge_reindex_source_completed',
+      'knowledge_reindex_completed',
+    ])
+    expect(JSON.stringify(events)).not.toContain('first source content')
+    expect(JSON.stringify(events)).not.toContain('vectors')
   })
 
   // eslint-disable-next-line complexity
@@ -156,6 +169,23 @@ describe('KnowledgeReindexService', () => {
     const result = await alreadyActive.start()
     expect(result.status).toBe('already_active')
     expect(result.operation).toBeNull()
+  })
+
+  it.each([
+    { provider: 'other-provider', model: previousCorpus.profile.model, dimensions: 2 },
+    { provider: previousCorpus.profile.provider, model: 'other-model', dimensions: 2 },
+    {
+      provider: previousCorpus.profile.provider,
+      model: previousCorpus.profile.model,
+      dimensions: 3,
+    },
+  ])('requires replacement when $provider/$model/$dimensions changes', async (profile) => {
+    const { service } = await makeService(new CountingEmbeddingAdapter(), profile)
+
+    const result = await service.start()
+
+    expect(result.status).toBe('started')
+    expect(result.operation?.embeddingProfileId).toBeTruthy()
   })
 
   it('recovers an interrupted operation and resumes it deterministically', async () => {

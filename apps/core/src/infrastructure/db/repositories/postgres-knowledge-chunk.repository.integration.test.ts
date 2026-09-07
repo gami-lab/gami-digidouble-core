@@ -7,6 +7,7 @@ import {
   truncateAllTables,
 } from '../test-helpers.js'
 import { PostgresKnowledgeChunkRepository } from './postgres-knowledge-chunk.repository.js'
+import { PostgresKnowledgeCorpusRepository } from './postgres-knowledge-corpus.repository.js'
 import { PostgresKnowledgeSourceRepository } from './postgres-knowledge-source.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 
@@ -14,10 +15,12 @@ function vector16(first: number, second: number): number[] {
   return [first, second, ...Array.from({ length: 14 }, () => 0)]
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
   let sql: Sql
   let scenarioRepo: PostgresScenarioRepository
   let sourceRepo: PostgresKnowledgeSourceRepository
+  let corpusRepo: PostgresKnowledgeCorpusRepository
   let chunkRepo: PostgresKnowledgeChunkRepository
   let sourceId: string
 
@@ -26,6 +29,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     await ensureSchemaAlignment(sql)
     scenarioRepo = new PostgresScenarioRepository(sql)
     sourceRepo = new PostgresKnowledgeSourceRepository(sql)
+    corpusRepo = new PostgresKnowledgeCorpusRepository(sql)
     chunkRepo = new PostgresKnowledgeChunkRepository(sql)
   })
 
@@ -51,19 +55,42 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
 
   it('creates and lists chunks ordered by chunk index', async () => {
     await seedSource()
+    const profile = await corpusRepo.createEmbeddingProfile({
+      provider: 'test',
+      model: 'test-embedding',
+      dimensions: 16,
+    })
+    const operation = await corpusRepo.createReindexOperation({
+      embeddingProfileId: profile.embeddingProfileId,
+      sourceIds: [sourceId],
+    })
 
     await chunkRepo.create({
       sourceId,
       content: 'Chunk 2',
       chunkIndex: 2,
       embedding: vector16(0.2, 0.3),
+      embeddingProfileId: profile.embeddingProfileId,
+      corpusGenerationId: operation.corpusGenerationId,
     })
     await chunkRepo.create({
       sourceId,
       content: 'Chunk 0',
       chunkIndex: 0,
       embedding: vector16(0.1, 0.0),
+      embeddingProfileId: profile.embeddingProfileId,
+      corpusGenerationId: operation.corpusGenerationId,
     })
+
+    await corpusRepo.updateReindexSourceProgress(operation.reindexOperationId, sourceId, {
+      status: 'completed',
+      expectedChunkCount: 2,
+      completedChunkCount: 2,
+    })
+    expect((await corpusRepo.validateCorpusGeneration(operation.reindexOperationId)).valid).toBe(
+      true,
+    )
+    await corpusRepo.promoteCorpusGeneration(operation.reindexOperationId)
 
     const chunks = await chunkRepo.listBySourceId(sourceId)
 
