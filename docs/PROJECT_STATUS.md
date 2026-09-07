@@ -96,6 +96,8 @@ The platform is now a working headless conversational runtime with:
 - Admin runtime actions include GM replay, memory refresh, and memory clear.
 - Global, role, scenario, and avatar model selection are configurable with deterministic precedence.
 - Observability captures latency, token usage, effective model resolution, and safe runtime metadata.
+- Live-provider smoke tests preserve real success coverage while dynamically skipping recognized
+  transient provider outages and exhausted test-account quotas.
 
 ### Apps
 

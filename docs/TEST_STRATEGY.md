@@ -128,7 +128,7 @@ No network. No real providers. No real DB. Always fast, always deterministic. Ha
 
 ### Integration (`*.integration.test.ts`)
 
-Real adapter collaboration: real PostgreSQL for repositories, real Redis when Redis semantics matter, mocked LLM providers unless specifically testing provider integration. Tests requiring live credentials use `describe.skipIf(!apiKey)` — skipped in CI without credentials, run in nightly with credentials.
+Real adapter collaboration: real PostgreSQL for repositories, real Redis when Redis semantics matter, mocked LLM providers unless specifically testing provider integration. Tests requiring live credentials use `describe.skipIf(!apiKey)` — skipped in CI without credentials, run in nightly with credentials. If a live provider smoke call returns a recognized transient availability or quota failure (for example 429, 5xx, timeout, or no credits), the test is dynamically skipped; invalid credentials and unexpected adapter/contract failures remain blocking within the test job.
 
 The evaluator package has one documented exception to the usual infrastructure-oriented integration
 examples: `evaluation.integration.test.ts` is an integration-style composition test over a fake
@@ -187,6 +187,8 @@ describe.skipIf(!apiKey)('with real OpenAI', () => {
   it('returns a non-empty reply', async () => { ... }, 30_000)
 })
 ```
+
+Live-provider tests also use the test context to skip recognized transient provider failures after the request. This keeps exhausted nightly provider accounts from reporting a product regression while preserving failures for authentication, response-shape, and adapter-contract errors.
 
 ## Fixtures
 

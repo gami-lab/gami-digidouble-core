@@ -14,6 +14,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse, RawExchangeResponse } from '@gami/shared'
+import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
@@ -92,7 +93,7 @@ describe('Stack E2E — POST /v1/exchange — null provider (always-on)', () => 
 })
 
 describe('Stack E2E — POST /v1/exchange — provider-backed flow', () => {
-  it('returns a non-empty reply with token counts', async () => {
+  it('returns a non-empty reply with token counts', async (context) => {
     const res = await fetch(`${APP_URL}/v1/exchange`, {
       method: 'POST',
       headers: {
@@ -105,9 +106,16 @@ describe('Stack E2E — POST /v1/exchange — provider-backed flow', () => {
       }),
     })
 
-    expect(res.status).toBe(200)
-
     const body = (await res.json()) as ApiResponse<RawExchangeResponse>
+    if (!isNullProvider) {
+      skipIfTransientProviderHttpError(
+        context,
+        process.env['LLM_PROVIDER'] ?? 'configured provider',
+        res.status,
+        body.error?.message,
+      )
+    }
+    expect(res.status).toBe(200)
     expect(body.error).toBeNull()
     expect(body.data?.reply).toBeTruthy()
     expect(body.data?.inputTokens).toBeGreaterThan(0)
