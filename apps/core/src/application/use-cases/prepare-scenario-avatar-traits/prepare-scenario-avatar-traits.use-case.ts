@@ -192,7 +192,18 @@ function buildFailedResult(
 }
 
 function classifyLlmFailure(error: unknown): AvatarTraitPreparationFailureReason {
-  if (error instanceof LlmError) return 'llm_error'
+  if (error instanceof LlmError) {
+    if (isTransientProviderFailure(error.statusCode, error.message)) return 'provider_unavailable'
+    return 'llm_error'
+  }
   if (error instanceof Error) return 'llm_error'
   return 'unknown_error'
+}
+
+function isTransientProviderFailure(statusCode: number | undefined, message: string): boolean {
+  if (statusCode === 429 || (statusCode !== undefined && statusCode >= 500)) return true
+
+  return /(?:\b429\b|\b5\d{2}\b|rate[ _-]?limit|rate_limited|no credits|temporarily unavailable|service unavailable|timeout|network|connection|fetch failed|econnreset|etimedout)/i.test(
+    message,
+  )
 }

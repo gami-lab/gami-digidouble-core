@@ -311,7 +311,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — failure isolation', () => {
     expect(output.results.find((result) => result.avatarId === 'avatar_llm')).toEqual({
       avatarId: 'avatar_llm',
       status: 'failed',
-      reason: 'llm_error',
+      reason: 'provider_unavailable',
     })
     expect(output.results.find((result) => result.avatarId === 'avatar_persist')).toEqual({
       avatarId: 'avatar_persist',
@@ -332,7 +332,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — failure isolation', () => {
       metadata: {
         scenarioId: 'scenario_1',
         avatarCount: 3,
-        failureReasons: ['llm_error', 'persistence_error'],
+        failureReasons: ['provider_unavailable', 'persistence_error'],
       },
     })
     expect(observability.events[0]?.metadata?.['preparedAvatarIds']).toEqual(['avatar_good'])

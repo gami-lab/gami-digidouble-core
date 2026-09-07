@@ -81,7 +81,11 @@ export type DeleteAvatarResponse = {
 }
 
 export type AvatarTraitPreparationFailureReason =
-  'unparseable_output' | 'llm_error' | 'persistence_error' | 'unknown_error'
+  | 'unparseable_output'
+  | 'llm_error'
+  | 'provider_unavailable'
+  | 'persistence_error'
+  | 'unknown_error'
 
 /**
  * Per-avatar outcome of an explicit scenario-scoped trait preparation run

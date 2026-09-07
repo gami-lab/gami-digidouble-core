@@ -29,6 +29,16 @@ export function skipIfTransientProviderHttpError(
   }
 }
 
+export function skipIfTransientProviderReason(
+  context: TestContext,
+  provider: string,
+  reason: string | undefined,
+): void {
+  if (reason === 'provider_unavailable') {
+    context.skip(formatSkipReason(provider))
+  }
+}
+
 function isTransientProviderFailure(statusCode: number | undefined, message: string): boolean {
   if (statusCode === 429 || (statusCode !== undefined && statusCode >= 500)) return true
 

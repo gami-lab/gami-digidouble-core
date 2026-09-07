@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse, MessageStreamEvent } from '@gami/shared'
+import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -117,6 +118,15 @@ function parseSseEvents(text: string): MessageStreamEvent[] {
     .map((line) => JSON.parse(line.slice(5).trim()) as MessageStreamEvent)
 }
 
+function parseApiErrorMessage(text: string): string | undefined {
+  try {
+    const body = JSON.parse(text) as ApiResponse<null>
+    return body.error?.message
+  } catch {
+    return undefined
+  }
+}
+
 describe('Stack E2E — POST /v1/conversations/:conversationId/messages/stream auth', () => {
   it('returns 401 without an API key', async () => {
     const result = await postStream('conversation_1', { message: { content: 'Hello' } }, '')
@@ -168,7 +178,7 @@ describe('Stack E2E — POST /v1/conversations/:conversationId/messages/stream n
 })
 
 describe('Stack E2E — POST /v1/conversations/:conversationId/messages/stream happy path', () => {
-  it('returns ordered events ending with one canonical completion payload', async () => {
+  it('returns ordered events ending with one canonical completion payload', async (context) => {
     const fixture = await seedConversation()
 
     try {
@@ -176,6 +186,12 @@ describe('Stack E2E — POST /v1/conversations/:conversationId/messages/stream h
         message: { content: 'Hello over the stream' },
       })
 
+      skipIfTransientProviderHttpError(
+        context,
+        process.env['LLM_PROVIDER'] ?? 'configured provider',
+        result.response.status,
+        parseApiErrorMessage(result.text),
+      )
       expect(result.response.status).toBe(200)
       expect(result.response.headers.get('content-type')).toContain('text/event-stream')
       expect(result.events.map((event) => event.type)).toContain('conversation.message.started')

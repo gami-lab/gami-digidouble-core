@@ -292,6 +292,9 @@ Runtime precedence:
 - `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` is explicit and synchronous.
 - The route accepts no request body; any JSON body returns `400 VALIDATION_ERROR`.
 - One failed avatar preparation must not fail the whole scenario batch.
+- A transient provider failure is returned as a per-avatar `failed` result with reason
+  `provider_unavailable`; authentication, malformed-output, and persistence failures retain
+  their distinct reasons.
 - Preparation overwrites `computedTraits` only; it never edits authored avatar fields.
 
 ### Knowledge Visibility

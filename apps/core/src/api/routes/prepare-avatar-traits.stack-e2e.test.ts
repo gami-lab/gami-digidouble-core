@@ -12,7 +12,8 @@
  * persistence wiring all work end-to-end. When the stack is started with a
  * real provider key, the gated block below asserts genuine prepared traits.
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, type TestContext } from 'vitest'
+import { skipIfTransientProviderReason } from '../../test-utils/real-provider.js'
 import {
   AVATAR_COMPUTED_TRAIT_KEYS,
   type ApiResponse,
@@ -164,6 +165,45 @@ async function deleteScenario(scenarioId: string): Promise<void> {
 // DB round trip works.
 const isNullProvider = (process.env['LLM_PROVIDER'] ?? 'null') === 'null'
 
+function skipIfTraitProviderUnavailable(
+  context: TestContext,
+  result: PrepareAvatarTraitsResponse['results'][number] | undefined,
+): void {
+  if (!isNullProvider && result?.status === 'failed') {
+    skipIfTransientProviderReason(
+      context,
+      process.env['LLM_PROVIDER'] ?? 'configured provider',
+      result.reason,
+    )
+  }
+}
+
+function assertNullProviderTraitResult(
+  result: PrepareAvatarTraitsResponse['results'][number] | undefined,
+  avatarId: string,
+): void {
+  if (!isNullProvider) return
+  expect(result).toEqual({
+    avatarId,
+    status: 'failed',
+    reason: 'unparseable_output',
+  })
+}
+
+function assertNullProviderComputedTraits(
+  computedTraits: AvatarComputedTraits | null | undefined,
+): void {
+  if (!isNullProvider) return
+  expect(computedTraits).toBe(null)
+}
+
+function assertRealProviderTraitResult(
+  result: PrepareAvatarTraitsResponse['results'][number] | undefined,
+): void {
+  if (isNullProvider) return
+  expect(result?.status).toBe('prepared')
+}
+
 async function prepareAvatarTraits(
   scenarioId: string,
 ): Promise<ApiResponse<PrepareAvatarTraitsResponse>> {
@@ -199,7 +239,7 @@ function assertPreparedTraitShape(traits: AvatarComputedTraits): void {
 }
 
 describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success (always-on)', () => {
-  it('returns 200 with one result per avatar and persists computedTraits deterministically', async () => {
+  it('returns 200 with one result per avatar and persists computedTraits deterministically', async (context) => {
     const { scenarioId, avatarId } = await createScenarioAndAvatar()
 
     try {
@@ -214,14 +254,9 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
       expect(body.data?.scenarioId).toBe(scenarioId)
       expect(body.data?.results).toHaveLength(1)
       expect(body.data?.results[0]?.avatarId).toBe(avatarId)
+      skipIfTraitProviderUnavailable(context, body.data?.results[0])
 
-      if (isNullProvider) {
-        expect(body.data?.results[0]).toEqual({
-          avatarId,
-          status: 'failed',
-          reason: 'unparseable_output',
-        })
-      }
+      assertNullProviderTraitResult(body.data?.results[0], avatarId)
 
       const listRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
         method: 'GET',
@@ -229,9 +264,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
       })
       const listBody = (await listRes.json()) as ApiResponse<ListScenarioAvatarsResponse>
       const listedAvatar = listBody.data?.avatars.find((a) => a.avatarId === avatarId)
-      if (isNullProvider) {
-        expect(listedAvatar?.computedTraits).toBe(null)
-      }
+      assertNullProviderComputedTraits(listedAvatar?.computedTraits)
 
       await deleteAvatar(avatarId)
     } finally {
@@ -239,7 +272,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
     }
   })
 
-  it('is rerunnable: a second call succeeds and produces a fresh persisted result', async () => {
+  it('is rerunnable: a second call succeeds and produces a fresh persisted result', async (context) => {
     const { scenarioId, avatarId } = await createScenarioAndAvatar()
 
     try {
@@ -257,16 +290,10 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
       const secondBody = (await secondRes.json()) as ApiResponse<PrepareAvatarTraitsResponse>
       expect(secondBody.data?.results).toHaveLength(1)
       expect(secondBody.data?.results[0]?.avatarId).toBe(avatarId)
+      skipIfTraitProviderUnavailable(context, secondBody.data?.results[0])
 
-      if (isNullProvider) {
-        expect(secondBody.data?.results[0]).toEqual({
-          avatarId,
-          status: 'failed',
-          reason: 'unparseable_output',
-        })
-      } else {
-        expect(secondBody.data?.results[0]?.status).toBe('prepared')
-      }
+      assertNullProviderTraitResult(secondBody.data?.results[0], avatarId)
+      assertRealProviderTraitResult(secondBody.data?.results[0])
 
       await deleteAvatar(avatarId)
     } finally {
@@ -278,7 +305,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
 describe.skipIf(isNullProvider)(
   'Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits — real provider flow',
   () => {
-    it('computes and persists a structured trait result with a real provider', async () => {
+    it('computes and persists a structured trait result with a real provider', async (context) => {
       const { scenarioId, avatarId } = await createScenarioAndAvatar()
 
       try {
@@ -299,6 +326,7 @@ describe.skipIf(isNullProvider)(
 
         const body = await prepareAvatarTraits(scenarioId)
         const result = body.data?.results[0]
+        skipIfTraitProviderUnavailable(context, result)
         expect(result?.status).toBe('prepared')
         if (result?.status === 'prepared') {
           assertPreparedTraitShape(result.computedTraits)

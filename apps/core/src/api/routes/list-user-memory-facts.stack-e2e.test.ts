@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, type TestContext } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
+import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -42,6 +43,25 @@ async function deleteJson(path: string): Promise<void> {
   await fetch(buildUrl(path), { method: 'DELETE', headers: authHeaders() })
 }
 
+async function postConversationMessage(
+  context: TestContext,
+  conversationId: string,
+): Promise<void> {
+  const messageRes = await fetch(buildUrl(`/v1/conversations/${conversationId}/messages`), {
+    method: 'POST',
+    headers: { ...authHeaders(), 'content-type': 'application/json' },
+    body: JSON.stringify({ message: { content: 'I enjoy strategy games.' } }),
+  })
+  const messageBody = (await messageRes.json()) as ApiResponse<null>
+  skipIfTransientProviderHttpError(
+    context,
+    process.env['LLM_PROVIDER'] ?? 'configured provider',
+    messageRes.status,
+    messageBody.error?.message,
+  )
+  expect(messageRes.status).toBe(200)
+}
+
 describe('GET /v1/users/:userId/memory-facts — stack behavior', () => {
   it('returns empty list for unknown user', async () => {
     const userId = `e2e_user_${crypto.randomUUID()}`
@@ -55,7 +75,7 @@ describe('GET /v1/users/:userId/memory-facts — stack behavior', () => {
     expect(body.data?.facts).toEqual([])
   })
 
-  it('returns 200 envelope after real conversation close flow', async () => {
+  it('returns 200 envelope after real conversation close flow', async (context) => {
     const userId = `e2e_user_${crypto.randomUUID()}`
     const scenarioRes = await fetch(buildUrl('/v1/scenarios'), {
       method: 'POST',
@@ -98,12 +118,7 @@ describe('GET /v1/users/:userId/memory-facts — stack behavior', () => {
       }>
       const conversationId = requireId(convoBody.data?.conversation, 'conversationId')
 
-      const messageRes = await fetch(buildUrl(`/v1/conversations/${conversationId}/messages`), {
-        method: 'POST',
-        headers: { ...authHeaders(), 'content-type': 'application/json' },
-        body: JSON.stringify({ message: { content: 'I enjoy strategy games.' } }),
-      })
-      expect(messageRes.status).toBe(200)
+      await postConversationMessage(context, conversationId)
 
       const endRes = await fetch(
         buildUrl(`/v1/sessions/${sessionId}/conversations/${conversationId}/end`),
