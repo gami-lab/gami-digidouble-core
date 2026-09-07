@@ -57,6 +57,13 @@ For product principles, read `PRINCIPLES.md`.
   `IEmbeddingAdapter` port. The default profile requests 16 dimensions to match the current
   `VECTOR(16)` schema; `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, and
   `EMBEDDING_BATCH_SIZE` are independent environment configuration and are validated at startup.
+- Knowledge vectors are persisted through the internal `IKnowledgeCorpusRepository` using
+  immutable embedding profiles and corpus generations. PostgreSQL owns a singleton active pointer,
+  stages complete source replacements, validates them, and promotes them transactionally.
+- The deployed vector type is fixed at `VECTOR(16)` with `vector_cosine_ops`. A configured
+  dimension other than 16 is rejected until a matching migration and full staged reindex exist.
+  Schema alignment clears legacy vectors that have no profile/generation identity but keeps source
+  content available for regeneration.
 
 ### Observability
 

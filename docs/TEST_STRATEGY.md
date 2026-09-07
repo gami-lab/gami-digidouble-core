@@ -276,3 +276,9 @@ Do not only patch behavior. If the bug escaped because of a test gap, add the te
 - use massive E2E suites as a substitute for unit tests
 - pretend AI behavior is fully deterministic
 - add an evaluation platform before MVP needs it
+
+Knowledge corpus persistence tests cover deterministic in-memory parity and PostgreSQL lifecycle
+behavior. The PostgreSQL suite verifies fixed-dimension/profile constraints, legacy vector
+invalidation assumptions, staging isolation, idempotent source replacement, failed promotion
+preservation, and the atomic active-pointer switch. Integration tests remain skipped when
+`DATABASE_URL` is unavailable.

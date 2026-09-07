@@ -104,8 +104,13 @@ requires an explicit profile; production composition no longer falls back to has
 The OpenAI adapter is now wired into production composition. The default profile is OpenAI
 `text-embedding-3-small` shortened to 16 dimensions to remain compatible with the current
 `VECTOR(16)` schema; `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, and
-`EMBEDDING_BATCH_SIZE` are independent from chat-role configuration. The persisted
-vector-profile/corpus identity, profile-aware promotion, and full reindex operation remain open.
+`EMBEDDING_BATCH_SIZE` are independent from chat-role configuration. The internal persistence
+slice now stores immutable profiles and corpus generations, tracks reindex operation/source
+progress, invalidates legacy unprofiled vectors, isolates staged chunks, validates completeness,
+and atomically promotes one active generation/profile through a database-owned singleton pointer.
+The deployed schema remains fixed at `VECTOR(16)` with `vector_cosine_ops`; configuration rejects
+another dimension until its migration and full staged reindex exist. Full reindex orchestration and
+vector retrieval remain open.
 Public source/chunk/ingestion-job DTOs are unchanged and continue to be owned by `@gami/shared`.
 
 ### Operations

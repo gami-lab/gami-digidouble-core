@@ -237,8 +237,9 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 In progress. The behavior-neutral contract foundation and production OpenAI adapter now own
 provider/model/dimension profile identity, deterministic batching and ordering, response
 validation, typed failures, safe observability, and an explicitly injected deterministic test
-fake. Persisted profile/corpus identity and the safe full-reindex workflow remain open in the
-following slices.
+fake. The persistence foundation is now shipped: profiles, immutable generations, operation/source
+progress, legacy-vector invalidation, staged source replacement, completeness validation, and
+atomic active-corpus promotion are implemented. Full reindex orchestration remains open.
 
 ### `5.1d Vector Retrieval Runtime`
 

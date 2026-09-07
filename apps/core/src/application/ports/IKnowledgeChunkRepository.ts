@@ -5,6 +5,8 @@ export type CreateKnowledgeChunkParams = {
   content: string
   chunkIndex: number
   embedding?: EmbeddingVector
+  embeddingProfileId?: string
+  corpusGenerationId?: string
   metadata?: Record<string, unknown>
   visibleToAvatarIds?: string[]
 }

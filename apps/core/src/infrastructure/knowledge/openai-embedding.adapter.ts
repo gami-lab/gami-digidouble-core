@@ -48,6 +48,11 @@ export function createEmbeddingAdapter(
       if (config.openaiApiKey === undefined || config.openaiApiKey.trim().length === 0) {
         throw new Error('Missing OPENAI_API_KEY for the configured OpenAI embedding provider.')
       }
+      if (config.dimensions !== DEFAULT_EMBEDDING_DIMENSIONS) {
+        throw new Error(
+          `Embedding dimensions ${String(config.dimensions)} do not match the deployed VECTOR(${String(DEFAULT_EMBEDDING_DIMENSIONS)}) schema. Run a migration and full staged reindex before changing the dimension.`,
+        )
+      }
       return new OpenAiEmbeddingAdapter(
         { ...config, openaiApiKey: config.openaiApiKey },
         observability,

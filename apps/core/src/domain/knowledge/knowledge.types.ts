@@ -24,12 +24,7 @@ export type IngestionJobStatus = SharedIngestionJobStatus
 
 export type KnowledgeVisibilityPolicy = SharedKnowledgeVisibilityPolicy
 
-/**
- * Vector values are immutable at the domain boundary. Profile identity is
- * intentionally not part of this value yet; the current database schema only
- * stores the vector. The profile/corpus persistence contract belongs to the
- * knowledge persistence slice of EPIC 5.1c.
- */
+/** Vector values are immutable at the domain boundary. */
 export type EmbeddingVector = readonly number[]
 
 export interface KnowledgeSource {
@@ -68,6 +63,10 @@ export interface KnowledgeChunk {
   chunkIndex: number
   /** Embedding vector for retrieval (when available). */
   embedding?: EmbeddingVector
+  /** Persisted embedding profile identity for vectorized chunks. */
+  embeddingProfileId?: string
+  /** Immutable corpus generation that owns the vector. */
+  corpusGenerationId?: string
   createdAt: string
   metadata?: Record<string, unknown>
   /**

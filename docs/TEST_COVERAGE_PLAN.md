@@ -251,6 +251,12 @@ Must cover:
   conversation, authenticated request shaping, and judge completion before the next Avatar request
 - the seeded Villa Miralac definition is loadable but is not executed by default tests
 
+## Knowledge Corpus Persistence
+
+Must cover staged-generation invisibility, source replacement, profile/dimension validation,
+completeness checks, active-generation switching, PostgreSQL constraints, legacy-vector
+invalidation, failed promotion, and atomic active-pointer visibility.
+
 ## Critical Release Flows
 
 These flows should remain protected end to end:

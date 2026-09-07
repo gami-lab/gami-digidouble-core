@@ -54,6 +54,7 @@ import {
   PostgresConversationMemoryRepository,
   PostgresKnowledgeSourceRepository,
   PostgresKnowledgeChunkRepository,
+  PostgresKnowledgeCorpusRepository,
   PostgresIngestionJobRepository,
   PostgresModelConfigRepository,
 } from './infrastructure/db/index.js'
@@ -205,6 +206,7 @@ function buildKnowledgeAdapters(
   return {
     knowledgeSourceRepository: new PostgresKnowledgeSourceRepository(sql),
     knowledgeChunkRepository: new PostgresKnowledgeChunkRepository(sql),
+    knowledgeCorpusRepository: new PostgresKnowledgeCorpusRepository(sql),
     ingestionJobRepository: new PostgresIngestionJobRepository(sql),
     knowledgeSourceContentLoader: new FileUrlKnowledgeSourceContentLoader({
       allowedRoots: config.knowledgeSourceAllowedRoots,

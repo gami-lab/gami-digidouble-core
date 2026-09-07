@@ -408,15 +408,29 @@ constructs this adapter before the server listens and has no hash-vector fallbac
 
 `@gami/shared` remains the owner of public source, chunk, ingestion-job, and retrieval DTOs. The
 current public DTOs intentionally do not expose vectors or embedding profiles. Persisted vector
-profile/corpus identity will be owned by the Core knowledge persistence contract and mapped by
-Infrastructure when the database slice lands; it will not be added to shared DTOs unless an
-operator API later exposes it. Reindex-operation types will likewise be Application-owned until a
-deliberate admin API requires shared DTOs.
+profile/corpus identity is owned by the Core knowledge persistence contract and mapped by
+Infrastructure; it is not added to shared DTOs unless an operator API later exposes it. Reindex-
+operation types are likewise Application-owned until a deliberate admin API requires shared DTOs.
 
 The existing `KnowledgeIngestionService` is the ingestion embedding boundary. EPIC 5.1d must use
 one application-owned `KnowledgeQueryEmbeddingService` between retrieval callers and
 `IEmbeddingAdapter`; `TypedRetrievalService`, Avatar, Game Master, and admin retrieval must not
 embed text independently.
+
+### Versioned knowledge corpus persistence
+
+The internal `IKnowledgeCorpusRepository` owns persisted embedding profiles, immutable corpus
+generations, reindex-operation/source progress, validation, and promotion. PostgreSQL stores one
+singleton `knowledge_corpus_state` row that points to the active generation/profile. Every
+vectorized chunk carries both identities and is constrained to the generation's profile. Staged
+source replacement is transactional and invisible to normal reads until validation succeeds.
+Promotion locks and updates the active pointer in one transaction, then marks the previous
+generation superseded, so a failed build leaves the previous active corpus queryable.
+
+The deployed pgvector contract is fixed at `VECTOR(16)` with `vector_cosine_ops`. Startup schema
+alignment invalidates pre-profile vectors by clearing only their embedding identity/vector while
+retaining source content and metadata. A dimension change requires a matching schema migration and
+full staged reindex; configuration alone cannot select a mixed vector space.
 
 Profile-aware migration call sites are therefore limited to the ingestion service, embedding
 composition/configuration, chunk persistence, the future query-vectorization service, and future

@@ -3,6 +3,7 @@ import type {
   IKnowledgeChunkRepository,
 } from '../../application/ports/IKnowledgeChunkRepository.js'
 import type { KnowledgeChunk } from '../../domain/knowledge/knowledge.types.js'
+import type { ActiveCorpus } from '../../application/ports/IKnowledgeCorpusRepository.js'
 
 function normalizeVisibleToAvatarIds(
   visibleToAvatarIds: string[] | undefined,
@@ -16,6 +17,7 @@ function normalizeVisibleToAvatarIds(
 
 export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkRepository {
   private readonly chunks: Map<string, KnowledgeChunk>
+  private activeCorpus: ActiveCorpus | null = null
 
   constructor(initialData: KnowledgeChunk[] = []) {
     this.chunks = new Map(initialData.map((chunk) => [chunk.chunkId, chunk]))
@@ -29,6 +31,12 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
       content: params.content,
       chunkIndex: params.chunkIndex,
       ...(params.embedding !== undefined ? { embedding: [...params.embedding] } : {}),
+      ...(params.embeddingProfileId !== undefined
+        ? { embeddingProfileId: params.embeddingProfileId }
+        : {}),
+      ...(params.corpusGenerationId !== undefined
+        ? { corpusGenerationId: params.corpusGenerationId }
+        : {}),
       ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
       ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
       createdAt: new Date().toISOString(),
@@ -41,6 +49,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
   listBySourceId(sourceId: string): Promise<KnowledgeChunk[]> {
     const chunks = [...this.chunks.values()]
       .filter((chunk) => chunk.sourceId === sourceId)
+      .filter((chunk) => this.isVisibleInActiveCorpus(chunk))
       .sort((a, b) => a.chunkIndex - b.chunkIndex)
     return Promise.resolve(chunks)
   }
@@ -49,6 +58,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
     const sourceSet = new Set(sourceIds)
     const chunks = [...this.chunks.values()]
       .filter((chunk) => sourceSet.has(chunk.sourceId))
+      .filter((chunk) => this.isVisibleInActiveCorpus(chunk))
       .sort((a, b) => {
         if (a.sourceId === b.sourceId) return a.chunkIndex - b.chunkIndex
         return a.sourceId.localeCompare(b.sourceId)
@@ -62,5 +72,30 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
       this.chunks.delete(chunk.chunkId)
     }
     return Promise.resolve(toDelete.length)
+  }
+
+  deleteBySourceIdAndGeneration(sourceId: string, corpusGenerationId: string): number {
+    const toDelete = [...this.chunks.values()].filter(
+      (chunk) => chunk.sourceId === sourceId && chunk.corpusGenerationId === corpusGenerationId,
+    )
+    for (const chunk of toDelete) this.chunks.delete(chunk.chunkId)
+    return toDelete.length
+  }
+
+  setActiveCorpus(activeCorpus: ActiveCorpus | null): void {
+    this.activeCorpus = activeCorpus
+  }
+
+  listAllBySourceIds(sourceIds: readonly string[]): KnowledgeChunk[] {
+    const sourceSet = new Set(sourceIds)
+    return [...this.chunks.values()].filter((chunk) => sourceSet.has(chunk.sourceId))
+  }
+
+  private isVisibleInActiveCorpus(chunk: KnowledgeChunk): boolean {
+    if (this.activeCorpus === null) return chunk.corpusGenerationId === undefined
+    return (
+      chunk.corpusGenerationId === this.activeCorpus.corpusGenerationId &&
+      chunk.embeddingProfileId === this.activeCorpus.embeddingProfileId
+    )
   }
 }

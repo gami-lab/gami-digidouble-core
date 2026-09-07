@@ -70,17 +70,19 @@ deltas, and a partial avatar message is never saved.
 | Table | Purpose | Key fields | Notes |
 | ------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------- | -------------------------------- |
 | `knowledge_sources` | Scenario-scoped knowledge assets | `id`, `scenario_id`, `name`, `knowledge_type`, `format`, `uri_or_path`, `status`, `metadata`, `visible_to_avatar_ids`, `visibility_policy`, `created_at` | Visibility policies are `'all'                                                                           | 'avatars' | 'none'`; `'none'` means GM-only. |
-| `knowledge_chunks` | Retrieval chunks derived from knowledge sources | `id`, `source_id`, `content`, `chunk_index`, `embedding`, `metadata`, `visible_to_avatar_ids`, `created_at` | Stored in PostgreSQL with pgvector embeddings. Chunk visibility usually inherits from source visibility. The current schema has no persisted profile identity; the future profile/corpus migration must add it atomically rather than infer it from vector length. |
-| `ingestion_jobs` | Knowledge ingestion lifecycle tracking | `id`, `source_id`, `status`, `attempts`, `chunk_size`, `started_at`, `completed_at`, `error_message`, `created_at`, `updated_at` | Tracks queued/running/completed/failed ingestion work and its optional per-job chunk-size experiment. |
+| `embedding_profiles` | Immutable provider/model/dimension identity for one vector space | `id`, `provider`, `model`, `dimensions`, `created_at` | Unique on `(provider, model, dimensions)`. Internal persistence state; not a public DTO. |
+| `corpus_generations` | Immutable staged or active replacement corpus | `id`, `embedding_profile_id`, `status`, `expected_source_count`, lifecycle timestamps | A generation belongs to exactly one profile. Status is `staging`, `validated`, `active`, `superseded`, or `failed`. |
+| `knowledge_corpus_state` | Atomic active-corpus pointer | `id=1`, `active_generation_id`, `active_profile_id` | Singleton database-owned pointer. Normal reads use this pair and never expose staged generations. |
+| `knowledge_chunks` | Retrieval chunks derived from knowledge sources | `id`, `source_id`, `content`, `chunk_index`, `embedding`, `embedding_profile_id`, `corpus_generation_id`, `metadata`, `visible_to_avatar_ids`, `created_at` | Vectorized chunks must carry both immutable identities. The fixed column is `VECTOR(16)` and uses `vector_cosine_ops`; old unprofiled vectors are nulled during schema alignment while source content remains. |
+| `reindex_operations` | Replacement corpus lifecycle tracking | `id`, `corpus_generation_id`, `embedding_profile_id`, `status`, `attempts`, source counts, timestamps, bounded `failure_details` | Tracks `pending`, `running`, `completed`, and `failed` operations. |
+| `reindex_operation_sources` | Per-operation source progress | `reindex_operation_id`, `source_id`, `status`, `attempts`, chunk counts, timestamps, bounded `failure_details` | Unique per operation/source and idempotently replaceable. |
+| `corpus_generation_sources` | Per-generation completeness ledger | `corpus_generation_id`, `source_id`, `status`, expected/completed chunk counts | Promotion requires every expected source to complete and all staged vectors to be non-null. |
+| `ingestion_jobs` | Knowledge ingestion lifecycle tracking | `id`, `source_id`, `status`, `attempts`, `chunk_size`, `started_at`, `completed_at`, `error_message`, `created_at`, `updated_at` | Tracks queued/running/completed/failed ingestion work. Full-corpus replacement is owned by reindex operations, not this per-source job. |
 
-Embedding profile metadata is not a public entity or a current database row. Core Application owns
-the provider-neutral `EmbeddingProfile`; Infrastructure currently supplies the configured OpenAI
-profile to ingestion, with a 16-dimensional default matching the existing vector column. The
-knowledge persistence contract will own the persisted profile/corpus-generation identity and
-Infrastructure will map it to PostgreSQL. Reindex-operation state is an Application-owned operation
-contract, with shared admin DTOs introduced only if a future operator API exposes it. This keeps the
-current source/chunk/job DTOs stable while preventing profile identity from being copied into
-`@gami/shared`, console, or admin prematurely.
+Core Application owns the provider-neutral `EmbeddingProfile` and reindex-operation contracts.
+Infrastructure maps them to the internal PostgreSQL profile, generation, active-pointer, and
+progress tables. The current public source/chunk/ingestion-job DTOs remain unchanged; shared admin
+DTOs are only needed if a future operator API exposes reindex state.
 
 ## Relationships
 
@@ -99,6 +101,10 @@ current source/chunk/job DTOs stable while preventing profile identity from bein
 - `conversations` -> `conversation_memories` (1:1 after close)
 - `knowledge_sources` -> `knowledge_chunks` (1:N)
 - `knowledge_sources` -> `ingestion_jobs` (1:N)
+- `embedding_profiles` -> `corpus_generations` (1:N)
+- `corpus_generations` -> `knowledge_chunks` (1:N)
+- `corpus_generations` -> `corpus_generation_sources` (1:N)
+- `reindex_operations` -> `reindex_operation_sources` (1:N)
 
 ## Reset Boundaries
 

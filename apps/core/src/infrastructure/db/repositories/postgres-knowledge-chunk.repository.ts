@@ -12,6 +12,8 @@ type KnowledgeChunkDbRow = {
   content: string
   chunk_index: number
   embedding: unknown
+  embedding_profile_id: string | null
+  corpus_generation_id: string | null
   metadata: unknown
   visible_to_avatar_ids: string[] | null
   created_at: Date
@@ -40,6 +42,12 @@ function rowToKnowledgeChunk(row: KnowledgeChunkRow): KnowledgeChunk {
     content: row.content,
     chunkIndex: row.chunk_index,
     ...(row.embedding !== null ? { embedding: [...row.embedding] } : {}),
+    ...(row.embedding_profile_id !== null
+      ? { embeddingProfileId: `embedding_profile_${row.embedding_profile_id}` }
+      : {}),
+    ...(row.corpus_generation_id !== null
+      ? { corpusGenerationId: `corpus_generation_${row.corpus_generation_id}` }
+      : {}),
     ...(isRecord(row.metadata) ? { metadata: row.metadata } : {}),
     ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
     createdAt: row.created_at.toISOString(),
@@ -52,23 +60,47 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
   async create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk> {
     const sourceUuid = stripPrefix('knowledge_source_', params.sourceId)
     const visibleToAvatarIds = normalizeVisibleToAvatarIds(params.visibleToAvatarIds)
+    validateEmbeddingIdentity(params)
 
     const embeddingExpression =
       params.embedding === undefined
         ? this.sql`NULL`
         : this.sql`${JSON.stringify(params.embedding)}::vector`
+    const profileUuid =
+      params.embeddingProfileId === undefined
+        ? null
+        : extractUuid('embedding_profile_', params.embeddingProfileId)
+    const generationUuid =
+      params.corpusGenerationId === undefined
+        ? null
+        : extractUuid('corpus_generation_', params.corpusGenerationId)
+    if (params.embedding !== undefined && (profileUuid === null || generationUuid === null)) {
+      throw new Error('Embedding profile and corpus generation ids must be valid UUIDs.')
+    }
 
     const [row] = await this.sql<[KnowledgeChunkDbRow?]>`
-      INSERT INTO knowledge_chunks (source_id, content, chunk_index, embedding, metadata, visible_to_avatar_ids)
+      INSERT INTO knowledge_chunks (
+        source_id,
+        content,
+        chunk_index,
+        embedding,
+        embedding_profile_id,
+        corpus_generation_id,
+        metadata,
+        visible_to_avatar_ids
+      )
       VALUES (
         ${sourceUuid},
         ${params.content},
         ${params.chunkIndex},
         ${embeddingExpression},
+        ${profileUuid},
+        ${generationUuid},
         ${this.sql.json((params.metadata ?? {}) as JSONValue)},
         ${visibleToAvatarIds ?? null}
       )
-      RETURNING id, source_id, content, chunk_index, embedding::text, metadata, visible_to_avatar_ids, created_at
+      RETURNING id, source_id, content, chunk_index, embedding::text, embedding_profile_id,
+        corpus_generation_id, metadata, visible_to_avatar_ids, created_at
     `
 
     if (row === undefined) {
@@ -83,9 +115,18 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
     if (sourceUuid === null) return []
 
     const rows = await this.sql<KnowledgeChunkDbRow[]>`
-      SELECT id, source_id, content, chunk_index, embedding::text, metadata, visible_to_avatar_ids, created_at
-      FROM knowledge_chunks
-      WHERE source_id = ${sourceUuid}
+      SELECT c.id, c.source_id, c.content, c.chunk_index, c.embedding::text,
+        c.embedding_profile_id, c.corpus_generation_id, c.metadata, c.visible_to_avatar_ids, c.created_at
+      FROM knowledge_chunks c
+      CROSS JOIN knowledge_corpus_state state
+      WHERE c.source_id = ${sourceUuid}
+        AND (
+          (state.active_generation_id IS NULL AND c.corpus_generation_id IS NULL)
+          OR (
+            c.corpus_generation_id = state.active_generation_id
+            AND c.embedding_profile_id = state.active_profile_id
+          )
+        )
       ORDER BY chunk_index ASC
     `
 
@@ -99,10 +140,19 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
     if (uuids.length === 0) return []
 
     const rows = await this.sql<KnowledgeChunkDbRow[]>`
-      SELECT id, source_id, content, chunk_index, embedding::text, metadata, visible_to_avatar_ids, created_at
-      FROM knowledge_chunks
-      WHERE source_id IN ${this.sql(uuids)}
-      ORDER BY source_id ASC, chunk_index ASC
+      SELECT c.id, c.source_id, c.content, c.chunk_index, c.embedding::text,
+        c.embedding_profile_id, c.corpus_generation_id, c.metadata, c.visible_to_avatar_ids, c.created_at
+      FROM knowledge_chunks c
+      CROSS JOIN knowledge_corpus_state state
+      WHERE c.source_id IN ${this.sql(uuids)}
+        AND (
+          (state.active_generation_id IS NULL AND c.corpus_generation_id IS NULL)
+          OR (
+            c.corpus_generation_id = state.active_generation_id
+            AND c.embedding_profile_id = state.active_profile_id
+          )
+        )
+      ORDER BY c.source_id ASC, c.chunk_index ASC
     `
 
     return rows.map((row) => rowToKnowledgeChunk(normalizeEmbeddingRow(row)))
@@ -119,6 +169,20 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
     `
 
     return rows.length
+  }
+}
+
+function validateEmbeddingIdentity(params: CreateKnowledgeChunkParams): void {
+  const hasEmbedding = params.embedding !== undefined
+  const hasIdentity =
+    params.embeddingProfileId !== undefined || params.corpusGenerationId !== undefined
+  if (hasEmbedding && (!params.embeddingProfileId || !params.corpusGenerationId)) {
+    throw new Error(
+      'Vectorized knowledge chunks require an embedding profile and corpus generation.',
+    )
+  }
+  if (!hasEmbedding && hasIdentity) {
+    throw new Error('Embedding profile and corpus generation require a vectorized chunk.')
   }
 }
 

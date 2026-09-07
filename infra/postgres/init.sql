@@ -71,12 +71,47 @@ CREATE TABLE IF NOT EXISTS knowledge_sources (
   CHECK (status IN ('pending', 'ready', 'error'))
 );
 
+CREATE TABLE IF NOT EXISTS embedding_profiles (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider    TEXT        NOT NULL,
+  model       TEXT        NOT NULL,
+  dimensions  INT         NOT NULL CHECK (dimensions = 16),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (provider, model, dimensions)
+);
+
+CREATE TABLE IF NOT EXISTS corpus_generations (
+  id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  embedding_profile_id  UUID        NOT NULL REFERENCES embedding_profiles(id),
+  status                TEXT        NOT NULL DEFAULT 'staging',
+  expected_source_count INT         NOT NULL CHECK (expected_source_count >= 0),
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  validated_at          TIMESTAMPTZ,
+  activated_at          TIMESTAMPTZ,
+  UNIQUE (id, embedding_profile_id),
+  CHECK (status IN ('staging', 'validated', 'active', 'superseded', 'failed'))
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_corpus_state (
+  id                    INTEGER     PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  active_generation_id  UUID,
+  active_profile_id    UUID,
+  FOREIGN KEY (active_generation_id, active_profile_id)
+    REFERENCES corpus_generations(id, embedding_profile_id)
+);
+
+INSERT INTO knowledge_corpus_state (id)
+VALUES (1)
+ON CONFLICT (id) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS knowledge_chunks (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   source_id       UUID        NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
   content         TEXT        NOT NULL,
   chunk_index     INT         NOT NULL,
   embedding       VECTOR(16),
+  embedding_profile_id UUID REFERENCES embedding_profiles(id),
+  corpus_generation_id UUID,
   metadata        JSONB       NOT NULL DEFAULT '{}',
   visible_to_avatar_ids TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -87,21 +122,53 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
 ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[];
 ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[];
 ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visibility_policy TEXT CHECK (visibility_policy IN ('all', 'avatars', 'none'));
+ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS embedding_profile_id UUID;
+ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS corpus_generation_id UUID;
 
--- Ensure the embedding column keeps a fixed dimension required by ivfflat.
+-- Existing vectors were created before profile identity existed. Keep their source content for
+-- regeneration, but make the vectors ineligible for retrieval instead of treating them as real
+-- provider vectors.
+UPDATE knowledge_chunks
+SET embedding = NULL,
+    embedding_profile_id = NULL,
+    corpus_generation_id = NULL
+WHERE embedding IS NOT NULL
+  AND (embedding_profile_id IS NULL OR corpus_generation_id IS NULL);
+
+-- The supported production profile is text-embedding-3-small with 16 dimensions. A dimension
+-- change requires a corresponding migration and a complete staged reindex.
 DO $$
 BEGIN
-  BEGIN
+  ALTER TABLE knowledge_chunks
+    ALTER COLUMN embedding TYPE VECTOR(16)
+    USING CASE
+      WHEN embedding IS NULL THEN NULL
+      ELSE embedding::vector(16)
+    END;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'knowledge_chunks_generation_profile_fkey'
+  ) THEN
     ALTER TABLE knowledge_chunks
-      ALTER COLUMN embedding TYPE VECTOR(16)
-      USING CASE
-        WHEN embedding IS NULL THEN NULL
-        ELSE embedding::vector(16)
-      END;
-  EXCEPTION
-    WHEN OTHERS THEN
-      RAISE WARNING 'Could not enforce VECTOR(16) on knowledge_chunks.embedding: %', SQLERRM;
-  END;
+      ADD CONSTRAINT knowledge_chunks_generation_profile_fkey
+      FOREIGN KEY (corpus_generation_id, embedding_profile_id)
+      REFERENCES corpus_generations(id, embedding_profile_id);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'knowledge_chunks_embedding_identity_check'
+  ) THEN
+    ALTER TABLE knowledge_chunks
+      ADD CONSTRAINT knowledge_chunks_embedding_identity_check
+      CHECK (
+        (embedding IS NULL AND embedding_profile_id IS NULL AND corpus_generation_id IS NULL)
+        OR
+        (embedding IS NOT NULL AND embedding_profile_id IS NOT NULL AND corpus_generation_id IS NOT NULL)
+      );
+  END IF;
 END;
 $$;
 
@@ -120,6 +187,54 @@ CREATE TABLE IF NOT EXISTS ingestion_jobs (
 );
 
 ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS chunk_size INT;
+
+CREATE TABLE IF NOT EXISTS reindex_operations (
+  id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  corpus_generation_id  UUID        NOT NULL UNIQUE,
+  embedding_profile_id  UUID        NOT NULL,
+  status                TEXT        NOT NULL DEFAULT 'pending',
+  attempts              INT         NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+  expected_source_count INT         NOT NULL CHECK (expected_source_count >= 0),
+  completed_source_count INT        NOT NULL DEFAULT 0 CHECK (completed_source_count >= 0),
+  started_at            TIMESTAMPTZ,
+  completed_at          TIMESTAMPTZ,
+  failure_details       TEXT,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  FOREIGN KEY (corpus_generation_id, embedding_profile_id)
+    REFERENCES corpus_generations(id, embedding_profile_id),
+  CHECK (status IN ('pending', 'running', 'completed', 'failed'))
+);
+
+CREATE TABLE IF NOT EXISTS corpus_generation_sources (
+  corpus_generation_id  UUID        NOT NULL REFERENCES corpus_generations(id) ON DELETE CASCADE,
+  source_id             UUID        NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
+  status                TEXT        NOT NULL DEFAULT 'pending',
+  expected_chunk_count  INT,
+  completed_chunk_count INT         NOT NULL DEFAULT 0,
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (corpus_generation_id, source_id),
+  CHECK (status IN ('pending', 'running', 'completed', 'failed')),
+  CHECK (expected_chunk_count IS NULL OR expected_chunk_count >= 0),
+  CHECK (completed_chunk_count >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS reindex_operation_sources (
+  reindex_operation_id  UUID        NOT NULL REFERENCES reindex_operations(id) ON DELETE CASCADE,
+  source_id             UUID        NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
+  status                TEXT        NOT NULL DEFAULT 'pending',
+  attempts              INT         NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+  expected_chunk_count  INT,
+  completed_chunk_count INT         NOT NULL DEFAULT 0,
+  started_at            TIMESTAMPTZ,
+  completed_at          TIMESTAMPTZ,
+  failure_details       TEXT,
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (reindex_operation_id, source_id),
+  CHECK (status IN ('pending', 'running', 'completed', 'failed')),
+  CHECK (expected_chunk_count IS NULL OR expected_chunk_count >= 0),
+  CHECK (completed_chunk_count >= 0)
+);
 
 -- ── Sessions ──────────────────────────────────────────────────────────────────
 
@@ -281,26 +396,17 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_sources_scope
   ON knowledge_sources(scenario_id, knowledge_type, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_chunk
   ON knowledge_chunks(source_id, chunk_index);
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM pg_attribute
-    WHERE attrelid = 'knowledge_chunks'::regclass
-      AND attname = 'embedding'
-      AND atttypmod > 0
-  ) THEN
-    CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding
-      ON knowledge_chunks USING ivfflat (embedding vector_cosine_ops)
-      WITH (lists = 100)
-      WHERE embedding IS NOT NULL;
-  ELSE
-    RAISE WARNING 'Skipping idx_knowledge_chunks_embedding: embedding has no fixed dimensions.';
-  END IF;
-END;
-$$;
+DROP INDEX IF EXISTS idx_knowledge_chunks_embedding;
+CREATE INDEX idx_knowledge_chunks_embedding
+  ON knowledge_chunks USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100)
+  WHERE embedding IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_source_status
   ON ingestion_jobs(source_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_active_generation
+  ON knowledge_chunks(corpus_generation_id, embedding_profile_id, source_id, chunk_index);
+CREATE INDEX IF NOT EXISTS idx_reindex_operations_status
+  ON reindex_operations(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_scenario_id  ON sessions(scenario_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_active_avatar_id ON sessions(active_avatar_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON conversations(session_id);
