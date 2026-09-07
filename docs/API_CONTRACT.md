@@ -223,6 +223,25 @@ Message-stream contract ownership:
 the target character size for that asynchronous ingestion job, is persisted for retries, and keeps
 the default 1500-character target when omitted.
 
+### Knowledge Reindex Operations
+
+These authenticated operator routes use the standard `ApiResponse<T>` envelope and expose only
+bounded operation/source diagnostics; they never return source content, vectors, credentials, or
+provider payloads.
+
+- `POST /v1/admin/knowledge/reindex` -> `StartKnowledgeReindexResponse`; accepts only an empty
+  JSON object and returns `202` when started/reused or `200` when the configured profile is already
+  active.
+- `GET /v1/admin/knowledge/reindex/{reindexOperationId}` -> `GetKnowledgeReindexResponse`; returns
+  `404 NOT_FOUND` for an unknown operation.
+- `POST /v1/admin/knowledge/reindex/{reindexOperationId}/retry` -> `RetryKnowledgeReindexResponse`;
+  accepts only an empty JSON object, returns `202`, `404 NOT_FOUND` for an unknown operation, and
+  `409 CONFLICT` unless the operation is failed.
+
+All three routes require `x-api-key`. Invalid bodies or path parameters return `400
+VALIDATION_ERROR`. Reindex status is asynchronous: the active corpus remains unchanged until all
+snapshotted sources validate and promotion commits atomically.
+
 ### User Persona And Memory
 
 - `PUT /v1/users/{userId}/persona` -> `UpsertUserPersonaRequest` -> `UpsertUserPersonaResponse`

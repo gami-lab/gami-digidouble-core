@@ -345,7 +345,7 @@ function embeddingDiagnostics(activeCorpus: ActiveCorpus | null): Record<string,
   }
 }
 
-function validateEmbeddingResult(
+export function validateEmbeddingResult(
   result: EmbeddingBatchResult,
   expectedProfile: EmbeddingProfile,
   expectedCount: number,
@@ -422,7 +422,7 @@ type MarkdownHeading = {
   content: string
 }
 
-function toChunkSeeds(
+export function toChunkSeeds(
   source: KnowledgeSource,
   content: string,
   loadedMetadata?: Record<string, unknown>,

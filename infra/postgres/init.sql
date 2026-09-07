@@ -192,6 +192,8 @@ CREATE TABLE IF NOT EXISTS reindex_operations (
   id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   corpus_generation_id  UUID        NOT NULL UNIQUE,
   embedding_profile_id  UUID        NOT NULL,
+  expected_active_generation_id UUID,
+  expected_active_profile_id UUID,
   status                TEXT        NOT NULL DEFAULT 'pending',
   attempts              INT         NOT NULL DEFAULT 0 CHECK (attempts >= 0),
   expected_source_count INT         NOT NULL CHECK (expected_source_count >= 0),

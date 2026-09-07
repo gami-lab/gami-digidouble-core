@@ -74,22 +74,24 @@ deltas, and a partial avatar message is never saved.
 | `corpus_generations` | Immutable staged or active replacement corpus | `id`, `embedding_profile_id`, `status`, `expected_source_count`, lifecycle timestamps | A generation belongs to exactly one profile. Status is `staging`, `validated`, `active`, `superseded`, or `failed`. |
 | `knowledge_corpus_state` | Atomic active-corpus pointer | `id=1`, `active_generation_id`, `active_profile_id` | Singleton database-owned pointer. Normal reads use this pair and never expose staged generations. |
 | `knowledge_chunks` | Retrieval chunks derived from knowledge sources | `id`, `source_id`, `content`, `chunk_index`, `embedding`, `embedding_profile_id`, `corpus_generation_id`, `metadata`, `visible_to_avatar_ids`, `created_at` | Vectorized chunks must carry both immutable identities. The fixed column is `VECTOR(16)` and uses `vector_cosine_ops`; old unprofiled vectors are nulled during schema alignment while source content remains. Normal ingestion replaces only the source's rows in the active generation inside one transaction. |
-| `reindex_operations` | Replacement corpus lifecycle tracking | `id`, `corpus_generation_id`, `embedding_profile_id`, `status`, `attempts`, source counts, timestamps, bounded `failure_details` | Tracks `pending`, `running`, `completed`, and `failed` operations. |
+| `reindex_operations` | Replacement corpus lifecycle tracking | `id`, `corpus_generation_id`, `embedding_profile_id`, expected active profile/generation, `status`, `attempts`, source counts, timestamps, bounded `failure_details` | Tracks `pending`, `running`, `completed`, and `failed` operations. The expected active pair is a promotion compare-and-set guard. |
 | `reindex_operation_sources` | Per-operation source progress | `reindex_operation_id`, `source_id`, `status`, `attempts`, chunk counts, timestamps, bounded `failure_details` | Unique per operation/source and idempotently replaceable. |
 | `corpus_generation_sources` | Per-generation completeness ledger | `corpus_generation_id`, `source_id`, `status`, expected/completed chunk counts | Promotion requires every expected source to complete and all staged vectors to be non-null. |
 | `ingestion_jobs` | Knowledge ingestion lifecycle tracking | `id`, `source_id`, `status`, `attempts`, `chunk_size`, `started_at`, `completed_at`, `error_message`, `created_at`, `updated_at` | Tracks queued/running/completed/failed ingestion work. Full-corpus replacement is owned by reindex operations, not this per-source job. |
 
 Core Application owns the provider-neutral `EmbeddingProfile` and reindex-operation contracts.
 Infrastructure maps them to the internal PostgreSQL profile, generation, active-pointer, and
-progress tables. The current public source/chunk/ingestion-job DTOs remain unchanged; shared admin
-DTOs are only needed if a future operator API exposes reindex state.
+progress tables. The current public source/chunk/ingestion-job DTOs remain unchanged. The
+authenticated operator routes expose additive shared projections for profile and operation/source
+status; those DTOs do not mirror persistence rows or include vectors/content.
 
 `knowledge_corpus_state` is the canonical owner of the active profile/generation identity.
 `knowledge_chunks` are immutable members of a generation and must have a finite vector matching
 that generation's profile. A source becomes `ready` only after its complete replacement commits
 against the active pointer; failed or stale work leaves a prior ready source unchanged, or keeps a
 source unavailable when no valid active vectors exist. Reindex operation and source-progress
-types are internal Application contracts owned by Core, not duplicated in shared/API DTOs.
+lifecycle types are internal Application contracts owned by Core; only the bounded operator
+projection is shared for the admin API.
 
 ## Relationships
 

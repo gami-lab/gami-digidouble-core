@@ -66,6 +66,7 @@ import { InMemoryModelConfigRepository } from '../infrastructure/db/in-memory-mo
 import { InMemoryKnowledgeSourceContentLoader } from '../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
 import { UnconfiguredEmbeddingAdapter } from '../infrastructure/knowledge/unconfigured-embedding.adapter.js'
 import { adminModelConfigRoute } from './routes/admin-model-config.js'
+import { adminKnowledgeReindexRoute } from './routes/admin-knowledge-reindex.js'
 
 export interface ServerAdapters {
   llmAdapter?: ILlmAdapter
@@ -268,16 +269,33 @@ function registerKnowledgeRoute(
         ? chunkRepository
         : new InMemoryKnowledgeChunkRepository(),
     )
+  const sourceRepository =
+    adapters.knowledgeSourceRepository ?? new InMemoryKnowledgeSourceRepository()
+  const sourceContentLoader =
+    adapters.knowledgeSourceContentLoader ?? new InMemoryKnowledgeSourceContentLoader()
+  const embeddingAdapter = adapters.embeddingAdapter ?? new UnconfiguredEmbeddingAdapter()
+  const eventLogRepository = withDefault(
+    adapters.eventLogRepository,
+    new InMemoryEventLogRepository(),
+  )
   app.register(knowledgeRoute, {
     config,
-    sourceRepository: adapters.knowledgeSourceRepository ?? new InMemoryKnowledgeSourceRepository(),
+    sourceRepository,
     chunkRepository,
     knowledgeCorpusRepository: corpusRepository,
     ingestionJobRepository: adapters.ingestionJobRepository ?? new InMemoryIngestionJobRepository(),
-    sourceContentLoader:
-      adapters.knowledgeSourceContentLoader ?? new InMemoryKnowledgeSourceContentLoader(),
-    embeddingAdapter: adapters.embeddingAdapter ?? new UnconfiguredEmbeddingAdapter(),
-    eventLogRepository: withDefault(adapters.eventLogRepository, new InMemoryEventLogRepository()),
+    sourceContentLoader,
+    embeddingAdapter,
+    eventLogRepository,
+  })
+  app.register(adminKnowledgeReindexRoute, {
+    prefix: '/v1/admin',
+    config,
+    sourceRepository,
+    corpusRepository,
+    sourceContentLoader,
+    embeddingAdapter,
+    eventLogRepository,
   })
 }
 

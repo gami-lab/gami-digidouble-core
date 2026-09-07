@@ -30,6 +30,8 @@ type MutableOperation = {
   reindexOperationId: string
   corpusGenerationId: string
   embeddingProfileId: string
+  expectedActiveProfileId?: string
+  expectedActiveGenerationId?: string
   status: ReindexOperation['status']
   attempts: number
   expectedSourceCount: number
@@ -77,6 +79,11 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     return Promise.resolve(persisted)
   }
 
+  findEmbeddingProfile(embeddingProfileId: string): Promise<PersistedEmbeddingProfile | null> {
+    return Promise.resolve(this.profiles.get(embeddingProfileId) ?? null)
+  }
+
+  // eslint-disable-next-line complexity
   createReindexOperation(params: CreateReindexOperationParams): Promise<ReindexOperation> {
     const profile = this.profiles.get(params.embeddingProfileId)
     if (profile === undefined) throw new Error('Embedding profile not found.')
@@ -84,6 +91,17 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     const operationId = params.reindexOperationId ?? `reindex_operation_${crypto.randomUUID()}`
     const existing = this.operations.get(operationId)
     if (existing !== undefined) return Promise.resolve(publicOperation(existing))
+    const expectedActiveProfileId = this.activeCorpus?.embeddingProfileId
+    const expectedActiveGenerationId = this.activeCorpus?.corpusGenerationId
+    const reusable = [...this.operations.values()].find(
+      (candidate) =>
+        candidate.status !== 'completed' &&
+        candidate.embeddingProfileId === profile.embeddingProfileId &&
+        candidate.expectedActiveProfileId === expectedActiveProfileId &&
+        candidate.expectedActiveGenerationId === expectedActiveGenerationId &&
+        sameStringSet(candidate.sourceIds, sourceIds),
+    )
+    if (reusable !== undefined) return Promise.resolve(publicOperation(reusable))
     const generationId = params.corpusGenerationId ?? `corpus_generation_${crypto.randomUUID()}`
     const now = new Date().toISOString()
     this.generations.set(generationId, {
@@ -97,6 +115,12 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       reindexOperationId: operationId,
       corpusGenerationId: generationId,
       embeddingProfileId: profile.embeddingProfileId,
+      ...(expectedActiveProfileId !== undefined && expectedActiveGenerationId !== undefined
+        ? {
+            expectedActiveProfileId,
+            expectedActiveGenerationId,
+          }
+        : {}),
       status: 'pending',
       attempts: 0,
       expectedSourceCount: sourceIds.length,
@@ -115,6 +139,42 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       })
     }
     return Promise.resolve(publicOperation(operation))
+  }
+
+  claimReindexOperation(reindexOperationId: string): Promise<ReindexOperation | null> {
+    const operation = this.operations.get(reindexOperationId)
+    if (
+      operation === undefined ||
+      (operation.status !== 'pending' && operation.status !== 'failed')
+    ) {
+      return Promise.resolve(null)
+    }
+    operation.status = 'running'
+    operation.attempts += 1
+    operation.startedAt = new Date().toISOString()
+    return Promise.resolve(publicOperation(operation))
+  }
+
+  recoverRunningReindexOperations(): Promise<string[]> {
+    const recovered: string[] = []
+    for (const operation of this.operations.values()) {
+      if (operation.status !== 'running') continue
+      operation.status = 'failed'
+      operation.completedAt = new Date().toISOString()
+      operation.failureDetails = 'worker_interrupted: Reindex worker was interrupted.'
+      recovered.push(operation.reindexOperationId)
+      for (const sourceId of operation.sourceIds) {
+        const progress = this.progress.get(progressKey(operation.reindexOperationId, sourceId))
+        if (progress?.status !== 'running') continue
+        this.progress.set(progressKey(operation.reindexOperationId, sourceId), {
+          ...progress,
+          status: 'failed',
+          completedAt: new Date().toISOString(),
+          failureDetails: 'worker_interrupted: Reindex worker was interrupted.',
+        })
+      }
+    }
+    return Promise.resolve(recovered)
   }
 
   findReindexOperation(reindexOperationId: string): Promise<ReindexOperation | null> {
@@ -281,9 +341,16 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     return validation
   }
 
+  // eslint-disable-next-line complexity
   async promoteCorpusGeneration(reindexOperationId: string): Promise<ActiveCorpus> {
     const operation = this.operations.get(reindexOperationId)
     if (operation === undefined) throw new Error('Reindex operation not found.')
+    if (
+      operation.expectedActiveProfileId !== this.activeCorpus?.embeddingProfileId ||
+      operation.expectedActiveGenerationId !== this.activeCorpus?.corpusGenerationId
+    ) {
+      throw new Error('Active corpus changed; active corpus was preserved.')
+    }
     const validation = await this.validateCorpusGeneration(reindexOperationId)
     if (!validation.valid) throw new Error(validation.failureDetails ?? 'Corpus validation failed.')
     const profile = this.profiles.get(operation.embeddingProfileId)
@@ -341,11 +408,21 @@ function progressKey(operationId: string, sourceId: string): string {
   return `${operationId}:${sourceId}`
 }
 
+function sameStringSet(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value) => right.includes(value))
+}
+
 function publicOperation(operation: MutableOperation): ReindexOperation {
   return {
     reindexOperationId: operation.reindexOperationId,
     corpusGenerationId: operation.corpusGenerationId,
     embeddingProfileId: operation.embeddingProfileId,
+    ...(operation.expectedActiveProfileId !== undefined
+      ? { expectedActiveProfileId: operation.expectedActiveProfileId }
+      : {}),
+    ...(operation.expectedActiveGenerationId !== undefined
+      ? { expectedActiveGenerationId: operation.expectedActiveGenerationId }
+      : {}),
     status: operation.status,
     attempts: operation.attempts,
     expectedSourceCount: operation.expectedSourceCount,

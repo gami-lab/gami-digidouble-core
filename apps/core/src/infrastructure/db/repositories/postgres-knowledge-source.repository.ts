@@ -149,6 +149,16 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
     return row === undefined ? null : rowToKnowledgeSource(row)
   }
 
+  async listAll(): Promise<KnowledgeSource[]> {
+    const rows = await this.sql<KnowledgeSourceRow[]>`
+      SELECT id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata,
+        visibility_policy, visible_to_avatar_ids, created_at, updated_at
+      FROM knowledge_sources
+      ORDER BY id ASC
+    `
+    return rows.map(rowToKnowledgeSource)
+  }
+
   async listByScenario(filters: ListKnowledgeSourcesFilters): Promise<KnowledgeSource[]> {
     const scenarioUuid = extractUuid('scenario_', filters.scenarioId)
     if (scenarioUuid === null) return []

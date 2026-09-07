@@ -82,6 +82,8 @@ const SCHEMA_ALIGNMENT_STATEMENTS = [
       REFERENCES corpus_generations(id, embedding_profile_id),
     CHECK (status IN ('pending', 'running', 'completed', 'failed'))
   )`,
+  'ALTER TABLE reindex_operations ADD COLUMN IF NOT EXISTS expected_active_generation_id UUID',
+  'ALTER TABLE reindex_operations ADD COLUMN IF NOT EXISTS expected_active_profile_id UUID',
   `CREATE TABLE IF NOT EXISTS corpus_generation_sources (
     corpus_generation_id UUID NOT NULL REFERENCES corpus_generations(id) ON DELETE CASCADE,
     source_id UUID NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,

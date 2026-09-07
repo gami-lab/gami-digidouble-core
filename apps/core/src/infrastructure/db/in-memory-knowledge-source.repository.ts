@@ -68,6 +68,14 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
     return Promise.resolve(source === undefined ? null : normalizeSource(source))
   }
 
+  listAll(): Promise<KnowledgeSource[]> {
+    return Promise.resolve(
+      [...this.sources.values()]
+        .map(normalizeSource)
+        .sort((left, right) => left.sourceId.localeCompare(right.sourceId)),
+    )
+  }
+
   listByScenario(filters: ListKnowledgeSourcesFilters): Promise<KnowledgeSource[]> {
     const sources = [...this.sources.values()]
       .filter((source) => source.scenarioId === filters.scenarioId)

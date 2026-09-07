@@ -407,10 +407,11 @@ none are derived from `LLM_PROVIDER` or chat-role model configuration. Productio
 constructs this adapter before the server listens and has no hash-vector fallback.
 
 `@gami/shared` remains the owner of public source, chunk, ingestion-job, and retrieval DTOs. The
-current public DTOs intentionally do not expose vectors or embedding profiles. Persisted vector
-profile/corpus identity is owned by the Core knowledge persistence contract and mapped by
-Infrastructure; it is not added to shared DTOs unless an operator API later exposes it. Reindex-
-operation types are likewise Application-owned until a deliberate admin API requires shared DTOs.
+current public source/chunk/ingestion DTOs intentionally do not expose vectors or embedding
+profiles. Persisted vector/corpus identity is owned by the Core knowledge persistence contract and
+mapped by Infrastructure. The authenticated reindex operator routes use additive shared DTOs for
+bounded profile and progress projections; persistence rows remain internal. Reindex-operation
+workflow types remain Application-owned.
 
 `KnowledgeIngestionService` snapshots `{ activeCorpus, profile }` before chunking, validates the
 provider result against that immutable snapshot, and publishes one source through
@@ -443,6 +444,21 @@ full staged reindex; configuration alone cannot select a mixed vector space.
 Profile-aware migration call sites are therefore limited to the ingestion service, query-vector
 application boundary, embedding composition/configuration, chunk persistence, and future reindex
 orchestration. Existing console/admin clients continue consuming the shared wire DTOs.
+
+### Full reindex and operator control flow
+
+`KnowledgeReindexService` snapshots the configured target profile and the canonical source ID set
+when it creates or reuses an operation. Each source is loaded, chunked by the existing deterministic
+chunker, embedded through `IEmbeddingAdapter`, and transactionally replaced in an isolated target
+generation. Per-source progress is idempotent and safe to retry. A singleton active-pointer lock,
+the stored expected active profile/generation, and final completeness validation prevent a stale or
+partial operation from becoming active. The previous active generation remains queryable throughout.
+
+`POST /v1/admin/knowledge/reindex` schedules the operation without blocking the HTTP request;
+`GET` exposes bounded progress; and `POST .../retry` resumes failed work. On application startup,
+running operations from a prior process are marked interrupted and resumed explicitly by the same
+service, so a restart cannot leave a permanently ambiguous operation. Duplicate workers are
+serialized by the repository claim transition.
 
 ---
 

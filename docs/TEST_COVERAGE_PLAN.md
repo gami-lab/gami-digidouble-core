@@ -260,7 +260,9 @@ Must cover:
 Must cover staged-generation invisibility, source replacement, profile/dimension validation,
 completeness checks, active-generation switching, PostgreSQL constraints, legacy-vector
 invalidation, failed promotion, active-source transactional replacement, stale publication
-rejection, and atomic active-pointer visibility.
+rejection, atomic active-pointer visibility, full reindex source enumeration, duplicate/concurrent
+worker claims, retry/restart recovery, bounded operator diagnostics, and admin route auth,
+validation, not-found, start/status/retry, and opt-in stack-e2e paths.
 
 ## Critical Release Flows
 

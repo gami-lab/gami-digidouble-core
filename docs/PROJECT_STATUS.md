@@ -94,7 +94,7 @@ The platform is now a working headless conversational runtime with:
 - Context Engine assembles bounded Avatar and GM projections with deterministic precedence and trace metadata.
 - Avatar prompt assembly consumes structured runtime sections, including prepared avatar traits when available.
 
-#### EPIC 5.1c embedding and corpus foundation (in progress)
+#### EPIC 5.1c embedding, corpus, and safe reindexing (in progress)
 
 The application embedding port now owns `EmbeddingProfile`, ordered batch request/result metadata,
 provider-neutral usage, and finite typed failures. `KnowledgeChunk` stores a readonly vector value,
@@ -114,8 +114,10 @@ profile/generation work is rejected without replacing the previous active source
 also exposes `KnowledgeQueryEmbeddingService` as the single profile-tagged query-vector boundary
 for EPIC 5.1d; nearest-neighbor retrieval is not implemented yet.
 The deployed schema remains fixed at `VECTOR(16)` with `vector_cosine_ops`; configuration rejects
-another dimension until its migration and full staged reindex exist. Full reindex orchestration and
-vector retrieval remain open.
+another dimension until its migration and full staged reindex exist. Full reindex orchestration is
+now available through the authenticated operator start/status/retry routes, with source snapshots,
+idempotent staging, interrupted-worker recovery, completeness validation, and atomic promotion.
+Nearest-neighbor vector retrieval remains open for EPIC 5.1d.
 Public source/chunk/ingestion-job DTOs are unchanged and continue to be owned by `@gami/shared`.
 
 ### Operations

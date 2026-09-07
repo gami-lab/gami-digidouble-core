@@ -63,6 +63,57 @@ export type IngestionJobDto = {
   createdAt: string
 }
 
+export type KnowledgeEmbeddingProfileDto = {
+  provider: string
+  model: string
+  dimensions: number
+}
+
+export type KnowledgeReindexOperationStatus = 'pending' | 'running' | 'completed' | 'failed'
+
+export type KnowledgeReindexSourceStatus = 'pending' | 'running' | 'completed' | 'failed'
+
+export type KnowledgeReindexOperationDto = {
+  reindexOperationId: string
+  corpusGenerationId: string
+  embeddingProfileId: string
+  profile: KnowledgeEmbeddingProfileDto
+  status: KnowledgeReindexOperationStatus
+  attempts: number
+  expectedSourceCount: number
+  completedSourceCount: number
+  createdAt: string
+  startedAt?: string
+  completedAt?: string
+  failureDetails?: string
+}
+
+export type KnowledgeReindexSourceProgressDto = {
+  reindexOperationId: string
+  sourceId: string
+  status: KnowledgeReindexSourceStatus
+  attempts: number
+  expectedChunkCount?: number
+  completedChunkCount: number
+  startedAt?: string
+  completedAt?: string
+  failureDetails?: string
+}
+
+export type StartKnowledgeReindexResponse = {
+  status: 'started' | 'reused' | 'already_active'
+  operation: KnowledgeReindexOperationDto | null
+}
+
+export type GetKnowledgeReindexResponse = {
+  operation: KnowledgeReindexOperationDto
+  sources: KnowledgeReindexSourceProgressDto[]
+}
+
+export type RetryKnowledgeReindexResponse = {
+  operation: KnowledgeReindexOperationDto
+}
+
 export type RetrievedKnowledgeItemDto = {
   sourceId: string
   chunkId: string

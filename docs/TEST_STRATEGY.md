@@ -286,5 +286,8 @@ Knowledge corpus persistence tests cover deterministic in-memory parity and Post
 behavior. The PostgreSQL suite verifies fixed-dimension/profile constraints, legacy vector
 invalidation assumptions, staging isolation, idempotent source replacement, failed promotion
 preservation, active-source transactional replacement, stale publication rejection, and the atomic
-active-pointer switch. Integration tests remain skipped when
+active-pointer switch. Reindex tests additionally cover source-set snapshotting, duplicate starts,
+single-worker claims, failed-source retry, interrupted-worker recovery, completeness blocking, and
+operator route authentication/validation/not-found envelopes. Every reindex route has a colocated
+opt-in stack-e2e contract test. Integration tests remain skipped when
 `DATABASE_URL` is unavailable.

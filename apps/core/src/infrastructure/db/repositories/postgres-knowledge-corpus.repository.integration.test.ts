@@ -217,4 +217,32 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
       { content: 'replacement' },
     ])
   })
+
+  it('claims one worker and recovers an interrupted operation for retry', async () => {
+    const [firstSource] = await seedSources()
+    const profile = await corpusRepository.createEmbeddingProfile({
+      provider: 'test',
+      model: 'test-embedding',
+      dimensions: 16,
+    })
+    const operation = await corpusRepository.createReindexOperation({
+      embeddingProfileId: profile.embeddingProfileId,
+      sourceIds: [firstSource],
+    })
+
+    const claims = await Promise.all([
+      corpusRepository.claimReindexOperation(operation.reindexOperationId),
+      corpusRepository.claimReindexOperation(operation.reindexOperationId),
+    ])
+    expect(claims.filter((claim) => claim !== null)).toHaveLength(1)
+    await expect(corpusRepository.recoverRunningReindexOperations()).resolves.toEqual([
+      operation.reindexOperationId,
+    ])
+    await expect(
+      corpusRepository.findReindexOperation(operation.reindexOperationId),
+    ).resolves.toMatchObject({
+      status: 'failed',
+      attempts: 1,
+    })
+  })
 })

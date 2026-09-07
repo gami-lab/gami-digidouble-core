@@ -28,6 +28,8 @@ export type ReindexOperation = Readonly<{
   reindexOperationId: string
   corpusGenerationId: string
   embeddingProfileId: string
+  expectedActiveProfileId?: string
+  expectedActiveGenerationId?: string
   status: ReindexOperationStatus
   attempts: number
   expectedSourceCount: number
@@ -115,7 +117,10 @@ export type ActiveCorpus = Readonly<{
 
 export interface IKnowledgeCorpusRepository {
   createEmbeddingProfile(profile: EmbeddingProfile): Promise<PersistedEmbeddingProfile>
+  findEmbeddingProfile(embeddingProfileId: string): Promise<PersistedEmbeddingProfile | null>
   createReindexOperation(params: CreateReindexOperationParams): Promise<ReindexOperation>
+  claimReindexOperation(reindexOperationId: string): Promise<ReindexOperation | null>
+  recoverRunningReindexOperations(): Promise<string[]>
   findReindexOperation(reindexOperationId: string): Promise<ReindexOperation | null>
   updateReindexOperation(
     reindexOperationId: string,

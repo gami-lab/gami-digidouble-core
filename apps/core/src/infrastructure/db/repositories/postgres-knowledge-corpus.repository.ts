@@ -24,6 +24,8 @@ type ReindexOperationRow = {
   id: string
   corpus_generation_id: string
   embedding_profile_id: string
+  expected_active_generation_id: string | null
+  expected_active_profile_id: string | null
   status: ReindexOperation['status']
   attempts: number
   expected_source_count: number
@@ -92,6 +94,28 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     }
   }
 
+  async findEmbeddingProfile(
+    embeddingProfileId: string,
+  ): Promise<PersistedEmbeddingProfile | null> {
+    const uuid = extractUuid('embedding_profile_', embeddingProfileId)
+    if (uuid === null) return null
+    const [row] = await this.sql<
+      { id: string; provider: string; model: string; dimensions: number; created_at: Date }[]
+    >`
+      SELECT id, provider, model, dimensions, created_at
+      FROM embedding_profiles
+      WHERE id = ${uuid}
+    `
+    if (row === undefined) return null
+    return {
+      embeddingProfileId: `embedding_profile_${row.id}`,
+      provider: row.provider,
+      model: row.model,
+      dimensions: row.dimensions,
+      createdAt: row.created_at.toISOString(),
+    }
+  }
+
   async createReindexOperation(params: CreateReindexOperationParams): Promise<ReindexOperation> {
     const profileUuid = requireUuid('embedding_profile_', params.embeddingProfileId)
     const operationUuid = params.reindexOperationId
@@ -106,14 +130,49 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     const now = new Date().toISOString()
 
     return this.sql.begin(async (tx) => {
+      const [activeState] = await tx<
+        { active_generation_id: string | null; active_profile_id: string | null }[]
+      >`
+        SELECT active_generation_id, active_profile_id
+        FROM knowledge_corpus_state
+        WHERE id = 1
+        FOR UPDATE
+      `
+      if (activeState === undefined) throw new Error('Active corpus state is unavailable.')
       const [existing] = await tx<ReindexOperationRow[]>`
-        SELECT id, corpus_generation_id, embedding_profile_id, status, attempts,
+        SELECT id, corpus_generation_id, embedding_profile_id,
+          expected_active_generation_id, expected_active_profile_id, status, attempts,
           expected_source_count, completed_source_count, created_at, started_at,
           completed_at, failure_details
         FROM reindex_operations
         WHERE id = ${operationUuid}
       `
       if (existing !== undefined) return rowToOperation(existing)
+
+      const candidates = await tx<ReindexOperationRow[]>`
+        SELECT id, corpus_generation_id, embedding_profile_id,
+          expected_active_generation_id, expected_active_profile_id, status, attempts,
+          expected_source_count, completed_source_count, created_at, started_at,
+          completed_at, failure_details
+        FROM reindex_operations
+        WHERE embedding_profile_id = ${profileUuid}
+          AND status IN ('pending', 'running', 'failed')
+          AND expected_active_generation_id IS NOT DISTINCT FROM ${activeState.active_generation_id}
+          AND expected_active_profile_id IS NOT DISTINCT FROM ${activeState.active_profile_id}
+        ORDER BY created_at ASC
+      `
+      for (const candidate of candidates) {
+        const candidateSources = await tx<{ source_id: string }[]>`
+          SELECT source_id FROM reindex_operation_sources
+          WHERE reindex_operation_id = ${candidate.id}
+        `
+        if (
+          candidateSources.length === sourceUuids.length &&
+          candidateSources.every((source) => sourceUuids.includes(source.source_id))
+        ) {
+          return rowToOperation(candidate)
+        }
+      }
 
       await tx`
         INSERT INTO corpus_generations (
@@ -125,10 +184,13 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       `
       await tx`
         INSERT INTO reindex_operations (
-          id, corpus_generation_id, embedding_profile_id, expected_source_count
+          id, corpus_generation_id, embedding_profile_id,
+          expected_active_generation_id, expected_active_profile_id, expected_source_count
         )
         VALUES (
-          ${operationUuid}, ${generationUuid}, ${profileUuid}, ${sourceUuids.length}
+          ${operationUuid}, ${generationUuid}, ${profileUuid},
+          ${activeState.active_generation_id}, ${activeState.active_profile_id},
+          ${sourceUuids.length}
         )
       `
       for (const sourceUuid of sourceUuids) {
@@ -144,7 +206,8 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
         `
       }
       const [row] = await tx<ReindexOperationRow[]>`
-        SELECT id, corpus_generation_id, embedding_profile_id, status, attempts,
+        SELECT id, corpus_generation_id, embedding_profile_id,
+          expected_active_generation_id, expected_active_profile_id, status, attempts,
           expected_source_count, completed_source_count, created_at, started_at,
           completed_at, failure_details
         FROM reindex_operations
@@ -159,13 +222,50 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     const uuid = extractUuid('reindex_operation_', reindexOperationId)
     if (uuid === null) return null
     const [row] = await this.sql<ReindexOperationRow[]>`
-      SELECT id, corpus_generation_id, embedding_profile_id, status, attempts,
+      SELECT id, corpus_generation_id, embedding_profile_id,
+        expected_active_generation_id, expected_active_profile_id, status, attempts,
         expected_source_count, completed_source_count, created_at, started_at,
         completed_at, failure_details
       FROM reindex_operations
       WHERE id = ${uuid}
     `
     return row === undefined ? null : rowToOperation(row)
+  }
+
+  async claimReindexOperation(reindexOperationId: string): Promise<ReindexOperation | null> {
+    const uuid = extractUuid('reindex_operation_', reindexOperationId)
+    if (uuid === null) return null
+    const [row] = await this.sql<ReindexOperationRow[]>`
+      UPDATE reindex_operations
+      SET status = 'running', attempts = attempts + 1, started_at = NOW(), updated_at = NOW()
+      WHERE id = ${uuid} AND status IN ('pending', 'failed')
+      RETURNING id, corpus_generation_id, embedding_profile_id,
+        expected_active_generation_id, expected_active_profile_id, status, attempts,
+        expected_source_count, completed_source_count, created_at, started_at,
+        completed_at, failure_details
+    `
+    return row === undefined ? null : rowToOperation(row)
+  }
+
+  async recoverRunningReindexOperations(): Promise<string[]> {
+    return this.sql.begin(async (tx) => {
+      const rows = await tx<{ id: string }[]>`
+        UPDATE reindex_operations
+        SET status = 'failed', completed_at = NOW(),
+          failure_details = 'worker_interrupted: Reindex worker was interrupted.', updated_at = NOW()
+        WHERE status = 'running'
+        RETURNING id
+      `
+      if (rows.length === 0) return []
+      await tx`
+        UPDATE reindex_operation_sources
+        SET status = 'failed', completed_at = NOW(),
+          failure_details = 'worker_interrupted: Reindex worker was interrupted.', updated_at = NOW()
+        WHERE status = 'running'
+          AND reindex_operation_id = ANY(${tx.array(rows.map((row) => row.id))}::uuid[])
+      `
+      return rows.map((row) => `reindex_operation_${row.id}`)
+    })
   }
 
   async updateReindexOperation(
@@ -186,7 +286,8 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
         ),
         updated_at = NOW()
       WHERE id = ${uuid}
-      RETURNING id, corpus_generation_id, embedding_profile_id, status, attempts,
+      RETURNING id, corpus_generation_id, embedding_profile_id,
+        expected_active_generation_id, expected_active_profile_id, status, attempts,
         expected_source_count, completed_source_count, created_at, started_at,
         completed_at, failure_details
     `
@@ -475,22 +576,40 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     }
   }
 
-  // eslint-disable-next-line max-lines-per-function
+  /* eslint-disable max-lines-per-function, complexity */
   async promoteCorpusGeneration(reindexOperationId: string): Promise<ActiveCorpus> {
     const operationUuid = requireUuid('reindex_operation_', reindexOperationId)
-    // eslint-disable-next-line max-lines-per-function
     return this.sql.begin(async (tx) => {
       const [operation] = await tx<
         {
           generation_id: string
           profile_id: string
+          expected_generation_id: string | null
+          expected_profile_id: string | null
           status: string
         }[]
       >`
-        SELECT corpus_generation_id AS generation_id, embedding_profile_id AS profile_id, status
+        SELECT corpus_generation_id AS generation_id, embedding_profile_id AS profile_id,
+          expected_active_generation_id AS expected_generation_id,
+          expected_active_profile_id AS expected_profile_id, status
         FROM reindex_operations WHERE id = ${operationUuid} FOR UPDATE
       `
       if (operation === undefined) throw new Error('Reindex operation not found.')
+      const [activeState] = await tx<
+        { active_generation_id: string | null; active_profile_id: string | null }[]
+      >`
+        SELECT active_generation_id, active_profile_id
+        FROM knowledge_corpus_state
+        WHERE id = 1
+        FOR UPDATE
+      `
+      if (activeState === undefined) throw new Error('Active corpus state is unavailable.')
+      if (
+        activeState.active_generation_id !== operation.expected_generation_id ||
+        activeState.active_profile_id !== operation.expected_profile_id
+      ) {
+        throw new Error('Active corpus changed; active corpus was preserved.')
+      }
       const [validation] = await tx<
         {
           expected_source_count: number
@@ -584,6 +703,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       }
     })
   }
+  /* eslint-enable max-lines-per-function, complexity */
 
   async getActiveCorpus(): Promise<ActiveCorpus | null> {
     const [row] = await this.sql<
@@ -651,6 +771,12 @@ function rowToOperation(row: ReindexOperationRow): ReindexOperation {
     reindexOperationId: `reindex_operation_${row.id}`,
     corpusGenerationId: `corpus_generation_${row.corpus_generation_id}`,
     embeddingProfileId: `embedding_profile_${row.embedding_profile_id}`,
+    ...(row.expected_active_profile_id !== null
+      ? { expectedActiveProfileId: `embedding_profile_${row.expected_active_profile_id}` }
+      : {}),
+    ...(row.expected_active_generation_id !== null
+      ? { expectedActiveGenerationId: `corpus_generation_${row.expected_active_generation_id}` }
+      : {}),
     status: row.status,
     attempts: row.attempts,
     expectedSourceCount: row.expected_source_count,

@@ -241,8 +241,10 @@ fake. The persistence foundation is now shipped: profiles, immutable generations
 progress, legacy-vector invalidation, staged source replacement, completeness validation, and
 atomic active-corpus promotion are implemented. Normal ingestion now snapshots the active profile,
 publishes source replacement transactionally, rejects stale work, and preserves prior active
-vectors on failure. Query embedding has a profile-tagged application boundary for EPIC 5.1d.
-Full reindex orchestration and nearest-neighbor retrieval remain open.
+vectors on failure. Query embedding has a profile-tagged application boundary for EPIC 5.1d. Full
+reindex orchestration is now available through authenticated start/status/retry controls, with
+immutable source snapshots, idempotent per-source staging, interrupted-worker recovery, bounded
+diagnostics, and atomic promotion. Nearest-neighbor retrieval remains open.
 
 ### `5.1d Vector Retrieval Runtime`
 

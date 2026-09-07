@@ -35,6 +35,7 @@ export type UpdateKnowledgeSourceParams = {
 export interface IKnowledgeSourceRepository {
   create(params: CreateKnowledgeSourceParams): Promise<KnowledgeSource>
   findById(sourceId: string): Promise<KnowledgeSource | null>
+  listAll(): Promise<KnowledgeSource[]>
   listByScenario(filters: ListKnowledgeSourcesFilters): Promise<KnowledgeSource[]>
   updateStatus(sourceId: string, status: KnowledgeSourceStatus): Promise<KnowledgeSource | null>
   update(sourceId: string, updates: UpdateKnowledgeSourceParams): Promise<KnowledgeSource | null>
