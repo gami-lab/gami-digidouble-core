@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse, AdminSessionContextResponse } from '@gami/shared'
+import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -113,12 +114,19 @@ describe('GET /v1/admin/sessions/:sessionId/context — stack not found', () => 
 })
 
 describe('GET /v1/admin/sessions/:sessionId/context — stack happy path', () => {
-  it('returns the stable session context snapshot', async () => {
+  it('returns the stable session context snapshot', async (context) => {
     const seeded = await seedSession()
     try {
       const messageRes = await postJson(`/v1/conversations/${seeded.conversationId}/messages`, {
         message: { content: 'Hello context endpoint' },
       })
+      const messageBody = (await messageRes.json()) as ApiResponse<null>
+      skipIfTransientProviderHttpError(
+        context,
+        process.env['LLM_PROVIDER'] ?? 'configured provider',
+        messageRes.status,
+        messageBody.error?.message,
+      )
       expect(messageRes.status).toBe(200)
 
       const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/context`), {

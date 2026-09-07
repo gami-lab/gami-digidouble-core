@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse, SessionMemoryLayers, SessionMemorySummary } from '@gami/shared'
+import type { TestContext } from 'vitest'
+import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -20,8 +22,12 @@ function requireId<T extends Record<string, unknown>>(value: T | undefined, key:
   return id
 }
 
-async function postConversationMessage(conversationId: string, content: string): Promise<Response> {
-  return fetch(buildUrl(`/v1/conversations/${conversationId}/messages`), {
+async function postConversationMessage(
+  context: TestContext,
+  conversationId: string,
+  content: string,
+): Promise<Response> {
+  const response = await fetch(buildUrl(`/v1/conversations/${conversationId}/messages`), {
     method: 'POST',
     headers: {
       ...authHeaders(),
@@ -29,6 +35,14 @@ async function postConversationMessage(conversationId: string, content: string):
     },
     body: JSON.stringify({ message: { content } }),
   })
+  const body = (await response.json()) as ApiResponse<null>
+  skipIfTransientProviderHttpError(
+    context,
+    process.env['LLM_PROVIDER'] ?? 'configured provider',
+    response.status,
+    body.error?.message,
+  )
+  return response
 }
 
 async function endConversation(sessionId: string, conversationId: string): Promise<Response> {
@@ -207,10 +221,14 @@ describe('GET /v1/admin/sessions/:sessionId/memory — stack behavior', () => {
     }
   })
 
-  it('returns a valid memory summary envelope after conversation close compaction', async () => {
+  it('returns a valid memory summary envelope after conversation close compaction', async (context) => {
     const seeded = await seedSession()
     try {
-      const messageRes = await postConversationMessage(seeded.conversationId, 'Hello there')
+      const messageRes = await postConversationMessage(
+        context,
+        seeded.conversationId,
+        'Hello there',
+      )
       expect(messageRes.status).toBe(200)
 
       const endRes = await endConversation(seeded.sessionId, seeded.conversationId)
@@ -223,10 +241,11 @@ describe('GET /v1/admin/sessions/:sessionId/memory — stack behavior', () => {
     }
   })
 
-  it('returns a numeric longTermFactCount after real conversation close flow', async () => {
+  it('returns a numeric longTermFactCount after real conversation close flow', async (context) => {
     const seeded = await seedSession()
     try {
       const messageRes = await postConversationMessage(
+        context,
         seeded.conversationId,
         'I prefer tea over coffee.',
       )
@@ -257,15 +276,17 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers — stack behavior', (
     expect(response.status).toBe(404)
   })
 
-  it('returns layered memory details in ApiResponse envelope', async () => {
+  it('returns layered memory details in ApiResponse envelope', async (context) => {
     const seeded = await seedSession()
     try {
       const firstMessage = await postConversationMessage(
+        context,
         seeded.conversationId,
         'First memory message',
       )
       expect(firstMessage.status).toBe(200)
       const secondMessage = await postConversationMessage(
+        context,
         seeded.conversationId,
         'Second memory message',
       )

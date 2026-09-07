@@ -4,13 +4,12 @@
  * Fires real HTTP requests against the running Docker stack.
  * No mocking. Requires APP_URL to point to a live server.
  *
- * Always-on tests (null LLM provider — no API key required):
+ * Always-on tests (independent of the LLM provider):
  *   - auth rejection for missing / wrong key
  *   - schema validation rejection
- *   - valid exchange returns correct response shape
  *
- * The Docker stack is configured with API_KEY_SECRET=e2e-stack-secret and
- * LLM_PROVIDER=${LLM_PROVIDER:-null} (see docker-compose.e2e.yml).
+ * The valid exchange response-shape test runs only with the null provider;
+ * provider-backed smoke coverage is guarded for transient provider outages.
  */
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse, RawExchangeResponse } from '@gami/shared'
@@ -66,7 +65,7 @@ describe('Stack E2E — POST /v1/exchange — auth', () => {
 
 const isNullProvider = (process.env['LLM_PROVIDER'] ?? 'null') === 'null'
 
-describe('Stack E2E — POST /v1/exchange — null provider (always-on)', () => {
+describe.skipIf(!isNullProvider)('Stack E2E — POST /v1/exchange — null provider', () => {
   it('returns 200 with correct response envelope', async () => {
     const res = await fetch(`${APP_URL}/v1/exchange`, {
       method: 'POST',

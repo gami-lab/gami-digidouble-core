@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
+import type { TestContext } from 'vitest'
+import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -45,7 +47,7 @@ async function cleanupSession(ids: {
   await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
 }
 
-async function seedConversation(): Promise<{
+async function seedConversation(context: TestContext): Promise<{
   sessionId: string
   conversationId: string
   avatarId: string
@@ -86,6 +88,13 @@ async function seedConversation(): Promise<{
   const messageRes = await postJson(`/v1/conversations/${conversationId}/messages`, {
     message: { content: 'Hello for admin actions' },
   })
+  const messageBody = (await messageRes.json()) as ApiResponse<null>
+  skipIfTransientProviderHttpError(
+    context,
+    process.env['LLM_PROVIDER'] ?? 'configured provider',
+    messageRes.status,
+    messageBody.error?.message,
+  )
   expect(messageRes.status).toBe(200)
 
   return { sessionId, conversationId, avatarId, scenarioId }
@@ -141,8 +150,8 @@ describe('admin runtime actions not-found', () => {
 })
 
 describe('admin runtime actions happy path', () => {
-  it('schedules gm replay', async () => {
-    const seeded = await seedConversation()
+  it('schedules gm replay', async (context) => {
+    const seeded = await seedConversation(context)
     try {
       const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/gm/replay`), {
         method: 'POST',
@@ -158,8 +167,8 @@ describe('admin runtime actions happy path', () => {
     }
   })
 
-  it('schedules memory refresh', async () => {
-    const seeded = await seedConversation()
+  it('schedules memory refresh', async (context) => {
+    const seeded = await seedConversation(context)
     try {
       const response = await fetch(
         buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory/refresh`),
@@ -177,8 +186,8 @@ describe('admin runtime actions happy path', () => {
     }
   })
 
-  it('clears session memory only', async () => {
-    const seeded = await seedConversation()
+  it('clears session memory only', async (context) => {
+    const seeded = await seedConversation(context)
     try {
       const response = await fetch(
         buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory/clear`),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
+import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
@@ -74,7 +75,7 @@ async function seedSessionFixture(
 }
 
 describe('Stack E2E — session/conversation lifecycle', () => {
-  it('runs create session -> create conversation -> send message -> history -> list conversations', async () => {
+  it('runs create session -> create conversation -> send message -> history -> list conversations', async (context) => {
     const { scenarioId, avatarId, sessionId } = await seedSessionFixture(
       `Lifecycle Scenario ${String(Date.now())}`,
       'Avatar A',
@@ -96,6 +97,13 @@ describe('Stack E2E — session/conversation lifecycle', () => {
       const sendRes = await postJson(`/v1/conversations/${conversationId}/messages`, {
         message: { content: 'Hello stack test' },
       })
+      const sendBody = (await sendRes.json()) as ApiResponse<null>
+      skipIfTransientProviderHttpError(
+        context,
+        process.env['LLM_PROVIDER'] ?? 'configured provider',
+        sendRes.status,
+        sendBody.error?.message,
+      )
       expect(sendRes.status).toBe(200)
 
       const historyRes = await getJson(`/v1/conversations/${conversationId}/history`)
@@ -118,7 +126,7 @@ describe('Stack E2E — session/conversation lifecycle', () => {
     }
   })
 
-  it('implicitly closes conversation on terminal user signal via canonical close pipeline', async () => {
+  it('implicitly closes conversation on terminal user signal via canonical close pipeline', async (context) => {
     const { scenarioId, avatarId, sessionId } = await seedSessionFixture(
       `Implicit End Scenario ${String(Date.now())}`,
       'Avatar B',
@@ -140,10 +148,16 @@ describe('Stack E2E — session/conversation lifecycle', () => {
       const sendRes = await postJson(`/v1/conversations/${conversationId}/messages`, {
         message: { content: 'bye' },
       })
-      expect(sendRes.status).toBe(200)
       const sendBody = (await sendRes.json()) as ApiResponse<{
         conversation: { status: string; endedAt?: string }
       }>
+      skipIfTransientProviderHttpError(
+        context,
+        process.env['LLM_PROVIDER'] ?? 'configured provider',
+        sendRes.status,
+        sendBody.error?.message,
+      )
+      expect(sendRes.status).toBe(200)
       expect(sendBody.data?.conversation.status).toBe('closed')
       expect(sendBody.data?.conversation.endedAt).toBeTypeOf('string')
     } finally {

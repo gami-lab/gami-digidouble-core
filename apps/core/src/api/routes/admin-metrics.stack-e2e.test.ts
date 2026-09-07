@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
+import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -110,13 +111,22 @@ describe('GET /v1/admin/sessions/:id/metrics — stack not found', () => {
 })
 
 describe('GET /v1/admin/sessions/:id/metrics — stack happy path', () => {
-  it('returns 200 with turn metrics for a session with completed turns', async () => {
+  // The provider-backed setup is intentionally guarded below for nightly runs.
+  // eslint-disable-next-line complexity
+  it('returns 200 with turn metrics for a session with completed turns', async (context) => {
     const seeded = await seedConversation()
 
     try {
       const messageRes = await postJson(`/v1/conversations/${seeded.conversationId}/messages`, {
         message: { content: 'Hello metrics test' },
       })
+      const messageBody = (await messageRes.json()) as ApiResponse<null>
+      skipIfTransientProviderHttpError(
+        context,
+        process.env['LLM_PROVIDER'] ?? 'configured provider',
+        messageRes.status,
+        messageBody.error?.message,
+      )
       expect(messageRes.status).toBe(200)
 
       const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/metrics`), {
