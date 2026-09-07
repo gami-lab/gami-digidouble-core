@@ -27,6 +27,7 @@ export type EmbeddingUsage = Readonly<{
 export type EmbeddingBatchMetadata = Readonly<{
   profile: EmbeddingProfile
   inputCount: number
+  batchCount: number
   usage?: EmbeddingUsage
   latencyMs?: number
 }>

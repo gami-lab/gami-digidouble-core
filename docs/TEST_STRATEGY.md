@@ -90,6 +90,9 @@ Required tests:
 - **Ingestion retry:** verify that retrying a completed job returns current status rather than creating a duplicate run
 - **Embedding port contract:** verify ordered batch vectors, effective profile metadata, copy-safe
   vectors, deterministic test-fake output, and typed invalid-input failures without provider calls
+- **OpenAI embedding adapter:** use a fake SDK client to verify safe batching, index reassembly,
+  finite/count/model/dimension validation, retry-aware provider failures, and redacted bounded
+  observability; keep live embedding checks opt-in behind `OPENAI_API_KEY`
 - **Typed retrieval:** verify domain separation (`memory` / `world` / `media`), deterministic ranking under fixed fixtures, and trace metadata (`sourceId`, `chunkId`, `score`, `reason`)
 - **Avatar-scoped visibility:** verify deterministic exclusion of non-visible knowledge per active avatar, avatar-switch scope updates, and bounded visibility explainability counters in retrieval/context traces
 - **Visibility asymmetry:** verify avatar filtering remains enforced while GM retrieval diagnostics prove unrestricted omniscient scope (`gmUnrestricted`, `gmRetrievalCounts`) without content leakage

@@ -234,10 +234,11 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 
 ### `5.1c Real Embedding Infrastructure & Reindexing`
 
-In progress. The behavior-neutral contract foundation now owns provider/model/dimension profile
-identity, ordered batch metadata, typed failures, and an explicitly injected deterministic test
-fake. The OpenAI adapter, persisted profile/corpus identity, and safe full-reindex workflow remain
-open in the following slices.
+In progress. The behavior-neutral contract foundation and production OpenAI adapter now own
+provider/model/dimension profile identity, deterministic batching and ordering, response
+validation, typed failures, safe observability, and an explicitly injected deterministic test
+fake. Persisted profile/corpus identity and the safe full-reindex workflow remain open in the
+following slices.
 
 ### `5.1d Vector Retrieval Runtime`
 

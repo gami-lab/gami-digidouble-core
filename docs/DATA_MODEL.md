@@ -74,11 +74,13 @@ deltas, and a partial avatar message is never saved.
 | `ingestion_jobs` | Knowledge ingestion lifecycle tracking | `id`, `source_id`, `status`, `attempts`, `chunk_size`, `started_at`, `completed_at`, `error_message`, `created_at`, `updated_at` | Tracks queued/running/completed/failed ingestion work and its optional per-job chunk-size experiment. |
 
 Embedding profile metadata is not a public entity or a current database row. Core Application owns
-the provider-neutral `EmbeddingProfile`; the knowledge persistence contract will own the persisted
-profile/corpus-generation identity and Infrastructure will map it to PostgreSQL. Reindex-operation
-state is an Application-owned operation contract, with shared admin DTOs introduced only if a
-future operator API exposes it. This keeps the current source/chunk/job DTOs stable while preventing
-profile identity from being copied into `@gami/shared`, console, or admin prematurely.
+the provider-neutral `EmbeddingProfile`; Infrastructure currently supplies the configured OpenAI
+profile to ingestion, with a 16-dimensional default matching the existing vector column. The
+knowledge persistence contract will own the persisted profile/corpus-generation identity and
+Infrastructure will map it to PostgreSQL. Reindex-operation state is an Application-owned operation
+contract, with shared admin DTOs introduced only if a future operator API exposes it. This keeps the
+current source/chunk/job DTOs stable while preventing profile identity from being copied into
+`@gami/shared`, console, or admin prematurely.
 
 ## Relationships
 

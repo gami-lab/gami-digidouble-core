@@ -393,10 +393,18 @@ application port is `apps/core/src/application/ports/IEmbeddingAdapter.ts`:
 
 - `EmbeddingProfile` owns the provider-neutral `{ provider, model, dimensions }` identity.
 - `EmbeddingBatchRequest` owns ordered input text; `EmbeddingBatchResult` owns ordered vectors and
-  effective profile/usage/latency metadata.
+  effective profile/usage/latency/batch-count metadata.
 - `EmbeddingFailure` is a finite provider-neutral failure model for invalid input, provider
   rejection, rate limiting, malformed/count-mismatched responses, and dimension mismatch.
 - `EmbeddingVector` is a readonly domain value used by `KnowledgeChunk` and repositories.
+
+The Infrastructure implementation in `apps/core/src/infrastructure/knowledge/openai-embedding.adapter.ts`
+is the only OpenAI embedding SDK boundary. It owns the OpenAI request shape, safe batch splitting,
+index-based response reassembly, model/dimension/finite-number validation, provider-error
+translation, and bounded embedding observability. `Config` owns the independent
+`EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, and `EMBEDDING_BATCH_SIZE` values;
+none are derived from `LLM_PROVIDER` or chat-role model configuration. Production composition
+constructs this adapter before the server listens and has no hash-vector fallback.
 
 `@gami/shared` remains the owner of public source, chunk, ingestion-job, and retrieval DTOs. The
 current public DTOs intentionally do not expose vectors or embedding profiles. Persisted vector

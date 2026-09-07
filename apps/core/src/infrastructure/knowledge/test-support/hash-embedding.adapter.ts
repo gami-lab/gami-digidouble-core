@@ -74,6 +74,7 @@ export class HashEmbeddingAdapter implements IEmbeddingAdapter {
       metadata: Object.freeze({
         profile: this.profile,
         inputCount: request.inputs.length,
+        batchCount: 1,
       }),
     })
   }

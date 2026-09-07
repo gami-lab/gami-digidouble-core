@@ -93,6 +93,7 @@ Project files:
 Required:
 
 - `API_KEY_SECRET`
+- `OPENAI_API_KEY` (required by the default production embedding provider)
 
 Managed internally by compose:
 
@@ -103,7 +104,10 @@ Optional:
 
 - `CORS_ORIGIN`
 - `LLM_PROVIDER`
-- `OPENAI_API_KEY`
+- `EMBEDDING_PROVIDER`
+- `EMBEDDING_MODEL`
+- `EMBEDDING_DIMENSIONS`
+- `EMBEDDING_BATCH_SIZE`
 - `ANTHROPIC_API_KEY`
 - `MISTRAL_API_KEY`
 - `XAI_API_KEY`

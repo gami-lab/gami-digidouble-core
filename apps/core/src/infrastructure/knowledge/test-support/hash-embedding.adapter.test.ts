@@ -20,6 +20,7 @@ describe('HashEmbeddingAdapter test support', () => {
     expect(result.metadata).toEqual({
       profile: DETERMINISTIC_HASH_EMBEDDING_PROFILE,
       inputCount: 2,
+      batchCount: 1,
     })
     expect(result.vectors.every((vector) => vector.length === 16)).toBe(true)
   })

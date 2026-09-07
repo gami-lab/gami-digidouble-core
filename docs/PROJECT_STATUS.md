@@ -14,6 +14,8 @@ The platform is now a working headless conversational runtime with:
 - typed knowledge ingestion and retrieval
 - provider-neutral embedding contract foundation with explicit profile identity, ordered batch
   metadata, finite typed failures, and an explicitly injected deterministic test fake
+- production OpenAI embedding adapter with independent profile/batch configuration, deterministic
+  batching and ordering, response validation, typed provider failures, and bounded observability
 - deterministic context assembly for Avatar and GM
 - runtime SSE events and runtime-state snapshots
 - admin inspection, replay, and memory-control tooling
@@ -99,9 +101,12 @@ provider-neutral usage, and finite typed failures. `KnowledgeChunk` stores a rea
 and ingestion consumes the canonical batch result. The hash adapter is test support only and
 requires an explicit profile; production composition no longer falls back to hash vectors.
 
-The OpenAI adapter, persisted vector-profile/corpus identity, profile-aware ingestion promotion,
-and full reindex operation remain open. Public source/chunk/ingestion-job DTOs are unchanged and
-continue to be owned by `@gami/shared`.
+The OpenAI adapter is now wired into production composition. The default profile is OpenAI
+`text-embedding-3-small` shortened to 16 dimensions to remain compatible with the current
+`VECTOR(16)` schema; `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, and
+`EMBEDDING_BATCH_SIZE` are independent from chat-role configuration. The persisted
+vector-profile/corpus identity, profile-aware promotion, and full reindex operation remain open.
+Public source/chunk/ingestion-job DTOs are unchanged and continue to be owned by `@gami/shared`.
 
 ### Operations
 

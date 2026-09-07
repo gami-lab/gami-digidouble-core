@@ -4,10 +4,10 @@ This document describes the RAG code that is currently in this repository. It do
 
 ## Important conclusion
 
-The current deterministic test composition **generates and stores an embedding for every ingested
-chunk, but does not use embeddings during retrieval**. Production composition no longer falls back
-to that test vector; until the real provider slice lands, an unconfigured embedding adapter rejects
-production ingestion explicitly.
+The current composition **generates and stores an embedding for every ingested chunk, but does not
+use embeddings during retrieval**. Production composition uses the Infrastructure OpenAI adapter
+with an independent profile and no hash-vector fallback. The default profile is
+`text-embedding-3-small` with 16 requested dimensions, matching the current `VECTOR(16)` schema.
 
 Runtime retrieval currently:
 
@@ -132,7 +132,7 @@ The chunk metadata also contains `mediaUri: <uriOrPath>`. The current implementa
 
 ## 3. How the deterministic test chunk vector is computed
 
-Tests may explicitly inject [HashEmbeddingAdapter](../apps/core/src/infrastructure/knowledge/test-support/hash-embedding.adapter.ts) with a supplied `EmbeddingProfile`. It is not a production default or server fallback. The production composition currently uses an unconfigured adapter until the real provider implementation is added.
+Tests may explicitly inject [HashEmbeddingAdapter](../apps/core/src/infrastructure/knowledge/test-support/hash-embedding.adapter.ts) with a supplied `EmbeddingProfile`. It is not a production default or server fallback. Production uses [OpenAiEmbeddingAdapter](../apps/core/src/infrastructure/knowledge/openai-embedding.adapter.ts), which requires `OPENAI_API_KEY` and validates its configured model/dimension pair before startup.
 
 Despite its name, this is not a cryptographic hash and it is not a model-generated semantic embedding. It is a deterministic character-code accumulator.
 
@@ -332,7 +332,8 @@ The following pieces exist:
 
 - `IEmbeddingAdapter.embed({ inputs })` with ordered batch/result metadata;
 - the explicitly injected deterministic test `HashEmbeddingAdapter`;
-- the production `UnconfiguredEmbeddingAdapter` placeholder until a real provider is wired;
+- the production OpenAI adapter with bounded batching, ordering, response validation, typed failure
+  translation, and safe profile/usage/batch observability;
 - `embedding` on the domain chunk type;
 - `knowledge_chunks.embedding VECTOR(16)` in PostgreSQL;
 - an IVFFlat index using `vector_cosine_ops`.
@@ -356,11 +357,16 @@ These are concrete gaps in the current implementation, not claims about behavior
 
 The main improvement is to add a query-embedding path and a repository method for pgvector nearest-neighbor search. The query and chunk embeddings must use the same embedding model and dimension. The repository should apply scenario/type/status/visibility scope in SQL and order by cosine distance before returning candidates.
 
-The deterministic `HashEmbeddingAdapter` is now explicitly test-only. Its character-position buckets do not represent semantic similarity, so two conceptually similar strings can score poorly and two unrelated strings can collide. The next provider slice must replace the production placeholder with a real provider adapter without changing the application port.
+The deterministic `HashEmbeddingAdapter` is explicitly test-only. Its character-position buckets do
+not represent semantic similarity, so two conceptually similar strings can score poorly and two
+unrelated strings can collide. Production now uses OpenAI without changing the application port.
 
 ### 2. Make the pgvector dimension a single enforced configuration
 
-The database is still fixed at `VECTOR(16)`, while the deterministic test adapter now requires an explicit profile and has no implicit dimension. The embedding model identity and dimension still need to be persisted/configured together and validated at ingestion and query time in the remaining 5.1c slices.
+The database is still fixed at `VECTOR(16)`. The default OpenAI profile requests that dimension via
+the provider's supported shortening parameter, while the adapter has no hard-coded storage
+assumption. Embedding profile identity still needs to be persisted and enforced across ingestion and
+query time in the remaining 5.1c/5.1d slices.
 
 ### 3. Use a transaction for replacing a source's chunks
 

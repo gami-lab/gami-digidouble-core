@@ -53,6 +53,10 @@ For product principles, read `PRINCIPLES.md`.
 - In-house ingestion and typed retrieval pipeline
 - Knowledge types: `memory`, `world`, `media`
 - Retrieval is one bounded context source, not the architecture itself
+- Production embeddings use the OpenAI `text-embedding-3-small` adapter through the internal
+  `IEmbeddingAdapter` port. The default profile requests 16 dimensions to match the current
+  `VECTOR(16)` schema; `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, and
+  `EMBEDDING_BATCH_SIZE` are independent environment configuration and are validated at startup.
 
 ### Observability
 

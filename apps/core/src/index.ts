@@ -58,7 +58,7 @@ import {
   PostgresModelConfigRepository,
 } from './infrastructure/db/index.js'
 import { FileUrlKnowledgeSourceContentLoader } from './infrastructure/knowledge/file-url-knowledge-source-content-loader.js'
-import { UnconfiguredEmbeddingAdapter } from './infrastructure/knowledge/unconfigured-embedding.adapter.js'
+import { createEmbeddingAdapter } from './infrastructure/knowledge/openai-embedding.adapter.js'
 
 type CoreRepositories = ReturnType<typeof buildCoreRepositories>
 
@@ -74,7 +74,7 @@ async function main(): Promise<void> {
   await alignPostgresSchema(sql)
   const redisClient = getRedisClient(config.redisUrl)
   const repositories = buildCoreRepositories(sql)
-  const knowledgeAdapters = buildKnowledgeAdapters(sql, config)
+  const knowledgeAdapters = buildKnowledgeAdapters(sql, config, observability)
   const modelConfigRepository = repositories.modelConfigRepository
   const runtimeModelConfigFallback: ModelConfig = {
     ...DEFAULT_MODEL_CONFIG,
@@ -197,7 +197,11 @@ function resolveProviderName(value: string): ProviderName {
   return isProviderName(value) ? value : 'null'
 }
 
-function buildKnowledgeAdapters(sql: ReturnType<typeof getDbClient>, config: Config) {
+function buildKnowledgeAdapters(
+  sql: ReturnType<typeof getDbClient>,
+  config: Config,
+  observability: ReturnType<typeof createObservabilityAdapter>,
+) {
   return {
     knowledgeSourceRepository: new PostgresKnowledgeSourceRepository(sql),
     knowledgeChunkRepository: new PostgresKnowledgeChunkRepository(sql),
@@ -205,7 +209,16 @@ function buildKnowledgeAdapters(sql: ReturnType<typeof getDbClient>, config: Con
     knowledgeSourceContentLoader: new FileUrlKnowledgeSourceContentLoader({
       allowedRoots: config.knowledgeSourceAllowedRoots,
     }),
-    embeddingAdapter: new UnconfiguredEmbeddingAdapter(),
+    embeddingAdapter: createEmbeddingAdapter(
+      {
+        provider: config.embeddingProvider,
+        model: config.embeddingModel,
+        dimensions: config.embeddingDimensions,
+        maxBatchSize: config.embeddingBatchSize,
+        ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
+      },
+      observability,
+    ),
   }
 }
 

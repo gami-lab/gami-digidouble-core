@@ -13,6 +13,10 @@ export interface Config {
   apiKeySecret: string
   corsOrigin: string
   llmProvider: string
+  embeddingProvider: string
+  embeddingModel: string
+  embeddingDimensions: number
+  embeddingBatchSize: number
   openaiApiKey: string | undefined
   anthropicApiKey: string | undefined
   mistralApiKey: string | undefined
@@ -22,6 +26,13 @@ export interface Config {
   langfuseHost: string | undefined
   knowledgeSourceAllowedRoots: string[]
 }
+
+export const DEFAULT_EMBEDDING_PROVIDER = 'openai'
+export const DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small'
+// Keep the first production profile compatible with the current VECTOR(16) schema.
+// The next persistence slice can promote a larger profile atomically.
+export const DEFAULT_EMBEDDING_DIMENSIONS = 16
+export const DEFAULT_EMBEDDING_BATCH_SIZE = 100
 
 function requireEnv(key: string): string {
   const value = process.env[key]
@@ -42,6 +53,18 @@ export function loadConfig(): Config {
     apiKeySecret: requireEnv('API_KEY_SECRET'),
     corsOrigin: process.env['CORS_ORIGIN'] ?? '*',
     llmProvider: process.env['LLM_PROVIDER'] ?? 'null',
+    embeddingProvider: process.env['EMBEDDING_PROVIDER'] ?? DEFAULT_EMBEDDING_PROVIDER,
+    embeddingModel: process.env['EMBEDDING_MODEL'] ?? DEFAULT_EMBEDDING_MODEL,
+    embeddingDimensions: parsePositiveInteger(
+      'EMBEDDING_DIMENSIONS',
+      process.env['EMBEDDING_DIMENSIONS'],
+      DEFAULT_EMBEDDING_DIMENSIONS,
+    ),
+    embeddingBatchSize: parsePositiveInteger(
+      'EMBEDDING_BATCH_SIZE',
+      process.env['EMBEDDING_BATCH_SIZE'],
+      DEFAULT_EMBEDDING_BATCH_SIZE,
+    ),
     openaiApiKey: process.env['OPENAI_API_KEY'],
     anthropicApiKey: process.env['ANTHROPIC_API_KEY'],
     mistralApiKey: process.env['MISTRAL_API_KEY'],
@@ -51,6 +74,14 @@ export function loadConfig(): Config {
     langfuseHost: process.env['LANGFUSE_BASE_URL'],
     knowledgeSourceAllowedRoots: parseAllowedRoots(process.env['KNOWLEDGE_SOURCE_ALLOWED_ROOTS']),
   }
+}
+
+function parsePositiveInteger(key: string, value: string | undefined, fallback: number): number {
+  const parsed = Number(value ?? fallback)
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid ${key}: expected a positive integer.`)
+  }
+  return parsed
 }
 
 function parseAllowedRoots(value: string | undefined): string[] {

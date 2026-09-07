@@ -120,6 +120,8 @@ Must cover:
 - ingestion job lifecycle
 - embedding port contract: ordered vectors, effective profile metadata, copy-safe deterministic
   fake output, and finite typed failure categories
+- OpenAI adapter: configured batching and request shape, index-based ordering, response validation,
+  provider failure translation, and bounded profile/usage/batch observability with a fake client
 - typed retrieval by `memory` / `world` / `media`
 - avatar visibility filtering
 - GM unrestricted retrieval behavior
