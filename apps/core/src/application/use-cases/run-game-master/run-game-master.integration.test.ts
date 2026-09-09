@@ -17,6 +17,10 @@ import { InMemoryUserMemoryFactRepository } from '../../../infrastructure/db/in-
 import { InMemorySessionEventPublisher } from '../../../infrastructure/events/in-memory-session-event-publisher.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
+import type {
+  RetrievalQueryEmbeddingInput,
+  RetrievalQueryEmbeddingResult,
+} from '../../services/knowledge/knowledge-query-embedding.service.js'
 import { readRenderedGameMasterPrompt } from '../../../test-utils/game-master.js'
 import { GAME_MASTER_INPUT_RENDERER_VERSION } from '../../../domain/game-master/gm-input-renderer.js'
 import { GAME_MASTER_SYSTEM_PROMPT_VERSION } from '../../../domain/game-master/gm-prompt.service.js'
@@ -160,6 +164,9 @@ const INITIAL_KNOWLEDGE_CHUNKS = [
     sourceId: 'memory_source_1',
     content: 'The witness already contradicted the tide log during the prior harbor inspection.',
     chunkIndex: 0,
+    embedding: [1, 0],
+    embeddingProfileId: 'profile_1',
+    corpusGenerationId: 'generation_1',
     createdAt: '2026-07-20T09:00:00.000Z',
   },
   {
@@ -167,6 +174,9 @@ const INITIAL_KNOWLEDGE_CHUNKS = [
     sourceId: 'world_source_1',
     content: 'Storm tide starts at dusk near the north harbor tide gates.',
     chunkIndex: 0,
+    embedding: [1, 0],
+    embeddingProfileId: 'profile_1',
+    corpusGenerationId: 'generation_1',
     createdAt: '2026-07-20T09:00:00.000Z',
   },
   {
@@ -174,6 +184,9 @@ const INITIAL_KNOWLEDGE_CHUNKS = [
     sourceId: 'media_source_1',
     content: 'Harbor map with dock markers and tide gates.',
     chunkIndex: 0,
+    embedding: [1, 0],
+    embeddingProfileId: 'profile_1',
+    corpusGenerationId: 'generation_1',
     createdAt: '2026-07-20T09:00:00.000Z',
   },
 ]
@@ -199,6 +212,7 @@ describe('RunGameMasterUseCase integration', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 function createIntegrationHarness() {
   const innerLlm = new RecordingLlmAdapter(GM_RESPONSE)
   const observability = new RecordingObservabilityAdapter()
@@ -255,7 +269,10 @@ function createIntegrationHarness() {
     },
   ])
   const knowledgeSourceRepository = new InMemoryKnowledgeSourceRepository(INITIAL_KNOWLEDGE_SOURCES)
-  const knowledgeChunkRepository = new InMemoryKnowledgeChunkRepository(INITIAL_KNOWLEDGE_CHUNKS)
+  const knowledgeChunkRepository = new InMemoryKnowledgeChunkRepository(
+    INITIAL_KNOWLEDGE_CHUNKS,
+    knowledgeSourceRepository,
+  )
   const eventLogRepository = new InMemoryEventLogRepository()
   const sessionEventPublisher = new InMemorySessionEventPublisher()
   const publishedRuntimeEvents: string[] = []
@@ -272,6 +289,10 @@ function createIntegrationHarness() {
   const typedRetrievalService = new TypedRetrievalService(
     knowledgeSourceRepository,
     knowledgeChunkRepository,
+    {
+      embedVariants: (input: RetrievalQueryEmbeddingInput) =>
+        Promise.resolve(createFakeEmbeddingResult(input)),
+    },
   )
   const useCase = new RunGameMasterUseCase(
     gmStateRepository,
@@ -297,6 +318,33 @@ function createIntegrationHarness() {
     sessionRepository,
     eventLogRepository,
     publishedRuntimeEvents,
+  }
+}
+
+function createFakeEmbeddingResult(
+  input: RetrievalQueryEmbeddingInput,
+): RetrievalQueryEmbeddingResult {
+  const queries = input.queries ?? [{ source: 'direct_query' as const, text: input.query ?? '' }]
+  const indexedQueries = queries.map((query, queryIndex) => ({ ...query, queryIndex }))
+  return {
+    queries: indexedQueries,
+    queryVectors: indexedQueries.map((variant, queryIndex) => ({
+      vector: [1, 0],
+      variant,
+      queryIndex,
+    })),
+    diagnostics: {
+      outcome: 'success',
+      queryVectorCount: indexedQueries.length,
+      embeddingProfile: {
+        embeddingProfileId: 'profile_1',
+        corpusGenerationId: 'generation_1',
+        provider: 'fake',
+        model: 'fake',
+        dimensions: 2,
+      },
+      timings: { totalMs: 1, queryEmbeddingMs: 1 },
+    },
   }
 }
 

@@ -847,6 +847,8 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       media: [],
       trace: {
         query: '',
+        outcome: 'failed',
+        failure: { code: 'query_embedding_failed', retryable: true },
         perType: {
           memory: {
             sourceIds: [],

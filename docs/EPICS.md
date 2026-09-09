@@ -241,17 +241,21 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 
 ## Open Backlog
 
-### `5.1d Vector Retrieval Runtime`
+### `5.1d Vector Retrieval Runtime` ✅ Runtime complete
 
 The canonical retrieval query, candidate, result, trace, failure, shared DTO, recorded-event, and
 console projection contracts are now established. Ordered, profile-aware query vectorization is
 also implemented behind `KnowledgeQueryEmbeddingService`, including all-or-nothing validation and
 safe diagnostics. The canonical chunk-repository nearest-neighbor port now provides bounded,
 profile/generation-aware cosine candidates with SQL-side eligibility and explicit visibility modes;
-runtime integration, multi-query merging, selection, and ranking replacement remain the open scope
-below.
+runtime integration, multi-query merging, selection, and ranking replacement are now complete. The
+remaining follow-up is the separately scoped admin/console presentation of the additive diagnostic
+fields.
 
-Replace lexical token-overlap retrieval with pgvector nearest-neighbor search for Avatar, Game Master, and admin diagnostics, while preserving scope, visibility, bounded selection, prompt integration, and retrieval observability.
+Replaced lexical token-overlap retrieval with pgvector nearest-neighbor search for Avatar, Game
+Master, and admin diagnostics, preserving scope, visibility, bounded selection, prompt integration,
+and retrieval observability. Runtime uses one shared profile-aware service with explicit Avatar
+filtered and GM unrestricted modes; failures remain controlled and no lexical fallback exists.
 
 ### `4.2d Memory Domain Separation`
 

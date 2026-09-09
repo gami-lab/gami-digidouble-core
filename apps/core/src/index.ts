@@ -60,6 +60,8 @@ import {
 } from './infrastructure/db/index.js'
 import { FileUrlKnowledgeSourceContentLoader } from './infrastructure/knowledge/file-url-knowledge-source-content-loader.js'
 import { createEmbeddingAdapter } from './infrastructure/knowledge/openai-embedding.adapter.js'
+import { KnowledgeQueryEmbeddingService } from './application/services/knowledge/knowledge-query-embedding.service.js'
+import { TypedRetrievalService } from './application/services/knowledge/typed-retrieval.service.js'
 
 type CoreRepositories = ReturnType<typeof buildCoreRepositories>
 
@@ -76,6 +78,15 @@ async function main(): Promise<void> {
   const redisClient = getRedisClient(config.redisUrl)
   const repositories = buildCoreRepositories(sql)
   const knowledgeAdapters = buildKnowledgeAdapters(sql, config, observability)
+  const typedRetrievalService = new TypedRetrievalService(
+    knowledgeAdapters.knowledgeSourceRepository,
+    knowledgeAdapters.knowledgeChunkRepository,
+    new KnowledgeQueryEmbeddingService(
+      knowledgeAdapters.knowledgeCorpusRepository,
+      knowledgeAdapters.embeddingAdapter,
+      observability,
+    ),
+  )
   const modelConfigRepository = repositories.modelConfigRepository
   const runtimeModelConfigFallback: ModelConfig = {
     ...DEFAULT_MODEL_CONFIG,
@@ -98,6 +109,7 @@ async function main(): Promise<void> {
       modelConfigRepository,
       llmAdapterRegistry,
       modelConfigFallback: runtimeModelConfigFallback,
+      typedRetrievalService,
     },
   )
   const probes: IDependencyProbe[] = [
@@ -111,6 +123,7 @@ async function main(): Promise<void> {
     observabilityAdapter: observability,
     ...repositories,
     ...knowledgeAdapters,
+    typedRetrievalService,
     llmAdapterRegistry,
     modelConfigFallback: runtimeModelConfigFallback,
     runGameMasterUseCase,

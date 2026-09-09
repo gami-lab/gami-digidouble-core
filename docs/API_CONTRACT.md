@@ -296,8 +296,9 @@ All admin endpoints live under `/v1/admin/*`.
   diagnostics are owned by `@gami/shared`: safe embedding profile identity, bounded timings,
   query-vector/candidate/selected/excluded counts, visibility mode, outcome/failure code, and
   optional cosine `distance`/normalized `similarity`. Cosine distance is lower-is-better;
-  similarity is `1 - distance` and is normalized only at the presenter boundary. No raw vectors
-  are exposed.
+  similarity is `1 - distance`; clamping and rounding are applied only at the presenter boundary. The compatibility
+  `score` field carries the same normalized similarity in runtime retrieval. No raw vectors are
+  exposed.
 
 Runtime `turn_completed` event retrieval references include the selected chunk content and matched
 query source/text so the console can inspect the exact knowledge passed to the Avatar prompt. GM
@@ -311,7 +312,7 @@ The nearest-neighbor repository request/result is an internal Application/Infras
 not an HTTP DTO. Public and recorded projections continue to expose only deliberate bounded
 diagnostics; vectors, provider payloads, and full persistence rows remain internal. Repository
 cosine distance is lower-is-better, while public similarity is derived as `1 - distance` and
-normalized only by presenters.
+clamped/rounded only by presenters.
 
 ## Route-Specific Invariants
 

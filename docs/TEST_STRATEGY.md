@@ -99,11 +99,14 @@ Required tests:
 - **Query embedding boundary:** verify stable normalization and ordering for every configured query
   source, one profile-aware batch call, profile-tagged copy-safe vectors, safe count/profile/
   timing diagnostics, all-or-nothing profile/dimension/count/finite/provider failures, and no raw
-  vectors or provider payloads in logs before retrieval is added
+  vectors or provider payloads in logs
 - **Retrieval contract boundary:** verify the single query-source/variant union, vector-candidate and
   trace ownership, provider-neutral outcome/failure codes, cosine distance/similarity semantics,
   and explicit internal-to-public/runtime mapper redaction and normalization
-- **Typed retrieval:** verify domain separation (`memory` / `world` / `media`), deterministic ranking under fixed fixtures, and trace metadata (`sourceId`, `chunkId`, `score`, `reason`)
+- **Typed retrieval:** verify one embedding operation, bounded vector searches, domain separation
+  (`memory` / `world` / `media`), deterministic similarity ranking/deduplication under fixed
+  fixtures, balanced source minimums, controlled failures, and trace metadata (`sourceId`,
+  `chunkId`, `distance`, `similarity`, `reason`)
 - **Avatar-scoped visibility:** verify deterministic exclusion of non-visible knowledge per active avatar, avatar-switch scope updates, and bounded visibility explainability counters in retrieval/context traces
 - **Visibility asymmetry:** verify avatar filtering remains enforced while GM retrieval diagnostics prove unrestricted omniscient scope (`gmUnrestricted`, `gmRetrievalCounts`) without content leakage
 - **Filtered vector repository:** verify PostgreSQL cosine order, limit-after-filter behavior, active profile/generation, source/type/scenario/readiness, memory scope, visibility truth-table behavior, dimension/profile failures, and an index-compatible `ORDER BY embedding <=> query LIMIT` shape; use the in-memory implementation for deterministic unit coverage

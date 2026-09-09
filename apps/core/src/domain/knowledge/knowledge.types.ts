@@ -160,7 +160,7 @@ export interface RetrievedKnowledgeItem {
   chunkId: string
   knowledgeType: KnowledgeType
   content: string
-  /** Legacy lexical score retained for backward compatibility. */
+  /** Compatibility score carrying normalized cosine similarity. */
   score?: number
   /** pgvector cosine distance; lower values are better. */
   distance?: number

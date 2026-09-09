@@ -30,7 +30,7 @@ import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-
 import type { GetHistoryOutput } from '../../application/use-cases/get-history/get-history.types.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
 import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
-import { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
+import type { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
 import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
 import { StreamingSendMessageUseCase } from '../../application/use-cases/send-message/streaming-send-message.use-case.js'
 import type { StreamingSendMessageEvent } from '../../application/use-cases/send-message/streaming-send-message.types.js'
@@ -84,6 +84,7 @@ type ConversationsRouteOptions = {
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
   gmStateRepository?: IGmStateRepository
+  typedRetrievalService?: TypedRetrievalService
 }
 
 type ConversationParams = { conversationId: string }
@@ -304,11 +305,6 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     repositories.conversationWorkingMemoryRepository,
     repositories.messageRepository,
   )
-  const typedRetrievalService = new TypedRetrievalService(
-    repositories.knowledgeSourceRepository,
-    repositories.knowledgeChunkRepository,
-  )
-
   const sendMessageUseCase = new SendMessageUseCase(
     repositories.sessionRepository,
     repositories.conversationRepository,
@@ -336,7 +332,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     repositories.conversationWorkingMemoryRepository,
     repositories.conversationMemoryRepository,
     undefined,
-    typedRetrievalService,
+    options.typedRetrievalService,
     undefined,
     options.modelConfigRepository,
     options.llmAdapterRegistry,

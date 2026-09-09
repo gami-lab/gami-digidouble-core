@@ -387,10 +387,10 @@ export class SendMessageUseCase {
         retrievalQueries,
         args.session.avatarOptions?.retrieval,
       )
-    } catch (error: unknown) {
+    } catch {
       retrievalFailed = true
       retrieval = undefined
-      console.error('[avatar-retrieval] Retrieval failed:', error)
+      console.error('[avatar-retrieval] Retrieval failed.')
     }
     const retrievalStatus =
       args.orchestration?.retrievalPlan.required === true &&

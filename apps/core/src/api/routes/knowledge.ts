@@ -27,7 +27,7 @@ import type { IEmbeddingAdapter } from '../../application/ports/IEmbeddingAdapte
 import type { IKnowledgeSourceContentLoader } from '../../application/ports/IKnowledgeSourceContentLoader.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import { KnowledgeIngestionService } from '../../application/services/knowledge/knowledge-ingestion.service.js'
-import { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
+import type { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
 import { CreateKnowledgeSourceUseCase } from '../../application/use-cases/create-knowledge-source/create-knowledge-source.use-case.js'
 import { DeleteKnowledgeSourceUseCase } from '../../application/use-cases/delete-knowledge-source/delete-knowledge-source.use-case.js'
 import { GetIngestionJobUseCase } from '../../application/use-cases/get-ingestion-job/get-ingestion-job.use-case.js'
@@ -55,6 +55,7 @@ export type KnowledgeRouteOptions = {
   sourceContentLoader: IKnowledgeSourceContentLoader
   embeddingAdapter: IEmbeddingAdapter
   eventLogRepository: IEventLogRepository
+  typedRetrievalService?: TypedRetrievalService
 }
 
 type ScenarioParams = { scenarioId: string }
@@ -68,7 +69,7 @@ type UseCases = {
   deleteSourceUseCase: DeleteKnowledgeSourceUseCase
   triggerIngestionUseCase: TriggerIngestionUseCase
   getIngestionJobUseCase: GetIngestionJobUseCase
-  getTypedRetrievalUseCase: GetTypedRetrievalUseCase
+  getTypedRetrievalUseCase?: GetTypedRetrievalUseCase
   listChunksUseCase: ListKnowledgeChunksUseCase
   sourceRepository: IKnowledgeSourceRepository
   eventLogRepository: IEventLogRepository
@@ -202,7 +203,12 @@ export const knowledgeRoute: FastifyPluginCallback<KnowledgeRouteOptions> = (app
   registerListIngestionJobsRoute(app, useCases)
   registerGetIngestionJobRoute(app, useCases)
   registerListChunksRoute(app, useCases)
-  registerRetrievalRoute(app, useCases)
+  if (useCases.getTypedRetrievalUseCase !== undefined) {
+    registerRetrievalRoute(app, {
+      ...useCases,
+      getTypedRetrievalUseCase: useCases.getTypedRetrievalUseCase,
+    })
+  }
 }
 
 function buildUseCases(options: KnowledgeRouteOptions): UseCases {
@@ -230,9 +236,9 @@ function buildUseCases(options: KnowledgeRouteOptions): UseCases {
       ingestionService,
     ),
     getIngestionJobUseCase: new GetIngestionJobUseCase(options.ingestionJobRepository),
-    getTypedRetrievalUseCase: new GetTypedRetrievalUseCase(
-      new TypedRetrievalService(options.sourceRepository, options.chunkRepository),
-    ),
+    ...(options.typedRetrievalService !== undefined
+      ? { getTypedRetrievalUseCase: new GetTypedRetrievalUseCase(options.typedRetrievalService) }
+      : {}),
     listChunksUseCase: new ListKnowledgeChunksUseCase(
       options.sourceRepository,
       options.chunkRepository,
@@ -438,7 +444,10 @@ function registerListChunksRoute(app: FastifyInstance, useCases: UseCases): void
   )
 }
 
-function registerRetrievalRoute(app: FastifyInstance, useCases: UseCases): void {
+function registerRetrievalRoute(
+  app: FastifyInstance,
+  useCases: UseCases & { getTypedRetrievalUseCase: GetTypedRetrievalUseCase },
+): void {
   app.post<{ Body: QueryKnowledgeRetrievalRequest }>(
     '/v1/admin/knowledge/retrieval',
     { schema: { body: retrievalBodySchema } },

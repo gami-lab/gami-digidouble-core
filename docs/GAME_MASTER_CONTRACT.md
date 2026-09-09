@@ -290,9 +290,11 @@ Prompt wording may evolve, but these rules must hold:
 
 ## Diagnostics
 
-Knowledge embedding and reindex work remains outside the Game Master timing contract. It runs
-through the knowledge application boundary and does not block Avatar responses or change GM chat
-model selection; future retrieval may consume the profile-tagged query-vector boundary.
+Knowledge embedding, vector retrieval, and reindex work remain outside the Game Master timing
+contract. They run through the shared knowledge application boundary and do not block Avatar
+responses or change GM chat model selection. GM context requests explicit `gm_unrestricted` vector
+retrieval; an embedding or search failure yields bounded empty RAG context while the asynchronous
+GM turn remains observable and non-blocking.
 
 Successful runs emit `gm_triggered`; safe failures emit `gm_error`.
 

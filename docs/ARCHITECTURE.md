@@ -380,7 +380,7 @@ Contains:
 - embeddings
 - vector search
 - source metadata
-- avatar-scoped visibility filtering is applied in typed retrieval services before Context Engine assembly (not in route handlers or prompt text)
+- avatar-scoped visibility filtering is enforced by the vector repository before typed retrieval and Context Engine assembly (not in route handlers or prompt text)
 - GM context assembly consumes an unrestricted retrieval channel to preserve Director omniscience, while avatar context consumes visibility-filtered retrieval
 - ingestion job lifecycle (`queued -> running -> completed | failed`) with retry
 - type-specific retrieval pipelines (`memory`, `world`, `media`) with deterministic merge output
@@ -447,9 +447,9 @@ recorded shared reference DTO, not parallel wire contracts.
 
 The repository truth for vector ranking is pgvector cosine distance: lower distance is better.
 Service/API ranking and display use normalized cosine similarity, defined as `1 - distance`, with
-clamping and rounding applied only at the presenter boundary. The legacy lexical `score` field is
-retained for compatibility until vector retrieval replaces lexical ranking; it is not used to
-reinterpret cosine distance. Retrieval diagnostics use the provider-neutral outcomes `success`,
+clamping and rounding applied only at the presenter boundary. The legacy `score` field is retained
+as a compatibility alias for normalized similarity; production retrieval does not perform token
+overlap scoring or metadata relevance boosts. Retrieval diagnostics use the provider-neutral outcomes `success`,
 `no_results`, and `failed`, with failures distinguished as `query_embedding_failed`,
 `incompatible_profile`, `incompatible_dimension`, or `vector_search_failed`.
 
@@ -461,7 +461,12 @@ visibility, and static scope filters before the limit. `gm_unrestricted` is an e
 missing `activeAvatarId` never grants that mode. The deterministic in-memory implementation is a
 test double for the same contract and contains no lexical relevance logic. Candidate results carry
 only bounded chunk data, exact distance, and `1 - distance` similarity; vectors never cross the
-repository boundary into DTOs, events, logs, or errors.
+repository boundary into DTOs, events, logs, or errors. `TypedRetrievalService` resolves and embeds
+normalized variants once per operation, issues bounded searches for each query/type pair, retains
+the best deterministic match per chunk, and delegates balanced source minimums to
+`retrieval-selection.ts`. The same configured service is injected into Avatar, the asynchronous
+Game Master context, and admin retrieval; Context Engine remains the only owner of final prompt
+inclusion and trimming.
 
 ### Versioned knowledge corpus persistence
 

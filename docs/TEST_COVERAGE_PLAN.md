@@ -131,9 +131,14 @@ Must cover:
 - retrieval contract boundary: one shared query-source guard, domain vector-candidate/trace/failure
   ownership, safe public/runtime mapper fields, cosine distance/similarity normalization, bounded
   diagnostics, and no vector leakage
-- typed retrieval by `memory` / `world` / `media`
+- typed retrieval by `memory` / `world` / `media`, including one ordered embedding batch, bounded
+  per-type/query vector searches, similarity merge/deduplication, balanced source minimums, and
+  controlled all-or-nothing failures
 - avatar visibility filtering
 - GM unrestricted retrieval behavior
+- Avatar and asynchronous GM composition reuse the same configured vector retrieval service;
+  required retrieval failures preserve insufficient-evidence guidance without blocking reply
+  generation
 - filtered pgvector repository: bounded cosine ordering, SQL-side eligibility filters, explicit avatar/GM visibility modes, static memory scope, active profile/generation, safe dimension/profile failures, and index-compatible query shape
 - retrieval diagnostics staying bounded
 

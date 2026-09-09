@@ -1,20 +1,37 @@
-import type { IKnowledgeChunkRepository } from '../../ports/IKnowledgeChunkRepository.js'
-import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
-import {
-  buildKnowledgeVisibilitySelection,
-  isKnowledgeVisibleToAvatar,
-} from '../../../domain/knowledge/knowledge-visibility.js'
 import type {
-  KnowledgeChunk,
+  IKnowledgeChunkRepository,
+  VectorSearchResult,
+} from '../../ports/IKnowledgeChunkRepository.js'
+import {
+  KnowledgeVectorSearchError,
+  MAX_VECTOR_SEARCH_CANDIDATES,
+} from '../../ports/IKnowledgeChunkRepository.js'
+import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
+import type {
   KnowledgeType,
+  RetrievalEmbeddingProfile,
+  RetrievalFailure,
+  RetrievalTimings,
   RetrievalVisibilityMode,
   RetrievedKnowledgeItem,
   TypedRetrievalResult,
+  VectorRetrievalCandidate,
 } from '../../../domain/knowledge/knowledge.types.js'
 import { selectBalancedRetrievedItems } from '../../../domain/knowledge/retrieval-selection.js'
+import type {
+  KnowledgeQueryEmbeddingService,
+  RetrievalQueryEmbeddingResult,
+  RetrievalQueryVector,
+} from './knowledge-query-embedding.service.js'
 import type { TypedRetrievalQueryVariant } from './typed-retrieval-query-builder.js'
 
 const DEFAULT_LIMIT_PER_TYPE = 3
+const RETRIEVAL_TYPES: readonly KnowledgeType[] = ['memory', 'world', 'media']
+type QueryEmbeddingService = Pick<KnowledgeQueryEmbeddingService, 'embedVariants'>
+type ResolvedRetrievalEmbeddingProfile = RetrievalEmbeddingProfile & {
+  embeddingProfileId: string
+  corpusGenerationId: string
+}
 
 export type TypedRetrievalInput = {
   scenarioId: string
@@ -28,153 +45,234 @@ export type TypedRetrievalInput = {
   limitPerType?: number
 }
 
+type RetrievedType = {
+  sourceIds: string[]
+  items: RetrievedKnowledgeItem[]
+  candidateCount: number
+  excludedCount: number
+  visibility: {
+    mode: RetrievalVisibilityMode
+    activeAvatarId?: string
+    consideredChunkCount: number
+    excludedChunkCount: number
+  }
+}
+
 export class TypedRetrievalService {
   constructor(
     private readonly sourceRepository: IKnowledgeSourceRepository,
     private readonly chunkRepository: IKnowledgeChunkRepository,
+    private readonly queryEmbeddingService: QueryEmbeddingService,
   ) {}
 
+  // eslint-disable-next-line complexity
   async retrieve(input: TypedRetrievalInput): Promise<TypedRetrievalResult> {
-    const limit = Math.max(1, input.limitPerType ?? DEFAULT_LIMIT_PER_TYPE)
-    const queries = normalizeQueries(input)
-    const memory = await this.retrieveByType('memory', input, queries, limit)
-    const world = await this.retrieveByType('world', input, queries, limit)
-    const media = await this.retrieveByType('media', input, queries, limit)
+    const startedAt = Date.now()
+    const limit = Math.min(
+      MAX_VECTOR_SEARCH_CANDIDATES,
+      Math.max(1, input.limitPerType ?? DEFAULT_LIMIT_PER_TYPE),
+    )
+    const embedding = await this.queryEmbeddingService.embedVariants({
+      query: input.query,
+      ...(input.queries !== undefined ? { queries: input.queries } : {}),
+    })
 
-    return {
-      memory: memory.items,
-      world: world.items,
-      media: media.items,
-      trace: {
-        query: input.query,
-        queries,
-        candidateCount: memory.candidateCount + world.candidateCount + media.candidateCount,
-        selectedCount: memory.items.length + world.items.length + media.items.length,
-        excludedCount: memory.excludedCount + world.excludedCount + media.excludedCount,
-        outcome:
-          memory.items.length + world.items.length + media.items.length > 0
-            ? 'success'
-            : 'no_results',
-        perType: {
-          memory: {
-            sourceIds: memory.sourceIds,
-            selectedChunkIds: memory.items.map((item) => item.chunkId),
-            candidateCount: memory.candidateCount,
-            selectedCount: memory.items.length,
-            excludedCount: memory.excludedCount,
-            visibility: memory.visibility,
-          },
-          world: {
-            sourceIds: world.sourceIds,
-            selectedChunkIds: world.items.map((item) => item.chunkId),
-            candidateCount: world.candidateCount,
-            selectedCount: world.items.length,
-            excludedCount: world.excludedCount,
-            visibility: world.visibility,
-          },
-          media: {
-            sourceIds: media.sourceIds,
-            selectedChunkIds: media.items.map((item) => item.chunkId),
-            candidateCount: media.candidateCount,
-            selectedCount: media.items.length,
-            excludedCount: media.excludedCount,
-            visibility: media.visibility,
+    if (embedding.diagnostics.outcome === 'failed') {
+      return emptyRetrievalResult(
+        input,
+        embedding,
+        embedding.diagnostics.failure ?? {
+          code: 'query_embedding_failed',
+          retryable: false,
+        },
+      )
+    }
+    if (embedding.queryVectors.length === 0) {
+      return emptyRetrievalResult(input, embedding)
+    }
+
+    const profile = embedding.diagnostics.embeddingProfile
+    const embeddingProfileId = profile?.embeddingProfileId
+    const corpusGenerationId = profile?.corpusGenerationId
+    if (
+      profile === undefined ||
+      embeddingProfileId === undefined ||
+      corpusGenerationId === undefined
+    ) {
+      return emptyRetrievalResult(input, embedding, {
+        code: 'incompatible_profile',
+        retryable: false,
+      })
+    }
+    const resolvedProfile: ResolvedRetrievalEmbeddingProfile = {
+      ...profile,
+      embeddingProfileId,
+      corpusGenerationId,
+    }
+
+    try {
+      const retrievedByType = await Promise.all(
+        RETRIEVAL_TYPES.map((type) =>
+          this.retrieveByType(type, input, embedding.queryVectors, resolvedProfile, limit),
+        ),
+      )
+      const [memory, world, media] = retrievedByType as [
+        RetrievedType,
+        RetrievedType,
+        RetrievedType,
+      ]
+      const totalSelected = memory.items.length + world.items.length + media.items.length
+      const vectorSearchMs = Math.max(
+        0,
+        Date.now() - startedAt - (embedding.diagnostics.timings.totalMs ?? 0),
+      )
+
+      return {
+        memory: memory.items,
+        world: world.items,
+        media: media.items,
+        trace: {
+          query: input.query,
+          queries: [...embedding.queries],
+          queryVectorCount: embedding.diagnostics.queryVectorCount,
+          embeddingProfile: profile,
+          timings: retrievalTimings(
+            embedding.diagnostics.timings,
+            vectorSearchMs,
+            Date.now() - startedAt,
+          ),
+          visibilityMode: visibilityMode(input),
+          candidateCount: memory.candidateCount + world.candidateCount + media.candidateCount,
+          selectedCount: totalSelected,
+          excludedCount: memory.excludedCount + world.excludedCount + media.excludedCount,
+          outcome: totalSelected > 0 ? 'success' : 'no_results',
+          perType: {
+            memory: toTrace(memory),
+            world: toTrace(world),
+            media: toTrace(media),
           },
         },
-      },
+      }
+    } catch (error) {
+      if (!(error instanceof KnowledgeVectorSearchError)) throw error
+      return emptyRetrievalResult(input, embedding, error.failure, {
+        vectorSearchMs: Math.max(
+          0,
+          Date.now() - startedAt - (embedding.diagnostics.timings.totalMs ?? 0),
+        ),
+      })
     }
   }
 
   private async retrieveByType(
     type: KnowledgeType,
     input: TypedRetrievalInput,
-    queries: TypedRetrievalQueryVariant[],
+    queryVectors: readonly RetrievalQueryVector[],
+    profile: ResolvedRetrievalEmbeddingProfile,
     limit: number,
-  ) {
+  ): Promise<RetrievedType> {
+    const {
+      embeddingProfileId: resolvedEmbeddingProfileId,
+      corpusGenerationId: resolvedCorpusGenerationId,
+    } = profile
     const sources = await this.sourceRepository.listByScenario({
       scenarioId: input.scenarioId,
       knowledgeType: type,
       status: 'ready',
     })
-
     const sourceIds = sources.map((source) => source.sourceId)
-    const sourceById = new Map(sources.map((source) => [source.sourceId, source] as const))
-    if (sourceIds.length === 0) {
-      return {
-        sourceIds: [],
-        items: [] as RetrievedKnowledgeItem[],
-        candidateCount: 0,
-        excludedCount: 0,
-        visibility: {
-          mode: visibilityMode(input),
-          ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
-          consideredChunkCount: 0,
-          excludedChunkCount: 0,
-        },
-      }
-    }
+    if (sourceIds.length === 0) return emptyType(input, sourceIds)
 
-    const chunks = await this.chunkRepository.listBySourceIds(sourceIds)
-    const avatarVisibleChunks = chunks.filter((chunk) => {
-      const source = sourceById.get(chunk.sourceId)
-      return isKnowledgeVisibleToAvatar(
-        buildKnowledgeVisibilitySelection(
-          source?.visibilityPolicy,
-          chunk.visibleToAvatarIds ?? source?.visibleToAvatarIds,
-        ),
-        input.activeAvatarId,
-        input.bypassVisibilityFilter === true,
-      )
-    })
-    const excludedByVisibilityCount = chunks.length - avatarVisibleChunks.length
-    const scopedChunks =
-      type === 'memory'
-        ? avatarVisibleChunks.filter((chunk) => isInMemoryScope(chunk, input))
-        : avatarVisibleChunks
-
-    const scored = scopedChunks
-      .flatMap((chunk) =>
-        queries.map((query, queryIndex) => ({
-          chunk,
-          query,
-          queryIndex,
-          score: scoreChunk(type, chunk, query.text, input),
-        })),
-      )
-      .filter((entry) => entry.score > 0)
-      .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score
-        if (a.queryIndex !== b.queryIndex) return a.queryIndex - b.queryIndex
-        if (a.chunk.sourceId !== b.chunk.sourceId)
-          return a.chunk.sourceId.localeCompare(b.chunk.sourceId)
-        return a.chunk.chunkIndex - b.chunk.chunkIndex
-      })
-    const selected = selectBalancedRetrievedItems(
-      scored.map((entry) =>
-        toRetrievedItem(
-          type,
-          entry.chunk,
-          entry.score,
-          explainScore(type, entry.chunk, entry.query, input),
-          entry.query,
-          entry.queryIndex,
-        ),
-      ),
-      limit,
+    const candidateLimit = Math.min(
+      MAX_VECTOR_SEARCH_CANDIDATES,
+      Math.max(limit, limit * queryVectors.length),
     )
+    const searchResults = await Promise.all(
+      queryVectors.map((queryVector) =>
+        this.chunkRepository.searchByVector({
+          queryVector: queryVector.vector,
+          queryVariant: queryVector.variant,
+          queryIndex: queryVector.queryIndex,
+          scenarioId: input.scenarioId,
+          knowledgeType: type,
+          candidateLimit,
+          embeddingProfileId: resolvedEmbeddingProfileId,
+          corpusGenerationId: resolvedCorpusGenerationId,
+          profile: {
+            provider: profile.provider,
+            model: profile.model,
+            dimensions: profile.dimensions,
+          },
+          visibilityMode: visibilityMode(input),
+          ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
+          eligibleSourceIds: sourceIds,
+          ...(input.userId !== undefined ? { userId: input.userId } : {}),
+          ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
+          ...(input.conversationId !== undefined ? { conversationId: input.conversationId } : {}),
+        }),
+      ),
+    )
+    const candidates = searchResults.flatMap((result: VectorSearchResult) => result)
+    const merged = mergeCandidates(candidates)
+    const items = selectBalancedRetrievedItems(merged.map(toRetrievedItem), limit)
 
     return {
       sourceIds,
-      items: selected,
-      candidateCount: scored.length,
-      excludedCount: Math.max(0, scored.length - selected.length),
+      items,
+      candidateCount: candidates.length,
+      excludedCount: Math.max(0, candidates.length - items.length),
       visibility: {
         mode: visibilityMode(input),
         ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
-        consideredChunkCount: chunks.length,
-        excludedChunkCount: excludedByVisibilityCount,
+        consideredChunkCount: candidates.length,
+        excludedChunkCount: 0,
       },
     }
+  }
+}
+
+function mergeCandidates(
+  candidates: readonly VectorRetrievalCandidate[],
+): VectorRetrievalCandidate[] {
+  const bestByChunk = new Map<string, VectorRetrievalCandidate>()
+  for (const candidate of candidates) {
+    const existing = bestByChunk.get(candidate.chunkId)
+    if (existing === undefined || compareCandidates(candidate, existing) < 0) {
+      bestByChunk.set(candidate.chunkId, candidate)
+    }
+  }
+  return [...bestByChunk.values()].sort(compareCandidates)
+}
+
+function compareCandidates(
+  left: VectorRetrievalCandidate,
+  right: VectorRetrievalCandidate,
+): number {
+  if (left.similarity !== right.similarity) return right.similarity - left.similarity
+  const leftQueryIndex = left.queryIndex ?? Number.MAX_SAFE_INTEGER
+  const rightQueryIndex = right.queryIndex ?? Number.MAX_SAFE_INTEGER
+  if (leftQueryIndex !== rightQueryIndex) return leftQueryIndex - rightQueryIndex
+  if (left.sourceId !== right.sourceId) return left.sourceId.localeCompare(right.sourceId)
+  if (left.chunkIndex !== right.chunkIndex) return left.chunkIndex - right.chunkIndex
+  return left.chunkId.localeCompare(right.chunkId)
+}
+
+function toRetrievedItem(candidate: VectorRetrievalCandidate): RetrievedKnowledgeItem {
+  return {
+    sourceId: candidate.sourceId,
+    chunkId: candidate.chunkId,
+    knowledgeType: candidate.knowledgeType,
+    content: candidate.content,
+    score: candidate.similarity,
+    distance: candidate.distance,
+    similarity: candidate.similarity,
+    ...(candidate.queryIndex !== undefined ? { queryIndex: candidate.queryIndex } : {}),
+    reason: 'vector-match',
+    matchedQuery: candidate.matchedQuery,
+    ...(candidate.visibleToAvatarIds !== undefined
+      ? { visibleToAvatarIds: candidate.visibleToAvatarIds }
+      : {}),
+    ...(candidate.metadata !== undefined ? { metadata: candidate.metadata } : {}),
   }
 }
 
@@ -182,171 +280,80 @@ function visibilityMode(input: TypedRetrievalInput): RetrievalVisibilityMode {
   return input.bypassVisibilityFilter === true ? 'gm_unrestricted' : 'avatar_filtered'
 }
 
-function normalizeQueries(input: TypedRetrievalInput): TypedRetrievalQueryVariant[] {
-  const queries = input.queries?.filter((query) => query.text.trim().length > 0) ?? []
-  if (queries.length > 0) return queries
-
-  const query = input.query.trim()
-  return query.length > 0 ? [{ source: 'direct_query', text: query }] : []
-}
-
-function isInMemoryScope(chunk: KnowledgeChunk, input: TypedRetrievalInput): boolean {
-  const hasScope =
-    input.userId !== undefined ||
-    input.sessionId !== undefined ||
-    input.conversationId !== undefined
-  if (!hasScope) return true
-
-  if (!hasMemoryScopeMetadata(chunk.metadata)) return true
-  if (!metadataMatchesWhenPresent(chunk.metadata, 'userId', input.userId)) return false
-  if (!metadataMatchesWhenPresent(chunk.metadata, 'sessionId', input.sessionId)) return false
-  if (!metadataMatchesWhenPresent(chunk.metadata, 'conversationId', input.conversationId))
-    return false
-
-  return true
-}
-
-function hasMemoryScopeMetadata(metadata: Record<string, unknown> | undefined): boolean {
-  if (metadata === undefined) return false
-  return (
-    Object.hasOwn(metadata, 'userId') ||
-    Object.hasOwn(metadata, 'sessionId') ||
-    Object.hasOwn(metadata, 'conversationId')
-  )
-}
-
-function metadataMatchesWhenPresent(
-  metadata: Record<string, unknown> | undefined,
-  key: string,
-  expected: string | undefined,
-): boolean {
-  if (expected === undefined) return true
-  if (metadata === undefined || !Object.hasOwn(metadata, key)) return true
-  return metadata[key] === expected
-}
-
-function toRetrievedItem(
-  type: KnowledgeType,
-  chunk: KnowledgeChunk,
-  score: number,
-  reason: string,
-  matchedQuery: TypedRetrievalQueryVariant,
-  queryIndex: number,
-): RetrievedKnowledgeItem {
+function emptyType(input: TypedRetrievalInput, sourceIds: string[]): RetrievedType {
   return {
-    sourceId: chunk.sourceId,
-    chunkId: chunk.chunkId,
-    knowledgeType: type,
-    content: chunk.content,
-    score: Number(score.toFixed(4)),
-    queryIndex,
-    reason,
-    matchedQuery,
-    ...(chunk.visibleToAvatarIds !== undefined
-      ? { visibleToAvatarIds: chunk.visibleToAvatarIds }
-      : {}),
-    ...(chunk.metadata !== undefined ? { metadata: chunk.metadata } : {}),
+    sourceIds,
+    items: [],
+    candidateCount: 0,
+    excludedCount: 0,
+    visibility: {
+      mode: visibilityMode(input),
+      ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
+      consideredChunkCount: 0,
+      excludedChunkCount: 0,
+    },
   }
 }
 
-function scoreChunk(
-  type: KnowledgeType,
-  chunk: KnowledgeChunk,
-  query: string,
+function emptyRetrievalResult(
   input: TypedRetrievalInput,
-): number {
-  const overlap = overlapScore(query, chunk.content)
-  if (overlap <= 0) return 0
-
-  let boost = 0
-  if (type === 'memory') {
-    boost += metadataMatch(chunk.metadata, 'userId', input.userId, 0.25)
-    boost += metadataMatch(chunk.metadata, 'sessionId', input.sessionId, 0.15)
-    boost += metadataMatch(chunk.metadata, 'conversationId', input.conversationId, 0.1)
-  }
-  if (type === 'media') {
-    boost += metadataTokenBoost(chunk.metadata, 'tags', query, 0.1)
-  }
-
-  return overlap + boost
-}
-
-function explainScore(
-  type: KnowledgeType,
-  chunk: KnowledgeChunk,
-  query: TypedRetrievalQueryVariant,
-  input: TypedRetrievalInput,
-): string {
-  const queryReason = query.source.replaceAll('_', '-')
-  if (type === 'memory') {
-    const reasons: string[] = [queryReason, 'token-overlap']
-    if (metadataEquals(chunk.metadata, 'userId', input.userId)) reasons.push('user-match')
-    if (metadataEquals(chunk.metadata, 'sessionId', input.sessionId)) reasons.push('session-match')
-    if (metadataEquals(chunk.metadata, 'conversationId', input.conversationId)) {
-      reasons.push('conversation-match')
-    }
-    return reasons.join('+')
-  }
-  if (type === 'media' && metadataTokenBoost(chunk.metadata, 'tags', query.text, 0.1) > 0) {
-    return `${queryReason}+token-overlap+tag-match`
-  }
-  return `${queryReason}+token-overlap`
-}
-
-function overlapScore(query: string, content: string): number {
-  const queryTokens = tokenize(query)
-  const contentTokens = new Set(tokenize(content))
-  if (queryTokens.length === 0) return 0
-
-  let matches = 0
-  for (const token of queryTokens) {
-    if (contentTokens.has(token)) matches += 1
-  }
-
-  return matches / queryTokens.length
-}
-
-function metadataMatch(
-  metadata: Record<string, unknown> | undefined,
-  key: string,
-  expected: string | undefined,
-  boost: number,
-): number {
-  if (expected === undefined || metadata === undefined) return 0
-  return metadata[key] === expected ? boost : 0
-}
-
-function metadataEquals(
-  metadata: Record<string, unknown> | undefined,
-  key: string,
-  expected: string | undefined,
-): boolean {
-  if (expected === undefined || metadata === undefined) return false
-  return metadata[key] === expected
-}
-
-function metadataTokenBoost(
-  metadata: Record<string, unknown> | undefined,
-  key: string,
-  query: string,
-  boost: number,
-): number {
-  if (metadata === undefined) return 0
-  const tags = metadata[key]
-  if (!Array.isArray(tags)) return 0
-
-  const tagTokens = new Set(
-    tags.filter((tag): tag is string => typeof tag === 'string').flatMap(tokenize),
+  embedding: RetrievalQueryEmbeddingResult,
+  failure?: RetrievalFailure,
+  timing?: Pick<RetrievalTimings, 'vectorSearchMs'>,
+): TypedRetrievalResult {
+  const empty = emptyType(input, [])
+  const timings = retrievalTimings(
+    embedding.diagnostics.timings,
+    timing?.vectorSearchMs ?? 0,
+    (embedding.diagnostics.timings.totalMs ?? 0) + (timing?.vectorSearchMs ?? 0),
   )
-  const queryTokens = tokenize(query)
-  if (queryTokens.some((token) => tagTokens.has(token))) return boost
-  return 0
+  const outcome = failure === undefined ? 'no_results' : 'failed'
+  return {
+    memory: [],
+    world: [],
+    media: [],
+    trace: {
+      query: input.query,
+      queries: [...embedding.queries],
+      queryVectorCount: embedding.diagnostics.queryVectorCount,
+      ...(embedding.diagnostics.embeddingProfile !== undefined
+        ? { embeddingProfile: embedding.diagnostics.embeddingProfile }
+        : {}),
+      timings,
+      visibilityMode: visibilityMode(input),
+      candidateCount: 0,
+      selectedCount: 0,
+      excludedCount: 0,
+      outcome,
+      ...(failure === undefined ? {} : { failure }),
+      perType: {
+        memory: toTrace(empty),
+        world: toTrace(empty),
+        media: toTrace(empty),
+      },
+    },
+  }
 }
 
-function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .split(/[^a-z0-9]+/g)
-    .map((token) => token.trim())
-    .filter((token) => token.length >= 2)
+function toTrace(retrieved: RetrievedType) {
+  return {
+    sourceIds: retrieved.sourceIds,
+    selectedChunkIds: retrieved.items.map((item) => item.chunkId),
+    candidateCount: retrieved.candidateCount,
+    selectedCount: retrieved.items.length,
+    excludedCount: retrieved.excludedCount,
+    visibility: retrieved.visibility,
+  }
+}
+
+function retrievalTimings(
+  embeddingTimings: RetrievalTimings,
+  vectorSearchMs: number,
+  totalMs: number,
+): RetrievalTimings {
+  return {
+    ...embeddingTimings,
+    totalMs: Math.max(0, totalMs),
+    vectorSearchMs: Math.max(0, vectorSearchMs),
+  }
 }

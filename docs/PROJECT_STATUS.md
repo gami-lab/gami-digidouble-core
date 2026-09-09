@@ -117,7 +117,7 @@ profile/generation work is rejected without replacing the previous active source
 also exposes `KnowledgeQueryEmbeddingService` as the single profile-aware, ordered batch
 query-vector boundary for EPIC 5.1d. It normalizes every configured query source, validates
 complete provider output, returns controlled failures without partial vectors, and emits safe
-profile/count/timing diagnostics. Nearest-neighbor retrieval is not implemented yet.
+profile/count/timing diagnostics.
 The deployed schema remains fixed at `VECTOR(16)` with `vector_cosine_ops`; configuration rejects
 another dimension until its migration and full staged reindex exist. Full reindex orchestration is
 now available through the authenticated operator start/status/retry routes, with source snapshots,
@@ -126,10 +126,10 @@ Hardening coverage verifies production composition, PostgreSQL typmod/index inva
 isolation, rollback/promotion safety, stale work rejection, deterministic adapter failures, and
 safe observability. Opt-in live provider checks remain environment-gated; the OpenAI embedding
 check passed in the current verification run, while Mistral smoke checks were skipped by provider
-quota/rate-limit responses. Nearest-neighbor vector retrieval remains open for EPIC 5.1d.
+quota/rate-limit responses.
 Public source/chunk/ingestion-job DTOs are unchanged and continue to be owned by `@gami/shared`.
 
-#### EPIC 5.1d retrieval contract foundation ✅ Complete
+#### EPIC 5.1d retrieval contracts and runtime ✅ Complete
 
 The retrieval audit established one shared query-source/variant contract and domain ownership for
 vector candidates, typed results, traces, and controlled failures. `@gami/shared` now owns safe
@@ -137,15 +137,16 @@ retrieval references and diagnostic DTOs used by admin responses, recorded runti
 console-derived views. Cosine distance is the repository truth and normalized similarity is
 `1 - distance`; presenter mappers clamp/round only at the public boundary. Diagnostics include
 bounded profile, timing, count, visibility, query-index, outcome, and failure fields without raw
-vectors. Existing lexical ranking, Context Engine selection, prompt rendering, endpoints, and
-persistence schemas remain behavior-compatible. The actual pgvector nearest-neighbor runtime is
-still not wired into the typed runtime ranking path under EPIC 5.1d. Ordered query vectorization
-and the filtered `IKnowledgeChunkRepository.searchByVector` boundary are complete behind the same
-profile-aware application boundary. PostgreSQL now applies active corpus, source readiness,
-scenario/type, visibility, static-scope, cosine ordering, and candidate-limit rules in the
-repository; runtime multi-query merging, Context Engine selection, and ranking replacement remain
-open. The deterministic in-memory vector repository and PostgreSQL integration coverage verify
-ordering, filtering, visibility asymmetry, safe failures, and index-compatible query shape.
+vectors. The typed runtime now uses the same profile-aware query-vector boundary and filtered
+`IKnowledgeChunkRepository.searchByVector` path for Avatar, asynchronous Game Master, and admin
+retrieval. Multi-query/type candidates are merged deterministically by normalized similarity,
+deduplicated, and passed to the existing balanced selection and Context Engine boundaries; the
+production lexical scorer and metadata boosts are no longer used. Avatar retrieval remains
+filtered while GM retrieval requests explicit unrestricted visibility. Embedding and vector-search
+failures produce bounded controlled outcomes, preserving Avatar response generation and
+required-evidence guidance. The deterministic in-memory vector repository and PostgreSQL
+integration coverage verify ordering, filtering, visibility asymmetry, safe failures, and
+index-compatible query shape. Admin presentation remains additive and contract-compatible.
 
 ### Operations
 
