@@ -372,6 +372,7 @@ function formatRetrievalCounts(includedCounts: {
   return `${formatCountSummary(retrievalTotal, 'retrieved reference')} included (${String(includedCounts.memory)} memory / ${String(includedCounts.world)} world / ${String(includedCounts.media)} media)`
 }
 
+// eslint-disable-next-line complexity
 function formatAvatarContext(turnPayload: TurnCompletedEventPayload): string {
   const selected = turnPayload.contextSelection as TurnContextSelectionSummary | null | undefined
   if (!selected) return 'Avatar context used for this reply: unavailable.'
@@ -379,6 +380,8 @@ function formatAvatarContext(turnPayload: TurnCompletedEventPayload): string {
   const includedCounts = selected.retrieval?.includedCounts ?? { memory: 0, world: 0, media: 0 }
   const responseRuleCount = selected.responseRuleCount
   const hasAvatarTraits = selected.hasAvatarTraits
+  const retrievalTrace = selected.retrieval?.retrievalTrace
+  const contextSelection = selected.contextEngineSelection
 
   return [
     `Avatar context used for this reply: ${formatCountSummary(selected.shortTermExchangeCount, 'recent exchange')}`,
@@ -389,6 +392,12 @@ function formatAvatarContext(turnPayload: TurnCompletedEventPayload): string {
     hasAvatarTraits ? 'avatar traits included' : 'no selected avatar traits',
     selected.hasGmDirective ? 'GM note included' : 'no GM note',
     selected.hasUserPersona ? 'user persona included' : 'no user persona',
+    ...(retrievalTrace !== undefined ? [formatRetrievalDiagnostics(retrievalTrace)] : []),
+    ...(contextSelection !== undefined
+      ? [
+          `Context Engine segments: ${String(contextSelection.keptSegmentCount)} kept, ${String(contextSelection.trimmedSegmentCount)} trimmed`,
+        ]
+      : []),
   ].join(', ')
 }
 
@@ -408,13 +417,37 @@ function formatAvatarRetrievalAssembly(turnPayload: TurnCompletedEventPayload): 
   const omittedTotal = omittedCounts.memory + omittedCounts.world + omittedCounts.media
   const excludedCounts = retrieval.excludedByVisibilityCounts ?? { memory: 0, world: 0, media: 0 }
   const excludedTotal = excludedCounts.memory + excludedCounts.world + excludedCounts.media
+  const diagnostics = retrieval.retrievalTrace
+    ? formatRetrievalDiagnostics(retrieval.retrievalTrace)
+    : undefined
 
   return [
     `Avatar retrieval assembly: ${String(selectedTotal)} hit${selectedTotal === 1 ? '' : 's'} selected for assembly`,
     `${String(includedTotal)} included in the final avatar input`,
     `${String(excludedTotal)} excluded by avatar visibility`,
     `${String(omittedTotal)} omitted during final assembly`,
+    ...(diagnostics !== undefined ? [diagnostics] : []),
   ].join(', ')
+}
+
+// eslint-disable-next-line complexity
+function formatRetrievalDiagnostics(
+  trace: NonNullable<
+    NonNullable<TurnCompletedEventPayload['contextSelection']>['retrieval']
+  >['retrievalTrace'],
+): string {
+  if (trace === undefined) return 'Retrieval diagnostics unavailable'
+  const profile = trace.embeddingProfile
+  const profileText =
+    profile === undefined
+      ? 'profile unavailable'
+      : `${profile.provider}/${profile.model}/${String(profile.dimensions)}d`
+  const timingText =
+    trace.timings === undefined
+      ? 'timing unavailable'
+      : `embedding ${String(trace.timings.queryEmbeddingMs ?? 0)}ms, search ${String(trace.timings.vectorSearchMs ?? 0)}ms`
+  const outcome = trace.failure?.code ?? trace.outcome ?? 'unknown'
+  return `Retrieval diagnostics: ${outcome}, ${profileText}, ${timingText}, ${String(trace.candidateCount ?? 0)} candidates / ${String(trace.selectedCount ?? 0)} selected, ${trace.visibilityMode ?? 'visibility unknown'}`
 }
 
 // eslint-disable-next-line complexity
@@ -539,6 +572,7 @@ function formatMatchBasis(reason: string | undefined): string {
     .split('+')
     .map((part) => {
       if (part === 'token-overlap') return 'keyword match'
+      if (part === 'vector-match') return 'vector similarity'
       if (part === 'user-match') return 'same user'
       if (part === 'session-match') return 'same session'
       if (part === 'conversation-match') return 'same conversation'

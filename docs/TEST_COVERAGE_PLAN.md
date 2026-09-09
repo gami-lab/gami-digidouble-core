@@ -141,6 +141,9 @@ Must cover:
   generation
 - filtered pgvector repository: bounded cosine ordering, SQL-side eligibility filters, explicit avatar/GM visibility modes, static memory scope, active profile/generation, safe dimension/profile failures, and index-compatible query shape
 - retrieval diagnostics staying bounded
+- unified retrieval diagnostics across the admin presenter, recorded runtime events, session-context
+  mapper, and console/admin adapters, including duplicate-vs-selection counts and Context Engine
+  inclusion/trimming facts
 
 ### Operations And Inspection
 

@@ -118,6 +118,7 @@ describe('TypedRetrievalService', () => {
     )
     expect(result.trace.queryVectorCount).toBe(1)
     expect(result.trace.visibilityMode).toBe('avatar_filtered')
+    expect(result.trace.gmUnrestricted).toBe(false)
   })
 
   it('deduplicates a chunk across variants using the best similarity and stable ties', async () => {
@@ -149,6 +150,8 @@ describe('TypedRetrievalService', () => {
       expect.objectContaining({ queryIndex: 1 }),
     )
     expect(new Set(result.memory.map((item) => item.chunkId)).size).toBe(2)
+    expect(result.trace.perType.memory).toEqual(expect.objectContaining({ duplicateCount: 2 }))
+    expect(result.trace).toEqual(expect.objectContaining({ duplicateCount: 2 }))
   })
 
   it('preserves avatar filtering and passes memory scope to the vector repository', async () => {
@@ -190,6 +193,7 @@ describe('TypedRetrievalService', () => {
 
     expect(result.world).toHaveLength(1)
     expect(result.trace.visibilityMode).toBe('gm_unrestricted')
+    expect(result.trace.gmUnrestricted).toBe(true)
   })
 
   it('returns a controlled empty result for embedding failure without searching', async () => {

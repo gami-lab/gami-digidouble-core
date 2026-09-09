@@ -1,6 +1,7 @@
 import type { ContextEngineOutput } from '../../../domain/context/context-engine.types.js'
+import { toRetrievalTraceDto } from '../../services/runtime-inspector-event-context.js'
 
-export function toContextSelectionMetadata(assembledContext: ContextEngineOutput): {
+export type ContextSelectionMetadata = {
   shortTermExchangeCount: number
   hasWorkingMemory: boolean
   longTermFactCount: number
@@ -25,12 +26,21 @@ export function toContextSelectionMetadata(assembledContext: ContextEngineOutput
       world: number
       media: number
     }
+    retrievalTrace?: ReturnType<typeof toRetrievalTraceDto>
+  }
+  contextEngineSelection?: {
+    keptSegmentCount: number
+    trimmedSegmentCount: number
   }
   hasUserPersona: boolean
   hasGmDirective: boolean
   responseRuleCount: number
   hasAvatarTraits: boolean
-} {
+}
+
+export function toContextSelectionMetadata(
+  assembledContext: ContextEngineOutput,
+): ContextSelectionMetadata {
   const selected = assembledContext.trace.selectedInputs
   const includedCounts = toIncludedRetrievalCounts(assembledContext)
   const omittedByAssemblyCounts = {
@@ -49,6 +59,13 @@ export function toContextSelectionMetadata(assembledContext: ContextEngineOutput
       ...(selected.visibility !== undefined
         ? { excludedByVisibilityCounts: selected.visibility.excludedCounts }
         : {}),
+      ...(selected.retrieval !== undefined
+        ? { retrievalTrace: toRetrievalTraceDto(selected.retrieval) }
+        : {}),
+    },
+    contextEngineSelection: {
+      keptSegmentCount: assembledContext.trace.selection.kept.length,
+      trimmedSegmentCount: assembledContext.trace.selection.trimmed.length,
     },
     hasUserPersona: selected.hasUserPersona,
     hasGmDirective: selected.hasGmDirective,

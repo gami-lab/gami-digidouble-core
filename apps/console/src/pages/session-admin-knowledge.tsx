@@ -268,6 +268,7 @@ export async function refreshKnowledgeSources(
   }
 }
 
+// eslint-disable-next-line complexity
 export async function inspectRetrieval(
   sessionId: string,
   conversationId: string | null,
@@ -289,14 +290,26 @@ export async function inspectRetrieval(
     }
     const response = await queryKnowledgeRetrieval(request)
     const { memory, world, media } = response.retrieval
+    const trace = response.retrieval.trace
     const memoryScope = firstVisibilityLabel(memory.map((item) => item.visibleToAvatarIds))
     const worldScope = firstVisibilityLabel(world.map((item) => item.visibleToAvatarIds))
     const mediaScope = firstVisibilityLabel(media.map((item) => item.visibleToAvatarIds))
     const worldVisibility = response.retrieval.trace.perType.world.visibility
-    const diagnostics =
+    const diagnostics = [
+      trace.outcome ?? 'unknown',
+      trace.embeddingProfile === undefined
+        ? 'profile unavailable'
+        : `profile=${trace.embeddingProfile.provider}/${trace.embeddingProfile.model}/${String(trace.embeddingProfile.dimensions)}d`,
+      `candidates=${String(trace.candidateCount ?? 0)}`,
+      `selected=${String(trace.selectedCount ?? 0)}`,
+      `embedding=${String(trace.timings?.queryEmbeddingMs ?? 0)}ms`,
+      `search=${String(trace.timings?.vectorSearchMs ?? 0)}ms`,
       worldVisibility === undefined
         ? 'visibility diagnostics unavailable'
-        : `excluded(world)=${String(worldVisibility.excludedChunkCount)}`
+        : `excluded(world)=${String(worldVisibility.excludedChunkCount)}`,
+      `mode=${trace.visibilityMode ?? 'unknown'}`,
+      ...(trace.failure !== undefined ? [`failure=${trace.failure.code}`] : []),
+    ].join(' · ')
     setSummary(
       `retrieval: memory=${String(memory.length)}(${memoryScope}), world=${String(world.length)}(${worldScope}), media=${String(media.length)}(${mediaScope}) · ${diagnostics}.`,
     )

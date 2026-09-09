@@ -294,10 +294,12 @@ All admin endpoints live under `/v1/admin/*`.
   applies avatar visibility filtering. The response trace includes the query variants used and
   each result may include its matched query source/text and query index. Additive retrieval
   diagnostics are owned by `@gami/shared`: safe embedding profile identity, bounded timings,
-  query-vector/candidate/selected/excluded counts, visibility mode, outcome/failure code, and
+  query-vector/candidate/selected/excluded counts, duplicate and selection-exclusion counts when
+  available, visibility mode, outcome/failure code, and
   optional cosine `distance`/normalized `similarity`. Cosine distance is lower-is-better;
   similarity is `1 - distance`; clamping and rounding are applied only at the presenter boundary. The compatibility
-  `score` field carries the same normalized similarity in runtime retrieval. No raw vectors are
+  `score` field carries the same normalized similarity in runtime retrieval. The trace also carries
+  explicit `gmUnrestricted` state; it is never inferred from an absent avatar ID. No raw vectors are
   exposed.
 
 Runtime `turn_completed` event retrieval references include the selected chunk content and matched
@@ -307,6 +309,15 @@ subsequent Avatar turn consumes that plan, its `turn_completed` event records th
 plan contents so the console can show which proposals produced matching chunks. Recorded retrieval
 references may carry the same safe query-index, distance/similarity, and trace diagnostics; their
 shared DTO deliberately omits metadata and raw vectors.
+
+The `turn_completed.contextSelection` projection additionally reports the canonical bounded
+`retrievalTrace` and `contextEngineSelection` kept/trimmed segment counts. The session-context
+inspection trace reports the same retrieval trace under `selectedInputs.retrieval` alongside the
+existing final selection `kept` and `trimmed` entries. These fields are optional so older persisted
+events remain readable. Retrieval candidate counts describe rows returned after SQL eligibility
+filters; `duplicateCount` describes multi-query chunk deduplication and
+`selectionExcludedCount` describes bounded retrieval selection drops. No expensive excluded-row
+count is inferred when the repository does not provide one.
 
 The nearest-neighbor repository request/result is an internal Application/Infrastructure contract,
 not an HTTP DTO. Public and recorded projections continue to expose only deliberate bounded

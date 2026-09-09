@@ -559,6 +559,62 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
       },
     })
   })
+
+  it('reads additive retrieval and Context Engine diagnostics from newer turn events', async () => {
+    const { useCase } = createUseCase({
+      events: [
+        makeEvent({
+          type: 'turn_completed',
+          payload: {
+            conversationId: 'conversation_1',
+            turnIndex: 4,
+            avatarId: 'avatar_1',
+            avatarLatencyMs: 4,
+            totalTurnLatencyMs: 8,
+            inputTokens: 1,
+            outputTokens: 2,
+            totalTokens: 3,
+            model: 'null-model',
+            hasGm: false,
+            contextSelection: {
+              shortTermExchangeCount: 0,
+              hasWorkingMemory: false,
+              longTermFactCount: 0,
+              contextEngineSelection: { keptSegmentCount: 3, trimmedSegmentCount: 1 },
+              retrieval: {
+                selectedForAssemblyCounts: { memory: 1, world: 0, media: 0 },
+                includedCounts: { memory: 1, world: 0, media: 0 },
+                retrievalTrace: {
+                  query: 'dock',
+                  duplicateCount: 2,
+                  selectionExcludedCount: 1,
+                  perType: {
+                    memory: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
+                    world: { sourceIds: [], selectedChunkIds: [] },
+                    media: { sourceIds: [], selectedChunkIds: [] },
+                  },
+                },
+              },
+            },
+          },
+        }),
+      ],
+    })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+    const payload = output.events[0]?.payload
+    expect(payload).toMatchObject({
+      contextSelection: {
+        contextEngineSelection: { keptSegmentCount: 3, trimmedSegmentCount: 1 },
+        retrieval: {
+          retrievalTrace: {
+            duplicateCount: 2,
+            selectionExcludedCount: 1,
+          },
+        },
+      },
+    })
+  })
 })
 
 describe('ListSessionEventsUseCase — memory refresh mapping', () => {

@@ -1,5 +1,6 @@
 import type { AdminSessionContextResponse } from '@gami/shared'
 import type { SessionContextSnapshot } from '../../../domain/context/session-context.types.js'
+import { toRetrievalTraceDto } from '../../../application/services/runtime-inspector-event-context.js'
 
 export function toAdminSessionContextResponse(
   snapshot: SessionContextSnapshot,
@@ -132,6 +133,9 @@ function toContextTrace(
     selectedInputs: {
       ...snapshot.contextTrace.selectedInputs,
       retrievalCounts: { ...snapshot.contextTrace.selectedInputs.retrievalCounts },
+      ...(snapshot.contextTrace.selectedInputs.retrieval !== undefined
+        ? { retrieval: toRetrievalTraceDto(snapshot.contextTrace.selectedInputs.retrieval) }
+        : {}),
       ...(snapshot.contextTrace.selectedInputs.visibility !== undefined
         ? {
             visibility: {

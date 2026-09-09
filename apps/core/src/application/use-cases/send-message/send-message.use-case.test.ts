@@ -1097,7 +1097,16 @@ describe('SendMessageUseCase — validation and GM integration', () => {
         includedCounts: { memory: 1, world: 0, media: 0 },
         omittedByAssemblyCounts: { memory: 0, world: 0, media: 0 },
         excludedByVisibilityCounts: { memory: 0, world: 0, media: 0 },
+        retrievalTrace: {
+          query: 'secret retrieval query',
+          perType: {
+            memory: { sourceIds: ['source_hidden'], selectedChunkIds: ['chunk_hidden'] },
+            world: { sourceIds: [], selectedChunkIds: [] },
+            media: { sourceIds: [], selectedChunkIds: [] },
+          },
+        },
       },
+      contextEngineSelection: { keptSegmentCount: 7, trimmedSegmentCount: 0 },
       hasUserPersona: false,
       hasGmDirective: true,
       responseRuleCount: 0,

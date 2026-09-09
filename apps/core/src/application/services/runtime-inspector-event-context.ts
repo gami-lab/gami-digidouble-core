@@ -95,7 +95,7 @@ function toRecordedTypedKnowledgeSections(
     memory: knowledge.memory.map(toRecordedKnowledgeReference),
     world: knowledge.world.map(toRecordedKnowledgeReference),
     media: knowledge.media.map(toRecordedKnowledgeReference),
-    ...(trace !== undefined ? { trace: toRecordedRetrievalTrace(trace) } : {}),
+    ...(trace !== undefined ? { trace: toRetrievalTraceDto(trace) } : {}),
   }
 
   return hasRecordedKnowledge(typedSections) || trace !== undefined ? typedSections : undefined
@@ -125,7 +125,7 @@ function toRecordedKnowledgeReference(item: RetrievedKnowledgeItem): RecordedKno
     chunkId: item.chunkId,
     knowledgeType: item.knowledgeType,
     content: item.content,
-    ...(item.score !== undefined ? { score: item.score } : {}),
+    ...(item.score !== undefined ? { score: presentSimilarity(item.score) } : {}),
     ...(item.distance !== undefined ? { distance: presentDistance(item.distance) } : {}),
     ...(item.similarity !== undefined ? { similarity: presentSimilarity(item.similarity) } : {}),
     ...(item.queryIndex !== undefined ? { queryIndex: item.queryIndex } : {}),
@@ -137,7 +137,7 @@ function toRecordedKnowledgeReference(item: RetrievedKnowledgeItem): RecordedKno
   }
 }
 
-function toRecordedRetrievalTrace(trace: RetrievalTrace): RetrievalTraceDto {
+export function toRetrievalTraceDto(trace: RetrievalTrace): RetrievalTraceDto {
   return {
     ...trace,
     ...(trace.embeddingProfile !== undefined

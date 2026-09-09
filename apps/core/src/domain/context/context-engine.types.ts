@@ -1,6 +1,6 @@
 import type { AvatarComputedTraits } from '../avatar/avatar.types.js'
 import type { GameMasterState } from '../game-master/game-master.types.js'
-import type { TypedRetrievalResult } from '../knowledge/knowledge.types.js'
+import type { RetrievalTrace, TypedRetrievalResult } from '../knowledge/knowledge.types.js'
 import type { LayeredMemorySnapshot, ContextMessage } from '../memory/memory.types.js'
 import type { UserPersona } from '../user/user.types.js'
 import type { ContextSectionId, ContextSegmentId } from './context-engine.policy.js'
@@ -52,6 +52,7 @@ export type ContextEngineTrace = {
       world: number
       media: number
     }
+    retrieval?: RetrievalTrace
     visibility?: {
       activeAvatarId?: string
       excludedCounts: {

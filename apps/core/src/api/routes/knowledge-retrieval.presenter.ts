@@ -20,7 +20,7 @@ export function presentKnowledgeRetrieval(
     chunkId: item.chunkId,
     knowledgeType: item.knowledgeType,
     content: truncateContent(item.content, maxContentLength),
-    ...(item.score !== undefined ? { score: item.score } : {}),
+    ...(item.score !== undefined ? { score: presentSimilarity(item.score) } : {}),
     ...(item.distance !== undefined ? { distance: presentDistance(item.distance) } : {}),
     ...(item.similarity !== undefined ? { similarity: presentSimilarity(item.similarity) } : {}),
     ...(item.queryIndex !== undefined ? { queryIndex: item.queryIndex } : {}),

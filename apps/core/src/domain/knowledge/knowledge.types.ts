@@ -114,6 +114,9 @@ export type RetrievalTimings = Readonly<{
 export type RetrievalCounts = Readonly<{
   candidateCount?: number
   selectedCount?: number
+  duplicateCount?: number
+  selectionExcludedCount?: number
+  eligibilityExcludedCount?: number
   excludedCount?: number
 }>
 
@@ -137,6 +140,7 @@ export type RetrievalTrace = RetrievalCounts & {
   embeddingProfile?: RetrievalEmbeddingProfile
   timings?: RetrievalTimings
   visibilityMode?: RetrievalVisibilityMode
+  gmUnrestricted?: boolean
   outcome?: RetrievalOutcomeCode
   failure?: RetrievalFailure
   perType: Record<KnowledgeType, RetrievalTypeTrace>

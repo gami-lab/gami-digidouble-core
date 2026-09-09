@@ -447,7 +447,16 @@ describe('SendMessageUseCase — context selection observability', () => {
         includedCounts: { memory: 1, world: 0, media: 0 },
         omittedByAssemblyCounts: { memory: 0, world: 0, media: 0 },
         excludedByVisibilityCounts: { memory: 0, world: 0, media: 0 },
+        retrievalTrace: {
+          query: 'How do tides affect docking?',
+          perType: {
+            memory: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
+            world: { sourceIds: [], selectedChunkIds: [] },
+            media: { sourceIds: [], selectedChunkIds: [] },
+          },
+        },
       },
+      contextEngineSelection: { keptSegmentCount: 9, trimmedSegmentCount: 0 },
       hasUserPersona: true,
       hasGmDirective: false,
       responseRuleCount: 0,

@@ -232,6 +232,7 @@ function readOptionalContextSelection(
 ): TurnCompletedEventPayload['contextSelection'] | undefined {
   if (!isRecord(value)) return undefined
   const retrieval = readOptionalRetrievalSelection(value['retrieval'], avatarContext)
+  const contextEngineSelection = readContextEngineSelection(value['contextEngineSelection'])
   const retrievalCountsValue = isRecord(value['retrievalCounts'])
     ? value['retrievalCounts']
     : undefined
@@ -270,6 +271,7 @@ function readOptionalContextSelection(
             },
           }
         : {}),
+    ...(contextEngineSelection !== undefined ? { contextEngineSelection } : {}),
     hasUserPersona: readBoolean(value['hasUserPersona']),
     hasGmDirective: readBoolean(value['hasGmDirective']),
     responseRuleCount: readNumber(value['responseRuleCount']),
@@ -299,7 +301,14 @@ function readOptionalRetrievalSelection(
   const excludedCountsValue = isRecord(value['excludedByVisibilityCounts'])
     ? value['excludedByVisibilityCounts']
     : undefined
-  if (selectedCountsValue === undefined && includedCountsValue === undefined) return undefined
+  const retrievalTrace = readRetrievalTrace(value['retrievalTrace'])
+  if (
+    selectedCountsValue === undefined &&
+    includedCountsValue === undefined &&
+    retrievalTrace === undefined
+  ) {
+    return undefined
+  }
   const selectedForAssemblyCounts =
     selectedCountsValue !== undefined
       ? readRetrievalCounts(selectedCountsValue)
@@ -322,7 +331,19 @@ function readOptionalRetrievalSelection(
     ...(excludedCountsValue !== undefined
       ? { excludedByVisibilityCounts: readRetrievalCounts(excludedCountsValue) }
       : {}),
+    ...(retrievalTrace !== undefined ? { retrievalTrace } : {}),
   }
+}
+
+function readContextEngineSelection(
+  value: unknown,
+):
+  NonNullable<TurnCompletedEventPayload['contextSelection']>['contextEngineSelection'] | undefined {
+  if (!isRecord(value)) return undefined
+  const keptSegmentCount = readOptionalNumber(value['keptSegmentCount'])
+  const trimmedSegmentCount = readOptionalNumber(value['trimmedSegmentCount'])
+  if (keptSegmentCount === undefined || trimmedSegmentCount === undefined) return undefined
+  return { keptSegmentCount, trimmedSegmentCount }
 }
 
 function readOptionalVisibilitySelection(
@@ -866,9 +887,15 @@ function readRetrievalTrace(value: unknown): RetrievalTraceDto | undefined {
     ...(failure !== undefined ? { failure } : {}),
     ...(outcome !== undefined ? { outcome } : {}),
     ...(visibilityMode !== undefined ? { visibilityMode } : {}),
+    ...(typeof value['gmUnrestricted'] === 'boolean'
+      ? { gmUnrestricted: value['gmUnrestricted'] }
+      : {}),
     ...readOptionalRetrievalCount(value, 'queryVectorCount'),
     ...readOptionalRetrievalCount(value, 'candidateCount'),
     ...readOptionalRetrievalCount(value, 'selectedCount'),
+    ...readOptionalRetrievalCount(value, 'duplicateCount'),
+    ...readOptionalRetrievalCount(value, 'selectionExcludedCount'),
+    ...readOptionalRetrievalCount(value, 'eligibilityExcludedCount'),
     ...readOptionalRetrievalCount(value, 'excludedCount'),
   }
 }
@@ -884,6 +911,9 @@ function readRetrievalTracePerType(
     ...(visibility !== undefined ? { visibility } : {}),
     ...readOptionalRetrievalCount(record, 'candidateCount'),
     ...readOptionalRetrievalCount(record, 'selectedCount'),
+    ...readOptionalRetrievalCount(record, 'duplicateCount'),
+    ...readOptionalRetrievalCount(record, 'selectionExcludedCount'),
+    ...readOptionalRetrievalCount(record, 'eligibilityExcludedCount'),
     ...readOptionalRetrievalCount(record, 'excludedCount'),
   }
 }
@@ -958,9 +988,25 @@ function readRetrievalFailure(value: unknown): RetrievalTraceDto['failure'] | un
 
 function readOptionalRetrievalCount(
   value: Record<string, unknown>,
-  key: 'queryVectorCount' | 'candidateCount' | 'selectedCount' | 'excludedCount',
+  key:
+    | 'queryVectorCount'
+    | 'candidateCount'
+    | 'selectedCount'
+    | 'duplicateCount'
+    | 'selectionExcludedCount'
+    | 'eligibilityExcludedCount'
+    | 'excludedCount',
 ): Partial<
-  Pick<RetrievalTraceDto, 'queryVectorCount' | 'candidateCount' | 'selectedCount' | 'excludedCount'>
+  Pick<
+    RetrievalTraceDto,
+    | 'queryVectorCount'
+    | 'candidateCount'
+    | 'selectedCount'
+    | 'duplicateCount'
+    | 'selectionExcludedCount'
+    | 'eligibilityExcludedCount'
+    | 'excludedCount'
+  >
 > {
   const count = readOptionalNumber(value[key])
   return count === undefined ? {} : { [key]: count }

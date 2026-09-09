@@ -18,6 +18,7 @@ import type {
   RecordedAvatarContextKnowledgeInjection,
   RecordedGmContextKnowledgeInjection,
   RecordedKnowledgeReferenceDto,
+  RetrievalTraceDto,
 } from './knowledge-contract-types.js'
 import type { ModelProviderName } from './model-catalog.js'
 import type { RuntimeState } from './runtime-types.js'
@@ -88,6 +89,36 @@ export type ConsumedGmRetrievalPlan = {
   requiredFacts: string[]
 }
 
+export type ContextEngineSelectionDiagnostics = {
+  keptSegmentCount: number
+  trimmedSegmentCount: number
+}
+
+export type ContextSelectionRetrievalDiagnostics = {
+  selectedForAssemblyCounts: {
+    memory: number
+    world: number
+    media: number
+  }
+  includedCounts: {
+    memory: number
+    world: number
+    media: number
+  }
+  omittedByAssemblyCounts?: {
+    memory: number
+    world: number
+    media: number
+  }
+  excludedByVisibilityCounts?: {
+    memory: number
+    world: number
+    media: number
+  }
+  /** The bounded retrieval diagnostics that produced the selected inputs. */
+  retrievalTrace?: RetrievalTraceDto
+}
+
 export type GmSessionEventPayload = {
   triggerReason: string | null
   turnIndex: number
@@ -144,28 +175,8 @@ export type TurnCompletedEventPayload = {
     shortTermExchangeCount: number
     hasWorkingMemory: boolean
     longTermFactCount: number
-    retrieval?: {
-      selectedForAssemblyCounts: {
-        memory: number
-        world: number
-        media: number
-      }
-      includedCounts: {
-        memory: number
-        world: number
-        media: number
-      }
-      omittedByAssemblyCounts?: {
-        memory: number
-        world: number
-        media: number
-      }
-      excludedByVisibilityCounts?: {
-        memory: number
-        world: number
-        media: number
-      }
-    }
+    retrieval?: ContextSelectionRetrievalDiagnostics
+    contextEngineSelection?: ContextEngineSelectionDiagnostics
     hasUserPersona: boolean
     hasGmDirective: boolean
     responseRuleCount: number
@@ -427,6 +438,7 @@ export type SessionContextTrace = {
       world: number
       media: number
     }
+    retrieval?: RetrievalTraceDto
     visibility?: {
       activeAvatarId?: string
       excludedCounts: {

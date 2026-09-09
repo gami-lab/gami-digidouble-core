@@ -49,6 +49,8 @@ type RetrievedType = {
   sourceIds: string[]
   items: RetrievedKnowledgeItem[]
   candidateCount: number
+  duplicateCount: number
+  selectionExcludedCount: number
   excludedCount: number
   visibility: {
     mode: RetrievalVisibilityMode
@@ -65,7 +67,7 @@ export class TypedRetrievalService {
     private readonly queryEmbeddingService: QueryEmbeddingService,
   ) {}
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity, max-lines-per-function
   async retrieve(input: TypedRetrievalInput): Promise<TypedRetrievalResult> {
     const startedAt = Date.now()
     const limit = Math.min(
@@ -142,8 +144,19 @@ export class TypedRetrievalService {
             Date.now() - startedAt,
           ),
           visibilityMode: visibilityMode(input),
+          gmUnrestricted: input.bypassVisibilityFilter === true,
           candidateCount: memory.candidateCount + world.candidateCount + media.candidateCount,
           selectedCount: totalSelected,
+          ...optionalCount(
+            'duplicateCount',
+            memory.duplicateCount + world.duplicateCount + media.duplicateCount,
+          ),
+          ...optionalCount(
+            'selectionExcludedCount',
+            memory.selectionExcludedCount +
+              world.selectionExcludedCount +
+              media.selectionExcludedCount,
+          ),
           excludedCount: memory.excludedCount + world.excludedCount + media.excludedCount,
           outcome: totalSelected > 0 ? 'success' : 'no_results',
           perType: {
@@ -220,6 +233,8 @@ export class TypedRetrievalService {
       sourceIds,
       items,
       candidateCount: candidates.length,
+      duplicateCount: Math.max(0, candidates.length - merged.length),
+      selectionExcludedCount: Math.max(0, merged.length - items.length),
       excludedCount: Math.max(0, candidates.length - items.length),
       visibility: {
         mode: visibilityMode(input),
@@ -285,6 +300,8 @@ function emptyType(input: TypedRetrievalInput, sourceIds: string[]): RetrievedTy
     sourceIds,
     items: [],
     candidateCount: 0,
+    duplicateCount: 0,
+    selectionExcludedCount: 0,
     excludedCount: 0,
     visibility: {
       mode: visibilityMode(input),
@@ -321,8 +338,11 @@ function emptyRetrievalResult(
         : {}),
       timings,
       visibilityMode: visibilityMode(input),
+      gmUnrestricted: input.bypassVisibilityFilter === true,
       candidateCount: 0,
       selectedCount: 0,
+      ...optionalCount('duplicateCount', 0),
+      ...optionalCount('selectionExcludedCount', 0),
       excludedCount: 0,
       outcome,
       ...(failure === undefined ? {} : { failure }),
@@ -341,9 +361,18 @@ function toTrace(retrieved: RetrievedType) {
     selectedChunkIds: retrieved.items.map((item) => item.chunkId),
     candidateCount: retrieved.candidateCount,
     selectedCount: retrieved.items.length,
+    ...optionalCount('duplicateCount', retrieved.duplicateCount),
+    ...optionalCount('selectionExcludedCount', retrieved.selectionExcludedCount),
     excludedCount: retrieved.excludedCount,
     visibility: retrieved.visibility,
   }
+}
+
+function optionalCount<K extends 'duplicateCount' | 'selectionExcludedCount'>(
+  key: K,
+  value: number,
+): { [P in K]?: number } {
+  return (value > 0 ? { [key]: value } : {}) as { [P in K]?: number }
 }
 
 function retrievalTimings(

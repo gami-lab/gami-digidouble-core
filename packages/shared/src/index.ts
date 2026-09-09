@@ -167,6 +167,8 @@ export type {
   AdminSessionInspectResponse,
   GmUnlockEvaluation,
   ConsumedGmRetrievalPlan,
+  ContextEngineSelectionDiagnostics,
+  ContextSelectionRetrievalDiagnostics,
   GmSessionEventPayload,
   MemoryRefreshEventPayload,
   TurnCompletedEventPayload,

@@ -248,14 +248,18 @@ console projection contracts are now established. Ordered, profile-aware query v
 also implemented behind `KnowledgeQueryEmbeddingService`, including all-or-nothing validation and
 safe diagnostics. The canonical chunk-repository nearest-neighbor port now provides bounded,
 profile/generation-aware cosine candidates with SQL-side eligibility and explicit visibility modes;
-runtime integration, multi-query merging, selection, and ranking replacement are now complete. The
-remaining follow-up is the separately scoped admin/console presentation of the additive diagnostic
-fields.
+runtime integration, multi-query merging, selection, ranking replacement, and the additive
+admin/console diagnostic presentation are now complete.
 
 Replaced lexical token-overlap retrieval with pgvector nearest-neighbor search for Avatar, Game
 Master, and admin diagnostics, preserving scope, visibility, bounded selection, prompt integration,
 and retrieval observability. Runtime uses one shared profile-aware service with explicit Avatar
 filtered and GM unrestricted modes; failures remain controlled and no lexical fallback exists.
+Unified retrieval diagnostics now flow through the existing admin route, recorded turn events,
+session-context inspection, and console/admin views. Shared mappings expose profile, separate
+embedding/search timing, bounded candidate/selection/exclusion counts, cosine distance/similarity,
+visibility mode, failures, matched query variants, and final Context Engine kept/trimmed facts;
+older persisted events remain readable and the evaluation tool has no direct retrieval consumer.
 
 ### `4.2d Memory Domain Separation`
 

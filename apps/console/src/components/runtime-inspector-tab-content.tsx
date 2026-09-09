@@ -404,11 +404,30 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
       <Row label="Avatar traits selected">
         {String(snapshot.context.contextTrace.selectedInputs.hasAvatarTraits)}
       </Row>
+      <Row label="Retrieval diagnostics">
+        {formatContextRetrievalDiagnostics(snapshot.context.contextTrace.selectedInputs.retrieval)}
+      </Row>
       <Row label="Kept / trimmed">
         {`${String(snapshot.context.contextTrace.selection.kept.length)} / ${String(snapshot.context.contextTrace.selection.trimmed.length)}`}
       </Row>
     </div>
   )
+}
+
+function formatContextRetrievalDiagnostics(
+  trace: RuntimeInspectorViewModel['context']['contextTrace']['selectedInputs']['retrieval'],
+): string {
+  if (trace === undefined) return '-'
+  const profile = trace.embeddingProfile
+  const profileText =
+    profile === undefined
+      ? 'profile unavailable'
+      : `${profile.provider}/${profile.model}/${String(profile.dimensions)}d`
+  const timingText =
+    trace.timings === undefined
+      ? 'timing unavailable'
+      : `embedding ${String(trace.timings.queryEmbeddingMs ?? 0)}ms, search ${String(trace.timings.vectorSearchMs ?? 0)}ms`
+  return `${trace.failure?.code ?? trace.outcome ?? 'unknown'} · ${profileText} · ${timingText} · ${String(trace.selectedCount ?? 0)} selected`
 }
 
 function renderGmRuntimeContext(
@@ -601,9 +620,15 @@ function TraceRetrievalSection({
             ) : null}
           </div>
           <div>
-            <div>Score</div>
+            <div>Similarity / distance</div>
             <div style={{ color: '#6b7280', fontSize: '12px' }}>
-              {item.score !== undefined ? item.score.toFixed(4) : '-'}
+              {item.similarity !== undefined
+                ? item.similarity.toFixed(4)
+                : item.score !== undefined
+                  ? item.score.toFixed(4)
+                  : '-'}
+              {' / '}
+              {item.distance !== undefined ? item.distance.toFixed(4) : '-'}
             </div>
           </div>
           {item.content !== undefined ? (

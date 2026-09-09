@@ -14,7 +14,7 @@ The platform is now a working headless conversational runtime with:
 - typed knowledge ingestion and retrieval
 - canonical retrieval query/candidate/result/trace/failure contracts with safe shared DTO and
   runtime-event mappers; ordered query vectorization and the filtered pgvector repository boundary
-  are delivered, while runtime vector selection remains the next 5.1d slice
+  are delivered, including unified admin/runtime/console diagnostics
 - provider-neutral embedding contract foundation with explicit profile identity, ordered batch
   metadata, finite typed failures, and an explicitly injected deterministic test fake
 - production OpenAI embedding adapter with independent profile/batch configuration, deterministic
@@ -137,14 +137,20 @@ retrieval references and diagnostic DTOs used by admin responses, recorded runti
 console-derived views. Cosine distance is the repository truth and normalized similarity is
 `1 - distance`; presenter mappers clamp/round only at the public boundary. Diagnostics include
 bounded profile, timing, count, visibility, query-index, outcome, and failure fields without raw
-vectors. The typed runtime now uses the same profile-aware query-vector boundary and filtered
+vectors. Candidate exclusions distinguish duplicate removal from bounded selection drops when
+available; SQL eligibility exclusions remain optional because retrieval does not perform an extra
+corpus scan. The typed runtime now uses the same profile-aware query-vector boundary and filtered
 `IKnowledgeChunkRepository.searchByVector` path for Avatar, asynchronous Game Master, and admin
 retrieval. Multi-query/type candidates are merged deterministically by normalized similarity,
 deduplicated, and passed to the existing balanced selection and Context Engine boundaries; the
 production lexical scorer and metadata boosts are no longer used. Avatar retrieval remains
 filtered while GM retrieval requests explicit unrestricted visibility. Embedding and vector-search
 failures produce bounded controlled outcomes, preserving Avatar response generation and
-required-evidence guidance. The deterministic in-memory vector repository and PostgreSQL
+required-evidence guidance. Runtime turn events and session-context inspection now carry the
+canonical retrieval trace plus explicit final Context Engine kept/trimmed segment counts. Admin,
+console, and recorded-event projections reuse the shared diagnostic DTOs; the scripted evaluation
+tool has no direct knowledge retrieval path and remains routed through conversation APIs. The
+deterministic in-memory vector repository and PostgreSQL
 integration coverage verify ordering, filtering, visibility asymmetry, safe failures, and
 index-compatible query shape. Admin presentation remains additive and contract-compatible.
 

@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import type { AvatarSummary, KnowledgeType, RetrievedKnowledgeItemDto } from '@gami/shared'
+import type {
+  AvatarSummary,
+  KnowledgeType,
+  RetrievedKnowledgeItemDto,
+  RetrievalTraceDto,
+} from '@gami/shared'
 import { formatApiError } from '../api/error'
 import type { KnowledgeSourceDto, TypedKnowledgeRetrievalDto } from '../api/knowledge'
 import { queryKnowledgeRetrieval } from '../api/knowledge'
@@ -263,6 +268,7 @@ function RetrievalResult({
           ?.map((input) => `${input.source}=${input.text}`)
           .join(' · ') ?? result.retrieval.trace.query}
       </p>
+      <p className="admin-muted">{formatRetrievalDiagnostics(result.retrieval.trace)}</p>
       {result.retrieval.memory.length === 0 &&
       result.retrieval.world.length === 0 &&
       result.retrieval.media.length === 0 ? (
@@ -307,7 +313,12 @@ function RetrievalTypeSection({
               <div className="admin-chunk-item-header">
                 <strong>{sourceNamesById.get(item.sourceId) ?? item.sourceId}</strong>
                 <span className="admin-muted">
-                  {item.score !== undefined ? `score ${item.score.toFixed(2)}` : null}
+                  {item.similarity !== undefined
+                    ? `similarity ${item.similarity.toFixed(4)}`
+                    : item.score !== undefined
+                      ? `similarity ${item.score.toFixed(4)}`
+                      : null}
+                  {item.distance !== undefined ? ` · distance ${item.distance.toFixed(4)}` : null}
                   {item.reason !== undefined ? ` · ${item.reason}` : null}
                 </span>
               </div>
@@ -318,4 +329,20 @@ function RetrievalTypeSection({
       )}
     </>
   )
+}
+
+function formatRetrievalDiagnostics(trace: RetrievalTraceDto): string {
+  const profile = trace.embeddingProfile
+  const timings = trace.timings
+  const profileText =
+    profile === undefined
+      ? 'profile unavailable'
+      : `profile ${profile.provider}/${profile.model}/${String(profile.dimensions)}d`
+  const timingText =
+    timings === undefined
+      ? 'timing unavailable'
+      : `embedding ${String(timings.queryEmbeddingMs ?? 0)}ms · search ${String(timings.vectorSearchMs ?? 0)}ms`
+  const counts = `${String(trace.candidateCount ?? 0)} candidates → ${String(trace.selectedCount ?? 0)} selected`
+  const outcome = trace.failure === undefined ? (trace.outcome ?? 'unknown') : trace.failure.code
+  return `${outcome} · ${profileText} · ${timingText} · ${counts} · visibility ${trace.visibilityMode ?? 'unknown'}`
 }

@@ -2,6 +2,7 @@ import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { ConsumedGmRetrievalPlan } from '@gami/shared'
 import type { AvatarContextSnapshot } from '../../../domain/context/session-context.types.js'
 import { toRecordedAvatarContextSnapshot } from '../../services/runtime-inspector-event-context.js'
+import type { ContextSelectionMetadata } from './send-message.context-selection.js'
 
 export function emitTurnCompletedEventNonBlocking(args: {
   requestId: string
@@ -19,37 +20,7 @@ export function emitTurnCompletedEventNonBlocking(args: {
   hasGm: boolean
   retrievalLatencyMs: number
   otherOverheadMs: number
-  contextSelection: {
-    shortTermExchangeCount: number
-    hasWorkingMemory: boolean
-    longTermFactCount: number
-    retrieval?: {
-      selectedForAssemblyCounts: {
-        memory: number
-        world: number
-        media: number
-      }
-      includedCounts: {
-        memory: number
-        world: number
-        media: number
-      }
-      omittedByAssemblyCounts?: {
-        memory: number
-        world: number
-        media: number
-      }
-      excludedByVisibilityCounts?: {
-        memory: number
-        world: number
-        media: number
-      }
-    }
-    hasUserPersona: boolean
-    hasGmDirective: boolean
-    responseRuleCount: number
-    hasAvatarTraits: boolean
-  }
+  contextSelection: ContextSelectionMetadata
   eventLogRepository: IEventLogRepository
 }): void {
   const payload = {

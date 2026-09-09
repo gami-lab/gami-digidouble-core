@@ -112,6 +112,9 @@ Required tests:
 - **Filtered vector repository:** verify PostgreSQL cosine order, limit-after-filter behavior, active profile/generation, source/type/scenario/readiness, memory scope, visibility truth-table behavior, dimension/profile failures, and an index-compatible `ORDER BY embedding <=> query LIMIT` shape; use the in-memory implementation for deterministic unit coverage
 - **Knowledge API operator flow:** verify stack-e2e coverage for auth, validation, not-found, and happy-path source->ingestion->retrieval flow
 - **Console operator adapters:** verify `apps/console` knowledge API wrappers and Session Admin knowledge action helpers reuse shared DTOs and map operator-facing errors
+- **Unified retrieval diagnostics:** verify admin responses, recorded turn events, session-context
+  projections, and console/admin displays consume shared profile/timing/count/distance/failure
+  fields, preserve older event payloads, and never serialize vectors or provider payloads
 - **Audit log:** verify that every admin action writes an entry with the correct `actionType`, `targetType`, and `targetId`
 - **Auth:** verify that admin endpoints require a valid API key (same as public API in Phase A)
 - **No sensitive data leakage:** verify that session event payloads and admin responses do not expose raw prompt content or credential values

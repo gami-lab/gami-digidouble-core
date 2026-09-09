@@ -151,7 +151,7 @@ describe('session admin knowledge actions', () => {
       expect.objectContaining({ activeAvatarId: 'avatar_scope' }),
     )
     expect(setSummary).toHaveBeenCalledWith(
-      'retrieval: memory=1(all avatars), world=0(all avatars), media=1(all avatars) · excluded(world)=2.',
+      'retrieval: memory=1(all avatars), world=0(all avatars), media=1(all avatars) · unknown · profile unavailable · candidates=0 · selected=0 · embedding=0ms · search=0ms · excluded(world)=2 · mode=unknown.',
     )
   })
 

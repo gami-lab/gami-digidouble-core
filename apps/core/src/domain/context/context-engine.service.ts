@@ -568,6 +568,7 @@ function buildTracePolicy(policy: ContextEnginePolicy): ContextEngineOutput['tra
   }
 }
 
+// eslint-disable-next-line complexity
 function buildTraceSelectedInputs(
   input: ContextEngineInput,
 ): ContextEngineOutput['trace']['selectedInputs'] {
@@ -579,6 +580,9 @@ function buildTraceSelectedInputs(
     hasWorkingMemory: input.extensions.memory?.working !== undefined,
     longTermFactCount: input.extensions.memory?.longTerm?.facts.length ?? 0,
     retrievalCounts: buildTraceRetrievalCounts(input),
+    ...(input.extensions.retrieval?.trace !== undefined
+      ? { retrieval: input.extensions.retrieval.trace }
+      : {}),
     ...(visibility !== undefined ? { visibility } : {}),
     hasUserPersona: input.extensions.userPersona !== null,
     hasGmDirective: hasText(input.extensions.gmDirective),

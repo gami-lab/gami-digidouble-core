@@ -445,6 +445,14 @@ count/visibility DTOs, and controlled outcome/failure codes. API and runtime cod
 internal-to-public mappers. Console retrieval items are display view models derived from the
 recorded shared reference DTO, not parallel wire contracts.
 
+The shared diagnostic count contract keeps `candidateCount`, `selectedCount`, and the compatibility
+`excludedCount`, while optionally distinguishing `duplicateCount`, `selectionExcludedCount`, and
+repository-provided `eligibilityExcludedCount`. Candidate counts are already SQL-eligible bounded
+results; the service never invents a full-corpus exclusion count. Runtime turn events and
+session-context inspection use these same trace DTOs and add a small Context Engine kept/trimmed
+summary; the detailed `selection.kept`/`selection.trimmed` trace remains the Context Engine's
+ownership.
+
 The repository truth for vector ranking is pgvector cosine distance: lower distance is better.
 Service/API ranking and display use normalized cosine similarity, defined as `1 - distance`, with
 clamping and rounding applied only at the presenter boundary. The legacy `score` field is retained
