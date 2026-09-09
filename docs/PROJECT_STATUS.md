@@ -13,8 +13,8 @@ The platform is now a working headless conversational runtime with:
 - deterministic layered memory
 - typed knowledge ingestion and retrieval
 - canonical retrieval query/candidate/result/trace/failure contracts with safe shared DTO and
-  runtime-event mappers; ordered query vectorization is delivered and vector execution remains
-  the next 5.1d slice
+  runtime-event mappers; ordered query vectorization and the filtered pgvector repository boundary
+  are delivered, while runtime vector selection remains the next 5.1d slice
 - provider-neutral embedding contract foundation with explicit profile identity, ordered batch
   metadata, finite typed failures, and an explicitly injected deterministic test fake
 - production OpenAI embedding adapter with independent profile/batch configuration, deterministic
@@ -139,8 +139,13 @@ console-derived views. Cosine distance is the repository truth and normalized si
 bounded profile, timing, count, visibility, query-index, outcome, and failure fields without raw
 vectors. Existing lexical ranking, Context Engine selection, prompt rendering, endpoints, and
 persistence schemas remain behavior-compatible. The actual pgvector nearest-neighbor runtime is
-still open under EPIC 5.1d. Ordered query vectorization is now complete behind the same
-profile-aware application boundary; the remaining slice is nearest-neighbor execution and ranking.
+still not wired into the typed runtime ranking path under EPIC 5.1d. Ordered query vectorization
+and the filtered `IKnowledgeChunkRepository.searchByVector` boundary are complete behind the same
+profile-aware application boundary. PostgreSQL now applies active corpus, source readiness,
+scenario/type, visibility, static-scope, cosine ordering, and candidate-limit rules in the
+repository; runtime multi-query merging, Context Engine selection, and ranking replacement remain
+open. The deterministic in-memory vector repository and PostgreSQL integration coverage verify
+ordering, filtering, visibility asymmetry, safe failures, and index-compatible query shape.
 
 ### Operations
 

@@ -124,7 +124,9 @@ Input invariants:
 - `recentMessages` is bounded short-term context, not transcript replay.
 - `session.activeAvatarId` is the authoritative active Avatar ID for the current GM run; it is not stored in `GameMasterState`.
 - `context.memory.workingMemory` is canonical; `workingSummary` is only a compatibility mirror in diagnostics.
-- Avatar retrieval may be visibility-filtered, but GM retrieval remains unrestricted.
+- Avatar retrieval may be visibility-filtered, but GM retrieval remains unrestricted only through
+  the explicit `gm_unrestricted` retrieval mode; a missing active avatar is not itself an
+  authorization bypass.
 
 ## Runtime Output Contract
 

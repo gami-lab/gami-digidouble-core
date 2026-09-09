@@ -98,6 +98,11 @@ source unavailable when no valid active vectors exist. Reindex operation and sou
 lifecycle types are internal Application contracts owned by Core; only the bounded operator
 projection is shared for the admin API.
 
+Nearest-neighbor retrieval applies the active profile/generation, ready-source, scenario/type,
+visibility, and static-scope filters in SQL before limiting candidates. Pgvector cosine distance
+is lower-is-better; service/API similarity is `1 - distance`, with display normalization owned by
+presenters. Search candidates do not select or persist the embedding column.
+
 ## Relationships
 
 - `users` -> `sessions` (1:N)

@@ -453,6 +453,16 @@ reinterpret cosine distance. Retrieval diagnostics use the provider-neutral outc
 `no_results`, and `failed`, with failures distinguished as `query_embedding_failed`,
 `incompatible_profile`, `incompatible_dimension`, or `vector_search_failed`.
 
+`IKnowledgeChunkRepository.searchByVector` is the canonical nearest-neighbor port. Its typed request
+requires the query vector, active profile/generation identity, scenario/type, candidate limit,
+visibility mode, and optional static/source and memory scope. PostgreSQL owns the parameterized
+`embedding <=> query` ordering and applies source readiness, scenario/type, active corpus/profile,
+visibility, and static scope filters before the limit. `gm_unrestricted` is an explicit mode;
+missing `activeAvatarId` never grants that mode. The deterministic in-memory implementation is a
+test double for the same contract and contains no lexical relevance logic. Candidate results carry
+only bounded chunk data, exact distance, and `1 - distance` similarity; vectors never cross the
+repository boundary into DTOs, events, logs, or errors.
+
 ### Versioned knowledge corpus persistence
 
 The internal `IKnowledgeCorpusRepository` owns persisted embedding profiles, immutable corpus

@@ -331,23 +331,26 @@ The admin retrieval route performs retrieval immediately for the submitted query
 The following pieces exist:
 
 - `IEmbeddingAdapter.embed({ inputs })` with ordered batch/result metadata;
+- `KnowledgeQueryEmbeddingService` for profile-aware ordered runtime query vectorization;
 - the explicitly injected deterministic test `HashEmbeddingAdapter`;
 - the production OpenAI adapter with bounded batching, ordering, response validation, typed failure
   translation, and safe profile/usage/batch observability;
 - `embedding` on the domain chunk type;
 - `knowledge_chunks.embedding VECTOR(16)` in PostgreSQL;
-- an IVFFlat index using `vector_cosine_ops`.
+- an IVFFlat index using `vector_cosine_ops`;
+- `IKnowledgeChunkRepository.searchByVector` with active-corpus, readiness, scope, and explicit
+  avatar/GM visibility filtering;
+- a PostgreSQL `ORDER BY` using the pgvector cosine-distance operator.
 
-The following pieces do **not** exist in the current retrieval path:
+The following pieces do **not** yet exist in the current runtime retrieval path:
 
-- an embedding generated from the runtime query;
-- a repository method such as `nearestNeighbors(queryEmbedding)`;
-- a SQL `ORDER BY` using pgvector distance operators;
-- application code reading `chunk.embedding` while scoring;
-- cosine similarity computation in TypeScript;
-- vector-distance trace data.
+- wiring the query-vector and nearest-neighbor boundaries into typed retrieval;
+- multi-query candidate merging, Context Engine selection, and vector-based ranking replacement;
+- vector-distance trace data from the integrated runtime presenter.
 
-So, for the specific question “how do we compute the vector to compare?”: currently we do not compute a query vector and there is no vector comparison. Only the stored chunk vector is computed during ingestion, and it is currently unused by retrieval.
+The repository computes no vectors and does no application-side corpus scan. It receives a
+validated query vector, applies eligibility filters in SQL, orders by lower cosine distance, and
+returns bounded candidates with similarity derived as `1 - distance`. Raw vectors remain internal.
 
 ## 10. Issues and improvements identified from the code
 

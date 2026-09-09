@@ -134,6 +134,7 @@ Must cover:
 - typed retrieval by `memory` / `world` / `media`
 - avatar visibility filtering
 - GM unrestricted retrieval behavior
+- filtered pgvector repository: bounded cosine ordering, SQL-side eligibility filters, explicit avatar/GM visibility modes, static memory scope, active profile/generation, safe dimension/profile failures, and index-compatible query shape
 - retrieval diagnostics staying bounded
 
 ### Operations And Inspection

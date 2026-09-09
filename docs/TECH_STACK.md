@@ -69,6 +69,11 @@ For product principles, read `PRINCIPLES.md`.
 - Retrieval query vectorization is application-owned: `KnowledgeQueryEmbeddingService` resolves
   one active corpus profile, batch-embeds normalized ordered variants, validates the complete
   result, and records only bounded query-source/index/length and profile/count/timing metadata.
+- Nearest-neighbor retrieval is repository-owned: `PostgresKnowledgeChunkRepository` uses
+  parameterized pgvector cosine distance (`embedding <=> query`) with the existing
+  `vector_cosine_ops` index shape and applies eligibility filters before `LIMIT`. The in-memory
+  repository is a deterministic unit-test double; no lexical scoring or application-side corpus
+  scan participates in the production vector path.
 
 ### Observability
 
