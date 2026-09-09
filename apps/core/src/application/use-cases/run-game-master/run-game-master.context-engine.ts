@@ -46,6 +46,7 @@ export function buildGmContextSnapshot(args: {
               memory: args.retrieval.memory,
               world: args.retrieval.world,
               media: args.retrieval.media,
+              trace: args.retrieval.trace,
             },
           }
         : {}),

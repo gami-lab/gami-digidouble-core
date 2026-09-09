@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { presentKnowledgeRetrieval } from './knowledge-retrieval.presenter.js'
 
+// eslint-disable-next-line max-lines-per-function
 describe('presentKnowledgeRetrieval', () => {
   it('truncates long retrieved content while preserving item structure', () => {
     const output = presentKnowledgeRetrieval(
@@ -62,5 +63,70 @@ describe('presentKnowledgeRetrieval', () => {
     )
 
     expect(output.retrieval.world[0]?.content).toBe('short content')
+  })
+
+  it('maps vector diagnostics safely and normalizes display scores at the boundary', () => {
+    const output = presentKnowledgeRetrieval({
+      memory: [
+        {
+          sourceId: 'source_1',
+          chunkId: 'chunk_1',
+          knowledgeType: 'memory',
+          content: 'retrieved content',
+          distance: 0.123456,
+          similarity: 0.876544,
+          queryIndex: 2,
+          matchedQuery: { source: 'last_user_input', text: 'query' },
+        },
+      ],
+      world: [],
+      media: [],
+      trace: {
+        query: 'query',
+        candidateCount: 4,
+        selectedCount: 1,
+        excludedCount: 3,
+        embeddingProfile: {
+          embeddingProfileId: 'profile_1',
+          corpusGenerationId: 'generation_1',
+          provider: 'provider-neutral',
+          model: 'embedding-model',
+          dimensions: 16,
+        },
+        timings: { totalMs: 12, queryEmbeddingMs: 4, vectorSearchMs: 8 },
+        visibilityMode: 'gm_unrestricted',
+        outcome: 'success',
+        perType: {
+          memory: {
+            sourceIds: ['source_1'],
+            selectedChunkIds: ['chunk_1'],
+            candidateCount: 4,
+            selectedCount: 1,
+            excludedCount: 3,
+            visibility: {
+              mode: 'gm_unrestricted',
+              consideredChunkCount: 4,
+              excludedChunkCount: 0,
+            },
+          },
+          world: { sourceIds: [], selectedChunkIds: [] },
+          media: { sourceIds: [], selectedChunkIds: [] },
+        },
+      },
+    })
+
+    expect(output.retrieval.memory[0]).toMatchObject({
+      distance: 0.1235,
+      similarity: 0.8765,
+      queryIndex: 2,
+    })
+    expect(output.retrieval.trace).toMatchObject({
+      candidateCount: 4,
+      selectedCount: 1,
+      excludedCount: 3,
+      visibilityMode: 'gm_unrestricted',
+    })
+    expect(output.retrieval.trace.perType.memory.visibility?.mode).toBe('gm_unrestricted')
+    expect(JSON.stringify(output)).not.toContain('embeddingVector')
   })
 })

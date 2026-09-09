@@ -98,6 +98,9 @@ Required tests:
   source readiness, and retry-safe diagnostics
 - **Query embedding boundary:** verify active-profile resolution, profile-tagged vectors, copy-safe
   output, and rejection of profile/dimension/malformed results before retrieval is added
+- **Retrieval contract boundary:** verify the single query-source/variant union, vector-candidate and
+  trace ownership, provider-neutral outcome/failure codes, cosine distance/similarity semantics,
+  and explicit internal-to-public/runtime mapper redaction and normalization
 - **Typed retrieval:** verify domain separation (`memory` / `world` / `media`), deterministic ranking under fixed fixtures, and trace metadata (`sourceId`, `chunkId`, `score`, `reason`)
 - **Avatar-scoped visibility:** verify deterministic exclusion of non-visible knowledge per active avatar, avatar-switch scope updates, and bounded visibility explainability counters in retrieval/context traces
 - **Visibility asymmetry:** verify avatar filtering remains enforced while GM retrieval diagnostics prove unrestricted omniscient scope (`gmUnrestricted`, `gmRetrievalCounts`) without content leakage

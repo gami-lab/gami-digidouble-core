@@ -544,6 +544,23 @@ describe('ContextEngine baseline', () => {
           content: 'gm media context',
         },
       ],
+      trace: {
+        query: 'hello',
+        perType: {
+          memory: {
+            sourceIds: ['source_avatar_memory'],
+            selectedChunkIds: ['chunk_avatar_memory'],
+          },
+          world: {
+            sourceIds: ['source_gm_world'],
+            selectedChunkIds: ['chunk_gm_world'],
+          },
+          media: {
+            sourceIds: ['source_gm_media'],
+            selectedChunkIds: ['chunk_gm_media'],
+          },
+        },
+      },
     })
     expect(output.trace.selectedInputs.visibility).toEqual({
       activeAvatarId: 'avatar_1',

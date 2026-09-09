@@ -4,12 +4,16 @@ import type {
   RecordedGmContextSnapshot,
   RecordedKnowledgeReferenceDto,
   RecordedTypedKnowledgeSections,
+  RetrievalTraceDto,
 } from '@gami/shared'
 import type {
   AvatarContextSnapshot,
   GmContextSnapshot,
 } from '../../domain/context/session-context.types.js'
-import type { RetrievedKnowledgeItem } from '../../domain/knowledge/knowledge.types.js'
+import type {
+  RetrievalTrace,
+  RetrievedKnowledgeItem,
+} from '../../domain/knowledge/knowledge.types.js'
 
 type AvatarTypedSections = NonNullable<
   NonNullable<NonNullable<AvatarContextSnapshot['sections']['retrievedContext']>['typedSections']>
@@ -44,7 +48,10 @@ export function toRecordedAvatarContextSnapshot(
 export function toRecordedGmContextSnapshot(
   snapshot: GmContextSnapshot,
 ): RecordedGmContextSnapshot {
-  const retrievedContext = toRecordedTypedKnowledgeSections(snapshot.sections.retrievedContext)
+  const retrievedContext = toRecordedTypedKnowledgeSections(
+    snapshot.sections.retrievedContext,
+    snapshot.sections.retrievedContext?.trace,
+  )
 
   return {
     currentState: {
@@ -70,6 +77,7 @@ function toRecordedAvatarKnowledge(
   if (knowledge === undefined) return undefined
   const typedSections = toRecordedTypedKnowledgeSections(
     knowledge.typedSections ?? groupRetrievedItemsByType(knowledge.retrievedItems),
+    knowledge.trace,
   )
   return typedSections
 }
@@ -79,6 +87,7 @@ function toRecordedTypedKnowledgeSections(
     | AvatarTypedSections
     | NonNullable<GmContextSnapshot['sections']['retrievedContext']>
     | undefined,
+  trace?: RetrievalTrace,
 ): RecordedTypedKnowledgeSections | undefined {
   if (knowledge === undefined) return undefined
 
@@ -86,9 +95,10 @@ function toRecordedTypedKnowledgeSections(
     memory: knowledge.memory.map(toRecordedKnowledgeReference),
     world: knowledge.world.map(toRecordedKnowledgeReference),
     media: knowledge.media.map(toRecordedKnowledgeReference),
+    ...(trace !== undefined ? { trace: toRecordedRetrievalTrace(trace) } : {}),
   }
 
-  return hasRecordedKnowledge(typedSections) ? typedSections : undefined
+  return hasRecordedKnowledge(typedSections) || trace !== undefined ? typedSections : undefined
 }
 
 function groupRetrievedItemsByType(items: RetrievedKnowledgeItem[]): {
@@ -116,12 +126,55 @@ function toRecordedKnowledgeReference(item: RetrievedKnowledgeItem): RecordedKno
     knowledgeType: item.knowledgeType,
     content: item.content,
     ...(item.score !== undefined ? { score: item.score } : {}),
+    ...(item.distance !== undefined ? { distance: presentDistance(item.distance) } : {}),
+    ...(item.similarity !== undefined ? { similarity: presentSimilarity(item.similarity) } : {}),
+    ...(item.queryIndex !== undefined ? { queryIndex: item.queryIndex } : {}),
     ...(item.reason !== undefined ? { reason: item.reason } : {}),
     ...(item.matchedQuery !== undefined ? { matchedQuery: item.matchedQuery } : {}),
     ...(item.visibleToAvatarIds !== undefined
       ? { visibleToAvatarIds: item.visibleToAvatarIds }
       : {}),
   }
+}
+
+function toRecordedRetrievalTrace(trace: RetrievalTrace): RetrievalTraceDto {
+  return {
+    ...trace,
+    ...(trace.embeddingProfile !== undefined
+      ? { embeddingProfile: { ...trace.embeddingProfile } }
+      : {}),
+    ...(trace.timings !== undefined ? { timings: { ...trace.timings } } : {}),
+    ...(trace.queries !== undefined
+      ? { queries: trace.queries.map((query) => ({ ...query })) }
+      : {}),
+    ...(trace.failure !== undefined ? { failure: { ...trace.failure } } : {}),
+    perType: {
+      memory: toRecordedRetrievalTracePerType(trace.perType.memory),
+      world: toRecordedRetrievalTracePerType(trace.perType.world),
+      media: toRecordedRetrievalTracePerType(trace.perType.media),
+    },
+  }
+}
+
+function toRecordedRetrievalTracePerType(
+  trace: RetrievalTrace['perType'][keyof RetrievalTrace['perType']],
+): RetrievalTraceDto['perType'][keyof RetrievalTraceDto['perType']] {
+  return {
+    ...trace,
+    ...(trace.visibility !== undefined ? { visibility: { ...trace.visibility } } : {}),
+  }
+}
+
+function presentDistance(value: number): number {
+  return roundDiagnosticNumber(Number.isFinite(value) ? Math.max(0, value) : 0)
+}
+
+function presentSimilarity(value: number): number {
+  return roundDiagnosticNumber(Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0)
+}
+
+function roundDiagnosticNumber(value: number): number {
+  return Number(value.toFixed(4))
 }
 
 function hasRecordedKnowledge(typedSections: RecordedTypedKnowledgeSections): boolean {

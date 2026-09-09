@@ -1,5 +1,5 @@
 import type { AvatarComputedTraits } from '../avatar/avatar.types.js'
-import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
+import type { RetrievalTrace, RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import type {
   ContextMessage,
   GameMasterMemoryContext,
@@ -46,6 +46,7 @@ export type AvatarContextConversationState = {
 
 export type AvatarContextRetrievedContext = {
   retrievedItems: RetrievedKnowledgeItem[]
+  trace?: RetrievalTrace
   typedSections?: {
     memory: RetrievedKnowledgeItem[]
     world: RetrievedKnowledgeItem[]
@@ -87,6 +88,7 @@ export type GmContextRetrievedContext = {
   memory: RetrievedKnowledgeItem[]
   world: RetrievedKnowledgeItem[]
   media: RetrievedKnowledgeItem[]
+  trace?: RetrievalTrace
 }
 
 export type GmContextSections = {

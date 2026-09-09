@@ -35,6 +35,11 @@ Runtime behavior belongs in `MEMORY_SYSTEM_SPEC.md` and `GAME_MASTER_CONTRACT.md
 | `event_log`     | Persisted runtime diagnostics and observability events | `id`, `session_id`, `type`, `severity`, `correlation_id`, `request_id`, `payload`, `created_at`                                                                             | Must stay free of raw prompts, secrets, and unbounded transcript payloads.                                                                                                                                                                                                      |
 | `model_config`  | Single-row runtime model routing config                | `id`, `config`, `updated_at`                                                                                                                                                | `id` is constrained to one active row. Stores global default plus role overrides.                                                                                                                                                                                               |
 
+Retrieval trace/profile diagnostics are additive safe payload projections; this slice does not add
+or change a persisted table or vector schema. If later runtime events persist retrieval traces,
+they must use the shared bounded DTO fields and retain the active embedding profile/generation
+identity without persisting raw vectors.
+
 Streaming does not change the data model: it is transport-only. The user message is saved before
 deltas, and a partial avatar message is never saved.
 

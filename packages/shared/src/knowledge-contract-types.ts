@@ -27,6 +27,115 @@ export const INGESTION_CHUNK_SIZE_DEFAULT = 1500
  */
 export type KnowledgeVisibilityPolicy = 'all' | 'avatars' | 'none'
 
+/** Canonical origins for retrieval query variants across internal and public contracts. */
+export type RetrievalQuerySource =
+  | 'gm_guideline'
+  | 'gm_retrieval_query'
+  | 'gm_required_fact'
+  | 'last_user_input'
+  | 'working_memory'
+  | 'world_context'
+  | 'direct_query'
+
+export const RETRIEVAL_QUERY_SOURCES: readonly RetrievalQuerySource[] = [
+  'gm_guideline',
+  'gm_retrieval_query',
+  'gm_required_fact',
+  'last_user_input',
+  'working_memory',
+  'world_context',
+  'direct_query',
+]
+
+export function isRetrievalQuerySource(value: unknown): value is RetrievalQuerySource {
+  return typeof value === 'string' && (RETRIEVAL_QUERY_SOURCES as readonly string[]).includes(value)
+}
+
+/** A bounded query input; `queryIndex` identifies its position in the retrieval request. */
+export type RetrievalQueryVariant = {
+  source: RetrievalQuerySource
+  text: string
+  queryIndex?: number
+}
+
+export type RetrievalVisibilityMode = 'avatar_filtered' | 'gm_unrestricted'
+
+export type RetrievalOutcomeCode = 'success' | 'no_results' | 'failed'
+
+export const RETRIEVAL_OUTCOME_CODES: readonly RetrievalOutcomeCode[] = [
+  'success',
+  'no_results',
+  'failed',
+]
+
+export function isRetrievalOutcomeCode(value: unknown): value is RetrievalOutcomeCode {
+  return typeof value === 'string' && (RETRIEVAL_OUTCOME_CODES as readonly string[]).includes(value)
+}
+
+export type RetrievalFailureCode =
+  | 'query_embedding_failed'
+  | 'incompatible_profile'
+  | 'incompatible_dimension'
+  | 'vector_search_failed'
+
+export const RETRIEVAL_FAILURE_CODES: readonly RetrievalFailureCode[] = [
+  'query_embedding_failed',
+  'incompatible_profile',
+  'incompatible_dimension',
+  'vector_search_failed',
+]
+
+export function isRetrievalFailureCode(value: unknown): value is RetrievalFailureCode {
+  return typeof value === 'string' && (RETRIEVAL_FAILURE_CODES as readonly string[]).includes(value)
+}
+
+export type RetrievalFailureDto = {
+  code: RetrievalFailureCode
+  retryable: boolean
+}
+
+export type RetrievalEmbeddingProfileDto = KnowledgeEmbeddingProfileDto & {
+  embeddingProfileId?: string
+  corpusGenerationId?: string
+}
+
+export type RetrievalTimingsDto = {
+  totalMs?: number
+  queryEmbeddingMs?: number
+  vectorSearchMs?: number
+}
+
+export type RetrievalCountsDto = {
+  candidateCount?: number
+  selectedCount?: number
+  excludedCount?: number
+}
+
+export type RetrievalVisibilityDto = {
+  mode?: RetrievalVisibilityMode
+  activeAvatarId?: string
+  consideredChunkCount: number
+  excludedChunkCount: number
+}
+
+export type RetrievalTracePerTypeDto = RetrievalCountsDto & {
+  sourceIds: string[]
+  selectedChunkIds: string[]
+  visibility?: RetrievalVisibilityDto
+}
+
+/** Safe, bounded retrieval diagnostics. Raw query vectors and provider payloads are excluded. */
+export type RetrievalTraceDto = RetrievalCountsDto & {
+  query: string
+  queries?: RetrievalQueryVariant[]
+  embeddingProfile?: RetrievalEmbeddingProfileDto
+  timings?: RetrievalTimingsDto
+  visibilityMode?: RetrievalVisibilityMode
+  outcome?: RetrievalOutcomeCode
+  failure?: RetrievalFailureDto
+  perType: Record<KnowledgeType, RetrievalTracePerTypeDto>
+}
+
 export type KnowledgeSourceDto = {
   sourceId: string
   scenarioId: string
@@ -114,26 +223,23 @@ export type RetryKnowledgeReindexResponse = {
   operation: KnowledgeReindexOperationDto
 }
 
-export type RetrievedKnowledgeItemDto = {
+export type KnowledgeRetrievalReferenceDto = {
   sourceId: string
   chunkId: string
   knowledgeType: KnowledgeType
-  content: string
   score?: number
+  /** Legacy lexical score; vector retrieval uses distance/similarity below. */
+  distance?: number
+  similarity?: number
+  queryIndex?: number
   reason?: string
-  matchedQuery?: {
-    source:
-      | 'gm_guideline'
-      | 'gm_retrieval_query'
-      | 'gm_required_fact'
-      | 'last_user_input'
-      | 'working_memory'
-      | 'world_context'
-      | 'direct_query'
-    text: string
-  }
-  metadata?: Record<string, unknown>
+  matchedQuery?: RetrievalQueryVariant
   visibleToAvatarIds?: string[]
+}
+
+export type RetrievedKnowledgeItemDto = KnowledgeRetrievalReferenceDto & {
+  content: string
+  metadata?: Record<string, unknown>
 }
 
 export type SharedContextScenarioSnapshot = {
@@ -152,25 +258,21 @@ export type SharedTypedKnowledgeSections = {
   memory: RetrievedKnowledgeItemDto[]
   world: RetrievedKnowledgeItemDto[]
   media: RetrievedKnowledgeItemDto[]
+  /** Optional safe retrieval diagnostics for runtime inspection. */
+  trace?: RetrievalTraceDto
 }
 
 export type SharedGmContextKnowledgeInjection = SharedTypedKnowledgeSections
 
-export type RecordedKnowledgeReferenceDto = {
-  sourceId: string
-  chunkId: string
-  knowledgeType: KnowledgeType
-  score?: number
-  reason?: string
+export type RecordedKnowledgeReferenceDto = KnowledgeRetrievalReferenceDto & {
   content?: string
-  matchedQuery?: RetrievedKnowledgeItemDto['matchedQuery']
-  visibleToAvatarIds?: string[]
 }
 
 export type RecordedTypedKnowledgeSections = {
   memory: RecordedKnowledgeReferenceDto[]
   world: RecordedKnowledgeReferenceDto[]
   media: RecordedKnowledgeReferenceDto[]
+  trace?: RetrievalTraceDto
 }
 
 export type RecordedAvatarContextKnowledgeInjection = RecordedTypedKnowledgeSections
@@ -283,22 +385,7 @@ export type TypedKnowledgeRetrievalDto = {
   memory: RetrievedKnowledgeItemDto[]
   world: RetrievedKnowledgeItemDto[]
   media: RetrievedKnowledgeItemDto[]
-  trace: {
-    query: string
-    queries?: NonNullable<RetrievedKnowledgeItemDto['matchedQuery']>[]
-    perType: Record<
-      KnowledgeType,
-      {
-        sourceIds: string[]
-        selectedChunkIds: string[]
-        visibility?: {
-          activeAvatarId?: string
-          consideredChunkCount: number
-          excludedChunkCount: number
-        }
-      }
-    >
-  }
+  trace: RetrievalTraceDto
 }
 
 export type QueryKnowledgeRetrievalResponse = {

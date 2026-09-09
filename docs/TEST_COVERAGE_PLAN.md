@@ -126,6 +126,9 @@ Must cover:
   stale publication rejection, rollback preservation, source readiness, and retry diagnostics
 - query embedding boundary: active profile resolution, profile-tagged copy-safe output, and typed
   malformed/profile/dimension failures
+- retrieval contract boundary: one shared query-source guard, domain vector-candidate/trace/failure
+  ownership, safe public/runtime mapper fields, cosine distance/similarity normalization, bounded
+  diagnostics, and no vector leakage
 - typed retrieval by `memory` / `world` / `media`
 - avatar visibility filtering
 - GM unrestricted retrieval behavior

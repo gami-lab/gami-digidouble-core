@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
+import type { RetrievalTrace, RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import { selectBalancedRetrievedItems } from '../knowledge/retrieval-selection.js'
 import type { LongTermMemoryFact } from '../memory/memory.types.js'
 import type { ContextEngineInput, ContextEngineOutput } from './context-engine.types.js'
@@ -317,13 +317,20 @@ function pushAvatarRetrievalCandidates(
     candidates,
     'retrievedContextMemory',
     selectedMemoryAndWorld.filter((item) => item.knowledgeType === 'memory'),
+    retrieval.trace,
   )
   pushAvatarRetrievalSegmentCandidate(
     candidates,
     'retrievedContextWorld',
     selectedMemoryAndWorld.filter((item) => item.knowledgeType === 'world'),
+    retrieval.trace,
   )
-  pushAvatarRetrievalSegmentCandidate(candidates, 'retrievedContextMedia', retrieval.media)
+  pushAvatarRetrievalSegmentCandidate(
+    candidates,
+    'retrievedContextMedia',
+    retrieval.media,
+    retrieval.trace,
+  )
 }
 
 function pushGmRetrievalCandidates(
@@ -331,15 +338,31 @@ function pushGmRetrievalCandidates(
   retrieval: ReturnType<typeof dedupeRetrieval>,
 ): void {
   if (retrieval === undefined) return
-  pushGmRetrievalSegmentCandidate(candidates, 'retrievedContextMemory', retrieval.memory)
-  pushGmRetrievalSegmentCandidate(candidates, 'retrievedContextWorld', retrieval.world)
-  pushGmRetrievalSegmentCandidate(candidates, 'retrievedContextMedia', retrieval.media)
+  pushGmRetrievalSegmentCandidate(
+    candidates,
+    'retrievedContextMemory',
+    retrieval.memory,
+    retrieval.trace,
+  )
+  pushGmRetrievalSegmentCandidate(
+    candidates,
+    'retrievedContextWorld',
+    retrieval.world,
+    retrieval.trace,
+  )
+  pushGmRetrievalSegmentCandidate(
+    candidates,
+    'retrievedContextMedia',
+    retrieval.media,
+    retrieval.trace,
+  )
 }
 
 function pushAvatarRetrievalSegmentCandidate(
   candidates: CandidateSegment[],
   segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
   items: RetrievedKnowledgeItem[],
+  trace: RetrievalTrace,
 ): void {
   if (items.length === 0) return
   candidates.push({
@@ -348,7 +371,7 @@ function pushAvatarRetrievalSegmentCandidate(
     segmentId,
     tokenEstimate: estimateTokens(items.map((item) => item.content).join(' ')),
     apply: (draft) => {
-      applyAvatarRetrievedContextSegment(draft, segmentId, items)
+      applyAvatarRetrievedContextSegment(draft, segmentId, items, trace)
     },
   })
 }
@@ -357,6 +380,7 @@ function pushGmRetrievalSegmentCandidate(
   candidates: CandidateSegment[],
   segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
   items: RetrievedKnowledgeItem[],
+  trace: RetrievalTrace,
 ): void {
   if (items.length === 0) return
   candidates.push({
@@ -378,6 +402,7 @@ function pushGmRetrievalSegmentCandidate(
           ...(draft.gm.sections.retrievedContext?.media ?? []),
           ...(segmentId === 'retrievedContextMedia' ? items : []),
         ],
+        trace,
       }
     },
   })
@@ -387,6 +412,7 @@ function applyAvatarRetrievedContextSegment(
   draft: MutableOutput,
   segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
   items: RetrievedKnowledgeItem[],
+  trace: RetrievalTrace,
 ): void {
   const current = draft.avatar.sections.retrievedContext
   const retrievedItems: RetrievedKnowledgeItem[] = []
@@ -411,6 +437,7 @@ function applyAvatarRetrievedContextSegment(
   draft.avatar.sections.retrievedContext = {
     retrievedItems,
     typedSections,
+    trace,
   }
 }
 

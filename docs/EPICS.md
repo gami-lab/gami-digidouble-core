@@ -243,6 +243,10 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 
 ### `5.1d Vector Retrieval Runtime`
 
+The canonical retrieval query, candidate, result, trace, failure, shared DTO, recorded-event, and
+console projection contracts are now established. Nearest-neighbor execution and ranking remain
+the open implementation scope below.
+
 Replace lexical token-overlap retrieval with pgvector nearest-neighbor search for Avatar, Game Master, and admin diagnostics, while preserving scope, visibility, bounded selection, prompt integration, and retrieval observability.
 
 ### `4.2d Memory Domain Separation`

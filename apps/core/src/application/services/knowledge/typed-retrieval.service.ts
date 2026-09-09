@@ -7,6 +7,7 @@ import {
 import type {
   KnowledgeChunk,
   KnowledgeType,
+  RetrievalVisibilityMode,
   RetrievedKnowledgeItem,
   TypedRetrievalResult,
 } from '../../../domain/knowledge/knowledge.types.js'
@@ -47,20 +48,36 @@ export class TypedRetrievalService {
       trace: {
         query: input.query,
         queries,
+        candidateCount: memory.candidateCount + world.candidateCount + media.candidateCount,
+        selectedCount: memory.items.length + world.items.length + media.items.length,
+        excludedCount: memory.excludedCount + world.excludedCount + media.excludedCount,
+        outcome:
+          memory.items.length + world.items.length + media.items.length > 0
+            ? 'success'
+            : 'no_results',
         perType: {
           memory: {
             sourceIds: memory.sourceIds,
             selectedChunkIds: memory.items.map((item) => item.chunkId),
+            candidateCount: memory.candidateCount,
+            selectedCount: memory.items.length,
+            excludedCount: memory.excludedCount,
             visibility: memory.visibility,
           },
           world: {
             sourceIds: world.sourceIds,
             selectedChunkIds: world.items.map((item) => item.chunkId),
+            candidateCount: world.candidateCount,
+            selectedCount: world.items.length,
+            excludedCount: world.excludedCount,
             visibility: world.visibility,
           },
           media: {
             sourceIds: media.sourceIds,
             selectedChunkIds: media.items.map((item) => item.chunkId),
+            candidateCount: media.candidateCount,
+            selectedCount: media.items.length,
+            excludedCount: media.excludedCount,
             visibility: media.visibility,
           },
         },
@@ -86,7 +103,10 @@ export class TypedRetrievalService {
       return {
         sourceIds: [],
         items: [] as RetrievedKnowledgeItem[],
+        candidateCount: 0,
+        excludedCount: 0,
         visibility: {
+          mode: visibilityMode(input),
           ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
           consideredChunkCount: 0,
           excludedChunkCount: 0,
@@ -137,6 +157,7 @@ export class TypedRetrievalService {
           entry.score,
           explainScore(type, entry.chunk, entry.query, input),
           entry.query,
+          entry.queryIndex,
         ),
       ),
       limit,
@@ -145,13 +166,20 @@ export class TypedRetrievalService {
     return {
       sourceIds,
       items: selected,
+      candidateCount: scored.length,
+      excludedCount: Math.max(0, scored.length - selected.length),
       visibility: {
+        mode: visibilityMode(input),
         ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
         consideredChunkCount: chunks.length,
         excludedChunkCount: excludedByVisibilityCount,
       },
     }
   }
+}
+
+function visibilityMode(input: TypedRetrievalInput): RetrievalVisibilityMode {
+  return input.bypassVisibilityFilter === true ? 'gm_unrestricted' : 'avatar_filtered'
 }
 
 function normalizeQueries(input: TypedRetrievalInput): TypedRetrievalQueryVariant[] {
@@ -203,6 +231,7 @@ function toRetrievedItem(
   score: number,
   reason: string,
   matchedQuery: TypedRetrievalQueryVariant,
+  queryIndex: number,
 ): RetrievedKnowledgeItem {
   return {
     sourceId: chunk.sourceId,
@@ -210,6 +239,7 @@ function toRetrievedItem(
     knowledgeType: type,
     content: chunk.content,
     score: Number(score.toFixed(4)),
+    queryIndex,
     reason,
     matchedQuery,
     ...(chunk.visibleToAvatarIds !== undefined

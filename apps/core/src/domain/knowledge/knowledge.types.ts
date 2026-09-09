@@ -4,6 +4,11 @@ import type {
   KnowledgeSourceStatus as SharedKnowledgeSourceStatus,
   KnowledgeType as SharedKnowledgeType,
   KnowledgeVisibilityPolicy as SharedKnowledgeVisibilityPolicy,
+  RetrievalFailureCode as SharedRetrievalFailureCode,
+  RetrievalOutcomeCode as SharedRetrievalOutcomeCode,
+  RetrievalQuerySource as SharedRetrievalQuerySource,
+  RetrievalQueryVariant as SharedRetrievalQueryVariant,
+  RetrievalVisibilityMode as SharedRetrievalVisibilityMode,
 } from '@gami/shared'
 
 /**
@@ -76,18 +81,64 @@ export interface KnowledgeChunk {
   visibleToAvatarIds?: string[]
 }
 
-export type RetrievalQuerySource =
-  | 'gm_guideline'
-  | 'gm_retrieval_query'
-  | 'gm_required_fact'
-  | 'last_user_input'
-  | 'working_memory'
-  | 'world_context'
-  | 'direct_query'
+/** Canonical retrieval query contracts are shared with the safe API projections. */
+export type RetrievalQuerySource = SharedRetrievalQuerySource
 
-export type RetrievalQueryVariant = {
-  source: RetrievalQuerySource
-  text: string
+export type RetrievalQueryVariant = SharedRetrievalQueryVariant
+
+export type RetrievalVisibilityMode = SharedRetrievalVisibilityMode
+
+export type RetrievalOutcomeCode = SharedRetrievalOutcomeCode
+
+export type RetrievalFailureCode = SharedRetrievalFailureCode
+
+export type RetrievalFailure = Readonly<{
+  code: RetrievalFailureCode
+  retryable: boolean
+}>
+
+export type RetrievalEmbeddingProfile = Readonly<{
+  embeddingProfileId?: string
+  corpusGenerationId?: string
+  provider: string
+  model: string
+  dimensions: number
+}>
+
+export type RetrievalTimings = Readonly<{
+  totalMs?: number
+  queryEmbeddingMs?: number
+  vectorSearchMs?: number
+}>
+
+export type RetrievalCounts = Readonly<{
+  candidateCount?: number
+  selectedCount?: number
+  excludedCount?: number
+}>
+
+export type RetrievalVisibilityTrace = Readonly<{
+  mode?: RetrievalVisibilityMode
+  activeAvatarId?: string
+  consideredChunkCount: number
+  excludedChunkCount: number
+}>
+
+export type RetrievalTypeTrace = RetrievalCounts & {
+  sourceIds: string[]
+  selectedChunkIds: string[]
+  visibility?: RetrievalVisibilityTrace
+}
+
+export type RetrievalTrace = RetrievalCounts & {
+  query: string
+  queries?: RetrievalQueryVariant[]
+  embeddingProfile?: RetrievalEmbeddingProfile
+  timings?: RetrievalTimings
+  visibilityMode?: RetrievalVisibilityMode
+  outcome?: RetrievalOutcomeCode
+  failure?: RetrievalFailure
+  perType: Record<KnowledgeType, RetrievalTypeTrace>
 }
 
 export interface IngestionJob {
@@ -108,9 +159,30 @@ export interface RetrievedKnowledgeItem {
   chunkId: string
   knowledgeType: KnowledgeType
   content: string
+  /** Legacy lexical score retained for backward compatibility. */
   score?: number
+  /** pgvector cosine distance; lower values are better. */
+  distance?: number
+  /** Normalized cosine similarity (`1 - distance`); higher values are better. */
+  similarity?: number
+  queryIndex?: number
   reason?: string
   matchedQuery?: RetrievalQueryVariant
+  metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
+}
+
+/** Internal candidate returned by vector retrieval before bounded selection. */
+export interface VectorRetrievalCandidate {
+  sourceId: string
+  chunkId: string
+  knowledgeType: KnowledgeType
+  content: string
+  chunkIndex: number
+  distance: number
+  similarity: number
+  matchedQuery: RetrievalQueryVariant
+  queryIndex?: number
   metadata?: Record<string, unknown>
   visibleToAvatarIds?: string[]
 }
@@ -119,20 +191,5 @@ export interface TypedRetrievalResult {
   memory: RetrievedKnowledgeItem[]
   world: RetrievedKnowledgeItem[]
   media: RetrievedKnowledgeItem[]
-  trace: {
-    query: string
-    queries?: RetrievalQueryVariant[]
-    perType: Record<
-      KnowledgeType,
-      {
-        sourceIds: string[]
-        selectedChunkIds: string[]
-        visibility?: {
-          activeAvatarId?: string
-          consideredChunkCount: number
-          excludedChunkCount: number
-        }
-      }
-    >
-  }
+  trace: RetrievalTrace
 }

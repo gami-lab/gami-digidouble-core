@@ -426,6 +426,29 @@ profile and dimension, and returns a vector tagged with profile and generation i
 not perform retrieval. `TypedRetrievalService`, Avatar, Game Master, and admin retrieval must use
 this boundary rather than embedding text independently.
 
+### Retrieval contract boundary (EPIC 5.1d foundation)
+
+The internal retrieval contract owner is `apps/core/src/domain/knowledge/knowledge.types.ts`.
+It owns `RetrievalQueryVariant`, `VectorRetrievalCandidate`, `TypedRetrievalResult`,
+`RetrievalTrace`, and `RetrievalFailure`. The finite query-source union is the shared primitive
+`RetrievalQuerySource` in `packages/shared/src/knowledge-contract-types.ts`, which the domain
+aliases instead of redeclaring. Vector candidates contain bounded chunk identity/content and
+scores only; raw query or chunk vectors never enter retrieval results, traces, events, logs, or
+errors.
+
+`@gami/shared` owns safe public/runtime projections: retrieval references, trace/profile/timing/
+count/visibility DTOs, and controlled outcome/failure codes. API and runtime code must use explicit
+internal-to-public mappers. Console retrieval items are display view models derived from the
+recorded shared reference DTO, not parallel wire contracts.
+
+The repository truth for vector ranking is pgvector cosine distance: lower distance is better.
+Service/API ranking and display use normalized cosine similarity, defined as `1 - distance`, with
+clamping and rounding applied only at the presenter boundary. The legacy lexical `score` field is
+retained for compatibility until vector retrieval replaces lexical ranking; it is not used to
+reinterpret cosine distance. Retrieval diagnostics use the provider-neutral outcomes `success`,
+`no_results`, and `failed`, with failures distinguished as `query_embedding_failed`,
+`incompatible_profile`, `incompatible_dimension`, or `vector_search_failed`.
+
 ### Versioned knowledge corpus persistence
 
 The internal `IKnowledgeCorpusRepository` owns persisted embedding profiles, immutable corpus

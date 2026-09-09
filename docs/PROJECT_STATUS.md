@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-07
+Last updated: 2026-09-09
 Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered
 
 ## Snapshot
@@ -12,6 +12,8 @@ The platform is now a working headless conversational runtime with:
 - async Game Master orchestration
 - deterministic layered memory
 - typed knowledge ingestion and retrieval
+- canonical retrieval query/candidate/result/trace/failure contracts with safe shared DTO and
+  runtime-event mappers; vector execution remains the next 5.1d slice
 - provider-neutral embedding contract foundation with explicit profile identity, ordered batch
   metadata, finite typed failures, and an explicitly injected deterministic test fake
 - production OpenAI embedding adapter with independent profile/batch configuration, deterministic
@@ -124,6 +126,18 @@ check passed in the current verification run, while Mistral smoke checks were sk
 quota/rate-limit responses. Nearest-neighbor vector retrieval remains open for EPIC 5.1d.
 Public source/chunk/ingestion-job DTOs are unchanged and continue to be owned by `@gami/shared`.
 
+#### EPIC 5.1d retrieval contract foundation ✅ Complete
+
+The retrieval audit established one shared query-source/variant contract and domain ownership for
+vector candidates, typed results, traces, and controlled failures. `@gami/shared` now owns safe
+retrieval references and diagnostic DTOs used by admin responses, recorded runtime context, and
+console-derived views. Cosine distance is the repository truth and normalized similarity is
+`1 - distance`; presenter mappers clamp/round only at the public boundary. Diagnostics include
+bounded profile, timing, count, visibility, query-index, outcome, and failure fields without raw
+vectors. Existing lexical ranking, Context Engine selection, prompt rendering, endpoints, and
+persistence schemas remain behavior-compatible. The actual pgvector nearest-neighbor runtime is
+still open under EPIC 5.1d.
+
 ### Operations
 
 - Health, metrics, session inspection, session events, session context, and session memory endpoints are live.
@@ -231,3 +245,9 @@ Public source/chunk/ingestion-job DTOs are unchanged and continue to be owned by
 - Use `GAME_MASTER_CONTRACT.md` for GM runtime behavior.
 - Use `MEMORY_SYSTEM_SPEC.md` for memory rules.
 - Use `ARCHITECTURE.md` and `PRINCIPLES.md` before changing boundaries or responsibilities.
+
+Documentation review for this contract slice: `VISION.md`, `PRINCIPLES.md`, `TECH_STACK.md`,
+`GAME_MASTER_CONTRACT.md`, `MEMORY_SYSTEM_SPEC.md`, and `EMBEDDING_OPERATIONS.md` remain accurate
+and required no content change. `ARCHITECTURE.md`, `API_CONTRACT.md`, `DATA_MODEL.md`,
+`TEST_STRATEGY.md`, `TEST_COVERAGE_PLAN.md`, and `EPICS.md` were updated above to record the new
+retrieval contract ownership and diagnostics boundary.

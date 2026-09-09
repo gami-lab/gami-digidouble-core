@@ -1,6 +1,9 @@
 /* eslint-disable max-lines */
 import type {
   GmSessionEventPayload,
+  KnowledgeType,
+  RecordedKnowledgeReferenceDto,
+  RetrievalQuerySource,
   SessionEventRecord,
   TurnCompletedEventPayload,
 } from '@gami/shared'
@@ -38,18 +41,10 @@ export type RetrievalProposalTrace = {
   matchedChunkIds: string[]
 }
 
-export type RetrievalTraceItem = {
-  knowledgeType: 'memory' | 'world' | 'media'
+export type RetrievalTraceItem = Omit<RecordedKnowledgeReferenceDto, 'sourceId' | 'reason'> & {
   sourceName: string
-  chunkId: string
   access: string
-  score?: number
   matchBasis: string
-  content?: string
-  matchedQuery?: {
-    source: string
-    text: string
-  }
 }
 
 export function buildGmImpactTrace(snapshot: RuntimeInspectorViewModel): GmImpactTraceEntry[] {
@@ -288,7 +283,7 @@ function toGmRetrievalPlanTrace(
 
 function toRetrievalProposal(
   text: string,
-  source: string,
+  source: RetrievalQuerySource,
   retrievedItems: RetrievalTraceItem[],
 ): RetrievalProposalTrace {
   const normalizedText = normalizeTraceText(text)
@@ -501,18 +496,16 @@ function describeRecordedGmContext(
 
 function toRetrievalTraceItem(
   item: {
-    knowledgeType: 'memory' | 'world' | 'media'
+    knowledgeType: KnowledgeType
     sourceId: string
     chunkId: string
     score?: number
+    distance?: number
+    similarity?: number
+    queryIndex?: number
     reason?: string
     content?: string
-    matchedQuery?:
-      | {
-          source: string
-          text: string
-        }
-      | undefined
+    matchedQuery?: RecordedKnowledgeReferenceDto['matchedQuery']
     visibleToAvatarIds?: string[]
   },
   avatarNameById: Map<string, string>,
@@ -531,6 +524,9 @@ function toRetrievalTraceItem(
     chunkId: item.chunkId,
     access,
     ...(item.score !== undefined ? { score: item.score } : {}),
+    ...(item.distance !== undefined ? { distance: item.distance } : {}),
+    ...(item.similarity !== undefined ? { similarity: item.similarity } : {}),
+    ...(item.queryIndex !== undefined ? { queryIndex: item.queryIndex } : {}),
     matchBasis: formatMatchBasis(item.reason),
     ...(item.content !== undefined ? { content: item.content } : {}),
     ...(item.matchedQuery !== undefined ? { matchedQuery: item.matchedQuery } : {}),
