@@ -99,9 +99,12 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
     ])
     await corpusRepository.promoteCorpusGeneration(operation.reindexOperationId)
 
-    await expect(
-      chunkRepository.listBySourceIds([firstSource, secondSource]),
-    ).resolves.toMatchObject([{ content: 'first' }, { content: 'second' }])
+    await expect(chunkRepository.listBySourceIds([firstSource, secondSource])).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ content: 'first' }),
+        expect.objectContaining({ content: 'second' }),
+      ]),
+    )
 
     const replacement = await corpusRepository.createReindexOperation({
       embeddingProfileId: profile.embeddingProfileId,
@@ -132,9 +135,12 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
       },
     ])
     await corpusRepository.promoteCorpusGeneration(replacement.reindexOperationId)
-    await expect(
-      chunkRepository.listBySourceIds([firstSource, secondSource]),
-    ).resolves.toMatchObject([{ content: 'replacement first' }, { content: 'replacement second' }])
+    await expect(chunkRepository.listBySourceIds([firstSource, secondSource])).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ content: 'replacement first' }),
+        expect.objectContaining({ content: 'replacement second' }),
+      ]),
+    )
   })
 
   it('enforces the deployed vector typmod, cosine index, and profile dimension guard', async () => {

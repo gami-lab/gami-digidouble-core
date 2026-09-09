@@ -250,6 +250,11 @@ pnpm test:coverage         # unit tests with coverage report
 pnpm --filter @gami/conversation-evaluation test:integration-style # deterministic evaluator HTTP composition
 ```
 
+Stack E2E preflight behavior:
+
+- local default: if `APP_URL` is unreachable, stack tests are skipped with a preflight reason so local audit runs do not fail for missing infrastructure
+- strict mode: set `STACK_E2E_REQUIRE_APP=1` (or run in CI where `CI=true`) to keep the current hard-fail behavior when the stack is unavailable
+
 ---
 
 # Coverage Thresholds

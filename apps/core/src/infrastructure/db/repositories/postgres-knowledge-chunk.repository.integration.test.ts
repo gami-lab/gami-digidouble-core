@@ -372,17 +372,21 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
 
   it('keeps the nearest-neighbor query shape compatible with the cosine index', async () => {
     const queryVector = JSON.stringify(vector16(1, 0))
-    const plan = await sql<{ 'QUERY PLAN': string }[]>`
-      EXPLAIN (COSTS OFF)
-      SELECT c.id
-      FROM knowledge_chunks c
-      WHERE c.embedding IS NOT NULL
-      ORDER BY c.embedding <=> ${queryVector}::vector
-      LIMIT 5
-    `
+    const plan = await sql.begin(async (transaction) => {
+      await transaction`SET LOCAL enable_seqscan = off`
+      return transaction<{ 'QUERY PLAN': string }[]>`
+        EXPLAIN (COSTS OFF)
+        SELECT c.id
+        FROM knowledge_chunks c
+        WHERE c.embedding IS NOT NULL
+        ORDER BY c.embedding <=> ${queryVector}::vector
+        LIMIT 5
+      `
+    })
     const planText = plan.map((row) => row['QUERY PLAN']).join('\n')
 
     expect(planText).toContain('embedding <=>')
     expect(planText).toContain('Limit')
+    expect(planText).toMatch(/Index Scan|Index Only Scan|Bitmap Index Scan/)
   })
 })

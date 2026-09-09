@@ -13,16 +13,14 @@ function makeContext(): TestContext {
 describe('real-provider test helpers', () => {
   it('skips a live adapter test for a quota response', () => {
     const context = makeContext()
-    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
     expect(() => {
       skipIfTransientProviderError(context, 'OpenAI', new LlmError('openai', 'no credits', 429))
     }).toThrow('category=quota_or_rate_limit')
     expect(context.skip).toHaveBeenCalledOnce()
-    expect(warning).toHaveBeenCalledWith(
-      expect.stringContaining('[provider-smoke] SKIPPED provider=OpenAI'),
+    expect(context.skip).toHaveBeenCalledWith(
+      expect.stringContaining('SKIPPED provider=OpenAI category=quota_or_rate_limit'),
     )
-    warning.mockRestore()
   })
 
   it('rethrows non-transient adapter errors', () => {
@@ -35,13 +33,14 @@ describe('real-provider test helpers', () => {
 
   it('skips an exchange smoke test for a transient provider response', () => {
     const context = makeContext()
-    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
     expect(() => {
       skipIfTransientProviderHttpError(context, 'Mistral', 502, 'Status 429: rate limit exceeded')
     }).toThrow('category=quota_or_rate_limit')
     expect(context.skip).toHaveBeenCalledOnce()
-    warning.mockRestore()
+    expect(context.skip).toHaveBeenCalledWith(
+      expect.stringContaining('SKIPPED provider=Mistral category=quota_or_rate_limit status=502'),
+    )
   })
 
   it('does not skip an exchange smoke test for an authentication error', () => {

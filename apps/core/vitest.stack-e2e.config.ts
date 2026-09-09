@@ -18,8 +18,9 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'node',
+    passWithNoTests: true,
     include: ['src/**/*.stack-e2e.test.ts'],
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: ['./vitest.setup.ts', './vitest.stack-e2e.setup.ts'],
     globalSetup: ['./vitest.stack-e2e.global-setup.ts'],
     // Real network calls to a running container can be slow
     testTimeout: 60_000,

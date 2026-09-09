@@ -52,7 +52,6 @@ function skipProviderSmokeTest(
   statusCode?: number,
 ): void {
   const reason = formatSkipReason(provider, category, statusCode)
-  console.warn(`[provider-smoke] ${reason}`)
   context.skip(reason)
 }
 

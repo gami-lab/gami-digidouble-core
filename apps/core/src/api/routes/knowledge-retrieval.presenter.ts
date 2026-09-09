@@ -1,13 +1,13 @@
+import type { QueryKnowledgeRetrievalResponse, RetrievedKnowledgeItemDto } from '@gami/shared'
 import type {
-  QueryKnowledgeRetrievalResponse,
-  RetrievalTraceDto,
-  RetrievedKnowledgeItemDto,
-} from '@gami/shared'
-import type {
-  RetrievalTrace,
   RetrievedKnowledgeItem,
   TypedRetrievalResult,
 } from '../../domain/knowledge/knowledge.types.js'
+import {
+  presentDistance,
+  presentSimilarity,
+  toRetrievalTraceDto,
+} from '../../application/services/knowledge/retrieval-trace-dto.js'
 
 const DEFAULT_MAX_CONTENT_LENGTH = 800
 
@@ -38,49 +38,9 @@ export function presentKnowledgeRetrieval(
       memory: retrieval.memory.map(toItem),
       world: retrieval.world.map(toItem),
       media: retrieval.media.map(toItem),
-      trace: presentTrace(retrieval.trace),
+      trace: toRetrievalTraceDto(retrieval.trace),
     },
   }
-}
-
-function presentTrace(trace: RetrievalTrace): RetrievalTraceDto {
-  return {
-    ...trace,
-    ...(trace.embeddingProfile !== undefined
-      ? { embeddingProfile: { ...trace.embeddingProfile } }
-      : {}),
-    ...(trace.timings !== undefined ? { timings: { ...trace.timings } } : {}),
-    ...(trace.queries !== undefined
-      ? { queries: trace.queries.map((query) => ({ ...query })) }
-      : {}),
-    ...(trace.failure !== undefined ? { failure: { ...trace.failure } } : {}),
-    perType: {
-      memory: presentTracePerType(trace.perType.memory),
-      world: presentTracePerType(trace.perType.world),
-      media: presentTracePerType(trace.perType.media),
-    },
-  }
-}
-
-function presentTracePerType(
-  trace: RetrievalTrace['perType'][keyof RetrievalTrace['perType']],
-): RetrievalTraceDto['perType'][keyof RetrievalTraceDto['perType']] {
-  return {
-    ...trace,
-    ...(trace.visibility !== undefined ? { visibility: { ...trace.visibility } } : {}),
-  }
-}
-
-function presentDistance(value: number): number {
-  return roundDiagnosticNumber(Number.isFinite(value) ? Math.max(0, value) : 0)
-}
-
-function presentSimilarity(value: number): number {
-  return roundDiagnosticNumber(Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0)
-}
-
-function roundDiagnosticNumber(value: number): number {
-  return Number(value.toFixed(4))
 }
 
 function truncateContent(value: string, maxLength: number): string {
