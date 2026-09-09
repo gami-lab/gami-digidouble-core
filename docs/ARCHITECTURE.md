@@ -420,11 +420,15 @@ pointer while deleting/inserting the source's chunks and marking the source read
 profile/generation rejects the transaction, preserving the previous active source corpus. A
 source with no valid active vectors is not ready for vector retrieval.
 
-`KnowledgeQueryEmbeddingService` is now the application boundary for EPIC 5.1d query vectors. It
-resolves the active corpus once, embeds through `IEmbeddingAdapter`, validates the effective
-profile and dimension, and returns a vector tagged with profile and generation identity. It does
-not perform retrieval. `TypedRetrievalService`, Avatar, Game Master, and admin retrieval must use
-this boundary rather than embedding text independently.
+`KnowledgeQueryEmbeddingService` is now the application boundary for EPIC 5.1d query vectors. Its
+`embedVariants` operation resolves the active corpus once, applies the query builder's stable
+trim/empty/deduplication rules, embeds every normalized variant in one ordered batch, validates
+the effective profile, count, dimensions, and finite values, and returns profile/generation-tagged
+vectors only on an all-or-nothing success. It emits bounded source/index/text-length and profile/
+count/timing observability without raw query text or vectors. Controlled failures map to the
+retrieval outcome codes without provider payloads. The compatibility `embed` method delegates to
+this boundary for one direct query. It does not perform retrieval. Typed Retrieval, Avatar, Game
+Master, and admin retrieval must use this boundary rather than embedding text independently.
 
 ### Retrieval contract boundary (EPIC 5.1d foundation)
 

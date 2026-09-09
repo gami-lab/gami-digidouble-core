@@ -133,6 +133,7 @@ export type RetrievalTypeTrace = RetrievalCounts & {
 export type RetrievalTrace = RetrievalCounts & {
   query: string
   queries?: RetrievalQueryVariant[]
+  queryVectorCount?: number
   embeddingProfile?: RetrievalEmbeddingProfile
   timings?: RetrievalTimings
   visibilityMode?: RetrievalVisibilityMode

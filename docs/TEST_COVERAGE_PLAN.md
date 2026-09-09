@@ -124,8 +124,10 @@ Must cover:
   provider failure translation, and bounded profile/usage/batch observability with a fake client
 - profile-aware ingestion: immutable active snapshot, exact vector count/dimension/profile checks,
   stale publication rejection, rollback preservation, source readiness, and retry diagnostics
-- query embedding boundary: active profile resolution, profile-tagged copy-safe output, and typed
-  malformed/profile/dimension failures
+- query embedding boundary: stable ordered normalization for every configured source, one batch
+  call, active profile resolution, profile-tagged copy-safe output, safe count/timing diagnostics,
+  all-or-nothing malformed/profile/dimension/finite/provider failures, and no vector/provider
+  payload leakage
 - retrieval contract boundary: one shared query-source guard, domain vector-candidate/trace/failure
   ownership, safe public/runtime mapper fields, cosine distance/similarity normalization, bounded
   diagnostics, and no vector leakage

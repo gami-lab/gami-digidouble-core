@@ -44,7 +44,12 @@ bounded failure details. Embedding traces record safe provider/model/dimension i
 batch/input counts, usage when supplied, latency, outcome, and bounded failure code. Source text,
 vectors, credentials, and raw provider payloads are not emitted.
 
-Embedding query vectorization is owned by `KnowledgeQueryEmbeddingService` for EPIC 5.1d. It uses
-the active profile and returns a profile/generation-tagged vector, but it does not perform retrieval.
+Embedding query vectorization is owned by `KnowledgeQueryEmbeddingService` for EPIC 5.1d. Its
+variant operation trims, filters, and stably deduplicates all configured query sources, sends one
+ordered batch through `IEmbeddingAdapter`, validates the active profile and complete finite result,
+and returns profile/generation-tagged query vectors only when the batch is valid. Failures return a
+controlled retrieval outcome with no partial vectors. Safe diagnostics include profile, query-vector
+count, and measured embedding latency; raw text, vectors, and provider payloads are not logged.
+The service does not perform retrieval.
 
 Memory and user facts are not vectorized by this lifecycle.

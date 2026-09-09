@@ -294,9 +294,10 @@ All admin endpoints live under `/v1/admin/*`.
   applies avatar visibility filtering. The response trace includes the query variants used and
   each result may include its matched query source/text and query index. Additive retrieval
   diagnostics are owned by `@gami/shared`: safe embedding profile identity, bounded timings,
-  candidate/selected/excluded counts, visibility mode, outcome/failure code, and optional cosine
-  `distance`/normalized `similarity`. Cosine distance is lower-is-better; similarity is
-  `1 - distance` and is normalized only at the presenter boundary. No raw vectors are exposed.
+  query-vector/candidate/selected/excluded counts, visibility mode, outcome/failure code, and
+  optional cosine `distance`/normalized `similarity`. Cosine distance is lower-is-better;
+  similarity is `1 - distance` and is normalized only at the presenter boundary. No raw vectors
+  are exposed.
 
 Runtime `turn_completed` event retrieval references include the selected chunk content and matched
 query source/text so the console can inspect the exact knowledge passed to the Avatar prompt. GM

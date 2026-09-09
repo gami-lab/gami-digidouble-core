@@ -94,6 +94,7 @@ describe('presentKnowledgeRetrieval', () => {
           dimensions: 16,
         },
         timings: { totalMs: 12, queryEmbeddingMs: 4, vectorSearchMs: 8 },
+        queryVectorCount: 2,
         visibilityMode: 'gm_unrestricted',
         outcome: 'success',
         perType: {
@@ -124,6 +125,7 @@ describe('presentKnowledgeRetrieval', () => {
       candidateCount: 4,
       selectedCount: 1,
       excludedCount: 3,
+      queryVectorCount: 2,
       visibilityMode: 'gm_unrestricted',
     })
     expect(output.retrieval.trace.perType.memory.visibility?.mode).toBe('gm_unrestricted')

@@ -866,6 +866,7 @@ function readRetrievalTrace(value: unknown): RetrievalTraceDto | undefined {
     ...(failure !== undefined ? { failure } : {}),
     ...(outcome !== undefined ? { outcome } : {}),
     ...(visibilityMode !== undefined ? { visibilityMode } : {}),
+    ...readOptionalRetrievalCount(value, 'queryVectorCount'),
     ...readOptionalRetrievalCount(value, 'candidateCount'),
     ...readOptionalRetrievalCount(value, 'selectedCount'),
     ...readOptionalRetrievalCount(value, 'excludedCount'),
@@ -957,8 +958,10 @@ function readRetrievalFailure(value: unknown): RetrievalTraceDto['failure'] | un
 
 function readOptionalRetrievalCount(
   value: Record<string, unknown>,
-  key: 'candidateCount' | 'selectedCount' | 'excludedCount',
-): Partial<Pick<RetrievalTraceDto, 'candidateCount' | 'selectedCount' | 'excludedCount'>> {
+  key: 'queryVectorCount' | 'candidateCount' | 'selectedCount' | 'excludedCount',
+): Partial<
+  Pick<RetrievalTraceDto, 'queryVectorCount' | 'candidateCount' | 'selectedCount' | 'excludedCount'>
+> {
   const count = readOptionalNumber(value[key])
   return count === undefined ? {} : { [key]: count }
 }

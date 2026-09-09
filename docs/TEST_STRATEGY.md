@@ -96,8 +96,10 @@ Required tests:
 - **Profile-aware ingestion:** verify one active-corpus snapshot per run, exact vector counts,
   profile/dimension validation, stale-generation rejection, transactional rollback preservation,
   source readiness, and retry-safe diagnostics
-- **Query embedding boundary:** verify active-profile resolution, profile-tagged vectors, copy-safe
-  output, and rejection of profile/dimension/malformed results before retrieval is added
+- **Query embedding boundary:** verify stable normalization and ordering for every configured query
+  source, one profile-aware batch call, profile-tagged copy-safe vectors, safe count/profile/
+  timing diagnostics, all-or-nothing profile/dimension/count/finite/provider failures, and no raw
+  vectors or provider payloads in logs before retrieval is added
 - **Retrieval contract boundary:** verify the single query-source/variant union, vector-candidate and
   trace ownership, provider-neutral outcome/failure codes, cosine distance/similarity semantics,
   and explicit internal-to-public/runtime mapper redaction and normalization

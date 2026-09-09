@@ -28,7 +28,7 @@ export function buildAvatarTypedRetrievalQueries(input: {
     ),
   ].filter((query): query is TypedRetrievalQueryVariant => query !== undefined)
 
-  return deduplicateQueries(candidates)
+  return normalizeTypedRetrievalQueries(candidates)
 }
 
 // eslint-disable-next-line complexity
@@ -102,16 +102,24 @@ export function buildGameMasterTypedRetrievalQueries(input: {
     ),
   ].filter((query): query is TypedRetrievalQueryVariant => query !== undefined)
 
-  return deduplicateQueries(candidates)
+  return normalizeTypedRetrievalQueries(candidates)
 }
 
-function deduplicateQueries(queries: TypedRetrievalQueryVariant[]): TypedRetrievalQueryVariant[] {
+/**
+ * Applies the existing retrieval query normalization rules at the embedding boundary.
+ * Empty text is removed and the first case-insensitive occurrence wins.
+ */
+export function normalizeTypedRetrievalQueries(
+  queries: readonly TypedRetrievalQueryVariant[],
+): TypedRetrievalQueryVariant[] {
   const seen = new Set<string>()
-  return queries.filter((query) => {
-    const normalized = query.text.toLowerCase()
-    if (seen.has(normalized)) return false
+  return queries.flatMap((query) => {
+    const text = query.text.trim()
+    if (text.length === 0) return []
+    const normalized = text.toLowerCase()
+    if (seen.has(normalized)) return []
     seen.add(normalized)
-    return true
+    return [{ source: query.source, text }]
   })
 }
 

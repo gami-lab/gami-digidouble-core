@@ -13,7 +13,8 @@ The platform is now a working headless conversational runtime with:
 - deterministic layered memory
 - typed knowledge ingestion and retrieval
 - canonical retrieval query/candidate/result/trace/failure contracts with safe shared DTO and
-  runtime-event mappers; vector execution remains the next 5.1d slice
+  runtime-event mappers; ordered query vectorization is delivered and vector execution remains
+  the next 5.1d slice
 - provider-neutral embedding contract foundation with explicit profile identity, ordered batch
   metadata, finite typed failures, and an explicitly injected deterministic test fake
 - production OpenAI embedding adapter with independent profile/batch configuration, deterministic
@@ -113,8 +114,10 @@ and atomically promotes one active generation/profile through a database-owned s
 Normal source ingestion now snapshots the active profile/generation, requires one compatible finite
 vector per chunk, and publishes the replacement transactionally with source readiness. Stale
 profile/generation work is rejected without replacing the previous active source. The application
-also exposes `KnowledgeQueryEmbeddingService` as the single profile-tagged query-vector boundary
-for EPIC 5.1d; nearest-neighbor retrieval is not implemented yet.
+also exposes `KnowledgeQueryEmbeddingService` as the single profile-aware, ordered batch
+query-vector boundary for EPIC 5.1d. It normalizes every configured query source, validates
+complete provider output, returns controlled failures without partial vectors, and emits safe
+profile/count/timing diagnostics. Nearest-neighbor retrieval is not implemented yet.
 The deployed schema remains fixed at `VECTOR(16)` with `vector_cosine_ops`; configuration rejects
 another dimension until its migration and full staged reindex exist. Full reindex orchestration is
 now available through the authenticated operator start/status/retry routes, with source snapshots,
@@ -136,7 +139,8 @@ console-derived views. Cosine distance is the repository truth and normalized si
 bounded profile, timing, count, visibility, query-index, outcome, and failure fields without raw
 vectors. Existing lexical ranking, Context Engine selection, prompt rendering, endpoints, and
 persistence schemas remain behavior-compatible. The actual pgvector nearest-neighbor runtime is
-still open under EPIC 5.1d.
+still open under EPIC 5.1d. Ordered query vectorization is now complete behind the same
+profile-aware application boundary; the remaining slice is nearest-neighbor execution and ranking.
 
 ### Operations
 

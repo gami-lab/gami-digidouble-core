@@ -66,6 +66,9 @@ For product principles, read `PRINCIPLES.md`.
   content available for regeneration.
 - The supported profile, fixed-dimension migration procedure, operator lifecycle, recovery rules,
   and safe observability fields are documented in [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md).
+- Retrieval query vectorization is application-owned: `KnowledgeQueryEmbeddingService` resolves
+  one active corpus profile, batch-embeds normalized ordered variants, validates the complete
+  result, and records only bounded query-source/index/length and profile/count/timing metadata.
 
 ### Observability
 

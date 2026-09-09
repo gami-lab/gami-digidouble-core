@@ -128,6 +128,7 @@ export type RetrievalTracePerTypeDto = RetrievalCountsDto & {
 export type RetrievalTraceDto = RetrievalCountsDto & {
   query: string
   queries?: RetrievalQueryVariant[]
+  queryVectorCount?: number
   embeddingProfile?: RetrievalEmbeddingProfileDto
   timings?: RetrievalTimingsDto
   visibilityMode?: RetrievalVisibilityMode

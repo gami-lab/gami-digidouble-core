@@ -42,6 +42,7 @@ function createAvatarSnapshotInput() {
             dimensions: 16,
           },
           timings: { totalMs: 10, queryEmbeddingMs: 4, vectorSearchMs: 6 },
+          queryVectorCount: 1,
           outcome: 'success' as const,
           perType: {
             memory: { sourceIds: [], selectedChunkIds: [] },
@@ -160,6 +161,7 @@ describe('runtime inspector event context snapshots', () => {
           dimensions: 16,
         },
         timings: { totalMs: 10, queryEmbeddingMs: 4, vectorSearchMs: 6 },
+        queryVectorCount: 1,
         outcome: 'success',
         perType: {
           memory: { sourceIds: [], selectedChunkIds: [] },
