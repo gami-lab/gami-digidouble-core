@@ -1,8 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
+import { SemanticFixtureEmbeddingAdapter } from '../../../infrastructure/knowledge/test-support/semantic-fixture-embedding.adapter.js'
+import { NullObservabilityAdapter } from '../../../infrastructure/observability/null.adapter.js'
 import { KnowledgeVectorSearchError } from '../../ports/IKnowledgeChunkRepository.js'
-import type { RetrievalQueryEmbeddingResult } from './knowledge-query-embedding.service.js'
+import type { ActiveCorpus } from '../../ports/IKnowledgeCorpusRepository.js'
+import {
+  KnowledgeQueryEmbeddingService,
+  type RetrievalQueryEmbeddingResult,
+} from './knowledge-query-embedding.service.js'
 import { TypedRetrievalService } from './typed-retrieval.service.js'
 import type { KnowledgeType } from '../../../domain/knowledge/knowledge.types.js'
 
@@ -12,6 +18,18 @@ const profile = {
   provider: 'fake',
   model: 'fake-embedding',
   dimensions: 2,
+}
+
+const semanticProfile = {
+  provider: 'fixture',
+  model: 'semantic-groups-v1',
+  dimensions: 3,
+}
+
+const semanticCorpus: ActiveCorpus = {
+  embeddingProfileId: 'profile_semantic',
+  corpusGenerationId: 'generation_semantic',
+  profile: semanticProfile,
 }
 
 function source(
@@ -90,6 +108,92 @@ function buildService(
 
 // eslint-disable-next-line max-lines-per-function
 describe('TypedRetrievalService', () => {
+  // eslint-disable-next-line complexity
+  it('retrieves semantic paraphrases without lexical overlap and excludes unrelated vectors', async () => {
+    const semanticSource = source('semantic_world_source', 'world')
+    const chunkRepository = new InMemoryKnowledgeChunkRepository(
+      [
+        {
+          chunkId: 'harbor_fact',
+          sourceId: semanticSource.sourceId,
+          content: 'The east harbor is safe for docking.',
+          chunkIndex: 0,
+          embedding: [1, 0, 0],
+          embeddingProfileId: semanticCorpus.embeddingProfileId,
+          corpusGenerationId: semanticCorpus.corpusGenerationId,
+          createdAt: '2026-05-11T10:00:00.000Z',
+        },
+        {
+          chunkId: 'pier_fact',
+          sourceId: semanticSource.sourceId,
+          content: 'The western pier is closed.',
+          chunkIndex: 1,
+          embedding: [0.2, 0, 0.98],
+          embeddingProfileId: semanticCorpus.embeddingProfileId,
+          corpusGenerationId: semanticCorpus.corpusGenerationId,
+          createdAt: '2026-05-11T10:00:00.000Z',
+        },
+        {
+          chunkId: 'unrelated_lantern',
+          sourceId: semanticSource.sourceId,
+          content: 'A blue lantern hangs beside the harbor.',
+          chunkIndex: 2,
+          embedding: [0, 0.5, 0.866],
+          embeddingProfileId: semanticCorpus.embeddingProfileId,
+          corpusGenerationId: semanticCorpus.corpusGenerationId,
+          createdAt: '2026-05-11T10:00:00.000Z',
+        },
+      ],
+      new InMemoryKnowledgeSourceRepository([semanticSource]),
+    )
+    chunkRepository.setActiveCorpus(semanticCorpus)
+    const queryEmbeddingService = new KnowledgeQueryEmbeddingService(
+      { getActiveCorpus: () => Promise.resolve(semanticCorpus) },
+      new SemanticFixtureEmbeddingAdapter(
+        semanticProfile,
+        new Map([
+          ['¿Dónde puedo atracar?', [1, 0, 0]],
+          ['Quelle jetée est fermée ?', [0, 0, 1]],
+        ]),
+      ),
+      new NullObservabilityAdapter(),
+    )
+    const service = new TypedRetrievalService(
+      new InMemoryKnowledgeSourceRepository([semanticSource]),
+      chunkRepository,
+      queryEmbeddingService,
+    )
+
+    const result = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'unused compatibility query',
+      queries: [
+        { source: 'last_user_input', text: '¿Dónde puedo atracar?' },
+        { source: 'gm_required_fact', text: 'Quelle jetée est fermée ?' },
+      ],
+      limitPerType: 2,
+    })
+
+    expect(result.world.map((item) => item.chunkId)).toEqual(['harbor_fact', 'pier_fact'])
+    expect(result.world[0]?.matchedQuery?.source).toBe('last_user_input')
+    expect(result.world[0]?.matchedQuery?.text).toBe('¿Dónde puedo atracar?')
+    expect(result.world[0]?.queryIndex).toBe(0)
+    expect(result.world[0]?.similarity).toBe(1)
+    expect(result.world[0]?.distance).toBe(0)
+    expect(result.world[1]?.matchedQuery?.source).toBe('gm_required_fact')
+    expect(result.world[1]?.matchedQuery?.text).toBe('Quelle jetée est fermée ?')
+    expect(result.world[1]?.queryIndex).toBe(1)
+    expect(result.world).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ chunkId: 'unrelated_lantern' })]),
+    )
+    expect(result.trace.queryVectorCount).toBe(2)
+    expect(result.trace.embeddingProfile).toEqual({
+      ...semanticProfile,
+      embeddingProfileId: semanticCorpus.embeddingProfileId,
+      corpusGenerationId: semanticCorpus.corpusGenerationId,
+    })
+  })
+
   it('embeds once, searches bounded vector pools, and returns cosine diagnostics', async () => {
     const { service, embedVariants, chunkRepository } = buildService(
       [chunk('memory_1', 'memory_source', [1, 0])],

@@ -213,17 +213,43 @@ describe('Stack E2E — knowledge routes — happy path', () => {
       })
       expect(retrievalRes.status).toBe(200)
       const retrievalBody = (await retrievalRes.json()) as {
-        data: { retrieval: { world: Array<{ content: string }> } }
+        data: {
+          retrieval: {
+            world: Array<{
+              content: string
+              distance?: number
+              similarity?: number
+              embedding?: unknown
+            }>
+            trace: {
+              outcome: string
+              visibilityMode: string
+              gmUnrestricted: boolean
+              queryVectorCount: number
+              timings: { queryEmbeddingMs?: number; vectorSearchMs?: number }
+            }
+          }
+        }
       }
-      expect(Array.isArray(retrievalBody.data.retrieval.world)).toBe(true)
-      expect(retrievalBody.data.retrieval.world.length).toBeGreaterThan(0)
-      expect(
-        retrievalBody.data.retrieval.world.some((item) =>
-          item.content.toLowerCase().includes('timeline'),
-        ),
-      ).toBe(true)
-      for (const item of retrievalBody.data.retrieval.world) {
+      const retrieval = retrievalBody.data.retrieval
+      expect(Array.isArray(retrieval.world)).toBe(true)
+      expect(retrieval.world.length).toBeGreaterThan(0)
+      expect(retrieval.world.some((item) => item.content.toLowerCase().includes('timeline'))).toBe(
+        true,
+      )
+      expect(retrieval.trace).toMatchObject({
+        outcome: 'success',
+        visibilityMode: 'gm_unrestricted',
+        gmUnrestricted: true,
+        queryVectorCount: 1,
+      })
+      expect(typeof retrieval.trace.timings.queryEmbeddingMs).toBe('number')
+      expect(typeof retrieval.trace.timings.vectorSearchMs).toBe('number')
+      for (const item of retrieval.world) {
         expect(item.content.length).toBeLessThanOrEqual(803)
+        expect(typeof item.distance).toBe('number')
+        expect(typeof item.similarity).toBe('number')
+        expect(item).not.toHaveProperty('embedding')
       }
     } finally {
       await deleteScenario(seeded.scenarioId)

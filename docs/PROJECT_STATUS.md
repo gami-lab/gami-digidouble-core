@@ -152,7 +152,19 @@ console, and recorded-event projections reuse the shared diagnostic DTOs; the sc
 tool has no direct knowledge retrieval path and remains routed through conversation APIs. The
 deterministic in-memory vector repository and PostgreSQL
 integration coverage verify ordering, filtering, visibility asymmetry, safe failures, and
-index-compatible query shape. Admin presentation remains additive and contract-compatible.
+index-compatible query shape. A deterministic semantic-fixture regression now proves multilingual
+paraphrase proximity, unrelated-vector exclusion, matched-variant mapping, and active-profile
+consistency through the application retrieval boundary. The complete requirements-to-tests matrix
+is maintained in [EPIC_5_1D_REQUIREMENTS_MATRIX.md](EPIC_5_1D_REQUIREMENTS_MATRIX.md). Admin
+presentation remains additive and contract-compatible.
+
+The final verification run on 2026-09-09 passed the deterministic repository test suite (958 core
+tests; all workspace packages passed), typecheck, lint, build, formatting, and diff checks. The
+targeted PostgreSQL vector, runtime-context, and Game Master integration tests passed 11/11 with
+the local pgvector service. The stack-E2E command remains environment-limited when no application
+is listening at `APP_URL`; the broader integration run also remains limited by the configured
+Mistral provider quota/rate-limit warnings. These limitations do not weaken the deterministic
+retrieval proof or change production behavior.
 
 ### Operations
 
@@ -265,5 +277,6 @@ index-compatible query shape. Admin presentation remains additive and contract-c
 Documentation review for this contract slice: `VISION.md`, `PRINCIPLES.md`, `TECH_STACK.md`,
 `GAME_MASTER_CONTRACT.md`, `MEMORY_SYSTEM_SPEC.md`, and `EMBEDDING_OPERATIONS.md` remain accurate
 and required no content change. `ARCHITECTURE.md`, `API_CONTRACT.md`, `DATA_MODEL.md`,
-`TEST_STRATEGY.md`, `TEST_COVERAGE_PLAN.md`, and `EPICS.md` were updated above to record the new
-retrieval contract ownership and diagnostics boundary.
+`TEST_STRATEGY.md`, `TEST_COVERAGE_PLAN.md`, and `EPICS.md` were reviewed and remain accurate for
+the completed retrieval proof; the requirements matrix records the test ownership and the
+environment-gated PostgreSQL/stack commands.

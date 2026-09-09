@@ -100,8 +100,10 @@ projection is shared for the admin API.
 
 Nearest-neighbor retrieval applies the active profile/generation, ready-source, scenario/type,
 visibility, and static-scope filters in SQL before limiting candidates. Pgvector cosine distance
-is lower-is-better; service/API similarity is `1 - distance`, with display normalization owned by
-presenters. Search candidates do not select or persist the embedding column.
+is lower-is-better; service/API similarity is exactly `1 - distance`, with clamping and rounding
+owned only by presenters. A query with the wrong dimension or stale profile/generation is rejected
+before search, and rows outside the active profile/generation are ineligible before the candidate
+limit. Search candidates do not select or persist the embedding column.
 
 ## Relationships
 

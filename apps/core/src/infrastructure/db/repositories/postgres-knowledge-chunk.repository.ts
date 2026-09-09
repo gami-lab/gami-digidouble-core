@@ -225,7 +225,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
           ${sourceFilter}
           ${memoryScopeFilter}
           ${visibilityFilter}
-        ORDER BY c.embedding <=> ${queryVector}
+        ORDER BY c.embedding <=> ${queryVector}, c.source_id ASC, c.chunk_index ASC, c.id ASC
         LIMIT ${request.candidateLimit}
       `
     } catch {
@@ -329,7 +329,9 @@ async function assertActiveCorpus(
 }
 
 function buildSourceFilter(sql: Sql, sourceUuids: string[] | undefined): SqlFragment {
-  return sourceUuids === undefined ? sql`` : sql`AND c.source_id = ANY(${sql.array(sourceUuids)})`
+  return sourceUuids === undefined
+    ? sql``
+    : sql`AND c.source_id = ANY(${sql.array(sourceUuids)}::uuid[])`
 }
 
 function buildVisibilityFilter(sql: Sql, request: VectorSearchRequest): SqlFragment {

@@ -327,10 +327,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       eligibleSourceIds: [hiddenSource.sourceId],
     })
 
-    expect(filtered.map((candidate) => candidate.content)).toEqual([
-      publicSource.sourceId,
-      privateSource.sourceId,
-    ])
+    expect(filtered.map((candidate) => candidate.content)).toEqual(
+      [publicSource.sourceId, privateSource.sourceId].sort((left, right) =>
+        left.localeCompare(right),
+      ),
+    )
     expect(missingAvatar.map((candidate) => candidate.content)).toEqual([publicSource.sourceId])
     expect(scoped.map((candidate) => candidate.content)).toEqual([hiddenSource.sourceId])
   })

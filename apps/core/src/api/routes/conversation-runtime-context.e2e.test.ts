@@ -7,9 +7,12 @@ import type { KnowledgeChunk, KnowledgeSource } from '../../domain/knowledge/kno
 import type { ConversationWorkingMemory, UserFact } from '../../domain/memory/memory.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import type { User } from '../../domain/user/user.types.js'
+import { KnowledgeQueryEmbeddingService } from '../../application/services/knowledge/knowledge-query-embedding.service.js'
+import { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
+import { InMemoryKnowledgeCorpusRepository } from '../../infrastructure/db/in-memory-knowledge-corpus.repository.js'
 import { InMemoryKnowledgeChunkRepository } from '../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
@@ -17,6 +20,10 @@ import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-sc
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
+import {
+  DETERMINISTIC_HASH_EMBEDDING_PROFILE,
+  HashEmbeddingAdapter,
+} from '../../infrastructure/knowledge/test-support/hash-embedding.adapter.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
@@ -181,6 +188,9 @@ function makeKnowledgeChunks(): KnowledgeChunk[] {
       sourceId: 'source_world_1',
       chunkIndex: 0,
       content: 'North pier ledger entries close at moonrise and must be checked before departure.',
+      embedding: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      embeddingProfileId: 'embedding_profile_runtime_context',
+      corpusGenerationId: 'corpus_generation_runtime_context',
       createdAt: '2026-07-20T09:30:00.000Z',
     },
   ]
@@ -195,6 +205,7 @@ function makeApp(
     userMemoryFactRepository?: InMemoryUserMemoryFactRepository
     knowledgeSourceRepository?: InMemoryKnowledgeSourceRepository
     knowledgeChunkRepository?: InMemoryKnowledgeChunkRepository
+    typedRetrievalService?: TypedRetrievalService
   } = {},
 ) {
   return createServer(TEST_CONFIG, {
@@ -218,12 +229,39 @@ function makeApp(
     ...(options.knowledgeChunkRepository !== undefined
       ? { knowledgeChunkRepository: options.knowledgeChunkRepository }
       : {}),
+    ...(options.typedRetrievalService !== undefined
+      ? { typedRetrievalService: options.typedRetrievalService }
+      : {}),
   })
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('POST /v1/conversations/:conversationId/messages runtime context wiring', () => {
   it('uses all seven runtime sections on the HTTP path in the expected priority order', async () => {
     const llm = new CapturingLlmAdapter()
+    const knowledgeSourceRepository = new InMemoryKnowledgeSourceRepository(makeKnowledgeSources())
+    const knowledgeChunkRepository = new InMemoryKnowledgeChunkRepository(
+      makeKnowledgeChunks(),
+      knowledgeSourceRepository,
+    )
+    const activeCorpus = {
+      corpusGenerationId: 'corpus_generation_runtime_context',
+      embeddingProfileId: 'embedding_profile_runtime_context',
+      profile: DETERMINISTIC_HASH_EMBEDDING_PROFILE,
+    }
+    const knowledgeCorpusRepository = new InMemoryKnowledgeCorpusRepository(
+      knowledgeChunkRepository,
+      activeCorpus,
+    )
+    const typedRetrievalService = new TypedRetrievalService(
+      knowledgeSourceRepository,
+      knowledgeChunkRepository,
+      new KnowledgeQueryEmbeddingService(
+        knowledgeCorpusRepository,
+        new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
+        new NullObservabilityAdapter(),
+      ),
+    )
     const app = makeApp(
       llm,
       makeAvatar({
@@ -236,8 +274,9 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
           makeWorkingMemory(),
         ]),
         userMemoryFactRepository: new InMemoryUserMemoryFactRepository(makeUserFacts()),
-        knowledgeSourceRepository: new InMemoryKnowledgeSourceRepository(makeKnowledgeSources()),
-        knowledgeChunkRepository: new InMemoryKnowledgeChunkRepository(makeKnowledgeChunks()),
+        knowledgeSourceRepository,
+        knowledgeChunkRepository,
+        typedRetrievalService,
       },
     )
 

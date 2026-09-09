@@ -171,7 +171,7 @@ Output invariants:
   `retrievalPlan.required` should be false only for greetings, purely emotional or subjective
   reflection, or purely stylistic guidance where no factual, narrative, or character context
   would improve the next turn.
-- The GM does not perform retrieval — `retrievalPlan` prepares queries and required facts for the next Avatar turn, and the Avatar pipeline uses both to select RAG chunks.
+- The GM does not perform retrieval — `retrievalPlan` prepares queries and required facts for the next Avatar turn, and the Avatar pipeline uses both to select RAG chunks. Retrieval execution remains an Avatar-pipeline responsibility shared with the explicit `gm_unrestricted` diagnostic/context mode. Provider or vector-search failure yields bounded empty context and does not block the Avatar response; when the plan is required, the Avatar receives insufficient-evidence guidance.
 - `retrievalPlan.queries` and `retrievalPlan.requiredFacts` must use the language of `context.experience.description` (the Scenario description), because the RAG documents are stored in that language.
 - `retrievalPlan.required` marks retrieval as necessary for the next related Avatar turn; if retrieval fails or yields no knowledge, the Avatar receives explicit insufficient-evidence guidance.
 - The GM must anticipate the most likely next direction on the current subject. It should assume

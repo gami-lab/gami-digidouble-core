@@ -115,6 +115,11 @@ Required tests:
 - **Unified retrieval diagnostics:** verify admin responses, recorded turn events, session-context
   projections, and console/admin displays consume shared profile/timing/count/distance/failure
   fields, preserve older event payloads, and never serialize vectors or provider payloads
+- **EPIC 5.1d quality proof:** use exact-vector semantic fixtures for multilingual paraphrases and
+  unrelated candidates, then verify the application boundary, filtered repository, runtime failure
+  isolation, and production composition. The complete requirements-to-tests matrix is
+  [EPIC_5_1D_REQUIREMENTS_MATRIX.md](EPIC_5_1D_REQUIREMENTS_MATRIX.md). PostgreSQL and stack
+  evidence remains environment-gated; deterministic unit tests must not weaken those checks.
 - **Audit log:** verify that every admin action writes an entry with the correct `actionType`, `targetType`, and `targetId`
 - **Auth:** verify that admin endpoints require a valid API key (same as public API in Phase A)
 - **No sensitive data leakage:** verify that session event payloads and admin responses do not expose raw prompt content or credential values

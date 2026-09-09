@@ -241,7 +241,7 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 
 ## Open Backlog
 
-### `5.1d Vector Retrieval Runtime` ✅ Runtime complete
+### `5.1d Vector Retrieval Runtime` ✅ Complete
 
 The canonical retrieval query, candidate, result, trace, failure, shared DTO, recorded-event, and
 console projection contracts are now established. Ordered, profile-aware query vectorization is
@@ -260,6 +260,11 @@ session-context inspection, and console/admin views. Shared mappings expose prof
 embedding/search timing, bounded candidate/selection/exclusion counts, cosine distance/similarity,
 visibility mode, failures, matched query variants, and final Context Engine kept/trimmed facts;
 older persisted events remain readable and the evaluation tool has no direct retrieval consumer.
+
+The definition-of-done evidence is maintained in
+[EPIC_5_1D_REQUIREMENTS_MATRIX.md](EPIC_5_1D_REQUIREMENTS_MATRIX.md). Deterministic semantic,
+batching, selection, failure-isolation, mapper, and composition audits are blocking evidence;
+PostgreSQL and stack checks remain their existing environment-gated integration tiers.
 
 ### `4.2d Memory Domain Separation`
 

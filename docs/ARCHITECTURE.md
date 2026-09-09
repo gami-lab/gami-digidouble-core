@@ -474,7 +474,9 @@ normalized variants once per operation, issues bounded searches for each query/t
 the best deterministic match per chunk, and delegates balanced source minimums to
 `retrieval-selection.ts`. The same configured service is injected into Avatar, the asynchronous
 Game Master context, and admin retrieval; Context Engine remains the only owner of final prompt
-inclusion and trimming.
+inclusion and trimming. The requirements-to-tests evidence for this boundary is maintained in
+`docs/EPIC_5_1D_REQUIREMENTS_MATRIX.md`; semantic fixtures prove proximity behavior without
+reintroducing lexical ranking.
 
 ### Versioned knowledge corpus persistence
 

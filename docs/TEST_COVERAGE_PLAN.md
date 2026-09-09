@@ -143,6 +143,10 @@ Must cover:
 - retrieval diagnostics staying bounded
 - unified retrieval diagnostics across the admin presenter, recorded runtime events, session-context
   mapper, and console/admin adapters, including duplicate-vs-selection counts and Context Engine
+- the full requirements-to-tests mapping in
+  [EPIC_5_1D_REQUIREMENTS_MATRIX.md](EPIC_5_1D_REQUIREMENTS_MATRIX.md), including deterministic
+  semantic paraphrase/unrelated-vector fixtures, ordered batch mapping, filtered PostgreSQL
+  cosine search, failure isolation, composition audits, and bounded diagnostics
   inclusion/trimming facts
 
 ### Operations And Inspection
