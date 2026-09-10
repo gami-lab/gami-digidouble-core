@@ -110,6 +110,7 @@ export type {
   RetrievalTracePerTypeDto,
   RetrievalTraceDto,
   KnowledgeSourceDto,
+  KnowledgeSourceQuarantineDto,
   KnowledgeChunkDto,
   IngestionJobDto,
   KnowledgeEmbeddingProfileDto,
@@ -150,6 +151,8 @@ export type {
 } from './knowledge-contract-types.js'
 export {
   KNOWLEDGE_TYPES,
+  KNOWLEDGE_TYPE_LABELS,
+  getKnowledgeTypeLabel,
   KNOWLEDGE_TYPE_INPUTS,
   LEGACY_KNOWLEDGE_TYPE_ALIAS,
   INGESTION_CHUNK_SIZE_MIN,

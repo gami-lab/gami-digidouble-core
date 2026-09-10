@@ -278,6 +278,7 @@ function expectLayeredMemoryResponse(session: SessionMemoryLayers | undefined): 
     throw new Error('Expected memory session payload to be present')
   }
 
+  expect(session.userId).toBe('user_1')
   expect(session.activeAvatarId).toBe('avatar_1')
   expect(session.activeConversationId).toBe('conversation_1')
   expect(session.shortTerm.recentExchanges).toEqual([

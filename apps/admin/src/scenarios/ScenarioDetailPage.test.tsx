@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+/* eslint-disable max-lines */
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -153,9 +154,7 @@ describe('ScenarioDetailPage loading and data states', () => {
     expect(screen.getByText('Explore AI concepts')).toBeTruthy()
     expect(screen.getByText('Mira')).toBeTruthy()
     expect(screen.getByText(/Scenario default:\s*openai \/ gpt-4o/)).toBeTruthy()
-    expect(
-      screen.getByText(/Game Master override:\s*anthropic \/ claude-sonnet-4-6/),
-    ).toBeTruthy()
+    expect(screen.getByText(/Game Master override:\s*anthropic \/ claude-sonnet-4-6/)).toBeTruthy()
     expect(screen.getByText('mistral / mistral-small-4')).toBeTruthy()
   })
 
@@ -218,14 +217,21 @@ describe('ScenarioDetailPage navigation and avatar actions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add avatar' }))
 
     fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Mira' } })
-    fireEvent.change(screen.getByLabelText(/Persona prompt/), { target: { value: 'You are Mira.' } })
-    fireEvent.change(screen.getByLabelText('Provider', { selector: '#create-avatar-model-provider' }), {
-      target: { value: 'openai' },
+    fireEvent.change(screen.getByLabelText(/Persona prompt/), {
+      target: { value: 'You are Mira.' },
     })
+    fireEvent.change(
+      screen.getByLabelText('Provider', { selector: '#create-avatar-model-provider' }),
+      {
+        target: { value: 'openai' },
+      },
+    )
     fireEvent.change(screen.getByLabelText('Model', { selector: '#create-avatar-model-model' }), {
       target: { value: 'gpt-4o' },
     })
-    fireEvent.submit(screen.getByRole('button', { name: /Create avatar/ }).closest('form') as HTMLFormElement)
+    fireEvent.submit(
+      screen.getByRole('button', { name: /Create avatar/ }).closest('form') as HTMLFormElement,
+    )
 
     await waitFor(() => {
       expect(createAvatarApi).toHaveBeenCalledWith('scenario_a', {
@@ -281,6 +287,35 @@ describe('ScenarioDetailPage knowledge section', () => {
     expect(screen.getByText('No knowledge sources yet.')).toBeTruthy()
   })
 
+  it('groups static category, ownership, visibility, and quarantine status explicitly', async () => {
+    mockReadyLoad({
+      knowledgeSources: [
+        createKnowledgeSource({
+          status: 'blocked',
+          quarantine: {
+            classification: 'ambiguous_or_invalid_user_specific',
+            reason: 'Reserved scope metadata requires review.',
+            offendingKeyNames: ['userId'],
+            quarantinedAt: '2026-06-01T00:00:00.000Z',
+          },
+        }),
+      ],
+    })
+
+    renderPage()
+    await waitForScenario()
+
+    expect(screen.getByText('Knowledge category')).toBeTruthy()
+    expect(screen.getByText('Shared World Knowledge')).toBeTruthy()
+    expect(screen.getByText('Scenario ownership')).toBeTruthy()
+    expect(screen.getByText('scenario_a')).toBeTruthy()
+    expect(screen.getByText('Avatar visibility')).toBeTruthy()
+    expect(screen.getByText('Shared with all Avatars')).toBeTruthy()
+    expect(screen.getByText('blocked — quarantine review')).toBeTruthy()
+    expect(screen.getByText(/Reserved scope metadata requires review/)).toBeTruthy()
+    expect(screen.getByText(/userId/)).toBeTruthy()
+  })
+
   it('shows knowledge create form when "Add knowledge" is clicked', async () => {
     mockReadyLoad()
 
@@ -333,7 +368,9 @@ describe('ScenarioDetailPage knowledge creation submissions', () => {
       target: { value: 'Hidden relationships between suspects.' },
     })
     fireEvent.submit(
-      screen.getByRole('button', { name: /Create knowledge source/ }).closest('form') as HTMLFormElement,
+      screen
+        .getByRole('button', { name: /Create knowledge source/ })
+        .closest('form') as HTMLFormElement,
     )
 
     await waitFor(() => {
@@ -377,7 +414,9 @@ describe('ScenarioDetailPage knowledge creation submissions', () => {
       },
     })
     fireEvent.submit(
-      screen.getByRole('button', { name: /Create knowledge source/ }).closest('form') as HTMLFormElement,
+      screen
+        .getByRole('button', { name: /Create knowledge source/ })
+        .closest('form') as HTMLFormElement,
     )
 
     await waitFor(() => {
@@ -416,13 +455,17 @@ describe('ScenarioDetailPage knowledge edit submissions', () => {
 
     const knowledgeRow = screen.getByText('Secret lore').closest('tr')
     expect(knowledgeRow).not.toBeNull()
-    fireEvent.click(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Edit' }))
+    fireEvent.click(
+      within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Edit' }),
+    )
 
     fireEvent.change(screen.getByLabelText(/Visibility policy/), {
       target: { value: 'avatars' },
     })
     fireEvent.click(screen.getByLabelText('Noor'))
-    fireEvent.submit(screen.getByRole('button', { name: 'Save' }).closest('form') as HTMLFormElement)
+    fireEvent.submit(
+      screen.getByRole('button', { name: 'Save' }).closest('form') as HTMLFormElement,
+    )
 
     await waitFor(() => {
       expect(updateKnowledgeSourceApi).toHaveBeenCalledWith('knowledge_source_1', {
@@ -451,17 +494,26 @@ describe('ScenarioDetailPage knowledge ingestion feedback', () => {
       attempts: 1,
       createdAt: '2026-06-01T00:00:00.000Z',
     })
-    vi.mocked(listKnowledgeSources).mockResolvedValueOnce([createKnowledgeSource({ status: 'pending' })])
-    vi.mocked(listKnowledgeSources).mockResolvedValueOnce([createKnowledgeSource({ status: 'ready' })])
+    vi.mocked(listKnowledgeSources).mockResolvedValueOnce([
+      createKnowledgeSource({ status: 'pending' }),
+    ])
+    vi.mocked(listKnowledgeSources).mockResolvedValueOnce([
+      createKnowledgeSource({ status: 'ready' }),
+    ])
 
     renderPage()
     await waitForScenario()
 
     const knowledgeRow = screen.getByText('Secret lore').closest('tr')
-    fireEvent.change(within(knowledgeRow as HTMLTableRowElement).getByLabelText('Chunk size for Secret lore'), {
-      target: { value: '500' },
-    })
-    fireEvent.click(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Ingest' }))
+    fireEvent.change(
+      within(knowledgeRow as HTMLTableRowElement).getByLabelText('Chunk size for Secret lore'),
+      {
+        target: { value: '500' },
+      },
+    )
+    fireEvent.click(
+      within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Ingest' }),
+    )
 
     await waitFor(() => {
       expect(triggerIngestion).toHaveBeenCalledWith('knowledge_source_1', { chunkSize: 500 })
@@ -498,7 +550,9 @@ describe('ScenarioDetailPage knowledge ingestion feedback', () => {
     await waitForScenario()
 
     const knowledgeRow = screen.getByText('Secret lore').closest('tr')
-    fireEvent.click(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Ingest' }))
+    fireEvent.click(
+      within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Ingest' }),
+    )
 
     await waitFor(() => {
       expect(screen.getByText(/Could not load source content\./)).toBeTruthy()
@@ -512,7 +566,9 @@ describe('ScenarioDetailPage knowledge ingestion feedback', () => {
     await waitForScenario()
 
     const knowledgeRow = screen.getByText('Secret lore').closest('tr')
-    expect(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Re-ingest' })).toBeTruthy()
+    expect(
+      within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'Re-ingest' }),
+    ).toBeTruthy()
   })
 })
 
@@ -533,7 +589,9 @@ describe('ScenarioDetailPage ingested-data view', () => {
     await waitForScenario()
 
     const knowledgeRow = screen.getByText('Secret lore').closest('tr')
-    fireEvent.click(within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'View data' }))
+    fireEvent.click(
+      within(knowledgeRow as HTMLTableRowElement).getByRole('button', { name: 'View data' }),
+    )
 
     await waitFor(() => {
       expect(listKnowledgeChunks).toHaveBeenCalledWith('knowledge_source_1')
@@ -548,7 +606,7 @@ describe('ScenarioDetailPage retrieval tester', () => {
   it('runs a retrieval query and shows matched chunks', async () => {
     mockReadyLoad({ knowledgeSources: [createKnowledgeSource({ status: 'ready' })] })
     vi.mocked(queryKnowledgeRetrieval).mockResolvedValue({
-        avatar_knowledge: [],
+      avatar_knowledge: [],
       world: [
         {
           sourceId: 'knowledge_source_1',
@@ -575,10 +633,15 @@ describe('ScenarioDetailPage retrieval tester', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Test retrieval' }))
     fireEvent.change(screen.getByLabelText(/Query/), { target: { value: 'lore' } })
-    fireEvent.submit(screen.getByRole('button', { name: 'Run retrieval' }).closest('form') as HTMLFormElement)
+    fireEvent.submit(
+      screen.getByRole('button', { name: 'Run retrieval' }).closest('form') as HTMLFormElement,
+    )
 
     await waitFor(() => {
-      expect(queryKnowledgeRetrieval).toHaveBeenCalledWith({ scenarioId: 'scenario_a', query: 'lore' })
+      expect(queryKnowledgeRetrieval).toHaveBeenCalledWith({
+        scenarioId: 'scenario_a',
+        query: 'lore',
+      })
     })
     await waitFor(() => {
       expect(screen.getByText('World chunk content')).toBeTruthy()

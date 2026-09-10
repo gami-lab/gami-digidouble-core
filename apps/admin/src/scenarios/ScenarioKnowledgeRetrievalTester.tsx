@@ -7,7 +7,7 @@ import type {
   RetrievedKnowledgeItemDto,
   RetrievalTraceDto,
 } from '@gami/shared'
-import { KNOWLEDGE_TYPES } from '@gami/shared'
+import { getKnowledgeTypeLabel, KNOWLEDGE_TYPES } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import type { KnowledgeSourceDto, TypedKnowledgeRetrievalDto } from '../api/knowledge'
 import { queryKnowledgeRetrieval } from '../api/knowledge'
@@ -38,6 +38,7 @@ export function ScenarioKnowledgeRetrievalTester({
   const sourceNamesById = new Map(
     knowledgeSources.map((source) => [source.sourceId, source.name] as const),
   )
+  const sourcesById = new Map(knowledgeSources.map((source) => [source.sourceId, source] as const))
   const loading = result.status === 'loading'
 
   async function handleSubmit(event: SyntheticEvent): Promise<void> {
@@ -114,6 +115,7 @@ export function ScenarioKnowledgeRetrievalTester({
         result={result}
         sourceNamesById={sourceNamesById}
         knowledgeSources={knowledgeSources}
+        sourcesById={sourcesById}
       />
     </>
   )
@@ -171,10 +173,12 @@ function RetrievalResult({
   result,
   sourceNamesById,
   knowledgeSources,
+  sourcesById,
 }: {
   result: ResultState
   sourceNamesById: Map<string, string>
   knowledgeSources: KnowledgeSourceDto[]
+  sourcesById: Map<string, KnowledgeSourceDto>
 }): JSX.Element | null {
   if (result.status === 'idle') return null
   if (result.status === 'loading') return <p>Running retrieval…</p>
@@ -204,6 +208,7 @@ function RetrievalResult({
           type={type}
           items={result.retrieval[type]}
           sourceNamesById={sourceNamesById}
+          sourcesById={sourcesById}
         />
       ))}
     </>
@@ -214,41 +219,76 @@ function RetrievalTypeSection({
   type,
   items,
   sourceNamesById,
+  sourcesById,
 }: {
   type: KnowledgeType
   items: RetrievedKnowledgeItemDto[]
   sourceNamesById: Map<string, string>
+  sourcesById: Map<string, KnowledgeSourceDto>
 }): JSX.Element {
   return (
     <>
       <h3>
-        {type} <span className="admin-muted">({items.length})</span>
+        {getKnowledgeTypeLabel(type)} <span className="admin-muted">({items.length})</span>
       </h3>
       {items.length === 0 ? (
-        <p className="admin-muted">No {type} chunks matched.</p>
+        <p className="admin-muted">No {getKnowledgeTypeLabel(type)} chunks matched.</p>
       ) : (
         <ul className="admin-chunk-list">
           {items.map((item) => (
             <li key={item.chunkId} className="admin-chunk-item">
-              <div className="admin-chunk-item-header">
-                <strong>{sourceNamesById.get(item.sourceId) ?? item.sourceId}</strong>
-                <span className="admin-muted">
-                  {item.similarity !== undefined
-                    ? `similarity ${item.similarity.toFixed(4)}`
-                    : item.score !== undefined
-                      ? `similarity ${item.score.toFixed(4)}`
-                      : null}
-                  {item.distance !== undefined ? ` · distance ${item.distance.toFixed(4)}` : null}
-                  {item.reason !== undefined ? ` · ${item.reason}` : null}
-                </span>
-              </div>
-              <pre className="admin-chunk-content">{item.content}</pre>
+              <RetrievalItem
+                item={item}
+                source={sourcesById.get(item.sourceId)}
+                sourceName={sourceNamesById.get(item.sourceId) ?? item.sourceId}
+              />
             </li>
           ))}
         </ul>
       )}
     </>
   )
+}
+
+function RetrievalItem({
+  item,
+  source,
+  sourceName,
+}: {
+  item: RetrievedKnowledgeItemDto
+  source: KnowledgeSourceDto | undefined
+  sourceName: string
+}): JSX.Element {
+  return (
+    <>
+      <div className="admin-chunk-item-header">
+        <strong>{sourceName}</strong>
+        <span className="admin-muted">
+          {item.similarity !== undefined
+            ? `similarity ${item.similarity.toFixed(4)}`
+            : item.score !== undefined
+              ? `similarity ${item.score.toFixed(4)}`
+              : null}
+          {item.distance !== undefined ? ` · distance ${item.distance.toFixed(4)}` : null}
+          {item.reason !== undefined ? ` · ${item.reason}` : null}
+        </span>
+      </div>
+      <div className="admin-muted">
+        Scenario ownership: {source?.scenarioId ?? 'unknown'} · Avatar visibility:{' '}
+        {source === undefined ? 'unknown' : formatRetrievalVisibility(source)} · Source status:{' '}
+        {source?.status ?? 'unknown'}
+      </div>
+      <pre className="admin-chunk-content">{item.content}</pre>
+    </>
+  )
+}
+
+function formatRetrievalVisibility(source: KnowledgeSourceDto): string {
+  if (source.visibilityPolicy === 'none') return 'GM only (no Avatars)'
+  if (source.visibilityPolicy === 'avatars') {
+    return source.visibleToAvatarIds?.join(', ') || 'specific Avatars'
+  }
+  return 'Shared with all Avatars'
 }
 
 function formatRetrievalDiagnostics(trace: RetrievalTraceDto): string {
@@ -264,5 +304,7 @@ function formatRetrievalDiagnostics(trace: RetrievalTraceDto): string {
       : `embedding ${String(timings.queryEmbeddingMs ?? 0)}ms · search ${String(timings.vectorSearchMs ?? 0)}ms`
   const counts = `${String(trace.candidateCount ?? 0)} candidates → ${String(trace.selectedCount ?? 0)} selected`
   const outcome = trace.failure === undefined ? (trace.outcome ?? 'unknown') : trace.failure.code
-  return `${outcome} · ${profileText} · ${timingText} · ${counts} · visibility ${trace.visibilityMode ?? 'unknown'}`
+  const visibility =
+    trace.visibilityMode === 'gm_unrestricted' ? 'GM-unrestricted' : 'Avatar-filtered'
+  return `${outcome} · ${profileText} · ${timingText} · ${counts} · ${visibility}`
 }

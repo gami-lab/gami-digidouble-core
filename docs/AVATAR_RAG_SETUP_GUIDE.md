@@ -177,6 +177,11 @@ The response is typed by layer:
 
 It also includes trace metadata so you can see which chunks were selected and how visibility filtering behaved.
 
+Operator screens use the same categories as the API: Shared Avatar Knowledge, Shared World
+Knowledge, and Media Knowledge. They also show the owning scenario and Avatar visibility policy.
+If a legacy source is blocked for ambiguous or user-specific metadata, the source list shows a
+quarantine review state and safe key/reason details; it is not relabeled or made retrievable.
+
 ## How Avatar Scoping Works
 
 There is no separate endpoint that “attaches” knowledge directly to an avatar.

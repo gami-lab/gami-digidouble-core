@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import type { JSX } from 'react'
-import { createKnowledgeSource, listIngestionJobs, listKnowledgeSources, queryKnowledgeRetrieval, triggerIngestion } from '../api/knowledge'
+import {
+  createKnowledgeSource,
+  listIngestionJobs,
+  listKnowledgeSources,
+  queryKnowledgeRetrieval,
+  triggerIngestion,
+} from '../api/knowledge'
 import { formatApiError } from '../api/error'
 import { buttonStyle } from './form-styles'
 import type {
@@ -8,6 +14,7 @@ import type {
   KnowledgeType,
   QueryKnowledgeRetrievalRequest,
 } from '@gami/shared'
+import { getKnowledgeTypeLabel } from '@gami/shared'
 
 type KnowledgeOperationsPanelProps = {
   scenarioId: string | null
@@ -29,7 +36,14 @@ export function KnowledgeOperationsPanel({
   const disabled = scenarioId === null
 
   return (
-    <div style={{ marginTop: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px' }}>
+    <div
+      style={{
+        marginTop: '12px',
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '10px',
+      }}
+    >
       <strong>Knowledge operations</strong>
       <p style={{ margin: '6px 0', color: '#4b5563' }}>
         Register sources, trigger ingestion, and inspect shared scenario retrieval.
@@ -64,17 +78,16 @@ export function KnowledgeOperationsPanel({
         }}
         onInspectRetrieval={() => {
           if (scenarioId === null) return
-          void inspectRetrieval(
-            scenarioId,
-            retrievalAvatarId,
-            setRetrievalSummary,
-            setError,
-          )
+          void inspectRetrieval(scenarioId, retrievalAvatarId, setRetrievalSummary, setError)
         }}
       />
       {status !== null ? <p style={{ margin: '6px 0', color: '#166534' }}>{status}</p> : null}
-      {sourcesSummary.length > 0 ? <p style={{ margin: '6px 0', color: '#1f2937' }}>{sourcesSummary}</p> : null}
-      {retrievalSummary.length > 0 ? <p style={{ margin: '6px 0', color: '#1f2937' }}>{retrievalSummary}</p> : null}
+      {sourcesSummary.length > 0 ? (
+        <p style={{ margin: '6px 0', color: '#1f2937' }}>{sourcesSummary}</p>
+      ) : null}
+      {retrievalSummary.length > 0 ? (
+        <p style={{ margin: '6px 0', color: '#1f2937' }}>{retrievalSummary}</p>
+      ) : null}
       {error !== null ? <p style={{ margin: '6px 0', color: '#b91c1c' }}>{error}</p> : null}
     </div>
   )
@@ -103,7 +116,9 @@ function KnowledgeInputFields(props: KnowledgeInputFieldsProps): JSX.Element {
         aria-label="Knowledge name"
         placeholder="Source name"
         value={props.name}
-        onChange={(event) => { props.setName(event.target.value) }}
+        onChange={(event) => {
+          props.setName(event.target.value)
+        }}
         style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
         disabled={props.disabled}
       />
@@ -111,25 +126,31 @@ function KnowledgeInputFields(props: KnowledgeInputFieldsProps): JSX.Element {
         aria-label="Knowledge uri"
         placeholder="URI or path"
         value={props.uriOrPath}
-        onChange={(event) => { props.setUriOrPath(event.target.value) }}
+        onChange={(event) => {
+          props.setUriOrPath(event.target.value)
+        }}
         style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
         disabled={props.disabled}
       />
       <select
         aria-label="Knowledge type"
         value={props.knowledgeType}
-        onChange={(event) => { props.setKnowledgeType(event.target.value as KnowledgeType) }}
+        onChange={(event) => {
+          props.setKnowledgeType(event.target.value as KnowledgeType)
+        }}
         disabled={props.disabled}
         style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
       >
-        <option value="avatar_knowledge">avatar knowledge</option>
-        <option value="world">world</option>
-        <option value="media">media</option>
+        <option value="avatar_knowledge">Shared Avatar Knowledge</option>
+        <option value="world">Shared World Knowledge</option>
+        <option value="media">Media Knowledge</option>
       </select>
       <select
         aria-label="Knowledge format"
         value={props.format}
-        onChange={(event) => { props.setFormat(event.target.value as KnowledgeSourceFormat) }}
+        onChange={(event) => {
+          props.setFormat(event.target.value as KnowledgeSourceFormat)
+        }}
         disabled={props.disabled}
         style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
       >
@@ -143,7 +164,9 @@ function KnowledgeInputFields(props: KnowledgeInputFieldsProps): JSX.Element {
         aria-label="Knowledge visibility avatar ids"
         placeholder="Visible avatar IDs (comma-separated; blank=all)"
         value={props.visibilityCsv}
-        onChange={(event) => { props.setVisibilityCsv(event.target.value) }}
+        onChange={(event) => {
+          props.setVisibilityCsv(event.target.value)
+        }}
         style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
         disabled={props.disabled}
       />
@@ -151,7 +174,9 @@ function KnowledgeInputFields(props: KnowledgeInputFieldsProps): JSX.Element {
         aria-label="Retrieval active avatar id"
         placeholder="Retrieval avatar scope (optional)"
         value={props.retrievalAvatarId}
-        onChange={(event) => { props.setRetrievalAvatarId(event.target.value) }}
+        onChange={(event) => {
+          props.setRetrievalAvatarId(event.target.value)
+        }}
         style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
         disabled={props.disabled}
       />
@@ -169,13 +194,28 @@ type KnowledgeButtonsProps = {
 function KnowledgeButtons(props: KnowledgeButtonsProps): JSX.Element {
   return (
     <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
-      <button type="button" style={{ ...buttonStyle, marginTop: 0, fontSize: '12px', padding: '6px 10px' }} disabled={props.disabled} onClick={props.onRegisterAndIngest}>
+      <button
+        type="button"
+        style={{ ...buttonStyle, marginTop: 0, fontSize: '12px', padding: '6px 10px' }}
+        disabled={props.disabled}
+        onClick={props.onRegisterAndIngest}
+      >
         Register + ingest
       </button>
-      <button type="button" style={{ ...buttonStyle, marginTop: 0, fontSize: '12px', padding: '6px 10px' }} disabled={props.disabled} onClick={props.onRefreshSources}>
+      <button
+        type="button"
+        style={{ ...buttonStyle, marginTop: 0, fontSize: '12px', padding: '6px 10px' }}
+        disabled={props.disabled}
+        onClick={props.onRefreshSources}
+      >
         Refresh sources
       </button>
-      <button type="button" style={{ ...buttonStyle, marginTop: 0, fontSize: '12px', padding: '6px 10px' }} disabled={props.disabled} onClick={props.onInspectRetrieval}>
+      <button
+        type="button"
+        style={{ ...buttonStyle, marginTop: 0, fontSize: '12px', padding: '6px 10px' }}
+        disabled={props.disabled}
+        onClick={props.onInspectRetrieval}
+      >
         Inspect retrieval
       </button>
     </div>
@@ -200,7 +240,10 @@ type RegisterAndIngestState = {
   setVisibilityCsv: (v: string) => void
 }
 
-export async function registerAndIngestSource(input: RegisterAndIngestInput, state: RegisterAndIngestState): Promise<void> {
+export async function registerAndIngestSource(
+  input: RegisterAndIngestInput,
+  state: RegisterAndIngestState,
+): Promise<void> {
   state.setError(null)
   state.setStatus(null)
   const trimmedName = input.name.trim()
@@ -227,9 +270,11 @@ export async function registerAndIngestSource(input: RegisterAndIngestInput, sta
     })
     const triggered = await triggerIngestion(created.source.sourceId)
     const jobs = await listIngestionJobs(created.source.sourceId)
-    state.setStatus(`Registered ${created.source.sourceId} and scheduled ${triggered.ingestionJob.ingestionJobId}.`)
+    state.setStatus(
+      `Registered ${created.source.sourceId} and scheduled ${triggered.ingestionJob.ingestionJobId}.`,
+    )
     state.setSourcesSummary(
-      `Source ${created.source.name} (${created.source.knowledgeType}/${created.source.format}) · visibility: ${formatVisibilityLabel(created.source.visibleToAvatarIds)} · jobs: ${String(jobs.jobs.length)}.`,
+      `Source ${created.source.name} (${getKnowledgeTypeLabel(created.source.knowledgeType)}/${created.source.format}) · visibility: ${formatVisibilityLabel(created.source.visibleToAvatarIds)} · jobs: ${String(jobs.jobs.length)}.`,
     )
     state.setName('')
     state.setUriOrPath('')
@@ -253,7 +298,7 @@ export async function refreshKnowledgeSources(
         : `Knowledge sources: ${listed.sources
             .map(
               (source) =>
-                `${source.name} [${source.status}] {visibility: ${formatVisibilityLabel(source.visibleToAvatarIds)}}`,
+                `${source.name} [${getKnowledgeTypeLabel(source.knowledgeType)}; ${source.status}] {scenario: ${source.scenarioId}; Avatar visibility: ${formatVisibilityLabel(source.visibleToAvatarIds)}${source.quarantine === undefined ? '' : `; quarantine: ${source.quarantine.reason}`}}`,
             )
             .join(', ')}`,
     )
@@ -303,7 +348,7 @@ export async function inspectRetrieval(
       ...(trace.failure !== undefined ? [`failure=${trace.failure.code}`] : []),
     ].join(' · ')
     setSummary(
-      `retrieval: avatar_knowledge=${String(avatar_knowledge.length)}(${avatarKnowledgeScope}), world=${String(world.length)}(${worldScope}), media=${String(media.length)}(${mediaScope}) · ${diagnostics}.`,
+      `retrieval: ${getKnowledgeTypeLabel('avatar_knowledge')}=${String(avatar_knowledge.length)}(${avatarKnowledgeScope}), ${getKnowledgeTypeLabel('world')}=${String(world.length)}(${worldScope}), ${getKnowledgeTypeLabel('media')}=${String(media.length)}(${mediaScope}) · ${diagnostics}.`,
     )
   } catch (error) {
     setError(formatApiError(error, 'Failed to inspect retrieval'))
@@ -332,8 +377,9 @@ export function parseVisibilityCsv(value: string): ParsedVisibility {
 }
 
 function formatVisibilityLabel(visibleToAvatarIds: string[] | undefined): string {
-  if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0) return 'all avatars'
-  return visibleToAvatarIds.join('|')
+  if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0)
+    return 'Shared with all Avatars'
+  return `Avatar-visible: ${visibleToAvatarIds.join('|')}`
 }
 
 function firstVisibilityLabel(candidates: Array<string[] | undefined>): string {
@@ -341,5 +387,5 @@ function firstVisibilityLabel(candidates: Array<string[] | undefined>): string {
     if (candidate === undefined || candidate.length === 0) continue
     return formatVisibilityLabel(candidate)
   }
-  return 'all avatars'
+  return 'Shared with all Avatars'
 }

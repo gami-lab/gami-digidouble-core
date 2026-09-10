@@ -71,6 +71,7 @@ export class GetSessionMemoryLayersUseCase {
 
     const memory: SessionMemoryLayers = {
       sessionId: session.sessionId,
+      userId: session.userId,
       ...(activeConversation !== null
         ? {
             activeAvatarId: activeConversation.avatarId,

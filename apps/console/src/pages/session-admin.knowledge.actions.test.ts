@@ -27,7 +27,7 @@ function expectRegisterFlowSummary(
 ): void {
   expect(setStatus).toHaveBeenCalledWith('Registered source_1 and scheduled job_1.')
   expect(setSourcesSummary).toHaveBeenCalledWith(
-    'Source Lore (world/markdown) · visibility: all avatars · jobs: 0.',
+    'Source Lore (Shared World Knowledge/markdown) · visibility: Shared with all Avatars · jobs: 0.',
   )
 }
 
@@ -111,7 +111,7 @@ describe('session admin knowledge actions', () => {
     await refreshKnowledgeSources('scenario_1', setSummary, setError)
 
     expect(setSummary).toHaveBeenCalledWith(
-      'Knowledge sources: Lore [ready] {visibility: avatar_7}',
+      'Knowledge sources: Lore [Shared World Knowledge; ready] {scenario: scenario_1; Avatar visibility: Avatar-visible: avatar_7}',
     )
   })
 
@@ -146,7 +146,7 @@ describe('session admin knowledge actions', () => {
       expect.objectContaining({ activeAvatarId: 'avatar_scope' }),
     )
     expect(setSummary).toHaveBeenCalledWith(
-      'retrieval: avatar_knowledge=1(all avatars), world=0(all avatars), media=1(all avatars) · unknown · profile unavailable · candidates=0 · selected=0 · embedding=0ms · search=0ms · excluded(world)=2 · mode=unknown.',
+      'retrieval: Shared Avatar Knowledge=1(Shared with all Avatars), Shared World Knowledge=0(Shared with all Avatars), Media Knowledge=1(Shared with all Avatars) · unknown · profile unavailable · candidates=0 · selected=0 · embedding=0ms · search=0ms · excluded(world)=2 · mode=unknown.',
     )
   })
 

@@ -27,6 +27,7 @@ export type SessionMemorySummary = {
 
 export type SessionMemoryLayers = {
   sessionId: string
+  userId: string
   activeAvatarId?: string
   activeConversationId?: string
   shortTerm: SharedShortTermMemorySnapshot

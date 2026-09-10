@@ -49,6 +49,7 @@ describe('loadRuntimeInspectorViewModel', () => {
     expect(result.session.sessionId).toBe('session_1')
     expect(result.gm.gmState).toBeNull()
     expect(result.memory.layers.shortTerm.exchangeCount).toBe(2)
+    expect(result.memory.layers.userId).toBe('user_1')
     expect(result.metrics.summary.totalTurns).toBe(1)
     expect(result.metrics.turns).toHaveLength(1)
     expect(result.context.avatarContext.sections.worldContext.goals).toEqual(['Obj1'])
@@ -138,6 +139,7 @@ function arrangeSession1(): void {
   vi.mocked(getSessionMemoryLayers).mockResolvedValue({
     session: {
       sessionId: 'session_1',
+      userId: 'user_1',
       shortTerm: {
         exchangeCount: 2,
         recentExchanges: [{ user: 'u1', avatar: 'a1' }],
@@ -260,6 +262,7 @@ function arrangeSession2(): void {
   vi.mocked(getSessionMemoryLayers).mockResolvedValue({
     session: {
       sessionId: 'session_2',
+      userId: 'user_2',
       shortTerm: { exchangeCount: 2, recentExchanges: [] },
       working: { avatars: [] },
       longTerm: { avatars: [], facts: [] },

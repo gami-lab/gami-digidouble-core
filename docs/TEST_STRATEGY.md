@@ -115,6 +115,12 @@ Required tests:
 - **Unified retrieval diagnostics:** verify admin responses, recorded turn events, session-context
   projections, and console/admin displays consume shared profile/timing/count/distance/failure
   fields, preserve older event payloads, and never serialize vectors or provider payloads
+- **Operator category separation:** verify admin/console displays visibly group the three static
+  knowledge categories separately from working memory, episodic memory, and long-term user facts;
+  verify source scenario/Avatar visibility and memory user/session/conversation scope are shown in
+  their owning surfaces
+- **Quarantine-safe output:** verify blocked source projections expose only classification, reason,
+  offending key names, and timestamp; nested source content and vector metadata are redacted
 - **Lifecycle boundaries:** verify reset clears messages and owned conversational memory without
   knowledge changes, conversation close creates episodic memory without RAG rows, scenario deletion
   owns knowledge cascade, reindex does not alter memory rows, and memory maintenance does not alter

@@ -23,6 +23,13 @@ export type KnowledgeSourceFormat = 'pdf' | 'text' | 'markdown' | 'url' | 'media
 
 export type KnowledgeSourceStatus = 'pending' | 'ready' | 'error' | 'blocked'
 
+export type KnowledgeSourceQuarantineDto = {
+  classification: 'ambiguous_or_invalid_user_specific'
+  reason: string
+  offendingKeyNames: string[]
+  quarantinedAt: string
+}
+
 export type IngestionJobStatus = 'queued' | 'running' | 'completed' | 'failed'
 
 export const INGESTION_CHUNK_SIZE_MIN = 100
@@ -168,7 +175,18 @@ export type KnowledgeSourceDto = {
   metadata?: Record<string, unknown>
   visibilityPolicy?: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
+  quarantine?: KnowledgeSourceQuarantineDto
   createdAt: string
+}
+
+export const KNOWLEDGE_TYPE_LABELS: Record<KnowledgeType, string> = {
+  avatar_knowledge: 'Shared Avatar Knowledge',
+  world: 'Shared World Knowledge',
+  media: 'Media Knowledge',
+}
+
+export function getKnowledgeTypeLabel(type: KnowledgeType): string {
+  return KNOWLEDGE_TYPE_LABELS[type]
 }
 
 export type KnowledgeChunkDto = {

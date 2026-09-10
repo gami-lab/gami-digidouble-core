@@ -130,6 +130,21 @@ model-selection shapes. Its report types remain local to the tool.
 
 ### Boundary Mapping
 
+### Operator Inspection Projections
+
+- Static source and quarantine DTOs -> `packages/shared/src/knowledge-contract-types.ts`
+  (`KnowledgeSourceDto`, `KnowledgeSourceQuarantineDto`, and canonical knowledge labels). Core's
+  knowledge-source presenter is the redaction boundary; admin and console render the shared DTO
+  rather than declaring local category/status shapes.
+- Layered conversational inspection -> `packages/shared/src/lifecycle-types.ts`
+  (`SessionMemoryLayers`) composed with `packages/shared/src/memory-contract-types.ts`. Core's
+  `GetSessionMemoryLayersUseCase` maps persistence/repository entities and supplies `userId`; the
+  console renders user/session/conversation scope without treating it as static knowledge scope.
+- Runtime context and event inspection -> `packages/shared/src/runtime-inspector-types.ts` and
+  the existing Core event/context mappers. Static `retrievedContext` keeps source/chunk/type
+  provenance; `conversationState` keeps bounded memory layers. Legacy event normalization is
+  limited to deserialization and current output uses canonical categories.
+
 - Owner: `apps/core/src/api/routes/mappers/session-context.mapper.ts`
 - Contract mapping:
   - `SessionContextSnapshot` -> `AdminSessionContextResponse`

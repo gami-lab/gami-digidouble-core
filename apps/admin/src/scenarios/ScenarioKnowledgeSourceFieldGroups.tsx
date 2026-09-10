@@ -44,7 +44,9 @@ export function KnowledgeSourceIdentityFields({
           type="text"
           className="admin-form-input"
           value={name}
-          onChange={(event) => { onNameChange(event.target.value) }}
+          onChange={(event) => {
+            onNameChange(event.target.value)
+          }}
           required
           disabled={saving}
         />
@@ -58,12 +60,14 @@ export function KnowledgeSourceIdentityFields({
           id={`${idPrefix}-type`}
           className="admin-form-select"
           value={knowledgeType}
-          onChange={(event) => { onKnowledgeTypeChange(event.target.value as KnowledgeType) }}
+          onChange={(event) => {
+            onKnowledgeTypeChange(event.target.value as KnowledgeType)
+          }}
           disabled={saving || disableKnowledgeType}
         >
-          <option value="world">world</option>
-          <option value="avatar_knowledge">avatar knowledge</option>
-          <option value="media">media</option>
+          <option value="world">Shared World Knowledge</option>
+          <option value="avatar_knowledge">Shared Avatar Knowledge</option>
+          <option value="media">Media Knowledge</option>
         </select>
       </div>
 
@@ -75,12 +79,14 @@ export function KnowledgeSourceIdentityFields({
           id={`${idPrefix}-visibility`}
           className="admin-form-select"
           value={visibilityPolicy}
-          onChange={(event) => { onVisibilityPolicyChange(event.target.value as VisibilityPolicy) }}
+          onChange={(event) => {
+            onVisibilityPolicyChange(event.target.value as VisibilityPolicy)
+          }}
           disabled={saving}
         >
-          <option value="all">all avatars</option>
-          <option value="avatars">specific avatars</option>
-          <option value="none">GM-only (no avatars)</option>
+          <option value="all">Shared with all Avatars</option>
+          <option value="avatars">Avatar-visible: specific Avatars</option>
+          <option value="none">GM only (no Avatars)</option>
         </select>
       </div>
 
@@ -161,19 +167,22 @@ export function KnowledgeSourceInputModeFields({
           name="ks-input-mode"
           value="text"
           checked={inputMode === 'text'}
-          onChange={() => { onInputModeChange('text') }}
+          onChange={() => {
+            onInputModeChange('text')
+          }}
           disabled={saving}
         />{' '}
         Paste text
-      </label>
-      {' '}
+      </label>{' '}
       <label>
         <input
           type="radio"
           name="ks-input-mode"
           value="file"
           checked={inputMode === 'file'}
-          onChange={() => { onInputModeChange('file') }}
+          onChange={() => {
+            onInputModeChange('file')
+          }}
           disabled={saving}
         />{' '}
         Upload file (PDF/TXT)
@@ -210,7 +219,9 @@ export function KnowledgeSourceContentFields({
           className="admin-form-textarea"
           rows={8}
           value={inlineText}
-          onChange={(event) => { onInlineTextChange(event.target.value) }}
+          onChange={(event) => {
+            onInlineTextChange(event.target.value)
+          }}
           required
           disabled={saving}
         />
@@ -227,7 +238,9 @@ export function KnowledgeSourceContentFields({
         id="ks-create-file"
         type="file"
         accept=".pdf,.txt,.text"
-        onChange={(event) => { onFileChange(event.target.files?.[0] ?? null) }}
+        onChange={(event) => {
+          onFileChange(event.target.files?.[0] ?? null)
+        }}
         disabled={saving}
       />
       {file === null ? null : <p className="admin-muted">{file.name}</p>}
@@ -253,7 +266,12 @@ export function KnowledgeSourceFormActions({
       <button type="submit" className="admin-button admin-button-primary" disabled={submitDisabled}>
         {submitLabel}
       </button>
-      <button type="button" className="admin-button admin-button-secondary" onClick={onCancel} disabled={saving}>
+      <button
+        type="button"
+        className="admin-button admin-button-secondary"
+        onClick={onCancel}
+        disabled={saving}
+      >
         Cancel
       </button>
     </div>

@@ -232,6 +232,11 @@ standard `400 VALIDATION_ERROR` envelope; content, vectors, and metadata values 
 in the error or diagnostic report. `blocked` sources are retained only for quarantine/action
 diagnostics and are excluded from retrieval.
 
+`KnowledgeSourceDto.quarantine`, when present, is a safe blocked-source projection containing only
+the classification, bounded reason, reserved key names, and quarantine timestamp. It never includes
+source contents or vectors. Operator clients render this alongside the canonical knowledge category,
+scenario ownership, and Avatar visibility policy.
+
 Typed retrieval, context snapshots, recorded retrieval sections, and diagnostic `perType` maps
 use `avatar_knowledge` as the canonical object key. Conversational memory DTOs retain their
 separate memory lifecycle names.
@@ -296,7 +301,10 @@ All admin endpoints live under `/v1/admin/*`.
 - `GET /v1/admin/sessions/{sessionId}/context` -> bounded `avatarContext`, `gmContext`, and `contextTrace`
 - `GET /v1/admin/sessions/{sessionId}/metrics`
 - `GET /v1/admin/sessions/{sessionId}/memory`
-- `GET /v1/admin/sessions/{sessionId}/memory-layers`
+- `GET /v1/admin/sessions/{sessionId}/memory-layers` -> `SessionMemoryLayers`; the layered response
+  includes `userId`, `sessionId`, and active `conversationId`/conversation-owned records where
+  available. Its short-term exchanges, conversation working memory, episodic memories, and
+  long-term user facts are conversational state, not static retrieval results.
 
 ### Runtime Actions
 

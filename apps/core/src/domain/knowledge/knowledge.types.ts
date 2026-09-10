@@ -58,6 +58,14 @@ export interface KnowledgeSource {
    * Undefined or empty (with `'all'` policy) => visible to all avatars.
    */
   visibleToAvatarIds?: string[]
+  quarantine?: KnowledgeSourceQuarantine
+}
+
+export type KnowledgeSourceQuarantine = {
+  classification: 'ambiguous_or_invalid_user_specific'
+  reason: string
+  offendingKeyNames: string[]
+  quarantinedAt: string
 }
 
 export interface KnowledgeChunk {

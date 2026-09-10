@@ -37,7 +37,7 @@ const tabOrder: InspectorTab[] = [
 
 const tabLabels: Record<InspectorTab, string> = {
   overview: 'Overview',
-  memory: 'Memory',
+  memory: 'Conversation State',
   context: 'Context assembly',
   events: 'GM trace',
   metrics: 'Turn profiler',

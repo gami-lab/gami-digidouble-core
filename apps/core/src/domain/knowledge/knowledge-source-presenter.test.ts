@@ -55,4 +55,28 @@ describe('toKnowledgeSourceDto', () => {
     expect(dto.visibilityPolicy).toBe('avatars')
     expect(dto.visibleToAvatarIds).toEqual(['avatar_1'])
   })
+
+  it('exposes only safe quarantine classification details', () => {
+    const dto = toKnowledgeSourceDto(
+      makeSource({
+        status: 'blocked',
+        metadata: { inlineText: 'private source contents', embedding: [0.1, 0.2] },
+        quarantine: {
+          classification: 'ambiguous_or_invalid_user_specific',
+          reason: 'Reserved scope metadata requires operator review.',
+          offendingKeyNames: ['userId', 'nested.conversationId'],
+          quarantinedAt: '2026-05-11T08:01:00.000Z',
+        },
+      }),
+    )
+
+    expect(dto.quarantine).toEqual({
+      classification: 'ambiguous_or_invalid_user_specific',
+      reason: 'Reserved scope metadata requires operator review.',
+      offendingKeyNames: ['userId', 'nested.conversationId'],
+      quarantinedAt: '2026-05-11T08:01:00.000Z',
+    })
+    expect(dto.metadata).toBeUndefined()
+    expect(JSON.stringify(dto)).not.toContain('private source contents')
+  })
 })

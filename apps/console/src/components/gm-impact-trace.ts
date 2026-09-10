@@ -373,7 +373,7 @@ function formatRetrievalCounts(includedCounts: {
   media: number
 }): string {
   const retrievalTotal = sumTypedCounts(includedCounts)
-  return `${formatCountSummary(retrievalTotal, 'retrieved reference')} included (${String(includedCounts.avatar_knowledge)} avatar knowledge / ${String(includedCounts.world)} world / ${String(includedCounts.media)} media)`
+  return `${formatCountSummary(retrievalTotal, 'retrieved reference')} included (${String(includedCounts.avatar_knowledge)} Shared Avatar Knowledge / ${String(includedCounts.world)} Shared World Knowledge / ${String(includedCounts.media)} Media Knowledge)`
 }
 
 // eslint-disable-next-line complexity
@@ -475,14 +475,14 @@ function describeRecordedAvatarContext(
 ): { summary: string[]; retrieval: RetrievalTraceItem[] } {
   const sections = avatarContext.sections
   const lines = [
-    `Avatar input summary: ${String(sections.conversationState.recentExchanges.length)} exchange(s), ${String(sections.conversationState.longTermFacts.length)} long-term fact(s), GM note ${sections.directorNotes ? 'present' : 'absent'}, user persona ${sections.userPersona ? 'present' : 'absent'}.`,
+    `Avatar input summary: ${String(sections.conversationState.recentExchanges.length)} exchange(s), ${String(sections.conversationState.episodicMemories.length)} Episodic Memory item(s), ${String(sections.conversationState.longTermFacts.length)} Long-Term User Fact(s), GM note ${sections.directorNotes ? 'present' : 'absent'}, user persona ${sections.userPersona ? 'present' : 'absent'}.`,
   ]
   if (
     sections.conversationState.workingMemory.avatar?.summary ||
     sections.conversationState.workingMemory.session?.summary
   ) {
     lines.push(
-      `Avatar working memory: ${sections.conversationState.workingMemory.avatar?.summary ?? sections.conversationState.workingMemory.session?.summary ?? '-'}`,
+      `Conversation Working Memory: ${sections.conversationState.workingMemory.avatar?.summary ?? sections.conversationState.workingMemory.session?.summary ?? '-'}`,
     )
   }
   lines.push(
@@ -516,7 +516,7 @@ function describeRecordedGmContext(
     ...(sections.retrievedContext?.media ?? []),
   ]
   const lines = [
-    `GM input summary: ${String(sections.conversationState.recentMessages.length)} message(s), ${String(sections.conversationState.longTermFacts.length)} long-term fact(s), user persona ${sections.userPersona ? 'present' : 'absent'}.`,
+    `GM input summary: ${String(sections.conversationState.recentMessages.length)} message(s), ${String(sections.conversationState.episodicMemories.length)} Episodic Memory item(s), ${String(sections.conversationState.longTermFacts.length)} Long-Term User Fact(s), user persona ${sections.userPersona ? 'present' : 'absent'}.`,
   ]
   const workingMemory =
     sections.conversationState.workingMemory ??
@@ -528,7 +528,7 @@ function describeRecordedGmContext(
         }
       : undefined)
   if (workingMemory) {
-    lines.push(`GM working memory: ${workingMemory.summary}`)
+    lines.push(`Conversation Working Memory: ${workingMemory.summary}`)
     if (workingMemory.unresolvedThreads.length > 0) {
       lines.push(`GM unresolved threads: ${workingMemory.unresolvedThreads.join(', ')}`)
     }
@@ -564,10 +564,10 @@ function toRetrievalTraceItem(
   const sourceName = knowledgeSourceNameById.get(item.sourceId) ?? item.sourceId
   const access =
     item.visibleToAvatarIds === undefined || item.visibleToAvatarIds.length === 0
-      ? 'all avatars'
+      ? 'Shared with all Avatars'
       : item.visibleToAvatarIds
           .map((avatarId) => avatarNameById.get(avatarId) ?? avatarId)
-          .join(',')
+          .join(', ')
   return {
     knowledgeType: item.knowledgeType,
     sourceName,
@@ -590,9 +590,9 @@ function formatMatchBasis(reason: string | undefined): string {
     .map((part) => {
       if (part === 'token-overlap') return 'keyword match'
       if (part === 'vector-match') return 'vector similarity'
-      if (part === 'user-match') return 'same user'
-      if (part === 'session-match') return 'same session'
-      if (part === 'conversation-match') return 'same conversation'
+      if (part === 'user-match') return 'legacy scope basis'
+      if (part === 'session-match') return 'legacy scope basis'
+      if (part === 'conversation-match') return 'legacy scope basis'
       if (part === 'tag-match') return 'tag match'
       return part.replaceAll('_', ' ')
     })

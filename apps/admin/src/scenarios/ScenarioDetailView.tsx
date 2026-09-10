@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import type { JSX } from 'react'
-import { INGESTION_CHUNK_SIZE_MAX, INGESTION_CHUNK_SIZE_MIN } from '@gami/shared'
+import {
+  getKnowledgeTypeLabel,
+  INGESTION_CHUNK_SIZE_MAX,
+  INGESTION_CHUNK_SIZE_MIN,
+} from '@gami/shared'
 import type { AvatarSummary, ScenarioSummary } from '@gami/shared'
 import type { KnowledgeSourceDto } from '../api/knowledge'
 
@@ -58,7 +62,11 @@ export function ScenarioView({
 
   return (
     <>
-      <ScenarioSummarySection scenario={scenario} actionError={actionError} onEditScenario={onEditScenario} />
+      <ScenarioSummarySection
+        scenario={scenario}
+        actionError={actionError}
+        onEditScenario={onEditScenario}
+      />
       <AvatarListSection
         avatars={avatars}
         initialIds={initialIds}
@@ -102,7 +110,11 @@ function ScenarioSummarySection({
     <>
       <div className="admin-detail-header">
         <h2>{scenario.name}</h2>
-        <button type="button" className="admin-button admin-button-secondary" onClick={onEditScenario}>
+        <button
+          type="button"
+          className="admin-button admin-button-secondary"
+          onClick={onEditScenario}
+        >
           Edit
         </button>
       </div>
@@ -112,7 +124,9 @@ function ScenarioSummarySection({
       {actionError !== null ? <p className="admin-error">{actionError}</p> : null}
 
       <h3>World context</h3>
-      <p className="admin-muted">{scenario.worldContext.length > 0 ? scenario.worldContext : 'Not set.'}</p>
+      <p className="admin-muted">
+        {scenario.worldContext.length > 0 ? scenario.worldContext : 'Not set.'}
+      </p>
 
       <h3>Objectives</h3>
       {scenario.objectives.length === 0 ? (
@@ -127,10 +141,16 @@ function ScenarioSummarySection({
 
       <h3>Runtime models</h3>
       <p className="admin-muted">
-        Scenario default: {defaultProfile === undefined ? 'Inherited from global runtime config.' : formatModelProfile(defaultProfile)}
+        Scenario default:{' '}
+        {defaultProfile === undefined
+          ? 'Inherited from global runtime config.'
+          : formatModelProfile(defaultProfile)}
       </p>
       <p className="admin-muted">
-        Game Master override: {gameMasterOverride === undefined ? 'Inherited from scenario default or global Game Master config.' : formatModelProfile(gameMasterOverride)}
+        Game Master override:{' '}
+        {gameMasterOverride === undefined
+          ? 'Inherited from scenario default or global Game Master config.'
+          : formatModelProfile(gameMasterOverride)}
       </p>
     </>
   )
@@ -171,8 +191,7 @@ function AvatarListSection({
             disabled={isPreparing}
           >
             {isPreparing ? 'Preparing…' : 'Prepare avatar traits'}
-          </button>
-          {' '}
+          </button>{' '}
           <button type="button" className="admin-button admin-button-primary" onClick={onAddAvatar}>
             Add avatar
           </button>
@@ -212,7 +231,9 @@ function AvatarListSection({
                     type="checkbox"
                     aria-label={`Initially visible: ${avatar.name}`}
                     checked={initialIds.has(avatar.avatarId)}
-                    onChange={(event) => { onToggleVisibility(avatar.avatarId, event.target.checked) }}
+                    onChange={(event) => {
+                      onToggleVisibility(avatar.avatarId, event.target.checked)
+                    }}
                   />
                 </td>
                 <td>
@@ -224,15 +245,18 @@ function AvatarListSection({
                   <button
                     type="button"
                     className="admin-button admin-button-secondary"
-                    onClick={() => { onEditAvatar(avatar.avatarId) }}
+                    onClick={() => {
+                      onEditAvatar(avatar.avatarId)
+                    }}
                   >
                     Edit
-                  </button>
-                  {' '}
+                  </button>{' '}
                   <button
                     type="button"
                     className="admin-button admin-button-danger"
-                    onClick={() => { onDeleteAvatar(avatar.avatarId) }}
+                    onClick={() => {
+                      onDeleteAvatar(avatar.avatarId)
+                    }}
                   >
                     Delete
                   </button>
@@ -286,11 +310,18 @@ function KnowledgeSourceListSection({
       <div className="admin-section-header">
         <h3>Knowledge sources</h3>
         <div>
-          <button type="button" className="admin-button admin-button-secondary" onClick={onTestRetrieval}>
+          <button
+            type="button"
+            className="admin-button admin-button-secondary"
+            onClick={onTestRetrieval}
+          >
             Test retrieval
-          </button>
-          {' '}
-          <button type="button" className="admin-button admin-button-primary" onClick={onAddKnowledge}>
+          </button>{' '}
+          <button
+            type="button"
+            className="admin-button admin-button-primary"
+            onClick={onAddKnowledge}
+          >
             Add knowledge
           </button>
         </div>
@@ -303,8 +334,9 @@ function KnowledgeSourceListSection({
           <thead>
             <tr>
               <th>Name</th>
-              <th>Type</th>
-              <th>Visibility</th>
+              <th>Knowledge category</th>
+              <th>Scenario ownership</th>
+              <th>Avatar visibility</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -339,6 +371,7 @@ type KnowledgeSourceRowProps = {
   onViewKnowledgeChunks: (sourceId: string) => void
 }
 
+// eslint-disable-next-line complexity, max-lines-per-function
 function KnowledgeSourceRow({
   source,
   avatarNamesById,
@@ -352,7 +385,11 @@ function KnowledgeSourceRow({
   const isIngesting = ingestState?.phase === 'running'
   const parsedChunkSize = parseChunkSize(chunkSize)
   const hasInvalidChunkSize = chunkSize.trim().length > 0 && parsedChunkSize === null
-  const ingestLabel = isIngesting ? 'Ingesting…' : source.status === 'ready' ? 'Re-ingest' : 'Ingest'
+  const ingestLabel = isIngesting
+    ? 'Ingesting…'
+    : source.status === 'ready'
+      ? 'Re-ingest'
+      : 'Ingest'
   const ingestTitle =
     source.status === 'ready'
       ? 'Already ingested. Re-ingest to pick up content or metadata changes.'
@@ -362,10 +399,19 @@ function KnowledgeSourceRow({
     <>
       <tr>
         <td>{source.name}</td>
-        <td>{source.knowledgeType}</td>
+        <td>{getKnowledgeTypeLabel(source.knowledgeType)}</td>
+        <td>{source.scenarioId}</td>
         <td>{formatKnowledgeVisibility(source, avatarNamesById)}</td>
         <td>
-          <span className="admin-status-pill">{source.status}</span>
+          <span className="admin-status-pill">
+            {source.quarantine !== undefined ? 'blocked — quarantine review' : source.status}
+          </span>
+          {source.quarantine !== undefined ? (
+            <div className="admin-muted">
+              {source.quarantine.reason} Keys:{' '}
+              {source.quarantine.offendingKeyNames.join(', ') || 'none'}.
+            </div>
+          ) : null}
         </td>
         <td>
           <label className="admin-form-label" htmlFor={`chunk-size-${source.sourceId}`}>
@@ -380,7 +426,9 @@ function KnowledgeSourceRow({
             step="1"
             placeholder="Default"
             value={chunkSize}
-            onChange={(event) => { setChunkSize(event.target.value) }}
+            onChange={(event) => {
+              setChunkSize(event.target.value)
+            }}
             disabled={isIngesting}
             style={{ width: '7rem', marginRight: '8px' }}
           />
@@ -388,24 +436,25 @@ function KnowledgeSourceRow({
             <span className="admin-error">
               Use {String(INGESTION_CHUNK_SIZE_MIN)}–{String(INGESTION_CHUNK_SIZE_MAX)}.
             </span>
-          ) : null}
-          {' '}
+          ) : null}{' '}
           <button
             type="button"
             className="admin-button admin-button-secondary"
-            onClick={() => { onEditKnowledge(source.sourceId) }}
+            onClick={() => {
+              onEditKnowledge(source.sourceId)
+            }}
           >
             Edit
-          </button>
-          {' '}
+          </button>{' '}
           <button
             type="button"
             className="admin-button admin-button-secondary"
-            onClick={() => { onViewKnowledgeChunks(source.sourceId) }}
+            onClick={() => {
+              onViewKnowledgeChunks(source.sourceId)
+            }}
           >
             View data
-          </button>
-          {' '}
+          </button>{' '}
           <button
             type="button"
             className="admin-button admin-button-secondary"
@@ -416,12 +465,13 @@ function KnowledgeSourceRow({
             disabled={isIngesting || hasInvalidChunkSize}
           >
             {ingestLabel}
-          </button>
-          {' '}
+          </button>{' '}
           <button
             type="button"
             className="admin-button admin-button-danger"
-            onClick={() => { onDeleteKnowledge(source.sourceId) }}
+            onClick={() => {
+              onDeleteKnowledge(source.sourceId)
+            }}
           >
             Delete
           </button>
@@ -429,7 +479,7 @@ function KnowledgeSourceRow({
       </tr>
       {ingestState?.phase === 'error' ? (
         <tr>
-          <td colSpan={5} className="admin-error">
+          <td colSpan={6} className="admin-error">
             Ingestion failed: {ingestState.message}
           </td>
         </tr>
@@ -456,15 +506,17 @@ function formatKnowledgeVisibility(
   source: KnowledgeSourceDto,
   avatarNamesById: Map<string, string>,
 ): string {
-  if (source.visibilityPolicy === 'none') return 'GM-only'
+  if (source.visibilityPolicy === 'none') return 'GM only (no Avatars)'
 
   if (source.visibilityPolicy === 'avatars' || (source.visibleToAvatarIds?.length ?? 0) > 0) {
     const labels = (source.visibleToAvatarIds ?? []).map(
       (avatarId) => avatarNamesById.get(avatarId) ?? avatarId,
     )
 
-    return labels.length > 0 ? labels.join(', ') : 'Specific avatars'
+    return labels.length > 0
+      ? `Avatar-visible: ${labels.join(', ')}`
+      : 'Avatar-visible: specific Avatars'
   }
 
-  return 'All avatars'
+  return 'Shared with all Avatars'
 }

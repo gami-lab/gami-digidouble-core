@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import { useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
+import { getKnowledgeTypeLabel } from '@gami/shared'
 import type { GmSessionEventPayload, RuntimeEvent, UserPersona } from '@gami/shared'
 import type { RuntimeInspectorViewModel } from '../api'
 import { buildGmImpactTrace } from './gm-impact-trace'
@@ -179,7 +180,9 @@ function MemoryTab({
 function renderShortTermMemory(snapshot: RuntimeInspectorViewModel): JSX.Element {
   return (
     <>
-      <strong>Short-term exchange memory</strong>
+      <strong>Conversation State — Recent Exchanges</strong>
+      <Row label="Session scope">{snapshot.memory.layers.sessionId}</Row>
+      <Row label="Conversation scope">{snapshot.memory.layers.activeConversationId ?? '-'}</Row>
       <Row label="Exchange count">{String(snapshot.memory.layers.shortTerm.exchangeCount)}</Row>
       <Row label="Recent exchanges">
         {String(snapshot.memory.layers.shortTerm.recentExchanges.length)}
@@ -200,7 +203,14 @@ function renderShortTermMemory(snapshot: RuntimeInspectorViewModel): JSX.Element
 function renderWorkingMemory(snapshot: RuntimeInspectorViewModel): JSX.Element {
   return (
     <>
-      <strong style={{ display: 'block', marginTop: '12px' }}>Working memory</strong>
+      <strong style={{ display: 'block', marginTop: '12px' }}>Conversation Working Memory</strong>
+      <Row label="User scope">{snapshot.memory.layers.userId}</Row>
+      <Row label="Session scope">{snapshot.memory.layers.sessionId}</Row>
+      <Row label="Conversation scope">
+        {snapshot.memory.layers.working.current?.conversationId ??
+          snapshot.memory.layers.activeConversationId ??
+          '-'}
+      </Row>
       <Row label="Active avatar">{snapshot.memory.layers.activeAvatarId ?? '-'}</Row>
       <Row label="Working summary">{snapshot.memory.layers.working.current?.summary ?? '-'}</Row>
       <Row label="Working updated at">
@@ -232,29 +242,30 @@ function renderWorkingMemory(snapshot: RuntimeInspectorViewModel): JSX.Element {
 }
 
 function renderLongTermMemory(snapshot: RuntimeInspectorViewModel): JSX.Element {
+  const episodicCount = snapshot.memory.layers.longTerm.avatars.reduce(
+    (total, avatar) => total + avatar.memories.length,
+    0,
+  )
   return (
     <>
-      <strong style={{ display: 'block', marginTop: '12px' }}>Long-term avatar memories</strong>
+      <strong style={{ display: 'block', marginTop: '12px' }}>Episodic Memory</strong>
+      <Row label="User scope">{snapshot.memory.layers.userId}</Row>
+      <Row label="Session scope">{snapshot.memory.layers.sessionId}</Row>
       <Row label="Avatar count">{String(snapshot.memory.layers.longTerm.avatars.length)}</Row>
-      <Row label="Memory count">
-        {String(
-          snapshot.memory.layers.longTerm.avatars.reduce(
-            (total, avatar) => total + avatar.memories.length,
-            0,
-          ),
-        )}
-      </Row>
-      <Row label="Fact count">{String(snapshot.memory.layers.longTerm.facts.length)}</Row>
+      <Row label="Episodic memory count">{String(episodicCount)}</Row>
       {snapshot.memory.layers.longTerm.avatars.map((avatar) => (
         <div key={avatar.avatarId} style={{ margin: '8px 0' }}>
           <strong>{avatar.avatarId}</strong>
           {avatar.memories.map((memory) => (
             <p key={memory.conversationId} style={{ margin: '4px 0', color: '#374151' }}>
-              {memory.conversationId} [{memory.createdAt}]: {memory.summary}
+              Conversation scope: {memory.conversationId} [{memory.createdAt}]: {memory.summary}
             </p>
           ))}
         </div>
       ))}
+      <strong style={{ display: 'block', marginTop: '12px' }}>Long-Term User Facts</strong>
+      <Row label="User scope">{snapshot.memory.layers.userId}</Row>
+      <Row label="Fact count">{String(snapshot.memory.layers.longTerm.facts.length)}</Row>
       {snapshot.memory.layers.longTerm.facts.map((fact) => (
         <p
           key={`${fact.category}-${fact.key}-${fact.updatedAt}`}
@@ -274,7 +285,7 @@ function renderMemoryEvolution(
 ): JSX.Element {
   return (
     <>
-      <strong style={{ display: 'block', marginTop: '12px' }}>Memory evolution</strong>
+      <strong style={{ display: 'block', marginTop: '12px' }}>Conversation State evolution</strong>
       {memoryHistory.length === 0 ? (
         <p style={{ margin: '6px 0', color: '#6b7280' }}>No memory snapshots yet.</p>
       ) : null}
@@ -289,7 +300,7 @@ function renderMemoryEvolution(
           ) : null}
           {delta.longTerm.added.length > 0 ? (
             <p style={{ margin: '6px 0', color: '#166534' }}>
-              New long-term avatar memory stored:{' '}
+              New Episodic Memory stored:{' '}
               {delta.longTerm.added
                 .map((memory) => `${memory.avatarId}:${memory.conversationId}`)
                 .join(', ')}
@@ -331,19 +342,23 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
         This tab shows the canonical runtime context snapshot and bounded assembly trace used by the
         inspector. Turn-specific retrieval provenance still lives in the Events tab.
       </p>
-      <strong>Static knowledge inventory</strong>
+      <strong>Shared Static Knowledge Inventory</strong>
       <Row label="Scenario">{snapshot.session.scenarioId}</Row>
       <Row label="Loaded sources">{String(snapshot.knowledge.sources.length)}</Row>
-      <Row label="Avatar knowledge / world / media">
-        {`${String(staticKnowledgeCounts.avatar_knowledge)} / ${String(staticKnowledgeCounts.world)} / ${String(staticKnowledgeCounts.media)}`}
-      </Row>
+      <Row label="Shared Avatar Knowledge">{String(staticKnowledgeCounts.avatar_knowledge)}</Row>
+      <Row label="Shared World Knowledge">{String(staticKnowledgeCounts.world)}</Row>
+      <Row label="Media Knowledge">{String(staticKnowledgeCounts.media)}</Row>
       {snapshot.knowledge.sources.length === 0 ? (
         <p style={{ margin: '6px 0', color: '#6b7280' }}>No scenario knowledge sources loaded.</p>
       ) : (
         snapshot.knowledge.sources.map((source) => (
           <p key={source.sourceId} style={{ margin: '4px 0', color: '#374151' }}>
-            [{source.knowledgeType}] {source.name} [{source.status}] access:{' '}
+            [{getKnowledgeTypeLabel(source.knowledgeType)}] {source.name} [{source.status}] ·
+            Scenario ownership: {source.scenarioId} · Avatar visibility:{' '}
             {formatKnowledgeAccess(source)}
+            {source.quarantine !== undefined
+              ? ` · Quarantine: ${source.quarantine.reason} (${source.quarantine.offendingKeyNames.join(', ') || 'no reserved keys'})`
+              : ''}
           </p>
         ))
       )}
@@ -359,7 +374,7 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
           ? avatarSections.responseRules.items.join(' | ')
           : '-'}
       </Row>
-      <Row label="Recent exchanges">
+      <Row label="Conversation State — Recent Exchanges">
         {String(avatarSections.conversationState.recentExchanges.length)}
       </Row>
       {avatarSections.conversationState.recentExchanges.map((exchange, index) => (
@@ -367,13 +382,16 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
           U: {exchange.user} / A: {exchange.avatar}
         </p>
       ))}
-      <Row label="Working memory">
+      <Row label="Conversation Working Memory">
         {avatarSections.conversationState.workingMemory.avatar?.summary ??
           avatarSections.conversationState.workingMemory.session?.summary ??
           '-'}
       </Row>
-      <Row label="Long-term facts">
+      <Row label="Long-Term User Facts">
         {String(avatarSections.conversationState.longTermFacts.length)}
+      </Row>
+      <Row label="Episodic Memory">
+        {String(avatarSections.conversationState.episodicMemories.length)}
       </Row>
       <Row label="User persona">{avatarSections.userPersona?.name ?? '-'}</Row>
       <Row label="World context">{avatarSections.worldContext.description ?? '-'}</Row>
@@ -424,6 +442,7 @@ function formatContextRetrievalDiagnostics(
   return `${trace.failure?.code ?? trace.outcome ?? 'unknown'} · ${profileText} · ${timingText} · ${String(trace.selectedCount ?? 0)} selected`
 }
 
+// eslint-disable-next-line complexity
 function renderGmRuntimeContext(
   snapshot: RuntimeInspectorViewModel,
   gmSections: RuntimeInspectorViewModel['context']['gmContext']['sections'],
@@ -437,7 +456,7 @@ function renderGmRuntimeContext(
       <Row label="Recent messages">
         {String(gmSections.conversationState.recentMessages.length)}
       </Row>
-      <Row label="GM working memory">
+      <Row label="Conversation Working Memory">
         {workingMemory?.summary ?? gmSections.conversationState.workingSummary ?? '-'}
       </Row>
       <Row label="GM unresolved threads">{formatInlineItems(workingMemory?.unresolvedThreads)}</Row>
@@ -445,6 +464,21 @@ function renderGmRuntimeContext(
       <Row label="Available avatars">
         {snapshot.context.gmContext.availableAvatars.map((avatar) => avatar.name).join(' | ') ||
           '-'}
+      </Row>
+      <Row label="Episodic Memory">
+        {String(gmSections.conversationState.episodicMemories.length)}
+      </Row>
+      <Row label="Long-Term User Facts">
+        {String(gmSections.conversationState.longTermFacts.length)}
+      </Row>
+      <Row label="Retrieved Shared Avatar Knowledge">
+        {String(gmSections.retrievedContext?.avatar_knowledge.length ?? 0)}
+      </Row>
+      <Row label="Retrieved Shared World Knowledge">
+        {String(gmSections.retrievedContext?.world.length ?? 0)}
+      </Row>
+      <Row label="Retrieved Media Knowledge">
+        {String(gmSections.retrievedContext?.media.length ?? 0)}
       </Row>
     </>
   )
@@ -482,10 +516,11 @@ function listGmOnlySourceNames(sources: KnowledgeSourceView[]): string[] {
 }
 
 function formatKnowledgeAccess(source: KnowledgeSourceView): string {
-  if (isGmOnlySource(source)) return 'GM only'
+  if (isGmOnlySource(source)) return 'GM only (no Avatars)'
   const { visibleToAvatarIds } = source
-  if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0) return 'all avatars'
-  return visibleToAvatarIds.join(', ')
+  if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0)
+    return 'Shared with all Avatars'
+  return `Avatar-visible: ${visibleToAvatarIds.join(', ')}`
 }
 
 function EventsTab({
@@ -594,7 +629,7 @@ function TraceRetrievalSection({
       {items.map((item, index) => (
         <div key={`${title}-${item.chunkId}-${String(index)}`} style={traceRetrievalRowStyle}>
           <div>
-            <strong>{item.knowledgeType}</strong>
+            <strong>{getKnowledgeTypeLabel(item.knowledgeType)}</strong>
           </div>
           <div>
             <div>{item.sourceName}</div>

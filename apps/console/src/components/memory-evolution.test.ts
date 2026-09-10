@@ -9,6 +9,7 @@ import {
 function makeLayers(overrides?: Partial<SessionMemoryLayers>): SessionMemoryLayers {
   return {
     sessionId: 'session_1',
+    userId: 'user_1',
     activeAvatarId: 'avatar_1',
     activeConversationId: 'conversation_1',
     shortTerm: {

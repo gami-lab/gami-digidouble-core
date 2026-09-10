@@ -109,6 +109,7 @@ function makeMemorySummary(): RuntimeInspectorViewModel['memory'] {
     },
     layers: {
       sessionId: 'session_1',
+      userId: 'user_1',
       activeAvatarId: 'avatar_1',
       activeConversationId: 'conversation_1',
       shortTerm: {
@@ -502,13 +503,13 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('Scenario')
     expect(html).toContain('scenario_1')
     expect(html).toContain('canonical runtime context snapshot')
-    expect(html).toContain('Static knowledge inventory')
+    expect(html).toContain('Shared Static Knowledge Inventory')
     expect(html).toContain('Avatar runtime context')
     expect(html).toContain('Loaded sources')
     expect(html).toContain('Shared clues')
     expect(html).toContain('Clara private notes')
-    expect(html).toContain('access: all avatars')
-    expect(html).toContain('access: avatar_1')
+    expect(html).toContain('Avatar visibility: Shared with all Avatars')
+    expect(html).toContain('Avatar visibility: Avatar-visible: avatar_1')
     expect(html).toContain('GM-only sources')
     expect(html).toContain('GM truth')
     expect(html).toContain('GM truth v2')
@@ -518,7 +519,7 @@ describe('RuntimeInspectorTabContent', () => {
     expect(html).toContain('Obj1 | Goal1')
     expect(html).toContain('Response rules')
     expect(html).toContain('Use short answers.')
-    expect(html).toContain('Recent exchanges')
+    expect(html).toContain('Conversation State — Recent Exchanges')
     expect(html).toContain('U: u / A: a')
     expect(html).toContain('Context trace')
     expect(html).toContain('Protected segments')
@@ -581,17 +582,17 @@ describe('RuntimeInspectorTabContent', () => {
       />,
     )
 
-    expect(html).toContain('Short-term exchange memory')
-    expect(html).toContain('Working memory')
-    expect(html).toContain('Long-term avatar memories')
-    expect(html).toContain('Memory evolution')
+    expect(html).toContain('Conversation State — Recent Exchanges')
+    expect(html).toContain('Conversation Working Memory')
+    expect(html).toContain('Episodic Memory')
+    expect(html).toContain('Conversation State evolution')
     expect(html).toContain('active working summary')
     expect(html).toContain('Working updated at')
     expect(html).toContain('Covered topics')
     expect(html).toContain('quality_goal')
     expect(html).toContain('Fact count')
     expect(html).toContain('conversation_old_1 [2026-05-07T09:00:00.000Z]: older memory')
-    expect(html).toContain('New long-term avatar memory stored')
+    expect(html).toContain('New Episodic Memory stored')
   })
 
   it('renders turn profiler latency and token breakdown safely without GM optional metrics', () => {

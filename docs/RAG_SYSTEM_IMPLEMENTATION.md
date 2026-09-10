@@ -333,6 +333,13 @@ After the Avatar response is produced, `schedulePostTurnWork` dispatches the Gam
 
 The admin retrieval route performs retrieval immediately for the submitted query. Its response includes typed results and trace data: query variants, source IDs, selected chunk IDs, and visibility counts.
 
+Operator displays use the same shared DTOs and explicit labels: Shared Avatar Knowledge, Shared
+World Knowledge, and Media Knowledge. Source cards show scenario ownership and Avatar visibility;
+GM-only visibility is not user access control. A blocked legacy source may appear in the existing
+source list with safe quarantine classification, reason, and offending key names, but it is not a
+ready retrieval candidate. Console event readers may accept older event encodings only while
+deserializing; current diagnostics never emit a static `memory` bucket or legacy scope-match label.
+
 ## 9. What the vector infrastructure currently does not do
 
 The following pieces exist:

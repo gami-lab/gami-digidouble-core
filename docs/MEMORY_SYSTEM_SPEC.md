@@ -287,6 +287,12 @@ GM static knowledge is a separate `Retrieved Context` projection. GM uses the ex
 retrieval result for orchestration, while Avatar uses its visibility-filtered result; neither result
 is a conversational-memory repository input.
 
+Operator inspection preserves the same boundary. The memory-layer view labels Conversation Working
+Memory, Episodic Memory, and Long-Term User Facts separately and shows their applicable user,
+session, and conversation scope. Static source and retrieval views use Shared Avatar Knowledge,
+Shared World Knowledge, and Media Knowledge instead; a static source is never shown in a generic
+memory category. Blocked legacy sources expose only safe quarantine details and remain unavailable.
+
 Chronological messages remain messages. Working memory is not injected as a synthetic message and
 must not be duplicated in the recent-message list.
 

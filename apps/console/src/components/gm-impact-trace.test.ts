@@ -48,6 +48,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
       },
       layers: {
         sessionId: 'session_1',
+        userId: 'user_1',
         shortTerm: {
           exchangeCount: 2,
           recentExchanges: [],
@@ -405,7 +406,7 @@ describe('buildGmImpactTrace', () => {
       'Immediate user-facing result: turn 1 was still answered by Theo (avatar_2). GM changes apply on the next turn.',
     )
     expect(first.gmInput.join(' ')).toContain('GM input summary: 1 message(s)')
-    expect(first.gmInput.join(' ')).toContain('GM working memory: GM working summary')
+    expect(first.gmInput.join(' ')).toContain('Conversation Working Memory: GM working summary')
     expect(first.gmInput.join(' ')).toContain('GM unresolved threads: Confirm the dock number')
     expect(first.gmInput.join(' ')).toContain('GM covered topics: witness_timeline')
     expect(first.gmRetrieval).toEqual([
@@ -421,7 +422,7 @@ describe('buildGmImpactTrace', () => {
       },
     ])
     expect(first.avatarInput.join(' ')).toContain('Avatar input summary: 1 exchange(s)')
-    expect(first.avatarInput.join(' ')).toContain('Avatar working memory: Theo summary')
+    expect(first.avatarInput.join(' ')).toContain('Conversation Working Memory: Theo summary')
     expect(first.avatarInput.join(' ')).toContain('1 response rule applied')
     expect(first.avatarInput.join(' ')).toContain('avatar traits included')
     expect(first.avatarRetrieval).toEqual([
@@ -437,7 +438,7 @@ describe('buildGmImpactTrace', () => {
       },
     ])
     expect(first.avatarInput.join(' ')).toContain(
-      'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 1 retrieved reference included (0 avatar knowledge / 1 world / 0 media), 1 response rule applied, avatar traits included, GM note included, no user persona',
+      'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 1 retrieved reference included (0 Shared Avatar Knowledge / 1 Shared World Knowledge / 0 Media Knowledge), 1 response rule applied, avatar traits included, GM note included, no user persona',
     )
     expect(first.avatarInput.join(' ')).toContain(
       'Avatar retrieval assembly: 3 hits selected for assembly, 1 included in the final avatar input, 0 excluded by avatar visibility, 2 omitted during final assembly',

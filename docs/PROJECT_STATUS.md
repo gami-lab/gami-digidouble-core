@@ -136,6 +136,18 @@ Retrieved Context. Avatar uses the filtered retrieval result, while GM uses its 
 result without fallback. Prompt renderers use stable section headings, and retrieved documents do
 not enter memory maintenance or fact extraction inputs through prompt injection.
 
+#### EPIC 4.2d operator diagnostics ✅ Prompt 04 complete
+
+Existing admin and console inspection surfaces now use explicit operator categories: Shared Avatar
+Knowledge, Shared World Knowledge, Media Knowledge, Conversation Working Memory, Episodic Memory,
+and Long-Term User Facts. Static source views include scenario ownership, Avatar visibility, and
+safe blocked/quarantine details. Conversation memory views include user, session, and conversation
+scope where applicable. `SessionMemoryLayers.userId` is part of the shared inspection DTO. No new
+operator endpoint was required; the existing source list, retrieval tester, session context, event,
+and memory-layer surfaces remain the owners. Source presenters recursively redact content/vector
+metadata from operator output, and legacy event match-basis names are normalized at the reader/UI
+boundary without restoring static user/session/conversation scope.
+
 #### EPIC 5.1c embedding, corpus, and safe reindexing ✅ Complete
 
 The application embedding port now owns `EmbeddingProfile`, ordered batch request/result metadata,
