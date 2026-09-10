@@ -44,13 +44,48 @@ function toAvatarContext(
                 },
               }
             : {}),
+          ...(snapshot.avatarContext.sections.conversationState.workingMemory.conversation !==
+          undefined
+            ? {
+                conversation: {
+                  ...snapshot.avatarContext.sections.conversationState.workingMemory.conversation,
+                  unresolvedThreads: [
+                    ...snapshot.avatarContext.sections.conversationState.workingMemory.conversation
+                      .unresolvedThreads,
+                  ],
+                  coveredTopics: [
+                    ...snapshot.avatarContext.sections.conversationState.workingMemory.conversation
+                      .coveredTopics,
+                  ],
+                  selectionReasons: [
+                    ...snapshot.avatarContext.sections.conversationState.workingMemory.conversation
+                      .selectionReasons,
+                  ],
+                },
+              }
+            : {}),
         },
+        episodicMemories: snapshot.avatarContext.sections.conversationState.episodicMemories.map(
+          (memory) => ({
+            ...memory,
+            keyDiscoveries: [...memory.keyDiscoveries],
+            unresolvedTopics: [...memory.unresolvedTopics],
+            selectionReasons: [...memory.selectionReasons],
+          }),
+        ),
         longTermFacts: snapshot.avatarContext.sections.conversationState.longTermFacts.map(
           (fact) => ({ ...fact }),
         ),
       },
       userPersona: snapshot.avatarContext.sections.userPersona,
       worldContext: snapshot.avatarContext.sections.worldContext,
+      ...(snapshot.avatarContext.sections.retrievedContext !== undefined
+        ? {
+            retrievedContext: toSharedAvatarRetrievedContext(
+              snapshot.avatarContext.sections.retrievedContext,
+            ),
+          }
+        : {}),
       ...(snapshot.avatarContext.sections.avatarTraits !== undefined
         ? { avatarTraits: snapshot.avatarContext.sections.avatarTraits }
         : {}),
@@ -70,52 +105,81 @@ function toGmContext(snapshot: SessionContextSnapshot): AdminSessionContextRespo
         recentMessages: snapshot.gmContext.sections.conversationState.recentMessages.map(
           (message) => ({ ...message }),
         ),
-        memory: {
-          ...(snapshot.gmContext.sections.conversationState.memory.shortTerm !== undefined
-            ? {
-                shortTerm: {
-                  recentExchanges:
-                    snapshot.gmContext.sections.conversationState.memory.shortTerm.recentExchanges.map(
-                      (exchange) => ({ ...exchange }),
-                    ),
-                },
-              }
-            : {}),
-          ...(snapshot.gmContext.sections.conversationState.memory.workingMemory !== undefined
-            ? {
-                workingMemory: {
-                  ...snapshot.gmContext.sections.conversationState.memory.workingMemory,
-                  unresolvedThreads: [
-                    ...snapshot.gmContext.sections.conversationState.memory.workingMemory
-                      .unresolvedThreads,
-                  ],
-                  coveredTopics: [
-                    ...snapshot.gmContext.sections.conversationState.memory.workingMemory
-                      .coveredTopics,
-                  ],
-                },
-              }
-            : {}),
-          ...(snapshot.gmContext.sections.conversationState.memory.workingSummary !== undefined
-            ? {
-                workingSummary: snapshot.gmContext.sections.conversationState.memory.workingSummary,
-              }
-            : {}),
-          ...(snapshot.gmContext.sections.conversationState.memory.longTermFacts !== undefined
-            ? {
-                longTermFacts:
-                  snapshot.gmContext.sections.conversationState.memory.longTermFacts.map(
-                    (fact) => ({
-                      ...fact,
-                    }),
-                  ),
-              }
-            : {}),
-        },
+        recentExchanges: snapshot.gmContext.sections.conversationState.recentExchanges.map(
+          (exchange) => ({ ...exchange }),
+        ),
+        ...(snapshot.gmContext.sections.conversationState.workingMemory !== undefined
+          ? {
+              workingMemory: {
+                ...snapshot.gmContext.sections.conversationState.workingMemory,
+                unresolvedThreads: [
+                  ...snapshot.gmContext.sections.conversationState.workingMemory.unresolvedThreads,
+                ],
+                coveredTopics: [
+                  ...snapshot.gmContext.sections.conversationState.workingMemory.coveredTopics,
+                ],
+              },
+            }
+          : {}),
+        ...(snapshot.gmContext.sections.conversationState.workingSummary !== undefined
+          ? {
+              workingSummary: snapshot.gmContext.sections.conversationState.workingSummary,
+            }
+          : {}),
+        episodicMemories: snapshot.gmContext.sections.conversationState.episodicMemories.map(
+          (memory) => ({
+            ...memory,
+            keyDiscoveries: [...memory.keyDiscoveries],
+            unresolvedTopics: [...memory.unresolvedTopics],
+            selectionReasons: [...memory.selectionReasons],
+          }),
+        ),
+        longTermFacts: snapshot.gmContext.sections.conversationState.longTermFacts.map((fact) => ({
+          ...fact,
+        })),
       },
+      ...(snapshot.gmContext.sections.retrievedContext !== undefined
+        ? {
+            retrievedContext: toSharedGmRetrievedContext(
+              snapshot.gmContext.sections.retrievedContext,
+            ),
+          }
+        : {}),
       userPersona: snapshot.gmContext.sections.userPersona,
       worldContext: snapshot.gmContext.sections.worldContext,
     },
+  }
+}
+
+function toSharedAvatarRetrievedContext(
+  knowledge: NonNullable<SessionContextSnapshot['avatarContext']['sections']['retrievedContext']>,
+) {
+  const typedSections = knowledge.typedSections ?? {
+    avatar_knowledge: knowledge.retrievedItems.filter(
+      (item) => item.knowledgeType === 'avatar_knowledge',
+    ),
+    world: knowledge.retrievedItems.filter((item) => item.knowledgeType === 'world'),
+    media: knowledge.retrievedItems.filter((item) => item.knowledgeType === 'media'),
+  }
+  return {
+    retrievedItems: knowledge.retrievedItems.map((item) => ({ ...item })),
+    typedSections: {
+      avatar_knowledge: typedSections.avatar_knowledge.map((item) => ({ ...item })),
+      world: typedSections.world.map((item) => ({ ...item })),
+      media: typedSections.media.map((item) => ({ ...item })),
+      ...(knowledge.trace !== undefined ? { trace: toRetrievalTraceDto(knowledge.trace) } : {}),
+    },
+  }
+}
+
+function toSharedGmRetrievedContext(
+  knowledge: NonNullable<SessionContextSnapshot['gmContext']['sections']['retrievedContext']>,
+) {
+  return {
+    avatar_knowledge: knowledge.avatar_knowledge.map((item) => ({ ...item })),
+    world: knowledge.world.map((item) => ({ ...item })),
+    media: knowledge.media.map((item) => ({ ...item })),
+    ...(knowledge.trace !== undefined ? { trace: toRetrievalTraceDto(knowledge.trace) } : {}),
   }
 }
 

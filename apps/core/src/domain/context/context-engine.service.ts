@@ -14,6 +14,8 @@ import { AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS } from '@gami/shared'
 
 const EMPTY_EXCHANGES: ContextEngineOutput['avatar']['sections']['conversationState']['recentExchanges'] =
   []
+const EMPTY_EPISODIC_MEMORIES: ContextEngineOutput['avatar']['sections']['conversationState']['episodicMemories'] =
+  []
 const EMPTY_FACTS: ContextEngineOutput['avatar']['sections']['conversationState']['longTermFacts'] =
   []
 const EMPTY_MESSAGES: ContextEngineOutput['gm']['sections']['conversationState']['recentMessages'] =
@@ -54,7 +56,7 @@ function normalizeInput(input: ContextEngineInput) {
   return {
     longTermFacts: dedupeLongTermFacts(input.extensions.memory?.longTerm?.facts ?? EMPTY_FACTS),
     avatarRetrieval: dedupeRetrieval(input.extensions.retrieval),
-    gmRetrieval: dedupeRetrieval(input.extensions.retrievalForGm ?? input.extensions.retrieval),
+    gmRetrieval: dedupeRetrieval(input.extensions.retrievalForGm),
     responseRules: normalizeResponseRules(input.extensions.responseRules),
   }
 }
@@ -69,6 +71,7 @@ function buildBaseOutput(input: ContextEngineInput): MutableOutput {
         conversationState: {
           recentExchanges: EMPTY_EXCHANGES,
           workingMemory: {},
+          episodicMemories: EMPTY_EPISODIC_MEMORIES,
           longTermFacts: EMPTY_FACTS,
         },
         userPersona: null,
@@ -81,7 +84,9 @@ function buildBaseOutput(input: ContextEngineInput): MutableOutput {
       sections: {
         conversationState: {
           recentMessages: EMPTY_MESSAGES,
-          memory: {},
+          recentExchanges: EMPTY_EXCHANGES,
+          episodicMemories: EMPTY_EPISODIC_MEMORIES,
+          longTermFacts: EMPTY_FACTS,
         },
         userPersona: null,
         worldContext: input.scenario,
@@ -100,6 +105,7 @@ function buildCandidates(
   pushDirectorNotesCandidate(candidates, input)
   pushResponseRulesCandidate(candidates, normalized.responseRules)
   pushWorkingMemoryCandidates(candidates, memory)
+  pushEpisodicMemoryCandidates(candidates, memory?.episodicMemories ?? EMPTY_EPISODIC_MEMORIES)
   pushLongTermFactCandidates(candidates, normalized.longTermFacts)
   pushShortTermCandidates(candidates, memory?.shortTerm?.recentExchanges ?? EMPTY_EXCHANGES)
   pushRecentMessageCandidate(candidates, input.recentMessages)
@@ -146,13 +152,15 @@ function pushResponseRulesCandidate(candidates: CandidateSegment[], responseRule
   })
 }
 
+// eslint-disable-next-line complexity
 function pushWorkingMemoryCandidates(
   candidates: CandidateSegment[],
   memory: ContextEngineInput['extensions']['memory'],
 ): void {
   const sessionSummary = memory?.working?.session?.summary
   const avatarSummary = memory?.working?.avatar?.summary
-  const workingText = [sessionSummary, avatarSummary].filter(hasText).join(' ')
+  const conversationSummary = memory?.working?.conversation?.summary
+  const workingText = [sessionSummary, avatarSummary, conversationSummary].filter(hasText).join(' ')
   if (workingText.length === 0) return
 
   candidates.push({
@@ -164,6 +172,9 @@ function pushWorkingMemoryCandidates(
       draft.avatar.sections.conversationState.workingMemory = {
         ...(memory?.working?.session !== undefined ? { session: memory.working.session } : {}),
         ...(memory?.working?.avatar !== undefined ? { avatar: memory.working.avatar } : {}),
+        ...(memory?.working?.conversation !== undefined
+          ? { conversation: memory.working.conversation }
+          : {}),
       }
     },
   })
@@ -173,10 +184,52 @@ function pushWorkingMemoryCandidates(
     segmentId: 'conversationStateWorkingMemory',
     tokenEstimate: estimateTokens(workingText),
     apply: (draft) => {
-      const workingSummary = toWorkingSummary(memory)
-      if (workingSummary !== undefined) {
-        draft.gm.sections.conversationState.memory.workingSummary = workingSummary
+      if (memory?.working?.conversation !== undefined) {
+        draft.gm.sections.conversationState.workingMemory = {
+          summary: memory.working.conversation.summary,
+          unresolvedThreads: memory.working.conversation.unresolvedThreads,
+          coveredTopics: memory.working.conversation.coveredTopics,
+        }
+        draft.gm.sections.conversationState.workingSummary = memory.working.conversation.summary
+      } else {
+        const workingSummary = toWorkingSummary(memory)
+        if (workingSummary !== undefined) {
+          draft.gm.sections.conversationState.workingSummary = workingSummary
+        }
       }
+    },
+  })
+}
+
+function pushEpisodicMemoryCandidates(
+  candidates: CandidateSegment[],
+  episodicMemories: NonNullable<ContextEngineInput['extensions']['memory']>['episodicMemories'],
+): void {
+  if (episodicMemories === undefined || episodicMemories.length === 0) return
+  const tokenEstimate = estimateTokens(
+    episodicMemories
+      .map(
+        (memory) =>
+          `${memory.summary} ${memory.keyDiscoveries.join(' ')} ${memory.unresolvedTopics.join(' ')}`,
+      )
+      .join(' '),
+  )
+  candidates.push({
+    projection: 'avatar',
+    sectionId: 'conversationState',
+    segmentId: 'conversationStateEpisodicMemories',
+    tokenEstimate,
+    apply: (draft) => {
+      draft.avatar.sections.conversationState.episodicMemories = episodicMemories
+    },
+  })
+  candidates.push({
+    projection: 'gm',
+    sectionId: 'conversationState',
+    segmentId: 'conversationStateEpisodicMemories',
+    tokenEstimate,
+    apply: (draft) => {
+      draft.gm.sections.conversationState.episodicMemories = episodicMemories
     },
   })
 }
@@ -204,7 +257,7 @@ function pushLongTermFactCandidates(
     segmentId: 'conversationStateLongTermFacts',
     tokenEstimate,
     apply: (draft) => {
-      draft.gm.sections.conversationState.memory.longTermFacts = facts
+      draft.gm.sections.conversationState.longTermFacts = facts
     },
   })
 }
@@ -232,7 +285,7 @@ function pushShortTermCandidates(
     segmentId: 'conversationStateRecentExchanges',
     tokenEstimate,
     apply: (draft) => {
-      draft.gm.sections.conversationState.memory.shortTerm = { recentExchanges: exchanges }
+      draft.gm.sections.conversationState.recentExchanges = exchanges
     },
   })
 }
@@ -577,12 +630,17 @@ function buildTraceSelectedInputs(
     hasActiveAvatar: input.activeAvatarId !== undefined,
     recentMessageCount: input.recentMessages.length,
     shortTermExchangeCount: input.extensions.memory?.shortTerm?.recentExchanges.length ?? 0,
+    episodicMemoryCount: input.extensions.memory?.episodicMemories?.length ?? 0,
     hasWorkingMemory: input.extensions.memory?.working !== undefined,
     longTermFactCount: input.extensions.memory?.longTerm?.facts.length ?? 0,
     retrievalCounts: buildTraceRetrievalCounts(input),
     ...(input.extensions.retrieval?.trace !== undefined
       ? { retrieval: input.extensions.retrieval.trace }
       : {}),
+    ...(input.extensions.retrievalForGm?.trace !== undefined
+      ? { gmRetrieval: input.extensions.retrievalForGm.trace }
+      : {}),
+    gmRetrievalCounts: buildTraceGmRetrievalCounts(input),
     ...(visibility !== undefined ? { visibility } : {}),
     hasUserPersona: input.extensions.userPersona !== null,
     hasGmDirective: hasText(input.extensions.gmDirective),
@@ -598,6 +656,16 @@ function buildTraceRetrievalCounts(
     avatar_knowledge: input.extensions.retrieval?.avatar_knowledge.length ?? 0,
     world: input.extensions.retrieval?.world.length ?? 0,
     media: input.extensions.retrieval?.media.length ?? 0,
+  }
+}
+
+function buildTraceGmRetrievalCounts(
+  input: ContextEngineInput,
+): ContextEngineOutput['trace']['selectedInputs']['gmRetrievalCounts'] {
+  return {
+    avatar_knowledge: input.extensions.retrievalForGm?.avatar_knowledge.length ?? 0,
+    world: input.extensions.retrievalForGm?.world.length ?? 0,
+    media: input.extensions.retrievalForGm?.media.length ?? 0,
   }
 }
 

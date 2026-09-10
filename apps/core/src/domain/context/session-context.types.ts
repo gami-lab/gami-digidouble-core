@@ -4,7 +4,9 @@ import type {
   ContextMessage,
   GameMasterMemoryContext,
   LongTermMemoryFact,
+  SelectedEpisodicMemory,
   ShortTermMemoryExchange,
+  LayeredMemorySnapshot,
   AvatarWorkingMemorySummary,
   SessionWorkingMemorySummary,
 } from '../memory/memory.types.js'
@@ -40,7 +42,9 @@ export type AvatarContextConversationState = {
   workingMemory: {
     session?: SessionWorkingMemorySummary
     avatar?: AvatarWorkingMemorySummary
+    conversation?: NonNullable<LayeredMemorySnapshot['working']>['conversation']
   }
+  episodicMemories: SelectedEpisodicMemory[]
   longTermFacts: LongTermMemoryFact[]
 }
 
@@ -73,15 +77,12 @@ export type AvatarContextSnapshot = {
 
 export type GmContextConversationState = {
   recentMessages: ContextMessage[]
-  memory: {
-    shortTerm?: {
-      recentExchanges: ShortTermMemoryExchange[]
-    }
-    workingMemory?: NonNullable<GameMasterMemoryContext['workingMemory']>
-    /** Compatibility mirror of GameMasterMemoryContext.workingMemory.summary only. */
-    workingSummary?: string
-    longTermFacts?: NonNullable<GameMasterMemoryContext['longTermFacts']>
-  }
+  recentExchanges: ShortTermMemoryExchange[]
+  workingMemory?: NonNullable<GameMasterMemoryContext['workingMemory']>
+  /** Compatibility mirror of GameMasterMemoryContext.workingMemory.summary only. */
+  workingSummary?: string
+  episodicMemories: SelectedEpisodicMemory[]
+  longTermFacts: LongTermMemoryFact[]
 }
 
 export type GmContextRetrievedContext = {

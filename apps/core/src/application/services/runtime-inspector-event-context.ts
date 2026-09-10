@@ -40,7 +40,33 @@ export function toRecordedAvatarContextSnapshot(
       },
       conversationState: {
         recentExchanges: snapshot.sections.conversationState.recentExchanges,
-        workingMemory: snapshot.sections.conversationState.workingMemory,
+        workingMemory: {
+          ...(snapshot.sections.conversationState.workingMemory.session !== undefined
+            ? { session: snapshot.sections.conversationState.workingMemory.session }
+            : {}),
+          ...(snapshot.sections.conversationState.workingMemory.avatar !== undefined
+            ? { avatar: snapshot.sections.conversationState.workingMemory.avatar }
+            : {}),
+          ...(snapshot.sections.conversationState.workingMemory.conversation !== undefined
+            ? {
+                conversation: {
+                  ...snapshot.sections.conversationState.workingMemory.conversation,
+                  unresolvedThreads: [
+                    ...snapshot.sections.conversationState.workingMemory.conversation
+                      .unresolvedThreads,
+                  ],
+                  coveredTopics: [
+                    ...snapshot.sections.conversationState.workingMemory.conversation.coveredTopics,
+                  ],
+                  selectionReasons: [
+                    ...snapshot.sections.conversationState.workingMemory.conversation
+                      .selectionReasons,
+                  ],
+                },
+              }
+            : {}),
+        },
+        episodicMemories: snapshot.sections.conversationState.episodicMemories,
         longTermFacts: snapshot.sections.conversationState.longTermFacts,
       },
       ...(retrievedContext !== undefined ? { retrievedContext } : {}),
@@ -68,7 +94,15 @@ export function toRecordedGmContextSnapshot(
     sections: {
       conversationState: {
         recentMessages: snapshot.sections.conversationState.recentMessages,
-        memory: snapshot.sections.conversationState.memory,
+        recentExchanges: snapshot.sections.conversationState.recentExchanges,
+        ...(snapshot.sections.conversationState.workingMemory !== undefined
+          ? { workingMemory: snapshot.sections.conversationState.workingMemory }
+          : {}),
+        ...(snapshot.sections.conversationState.workingSummary !== undefined
+          ? { workingSummary: snapshot.sections.conversationState.workingSummary }
+          : {}),
+        episodicMemories: snapshot.sections.conversationState.episodicMemories,
+        longTermFacts: snapshot.sections.conversationState.longTermFacts,
       },
       ...(retrievedContext !== undefined ? { retrievedContext } : {}),
       userPersona: snapshot.sections.userPersona,

@@ -17,13 +17,7 @@ import {
 } from './turn-profiler'
 
 export type InspectorTab =
-  | 'overview'
-  | 'memory'
-  | 'context'
-  | 'events'
-  | 'metrics'
-  | 'persona'
-  | 'actions'
+  'overview' | 'memory' | 'context' | 'events' | 'metrics' | 'persona' | 'actions'
 
 type RuntimeInspectorTabContentProps = {
   tab: InspectorTab
@@ -434,7 +428,7 @@ function renderGmRuntimeContext(
   snapshot: RuntimeInspectorViewModel,
   gmSections: RuntimeInspectorViewModel['context']['gmContext']['sections'],
 ): JSX.Element {
-  const workingMemory = gmSections.conversationState.memory.workingMemory
+  const workingMemory = gmSections.conversationState.workingMemory
 
   return (
     <>
@@ -444,7 +438,7 @@ function renderGmRuntimeContext(
         {String(gmSections.conversationState.recentMessages.length)}
       </Row>
       <Row label="GM working memory">
-        {workingMemory?.summary ?? gmSections.conversationState.memory.workingSummary ?? '-'}
+        {workingMemory?.summary ?? gmSections.conversationState.workingSummary ?? '-'}
       </Row>
       <Row label="GM unresolved threads">{formatInlineItems(workingMemory?.unresolvedThreads)}</Row>
       <Row label="GM covered topics">{formatInlineItems(workingMemory?.coveredTopics)}</Row>

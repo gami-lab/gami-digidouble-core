@@ -98,12 +98,16 @@ export class MemorySelectionService {
       ...(payload.workingMemory !== undefined
         ? {
             working: {
+              conversation: payload.workingMemory,
               session: {
                 summary: payload.workingMemory.summary,
                 updatedAt: payload.workingMemory.updatedAt,
               },
             },
           }
+        : {}),
+      ...(payload.episodicMemories.length > 0
+        ? { episodicMemories: payload.episodicMemories }
         : {}),
       ...(payload.longTermFacts.length > 0 ? { longTerm: { facts: payload.longTermFacts } } : {}),
     }

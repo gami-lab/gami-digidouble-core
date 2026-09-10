@@ -413,6 +413,10 @@ Runtime precedence:
   exposed only under memory-owned working-memory sections.
 - Legacy `gm_states.topics_covered` data may be read for persistence compatibility but is omitted
   from current admin DTOs and runtime event summaries.
+- Admin context and recorded GM context keep `conversationState` and `retrievedContext` as separate
+  projections. Conversation state contains bounded messages/exchanges, working memory, episodic
+  memories, and long-term facts. Retrieved context contains only static `avatar_knowledge`, `world`,
+  and `media` items with source/chunk provenance; it is never emitted as conversational memory.
 
 ## Validation And Status Rules
 

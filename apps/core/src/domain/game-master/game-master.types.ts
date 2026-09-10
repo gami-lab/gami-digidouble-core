@@ -1,5 +1,11 @@
 import type { UserPersona } from '../user/user.types.js'
-import type { ContextMessage, GameMasterMemoryContext } from '../memory/memory.types.js'
+import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
+import type {
+  ContextMessage,
+  GameMasterMemoryContext,
+  ShortTermMemoryExchange,
+  SelectedEpisodicMemory,
+} from '../memory/memory.types.js'
 
 /**
  * Game Master domain types.
@@ -43,7 +49,6 @@ export interface GameMasterInput {
   userMessage: {
     text: string
   }
-  recentMessages?: ContextMessage[]
   state: GameMasterState
   context: {
     experience: {
@@ -51,11 +56,19 @@ export interface GameMasterInput {
       description?: string
       goals?: string[]
     }
-    memory?: GameMasterMemoryContext
-    rag?: {
-      avatar_knowledge?: Array<{ sourceId: string; excerpt: string }>
-      world?: Array<{ sourceId: string; excerpt: string }>
-      media?: Array<{ sourceId: string; excerpt: string }>
+    conversationState: {
+      recentMessages: ContextMessage[]
+      recentExchanges: ShortTermMemoryExchange[]
+      workingMemory?: GameMasterMemoryContext['workingMemory']
+      /** Compatibility mirror of the internal working-memory summary only. */
+      workingSummary?: string
+      episodicMemories: SelectedEpisodicMemory[]
+      longTermFacts: NonNullable<GameMasterMemoryContext['longTermFacts']>
+    }
+    retrievedContext?: {
+      avatar_knowledge: RetrievedKnowledgeItem[]
+      world: RetrievedKnowledgeItem[]
+      media: RetrievedKnowledgeItem[]
     }
     userPersona?: UserPersona
     availableAvatars: Array<{

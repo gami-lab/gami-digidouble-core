@@ -223,22 +223,15 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
           sections: {
             conversationState: {
               recentMessages: [{ role: 'user', content: 'Who left last night?' }],
-              memory: {
-                shortTerm: { recentExchanges: [{ user: 'u', avatar: 'a' }] },
-                workingMemory: {
-                  summary: 'Working summary',
-                  unresolvedThreads: ['Need dock confirmation'],
-                  coveredTopics: ['dock_timeline'],
-                },
-                workingSummary: 'Working summary',
-                longTermFacts: [
-                  {
-                    category: 'context',
-                    key: 'k',
-                    value: 'v',
-                  },
-                ],
+              recentExchanges: [{ user: 'u', avatar: 'a' }],
+              workingMemory: {
+                summary: 'Working summary',
+                unresolvedThreads: ['Need dock confirmation'],
+                coveredTopics: ['dock_timeline'],
               },
+              workingSummary: 'Working summary',
+              episodicMemories: [],
+              longTermFacts: [{ category: 'context', key: 'k', value: 'v' }],
             },
             retrievedContext: {
               avatar_knowledge: [],
@@ -432,6 +425,7 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
                     value: 'truth',
                   },
                 ],
+                episodicMemories: [],
               },
               retrievedContext: {
                 avatar_knowledge: [],

@@ -237,7 +237,24 @@ plan changes positively classified legacy rows and records ambiguous rows as blo
   - Internal: `GmContextSnapshot`
   - API-facing: `SessionContextGmSnapshot`
   - Internal grouping owner: `GmContextSnapshot.sections`
-  - Rule: GM projection remains separate from Avatar projection; unrestricted retrieval stays internal and is only down-mapped to existing recorded/shared DTOs at the application boundary
+  - Rule: GM projection remains separate from Avatar projection; `conversationState` contains only conversational memory layers and `retrievedContext` contains only static typed knowledge with provenance. GM uses its explicit unrestricted retrieval result and never silently falls back to the Avatar-filtered result.
+
+### Context projection contract
+
+- `AvatarContextSnapshot.sections.conversationState` and `GmContextSnapshot.sections.conversationState`
+  are the canonical internal projections for recent messages/exchanges, working memory, episodic
+  memories, and long-term user facts.
+- `AvatarContextSnapshot.sections.retrievedContext` and
+  `GmContextSnapshot.sections.retrievedContext` are the canonical static projections for exactly
+  `avatar_knowledge`, `world`, and `media`. Each item retains source ID, chunk ID, canonical type,
+  and retrieval evidence allowed by the internal type.
+- `packages/shared/src/runtime-inspector-types.ts` owns the public/admin mirror. Core maps internal
+  snapshots explicitly in `session-context.mapper.ts` and recorded event context. Legacy event
+  readers may accept older nested `memory`/`rag` records, but they emit only the canonical separated
+  shape.
+- `persona-prompt.service.ts` and `gm-input-renderer.ts` render stable `## Conversation State` and
+  `## Retrieved Context` headings. Retrieved documents are not inputs to working-memory refresh or
+  user-fact extraction merely because they were rendered.
 - Event-recorded runtime context snapshots:
   - API-facing: `RecordedAvatarContextSnapshot`
   - API-facing: `RecordedGmContextSnapshot`

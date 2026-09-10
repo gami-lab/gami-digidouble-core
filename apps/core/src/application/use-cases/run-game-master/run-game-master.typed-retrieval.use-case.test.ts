@@ -246,12 +246,16 @@ describe('RunGameMasterUseCase typed retrieval input', () => {
     const prompt = readRenderedGameMasterPrompt(request)
 
     expect(prompt).toContain('## Experience Context')
-    expect(prompt).toContain('### Retrieved Context')
+    expect(prompt).toContain('## Retrieved Context')
     expect(prompt).toContain(
-      '1. [memory_source_1] The witness already shared a timeline contradiction.',
+      '1. [memory_source_1 / memory_chunk_1 / avatar_knowledge] The witness already shared a timeline contradiction.',
     )
-    expect(prompt).toContain('1. [world_source_1] Storm tide starts at dusk near the harbor.')
-    expect(prompt).toContain('1. [media_source_1] Harbor map with dock markers.')
+    expect(prompt).toContain(
+      '1. [world_source_1 / world_chunk_1 / world] Storm tide starts at dusk near the harbor.',
+    )
+    expect(prompt).toContain(
+      '1. [media_source_1 / media_chunk_1 / media] Harbor map with dock markers.',
+    )
   })
 
   it('stores targeted repair retrieval for the Mona contradiction as next-turn orchestration', async () => {

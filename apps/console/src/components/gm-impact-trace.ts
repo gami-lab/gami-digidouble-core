@@ -516,13 +516,13 @@ function describeRecordedGmContext(
     ...(sections.retrievedContext?.media ?? []),
   ]
   const lines = [
-    `GM input summary: ${String(sections.conversationState.recentMessages.length)} message(s), ${String(sections.conversationState.memory.longTermFacts?.length ?? 0)} long-term fact(s), user persona ${sections.userPersona ? 'present' : 'absent'}.`,
+    `GM input summary: ${String(sections.conversationState.recentMessages.length)} message(s), ${String(sections.conversationState.longTermFacts.length)} long-term fact(s), user persona ${sections.userPersona ? 'present' : 'absent'}.`,
   ]
   const workingMemory =
-    sections.conversationState.memory.workingMemory ??
-    (sections.conversationState.memory.workingSummary
+    sections.conversationState.workingMemory ??
+    (sections.conversationState.workingSummary
       ? {
-          summary: sections.conversationState.memory.workingSummary,
+          summary: sections.conversationState.workingSummary,
           unresolvedThreads: [],
           coveredTopics: [],
         }

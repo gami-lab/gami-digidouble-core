@@ -48,6 +48,22 @@ export type SharedGmWorkingMemory = Pick<
   'summary' | 'unresolvedThreads' | 'coveredTopics'
 >
 
+export type SharedSelectedWorkingMemory = SharedGmWorkingMemory & {
+  updatedAt: string
+  selectionReasons: string[]
+}
+
+export type SharedSelectedEpisodicMemory = {
+  memoryId: string
+  conversationId: string
+  summary: string
+  keyDiscoveries: string[]
+  unresolvedTopics: string[]
+  createdAt: string
+  selectionReasons: string[]
+  score: number
+}
+
 export type SharedLongTermMemoryFact = SharedMemoryFactRecord
 
 export type SharedLongTermAvatarMemory = {

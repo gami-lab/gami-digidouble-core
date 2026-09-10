@@ -366,7 +366,7 @@ function assertRenderedPrompt(request: Omit<LlmRequest, 'trace'> | undefined): v
   )
   expectSectionOrder(renderedPrompt, [
     '## Current Turn',
-    '## Current Discussion Context',
+    '## Conversation State',
     '## Experience Context',
     '## Output Reminder',
   ])
@@ -394,7 +394,7 @@ function assertRenderedPrompt(request: Omit<LlmRequest, 'trace'> | undefined): v
   expect(renderedPrompt).toContain('### User Persona')
   expect(renderedPrompt).toContain('- Name: Lina')
   expect(renderedPrompt).toContain('- Role In World: investigator')
-  expect(renderedPrompt).toContain('### Retrieved Context')
+  expect(renderedPrompt).toContain('## Retrieved Context')
 }
 
 async function assertPersistenceAndEvents(harness: ReturnType<typeof createIntegrationHarness>) {

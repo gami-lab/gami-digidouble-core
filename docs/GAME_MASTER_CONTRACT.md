@@ -61,10 +61,6 @@ type GameMasterInput = {
   userMessage: {
     text: string
   }
-  recentMessages?: Array<{
-    role: 'user' | 'avatar' | 'system'
-    content: string
-  }>
   state: GameMasterState
   context: {
     userPersona?: {
@@ -73,13 +69,18 @@ type GameMasterInput = {
       avatarRelationships?: string[]
       dialogGuidance?: string
     }
-    memory?: {
+    conversationState: {
+      recentMessages: Array<{
+        role: 'user' | 'avatar' | 'system'
+        content: string
+      }>
+      recentExchanges: Array<{ user: string; avatar: string }>
       workingMemory?: {
         summary: string
         unresolvedThreads: string[]
         coveredTopics: string[]
       }
-      episodicMemories?: Array<{
+      episodicMemories: Array<{
         memoryId: string
         conversationId: string
         summary: string
@@ -91,16 +92,34 @@ type GameMasterInput = {
         >
         score: number
       }>
-      longTermFacts?: Array<{
+      longTermFacts: Array<{
         category: string
         key: string
         value: string
       }>
     }
-    rag?: {
-      avatar_knowledge?: Array<{ sourceId: string; excerpt: string }>
-      world?: Array<{ sourceId: string; excerpt: string }>
-      media?: Array<{ sourceId: string; excerpt: string }>
+    retrievedContext?: {
+      avatar_knowledge?: Array<{
+        sourceId: string
+        chunkId: string
+        knowledgeType: 'avatar_knowledge'
+        content: string
+        score: number
+      }>
+      world?: Array<{
+        sourceId: string
+        chunkId: string
+        knowledgeType: 'world'
+        content: string
+        score: number
+      }>
+      media?: Array<{
+        sourceId: string
+        chunkId: string
+        knowledgeType: 'media'
+        content: string
+        score: number
+      }>
     }
     experience: {
       scenarioId: string
@@ -121,9 +140,10 @@ type GameMasterInput = {
 Input invariants:
 
 - `GameMasterInput` is the only runtime input contract for GM evaluation.
-- `recentMessages` is bounded short-term context, not transcript replay.
+- `context.conversationState.recentMessages` and `recentExchanges` are bounded short-term context, not transcript replay.
 - `session.activeAvatarId` is the authoritative active Avatar ID for the current GM run; it is not stored in `GameMasterState`.
-- `context.memory.workingMemory` is canonical; `workingSummary` is only a compatibility mirror in diagnostics.
+- `context.conversationState` is the only location for conversational memory. A compatibility `workingSummary` mirror may appear in diagnostics, but it is not a second runtime source.
+- `context.retrievedContext` contains only static knowledge with source/chunk/type provenance. It is never treated as memory or as a fact-extraction input.
 - Avatar retrieval may be visibility-filtered, but GM retrieval remains unrestricted only through
   the explicit `gm_unrestricted` retrieval mode; a missing active avatar is not itself an
   authorization bypass.
@@ -267,8 +287,9 @@ The static GM prompt is intentionally short and organized into:
 The dynamic GM input renderer is organized into:
 
 - `Current Turn`
-- `Current Discussion Context`
+- `Conversation State`
 - `Experience Context`
+- `Retrieved Context`
 - `Output Reminder`
 
 The static prompt is also built dynamically from the current avatar roster:
@@ -320,8 +341,8 @@ Diagnostics must never include:
 `GET /v1/admin/sessions/{sessionId}/context` exposes a bounded current snapshot of the same inputs used by Avatar and GM assembly.
 
 - Avatar context is sectioned for avatar runtime consumption.
-- GM context exposes bounded recent messages, GM state, user persona, memory, retrieval, scenario context, and avatar availability.
-- `workingSummary` may appear as a compatibility mirror, but canonical working memory remains owned by the memory-compaction pipeline.
+- GM context exposes bounded recent messages, exchanges, working memory, episodic memories, long-term facts, static retrieval, scenario context, and avatar availability under separate projections.
+- `workingSummary` may appear as a compatibility mirror, but canonical working memory remains owned by the memory-compaction pipeline and remains under `Conversation State`.
 
 ## Ownership
 

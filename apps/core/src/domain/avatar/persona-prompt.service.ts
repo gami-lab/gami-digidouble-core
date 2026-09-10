@@ -206,10 +206,63 @@ function buildConversationStateSection(
     return []
 
   const lines: string[] = ['## Conversation State']
+  appendRecentExchanges(lines, memory)
+  appendWorkingMemory(lines, memory)
+  appendEpisodicMemories(lines, memory)
   appendLongTermMemory(lines, memory)
   appendAvatarAwareness(lines, avatarAwareness)
 
   return lines.length > 1 ? [lines.join('\n')] : []
+}
+
+function appendRecentExchanges(lines: string[], memory: AvatarPromptOptions['memory']): void {
+  const exchanges = memory?.shortTerm?.recentExchanges ?? []
+  if (exchanges.length === 0) return
+  lines.push('Recent exchanges:')
+  exchanges.forEach((exchange, index) => {
+    lines.push(`${String(index + 1)}. User: ${exchange.user.trim()}`)
+    lines.push(`   Avatar: ${exchange.avatar.trim()}`)
+  })
+}
+
+function appendWorkingMemory(lines: string[], memory: AvatarPromptOptions['memory']): void {
+  const working = memory?.working
+  if (working === undefined) return
+  const hasWorkingContent =
+    working.session !== undefined ||
+    working.avatar !== undefined ||
+    working.conversation !== undefined
+  if (!hasWorkingContent) return
+
+  lines.push('Working memory:')
+  if (working.session !== undefined) {
+    lines.push(`- Session: ${working.session.summary.trim()}`)
+  }
+  if (working.avatar !== undefined) {
+    lines.push(`- Avatar (${working.avatar.avatarId}): ${working.avatar.summary.trim()}`)
+  }
+  if (working.conversation !== undefined) {
+    lines.push(`- Conversation: ${working.conversation.summary.trim()}`)
+    lines.push(`  Unresolved threads: ${formatPromptList(working.conversation.unresolvedThreads)}`)
+    lines.push(`  Covered topics: ${formatPromptList(working.conversation.coveredTopics)}`)
+  }
+}
+
+function appendEpisodicMemories(lines: string[], memory: AvatarPromptOptions['memory']): void {
+  const episodicMemories = memory?.episodicMemories ?? []
+  if (episodicMemories.length === 0) return
+  lines.push('Episodic memories:')
+  episodicMemories.forEach((episode, index) => {
+    lines.push(
+      `${String(index + 1)}. ${episode.summary.trim()} (memory ${episode.memoryId}, score ${String(episode.score)})`,
+    )
+    if (episode.keyDiscoveries.length > 0) {
+      lines.push(`   Key discoveries: ${formatPromptList(episode.keyDiscoveries)}`)
+    }
+    if (episode.unresolvedTopics.length > 0) {
+      lines.push(`   Unresolved topics: ${formatPromptList(episode.unresolvedTopics)}`)
+    }
+  })
 }
 
 function appendLongTermMemory(lines: string[], memory: AvatarPromptOptions['memory']): void {
@@ -220,6 +273,10 @@ function appendLongTermMemory(lines: string[], memory: AvatarPromptOptions['memo
   for (const fact of validFacts) {
     lines.push(`- ${fact.key}: ${fact.value}`)
   }
+}
+
+function formatPromptList(values: string[]): string {
+  return values.length > 0 ? values.map((value) => value.trim()).join('; ') : 'none'
 }
 
 function buildRetrievalContext(
@@ -421,6 +478,7 @@ function resolvePromptIdentitySource(
   return resolveAvatarPromptIdentitySource(config)
 }
 
+// eslint-disable-next-line complexity
 function toLayeredMemorySnapshot(
   conversationState: AvatarContextConversationState,
 ): LayeredMemorySnapshot | undefined {
@@ -434,7 +492,8 @@ function toLayeredMemorySnapshot(
         }
       : {}),
     ...(conversationState.workingMemory.session !== undefined ||
-    conversationState.workingMemory.avatar !== undefined
+    conversationState.workingMemory.avatar !== undefined ||
+    conversationState.workingMemory.conversation !== undefined
       ? {
           working: {
             ...(conversationState.workingMemory.session !== undefined
@@ -443,8 +502,14 @@ function toLayeredMemorySnapshot(
             ...(conversationState.workingMemory.avatar !== undefined
               ? { avatar: conversationState.workingMemory.avatar }
               : {}),
+            ...(conversationState.workingMemory.conversation !== undefined
+              ? { conversation: conversationState.workingMemory.conversation }
+              : {}),
           },
         }
+      : {}),
+    ...(conversationState.episodicMemories.length > 0
+      ? { episodicMemories: conversationState.episodicMemories }
       : {}),
     ...(conversationState.longTermFacts.length > 0
       ? { longTerm: { facts: conversationState.longTermFacts } }

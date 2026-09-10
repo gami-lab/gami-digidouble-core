@@ -126,6 +126,16 @@ Source/chunk create, update, ingestion, and reindex writes reject reserved scope
 Reset, conversation close, memory maintenance, and static reindex remain independent owners, with
 focused coverage for shared candidates, visibility bypass limits, and lifecycle non-interference.
 
+#### EPIC 4.2d separated context projections ✅ Prompt 03 complete
+
+Context Engine, Avatar, GM, admin, event, and console projections now expose conversational state
+and static retrieval as distinct `conversationState` and `retrievedContext` sections. Recent
+exchanges/messages, working memory, episodic memories, and long-term facts remain bounded under
+Conversation State; `avatar_knowledge`, `world`, and `media` retain static provenance under
+Retrieved Context. Avatar uses the filtered retrieval result, while GM uses its explicit bypass
+result without fallback. Prompt renderers use stable section headings, and retrieved documents do
+not enter memory maintenance or fact extraction inputs through prompt injection.
+
 #### EPIC 5.1c embedding, corpus, and safe reindexing ✅ Complete
 
 The application embedding port now owns `EmbeddingProfile`, ordered batch request/result metadata,

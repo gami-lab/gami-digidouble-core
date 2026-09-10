@@ -1,6 +1,6 @@
 import type { GameMasterInput } from './game-master.types.js'
 
-export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v3'
+export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v4'
 
 /**
  * Internal LLM rendering for the Game Master input contract.
@@ -13,17 +13,22 @@ export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v3'
 export function renderGameMasterInputForLlm(input: GameMasterInput): string {
   return [
     renderSection('Current Turn', renderCurrentTurn(input)),
-    renderSection('Current Discussion Context', [
-      ...renderRecentMessages(excludeCurrentTurnFromRecentMessages(input)),
+    renderSection('Conversation State', [
+      ...renderRecentMessages(
+        excludeCurrentTurnFromRecentMessages(
+          input.context.conversationState.recentMessages,
+          input.userMessage.text,
+        ),
+      ),
       ...renderGameMasterState(input),
-      ...renderMemoryContext(input.context.memory),
+      ...renderConversationState(input.context.conversationState),
       ...renderUserPersona(input.context.userPersona),
     ]),
     renderSection('Experience Context', [
       ...renderExperience(input.context.experience),
       ...renderAvailableAvatars(input.context.availableAvatars),
-      ...renderRetrievedContext(input.context.rag),
     ]),
+    renderSection('Retrieved Context', renderRetrievedContext(input.context.retrievedContext)),
     renderSection('Output Reminder', [
       '- Return only the JSON object required by the system prompt.',
       '- Base decisions on the labeled context above and do not repeat it back as prose.',
@@ -39,7 +44,10 @@ function renderCurrentTurn(input: GameMasterInput): string[] {
       : '- Latest User Message: [none - session start; provide opening guidance for the Avatar].',
   ]
 
-  const latestAvatarReply = findLatestMessageByRole(input.recentMessages, 'avatar')
+  const latestAvatarReply = findLatestMessageByRole(
+    input.context.conversationState.recentMessages,
+    'avatar',
+  )
   if (latestAvatarReply !== undefined) {
     lines.push(`- Latest Avatar Reply: ${normalizeInlineText(latestAvatarReply.content)}`)
   }
@@ -54,10 +62,10 @@ function renderCurrentTurn(input: GameMasterInput): string[] {
  * "Recent Exchanges".
  */
 function excludeCurrentTurnFromRecentMessages(
-  input: GameMasterInput,
-): GameMasterInput['recentMessages'] {
-  const recentMessages = input.recentMessages
-  if (recentMessages === undefined || recentMessages.length === 0) {
+  recentMessages: GameMasterInput['context']['conversationState']['recentMessages'],
+  userMessageText: string,
+): GameMasterInput['context']['conversationState']['recentMessages'] {
+  if (recentMessages.length === 0) {
     return recentMessages
   }
 
@@ -69,8 +77,8 @@ function excludeCurrentTurnFromRecentMessages(
   const priorMessage = end > 0 ? recentMessages[end - 1] : undefined
   if (
     priorMessage?.role === 'user' &&
-    hasText(input.userMessage.text) &&
-    normalizeInlineText(priorMessage.content) === normalizeInlineText(input.userMessage.text)
+    hasText(userMessageText) &&
+    normalizeInlineText(priorMessage.content) === normalizeInlineText(userMessageText)
   ) {
     end -= 1
   }
@@ -82,8 +90,10 @@ function renderSection(title: string, lines: string[]): string {
   return [`## ${title}`, ...lines].join('\n')
 }
 
-function renderRecentMessages(recentMessages: GameMasterInput['recentMessages']): string[] {
-  if (recentMessages === undefined || recentMessages.length === 0) {
+function renderRecentMessages(
+  recentMessages: GameMasterInput['context']['conversationState']['recentMessages'],
+): string[] {
+  if (recentMessages.length === 0) {
     return []
   }
 
@@ -111,20 +121,32 @@ function renderGameMasterState(input: GameMasterInput): string[] {
   ]
 }
 
-function renderMemoryContext(memory: GameMasterInput['context']['memory']): string[] {
-  if (memory === undefined) {
-    return []
-  }
-
+function renderConversationState(
+  conversationState: GameMasterInput['context']['conversationState'],
+): string[] {
   return [
-    ...renderWorkingMemory(memory.workingMemory),
-    ...renderEpisodicMemories(memory.episodicMemories),
-    ...renderLongTermFacts(memory.longTermFacts),
+    ...renderShortTermExchanges(conversationState.recentExchanges),
+    ...renderWorkingMemory(conversationState.workingMemory),
+    ...renderEpisodicMemories(conversationState.episodicMemories),
+    ...renderLongTermFacts(conversationState.longTermFacts),
+  ]
+}
+
+function renderShortTermExchanges(
+  exchanges: GameMasterInput['context']['conversationState']['recentExchanges'],
+): string[] {
+  if (exchanges.length === 0) return []
+  return [
+    '### Recent Exchanges',
+    ...exchanges.flatMap((exchange, index) => [
+      `${formatNumber(index + 1)}. User: ${normalizeInlineText(exchange.user)}`,
+      `   Avatar: ${normalizeInlineText(exchange.avatar)}`,
+    ]),
   ]
 }
 
 function renderWorkingMemory(
-  workingMemory: NonNullable<GameMasterInput['context']['memory']>['workingMemory'],
+  workingMemory: GameMasterInput['context']['conversationState']['workingMemory'],
 ): string[] {
   if (workingMemory === undefined) {
     return []
@@ -139,9 +161,9 @@ function renderWorkingMemory(
 }
 
 function renderEpisodicMemories(
-  episodicMemories: NonNullable<GameMasterInput['context']['memory']>['episodicMemories'],
+  episodicMemories: GameMasterInput['context']['conversationState']['episodicMemories'],
 ): string[] {
-  if (episodicMemories === undefined || episodicMemories.length === 0) {
+  if (episodicMemories.length === 0) {
     return []
   }
 
@@ -158,9 +180,9 @@ function renderEpisodicMemories(
 }
 
 function renderLongTermFacts(
-  longTermFacts: NonNullable<GameMasterInput['context']['memory']>['longTermFacts'],
+  longTermFacts: GameMasterInput['context']['conversationState']['longTermFacts'],
 ): string[] {
-  if (longTermFacts === undefined || longTermFacts.length === 0) {
+  if (longTermFacts.length === 0) {
     return []
   }
 
@@ -230,24 +252,29 @@ function renderAvailableAvatars(avatars: GameMasterInput['context']['availableAv
   ]
 }
 
-function renderRetrievedContext(rag: GameMasterInput['context']['rag']): string[] {
-  if (rag === undefined) {
+function renderRetrievedContext(
+  retrievedContext: GameMasterInput['context']['retrievedContext'],
+): string[] {
+  if (retrievedContext === undefined) {
     return []
   }
 
-  const avatarKnowledgeLines = renderRetrievedCategory('Avatar knowledge', rag.avatar_knowledge)
-  const worldLines = renderRetrievedCategory('World', rag.world)
-  const mediaLines = renderRetrievedCategory('Media', rag.media)
+  const avatarKnowledgeLines = renderRetrievedCategory(
+    'Avatar knowledge',
+    retrievedContext.avatar_knowledge,
+  )
+  const worldLines = renderRetrievedCategory('World', retrievedContext.world)
+  const mediaLines = renderRetrievedCategory('Media', retrievedContext.media)
 
   const lines = [...avatarKnowledgeLines, ...worldLines, ...mediaLines]
-  return lines.length > 0 ? ['### Retrieved Context', ...lines] : []
+  return lines
 }
 
 function renderRetrievedCategory(
   title: string,
-  entries: Array<{ sourceId: string; excerpt: string }> | undefined,
+  entries: NonNullable<GameMasterInput['context']['retrievedContext']>['avatar_knowledge'],
 ): string[] {
-  if (entries === undefined || entries.length === 0) {
+  if (entries.length === 0) {
     return []
   }
 
@@ -255,19 +282,15 @@ function renderRetrievedCategory(
     `${title} excerpts:`,
     ...entries.map(
       (entry, index) =>
-        `${formatNumber(index + 1)}. [${normalizeInlineText(entry.sourceId)}] ${normalizeInlineText(entry.excerpt)}`,
+        `${formatNumber(index + 1)}. [${normalizeInlineText(entry.sourceId)} / ${normalizeInlineText(entry.chunkId)} / ${entry.knowledgeType}] ${normalizeInlineText(entry.content)}`,
     ),
   ]
 }
 
 function findLatestMessageByRole(
-  recentMessages: GameMasterInput['recentMessages'],
+  recentMessages: GameMasterInput['context']['conversationState']['recentMessages'],
   role: 'user' | 'avatar' | 'system',
 ): { role: 'user' | 'avatar' | 'system'; content: string } | undefined {
-  if (recentMessages === undefined) {
-    return undefined
-  }
-
   for (let index = recentMessages.length - 1; index >= 0; index -= 1) {
     const message = recentMessages[index]
     if (message?.role === role) {

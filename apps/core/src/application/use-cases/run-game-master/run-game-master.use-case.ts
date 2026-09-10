@@ -180,7 +180,7 @@ export class RunGameMasterUseCase {
       session,
       scenarioAvatars,
       normalizedOutput,
-      gmInput.recentMessages,
+      gmInput.context.conversationState.recentMessages,
     )
     const routingResult = await applyAvatarRoutingUpdates({
       sessionRepository: this.sessionRepository,
@@ -417,7 +417,7 @@ export class RunGameMasterUseCase {
     session: Session | null,
     scenarioAvatars: AvatarConfig[],
     output: GameMasterOutput,
-    recentMessages: GameMasterInput['recentMessages'],
+    recentMessages: GameMasterInput['context']['conversationState']['recentMessages'],
   ): Promise<AvatarUnlockResult> {
     const unlocks = resolveAvatarUnlocks(session, scenarioAvatars, output, recentMessages)
     if (unlocks === null) {

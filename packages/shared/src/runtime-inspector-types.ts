@@ -7,6 +7,8 @@ import type {
   SharedGmWorkingMemory,
   SharedMemoryFactRecord,
   SharedLongTermMemoryFact,
+  SharedSelectedEpisodicMemory,
+  SharedSelectedWorkingMemory,
   SharedShortTermMemoryExchange,
   SharedWorkingMemoryAvatarSummary,
   SharedWorkingMemorySessionSummary,
@@ -293,6 +295,7 @@ export type SessionContextScenarioSnapshot = SharedContextScenarioSnapshot
 export type SessionContextAvatarWorkingMemory = {
   session?: SharedWorkingMemorySessionSummary
   avatar?: SharedWorkingMemoryAvatarSummary
+  conversation?: SharedSelectedWorkingMemory
 }
 
 export type SessionContextRecentMessage = {
@@ -309,13 +312,12 @@ export type SessionContextAvailableAvatar = {
 }
 
 export type SessionContextGmMemory = {
-  shortTerm?: {
-    recentExchanges: SharedShortTermMemoryExchange[]
-  }
+  recentExchanges: SharedShortTermMemoryExchange[]
   workingMemory?: SharedGmWorkingMemory
   /** Compatibility mirror of the internal working-memory summary only. */
   workingSummary?: string
-  longTermFacts?: SharedLongTermMemoryFact[]
+  episodicMemories: SharedSelectedEpisodicMemory[]
+  longTermFacts: SharedLongTermMemoryFact[]
 }
 
 export type SessionContextResponseRules = {
@@ -344,6 +346,7 @@ type SharedSessionContextAvatarSections<TKnowledge, TResponseRules, TAvatarTrait
   conversationState: {
     recentExchanges: SharedShortTermMemoryExchange[]
     workingMemory: SessionContextAvatarWorkingMemory
+    episodicMemories: SharedSelectedEpisodicMemory[]
     longTermFacts: SharedLongTermMemoryFact[]
   }
   userPersona: UserPersona | null
@@ -358,9 +361,8 @@ type SharedSessionContextAvatarSnapshot<TKnowledge, TResponseRules, TAvatarTrait
 }
 
 type SharedSessionContextGmSections<TKnowledge> = {
-  conversationState: {
+  conversationState: SessionContextGmMemory & {
     recentMessages: SessionContextRecentMessage[]
-    memory: SessionContextGmMemory
   }
   userPersona: UserPersona | null
   worldContext: SessionContextScenarioSnapshot
@@ -407,6 +409,7 @@ export type SessionContextSegmentId =
   | 'responseRules'
   | 'conversationStateWorkingMemory'
   | 'conversationStateLongTermFacts'
+  | 'conversationStateEpisodicMemories'
   | 'conversationStateRecentExchanges'
   | 'conversationStateRecentMessages'
   | 'userPersona'
@@ -431,6 +434,7 @@ export type SessionContextTrace = {
     hasActiveAvatar: boolean
     recentMessageCount: number
     shortTermExchangeCount: number
+    episodicMemoryCount: number
     hasWorkingMemory: boolean
     longTermFactCount: number
     retrievalCounts: {
@@ -439,6 +443,12 @@ export type SessionContextTrace = {
       media: number
     }
     retrieval?: RetrievalTraceDto
+    gmRetrieval?: RetrievalTraceDto
+    gmRetrievalCounts: {
+      avatar_knowledge: number
+      world: number
+      media: number
+    }
     visibility?: {
       activeAvatarId?: string
       excludedCounts: {

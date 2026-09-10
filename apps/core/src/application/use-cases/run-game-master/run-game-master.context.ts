@@ -4,6 +4,8 @@ import type {
   GameMasterInput,
   GameMasterState,
 } from '../../../domain/game-master/game-master.types.js'
+import type { GameMasterMemoryContext } from '../../../domain/memory/memory.types.js'
+import type { RetrievedKnowledgeItem } from '../../../domain/knowledge/knowledge.types.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
@@ -79,11 +81,13 @@ export async function buildGameMasterInput(args: {
         ? { goals: assembledGmContext.sections.worldContext.goals }
         : {}),
     },
+    conversationState: assembledGmContext.sections.conversationState,
     availableAvatars: assembledGmContext.availableAvatars,
   }
-  if (memory !== undefined) context.memory = memory
-  const rag = toGameMasterRagContext(assembledGmContext.sections.retrievedContext)
-  if (rag !== undefined) context.rag = rag
+  const retrievedContext = toGameMasterRetrievedContext(
+    assembledGmContext.sections.retrievedContext,
+  )
+  if (retrievedContext !== undefined) context.retrievedContext = retrievedContext
   if (assembledGmContext.sections.userPersona !== null) {
     context.userPersona = assembledGmContext.sections.userPersona
   }
@@ -97,9 +101,6 @@ export async function buildGameMasterInput(args: {
         activeAvatarId: args.input.avatarId,
       },
       userMessage: { text: args.input.userMessageText },
-      ...(assembledGmContext.sections.conversationState.recentMessages.length > 0
-        ? { recentMessages: assembledGmContext.sections.conversationState.recentMessages }
-        : {}),
       state: args.currentState,
       context,
     },
@@ -111,7 +112,7 @@ async function loadMemoryContext(
   session: Session | null,
   dependencies: GameMasterContextDependencies,
 ): Promise<{
-  memory: GameMasterInput['context']['memory'] | undefined
+  memory: GameMasterMemoryContext | undefined
   workingMemoryUpdatedAt: string | undefined
 }> {
   if (input.selectedMemory !== undefined) {
@@ -166,7 +167,7 @@ async function loadTypedRetrieval(
   session: Session | null,
   worldContext: string | undefined,
   recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
-  memory: GameMasterInput['context']['memory'] | undefined,
+  memory: GameMasterMemoryContext | undefined,
   typedRetrievalService: TypedRetrievalService | undefined,
 ) {
   if (
@@ -194,32 +195,29 @@ async function loadTypedRetrieval(
   })
 }
 
-function toGameMasterRagContext(
+function toGameMasterRetrievedContext(
   knowledge:
     | {
-        avatar_knowledge: Array<{ sourceId: string; content: string }>
-        world: Array<{ sourceId: string; content: string }>
-        media: Array<{ sourceId: string; content: string }>
+        avatar_knowledge: RetrievedKnowledgeItem[]
+        world: RetrievedKnowledgeItem[]
+        media: RetrievedKnowledgeItem[]
       }
     | undefined,
-): GameMasterInput['context']['rag'] | undefined {
+): GameMasterInput['context']['retrievedContext'] | undefined {
   if (knowledge === undefined) return undefined
 
-  const rag = {
-    ...(knowledge.avatar_knowledge.length > 0
-      ? { avatar_knowledge: toRagEntries(knowledge.avatar_knowledge) }
-      : {}),
-    ...(knowledge.world.length > 0 ? { world: toRagEntries(knowledge.world) } : {}),
-    ...(knowledge.media.length > 0 ? { media: toRagEntries(knowledge.media) } : {}),
+  if (
+    knowledge.avatar_knowledge.length === 0 &&
+    knowledge.world.length === 0 &&
+    knowledge.media.length === 0
+  ) {
+    return undefined
   }
-  return Object.keys(rag).length > 0 ? rag : undefined
-}
-
-function toRagEntries(items: Array<{ sourceId: string; content: string }>) {
-  return items.map((item) => ({
-    sourceId: item.sourceId,
-    excerpt: item.content,
-  }))
+  return {
+    avatar_knowledge: knowledge.avatar_knowledge,
+    world: knowledge.world,
+    media: knowledge.media,
+  }
 }
 
 function toRecentExchanges(

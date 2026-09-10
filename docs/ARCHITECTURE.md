@@ -365,7 +365,7 @@ Combines:
 
 Produces bounded context payloads.
 Context assembly is deterministic, inspectable, and testable.
-Avatar runtime context is grouped into semantic sections with explicit precedence: Director Notes, Response Rules, Conversation State, User Persona, World Context, Retrieved Context, and Avatar Traits. GM context keeps its own separate projection and retrieval visibility rules.
+Avatar runtime context is grouped into semantic sections with explicit precedence: Director Notes, Response Rules, Conversation State, User Persona, World Context, Retrieved Context, and Avatar Traits. GM context uses the same explicit `Conversation State` and `Retrieved Context` boundaries, with a separate unrestricted retrieval result and no fallback to the Avatar-filtered result.
 
 ---
 
@@ -387,6 +387,7 @@ Contains:
 - Avatar retrieval selects one combined top-five set across `avatar_knowledge` and world items before prompt rendering, preserving one distinct best match for the user question, GM retrieval queries, and GM required facts before global fill; media remains a separate typed channel
 - static retrieval is shared by scenario and corpus: it accepts no user, session, or conversation scope and rejects those keys in source/chunk metadata
 - conversational memory remains owned by message, working-memory, episodic-memory, and user-fact repositories; reset and maintenance do not touch knowledge rows
+- prompt assembly maps recent exchanges, working memory, episodic memories, and user facts only into `Conversation State`; static `avatar_knowledge`, `world`, and `media` items retain source/chunk provenance under `Retrieved Context`
 
 ### Embedding contract boundary (EPIC 5.1c foundation)
 

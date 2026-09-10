@@ -281,6 +281,7 @@ describe('assemblePersonaPrompt -> identity source', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('assemblePersonaPrompt -> runtime context sections', () => {
   it('keeps durable user facts and avatar awareness in the system prompt', () => {
     const prompt = assemblePersonaPrompt(makeAvatarConfig({ computedTraits: SAMPLE_TRAITS }), {
@@ -300,6 +301,18 @@ describe('assemblePersonaPrompt -> runtime context sections', () => {
             updatedAt: '2026-07-20T10:00:00.000Z',
           },
         },
+        episodicMemories: [
+          {
+            memoryId: 'memory_1',
+            conversationId: 'conversation_1',
+            summary: 'A prior archive visit established the north wing route.',
+            keyDiscoveries: ['The north wing opens first.'],
+            unresolvedTopics: ['Confirm the access time.'],
+            createdAt: '2026-07-20T09:00:00.000Z',
+            selectionReasons: ['continuity'],
+            score: 0.9,
+          },
+        ],
         longTerm: {
           facts: [{ category: 'pref', key: 'pace', value: 'quick overview' }],
         },
@@ -318,11 +331,18 @@ describe('assemblePersonaPrompt -> runtime context sections', () => {
     const conversationStateEnd = prompt.indexOf('\n\n## Avatar Traits')
     const conversationStateSection = prompt.slice(conversationStateStart, conversationStateEnd)
 
-    expect(conversationStateSection).not.toContain('Recent exchanges:')
-    expect(conversationStateSection).not.toContain('- User: Where do I start?')
-    expect(conversationStateSection).not.toContain('- Avatar: At the north wing.')
-    expect(conversationStateSection).not.toContain('Session working memory:')
-    expect(conversationStateSection).not.toContain('Current avatar memory:')
+    expect(conversationStateSection).toContain('Recent exchanges:')
+    expect(conversationStateSection).toContain('1. User: Where do I start?')
+    expect(conversationStateSection).toContain('Avatar: At the north wing.')
+    expect(conversationStateSection).toContain('Working memory:')
+    expect(conversationStateSection).toContain('- Session: The user is planning a quick visit.')
+    expect(conversationStateSection).toContain(
+      '- Avatar (avatar_1): Point them to accessible exhibits first.',
+    )
+    expect(conversationStateSection).toContain('Episodic memories:')
+    expect(conversationStateSection).toContain(
+      'A prior archive visit established the north wing route.',
+    )
     expect(conversationStateSection).toContain('Remembered user facts:')
     expect(conversationStateSection).toContain('- pace: quick overview')
     expect(conversationStateSection).toContain('Other avatars in this scenario:')
@@ -389,7 +409,7 @@ describe('assemblePersonaPrompt -> optional sections and determinism', () => {
     expect(prompt).not.toContain('## Retrieved Context')
   })
 
-  it('preserves the default response style rules and omits working memory from the system prompt', () => {
+  it('preserves the default response style rules and renders working memory in conversation state', () => {
     const prompt = assemblePersonaPrompt(
       makeAvatarConfig({
         adjustments: ['Avoid markdown tables.', 'Use short paragraphs.'],
@@ -422,8 +442,8 @@ describe('assemblePersonaPrompt -> optional sections and determinism', () => {
       'Do not use stage directions, narration, Markdown emphasis, speaker labels, or em-dash dialogue formatting.',
     )
     expect(prompt).toContain('Answer directly as the Avatar in natural sentences.')
-    expect(prompt).not.toContain('## Conversation State')
-    expect(prompt).not.toContain('Session summary')
+    expect(prompt).toContain('## Conversation State')
+    expect(prompt).toContain('Session summary')
   })
 
   it('throws when personaPrompt is empty and traits are not available', () => {

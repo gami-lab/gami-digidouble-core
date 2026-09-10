@@ -42,7 +42,8 @@ Avatar turn
 Post-turn Game Master run
   -> build GM query variants
   -> repeat the same retrieval service
-  -> inject selected chunks into GM context
+  -> use the explicit GM visibility-bypass result
+  -> inject selected chunks into GM `Retrieved Context` without falling back to Avatar results
 ```
 
 The main implementation files are:

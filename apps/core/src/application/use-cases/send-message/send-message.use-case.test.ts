@@ -516,8 +516,9 @@ describe('SendMessageUseCase — llm request payload', () => {
     ])
     expect(llmArg.systemPrompt).toContain('Keep the answer practical.')
     expect(llmArg.systemPrompt).toContain('Use short paragraphs.')
-    expect(llmArg.systemPrompt).not.toContain('Recent exchanges:')
-    expect(llmArg.systemPrompt).not.toContain('Session working memory:')
+    expect(llmArg.systemPrompt).toContain('Recent exchanges:')
+    expect(llmArg.systemPrompt).toContain('Working memory:')
+    expect(llmArg.systemPrompt).toContain('- Session: The user wants concise harbor instructions.')
     expect(llmArg.systemPrompt).toContain('- pace: quick overview')
     expect(llmArg.systemPrompt).toContain('Name: Maya')
     expect(llmArg.systemPrompt).toContain('Role in this world: captain')
@@ -1106,7 +1107,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
           },
         },
       },
-      contextEngineSelection: { keptSegmentCount: 7, trimmedSegmentCount: 0 },
+      contextEngineSelection: { keptSegmentCount: 6, trimmedSegmentCount: 0 },
       hasUserPersona: false,
       hasGmDirective: true,
       responseRuleCount: 0,

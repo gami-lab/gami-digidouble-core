@@ -266,12 +266,13 @@ The Avatar prompt receives memory under `## Conversation State`, in this order:
 
 1. up to three recent complete exchanges;
 2. the current session/working summary and active-avatar memory, when present;
-3. bounded long-term user facts;
-4. avatar awareness and the other context sections remain separate from memory.
+3. selected episodic memories, when present;
+4. bounded long-term user facts;
+5. avatar awareness and the other context sections remain separate from memory.
 
 Retrieved knowledge is added under `## Retrieved Context`; it is not silently merged into facts or
-working memory. Context Engine precedence and token trimming still apply to the final assembled
-prompt.
+working memory, and it is not passed to fact extraction merely because it was rendered into a
+prompt. Context Engine precedence and token trimming still apply to the final assembled prompt.
 
 ### Game Master
 
@@ -281,6 +282,10 @@ The GM prompt receives a separate projection of the same selected memory:
 2. `Working Memory` with summary, unresolved threads, and covered topics;
 3. selected `Episodic Memories` with bounded selection reasons;
 4. bounded `Long-Term Facts`.
+
+GM static knowledge is a separate `Retrieved Context` projection. GM uses the explicit unrestricted
+retrieval result for orchestration, while Avatar uses its visibility-filtered result; neither result
+is a conversational-memory repository input.
 
 Chronological messages remain messages. Working memory is not injected as a synthetic message and
 must not be duplicated in the recent-message list.

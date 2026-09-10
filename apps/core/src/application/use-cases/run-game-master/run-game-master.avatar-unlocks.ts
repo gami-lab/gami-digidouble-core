@@ -53,7 +53,7 @@ export function resolveAvatarUnlocks(
   session: Session | null,
   avatars: AvatarConfig[],
   output: GameMasterOutput,
-  recentMessages: GameMasterInput['recentMessages'] = [],
+  recentMessages: GameMasterInput['context']['conversationState']['recentMessages'] = [],
 ): {
   nextUnlockedAvatarIds: string[]
   newlyUnlockedAvatarIds: string[]
@@ -128,10 +128,9 @@ export function resolveAvatarUnlocks(
 function resolveMentionedLockedAvatarIds(
   session: Session,
   avatars: AvatarConfig[],
-  recentMessages: GameMasterInput['recentMessages'],
+  recentMessages: GameMasterInput['context']['conversationState']['recentMessages'],
 ): Set<string> {
-  const recentMessageList = recentMessages ?? []
-  const messageCorpus = recentMessageList.map((message) => message.content.toLowerCase()).join('\n')
+  const messageCorpus = recentMessages.map((message) => message.content.toLowerCase()).join('\n')
   const normalizedCorpus = normalizeText(messageCorpus)
   const corpusTokens = new Set(tokenizeText(messageCorpus))
   const lockedAvatars = avatars.filter(

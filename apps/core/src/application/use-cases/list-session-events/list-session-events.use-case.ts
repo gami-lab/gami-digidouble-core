@@ -528,6 +528,7 @@ function readAvatarSections(
     conversationState: {
       recentExchanges: readRecentExchanges(value['conversationState']),
       workingMemory: readAvatarWorkingMemory(value['conversationState']),
+      episodicMemories: readEpisodicMemories(value['conversationState']),
       longTermFacts: readLongTermFacts(value['conversationState']),
     },
     ...(retrievedContext !== undefined ? { retrievedContext } : {}),
@@ -552,6 +553,7 @@ function readLegacyAvatarSections(
     conversationState: {
       recentExchanges: readRecentExchanges(value),
       workingMemory: readAvatarWorkingMemory(value),
+      episodicMemories: [],
       longTermFacts: readLongTermFacts(value),
     },
     ...(retrievedContext !== undefined ? { retrievedContext } : {}),
@@ -565,10 +567,11 @@ function readGmSections(value: Record<string, unknown>): RecordedGmContextSnapsh
   const retrievedContext = isRecord(value['retrievedContext'])
     ? readGmKnowledge(value['retrievedContext'])
     : undefined
+  const conversationState = isRecord(value['conversationState']) ? value['conversationState'] : {}
   return {
     conversationState: {
-      recentMessages: readRecentMessages(value['conversationState']),
-      memory: readGmMemory(value['conversationState']),
+      recentMessages: readRecentMessages(conversationState),
+      ...readGmMemory(conversationState),
     },
     ...(retrievedContext !== undefined ? { retrievedContext } : {}),
     userPersona: readUserPersona(value['userPersona']),
@@ -585,7 +588,7 @@ function readLegacyGmSections(
   return {
     conversationState: {
       recentMessages: readRecentMessages(value),
-      memory: readGmMemory(value),
+      ...readGmMemory(value),
     },
     ...(retrievedContext !== undefined ? { retrievedContext } : {}),
     userPersona: readUserPersona(value['userPersona']),
@@ -627,6 +630,9 @@ function readAvatarWorkingMemory(
     ...(isRecord(workingMemory['avatar'])
       ? { avatar: readWorkingAvatar(workingMemory['avatar']) }
       : {}),
+    ...(isRecord(workingMemory['conversation'])
+      ? { conversation: readSelectedWorkingMemory(workingMemory['conversation']) }
+      : {}),
   }
 }
 
@@ -650,6 +656,20 @@ function readWorkingAvatar(
     avatarId: readString(value['avatarId']),
     summary: readString(value['summary']),
     updatedAt: readString(value['updatedAt']),
+  }
+}
+
+function readSelectedWorkingMemory(
+  value: Record<string, unknown>,
+): NonNullable<
+  RecordedAvatarContextSnapshot['sections']['conversationState']['workingMemory']['conversation']
+> {
+  return {
+    summary: readString(value['summary']),
+    unresolvedThreads: readOptionalStringArray(value['unresolvedThreads']) ?? [],
+    coveredTopics: readOptionalStringArray(value['coveredTopics']) ?? [],
+    updatedAt: readString(value['updatedAt']),
+    selectionReasons: readOptionalStringArray(value['selectionReasons']) ?? [],
   }
 }
 
@@ -678,6 +698,46 @@ function readLongTermFacts(
     )
 }
 
+function readEpisodicMemories(
+  value: unknown,
+): RecordedAvatarContextSnapshot['sections']['conversationState']['episodicMemories'] {
+  const record = isRecord(value) ? value : {}
+  const rawValue = Array.isArray(record['episodicMemories']) ? record['episodicMemories'] : []
+  return rawValue
+    .map((entry) => {
+      if (!isRecord(entry)) return null
+      const memoryId = readOptionalString(entry['memoryId'])
+      const conversationId = readOptionalString(entry['conversationId'])
+      const summary = readOptionalString(entry['summary'])
+      const createdAt = readOptionalString(entry['createdAt'])
+      if (
+        memoryId === undefined ||
+        conversationId === undefined ||
+        summary === undefined ||
+        createdAt === undefined
+      ) {
+        return null
+      }
+      const score = readOptionalNumber(entry['score']) ?? 0
+      return {
+        memoryId,
+        conversationId,
+        summary,
+        keyDiscoveries: readOptionalStringArray(entry['keyDiscoveries']) ?? [],
+        unresolvedTopics: readOptionalStringArray(entry['unresolvedTopics']) ?? [],
+        createdAt,
+        selectionReasons: readOptionalStringArray(entry['selectionReasons']) ?? [],
+        score,
+      }
+    })
+    .filter(
+      (
+        entry,
+      ): entry is RecordedAvatarContextSnapshot['sections']['conversationState']['episodicMemories'][number] =>
+        entry !== null,
+    )
+}
+
 function readAvatarKnowledge(
   value: Record<string, unknown>,
 ): RecordedAvatarContextSnapshot['sections']['retrievedContext'] | undefined {
@@ -696,30 +756,25 @@ function readAvatarKnowledge(
 
 function readGmMemory(
   value: unknown,
-): RecordedGmContextSnapshot['sections']['conversationState']['memory'] {
+): Omit<RecordedGmContextSnapshot['sections']['conversationState'], 'recentMessages'> {
   const record = isRecord(value) ? value : {}
   const memory = isRecord(record['memory']) ? record['memory'] : record
   const workingMemory = readOptionalGmWorkingMemory(memory['workingMemory'])
   const workingSummary = readOptionalString(memory['workingSummary'])
   return {
-    ...(isRecord(memory['shortTerm'])
-      ? {
-          shortTerm: {
-            recentExchanges: readRecentExchanges(memory['shortTerm']),
-          },
-        }
-      : {}),
+    recentExchanges: isRecord(memory['shortTerm'])
+      ? readRecentExchanges(memory['shortTerm'])
+      : readRecentExchanges(memory['recentExchanges']),
     ...(workingMemory !== undefined ? { workingMemory } : {}),
     ...(workingSummary !== undefined ? { workingSummary } : {}),
-    ...(Array.isArray(memory['longTermFacts'])
-      ? { longTermFacts: readLongTermFacts(memory['longTermFacts']) }
-      : {}),
+    episodicMemories: readEpisodicMemories(memory),
+    longTermFacts: readLongTermFacts(memory['longTermFacts']),
   }
 }
 
 function readOptionalGmWorkingMemory(
   value: unknown,
-): RecordedGmContextSnapshot['sections']['conversationState']['memory']['workingMemory'] {
+): RecordedGmContextSnapshot['sections']['conversationState']['workingMemory'] {
   if (!isRecord(value)) return undefined
   const summary = readOptionalString(value['summary'])
   if (summary === undefined) return undefined

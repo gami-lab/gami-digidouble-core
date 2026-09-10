@@ -107,6 +107,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
             recentExchanges: [],
             workingMemory: {},
             longTermFacts: [],
+            episodicMemories: [],
           },
           userPersona: null,
           worldContext: {
@@ -125,7 +126,9 @@ function makeViewModel(): RuntimeInspectorViewModel {
         sections: {
           conversationState: {
             recentMessages: [],
-            memory: {},
+            recentExchanges: [],
+            episodicMemories: [],
+            longTermFacts: [],
           },
           userPersona: null,
           worldContext: { scenarioId: 'scenario_1' },
@@ -166,7 +169,9 @@ function makeViewModel(): RuntimeInspectorViewModel {
           shortTermExchangeCount: 0,
           hasWorkingMemory: false,
           longTermFactCount: 0,
+          episodicMemoryCount: 0,
           retrievalCounts: { avatar_knowledge: 0, world: 0, media: 0 },
+          gmRetrievalCounts: { avatar_knowledge: 0, world: 0, media: 0 },
           hasUserPersona: false,
           hasGmDirective: false,
           responseRuleCount: 0,
@@ -198,22 +203,21 @@ function makeViewModel(): RuntimeInspectorViewModel {
             sections: {
               conversationState: {
                 recentMessages: [{ role: 'user', content: 'Who left last night?' }],
-                memory: {
-                  shortTerm: { recentExchanges: [{ user: 'u1', avatar: 'a1' }] },
-                  workingMemory: {
-                    summary: 'GM working summary',
-                    unresolvedThreads: ['Confirm the dock number'],
-                    coveredTopics: ['witness_timeline'],
-                  },
-                  workingSummary: 'GM working summary',
-                  longTermFacts: [
-                    {
-                      category: 'context',
-                      key: 'departure',
-                      value: 'Thomas left late',
-                    },
-                  ],
+                recentExchanges: [{ user: 'u1', avatar: 'a1' }],
+                workingMemory: {
+                  summary: 'GM working summary',
+                  unresolvedThreads: ['Confirm the dock number'],
+                  coveredTopics: ['witness_timeline'],
                 },
+                workingSummary: 'GM working summary',
+                episodicMemories: [],
+                longTermFacts: [
+                  {
+                    category: 'context',
+                    key: 'departure',
+                    value: 'Thomas left late',
+                  },
+                ],
               },
               retrievedContext: {
                 avatar_knowledge: [],
@@ -298,6 +302,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
                     value: 'Door was ajar',
                   },
                 ],
+                episodicMemories: [],
               },
               retrievedContext: {
                 avatar_knowledge: [],
@@ -432,7 +437,7 @@ describe('buildGmImpactTrace', () => {
       },
     ])
     expect(first.avatarInput.join(' ')).toContain(
-      'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 1 retrieved reference included (0 memory / 1 world / 0 media), 1 response rule applied, avatar traits included, GM note included, no user persona',
+      'Avatar context used for this reply: 2 recent exchanges, working memory included, 1 long-term fact, 1 retrieved reference included (0 avatar knowledge / 1 world / 0 media), 1 response rule applied, avatar traits included, GM note included, no user persona',
     )
     expect(first.avatarInput.join(' ')).toContain(
       'Avatar retrieval assembly: 3 hits selected for assembly, 1 included in the final avatar input, 0 excluded by avatar visibility, 2 omitted during final assembly',

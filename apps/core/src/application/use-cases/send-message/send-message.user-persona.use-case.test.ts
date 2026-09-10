@@ -456,7 +456,7 @@ describe('SendMessageUseCase — context selection observability', () => {
           },
         },
       },
-      contextEngineSelection: { keptSegmentCount: 9, trimmedSegmentCount: 0 },
+      contextEngineSelection: { keptSegmentCount: 8, trimmedSegmentCount: 0 },
       hasUserPersona: true,
       hasGmDirective: false,
       responseRuleCount: 0,

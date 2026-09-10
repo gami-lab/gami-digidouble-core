@@ -64,7 +64,7 @@ export interface UserFact {
 export type MemoryFactRecord = Pick<UserFact, 'category' | 'key' | 'value'>
 
 export type VerifiedMemoryContext = {
-  source: 'canonical' | 'retrieved' | 'application_confirmed'
+  source: 'canonical' | 'application_confirmed'
   content: string
 }
 
@@ -93,24 +93,18 @@ export type LayeredMemorySnapshot = {
   working?: {
     session?: SessionWorkingMemorySummary
     avatar?: AvatarWorkingMemorySummary
+    conversation?: SelectedWorkingMemory
   }
+  episodicMemories?: SelectedEpisodicMemory[]
   longTerm?: {
     facts: LongTermMemoryFact[]
   }
 }
 
 export type GameMasterMemoryContext = {
+  recentExchanges?: ShortTermMemoryExchange[]
   workingMemory?: Pick<ConversationWorkingMemory, 'summary' | 'unresolvedThreads' | 'coveredTopics'>
-  episodicMemories?: Array<{
-    memoryId: string
-    conversationId: string
-    summary: string
-    keyDiscoveries: string[]
-    unresolvedTopics: string[]
-    createdAt: string
-    selectionReasons: string[]
-    score: number
-  }>
+  episodicMemories?: SelectedEpisodicMemory[]
   longTermFacts?: LongTermMemoryFact[]
 }
 

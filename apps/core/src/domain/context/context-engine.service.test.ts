@@ -51,9 +51,45 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
             updatedAt: '2026-05-01T10:01:00.000Z',
           },
         },
+        episodicMemories: [
+          {
+            memoryId: 'memory_1',
+            conversationId: 'conversation_0',
+            summary: 'Prior harbor inspection found a tide discrepancy.',
+            keyDiscoveries: ['The tide log was altered.'],
+            unresolvedTopics: ['Who changed the log?'],
+            createdAt: '2026-04-30T10:00:00.000Z',
+            score: 0.8,
+            selectionReasons: ['continuity'],
+          },
+        ],
         longTerm: { facts: [{ category: 'preference', key: 'style', value: 'concise' }] },
       },
       retrieval: {
+        avatar_knowledge: [
+          {
+            sourceId: 'source_1',
+            chunkId: 'chunk_1',
+            knowledgeType: 'avatar_knowledge',
+            content: 'memory item',
+          },
+        ],
+        world: [
+          { sourceId: 'source_2', chunkId: 'chunk_2', knowledgeType: 'world', content: 'world' },
+        ],
+        media: [
+          { sourceId: 'source_3', chunkId: 'chunk_3', knowledgeType: 'media', content: 'media' },
+        ],
+        trace: {
+          query: 'hello',
+          perType: {
+            avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
+            world: { sourceIds: ['source_2'], selectedChunkIds: ['chunk_2'] },
+            media: { sourceIds: ['source_3'], selectedChunkIds: ['chunk_3'] },
+          },
+        },
+      },
+      retrievalForGm: {
         avatar_knowledge: [
           {
             sourceId: 'source_1',
@@ -246,6 +282,7 @@ function applyConflictingMemoryAndRetrieval(input: ContextEngineInput): void {
       },
     ],
   }
+  input.extensions.retrievalForGm = input.extensions.retrieval
 }
 
 function assertDeterministicConflictResolution(
@@ -287,11 +324,13 @@ describe('ContextEngine baseline', () => {
     expect(output.avatar.sections.conversationState.recentExchanges).toEqual([
       { user: 'u1', avatar: 'a1' },
     ])
+    expect(output.avatar.sections.conversationState.episodicMemories[0]?.memoryId).toBe('memory_1')
+    expect(output.gm.sections.conversationState.episodicMemories[0]?.memoryId).toBe('memory_1')
     expect(output.avatar.sections.avatarTraits).toEqual(SAMPLE_TRAITS)
     assertBaselineAvatarRetrievedContext(output)
     expect(output.gm.currentState.progression).toBe('intro')
-    expect(output.gm.sections.conversationState.memory.workingSummary).toContain('Session summary')
-    expect(output.gm.sections.conversationState.memory.workingSummary).toContain(
+    expect(output.gm.sections.conversationState.workingSummary).toContain('Session summary')
+    expect(output.gm.sections.conversationState.workingSummary).toContain(
       'Avatar (avatar_1): Avatar summary',
     )
     expect(output.gm.sections.retrievedContext?.world[0]?.chunkId).toBe('chunk_2')
@@ -308,6 +347,12 @@ describe('ContextEngine baseline', () => {
     expect(output.trace.selectedInputs.responseRuleCount).toBe(1)
     expect(output.trace.selectedInputs.hasAvatarTraits).toBe(true)
     assertBaselineRetrievalCounts(output)
+    expect(output.trace.selectedInputs.episodicMemoryCount).toBe(1)
+    expect(output.trace.selectedInputs.gmRetrievalCounts).toEqual({
+      avatar_knowledge: 1,
+      world: 1,
+      media: 1,
+    })
     expect(output.trace.selection.trimmed).toEqual([])
   })
 
@@ -399,7 +444,7 @@ describe('ContextEngine baseline', () => {
     expect(output.avatar.sections.conversationState.longTermFacts).toEqual([])
     expect(output.avatar.sections.retrievedContext).toBeUndefined()
     expect(output.avatar.sections.avatarTraits).toBeUndefined()
-    expect(output.gm.sections.conversationState.memory).toEqual({})
+    expect(output.gm.sections.conversationState.workingMemory).toBeUndefined()
     expect(output.gm.sections.retrievedContext).toBeUndefined()
     expect(output.trace.selectedInputs.hasUserPersona).toBe(false)
     expect(output.trace.selectedInputs.hasGmDirective).toBe(false)
@@ -599,7 +644,12 @@ describe('ContextEngine policy', () => {
     const engine = new ContextEngine()
     const withRetrieval = makeInput()
     const withoutRetrieval = makeInput()
-    withoutRetrieval.extensions = { ...withoutRetrieval.extensions, retrieval: undefined }
+    const extensionsWithoutGmRetrieval = { ...withoutRetrieval.extensions }
+    delete extensionsWithoutGmRetrieval.retrievalForGm
+    withoutRetrieval.extensions = {
+      ...extensionsWithoutGmRetrieval,
+      retrieval: undefined,
+    }
 
     const withOutput = engine.assemble(withRetrieval)
     const withoutOutput = engine.assemble(withoutRetrieval)
@@ -621,7 +671,7 @@ describe('ContextEngine policy', () => {
     const output = engine.assemble(makeInput())
 
     const avatarFacts = output.avatar.sections.conversationState.longTermFacts
-    const gmFacts = output.gm.sections.conversationState.memory.longTermFacts ?? []
+    const gmFacts = output.gm.sections.conversationState.longTermFacts
     expect(gmFacts).toEqual(avatarFacts)
     expect(output.gm.sections.worldContext.scenarioId).toBe(
       output.avatar.sections.worldContext.scenarioId,

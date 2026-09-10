@@ -1,20 +1,19 @@
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { GmContextSnapshot } from '../../../domain/context/session-context.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
-import type {
-  GameMasterInput,
-  GameMasterState,
-} from '../../../domain/game-master/game-master.types.js'
+import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
+import type { GameMasterMemoryContext } from '../../../domain/memory/memory.types.js'
 import type { TypedRetrievalResult } from '../../../domain/knowledge/knowledge.types.js'
 import { toGameMasterAvailableAvatars } from './run-game-master.avatar-unlocks.js'
 
+// eslint-disable-next-line complexity
 export function buildGmContextSnapshot(args: {
   session: Session | null
   currentState: GameMasterState
   scenarioAvatars: AvatarConfig[]
   scenarioContext: { description?: string; goals?: string[] }
   recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>
-  memory: GameMasterInput['context']['memory'] | undefined
+  memory: GameMasterMemoryContext | undefined
   retrieval: TypedRetrievalResult | undefined
   userPersona: GmContextSnapshot['sections']['userPersona']
 }): GmContextSnapshot {
@@ -24,21 +23,19 @@ export function buildGmContextSnapshot(args: {
     sections: {
       conversationState: {
         recentMessages: args.recentMessages,
-        memory: {
-          ...(args.memory?.workingMemory !== undefined
-            ? {
-                workingMemory: {
-                  summary: args.memory.workingMemory.summary,
-                  unresolvedThreads: args.memory.workingMemory.unresolvedThreads,
-                  coveredTopics: args.memory.workingMemory.coveredTopics,
-                },
-                workingSummary: args.memory.workingMemory.summary,
-              }
-            : {}),
-          ...(args.memory?.longTermFacts !== undefined
-            ? { longTermFacts: args.memory.longTermFacts }
-            : {}),
-        },
+        recentExchanges: args.memory?.recentExchanges ?? [],
+        ...(args.memory?.workingMemory !== undefined
+          ? {
+              workingMemory: {
+                summary: args.memory.workingMemory.summary,
+                unresolvedThreads: args.memory.workingMemory.unresolvedThreads,
+                coveredTopics: args.memory.workingMemory.coveredTopics,
+              },
+              workingSummary: args.memory.workingMemory.summary,
+            }
+          : {}),
+        episodicMemories: args.memory?.episodicMemories ?? [],
+        longTermFacts: args.memory?.longTermFacts ?? [],
       },
       ...(args.retrieval !== undefined
         ? {

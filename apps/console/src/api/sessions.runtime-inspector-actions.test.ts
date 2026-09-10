@@ -125,6 +125,7 @@ function makeContextPayload(): AdminSessionContextResponse {
           recentExchanges: [],
           workingMemory: {},
           longTermFacts: [],
+          episodicMemories: [],
         },
         userPersona: null,
         worldContext: {
@@ -143,7 +144,9 @@ function makeContextPayload(): AdminSessionContextResponse {
       sections: {
         conversationState: {
           recentMessages: [],
-          memory: {},
+          recentExchanges: [],
+          episodicMemories: [],
+          longTermFacts: [],
         },
         userPersona: null,
         worldContext: { scenarioId: 'scenario_1' },
@@ -184,7 +187,9 @@ function makeContextPayload(): AdminSessionContextResponse {
         shortTermExchangeCount: 0,
         hasWorkingMemory: false,
         longTermFactCount: 0,
+        episodicMemoryCount: 0,
         retrievalCounts: { avatar_knowledge: 0, world: 0, media: 0 },
+        gmRetrievalCounts: { avatar_knowledge: 0, world: 0, media: 0 },
         hasUserPersona: false,
         hasGmDirective: false,
         responseRuleCount: 0,

@@ -65,6 +65,7 @@ function makeAssembledContext(): ContextEngineOutput {
         conversationState: {
           recentExchanges: [],
           workingMemory: {},
+          episodicMemories: [],
           longTermFacts: [],
         },
         userPersona: null,
@@ -87,7 +88,9 @@ function makeAssembledContext(): ContextEngineOutput {
       sections: {
         conversationState: {
           recentMessages: [],
-          memory: {},
+          recentExchanges: [],
+          episodicMemories: [],
+          longTermFacts: [],
         },
         userPersona: null,
         worldContext: {
@@ -115,6 +118,7 @@ function makeAssembledContext(): ContextEngineOutput {
           'responseRules',
           'conversationStateWorkingMemory',
           'conversationStateLongTermFacts',
+          'conversationStateEpisodicMemories',
           'conversationStateRecentExchanges',
           'conversationStateRecentMessages',
           'userPersona',
@@ -129,9 +133,11 @@ function makeAssembledContext(): ContextEngineOutput {
         hasActiveAvatar: true,
         recentMessageCount: 1,
         shortTermExchangeCount: 0,
+        episodicMemoryCount: 0,
         hasWorkingMemory: false,
         longTermFactCount: 0,
         retrievalCounts: { avatar_knowledge: 0, world: 0, media: 0 },
+        gmRetrievalCounts: { avatar_knowledge: 0, world: 0, media: 0 },
         hasUserPersona: false,
         hasGmDirective: true,
         responseRuleCount: 1,

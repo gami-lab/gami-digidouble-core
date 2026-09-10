@@ -12,6 +12,7 @@ export type ContextSegmentId =
   | 'responseRules'
   | 'conversationStateWorkingMemory'
   | 'conversationStateLongTermFacts'
+  | 'conversationStateEpisodicMemories'
   | 'conversationStateRecentExchanges'
   | 'conversationStateRecentMessages'
   | 'userPersona'
@@ -53,6 +54,7 @@ export const DEFAULT_CONTEXT_ENGINE_POLICY: ContextEnginePolicy = {
     'responseRules',
     'conversationStateWorkingMemory',
     'conversationStateLongTermFacts',
+    'conversationStateEpisodicMemories',
     'conversationStateRecentExchanges',
     'conversationStateRecentMessages',
     'userPersona',
@@ -69,6 +71,7 @@ const CONTEXT_SECTION_BY_SEGMENT: Record<ContextSegmentId, ContextSectionId> = {
   responseRules: 'responseRules',
   conversationStateWorkingMemory: 'conversationState',
   conversationStateLongTermFacts: 'conversationState',
+  conversationStateEpisodicMemories: 'conversationState',
   conversationStateRecentExchanges: 'conversationState',
   conversationStateRecentMessages: 'conversationState',
   userPersona: 'userPersona',

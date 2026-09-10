@@ -13,6 +13,7 @@ function createAvatarSnapshotInput() {
       conversationState: {
         recentExchanges: [{ user: 'u', avatar: 'a' }],
         workingMemory: {},
+        episodicMemories: [],
         longTermFacts: [],
       },
       retrievedContext: {
@@ -89,14 +90,15 @@ function createGmSnapshotInput() {
     sections: {
       conversationState: {
         recentMessages: [{ role: 'user' as const, content: 'Who left last night?' }],
-        memory: {
-          workingMemory: {
-            summary: 'Working summary',
-            unresolvedThreads: ['Need dock confirmation'],
-            coveredTopics: ['dock_timeline'],
-          },
-          workingSummary: 'Working summary',
+        recentExchanges: [],
+        workingMemory: {
+          summary: 'Working summary',
+          unresolvedThreads: ['Need dock confirmation'],
+          coveredTopics: ['dock_timeline'],
         },
+        workingSummary: 'Working summary',
+        episodicMemories: [],
+        longTermFacts: [],
       },
       retrievedContext: {
         avatar_knowledge: [
@@ -193,12 +195,12 @@ describe('runtime inspector event context snapshots', () => {
   it('stores gm retrieval content and matched query without metadata', () => {
     const snapshot = toRecordedGmContextSnapshot(createGmSnapshotInput())
 
-    expect(snapshot.sections.conversationState.memory.workingMemory).toEqual({
+    expect(snapshot.sections.conversationState.workingMemory).toEqual({
       summary: 'Working summary',
       unresolvedThreads: ['Need dock confirmation'],
       coveredTopics: ['dock_timeline'],
     })
-    expect(snapshot.sections.conversationState.memory.workingSummary).toBe('Working summary')
+    expect(snapshot.sections.conversationState.workingSummary).toBe('Working summary')
     expect(snapshot.sections.retrievedContext).toEqual({
       avatar_knowledge: [
         {

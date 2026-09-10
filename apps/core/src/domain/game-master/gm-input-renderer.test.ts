@@ -2,8 +2,26 @@ import { describe, expect, it } from 'vitest'
 import type { GameMasterInput } from './game-master.types.js'
 import { renderGameMasterInputForLlm } from './gm-input-renderer.js'
 
+type InputOverrides = {
+  session?: Partial<GameMasterInput['session']>
+  userMessage?: Partial<GameMasterInput['userMessage']>
+  state?: Partial<GameMasterInput['state']>
+  context?: {
+    experience?: Partial<GameMasterInput['context']['experience']>
+    conversationState?: Partial<GameMasterInput['context']['conversationState']>
+    retrievedContext?: Partial<NonNullable<GameMasterInput['context']['retrievedContext']>>
+    userPersona?: GameMasterInput['context']['userPersona']
+    availableAvatars?: GameMasterInput['context']['availableAvatars']
+  }
+}
+
 /* eslint-disable max-lines-per-function */
-function makeInput(overrides: Partial<GameMasterInput> = {}): GameMasterInput {
+// eslint-disable-next-line complexity
+function makeInput(overrides: InputOverrides = {}): GameMasterInput {
+  const recentMessages = [
+    { role: 'user' as const, content: 'What happened at the harbor?' },
+    { role: 'avatar' as const, content: 'The docks were crowded at dusk.' },
+  ]
   const input: GameMasterInput = {
     session: {
       sessionId: 'session_1',
@@ -28,7 +46,11 @@ function makeInput(overrides: Partial<GameMasterInput> = {}): GameMasterInput {
         goals: ['Understand the harbor timeline.', 'Decide whether to switch specialists.'],
         ...overrides.context?.experience,
       },
-      memory: {
+      conversationState: {
+        recentMessages,
+        recentExchanges: [
+          { user: 'What happened at the harbor?', avatar: 'The docks were crowded at dusk.' },
+        ],
         workingMemory: {
           summary: 'The witness already contradicted the tide schedule.',
           unresolvedThreads: ['Confirm the dock number.'],
@@ -47,18 +69,34 @@ function makeInput(overrides: Partial<GameMasterInput> = {}): GameMasterInput {
           },
         ],
         longTermFacts: [{ category: 'preference', key: 'tone', value: 'concise' }],
-        ...overrides.context?.memory,
+        ...overrides.context?.conversationState,
       },
-      rag: {
+      retrievedContext: {
         avatar_knowledge: [
           {
             sourceId: 'memory_source_1',
-            excerpt: 'The witness already contradicted the tide schedule.',
+            chunkId: 'memory_chunk_1',
+            knowledgeType: 'avatar_knowledge',
+            content: 'The witness already contradicted the tide schedule.',
           },
         ],
-        world: [{ sourceId: 'world_source_1', excerpt: 'Storm tide rises at dusk.' }],
-        media: [{ sourceId: 'media_source_1', excerpt: 'Harbor map with dock markers.' }],
-        ...overrides.context?.rag,
+        world: [
+          {
+            sourceId: 'world_source_1',
+            chunkId: 'world_chunk_1',
+            knowledgeType: 'world',
+            content: 'Storm tide rises at dusk.',
+          },
+        ],
+        media: [
+          {
+            sourceId: 'media_source_1',
+            chunkId: 'media_chunk_1',
+            knowledgeType: 'media',
+            content: 'Harbor map with dock markers.',
+          },
+        ],
+        ...overrides.context?.retrievedContext,
       },
       userPersona: {
         name: 'Lina',
@@ -81,19 +119,18 @@ function makeInput(overrides: Partial<GameMasterInput> = {}): GameMasterInput {
           availability: 'locked',
         },
       ],
-      ...overrides.context,
+      ...(overrides.context?.userPersona !== undefined
+        ? { userPersona: overrides.context.userPersona }
+        : {}),
+      ...(overrides.context?.availableAvatars !== undefined
+        ? { availableAvatars: overrides.context.availableAvatars }
+        : {}),
     },
   }
 
-  if (Object.hasOwn(overrides, 'recentMessages')) {
-    if (overrides.recentMessages !== undefined) {
-      input.recentMessages = overrides.recentMessages
-    }
-  } else {
-    input.recentMessages = [
-      { role: 'user', content: 'What happened at the harbor?' },
-      { role: 'avatar', content: 'The docks were crowded at dusk.' },
-    ]
+  if (overrides.context?.conversationState?.recentMessages !== undefined) {
+    input.context.conversationState.recentMessages =
+      overrides.context.conversationState.recentMessages
   }
 
   return input
@@ -105,8 +142,9 @@ describe('renderGameMasterInputForLlm', () => {
 
     expectSectionOrder(prompt, [
       '## Current Turn',
-      '## Current Discussion Context',
+      '## Conversation State',
       '## Experience Context',
+      '## Retrieved Context',
       '## Output Reminder',
     ])
     expect(prompt).toContain('- Latest User Message: How should we approach the harbor?')
@@ -128,10 +166,17 @@ describe('renderGameMasterInputForLlm', () => {
       '- Ava (avatar_1) [available]; description: Harbor witness.; scope: Dock activity and local rumors.',
     )
     expect(prompt).toContain('- Theo (avatar_2) [locked]')
-    expect(prompt).toContain('### Retrieved Context')
+    expect(prompt).toContain('## Retrieved Context')
     expect(prompt).toContain('Avatar knowledge excerpts:')
     expect(prompt).toContain('World excerpts:')
     expect(prompt).toContain('Media excerpts:')
+
+    const conversationStateStart = prompt.indexOf('## Conversation State')
+    const retrievedContextStart = prompt.indexOf('## Retrieved Context')
+    const conversationStateSection = prompt.slice(conversationStateStart, retrievedContextStart)
+    const retrievedContextSection = prompt.slice(retrievedContextStart)
+    expect(conversationStateSection).not.toContain('Harbor map with dock markers.')
+    expect(retrievedContextSection).not.toContain('Remembered user facts:')
   })
 
   it('omits empty optional blocks and preserves the session-start edge case', () => {
@@ -152,6 +197,12 @@ describe('renderGameMasterInputForLlm', () => {
       context: {
         experience: {
           scenarioId: 'scenario_1',
+        },
+        conversationState: {
+          recentMessages: [],
+          recentExchanges: [],
+          episodicMemories: [],
+          longTermFacts: [],
         },
         availableAvatars: [],
       },
@@ -179,6 +230,12 @@ describe('renderGameMasterInputForLlm', () => {
       makeInput({
         context: {
           experience: { scenarioId: 'scenario_1' },
+          conversationState: {
+            recentMessages: [],
+            recentExchanges: [],
+            episodicMemories: [],
+            longTermFacts: [],
+          },
           availableAvatars: [{ avatarId: 'avatar_1', name: 'Ava', availability: 'available' }],
         },
       }),
@@ -194,6 +251,12 @@ describe('renderGameMasterInputForLlm', () => {
       makeInput({
         context: {
           experience: { scenarioId: 'scenario_1' },
+          conversationState: {
+            recentMessages: [],
+            recentExchanges: [],
+            episodicMemories: [],
+            longTermFacts: [],
+          },
           availableAvatars: [
             { avatarId: 'avatar_1', name: 'Ava', availability: 'available' },
             { avatarId: 'avatar_2', name: 'Theo', availability: 'available' },
@@ -227,12 +290,16 @@ describe('renderGameMasterInputForLlm — current turn deduplication', () => {
     const prompt = renderGameMasterInputForLlm(
       makeInput({
         userMessage: { text: 'Ready to talk about what happened?' },
-        recentMessages: [
-          { role: 'user', content: 'Hi Max, how are you?' },
-          { role: 'avatar', content: 'Holding up, still shaken.' },
-          { role: 'user', content: 'Ready to talk about what happened?' },
-          { role: 'avatar', content: 'I am ready, ask away.' },
-        ],
+        context: {
+          conversationState: {
+            recentMessages: [
+              { role: 'user', content: 'Hi Max, how are you?' },
+              { role: 'avatar', content: 'Holding up, still shaken.' },
+              { role: 'user', content: 'Ready to talk about what happened?' },
+              { role: 'avatar', content: 'I am ready, ask away.' },
+            ],
+          },
+        },
       }),
     )
 
@@ -248,10 +315,14 @@ describe('renderGameMasterInputForLlm — current turn deduplication', () => {
     const prompt = renderGameMasterInputForLlm(
       makeInput({
         userMessage: { text: 'A brand new question not yet persisted.' },
-        recentMessages: [
-          { role: 'user', content: 'Earlier question.' },
-          { role: 'avatar', content: 'Earlier reply.' },
-        ],
+        context: {
+          conversationState: {
+            recentMessages: [
+              { role: 'user', content: 'Earlier question.' },
+              { role: 'avatar', content: 'Earlier reply.' },
+            ],
+          },
+        },
       }),
     )
 

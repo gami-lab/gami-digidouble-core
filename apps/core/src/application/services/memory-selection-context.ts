@@ -7,6 +7,9 @@ export function toGameMasterMemoryContext(
   payload: SelectedMemoryPayload,
 ): GameMasterMemoryContext | undefined {
   const memory: GameMasterMemoryContext = {
+    ...(payload.shortTermExchanges.length > 0
+      ? { recentExchanges: payload.shortTermExchanges }
+      : {}),
     ...(payload.workingMemory !== undefined
       ? {
           workingMemory: {

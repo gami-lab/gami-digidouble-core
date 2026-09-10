@@ -210,7 +210,7 @@ describe('RunGameMasterUseCase — prompt request content', () => {
     const prompt = readRenderedGameMasterPrompt(request)
     expectSectionOrder(prompt, [
       '## Current Turn',
-      '## Current Discussion Context',
+      '## Conversation State',
       '## Experience Context',
       '## Output Reminder',
     ])
@@ -254,7 +254,7 @@ describe('RunGameMasterUseCase — refined prompt path', () => {
       '- askFollowUp must always be stated explicitly; never infer it from mode alone.',
     )
     expect(prompt).toContain('## Current Turn')
-    expect(prompt).toContain('## Current Discussion Context')
+    expect(prompt).toContain('## Conversation State')
     expect(prompt).toContain('## Experience Context')
     expect(prompt).toContain('## Output Reminder')
     expect(request.trace.metadata).toMatchObject({

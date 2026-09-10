@@ -9,7 +9,10 @@ import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepos
 import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
-import type { ConversationWorkingMemory } from '../../../domain/memory/memory.types.js'
+import type {
+  ConversationWorkingMemory,
+  LayeredMemorySnapshot,
+} from '../../../domain/memory/memory.types.js'
 import { ContextEngine } from '../../../domain/context/context-engine.service.js'
 import { DomainError } from '../../../domain/errors.js'
 import { MEMORY_LONG_TERM_FACT_LIMIT } from '../../../domain/memory/memory.policy.js'
@@ -180,7 +183,7 @@ function buildMemorySnapshot(
   >,
   recentExchanges: ReturnType<typeof selectExchangeWindow>,
   userFacts: Awaited<ReturnType<NonNullable<IUserMemoryFactRepository>['findByUserId']>>,
-) {
+): LayeredMemorySnapshot {
   return {
     shortTerm: {
       exchangeCount: recentExchanges.length,
@@ -189,6 +192,13 @@ function buildMemorySnapshot(
     ...(workingMemory !== null
       ? {
           working: {
+            conversation: {
+              summary: workingMemory.summary,
+              unresolvedThreads: workingMemory.unresolvedThreads,
+              coveredTopics: workingMemory.coveredTopics,
+              updatedAt: workingMemory.updatedAt,
+              selectionReasons: ['working_memory', 'continuity'],
+            },
             session: {
               summary: workingMemory.summary,
               updatedAt: workingMemory.updatedAt,
@@ -215,12 +225,12 @@ function applyStructuredGmWorkingMemory(
   workingMemory: ConversationWorkingMemory | null,
 ): void {
   if (workingMemory === null) return
-  gmContext.sections.conversationState.memory.workingMemory = {
+  gmContext.sections.conversationState.workingMemory = {
     summary: workingMemory.summary,
     unresolvedThreads: [...workingMemory.unresolvedThreads],
     coveredTopics: [...workingMemory.coveredTopics],
   }
-  gmContext.sections.conversationState.memory.workingSummary = workingMemory.summary
+  gmContext.sections.conversationState.workingSummary = workingMemory.summary
 }
 
 function toScenarioSnapshot(

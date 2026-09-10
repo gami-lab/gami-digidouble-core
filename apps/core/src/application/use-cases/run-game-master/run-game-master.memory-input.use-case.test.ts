@@ -61,7 +61,7 @@ const userMemoryFactRepository = {
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
 
-function readRecentMessages(): NonNullable<GameMasterInput['recentMessages']> {
+function readRecentMessages(): GameMasterInput['context']['conversationState']['recentMessages'] {
   const prompt = readRenderedGameMasterPrompt(
     completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> },
   )
