@@ -135,6 +135,46 @@ async function waitForJob(ingestionJobId: string): Promise<{ status: string }> {
   throw new Error(`Timed out waiting for job ${ingestionJobId}`)
 }
 
+async function ensureActiveKnowledgeCorpus(): Promise<void> {
+  const res = await fetch(`${APP_URL}/v1/admin/knowledge/reindex`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({}),
+  })
+  expect([200, 202]).toContain(res.status)
+
+  const body = (await res.json()) as {
+    data: {
+      operation: { reindexOperationId: string } | null
+    }
+  }
+  const operationId = body.data.operation?.reindexOperationId
+  if (operationId === undefined) return
+
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const statusRes = await fetch(`${APP_URL}/v1/admin/knowledge/reindex/${operationId}`, {
+      method: 'GET',
+      headers: { 'x-api-key': API_KEY },
+    })
+    expect(statusRes.status).toBe(200)
+    const statusBody = (await statusRes.json()) as {
+      data: {
+        operation: { status: string; failureDetails?: string }
+      }
+    }
+    const operation = statusBody.data.operation
+    if (operation.status === 'completed') return
+    if (operation.status === 'failed') {
+      throw new Error(
+        `Knowledge corpus reindex failed: ${operation.failureDetails ?? 'unknown failure'}`,
+      )
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+
+  throw new Error(`Timed out waiting for knowledge corpus reindex ${operationId}`)
+}
+
 async function seedReadyWorldKnowledgeSource(args: {
   visibleToAvatarIds?: string[]
   inlineText: string
@@ -171,6 +211,10 @@ async function seedReadyWorldKnowledgeSource(args: {
     data: { source: { sourceId: string } }
   }
   const sourceId = createSourceBody.data.source.sourceId
+
+  // A fresh stack has no active corpus yet. Reindex this source through the documented
+  // lifecycle before exercising normal per-source ingestion.
+  await ensureActiveKnowledgeCorpus()
 
   const triggerRes = await fetch(`${APP_URL}/v1/knowledge-sources/${sourceId}/ingest`, {
     method: 'POST',
@@ -331,6 +375,8 @@ describe('Stack E2E — knowledge upload — happy path', () => {
       expect(uploadRes.status).toBe(201)
       const uploadBody = (await uploadRes.json()) as { data: { source: { sourceId: string } } }
       const sourceId = uploadBody.data.source.sourceId
+
+      await ensureActiveKnowledgeCorpus()
 
       const triggerRes = await fetch(`${APP_URL}/v1/knowledge-sources/${sourceId}/ingest`, {
         method: 'POST',
