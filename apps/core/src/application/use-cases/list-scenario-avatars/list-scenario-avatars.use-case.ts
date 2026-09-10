@@ -5,6 +5,7 @@ import type {
   ListScenarioAvatarsInput,
   ListScenarioAvatarsOutput,
 } from './list-scenario-avatars.types.js'
+import { toAvatarSummary } from '../shared/avatar-summary.js'
 
 export class ListScenarioAvatarsUseCase {
   constructor(
@@ -20,21 +21,7 @@ export class ListScenarioAvatarsUseCase {
 
     const avatars = await this.avatarRepository.listByScenarioId(input.scenarioId)
     return {
-      avatars: avatars.map((avatar) => ({
-        avatarId: avatar.avatarId,
-        scenarioId: avatar.scenarioId,
-        name: avatar.name,
-        status: avatar.status,
-        personaPrompt: avatar.personaPrompt,
-        ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
-        ...(avatar.description !== undefined ? { description: avatar.description } : {}),
-        ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
-        ...(avatar.llmOverride !== undefined ? { llmOverride: avatar.llmOverride } : {}),
-        computedTraits: avatar.computedTraits ?? null,
-        config: avatar.config,
-        createdAt: avatar.createdAt,
-        updatedAt: avatar.updatedAt,
-      })),
+      avatars: avatars.map(toAvatarSummary),
     }
   }
 }

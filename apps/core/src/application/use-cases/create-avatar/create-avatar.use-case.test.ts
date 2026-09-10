@@ -172,4 +172,24 @@ describe('CreateAvatarUseCase — optional fields', () => {
     expect(output.avatar.adjustments).toEqual(['Use concise sentences.', 'Avoid jargon.'])
     expect(output.avatar.config).toEqual({})
   })
+
+  it('derives availabilityKey from avatar config in the shared response contract', async () => {
+    const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+    createAvatarMock.mockResolvedValue(
+      makeAvatarConfig({
+        avatarId: 'avatar_opt',
+        name: 'Lex',
+        personaPrompt: 'You are Lex.',
+        config: { availabilityKey: 'guide' },
+      }),
+    )
+
+    const output = await useCase.execute({
+      scenarioId: 'scenario_1',
+      name: 'Lex',
+      personaPrompt: 'You are Lex.',
+    })
+
+    expect(output.avatar.availabilityKey).toBe('guide')
+  })
 })

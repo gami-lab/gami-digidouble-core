@@ -161,10 +161,12 @@ describe('PATCH /v1/avatars/:avatarId', () => {
 
     expect(response.statusCode).toBe(401)
   })
+})
 
+describe('PATCH /v1/avatars/:avatarId contract coverage', () => {
   it('response includes all AvatarSummary contract fields', async () => {
     const app = makeApp({
-      avatars: [makeAvatar({ avatarId: 'avatar_1' })],
+      avatars: [makeAvatar({ avatarId: 'avatar_1', config: { availabilityKey: 'guide' } })],
     })
     const response = await app.inject({
       method: 'PATCH',
@@ -175,14 +177,37 @@ describe('PATCH /v1/avatars/:avatarId', () => {
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<{ avatar: AvatarSummary }>>()
     const avatar = body.data?.avatar
-    expect(avatar?.avatarId).toBe('avatar_1')
-    expect(avatar?.scenarioId).toBe('scenario_1')
-    expect(avatar?.name).toBe('Ava Updated')
-    expect(avatar?.status).toBe('active')
-    expect(avatar?.config).toBeDefined()
-    expect(avatar?.createdAt).toBeDefined()
-    expect(avatar?.updatedAt).toBeDefined()
-    expect(avatar?.computedTraits).toBeNull()
+    if (avatar === undefined) {
+      throw new Error('Expected avatar response payload.')
+    }
+    expect(avatar).toMatchObject({
+      avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
+      name: 'Ava Updated',
+      status: 'active',
+      availabilityKey: 'guide',
+      computedTraits: null,
+    })
+    expect(avatar.config).toBeDefined()
+    expect(avatar.createdAt).toBeDefined()
+    expect(avatar.updatedAt).toBeDefined()
+  })
+
+  it('derives availabilityKey from persisted avatar config when present', async () => {
+    const app = makeApp({
+      avatars: [makeAvatar({ avatarId: 'avatar_1', config: { routeKey: 'guide' } })],
+    })
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { name: 'Ava Updated' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<ApiResponse<{ avatar: AvatarSummary }>>()
+    expect(body.data?.avatar.availabilityKey).toBe('guide')
+    expect(body.data?.avatar.config).toEqual({ routeKey: 'guide' })
   })
 })
 

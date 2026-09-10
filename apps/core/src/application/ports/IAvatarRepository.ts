@@ -1,3 +1,4 @@
+import type { CreateAvatarRequest, UpdateAvatarRequest } from '@gami/shared'
 import type { AvatarComputedTraits, AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { AvatarLlmOverride } from '../../domain/model-config/index.js'
 
@@ -19,25 +20,10 @@ export interface IAvatarRepository {
   ): Promise<AvatarConfig>
 }
 
-export interface CreateAvatarParams {
+export type CreateAvatarParams = CreateAvatarRequest & {
   scenarioId: string
-  name: string
-  personaPrompt: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  llmOverride?: AvatarLlmOverride | null
-  config?: Record<string, unknown>
-  status?: AvatarConfig['status']
 }
 
-export type UpdateAvatarParams = {
-  name?: string
-  personaPrompt?: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
+export type UpdateAvatarParams = UpdateAvatarRequest & {
   llmOverride?: AvatarLlmOverride | null
-  config?: Record<string, unknown>
-  status?: AvatarConfig['status']
 }

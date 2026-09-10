@@ -20,6 +20,20 @@ export type AvatarStatus = 'draft' | 'active' | 'archived'
 
 export type AvatarLlmOverride = ModelSelectionOverride
 
+type AvatarAuthoredFields = {
+  name: string
+  personaPrompt: string
+  tone?: string
+  description?: string
+  adjustments?: string[]
+}
+
+type AvatarMutationOptionalFields = {
+  llmOverride?: AvatarLlmOverride | null
+  config?: Record<string, unknown>
+  status?: AvatarStatus
+}
+
 /**
  * Fixed, derived trait structure computed from an avatar's source material
  * (author input, memory documents, world context) — see EPIC 8.1.
@@ -39,16 +53,13 @@ export type AvatarComputedTraits = {
 }
 
 /** Canonical read shape for an Avatar as returned by the Core API. */
-export type AvatarSummary = {
+export type AvatarSummary = AvatarAuthoredFields & {
   avatarId: string
   scenarioId: string
-  name: string
   status: AvatarStatus
-  personaPrompt: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
   llmOverride?: AvatarLlmOverride
+  /** Stable public route key when present in avatar config. */
+  availabilityKey?: string
   /** Derived trait structure, or `null` if preparation has not run yet (EPIC 8.1). */
   computedTraits: AvatarComputedTraits | null
   config: Record<string, unknown>
@@ -56,27 +67,11 @@ export type AvatarSummary = {
   updatedAt: string
 }
 
-export type CreateAvatarRequest = {
-  name: string
-  personaPrompt: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  llmOverride?: AvatarLlmOverride | null
-  config?: Record<string, unknown>
-  status?: AvatarStatus
-}
+export type CreateAvatarRequest = Pick<AvatarAuthoredFields, 'name' | 'personaPrompt'> &
+  Pick<AvatarAuthoredFields, 'tone' | 'description' | 'adjustments'> &
+  AvatarMutationOptionalFields
 
-export type UpdateAvatarRequest = {
-  name?: string
-  personaPrompt?: string
-  tone?: string
-  description?: string
-  adjustments?: string[]
-  llmOverride?: AvatarLlmOverride | null
-  config?: Record<string, unknown>
-  status?: AvatarStatus
-}
+export type UpdateAvatarRequest = Partial<CreateAvatarRequest>
 
 /** Scenario status union — matches domain Scenario['status']. */
 export type ScenarioStatus = 'draft' | 'active' | 'archived'

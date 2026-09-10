@@ -2,8 +2,8 @@ import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { AvatarStatus } from '../../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../../domain/errors.js'
-import type { AvatarSummary } from '@gami/shared'
 import type { CreateAvatarInput, CreateAvatarOutput } from './create-avatar.types.js'
+import { toAvatarSummary } from '../shared/avatar-summary.js'
 
 const ALLOWED_AVATAR_STATUSES: ReadonlySet<AvatarStatus> = new Set(['draft', 'active', 'archived'])
 
@@ -34,7 +34,7 @@ export class CreateAvatarUseCase {
     })
 
     return {
-      avatar: mapAvatarOutput(avatar),
+      avatar: toAvatarSummary(avatar),
     }
   }
 }
@@ -60,22 +60,4 @@ function normalizeAndValidateInput(input: CreateAvatarInput): {
   }
 
   return { name, personaPrompt, status }
-}
-
-function mapAvatarOutput(avatar: Awaited<ReturnType<IAvatarRepository['create']>>): AvatarSummary {
-  return {
-    avatarId: avatar.avatarId,
-    scenarioId: avatar.scenarioId,
-    name: avatar.name,
-    status: avatar.status,
-    personaPrompt: avatar.personaPrompt,
-    ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
-    ...(avatar.description !== undefined ? { description: avatar.description } : {}),
-    ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
-    ...(avatar.llmOverride !== undefined ? { llmOverride: avatar.llmOverride } : {}),
-    computedTraits: avatar.computedTraits ?? null,
-    config: avatar.config,
-    createdAt: avatar.createdAt,
-    updatedAt: avatar.updatedAt,
-  }
 }

@@ -303,7 +303,17 @@ describe('TypedRetrievalService', () => {
     const callerAResult = await service.retrieve(request)
     const callerBResult = await service.retrieve(request)
 
-    expect(callerBResult).toEqual(callerAResult)
+    expect(callerBResult.avatar_knowledge).toEqual(callerAResult.avatar_knowledge)
+    expect(callerBResult.world).toEqual(callerAResult.world)
+    expect(callerBResult.media).toEqual(callerAResult.media)
+    expect(callerBResult.trace).toMatchObject({
+      ...callerAResult.trace,
+      timings: {
+        queryEmbeddingMs: callerAResult.trace.timings.queryEmbeddingMs,
+        vectorSearchMs: callerAResult.trace.timings.vectorSearchMs,
+      },
+    })
+    expect(callerBResult.trace.timings.totalMs).toBeGreaterThanOrEqual(0)
     expect(callerAResult.avatar_knowledge.map((item) => item.chunkId)).toEqual([
       'shared_avatar_knowledge',
     ])

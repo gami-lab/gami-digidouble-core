@@ -1,7 +1,7 @@
 import type { IAvatarRepository, UpdateAvatarParams } from '../../ports/IAvatarRepository.js'
 import { DomainError } from '../../../domain/errors.js'
-import type { AvatarSummary } from '@gami/shared'
 import type { UpdateAvatarInput, UpdateAvatarOutput } from './update-avatar.types.js'
+import { toAvatarSummary } from '../shared/avatar-summary.js'
 
 function buildUpdates(input: UpdateAvatarInput): UpdateAvatarParams {
   const { name, personaPrompt, tone, description, adjustments, llmOverride, config, status } = input
@@ -28,24 +28,6 @@ export class UpdateAvatarUseCase {
     }
 
     const avatar = await this.avatarRepository.update(input.avatarId, updates)
-    return { avatar: mapAvatarOutput(avatar) }
-  }
-}
-
-function mapAvatarOutput(avatar: Awaited<ReturnType<IAvatarRepository['update']>>): AvatarSummary {
-  return {
-    avatarId: avatar.avatarId,
-    scenarioId: avatar.scenarioId,
-    name: avatar.name,
-    status: avatar.status,
-    personaPrompt: avatar.personaPrompt,
-    ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
-    ...(avatar.description !== undefined ? { description: avatar.description } : {}),
-    ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
-    ...(avatar.llmOverride !== undefined ? { llmOverride: avatar.llmOverride } : {}),
-    computedTraits: avatar.computedTraits ?? null,
-    config: avatar.config,
-    createdAt: avatar.createdAt,
-    updatedAt: avatar.updatedAt,
+    return { avatar: toAvatarSummary(avatar) }
   }
 }

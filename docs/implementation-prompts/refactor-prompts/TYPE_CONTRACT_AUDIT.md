@@ -447,8 +447,8 @@ This is the live drift described above.
 
 ## Refactor Completed
 
-**Status:** Done — April 2026  
-**Executed by:** GitHub Copilot (TYPE_CONTRACT_AUDIT refactor)
+**Status:** Updated — September 2026  
+**Executed by:** GitHub Copilot (TYPE_CONTRACT_AUDIT follow-up refactor)
 
 ### What Changed
 
@@ -473,6 +473,15 @@ All are re-exported from `packages/shared/src/index.ts`.
 | `ScenarioSummary`     | Inline in create/list/update outputs + console copy            | 1 in `@gami/shared`                                |
 | `ScenarioStatus`      | Local type alias in repository + route + console               | 1 in `@gami/shared` via `ScenarioStatus` in domain |
 
+#### Follow-up consolidation completed in September 2026
+
+- `CreateAvatarInput` now extends the shared `CreateAvatarRequest` contract with only the route-owned `scenarioId`.
+- `UpdateAvatarInput` now extends the shared `UpdateAvatarRequest` contract with only the route-owned `avatarId`.
+- `IAvatarRepository.CreateAvatarParams` is now derived from shared `CreateAvatarRequest` instead of repeating the full mutation shape.
+- `IAvatarRepository.UpdateAvatarParams` is now derived from shared `UpdateAvatarRequest`.
+- Avatar response mapping in Core create/update/list use cases is centralized in one helper instead of being repeated inline.
+- `AvatarSummary.availabilityKey` is now part of the canonical shared response contract and is derived from persisted avatar config when present. For compatibility, the mapper reads either `availabilityKey` or legacy `routeKey` from config.
+
 #### Console drift fixed
 
 - `AvatarSummary` in console was missing `config` and `availabilityKey` — now uses shared type
@@ -492,8 +501,12 @@ were simplified to `=== undefined`-only checks. ESLint `@typescript-eslint/no-un
 
 `apps/core/src/api/routes/avatars.test.ts` has two new tests:
 
-- **"sets and returns availabilityKey when provided"** — PATCH sets `availabilityKey: 'guide'` and verifies it round-trips in the response
-- **"response includes all AvatarSummary contract fields"** — structural assertion that all fields of the `AvatarSummary` contract (including `availabilityKey`) are present in the API response
+- **"response includes all AvatarSummary contract fields"** — structural assertion that the shared Avatar response contract includes `availabilityKey` when present in persisted config
+- **"derives availabilityKey from persisted avatar config when present"** — PATCH preserves legacy `routeKey` config while exposing canonical `availabilityKey` in the response
+
+`apps/core/src/application/use-cases/create-avatar/create-avatar.use-case.test.ts` adds:
+
+- **"derives availabilityKey from avatar config in the shared response contract"** — use-case level proof that the shared Avatar mapper exposes the canonical field without changing persistence ownership
 
 ### Intentional Duplication Remaining
 
@@ -504,9 +517,11 @@ These are deliberate — not bugs:
 | `update-scenario.use-case.ts` returns `{ scenario: Scenario }` (full domain type)  | The use-case intentionally returns the raw repo result; the route layer is responsible for mapping `config: ScenarioConfig` → `config: Record<string, unknown>`. `UpdateScenarioOutput.scenario` remains the full domain `Scenario` type. |
 | `send-message.types.ts` uses inline `Pick` for `session` and `conversation` fields | `SendMessageOutput` intentionally exposes a reduced subset of session/conversation fields appropriate to the chat endpoint response context. These are not `SessionSummary`/`ConversationSummary`.                                        |
 | `Avatar`/`AvatarConfig` domain types remain separate                               | The domain persistence shape (`Avatar`) and runtime shape (`AvatarConfig`) serve different purposes and are not collapsed. `AvatarSummary` is the API response shape only.                                                                |
+| `AvailableAvatarSummary` remains a `Pick<AvatarSummary, ...>` subset               | This is intentional boundary narrowing for the player-facing route. It excludes internal routing/config fields and must opt in explicitly to new Avatar response fields.                                                                  |
 
 ### What Should Be Addressed Later
 
 1. **`UpdateScenarioOutput` uses `Scenario` not `ScenarioSummary`** — the route does a manual cast for `config`. This could be cleaner if the use-case returned a mapped output. Low priority.
 2. **`Message` type** is defined in `apps/core` domain and re-exported through use-cases but not yet in `@gami/shared`. If the console needs `Message` shapes, they should be moved to shared next.
 3. **`AvatarConfig`** (runtime/session shape) is still a core-internal type. If the GM debug panel or other console views ever need the full avatar config (with `adjustments`), that should be evaluated for sharing.
+4. **Session and Conversation summaries** still have a broader remaining consolidation opportunity in some internal-only use-case outputs and ports. Avatar was the highest-value first slice, but the same derivation pattern should be applied there next.
