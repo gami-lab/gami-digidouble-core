@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-09
+Last updated: 2026-09-10
 Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered
 
 ## Snapshot
@@ -96,6 +96,21 @@ The platform is now a working headless conversational runtime with:
 - Admin retrieval diagnostics use the unrestricted GM view when no active avatar is selected.
 - Context Engine assembles bounded Avatar and GM projections with deterministic precedence and trace metadata.
 - Avatar prompt assembly consumes structured runtime sections, including prepared avatar traits when available.
+
+#### EPIC 4.2d contract ownership audit ✅ Prompt 00 complete
+
+The static-knowledge/conversational-memory ownership baseline is now recorded in
+`docs/CONTEXT_CONTRACT_OWNERSHIP_MAP.md`. `@gami/shared` owns the current HTTP `KnowledgeType`
+tuple and DTOs; Core domain owns internal knowledge entities and conversational-memory entities;
+explicit application/API mappers connect those shapes. The shared `KNOWLEDGE_TYPES` tuple now
+removes repeated local category lists without changing the current `memory | world | media`
+terminology.
+
+`pnpm audit:legacy-memory -- --dry-run` provides a repeatable non-mutating audit from
+either a metadata-only export or PostgreSQL. It reports safe IDs, visibility, recursive reserved
+scope keys, and conservative classifications for legacy static `memory` sources. It never emits
+source content, vectors, metadata values, or user facts. No legacy data is renamed, migrated, or
+converted in this slice; the remaining 4.2d terminology and lifecycle work stays open.
 
 #### EPIC 5.1c embedding, corpus, and safe reindexing ✅ Complete
 

@@ -1,4 +1,4 @@
-import type { AvatarComputedTraits } from '@gami/shared'
+import type { AvatarComputedTraits, KnowledgeType } from '@gami/shared'
 import { describe, expect, it } from 'vitest'
 import { makeAvatarConfig } from './avatar.fixtures.js'
 import {
@@ -26,10 +26,8 @@ const DIALOGUE_RULES: Record<string, string> = {
   transition: 'Close the current topic naturally and move toward the indicated subject or Avatar.',
 }
 
-type RetrievedKnowledgeType = 'memory' | 'world' | 'media'
-
 function retrievalItem(
-  knowledgeType: RetrievedKnowledgeType,
+  knowledgeType: KnowledgeType,
   chunkId: string,
   content: string,
   score?: number,

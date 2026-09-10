@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "sourceId": "knowledge_source_sample_avatar",
+      "scenarioId": "scenario_sample",
+      "knowledgeType": "memory",
+      "visibilityPolicy": "avatars",
+      "visibleToAvatarIds": ["avatar_sample"],
+      "metadata": { "fixture": true },
+      "chunks": []
+    },
+    {
+      "sourceId": "knowledge_source_sample_ambiguous",
+      "scenarioId": "scenario_sample",
+      "knowledgeType": "memory",
+      "metadata": { "scope": { "userId": "redacted-fixture-value" } },
+      "chunks": [
+        {
+          "chunkId": "knowledge_chunk_sample",
+          "metadata": { "fixture": true }
+        }
+      ]
+    }
+  ]
+}

@@ -270,6 +270,15 @@ PostgreSQL and stack checks remain their existing environment-gated integration 
 
 Separate shared scenario/avatar/world knowledge from user-bound conversational memory: static documents remain in the knowledge/RAG pipeline, while short-term, working, episodic, and long-term user memory remain non-RAG conversation state with explicit ownership and lifecycle boundaries.
 
+**Current state**
+
+Prompt `00-contract-and-data-audit` is complete. Canonical owners, mapping boundaries, duplicated
+category definitions, and conversational-memory persistence contracts are recorded in
+`docs/CONTEXT_CONTRACT_OWNERSHIP_MAP.md`. The checked-in dry-run audit classifies legacy static
+`memory` sources without mutation and blocks reserved user/session/conversation scope metadata from
+being treated as safe by inference. Terminology renaming, migration, retrieval-scope removal, and
+runtime/admin projection changes remain open follow-up slices.
+
 ### `3.3 Replay & Recovery Tools`
 
 **Current state**  

@@ -148,6 +148,7 @@ export type {
   QueryKnowledgeRetrievalResponse,
 } from './knowledge-contract-types.js'
 export {
+  KNOWLEDGE_TYPES,
   INGESTION_CHUNK_SIZE_MIN,
   INGESTION_CHUNK_SIZE_MAX,
   INGESTION_CHUNK_SIZE_DEFAULT,

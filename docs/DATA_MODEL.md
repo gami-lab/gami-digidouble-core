@@ -105,6 +105,16 @@ owned only by presenters. A query with the wrong dimension or stale profile/gene
 before search, and rows outside the active profile/generation are ineligible before the candidate
 limit. Search candidates do not select or persist the embedding column.
 
+### Static-memory audit invariant
+
+The legacy `knowledge_sources.knowledge_type = 'memory'` value is audited before the terminology
+rename in EPIC 4.2d. The checked-in dry-run tool (`scripts/audit-legacy-knowledge-memory.ts`) scans
+source and chunk JSON metadata recursively for the reserved scope keys `userId`, `sessionId`, and
+`conversationId`. It reports source/chunk IDs, current type, visibility, offending key names, and a
+proposed classification without selecting content or vectors and without mutating rows. A source
+with missing or contradictory visibility remains ambiguous; reserved scope metadata is never
+silently converted into Avatar knowledge or conversational memory.
+
 ## Relationships
 
 - `users` -> `sessions` (1:N)

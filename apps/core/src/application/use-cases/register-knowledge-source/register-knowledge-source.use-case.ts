@@ -1,4 +1,5 @@
 import { DomainError } from '../../../domain/errors.js'
+import { KNOWLEDGE_TYPES } from '@gami/shared'
 import type { IIngestionJobRepository } from '../../ports/IIngestionJobRepository.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import { KnowledgeIngestionService } from '../../services/knowledge/knowledge-ingestion.service.js'
@@ -8,7 +9,7 @@ import type {
 } from './register-knowledge-source.types.js'
 
 const ALLOWED_FORMATS = new Set(['text', 'markdown', 'pdf', 'url', 'media'])
-const ALLOWED_TYPES = new Set(['memory', 'world', 'media'])
+const ALLOWED_TYPES = new Set(KNOWLEDGE_TYPES)
 
 export class RegisterKnowledgeSourceUseCase {
   constructor(

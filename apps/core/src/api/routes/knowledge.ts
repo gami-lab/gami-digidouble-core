@@ -1,5 +1,11 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
-import { INGESTION_CHUNK_SIZE_MAX, INGESTION_CHUNK_SIZE_MIN, fail, ok } from '@gami/shared'
+import {
+  INGESTION_CHUNK_SIZE_MAX,
+  INGESTION_CHUNK_SIZE_MIN,
+  KNOWLEDGE_TYPES,
+  fail,
+  ok,
+} from '@gami/shared'
 import crypto from 'node:crypto'
 import type {
   CreateKnowledgeSourceRequest,
@@ -83,7 +89,7 @@ const sourceBodySchema = {
   properties: {
     scenarioId: { type: 'string', minLength: 1 },
     name: { type: 'string', minLength: 1 },
-    knowledgeType: { type: 'string', enum: ['memory', 'world', 'media'] },
+    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPES },
     format: { type: 'string', enum: ['pdf', 'text', 'markdown', 'url', 'media'] },
     uriOrPath: { type: 'string', minLength: 1 },
     metadata: { type: 'object' },
@@ -99,7 +105,7 @@ const sourceBodySchema = {
 const listQuerySchema = {
   type: 'object',
   properties: {
-    knowledgeType: { type: 'string', enum: ['memory', 'world', 'media'] },
+    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPES },
     status: { type: 'string', enum: ['pending', 'ready', 'error'] },
   },
   additionalProperties: false,
@@ -164,7 +170,7 @@ const uploadBodySchema = {
   properties: {
     scenarioId: { type: 'string', minLength: 1 },
     name: { type: 'string', minLength: 1 },
-    knowledgeType: { type: 'string', enum: ['memory', 'world', 'media'] },
+    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPES },
     content: { type: 'string', minLength: 1 },
     filename: { type: 'string', minLength: 1 },
     visibilityPolicy: { type: 'string', enum: VISIBILITY_POLICY_ENUM },

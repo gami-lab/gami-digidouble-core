@@ -17,6 +17,7 @@ import type {
   TypedRetrievalResult,
   VectorRetrievalCandidate,
 } from '../../../domain/knowledge/knowledge.types.js'
+import { KNOWLEDGE_TYPES } from '@gami/shared'
 import { selectBalancedRetrievedItems } from '../../../domain/knowledge/retrieval-selection.js'
 import type {
   KnowledgeQueryEmbeddingService,
@@ -26,7 +27,7 @@ import type {
 import type { TypedRetrievalQueryVariant } from './typed-retrieval-query-builder.js'
 
 const DEFAULT_LIMIT_PER_TYPE = 3
-const RETRIEVAL_TYPES: readonly KnowledgeType[] = ['memory', 'world', 'media']
+const RETRIEVAL_TYPES: readonly KnowledgeType[] = KNOWLEDGE_TYPES
 type QueryEmbeddingService = Pick<KnowledgeQueryEmbeddingService, 'embedVariants'>
 type ResolvedRetrievalEmbeddingProfile = RetrievalEmbeddingProfile & {
   embeddingProfileId: string

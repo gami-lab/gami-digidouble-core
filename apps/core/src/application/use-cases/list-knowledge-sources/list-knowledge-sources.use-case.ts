@@ -1,4 +1,5 @@
 import { DomainError } from '../../../domain/errors.js'
+import { KNOWLEDGE_TYPES } from '@gami/shared'
 import { toKnowledgeSourceDto } from '../../../domain/knowledge/knowledge-source-presenter.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type {
@@ -6,7 +7,7 @@ import type {
   ListKnowledgeSourcesOutput,
 } from './list-knowledge-sources.types.js'
 
-const ALLOWED_TYPES = new Set(['memory', 'world', 'media'])
+const ALLOWED_TYPES = new Set(KNOWLEDGE_TYPES)
 const ALLOWED_STATUS = new Set(['pending', 'ready', 'error'])
 
 export class ListKnowledgeSourcesUseCase {

@@ -6,7 +6,10 @@
  * - HTTP/DTO knowledge contracts: this file (+ composed response DTOs in shared)
  */
 
-export type KnowledgeType = 'memory' | 'world' | 'media'
+/** Canonical static-knowledge categories shared by HTTP and internal mappings. */
+export const KNOWLEDGE_TYPES = ['memory', 'world', 'media'] as const
+
+export type KnowledgeType = (typeof KNOWLEDGE_TYPES)[number]
 
 export type KnowledgeSourceFormat = 'pdf' | 'text' | 'markdown' | 'url' | 'media'
 

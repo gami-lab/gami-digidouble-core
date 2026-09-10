@@ -3,9 +3,11 @@ import type { JSX, SyntheticEvent } from 'react'
 import type {
   AvatarSummary,
   KnowledgeType,
+  QueryKnowledgeRetrievalRequest,
   RetrievedKnowledgeItemDto,
   RetrievalTraceDto,
 } from '@gami/shared'
+import { KNOWLEDGE_TYPES } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import type { KnowledgeSourceDto, TypedKnowledgeRetrievalDto } from '../api/knowledge'
 import { queryKnowledgeRetrieval } from '../api/knowledge'
@@ -23,9 +25,9 @@ type ResultState =
   | { status: 'error'; message: string }
   | { status: 'ready'; retrieval: TypedKnowledgeRetrievalDto }
 
-type MemoryScope = { sessionId: string; userId: string; conversationId: string }
-
-const KNOWLEDGE_TYPES: KnowledgeType[] = ['memory', 'world', 'media']
+type MemoryScope = Required<
+  Pick<QueryKnowledgeRetrievalRequest, 'sessionId' | 'userId' | 'conversationId'>
+>
 
 export function ScenarioKnowledgeRetrievalTester({
   scenarioId,
