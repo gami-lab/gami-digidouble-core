@@ -340,6 +340,11 @@ source list with safe quarantine classification, reason, and offending key names
 ready retrieval candidate. Console event readers may accept older event encodings only while
 deserializing; current diagnostics never emit a static `memory` bucket or legacy scope-match label.
 
+The final proof also asserts that identical scenario/query/Avatar visibility inputs produce the
+same static candidates for different callers, while conversational working, episodic, and
+long-term fact projections remain user-scoped and non-vectorized. See
+[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
+
 ## 9. What the vector infrastructure currently does not do
 
 The following pieces exist:

@@ -125,6 +125,7 @@ function makeWorkingMemory(): ConversationWorkingMemory {
   }
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('GET /v1/admin/sessions/:sessionId/context', () => {
   it('returns 401 without API key', async () => {
     const response = await makeApp().inject({
@@ -164,6 +165,73 @@ describe('GET /v1/admin/sessions/:sessionId/context', () => {
     const body = response.json<ApiResponse<AdminSessionContextResponse>>()
     assertContextBody(body)
     assertContextResponseRedaction(response.body)
+  })
+
+  it('keeps two users isolated in Avatar and GM context projections', async () => {
+    const sessionA = makeSession()
+    const sessionB = { ...sessionA, sessionId: 'session_2', userId: 'user_2' }
+    const conversationA = makeConversation()
+    const conversationB = {
+      ...conversationA,
+      conversationId: 'conversation_2',
+      sessionId: 'session_2',
+    }
+    const messagesA = makeMessages().map((message) => ({
+      ...message,
+      content: `User A ${message.content}`,
+    }))
+    const messagesB = makeMessages().map((message) => ({
+      ...message,
+      conversationId: 'conversation_2',
+      content: `User B ${message.content}`,
+    }))
+    const workingMemoryA = makeWorkingMemory()
+    const workingMemoryB = {
+      ...workingMemoryA,
+      conversationId: 'conversation_2',
+      sessionId: 'session_2',
+      summary: 'User B working summary',
+    }
+    const app = createServer(TEST_CONFIG, {
+      sessionRepository: new InMemorySessionRepository([sessionA, sessionB]),
+      conversationRepository: new InMemoryConversationRepository([conversationA, conversationB]),
+      avatarRepository: new InMemoryAvatarRepository([makeAvatar()]),
+      scenarioRepository: new InMemoryScenarioRepository([makeScenario()]),
+      messageRepository: new InMemoryMessageRepository([...messagesA, ...messagesB]),
+      conversationWorkingMemoryRepository: new InMemoryConversationWorkingMemoryRepository([
+        workingMemoryA,
+        workingMemoryB,
+      ]),
+    })
+    appsToClose.push(app)
+
+    const responseA = await app.inject({
+      method: 'GET',
+      url: '/v1/admin/sessions/session_1/context',
+      headers: authHeaders(),
+    })
+    const responseB = await app.inject({
+      method: 'GET',
+      url: '/v1/admin/sessions/session_2/context',
+      headers: authHeaders(),
+    })
+
+    const bodyA = responseA.json<ApiResponse<AdminSessionContextResponse>>()
+    const bodyB = responseB.json<ApiResponse<AdminSessionContextResponse>>()
+    expect(bodyA.data?.avatarContext.sections.conversationState.recentExchanges).toEqual([
+      { user: 'User A hello', avatar: 'User A hi' },
+    ])
+    expect(bodyB.data?.avatarContext.sections.conversationState.recentExchanges).toEqual([
+      { user: 'User B hello', avatar: 'User B hi' },
+    ])
+    expect(bodyA.data?.gmContext.sections.conversationState.workingMemory?.summary).toBe(
+      'Working summary',
+    )
+    expect(bodyB.data?.gmContext.sections.conversationState.workingMemory?.summary).toBe(
+      'User B working summary',
+    )
+    expect(JSON.stringify(bodyA)).not.toContain('User B')
+    expect(JSON.stringify(bodyB)).not.toContain('User A')
   })
 })
 

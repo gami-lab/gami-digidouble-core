@@ -286,6 +286,30 @@ describe('TypedRetrievalService', () => {
     expect(listBySourceIds).not.toHaveBeenCalled()
   })
 
+  it('returns identical static candidates for callers with the same scenario and Avatar visibility', async () => {
+    const { service } = buildService(
+      [
+        chunk('shared_avatar_knowledge', 'memory_source', [1, 0]),
+        chunk('shared_world', 'world_source', [0.9, 0.1]),
+      ],
+      embeddingResult([{ source: 'last_user_input', text: 'shared facts' }], [[1, 0]]),
+    )
+
+    const request = {
+      scenarioId: 'scenario_1',
+      query: 'shared facts',
+      activeAvatarId: 'avatar_1',
+    } as const
+    const callerAResult = await service.retrieve(request)
+    const callerBResult = await service.retrieve(request)
+
+    expect(callerBResult).toEqual(callerAResult)
+    expect(callerAResult.avatar_knowledge.map((item) => item.chunkId)).toEqual([
+      'shared_avatar_knowledge',
+    ])
+    expect(callerAResult.world.map((item) => item.chunkId)).toEqual(['shared_world'])
+  })
+
   it('uses explicit unrestricted GM visibility', async () => {
     const { service } = buildService(
       [chunk('world_hidden', 'world_source', [1, 0], { visibleToAvatarIds: ['avatar_2'] })],

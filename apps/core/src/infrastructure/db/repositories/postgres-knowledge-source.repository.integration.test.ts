@@ -6,6 +6,7 @@ import {
   ensureSchemaAlignment,
   truncateAllTables,
 } from '../test-helpers.js'
+import { PostgresKnowledgeChunkRepository } from './postgres-knowledge-chunk.repository.js'
 import { PostgresKnowledgeSourceRepository } from './postgres-knowledge-source.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 
@@ -217,10 +218,12 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — list/statu
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/delete', () => {
   let sql: Sql
   let scenarioRepo: PostgresScenarioRepository
   let sourceRepo: PostgresKnowledgeSourceRepository
+  let chunkRepo: PostgresKnowledgeChunkRepository
   let scenarioId: string
 
   beforeAll(async () => {
@@ -228,6 +231,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
     await ensureSchemaAlignment(sql)
     scenarioRepo = new PostgresScenarioRepository(sql)
     sourceRepo = new PostgresKnowledgeSourceRepository(sql)
+    chunkRepo = new PostgresKnowledgeChunkRepository(sql)
     const scenario = await scenarioRepo.create({ name: 'Knowledge scenario', status: 'active' })
     scenarioId = scenario.scenarioId
   })
@@ -316,5 +320,44 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
 
   it('delete() is a no-op for unknown source ids', async () => {
     await expect(sourceRepo.delete('knowledge_source_missing')).resolves.toBeUndefined()
+  })
+
+  it('cascades scenario deletion to owned static sources and chunks', async () => {
+    const created = await sourceRepo.create({
+      scenarioId,
+      name: 'Scenario-owned knowledge',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/data/world.txt',
+    })
+    await chunkRepo.create({
+      sourceId: created.sourceId,
+      content: 'Scenario-owned chunk',
+      chunkIndex: 0,
+    })
+
+    await scenarioRepo.delete(scenarioId)
+
+    await expect(sourceRepo.findById(created.sourceId)).resolves.toBeNull()
+    await expect(chunkRepo.listBySourceId(created.sourceId)).resolves.toEqual([])
+  })
+
+  it('keeps scenario knowledge when an unrelated user row is deleted', async () => {
+    await sql`INSERT INTO users (id, persona) VALUES ('user_unrelated', '{}'::jsonb)`
+    const created = await sourceRepo.create({
+      scenarioId,
+      name: 'Shared scenario knowledge',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/data/world.txt',
+    })
+
+    await sql`DELETE FROM users WHERE id = 'user_unrelated'`
+
+    await expect(sourceRepo.findById(created.sourceId)).resolves.toMatchObject({
+      sourceId: created.sourceId,
+      scenarioId,
+      knowledgeType: 'world',
+    })
   })
 })

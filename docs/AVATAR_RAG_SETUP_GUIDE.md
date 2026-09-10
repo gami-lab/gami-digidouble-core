@@ -211,6 +211,11 @@ normalizes that input to `avatar_knowledge`, records a bounded deprecation warni
 persists or emits the alias. Remove the alias after all callers and seeds use the canonical value
 and the legacy migration report contains no remaining `memory` rows.
 
+Static Avatar knowledge is shared scenario material, not user-private conversational memory. Do
+not place user, session, or conversation scope keys in source or chunk metadata; those records
+belong to the conversational-memory lifecycle. Final isolation and migration evidence is tracked
+in [EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
+
 ### Shared scenario lore
 
 Use `knowledgeType: "world"` and leave the source visible to all avatars.

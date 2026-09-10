@@ -672,6 +672,7 @@ describe('SendMessageUseCase — memory maintenance', () => {
         trigger: 'post_turn',
       }),
     )
+    expect(memoryMaintenanceExecuteMock.mock.calls[0]?.[0]).not.toHaveProperty('retrievedContext')
   })
 
   it('does not block turn success when memory maintenance fails', async () => {

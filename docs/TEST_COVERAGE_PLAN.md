@@ -285,6 +285,15 @@ rejection, atomic active-pointer visibility, full reindex source enumeration, du
 worker claims, retry/restart recovery, bounded operator diagnostics, and admin route auth,
 validation, not-found, start/status/retry, and opt-in stack-e2e paths.
 
+### EPIC 4.2d Requirements-to-tests matrix
+
+The complete isolation and lifecycle definition of done is tracked in
+[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md). The final slice adds only
+cross-boundary proof that local tests cannot provide: identical static candidates for two callers,
+isolation of working/episodic/fact layers, scenario source/chunk cascade, and safe non-RAG
+maintenance boundaries. Existing prompt, migration, alias, quarantine, route, and async tests are
+referenced there rather than duplicated.
+
 ### EPIC 5.1c Requirements-to-tests matrix
 
 | Requirement                                    | Deterministic evidence                                                                                                                                                      | PostgreSQL/stack evidence                                                                                          |

@@ -225,6 +225,10 @@ Ambiguous records are reported for operator classification/removal only. The com
 plan changes positively classified legacy rows and records ambiguous rows as blocked in
 `knowledge_source_quarantines`; it does not convert any data into conversational memory.
 
+The final cross-boundary proof for these owners, including two-user consistency/isolation and
+close, switch, reset, reindex, and scenario-cascade boundaries, is maintained in
+[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
+
 ### Duplication removed before terminology changes
 
 - `KNOWLEDGE_TYPES` is the shared exhaustive tuple; `KnowledgeType` is derived from it instead of

@@ -121,7 +121,7 @@ Added runtime-state snapshots and SSE event streaming so clients can react to as
 
 #### `5.1 Multi-Layer Knowledge & RAG System v1` ✅ Done
 
-Delivered typed knowledge ingestion, chunking, embeddings, retrieval pipelines, and admin diagnostics for memory, world, and media knowledge.
+Delivered typed knowledge ingestion, chunking, embeddings, retrieval pipelines, and admin diagnostics for avatar, world, and media knowledge.
 
 #### `5.1b Avatar-Scoped Knowledge Visibility` ✅ Done
 
@@ -272,12 +272,14 @@ Separate shared scenario/avatar/world knowledge from user-bound conversational m
 
 **Current state**
 
-Prompts `00-contract-and-data-audit` and `01-static-knowledge-terminology-and-migration` are
+Prompts `00-contract-and-data-audit` through `05-isolation-tests-hardening-and-doc-sync` are
 complete. Canonical static values are `avatar_knowledge | world | media`; the API-only `memory`
 input alias is normalized and observable, never persisted or emitted. Positively classified legacy
-rows can be migrated deterministically, while ambiguous rows are blocked and quarantined. New and
-updated static source/chunk metadata rejects reserved user/session/conversation scope keys.
-Removal of the temporary alias and the later retrieval-scope simplification remain follow-up work.
+rows migrate deterministically, while ambiguous rows are blocked and quarantined. New and updated
+static source/chunk metadata rejects reserved user/session/conversation scope keys. Static
+retrieval is scenario-shared and conversational memory remains lifecycle-bound and non-RAG.
+The complete definition-of-done evidence is maintained in
+[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
 
 ### `3.3 Replay & Recovery Tools`
 

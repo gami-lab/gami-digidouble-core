@@ -147,6 +147,10 @@ Input invariants:
 - Avatar retrieval may be visibility-filtered, but GM retrieval remains unrestricted only through
   the explicit `gm_unrestricted` retrieval mode; a missing active avatar is not itself an
   authorization bypass.
+- The GM projection is tested against the same separation contract as Avatar: conversational
+  memory appears only under `conversationState`, static scenario knowledge appears only under
+  `retrievedContext`, and GM bypass does not remove scenario, type, readiness, or active-corpus
+  filters. See [EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
 
 ## Runtime Output Contract
 

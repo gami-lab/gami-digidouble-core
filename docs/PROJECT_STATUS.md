@@ -148,6 +148,26 @@ and memory-layer surfaces remain the owners. Source presenters recursively redac
 metadata from operator output, and legacy event match-basis names are normalized at the reader/UI
 boundary without restoring static user/session/conversation scope.
 
+#### EPIC 4.2d isolation proof and documentation ✅ Prompt 05 complete
+
+The final requirements-to-tests matrix is checked in at
+`docs/EPIC_4_2D_REQUIREMENTS_MATRIX.md`. Deterministic coverage proves identical static retrieval
+for callers with the same scenario/query/Avatar visibility, isolation of working/episodic/fact
+layers, bounded separated prompt sections, GM bypass limits, alias/quarantine safety, and
+retrieved-context non-contamination. Lifecycle coverage includes close, switch, hydration, reset,
+static reindex, memory maintenance, and the PostgreSQL-gated scenario source/chunk cascade.
+
+EPIC 4.2d is complete. The Phase A API does not expose a whole-user deletion aggregate; its
+implemented user-scoped deletion boundary is the user-fact deletion use case, while session reset
+and scenario deletion retain their documented independent ownership.
+
+Final gates on 2026-09-10 passed for Core (982 tests and coverage), Admin, Console, Web,
+typecheck, lint, formatting, and build. Stack E2E remained skipped by its existing preflight
+because `http://localhost:3000` was unavailable; PostgreSQL integration remained unavailable in
+the environment. The repository-wide test command additionally hit unrelated conversation-
+evaluation viewer tests that require loopback `listen` and received sandbox `EPERM`; the Core
+suite passed independently.
+
 #### EPIC 5.1c embedding, corpus, and safe reindexing ✅ Complete
 
 The application embedding port now owns `EmbeddingProfile`, ordered batch request/result metadata,
@@ -325,10 +345,10 @@ retrieval proof or change production behavior.
 - Use `MEMORY_SYSTEM_SPEC.md` for memory rules.
 - Use `ARCHITECTURE.md` and `PRINCIPLES.md` before changing boundaries or responsibilities.
 
-Documentation review for EPIC 4.2d Prompt 02 covered `ARCHITECTURE.md`, `DATA_MODEL.md`,
-`API_CONTRACT.md`, `MEMORY_SYSTEM_SPEC.md`, `RAG_SYSTEM_IMPLEMENTATION.md`,
-`AVATAR_RAG_SETUP_GUIDE.md`, `EMBEDDING_OPERATIONS.md`, `TEST_STRATEGY.md`,
-`TEST_COVERAGE_PLAN.md`, `CONTEXT_CONTRACT_OWNERSHIP_MAP.md`, and `PROJECT_STATUS.md`; each now
-records the scenario-shared static retrieval boundary and independent conversational-memory
-lifecycle. `VISION.md`, `PRINCIPLES.md`, `TECH_STACK.md`, `GAME_MASTER_CONTRACT.md`, and `EPICS.md`
-were reviewed and remain accurate without text changes.
+Documentation review for EPIC 4.2d Prompt 05 covered `ARCHITECTURE.md`, `DATA_MODEL.md`,
+`API_CONTRACT.md`, `GAME_MASTER_CONTRACT.md`, `MEMORY_SYSTEM_SPEC.md`,
+`RAG_SYSTEM_IMPLEMENTATION.md`, `AVATAR_RAG_SETUP_GUIDE.md`, `TEST_STRATEGY.md`,
+`TEST_COVERAGE_PLAN.md`, `CONTEXT_CONTRACT_OWNERSHIP_MAP.md`, `EPICS.md`, and
+`PROJECT_STATUS.md`; each records the scenario-shared static retrieval boundary and independent
+conversational-memory lifecycle. `VISION.md`, `PRINCIPLES.md`, and `TECH_STACK.md` were reviewed
+and remain accurate without text changes.

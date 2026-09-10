@@ -81,6 +81,7 @@ describe('AvatarMemoryContextAssembler short-term and working memory', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('AvatarMemoryContextAssembler long-term facts', () => {
   it('loads long-term facts in deterministic bounded order', async () => {
     const facts = Array.from({ length: 12 }, (_, index) => ({
@@ -110,6 +111,89 @@ describe('AvatarMemoryContextAssembler long-term facts', () => {
     expect(memory?.longTerm?.facts).toHaveLength(10)
     expect(memory?.longTerm?.facts[0]).toEqual({ category: 'pref', key: 'k11', value: 'v11' })
     expect(memory?.longTerm?.facts[9]).toEqual({ category: 'pref', key: 'k2', value: 'v2' })
+  })
+
+  // eslint-disable-next-line complexity
+  it('keeps recent exchanges, working memory, and facts isolated between users', async () => {
+    const assembler = new AvatarMemoryContextAssembler(
+      new InMemoryMessageRepository([
+        {
+          ...makeMessage('a_user', 'user', 'User A question', '2026-05-06T10:00:00.000Z'),
+          conversationId: 'conversation_a',
+        },
+        {
+          ...makeMessage('a_avatar', 'avatar', 'User A answer', '2026-05-06T10:00:01.000Z'),
+          conversationId: 'conversation_a',
+        },
+        {
+          ...makeMessage('b_user', 'user', 'User B question', '2026-05-06T10:00:02.000Z'),
+          conversationId: 'conversation_b',
+        },
+        {
+          ...makeMessage('b_avatar', 'avatar', 'User B answer', '2026-05-06T10:00:03.000Z'),
+          conversationId: 'conversation_b',
+        },
+      ]),
+      new InMemorySessionMemoryRepository([
+        {
+          sessionId: 'session_a',
+          summary: 'User A working summary',
+          updatedAt: '2026-05-06T10:00:00.000Z',
+        },
+        {
+          sessionId: 'session_b',
+          summary: 'User B working summary',
+          updatedAt: '2026-05-06T10:00:00.000Z',
+        },
+      ]),
+      undefined,
+      new InMemoryUserMemoryFactRepository([
+        {
+          id: 'fact_a',
+          userId: 'user_a',
+          category: 'preference',
+          key: 'style',
+          value: 'User A preference',
+          createdAt: '2026-05-06T10:00:00.000Z',
+          updatedAt: '2026-05-06T10:00:00.000Z',
+        },
+        {
+          id: 'fact_b',
+          userId: 'user_b',
+          category: 'preference',
+          key: 'style',
+          value: 'User B preference',
+          createdAt: '2026-05-06T10:00:00.000Z',
+          updatedAt: '2026-05-06T10:00:00.000Z',
+        },
+      ]),
+    )
+
+    const userA = await assembler.build({
+      conversationId: 'conversation_a',
+      sessionId: 'session_a',
+      avatarId: 'avatar_1',
+      userId: 'user_a',
+    })
+    const userB = await assembler.build({
+      conversationId: 'conversation_b',
+      sessionId: 'session_b',
+      avatarId: 'avatar_1',
+      userId: 'user_b',
+    })
+
+    expect(userA?.shortTerm?.recentExchanges).toEqual([
+      { user: 'User A question', avatar: 'User A answer' },
+    ])
+    expect(userB?.shortTerm?.recentExchanges).toEqual([
+      { user: 'User B question', avatar: 'User B answer' },
+    ])
+    expect(userA?.working?.session?.summary).toBe('User A working summary')
+    expect(userB?.working?.session?.summary).toBe('User B working summary')
+    expect(userA?.longTerm?.facts[0]?.value).toBe('User A preference')
+    expect(userB?.longTerm?.facts[0]?.value).toBe('User B preference')
+    expect(JSON.stringify(userA)).not.toContain('User B')
+    expect(JSON.stringify(userB)).not.toContain('User A')
   })
 })
 

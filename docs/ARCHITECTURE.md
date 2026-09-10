@@ -389,6 +389,15 @@ Contains:
 - conversational memory remains owned by message, working-memory, episodic-memory, and user-fact repositories; reset and maintenance do not touch knowledge rows
 - prompt assembly maps recent exchanges, working memory, episodic memories, and user facts only into `Conversation State`; static `avatar_knowledge`, `world`, and `media` items retain source/chunk provenance under `Retrieved Context`
 
+EPIC 4.2d closes the ownership boundary between these flows: the Knowledge module owns only
+scenario-shared static sources, chunks, corpus generations, and retrieval traces, while the
+conversation and memory modules own messages, working memory, episodic memories, and user facts.
+Avatar assembly receives the Avatar-filtered static result; asynchronous GM assembly receives its
+own explicit unrestricted static result. Neither flow supplies static retrieval rows to memory
+maintenance or fact extraction, and no reset, user-memory operation, or reindex operation crosses
+the other subsystem's repositories. The release evidence is tracked in
+[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
+
 ### Embedding contract boundary (EPIC 5.1c foundation)
 
 Embedding contracts are separate from `ILlmAdapter` and chat-role model selection. The canonical

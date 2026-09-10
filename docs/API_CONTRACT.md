@@ -239,7 +239,9 @@ scenario ownership, and Avatar visibility policy.
 
 Typed retrieval, context snapshots, recorded retrieval sections, and diagnostic `perType` maps
 use `avatar_knowledge` as the canonical object key. Conversational memory DTOs retain their
-separate memory lifecycle names.
+separate memory lifecycle names. Cross-user consistency, private-memory isolation, and lifecycle
+boundary evidence are tracked in
+[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
 
 `TriggerIngestionRequest` accepts an optional `chunkSize` integer from 100 to 10000. It controls
 the target character size for that asynchronous ingestion job, is persisted for retries, and keeps

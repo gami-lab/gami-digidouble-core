@@ -353,6 +353,12 @@ The embedding lifecycle applies to shared knowledge only. Session memory, episod
 user facts remain non-vectorized conversation state and are not included in profile changes or
 full knowledge reindex operations.
 
+Static retrieved documents are not memory inputs merely because they were rendered in an Avatar or
+GM prompt. Fact extraction receives messages and canonical compacted memory, plus only explicitly
+verified application context; it never receives a retrieved-context section implicitly. The
+cross-user isolation and lifecycle proof is maintained in
+[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
+
 - perfect transcript fidelity
 - infinite recall
 - emotional simulation as memory state

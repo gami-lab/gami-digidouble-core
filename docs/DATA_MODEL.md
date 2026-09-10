@@ -130,6 +130,12 @@ maintenance cannot mutate knowledge sources, chunks, embeddings, or corpus gener
 deletion owns scenario knowledge removal through the existing scenario foreign-key cascade; static
 reindex owns only knowledge corpus rows.
 
+The final EPIC 4.2d boundary proof is recorded in
+[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md): scenario deletion cascades
+owned sources/chunks, while conversation/session memory remains outside that cascade. The full
+user-deletion aggregate is not exposed by the current Phase A API; existing user-scoped fact
+deletion and session reset paths are the implemented ownership boundaries.
+
 ## Relationships
 
 - `users` -> `sessions` (1:N)

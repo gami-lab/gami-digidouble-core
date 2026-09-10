@@ -125,6 +125,11 @@ Required tests:
   knowledge changes, conversation close creates episodic memory without RAG rows, scenario deletion
   owns knowledge cascade, reindex does not alter memory rows, and memory maintenance does not alter
   chunks, embeddings, source status, or corpus generation.
+- **EPIC 4.2d isolation proof:** verify identical static retrieval for different callers with the
+  same scenario/query/Avatar visibility, isolation of working/episodic/fact layers, separated
+  prompt sections and provenance, deterministic alias/quarantine behavior, and absence of
+  retrieved-context contamination in fact extraction. The complete matrix is
+  [EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
 - **EPIC 5.1d quality proof:** use exact-vector semantic fixtures for multilingual paraphrases and
   unrelated candidates, then verify the application boundary, filtered repository, runtime failure
   isolation, and production composition. The complete requirements-to-tests matrix is
