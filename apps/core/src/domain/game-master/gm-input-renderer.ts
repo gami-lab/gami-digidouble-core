@@ -235,11 +235,11 @@ function renderRetrievedContext(rag: GameMasterInput['context']['rag']): string[
     return []
   }
 
-  const memoryLines = renderRetrievedCategory('Memory', rag.memory)
+  const avatarKnowledgeLines = renderRetrievedCategory('Avatar knowledge', rag.avatar_knowledge)
   const worldLines = renderRetrievedCategory('World', rag.world)
   const mediaLines = renderRetrievedCategory('Media', rag.media)
 
-  const lines = [...memoryLines, ...worldLines, ...mediaLines]
+  const lines = [...avatarKnowledgeLines, ...worldLines, ...mediaLines]
   return lines.length > 0 ? ['### Retrieved Context', ...lines] : []
 }
 

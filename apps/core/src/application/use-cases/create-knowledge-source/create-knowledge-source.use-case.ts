@@ -5,6 +5,7 @@ import {
   normalizeKnowledgeVisibilitySelection,
 } from '../../../domain/knowledge/knowledge-visibility.js'
 import { toKnowledgeSourceDto } from '../../../domain/knowledge/knowledge-source-presenter.js'
+import { findReservedStaticScopeKeys } from '../../../domain/knowledge/legacy-memory-audit.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type {
@@ -24,6 +25,7 @@ export class CreateKnowledgeSourceUseCase {
 
   async execute(input: CreateKnowledgeSourceInput): Promise<CreateKnowledgeSourceOutput> {
     const normalized = normalizeCreateKnowledgeSourceInput(input)
+    assertStaticMetadataAllowed(input.metadata)
 
     const source = await this.sourceRepository.create({
       scenarioId: normalized.scenarioId,
@@ -41,6 +43,16 @@ export class CreateKnowledgeSourceUseCase {
     })
 
     return presentCreateKnowledgeSourceOutput(source)
+  }
+}
+
+function assertStaticMetadataAllowed(metadata: Record<string, unknown> | undefined): void {
+  const reservedKeys = findReservedStaticScopeKeys(metadata)
+  if (reservedKeys.length > 0) {
+    throw new DomainError(
+      'VALIDATION_ERROR',
+      `Static knowledge metadata cannot contain reserved scope keys: ${reservedKeys.join(', ')}.`,
+    )
   }
 }
 

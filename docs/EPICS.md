@@ -272,12 +272,12 @@ Separate shared scenario/avatar/world knowledge from user-bound conversational m
 
 **Current state**
 
-Prompt `00-contract-and-data-audit` is complete. Canonical owners, mapping boundaries, duplicated
-category definitions, and conversational-memory persistence contracts are recorded in
-`docs/CONTEXT_CONTRACT_OWNERSHIP_MAP.md`. The checked-in dry-run audit classifies legacy static
-`memory` sources without mutation and blocks reserved user/session/conversation scope metadata from
-being treated as safe by inference. Terminology renaming, migration, retrieval-scope removal, and
-runtime/admin projection changes remain open follow-up slices.
+Prompts `00-contract-and-data-audit` and `01-static-knowledge-terminology-and-migration` are
+complete. Canonical static values are `avatar_knowledge | world | media`; the API-only `memory`
+input alias is normalized and observable, never persisted or emitted. Positively classified legacy
+rows can be migrated deterministically, while ambiguous rows are blocked and quarantined. New and
+updated static source/chunk metadata rejects reserved user/session/conversation scope keys.
+Removal of the temporary alias and the later retrieval-scope simplification remain follow-up work.
 
 ### `3.3 Replay & Recovery Tools`
 

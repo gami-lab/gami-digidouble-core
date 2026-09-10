@@ -271,7 +271,7 @@ function RetrievalResult({
           .join(' · ') ?? result.retrieval.trace.query}
       </p>
       <p className="admin-muted">{formatRetrievalDiagnostics(result.retrieval.trace)}</p>
-      {result.retrieval.memory.length === 0 &&
+      {result.retrieval.avatar_knowledge.length === 0 &&
       result.retrieval.world.length === 0 &&
       result.retrieval.media.length === 0 ? (
         <p className="admin-muted">

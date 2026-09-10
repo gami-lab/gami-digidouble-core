@@ -9,6 +9,7 @@ import {
   MAX_VECTOR_SEARCH_CANDIDATES,
 } from '../../application/ports/IKnowledgeChunkRepository.js'
 import type { KnowledgeChunk, KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
+import { findReservedStaticScopeKeys } from '../../domain/knowledge/legacy-memory-audit.js'
 import {
   buildKnowledgeVisibilitySelection,
   isKnowledgeVisibleToAvatar,
@@ -27,6 +28,15 @@ function normalizeVisibleToAvatarIds(
   return normalized.length > 0 ? normalized : undefined
 }
 
+function assertChunkMetadataAllowed(metadata: Record<string, unknown> | undefined): void {
+  const reservedKeys = findReservedStaticScopeKeys(metadata)
+  if (reservedKeys.length > 0) {
+    throw new Error(
+      `Static knowledge chunk metadata cannot contain reserved scope keys: ${reservedKeys.join(', ')}.`,
+    )
+  }
+}
+
 export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkRepository {
   private readonly chunks: Map<string, KnowledgeChunk>
   private activeCorpus: ActiveCorpus | null = null
@@ -42,6 +52,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
   }
 
   create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk> {
+    assertChunkMetadataAllowed(params.metadata)
     const visibleToAvatarIds = normalizeVisibleToAvatarIds(params.visibleToAvatarIds)
     const chunk: KnowledgeChunk = {
       chunkId: `knowledge_chunk_${crypto.randomUUID()}`,
@@ -102,7 +113,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
 
     return [...this.chunks.values()]
       .filter((chunk) => isEligibleVectorChunk(chunk, request, eligibleSourceIds, sourceById))
-      .filter((chunk) => memoryMetadataMatches(chunk, request))
+      .filter((chunk) => staticScopeMetadataMatches(chunk, request))
       .filter((chunk) => isVisibleVectorChunk(chunk, request, sourceById))
       .map((chunk) => {
         const distance = cosineDistance(
@@ -195,8 +206,8 @@ function validateVectorSearchRequest(request: VectorSearchRequest): void {
   }
 }
 
-function memoryMetadataMatches(chunk: KnowledgeChunk, request: VectorSearchRequest): boolean {
-  if (request.knowledgeType !== 'memory') return true
+function staticScopeMetadataMatches(chunk: KnowledgeChunk, request: VectorSearchRequest): boolean {
+  if (request.knowledgeType !== 'avatar_knowledge') return true
   return (
     metadataMatchesWhenPresent(chunk.metadata, 'userId', request.userId) &&
     metadataMatchesWhenPresent(chunk.metadata, 'sessionId', request.sessionId) &&

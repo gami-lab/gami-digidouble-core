@@ -140,13 +140,13 @@ beforeEach(() => {
   appendEventMock.mockResolvedValue(undefined)
   findUserByIdMock.mockResolvedValue(null)
   retrieveTypedContextMock.mockResolvedValue({
-    memory: [],
+    avatar_knowledge: [],
     world: [],
     media: [],
     trace: {
       query: 'q',
       perType: {
-        memory: { sourceIds: [], selectedChunkIds: [] },
+        avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
         world: { sourceIds: [], selectedChunkIds: [] },
         media: { sourceIds: [], selectedChunkIds: [] },
       },

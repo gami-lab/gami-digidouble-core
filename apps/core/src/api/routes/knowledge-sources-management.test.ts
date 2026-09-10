@@ -37,11 +37,53 @@ function makeApp({
   })
 }
 
+describe('POST /v1/knowledge-sources — static knowledge contract', () => {
+  it('normalizes the legacy memory input alias and emits only avatar_knowledge', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/knowledge-sources',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        scenarioId: 'scenario_1',
+        name: 'Clara lore',
+        knowledgeType: 'memory',
+        format: 'text',
+        uriOrPath: 'clara.md',
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body = response.json<ApiResponse<{ source: { knowledgeType: string } }>>()
+    expect(body.data?.source.knowledgeType).toBe('avatar_knowledge')
+    expect(JSON.stringify(body)).not.toContain('"memory"')
+  })
+
+  it('rejects reserved scope metadata recursively with a standard validation error', async () => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/knowledge-sources',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        scenarioId: 'scenario_1',
+        name: 'Invalid lore',
+        knowledgeType: 'avatar_knowledge',
+        format: 'text',
+        uriOrPath: 'invalid.md',
+        metadata: { ingestion: [{ nested: { conversationId: 'private' } }] },
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+    expect(body.error?.message).toContain('conversationId')
+    expect(body.error?.message).not.toContain('private')
+  })
+})
+
 describe('PATCH /v1/knowledge-sources/:sourceId — success', () => {
   it('updates only the provided fields', async () => {
-    const app = makeApp({ sources: [makeSource()] })
-
-    const response = await app.inject({
+    const response = await makeApp({ sources: [makeSource()] }).inject({
       method: 'PATCH',
       url: '/v1/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
@@ -224,6 +266,22 @@ describe('PATCH /v1/knowledge-sources/:sourceId — validation', () => {
     expect(response.statusCode).toBe(404)
     const body = response.json<ApiResponse<null>>()
     expect(body.error?.code).toBe('NOT_FOUND')
+  })
+
+  it('rejects reserved scope metadata on update', async () => {
+    const app = makeApp({ sources: [makeSource()] })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/v1/knowledge-sources/knowledge_source_1',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { metadata: { nested: { sessionId: 'private' } } },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
+    expect(body.error?.message).not.toContain('private')
   })
 })
 

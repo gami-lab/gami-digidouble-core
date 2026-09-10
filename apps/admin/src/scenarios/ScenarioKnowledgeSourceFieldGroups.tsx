@@ -62,7 +62,7 @@ export function KnowledgeSourceIdentityFields({
           disabled={saving || disableKnowledgeType}
         >
           <option value="world">world</option>
-          <option value="memory">memory</option>
+          <option value="avatar_knowledge">avatar knowledge</option>
           <option value="media">media</option>
         </select>
       </div>

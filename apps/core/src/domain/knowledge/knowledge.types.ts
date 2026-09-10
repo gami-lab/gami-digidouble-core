@@ -193,7 +193,7 @@ export interface VectorRetrievalCandidate {
 }
 
 export interface TypedRetrievalResult {
-  memory: RetrievedKnowledgeItem[]
+  avatar_knowledge: RetrievedKnowledgeItem[]
   world: RetrievedKnowledgeItem[]
   media: RetrievedKnowledgeItem[]
   trace: RetrievalTrace

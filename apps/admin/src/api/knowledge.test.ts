@@ -202,7 +202,7 @@ describe('knowledge ingestion inspection and retrieval API wrappers', () => {
 
   it('queries typed knowledge retrieval', async () => {
     const retrieval = {
-      memory: [],
+      avatar_knowledge: [],
       world: [],
       media: [],
       trace: { query: 'hello', perType: {} },

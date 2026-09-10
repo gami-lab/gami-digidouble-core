@@ -2,7 +2,7 @@
 scenarioId: murder-party-villa-miralac
 avatarKey: margot
 avatarName: Margot Vale
-knowledgeType: memory
+knowledgeType: avatar_knowledge
 visibleToAvatarIds: ['margot']
 ---
 

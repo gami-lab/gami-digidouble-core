@@ -121,13 +121,13 @@ describe('knowledge API wrappers - retrieval operations', () => {
   it('queries typed retrieval diagnostics through admin endpoint', async () => {
     const payload: QueryKnowledgeRetrievalResponse = {
       retrieval: {
-        memory: [],
+        avatar_knowledge: [],
         world: [],
         media: [],
         trace: {
           query: 'q',
           perType: {
-            memory: { sourceIds: [], selectedChunkIds: [] },
+            avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
             world: { sourceIds: [], selectedChunkIds: [] },
             media: { sourceIds: [], selectedChunkIds: [] },
           },

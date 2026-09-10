@@ -2,7 +2,7 @@
 scenarioId: murder-party-villa-miralac
 avatarKey: elias
 avatarName: Dr. Elias Moreau
-knowledgeType: memory
+knowledgeType: avatar_knowledge
 visibleToAvatarIds: ['elias']
 ---
 

@@ -132,7 +132,7 @@ function requireArgument(args: readonly string[], index: number, flag: string): 
   return value
 }
 
-async function loadFromInput(inputPath: string): Promise<LegacyMemoryAuditSource[]> {
+export async function loadFromInput(inputPath: string): Promise<LegacyMemoryAuditSource[]> {
   const contents = await readFile(inputPath, 'utf8')
   const parsed: unknown = JSON.parse(contents)
   if (!isRecord(parsed) || !Array.isArray(parsed.sources)) {
@@ -144,7 +144,7 @@ async function loadFromInput(inputPath: string): Promise<LegacyMemoryAuditSource
   return parsed.sources
 }
 
-async function loadFromDatabase(
+export async function loadFromDatabase(
   databaseUrl: string | undefined,
 ): Promise<LegacyMemoryAuditSource[]> {
   if (databaseUrl === undefined || databaseUrl.trim().length === 0) {
@@ -212,8 +212,10 @@ function isAuditChunk(value: unknown): value is LegacyMemoryAuditChunk {
   return isRecord(value) && typeof value['chunkId'] === 'string'
 }
 
-void main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : 'Legacy knowledge audit failed.'
-  process.stderr.write(`${message}\n`)
-  process.exitCode = 1
-})
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  void main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : 'Legacy knowledge audit failed.'
+    process.stderr.write(`${message}\n`)
+    process.exitCode = 1
+  })
+}

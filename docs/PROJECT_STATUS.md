@@ -88,7 +88,7 @@ The platform is now a working headless conversational runtime with:
 
 ### Knowledge And Context
 
-- Knowledge sources support typed ingestion (`memory`, `world`, `media`) with ingestion jobs.
+- Knowledge sources support typed ingestion (`avatar_knowledge`, `world`, `media`) with ingestion jobs.
 - Text ingestion keeps complete paragraphs together, packs them toward the target chunk size, and
   carries the active Markdown header path into every relevant chunk before embedding.
 - Avatar-scoped visibility filtering is enforced before avatar context assembly.
@@ -97,20 +97,22 @@ The platform is now a working headless conversational runtime with:
 - Context Engine assembles bounded Avatar and GM projections with deterministic precedence and trace metadata.
 - Avatar prompt assembly consumes structured runtime sections, including prepared avatar traits when available.
 
-#### EPIC 4.2d contract ownership audit ✅ Prompt 00 complete
+#### EPIC 4.2d static terminology and migration ✅ Prompt 01 complete
 
 The static-knowledge/conversational-memory ownership baseline is now recorded in
-`docs/CONTEXT_CONTRACT_OWNERSHIP_MAP.md`. `@gami/shared` owns the current HTTP `KnowledgeType`
-tuple and DTOs; Core domain owns internal knowledge entities and conversational-memory entities;
-explicit application/API mappers connect those shapes. The shared `KNOWLEDGE_TYPES` tuple now
-removes repeated local category lists without changing the current `memory | world | media`
-terminology.
+`docs/CONTEXT_CONTRACT_OWNERSHIP_MAP.md`. `@gami/shared` owns the HTTP `KnowledgeType` tuple and
+DTOs; Core domain owns internal knowledge entities and conversational-memory entities; explicit
+application/API mappers connect those shapes. Canonical static values are now
+`avatar_knowledge | world | media`. The temporary `memory` compatibility value is accepted only
+as an API input and is normalized before application/domain code.
 
 `pnpm audit:legacy-memory -- --dry-run` provides a repeatable non-mutating audit from
 either a metadata-only export or PostgreSQL. It reports safe IDs, visibility, recursive reserved
-scope keys, and conservative classifications for legacy static `memory` sources. It never emits
-source content, vectors, metadata values, or user facts. No legacy data is renamed, migrated, or
-converted in this slice; the remaining 4.2d terminology and lifecycle work stays open.
+scope keys, and conservative classifications for legacy static `memory` sources. The companion
+`pnpm migrate:legacy-memory -- --dry-run` command produces a deterministic migration plan; apply
+mode changes only positively classified rows and blocks ambiguous rows in the quarantine table.
+Neither command emits source content, vectors, metadata values, or user facts. New and updated
+static source/chunk metadata rejects reserved user/session/conversation scope keys.
 
 #### EPIC 5.1c embedding, corpus, and safe reindexing ✅ Complete
 

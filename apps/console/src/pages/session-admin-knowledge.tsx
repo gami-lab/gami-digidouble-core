@@ -128,7 +128,7 @@ function KnowledgeInputFields(props: KnowledgeInputFieldsProps): JSX.Element {
         disabled={props.disabled}
         style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
       >
-        <option value="memory">memory</option>
+        <option value="avatar_knowledge">avatar knowledge</option>
         <option value="world">world</option>
         <option value="media">media</option>
       </select>
@@ -289,9 +289,11 @@ export async function inspectRetrieval(
       limitPerType: 3,
     }
     const response = await queryKnowledgeRetrieval(request)
-    const { memory, world, media } = response.retrieval
+    const { avatar_knowledge, world, media } = response.retrieval
     const trace = response.retrieval.trace
-    const memoryScope = firstVisibilityLabel(memory.map((item) => item.visibleToAvatarIds))
+    const avatarKnowledgeScope = firstVisibilityLabel(
+      avatar_knowledge.map((item) => item.visibleToAvatarIds),
+    )
     const worldScope = firstVisibilityLabel(world.map((item) => item.visibleToAvatarIds))
     const mediaScope = firstVisibilityLabel(media.map((item) => item.visibleToAvatarIds))
     const worldVisibility = response.retrieval.trace.perType.world.visibility
@@ -311,7 +313,7 @@ export async function inspectRetrieval(
       ...(trace.failure !== undefined ? [`failure=${trace.failure.code}`] : []),
     ].join(' · ')
     setSummary(
-      `retrieval: memory=${String(memory.length)}(${memoryScope}), world=${String(world.length)}(${worldScope}), media=${String(media.length)}(${mediaScope}) · ${diagnostics}.`,
+      `retrieval: avatar_knowledge=${String(avatar_knowledge.length)}(${avatarKnowledgeScope}), world=${String(world.length)}(${worldScope}), media=${String(media.length)}(${mediaScope}) · ${diagnostics}.`,
     )
   } catch (error) {
     setError(formatApiError(error, 'Failed to inspect retrieval'))

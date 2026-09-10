@@ -11,6 +11,7 @@
     "seed:ai-guided-discovery": "tsx src/seed/ai-guided-discovery.ts",
     "seed:murder-party:api": "tsx src/seed/murder-party/setup-via-api.ts",
     "audit:legacy-memory": "tsx ../../scripts/audit-legacy-knowledge-memory.ts",
+    "migrate:legacy-memory": "tsx ../../scripts/migrate-legacy-knowledge-memory.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vitest run --config vitest.config.ts",

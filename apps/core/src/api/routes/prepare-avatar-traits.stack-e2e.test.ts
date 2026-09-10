@@ -127,7 +127,7 @@ async function createScenarioAndAvatar(): Promise<{ scenarioId: string; avatarId
 async function createKnowledgeSource(args: {
   scenarioId: string
   name: string
-  knowledgeType: 'memory' | 'world'
+  knowledgeType: 'avatar_knowledge' | 'world'
   inlineText: string
 }): Promise<void> {
   const createSourceRes = await fetch(`${APP_URL}/v1/knowledge-sources`, {
@@ -312,7 +312,7 @@ describe.skipIf(isNullProvider)(
         await createKnowledgeSource({
           scenarioId,
           name: 'Harbor memory',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           inlineText:
             'Mara keeps a handwritten ledger of which local families need medicine first when storms close the harbor.',
         })

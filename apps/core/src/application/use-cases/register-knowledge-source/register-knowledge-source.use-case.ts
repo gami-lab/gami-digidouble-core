@@ -31,7 +31,7 @@ export class RegisterKnowledgeSourceUseCase {
     if (!ALLOWED_TYPES.has(input.knowledgeType)) {
       throw new DomainError(
         'VALIDATION_ERROR',
-        'knowledgeType must be one of: memory, world, media.',
+        'knowledgeType must be one of: avatar_knowledge, world, media.',
       )
     }
     if (!ALLOWED_FORMATS.has(input.format)) {

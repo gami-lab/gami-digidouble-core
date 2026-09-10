@@ -95,10 +95,10 @@ export function classifyLegacyMemorySources(
 }
 
 function classifyLegacyMemorySource(source: LegacyMemoryAuditSource): LegacyMemoryAuditRecord {
-  const sourceScopeKeys = collectReservedScopeKeys(source.metadata)
+  const sourceScopeKeys = findReservedStaticScopeKeys(source.metadata)
   const chunkScopeKeys = new Map<string, string[]>()
   for (const chunk of source.chunks) {
-    const keys = collectReservedScopeKeys(chunk.metadata)
+    const keys = findReservedStaticScopeKeys(chunk.metadata)
     if (keys.length > 0) chunkScopeKeys.set(chunk.chunkId, keys)
   }
 
@@ -198,7 +198,7 @@ function auditRecord(
   }
 }
 
-function collectReservedScopeKeys(value: unknown): string[] {
+export function findReservedStaticScopeKeys(value: unknown): string[] {
   const found = new Set<string>()
   const visited = new WeakSet()
 

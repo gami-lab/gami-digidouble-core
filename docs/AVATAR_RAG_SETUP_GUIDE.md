@@ -24,7 +24,7 @@ The API accepts a knowledge source record with these key fields:
 
 - `scenarioId`
 - `name`
-- `knowledgeType` (`memory`, `world`, or `media`)
+- `knowledgeType` (`avatar_knowledge`, `world`, or `media`)
 - `format` (`pdf`, `text`, `markdown`, `url`, or `media`)
 - `uriOrPath`
 - optional `metadata`
@@ -44,7 +44,7 @@ The API accepts a knowledge source record with these key fields:
 
 Use the type that matches the role of the content:
 
-- `memory`: avatar-specific facts, preferences, backstory details, recurring facts, or private knowledge for one avatar
+- `avatar_knowledge`: static Avatar-relevant facts, preferences, backstory details, or private knowledge for one Avatar
 - `world`: scenario lore, setting rules, canon facts, and shared world-building
 - `media`: media-related descriptions, references, or metadata for assets that should inform responses
 
@@ -101,7 +101,7 @@ curl -X POST "$BASE_URL/v1/knowledge-sources" \
   -d '{
     "scenarioId": "scenario_01jwxxxxxx",
     "name": "Theo private notes",
-    "knowledgeType": "memory",
+    "knowledgeType": "avatar_knowledge",
     "format": "markdown",
     "uriOrPath": "/data/avatars/theo-notes.md",
     "metadata": {
@@ -168,7 +168,7 @@ curl -X POST "$BASE_URL/v1/admin/knowledge/retrieval" \
 
 The response is typed by layer:
 
-- `memory`
+- `avatar_knowledge`
 - `world`
 - `media`
 
@@ -190,13 +190,18 @@ At runtime, the active avatar in the session determines which chunks are conside
 
 ### Avatar-private notes
 
-Use `knowledgeType: "memory"` and scope the source to one avatar.
+Use `knowledgeType: "avatar_knowledge"` and scope the source to one avatar.
 
 Example use cases:
 
 - private backstory
 - recurring preferences
 - avatar-specific facts that should not be shared with others
+
+For a temporary migration period, create/upload/list inputs may also accept `memory`. The API
+normalizes that input to `avatar_knowledge`, records a bounded deprecation warning, and never
+persists or emits the alias. Remove the alias after all callers and seeds use the canonical value
+and the legacy migration report contains no remaining `memory` rows.
 
 ### Shared scenario lore
 

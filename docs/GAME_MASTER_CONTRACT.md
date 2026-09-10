@@ -98,7 +98,7 @@ type GameMasterInput = {
       }>
     }
     rag?: {
-      memory?: Array<{ sourceId: string; excerpt: string }>
+      avatar_knowledge?: Array<{ sourceId: string; excerpt: string }>
       world?: Array<{ sourceId: string; excerpt: string }>
       media?: Array<{ sourceId: string; excerpt: string }>
     }

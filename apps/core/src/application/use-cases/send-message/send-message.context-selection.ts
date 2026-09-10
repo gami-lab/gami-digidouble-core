@@ -7,22 +7,22 @@ export type ContextSelectionMetadata = {
   longTermFactCount: number
   retrieval?: {
     selectedForAssemblyCounts: {
-      memory: number
+      avatar_knowledge: number
       world: number
       media: number
     }
     includedCounts: {
-      memory: number
+      avatar_knowledge: number
       world: number
       media: number
     }
     omittedByAssemblyCounts: {
-      memory: number
+      avatar_knowledge: number
       world: number
       media: number
     }
     excludedByVisibilityCounts?: {
-      memory: number
+      avatar_knowledge: number
       world: number
       media: number
     }
@@ -44,7 +44,10 @@ export function toContextSelectionMetadata(
   const selected = assembledContext.trace.selectedInputs
   const includedCounts = toIncludedRetrievalCounts(assembledContext)
   const omittedByAssemblyCounts = {
-    memory: Math.max(0, selected.retrievalCounts.memory - includedCounts.memory),
+    avatar_knowledge: Math.max(
+      0,
+      selected.retrievalCounts.avatar_knowledge - includedCounts.avatar_knowledge,
+    ),
     world: Math.max(0, selected.retrievalCounts.world - includedCounts.world),
     media: Math.max(0, selected.retrievalCounts.media - includedCounts.media),
   }
@@ -75,14 +78,14 @@ export function toContextSelectionMetadata(
 }
 
 function toIncludedRetrievalCounts(assembledContext: ContextEngineOutput): {
-  memory: number
+  avatar_knowledge: number
   world: number
   media: number
 } {
   const typedSections = assembledContext.avatar.sections.retrievedContext?.typedSections
   if (typedSections !== undefined) {
     return {
-      memory: typedSections.memory.length,
+      avatar_knowledge: typedSections.avatar_knowledge.length,
       world: typedSections.world.length,
       media: typedSections.media.length,
     }
@@ -94,6 +97,6 @@ function toIncludedRetrievalCounts(assembledContext: ContextEngineOutput): {
       counts[item.knowledgeType] += 1
       return counts
     },
-    { memory: 0, world: 0, media: 0 },
+    { avatar_knowledge: 0, world: 0, media: 0 },
   )
 }

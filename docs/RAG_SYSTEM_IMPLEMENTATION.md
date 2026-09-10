@@ -12,7 +12,7 @@ with an independent profile and no hash-vector fallback. The default profile is
 Runtime retrieval currently:
 
 - loads every chunk belonging to the eligible sources;
-- filters those chunks by type, visibility, and memory scope;
+- filters those chunks by type, visibility, and legacy static-scope compatibility rules;
 - scores text with token overlap and a few metadata boosts;
 - selects the highest-scoring chunks deterministically.
 
@@ -32,7 +32,7 @@ Avatar turn
   -> build query variants from turn context
   -> find ready sources by scenario and knowledge type
   -> load all chunks for those sources
-  -> visibility and memory-scope filtering
+  -> visibility and legacy static-scope compatibility filtering
   -> lexical token-overlap scoring
   -> deterministic per-type selection
   -> context-engine selection and token-budget filtering
@@ -59,13 +59,20 @@ A knowledge source is registered with:
 
 - `scenarioId`
 - `name`
-- `knowledgeType`: `memory`, `world`, or `media`
+- `knowledgeType`: `avatar_knowledge`, `world`, or `media`
 - `format`: `pdf`, `text`, `markdown`, `url`, or `media`
 - `uriOrPath`
 - optional `metadata`
 - optional visibility policy and avatar IDs
 
 The HTTP contract is in [knowledge-contract-types.ts](../packages/shared/src/knowledge-contract-types.ts#L9-L42), and the route validation is in [knowledge.ts](../apps/core/src/api/routes/knowledge.ts#L77-L94).
+
+`avatar_knowledge` is static source material relevant to an Avatar, including avatar-specific
+backstory that is visibility-scoped to that Avatar. It is not conversational user memory. New or
+updated source/chunk metadata cannot contain `userId`, `sessionId`, or `conversationId`,
+including at nested keys; the API rejects those keys before persistence. Legacy `memory` sources
+are audited and either migrated to a positive static classification or blocked and quarantined when
+ambiguous. They are never converted into conversational-memory records.
 
 The source content is loaded as follows in [file-url-knowledge-source-content-loader.ts](../apps/core/src/infrastructure/knowledge/file-url-knowledge-source-content-loader.ts):
 
@@ -216,14 +223,14 @@ The admin retrieval endpoint accepts an explicit `scenarioId` and `query`, plus 
 
 ## 5. Which chunks are considered
 
-The service runs the same process separately for each type: `memory`, `world`, and `media`. It does not mix the source types before filtering. The top-level implementation is [typed-retrieval.service.ts](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L36-L69).
+The service runs the same process separately for each type: `avatar_knowledge`, `world`, and `media`. It does not mix the source types before filtering. The top-level implementation is [typed-retrieval.service.ts](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L36-L69).
 
 For one type, the process is:
 
 1. List sources for the requested scenario, requested `knowledgeType`, and `status: ready`.
 2. List all chunks for those source IDs.
 3. Apply visibility filtering.
-4. Apply additional memory-scope filtering for `memory` chunks.
+4. Apply additional legacy static-scope compatibility filtering for `avatar_knowledge` chunks.
 5. Score every remaining chunk against every query variant.
 6. Discard entries with a score of `0`.
 7. Sort deterministically.
@@ -243,9 +250,13 @@ The effective visibility is taken from the source policy and the chunk/source av
 
 The implementation is in [knowledge-visibility.ts](../apps/core/src/domain/knowledge/knowledge-visibility.ts#L67-L86). The retrieval trace reports `consideredChunkCount`, `excludedChunkCount`, and `activeAvatarId`.
 
-### Memory scope filtering
+### Static scope compatibility filtering
 
-Only `memory` chunks receive the extra scope check. If a memory chunk has `userId`, `sessionId`, or `conversationId` metadata, any corresponding input value must match it. If a particular key is absent from the chunk metadata, that key does not exclude the chunk. If the chunk has none of those three metadata keys, it remains eligible.
+Canonical static sources use `avatar_knowledge`, `world`, or `media`. New or updated source
+and chunk metadata cannot contain `userId`, `sessionId`, or `conversationId`. The current
+retrieval filter retains legacy compatibility for already stored `avatar_knowledge` rows: when
+an older row contains a reserved key, any corresponding request value must match it. This is
+defense in depth for legacy data, not a supported way to create user-private static knowledge.
 
 This behavior is in [typed-retrieval.service.ts](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L165-L198).
 
@@ -277,7 +288,8 @@ There is no stemming, synonym expansion, language model, semantic similarity, or
 
 After token overlap is greater than zero:
 
-- `memory` adds `0.25` for matching `userId`, `0.15` for matching `sessionId`, and `0.10` for matching `conversationId`.
+- Legacy `avatar_knowledge` adds `0.25` for matching `userId`, `0.15` for matching
+  `sessionId`, and `0.10` for matching `conversationId`; new metadata cannot use those keys.
 - `media` adds `0.10` when any query token is also found in the chunk metadata `tags`.
 - `world` has no metadata boost.
 
@@ -294,7 +306,7 @@ Before selection, entries are sorted by:
 
 The selector removes duplicate chunk IDs. It first tries to preserve results from `last_user_input`, `gm_retrieval_query`, and `gm_required_fact`. Their default minimums are 3, 1, and 1 respectively, subject to the limit and available matches. It then fills remaining slots by score. See [retrieval-selection.ts](../apps/core/src/domain/knowledge/retrieval-selection.ts#L23-L89).
 
-The retrieval service applies that selector once per knowledge type, with no custom minimum options. The later Avatar context assembly applies it again to the combined `memory + world` results and passes the Avatar retrieval options, including `maxChunks` and `minimumChunksBySource`. This second selection is in [context-engine.service.ts](../apps/core/src/domain/context/context-engine.service.ts#L305-L327).
+The retrieval service applies that selector once per knowledge type, with no custom minimum options. The later Avatar context assembly applies it again to the combined `avatar_knowledge + world` results and passes the Avatar retrieval options, including `maxChunks` and `minimumChunksBySource`. This second selection is in [context-engine.service.ts](../apps/core/src/domain/context/context-engine.service.ts#L305-L327).
 
 ## 7. Limits and final prompt use
 
@@ -306,7 +318,7 @@ The limits differ by path:
 - GM runtime call: 3 per type.
 - Admin retrieval endpoint: caller can request 1–20 per type.
 
-The Avatar context engine then combines `memory` and `world`, applies the Avatar limit/minimum options, and sends the selected content into the Avatar retrieved-context sections. Media is kept in its own section. See [context-engine.service.ts](../apps/core/src/domain/context/context-engine.service.ts#L305-L327) and [persona-prompt.service.ts](../apps/core/src/domain/avatar/persona-prompt.service.ts#L225-L243).
+The Avatar context engine then combines `avatar_knowledge` and `world`, applies the Avatar limit/minimum options, and sends the selected content into the Avatar retrieved-context sections. Media is kept in its own section. See [context-engine.service.ts](../apps/core/src/domain/context/context-engine.service.ts#L305-L327) and [persona-prompt.service.ts](../apps/core/src/domain/avatar/persona-prompt.service.ts#L225-L243).
 
 The context engine also applies the configured context token budget and precedence rules. Therefore, a chunk can be returned by retrieval but omitted from the final Avatar prompt if the context-engine budget/selection does not keep it. The turn trace exposes selected, included, and omitted retrieval counts through [send-message.context-selection.ts](../apps/core/src/application/use-cases/send-message/send-message.context-selection.ts#L3-L57).
 

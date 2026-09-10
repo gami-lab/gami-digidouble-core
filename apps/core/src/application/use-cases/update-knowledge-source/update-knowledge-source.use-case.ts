@@ -6,6 +6,7 @@ import {
   normalizeVisibleToAvatarIds,
 } from '../../../domain/knowledge/knowledge-visibility.js'
 import { toKnowledgeSourceDto } from '../../../domain/knowledge/knowledge-source-presenter.js'
+import { findReservedStaticScopeKeys } from '../../../domain/knowledge/legacy-memory-audit.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 import type {
   IKnowledgeSourceRepository,
@@ -70,6 +71,7 @@ function buildUpdates(
 
   assertNonEmptyWhenProvided(name, 'name')
   assertNonEmptyWhenProvided(uriOrPath, 'uriOrPath')
+  assertStaticMetadataAllowed(metadata)
   const visibility = resolveVisibilityTransition(existing, visibilityPolicy, visibleToAvatarIds)
   const ingestionInputsChanged = metadata !== undefined || uriOrPath !== undefined
 
@@ -79,6 +81,16 @@ function buildUpdates(
     ...(metadata !== undefined ? { metadata } : {}),
     ...buildVisibilityUpdates(visibility, visibilityPolicy, visibleToAvatarIds),
     ...(ingestionInputsChanged ? { status: 'pending' as const } : {}),
+  }
+}
+
+function assertStaticMetadataAllowed(metadata: Record<string, unknown> | undefined): void {
+  const reservedKeys = findReservedStaticScopeKeys(metadata)
+  if (reservedKeys.length > 0) {
+    throw new DomainError(
+      'VALIDATION_ERROR',
+      `Static knowledge metadata cannot contain reserved scope keys: ${reservedKeys.join(', ')}.`,
+    )
   }
 }
 

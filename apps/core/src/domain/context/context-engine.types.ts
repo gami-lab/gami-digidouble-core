@@ -48,7 +48,7 @@ export type ContextEngineTrace = {
     hasWorkingMemory: boolean
     longTermFactCount: number
     retrievalCounts: {
-      memory: number
+      avatar_knowledge: number
       world: number
       media: number
     }
@@ -56,12 +56,12 @@ export type ContextEngineTrace = {
     visibility?: {
       activeAvatarId?: string
       excludedCounts: {
-        memory: number
+        avatar_knowledge: number
         world: number
         media: number
       }
       gmRetrievalCounts?: {
-        memory: number
+        avatar_knowledge: number
         world: number
         media: number
       }

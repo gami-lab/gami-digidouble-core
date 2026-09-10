@@ -123,18 +123,18 @@ describe('InMemoryKnowledgeChunkRepository vector visibility', () => {
     const sources = [
       makeSource({
         sourceId: 'knowledge_source_private',
-        knowledgeType: 'memory',
+        knowledgeType: 'avatar_knowledge',
         visibilityPolicy: 'avatars',
         visibleToAvatarIds: ['avatar_1'],
       }),
       makeSource({
         sourceId: 'knowledge_source_public',
-        knowledgeType: 'memory',
+        knowledgeType: 'avatar_knowledge',
         visibilityPolicy: 'all',
       }),
       makeSource({
         sourceId: 'knowledge_source_hidden',
-        knowledgeType: 'memory',
+        knowledgeType: 'avatar_knowledge',
         visibilityPolicy: 'none',
       }),
     ]
@@ -155,16 +155,20 @@ describe('InMemoryKnowledgeChunkRepository vector visibility', () => {
 
     const avatarCandidates = await repository.searchByVector(
       makeRequest({
-        knowledgeType: 'memory',
+        knowledgeType: 'avatar_knowledge',
         userId: 'user_1',
         activeAvatarId: 'avatar_1',
       }),
     )
     const missingAvatarCandidates = await repository.searchByVector(
-      makeRequest({ knowledgeType: 'memory', userId: 'user_1' }),
+      makeRequest({ knowledgeType: 'avatar_knowledge', userId: 'user_1' }),
     )
     const gmCandidates = await repository.searchByVector(
-      makeRequest({ knowledgeType: 'memory', userId: 'user_1', visibilityMode: 'gm_unrestricted' }),
+      makeRequest({
+        knowledgeType: 'avatar_knowledge',
+        userId: 'user_1',
+        visibilityMode: 'gm_unrestricted',
+      }),
     )
 
     expect(avatarCandidates.map((candidate) => candidate.chunkId)).toEqual([

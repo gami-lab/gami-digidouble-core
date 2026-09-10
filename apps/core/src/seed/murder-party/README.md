@@ -7,7 +7,7 @@ This folder contains a first content scaffold for testing:
 - multi-avatar unlocking
 - avatar-scoped RAG visibility
 - GM omniscience
-- avatar memory and episodic memory
+- avatar knowledge and episodic memory
 - place/world retrieval
 - contradiction handling
 - accusation flow
@@ -39,26 +39,26 @@ The content is intentionally written as Markdown so it can later be ingested by 
 
 ## Suggested file mapping
 
-| File                    | Knowledge type  | Visibility                   |
-| ----------------------- | --------------- | ---------------------------- |
-| `scenario.md`           | world           | all avatars                  |
-| `places.md`             | world           | all avatars                  |
-| `crime-scene.md`        | world           | all avatars                  |
-| `gm-truth.md`           | world           | GM only / not avatar-visible |
-| `avatar-clara.md`       | memory          | Clara only                   |
-| `avatar-elias.md`       | memory          | Elias only                   |
-| `avatar-margot.md`      | memory          | Margot only                  |
-| `avatar-thomas.md`      | memory          | Thomas only                  |
-| `shared-clues.md`       | world           | all avatars                  |
-| `bootstrap-manifest.md` | bootstrap notes | operator only                |
-| `test-script.md`        | QA              | operator only                |
+| File                    | Knowledge type   | Visibility                   |
+| ----------------------- | ---------------- | ---------------------------- |
+| `scenario.md`           | world            | all avatars                  |
+| `places.md`             | world            | all avatars                  |
+| `crime-scene.md`        | world            | all avatars                  |
+| `gm-truth.md`           | world            | GM only / not avatar-visible |
+| `avatar-clara.md`       | avatar_knowledge | Clara only                   |
+| `avatar-elias.md`       | avatar_knowledge | Elias only                   |
+| `avatar-margot.md`      | avatar_knowledge | Margot only                  |
+| `avatar-thomas.md`      | avatar_knowledge | Thomas only                  |
+| `shared-clues.md`       | world            | all avatars                  |
+| `bootstrap-manifest.md` | bootstrap notes  | operator only                |
+| `test-script.md`        | QA               | operator only                |
 
 ## Important design decision
 
 This is not a scripted chatbot scenario.  
 The content defines people, memories, places, facts, and evidence.
 
-The avatars should not merely recite their files. They should use their personality and memory to answer naturally.
+The avatars should not merely recite their files. They should use their personality and conversational memory to answer naturally.
 
 ## API bootstrap script
 
@@ -70,7 +70,7 @@ The script provisions the full murder-party demo environment through HTTP endpoi
 
 1. create or update scenario
 2. create or update avatars
-3. register knowledge sources for world and avatar memory
+3. register knowledge sources for world and avatar knowledge
 4. trigger ingestion and wait for completion
 5. patch scenario `avatarAvailability` with unlocked and unlockable avatars
 

@@ -132,7 +132,7 @@ After speaking with Clara, close the conversation and start with Thomas.
 Expected:
 
 - session memory should preserve relevant discoveries
-- Thomas should not magically know private Clara-only memory
+- Thomas should not magically know Clara-only avatar knowledge
 - GM can use discoveries to guide the next interrogation
 
 ## Test 10 — Runtime inspector

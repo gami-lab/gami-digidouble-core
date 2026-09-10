@@ -66,9 +66,20 @@ CREATE TABLE IF NOT EXISTS knowledge_sources (
   visible_to_avatar_ids TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CHECK (knowledge_type IN ('memory', 'world', 'media')),
+  CHECK (knowledge_type IN ('avatar_knowledge', 'world', 'media')),
   CHECK (format IN ('pdf', 'text', 'markdown', 'url', 'media')),
-  CHECK (status IN ('pending', 'ready', 'error'))
+  CHECK (status IN ('pending', 'ready', 'error', 'blocked'))
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_source_quarantines (
+  source_id              UUID PRIMARY KEY REFERENCES knowledge_sources(id) ON DELETE CASCADE,
+  original_knowledge_type TEXT NOT NULL,
+  classification         TEXT NOT NULL,
+  reason                 TEXT NOT NULL,
+  offending_key_names    TEXT[] NOT NULL DEFAULT '{}',
+  quarantined_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (classification = 'ambiguous_or_invalid_user_specific'),
+  CHECK (original_knowledge_type = 'memory')
 );
 
 CREATE TABLE IF NOT EXISTS embedding_profiles (
@@ -122,6 +133,19 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
 ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[];
 ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[];
 ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visibility_policy TEXT CHECK (visibility_policy IN ('all', 'avatars', 'none'));
+ALTER TABLE knowledge_sources DROP CONSTRAINT IF EXISTS knowledge_sources_knowledge_type_check;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM knowledge_sources WHERE knowledge_type = 'memory'
+  ) THEN
+    ALTER TABLE knowledge_sources ADD CONSTRAINT knowledge_sources_knowledge_type_check
+      CHECK (knowledge_type IN ('avatar_knowledge', 'world', 'media'));
+  END IF;
+END $$;
+ALTER TABLE knowledge_sources DROP CONSTRAINT IF EXISTS knowledge_sources_status_check;
+ALTER TABLE knowledge_sources ADD CONSTRAINT knowledge_sources_status_check
+  CHECK (status IN ('pending', 'ready', 'error', 'blocked'));
 ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS embedding_profile_id UUID;
 ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS corpus_generation_id UUID;
 

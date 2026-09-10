@@ -1,7 +1,8 @@
-import type { CreateKnowledgeSourceRequest, KnowledgeSourceDto } from '@gami/shared'
+import type { CreateKnowledgeSourceRequest, KnowledgeSourceDto, KnowledgeType } from '@gami/shared'
 
-// Ownership: API-facing request/response fragments come from @gami/shared.
-export type CreateKnowledgeSourceInput = CreateKnowledgeSourceRequest
+export type CreateKnowledgeSourceInput = Omit<CreateKnowledgeSourceRequest, 'knowledgeType'> & {
+  knowledgeType: KnowledgeType
+}
 
 export type CreateKnowledgeSourceOutput = {
   source: KnowledgeSourceDto

@@ -359,17 +359,21 @@ function formatCountSummary(count: number, label: string): string {
   return `${String(count)} ${label}${count === 1 ? '' : 's'}`
 }
 
-function sumTypedCounts(counts: { memory: number; world: number; media: number }): number {
-  return counts.memory + counts.world + counts.media
+function sumTypedCounts(counts: {
+  avatar_knowledge: number
+  world: number
+  media: number
+}): number {
+  return counts.avatar_knowledge + counts.world + counts.media
 }
 
 function formatRetrievalCounts(includedCounts: {
-  memory: number
+  avatar_knowledge: number
   world: number
   media: number
 }): string {
   const retrievalTotal = sumTypedCounts(includedCounts)
-  return `${formatCountSummary(retrievalTotal, 'retrieved reference')} included (${String(includedCounts.memory)} memory / ${String(includedCounts.world)} world / ${String(includedCounts.media)} media)`
+  return `${formatCountSummary(retrievalTotal, 'retrieved reference')} included (${String(includedCounts.avatar_knowledge)} avatar knowledge / ${String(includedCounts.world)} world / ${String(includedCounts.media)} media)`
 }
 
 // eslint-disable-next-line complexity
@@ -377,7 +381,11 @@ function formatAvatarContext(turnPayload: TurnCompletedEventPayload): string {
   const selected = turnPayload.contextSelection as TurnContextSelectionSummary | null | undefined
   if (!selected) return 'Avatar context used for this reply: unavailable.'
 
-  const includedCounts = selected.retrieval?.includedCounts ?? { memory: 0, world: 0, media: 0 }
+  const includedCounts = selected.retrieval?.includedCounts ?? {
+    avatar_knowledge: 0,
+    world: 0,
+    media: 0,
+  }
   const responseRuleCount = selected.responseRuleCount
   const hasAvatarTraits = selected.hasAvatarTraits
   const retrievalTrace = selected.retrieval?.retrievalTrace
@@ -406,17 +414,26 @@ function formatAvatarRetrievalAssembly(turnPayload: TurnCompletedEventPayload): 
   if (!retrieval) return null
 
   const selectedTotal =
-    retrieval.selectedForAssemblyCounts.memory +
+    retrieval.selectedForAssemblyCounts.avatar_knowledge +
     retrieval.selectedForAssemblyCounts.world +
     retrieval.selectedForAssemblyCounts.media
   const includedTotal =
-    retrieval.includedCounts.memory +
+    retrieval.includedCounts.avatar_knowledge +
     retrieval.includedCounts.world +
     retrieval.includedCounts.media
-  const omittedCounts = retrieval.omittedByAssemblyCounts ?? { memory: 0, world: 0, media: 0 }
-  const omittedTotal = omittedCounts.memory + omittedCounts.world + omittedCounts.media
-  const excludedCounts = retrieval.excludedByVisibilityCounts ?? { memory: 0, world: 0, media: 0 }
-  const excludedTotal = excludedCounts.memory + excludedCounts.world + excludedCounts.media
+  const omittedCounts = retrieval.omittedByAssemblyCounts ?? {
+    avatar_knowledge: 0,
+    world: 0,
+    media: 0,
+  }
+  const omittedTotal = omittedCounts.avatar_knowledge + omittedCounts.world + omittedCounts.media
+  const excludedCounts = retrieval.excludedByVisibilityCounts ?? {
+    avatar_knowledge: 0,
+    world: 0,
+    media: 0,
+  }
+  const excludedTotal =
+    excludedCounts.avatar_knowledge + excludedCounts.world + excludedCounts.media
   const diagnostics = retrieval.retrievalTrace
     ? formatRetrievalDiagnostics(retrieval.retrievalTrace)
     : undefined
@@ -473,7 +490,7 @@ function describeRecordedAvatarContext(
   )
   const knowledgeItems = sections.retrievedContext
     ? [
-        ...sections.retrievedContext.memory,
+        ...sections.retrievedContext.avatar_knowledge,
         ...sections.retrievedContext.world,
         ...sections.retrievedContext.media,
       ]
@@ -494,7 +511,7 @@ function describeRecordedGmContext(
 ): { summary: string[]; retrieval: RetrievalTraceItem[] } {
   const sections = gmContext.sections
   const knowledgeItems = [
-    ...(sections.retrievedContext?.memory ?? []),
+    ...(sections.retrievedContext?.avatar_knowledge ?? []),
     ...(sections.retrievedContext?.world ?? []),
     ...(sections.retrievedContext?.media ?? []),
   ]

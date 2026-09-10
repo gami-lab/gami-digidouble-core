@@ -356,7 +356,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
     const source = await sourceRepository.create({
       scenarioId: 'scenario_1',
       name: 'Guide',
-      knowledgeType: 'memory',
+      knowledgeType: 'avatar_knowledge',
       format: 'markdown',
       uriOrPath: '/tmp/guide.md',
     })

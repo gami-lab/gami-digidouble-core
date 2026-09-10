@@ -96,22 +96,22 @@ export type ContextEngineSelectionDiagnostics = {
 
 export type ContextSelectionRetrievalDiagnostics = {
   selectedForAssemblyCounts: {
-    memory: number
+    avatar_knowledge: number
     world: number
     media: number
   }
   includedCounts: {
-    memory: number
+    avatar_knowledge: number
     world: number
     media: number
   }
   omittedByAssemblyCounts?: {
-    memory: number
+    avatar_knowledge: number
     world: number
     media: number
   }
   excludedByVisibilityCounts?: {
-    memory: number
+    avatar_knowledge: number
     world: number
     media: number
   }
@@ -411,7 +411,7 @@ export type SessionContextSegmentId =
   | 'conversationStateRecentMessages'
   | 'userPersona'
   | 'worldContext'
-  | 'retrievedContextMemory'
+  | 'retrievedContextAvatarKnowledge'
   | 'retrievedContextWorld'
   | 'retrievedContextMedia'
   | 'avatarTraits'
@@ -434,7 +434,7 @@ export type SessionContextTrace = {
     hasWorkingMemory: boolean
     longTermFactCount: number
     retrievalCounts: {
-      memory: number
+      avatar_knowledge: number
       world: number
       media: number
     }
@@ -442,12 +442,12 @@ export type SessionContextTrace = {
     visibility?: {
       activeAvatarId?: string
       excludedCounts: {
-        memory: number
+        avatar_knowledge: number
         world: number
         media: number
       }
       gmRetrievalCounts?: {
-        memory: number
+        avatar_knowledge: number
         world: number
         media: number
       }

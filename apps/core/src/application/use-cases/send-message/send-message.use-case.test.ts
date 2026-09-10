@@ -390,11 +390,11 @@ describe('SendMessageUseCase — llm request payload', () => {
     }
     const typedRetrievalService = {
       retrieve: vi.fn().mockResolvedValue({
-        memory: [
+        avatar_knowledge: [
           {
             sourceId: 'source_memory',
             chunkId: 'chunk_memory',
-            knowledgeType: 'memory',
+            knowledgeType: 'avatar_knowledge',
             content: 'The user prefers checklist-style instructions.',
           },
         ],
@@ -418,7 +418,7 @@ describe('SendMessageUseCase — llm request payload', () => {
           query:
             'Keep the answer practical. | What should I do? | The user wants concise harbor instructions. User: Where do I dock? Avatar: Follow the lantern markers.',
           perType: {
-            memory: { sourceIds: ['source_memory'], selectedChunkIds: ['chunk_memory'] },
+            avatar_knowledge: { sourceIds: ['source_memory'], selectedChunkIds: ['chunk_memory'] },
             world: { sourceIds: ['source_world'], selectedChunkIds: ['chunk_world'] },
             media: { sourceIds: ['source_media'], selectedChunkIds: ['chunk_media'] },
           },
@@ -522,7 +522,7 @@ describe('SendMessageUseCase — llm request payload', () => {
     expect(llmArg.systemPrompt).toContain('Name: Maya')
     expect(llmArg.systemPrompt).toContain('Role in this world: captain')
     expect(llmArg.systemPrompt).toContain('The harbor closes at moonrise.')
-    expect(llmArg.systemPrompt).toContain('Context 1 (memory):')
+    expect(llmArg.systemPrompt).toContain('Context 1 (avatar_knowledge):')
     expect(llmArg.systemPrompt).toContain('The user prefers checklist-style instructions.')
     expect(llmArg.systemPrompt).toContain('Context 2 (world):')
     expect(llmArg.systemPrompt).toContain('Ships dock at tidefall in this harbor.')
@@ -842,7 +842,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       },
     }
     const retrieve = vi.fn().mockResolvedValue({
-      memory: [],
+      avatar_knowledge: [],
       world: [],
       media: [],
       trace: {
@@ -850,7 +850,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
         outcome: 'failed',
         failure: { code: 'query_embedding_failed', retryable: true },
         perType: {
-          memory: {
+          avatar_knowledge: {
             sourceIds: [],
             selectedChunkIds: [],
             visibility: { consideredChunkCount: 0, excludedChunkCount: 0 },
@@ -1019,11 +1019,11 @@ describe('SendMessageUseCase — validation and GM integration', () => {
   it('emits bounded runtime diagnostics without raw prompt, trait, retrieval, or credential leakage', async () => {
     const typedRetrievalService = {
       retrieve: vi.fn().mockResolvedValue({
-        memory: [
+        avatar_knowledge: [
           {
             sourceId: 'source_hidden',
             chunkId: 'chunk_hidden',
-            knowledgeType: 'memory',
+            knowledgeType: 'avatar_knowledge',
             content: 'Visible retrieval text.',
             metadata: { inlineText: 'Hidden metadata: sk-test-secret' },
           },
@@ -1033,7 +1033,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
         trace: {
           query: 'secret retrieval query',
           perType: {
-            memory: { sourceIds: ['source_hidden'], selectedChunkIds: ['chunk_hidden'] },
+            avatar_knowledge: { sourceIds: ['source_hidden'], selectedChunkIds: ['chunk_hidden'] },
             world: { sourceIds: [], selectedChunkIds: [] },
             media: { sourceIds: [], selectedChunkIds: [] },
           },
@@ -1093,14 +1093,14 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       hasWorkingMemory: false,
       longTermFactCount: 0,
       retrieval: {
-        selectedForAssemblyCounts: { memory: 1, world: 0, media: 0 },
-        includedCounts: { memory: 1, world: 0, media: 0 },
-        omittedByAssemblyCounts: { memory: 0, world: 0, media: 0 },
-        excludedByVisibilityCounts: { memory: 0, world: 0, media: 0 },
+        selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0, media: 0 },
+        includedCounts: { avatar_knowledge: 1, world: 0, media: 0 },
+        omittedByAssemblyCounts: { avatar_knowledge: 0, world: 0, media: 0 },
+        excludedByVisibilityCounts: { avatar_knowledge: 0, world: 0, media: 0 },
         retrievalTrace: {
           query: 'secret retrieval query',
           perType: {
-            memory: { sourceIds: ['source_hidden'], selectedChunkIds: ['chunk_hidden'] },
+            avatar_knowledge: { sourceIds: ['source_hidden'], selectedChunkIds: ['chunk_hidden'] },
             world: { sourceIds: [], selectedChunkIds: [] },
             media: { sourceIds: [], selectedChunkIds: [] },
           },

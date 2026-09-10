@@ -127,7 +127,7 @@ const INITIAL_KNOWLEDGE_SOURCES = [
     sourceId: 'memory_source_1',
     scenarioId: 'scenario_1',
     name: 'Harbor memory',
-    knowledgeType: 'memory' as const,
+    knowledgeType: 'avatar_knowledge' as const,
     format: 'text' as const,
     uriOrPath: 'memory://harbor',
     status: 'ready' as const,

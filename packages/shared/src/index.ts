@@ -92,6 +92,7 @@ export type {
 } from './memory-contract-types.js'
 export type {
   KnowledgeType,
+  KnowledgeTypeInput,
   KnowledgeSourceFormat,
   KnowledgeSourceStatus,
   IngestionJobStatus,
@@ -149,6 +150,8 @@ export type {
 } from './knowledge-contract-types.js'
 export {
   KNOWLEDGE_TYPES,
+  KNOWLEDGE_TYPE_INPUTS,
+  LEGACY_KNOWLEDGE_TYPE_ALIAS,
   INGESTION_CHUNK_SIZE_MIN,
   INGESTION_CHUNK_SIZE_MAX,
   INGESTION_CHUNK_SIZE_DEFAULT,

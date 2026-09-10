@@ -20,6 +20,7 @@ import type {
 import type { IKnowledgeSourceContentLoader } from '../../ports/IKnowledgeSourceContentLoader.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
+import { findReservedStaticScopeKeys } from '../../../domain/knowledge/legacy-memory-audit.js'
 
 export type IngestionExecutionInput = {
   sourceId: string
@@ -48,6 +49,7 @@ export class KnowledgeIngestionError extends Error {
       | 'vector_count_mismatch'
       | 'profile_mismatch'
       | 'dimension_mismatch'
+      | 'reserved_metadata_scope'
       | 'malformed_response'
       | 'stale_profile',
     message: string,
@@ -190,6 +192,14 @@ export class KnowledgeIngestionService {
       )
     }
     const loaded = await this.contentLoader.load(source)
+    const reservedKeys = findReservedStaticScopeKeys(loaded.metadata)
+    if (reservedKeys.length > 0) {
+      throw new KnowledgeIngestionError(
+        'reserved_metadata_scope',
+        `Static knowledge chunk metadata cannot contain reserved scope keys: ${reservedKeys.join(', ')}.`,
+        false,
+      )
+    }
     const chunkSeeds = toChunkSeeds(source, loaded.content, loaded.metadata, chunkSize)
     if (chunkSeeds.length === 0) {
       throw new KnowledgeIngestionError(

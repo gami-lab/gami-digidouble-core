@@ -228,12 +228,12 @@ function buildRetrievalContext(
 ): string[] {
   if (retrieval === undefined) return []
 
-  const memoryAndWorld = selectBalancedRetrievedItems(
-    [...retrieval.memory, ...retrieval.world],
+  const avatarKnowledgeAndWorld = selectBalancedRetrievedItems(
+    [...retrieval.avatar_knowledge, ...retrieval.world],
     options?.maxChunks ?? AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
     options,
   )
-  const contextLines = formatRetrievedItems(memoryAndWorld, 'Context')
+  const contextLines = formatRetrievedItems(avatarKnowledgeAndWorld, 'Context')
   const mediaLines = formatRetrievedItems(retrieval.media, 'Media context')
   const lines = [
     '## Retrieved Context',
@@ -244,7 +244,7 @@ function buildRetrievalContext(
 }
 
 function formatRetrievedItems(
-  items: NonNullable<AvatarPromptOptions['retrieval']>['memory'],
+  items: NonNullable<AvatarPromptOptions['retrieval']>['avatar_knowledge'],
   label: string,
 ): string[] {
   if (items.length === 0) return []

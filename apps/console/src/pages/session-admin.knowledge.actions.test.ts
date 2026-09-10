@@ -118,13 +118,15 @@ describe('session admin knowledge actions', () => {
   it('inspects retrieval diagnostics summary', async () => {
     vi.mocked(queryKnowledgeRetrieval).mockResolvedValue({
       retrieval: {
-        memory: [{ sourceId: 's', chunkId: 'c', knowledgeType: 'memory', content: 'm' }],
+        avatar_knowledge: [
+          { sourceId: 's', chunkId: 'c', knowledgeType: 'avatar_knowledge', content: 'm' },
+        ],
         world: [],
         media: [{ sourceId: 's2', chunkId: 'c2', knowledgeType: 'media', content: 'x' }],
         trace: {
           query: 'runtime_inspector_probe',
           perType: {
-            memory: { sourceIds: ['s'], selectedChunkIds: ['c'] },
+            avatar_knowledge: { sourceIds: ['s'], selectedChunkIds: ['c'] },
             world: {
               sourceIds: [],
               selectedChunkIds: [],
@@ -151,7 +153,7 @@ describe('session admin knowledge actions', () => {
       expect.objectContaining({ activeAvatarId: 'avatar_scope' }),
     )
     expect(setSummary).toHaveBeenCalledWith(
-      'retrieval: memory=1(all avatars), world=0(all avatars), media=1(all avatars) · unknown · profile unavailable · candidates=0 · selected=0 · embedding=0ms · search=0ms · excluded(world)=2 · mode=unknown.',
+      'retrieval: avatar_knowledge=1(all avatars), world=0(all avatars), media=1(all avatars) · unknown · profile unavailable · candidates=0 · selected=0 · embedding=0ms · search=0ms · excluded(world)=2 · mode=unknown.',
     )
   })
 

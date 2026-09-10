@@ -34,6 +34,27 @@ describe('InMemoryKnowledgeChunkRepository', () => {
     expect(chunks[0]?.visibleToAvatarIds).toBeUndefined()
   })
 
+  it('rejects reserved scope keys in nested chunk metadata', async () => {
+    const repository = new InMemoryKnowledgeChunkRepository()
+
+    let error: unknown
+    try {
+      await repository.create({
+        sourceId: 'knowledge_source_1',
+        content: 'Chunk content',
+        chunkIndex: 0,
+        metadata: { nested: [{ conversationId: 'private_value' }] },
+      })
+    } catch (caught: unknown) {
+      error = caught
+    }
+
+    expect(error).toBeInstanceOf(Error)
+    if (!(error instanceof Error)) return
+    expect(error.message).toContain('conversationId')
+    expect(error.message).not.toContain('private_value')
+  })
+
   it('stores explicit visibleToAvatarIds and normalizes empty lists to default visibility', async () => {
     const repository = new InMemoryKnowledgeChunkRepository()
     const sourceId = 'knowledge_source_1'

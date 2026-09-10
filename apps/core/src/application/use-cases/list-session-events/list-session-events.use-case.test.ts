@@ -51,7 +51,7 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
           ],
         },
         knowledge: {
-          memory: [],
+          avatar_knowledge: [],
           world: [
             {
               sourceId: 'source_1',
@@ -241,7 +241,7 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
               },
             },
             retrievedContext: {
-              memory: [],
+              avatar_knowledge: [],
               world: [
                 {
                   sourceId: 'source_1',
@@ -372,18 +372,18 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
               hasWorkingMemory: true,
               longTermFactCount: 1,
               retrievalCounts: {
-                memory: 3,
+                avatar_knowledge: 3,
                 world: 2,
                 media: 0,
               },
               visibility: {
                 excludedCounts: {
-                  memory: 1,
+                  avatar_knowledge: 1,
                   world: 0,
                   media: 0,
                 },
                 gmRetrievalCounts: {
-                  memory: 3,
+                  avatar_knowledge: 3,
                   world: 2,
                   media: 0,
                 },
@@ -434,7 +434,7 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
                 ],
               },
               retrievedContext: {
-                memory: [],
+                avatar_knowledge: [],
                 world: [
                   {
                     sourceId: 'source_1',
@@ -465,22 +465,22 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
             longTermFactCount: 1,
             retrieval: {
               selectedForAssemblyCounts: {
-                memory: 3,
+                avatar_knowledge: 3,
                 world: 2,
                 media: 0,
               },
               includedCounts: {
-                memory: 0,
+                avatar_knowledge: 0,
                 world: 1,
                 media: 0,
               },
               omittedByAssemblyCounts: {
-                memory: 3,
+                avatar_knowledge: 3,
                 world: 1,
                 media: 0,
               },
               excludedByVisibilityCounts: {
-                memory: 1,
+                avatar_knowledge: 1,
                 world: 0,
                 media: 0,
               },
@@ -497,7 +497,7 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
     expect(JSON.stringify(output)).not.toContain('inlineText')
   })
 
-  it('reads recorded avatar retrieval from the flat memory/world/media event shape', async () => {
+  it('reads recorded avatar retrieval from the flat avatar-knowledge/world/media event shape', async () => {
     const { useCase } = createUseCase({
       events: [
         makeEvent({
@@ -511,7 +511,7 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
               workingMemory: {},
               longTermFacts: [],
               knowledge: {
-                memory: [],
+                avatar_knowledge: [],
                 world: [
                   {
                     sourceId: 'source_world_1',
@@ -582,14 +582,14 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
               longTermFactCount: 0,
               contextEngineSelection: { keptSegmentCount: 3, trimmedSegmentCount: 1 },
               retrieval: {
-                selectedForAssemblyCounts: { memory: 1, world: 0, media: 0 },
-                includedCounts: { memory: 1, world: 0, media: 0 },
+                selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0, media: 0 },
+                includedCounts: { avatar_knowledge: 1, world: 0, media: 0 },
                 retrievalTrace: {
                   query: 'dock',
                   duplicateCount: 2,
                   selectionExcludedCount: 1,
                   perType: {
-                    memory: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
+                    avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
                     world: { sourceIds: [], selectedChunkIds: [] },
                     media: { sourceIds: [], selectedChunkIds: [] },
                   },

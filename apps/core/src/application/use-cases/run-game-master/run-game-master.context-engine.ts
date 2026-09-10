@@ -43,7 +43,7 @@ export function buildGmContextSnapshot(args: {
       ...(args.retrieval !== undefined
         ? {
             retrievedContext: {
-              memory: args.retrieval.memory,
+              avatar_knowledge: args.retrieval.avatar_knowledge,
               world: args.retrieval.world,
               media: args.retrieval.media,
               trace: args.retrieval.trace,

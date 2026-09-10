@@ -38,7 +38,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresIngestionJobRepository', () => {
     const source = await sourceRepo.create({
       scenarioId: scenario.scenarioId,
       name: 'Ingestion source',
-      knowledgeType: 'memory',
+      knowledgeType: 'avatar_knowledge',
       format: 'text',
       uriOrPath: '/tmp/source.txt',
     })

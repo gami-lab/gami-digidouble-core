@@ -55,7 +55,7 @@ function makeKnowledgeSource(overrides: Partial<KnowledgeSource> = {}): Knowledg
     sourceId: 'source_1',
     scenarioId: 'scenario_1',
     name: 'Source',
-    knowledgeType: 'memory',
+    knowledgeType: 'avatar_knowledge',
     format: 'text',
     uriOrPath: 'inline://source_1',
     status: 'ready',
@@ -189,7 +189,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — output and source gathering', (
       new InMemoryKnowledgeSourceRepository([
         makeKnowledgeSource({
           sourceId: 'mem_in_scope',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           metadata: { inlineText: 'IN SCOPE MEMORY TEXT' },
         }),
         makeKnowledgeSource({
@@ -205,7 +205,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — output and source gathering', (
         makeKnowledgeSource({
           sourceId: 'other_scenario',
           scenarioId: 'scenario_other',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           metadata: { inlineText: 'OTHER SCENARIO TEXT SHOULD BE EXCLUDED' },
         }),
       ]),
@@ -229,7 +229,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — output and source gathering', (
       new InMemoryKnowledgeSourceRepository([
         makeKnowledgeSource({
           sourceId: 'no_inline_text',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           metadata: {},
         }),
       ]),

@@ -1,8 +1,8 @@
-import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
+import type { FastifyInstance, FastifyPluginCallback } from 'fastify'
 import {
   INGESTION_CHUNK_SIZE_MAX,
   INGESTION_CHUNK_SIZE_MIN,
-  KNOWLEDGE_TYPES,
+  KNOWLEDGE_TYPE_INPUTS,
   fail,
   ok,
 } from '@gami/shared'
@@ -43,7 +43,6 @@ import { ListKnowledgeSourcesUseCase } from '../../application/use-cases/list-kn
 import { TriggerIngestionUseCase } from '../../application/use-cases/trigger-ingestion/trigger-ingestion.use-case.js'
 import { UpdateKnowledgeSourceUseCase } from '../../application/use-cases/update-knowledge-source/update-knowledge-source.use-case.js'
 import type { Config } from '../../config.js'
-import { DomainError } from '../../domain/errors.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import {
   buildUploadedKnowledgeSourceUpdate,
@@ -51,6 +50,8 @@ import {
   validateUploadedKnowledgeSource,
 } from './knowledge-upload.request.js'
 import { presentKnowledgeRetrieval } from './knowledge-retrieval.presenter.js'
+import { normalizeKnowledgeTypeAtBoundary } from './knowledge-type-input.js'
+import { handleKnowledgeRouteError } from './knowledge-route-error.js'
 
 export type KnowledgeRouteOptions = {
   config: Config
@@ -89,7 +90,7 @@ const sourceBodySchema = {
   properties: {
     scenarioId: { type: 'string', minLength: 1 },
     name: { type: 'string', minLength: 1 },
-    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPES },
+    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPE_INPUTS },
     format: { type: 'string', enum: ['pdf', 'text', 'markdown', 'url', 'media'] },
     uriOrPath: { type: 'string', minLength: 1 },
     metadata: { type: 'object' },
@@ -105,8 +106,8 @@ const sourceBodySchema = {
 const listQuerySchema = {
   type: 'object',
   properties: {
-    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPES },
-    status: { type: 'string', enum: ['pending', 'ready', 'error'] },
+    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPE_INPUTS },
+    status: { type: 'string', enum: ['pending', 'ready', 'error', 'blocked'] },
   },
   additionalProperties: false,
 } as const
@@ -170,7 +171,7 @@ const uploadBodySchema = {
   properties: {
     scenarioId: { type: 'string', minLength: 1 },
     name: { type: 'string', minLength: 1 },
-    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPES },
+    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPE_INPUTS },
     content: { type: 'string', minLength: 1 },
     filename: { type: 'string', minLength: 1 },
     visibilityPolicy: { type: 'string', enum: VISIBILITY_POLICY_ENUM },
@@ -260,10 +261,16 @@ function registerCreateSourceRoute(app: FastifyInstance, useCases: UseCases): vo
     { schema: { body: sourceBodySchema } },
     async (request, reply) => {
       try {
-        const output = await useCases.createSourceUseCase.execute(request.body)
+        const output = await useCases.createSourceUseCase.execute({
+          ...request.body,
+          knowledgeType: await normalizeKnowledgeTypeAtBoundary(
+            useCases.eventLogRepository,
+            request.body.knowledgeType,
+          ),
+        })
         return await reply.status(201).send(ok<CreateKnowledgeSourceResponse>(output))
       } catch (error) {
-        return await handleError(error, reply)
+        return await handleKnowledgeRouteError(error, reply)
       }
     },
   )
@@ -293,7 +300,10 @@ function registerUploadSourceRoute(app: FastifyInstance, useCases: UseCases): vo
         const output = await useCases.createSourceUseCase.execute({
           scenarioId,
           name,
-          knowledgeType,
+          knowledgeType: await normalizeKnowledgeTypeAtBoundary(
+            useCases.eventLogRepository,
+            knowledgeType,
+          ),
           format: uploaded.value.format,
           uriOrPath: uploaded.value.filename,
           metadata: { inlineText: uploaded.value.text },
@@ -303,7 +313,7 @@ function registerUploadSourceRoute(app: FastifyInstance, useCases: UseCases): vo
 
         return await reply.status(201).send(ok<UploadKnowledgeSourceResponse>(output))
       } catch (error) {
-        return await handleError(error, reply)
+        return await handleKnowledgeRouteError(error, reply)
       }
     },
   )
@@ -318,13 +328,18 @@ function registerListSourcesRoute(app: FastifyInstance, useCases: UseCases): voi
         const output = await useCases.listSourcesUseCase.execute({
           scenarioId: request.params.scenarioId,
           ...(request.query.knowledgeType !== undefined
-            ? { knowledgeType: request.query.knowledgeType }
+            ? {
+                knowledgeType: await normalizeKnowledgeTypeAtBoundary(
+                  useCases.eventLogRepository,
+                  request.query.knowledgeType,
+                ),
+              }
             : {}),
           ...(request.query.status !== undefined ? { status: request.query.status } : {}),
         })
         return await reply.send(ok<ListKnowledgeSourcesResponse>(output))
       } catch (error) {
-        return await handleError(error, reply)
+        return await handleKnowledgeRouteError(error, reply)
       }
     },
   )
@@ -351,7 +366,7 @@ function registerUpdateSourceRoute(app: FastifyInstance, useCases: UseCases): vo
         )
         return await reply.send(ok<UpdateKnowledgeSourceResponse>(output))
       } catch (error) {
-        return await handleError(error, reply)
+        return await handleKnowledgeRouteError(error, reply)
       }
     },
   )
@@ -368,7 +383,7 @@ function registerDeleteSourceRoute(app: FastifyInstance, useCases: UseCases): vo
         })
         return await reply.send(ok<DeleteKnowledgeSourceResponse>(output))
       } catch (error) {
-        return await handleError(error, reply)
+        return await handleKnowledgeRouteError(error, reply)
       }
     },
   )
@@ -389,7 +404,7 @@ function registerTriggerIngestionRoute(app: FastifyInstance, useCases: UseCases)
         })
         return await reply.status(202).send(ok<TriggerIngestionResponse>(output))
       } catch (error) {
-        return await handleError(error, reply)
+        return await handleKnowledgeRouteError(error, reply)
       }
     },
   )
@@ -410,7 +425,7 @@ function registerListIngestionJobsRoute(app: FastifyInstance, useCases: UseCases
         })
         return await reply.send(ok<ListIngestionJobsResponse>(output))
       } catch (error) {
-        return await handleError(error, reply)
+        return await handleKnowledgeRouteError(error, reply)
       }
     },
   )
@@ -427,7 +442,7 @@ function registerGetIngestionJobRoute(app: FastifyInstance, useCases: UseCases):
         })
         return await reply.send(ok<GetIngestionJobResponse>(output))
       } catch (error) {
-        return await handleError(error, reply)
+        return await handleKnowledgeRouteError(error, reply)
       }
     },
   )
@@ -444,7 +459,7 @@ function registerListChunksRoute(app: FastifyInstance, useCases: UseCases): void
         })
         return await reply.send(ok<ListKnowledgeChunksResponse>(output))
       } catch (error) {
-        return await handleError(error, reply)
+        return await handleKnowledgeRouteError(error, reply)
       }
     },
   )
@@ -472,7 +487,7 @@ function registerRetrievalRoute(
             sessionId: request.body.sessionId,
             conversationId: request.body.conversationId,
             counts: {
-              memory: bounded.retrieval.memory.length,
+              avatar_knowledge: bounded.retrieval.avatar_knowledge.length,
               world: bounded.retrieval.world.length,
               media: bounded.retrieval.media.length,
             },
@@ -493,7 +508,7 @@ function registerRetrievalRoute(
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
           },
         })
-        return await handleError(error, reply)
+        return await handleKnowledgeRouteError(error, reply)
       }
     },
   )
@@ -508,21 +523,4 @@ async function appendKnowledgeEvent(
   } catch {
     // Avoid coupling admin-debug endpoint availability to observability writes.
   }
-}
-
-async function handleError(error: unknown, reply: FastifyReply): Promise<FastifyReply> {
-  if (error instanceof DomainError && error.code === 'NOT_FOUND') {
-    return await reply.status(404).send(fail('NOT_FOUND', error.message))
-  }
-  if (
-    error instanceof DomainError &&
-    (error.code === 'VALIDATION_ERROR' || error.code === 'INVALID_INPUT')
-  ) {
-    return await reply.status(400).send(fail('VALIDATION_ERROR', error.message))
-  }
-  if (error instanceof DomainError && error.code === 'CONFLICT') {
-    return await reply.status(409).send(fail('CONFLICT', error.message))
-  }
-  reply.log.error({ err: error }, 'Unhandled knowledge route error')
-  return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
 }

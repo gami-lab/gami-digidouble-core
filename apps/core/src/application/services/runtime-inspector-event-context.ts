@@ -98,7 +98,7 @@ function toRecordedTypedKnowledgeSections(
   if (knowledge === undefined) return undefined
 
   const typedSections: RecordedTypedKnowledgeSections = {
-    memory: knowledge.memory.map(toRecordedKnowledgeReference),
+    avatar_knowledge: knowledge.avatar_knowledge.map(toRecordedKnowledgeReference),
     world: knowledge.world.map(toRecordedKnowledgeReference),
     media: knowledge.media.map(toRecordedKnowledgeReference),
     ...(trace !== undefined ? { trace: toRetrievalTraceDto(trace) } : {}),
@@ -108,7 +108,7 @@ function toRecordedTypedKnowledgeSections(
 }
 
 function groupRetrievedItemsByType(items: RetrievedKnowledgeItem[]): {
-  memory: RetrievedKnowledgeItem[]
+  avatar_knowledge: RetrievedKnowledgeItem[]
   world: RetrievedKnowledgeItem[]
   media: RetrievedKnowledgeItem[]
 } {
@@ -118,7 +118,7 @@ function groupRetrievedItemsByType(items: RetrievedKnowledgeItem[]): {
       return grouped
     },
     {
-      memory: [] as RetrievedKnowledgeItem[],
+      avatar_knowledge: [] as RetrievedKnowledgeItem[],
       world: [] as RetrievedKnowledgeItem[],
       media: [] as RetrievedKnowledgeItem[],
     },
@@ -145,7 +145,7 @@ function toRecordedKnowledgeReference(item: RetrievedKnowledgeItem): RecordedKno
 
 function hasRecordedKnowledge(typedSections: RecordedTypedKnowledgeSections): boolean {
   return (
-    typedSections.memory.length > 0 ||
+    typedSections.avatar_knowledge.length > 0 ||
     typedSections.world.length > 0 ||
     typedSections.media.length > 0
   )

@@ -6,11 +6,11 @@ describe('presentKnowledgeRetrieval', () => {
   it('truncates long retrieved content while preserving item structure', () => {
     const output = presentKnowledgeRetrieval(
       {
-        memory: [
+        avatar_knowledge: [
           {
             sourceId: 'knowledge_source_1',
             chunkId: 'knowledge_chunk_1',
-            knowledgeType: 'memory',
+            knowledgeType: 'avatar_knowledge',
             content: 'a'.repeat(120),
             score: 0.9,
             reason: 'token-overlap',
@@ -22,7 +22,10 @@ describe('presentKnowledgeRetrieval', () => {
         trace: {
           query: 'budget',
           perType: {
-            memory: { sourceIds: ['knowledge_source_1'], selectedChunkIds: ['knowledge_chunk_1'] },
+            avatar_knowledge: {
+              sourceIds: ['knowledge_source_1'],
+              selectedChunkIds: ['knowledge_chunk_1'],
+            },
             world: { sourceIds: [], selectedChunkIds: [] },
             media: { sourceIds: [], selectedChunkIds: [] },
           },
@@ -31,16 +34,16 @@ describe('presentKnowledgeRetrieval', () => {
       100,
     )
 
-    expect(output.retrieval.memory).toHaveLength(1)
-    expect(output.retrieval.memory[0]?.content.length).toBe(103)
-    expect(output.retrieval.memory[0]?.metadata).toEqual({ userId: 'user_1' })
+    expect(output.retrieval.avatar_knowledge).toHaveLength(1)
+    expect(output.retrieval.avatar_knowledge[0]?.content.length).toBe(103)
+    expect(output.retrieval.avatar_knowledge[0]?.metadata).toEqual({ userId: 'user_1' })
     expect(output.retrieval.trace.query).toBe('budget')
   })
 
   it('does not alter content below the threshold', () => {
     const output = presentKnowledgeRetrieval(
       {
-        memory: [],
+        avatar_knowledge: [],
         world: [
           {
             sourceId: 'knowledge_source_2',
@@ -53,7 +56,7 @@ describe('presentKnowledgeRetrieval', () => {
         trace: {
           query: 'timeline',
           perType: {
-            memory: { sourceIds: [], selectedChunkIds: [] },
+            avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
             world: { sourceIds: ['knowledge_source_2'], selectedChunkIds: ['knowledge_chunk_2'] },
             media: { sourceIds: [], selectedChunkIds: [] },
           },
@@ -67,11 +70,11 @@ describe('presentKnowledgeRetrieval', () => {
 
   it('maps vector diagnostics safely and normalizes display scores at the boundary', () => {
     const output = presentKnowledgeRetrieval({
-      memory: [
+      avatar_knowledge: [
         {
           sourceId: 'source_1',
           chunkId: 'chunk_1',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'retrieved content',
           distance: 0.123456,
           similarity: 0.876544,
@@ -98,7 +101,7 @@ describe('presentKnowledgeRetrieval', () => {
         visibilityMode: 'gm_unrestricted',
         outcome: 'success',
         perType: {
-          memory: {
+          avatar_knowledge: {
             sourceIds: ['source_1'],
             selectedChunkIds: ['chunk_1'],
             candidateCount: 4,
@@ -116,7 +119,7 @@ describe('presentKnowledgeRetrieval', () => {
       },
     })
 
-    expect(output.retrieval.memory[0]).toMatchObject({
+    expect(output.retrieval.avatar_knowledge[0]).toMatchObject({
       distance: 0.1235,
       similarity: 0.8765,
       queryIndex: 2,
@@ -128,7 +131,7 @@ describe('presentKnowledgeRetrieval', () => {
       queryVectorCount: 2,
       visibilityMode: 'gm_unrestricted',
     })
-    expect(output.retrieval.trace.perType.memory.visibility?.mode).toBe('gm_unrestricted')
+    expect(output.retrieval.trace.perType.avatar_knowledge.visibility?.mode).toBe('gm_unrestricted')
     expect(JSON.stringify(output)).not.toContain('embeddingVector')
   })
 })

@@ -200,7 +200,7 @@ async function loadTypedRetrieval(
 function toGameMasterRagContext(
   knowledge:
     | {
-        memory: Array<{ sourceId: string; content: string }>
+        avatar_knowledge: Array<{ sourceId: string; content: string }>
         world: Array<{ sourceId: string; content: string }>
         media: Array<{ sourceId: string; content: string }>
       }
@@ -209,7 +209,9 @@ function toGameMasterRagContext(
   if (knowledge === undefined) return undefined
 
   const rag = {
-    ...(knowledge.memory.length > 0 ? { memory: toRagEntries(knowledge.memory) } : {}),
+    ...(knowledge.avatar_knowledge.length > 0
+      ? { avatar_knowledge: toRagEntries(knowledge.avatar_knowledge) }
+      : {}),
     ...(knowledge.world.length > 0 ? { world: toRagEntries(knowledge.world) } : {}),
     ...(knowledge.media.length > 0 ? { media: toRagEntries(knowledge.media) } : {}),
   }

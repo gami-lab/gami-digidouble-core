@@ -13,6 +13,7 @@ import type {
   KnowledgeChunk,
   VectorRetrievalCandidate,
 } from '../../../domain/knowledge/knowledge.types.js'
+import { findReservedStaticScopeKeys } from '../../../domain/knowledge/legacy-memory-audit.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
 type KnowledgeChunkDbRow = {
@@ -90,6 +91,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
   constructor(private readonly sql: Sql) {}
 
   async create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk> {
+    assertNoReservedStaticScopeMetadata(params.metadata)
     const sourceUuid = stripPrefix('knowledge_source_', params.sourceId)
     const visibleToAvatarIds = normalizeVisibleToAvatarIds(params.visibleToAvatarIds)
     validateEmbeddingIdentity(params)
@@ -203,7 +205,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
     const queryVector = this.sql`${JSON.stringify(request.queryVector)}::vector`
     const sourceFilter = buildSourceFilter(this.sql, sourceUuids)
     const visibilityFilter = buildVisibilityFilter(this.sql, request)
-    const memoryScopeFilter = buildMemoryScopeFilter(this.sql, request)
+    const staticScopeFilter = buildStaticScopeFilter(this.sql, request)
 
     let rows: VectorSearchRow[]
     try {
@@ -223,7 +225,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
           AND state.active_profile_id = ${profileUuid}
           AND state.active_generation_id = ${generationUuid}
           ${sourceFilter}
-          ${memoryScopeFilter}
+          ${staticScopeFilter}
           ${visibilityFilter}
         ORDER BY c.embedding <=> ${queryVector}, c.source_id ASC, c.chunk_index ASC, c.id ASC
         LIMIT ${request.candidateLimit}
@@ -365,8 +367,8 @@ function buildVisibilityFilter(sql: Sql, request: VectorSearchRequest): SqlFragm
   `
 }
 
-function buildMemoryScopeFilter(sql: Sql, request: VectorSearchRequest): SqlFragment {
-  if (request.knowledgeType !== 'memory') return sql``
+function buildStaticScopeFilter(sql: Sql, request: VectorSearchRequest): SqlFragment {
+  if (request.knowledgeType !== 'avatar_knowledge') return sql``
   const userId = request.userId ?? null
   const sessionId = request.sessionId ?? null
   const conversationId = request.conversationId ?? null
@@ -440,4 +442,12 @@ function parseVectorText(value: unknown): number[] | null {
     .filter((entry) => Number.isFinite(entry))
 
   return parsed
+}
+
+function assertNoReservedStaticScopeMetadata(metadata: unknown): void {
+  const reservedKeys = findReservedStaticScopeKeys(metadata)
+  if (reservedKeys.length === 0) return
+  throw new Error(
+    `Static knowledge chunk metadata cannot contain reserved scope keys: ${reservedKeys.join(', ')}.`,
+  )
 }

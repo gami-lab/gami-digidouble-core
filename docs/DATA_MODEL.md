@@ -75,10 +75,11 @@ deltas, and a partial avatar message is never saved.
 | Table | Purpose | Key fields | Notes |
 | ------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------- | -------------------------------- |
 | `knowledge_sources` | Scenario-scoped knowledge assets | `id`, `scenario_id`, `name`, `knowledge_type`, `format`, `uri_or_path`, `status`, `metadata`, `visible_to_avatar_ids`, `visibility_policy`, `created_at` | Visibility policies are `'all'                                                                           | 'avatars' | 'none'`; `'none'` means GM-only. |
+| `knowledge_source_quarantines` | Blocked legacy static knowledge classification | `source_id`, `original_knowledge_type`, `classification`, `reason`, `offending_key_names`, `quarantined_at` | One row per ambiguous legacy source; blocked sources are excluded from retrieval. |
 | `embedding_profiles` | Immutable provider/model/dimension identity for one vector space | `id`, `provider`, `model`, `dimensions`, `created_at` | Unique on `(provider, model, dimensions)`. Internal persistence state; not a public DTO. |
 | `corpus_generations` | Immutable staged or active replacement corpus | `id`, `embedding_profile_id`, `status`, `expected_source_count`, lifecycle timestamps | A generation belongs to exactly one profile. Status is `staging`, `validated`, `active`, `superseded`, or `failed`. |
 | `knowledge_corpus_state` | Atomic active-corpus pointer | `id=1`, `active_generation_id`, `active_profile_id` | Singleton database-owned pointer. Normal reads use this pair and never expose staged generations. |
-| `knowledge_chunks` | Retrieval chunks derived from knowledge sources | `id`, `source_id`, `content`, `chunk_index`, `embedding`, `embedding_profile_id`, `corpus_generation_id`, `metadata`, `visible_to_avatar_ids`, `created_at` | Vectorized chunks must carry both immutable identities. The fixed column is `VECTOR(16)` and uses `vector_cosine_ops`; old unprofiled vectors are nulled during schema alignment while source content remains. Chunks are unique per `(source_id, corpus_generation_id, chunk_index)`, so replacement generations can stage the same source/index independently. Normal ingestion replaces only the source's rows in the active generation inside one transaction. |
+| `knowledge_chunks` | Retrieval chunks derived from knowledge sources | `id`, `source_id`, `content`, `chunk_index`, `embedding`, `embedding_profile_id`, `corpus_generation_id`, `metadata`, `visible_to_avatar_ids`, `created_at` | Vectorized chunks must carry both immutable identities. New or updated metadata cannot recursively contain `userId`, `sessionId`, or `conversationId`. The fixed column is `VECTOR(16)` and uses `vector_cosine_ops`; old unprofiled vectors are nulled during schema alignment while source content remains. Chunks are unique per `(source_id, corpus_generation_id, chunk_index)`, so replacement generations can stage the same source/index independently. Normal ingestion replaces only the source's rows in the active generation inside one transaction. |
 | `reindex_operations` | Replacement corpus lifecycle tracking | `id`, `corpus_generation_id`, `embedding_profile_id`, expected active profile/generation, `status`, `attempts`, source counts, timestamps, bounded `failure_details` | Tracks `pending`, `running`, `completed`, and `failed` operations. The expected active pair is a promotion compare-and-set guard. |
 | `reindex_operation_sources` | Per-operation source progress | `reindex_operation_id`, `source_id`, `status`, `attempts`, chunk counts, timestamps, bounded `failure_details` | Unique per operation/source and idempotently replaceable. |
 | `corpus_generation_sources` | Per-generation completeness ledger | `corpus_generation_id`, `source_id`, `status`, expected/completed chunk counts | Promotion requires every expected source to complete and all staged vectors to be non-null. |
@@ -105,15 +106,22 @@ owned only by presenters. A query with the wrong dimension or stale profile/gene
 before search, and rows outside the active profile/generation are ineligible before the candidate
 limit. Search candidates do not select or persist the embedding column.
 
-### Static-memory audit invariant
+### Static knowledge terminology and migration invariant
 
 The legacy `knowledge_sources.knowledge_type = 'memory'` value is audited before the terminology
 rename in EPIC 4.2d. The checked-in dry-run tool (`scripts/audit-legacy-knowledge-memory.ts`) scans
 source and chunk JSON metadata recursively for the reserved scope keys `userId`, `sessionId`, and
 `conversationId`. It reports source/chunk IDs, current type, visibility, offending key names, and a
-proposed classification without selecting content or vectors and without mutating rows. A source
-with missing or contradictory visibility remains ambiguous; reserved scope metadata is never
-silently converted into Avatar knowledge or conversational memory.
+proposed classification without selecting content or vectors and without mutating rows. The
+canonical `knowledge_sources.knowledge_type` values are `avatar_knowledge`, `world`, and
+`media`; the PostgreSQL check constraint rejects `memory`. The migration tool
+(`scripts/migrate-legacy-knowledge-memory.ts`) changes only positively classified rows.
+Ambiguous rows are set to `blocked` and recorded in `knowledge_source_quarantines`, preserving the
+legacy type, classification, reason, and offending key names without making them retrievable.
+New or updated source/chunk metadata rejects those reserved keys. No static document is converted
+into conversational memory. During rollout, schema alignment temporarily defers re-adding the
+canonical type check if legacy `memory` rows still exist; `--apply` completes the data migration
+and restores the check in the same transaction.
 
 ## Relationships
 

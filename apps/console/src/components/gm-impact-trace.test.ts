@@ -154,7 +154,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
             'conversationStateRecentMessages',
             'userPersona',
             'worldContext',
-            'retrievedContextMemory',
+            'retrievedContextAvatarKnowledge',
             'retrievedContextWorld',
             'retrievedContextMedia',
             'avatarTraits',
@@ -166,7 +166,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
           shortTermExchangeCount: 0,
           hasWorkingMemory: false,
           longTermFactCount: 0,
-          retrievalCounts: { memory: 0, world: 0, media: 0 },
+          retrievalCounts: { avatar_knowledge: 0, world: 0, media: 0 },
           hasUserPersona: false,
           hasGmDirective: false,
           responseRuleCount: 0,
@@ -216,7 +216,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
                 },
               },
               retrievedContext: {
-                memory: [],
+                avatar_knowledge: [],
                 world: [
                   {
                     sourceId: 'source_1',
@@ -300,7 +300,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
                 ],
               },
               retrievedContext: {
-                memory: [],
+                avatar_knowledge: [],
                 world: [
                   {
                     sourceId: 'source_2',
@@ -343,22 +343,22 @@ function makeViewModel(): RuntimeInspectorViewModel {
             longTermFactCount: 1,
             retrieval: {
               selectedForAssemblyCounts: {
-                memory: 1,
+                avatar_knowledge: 1,
                 world: 2,
                 media: 0,
               },
               includedCounts: {
-                memory: 0,
+                avatar_knowledge: 0,
                 world: 1,
                 media: 0,
               },
               omittedByAssemblyCounts: {
-                memory: 1,
+                avatar_knowledge: 1,
                 world: 1,
                 media: 0,
               },
               excludedByVisibilityCounts: {
-                memory: 0,
+                avatar_knowledge: 0,
                 world: 0,
                 media: 0,
               },
@@ -482,7 +482,7 @@ describe('buildGmImpactTrace', () => {
           sections: {
             ...turnPayload.avatarContext.sections,
             retrievedContext: {
-              memory: [],
+              avatar_knowledge: [],
               world: [
                 {
                   sourceId: 'source_1',

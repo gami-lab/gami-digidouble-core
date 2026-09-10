@@ -308,21 +308,21 @@ function pushAvatarRetrievalCandidates(
   options: ContextEngineInput['extensions']['avatarRetrievalOptions'],
 ): void {
   if (retrieval === undefined) return
-  const selectedMemoryAndWorld = selectBalancedRetrievedItems(
-    [...retrieval.memory, ...retrieval.world],
+  const selectedAvatarKnowledgeAndWorld = selectBalancedRetrievedItems(
+    [...retrieval.avatar_knowledge, ...retrieval.world],
     options?.maxChunks ?? AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
     options,
   )
   pushAvatarRetrievalSegmentCandidate(
     candidates,
-    'retrievedContextMemory',
-    selectedMemoryAndWorld.filter((item) => item.knowledgeType === 'memory'),
+    'retrievedContextAvatarKnowledge',
+    selectedAvatarKnowledgeAndWorld.filter((item) => item.knowledgeType === 'avatar_knowledge'),
     retrieval.trace,
   )
   pushAvatarRetrievalSegmentCandidate(
     candidates,
     'retrievedContextWorld',
-    selectedMemoryAndWorld.filter((item) => item.knowledgeType === 'world'),
+    selectedAvatarKnowledgeAndWorld.filter((item) => item.knowledgeType === 'world'),
     retrieval.trace,
   )
   pushAvatarRetrievalSegmentCandidate(
@@ -340,8 +340,8 @@ function pushGmRetrievalCandidates(
   if (retrieval === undefined) return
   pushGmRetrievalSegmentCandidate(
     candidates,
-    'retrievedContextMemory',
-    retrieval.memory,
+    'retrievedContextAvatarKnowledge',
+    retrieval.avatar_knowledge,
     retrieval.trace,
   )
   pushGmRetrievalSegmentCandidate(
@@ -360,7 +360,7 @@ function pushGmRetrievalCandidates(
 
 function pushAvatarRetrievalSegmentCandidate(
   candidates: CandidateSegment[],
-  segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
+  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld' | 'retrievedContextMedia',
   items: RetrievedKnowledgeItem[],
   trace: RetrievalTrace,
 ): void {
@@ -378,7 +378,7 @@ function pushAvatarRetrievalSegmentCandidate(
 
 function pushGmRetrievalSegmentCandidate(
   candidates: CandidateSegment[],
-  segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
+  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld' | 'retrievedContextMedia',
   items: RetrievedKnowledgeItem[],
   trace: RetrievalTrace,
 ): void {
@@ -390,9 +390,9 @@ function pushGmRetrievalSegmentCandidate(
     tokenEstimate: estimateTokens(items.map((item) => item.content).join(' ')),
     apply: (draft) => {
       draft.gm.sections.retrievedContext = {
-        memory: [
-          ...(draft.gm.sections.retrievedContext?.memory ?? []),
-          ...(segmentId === 'retrievedContextMemory' ? items : []),
+        avatar_knowledge: [
+          ...(draft.gm.sections.retrievedContext?.avatar_knowledge ?? []),
+          ...(segmentId === 'retrievedContextAvatarKnowledge' ? items : []),
         ],
         world: [
           ...(draft.gm.sections.retrievedContext?.world ?? []),
@@ -410,14 +410,14 @@ function pushGmRetrievalSegmentCandidate(
 
 function applyAvatarRetrievedContextSegment(
   draft: MutableOutput,
-  segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
+  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld' | 'retrievedContextMedia',
   items: RetrievedKnowledgeItem[],
   trace: RetrievalTrace,
 ): void {
   const current = draft.avatar.sections.retrievedContext
   const retrievedItems: RetrievedKnowledgeItem[] = []
   const typedSections = {
-    memory: [] as RetrievedKnowledgeItem[],
+    avatar_knowledge: [] as RetrievedKnowledgeItem[],
     world: [] as RetrievedKnowledgeItem[],
     media: [] as RetrievedKnowledgeItem[],
   }
@@ -425,7 +425,7 @@ function applyAvatarRetrievedContextSegment(
   if (current !== undefined) {
     retrievedItems.push(...current.retrievedItems)
     if (current.typedSections !== undefined) {
-      typedSections.memory.push(...current.typedSections.memory)
+      typedSections.avatar_knowledge.push(...current.typedSections.avatar_knowledge)
       typedSections.world.push(...current.typedSections.world)
       typedSections.media.push(...current.typedSections.media)
     }
@@ -442,9 +442,9 @@ function applyAvatarRetrievedContextSegment(
 }
 
 function toTypedSectionKey(
-  segmentId: 'retrievedContextMemory' | 'retrievedContextWorld' | 'retrievedContextMedia',
-): 'memory' | 'world' | 'media' {
-  if (segmentId === 'retrievedContextMemory') return 'memory'
+  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld' | 'retrievedContextMedia',
+): 'avatar_knowledge' | 'world' | 'media' {
+  if (segmentId === 'retrievedContextAvatarKnowledge') return 'avatar_knowledge'
   if (segmentId === 'retrievedContextWorld') return 'world'
   return 'media'
 }
@@ -595,7 +595,7 @@ function buildTraceRetrievalCounts(
   input: ContextEngineInput,
 ): ContextEngineOutput['trace']['selectedInputs']['retrievalCounts'] {
   return {
-    memory: input.extensions.retrieval?.memory.length ?? 0,
+    avatar_knowledge: input.extensions.retrieval?.avatar_knowledge.length ?? 0,
     world: input.extensions.retrieval?.world.length ?? 0,
     media: input.extensions.retrieval?.media.length ?? 0,
   }
@@ -609,7 +609,7 @@ function buildTraceVisibility(
   const trace = input.extensions.retrieval?.trace
   if (trace === undefined) return undefined
   const perTypeVisibility = [
-    trace.perType.memory.visibility,
+    trace.perType.avatar_knowledge.visibility,
     trace.perType.world.visibility,
     trace.perType.media.visibility,
   ]
@@ -617,14 +617,14 @@ function buildTraceVisibility(
   return {
     ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
     excludedCounts: {
-      memory: trace.perType.memory.visibility?.excludedChunkCount ?? 0,
+      avatar_knowledge: trace.perType.avatar_knowledge.visibility?.excludedChunkCount ?? 0,
       world: trace.perType.world.visibility?.excludedChunkCount ?? 0,
       media: trace.perType.media.visibility?.excludedChunkCount ?? 0,
     },
     ...(input.extensions.retrievalForGm !== undefined
       ? {
           gmRetrievalCounts: {
-            memory: input.extensions.retrievalForGm.memory.length,
+            avatar_knowledge: input.extensions.retrievalForGm.avatar_knowledge.length,
             world: input.extensions.retrievalForGm.world.length,
             media: input.extensions.retrievalForGm.media.length,
           },
@@ -651,13 +651,16 @@ function dedupeLongTermFacts(facts: LongTermMemoryFact[]): LongTermMemoryFact[] 
 
 function dedupeRetrieval(retrieval: ContextEngineInput['extensions']['retrieval']) {
   if (retrieval === undefined) return undefined
-  const memory = dedupeRetrievedItems(retrieval.memory)
-  const world = dedupeRetrievedItems(retrieval.world, new Set(memory.map((item) => item.chunkId)))
+  const avatarKnowledge = dedupeRetrievedItems(retrieval.avatar_knowledge)
+  const world = dedupeRetrievedItems(
+    retrieval.world,
+    new Set(avatarKnowledge.map((item) => item.chunkId)),
+  )
   const media = dedupeRetrievedItems(
     retrieval.media,
-    new Set([...memory, ...world].map((item) => item.chunkId)),
+    new Set([...avatarKnowledge, ...world].map((item) => item.chunkId)),
   )
-  return { ...retrieval, memory, world, media }
+  return { ...retrieval, avatar_knowledge: avatarKnowledge, world, media }
 }
 
 function dedupeRetrievedItems(

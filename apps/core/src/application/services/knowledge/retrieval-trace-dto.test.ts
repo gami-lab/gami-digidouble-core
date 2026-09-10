@@ -27,7 +27,7 @@ describe('retrieval-trace-dto', () => {
       },
       timings: { totalMs: 8, queryEmbeddingMs: 3, vectorSearchMs: 5 },
       perType: {
-        memory: {
+        avatar_knowledge: {
           sourceIds: ['source_memory_1'],
           selectedChunkIds: ['chunk_memory_1'],
           candidateCount: 1,
@@ -57,7 +57,7 @@ describe('retrieval-trace-dto', () => {
     expect(toRetrievalTraceDto(trace)).toMatchObject({
       query: 'dock',
       perType: {
-        memory: {
+        avatar_knowledge: {
           visibility: {
             mode: 'avatar_filtered',
             activeAvatarId: 'avatar_1',
@@ -76,7 +76,7 @@ describe('retrieval-trace-dto', () => {
       ],
       failure: { code: 'query_embedding_failed', retryable: true },
       perType: {
-        memory: {
+        avatar_knowledge: {
           sourceIds: ['source_memory_1'],
           selectedChunkIds: ['chunk_memory_1'],
           visibility: {

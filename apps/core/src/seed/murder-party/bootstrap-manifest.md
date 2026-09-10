@@ -77,17 +77,17 @@ Suggested behavior:
 
 Register these Markdown files as knowledge sources:
 
-| File               | knowledgeType | visibilityPolicy | visibleToAvatarIds |
-| ------------------ | ------------- | ---------------- | ------------------ |
-| `scenario.md`      | world         | all              | —                  |
-| `places.md`        | world         | all              | —                  |
-| `crime-scene.md`   | world         | all              | —                  |
-| `shared-clues.md`  | world         | all              | —                  |
-| `avatar-clara.md`  | memory        | avatars          | ["clara"]          |
-| `avatar-elias.md`  | memory        | avatars          | ["elias"]          |
-| `avatar-margot.md` | memory        | avatars          | ["margot"]         |
-| `avatar-thomas.md` | memory        | avatars          | ["thomas"]         |
-| `gm-truth.md`      | world         | none             | —                  |
+| File               | knowledgeType    | visibilityPolicy | visibleToAvatarIds |
+| ------------------ | ---------------- | ---------------- | ------------------ |
+| `scenario.md`      | world            | all              | —                  |
+| `places.md`        | world            | all              | —                  |
+| `crime-scene.md`   | world            | all              | —                  |
+| `shared-clues.md`  | world            | all              | —                  |
+| `avatar-clara.md`  | avatar_knowledge | avatars          | ["clara"]          |
+| `avatar-elias.md`  | avatar_knowledge | avatars          | ["elias"]          |
+| `avatar-margot.md` | avatar_knowledge | avatars          | ["margot"]         |
+| `avatar-thomas.md` | avatar_knowledge | avatars          | ["thomas"]         |
+| `gm-truth.md`      | world            | none             | —                  |
 
 ## GM-only knowledge
 
@@ -100,10 +100,10 @@ This is useful for testing GM omniscience and visibility diagnostics.
 
 ## Expected runtime checks
 
-1. Query as Clara: Clara should retrieve public world files and `avatar-clara.md`, not Elias's memory.
-2. Query as Elias: Elias should retrieve public world files and `avatar-elias.md`, not Clara's memory.
-3. Query as Margot: Margot should retrieve her memory but not Thomas's.
-4. Query as Thomas: Thomas should retrieve his memory and public clues.
+1. Query as Clara: Clara should retrieve public world files and `avatar-clara.md`, not Elias's avatar knowledge.
+2. Query as Elias: Elias should retrieve public world files and `avatar-elias.md`, not Clara's avatar knowledge.
+3. Query as Margot: Margot should retrieve her avatar knowledge but not Thomas's.
+4. Query as Thomas: Thomas should retrieve his avatar knowledge and public clues.
 5. GM inspection should show unrestricted retrieval counts.
 6. Runtime inspector should show excluded counts for non-visible chunks.
 
@@ -115,4 +115,4 @@ Do not add clue entities yet.
 
 Do not add complex ACLs.
 
-Use scenario config, avatar config, knowledge metadata, memory, and GM progression.
+Use scenario config, avatar config, knowledge metadata, avatar knowledge, and GM progression.

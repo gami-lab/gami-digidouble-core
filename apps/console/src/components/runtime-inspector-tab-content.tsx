@@ -340,8 +340,8 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
       <strong>Static knowledge inventory</strong>
       <Row label="Scenario">{snapshot.session.scenarioId}</Row>
       <Row label="Loaded sources">{String(snapshot.knowledge.sources.length)}</Row>
-      <Row label="World / memory / media">
-        {`${String(staticKnowledgeCounts.world)} / ${String(staticKnowledgeCounts.memory)} / ${String(staticKnowledgeCounts.media)}`}
+      <Row label="Avatar knowledge / world / media">
+        {`${String(staticKnowledgeCounts.avatar_knowledge)} / ${String(staticKnowledgeCounts.world)} / ${String(staticKnowledgeCounts.media)}`}
       </Row>
       {snapshot.knowledge.sources.length === 0 ? (
         <p style={{ margin: '6px 0', color: '#6b7280' }}>No scenario knowledge sources loaded.</p>
@@ -462,13 +462,13 @@ function formatInlineItems(items: string[] | undefined): string {
 
 function countKnowledgeSources(
   sources: RuntimeInspectorViewModel['knowledge']['sources'],
-): Record<'memory' | 'world' | 'media', number> {
+): Record<'avatar_knowledge' | 'world' | 'media', number> {
   return sources.reduce(
     (counts, source) => {
       counts[source.knowledgeType] += 1
       return counts
     },
-    { memory: 0, world: 0, media: 0 },
+    { avatar_knowledge: 0, world: 0, media: 0 },
   )
 }
 

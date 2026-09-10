@@ -177,11 +177,11 @@ describe('assemblePersonaPrompt -> section order', () => {
         },
         worldContext: 'The archive closes at moonrise.',
         retrieval: {
-          memory: [
+          avatar_knowledge: [
             {
               sourceId: 'source_1',
               chunkId: 'chunk_1',
-              knowledgeType: 'memory',
+              knowledgeType: 'avatar_knowledge',
               content: 'The user prefers concise examples.',
             },
           ],
@@ -336,9 +336,9 @@ describe('assemblePersonaPrompt -> runtime context sections', () => {
     const prompt = assemblePersonaPrompt(makeAvatarConfig({ computedTraits: SAMPLE_TRAITS }), {
       worldContext: 'The archive closes at moonrise.',
       retrieval: {
-        memory: [
-          retrievalItem('memory', 'chunk_1', 'The user prefers concise examples.', 0.8),
-          retrievalItem('memory', 'chunk_4', 'Secondary memory fact.', 0.05),
+        avatar_knowledge: [
+          retrievalItem('avatar_knowledge', 'chunk_1', 'The user prefers concise examples.', 0.8),
+          retrievalItem('avatar_knowledge', 'chunk_4', 'Secondary avatar knowledge fact.', 0.05),
         ],
         world: [
           retrievalItem('world', 'chunk_2', 'Ships dock at tidefall.', 0.95),
@@ -361,11 +361,13 @@ describe('assemblePersonaPrompt -> runtime context sections', () => {
     expect(worldContextSection).not.toContain('Retrieved Context')
     expect(retrievedContextSection).toContain('Context 1 (world):\nShips dock at tidefall.')
     expect(retrievedContextSection).toContain(
-      'Context 2 (memory):\nThe user prefers concise examples.',
+      'Context 2 (avatar_knowledge):\nThe user prefers concise examples.',
     )
     expect(retrievedContextSection).toContain('---')
     expect(retrievedContextSection).toContain('Context 4 (world):\nThe old pier is closed.')
-    expect(retrievedContextSection).toContain('Context 5 (memory):\nSecondary memory fact.')
+    expect(retrievedContextSection).toContain(
+      'Context 5 (avatar_knowledge):\nSecondary avatar knowledge fact.',
+    )
     expect(retrievedContextSection).not.toContain('Low relevance world fact.')
     expect(retrievedContextSection).toContain('Media retrieval:')
     expect(retrievedContextSection).toContain(

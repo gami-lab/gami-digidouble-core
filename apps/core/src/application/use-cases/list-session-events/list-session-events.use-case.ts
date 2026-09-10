@@ -245,10 +245,10 @@ function readOptionalContextSelection(
               selectedForAssemblyCounts: readRetrievalCounts(retrievalCountsValue),
               includedCounts: readIncludedRetrievalCounts(avatarContext),
               omittedByAssemblyCounts: {
-                memory: Math.max(
+                avatar_knowledge: Math.max(
                   0,
-                  readNumber(retrievalCountsValue['memory']) -
-                    (avatarContext?.sections.retrievedContext?.memory.length ?? 0),
+                  readNumber(retrievalCountsValue['avatar_knowledge']) -
+                    (avatarContext?.sections.retrievedContext?.avatar_knowledge.length ?? 0),
                 ),
                 world: Math.max(
                   0,
@@ -308,7 +308,7 @@ function readOptionalRetrievalSelection(
   const selectedForAssemblyCounts =
     selectedCountsValue !== undefined
       ? readRetrievalCounts(selectedCountsValue)
-      : { memory: 0, world: 0, media: 0 }
+      : { avatar_knowledge: 0, world: 0, media: 0 }
   const includedCounts =
     includedCountsValue !== undefined
       ? readRetrievalCounts(includedCountsValue)
@@ -320,7 +320,10 @@ function readOptionalRetrievalSelection(
       omittedCountsValue !== undefined
         ? readRetrievalCounts(omittedCountsValue)
         : {
-            memory: Math.max(0, selectedForAssemblyCounts.memory - includedCounts.memory),
+            avatar_knowledge: Math.max(
+              0,
+              selectedForAssemblyCounts.avatar_knowledge - includedCounts.avatar_knowledge,
+            ),
             world: Math.max(0, selectedForAssemblyCounts.world - includedCounts.world),
             media: Math.max(0, selectedForAssemblyCounts.media - includedCounts.media),
           },
@@ -344,12 +347,12 @@ function readContextEngineSelection(
 
 function readOptionalVisibilitySelection(
   value: unknown,
-): { excludedCounts: { memory: number; world: number; media: number } } | undefined {
+): { excludedCounts: { avatar_knowledge: number; world: number; media: number } } | undefined {
   if (!isRecord(value)) return undefined
   const excludedCountsValue = isRecord(value['excludedCounts']) ? value['excludedCounts'] : {}
   return {
     excludedCounts: {
-      memory: readNumber(excludedCountsValue['memory']),
+      avatar_knowledge: readNumber(excludedCountsValue['avatar_knowledge']),
       world: readNumber(excludedCountsValue['world']),
       media: readNumber(excludedCountsValue['media']),
     },
@@ -357,24 +360,24 @@ function readOptionalVisibilitySelection(
 }
 
 function readRetrievalCounts(value: Record<string, unknown>): {
-  memory: number
+  avatar_knowledge: number
   world: number
   media: number
 } {
   return {
-    memory: readNumber(value['memory']),
+    avatar_knowledge: readNumber(value['avatar_knowledge']),
     world: readNumber(value['world']),
     media: readNumber(value['media']),
   }
 }
 
 function readIncludedRetrievalCounts(avatarContext: RecordedAvatarContextSnapshot | undefined): {
-  memory: number
+  avatar_knowledge: number
   world: number
   media: number
 } {
   return {
-    memory: avatarContext?.sections.retrievedContext?.memory.length ?? 0,
+    avatar_knowledge: avatarContext?.sections.retrievedContext?.avatar_knowledge.length ?? 0,
     world: avatarContext?.sections.retrievedContext?.world.length ?? 0,
     media: avatarContext?.sections.retrievedContext?.media.length ?? 0,
   }
@@ -682,7 +685,7 @@ function readAvatarKnowledge(
   const typedSections =
     typedSectionsValue !== undefined
       ? readRecordedTypedSections(typedSectionsValue)
-      : Array.isArray(value['memory']) ||
+      : Array.isArray(value['avatar_knowledge']) ||
           Array.isArray(value['world']) ||
           Array.isArray(value['media'])
         ? readRecordedTypedSections(value)
@@ -846,7 +849,7 @@ function readRecordedKnowledgeReferences(value: unknown): RecordedKnowledgeRefer
 function readRecordedTypedSections(value: Record<string, unknown>): RecordedTypedKnowledgeSections {
   const trace = parseRetrievalTraceDto(value['trace'])
   return {
-    memory: readRecordedKnowledgeReferences(value['memory']),
+    avatar_knowledge: readRecordedKnowledgeReferences(value['avatar_knowledge']),
     world: readRecordedKnowledgeReferences(value['world']),
     media: readRecordedKnowledgeReferences(value['media']),
     ...(trace !== undefined ? { trace } : {}),
@@ -862,7 +865,7 @@ function groupRecordedKnowledgeReferences(
       return grouped
     },
     {
-      memory: [] as RecordedKnowledgeReference[],
+      avatar_knowledge: [] as RecordedKnowledgeReference[],
       world: [] as RecordedKnowledgeReference[],
       media: [] as RecordedKnowledgeReference[],
     },
@@ -870,9 +873,9 @@ function groupRecordedKnowledgeReferences(
 }
 
 function hasRecordedKnowledge(
-  value: Pick<RecordedTypedKnowledgeSections, 'memory' | 'world' | 'media'>,
+  value: Pick<RecordedTypedKnowledgeSections, 'avatar_knowledge' | 'world' | 'media'>,
 ): boolean {
-  return value.memory.length > 0 || value.world.length > 0 || value.media.length > 0
+  return value.avatar_knowledge.length > 0 || value.world.length > 0 || value.media.length > 0
 }
 
 // eslint-disable-next-line complexity
@@ -884,7 +887,7 @@ function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeRefere
   if (
     sourceId === undefined ||
     chunkId === undefined ||
-    (knowledgeType !== 'memory' && knowledgeType !== 'world' && knowledgeType !== 'media')
+    (knowledgeType !== 'avatar_knowledge' && knowledgeType !== 'world' && knowledgeType !== 'media')
   ) {
     return null
   }

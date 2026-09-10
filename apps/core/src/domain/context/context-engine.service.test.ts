@@ -54,11 +54,11 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
         longTerm: { facts: [{ category: 'preference', key: 'style', value: 'concise' }] },
       },
       retrieval: {
-        memory: [
+        avatar_knowledge: [
           {
             sourceId: 'source_1',
             chunkId: 'chunk_1',
-            knowledgeType: 'memory',
+            knowledgeType: 'avatar_knowledge',
             content: 'memory item',
           },
         ],
@@ -71,7 +71,7 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
         trace: {
           query: 'hello',
           perType: {
-            memory: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
+            avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
             world: { sourceIds: ['source_2'], selectedChunkIds: ['chunk_2'] },
             media: { sourceIds: ['source_3'], selectedChunkIds: ['chunk_3'] },
           },
@@ -98,11 +98,11 @@ function requireRetrieval(input: ContextEngineInput): TypedRetrievalResult {
 
 function expectedTypedSections() {
   return {
-    memory: [
+    avatar_knowledge: [
       {
         sourceId: 'source_1',
         chunkId: 'chunk_1',
-        knowledgeType: 'memory',
+        knowledgeType: 'avatar_knowledge',
         content: 'memory item',
       },
     ],
@@ -131,9 +131,13 @@ function assertBaselineAvatarRetrievedContext(output: ReturnType<ContextEngine['
 }
 
 function assertBaselineRetrievalCounts(output: ReturnType<ContextEngine['assemble']>): void {
-  expect(output.trace.selectedInputs.retrievalCounts).toEqual({ memory: 1, world: 1, media: 1 })
+  expect(output.trace.selectedInputs.retrievalCounts).toEqual({
+    avatar_knowledge: 1,
+    world: 1,
+    media: 1,
+  })
   expect(output.trace.selectedInputs.visibility?.excludedCounts).toEqual({
-    memory: 0,
+    avatar_knowledge: 0,
     world: 0,
     media: 0,
   })
@@ -164,7 +168,7 @@ function makeTinyBudgetPolicy(): ContextEnginePolicy {
       'conversationStateRecentMessages',
       'userPersona',
       'worldContext',
-      'retrievedContextMemory',
+      'retrievedContextAvatarKnowledge',
       'retrievedContextWorld',
       'retrievedContextMedia',
       'avatarTraits',
@@ -223,12 +227,12 @@ function applyConflictingMemoryAndRetrieval(input: ContextEngineInput): void {
   }
   input.extensions.retrieval = {
     ...retrieval,
-    memory: [
-      ...retrieval.memory,
+    avatar_knowledge: [
+      ...retrieval.avatar_knowledge,
       {
         sourceId: 'source_dup',
         chunkId: 'chunk_2',
-        knowledgeType: 'memory',
+        knowledgeType: 'avatar_knowledge',
         content: 'memory duplicate of world chunk id',
       },
     ],
@@ -251,9 +255,9 @@ function assertDeterministicConflictResolution(
     { category: 'preference', key: 'style', value: 'concise' },
   ])
   assertDeterministicTypedSections(output)
-  expect(output.gm.sections.retrievedContext?.memory.map((item) => item.chunkId)).toContain(
-    'chunk_2',
-  )
+  expect(
+    output.gm.sections.retrievedContext?.avatar_knowledge.map((item) => item.chunkId),
+  ).toContain('chunk_2')
   expect(output.gm.sections.retrievedContext?.world).toEqual([])
 }
 
@@ -262,7 +266,9 @@ function assertDeterministicTypedSections(output: ReturnType<ContextEngine['asse
     output.avatar.sections.retrievedContext?.retrievedItems.map((item) => item.chunkId) ?? []
   expect(avatarChunkIds).toEqual(['chunk_1', 'chunk_2', 'chunk_3'])
   expect(
-    output.avatar.sections.retrievedContext?.typedSections?.memory.map((item) => item.chunkId),
+    output.avatar.sections.retrievedContext?.typedSections?.avatar_knowledge.map(
+      (item) => item.chunkId,
+    ),
   ).toEqual(['chunk_1', 'chunk_2'])
   expect(output.avatar.sections.retrievedContext?.typedSections?.world).toEqual([])
   expect(
@@ -310,25 +316,25 @@ describe('ContextEngine baseline', () => {
     input.extensions.avatarRetrievalOptions = { maxChunks: 5 }
     input.extensions.retrieval = {
       ...requireRetrieval(input),
-      memory: [
+      avatar_knowledge: [
         {
           sourceId: 'memory_source_1',
           chunkId: 'memory_chunk_1',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'memory 0.8',
           score: 0.8,
         },
         {
           sourceId: 'memory_source_2',
           chunkId: 'memory_chunk_2',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'memory 0.1',
           score: 0.1,
         },
         {
           sourceId: 'memory_source_3',
           chunkId: 'memory_chunk_3',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'memory 0.05',
           score: 0.05,
         },
@@ -361,7 +367,7 @@ describe('ContextEngine baseline', () => {
 
     const output = new ContextEngine().assemble(input)
     const selected = output.avatar.sections.retrievedContext?.typedSections
-    expect(selected?.memory.map((item) => item.chunkId)).toEqual([
+    expect(selected?.avatar_knowledge.map((item) => item.chunkId)).toEqual([
       'memory_chunk_1',
       'memory_chunk_2',
     ])
@@ -412,11 +418,11 @@ describe('ContextEngine baseline', () => {
     const engine = new ContextEngine()
     const input = makeInput()
     input.extensions.retrieval = {
-      memory: [
+      avatar_knowledge: [
         {
           sourceId: 'source_avatar_memory',
           chunkId: 'chunk_avatar_memory',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'avatar-visible memory',
         },
       ],
@@ -425,7 +431,7 @@ describe('ContextEngine baseline', () => {
       trace: {
         query: 'hello',
         perType: {
-          memory: {
+          avatar_knowledge: {
             sourceIds: ['source_avatar_memory', 'source_hidden_memory'],
             selectedChunkIds: ['chunk_avatar_memory'],
             visibility: {
@@ -456,17 +462,17 @@ describe('ContextEngine baseline', () => {
       },
     }
     input.extensions.retrievalForGm = {
-      memory: [
+      avatar_knowledge: [
         {
           sourceId: 'source_avatar_memory',
           chunkId: 'chunk_avatar_memory',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'avatar-visible memory',
         },
         {
           sourceId: 'source_hidden_memory',
           chunkId: 'chunk_hidden_memory',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'gm-hidden memory still visible to gm',
         },
       ],
@@ -489,7 +495,7 @@ describe('ContextEngine baseline', () => {
       trace: {
         query: 'hello',
         perType: {
-          memory: {
+          avatar_knowledge: {
             sourceIds: ['source_avatar_memory'],
             selectedChunkIds: ['chunk_avatar_memory'],
           },
@@ -502,11 +508,11 @@ describe('ContextEngine baseline', () => {
     const output = engine.assemble(input)
 
     expect(output.avatar.sections.retrievedContext?.typedSections).toEqual({
-      memory: [
+      avatar_knowledge: [
         {
           sourceId: 'source_avatar_memory',
           chunkId: 'chunk_avatar_memory',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'avatar-visible memory',
         },
       ],
@@ -514,17 +520,17 @@ describe('ContextEngine baseline', () => {
       media: [],
     })
     expect(output.gm.sections.retrievedContext).toEqual({
-      memory: [
+      avatar_knowledge: [
         {
           sourceId: 'source_avatar_memory',
           chunkId: 'chunk_avatar_memory',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'avatar-visible memory',
         },
         {
           sourceId: 'source_hidden_memory',
           chunkId: 'chunk_hidden_memory',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'gm-hidden memory still visible to gm',
         },
       ],
@@ -547,7 +553,7 @@ describe('ContextEngine baseline', () => {
       trace: {
         query: 'hello',
         perType: {
-          memory: {
+          avatar_knowledge: {
             sourceIds: ['source_avatar_memory'],
             selectedChunkIds: ['chunk_avatar_memory'],
           },
@@ -565,12 +571,12 @@ describe('ContextEngine baseline', () => {
     expect(output.trace.selectedInputs.visibility).toEqual({
       activeAvatarId: 'avatar_1',
       excludedCounts: {
-        memory: 1,
+        avatar_knowledge: 1,
         world: 2,
         media: 0,
       },
       gmRetrievalCounts: {
-        memory: 2,
+        avatar_knowledge: 2,
         world: 1,
         media: 1,
       },
@@ -600,11 +606,11 @@ describe('ContextEngine policy', () => {
 
     expect(withOutput.avatar.sections.retrievedContext?.retrievedItems.length).toBe(3)
     expect(withoutOutput.avatar.sections.retrievedContext).toBeUndefined()
-    expect((withOutput.gm.sections.retrievedContext?.memory.length ?? 0) > 0).toBe(true)
+    expect((withOutput.gm.sections.retrievedContext?.avatar_knowledge.length ?? 0) > 0).toBe(true)
     expect(withoutOutput.gm.sections.retrievedContext).toBeUndefined()
     assertBaselineRetrievalCounts(withOutput)
     expect(withoutOutput.trace.selectedInputs.retrievalCounts).toEqual({
-      memory: 0,
+      avatar_knowledge: 0,
       world: 0,
       media: 0,
     })

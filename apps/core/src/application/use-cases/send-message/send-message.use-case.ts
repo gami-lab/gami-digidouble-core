@@ -76,7 +76,9 @@ const MESSAGE_HISTORY_FETCH_LIMIT = MESSAGE_HISTORY_EXCHANGE_LIMIT * 2
 function hasRetrievedKnowledge(retrieval: TypedRetrievalResult | undefined): boolean {
   return (
     retrieval !== undefined &&
-    (retrieval.memory.length > 0 || retrieval.world.length > 0 || retrieval.media.length > 0)
+    (retrieval.avatar_knowledge.length > 0 ||
+      retrieval.world.length > 0 ||
+      retrieval.media.length > 0)
   )
 }
 

@@ -96,7 +96,7 @@ function buildService(
   embedding: RetrievalQueryEmbeddingResult,
 ) {
   const sourceRepository = new InMemoryKnowledgeSourceRepository([
-    source('memory_source', 'memory'),
+    source('memory_source', 'avatar_knowledge'),
     source('world_source', 'world'),
     source('media_source', 'media'),
   ])
@@ -210,7 +210,7 @@ describe('TypedRetrievalService', () => {
     expect(embedVariants).toHaveBeenCalledTimes(1)
     expect(searchByVector).toHaveBeenCalledTimes(3)
     expect(searchByVector.mock.calls.every(([request]) => request.candidateLimit === 2)).toBe(true)
-    expect(result.memory[0]).toEqual(
+    expect(result.avatar_knowledge[0]).toEqual(
       expect.objectContaining({
         chunkId: 'memory_1',
         score: 1,
@@ -249,12 +249,14 @@ describe('TypedRetrievalService', () => {
       limitPerType: 3,
     })
 
-    expect(result.memory).toHaveLength(2)
-    expect(result.memory.find((item) => item.chunkId === 'memory_best')).toEqual(
+    expect(result.avatar_knowledge).toHaveLength(2)
+    expect(result.avatar_knowledge.find((item) => item.chunkId === 'memory_best')).toEqual(
       expect.objectContaining({ queryIndex: 1 }),
     )
-    expect(new Set(result.memory.map((item) => item.chunkId)).size).toBe(2)
-    expect(result.trace.perType.memory).toEqual(expect.objectContaining({ duplicateCount: 2 }))
+    expect(new Set(result.avatar_knowledge.map((item) => item.chunkId)).size).toBe(2)
+    expect(result.trace.perType.avatar_knowledge).toEqual(
+      expect.objectContaining({ duplicateCount: 2 }),
+    )
     expect(result.trace).toEqual(expect.objectContaining({ duplicateCount: 2 }))
   })
 
@@ -276,7 +278,7 @@ describe('TypedRetrievalService', () => {
       activeAvatarId: 'avatar_1',
     })
 
-    expect(result.memory.map((item) => item.chunkId)).toEqual(['memory_visible'])
+    expect(result.avatar_knowledge.map((item) => item.chunkId)).toEqual(['memory_visible'])
     expect(result.world).toHaveLength(0)
     expect(result.trace.visibilityMode).toBe('avatar_filtered')
     expect(listBySourceIds).not.toHaveBeenCalled()
@@ -302,7 +304,7 @@ describe('TypedRetrievalService', () => {
 
   it('returns a controlled empty result for embedding failure without searching', async () => {
     const sourceRepository = new InMemoryKnowledgeSourceRepository([
-      source('memory_source', 'memory'),
+      source('memory_source', 'avatar_knowledge'),
     ])
     const chunkRepository = new InMemoryKnowledgeChunkRepository([], sourceRepository)
     const embedVariants = vi.fn().mockResolvedValue({
@@ -320,7 +322,7 @@ describe('TypedRetrievalService', () => {
 
     const result = await service.retrieve({ scenarioId: 'scenario_1', query: 'memory' })
 
-    expect(result.memory).toEqual([])
+    expect(result.avatar_knowledge).toEqual([])
     expect(result.trace).toEqual(
       expect.objectContaining({
         outcome: 'failed',
@@ -332,7 +334,7 @@ describe('TypedRetrievalService', () => {
 
   it('returns a controlled empty result when vector search fails', async () => {
     const sourceRepository = new InMemoryKnowledgeSourceRepository([
-      source('memory_source', 'memory'),
+      source('memory_source', 'avatar_knowledge'),
     ])
     const chunkRepository = new InMemoryKnowledgeChunkRepository([], sourceRepository)
     vi.spyOn(chunkRepository, 'searchByVector').mockRejectedValue(new Error('programming failure'))
@@ -349,7 +351,7 @@ describe('TypedRetrievalService', () => {
 
   it('maps the canonical vector search failure to an empty controlled result', async () => {
     const sourceRepository = new InMemoryKnowledgeSourceRepository([
-      source('memory_source', 'memory'),
+      source('memory_source', 'avatar_knowledge'),
     ])
     const chunkRepository = new InMemoryKnowledgeChunkRepository([], sourceRepository)
     vi.spyOn(chunkRepository, 'searchByVector').mockRejectedValue(

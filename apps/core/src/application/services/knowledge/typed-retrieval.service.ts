@@ -119,19 +119,19 @@ export class TypedRetrievalService {
           this.retrieveByType(type, input, embedding.queryVectors, resolvedProfile, limit),
         ),
       )
-      const [memory, world, media] = retrievedByType as [
+      const [avatarKnowledge, world, media] = retrievedByType as [
         RetrievedType,
         RetrievedType,
         RetrievedType,
       ]
-      const totalSelected = memory.items.length + world.items.length + media.items.length
+      const totalSelected = avatarKnowledge.items.length + world.items.length + media.items.length
       const vectorSearchMs = Math.max(
         0,
         Date.now() - startedAt - (embedding.diagnostics.timings.totalMs ?? 0),
       )
 
       return {
-        memory: memory.items,
+        avatar_knowledge: avatarKnowledge.items,
         world: world.items,
         media: media.items,
         trace: {
@@ -146,22 +146,23 @@ export class TypedRetrievalService {
           ),
           visibilityMode: visibilityMode(input),
           gmUnrestricted: input.bypassVisibilityFilter === true,
-          candidateCount: memory.candidateCount + world.candidateCount + media.candidateCount,
+          candidateCount:
+            avatarKnowledge.candidateCount + world.candidateCount + media.candidateCount,
           selectedCount: totalSelected,
           ...optionalCount(
             'duplicateCount',
-            memory.duplicateCount + world.duplicateCount + media.duplicateCount,
+            avatarKnowledge.duplicateCount + world.duplicateCount + media.duplicateCount,
           ),
           ...optionalCount(
             'selectionExcludedCount',
-            memory.selectionExcludedCount +
+            avatarKnowledge.selectionExcludedCount +
               world.selectionExcludedCount +
               media.selectionExcludedCount,
           ),
-          excludedCount: memory.excludedCount + world.excludedCount + media.excludedCount,
+          excludedCount: avatarKnowledge.excludedCount + world.excludedCount + media.excludedCount,
           outcome: totalSelected > 0 ? 'success' : 'no_results',
           perType: {
-            memory: toTrace(memory),
+            avatar_knowledge: toTrace(avatarKnowledge),
             world: toTrace(world),
             media: toTrace(media),
           },
@@ -327,7 +328,7 @@ function emptyRetrievalResult(
   )
   const outcome = failure === undefined ? 'no_results' : 'failed'
   return {
-    memory: [],
+    avatar_knowledge: [],
     world: [],
     media: [],
     trace: {
@@ -348,7 +349,7 @@ function emptyRetrievalResult(
       outcome,
       ...(failure === undefined ? {} : { failure }),
       perType: {
-        memory: toTrace(empty),
+        avatar_knowledge: toTrace(empty),
         world: toTrace(empty),
         media: toTrace(empty),
       },

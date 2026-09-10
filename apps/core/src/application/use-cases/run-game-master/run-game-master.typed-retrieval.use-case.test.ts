@@ -162,11 +162,11 @@ beforeEach(() => {
     },
   })
   retrieveTypedContextMock.mockResolvedValue({
-    memory: [
+    avatar_knowledge: [
       {
         sourceId: 'memory_source_1',
         chunkId: 'memory_chunk_1',
-        knowledgeType: 'memory',
+        knowledgeType: 'avatar_knowledge',
         content: 'The witness already shared a timeline contradiction.',
       },
     ],
@@ -189,7 +189,7 @@ beforeEach(() => {
     trace: {
       query: 'q',
       perType: {
-        memory: { sourceIds: [], selectedChunkIds: [] },
+        avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
         world: { sourceIds: [], selectedChunkIds: [] },
         media: { sourceIds: [], selectedChunkIds: [] },
       },

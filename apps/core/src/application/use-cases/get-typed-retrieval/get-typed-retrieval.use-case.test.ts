@@ -12,7 +12,7 @@ function buildUseCase(): GetTypedRetrievalUseCase {
       sourceId: 'knowledge_source_1',
       scenarioId: 'scenario_1',
       name: 'Memory source',
-      knowledgeType: 'memory',
+      knowledgeType: 'avatar_knowledge',
       format: 'text',
       uriOrPath: '/memory.txt',
       status: 'ready',
@@ -105,7 +105,7 @@ describe('GetTypedRetrievalUseCase', () => {
       userId: 'user_1',
     })
 
-    expect(output.retrieval.memory).toHaveLength(1)
+    expect(output.retrieval.avatar_knowledge).toHaveLength(1)
     expect(output.retrieval.world).toHaveLength(1)
     expect(output.retrieval.media).toHaveLength(0)
   })

@@ -76,7 +76,10 @@ export class PrepareScenarioAvatarTraitsUseCase {
     scenarioId: string,
   ): Promise<{ memorySources: KnowledgeSource[]; worldSources: KnowledgeSource[] }> {
     const [memorySources, worldSources] = await Promise.all([
-      this.knowledgeSourceRepository.listByScenario({ scenarioId, knowledgeType: 'memory' }),
+      this.knowledgeSourceRepository.listByScenario({
+        scenarioId,
+        knowledgeType: 'avatar_knowledge',
+      }),
       this.knowledgeSourceRepository.listByScenario({ scenarioId, knowledgeType: 'world' }),
     ])
     return { memorySources, worldSources }

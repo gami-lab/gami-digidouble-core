@@ -7,13 +7,21 @@
  */
 
 /** Canonical static-knowledge categories shared by HTTP and internal mappings. */
-export const KNOWLEDGE_TYPES = ['memory', 'world', 'media'] as const
+export const KNOWLEDGE_TYPES = ['avatar_knowledge', 'world', 'media'] as const
 
 export type KnowledgeType = (typeof KNOWLEDGE_TYPES)[number]
 
+/**
+ * Temporary API input compatibility. This alias is normalized at the API boundary and is never
+ * persisted or emitted in a response.
+ */
+export const KNOWLEDGE_TYPE_INPUTS = [...KNOWLEDGE_TYPES, 'memory'] as const
+export type KnowledgeTypeInput = (typeof KNOWLEDGE_TYPE_INPUTS)[number]
+export const LEGACY_KNOWLEDGE_TYPE_ALIAS = 'memory' as const
+
 export type KnowledgeSourceFormat = 'pdf' | 'text' | 'markdown' | 'url' | 'media'
 
-export type KnowledgeSourceStatus = 'pending' | 'ready' | 'error'
+export type KnowledgeSourceStatus = 'pending' | 'ready' | 'error' | 'blocked'
 
 export type IngestionJobStatus = 'queued' | 'running' | 'completed' | 'failed'
 
@@ -268,7 +276,7 @@ export type SharedAvatarContextKnowledgeInjection = {
 }
 
 export type SharedTypedKnowledgeSections = {
-  memory: RetrievedKnowledgeItemDto[]
+  avatar_knowledge: RetrievedKnowledgeItemDto[]
   world: RetrievedKnowledgeItemDto[]
   media: RetrievedKnowledgeItemDto[]
   /** Optional safe retrieval diagnostics for runtime inspection. */
@@ -282,7 +290,7 @@ export type RecordedKnowledgeReferenceDto = KnowledgeRetrievalReferenceDto & {
 }
 
 export type RecordedTypedKnowledgeSections = {
-  memory: RecordedKnowledgeReferenceDto[]
+  avatar_knowledge: RecordedKnowledgeReferenceDto[]
   world: RecordedKnowledgeReferenceDto[]
   media: RecordedKnowledgeReferenceDto[]
   trace?: RetrievalTraceDto
@@ -299,7 +307,7 @@ export type RecordedGmContextKnowledgeInjection = RecordedTypedKnowledgeSections
 export type CreateKnowledgeSourceRequest = {
   scenarioId: string
   name: string
-  knowledgeType: KnowledgeType
+  knowledgeType: KnowledgeTypeInput
   format: KnowledgeSourceFormat
   uriOrPath: string
   metadata?: Record<string, unknown>
@@ -312,7 +320,7 @@ export type CreateKnowledgeSourceResponse = {
 }
 
 export type ListKnowledgeSourcesQuery = {
-  knowledgeType?: KnowledgeType
+  knowledgeType?: KnowledgeTypeInput
   status?: KnowledgeSourceStatus
 }
 
@@ -351,7 +359,7 @@ export type DeleteKnowledgeSourceResponse = {
 export type UploadKnowledgeSourceRequest = {
   scenarioId: string
   name: string
-  knowledgeType: KnowledgeType
+  knowledgeType: KnowledgeTypeInput
   content: string
   filename: string
   visibilityPolicy?: KnowledgeVisibilityPolicy
@@ -395,7 +403,7 @@ export type QueryKnowledgeRetrievalRequest = {
 }
 
 export type TypedKnowledgeRetrievalDto = {
-  memory: RetrievedKnowledgeItemDto[]
+  avatar_knowledge: RetrievedKnowledgeItemDto[]
   world: RetrievedKnowledgeItemDto[]
   media: RetrievedKnowledgeItemDto[]
   trace: RetrievalTraceDto

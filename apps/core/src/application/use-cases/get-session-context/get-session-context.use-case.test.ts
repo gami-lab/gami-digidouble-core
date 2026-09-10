@@ -146,7 +146,7 @@ describe('GetSessionContextUseCase', () => {
       { role: 'avatar', content: 'a2' },
     ])
     expect(output.contextTrace.selectedInputs.retrievalCounts).toEqual({
-      memory: 0,
+      avatar_knowledge: 0,
       world: 0,
       media: 0,
     })

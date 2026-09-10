@@ -14,6 +14,14 @@ This spec defines:
 Persistence details live in `DATA_MODEL.md`.
 GM-specific usage rules live in `GAME_MASTER_CONTRACT.md`.
 
+### Vocabulary boundary
+
+In this specification, **memory** means conversational lifecycle state: recent exchanges,
+working memory, episodic conversation memory, or persistent user facts. Static RAG uses the
+unambiguous `avatar_knowledge` type for Avatar-relevant source material. Static source and chunk
+metadata cannot carry `userId`, `sessionId`, or `conversationId`, and static documents are never
+converted into conversational-memory records.
+
 ## Ownership Rules
 
 - Domain/internal memory contracts: `apps/core/src/domain/memory/memory.types.ts`

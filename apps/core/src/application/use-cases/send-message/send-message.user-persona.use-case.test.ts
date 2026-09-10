@@ -174,13 +174,13 @@ beforeEach(() => {
   runGameMasterExecuteMock.mockResolvedValue(undefined)
   findUserByIdMock.mockResolvedValue(null)
   retrieveTypedContextMock.mockResolvedValue({
-    memory: [],
+    avatar_knowledge: [],
     world: [],
     media: [],
     trace: {
       query: 'q',
       perType: {
-        memory: { sourceIds: [], selectedChunkIds: [] },
+        avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
         world: { sourceIds: [], selectedChunkIds: [] },
         media: { sourceIds: [], selectedChunkIds: [] },
       },
@@ -330,11 +330,11 @@ describe('SendMessageUseCase — prompt assembly v2 context influence', () => {
       },
     ])
     retrieveTypedContextMock.mockResolvedValue({
-      memory: [
+      avatar_knowledge: [
         {
           sourceId: 'source_1',
           chunkId: 'chunk_1',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'User prefers concrete checklists.',
         },
       ],
@@ -350,7 +350,7 @@ describe('SendMessageUseCase — prompt assembly v2 context influence', () => {
       trace: {
         query: 'How do tides affect docking?',
         perType: {
-          memory: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
+          avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
           world: { sourceIds: ['source_2'], selectedChunkIds: ['chunk_2'] },
           media: { sourceIds: [], selectedChunkIds: [] },
         },
@@ -361,7 +361,7 @@ describe('SendMessageUseCase — prompt assembly v2 context influence', () => {
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
     expect(llmRequest.systemPrompt).toContain('## Retrieved Context')
-    expect(llmRequest.systemPrompt).toContain('Context 1 (memory):')
+    expect(llmRequest.systemPrompt).toContain('Context 1 (avatar_knowledge):')
     expect(llmRequest.systemPrompt).toContain('User prefers concrete checklists.')
     expect(llmRequest.systemPrompt).toContain('Context 2 (world):')
     expect(llmRequest.systemPrompt).toContain('Ships dock at tidefall in this harbor.')
@@ -394,11 +394,11 @@ describe('SendMessageUseCase — context selection observability', () => {
       updatedAt: '2026-05-01T10:00:00.000Z',
     } satisfies User)
     retrieveTypedContextMock.mockResolvedValue({
-      memory: [
+      avatar_knowledge: [
         {
           sourceId: 'source_1',
           chunkId: 'chunk_1',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'User prefers concise checklists.',
         },
       ],
@@ -407,7 +407,7 @@ describe('SendMessageUseCase — context selection observability', () => {
       trace: {
         query: 'How do tides affect docking?',
         perType: {
-          memory: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
+          avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
           world: { sourceIds: [], selectedChunkIds: [] },
           media: { sourceIds: [], selectedChunkIds: [] },
         },
@@ -424,10 +424,10 @@ describe('SendMessageUseCase — context selection observability', () => {
           hasWorkingMemory: boolean
           longTermFactCount: number
           retrieval?: {
-            selectedForAssemblyCounts: { memory: number; world: number; media: number }
-            includedCounts: { memory: number; world: number; media: number }
-            omittedByAssemblyCounts?: { memory: number; world: number; media: number }
-            excludedByVisibilityCounts?: { memory: number; world: number; media: number }
+            selectedForAssemblyCounts: { avatar_knowledge: number; world: number; media: number }
+            includedCounts: { avatar_knowledge: number; world: number; media: number }
+            omittedByAssemblyCounts?: { avatar_knowledge: number; world: number; media: number }
+            excludedByVisibilityCounts?: { avatar_knowledge: number; world: number; media: number }
           }
           hasUserPersona: boolean
           hasGmDirective: boolean
@@ -443,14 +443,14 @@ describe('SendMessageUseCase — context selection observability', () => {
       hasWorkingMemory: false,
       longTermFactCount: 0,
       retrieval: {
-        selectedForAssemblyCounts: { memory: 1, world: 0, media: 0 },
-        includedCounts: { memory: 1, world: 0, media: 0 },
-        omittedByAssemblyCounts: { memory: 0, world: 0, media: 0 },
-        excludedByVisibilityCounts: { memory: 0, world: 0, media: 0 },
+        selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0, media: 0 },
+        includedCounts: { avatar_knowledge: 1, world: 0, media: 0 },
+        omittedByAssemblyCounts: { avatar_knowledge: 0, world: 0, media: 0 },
+        excludedByVisibilityCounts: { avatar_knowledge: 0, world: 0, media: 0 },
         retrievalTrace: {
           query: 'How do tides affect docking?',
           perType: {
-            memory: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
+            avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
             world: { sourceIds: [], selectedChunkIds: [] },
             media: { sourceIds: [], selectedChunkIds: [] },
           },

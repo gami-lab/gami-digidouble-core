@@ -2,7 +2,7 @@
 scenarioId: murder-party-villa-miralac
 avatarKey: clara
 avatarName: Clara Whitcombe
-knowledgeType: memory
+knowledgeType: avatar_knowledge
 visibleToAvatarIds: ['clara']
 ---
 

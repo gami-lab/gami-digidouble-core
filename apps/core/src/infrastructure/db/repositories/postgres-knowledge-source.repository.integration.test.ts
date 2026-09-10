@@ -103,7 +103,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — create/fin
     const visible = await sourceRepo.create({
       scenarioId,
       name: 'Private source',
-      knowledgeType: 'memory',
+      knowledgeType: 'avatar_knowledge',
       format: 'text',
       uriOrPath: '/data/private.txt',
       visibleToAvatarIds: ['avatar_a', 'avatar_b'],
@@ -283,7 +283,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
     const created = await sourceRepo.create({
       scenarioId,
       name: 'Private source',
-      knowledgeType: 'memory',
+      knowledgeType: 'avatar_knowledge',
       format: 'text',
       uriOrPath: '/data/private.txt',
       visibleToAvatarIds: ['avatar_a'],

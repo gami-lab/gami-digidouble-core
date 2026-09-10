@@ -548,7 +548,7 @@ describe('ScenarioDetailPage retrieval tester', () => {
   it('runs a retrieval query and shows matched chunks', async () => {
     mockReadyLoad({ knowledgeSources: [createKnowledgeSource({ status: 'ready' })] })
     vi.mocked(queryKnowledgeRetrieval).mockResolvedValue({
-      memory: [],
+        avatar_knowledge: [],
       world: [
         {
           sourceId: 'knowledge_source_1',
@@ -563,7 +563,7 @@ describe('ScenarioDetailPage retrieval tester', () => {
       trace: {
         query: 'lore',
         perType: {
-          memory: { sourceIds: [], selectedChunkIds: [] },
+          avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
           world: { sourceIds: ['knowledge_source_1'], selectedChunkIds: ['chunk_1'] },
           media: { sourceIds: [], selectedChunkIds: [] },
         },

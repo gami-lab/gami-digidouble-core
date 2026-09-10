@@ -2,7 +2,7 @@
 scenarioId: murder-party-villa-miralac
 avatarKey: thomas
 avatarName: Thomas Reed
-knowledgeType: memory
+knowledgeType: avatar_knowledge
 visibleToAvatarIds: ['thomas']
 ---
 

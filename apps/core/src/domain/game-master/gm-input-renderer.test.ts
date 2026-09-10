@@ -50,7 +50,7 @@ function makeInput(overrides: Partial<GameMasterInput> = {}): GameMasterInput {
         ...overrides.context?.memory,
       },
       rag: {
-        memory: [
+        avatar_knowledge: [
           {
             sourceId: 'memory_source_1',
             excerpt: 'The witness already contradicted the tide schedule.',
@@ -129,7 +129,7 @@ describe('renderGameMasterInputForLlm', () => {
     )
     expect(prompt).toContain('- Theo (avatar_2) [locked]')
     expect(prompt).toContain('### Retrieved Context')
-    expect(prompt).toContain('Memory excerpts:')
+    expect(prompt).toContain('Avatar knowledge excerpts:')
     expect(prompt).toContain('World excerpts:')
     expect(prompt).toContain('Media excerpts:')
   })

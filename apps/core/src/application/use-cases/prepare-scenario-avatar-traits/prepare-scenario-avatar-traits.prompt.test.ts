@@ -41,7 +41,7 @@ function makeKnowledgeSource(overrides: Partial<KnowledgeSource> = {}): Knowledg
     sourceId: 'source_1',
     scenarioId: 'scenario_1',
     name: 'Some Source',
-    knowledgeType: 'memory',
+    knowledgeType: 'avatar_knowledge',
     format: 'text',
     uriOrPath: 'inline://source_1',
     status: 'ready',

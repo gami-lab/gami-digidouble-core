@@ -16,7 +16,7 @@ export type ContextSegmentId =
   | 'conversationStateRecentMessages'
   | 'userPersona'
   | 'worldContext'
-  | 'retrievedContextMemory'
+  | 'retrievedContextAvatarKnowledge'
   | 'retrievedContextWorld'
   | 'retrievedContextMedia'
   | 'avatarTraits'
@@ -57,7 +57,7 @@ export const DEFAULT_CONTEXT_ENGINE_POLICY: ContextEnginePolicy = {
     'conversationStateRecentMessages',
     'userPersona',
     'worldContext',
-    'retrievedContextMemory',
+    'retrievedContextAvatarKnowledge',
     'retrievedContextWorld',
     'retrievedContextMedia',
     'avatarTraits',
@@ -73,7 +73,7 @@ const CONTEXT_SECTION_BY_SEGMENT: Record<ContextSegmentId, ContextSectionId> = {
   conversationStateRecentMessages: 'conversationState',
   userPersona: 'userPersona',
   worldContext: 'worldContext',
-  retrievedContextMemory: 'retrievedContext',
+  retrievedContextAvatarKnowledge: 'retrievedContext',
   retrievedContextWorld: 'retrievedContext',
   retrievedContextMedia: 'retrievedContext',
   avatarTraits: 'avatarTraits',

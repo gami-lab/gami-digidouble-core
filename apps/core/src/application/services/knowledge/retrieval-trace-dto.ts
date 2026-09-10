@@ -18,7 +18,7 @@ export function toRetrievalTraceDto(trace: RetrievalTrace): RetrievalTraceDto {
       : {}),
     ...(trace.failure !== undefined ? { failure: { ...trace.failure } } : {}),
     perType: {
-      memory: toTracePerTypeDto(trace.perType.memory),
+      avatar_knowledge: toTracePerTypeDto(trace.perType.avatar_knowledge),
       world: toTracePerTypeDto(trace.perType.world),
       media: toTracePerTypeDto(trace.perType.media),
     },
@@ -45,7 +45,7 @@ export function parseRetrievalTraceDto(value: unknown): RetrievalTraceDto | unde
   return {
     query,
     perType: {
-      memory: readRetrievalTracePerType(perTypeValue['memory']),
+      avatar_knowledge: readRetrievalTracePerType(perTypeValue['avatar_knowledge']),
       world: readRetrievalTracePerType(perTypeValue['world']),
       media: readRetrievalTracePerType(perTypeValue['media']),
     },
@@ -105,7 +105,7 @@ function readRetrievalTracePerType(
 
 function readRetrievalVisibility(
   value: unknown,
-): RetrievalTraceDto['perType']['memory']['visibility'] {
+): RetrievalTraceDto['perType']['avatar_knowledge']['visibility'] {
   if (!isRecord(value)) return undefined
   const mode =
     value['mode'] === 'avatar_filtered' || value['mode'] === 'gm_unrestricted'

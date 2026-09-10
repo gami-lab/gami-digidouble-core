@@ -24,6 +24,24 @@ Last updated: September 10, 2026
 The evaluator imports these shared HTTP contracts rather than redeclaring entity, message, or
 model-selection shapes. Its report types remain local to the tool.
 
+### Static Knowledge Contract Ownership
+
+- Canonical HTTP owner: `packages/shared/src/knowledge-contract-types.ts`
+  - `KnowledgeType` is exactly `avatar_knowledge | world | media`.
+  - `KnowledgeTypeInput` is request-only compatibility input; its legacy `memory` member is
+    normalized at the API route boundary and is never emitted or persisted.
+  - Source/chunk DTOs, typed retrieval sections, and retrieval trace `perType` keys use the
+    canonical `avatar_knowledge` key.
+- Canonical internal owner: `apps/core/src/domain/knowledge/knowledge.types.ts`
+  - Internal retrieval and source/chunk domain shapes use `KnowledgeType`, never the input alias.
+- Boundary mapper: `apps/core/src/api/routes/knowledge-type-input.ts` plus the knowledge route
+  handlers. It performs the one-way alias normalization and emits bounded deprecation telemetry.
+- Migration/classification owner: `apps/core/src/domain/knowledge/legacy-memory-audit.ts` and
+  `legacy-memory-migration.ts`; CLI orchestration lives in `scripts/`.
+- Persistence owner: `knowledge_sources` and `knowledge_chunks` in the PostgreSQL schema and
+  repositories. The schema rejects `memory`; ambiguous legacy rows are blocked and recorded in
+  `knowledge_source_quarantines`.
+
 ### Internal Context Engine Contracts (domain/internal)
 
 - Owner: `apps/core/src/domain/context/session-context.types.ts`
@@ -123,9 +141,9 @@ model-selection shapes. Its report types remain local to the tool.
 
 ## EPIC 4.2d Ownership Inventory
 
-This is the ownership baseline for the static-knowledge/conversational-memory separation. The
-current literal `memory` remains unchanged in this audit slice; the next terminology slice must
-change the static owner and its projections together.
+This is the ownership baseline for the static-knowledge/conversational-memory separation.
+Canonical static terminology is now `avatar_knowledge | world | media`; conversational-memory
+contracts retain their `memory` terminology and lifecycle ownership.
 
 ### Static knowledge and RAG
 
@@ -173,8 +191,9 @@ Classification is intentionally conservative:
   `userId`, `sessionId`, or `conversationId` metadata key is
   `ambiguous_or_invalid_user_specific`.
 
-Ambiguous records are reported for operator classification/removal only. This audit does not rename,
-quarantine, migrate, or convert data and does not create conversational memory.
+Ambiguous records are reported for operator classification/removal only. The companion migration
+plan changes positively classified legacy rows and records ambiguous rows as blocked in
+`knowledge_source_quarantines`; it does not convert any data into conversational memory.
 
 ### Duplication removed before terminology changes
 
@@ -197,7 +216,7 @@ quarantine, migrate, or convert data and does not create conversational memory.
   - API-facing: `SessionContextAvatarSnapshot`
   - Internal grouping owner: `AvatarContextSnapshot.sections`
   - Canonical section order: Director Notes -> Response Rules -> Conversation State -> User Persona -> World Context -> Retrieved Context -> Avatar Traits
-  - Retrieval sections: `knowledge.typedSections.memory|world|media` are canonical and additive (merged `retrievedItems` remains for compatibility)
+  - Retrieval sections: `knowledge.typedSections.avatar_knowledge|world|media` are canonical and additive (merged `retrievedItems` remains for compatibility)
 - GM context snapshot:
   - Internal: `GmContextSnapshot`
   - API-facing: `SessionContextGmSnapshot`

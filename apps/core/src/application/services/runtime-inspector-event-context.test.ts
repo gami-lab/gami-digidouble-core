@@ -45,7 +45,7 @@ function createAvatarSnapshotInput() {
           queryVectorCount: 1,
           outcome: 'success' as const,
           perType: {
-            memory: { sourceIds: [], selectedChunkIds: [] },
+            avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
             world: {
               sourceIds: ['source_1'],
               selectedChunkIds: ['chunk_1'],
@@ -99,11 +99,11 @@ function createGmSnapshotInput() {
         },
       },
       retrievedContext: {
-        memory: [
+        avatar_knowledge: [
           {
             sourceId: 'source_memory',
             chunkId: 'chunk_memory',
-            knowledgeType: 'memory' as const,
+            knowledgeType: 'avatar_knowledge' as const,
             content: 'Avatar secret',
             matchedQuery: { source: 'world_context' as const, text: 'Scenario world' },
             metadata: { inlineText: 'Avatar secret' },
@@ -135,7 +135,7 @@ describe('runtime inspector event context snapshots', () => {
       },
     })
     expect(snapshot.sections.retrievedContext).toEqual({
-      memory: [],
+      avatar_knowledge: [],
       world: [
         {
           sourceId: 'source_1',
@@ -164,7 +164,7 @@ describe('runtime inspector event context snapshots', () => {
         queryVectorCount: 1,
         outcome: 'success',
         perType: {
-          memory: { sourceIds: [], selectedChunkIds: [] },
+          avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
           world: {
             sourceIds: ['source_1'],
             selectedChunkIds: ['chunk_1'],
@@ -200,11 +200,11 @@ describe('runtime inspector event context snapshots', () => {
     })
     expect(snapshot.sections.conversationState.memory.workingSummary).toBe('Working summary')
     expect(snapshot.sections.retrievedContext).toEqual({
-      memory: [
+      avatar_knowledge: [
         {
           sourceId: 'source_memory',
           chunkId: 'chunk_memory',
-          knowledgeType: 'memory',
+          knowledgeType: 'avatar_knowledge',
           content: 'Avatar secret',
           matchedQuery: { source: 'world_context', text: 'Scenario world' },
         },
@@ -212,8 +212,10 @@ describe('runtime inspector event context snapshots', () => {
       world: [],
       media: [],
     })
-    expect(snapshot.sections.retrievedContext?.memory[0]?.content).toBe('Avatar secret')
-    expect(snapshot.sections.retrievedContext?.memory[0]?.matchedQuery?.text).toBe('Scenario world')
+    expect(snapshot.sections.retrievedContext?.avatar_knowledge[0]?.content).toBe('Avatar secret')
+    expect(snapshot.sections.retrievedContext?.avatar_knowledge[0]?.matchedQuery?.text).toBe(
+      'Scenario world',
+    )
     expect(JSON.stringify(snapshot)).not.toContain('inlineText')
   })
 })

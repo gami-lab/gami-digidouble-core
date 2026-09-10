@@ -35,7 +35,7 @@ export function presentKnowledgeRetrieval(
   return {
     retrieval: {
       ...retrieval,
-      memory: retrieval.memory.map(toItem),
+      avatar_knowledge: retrieval.avatar_knowledge.map(toItem),
       world: retrieval.world.map(toItem),
       media: retrieval.media.map(toItem),
       trace: toRetrievalTraceDto(retrieval.trace),
