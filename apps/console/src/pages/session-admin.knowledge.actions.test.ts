@@ -140,14 +140,7 @@ describe('session admin knowledge actions', () => {
 
     const setSummary = vi.fn()
     const setError = vi.fn()
-    await inspectRetrieval(
-      'session_1',
-      'conversation_1',
-      'scenario_1',
-      'avatar_scope',
-      setSummary,
-      setError,
-    )
+    await inspectRetrieval('scenario_1', 'avatar_scope', setSummary, setError)
 
     expect(queryKnowledgeRetrieval).toHaveBeenCalledWith(
       expect.objectContaining({ activeAvatarId: 'avatar_scope' }),

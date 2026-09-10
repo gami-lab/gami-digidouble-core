@@ -36,9 +36,6 @@ type ResolvedRetrievalEmbeddingProfile = RetrievalEmbeddingProfile & {
 
 export type TypedRetrievalInput = {
   scenarioId: string
-  sessionId?: string
-  userId?: string
-  conversationId?: string
   activeAvatarId?: string
   bypassVisibilityFilter?: boolean
   query: string
@@ -221,9 +218,6 @@ export class TypedRetrievalService {
           visibilityMode: visibilityMode(input),
           ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
           eligibleSourceIds: sourceIds,
-          ...(input.userId !== undefined ? { userId: input.userId } : {}),
-          ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
-          ...(input.conversationId !== undefined ? { conversationId: input.conversationId } : {}),
         }),
       ),
     )

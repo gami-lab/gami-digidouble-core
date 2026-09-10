@@ -36,9 +36,6 @@ export type VectorSearchRequest = Readonly<{
   visibilityMode: RetrievalVisibilityMode
   activeAvatarId?: string
   eligibleSourceIds?: readonly string[]
-  userId?: string
-  sessionId?: string
-  conversationId?: string
 }>
 
 export type VectorSearchResult = readonly VectorRetrievalCandidate[]

@@ -384,7 +384,6 @@ export class SendMessageUseCase {
     try {
       retrieval = await this.loadTypedRetrieval(
         args.session,
-        args.conversation.conversationId,
         args.conversation.avatarId,
         retrievalQueries,
         args.session.avatarOptions?.retrieval,
@@ -468,7 +467,6 @@ export class SendMessageUseCase {
 
   private async loadTypedRetrieval(
     session: Session,
-    conversationId: string,
     avatarId: string | undefined,
     queries: ReturnType<typeof buildAvatarTypedRetrievalQueries>,
     retrievalOptions: NonNullable<Session['avatarOptions']>['retrieval'] | undefined,
@@ -480,9 +478,6 @@ export class SendMessageUseCase {
 
     return this.typedRetrievalService.retrieve({
       scenarioId: session.scenarioId,
-      sessionId: session.sessionId,
-      userId: session.userId,
-      conversationId,
       ...(avatarId !== undefined ? { activeAvatarId: avatarId } : {}),
       ...(bypassVisibilityFilter ? { bypassVisibilityFilter: true } : {}),
       query,

@@ -319,6 +319,22 @@ All admin endpoints live under `/v1/admin/*`.
   explicit `gmUnrestricted` state; it is never inferred from an absent avatar ID. No raw vectors are
   exposed.
 
+The request is intentionally scenario-shared:
+
+```json
+{
+  "scenarioId": "scenario_1",
+  "query": "harbor rules",
+  "activeAvatarId": "avatar_1",
+  "limitPerType": 3
+}
+```
+
+`sessionId`, `userId`, and `conversationId` are not accepted retrieval fields. Conversational
+memory is selected through its existing lifecycle repositories and is never a static RAG filter or
+score input. `activeAvatarId` controls Avatar visibility only; the Game Master bypass does not skip
+scenario, type, readiness, active-corpus, or metadata validity constraints.
+
 Runtime `turn_completed` event retrieval references include the selected chunk content and matched
 query source/text so the console can inspect the exact knowledge passed to the Avatar prompt. GM
 events include the retrieval plan's required flag, proposed queries, and required facts. When a

@@ -187,9 +187,6 @@ async function loadTypedRetrieval(
 
   return typedRetrievalService.retrieve({
     scenarioId: input.scenarioId,
-    sessionId: input.sessionId,
-    userId: session.userId,
-    conversationId: input.conversationId,
     bypassVisibilityFilter: true,
     query,
     queries,

@@ -104,17 +104,21 @@ Required tests:
   trace ownership, provider-neutral outcome/failure codes, cosine distance/similarity semantics,
   and explicit internal-to-public/runtime mapper redaction and normalization
 - **Typed retrieval:** verify one embedding operation, bounded vector searches, domain separation
-  (`memory` / `world` / `media`), deterministic similarity ranking/deduplication under fixed
+  (`avatar_knowledge` / `world` / `media`), deterministic similarity ranking/deduplication under fixed
   fixtures, balanced source minimums, controlled failures, and trace metadata (`sourceId`,
   `chunkId`, `distance`, `similarity`, `reason`)
 - **Avatar-scoped visibility:** verify deterministic exclusion of non-visible knowledge per active avatar, avatar-switch scope updates, and bounded visibility explainability counters in retrieval/context traces
 - **Visibility asymmetry:** verify avatar filtering remains enforced while GM retrieval diagnostics prove unrestricted omniscient scope (`gmUnrestricted`, `gmRetrievalCounts`) without content leakage
-- **Filtered vector repository:** verify PostgreSQL cosine order, limit-after-filter behavior, active profile/generation, source/type/scenario/readiness, memory scope, visibility truth-table behavior, dimension/profile failures, and an index-compatible `ORDER BY embedding <=> query LIMIT` shape; use the in-memory implementation for deterministic unit coverage
+- **Filtered vector repository:** verify PostgreSQL cosine order, limit-after-filter behavior, active profile/generation, source/type/scenario/readiness, shared-candidate behavior, visibility truth-table behavior, GM-bypass limits, dimension/profile failures, and an index-compatible `ORDER BY embedding <=> query LIMIT` shape; use the in-memory implementation for deterministic unit coverage
 - **Knowledge API operator flow:** verify stack-e2e coverage for auth, validation, not-found, and happy-path source->ingestion->retrieval flow
 - **Console operator adapters:** verify `apps/console` knowledge API wrappers and Session Admin knowledge action helpers reuse shared DTOs and map operator-facing errors
 - **Unified retrieval diagnostics:** verify admin responses, recorded turn events, session-context
   projections, and console/admin displays consume shared profile/timing/count/distance/failure
   fields, preserve older event payloads, and never serialize vectors or provider payloads
+- **Lifecycle boundaries:** verify reset clears messages and owned conversational memory without
+  knowledge changes, conversation close creates episodic memory without RAG rows, scenario deletion
+  owns knowledge cascade, reindex does not alter memory rows, and memory maintenance does not alter
+  chunks, embeddings, source status, or corpus generation.
 - **EPIC 5.1d quality proof:** use exact-vector semantic fixtures for multilingual paraphrases and
   unrelated candidates, then verify the application boundary, filtered repository, runtime failure
   isolation, and production composition. The complete requirements-to-tests matrix is

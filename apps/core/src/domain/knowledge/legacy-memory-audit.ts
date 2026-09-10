@@ -222,6 +222,14 @@ export function findReservedStaticScopeKeys(value: unknown): string[] {
   return [...found].sort()
 }
 
+export function assertStaticMetadataAllowed(value: unknown, subject: string): void {
+  const reservedKeys = findReservedStaticScopeKeys(value)
+  if (reservedKeys.length === 0) return
+  throw new Error(
+    `Static knowledge ${subject} metadata cannot contain reserved scope keys: ${reservedKeys.join(', ')}.`,
+  )
+}
+
 function normalizeIds(value: readonly string[] | null | undefined): string[] {
   return [...new Set((value ?? []).filter((id) => id.trim().length > 0))].sort()
 }

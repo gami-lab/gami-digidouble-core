@@ -11,14 +11,10 @@ import type {
 
 type KnowledgeOperationsPanelProps = {
   scenarioId: string | null
-  sessionId: string
-  conversationId: string | null
 }
 
 export function KnowledgeOperationsPanel({
   scenarioId,
-  sessionId,
-  conversationId,
 }: KnowledgeOperationsPanelProps): JSX.Element {
   const [name, setName] = useState('')
   const [uriOrPath, setUriOrPath] = useState('')
@@ -36,7 +32,7 @@ export function KnowledgeOperationsPanel({
     <div style={{ marginTop: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px' }}>
       <strong>Knowledge operations</strong>
       <p style={{ margin: '6px 0', color: '#4b5563' }}>
-        Register sources, trigger ingestion, and inspect retrieval for this session.
+        Register sources, trigger ingestion, and inspect shared scenario retrieval.
       </p>
       <KnowledgeInputFields
         name={name}
@@ -69,8 +65,6 @@ export function KnowledgeOperationsPanel({
         onInspectRetrieval={() => {
           if (scenarioId === null) return
           void inspectRetrieval(
-            sessionId,
-            conversationId,
             scenarioId,
             retrievalAvatarId,
             setRetrievalSummary,
@@ -270,8 +264,6 @@ export async function refreshKnowledgeSources(
 
 // eslint-disable-next-line complexity
 export async function inspectRetrieval(
-  sessionId: string,
-  conversationId: string | null,
   scenarioId: string,
   retrievalAvatarId: string,
   setSummary: (v: string) => void,
@@ -282,9 +274,7 @@ export async function inspectRetrieval(
   try {
     const request: QueryKnowledgeRetrievalRequest = {
       scenarioId,
-      sessionId,
       query: 'runtime_inspector_probe',
-      ...(conversationId !== null ? { conversationId } : {}),
       ...(activeAvatarId.length > 0 ? { activeAvatarId } : {}),
       limitPerType: 3,
     }

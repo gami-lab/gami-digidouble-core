@@ -9,6 +9,7 @@ import {
   normalizeKnowledgeVisibilitySelection,
 } from '../../domain/knowledge/knowledge-visibility.js'
 import type { KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
+import { assertStaticMetadataAllowed } from '../../domain/knowledge/legacy-memory-audit.js'
 
 function normalizeSourceVisibility(
   source: Pick<KnowledgeSource, 'visibilityPolicy' | 'visibleToAvatarIds'>,
@@ -43,6 +44,7 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
   }
 
   create(params: CreateKnowledgeSourceParams): Promise<KnowledgeSource> {
+    assertStaticMetadataAllowed(params.metadata, 'source')
     const now = new Date().toISOString()
     const visibility = normalizeSourceVisibility(params)
     const source: KnowledgeSource = {
@@ -108,6 +110,9 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
   update(sourceId: string, updates: UpdateKnowledgeSourceParams): Promise<KnowledgeSource | null> {
     const existing = this.sources.get(sourceId)
     if (existing === undefined) return Promise.resolve(null)
+    if (updates.metadata !== undefined) {
+      assertStaticMetadataAllowed(updates.metadata, 'source')
+    }
 
     const visibility = normalizeSourceVisibility(
       buildKnowledgeVisibilitySelection(updates.visibilityPolicy, updates.visibleToAvatarIds),

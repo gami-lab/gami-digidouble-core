@@ -204,8 +204,6 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
               />
               <KnowledgeOperationsPanel
                 scenarioId={selectedSession?.scenarioId ?? null}
-                sessionId={selectedSessionId}
-                conversationId={selectedConversationId}
               />
             </>
           )

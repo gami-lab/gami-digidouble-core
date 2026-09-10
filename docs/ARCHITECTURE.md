@@ -338,7 +338,7 @@ Contains:
 - compatibility session/avatar summaries for existing admin/runtime surfaces
 - async memory maintenance pipeline (`IMemoryMaintenancePort` / `MemoryMaintenanceService`)
 - long-term user facts/events
-- retrieval of relevant memories
+- retrieval of relevant conversational memories through memory repositories only
 - compaction jobs
 
 Avoid storing noise.
@@ -359,7 +359,7 @@ Combines:
 - long-term user facts/events
 - user facts
 - scenario config
-- retrieved knowledge (avatar-memory / world / media)
+- retrieved static knowledge (`avatar_knowledge` / world / media)
 - GM directives
 - optional user persona
 
@@ -383,8 +383,10 @@ Contains:
 - avatar-scoped visibility filtering is enforced by the vector repository before typed retrieval and Context Engine assembly (not in route handlers or prompt text)
 - GM context assembly consumes an unrestricted retrieval channel to preserve Director omniscience, while avatar context consumes visibility-filtered retrieval
 - ingestion job lifecycle (`queued -> running -> completed | failed`) with retry
-- type-specific retrieval pipelines (`memory`, `world`, `media`) with deterministic merge output
-- Avatar retrieval selects one combined top-five set across memory and world items before prompt rendering, preserving one distinct best match for the user question, GM retrieval queries, and GM required facts before global fill; media remains a separate typed channel
+- type-specific retrieval pipelines (`avatar_knowledge`, `world`, `media`) with deterministic merge output
+- Avatar retrieval selects one combined top-five set across `avatar_knowledge` and world items before prompt rendering, preserving one distinct best match for the user question, GM retrieval queries, and GM required facts before global fill; media remains a separate typed channel
+- static retrieval is shared by scenario and corpus: it accepts no user, session, or conversation scope and rejects those keys in source/chunk metadata
+- conversational memory remains owned by message, working-memory, episodic-memory, and user-fact repositories; reset and maintenance do not touch knowledge rows
 
 ### Embedding contract boundary (EPIC 5.1c foundation)
 
@@ -463,9 +465,9 @@ overlap scoring or metadata relevance boosts. Retrieval diagnostics use the prov
 
 `IKnowledgeChunkRepository.searchByVector` is the canonical nearest-neighbor port. Its typed request
 requires the query vector, active profile/generation identity, scenario/type, candidate limit,
-visibility mode, and optional static/source and memory scope. PostgreSQL owns the parameterized
+visibility mode, and optional static/source scope. PostgreSQL owns the parameterized
 `embedding <=> query` ordering and applies source readiness, scenario/type, active corpus/profile,
-visibility, and static scope filters before the limit. `gm_unrestricted` is an explicit mode;
+visibility filters before the limit. `gm_unrestricted` is an explicit visibility mode;
 missing `activeAvatarId` never grants that mode. The deterministic in-memory implementation is a
 test double for the same contract and contains no lexical relevance logic. Candidate results carry
 only bounded chunk data, exact distance, and `1 - distance` similarity; vectors never cross the

@@ -65,6 +65,20 @@ describe('Stack E2E — knowledge routes — validation', () => {
     expect(res.status).toBe(400)
   })
 
+  it('rejects lifecycle scope fields on static retrieval (400)', async () => {
+    const res = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        scenarioId: 'scenario_test',
+        query: 'test',
+        userId: 'user_test',
+      }),
+    })
+
+    expect(res.status).toBe(400)
+  })
+
   it('rejects upload with unsupported file extension (400)', async () => {
     const content = Buffer.from('some data').toString('base64')
     const res = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {

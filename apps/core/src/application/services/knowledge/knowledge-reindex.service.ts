@@ -18,6 +18,7 @@ import {
   toChunkSeeds,
   validateEmbeddingResult,
 } from './knowledge-ingestion.service.js'
+import { assertStaticMetadataAllowed } from '../../../domain/knowledge/legacy-memory-audit.js'
 
 export type KnowledgeReindexStartResult = Readonly<{
   status: 'started' | 'reused' | 'already_active'
@@ -175,6 +176,7 @@ export class KnowledgeReindexService {
       const source = await this.sourceRepository.findById(sourceProgress.sourceId)
       if (source === null) throw new ReindexSourceError('source_missing', 'Source was not found.')
       const loaded = await this.contentLoader.load(source)
+      assertStaticMetadataAllowed(loaded.metadata, 'chunk')
       const seeds = toChunkSeeds(source, loaded.content, loaded.metadata, this.chunkSize)
       if (seeds.length === 0) {
         throw new ReindexSourceError('empty_source', 'Source produced no chunks.')

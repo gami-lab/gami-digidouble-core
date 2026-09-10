@@ -119,7 +119,7 @@ describe('InMemoryKnowledgeChunkRepository vector search', () => {
 })
 
 describe('InMemoryKnowledgeChunkRepository vector visibility', () => {
-  it('keeps memory metadata scope and explicit visibility bypass separate', async () => {
+  it('keeps shared candidates and explicit visibility bypass separate', async () => {
     const sources = [
       makeSource({
         sourceId: 'knowledge_source_private',
@@ -142,12 +142,6 @@ describe('InMemoryKnowledgeChunkRepository vector visibility', () => {
       makeChunk({
         sourceId: 'knowledge_source_private',
         chunkId: 'knowledge_chunk_private',
-        metadata: { userId: 'user_1' },
-      }),
-      makeChunk({
-        sourceId: 'knowledge_source_private',
-        chunkId: 'knowledge_chunk_other_user',
-        metadata: { userId: 'user_2' },
       }),
       makeChunk({ sourceId: 'knowledge_source_public', chunkId: 'knowledge_chunk_public' }),
       makeChunk({ sourceId: 'knowledge_source_hidden', chunkId: 'knowledge_chunk_hidden' }),
@@ -156,17 +150,15 @@ describe('InMemoryKnowledgeChunkRepository vector visibility', () => {
     const avatarCandidates = await repository.searchByVector(
       makeRequest({
         knowledgeType: 'avatar_knowledge',
-        userId: 'user_1',
         activeAvatarId: 'avatar_1',
       }),
     )
     const missingAvatarCandidates = await repository.searchByVector(
-      makeRequest({ knowledgeType: 'avatar_knowledge', userId: 'user_1' }),
+      makeRequest({ knowledgeType: 'avatar_knowledge' }),
     )
     const gmCandidates = await repository.searchByVector(
       makeRequest({
         knowledgeType: 'avatar_knowledge',
-        userId: 'user_1',
         visibilityMode: 'gm_unrestricted',
       }),
     )

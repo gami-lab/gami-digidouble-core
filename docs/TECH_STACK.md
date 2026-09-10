@@ -51,7 +51,8 @@ For product principles, read `PRINCIPLES.md`.
 ### Knowledge And Retrieval
 
 - In-house ingestion and typed retrieval pipeline
-- Knowledge types: `memory`, `world`, `media`
+- Static knowledge types: `avatar_knowledge`, `world`, `media`; conversational memory keeps its
+  separate repository/lifecycle contracts
 - Retrieval is one bounded context source, not the architecture itself
 - Production embeddings use the OpenAI `text-embedding-3-small` adapter through the internal
   `IEmbeddingAdapter` port. The default profile requests 16 dimensions to match the current

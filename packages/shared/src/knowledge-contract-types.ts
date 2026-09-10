@@ -395,9 +395,6 @@ export type ListKnowledgeChunksResponse = {
 export type QueryKnowledgeRetrievalRequest = {
   scenarioId: string
   query: string
-  sessionId?: string
-  userId?: string
-  conversationId?: string
   activeAvatarId?: string
   limitPerType?: number
 }

@@ -9,7 +9,7 @@ import {
   MAX_VECTOR_SEARCH_CANDIDATES,
 } from '../../application/ports/IKnowledgeChunkRepository.js'
 import type { KnowledgeChunk, KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
-import { findReservedStaticScopeKeys } from '../../domain/knowledge/legacy-memory-audit.js'
+import { assertStaticMetadataAllowed } from '../../domain/knowledge/legacy-memory-audit.js'
 import {
   buildKnowledgeVisibilitySelection,
   isKnowledgeVisibleToAvatar,
@@ -28,15 +28,6 @@ function normalizeVisibleToAvatarIds(
   return normalized.length > 0 ? normalized : undefined
 }
 
-function assertChunkMetadataAllowed(metadata: Record<string, unknown> | undefined): void {
-  const reservedKeys = findReservedStaticScopeKeys(metadata)
-  if (reservedKeys.length > 0) {
-    throw new Error(
-      `Static knowledge chunk metadata cannot contain reserved scope keys: ${reservedKeys.join(', ')}.`,
-    )
-  }
-}
-
 export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkRepository {
   private readonly chunks: Map<string, KnowledgeChunk>
   private activeCorpus: ActiveCorpus | null = null
@@ -52,7 +43,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
   }
 
   create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk> {
-    assertChunkMetadataAllowed(params.metadata)
+    assertStaticMetadataAllowed(params.metadata, 'chunk')
     const visibleToAvatarIds = normalizeVisibleToAvatarIds(params.visibleToAvatarIds)
     const chunk: KnowledgeChunk = {
       chunkId: `knowledge_chunk_${crypto.randomUUID()}`,
@@ -113,7 +104,6 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
 
     return [...this.chunks.values()]
       .filter((chunk) => isEligibleVectorChunk(chunk, request, eligibleSourceIds, sourceById))
-      .filter((chunk) => staticScopeMetadataMatches(chunk, request))
       .filter((chunk) => isVisibleVectorChunk(chunk, request, sourceById))
       .map((chunk) => {
         const distance = cosineDistance(
@@ -152,6 +142,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
   ): number {
     this.deleteBySourceIdAndGeneration(sourceId, corpusGenerationId)
     for (const chunk of chunks) {
+      assertStaticMetadataAllowed(chunk.metadata, 'chunk')
       const stored: KnowledgeChunk = {
         chunkId: `knowledge_chunk_${crypto.randomUUID()}`,
         sourceId: chunk.sourceId,
@@ -204,15 +195,6 @@ function validateVectorSearchRequest(request: VectorSearchRequest): void {
   ) {
     throw new KnowledgeVectorSearchError({ code: 'incompatible_dimension', retryable: false })
   }
-}
-
-function staticScopeMetadataMatches(chunk: KnowledgeChunk, request: VectorSearchRequest): boolean {
-  if (request.knowledgeType !== 'avatar_knowledge') return true
-  return (
-    metadataMatchesWhenPresent(chunk.metadata, 'userId', request.userId) &&
-    metadataMatchesWhenPresent(chunk.metadata, 'sessionId', request.sessionId) &&
-    metadataMatchesWhenPresent(chunk.metadata, 'conversationId', request.conversationId)
-  )
 }
 
 function hasEmptySourceScope(request: VectorSearchRequest): boolean {
@@ -327,15 +309,6 @@ function toVectorCandidate(chunk: KnowledgeChunk, distance: number, request: Vec
     ...(chunk.metadata !== undefined ? { metadata: chunk.metadata } : {}),
     ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
   }
-}
-
-function metadataMatchesWhenPresent(
-  metadata: Record<string, unknown> | undefined,
-  key: string,
-  expected: string | undefined,
-): boolean {
-  if (expected === undefined || metadata === undefined || !Object.hasOwn(metadata, key)) return true
-  return metadata[key] === expected
 }
 
 function vectorNorm(vector: readonly number[]): number {

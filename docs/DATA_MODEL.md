@@ -100,7 +100,7 @@ lifecycle types are internal Application contracts owned by Core; only the bound
 projection is shared for the admin API.
 
 Nearest-neighbor retrieval applies the active profile/generation, ready-source, scenario/type,
-visibility, and static-scope filters in SQL before limiting candidates. Pgvector cosine distance
+and visibility filters in SQL before limiting candidates. Pgvector cosine distance
 is lower-is-better; service/API similarity is exactly `1 - distance`, with clamping and rounding
 owned only by presenters. A query with the wrong dimension or stale profile/generation is rejected
 before search, and rows outside the active profile/generation are ineligible before the candidate
@@ -122,6 +122,13 @@ New or updated source/chunk metadata rejects those reserved keys. No static docu
 into conversational memory. During rollout, schema alignment temporarily defers re-adding the
 canonical type check if legacy `memory` rows still exist; `--apply` completes the data migration
 and restores the check in the same transaction.
+
+Static retrieval has no user, session, or conversation scope. The only retrieval visibility inputs
+are scenario, canonical knowledge type, active corpus identity, Avatar visibility, and the explicit
+Game Master visibility bypass. Session reset, conversation close, user-fact deletion, and memory
+maintenance cannot mutate knowledge sources, chunks, embeddings, or corpus generations. Scenario
+deletion owns scenario knowledge removal through the existing scenario foreign-key cascade; static
+reindex owns only knowledge corpus rows.
 
 ## Relationships
 

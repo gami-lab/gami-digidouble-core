@@ -12,8 +12,8 @@ with an independent profile and no hash-vector fallback. The default profile is
 Runtime retrieval currently:
 
 - loads every chunk belonging to the eligible sources;
-- filters those chunks by type, visibility, and legacy static-scope compatibility rules;
-- scores text with token overlap and a few metadata boosts;
+- filters those chunks by scenario, canonical type, readiness, active corpus, and visibility;
+- ranks them using the configured retrieval implementation without lifecycle-scope boosts;
 - selects the highest-scoring chunks deterministically.
 
 There is currently no query embedding, no cosine-distance calculation in application code, and no SQL nearest-neighbor query. The `VECTOR(16)` column and the pgvector IVFFlat index exist in the database schema, but the current repository port only exposes `listBySourceIds`, not vector search.
@@ -32,7 +32,8 @@ Avatar turn
   -> build query variants from turn context
   -> find ready sources by scenario and knowledge type
   -> load all chunks for those sources
-  -> visibility and legacy static-scope compatibility filtering
+  -> scenario/type/readiness/active-corpus filtering
+  -> Avatar visibility filtering (or explicit GM visibility bypass)
   -> lexical token-overlap scoring
   -> deterministic per-type selection
   -> context-engine selection and token-budget filtering
@@ -219,7 +220,7 @@ The GM calls retrieval with `bypassVisibilityFilter: true`, so it can inspect kn
 
 ### Direct/admin query
 
-The admin retrieval endpoint accepts an explicit `scenarioId` and `query`, plus optional session, user, conversation, active-avatar, and per-type limit fields. The use case bypasses visibility automatically when `activeAvatarId` is absent. See [get-typed-retrieval.use-case.ts](../apps/core/src/application/use-cases/get-typed-retrieval/get-typed-retrieval.use-case.ts#L11-L33).
+The admin retrieval endpoint accepts an explicit `scenarioId` and `query`, plus optional active-avatar and per-type limit fields. It has no user, session, or conversation scope inputs. The use case bypasses visibility automatically when `activeAvatarId` is absent. See [get-typed-retrieval.use-case.ts](../apps/core/src/application/use-cases/get-typed-retrieval/get-typed-retrieval.use-case.ts#L11-L33).
 
 ## 5. Which chunks are considered
 
@@ -230,9 +231,9 @@ For one type, the process is:
 1. List sources for the requested scenario, requested `knowledgeType`, and `status: ready`.
 2. List all chunks for those source IDs.
 3. Apply visibility filtering.
-4. Apply additional legacy static-scope compatibility filtering for `avatar_knowledge` chunks.
-5. Score every remaining chunk against every query variant.
-6. Discard entries with a score of `0`.
+4. Apply active-corpus and embedding identity checks.
+5. Apply Avatar visibility, unless the explicit Game Master bypass is active.
+6. Score every remaining chunk against every query variant.
 7. Sort deterministically.
 8. Select up to the per-type limit.
 
@@ -250,15 +251,13 @@ The effective visibility is taken from the source policy and the chunk/source av
 
 The implementation is in [knowledge-visibility.ts](../apps/core/src/domain/knowledge/knowledge-visibility.ts#L67-L86). The retrieval trace reports `consideredChunkCount`, `excludedChunkCount`, and `activeAvatarId`.
 
-### Static scope compatibility filtering
+### Static scope and metadata invariant
 
-Canonical static sources use `avatar_knowledge`, `world`, or `media`. New or updated source
-and chunk metadata cannot contain `userId`, `sessionId`, or `conversationId`. The current
-retrieval filter retains legacy compatibility for already stored `avatar_knowledge` rows: when
-an older row contains a reserved key, any corresponding request value must match it. This is
-defense in depth for legacy data, not a supported way to create user-private static knowledge.
-
-This behavior is in [typed-retrieval.service.ts](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L165-L198).
+Static retrieval is shared by scenario and canonical knowledge type. It does not accept, match, or
+score by `userId`, `sessionId`, or `conversationId`. New and updated source/chunk metadata rejects
+those reserved keys recursively; legacy rows with them remain blocked by the audit/migration
+workflow and are not silently relabeled. Conversational text can form the query, but conversational
+memory repositories remain a separate lifecycle.
 
 ## 6. How a chunk is scored
 
@@ -286,14 +285,9 @@ There is no stemming, synonym expansion, language model, semantic similarity, or
 
 ### Metadata boosts
 
-After token overlap is greater than zero:
-
-- Legacy `avatar_knowledge` adds `0.25` for matching `userId`, `0.15` for matching
-  `sessionId`, and `0.10` for matching `conversationId`; new metadata cannot use those keys.
-- `media` adds `0.10` when any query token is also found in the chunk metadata `tags`.
-- `world` has no metadata boost.
-
-The returned score is rounded to four decimal places for the retrieval result.
+Static retrieval has no user/session/conversation metadata boosts. Metadata is descriptive static
+source information only and cannot establish private retrieval scope. The returned score is rounded
+to four decimal places for the retrieval result.
 
 ### Ties and duplicate chunks
 

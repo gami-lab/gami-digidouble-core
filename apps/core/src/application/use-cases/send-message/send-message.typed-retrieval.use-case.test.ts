@@ -214,9 +214,6 @@ describe('SendMessageUseCase typed retrieval query reuse', () => {
       1,
       expect.objectContaining({
         scenarioId: 'scenario_1',
-        sessionId: 'session_1',
-        userId: 'user_1',
-        conversationId: 'conversation_1',
         activeAvatarId: 'avatar_1',
         query:
           'Keep the answer focused on docking safety. | What should I do? | The user wants concise docking advice. User: The tide is shifting. Avatar: Then watch the harbor markers.',

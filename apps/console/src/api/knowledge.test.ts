@@ -139,7 +139,6 @@ describe('knowledge API wrappers - retrieval operations', () => {
     const result = await queryKnowledgeRetrieval({
       scenarioId: 'scenario_1',
       query: 'hero backstory',
-      sessionId: 'session_1',
       activeAvatarId: 'avatar_1',
       limitPerType: 3,
     })
@@ -147,7 +146,6 @@ describe('knowledge API wrappers - retrieval operations', () => {
     expect(coreRequest).toHaveBeenCalledWith('POST', '/v1/admin/knowledge/retrieval', {
       scenarioId: 'scenario_1',
       query: 'hero backstory',
-      sessionId: 'session_1',
       activeAvatarId: 'avatar_1',
       limitPerType: 3,
     })

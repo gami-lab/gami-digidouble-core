@@ -260,11 +260,11 @@ describe('TypedRetrievalService', () => {
     expect(result.trace).toEqual(expect.objectContaining({ duplicateCount: 2 }))
   })
 
-  it('preserves avatar filtering and passes memory scope to the vector repository', async () => {
+  it('keeps static candidates shared while preserving avatar visibility filtering', async () => {
     const { service, chunkRepository } = buildService(
       [
-        chunk('memory_visible', 'memory_source', [1, 0], { metadata: { userId: 'user_1' } }),
-        chunk('memory_other_user', 'memory_source', [1, 0], { metadata: { userId: 'user_2' } }),
+        chunk('memory_visible', 'memory_source', [1, 0]),
+        chunk('memory_shared', 'memory_source', [1, 0]),
         chunk('world_hidden', 'world_source', [1, 0], { visibleToAvatarIds: ['avatar_2'] }),
       ],
       embeddingResult([{ source: 'last_user_input', text: 'memory' }], [[1, 0]]),
@@ -274,11 +274,13 @@ describe('TypedRetrievalService', () => {
     const result = await service.retrieve({
       scenarioId: 'scenario_1',
       query: 'memory',
-      userId: 'user_1',
       activeAvatarId: 'avatar_1',
     })
 
-    expect(result.avatar_knowledge.map((item) => item.chunkId)).toEqual(['memory_visible'])
+    expect(result.avatar_knowledge.map((item) => item.chunkId)).toEqual([
+      'memory_shared',
+      'memory_visible',
+    ])
     expect(result.world).toHaveLength(0)
     expect(result.trace.visibilityMode).toBe('avatar_filtered')
     expect(listBySourceIds).not.toHaveBeenCalled()

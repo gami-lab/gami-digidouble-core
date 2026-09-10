@@ -44,11 +44,14 @@ The API accepts a knowledge source record with these key fields:
 
 Use the type that matches the role of the content:
 
-- `avatar_knowledge`: static Avatar-relevant facts, preferences, backstory details, or private knowledge for one Avatar
+- `avatar_knowledge`: static Avatar-relevant facts, preferences, backstory details, or knowledge visible to one Avatar
 - `world`: scenario lore, setting rules, canon facts, and shared world-building
 - `media`: media-related descriptions, references, or metadata for assets that should inform responses
 
 The type controls how the retrieval system groups and returns the content. It does not replace visibility scoping.
+Static retrieval is shared by scenario and active corpus; it never accepts user, session, or
+conversation scope. Do not put `userId`, `sessionId`, or `conversationId` in source or chunk
+metadata; those keys are rejected recursively.
 
 ## Avatar Setup Flow
 
@@ -188,7 +191,7 @@ At runtime, the active avatar in the session determines which chunks are conside
 
 ## Suggested Setup Patterns
 
-### Avatar-private notes
+### Avatar-specific static notes
 
 Use `knowledgeType: "avatar_knowledge"` and scope the source to one avatar.
 
@@ -196,7 +199,7 @@ Example use cases:
 
 - private backstory
 - recurring preferences
-- avatar-specific facts that should not be shared with others
+- avatar-specific facts that should not be shown to other Avatars
 
 For a temporary migration period, create/upload/list inputs may also accept `memory`. The API
 normalizes that input to `avatar_knowledge`, records a bounded deprecation warning, and never

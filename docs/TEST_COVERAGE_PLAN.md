@@ -131,7 +131,7 @@ Must cover:
 - retrieval contract boundary: one shared query-source guard, domain vector-candidate/trace/failure
   ownership, safe public/runtime mapper fields, cosine distance/similarity normalization, bounded
   diagnostics, and no vector leakage
-- typed retrieval by `memory` / `world` / `media`, including one ordered embedding batch, bounded
+- typed retrieval by `avatar_knowledge` / `world` / `media`, including one ordered embedding batch, bounded
   per-type/query vector searches, similarity merge/deduplication, balanced source minimums, and
   controlled all-or-nothing failures
 - avatar visibility filtering
@@ -139,10 +139,13 @@ Must cover:
 - Avatar and asynchronous GM composition reuse the same configured vector retrieval service;
   required retrieval failures preserve insufficient-evidence guidance without blocking reply
   generation
-- filtered pgvector repository: bounded cosine ordering, SQL-side eligibility filters, explicit avatar/GM visibility modes, static memory scope, active profile/generation, safe dimension/profile failures, and index-compatible query shape
+- filtered pgvector repository: bounded cosine ordering, SQL-side eligibility filters, explicit avatar/GM visibility modes, shared-candidate consistency, GM-bypass limits, active profile/generation, safe dimension/profile failures, and index-compatible query shape
 - retrieval diagnostics staying bounded
 - unified retrieval diagnostics across the admin presenter, recorded runtime events, session-context
   mapper, and console/admin adapters, including duplicate-vs-selection counts and Context Engine
+- lifecycle non-interference: reset, conversation close, scenario deletion, user-fact deletion,
+  reindex, and memory maintenance mutate only their owning repositories and preserve async failure
+  isolation
 - the full requirements-to-tests mapping in
   [EPIC_5_1D_REQUIREMENTS_MATRIX.md](EPIC_5_1D_REQUIREMENTS_MATRIX.md), including deterministic
   semantic paraphrase/unrelated-vector fixtures, ordered batch mapping, filtered PostgreSQL

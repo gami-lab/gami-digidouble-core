@@ -189,9 +189,6 @@ const retrievalBodySchema = {
   properties: {
     scenarioId: { type: 'string', minLength: 1 },
     query: { type: 'string', minLength: 1 },
-    sessionId: { type: 'string', minLength: 1 },
-    userId: { type: 'string', minLength: 1 },
-    conversationId: { type: 'string', minLength: 1 },
     activeAvatarId: { type: 'string', minLength: 1 },
     limitPerType: { type: 'integer', minimum: 1, maximum: 20 },
   },
@@ -484,8 +481,6 @@ function registerRetrievalRoute(
           requestId,
           payload: {
             scenarioId: request.body.scenarioId,
-            sessionId: request.body.sessionId,
-            conversationId: request.body.conversationId,
             counts: {
               avatar_knowledge: bounded.retrieval.avatar_knowledge.length,
               world: bounded.retrieval.world.length,
@@ -502,8 +497,6 @@ function registerRetrievalRoute(
           requestId,
           payload: {
             scenarioId: request.body.scenarioId,
-            sessionId: request.body.sessionId,
-            conversationId: request.body.conversationId,
             durationMs: Date.now() - startedAt,
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
           },

@@ -13,6 +13,7 @@ import type {
   KnowledgeSource,
   KnowledgeVisibilityPolicy,
 } from '../../../domain/knowledge/knowledge.types.js'
+import { assertStaticMetadataAllowed } from '../../../domain/knowledge/legacy-memory-audit.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
 type KnowledgeSourceRow = {
@@ -94,6 +95,7 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
   constructor(private readonly sql: Sql) {}
 
   async create(params: CreateKnowledgeSourceParams): Promise<KnowledgeSource> {
+    assertStaticMetadataAllowed(params.metadata, 'source')
     const scenarioUuid = stripPrefix('scenario_', params.scenarioId)
     const visibility = normalizeKnowledgeVisibilitySelection(
       buildKnowledgeVisibilitySelection(
@@ -198,6 +200,7 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
   ): Promise<KnowledgeSource | null> {
     const sourceUuid = extractUuid('knowledge_source_', sourceId)
     if (sourceUuid === null) return null
+    assertStaticMetadataAllowed(updates.metadata, 'source')
 
     const setClauses: string[] = ['updated_at = NOW()']
     const values: unknown[] = []

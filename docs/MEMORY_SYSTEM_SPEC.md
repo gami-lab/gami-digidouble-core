@@ -22,6 +22,11 @@ unambiguous `avatar_knowledge` type for Avatar-relevant source material. Static 
 metadata cannot carry `userId`, `sessionId`, or `conversationId`, and static documents are never
 converted into conversational-memory records.
 
+Static retrieval may use conversational text as a query, including a working-memory summary or
+recent exchanges, but it does not accept conversational IDs, read memory repositories, or filter or
+boost static candidates by user/session/conversation scope. Memory maintenance therefore cannot
+change knowledge chunks, embeddings, source status, or corpus generations.
+
 ## Ownership Rules
 
 - Domain/internal memory contracts: `apps/core/src/domain/memory/memory.types.ts`

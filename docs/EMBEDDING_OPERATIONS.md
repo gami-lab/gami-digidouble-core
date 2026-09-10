@@ -54,7 +54,7 @@ The service does not perform retrieval.
 
 The separate `IKnowledgeChunkRepository.searchByVector` boundary consumes the validated,
 profile/generation-tagged query vector. PostgreSQL applies the active corpus, source readiness,
-scenario/type, static memory scope, and explicit avatar-filtered or GM-unrestricted visibility
+scenario/type, active corpus, and explicit avatar-filtered or GM-unrestricted visibility
 rules before ordering by pgvector cosine distance and applying the candidate limit. Distance is
 lower-is-better; downstream similarity is `1 - distance`. This repository slice is not yet wired
 into typed runtime selection or ranking.

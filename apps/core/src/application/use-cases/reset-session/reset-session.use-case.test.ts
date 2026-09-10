@@ -12,6 +12,8 @@ import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-
 import { InMemorySessionMemoryRepository } from '../../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryUserMemoryFactRepository } from '../../../infrastructure/db/in-memory-user-memory-fact.repository.js'
+import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
+import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { ResetSessionUseCase } from './reset-session.use-case.js'
 
 function makeSession(overrides: Partial<Session> & Pick<Session, 'sessionId'>): Session {
@@ -361,6 +363,31 @@ describe('ResetSessionUseCase unlock policy behavior', () => {
 })
 
 describe('ResetSessionUseCase memory isolation', () => {
+  it('does not mutate scenario knowledge while clearing session memory', async () => {
+    const sourceRepository = new InMemoryKnowledgeSourceRepository()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Shared lore',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: 'inline://shared-lore',
+    })
+    const chunkRepository = new InMemoryKnowledgeChunkRepository()
+    await chunkRepository.create({
+      sourceId: source.sourceId,
+      content: 'Shared scenario lore',
+      chunkIndex: 0,
+    })
+
+    const useCase = makeUseCase({ sessions: [makeSession({ sessionId: 'session_1' })] })
+    await useCase.execute({ sessionId: 'session_1' })
+
+    await expect(sourceRepository.findById(source.sourceId)).resolves.toMatchObject({
+      sourceId: source.sourceId,
+    })
+    await expect(chunkRepository.listBySourceId(source.sourceId)).resolves.toHaveLength(1)
+  })
+
   it('clears session and avatar working memory for the reset session', async () => {
     const sessionMemoryRepository = makeSessionMemoryRepository()
     const avatarSessionMemoryRepository = makeAvatarSessionMemoryRepository()

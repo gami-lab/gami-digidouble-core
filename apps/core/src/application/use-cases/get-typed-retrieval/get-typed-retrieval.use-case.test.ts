@@ -43,7 +43,6 @@ function buildUseCase(): GetTypedRetrievalUseCase {
         embeddingProfileId: 'profile_1',
         corpusGenerationId: 'generation_1',
         createdAt: '2026-05-11T10:00:00.000Z',
-        metadata: { userId: 'user_1' },
       },
       {
         chunkId: 'knowledge_chunk_world_avatar_1',
@@ -102,7 +101,6 @@ describe('GetTypedRetrievalUseCase', () => {
     const output = await useCase.execute({
       scenarioId: 'scenario_1',
       query: 'budget',
-      userId: 'user_1',
     })
 
     expect(output.retrieval.avatar_knowledge).toHaveLength(1)

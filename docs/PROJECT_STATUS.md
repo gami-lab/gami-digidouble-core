@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-09-10
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced
 
 ## Snapshot
 
@@ -12,6 +12,8 @@ The platform is now a working headless conversational runtime with:
 - async Game Master orchestration
 - deterministic layered memory
 - typed knowledge ingestion and retrieval
+- scenario-shared static retrieval with canonical `avatar_knowledge | world | media` categories,
+  Avatar-only visibility filtering, bounded GM visibility bypass, and independent conversational-memory lifecycle
 - canonical retrieval query/candidate/result/trace/failure contracts with safe shared DTO and
   runtime-event mappers; ordered query vectorization and the filtered pgvector repository boundary
   are delivered, including unified admin/runtime/console diagnostics
@@ -113,6 +115,16 @@ scope keys, and conservative classifications for legacy static `memory` sources.
 mode changes only positively classified rows and blocks ambiguous rows in the quarantine table.
 Neither command emits source content, vectors, metadata values, or user facts. New and updated
 static source/chunk metadata rejects reserved user/session/conversation scope keys.
+
+#### EPIC 4.2d shared RAG scope and lifecycle boundaries ✅ Prompt 02 complete
+
+Static retrieval now accepts only scenario/query/Avatar-visibility inputs. Candidates are limited
+by canonical type, ready source, active corpus, and visibility; the explicit GM bypass changes
+visibility only. User/session/conversation scope filtering, score boosts, request fields, and
+retrieval diagnostics were removed, and admin/console clients use the shared request contract.
+Source/chunk create, update, ingestion, and reindex writes reject reserved scope metadata.
+Reset, conversation close, memory maintenance, and static reindex remain independent owners, with
+focused coverage for shared candidates, visibility bypass limits, and lifecycle non-interference.
 
 #### EPIC 5.1c embedding, corpus, and safe reindexing ✅ Complete
 
@@ -291,9 +303,10 @@ retrieval proof or change production behavior.
 - Use `MEMORY_SYSTEM_SPEC.md` for memory rules.
 - Use `ARCHITECTURE.md` and `PRINCIPLES.md` before changing boundaries or responsibilities.
 
-Documentation review for this contract slice: `VISION.md`, `PRINCIPLES.md`, `TECH_STACK.md`,
-`GAME_MASTER_CONTRACT.md`, `MEMORY_SYSTEM_SPEC.md`, and `EMBEDDING_OPERATIONS.md` remain accurate
-and required no content change. `ARCHITECTURE.md`, `API_CONTRACT.md`, `DATA_MODEL.md`,
-`TEST_STRATEGY.md`, `TEST_COVERAGE_PLAN.md`, and `EPICS.md` were reviewed and remain accurate for
-the completed retrieval proof; the requirements matrix records the test ownership and the
-environment-gated PostgreSQL/stack commands.
+Documentation review for EPIC 4.2d Prompt 02 covered `ARCHITECTURE.md`, `DATA_MODEL.md`,
+`API_CONTRACT.md`, `MEMORY_SYSTEM_SPEC.md`, `RAG_SYSTEM_IMPLEMENTATION.md`,
+`AVATAR_RAG_SETUP_GUIDE.md`, `EMBEDDING_OPERATIONS.md`, `TEST_STRATEGY.md`,
+`TEST_COVERAGE_PLAN.md`, `CONTEXT_CONTRACT_OWNERSHIP_MAP.md`, and `PROJECT_STATUS.md`; each now
+records the scenario-shared static retrieval boundary and independent conversational-memory
+lifecycle. `VISION.md`, `PRINCIPLES.md`, `TECH_STACK.md`, `GAME_MASTER_CONTRACT.md`, and `EPICS.md`
+were reviewed and remain accurate without text changes.

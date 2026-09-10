@@ -25,10 +25,6 @@ type ResultState =
   | { status: 'error'; message: string }
   | { status: 'ready'; retrieval: TypedKnowledgeRetrievalDto }
 
-type MemoryScope = Required<
-  Pick<QueryKnowledgeRetrievalRequest, 'sessionId' | 'userId' | 'conversationId'>
->
-
 export function ScenarioKnowledgeRetrievalTester({
   scenarioId,
   avatars,
@@ -37,11 +33,6 @@ export function ScenarioKnowledgeRetrievalTester({
 }: ScenarioKnowledgeRetrievalTesterProps): JSX.Element {
   const [query, setQuery] = useState('')
   const [activeAvatarId, setActiveAvatarId] = useState('')
-  const [memoryScope, setMemoryScope] = useState<MemoryScope>({
-    sessionId: '',
-    userId: '',
-    conversationId: '',
-  })
   const [result, setResult] = useState<ResultState>({ status: 'idle' })
 
   const sourceNamesById = new Map(
@@ -55,7 +46,7 @@ export function ScenarioKnowledgeRetrievalTester({
     setResult({ status: 'loading' })
     try {
       const retrieval = await queryKnowledgeRetrieval(
-        buildRetrievalRequest(scenarioId, query, activeAvatarId, memoryScope),
+        buildRetrievalRequest(scenarioId, query, activeAvatarId),
       )
       setResult({ status: 'ready', retrieval })
     } catch (error: unknown) {
@@ -108,12 +99,6 @@ export function ScenarioKnowledgeRetrievalTester({
           loading={loading}
           onChange={setActiveAvatarId}
         />
-        <RetrievalMemoryScopeFields
-          memoryScope={memoryScope}
-          loading={loading}
-          onChange={setMemoryScope}
-        />
-
         <div className="admin-form-actions">
           <button
             type="submit"
@@ -138,17 +123,11 @@ function buildRetrievalRequest(
   scenarioId: string,
   query: string,
   activeAvatarId: string,
-  memoryScope: MemoryScope,
-) {
+): QueryKnowledgeRetrievalRequest {
   return {
     scenarioId,
     query: query.trim(),
     ...(activeAvatarId.length > 0 ? { activeAvatarId } : {}),
-    ...(memoryScope.sessionId.trim().length > 0 ? { sessionId: memoryScope.sessionId.trim() } : {}),
-    ...(memoryScope.userId.trim().length > 0 ? { userId: memoryScope.userId.trim() } : {}),
-    ...(memoryScope.conversationId.trim().length > 0
-      ? { conversationId: memoryScope.conversationId.trim() }
-      : {}),
   }
 }
 
@@ -185,67 +164,6 @@ function RetrievalAvatarField({
         ))}
       </select>
     </div>
-  )
-}
-
-function RetrievalMemoryScopeFields({
-  memoryScope,
-  loading,
-  onChange,
-}: {
-  memoryScope: MemoryScope
-  loading: boolean
-  onChange: (value: MemoryScope) => void
-}): JSX.Element {
-  return (
-    <details>
-      <summary className="admin-muted">Advanced (memory scope)</summary>
-      <div className="admin-form-group">
-        <label htmlFor="rag-session" className="admin-form-label">
-          Session ID
-        </label>
-        <input
-          id="rag-session"
-          type="text"
-          className="admin-form-input"
-          value={memoryScope.sessionId}
-          onChange={(event) => {
-            onChange({ ...memoryScope, sessionId: event.target.value })
-          }}
-          disabled={loading}
-        />
-      </div>
-      <div className="admin-form-group">
-        <label htmlFor="rag-user" className="admin-form-label">
-          User ID
-        </label>
-        <input
-          id="rag-user"
-          type="text"
-          className="admin-form-input"
-          value={memoryScope.userId}
-          onChange={(event) => {
-            onChange({ ...memoryScope, userId: event.target.value })
-          }}
-          disabled={loading}
-        />
-      </div>
-      <div className="admin-form-group">
-        <label htmlFor="rag-conversation" className="admin-form-label">
-          Conversation ID
-        </label>
-        <input
-          id="rag-conversation"
-          type="text"
-          className="admin-form-input"
-          value={memoryScope.conversationId}
-          onChange={(event) => {
-            onChange({ ...memoryScope, conversationId: event.target.value })
-          }}
-          disabled={loading}
-        />
-      </div>
-    </details>
   )
 }
 
