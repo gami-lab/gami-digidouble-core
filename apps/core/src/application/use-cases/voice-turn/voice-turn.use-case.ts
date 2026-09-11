@@ -36,6 +36,7 @@ type PreparedVoiceTurn = {
 type VoiceTurnTrace = {
   requestId: string
   input: VoiceTurnInput
+  latencyMs: number
   outcome: 'success' | 'interrupted' | 'failure'
   transcriptLength?: number
   conversationRequestId?: string
@@ -55,6 +56,7 @@ export class VoiceTurnUseCase {
 
   async execute(input: VoiceTurnInput, options?: VoiceTurnOptions): Promise<SendMessageOutput> {
     const requestId = crypto.randomUUID()
+    const startedAt = Date.now()
     let prepared: PreparedVoiceTurn | undefined
     let claimed: ClaimedReservation | undefined
     let downstreamStarted = false
@@ -81,6 +83,7 @@ export class VoiceTurnUseCase {
         this.trace({
           requestId,
           input: prepared.input,
+          latencyMs: Date.now() - startedAt,
           outcome: failureCode !== undefined ? 'failure' : 'success',
           ...(transcriptLength === undefined ? {} : { transcriptLength }),
           ...(failureCode === undefined ? {} : { failureCode }),
@@ -95,6 +98,7 @@ export class VoiceTurnUseCase {
     options?: VoiceTurnOptions,
   ): AsyncIterable<StreamingSendMessageEvent> {
     const requestId = crypto.randomUUID()
+    const startedAt = Date.now()
     let prepared: PreparedVoiceTurn | undefined
     let claimed: ClaimedReservation | undefined
     let downstreamStarted = false
@@ -128,6 +132,7 @@ export class VoiceTurnUseCase {
         this.trace({
           requestId,
           input: prepared.input,
+          latencyMs: Date.now() - startedAt,
           outcome: failureCode !== undefined ? 'failure' : completed ? 'success' : 'interrupted',
           ...(transcriptLength === undefined ? {} : { transcriptLength }),
           ...(conversationRequestId === undefined ? {} : { conversationRequestId }),
@@ -220,6 +225,7 @@ export class VoiceTurnUseCase {
             : { transcriptLength: args.transcriptLength }),
           ...(args.failureCode === undefined ? {} : { failureCode: args.failureCode }),
         },
+        latencyMs: args.latencyMs,
         metadata: {
           conversationId: args.input.conversationId,
           utteranceId: args.input.utteranceId,

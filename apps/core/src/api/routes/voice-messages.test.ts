@@ -73,21 +73,25 @@ function makeSpeechAdapter(
 }
 
 function makeApp(
-  speechToTextAdapter: ISpeechToTextAdapter = makeSpeechAdapter(),
+  speechToTextAdapter: ISpeechToTextAdapter | null = makeSpeechAdapter(),
   llmAdapter: ILlmAdapter = new NullLlmAdapter('Avatar reply', 'null-model'),
   messageRepository = new InMemoryMessageRepository(),
 ) {
+  const adapters = {
+    llmAdapter,
+    observabilityAdapter: new NullObservabilityAdapter(),
+    avatarRepository: new InMemoryAvatarRepository([avatar]),
+    scenarioRepository: new InMemoryScenarioRepository([scenario]),
+    sessionRepository: new InMemorySessionRepository([session]),
+    conversationRepository: new InMemoryConversationRepository([conversation]),
+    messageRepository,
+  }
+  const app = createServer(
+    TEST_CONFIG,
+    speechToTextAdapter === null ? adapters : { ...adapters, speechToTextAdapter },
+  )
   return {
-    app: createServer(TEST_CONFIG, {
-      llmAdapter,
-      speechToTextAdapter,
-      observabilityAdapter: new NullObservabilityAdapter(),
-      avatarRepository: new InMemoryAvatarRepository([avatar]),
-      scenarioRepository: new InMemoryScenarioRepository([scenario]),
-      sessionRepository: new InMemorySessionRepository([session]),
-      conversationRepository: new InMemoryConversationRepository([conversation]),
-      messageRepository,
-    }),
+    app,
     messageRepository,
   }
 }
@@ -109,6 +113,42 @@ function parseEvents(body: string): MessageStreamEvent[] {
 
 // eslint-disable-next-line max-lines-per-function
 describe('voice message HTTP routes', () => {
+  it('returns a safe provider error when voice is unavailable while text remains usable', async () => {
+    const { app } = makeApp(null)
+
+    const voice = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/voice-messages',
+      headers: headers(),
+      payload: Buffer.from([1, 2, 3]),
+    })
+
+    expect(voice.statusCode).toBe(502)
+    expect(voice.json<ApiResponse<null>>().error?.code).toBe('PROVIDER_ERROR')
+    expect(voice.body).not.toContain('Deepgram')
+
+    const voiceStream = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/voice-messages/stream',
+      headers: headers(),
+      payload: Buffer.from([1, 2, 3]),
+    })
+
+    expect(voiceStream.statusCode).toBe(502)
+    expect(voiceStream.json<ApiResponse<null>>().error?.code).toBe('PROVIDER_ERROR')
+    expect(voiceStream.body).not.toContain('Deepgram')
+
+    const text = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/messages',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { message: { content: 'Text still works' } },
+    })
+
+    expect(text.statusCode).toBe(200)
+    expect(text.json<ApiResponse<SendMessageResponse>>().error).toBeNull()
+  })
+
   it('returns the canonical JSON response and forwards bounded metadata', async () => {
     const speech = makeSpeechAdapter()
     const { app } = makeApp(speech)
@@ -319,6 +359,41 @@ describe('voice message HTTP routes', () => {
     expect(duplicate.statusCode).toBe(409)
     expect(duplicate.json<ApiResponse<null>>().error?.code).toBe('CONFLICT')
     expect(speech.transcribe).toHaveBeenCalledTimes(1)
+    const messages = await messageRepository.findByConversationId('conversation_1')
+    expect(messages.filter((message) => message.role === 'user')).toHaveLength(1)
+  })
+
+  it('rejects concurrent duplicate requests before a second transcription or turn', async () => {
+    let resolveTranscription:
+      ((result: Awaited<ReturnType<ISpeechToTextAdapter['transcribe']>>) => void) | undefined
+    const speech = {
+      transcribe: vi.fn<ISpeechToTextAdapter['transcribe']>(
+        () =>
+          new Promise((resolve) => {
+            resolveTranscription = resolve
+          }),
+      ),
+    }
+    const { app, messageRepository } = makeApp(speech)
+    const request = {
+      method: 'POST' as const,
+      url: '/v1/conversations/conversation_1/voice-messages',
+      headers: headers(),
+      payload: Buffer.from([1]),
+    }
+
+    const first = app.inject(request)
+    const second = app.inject(request)
+    const responsesPromise = Promise.all([first, second])
+    await vi.waitFor(() => {
+      expect(speech.transcribe).toHaveBeenCalledTimes(1)
+    })
+    expect(speech.transcribe).toHaveBeenCalledTimes(1)
+    if (resolveTranscription === undefined) throw new Error('Expected transcription to be pending.')
+    resolveTranscription({ kind: 'final', transcript: 'Concurrent voice' })
+
+    const responses = await responsesPromise
+    expect(responses.map((response) => response.statusCode).sort()).toEqual([200, 409])
     const messages = await messageRepository.findByConversationId('conversation_1')
     expect(messages.filter((message) => message.role === 'user')).toHaveLength(1)
   })

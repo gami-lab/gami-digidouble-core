@@ -122,6 +122,7 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
     this.transport = transport
   }
 
+  // eslint-disable-next-line complexity
   async transcribe(
     input: SpeechToTextInput,
     options?: SpeechToTextOptions,
@@ -147,6 +148,13 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
       return execution.result
     } catch (error) {
       const mapped = mapSpeechToTextError(error, options?.signal, 'during_transcription')
+      if (normalizedInput === undefined) {
+        try {
+          normalizedInput = normalizeSpeechToTextInput(input)
+        } catch {
+          // Invalid input is reported through the typed failure only.
+        }
+      }
       this.trace({
         ...(options?.requestId === undefined ? {} : { requestId: options.requestId }),
         ...(normalizedInput === undefined ? {} : { input: normalizedInput }),

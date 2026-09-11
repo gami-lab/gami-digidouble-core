@@ -145,6 +145,8 @@ Voice message transport contract:
   missing-identity input returns `400 VALIDATION_ERROR`. Unknown conversations return `404 NOT_FOUND`.
   Duplicate or cancelled voice work returns `409 CONFLICT`; provider timeout returns `504 TIMEOUT`,
   rate limiting returns `429 RATE_LIMITED`, and provider rejection/failure returns `502 PROVIDER_ERROR`.
+- When `DEEPGRAM_API_KEY` is absent, valid authenticated voice requests return `502 PROVIDER_ERROR`;
+  the existing text message routes remain available and unchanged.
 - Request disconnects propagate cancellation through transcription and the existing streaming turn
   flow. Partial Avatar content is not persisted and post-turn work is not scheduled for an
   interrupted stream. Raw audio and transcript text are never included in API errors or logs.

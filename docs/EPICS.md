@@ -520,9 +520,9 @@ it does not.
 ### `9.1 Voice Input Integration with Deepgram`
 
 **Current state**  
-Provider-neutral contracts, the optional Deepgram adapter, the application voice-turn coordinator,
-and the authenticated binary HTTP routes are delivered. Raw-audio persistence and voice output
-remain out of scope.
+The provider-neutral contracts, optional Deepgram adapter, application voice-turn coordinator, and
+authenticated binary HTTP routes are implemented and deterministically hardened. Raw-audio
+persistence and voice output remain out of scope.
 
 **Summary**  
 Add an utterance-based voice-input path using Deepgram for speech-to-text. A provider-neutral voice
@@ -544,8 +544,11 @@ is process-local and must be replaced with shared coordination before multi-inst
 Prompt 04 adds authenticated raw-binary synchronous and SSE routes under the existing conversations
 prefix, strict bounded Fastify parsing, canonical response/event reuse, safe finite error mapping,
 and real-stack coverage for auth, validation, and resource-not-found behavior. Provider-backed
-success smoke tests remain deferred until a deterministic audio fixture and configured providers
-are available.
+success smoke tests remain deferred until a deterministic audio fixture, configured providers, and
+an available stack are present. Prompt 05 adds release hardening evidence for concurrent duplicate
+requests, cancellation after transcription, unavailable-provider text continuity, bounded latency
+and failure observability, and diagnostics redaction. The remaining live checks are explicit
+environment limitations rather than claims of provider-backed success.
 
 ### `9.2 Voice Output Integration with Gradium`
 

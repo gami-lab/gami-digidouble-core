@@ -4,7 +4,10 @@ import {
   SPEECH_TO_TEXT_LIMITS,
   type SpeechToTextInput,
 } from '../../application/ports/ISpeechToTextAdapter.js'
-import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
+import type {
+  IObservabilityAdapter,
+  TraceEvent,
+} from '../../application/ports/IObservabilityAdapter.js'
 import {
   createSpeechToTextAdapter,
   DeepgramSpeechToTextAdapter,
@@ -19,7 +22,7 @@ function createObservability(): {
   adapter: IObservabilityAdapter
   trace: ReturnType<typeof vi.fn>
 } {
-  const trace = vi.fn().mockResolvedValue(undefined)
+  const trace = vi.fn<(event: TraceEvent) => Promise<void>>().mockResolvedValue(undefined)
   return {
     trace,
     adapter: { trace, flush: vi.fn().mockResolvedValue(undefined) },
@@ -297,6 +300,38 @@ describe('DeepgramSpeechToTextAdapter safety', () => {
     expect(serialized).not.toContain('hello world')
     expect(serialized).not.toContain('1,2,3')
     expect(serialized).not.toContain('provider payload')
+  })
+
+  it('records bounded failure metadata without provider response details', async () => {
+    const { adapter, trace } = createAdapter(
+      { secret: 'provider payload dg-secret-test hello world' },
+      { status: 500 },
+    )
+
+    await expect(
+      adapter.transcribe(createInput(), { requestId: 'voice-request-1' }),
+    ).rejects.toMatchObject({
+      failure: { code: 'provider_failure' },
+    })
+
+    const event = trace.mock.calls[0]?.[0] as TraceEvent | undefined
+    const serialized = JSON.stringify(event)
+    expect(event).toMatchObject({
+      requestId: 'voice-request-1',
+      input: { byteCount: 3, durationMs: 1_500 },
+      event: 'speech_to_text.error',
+      output: { code: 'provider_failure' },
+      metadata: {
+        outcome: 'failure',
+        failureCode: 'provider_failure',
+        statusCode: 500,
+      },
+    })
+    expect(event?.latencyMs).toEqual(expect.any(Number))
+    expect(serialized).not.toContain('dg-secret-test')
+    expect(serialized).not.toContain('provider payload')
+    expect(serialized).not.toContain('hello world')
+    expect(serialized).not.toContain('1,2,3')
   })
 
   it('keeps voice unconfigured without changing existing provider composition', async () => {

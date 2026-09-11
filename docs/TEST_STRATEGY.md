@@ -69,16 +69,18 @@ provider payloads are absent from observability. Live provider smoke tests remai
 not required for the normal credential-free suite.
 
 Voice-turn coordinator tests additionally use fake application ports to verify active-conversation
-validation, one transcript handoff to each existing turn flow, duplicate reservation handling,
-pre-transcription cancellation, provider failure propagation, downstream stream interruption, and
-absence of duplicate background work.
+validation, one transcript handoff to each existing turn flow, concurrent duplicate reservation
+handling, pre- and post-transcription cancellation, provider failure propagation, downstream stream
+interruption, bounded latency/outcome diagnostics, and absence of duplicate background work.
 
 The voice HTTP route suite additionally covers raw-body parsing and byte/media/header limits,
 authentication before parsing, canonical synchronous and SSE response shapes, standard error
 mapping, unknown-conversation ordering, duplicate utterance rejection, and request-disconnect
 cleanup. The stack-E2E suite uses real HTTP requests for both routes and always-on auth,
 validation, and not-found cases; provider-backed success remains an explicit TODO until a
-deterministic audio fixture and configured providers are available.
+deterministic audio fixture and configured providers are available. The Deepgram live smoke test is
+environment-gated by `DEEPGRAM_LIVE_SMOKE=1`, `DEEPGRAM_API_KEY`, and
+`DEEPGRAM_LIVE_AUDIO_PATH`; skipped checks are reported as an environment limitation.
 
 ## 5. Assert from the consumer inward, not from the implementation outward
 

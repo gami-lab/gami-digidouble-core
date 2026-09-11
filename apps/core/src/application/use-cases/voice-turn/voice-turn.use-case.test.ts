@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Conversation, Message } from '../../../domain/conversation/session.types.js'
-import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
+import type { IObservabilityAdapter, TraceEvent } from '../../ports/IObservabilityAdapter.js'
 import {
   normalizeSpeechToTextInput,
   SpeechToTextError,
@@ -66,7 +66,7 @@ function createObservability(): {
   adapter: IObservabilityAdapter
   trace: ReturnType<typeof vi.fn>
 } {
-  const trace = vi.fn().mockResolvedValue(undefined)
+  const trace = vi.fn<(event: TraceEvent) => Promise<void>>().mockResolvedValue(undefined)
   return { adapter: { trace, flush: vi.fn().mockResolvedValue(undefined) }, trace }
 }
 
@@ -164,6 +164,8 @@ describe('VoiceTurnUseCase synchronous execution', () => {
         }) as unknown,
       }),
     )
+    const traceEvent = trace.mock.calls[0]?.[0] as TraceEvent | undefined
+    expect(traceEvent?.latencyMs).toEqual(expect.any(Number))
     await expect(
       store.reserve({ conversationId: 'conversation-1', utteranceId: 'utterance-1' }, 'other'),
     ).resolves.toEqual({ status: 'conflict' })
@@ -213,6 +215,36 @@ describe('VoiceTurnUseCase idempotency and cancellation', () => {
     expect(send).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps concurrent duplicate submissions at exactly one turn', async () => {
+    let resolveTranscription: ((value: SpeechToTextResult) => void) | undefined
+    const transcribe: TranscribeMock = vi.fn(
+      () =>
+        new Promise<SpeechToTextResult>((resolve) => {
+          resolveTranscription = resolve
+        }),
+    )
+    const { useCase, send } = createUseCase({ transcribe })
+
+    const first = useCase.execute(input)
+    const second = useCase.execute(input)
+    const resultsPromise = Promise.allSettled([first, second])
+    await vi.waitFor(() => {
+      expect(transcribe).toHaveBeenCalledTimes(1)
+    })
+    expect(transcribe).toHaveBeenCalledTimes(1)
+
+    if (resolveTranscription === undefined) throw new Error('Expected transcription to be pending.')
+    resolveTranscription({ kind: 'final', transcript: 'hello' })
+    const results = await resultsPromise
+
+    expect(results[0].status).toBe('fulfilled')
+    expect(results[1]).toMatchObject({
+      status: 'rejected',
+      reason: new VoiceTurnError('in_flight'),
+    })
+    expect(send).toHaveBeenCalledTimes(1)
+  })
+
   it('rejects a completed duplicate and propagates provider failures without a turn', async () => {
     const first = createUseCase()
     await expect(first.useCase.execute(input)).resolves.toBe(output)
@@ -242,6 +274,24 @@ describe('VoiceTurnUseCase idempotency and cancellation', () => {
     })
     expect(transcribe).not.toHaveBeenCalled()
     expect(conversationRepository.findById).not.toHaveBeenCalled()
+  })
+
+  it('does not enter the message path when cancellation arrives after transcription', async () => {
+    const controller = new AbortController()
+    const transcribe: TranscribeMock = vi.fn().mockImplementation(() => {
+      controller.abort()
+      return { kind: 'final', transcript: 'hello' }
+    })
+    const { useCase, transcribe: transcribeMock, send, store } = createUseCase({ transcribe })
+
+    await expect(useCase.execute(input, { signal: controller.signal })).rejects.toMatchObject({
+      failure: { code: 'cancelled', phase: 'after_transcription' },
+    })
+    expect(transcribeMock).toHaveBeenCalledTimes(1)
+    expect(send).not.toHaveBeenCalled()
+    await expect(
+      store.reserve({ conversationId: 'conversation-1', utteranceId: 'utterance-1' }, 'other'),
+    ).resolves.toMatchObject({ status: 'claimed' })
   })
 
   it('validates the active conversation before transcription', async () => {

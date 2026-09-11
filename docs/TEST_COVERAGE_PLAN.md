@@ -66,10 +66,19 @@ The Infrastructure adapter additionally covers exact Deepgram request constructi
 final response parsing, malformed/empty/interim responses, provider-reported duration and
 transcript limits, HTTP rejection/rate-limit/timeout/provider failures, transport cancellation,
 and observability redaction with an injected transport fake.
+An opt-in live smoke test uses an externally supplied fixture only when
+`DEEPGRAM_LIVE_SMOKE=1`, `DEEPGRAM_API_KEY`, and `DEEPGRAM_LIVE_AUDIO_PATH` are set; the normal
+credential-free suite does not require network access.
 
 Voice-turn application coverage verifies that synchronous and streaming voice calls delegate to the
 canonical send-message use cases, preserve cancellation/interruption behavior, and consume or
 release the idempotency reservation at the correct boundary without duplicating turn execution.
+
+Epic 9.1 hardening evidence maps the remaining independent risks to deterministic checks: concurrent
+duplicate requests to one transcription/turn, cancellation after transcription before handoff,
+unconfigured voice with an unchanged text route, failure traces containing only bounded latency,
+duration, outcome, and failure category metadata, and provider-payload redaction at the
+observability consumer boundary.
 
 ### Avatar Runtime
 

@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-09-11
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice HTTP boundary delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered
 
 ## Snapshot
 
@@ -53,6 +53,9 @@ The platform is now a working headless conversational runtime with:
   identities, and delegates finalized transcripts to the existing synchronous/streaming turn flows
 - authenticated raw-binary synchronous and SSE voice routes with bounded Fastify parsing, standard
   API error envelopes, canonical message response/event mappings, and real-stack contract tests
+- voice hardening coverage for concurrent duplicate submissions, post-transcription cancellation,
+  unavailable-provider behavior with text-route continuity, latency/failure observability, and
+  provider-payload redaction
 
 ## What Is Shipped
 
@@ -345,6 +348,9 @@ retrieval proof or change production behavior.
   unconfigured safely when `DEEPGRAM_API_KEY` is absent, preserving the existing text/LLM path.
 - Voice idempotency is currently process-local and fails safe on expired reservations; shared
   multi-instance coordination remains required before horizontal voice scaling.
+- Deterministic Epic 9.1 verification passes without credentials. Live Deepgram success and stack
+  HTTP success remain environment-gated; the local stack preflight skips them when no app is
+  available at the configured base URL.
 - Voice contract work does not change `Message`, `SendMessageRequest`, `SendMessageResponse`, or
   `MessageStreamEvent`; no shared DTO or persistence table was added.
 
