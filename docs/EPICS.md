@@ -517,6 +517,30 @@ it does not.
 
 - a repeatable baseline for conversation quality and runtime-cost comparisons without a dashboard or CI integration
 
+### `9.1 Voice Input Integration with Deepgram`
+
+**Current state**  
+Proposed. The Core currently accepts text messages only; no voice-input integration is shipped.
+
+**Summary**  
+Add an utterance-based voice-input path using Deepgram for speech-to-text. A provider-neutral voice
+port and adapter boundary—implemented in Core infrastructure or an adjacent voice edge, as the
+deployment requires—captures audio, produces a finalized transcript, and submits that transcript
+through the existing validated conversation message flow while keeping interim transcripts and raw
+audio out of durable Core state by default.
+
+### `9.2 Voice Output Integration with Gradium`
+
+**Current state**  
+Proposed. The Core currently returns or streams cleaned Avatar text only; no voice-output integration is shipped.
+
+**Summary**  
+Add a voice-output path using Gradium for text-to-speech. A provider-neutral voice port and
+adapter boundary—implemented in Core infrastructure or an adjacent voice edge, as the deployment
+requires—consumes the canonical cleaned Avatar response, produces playable audio with cancellation
+and failure handling, and keeps text persistence and Core turn completion independent from audio
+playback.
+
 ## Superseded Or Absorbed Items
 
 ### `4.1b Game Master Context Awareness Upgrade`
