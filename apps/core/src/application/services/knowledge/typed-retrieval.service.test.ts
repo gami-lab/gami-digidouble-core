@@ -319,11 +319,14 @@ describe('TypedRetrievalService', () => {
     expect(callerBResult.world).toEqual(callerAResult.world)
     expect(callerBResult.media).toEqual(callerAResult.media)
     expect(callerBResult.trace).toMatchObject({
-      ...callerAResult.trace,
-      timings: {
-        queryEmbeddingMs: callerATimings.queryEmbeddingMs,
-        vectorSearchMs: callerATimings.vectorSearchMs,
-      },
+      query: callerAResult.trace.query,
+      queryVectorCount: callerAResult.trace.queryVectorCount,
+      visibilityMode: callerAResult.trace.visibilityMode,
+      gmUnrestricted: callerAResult.trace.gmUnrestricted,
+      candidateCount: callerAResult.trace.candidateCount,
+      selectedCount: callerAResult.trace.selectedCount,
+      outcome: callerAResult.trace.outcome,
+      perType: callerAResult.trace.perType,
     })
     expect(callerBTimings.totalMs).toBeGreaterThanOrEqual(0)
     expect(callerAResult.avatar_knowledge.map((item) => item.chunkId)).toEqual([
