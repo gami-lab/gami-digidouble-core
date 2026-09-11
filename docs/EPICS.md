@@ -520,8 +520,9 @@ it does not.
 ### `9.1 Voice Input Integration with Deepgram`
 
 **Current state**  
-Contract and provider-adapter foundations delivered. The Core still accepts text messages only at
-the public API; the application voice-turn flow and HTTP route remain to be implemented.
+Provider-neutral contracts, the optional Deepgram adapter, the application voice-turn coordinator,
+and the authenticated binary HTTP routes are delivered. Raw-audio persistence and voice output
+remain out of scope.
 
 **Summary**  
 Add an utterance-based voice-input path using Deepgram for speech-to-text. A provider-neutral voice
@@ -537,9 +538,14 @@ fakes, and conservative at-most-once `(conversationId, utteranceId)` reservation
 configuration, injectable transport tests, safe failure mapping, and bounded redacted observability.
 Prompt 03 adds the application coordinator that validates the active conversation, reserves
 utterance identity, and delegates finalized transcripts to the existing synchronous or streaming
-turn flows, preserving their persistence, memory, and asynchronous GM ownership. No public voice
-route, raw-audio persistence, or shared message DTO was added; the initial idempotency composition
+turn flows, preserving their persistence, memory, and asynchronous GM ownership. No raw-audio
+persistence or shared message DTO was added; the initial idempotency composition
 is process-local and must be replaced with shared coordination before multi-instance voice scaling.
+Prompt 04 adds authenticated raw-binary synchronous and SSE routes under the existing conversations
+prefix, strict bounded Fastify parsing, canonical response/event reuse, safe finite error mapping,
+and real-stack coverage for auth, validation, and resource-not-found behavior. Provider-backed
+success smoke tests remain deferred until a deterministic audio fixture and configured providers
+are available.
 
 ### `9.2 Voice Output Integration with Gradium`
 

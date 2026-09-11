@@ -68,6 +68,7 @@ import { InMemoryIngestionJobRepository } from '../infrastructure/db/in-memory-i
 import { InMemoryModelConfigRepository } from '../infrastructure/db/in-memory-model-config.repository.js'
 import { InMemoryKnowledgeSourceContentLoader } from '../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
 import { UnconfiguredEmbeddingAdapter } from '../infrastructure/knowledge/unconfigured-embedding.adapter.js'
+import { InMemoryUtteranceIdempotencyStore } from '../application/voice/in-memory-utterance-idempotency.store.js'
 import { adminModelConfigRoute } from './routes/admin-model-config.js'
 import { adminKnowledgeReindexRoute } from './routes/admin-knowledge-reindex.js'
 
@@ -154,6 +155,7 @@ function isFastifyBodyParsingError(
   )
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function createServer(config: Config, adapters: ServerAdapters = {}): FastifyInstance {
   const resolvedAdapters = resolveServerAdapters(adapters)
 
@@ -175,8 +177,11 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     }
 
     if (isFastifyBodyParsingError(error)) {
+      const isVoiceBodyTooLarge =
+        error.code === 'FST_ERR_CTP_BODY_TOO_LARGE' && request.url.includes('/voice-messages')
+      const statusCode = isVoiceBodyTooLarge ? 400 : error.statusCode
       return reply
-        .status(error.statusCode)
+        .status(statusCode)
         .send(fail('VALIDATION_ERROR', error.message ?? 'Malformed request body'))
     }
 
@@ -325,6 +330,10 @@ function resolveServerAdapters(
     eventLogRepository: adapters.eventLogRepository ?? new InMemoryEventLogRepository(),
     gmStateRepository: adapters.gmStateRepository ?? new InMemoryGmStateRepository(),
     userRepository: adapters.userRepository ?? new InMemoryUserRepository(),
+    ...(adapters.speechToTextAdapter !== undefined &&
+    adapters.utteranceIdempotencyStore === undefined
+      ? { utteranceIdempotencyStore: new InMemoryUtteranceIdempotencyStore() }
+      : {}),
     sessionEventPublisher,
   }
 }

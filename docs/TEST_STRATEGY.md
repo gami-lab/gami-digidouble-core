@@ -73,6 +73,13 @@ validation, one transcript handoff to each existing turn flow, duplicate reserva
 pre-transcription cancellation, provider failure propagation, downstream stream interruption, and
 absence of duplicate background work.
 
+The voice HTTP route suite additionally covers raw-body parsing and byte/media/header limits,
+authentication before parsing, canonical synchronous and SSE response shapes, standard error
+mapping, unknown-conversation ordering, duplicate utterance rejection, and request-disconnect
+cleanup. The stack-E2E suite uses real HTTP requests for both routes and always-on auth,
+validation, and not-found cases; provider-backed success remains an explicit TODO until a
+deterministic audio fixture and configured providers are available.
+
 ## 5. Assert from the consumer inward, not from the implementation outward
 
 The most dangerous test gap is a test that passes because it only checks what the code already does, not what the consumer requires.

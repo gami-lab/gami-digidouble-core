@@ -121,7 +121,33 @@ to the shared wire type.
 - `POST /v1/conversations/{conversationId}/messages` -> `SendMessageRequest` -> `ApiResponse<SendMessageResponse>`
 - `POST /v1/conversations/{conversationId}/messages/stream` -> `SendMessageRequest` -> SSE
   `MessageStreamEvent` frames
+- `POST /v1/conversations/{conversationId}/voice-messages` -> raw audio ->
+  `ApiResponse<SendMessageResponse>`
+- `POST /v1/conversations/{conversationId}/voice-messages/stream` -> raw audio -> SSE
+  `MessageStreamEvent` frames
 - `GET /v1/conversations/{conversationId}/history` -> `ConversationHistoryResponse`
+
+Voice message transport contract:
+
+- Both voice routes require the existing `x-api-key` header and accept a raw request body. No
+  multipart dependency or JSON voice DTO is introduced.
+- `Content-Type` must be one of `audio/flac`, `audio/mpeg`, `audio/mp4`, `audio/ogg`, `audio/wav`,
+  or `audio/webm`; media parameters such as `codecs=opus` are normalized away. The body is bounded
+  to 10,000,000 bytes, including both declared and actual-size checks.
+- `x-utterance-id` is required and must be a bounded opaque ID. `x-language` is optional and uses a
+  normalized BCP-47 tag. `x-audio-duration-ms` is optional, must be a positive integer, and is a
+  client-supplied validation hint bounded to 120,000 ms; provider-reported duration remains
+  authoritative when available.
+- A successful synchronous request returns the unchanged `ApiResponse<SendMessageResponse>` shape.
+  The stream uses the unchanged `MessageStreamEvent` frames and emits `started`, zero or more
+  ordered `delta` frames, then exactly one terminal `completed` or `interrupted` frame.
+- Empty, malformed, unsupported, oversized, over-duration, invalid-language, invalid-duration, or
+  missing-identity input returns `400 VALIDATION_ERROR`. Unknown conversations return `404 NOT_FOUND`.
+  Duplicate or cancelled voice work returns `409 CONFLICT`; provider timeout returns `504 TIMEOUT`,
+  rate limiting returns `429 RATE_LIMITED`, and provider rejection/failure returns `502 PROVIDER_ERROR`.
+- Request disconnects propagate cancellation through transcription and the existing streaming turn
+  flow. Partial Avatar content is not persisted and post-turn work is not scheduled for an
+  interrupted stream. Raw audio and transcript text are never included in API errors or logs.
 
 `StartSessionRequest` accepts an optional session-scoped `model` override and Avatar retrieval
 settings. The model override is reused for Avatar, Game Master, and memory-compaction calls in the

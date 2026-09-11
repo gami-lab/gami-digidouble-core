@@ -28,6 +28,8 @@ Must cover:
 - contract shape for public and admin routes
 - SSE headers and basic stream behavior where applicable
 - message-stream route auth, validation, not-found, framing, and stack-e2e completion ordering
+- voice-message route auth, bounded raw-body/media/header validation, canonical JSON/SSE framing,
+  not-found/error mapping, interruption cleanup, and stack-e2e coverage for both route variants
 
 ### Conversation Runtime
 

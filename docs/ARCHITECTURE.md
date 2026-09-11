@@ -797,6 +797,13 @@ conversation, claims the bounded utterance identity, transcribes once, and hands
 text to the synchronous or streaming turn owner. It never owns message persistence, prompt
 assembly, memory maintenance, or Game Master scheduling.
 
+The API registers an encapsulated voice route plugin under the conversations prefix. Its raw-body
+parser is bounded to the shared audio limit and its route-level authentication hook runs before
+body parsing, while the existing text routes retain their JSON parser and contracts. The two voice
+routes map directly to the existing `SendMessageResponse` and `MessageStreamEvent` mappers; no
+voice-specific shared DTO or alternate persistence path is introduced. Binary transport uses
+`Content-Type`, `x-utterance-id`, and optional `x-language`/`x-audio-duration-ms` headers.
+
 ## Logger Port
 
 ```ts

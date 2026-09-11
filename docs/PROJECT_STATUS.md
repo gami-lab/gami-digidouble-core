@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-09-11
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice contract and Deepgram adapter foundation delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice HTTP boundary delivered
 
 ## Snapshot
 
@@ -48,9 +48,11 @@ The platform is now a working headless conversational runtime with:
   utterance identity semantics
 - optional production Deepgram pre-recorded speech-to-text adapter with validated configuration,
   bounded request/response handling, typed timeout/rate-limit/provider failure mapping, injectable
-  transport tests, and redacted bounded observability; no public voice route or raw-audio persistence
+  transport tests, and redacted bounded observability; no raw-audio persistence
 - voice-turn application coordinator that validates active conversations, reserves utterance
   identities, and delegates finalized transcripts to the existing synchronous/streaming turn flows
+- authenticated raw-binary synchronous and SSE voice routes with bounded Fastify parsing, standard
+  API error envelopes, canonical message response/event mappings, and real-stack contract tests
 
 ## What Is Shipped
 

@@ -1,12 +1,6 @@
-/* eslint-disable max-lines */
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, MODEL_SELECTION_PROVIDER_NAMES, ok } from '@gami/shared'
-import type {
-  Message as SharedMessage,
-  MessageStreamEvent,
-  SendMessageRequest,
-  SendMessageResponse,
-} from '@gami/shared'
+import type { SendMessageRequest, SendMessageResponse } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
@@ -36,9 +30,6 @@ import type { TypedRetrievalService } from '../../application/services/knowledge
 import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
 import { StreamingSendMessageUseCase } from '../../application/use-cases/send-message/streaming-send-message.use-case.js'
 import { VoiceTurnUseCase } from '../../application/use-cases/voice-turn/voice-turn.use-case.js'
-import type { StreamingSendMessageEvent } from '../../application/use-cases/send-message/streaming-send-message.types.js'
-import type { SendMessageOutput } from '../../application/use-cases/send-message/send-message.types.js'
-import type { Message as DomainMessage } from '../../domain/conversation/session.types.js'
 import type { Config } from '../../config.js'
 import type { ModelConfig } from '../../domain/model-config/index.js'
 import { DomainError } from '../../domain/errors.js'
@@ -58,11 +49,18 @@ import { EpisodicMemoryService } from '../../application/services/episodic-memor
 import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
-import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
+import { createLlmAdapter } from '../../infrastructure/llm/index.js'
 import type { LlmConfig } from '../../infrastructure/llm/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
+import { voiceMessagesRoute } from './voice-messages.js'
+import {
+  mapSendMessageResponse,
+  mapStreamingEvent,
+  writeMessageStreamFrame,
+} from './conversation-message-mappers.js'
+import { handleRouteError } from './route-error.js'
 
 type ConversationsRouteOptions = {
   config: Config
@@ -144,6 +142,11 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
 
   app.addHook('onClose', async () => {
     await deps.observabilityAdapter.flush()
+  })
+
+  app.register(voiceMessagesRoute, {
+    config: options.config,
+    ...(deps.voiceTurnUseCase === undefined ? {} : { voiceTurnUseCase: deps.voiceTurnUseCase }),
   })
 
   app.post<{ Params: ConversationParams; Body: SendMessageRequest }>(
@@ -427,135 +430,6 @@ function buildLlmConfig(config: Config): LlmConfig {
   }
 }
 
-function mapSendMessageResponse(output: SendMessageOutput): SendMessageResponse {
-  return {
-    conversation: {
-      conversationId: output.conversation.conversationId,
-      sessionId: output.conversation.sessionId,
-      avatarId: output.conversation.avatarId,
-      status: output.conversation.status,
-      startedAt: output.conversation.startedAt,
-      lastActivityAt: output.conversation.lastActivityAt,
-      ...(output.conversation.endedAt !== undefined
-        ? { endedAt: output.conversation.endedAt }
-        : {}),
-    },
-    session: {
-      sessionId: output.session.sessionId,
-      userId: output.session.userId,
-      scenarioId: output.session.scenarioId,
-      ...(output.session.activeAvatarId !== undefined
-        ? { activeAvatarId: output.session.activeAvatarId }
-        : {}),
-      ...(output.session.unlockedAvatarIds !== undefined
-        ? { unlockedAvatarIds: output.session.unlockedAvatarIds }
-        : {}),
-      ...(output.session.avatarOptions !== undefined
-        ? { avatarOptions: output.session.avatarOptions }
-        : {}),
-      status: output.session.status,
-      startedAt: output.session.startedAt,
-      lastActivityAt: output.session.lastActivityAt,
-    },
-    userMessage: {
-      messageId: output.userMessage.messageId,
-      conversationId: output.conversationId,
-      role: 'user',
-      content: output.userMessage.content,
-      createdAt: output.userMessage.createdAt,
-    },
-    avatarMessage: {
-      messageId: output.avatarMessage.messageId,
-      conversationId: output.conversationId,
-      role: 'avatar',
-      content: output.avatarMessage.content,
-      createdAt: output.avatarMessage.createdAt,
-      metadata: {
-        model: output.avatarMessage.model,
-        latencyMs: output.avatarMessage.latencyMs,
-        inputTokens: output.avatarMessage.inputTokens,
-        outputTokens: output.avatarMessage.outputTokens,
-        totalTokens: output.avatarMessage.inputTokens + output.avatarMessage.outputTokens,
-      },
-    },
-    debug: {
-      requestId: output.requestId,
-      model: output.avatarMessage.model,
-      latencyMs: output.avatarMessage.latencyMs,
-      inputTokens: output.avatarMessage.inputTokens,
-      outputTokens: output.avatarMessage.outputTokens,
-    },
-  }
-}
-
-function mapStreamingEvent(event: StreamingSendMessageEvent): MessageStreamEvent {
-  switch (event.type) {
-    case 'started':
-      return {
-        type: 'conversation.message.started',
-        requestId: event.requestId,
-        conversationId: event.conversationId,
-        userMessage: mapMessage(event.userMessage),
-      }
-    case 'delta':
-      return {
-        type: 'conversation.message.delta',
-        requestId: event.requestId,
-        conversationId: event.conversationId,
-        sequence: event.sequence,
-        delta: event.delta,
-      }
-    case 'completed':
-      return {
-        type: 'conversation.message.completed',
-        requestId: event.requestId,
-        conversationId: event.conversationId,
-        response: mapSendMessageResponse(event.output),
-      }
-    case 'interrupted':
-      return {
-        type: 'conversation.message.interrupted',
-        requestId: event.requestId,
-        conversationId: event.conversationId,
-        reason: event.reason,
-      }
-  }
-}
-
-function mapMessage(message: DomainMessage): SharedMessage {
-  return message
-}
-
-function writeMessageStreamFrame(
-  response: NodeJS.WritableStream & { write: (chunk: string) => boolean },
-  event: MessageStreamEvent,
-): void {
-  const id = getMessageStreamEventId(event)
-  response.write(`event: conversation_message\nid: ${id}\ndata: ${JSON.stringify(event)}\n\n`)
-}
-
-function getMessageStreamEventId(event: MessageStreamEvent): string {
-  if (event.type === 'conversation.message.delta') {
-    return `${event.requestId}:${String(event.sequence)}`
-  }
-  return `${event.requestId}:${event.type}`
-}
-
 function isStreamWritable(reply: { raw: { destroyed: boolean; writableEnded: boolean } }): boolean {
   return !reply.raw.destroyed && !reply.raw.writableEnded
-}
-
-function handleRouteError(error: unknown): { statusCode: number; body: ReturnType<typeof fail> } {
-  if (error instanceof DomainError) {
-    const code = error.code as string
-    if (code === 'NOT_FOUND') return { statusCode: 404, body: fail('NOT_FOUND', error.message) }
-    if (code === 'CONFLICT') return { statusCode: 409, body: fail('CONFLICT', error.message) }
-    if (code === 'INVALID_INPUT' || code === 'VALIDATION_ERROR') {
-      return { statusCode: 400, body: fail('VALIDATION_ERROR', error.message) }
-    }
-  }
-  if (error instanceof LlmError) {
-    return { statusCode: 502, body: fail('EXTERNAL_SERVICE_ERROR', error.message) }
-  }
-  return { statusCode: 500, body: fail('INTERNAL_ERROR', 'Internal server error') }
 }
