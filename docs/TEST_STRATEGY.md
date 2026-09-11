@@ -76,10 +76,10 @@ interruption, bounded latency/outcome diagnostics, and absence of duplicate back
 The voice HTTP route suite additionally covers raw-body parsing and byte/media/header limits,
 authentication before parsing, canonical synchronous and SSE response shapes, standard error
 mapping, unknown-conversation ordering, duplicate utterance rejection, and request-disconnect
-cleanup. The stack-E2E suite uses real HTTP requests for both routes and always-on auth,
-validation, and not-found cases; provider-backed success remains an explicit TODO until a
-deterministic audio fixture and configured providers are available. The Deepgram live smoke test is
-environment-gated by `DEEPGRAM_LIVE_SMOKE=1`, `DEEPGRAM_API_KEY`, and
+cleanup. The stack-E2E suite uses real HTTP requests for both routes and covers auth, validation,
+not-found, and environment-gated provider-backed success cases using a deterministic audio fixture.
+Voice stack success checks are gated by `VOICE_STACK_E2E=1` and `VOICE_STACK_E2E_AUDIO_PATH`.
+The Deepgram live smoke test is environment-gated by `DEEPGRAM_LIVE_SMOKE=1`, `DEEPGRAM_API_KEY`, and
 `DEEPGRAM_LIVE_AUDIO_PATH`; skipped checks are reported as an environment limitation.
 
 ## 5. Assert from the consumer inward, not from the implementation outward

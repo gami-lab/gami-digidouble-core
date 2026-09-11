@@ -134,3 +134,50 @@ Implementation-coupled tests:
 ## Final Recommendation
 
 Rework before close
+
+## Remediation Outcome
+
+### Changes Made
+
+- Added synchronous-route disconnect cancellation propagation in the voice HTTP route by wiring request-close abort signaling into `voiceTurnUseCase.execute`.
+- Added Redis-backed utterance idempotency implementation (`RedisUtteranceIdempotencyStore`) and switched production composition to use Redis instead of process-local memory.
+- Added new deterministic unit coverage for Redis idempotency state transitions (claimed/in-flight/completed/expired/conflict/release).
+- Added missing streaming route duplicate/conflict HTTP test.
+- Added synchronous route disconnect/cancellation HTTP test that verifies cancellation side effects and no user-message persistence.
+- Replaced stack-E2E voice success TODOs with environment-gated provider-backed sync and streaming happy-path contract tests.
+- Updated impacted docs: `docs/TECH_STACK.md`, `docs/TEST_STRATEGY.md`, and `docs/PROJECT_STATUS.md`.
+
+### Findings Resolved
+
+- Resolved: synchronous route cancellation gap (Finding 3).
+- Resolved: process-local idempotency production gap (Finding 4).
+- Resolved: missing streaming duplicate/conflict route coverage (Finding 5).
+- Resolved: stack-E2E synchronous success TODO replaced with executable gated test (Finding 1).
+- Resolved: stack-E2E streaming success TODO replaced with executable gated test (Finding 2).
+
+### Findings Deferred
+
+- None.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS
+- coverage: PASS
+
+### Final Feature Confidence
+
+- High: synchronous voice route contract behavior (including disconnect cancellation propagation).
+- High: streaming voice route contract behavior (including interruption and duplicate rejection).
+- High: provider-neutral voice-turn orchestration and at-most-once semantics across instances with Redis-backed idempotency.
+- High: Deepgram adapter bounded failure mapping and observability redaction.
+- Medium-High: stack-E2E provider-backed happy paths (implemented and executable, but environment-gated by fixture/provider availability).
+
+### Final Grade
+
+A
+
+### Remaining Risks
+
+- Provider-backed stack success checks are intentionally environment-gated and can be skipped when fixture/provider preconditions are absent.

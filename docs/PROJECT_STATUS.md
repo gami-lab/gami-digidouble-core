@@ -54,8 +54,8 @@ The platform is now a working headless conversational runtime with:
 - authenticated raw-binary synchronous and SSE voice routes with bounded Fastify parsing, standard
   API error envelopes, canonical message response/event mappings, and real-stack contract tests
 - voice hardening coverage for concurrent duplicate submissions, post-transcription cancellation,
-  unavailable-provider behavior with text-route continuity, latency/failure observability, and
-  provider-payload redaction
+  unavailable-provider behavior with text-route continuity, latency/failure observability,
+  provider-payload redaction, and environment-gated stack happy-path success checks
 
 ## What Is Shipped
 
@@ -346,11 +346,11 @@ retrieval proof or change production behavior.
   enter the existing message flow, and one `(conversationId, utteranceId)` can execute at most once.
 - Deepgram is an Infrastructure implementation detail behind the speech-to-text port. Voice remains
   unconfigured safely when `DEEPGRAM_API_KEY` is absent, preserving the existing text/LLM path.
-- Voice idempotency is currently process-local and fails safe on expired reservations; shared
-  multi-instance coordination remains required before horizontal voice scaling.
+- Voice idempotency now uses a Redis-backed implementation for cross-instance coordination while
+  preserving the same application port and fail-safe expired reservation behavior.
 - Deterministic Epic 9.1 verification passes without credentials. Live Deepgram success and stack
   HTTP success remain environment-gated; the local stack preflight skips them when no app is
-  available at the configured base URL.
+  available at the configured base URL or when the voice fixture gate is not enabled.
 - Voice contract work does not change `Message`, `SendMessageRequest`, `SendMessageResponse`, or
   `MessageStreamEvent`; no shared DTO or persistence table was added.
 

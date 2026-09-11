@@ -86,8 +86,8 @@ For product principles, read `PRINCIPLES.md`.
   the optional `DEEPGRAM_API_KEY`, model, timeout, and default language are validated at startup.
   Raw-audio persistence, continuous streaming, and voice/media rendering are not part of the
   current Core stack. The public voice routes use Fastify's encapsulated bounded raw-body parser
-  with no multipart dependency. Initial voice idempotency is process-local and injectable; a shared
-  Redis implementation is required before multi-instance voice processing.
+  with no multipart dependency. Voice idempotency is backed by Redis and injectable through the
+  application port for deterministic testing.
 
 ### User-Facing Apps
 

@@ -363,6 +363,26 @@ describe('voice message HTTP routes', () => {
     expect(messages.filter((message) => message.role === 'user')).toHaveLength(1)
   })
 
+  it('rejects a duplicate utterance on the streaming route without a second user turn', async () => {
+    const speech = makeSpeechAdapter()
+    const { app, messageRepository } = makeApp(speech)
+    const request = {
+      method: 'POST' as const,
+      url: '/v1/conversations/conversation_1/voice-messages/stream',
+      headers: headers(),
+      payload: Buffer.from([1]),
+    }
+
+    expect((await app.inject(request)).statusCode).toBe(200)
+    const duplicate = await app.inject(request)
+
+    expect(duplicate.statusCode).toBe(409)
+    expect(duplicate.json<ApiResponse<null>>().error?.code).toBe('CONFLICT')
+    expect(speech.transcribe).toHaveBeenCalledTimes(1)
+    const messages = await messageRepository.findByConversationId('conversation_1')
+    expect(messages.filter((message) => message.role === 'user')).toHaveLength(1)
+  })
+
   it('rejects concurrent duplicate requests before a second transcription or turn', async () => {
     let resolveTranscription:
       ((result: Awaited<ReturnType<ISpeechToTextAdapter['transcribe']>>) => void) | undefined
@@ -424,7 +444,59 @@ describe('voice message HTTP routes', () => {
     const messages = await messageRepository.findByConversationId('conversation_1')
     expect(messages.map((message) => message.role)).toEqual(['user'])
   })
+
+  it('cancels a synchronous voice request on disconnect before message persistence', async () => {
+    const speech = new AbortAwareSpeechAdapter()
+    const messageRepository = new InMemoryMessageRepository()
+    const { app } = makeApp(
+      speech,
+      new NullLlmAdapter('Avatar reply', 'null-model'),
+      messageRepository,
+    )
+    app.addHook('preHandler', (request, _reply, done) => {
+      if (request.url.endsWith('/voice-messages')) setImmediate(() => request.raw.emit('close'))
+      done()
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/voice-messages',
+      headers: headers(),
+      payload: Buffer.from([1]),
+    })
+
+    expect([409, 500]).toContain(response.statusCode)
+    await speech.abortObserved
+    const messages = await messageRepository.findByConversationId('conversation_1')
+    expect(messages).toHaveLength(0)
+  })
 })
+
+class AbortAwareSpeechAdapter implements ISpeechToTextAdapter {
+  private resolveAbort: (() => void) | undefined
+  readonly abortObserved = new Promise<void>((resolve) => {
+    this.resolveAbort = resolve
+  })
+
+  transcribe(
+    _input: Parameters<ISpeechToTextAdapter['transcribe']>[0],
+    options?: Parameters<ISpeechToTextAdapter['transcribe']>[1],
+  ) {
+    const signal = options?.signal
+    if (signal === undefined) return Promise.reject(new Error('Expected an abort signal'))
+
+    return new Promise<Awaited<ReturnType<ISpeechToTextAdapter['transcribe']>>>((_, reject) => {
+      signal.addEventListener(
+        'abort',
+        () => {
+          this.resolveAbort?.()
+          reject(Object.assign(new Error('request aborted'), { name: 'AbortError' }))
+        },
+        { once: true },
+      )
+    })
+  }
+}
 
 class InterruptibleLlmAdapter implements ILlmAdapter {
   private resolveAbort: (() => void) | undefined

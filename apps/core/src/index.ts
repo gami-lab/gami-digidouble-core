@@ -63,7 +63,7 @@ import { createEmbeddingAdapter } from './infrastructure/knowledge/openai-embedd
 import { KnowledgeQueryEmbeddingService } from './application/services/knowledge/knowledge-query-embedding.service.js'
 import { TypedRetrievalService } from './application/services/knowledge/typed-retrieval.service.js'
 import { createSpeechToTextAdapter } from './infrastructure/speech/deepgram-speech-to-text.adapter.js'
-import { InMemoryUtteranceIdempotencyStore } from './application/voice/in-memory-utterance-idempotency.store.js'
+import { RedisUtteranceIdempotencyStore } from './infrastructure/cache/redis-utterance-idempotency.store.js'
 
 type CoreRepositories = ReturnType<typeof buildCoreRepositories>
 
@@ -122,7 +122,7 @@ async function main(): Promise<void> {
 
   const adapters = {
     llmAdapter,
-    utteranceIdempotencyStore: new InMemoryUtteranceIdempotencyStore(),
+    utteranceIdempotencyStore: new RedisUtteranceIdempotencyStore(redisClient),
     speechToTextAdapter: createSpeechToTextAdapter(
       {
         ...(config.deepgramApiKey === undefined ? {} : { apiKey: config.deepgramApiKey }),

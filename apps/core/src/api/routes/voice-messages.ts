@@ -35,6 +35,7 @@ const voiceConversationParamsSchema = {
 } as const
 
 /** Raw voice parsing is isolated to this plugin and never applies to JSON routes. */
+// eslint-disable-next-line max-lines-per-function
 export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions> = (
   app,
   options,
@@ -53,17 +54,27 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
     '/:conversationId/voice-messages',
     { onRequest: authenticate, schema: { params: voiceConversationParamsSchema } },
     async (request, reply) => {
+      const abortController = new AbortController()
+      const onClose = (): void => {
+        abortController.abort()
+      }
+      request.raw.once('close', onClose)
       try {
         if (options.voiceTurnUseCase === undefined) {
           return await reply
             .status(502)
             .send(fail('PROVIDER_ERROR', 'Voice transcription is not configured.'))
         }
-        const output = await options.voiceTurnUseCase.execute(buildVoiceInput(request))
+        const output = await options.voiceTurnUseCase.execute(buildVoiceInput(request), {
+          signal: abortController.signal,
+        })
         return await reply.send(ok<SendMessageResponse>(mapSendMessageResponse(output)))
       } catch (error) {
         const mappedError = handleRouteError(error)
         return await reply.status(mappedError.statusCode).send(mappedError.body)
+      } finally {
+        request.raw.off('close', onClose)
+        abortController.abort()
       }
     },
   )
