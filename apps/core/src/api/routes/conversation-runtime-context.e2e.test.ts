@@ -303,8 +303,11 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     ])
     expect(systemPrompt).toContain('Keep the answer practical.')
     expect(systemPrompt).toContain('Use short paragraphs.')
-    expect(systemPrompt).not.toContain('Recent exchanges:')
-    expect(systemPrompt).not.toContain('Session working memory:')
+    expect(systemPrompt).toContain('Recent exchanges:')
+    expect(systemPrompt).toContain('Working memory:')
+    expect(systemPrompt).toContain(
+      '- Session: Track the north pier ledger and unresolved moonrise timing.',
+    )
     expect(systemPrompt).toContain('Remembered user facts:')
     expect(systemPrompt).toContain('- preferred_route: north pier')
     expect(systemPrompt).toContain('Name: Maya')
