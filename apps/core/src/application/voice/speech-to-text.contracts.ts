@@ -16,7 +16,16 @@ export const SPEECH_TO_TEXT_MEDIA_TYPES = [
 
 export type SpeechToTextMediaType = (typeof SPEECH_TO_TEXT_MEDIA_TYPES)[number]
 
-export const SPEECH_TO_TEXT_LIMITS = Object.freeze({
+export type SpeechToTextLimits = Readonly<{
+  maxAudioBytes: number
+  maxDurationMs: number
+  maxTranscriptCharacters: number
+  maxLanguageCharacters: number
+  maxConversationIdCharacters: number
+  maxUtteranceIdCharacters: number
+}>
+
+export const SPEECH_TO_TEXT_LIMITS: SpeechToTextLimits = Object.freeze({
   maxAudioBytes: 10_000_000,
   maxDurationMs: 120_000,
   maxTranscriptCharacters: 4_000,
@@ -82,12 +91,24 @@ export type SpeechToTextFailure =
       retryable: false
     }>
   | Readonly<{
+      code: 'malformed_response'
+      retryable: false
+    }>
+  | Readonly<{
       code: 'timeout'
       retryable: true
     }>
   | Readonly<{
       code: 'provider_failure'
       retryable: boolean
+    }>
+  | Readonly<{
+      code: 'provider_rejected'
+      retryable: false
+    }>
+  | Readonly<{
+      code: 'rate_limited'
+      retryable: true
     }>
   | Readonly<{
       code: 'malformed_transcription'
@@ -208,7 +229,7 @@ function normalizeSpeechMediaType(value: unknown): SpeechToTextMediaType {
 }
 
 function normalizeSpeechLanguage(value: unknown): string | undefined {
-  const language = normalizeLanguage(value)
+  const language = normalizeSpeechToTextLanguage(value)
   if (language === null) {
     throw new SpeechToTextError({
       code: 'invalid_audio',
@@ -217,6 +238,10 @@ function normalizeSpeechLanguage(value: unknown): string | undefined {
     })
   }
   return language
+}
+
+export function normalizeSpeechToTextLanguage(value: unknown): string | undefined | null {
+  return normalizeLanguage(value)
 }
 
 function normalizeSpeechDuration(value: unknown): number | undefined {
@@ -391,25 +416,21 @@ function isTimeoutLike(error: unknown): boolean {
   )
 }
 
+const SPEECH_TO_TEXT_FAILURE_MESSAGES: Readonly<Record<SpeechToTextFailure['code'], string>> = {
+  invalid_audio: 'Speech audio input is invalid.',
+  unsupported_media: 'Speech audio media type is not supported.',
+  audio_too_large: 'Speech audio exceeds the byte limit.',
+  audio_too_long: 'Speech audio exceeds the duration limit.',
+  transcript_too_long: 'Speech transcript exceeds the character limit.',
+  malformed_response: 'Speech provider returned an invalid response.',
+  timeout: 'Speech transcription timed out.',
+  provider_failure: 'Speech transcription failed.',
+  provider_rejected: 'Speech transcription request was rejected.',
+  rate_limited: 'Speech transcription is temporarily rate limited.',
+  malformed_transcription: 'Speech transcription was not a valid final result.',
+  cancelled: 'Speech transcription was cancelled.',
+}
+
 function messageForSpeechToTextFailure(failure: SpeechToTextFailure): string {
-  switch (failure.code) {
-    case 'invalid_audio':
-      return 'Speech audio input is invalid.'
-    case 'unsupported_media':
-      return 'Speech audio media type is not supported.'
-    case 'audio_too_large':
-      return 'Speech audio exceeds the byte limit.'
-    case 'audio_too_long':
-      return 'Speech audio exceeds the duration limit.'
-    case 'transcript_too_long':
-      return 'Speech transcript exceeds the character limit.'
-    case 'timeout':
-      return 'Speech transcription timed out.'
-    case 'provider_failure':
-      return 'Speech transcription failed.'
-    case 'malformed_transcription':
-      return 'Speech transcription was not a valid final result.'
-    case 'cancelled':
-      return 'Speech transcription was cancelled.'
-  }
+  return SPEECH_TO_TEXT_FAILURE_MESSAGES[failure.code]
 }

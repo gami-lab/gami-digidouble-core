@@ -1,4 +1,5 @@
 import type { Config } from '../../config.js'
+import { SPEECH_TO_TEXT_LIMITS } from '../../application/ports/ISpeechToTextAdapter.js'
 
 /**
  * Canonical test config fixture for API route unit tests.
@@ -24,6 +25,11 @@ export const TEST_CONFIG: Config = {
   anthropicApiKey: undefined,
   mistralApiKey: undefined,
   xaiApiKey: undefined,
+  deepgramApiKey: undefined,
+  deepgramModel: 'nova-3',
+  deepgramTimeoutMs: 30_000,
+  deepgramDefaultLanguage: 'en',
+  speechToTextLimits: SPEECH_TO_TEXT_LIMITS,
   langfusePublicKey: undefined,
   langfuseSecretKey: undefined,
   langfuseHost: undefined,

@@ -81,8 +81,11 @@ For product principles, read `PRINCIPLES.md`.
 - Langfuse behind an internal observability abstraction for LLM traces
 - Fastify/Pino-style structured logs for application/runtime operations
 - Event-log persistence plus admin inspection routes for runtime diagnostics
-- Provider-neutral speech-to-text input contracts are application-owned; no speech provider SDK,
-  raw-audio persistence, or voice/media rendering is part of the current Core stack
+- Provider-neutral speech-to-text input contracts are application-owned. Infrastructure contains
+  a Deepgram pre-recorded HTTP adapter using the platform `fetch` client, with no SDK dependency;
+  the optional `DEEPGRAM_API_KEY`, model, timeout, and default language are validated at startup.
+  Raw-audio persistence, continuous streaming, and voice/media rendering are not part of the
+  current Core stack.
 
 ### User-Facing Apps
 

@@ -783,6 +783,13 @@ could duplicate message persistence or Avatar/Game Master work. A caller may rel
 only before downstream turn work begins. This slice adds no persistence table; the in-memory store
 is deterministic test support for the later application/route flow.
 
+The production `DeepgramSpeechToTextAdapter` lives under
+`apps/core/src/infrastructure/speech/` and implements this port through the official Deepgram
+pre-recorded HTTP endpoint. Its transport is injectable for deterministic tests; credentials,
+provider response payloads, and provider-specific errors remain inside Infrastructure. The
+composition root creates a typed unconfigured adapter when the optional voice credential is absent,
+so existing text-only deployments remain available without a silent transcript fallback.
+
 ## Logger Port
 
 ```ts

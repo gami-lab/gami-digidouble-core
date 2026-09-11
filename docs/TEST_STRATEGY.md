@@ -62,6 +62,12 @@ in-flight duplicates, completed replays, expired reservations, conflicting finge
 release before downstream turn execution. Voice tests must not import a provider SDK, persist raw
 audio, or alter the canonical `Message`/`SendMessageRequest`/`MessageStreamEvent` contracts.
 
+The Deepgram adapter is tested separately with an injected transport fake. These tests assert exact
+provider request metadata, final-response validation, provider duration limits, HTTP failure
+categories, timeout and cancellation propagation, and that credentials, audio, transcripts, and
+provider payloads are absent from observability. Live provider smoke tests remain optional and are
+not required for the normal credential-free suite.
+
 ## 5. Assert from the consumer inward, not from the implementation outward
 
 The most dangerous test gap is a test that passes because it only checks what the code already does, not what the consumer requires.

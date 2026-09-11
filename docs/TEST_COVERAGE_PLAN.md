@@ -60,6 +60,11 @@ Must cover:
 - no shared message-contract changes and no raw audio/transcript content in failures or identity
   diagnostics
 
+The Infrastructure adapter additionally covers exact Deepgram request construction, successful
+final response parsing, malformed/empty/interim responses, provider-reported duration and
+transcript limits, HTTP rejection/rate-limit/timeout/provider failures, transport cancellation,
+and observability redaction with an injected transport fake.
+
 ### Avatar Runtime
 
 Must cover:

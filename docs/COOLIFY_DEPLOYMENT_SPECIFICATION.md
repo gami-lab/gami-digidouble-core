@@ -108,6 +108,10 @@ Optional:
 - `EMBEDDING_MODEL`
 - `EMBEDDING_DIMENSIONS`
 - `EMBEDDING_BATCH_SIZE`
+- `DEEPGRAM_API_KEY` (required only when a future voice route is enabled)
+- `DEEPGRAM_MODEL` (default `nova-3`)
+- `DEEPGRAM_TIMEOUT_MS` (default `30000`)
+- `DEEPGRAM_DEFAULT_LANGUAGE` (default `en`, BCP-47 format)
 - `ANTHROPIC_API_KEY`
 - `MISTRAL_API_KEY`
 - `XAI_API_KEY`

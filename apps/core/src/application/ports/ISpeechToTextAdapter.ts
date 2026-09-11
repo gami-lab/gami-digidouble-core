@@ -3,6 +3,7 @@ import type { SpeechToTextInput, SpeechToTextResult } from '../voice/speech-to-t
 export type {
   SpeechToTextFailure,
   SpeechToTextInput,
+  SpeechToTextLimits,
   SpeechToTextMediaType,
   SpeechToTextResult,
 } from '../voice/speech-to-text.contracts.js'
@@ -10,6 +11,7 @@ export {
   isSpeechToTextError,
   mapSpeechToTextError,
   normalizeFinalTranscript,
+  normalizeSpeechToTextLanguage,
   normalizeSpeechToTextInput,
   SPEECH_TO_TEXT_LIMITS,
   SPEECH_TO_TEXT_MEDIA_TYPES,

@@ -62,6 +62,7 @@ import { FileUrlKnowledgeSourceContentLoader } from './infrastructure/knowledge/
 import { createEmbeddingAdapter } from './infrastructure/knowledge/openai-embedding.adapter.js'
 import { KnowledgeQueryEmbeddingService } from './application/services/knowledge/knowledge-query-embedding.service.js'
 import { TypedRetrievalService } from './application/services/knowledge/typed-retrieval.service.js'
+import { createSpeechToTextAdapter } from './infrastructure/speech/deepgram-speech-to-text.adapter.js'
 
 type CoreRepositories = ReturnType<typeof buildCoreRepositories>
 
@@ -120,6 +121,18 @@ async function main(): Promise<void> {
 
   const adapters = {
     llmAdapter,
+    speechToTextAdapter: createSpeechToTextAdapter(
+      {
+        ...(config.deepgramApiKey === undefined ? {} : { apiKey: config.deepgramApiKey }),
+        model: config.deepgramModel,
+        timeoutMs: config.deepgramTimeoutMs,
+        ...(config.deepgramDefaultLanguage === undefined
+          ? {}
+          : { defaultLanguage: config.deepgramDefaultLanguage }),
+        limits: config.speechToTextLimits,
+      },
+      observability,
+    ),
     observabilityAdapter: observability,
     ...repositories,
     ...knowledgeAdapters,
