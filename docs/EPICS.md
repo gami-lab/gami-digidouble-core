@@ -520,7 +520,8 @@ it does not.
 ### `9.1 Voice Input Integration with Deepgram`
 
 **Current state**  
-Proposed. The Core currently accepts text messages only; no voice-input integration is shipped.
+Contract foundation delivered. The Core still accepts text messages only at the public API; the
+provider adapter, application voice-turn flow, and HTTP route remain to be implemented.
 
 **Summary**  
 Add an utterance-based voice-input path using Deepgram for speech-to-text. A provider-neutral voice
@@ -528,6 +529,11 @@ port and adapter boundary—implemented in Core infrastructure or an adjacent vo
 deployment requires—captures audio, produces a finalized transcript, and submits that transcript
 through the existing validated conversation message flow while keeping interim transcripts and raw
 audio out of durable Core state by default.
+
+Prompt 01 is complete: Core now owns bounded provider-neutral speech-to-text input/result/failure
+contracts, deterministic final-transcript normalization, cancellation mapping, deterministic test
+fakes, and conservative at-most-once `(conversationId, utteranceId)` reservation semantics. No
+Deepgram SDK, public voice route, raw-audio persistence, or shared message DTO was added.
 
 ### `9.2 Voice Output Integration with Gradium`
 

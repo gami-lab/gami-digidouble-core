@@ -72,6 +72,7 @@ Ports (Interfaces)
     +--> Logger
     +--> Cache
     +--> Embeddings
+    +--> Speech-to-text
     |
     v
 Adapters
@@ -688,6 +689,7 @@ src/
 
   application/           → Use cases (StartSession, SendMessage, ResetSession, …)
     ports/               → Port interfaces (ILlmAdapter, ICacheAdapter, …)
+    voice/               → Provider-neutral audio/transcript policy and deterministic test doubles
     use-cases/
       run-game-master/   → RunGameMasterUseCase
 
@@ -763,6 +765,23 @@ validation and not-found failures retain the normal JSON error envelope, then ma
 to shared `MessageStreamEvent` DTOs and writes one JSON `data:` frame per event. Client/provider
 interruption outcomes are recorded on the existing observed LLM trace with a bounded reason and
 latency, while no partial avatar persistence or background turn work is allowed.
+
+## Speech-to-text Port
+
+`apps/core/src/application/ports/ISpeechToTextAdapter.ts` owns the provider-neutral transcription
+boundary. Its bounded input contains copied audio bytes, a validated media type, optional normalized
+language and duration, and the `(conversationId, utteranceId)` identity. Results are explicitly
+`final` or `interim`; only a normalized, non-blank final result may enter the existing message flow.
+The port carries `AbortSignal` cancellation and maps adapter failures to finite safe categories
+without provider names or raw payloads.
+
+`IUtteranceIdempotencyStore` is the application boundary for at-most-once voice-turn execution.
+Identical in-flight submissions return `in_flight`, completed submissions return `completed`, and
+different bounded request fingerprints for one identity return `conflict`. Expired in-flight
+reservations fail safe as `expired` rather than being automatically reclaimed, because replaying
+could duplicate message persistence or Avatar/Game Master work. A caller may release a reservation
+only before downstream turn work begins. This slice adds no persistence table; the in-memory store
+is deterministic test support for the later application/route flow.
 
 ## Logger Port
 

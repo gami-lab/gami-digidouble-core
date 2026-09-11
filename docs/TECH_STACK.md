@@ -81,6 +81,8 @@ For product principles, read `PRINCIPLES.md`.
 - Langfuse behind an internal observability abstraction for LLM traces
 - Fastify/Pino-style structured logs for application/runtime operations
 - Event-log persistence plus admin inspection routes for runtime diagnostics
+- Provider-neutral speech-to-text input contracts are application-owned; no speech provider SDK,
+  raw-audio persistence, or voice/media rendering is part of the current Core stack
 
 ### User-Facing Apps
 

@@ -52,6 +52,16 @@ assert interruption outcome metadata at the observability boundary. Keep the leg
 send-message route covered separately as an `ApiResponse<SendMessageResponse>` contract so the
 additive stream cannot change it accidentally.
 
+## 4d. Voice input contracts
+
+Voice contract tests remain deterministic and provider-free. Cover bounded byte, duration, media,
+language, conversation-ID, and utterance-ID validation; normalized final transcripts; blank,
+interim, malformed, and over-limit transcription results; finite timeout/provider/cancellation
+mapping; and cancellation before adapter work starts. Idempotency tests must cover one claim,
+in-flight duplicates, completed replays, expired reservations, conflicting fingerprints, and safe
+release before downstream turn execution. Voice tests must not import a provider SDK, persist raw
+audio, or alter the canonical `Message`/`SendMessageRequest`/`MessageStreamEvent` contracts.
+
 ## 5. Assert from the consumer inward, not from the implementation outward
 
 The most dangerous test gap is a test that passes because it only checks what the code already does, not what the consumer requires.

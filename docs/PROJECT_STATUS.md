@@ -1,7 +1,7 @@
 # Project Status
 
-Last updated: 2026-09-10
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced
+Last updated: 2026-09-11
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice contract foundation delivered
 
 ## Snapshot
 
@@ -43,6 +43,9 @@ The platform is now a working headless conversational runtime with:
 - streaming cleanup and ordering hardening: contiguous client delta rendering, abort listener and
   reader cleanup, provider iterator cleanup, exact-once terminal persistence, and legacy JSON route
   contract coverage
+- provider-neutral voice input contract foundation with bounded audio/transcript normalization,
+  finite speech-to-text failures, cancellation, deterministic adapter/idempotency fakes, and
+  at-most-once utterance identity semantics; no public voice route or provider adapter is shipped
 
 ## What Is Shipped
 
@@ -329,6 +332,10 @@ retrieval proof or change production behavior.
 - Avatar reply latency takes priority over synchronous orchestration work.
 - Public contracts evolve additively whenever possible.
 - Retrieval visibility is asymmetric by design: avatar-filtered, GM-unrestricted.
+- Voice input is application-owned and provider-neutral: only finalized normalized transcripts may
+  enter the existing message flow, and one `(conversationId, utteranceId)` can execute at most once.
+- Voice contract work does not change `Message`, `SendMessageRequest`, `SendMessageResponse`, or
+  `MessageStreamEvent`; no shared DTO or persistence table was added.
 
 ## Open Product Work
 
@@ -352,3 +359,9 @@ Documentation review for EPIC 4.2d Prompt 05 covered `ARCHITECTURE.md`, `DATA_MO
 `PROJECT_STATUS.md`; each records the scenario-shared static retrieval boundary and independent
 conversational-memory lifecycle. `VISION.md`, `PRINCIPLES.md`, and `TECH_STACK.md` were reviewed
 and remain accurate without text changes.
+
+Documentation review for EPIC 9.1 Prompt 01 covered `VISION.md`, `PRINCIPLES.md`,
+`ARCHITECTURE.md`, `TECH_STACK.md`, `DATA_MODEL.md`, `API_CONTRACT.md`, `GAME_MASTER_CONTRACT.md`,
+`MEMORY_SYSTEM_SPEC.md`, `TEST_STRATEGY.md`, `TEST_COVERAGE_PLAN.md`, `EPICS.md`, and this file.
+No public API, message persistence, Game Master, memory, or deployment behavior changed; the
+corresponding contracts remain accurate without additional changes.

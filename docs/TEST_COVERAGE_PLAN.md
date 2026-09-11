@@ -46,6 +46,20 @@ Must cover:
 - end-conversation behavior and compaction trigger
 - not-found and conflict paths
 
+### Voice Input Contracts
+
+Must cover:
+
+- bounded audio bytes and duration, accepted media types, normalized language, and opaque
+  conversation/utterance identity validation
+- final transcript normalization and rejection of blank, interim, malformed, and over-limit results
+- finite timeout, provider-failure, and cancellation mapping, including pre-transcription abort
+- deterministic fake adapter behavior and bounded request recording
+- at-most-once utterance reservation semantics for in-flight, completed, expired, released, and
+  conflicting duplicate submissions
+- no shared message-contract changes and no raw audio/transcript content in failures or identity
+  diagnostics
+
 ### Avatar Runtime
 
 Must cover:
