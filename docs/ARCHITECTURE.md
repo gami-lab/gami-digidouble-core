@@ -781,7 +781,9 @@ different bounded request fingerprints for one identity return `conflict`. Expir
 reservations fail safe as `expired` rather than being automatically reclaimed, because replaying
 could duplicate message persistence or Avatar/Game Master work. A caller may release a reservation
 only before downstream turn work begins. This slice adds no persistence table; the in-memory store
-is deterministic test support for the later application/route flow.
+is a process-local implementation for the initial single-process composition and deterministic test
+support. A shared Redis-backed implementation is still required before multi-instance voice
+processing.
 
 The production `DeepgramSpeechToTextAdapter` lives under
 `apps/core/src/infrastructure/speech/` and implements this port through the official Deepgram
@@ -789,6 +791,11 @@ pre-recorded HTTP endpoint. Its transport is injectable for deterministic tests;
 provider response payloads, and provider-specific errors remain inside Infrastructure. The
 composition root creates a typed unconfigured adapter when the optional voice credential is absent,
 so existing text-only deployments remain available without a silent transcript fallback.
+
+`VoiceTurnUseCase` is composed next to the existing send-message use cases. It validates the active
+conversation, claims the bounded utterance identity, transcribes once, and hands the normalized
+text to the synchronous or streaming turn owner. It never owns message persistence, prompt
+assembly, memory maintenance, or Game Master scheduling.
 
 ## Logger Port
 

@@ -136,6 +136,7 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
       })
       normalizedInput = execution.input
       this.trace({
+        ...(options?.requestId === undefined ? {} : { requestId: options.requestId }),
         input: normalizedInput,
         latencyMs: Date.now() - startedAt,
         outcome: 'success',
@@ -147,6 +148,7 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
     } catch (error) {
       const mapped = mapSpeechToTextError(error, options?.signal, 'during_transcription')
       this.trace({
+        ...(options?.requestId === undefined ? {} : { requestId: options.requestId }),
         ...(normalizedInput === undefined ? {} : { input: normalizedInput }),
         latencyMs: Date.now() - startedAt,
         outcome: 'failure',
@@ -200,6 +202,7 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
   }
 
   private trace(args: {
+    requestId?: string
     input?: SpeechToTextInput
     latencyMs: number
     outcome: 'success' | 'failure'
@@ -210,7 +213,7 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
     const input = args.input
     void this.observability
       .trace({
-        requestId: crypto.randomUUID(),
+        requestId: args.requestId ?? crypto.randomUUID(),
         event: args.failure === undefined ? 'speech_to_text' : 'speech_to_text.error',
         ...(input === undefined
           ? {}

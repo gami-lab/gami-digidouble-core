@@ -65,6 +65,10 @@ final response parsing, malformed/empty/interim responses, provider-reported dur
 transcript limits, HTTP rejection/rate-limit/timeout/provider failures, transport cancellation,
 and observability redaction with an injected transport fake.
 
+Voice-turn application coverage verifies that synchronous and streaming voice calls delegate to the
+canonical send-message use cases, preserve cancellation/interruption behavior, and consume or
+release the idempotency reservation at the correct boundary without duplicating turn execution.
+
 ### Avatar Runtime
 
 Must cover:

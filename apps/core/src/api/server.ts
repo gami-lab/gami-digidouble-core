@@ -25,6 +25,7 @@ import type { IIngestionJobRepository } from '../application/ports/IIngestionJob
 import type { IKnowledgeSourceContentLoader } from '../application/ports/IKnowledgeSourceContentLoader.js'
 import type { IEmbeddingAdapter } from '../application/ports/IEmbeddingAdapter.js'
 import type { ISpeechToTextAdapter } from '../application/ports/ISpeechToTextAdapter.js'
+import type { IUtteranceIdempotencyStore } from '../application/ports/IUtteranceIdempotencyStore.js'
 import type { IModelConfigRepository } from '../application/ports/IModelConfigRepository.js'
 import type { ModelConfig } from '../domain/model-config/index.js'
 import type { TypedRetrievalService } from '../application/services/knowledge/typed-retrieval.service.js'
@@ -96,6 +97,7 @@ export interface ServerAdapters {
   knowledgeSourceContentLoader?: IKnowledgeSourceContentLoader
   embeddingAdapter?: IEmbeddingAdapter
   speechToTextAdapter?: ISpeechToTextAdapter
+  utteranceIdempotencyStore?: IUtteranceIdempotencyStore
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig

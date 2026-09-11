@@ -535,7 +535,11 @@ contracts, deterministic final-transcript normalization, cancellation mapping, d
 fakes, and conservative at-most-once `(conversationId, utteranceId)` reservation semantics. Prompt
 02 adds the optional Infrastructure-only Deepgram pre-recorded HTTP adapter, startup-validated
 configuration, injectable transport tests, safe failure mapping, and bounded redacted observability.
-No public voice route, raw-audio persistence, or shared message DTO was added.
+Prompt 03 adds the application coordinator that validates the active conversation, reserves
+utterance identity, and delegates finalized transcripts to the existing synchronous or streaming
+turn flows, preserving their persistence, memory, and asynchronous GM ownership. No public voice
+route, raw-audio persistence, or shared message DTO was added; the initial idempotency composition
+is process-local and must be replaced with shared coordination before multi-instance voice scaling.
 
 ### `9.2 Voice Output Integration with Gradium`
 

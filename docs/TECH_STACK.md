@@ -85,7 +85,8 @@ For product principles, read `PRINCIPLES.md`.
   a Deepgram pre-recorded HTTP adapter using the platform `fetch` client, with no SDK dependency;
   the optional `DEEPGRAM_API_KEY`, model, timeout, and default language are validated at startup.
   Raw-audio persistence, continuous streaming, and voice/media rendering are not part of the
-  current Core stack.
+  current Core stack. Initial voice idempotency is process-local and injectable; a shared Redis
+  implementation is required before multi-instance voice processing.
 
 ### User-Facing Apps
 

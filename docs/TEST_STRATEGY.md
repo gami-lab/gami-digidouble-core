@@ -68,6 +68,11 @@ categories, timeout and cancellation propagation, and that credentials, audio, t
 provider payloads are absent from observability. Live provider smoke tests remain optional and are
 not required for the normal credential-free suite.
 
+Voice-turn coordinator tests additionally use fake application ports to verify active-conversation
+validation, one transcript handoff to each existing turn flow, duplicate reservation handling,
+pre-transcription cancellation, provider failure propagation, downstream stream interruption, and
+absence of duplicate background work.
+
 ## 5. Assert from the consumer inward, not from the implementation outward
 
 The most dangerous test gap is a test that passes because it only checks what the code already does, not what the consumer requires.

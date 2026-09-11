@@ -21,6 +21,7 @@ export {
 
 export type SpeechToTextOptions = Readonly<{
   signal?: AbortSignal
+  requestId?: string
 }>
 
 /** Provider-neutral speech-to-text capability. */

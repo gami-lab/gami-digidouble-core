@@ -49,6 +49,8 @@ The platform is now a working headless conversational runtime with:
 - optional production Deepgram pre-recorded speech-to-text adapter with validated configuration,
   bounded request/response handling, typed timeout/rate-limit/provider failure mapping, injectable
   transport tests, and redacted bounded observability; no public voice route or raw-audio persistence
+- voice-turn application coordinator that validates active conversations, reserves utterance
+  identities, and delegates finalized transcripts to the existing synchronous/streaming turn flows
 
 ## What Is Shipped
 
@@ -339,6 +341,8 @@ retrieval proof or change production behavior.
   enter the existing message flow, and one `(conversationId, utteranceId)` can execute at most once.
 - Deepgram is an Infrastructure implementation detail behind the speech-to-text port. Voice remains
   unconfigured safely when `DEEPGRAM_API_KEY` is absent, preserving the existing text/LLM path.
+- Voice idempotency is currently process-local and fails safe on expired reservations; shared
+  multi-instance coordination remains required before horizontal voice scaling.
 - Voice contract work does not change `Message`, `SendMessageRequest`, `SendMessageResponse`, or
   `MessageStreamEvent`; no shared DTO or persistence table was added.
 

@@ -14,6 +14,8 @@ import type { IEventLogRepository } from '../../application/ports/IEventLogRepos
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
+import type { ISpeechToTextAdapter } from '../../application/ports/ISpeechToTextAdapter.js'
+import type { IUtteranceIdempotencyStore } from '../../application/ports/IUtteranceIdempotencyStore.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
@@ -33,6 +35,7 @@ import { MemoryMaintenanceService } from '../../application/services/memory-main
 import type { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
 import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
 import { StreamingSendMessageUseCase } from '../../application/use-cases/send-message/streaming-send-message.use-case.js'
+import { VoiceTurnUseCase } from '../../application/use-cases/voice-turn/voice-turn.use-case.js'
 import type { StreamingSendMessageEvent } from '../../application/use-cases/send-message/streaming-send-message.types.js'
 import type { SendMessageOutput } from '../../application/use-cases/send-message/send-message.types.js'
 import type { Message as DomainMessage } from '../../domain/conversation/session.types.js'
@@ -85,6 +88,8 @@ type ConversationsRouteOptions = {
   modelConfigFallback?: ModelConfig
   gmStateRepository?: IGmStateRepository
   typedRetrievalService?: TypedRetrievalService
+  speechToTextAdapter?: ISpeechToTextAdapter
+  utteranceIdempotencyStore?: IUtteranceIdempotencyStore
 }
 
 type ConversationParams = { conversationId: string }
@@ -258,6 +263,7 @@ type RouteDependencies = {
   observabilityAdapter: IObservabilityAdapter
   conversationRepository: IConversationRepository
   messageRepository: IMessageRepository
+  voiceTurnUseCase?: VoiceTurnUseCase
 }
 
 type ConversationPersistenceDeps = {
@@ -340,12 +346,26 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     repositories.gmStateRepository,
   )
 
+  const streamingSendMessageUseCase = new StreamingSendMessageUseCase(sendMessageUseCase)
+  const voiceTurnUseCase =
+    options.speechToTextAdapter !== undefined && options.utteranceIdempotencyStore !== undefined
+      ? new VoiceTurnUseCase(
+          options.speechToTextAdapter,
+          repositories.conversationRepository,
+          options.utteranceIdempotencyStore,
+          sendMessageUseCase,
+          streamingSendMessageUseCase,
+          observabilityAdapter,
+        )
+      : undefined
+
   return {
     observabilityAdapter,
     conversationRepository: repositories.conversationRepository,
     messageRepository: repositories.messageRepository,
     sendMessageUseCase,
-    streamingSendMessageUseCase: new StreamingSendMessageUseCase(sendMessageUseCase),
+    streamingSendMessageUseCase,
+    ...(voiceTurnUseCase === undefined ? {} : { voiceTurnUseCase }),
   }
 }
 

@@ -140,6 +140,14 @@ describe('DeepgramSpeechToTextAdapter', () => {
       },
     })
   })
+
+  it('uses an application request ID for correlated provider observability', async () => {
+    const { adapter, trace } = createAdapter(finalPayload)
+
+    await adapter.transcribe(createInput(), { requestId: 'voice-request-1' })
+
+    expect(trace).toHaveBeenCalledWith(expect.objectContaining({ requestId: 'voice-request-1' }))
+  })
 })
 
 describe('DeepgramSpeechToTextAdapter response failures', () => {
