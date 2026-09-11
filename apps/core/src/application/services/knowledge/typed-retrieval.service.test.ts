@@ -302,6 +302,18 @@ describe('TypedRetrievalService', () => {
     } as const
     const callerAResult = await service.retrieve(request)
     const callerBResult = await service.retrieve(request)
+    const callerATimings = callerAResult.trace.timings
+    const callerBTimings = callerBResult.trace.timings
+
+    expect(callerATimings).toBeDefined()
+    expect(callerBTimings).toBeDefined()
+    if (callerATimings === undefined || callerBTimings === undefined) {
+      throw new Error('Expected retrieval timings to be present for both calls.')
+    }
+    expect(typeof callerBTimings.totalMs).toBe('number')
+    if (typeof callerBTimings.totalMs !== 'number') {
+      throw new Error('Expected totalMs timing to be present for caller B.')
+    }
 
     expect(callerBResult.avatar_knowledge).toEqual(callerAResult.avatar_knowledge)
     expect(callerBResult.world).toEqual(callerAResult.world)
@@ -309,11 +321,11 @@ describe('TypedRetrievalService', () => {
     expect(callerBResult.trace).toMatchObject({
       ...callerAResult.trace,
       timings: {
-        queryEmbeddingMs: callerAResult.trace.timings.queryEmbeddingMs,
-        vectorSearchMs: callerAResult.trace.timings.vectorSearchMs,
+        queryEmbeddingMs: callerATimings.queryEmbeddingMs,
+        vectorSearchMs: callerATimings.vectorSearchMs,
       },
     })
-    expect(callerBResult.trace.timings.totalMs).toBeGreaterThanOrEqual(0)
+    expect(callerBTimings.totalMs).toBeGreaterThanOrEqual(0)
     expect(callerAResult.avatar_knowledge.map((item) => item.chunkId)).toEqual([
       'shared_avatar_knowledge',
     ])
