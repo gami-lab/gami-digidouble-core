@@ -2,9 +2,11 @@ import type { IAvatarRepository, UpdateAvatarParams } from '../../ports/IAvatarR
 import { DomainError } from '../../../domain/errors.js'
 import type { UpdateAvatarInput, UpdateAvatarOutput } from './update-avatar.types.js'
 import { toAvatarSummary } from '../shared/avatar-summary.js'
+import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 
 function buildUpdates(input: UpdateAvatarInput): UpdateAvatarParams {
   const { name, personaPrompt, tone, description, adjustments, llmOverride, config, status } = input
+  const voiceConfig = normalizeVoiceConfigurationMutation(config, input.voiceConfig, true)
   return {
     ...(name !== undefined ? { name } : {}),
     ...(personaPrompt !== undefined ? { personaPrompt } : {}),
@@ -13,6 +15,7 @@ function buildUpdates(input: UpdateAvatarInput): UpdateAvatarParams {
     ...(adjustments !== undefined ? { adjustments } : {}),
     ...(llmOverride !== undefined ? { llmOverride } : {}),
     ...(config !== undefined ? { config } : {}),
+    ...(voiceConfig !== undefined ? { voiceConfig } : {}),
     ...(status !== undefined ? { status } : {}),
   }
 }

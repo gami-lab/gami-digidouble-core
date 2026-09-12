@@ -4,6 +4,7 @@ import {
   type AvatarLlmOverride,
   type ModelProfile,
   type ScenarioModelSelection,
+  isVoiceConfiguration,
 } from '@gami/shared'
 
 function validateRequiredModel(model: string, field: string): string | null {
@@ -47,6 +48,14 @@ export function validateScenarioModelSelection(
     validateModelProfile(value.defaultProfile, 'modelSelection.defaultProfile') ??
     validateModelProfile(value.gameMasterOverride, 'modelSelection.gameMasterOverride')
   )
+}
+
+export function validateVoiceConfiguration(value: unknown, allowNull: boolean): string | null {
+  if (value === undefined) return null
+  if (value === null) return allowNull ? null : 'voiceConfig cannot be null when creating a record'
+  return isVoiceConfiguration(value)
+    ? null
+    : 'voiceConfig must contain only voiceKey and optional language'
 }
 
 function validateModelProfile(profile: ModelProfile | undefined, field: string): string | null {

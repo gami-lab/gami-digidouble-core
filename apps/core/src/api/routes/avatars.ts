@@ -12,7 +12,11 @@ import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
-import { validateAvatarLlmOverride } from './model-selection-validation.js'
+import {
+  validateAvatarLlmOverride,
+  validateVoiceConfiguration,
+} from './model-selection-validation.js'
+import { voiceConfigurationUpdateBodySchema } from './voice-configuration-schema.js'
 
 export type AvatarsRouteOptions = {
   config: Config
@@ -54,6 +58,7 @@ const patchAvatarBodySchema = {
         },
       ],
     },
+    voiceConfig: voiceConfigurationUpdateBodySchema,
     config: { type: 'object' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
   },
@@ -98,6 +103,10 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
         if (validationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
         }
+        const voiceValidationError = validateVoiceConfiguration(request.body.voiceConfig, true)
+        if (voiceValidationError !== null) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', voiceValidationError))
+        }
 
         const output = await updateAvatarUseCase.execute(
           buildUpdateAvatarInput(request.params.avatarId, request.body),
@@ -119,7 +128,17 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
 }
 
 function buildUpdateAvatarInput(avatarId: string, body: UpdateAvatarRequest): UpdateAvatarInput {
-  const { name, personaPrompt, tone, description, adjustments, llmOverride, config, status } = body
+  const {
+    name,
+    personaPrompt,
+    tone,
+    description,
+    adjustments,
+    llmOverride,
+    voiceConfig,
+    config,
+    status,
+  } = body
   const normalizedLlmOverride = normalizeLlmOverride(llmOverride)
   return {
     avatarId,
@@ -129,6 +148,7 @@ function buildUpdateAvatarInput(avatarId: string, body: UpdateAvatarRequest): Up
     ...(description !== undefined ? { description } : {}),
     ...(adjustments !== undefined ? { adjustments } : {}),
     ...(normalizedLlmOverride !== undefined ? { llmOverride: normalizedLlmOverride } : {}),
+    ...(voiceConfig !== undefined ? { voiceConfig } : {}),
     ...(config !== undefined ? { config } : {}),
     ...(status !== undefined ? { status } : {}),
   }

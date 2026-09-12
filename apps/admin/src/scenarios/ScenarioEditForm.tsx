@@ -9,6 +9,7 @@ import {
   hasPartialModelSelection,
   toScenarioModelSelection,
 } from './model-selection-form'
+import { toVoiceConfiguration } from './voice-config-form'
 
 type ScenarioEditFormProps = {
   scenario: ScenarioSummary
@@ -17,16 +18,25 @@ type ScenarioEditFormProps = {
   onError: (message: string) => void
 }
 
-export function ScenarioEditForm({ scenario, onCancel, onSaved, onError }: ScenarioEditFormProps): JSX.Element {
+export function ScenarioEditForm({
+  scenario,
+  onCancel,
+  onSaved,
+  onError,
+}: ScenarioEditFormProps): JSX.Element {
   const initialModelSelection = fromScenarioModelSelection(scenario.modelSelection)
   const [name, setName] = useState(scenario.name)
   const [status, setStatus] = useState<ScenarioStatus>(scenario.status)
   const [worldContext, setWorldContext] = useState(scenario.worldContext)
   const [objectives, setObjectives] = useState<string[]>(scenario.objectives)
-  const [defaultModelSelection, setDefaultModelSelection] = useState(initialModelSelection.defaultProfile)
+  const [defaultModelSelection, setDefaultModelSelection] = useState(
+    initialModelSelection.defaultProfile,
+  )
   const [gameMasterModelSelection, setGameMasterModelSelection] = useState(
     initialModelSelection.gameMasterOverride,
   )
+  const [voiceKey, setVoiceKey] = useState(scenario.voiceConfig?.voiceKey ?? '')
+  const [voiceLanguage, setVoiceLanguage] = useState(scenario.voiceConfig?.language ?? '')
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: SyntheticEvent): Promise<void> {
@@ -38,12 +48,14 @@ export function ScenarioEditForm({ scenario, onCancel, onSaved, onError }: Scena
         defaultProfile: defaultModelSelection,
         gameMasterOverride: gameMasterModelSelection,
       })
+      const voiceConfig = toVoiceConfiguration(voiceKey, voiceLanguage)
       const updated = await updateScenario(scenario.scenarioId, {
         name: name.trim(),
         status,
         worldContext: worldContext.trim(),
         objectives,
         modelSelection: modelSelection ?? null,
+        voiceConfig: voiceConfig ?? null,
       })
       onSaved(updated)
     } catch (error: unknown) {
@@ -53,7 +65,8 @@ export function ScenarioEditForm({ scenario, onCancel, onSaved, onError }: Scena
   }
 
   const hasPartialModelSelectionState =
-    hasPartialModelSelection(defaultModelSelection) || hasPartialModelSelection(gameMasterModelSelection)
+    hasPartialModelSelection(defaultModelSelection) ||
+    hasPartialModelSelection(gameMasterModelSelection)
   const submitDisabled = saving || name.trim().length === 0 || hasPartialModelSelectionState
 
   return (
@@ -67,6 +80,8 @@ export function ScenarioEditForm({ scenario, onCancel, onSaved, onError }: Scena
           objectives={objectives}
           defaultModelSelection={defaultModelSelection}
           gameMasterModelSelection={gameMasterModelSelection}
+          voiceKey={voiceKey}
+          voiceLanguage={voiceLanguage}
           idPrefix="edit-sc"
           disabled={saving}
           onNameChange={setName}
@@ -75,9 +90,13 @@ export function ScenarioEditForm({ scenario, onCancel, onSaved, onError }: Scena
           onObjectivesChange={setObjectives}
           onDefaultModelSelectionChange={setDefaultModelSelection}
           onGameMasterModelSelectionChange={setGameMasterModelSelection}
+          onVoiceKeyChange={setVoiceKey}
+          onVoiceLanguageChange={setVoiceLanguage}
         />
         {hasPartialModelSelectionState ? (
-          <p className="admin-error">Select both provider and model for each model setting, or leave both empty.</p>
+          <p className="admin-error">
+            Select both provider and model for each model setting, or leave both empty.
+          </p>
         ) : null}
         <div className="admin-form-actions">
           <button

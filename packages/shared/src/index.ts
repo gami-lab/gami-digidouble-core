@@ -71,6 +71,7 @@ export type {
   AudioOutputFormat,
   ClientAudioOptions,
   VoiceConfiguration,
+  VoiceConfigurationUpdate,
 } from './voice-contract-types.js'
 export {
   AUDIO_OUTPUT_FORMATS,

@@ -11,6 +11,8 @@ type ScenarioFormFieldsProps = {
   objectives: string[]
   defaultModelSelection: ModelSelectionFormValue
   gameMasterModelSelection: ModelSelectionFormValue
+  voiceKey: string
+  voiceLanguage: string
   idPrefix: string
   disabled: boolean
   onNameChange: (value: string) => void
@@ -19,6 +21,8 @@ type ScenarioFormFieldsProps = {
   onObjectivesChange: (objectives: string[]) => void
   onDefaultModelSelectionChange: (value: ModelSelectionFormValue) => void
   onGameMasterModelSelectionChange: (value: ModelSelectionFormValue) => void
+  onVoiceKeyChange: (value: string) => void
+  onVoiceLanguageChange: (value: string) => void
 }
 
 export function ScenarioFormFields({
@@ -28,6 +32,8 @@ export function ScenarioFormFields({
   objectives,
   defaultModelSelection,
   gameMasterModelSelection,
+  voiceKey,
+  voiceLanguage,
   idPrefix,
   disabled,
   onNameChange,
@@ -36,6 +42,8 @@ export function ScenarioFormFields({
   onObjectivesChange,
   onDefaultModelSelectionChange,
   onGameMasterModelSelectionChange,
+  onVoiceKeyChange,
+  onVoiceLanguageChange,
 }: ScenarioFormFieldsProps): JSX.Element {
   return (
     <>
@@ -48,7 +56,9 @@ export function ScenarioFormFields({
           type="text"
           className="admin-form-input"
           value={name}
-          onChange={(e) => { onNameChange(e.target.value) }}
+          onChange={(e) => {
+            onNameChange(e.target.value)
+          }}
           required
           disabled={disabled}
         />
@@ -62,7 +72,9 @@ export function ScenarioFormFields({
           id={`${idPrefix}-status`}
           className="admin-form-select"
           value={status}
-          onChange={(e) => { onStatusChange(e.target.value as ScenarioStatus) }}
+          onChange={(e) => {
+            onStatusChange(e.target.value as ScenarioStatus)
+          }}
           disabled={disabled}
         >
           <option value="draft">draft</option>
@@ -80,16 +92,14 @@ export function ScenarioFormFields({
           className="admin-form-textarea"
           rows={4}
           value={worldContext}
-          onChange={(e) => { onWorldContextChange(e.target.value) }}
+          onChange={(e) => {
+            onWorldContextChange(e.target.value)
+          }}
           disabled={disabled}
         />
       </div>
 
-      <ObjectivesEditor
-        objectives={objectives}
-        disabled={disabled}
-        onChange={onObjectivesChange}
-      />
+      <ObjectivesEditor objectives={objectives} disabled={disabled} onChange={onObjectivesChange} />
 
       <ModelSelectionFields
         idPrefix={`${idPrefix}-default-model`}
@@ -107,6 +117,69 @@ export function ScenarioFormFields({
         helperText="Used for Game Master turns. Leave empty to inherit the scenario default or global runtime config."
         onChange={onGameMasterModelSelectionChange}
       />
+      <VoiceConfigurationFields
+        idPrefix={idPrefix}
+        voiceKey={voiceKey}
+        voiceLanguage={voiceLanguage}
+        disabled={disabled}
+        onVoiceKeyChange={onVoiceKeyChange}
+        onVoiceLanguageChange={onVoiceLanguageChange}
+      />
+    </>
+  )
+}
+
+type VoiceConfigurationFieldsProps = {
+  idPrefix: string
+  voiceKey: string
+  voiceLanguage: string
+  disabled: boolean
+  onVoiceKeyChange: (value: string) => void
+  onVoiceLanguageChange: (value: string) => void
+}
+
+function VoiceConfigurationFields({
+  idPrefix,
+  voiceKey,
+  voiceLanguage,
+  disabled,
+  onVoiceKeyChange,
+  onVoiceLanguageChange,
+}: VoiceConfigurationFieldsProps): JSX.Element {
+  return (
+    <>
+      <div className="admin-form-group">
+        <label htmlFor={`${idPrefix}-voice-key`} className="admin-form-label">
+          Scenario default voice key
+        </label>
+        <input
+          id={`${idPrefix}-voice-key`}
+          type="text"
+          className="admin-form-input"
+          value={voiceKey}
+          onChange={(e) => {
+            onVoiceKeyChange(e.target.value)
+          }}
+          disabled={disabled}
+          placeholder="Optional logical voice key"
+        />
+      </div>
+      <div className="admin-form-group">
+        <label htmlFor={`${idPrefix}-voice-language`} className="admin-form-label">
+          Voice language
+        </label>
+        <input
+          id={`${idPrefix}-voice-language`}
+          type="text"
+          className="admin-form-input"
+          value={voiceLanguage}
+          onChange={(e) => {
+            onVoiceLanguageChange(e.target.value)
+          }}
+          disabled={disabled}
+          placeholder="Optional language tag, e.g. en-US"
+        />
+      </div>
     </>
   )
 }

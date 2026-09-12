@@ -110,6 +110,30 @@ describe('InMemoryAvatarRepository', () => {
       code: 'NOT_FOUND',
     })
   })
+
+  it('stores, updates, preserves, and clears voice configuration', async () => {
+    const repository = new InMemoryAvatarRepository()
+    const created = await repository.create({
+      scenarioId: 'scenario-1',
+      name: 'Ava',
+      personaPrompt: 'You are Ava.',
+      config: { routeKey: 'ava' },
+      voiceConfig: { voiceKey: 'guide', language: 'en-US' },
+    })
+
+    expect(created.voiceConfig).toEqual({ voiceKey: 'guide', language: 'en-US' })
+    expect(created.config).toEqual({ routeKey: 'ava' })
+
+    const withUnrelatedConfig = await repository.update(created.avatarId, {
+      config: { routeKey: 'updated' },
+    })
+    expect(withUnrelatedConfig.voiceConfig).toEqual(created.voiceConfig)
+    expect(withUnrelatedConfig.config).toEqual({ routeKey: 'updated' })
+
+    const cleared = await repository.update(created.avatarId, { voiceConfig: null })
+    expect(cleared.voiceConfig).toBeUndefined()
+    expect(cleared.config).toEqual({ routeKey: 'updated' })
+  })
 })
 
 describe('InMemoryAvatarRepository — saveComputedTraits', () => {

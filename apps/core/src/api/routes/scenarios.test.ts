@@ -106,6 +106,42 @@ describe('POST /v1/scenarios — success', () => {
     expect(body.data?.scenario.scenarioId).toBeTruthy()
     expect(body.data?.scenario.status).toBe('draft')
   })
+
+  it('accepts provider-neutral voice configuration and preserves legacy config separately', async () => {
+    const response = await createServer(TEST_CONFIG).inject({
+      method: 'POST',
+      url: '/v1/scenarios',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        name: 'Voice Scenario',
+        voiceConfig: { voiceKey: 'guide', language: 'en-US' },
+        config: { routeKey: 'guide' },
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body =
+      response.json<
+        ApiResponse<CreateScenarioRouteData & { scenario: { voiceConfig?: unknown } }>
+      >()
+    expect(body.data?.scenario.voiceConfig).toEqual({ voiceKey: 'guide', language: 'en-US' })
+    expect(body.data?.scenario.config).toEqual({ routeKey: 'guide' })
+  })
+
+  it('rejects provider-specific voice fields', async () => {
+    const response = await createServer(TEST_CONFIG).inject({
+      method: 'POST',
+      url: '/v1/scenarios',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        name: 'Invalid Voice Scenario',
+        voiceConfig: { voiceKey: 'guide', providerVoiceId: 'x' },
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json<ApiResponse<null>>().error?.code).toBe('VALIDATION_ERROR')
+  })
 })
 
 describe('POST /v1/scenarios/:scenarioId/avatars — auth', () => {
@@ -198,6 +234,35 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
     expect(avatarBody.data?.avatar.scenarioId).toBe(scenarioId)
     expect(avatarBody.data?.avatar.config).toEqual({})
     expect(avatarBody.data?.avatar.computedTraits).toBeNull()
+  })
+
+  it('accepts provider-neutral voice configuration without exposing it in generic config', async () => {
+    const app = createServer(TEST_CONFIG)
+    const scenarioResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/scenarios',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { name: 'Avatar Voice Scenario', voiceConfig: { voiceKey: 'scenario-default' } },
+    })
+    const scenarioId =
+      scenarioResponse.json<ApiResponse<CreateScenarioRouteData>>().data?.scenario.scenarioId
+    if (scenarioId === undefined) throw new Error('Expected scenarioId to be present')
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/scenarios/${scenarioId}/avatars`,
+      headers: { 'x-api-key': 'test-secret' },
+      payload: {
+        name: 'Ava',
+        personaPrompt: 'You are Ava.',
+        voiceConfig: { voiceKey: 'avatar-override' },
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body = response.json<ApiResponse<CreateAvatarResponse>>()
+    expect(body.data?.avatar.voiceConfig).toEqual({ voiceKey: 'avatar-override' })
+    expect(body.data?.avatar.config).toEqual({})
   })
 })
 

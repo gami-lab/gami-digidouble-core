@@ -80,6 +80,10 @@ request, and bounded binary delivery metadata. These tests must reject provider 
 provider-native voice fields, and raw audio values; synthesis, route, and playback coverage belongs
 to the subsequent EPIC 9.2 prompts.
 
+Voice configuration coverage also verifies additive Avatar/Scenario create and update mapping,
+reserved JSONB projection, legacy records without configuration, explicit null clearing, deterministic
+Avatar-over-Scenario inheritance, and rejection of provider-specific fields.
+
 Epic 9.1 hardening evidence maps the remaining independent risks to deterministic checks: concurrent
 duplicate requests to one transcription/turn, cancellation after transcription before handoff,
 unconfigured voice with an unchanged text route, failure traces containing only bounded latency,

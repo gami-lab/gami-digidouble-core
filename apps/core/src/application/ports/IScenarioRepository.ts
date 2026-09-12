@@ -3,7 +3,11 @@ import type {
   ScenarioAvatarAvailabilityConfig,
   ScenarioStatus,
 } from '../../domain/scenario/scenario.types.js'
-import type { ScenarioModelSelection } from '@gami/shared'
+import type {
+  ScenarioModelSelection,
+  VoiceConfiguration,
+  VoiceConfigurationUpdate,
+} from '@gami/shared'
 
 export interface IScenarioRepository {
   create(params: CreateScenarioParams): Promise<Scenario>
@@ -20,6 +24,7 @@ export interface CreateScenarioParams {
   worldContext?: string
   avatarAvailability?: ScenarioAvatarAvailabilityConfig
   modelSelection?: ScenarioModelSelection
+  voiceConfig?: VoiceConfiguration
   config?: Record<string, unknown>
 }
 
@@ -30,5 +35,6 @@ export type UpdateScenarioParams = {
   worldContext?: string
   avatarAvailability?: ScenarioAvatarAvailabilityConfig
   modelSelection?: ScenarioModelSelection | null
+  voiceConfig?: VoiceConfigurationUpdate
   config?: Record<string, unknown>
 }

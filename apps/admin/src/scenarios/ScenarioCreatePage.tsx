@@ -9,6 +9,7 @@ import {
   hasPartialModelSelection,
   toScenarioModelSelection,
 } from './model-selection-form'
+import { toVoiceConfiguration } from './voice-config-form'
 
 type ScenarioCreatePageProps = {
   onBack: () => void
@@ -24,6 +25,8 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
   const [objectives, setObjectives] = useState<string[]>([])
   const [defaultModelSelection, setDefaultModelSelection] = useState(EMPTY_MODEL_SELECTION)
   const [gameMasterModelSelection, setGameMasterModelSelection] = useState(EMPTY_MODEL_SELECTION)
+  const [voiceKey, setVoiceKey] = useState('')
+  const [voiceLanguage, setVoiceLanguage] = useState('')
   const [createState, setCreateState] = useState<CreateState>({ status: 'idle' })
 
   async function handleSubmit(e: SyntheticEvent): Promise<void> {
@@ -35,12 +38,14 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
         defaultProfile: defaultModelSelection,
         gameMasterOverride: gameMasterModelSelection,
       })
+      const voiceConfig = toVoiceConfiguration(voiceKey, voiceLanguage)
       const scenario = await createScenario({
         name: name.trim(),
         status,
         objectives,
         worldContext: worldContext.trim(),
         ...(modelSelection !== undefined ? { modelSelection } : {}),
+        ...(voiceConfig !== undefined ? { voiceConfig } : {}),
       })
       onCreated(scenario.scenarioId)
     } catch (error: unknown) {
@@ -53,7 +58,8 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
 
   const isSaving = createState.status === 'saving'
   const hasPartialModelSelectionState =
-    hasPartialModelSelection(defaultModelSelection) || hasPartialModelSelection(gameMasterModelSelection)
+    hasPartialModelSelection(defaultModelSelection) ||
+    hasPartialModelSelection(gameMasterModelSelection)
   const submitDisabled = isSaving || name.trim().length === 0 || hasPartialModelSelectionState
 
   return (
@@ -62,9 +68,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
         ← Back to scenarios
       </button>
       <h2>Create scenario</h2>
-      {createState.status === 'error' ? (
-        <p className="admin-error">{createState.message}</p>
-      ) : null}
+      {createState.status === 'error' ? <p className="admin-error">{createState.message}</p> : null}
       <form onSubmit={(e) => void handleSubmit(e)}>
         <ScenarioFormFields
           name={name}
@@ -73,6 +77,8 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           objectives={objectives}
           defaultModelSelection={defaultModelSelection}
           gameMasterModelSelection={gameMasterModelSelection}
+          voiceKey={voiceKey}
+          voiceLanguage={voiceLanguage}
           idPrefix="sc"
           disabled={isSaving}
           onNameChange={setName}
@@ -81,9 +87,13 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           onObjectivesChange={setObjectives}
           onDefaultModelSelectionChange={setDefaultModelSelection}
           onGameMasterModelSelectionChange={setGameMasterModelSelection}
+          onVoiceKeyChange={setVoiceKey}
+          onVoiceLanguageChange={setVoiceLanguage}
         />
         {hasPartialModelSelectionState ? (
-          <p className="admin-error">Select both provider and model for each model setting, or leave both empty.</p>
+          <p className="admin-error">
+            Select both provider and model for each model setting, or leave both empty.
+          </p>
         ) : null}
         <div className="admin-form-actions">
           <button

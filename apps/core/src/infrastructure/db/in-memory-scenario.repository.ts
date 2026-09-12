@@ -6,6 +6,11 @@ import type {
 import type { ScenarioModelSelection } from '@gami/shared'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../domain/errors.js'
+import {
+  applyVoiceConfiguration,
+  readVoiceConfiguration,
+  withoutVoiceConfiguration,
+} from '../../domain/voice/voice-configuration.js'
 
 function withoutModelSelection(scenario: Scenario): Omit<Scenario, 'modelSelection'> {
   const scenarioWithoutModelSelection = { ...scenario }
@@ -23,13 +28,30 @@ function resolveNextModelSelection(
 }
 
 function resolveNextConfig(existing: Scenario, updates: UpdateScenarioParams): Scenario['config'] {
-  return updates.config !== undefined ? updates.config : existing.config
+  const baseConfig = (updates.config !== undefined
+    ? updates.config
+    : existing.config) as unknown as Record<string, unknown>
+  const voiceConfig = updates.voiceConfig === undefined ? existing.voiceConfig : updates.voiceConfig
+  return withoutVoiceConfiguration(applyVoiceConfiguration(baseConfig, voiceConfig))
+}
+
+function normalizeInitialScenario(scenario: Scenario): Scenario {
+  const voiceConfig =
+    scenario.voiceConfig ??
+    readVoiceConfiguration(scenario.config as unknown as Record<string, unknown>)
+  return {
+    ...scenario,
+    ...(voiceConfig !== undefined ? { voiceConfig } : {}),
+    config: withoutVoiceConfiguration(scenario.config as unknown as Record<string, unknown>),
+  }
 }
 
 function buildUpdatedScenario(existing: Scenario, updates: UpdateScenarioParams): Scenario {
   const nextModelSelection = resolveNextModelSelection(existing, updates)
+  const existingWithoutVoiceConfig = withoutModelSelection(existing)
+  delete existingWithoutVoiceConfig.voiceConfig
   return {
-    ...withoutModelSelection(existing),
+    ...existingWithoutVoiceConfig,
     ...(updates.name !== undefined ? { name: updates.name } : {}),
     ...(updates.status !== undefined ? { status: updates.status } : {}),
     ...(updates.objectives !== undefined ? { objectives: updates.objectives } : {}),
@@ -38,6 +60,13 @@ function buildUpdatedScenario(existing: Scenario, updates: UpdateScenarioParams)
       ? { avatarAvailability: updates.avatarAvailability }
       : {}),
     ...(nextModelSelection !== undefined ? { modelSelection: nextModelSelection } : {}),
+    ...(updates.voiceConfig !== undefined
+      ? updates.voiceConfig !== null
+        ? { voiceConfig: updates.voiceConfig }
+        : {}
+      : existing.voiceConfig !== undefined
+        ? { voiceConfig: existing.voiceConfig }
+        : {}),
     config: resolveNextConfig(existing, updates),
     updatedAt: new Date().toISOString(),
   }
@@ -47,7 +76,9 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
   private readonly scenarios: Map<string, Scenario>
 
   constructor(initialData: Scenario[] = []) {
-    this.scenarios = new Map(initialData.map((scenario) => [scenario.scenarioId, scenario]))
+    this.scenarios = new Map(
+      initialData.map((scenario) => [scenario.scenarioId, normalizeInitialScenario(scenario)]),
+    )
   }
 
   findById(scenarioId: string): Promise<Scenario | null> {
@@ -71,7 +102,10 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
       worldContext: params.worldContext ?? '',
       avatarAvailability: params.avatarAvailability ?? { initialAvatarIds: [] },
       ...(params.modelSelection !== undefined ? { modelSelection: params.modelSelection } : {}),
-      config: params.config ?? {},
+      ...(params.voiceConfig !== undefined ? { voiceConfig: params.voiceConfig } : {}),
+      config: withoutVoiceConfiguration(
+        applyVoiceConfiguration(params.config ?? {}, params.voiceConfig),
+      ),
       createdAt: now,
       updatedAt: now,
     }

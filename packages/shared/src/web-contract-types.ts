@@ -8,6 +8,7 @@ import type {
   ScenarioSummary,
   SessionSummary,
 } from './entity-types.js'
+import type { VoiceConfiguration, VoiceConfigurationUpdate } from './voice-contract-types.js'
 import type {
   GetAvailableAvatarsResponse,
   GetHistoryResponse as ConversationHistoryResponse,
@@ -33,6 +34,7 @@ export type CreateScenarioRequest = {
   worldContext?: string
   avatarAvailability?: ScenarioAvatarAvailability
   modelSelection?: ScenarioModelSelection
+  voiceConfig?: VoiceConfiguration
   config?: Record<string, unknown>
 }
 
@@ -47,6 +49,7 @@ export type UpdateScenarioRequest = {
   worldContext?: ScenarioSummary['worldContext']
   avatarAvailability?: ScenarioAvatarAvailability
   modelSelection?: ScenarioModelSelection | null
+  voiceConfig?: VoiceConfigurationUpdate
   config?: Record<string, unknown>
 }
 

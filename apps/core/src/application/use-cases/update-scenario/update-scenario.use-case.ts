@@ -1,6 +1,7 @@
 import type { IScenarioRepository, UpdateScenarioParams } from '../../ports/IScenarioRepository.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { UpdateScenarioInput, UpdateScenarioOutput } from './update-scenario.types.js'
+import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 
 export class UpdateScenarioUseCase {
   constructor(private readonly scenarioRepository: IScenarioRepository) {}
@@ -20,6 +21,7 @@ export class UpdateScenarioUseCase {
 function buildUpdates(input: UpdateScenarioInput): UpdateScenarioParams {
   const { name, status, objectives, worldContext, avatarAvailability, modelSelection, config } =
     input
+  const voiceConfig = normalizeVoiceConfigurationMutation(config, input.voiceConfig, true)
 
   return {
     ...(name !== undefined ? { name } : {}),
@@ -28,6 +30,7 @@ function buildUpdates(input: UpdateScenarioInput): UpdateScenarioParams {
     ...(worldContext !== undefined ? { worldContext } : {}),
     ...(avatarAvailability !== undefined ? { avatarAvailability } : {}),
     ...(modelSelection !== undefined ? { modelSelection } : {}),
+    ...(voiceConfig !== undefined ? { voiceConfig } : {}),
     ...(config !== undefined ? { config } : {}),
   }
 }

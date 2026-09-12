@@ -1,6 +1,6 @@
 // Canonical trait schema — imported (not re-declared) so this domain module
 // stays in sync with the shared HTTP contract automatically.
-import type { AvatarComputedTraits } from '@gami/shared'
+import type { AvatarComputedTraits, VoiceConfiguration } from '@gami/shared'
 import type { AvatarLlmOverride } from '../model-config/index.js'
 
 export type { AvatarComputedTraits }
@@ -26,6 +26,8 @@ export interface Avatar {
   computedTraits?: AvatarComputedTraits
   /** JSONB-backed extensible configuration. */
   config: Record<string, unknown>
+  /** Provider-neutral voice configuration projected from the reserved config section. */
+  voiceConfig?: VoiceConfiguration
   createdAt: string
   updatedAt: string
 }
@@ -51,6 +53,8 @@ export interface AvatarConfig {
   computedTraits?: AvatarComputedTraits
   /** JSONB-backed extensible configuration for voice, UI hints, knowledge scope, etc. */
   config: Record<string, unknown>
+  /** Provider-neutral voice configuration projected from the reserved config section. */
+  voiceConfig?: VoiceConfiguration
   createdAt: string
   updatedAt: string
 }

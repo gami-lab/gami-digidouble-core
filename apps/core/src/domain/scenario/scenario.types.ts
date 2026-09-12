@@ -1,4 +1,4 @@
-import type { ScenarioModelSelection } from '@gami/shared'
+import type { ScenarioModelSelection, VoiceConfiguration } from '@gami/shared'
 
 /**
  * Scenario domain types.
@@ -21,6 +21,8 @@ export interface Scenario {
   avatarAvailability: ScenarioAvatarAvailabilityConfig
   /** Optional scenario-scoped model defaults and overrides. Persisted in its own column, never nested in config. */
   modelSelection?: ScenarioModelSelection
+  /** Provider-neutral default voice projected from the reserved config section. */
+  voiceConfig?: VoiceConfiguration
   config: ScenarioConfig
   createdAt: string
   updatedAt: string

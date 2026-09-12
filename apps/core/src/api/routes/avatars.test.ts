@@ -161,6 +161,49 @@ describe('PATCH /v1/avatars/:avatarId', () => {
 
     expect(response.statusCode).toBe(401)
   })
+
+  it('updates and explicitly clears provider-neutral voice configuration', async () => {
+    const app = makeApp({
+      avatars: [makeAvatar({ avatarId: 'avatar_1', voiceConfig: { voiceKey: 'old' } })],
+    })
+
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { voiceConfig: { voiceKey: 'new', language: 'en-US' } },
+    })
+    expect(updated.statusCode).toBe(200)
+    expect(updated.json<ApiResponse<{ avatar: AvatarSummary }>>().data?.avatar.voiceConfig).toEqual(
+      {
+        voiceKey: 'new',
+        language: 'en-US',
+      },
+    )
+
+    const cleared = await app.inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { voiceConfig: null },
+    })
+    expect(cleared.statusCode).toBe(200)
+    expect(
+      cleared.json<ApiResponse<{ avatar: AvatarSummary }>>().data?.avatar.voiceConfig,
+    ).toBeUndefined()
+  })
+
+  it('rejects provider-specific voice fields', async () => {
+    const response = await makeApp({ avatars: [makeAvatar({ avatarId: 'avatar_1' })] }).inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { voiceConfig: { voiceKey: 'guide', apiKey: 'secret' } },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json<ApiResponse<null>>().error?.code).toBe('VALIDATION_ERROR')
+  })
 })
 
 describe('PATCH /v1/avatars/:avatarId contract coverage', () => {

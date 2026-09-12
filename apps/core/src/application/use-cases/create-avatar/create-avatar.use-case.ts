@@ -4,6 +4,7 @@ import type { AvatarStatus } from '../../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { CreateAvatarInput, CreateAvatarOutput } from './create-avatar.types.js'
 import { toAvatarSummary } from '../shared/avatar-summary.js'
+import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 
 const ALLOWED_AVATAR_STATUSES: ReadonlySet<AvatarStatus> = new Set(['draft', 'active', 'archived'])
 
@@ -15,6 +16,7 @@ export class CreateAvatarUseCase {
 
   async execute(input: CreateAvatarInput): Promise<CreateAvatarOutput> {
     const normalized = normalizeAndValidateInput(input)
+    const voiceConfig = normalizeVoiceConfigurationMutation(input.config, input.voiceConfig, false)
 
     const scenario = await this.scenarioRepository.findById(input.scenarioId)
     if (scenario === null) {
@@ -30,6 +32,7 @@ export class CreateAvatarUseCase {
       ...(input.description !== undefined ? { description: input.description } : {}),
       ...(input.adjustments !== undefined ? { adjustments: input.adjustments } : {}),
       ...(input.llmOverride !== undefined ? { llmOverride: input.llmOverride } : {}),
+      ...(voiceConfig !== undefined ? { voiceConfig } : {}),
       ...(input.config !== undefined ? { config: input.config } : {}),
     })
 

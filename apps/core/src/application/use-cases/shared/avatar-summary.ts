@@ -28,6 +28,7 @@ export function toAvatarSummary(avatar: AvatarConfig): AvatarSummary {
     ...(avatar.description !== undefined ? { description: avatar.description } : {}),
     ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
     ...(avatar.llmOverride !== undefined ? { llmOverride: avatar.llmOverride } : {}),
+    ...(avatar.voiceConfig !== undefined ? { voiceConfig: avatar.voiceConfig } : {}),
     ...(availabilityKey !== undefined ? { availabilityKey } : {}),
     computedTraits: avatar.computedTraits ?? null,
     config: avatar.config,

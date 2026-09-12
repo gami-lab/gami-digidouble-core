@@ -88,6 +88,8 @@ Compatibility rules:
 
 - `AvatarSummary.computedTraits: null` is valid for avatars that have not been prepared yet.
 - `AvailableAvatarSummary` is intentionally narrower than `AvatarSummary`; do not leak `config` or `llmOverride` into player-facing discovery routes.
+- `AvatarSummary.voiceConfig` and `ScenarioSummary.voiceConfig` are optional provider-neutral
+  projections containing only `voiceKey` and optional `language`.
 - `SessionSummary.activeAvatarId` is optional; use explicit `null` only where a route contract says so.
 
 ## Public Routes
@@ -220,10 +222,13 @@ Voice-output contract ownership:
   and bounded binary delivery metadata are owned by `@gami/shared` in
   `voice-contract-types.ts`.
 - The current API has no voice-output route. A future message-audio route must accept only the
-  shared minimal delivery request and map shared delivery metadata to binary response headers.
-- Voice configuration is omitted when absent; `null` is reserved for an explicit future clear
-  mutation. Clients cannot submit provider credentials, endpoints, provider voice identifiers, or
-  arbitrary synthesis options.
+  shared minimal `AudioDeliveryRequest` (`format` optional) and map shared delivery metadata to
+  binary response headers.
+- Avatar and Scenario create requests accept optional `voiceConfig`; update requests also accept
+  `voiceConfig: null` to clear it. Omission leaves existing configuration unchanged on update.
+  Avatar voice overrides the Scenario default; absent both means no configured voice. Clients
+  cannot submit provider credentials, endpoints, provider voice identifiers, or arbitrary synthesis
+  options.
 - Persisted `Message` and `MessageMetadata`, `SendMessageResponse`, and `MessageStreamEvent` remain
   text-only and unchanged. Audio bytes are transient and are not persisted by default.
 

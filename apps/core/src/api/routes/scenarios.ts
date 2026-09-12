@@ -20,18 +20,15 @@ import type { ISessionRepository } from '../../application/ports/ISessionReposit
 import { CreateAvatarUseCase } from '../../application/use-cases/create-avatar/create-avatar.use-case.js'
 import type { CreateAvatarOutput } from '../../application/use-cases/create-avatar/create-avatar.types.js'
 import { CreateScenarioUseCase } from '../../application/use-cases/create-scenario/create-scenario.use-case.js'
-import type { CreateScenarioOutput } from '../../application/use-cases/create-scenario/create-scenario.types.js'
 import { DeleteScenarioUseCase } from '../../application/use-cases/delete-scenario/delete-scenario.use-case.js'
 import type { DeleteScenarioOutput } from '../../application/use-cases/delete-scenario/delete-scenario.types.js'
 import { GetScenarioUseCase } from '../../application/use-cases/get-scenario/get-scenario.use-case.js'
-import type { GetScenarioOutput } from '../../application/use-cases/get-scenario/get-scenario.types.js'
 import { ListScenarioAvatarsUseCase } from '../../application/use-cases/list-scenario-avatars/list-scenario-avatars.use-case.js'
 import type { ListScenarioAvatarsOutput } from '../../application/use-cases/list-scenario-avatars/list-scenario-avatars.types.js'
 import { ListScenariosUseCase } from '../../application/use-cases/list-scenarios/list-scenarios.use-case.js'
 import type { ListScenariosOutput } from '../../application/use-cases/list-scenarios/list-scenarios.types.js'
 import { PrepareScenarioAvatarTraitsUseCase } from '../../application/use-cases/prepare-scenario-avatar-traits/prepare-scenario-avatar-traits.use-case.js'
 import { UpdateScenarioUseCase } from '../../application/use-cases/update-scenario/update-scenario.use-case.js'
-import type { UpdateScenarioOutput } from '../../application/use-cases/update-scenario/update-scenario.types.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import type { ModelConfig } from '../../domain/model-config/index.js'
@@ -49,7 +46,17 @@ import {
 import {
   validateAvatarLlmOverride,
   validateScenarioModelSelection,
+  validateVoiceConfiguration,
 } from './model-selection-validation.js'
+import {
+  voiceConfigurationBodySchema,
+  voiceConfigurationUpdateBodySchema,
+} from './voice-configuration-schema.js'
+import {
+  mapCreateScenarioResponse,
+  mapGetScenarioResponse,
+  mapUpdateScenarioResponse,
+} from './scenario-response-mappers.js'
 
 export type ScenariosRouteOptions = {
   config: Config
@@ -131,6 +138,7 @@ const createScenarioBodySchema = {
       },
       additionalProperties: false,
     },
+    voiceConfig: voiceConfigurationBodySchema,
     config: { type: 'object' },
   },
   additionalProperties: false,
@@ -175,6 +183,7 @@ const updateScenarioBodySchema = {
         },
       ],
     },
+    voiceConfig: voiceConfigurationUpdateBodySchema,
     config: { type: 'object' },
   },
   additionalProperties: false,
@@ -214,6 +223,7 @@ const createAvatarBodySchema = {
         },
       ],
     },
+    voiceConfig: voiceConfigurationBodySchema,
     config: { type: 'object' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
   },
@@ -286,9 +296,15 @@ function registerCreateScenarioRoute(app: FastifyInstance, useCase: CreateScenar
         if (validationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
         }
+        const voiceValidationError = validateVoiceConfiguration(body.voiceConfig, false)
+        if (voiceValidationError !== null) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', voiceValidationError))
+        }
 
         const output = await useCase.execute(mapCreateScenarioInput(body))
-        return await reply.status(201).send(ok<CreateScenarioResponse>(mapCreateResponse(output)))
+        return await reply
+          .status(201)
+          .send(ok<CreateScenarioResponse>(mapCreateScenarioResponse(output)))
       } catch (error) {
         return handleDomainError(error, reply)
       }
@@ -325,6 +341,10 @@ function registerCreateAvatarRoute(app: FastifyInstance, useCase: CreateAvatarUs
         const validationError = validateAvatarLlmOverride(request.body.llmOverride)
         if (validationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
+        }
+        const voiceValidationError = validateVoiceConfiguration(request.body.voiceConfig, false)
+        if (voiceValidationError !== null) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', voiceValidationError))
         }
 
         const output = await useCase.execute(
@@ -396,11 +416,15 @@ function registerUpdateScenarioRoute(app: FastifyInstance, useCase: UpdateScenar
         if (validationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
         }
+        const voiceValidationError = validateVoiceConfiguration(request.body.voiceConfig, true)
+        if (voiceValidationError !== null) {
+          return await reply.status(400).send(fail('VALIDATION_ERROR', voiceValidationError))
+        }
 
         const output = await useCase.execute(
           mapUpdateScenarioInput(request.params.scenarioId, request.body),
         )
-        return await reply.send(ok<UpdateScenarioResponse>(mapUpdateResponse(output)))
+        return await reply.send(ok<UpdateScenarioResponse>(mapUpdateScenarioResponse(output)))
       } catch (error) {
         return handleDomainError(error, reply)
       }
@@ -455,63 +479,6 @@ async function handleDomainError(error: unknown, reply: FastifyReply): Promise<F
   return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
 }
 
-function mapCreateResponse(output: CreateScenarioOutput): CreateScenarioResponse {
-  return {
-    scenario: {
-      scenarioId: output.scenario.scenarioId,
-      name: output.scenario.name,
-      status: output.scenario.status,
-      objectives: output.scenario.objectives,
-      worldContext: output.scenario.worldContext,
-      avatarAvailability: output.scenario.avatarAvailability,
-      ...(output.scenario.modelSelection !== undefined
-        ? { modelSelection: output.scenario.modelSelection }
-        : {}),
-      config: output.scenario.config,
-      createdAt: output.scenario.createdAt,
-      updatedAt: output.scenario.updatedAt,
-    },
-  }
-}
-
 function mapCreateAvatarResponse(output: CreateAvatarOutput): CreateAvatarResponse {
   return { avatar: output.avatar }
-}
-
-function mapGetScenarioResponse(output: GetScenarioOutput): GetScenarioResponse {
-  return {
-    scenario: {
-      scenarioId: output.scenario.scenarioId,
-      name: output.scenario.name,
-      status: output.scenario.status,
-      objectives: output.scenario.objectives,
-      worldContext: output.scenario.worldContext,
-      avatarAvailability: output.scenario.avatarAvailability,
-      ...(output.scenario.modelSelection !== undefined
-        ? { modelSelection: output.scenario.modelSelection }
-        : {}),
-      config: output.scenario.config as Record<string, unknown>,
-      createdAt: output.scenario.createdAt,
-      updatedAt: output.scenario.updatedAt,
-    },
-  }
-}
-
-function mapUpdateResponse(output: UpdateScenarioOutput): UpdateScenarioResponse {
-  return {
-    scenario: {
-      scenarioId: output.scenario.scenarioId,
-      name: output.scenario.name,
-      status: output.scenario.status,
-      objectives: output.scenario.objectives,
-      worldContext: output.scenario.worldContext,
-      avatarAvailability: output.scenario.avatarAvailability,
-      ...(output.scenario.modelSelection !== undefined
-        ? { modelSelection: output.scenario.modelSelection }
-        : {}),
-      config: output.scenario.config as Record<string, unknown>,
-      createdAt: output.scenario.createdAt,
-      updatedAt: output.scenario.updatedAt,
-    },
-  }
 }

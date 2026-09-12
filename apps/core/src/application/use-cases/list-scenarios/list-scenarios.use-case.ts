@@ -1,5 +1,6 @@
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ListScenariosOutput } from './list-scenarios.types.js'
+import { toScenarioSummary } from '../shared/scenario-summary.js'
 
 export class ListScenariosUseCase {
   constructor(private readonly scenarioRepository: IScenarioRepository) {}
@@ -7,20 +8,7 @@ export class ListScenariosUseCase {
   async execute(): Promise<ListScenariosOutput> {
     const scenarios = await this.scenarioRepository.list()
     return {
-      scenarios: scenarios.map((scenario) => ({
-        scenarioId: scenario.scenarioId,
-        name: scenario.name,
-        status: scenario.status,
-        objectives: scenario.objectives,
-        worldContext: scenario.worldContext,
-        avatarAvailability: scenario.avatarAvailability,
-        ...(scenario.modelSelection !== undefined
-          ? { modelSelection: scenario.modelSelection }
-          : {}),
-        config: scenario.config as Record<string, unknown>,
-        createdAt: scenario.createdAt,
-        updatedAt: scenario.updatedAt,
-      })),
+      scenarios: scenarios.map(toScenarioSummary),
     }
   }
 }

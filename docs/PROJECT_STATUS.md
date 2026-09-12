@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-09-12
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompt 00 voice/audio contract ownership delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-01 voice/audio contracts and provider-neutral configuration delivered
 
 ## Snapshot
 
@@ -331,7 +331,9 @@ retrieval proof or change production behavior.
 - `MessageStreamEvent` is owned by `@gami/shared`; future stream requests reuse `SendMessageRequest`.
 - `voice-contract-types.ts` is the canonical `@gami/shared` owner for provider-neutral logical voice
   configuration, client audio preferences, supported output formats, and transient binary-delivery
-  metadata. Synthesis failures remain an internal Application TTS-port contract.
+  metadata. Avatar/Scenario repositories reserve `config.voiceConfig` and project it into typed
+  summaries; Avatar voice overrides Scenario defaults and update `null` explicitly clears it.
+  Synthesis failures remain an internal Application TTS-port contract.
 - `LlmStreamEvent` and `LlmStreamOptions` are owned by the internal `ILlmAdapter` port; provider
   streams emit ordered deltas followed by one terminal response with usage metadata.
 - `ObservedLlmAdapter` remains the single LLM observability boundary for streams and traces the

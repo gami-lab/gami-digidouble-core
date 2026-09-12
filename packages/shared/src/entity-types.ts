@@ -13,6 +13,7 @@
 
 import type { ModelSelectionOverride, ScenarioModelSelection } from './model-catalog.js'
 import type { AvatarRequestOptions } from './web-contract-types.js'
+import type { VoiceConfiguration, VoiceConfigurationUpdate } from './voice-contract-types.js'
 export type { ScenarioModelSelection } from './model-catalog.js'
 
 /** Avatar status union — matches domain AvatarStatus. */
@@ -30,6 +31,7 @@ type AvatarAuthoredFields = {
 
 type AvatarMutationOptionalFields = {
   llmOverride?: AvatarLlmOverride | null
+  voiceConfig?: VoiceConfiguration
   config?: Record<string, unknown>
   status?: AvatarStatus
 }
@@ -58,6 +60,7 @@ export type AvatarSummary = AvatarAuthoredFields & {
   scenarioId: string
   status: AvatarStatus
   llmOverride?: AvatarLlmOverride
+  voiceConfig?: VoiceConfiguration
   /** Stable public route key when present in avatar config. */
   availabilityKey?: string
   /** Derived trait structure, or `null` if preparation has not run yet (EPIC 8.1). */
@@ -71,7 +74,9 @@ export type CreateAvatarRequest = Pick<AvatarAuthoredFields, 'name' | 'personaPr
   Pick<AvatarAuthoredFields, 'tone' | 'description' | 'adjustments'> &
   AvatarMutationOptionalFields
 
-export type UpdateAvatarRequest = Partial<CreateAvatarRequest>
+export type UpdateAvatarRequest = Omit<Partial<CreateAvatarRequest>, 'voiceConfig'> & {
+  voiceConfig?: VoiceConfigurationUpdate
+}
 
 /** Scenario status union — matches domain Scenario['status']. */
 export type ScenarioStatus = 'draft' | 'active' | 'archived'
@@ -94,6 +99,7 @@ export type ScenarioSummary = {
   worldContext: string
   avatarAvailability: ScenarioAvatarAvailability
   modelSelection?: ScenarioModelSelection
+  voiceConfig?: VoiceConfiguration
   config: Record<string, unknown>
   createdAt: string
   updatedAt: string

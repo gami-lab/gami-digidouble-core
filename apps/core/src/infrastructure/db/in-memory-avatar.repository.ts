@@ -6,6 +6,12 @@ import type {
 import type { AvatarComputedTraits, AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../domain/errors.js'
 import type { AvatarLlmOverride } from '../../domain/model-config/index.js'
+import type { VoiceConfiguration } from '@gami/shared'
+import {
+  applyVoiceConfiguration,
+  readVoiceConfiguration,
+  withoutVoiceConfiguration,
+} from '../../domain/voice/voice-configuration.js'
 
 function applyLlmOverride(
   config: Record<string, unknown>,
@@ -30,12 +36,26 @@ function applyLlmOverride(
 }
 
 function buildUpdatedConfig(
-  existing: Record<string, unknown>,
+  existing: Record<string, unknown> & { voiceConfig?: VoiceConfiguration },
+  existingVoiceConfig: VoiceConfiguration | undefined,
   updatesConfig: Record<string, unknown> | undefined,
   updatesLlmOverride: AvatarLlmOverride | null | undefined,
+  updatesVoiceConfig: UpdateAvatarParams['voiceConfig'],
 ): Record<string, unknown> | undefined {
-  if (updatesConfig === undefined && updatesLlmOverride === undefined) return undefined
-  return applyLlmOverride(updatesConfig ?? existing, updatesLlmOverride)
+  if (
+    updatesConfig === undefined &&
+    updatesLlmOverride === undefined &&
+    updatesVoiceConfig === undefined
+  )
+    return undefined
+  const nextVoiceConfig =
+    updatesVoiceConfig === undefined
+      ? (existingVoiceConfig ?? existing.voiceConfig ?? readVoiceConfiguration(existing))
+      : updatesVoiceConfig
+  return applyLlmOverride(
+    applyVoiceConfiguration(updatesConfig ?? existing, nextVoiceConfig),
+    updatesLlmOverride,
+  )
 }
 
 function buildUpdatedAvatar(
@@ -73,8 +93,28 @@ function applyAvatarUpdates(
   if (updates.llmOverride !== undefined && updates.llmOverride !== null) {
     target.llmOverride = updates.llmOverride
   }
-  if (updatedConfig !== undefined) target.config = updatedConfig
+  applyUpdatedVoiceConfiguration(target, updatedConfig)
   if (updates.status !== undefined) target.status = updates.status
+}
+
+function applyUpdatedVoiceConfiguration(
+  target: AvatarConfig,
+  updatedConfig: Record<string, unknown> | undefined,
+): void {
+  if (updatedConfig === undefined) return
+  const nextVoiceConfig = readVoiceConfiguration(updatedConfig)
+  if (nextVoiceConfig !== undefined) target.voiceConfig = nextVoiceConfig
+  target.config = withoutVoiceConfiguration(updatedConfig)
+  if (nextVoiceConfig === undefined) delete target.voiceConfig
+}
+
+function normalizeInitialAvatar(avatar: AvatarConfig): AvatarConfig {
+  const voiceConfig = avatar.voiceConfig ?? readVoiceConfiguration(avatar.config)
+  return {
+    ...avatar,
+    ...(voiceConfig !== undefined ? { voiceConfig } : {}),
+    config: withoutVoiceConfiguration(avatar.config),
+  }
 }
 
 /**
@@ -84,7 +124,9 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
   private readonly avatars: Map<string, AvatarConfig>
 
   constructor(initialData: AvatarConfig[] = []) {
-    this.avatars = new Map(initialData.map((avatar) => [avatar.avatarId, avatar]))
+    this.avatars = new Map(
+      initialData.map((avatar) => [avatar.avatarId, normalizeInitialAvatar(avatar)]),
+    )
   }
 
   create(params: CreateAvatarParams): Promise<AvatarConfig> {
@@ -101,7 +143,13 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
       ...(params.llmOverride !== undefined && params.llmOverride !== null
         ? { llmOverride: params.llmOverride }
         : {}),
-      config: applyLlmOverride(params.config ?? {}, params.llmOverride),
+      ...(params.voiceConfig !== undefined ? { voiceConfig: params.voiceConfig } : {}),
+      config: withoutVoiceConfiguration(
+        applyLlmOverride(
+          applyVoiceConfiguration(params.config ?? {}, params.voiceConfig),
+          params.llmOverride,
+        ),
+      ),
       createdAt: now,
       updatedAt: now,
     }
@@ -131,7 +179,16 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
     if (existing === undefined) {
       throw new DomainError('NOT_FOUND', 'Avatar not found')
     }
-    const updatedConfig = buildUpdatedConfig(existing.config, updates.config, updates.llmOverride)
+    const updatedConfig = buildUpdatedConfig(
+      {
+        ...existing.config,
+        ...(existing.voiceConfig !== undefined ? { voiceConfig: existing.voiceConfig } : {}),
+      },
+      existing.voiceConfig,
+      updates.config,
+      updates.llmOverride,
+      updates.voiceConfig,
+    )
 
     const updated = buildUpdatedAvatar(existing, updates, updatedConfig)
     this.avatars.set(avatarId, updated)

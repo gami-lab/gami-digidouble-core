@@ -11,6 +11,11 @@ import type {
 } from '../../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import { extractUuid } from './id-prefix.js'
+import {
+  applyVoiceConfiguration,
+  readVoiceConfiguration,
+  withoutVoiceConfiguration,
+} from '../../../domain/voice/voice-configuration.js'
 
 interface ScenarioRow {
   id: string
@@ -25,7 +30,7 @@ interface ScenarioRow {
   updated_at: Date
 }
 
-function normalizeConfig(config: unknown): Scenario['config'] {
+function normalizeConfig(config: unknown): Record<string, unknown> {
   if (isRecord(config)) {
     return config
   }
@@ -151,6 +156,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function rowToScenario(row: ScenarioRow): Scenario {
   const modelSelection = readScenarioModelSelection(row.model_selection)
+  const rawConfig = normalizeConfig(row.config)
+  const voiceConfig = readVoiceConfiguration(rawConfig)
   return {
     scenarioId: `scenario_${row.id}`,
     name: row.name,
@@ -159,7 +166,8 @@ function rowToScenario(row: ScenarioRow): Scenario {
     worldContext: row.world_context ?? '',
     avatarAvailability: normalizeAvatarAvailability(row.avatar_availability),
     ...(modelSelection !== undefined ? { modelSelection } : {}),
-    config: normalizeConfig(row.config),
+    ...(voiceConfig !== undefined ? { voiceConfig } : {}),
+    config: withoutVoiceConfiguration(rawConfig),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }
@@ -169,6 +177,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
   constructor(private readonly sql: Sql) {}
 
   async create(params: CreateScenarioParams): Promise<Scenario> {
+    const config = applyVoiceConfiguration(params.config ?? {}, params.voiceConfig)
     const [row] = await this.sql<[ScenarioRow]>`
       INSERT INTO scenarios (name, status, objectives, world_context, avatar_availability, config, model_selection)
       VALUES (
@@ -177,7 +186,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
         ${params.objectives ?? []},
         ${params.worldContext ?? ''},
         ${this.sql.json((params.avatarAvailability ?? { initialAvatarIds: [] }) as unknown as JSONValue)},
-        ${this.sql.json((params.config ?? {}) as JSONValue)},
+        ${this.sql.json(config as JSONValue)},
         ${this.sql.json(params.modelSelection ?? null)}
       )
       RETURNING id, name, status, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
@@ -220,7 +229,28 @@ export class PostgresScenarioRepository implements IScenarioRepository {
       throw new DomainError('NOT_FOUND', 'Scenario not found')
     }
 
-    const { setClauses, values } = buildScenarioSetClauses(updates)
+    let nextConfig = updates.config
+    if (updates.voiceConfig !== undefined || updates.config !== undefined) {
+      const [row] = await this.sql<[Pick<ScenarioRow, 'config'>?]>`
+        SELECT config
+        FROM scenarios
+        WHERE id = ${uuid}
+      `
+      if (row === undefined) {
+        throw new DomainError('NOT_FOUND', 'Scenario not found')
+      }
+      const existingConfig = normalizeConfig(row.config)
+      const voiceConfig =
+        updates.voiceConfig === undefined
+          ? readVoiceConfiguration(existingConfig)
+          : updates.voiceConfig
+      nextConfig = applyVoiceConfiguration(nextConfig ?? existingConfig, voiceConfig)
+    }
+
+    const { setClauses, values } = buildScenarioSetClauses({
+      ...updates,
+      ...(nextConfig !== undefined ? { config: nextConfig } : {}),
+    })
     values.push(uuid)
     const whereParam = `$${String(values.length)}`
 

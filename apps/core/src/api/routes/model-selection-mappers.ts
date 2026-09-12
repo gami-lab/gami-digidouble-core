@@ -18,6 +18,7 @@ export function mapCreateScenarioInput(body: CreateScenarioRequest): CreateScena
       ? { avatarAvailability: body.avatarAvailability }
       : {}),
     ...(normalizedModelSelection !== undefined ? { modelSelection: normalizedModelSelection } : {}),
+    ...(body.voiceConfig !== undefined ? { voiceConfig: body.voiceConfig } : {}),
     ...(body.config !== undefined ? { config: body.config } : {}),
   }
 }
@@ -36,6 +37,7 @@ export function mapUpdateScenarioInput(
     ...(body.avatarAvailability !== undefined
       ? { avatarAvailability: body.avatarAvailability }
       : {}),
+    ...(body.voiceConfig !== undefined ? { voiceConfig: body.voiceConfig } : {}),
     ...(body.config !== undefined ? { config: body.config } : {}),
   }
 
@@ -61,6 +63,7 @@ export function mapCreateAvatarInput(
     ...(body.description !== undefined ? { description: body.description } : {}),
     ...(body.adjustments !== undefined ? { adjustments: body.adjustments } : {}),
     ...(normalizedLlmOverride !== undefined ? { llmOverride: normalizedLlmOverride } : {}),
+    ...(body.voiceConfig !== undefined ? { voiceConfig: body.voiceConfig } : {}),
     ...(body.config !== undefined ? { config: body.config } : {}),
     ...(body.status !== undefined ? { status: body.status } : {}),
   }

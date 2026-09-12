@@ -31,8 +31,9 @@ credentials belongs to the future Core Application TTS port and Infrastructure a
 
 `VoiceConfiguration` fields are optional only where the value has a meaningful default. An omitted
 voice configuration means “inherit the Scenario default” for an Avatar, or “no configured voice”
-at the Scenario boundary. `null` is not part of the read contract; a later update contract may use
-`voiceConfig: null` only as an explicit clear operation, following existing mutation conventions.
+at the Scenario boundary. `null` is accepted only by Avatar/Scenario update requests as an explicit
+clear operation; create and read projections never use it. `resolveVoiceConfiguration` in the Core
+domain applies Avatar-over-Scenario precedence without resolving provider details.
 
 `ClientAudioOptions` and `AudioDeliveryRequest` are additive. Omitted options preserve text-only
 behavior and let the server choose its configured default output format. Clients can request only a
@@ -54,8 +55,9 @@ headers; JSON message and stream contracts remain text-only.
 ## Audit result
 
 The Avatar/Scenario/Session/Conversation/Message audit found deliberate internal/public projections
-and no exact duplicate public voice/audio shapes. Existing client forms and API clients consume
-shared public DTOs or derive local UI-only state. The current gate therefore adds the shared owner
-and guards without changing existing Avatar/Scenario payloads, message contracts, stream events,
-admin DTOs, or client UI state. Configuration wiring and the binary route belong to later EPIC 9.2
-prompts and must reuse this module.
+and no exact duplicate public voice/audio shapes. The public Avatar/Scenario summaries and their
+create/update requests now own the additive `voiceConfig` field; Core repositories map it to and
+from the reserved `config.voiceConfig` JSONB key while keeping generic `config` free of that
+reserved section. Admin forms expose only the provider-neutral fields. Web/console player-facing
+contracts intentionally do not expose configuration, and `AvailableAvatarSummary` remains narrow.
+The binary route and synthesis behavior must reuse this module.

@@ -8,6 +8,11 @@ import type {
 import type { AvatarComputedTraits, AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { AvatarLlmOverride } from '../../../domain/model-config/index.js'
+import {
+  applyVoiceConfiguration,
+  readVoiceConfiguration,
+  withoutVoiceConfiguration,
+} from '../../../domain/voice/voice-configuration.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
 interface AvatarRow {
@@ -104,6 +109,7 @@ function normalizeComputedTraits(value: unknown): AvatarComputedTraits | undefin
 function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
   const config = normalizeAvatarConfig(row.config)
   const llmOverride = readAvatarLlmOverride(config)
+  const voiceConfig = readVoiceConfiguration(config)
   const computedTraits = normalizeComputedTraits(row.computed_traits)
 
   return {
@@ -116,8 +122,9 @@ function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
     ...(row.description !== null ? { description: row.description } : {}),
     ...(row.adjustments !== null ? { adjustments: row.adjustments } : {}),
     ...(llmOverride !== undefined ? { llmOverride } : {}),
+    ...(voiceConfig !== undefined ? { voiceConfig } : {}),
     ...(computedTraits !== undefined ? { computedTraits } : {}),
-    config,
+    config: withoutVoiceConfiguration(config),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }
@@ -162,7 +169,10 @@ export class PostgresAvatarRepository implements IAvatarRepository {
 
   async create(params: CreateAvatarParams): Promise<AvatarConfig> {
     const scenarioUuid = stripPrefix('scenario_', params.scenarioId)
-    const mergedConfig = applyLlmOverride(params.config ?? {}, params.llmOverride)
+    const mergedConfig = applyLlmOverride(
+      applyVoiceConfiguration(params.config ?? {}, params.voiceConfig),
+      params.llmOverride,
+    )
 
     const [row] = await this.sql<[AvatarRow]>`
       INSERT INTO avatars (
@@ -231,7 +241,11 @@ export class PostgresAvatarRepository implements IAvatarRepository {
 
     let nextConfig: Record<string, unknown> | undefined = updates.config
 
-    if (updates.llmOverride !== undefined) {
+    if (
+      updates.llmOverride !== undefined ||
+      updates.voiceConfig !== undefined ||
+      updates.config !== undefined
+    ) {
       const [row] = await this.sql<[Pick<AvatarRow, 'config'>?]>`
         SELECT config
         FROM avatars
@@ -241,8 +255,12 @@ export class PostgresAvatarRepository implements IAvatarRepository {
         throw new DomainError('NOT_FOUND', 'Avatar not found')
       }
 
+      const existingConfig = normalizeAvatarConfig(row.config)
+      const existingVoiceConfig = readVoiceConfiguration(existingConfig)
+      const voiceConfig =
+        updates.voiceConfig === undefined ? existingVoiceConfig : updates.voiceConfig
       nextConfig = applyLlmOverride(
-        nextConfig ?? normalizeAvatarConfig(row.config),
+        applyVoiceConfiguration(nextConfig ?? existingConfig, voiceConfig),
         updates.llmOverride,
       )
     }

@@ -16,6 +16,8 @@ export type VoiceConfiguration = {
   language?: string
 }
 
+export type VoiceConfigurationUpdate = VoiceConfiguration | null
+
 /** Client playback/delivery preference; it cannot select provider internals. */
 export type ClientAudioOptions = {
   enabled?: boolean

@@ -169,9 +169,11 @@ deletion and session reset paths are the implemented ownership boundaries.
 - Use JSONB for bounded structured payloads that are genuinely flexible.
 - Do not use JSONB as a substitute for stable top-level fields already owned by canonical contracts.
 - Keep persistence and shared DTO ownership aligned when contracts evolve.
-- Future voice configuration may use the existing bounded Avatar/Scenario configuration mechanism,
-  but its reserved shape must be validated through the canonical shared voice contract. Audio bytes
-  and delivery metadata are transient and are not persisted with messages by default.
+- Voice configuration uses the existing Avatar/Scenario `config` JSONB columns under the reserved
+  `voiceConfig` key. Core validates and projects that section into the typed `voiceConfig` field;
+  generic public `config` does not duplicate it. Existing rows without the key map to an omitted
+  voice configuration. Audio bytes and delivery metadata are transient and are not persisted with
+  messages by default.
 
 ## Not In Scope
 

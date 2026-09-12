@@ -17,6 +17,8 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   }
 }
 
+// The repository behavior is intentionally covered as one cohesive compatibility suite.
+// eslint-disable-next-line max-lines-per-function
 describe('InMemoryScenarioRepository', () => {
   it('create generates scenario_ prefixed ID', async () => {
     const repository = new InMemoryScenarioRepository()
@@ -125,5 +127,26 @@ describe('InMemoryScenarioRepository', () => {
     const cleared = await repository.update(created.scenarioId, { modelSelection: null })
     expect(cleared.modelSelection).toBeUndefined()
     expect(cleared.config).toEqual({})
+  })
+
+  it('stores, preserves, and clears the Scenario voice default', async () => {
+    const repository = new InMemoryScenarioRepository()
+    const created = await repository.create({
+      name: 'Voice scenario',
+      config: { routeKey: 'scenario' },
+      voiceConfig: { voiceKey: 'scenario-default', language: 'en-US' },
+    })
+
+    expect(created.voiceConfig).toEqual({ voiceKey: 'scenario-default', language: 'en-US' })
+    expect(created.config).toEqual({ routeKey: 'scenario' })
+
+    const withUnrelatedConfig = await repository.update(created.scenarioId, {
+      config: { routeKey: 'updated' },
+    })
+    expect(withUnrelatedConfig.voiceConfig).toEqual(created.voiceConfig)
+
+    const cleared = await repository.update(created.scenarioId, { voiceConfig: null })
+    expect(cleared.voiceConfig).toBeUndefined()
+    expect(cleared.config).toEqual({ routeKey: 'updated' })
   })
 })
