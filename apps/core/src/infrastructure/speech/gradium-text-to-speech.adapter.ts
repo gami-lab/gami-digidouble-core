@@ -52,7 +52,6 @@ export interface GradiumTransportResponse {
   readonly status: number
   readonly headers: Pick<Headers, 'get'>
   readonly body: ReadableStream<Uint8Array> | null
-  arrayBuffer(): Promise<ArrayBuffer>
 }
 
 export interface GradiumTransport {
@@ -205,7 +204,16 @@ export class GradiumTextToSpeechAdapter implements ITextToSpeechAdapter {
         await cancelResponseBody(response)
         throw failureForStatus(response.status)
       }
-      const audio = await readAudioResponse(response, normalizedInput.format, this.config.limits)
+      if (timeout.timedOut()) throw new TimeoutMarker()
+      throwIfTextToSpeechCancelled(options?.signal, 'during_synthesis')
+      const audio = await readAudioResponse(
+        response,
+        normalizedInput.format,
+        this.config.limits,
+        timeout.signal,
+        options?.signal,
+      )
+      if (timeout.timedOut()) throw new TimeoutMarker()
       throwIfTextToSpeechCancelled(options?.signal, 'after_synthesis')
       return {
         input: normalizedInput,
@@ -247,6 +255,9 @@ export class GradiumTextToSpeechAdapter implements ITextToSpeechAdapter {
               output: {
                 byteCount: args.result.metadata.byteLength,
                 format: args.result.metadata.format,
+                ...(args.result.metadata.durationMs === undefined
+                  ? {}
+                  : { durationMs: args.result.metadata.durationMs }),
               },
             }),
         ...(args.failure === undefined ? {} : { output: { code: args.failure.code } }),
@@ -256,7 +267,13 @@ export class GradiumTextToSpeechAdapter implements ITextToSpeechAdapter {
           outcome: args.outcome,
           ...(args.result === undefined
             ? {}
-            : { byteCount: args.result.metadata.byteLength, format: args.result.metadata.format }),
+            : {
+                byteCount: args.result.metadata.byteLength,
+                format: args.result.metadata.format,
+                ...(args.result.metadata.durationMs === undefined
+                  ? {}
+                  : { durationMs: args.result.metadata.durationMs }),
+              }),
           ...(args.statusCode === undefined ? {} : { statusCode: args.statusCode }),
           ...(args.failure === undefined ? {} : { failureCode: args.failure.code }),
         },
@@ -312,6 +329,8 @@ async function readAudioResponse(
   response: GradiumTransportResponse,
   format: AudioOutputFormat,
   limits: TextToSpeechLimits,
+  timeoutSignal: AbortSignal,
+  callerSignal: AbortSignal | undefined,
 ): Promise<Uint8Array> {
   const contentType = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase()
   if (!isExpectedContentType(contentType, format)) {
@@ -325,11 +344,22 @@ async function readAudioResponse(
     throw invalidOutput('oversized')
   }
 
-  const bytes =
-    response.body === null
-      ? new Uint8Array(await response.arrayBuffer())
-      : await readBoundedBody(response.body, limits.maxOutputBytes)
+  if (response.body === null) throw invalidOutput('malformed_body')
+  const bytes = await readBoundedBody(
+    response.body,
+    limits.maxOutputBytes,
+    timeoutSignal,
+    callerSignal,
+  )
 
+  if (callerSignal?.aborted === true) {
+    throw new TextToSpeechError({
+      code: 'cancelled',
+      phase: 'during_synthesis',
+      retryable: false,
+    })
+  }
+  if (timeoutSignal.aborted) throw new TimeoutMarker()
   if (bytes.byteLength > limits.maxOutputBytes) throw invalidOutput('oversized')
   if (bytes.byteLength === 0) throw invalidOutput('empty')
   if (declaredLength !== undefined && declaredLength !== bytes.byteLength) {
@@ -338,14 +368,29 @@ async function readAudioResponse(
   return bytes
 }
 
+// eslint-disable-next-line complexity
 async function readBoundedBody(
   body: ReadableStream<Uint8Array>,
   maxBytes: number,
+  timeoutSignal: AbortSignal,
+  callerSignal: AbortSignal | undefined,
 ): Promise<Uint8Array> {
   const reader = body.getReader()
   const chunks: Uint8Array[] = []
   let total = 0
+  const onAbort = (): void => {
+    void reader.cancel().catch(() => undefined)
+  }
+  timeoutSignal.addEventListener('abort', onAbort, { once: true })
   try {
+    if (callerSignal?.aborted === true) {
+      throw new TextToSpeechError({
+        code: 'cancelled',
+        phase: 'during_synthesis',
+        retryable: false,
+      })
+    }
+    if (timeoutSignal.aborted) throw new TimeoutMarker()
     let done = false
     while (!done) {
       const next = await reader.read()
@@ -358,9 +403,18 @@ async function readBoundedBody(
     }
   } catch (error) {
     await reader.cancel().catch(() => undefined)
+    if (callerSignal?.aborted === true) {
+      throw new TextToSpeechError({
+        code: 'cancelled',
+        phase: 'during_synthesis',
+        retryable: false,
+      })
+    }
+    if (timeoutSignal.aborted) throw new TimeoutMarker()
     if (isTextToSpeechError(error)) throw error
     throw invalidOutput('malformed_body')
   } finally {
+    timeoutSignal.removeEventListener('abort', onAbort)
     reader.releaseLock()
   }
 

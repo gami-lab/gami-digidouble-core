@@ -95,7 +95,9 @@ For product principles, read `PRINCIPLES.md`.
   shared voice-output contract and completed-message binary delivery route are additive; browser
   playback remains owned by `apps/web`. The public voice routes use Fastify's encapsulated bounded raw-body parser
   with no multipart dependency. Voice idempotency is backed by Redis and injectable through the
-  application port for deterministic testing.
+  application port for deterministic testing. The Gradium one-shot response exposes audio bytes but
+  no duration metadata in the selected REST contract; bounded duration metadata remains optional at
+  the adapter/public delivery boundary.
 
 ### User-Facing Apps
 

@@ -1,4 +1,9 @@
-import { TextToSpeechError, type ITextToSpeechAdapter } from '../../ports/ITextToSpeechAdapter.js'
+import {
+  TextToSpeechError,
+  TEXT_TO_SPEECH_LIMITS,
+  validateTextToSpeechResult,
+  type ITextToSpeechAdapter,
+} from '../../ports/ITextToSpeechAdapter.js'
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
@@ -17,6 +22,7 @@ export class SynthesizeMessageAudioUseCase {
     private readonly avatarRepository: IAvatarRepository,
     private readonly scenarioRepository: IScenarioRepository,
     private readonly textToSpeechAdapter: ITextToSpeechAdapter,
+    private readonly maxOutputBytes = TEXT_TO_SPEECH_LIMITS.maxOutputBytes,
   ) {}
 
   async execute(input: SynthesizeMessageAudioInput): Promise<TextToSpeechResult> {
@@ -63,7 +69,7 @@ export class SynthesizeMessageAudioUseCase {
       })
     }
 
-    return this.textToSpeechAdapter.synthesize(
+    const result = await this.textToSpeechAdapter.synthesize(
       {
         text: message.content,
         voice,
@@ -72,6 +78,15 @@ export class SynthesizeMessageAudioUseCase {
         messageId: message.messageId,
       },
       { ...(normalized.signal === undefined ? {} : { signal: normalized.signal }) },
+    )
+    return validateTextToSpeechResult(
+      result,
+      {
+        requestId: normalized.requestId,
+        messageId: message.messageId,
+        format: normalized.format,
+      },
+      this.maxOutputBytes,
     )
   }
 }

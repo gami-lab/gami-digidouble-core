@@ -55,5 +55,13 @@ describe('voice and audio contract guards', () => {
         audio: 'raw bytes do not belong here',
       }),
     ).toBe(false)
+    expect(
+      isAudioDeliveryMetadata({
+        requestId: 'r'.repeat(129),
+        messageId: 'message_1',
+        format: 'audio/wav',
+        byteLength: 128,
+      }),
+    ).toBe(false)
   })
 })

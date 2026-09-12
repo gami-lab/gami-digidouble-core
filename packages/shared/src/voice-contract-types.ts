@@ -7,6 +7,7 @@
  */
 
 export const AUDIO_OUTPUT_FORMATS = ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/webm'] as const
+export const AUDIO_METADATA_ID_MAX_LENGTH = 128
 
 export type AudioOutputFormat = (typeof AUDIO_OUTPUT_FORMATS)[number]
 
@@ -69,8 +70,8 @@ export function isAudioDeliveryMetadata(value: unknown): value is AudioDeliveryM
     return false
   }
   return (
-    isNonEmptyString(value['requestId']) &&
-    isNonEmptyString(value['messageId']) &&
+    isBoundedNonEmptyString(value['requestId'], AUDIO_METADATA_ID_MAX_LENGTH) &&
+    isBoundedNonEmptyString(value['messageId'], AUDIO_METADATA_ID_MAX_LENGTH) &&
     isAudioOutputFormat(value['format']) &&
     isPositiveSafeInteger(value['byteLength']) &&
     (value['durationMs'] === undefined || isNonNegativeSafeInteger(value['durationMs']))
@@ -87,6 +88,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function isBoundedNonEmptyString(value: unknown, maxLength: number): value is string {
+  return isNonEmptyString(value) && value.length <= maxLength
 }
 
 function isPositiveSafeInteger(value: unknown): value is number {

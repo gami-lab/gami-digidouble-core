@@ -178,6 +178,8 @@ deletion and session reset paths are the implemented ownership boundaries.
 - Completed-message audio reads the canonical persisted `Message.content` for an Avatar message and
   never writes audio bytes or delivery metadata to `messages.metadata`. There is no audio asset
   table or blob column in this boundary; response headers and bytes exist only for the request.
+- Repeated audio requests are independent transient reads. No synthesis result, duration, provider
+  response, or failure payload is added to the message row, event log, or conversation history.
 
 ## Not In Scope
 

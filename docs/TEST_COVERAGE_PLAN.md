@@ -78,8 +78,11 @@ release the idempotency reservation at the correct boundary without duplicating 
 
 The TTS adapter coverage verifies the official Gradium request mapping, private logical voice-ID
 resolution, native output-format mapping, typed failure categories, response content-type and size
-validation, stream cancellation/cleanup, timeout and caller abort propagation, and secret-safe
-observability. These tests use injected transport fakes and do not require Gradium credentials.
+validation, stream cancellation/cleanup including streamless-body rejection, timeout and caller
+abort propagation, and secret-safe observability. The synthesis use-case coverage verifies exact
+persisted cleaned text, output identity/byte validation, voice inheritance, legacy configuration,
+repeated/concurrent requests, failure isolation, and no audio persistence. These tests use injected
+transport fakes and do not require Gradium credentials.
 
 Voice-output contract cleanup must cover the shared finite output-format guard, provider-neutral
 logical voice configuration, client playback/delivery preference boundaries, minimal delivery

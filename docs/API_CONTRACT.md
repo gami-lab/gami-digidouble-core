@@ -168,6 +168,10 @@ Completed message audio contract:
   validated `Content-Type`, exact `Content-Length`, `Content-Disposition: inline`, `X-Request-Id`,
   `X-Message-Id`, and optional `X-Audio-Duration-Ms` headers. The response uses only the persisted,
   cleaned Avatar `Message.content` from the requested conversation.
+- Core validates the adapter result again at the application boundary: audio must be non-empty and
+  bounded, its declared byte length must equal the observed bytes, and request/message/format
+  metadata must match the current request. The Gradium one-shot response does not currently supply
+  duration metadata, so `X-Audio-Duration-Ms` is omitted unless a configured adapter supplies it.
 - Authentication failures return `401 UNAUTHORIZED`; malformed or unsupported requests return
   `400 VALIDATION_ERROR`; unknown conversations/messages return `404 NOT_FOUND`; non-Avatar
   messages and missing voice configuration return `409 CONFLICT`; provider configuration,

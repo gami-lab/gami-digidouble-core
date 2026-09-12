@@ -12,7 +12,7 @@ The module is re-exported from `@gami/shared`. It contains no Gradium names, pro
 SDK request objects, credentials, or provider error payloads.
 
 `voiceKey` is a product-owned logical key. Resolving it to a provider voice and applying provider
-credentials belongs to the future Core Application TTS port and Infrastructure adapter.
+credentials belongs to the Core Application TTS port and Infrastructure adapter.
 
 ## Existing contract owners
 
@@ -47,7 +47,7 @@ turn completion, persistence, Game Master scheduling, and memory maintenance do 
 audio. Audio bytes are transient application/HTTP data and are never stored in `messages.metadata`,
 an audio column, an asset table, or an event payload by default.
 
-The future binary delivery route will map `AudioDeliveryMetadata` to response headers: `format` to
+The completed-message binary delivery route maps `AudioDeliveryMetadata` to response headers: `format` to
 `Content-Type`, `byteLength` to `Content-Length`, `requestId` and `messageId` to bounded identity
 headers, and optional `durationMs` to a documented duration header. The browser receives bytes plus
 headers; JSON message and stream contracts remain text-only.

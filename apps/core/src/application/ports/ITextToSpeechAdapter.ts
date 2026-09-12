@@ -1,5 +1,5 @@
 import type { AudioDeliveryMetadata, AudioOutputFormat, VoiceConfiguration } from '@gami/shared'
-import { isAudioOutputFormat } from '@gami/shared'
+import { isAudioDeliveryMetadata, isAudioOutputFormat } from '@gami/shared'
 
 export type TextToSpeechLimits = Readonly<{
   maxTextCharacters: number
@@ -76,7 +76,12 @@ export type TextToSpeechFailure =
   | Readonly<{
       code: 'invalid_provider_output'
       reason:
-        'empty' | 'oversized' | 'invalid_content_type' | 'declared_size_mismatch' | 'malformed_body'
+        | 'empty'
+        | 'oversized'
+        | 'invalid_content_type'
+        | 'declared_size_mismatch'
+        | 'identity_mismatch'
+        | 'malformed_body'
       retryable: false
     }>
 
@@ -156,10 +161,56 @@ export function throwIfTextToSpeechCancelled(
   }
 }
 
+export function validateTextToSpeechResult(
+  result: unknown,
+  expected: Pick<TextToSpeechInput, 'requestId' | 'messageId' | 'format'>,
+  maxOutputBytes = TEXT_TO_SPEECH_LIMITS.maxOutputBytes,
+): TextToSpeechResult {
+  if (!isRecord(result) || !(result['audio'] instanceof Uint8Array)) {
+    throw invalidProviderOutput('malformed_body')
+  }
+
+  const audio = result['audio']
+  if (audio.byteLength === 0) throw invalidProviderOutput('empty')
+  if (audio.byteLength > maxOutputBytes) {
+    throw invalidProviderOutput('oversized')
+  }
+
+  const metadata = result['metadata']
+  if (!isAudioDeliveryMetadata(metadata)) throw invalidProviderOutput('malformed_body')
+  if (!matchesExpectedResult(metadata, audio, expected)) {
+    throw invalidProviderOutput('identity_mismatch')
+  }
+
+  return {
+    audio: new Uint8Array(audio),
+    metadata: { ...metadata },
+  }
+}
+
+function matchesExpectedResult(
+  metadata: AudioDeliveryMetadata,
+  audio: Uint8Array,
+  expected: Pick<TextToSpeechInput, 'requestId' | 'messageId' | 'format'>,
+): boolean {
+  return (
+    metadata.byteLength === audio.byteLength &&
+    metadata.requestId === expected.requestId &&
+    metadata.messageId === expected.messageId &&
+    metadata.format === expected.format
+  )
+}
+
 function invalidRequest(
   reason: Extract<TextToSpeechFailure, { code: 'invalid_request' }>['reason'],
 ): TextToSpeechError {
   return new TextToSpeechError({ code: 'invalid_request', reason, retryable: false })
+}
+
+function invalidProviderOutput(
+  reason: Extract<TextToSpeechFailure, { code: 'invalid_provider_output' }>['reason'],
+): TextToSpeechError {
+  return new TextToSpeechError({ code: 'invalid_provider_output', reason, retryable: false })
 }
 
 function messageForTextToSpeechFailure(failure: TextToSpeechFailure): string {

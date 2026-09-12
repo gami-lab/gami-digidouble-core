@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-09-12
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-04 voice/audio contracts, provider-neutral configuration, TTS adapter, completed-message audio route, and browser playback delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-05 voice/audio contracts, provider-neutral configuration, TTS adapter, completed-message audio route, browser playback, and hardening delivered
 
 ## Snapshot
 
@@ -365,9 +365,19 @@ retrieval proof or change production behavior.
   unconfigured safely when `DEEPGRAM_API_KEY` is absent, preserving the existing text/LLM path.
 - Gradium is an Infrastructure implementation detail behind the text-to-speech port. The adapter
   uses native `fetch` against the official one-shot REST contract, maps only logical voice keys, and
-  returns transient bounded bytes; no SDK, provider fields, audio persistence, or provider-facing
-  route was added. The completed-message audio route invokes this port using persisted cleaned
-  Avatar content and returns bounded binary delivery metadata.
+  returns transient bounded bytes; no SDK, provider fields, or audio persistence was added. The
+  completed-message audio route invokes this port using persisted cleaned Avatar content, validates
+  returned identity/byte metadata, and returns bounded binary delivery metadata.
+- EPIC 9.2 hardening proves text-first failure isolation, exact cleaned-text fidelity, voice
+  inheritance and legacy configuration, repeated/concurrent message synthesis association, provider
+  body cancellation/cleanup, bounded output, secret-safe observability, and browser stale-request
+  and object-URL cleanup. Duration is propagated only when the selected adapter supplies it; the
+  current Gradium one-shot REST response does not.
+- EPIC 9.2 deterministic gates pass without provider credentials. The completed-message stack-E2E
+  contract remains environment-gated: its auth, validation, and not-found cases are present, while
+  the binary happy path is deferred until the deployed stack has a seeded deterministic TTS adapter.
+  Live-provider and PostgreSQL integration checks remain environment-dependent and are not part of
+  the credential-free default gate.
 - Voice idempotency now uses a Redis-backed implementation for cross-instance coordination while
   preserving the same application port and fail-safe expired reservation behavior.
 - Deterministic Epic 9.1 verification passes without credentials. Live Deepgram success and stack

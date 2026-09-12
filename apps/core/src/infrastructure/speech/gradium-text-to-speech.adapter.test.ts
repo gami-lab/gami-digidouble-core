@@ -44,7 +44,10 @@ function createResponse(
     chunks?: Uint8Array[]
     closeBody?: boolean
   } = {},
-): GradiumTransportResponse & { cancelled: () => boolean } {
+): GradiumTransportResponse & {
+  arrayBuffer: ReturnType<typeof vi.fn>
+  cancelled: () => boolean
+} {
   let cancelled = false
   const chunks = options.chunks ?? [bytes]
   const body = new ReadableStream<Uint8Array>({
@@ -231,7 +234,7 @@ describe('GradiumTextToSpeechAdapter', () => {
         cancelled = true
       },
     })
-    const response: GradiumTransportResponse = {
+    const response: GradiumTransportResponse & { arrayBuffer: ReturnType<typeof vi.fn> } = {
       status: 200,
       headers: new Headers({ 'content-type': 'audio/wav' }),
       body,
@@ -244,8 +247,25 @@ describe('GradiumTextToSpeechAdapter', () => {
     })
     expect(cancelled).toBe(true)
   })
+
+  it('does not fall back to an unbounded arrayBuffer when the response has no stream body', async () => {
+    const arrayBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(20_000_000))
+    const response: GradiumTransportResponse & { arrayBuffer: ReturnType<typeof vi.fn> } = {
+      status: 200,
+      headers: new Headers({ 'content-type': 'audio/wav' }),
+      body: null,
+      arrayBuffer,
+    }
+    const { adapter } = createAdapter(response)
+
+    await expect(adapter.synthesize(createInput())).rejects.toMatchObject({
+      failure: { code: 'invalid_provider_output', reason: 'malformed_body' },
+    })
+    expect(arrayBuffer).not.toHaveBeenCalled()
+  })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
   it('propagates caller cancellation and maps it without provider details', async () => {
     let request: GradiumTransportRequest | undefined
@@ -308,6 +328,59 @@ describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
       await vi.advanceTimersByTimeAsync(100)
       await failure
       expect(request?.signal.aborted).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('cancels a provider body reader when the caller aborts during output delivery', async () => {
+    const response = createResponse(new Uint8Array(), {
+      contentType: 'audio/wav',
+      closeBody: false,
+    })
+    const post = vi.fn<GradiumTransport['post']>().mockResolvedValue(response)
+    const observability = createObservability()
+    const adapter = new GradiumTextToSpeechAdapter(
+      {
+        apiKey: 'gradium-secret-test',
+        endpoint: 'https://gradium.test/api/post/speech/tts',
+        timeoutMs: 30_000,
+        limits: TEXT_TO_SPEECH_LIMITS,
+        voiceMap: { 'avatar-default': 'provider-voice-123' },
+      },
+      observability.adapter,
+      { post } satisfies GradiumTransport,
+    )
+    const controller = new AbortController()
+    const synthesis = adapter.synthesize(createInput(), { signal: controller.signal })
+    await vi.waitFor(() => {
+      expect(post).toHaveBeenCalled()
+    })
+
+    controller.abort()
+
+    await expect(synthesis).rejects.toMatchObject({
+      failure: { code: 'cancelled', phase: 'during_synthesis' },
+    })
+    expect(response.cancelled()).toBe(true)
+  })
+
+  it('cancels a provider body reader when the adapter timeout fires during output delivery', async () => {
+    vi.useFakeTimers()
+    try {
+      const response = createResponse(new Uint8Array(), {
+        contentType: 'audio/wav',
+        closeBody: false,
+      })
+      const { adapter, post } = createAdapter(response, { timeoutMs: 100 })
+      const synthesis = adapter.synthesize(createInput())
+      const failure = expect(synthesis).rejects.toMatchObject({ failure: { code: 'timeout' } })
+
+      await vi.advanceTimersByTimeAsync(100)
+
+      await failure
+      expect(post).toHaveBeenCalledTimes(1)
+      expect(response.cancelled()).toBe(true)
     } finally {
       vi.useRealTimers()
     }

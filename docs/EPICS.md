@@ -552,10 +552,13 @@ environment limitations rather than claims of provider-backed success.
 
 ### `9.2 Voice Output Integration with Gradium`
 
-**Current state**  
-Prompts 00 and 01 complete. Canonical provider-neutral voice/audio ownership and additive
-Avatar/Scenario configuration mapping are shipped; the Core still returns or streams cleaned Avatar
-text only, with no synthesis, binary route, or playback UI.
+**Current state — complete**
+Prompts 00 through 05 are shipped. The repository now has one canonical provider-neutral
+voice/audio contract, additive Avatar/Scenario voice configuration, an application TTS port, a
+credential-free Gradium REST adapter, completed-message binary delivery, browser playback with
+text fallback, deterministic hardening coverage, and synchronized documentation. Existing text
+routes, stream events, turn completion, Game Master scheduling, memory maintenance, and message
+persistence remain independent of audio.
 
 **Summary**  
 Add a voice-output path using Gradium for text-to-speech. A provider-neutral voice port and
@@ -572,6 +575,19 @@ Core Application TTS port; provider details remain Infrastructure. Prompt 01 map
 through Avatar/Scenario summaries and existing JSONB persistence, with Avatar-over-Scenario
 resolution and explicit update clearing. Existing text and stream contracts are unchanged, and
 audio remains transient rather than persisted.
+
+Prompts 02 and 03 add the provider-neutral TTS port, bounded Gradium adapter, typed failures,
+timeout/cancellation propagation, safe observability, persisted-message lookup, and the additive
+audio route. Prompt 04 adds canonical message-ID browser playback, localized accessible controls,
+stale-request suppression, abort handling, and object-URL/audio-element cleanup. Prompt 05 adds
+regressions for cleaned-text fidelity, voice inheritance and legacy records, repeated/concurrent
+synthesis, response bounds and metadata association, provider-body cleanup, observability
+redaction, and text-first failure isolation.
+
+The stack-E2E contract always covers authentication, validation, and not-found behavior. Its binary
+success case remains an explicit TODO because the production stack has no seeded deterministic TTS
+adapter and should not require live Gradium credentials; route-level success coverage is always-on.
+This is a deployment-fixture limitation, not a missing application contract.
 
 ## Superseded Or Absorbed Items
 

@@ -50,21 +50,21 @@ Run prompts in order: `00 -> 01 -> 02 -> 03 -> 04 -> 05`.
 
 ## Definition Of Done For The Full EPIC
 
-- [ ] Avatar and Scenario voice configuration has one canonical provider-neutral contract.
-- [ ] Client audio preferences are additive and do not force audio on existing text-only clients.
-- [ ] Gradium access is isolated behind `ITextToSpeechAdapter` and provider credentials never leak.
-- [ ] A completed persisted cleaned Avatar message can be delivered as bounded browser-playable audio.
-- [ ] Stage directions and presentation-only labels are never synthesized.
-- [ ] Text persistence, turn completion, GM scheduling, and memory maintenance are independent of audio.
-- [ ] Cancellation, client disconnect, timeout, quota, malformed-provider-output, and unavailable
+- [x] Avatar and Scenario voice configuration has one canonical provider-neutral contract.
+- [x] Client audio preferences are additive and do not force audio on existing text-only clients.
+- [x] Gradium access is isolated behind `ITextToSpeechAdapter` and provider credentials never leak.
+- [x] A completed persisted cleaned Avatar message can be delivered as bounded browser-playable audio.
+- [x] Stage directions and presentation-only labels are never synthesized.
+- [x] Text persistence, turn completion, GM scheduling, and memory maintenance are independent of audio.
+- [x] Cancellation, client disconnect, timeout, quota, malformed-provider-output, and unavailable
       provider cases release resources and preserve text fallback.
-- [ ] Audio is not persisted with conversation messages by default.
-- [ ] Synthesis diagnostics record safe latency, duration, format, outcome, and failure category
+- [x] Audio is not persisted with conversation messages by default.
+- [x] Synthesis diagnostics record safe latency, duration when supplied, format, outcome, and failure category
       without raw provider payloads, credentials, or unnecessary response text.
-- [ ] Deterministic adapter fakes cover unit and integration behavior; live Gradium credentials are
+- [x] Deterministic adapter fakes cover unit and integration behavior; live Gradium credentials are
       not required for the default suite.
-- [ ] The new audio route has route tests and `conversation-message-audio.stack-e2e.test.ts`
+- [x] The new audio route has route tests and `conversation-message-audio.stack-e2e.test.ts`
       covering auth, validation, not-found, and an available success path or a clearly documented TODO.
-- [ ] `docs/PROJECT_STATUS.md` and every impacted architecture, API, data-model, testing, stack,
+- [x] `docs/PROJECT_STATUS.md` and every impacted architecture, API, data-model, testing, stack,
       and EPIC document are synchronized; `9.2 Voice Output Integration with Gradium` is marked done
       only after the implementation is actually shipped.

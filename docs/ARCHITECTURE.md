@@ -840,7 +840,10 @@ remain in Infrastructure.
 The persisted cleaned Avatar message remains the synthesis source text, while audio bytes remain
 transient delivery data and are not added to `Message`,
 `MessageMetadata`, the event log, or a new persistence entity. Existing text responses and stream
-events remain unchanged.
+events remain unchanged. The application validates adapter output before API serialization so
+concurrent or repeated requests cannot cross-associate bytes and identity metadata. The official
+Gradium one-shot response currently has no duration field in this boundary; duration is propagated
+and observed only when an adapter supplies it.
 
 ## Logger Port
 

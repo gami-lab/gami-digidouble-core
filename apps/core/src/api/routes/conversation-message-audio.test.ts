@@ -305,6 +305,29 @@ describe('conversation message audio route', () => {
     expect(failureTts.requests).toHaveLength(1)
   })
 
+  it('rejects a fake adapter result that exceeds the bounded delivery contract', async () => {
+    const app = createApp(
+      createTtsAdapter({
+        audio: Uint8Array.from([1, 2]),
+        metadata: {
+          requestId: 'request_1',
+          messageId: avatarMessage.messageId,
+          format: 'audio/wav',
+          byteLength: 3,
+        },
+      }),
+    )
+
+    const response = await app.inject({
+      method: 'POST',
+      url: audioUrl(),
+      headers: headers(),
+      payload: {},
+    })
+
+    expectError(response, 502, 'PROVIDER_ERROR')
+  })
+
   it.each([
     [
       new TextToSpeechError({ code: 'invalid_request', reason: 'empty_text', retryable: false }),
