@@ -1,9 +1,15 @@
 {
   "version": 1,
-  "name": "Max Lorenzo full test",
+  "name": "Max Lorenzo full test - Chunk size 800, 7 chunk, 0-0-3 required",
   "scenarioId": "scenario_75a5c07b-9c5d-4453-8543-cc07043742c7",
   "initialAvatarId": "avatar_b39c0734-2ccf-4d62-92e0-8a3d6ce3786c",
-  "models": ["xai/grok-4.3"],
+  "models": [
+    "openai/gpt-5.6-luna",
+    "openai/gpt-5.6-luna",
+    "openai/gpt-5.6-luna",
+    "openai/gpt-5.6-luna",
+    "openai/gpt-5.6-luna"
+  ],
   "avatarOptions": {
     "retrieval": {
       "maxChunks": 7,
@@ -40,12 +46,12 @@
       "requiredFacts": ["Mona se trouve dans un camp de quarantaine"],
       "acceptedAlternatives": [
         "Elle est enfermée dans un camp",
-        "Elle a été placée dans un camp de quarantaine",
-        "Aux dernières nouvelles, elle est dans un camp de quarantaine"
+        "Elle a été placée dans un camp de quarantaine"
       ],
       "forbiddenClaims": [
         "Mona est toujours chez son grand-père",
-        "Mona était au chalet avec la famille"
+        "Mona était au chalet avec la famille",
+        "Aux dernières nouvelles, elle est dans un camp de quarantaine"
       ]
     },
     {
