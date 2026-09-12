@@ -815,20 +815,24 @@ conversation, claims the bounded utterance identity, transcribes once, and hands
 text to the synchronous or streaming turn owner. It never owns message persistence, prompt
 assembly, memory maintenance, or Game Master scheduling.
 
-The API registers an encapsulated voice route plugin under the conversations prefix. Its raw-body
-parser is bounded to the shared audio limit and its route-level authentication hook runs before
-body parsing, while the existing text routes retain their JSON parser and contracts. The two voice
-routes map directly to the existing `SendMessageResponse` and `MessageStreamEvent` mappers; no
-voice-specific shared DTO or alternate persistence path is introduced. Binary transport uses
-`Content-Type`, `x-utterance-id`, and optional `x-language`/`x-audio-duration-ms` headers.
+The API registers encapsulated voice route plugins under the conversations prefix. The voice-input
+raw-body parser is bounded to the shared audio limit and its route-level authentication hook runs
+before body parsing, while the existing text routes retain their JSON parser and contracts. The two
+voice-input routes map directly to the existing `SendMessageResponse` and `MessageStreamEvent`
+mappers; no alternate persistence path is introduced. The completed-message audio route has a
+minimal JSON request, delegates lookup and synthesis to `SynthesizeMessageAudioUseCase`, and
+serializes only bounded audio bytes and delivery headers. Binary transport uses `Content-Type`,
+`Content-Length`, `Content-Disposition: inline`, request/message identity headers, and optional
+duration metadata.
 
 ## Voice-output contract boundary
 
 Provider-neutral voice configuration, client audio preferences, supported output formats, and
 binary delivery metadata are owned by `packages/shared/src/voice-contract-types.ts`. Core
 configuration wiring validates/maps the reserved Avatar/Scenario JSONB section and resolves
-Avatar-over-Scenario precedence in the voice domain helper. Application code will own the future
-TTS port and finite synthesis failures; provider mapping and credentials remain in Infrastructure.
+Avatar-over-Scenario precedence in the voice domain helper. Application code owns the TTS port,
+completed-message audio use case, and finite synthesis failures; provider mapping and credentials
+remain in Infrastructure.
 The persisted cleaned Avatar message remains the synthesis source text, while audio bytes remain
 transient delivery data and are not added to `Message`,
 `MessageMetadata`, the event log, or a new persistence entity. Existing text responses and stream

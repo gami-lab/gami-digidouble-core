@@ -9,6 +9,7 @@ import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { ISpeechToTextAdapter } from '../../application/ports/ISpeechToTextAdapter.js'
+import type { ITextToSpeechAdapter } from '../../application/ports/ITextToSpeechAdapter.js'
 import type { IUtteranceIdempotencyStore } from '../../application/ports/IUtteranceIdempotencyStore.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
@@ -30,6 +31,7 @@ import type { TypedRetrievalService } from '../../application/services/knowledge
 import { SendMessageUseCase } from '../../application/use-cases/send-message/send-message.use-case.js'
 import { StreamingSendMessageUseCase } from '../../application/use-cases/send-message/streaming-send-message.use-case.js'
 import { VoiceTurnUseCase } from '../../application/use-cases/voice-turn/voice-turn.use-case.js'
+import { SynthesizeMessageAudioUseCase } from '../../application/use-cases/synthesize-message-audio/synthesize-message-audio.use-case.js'
 import type { Config } from '../../config.js'
 import type { ModelConfig } from '../../domain/model-config/index.js'
 import { DomainError } from '../../domain/errors.js'
@@ -55,6 +57,7 @@ import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-re
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import { voiceMessagesRoute } from './voice-messages.js'
+import { conversationMessageAudioRoute } from './conversation-message-audio.js'
 import {
   mapSendMessageResponse,
   mapStreamingEvent,
@@ -87,6 +90,7 @@ type ConversationsRouteOptions = {
   gmStateRepository?: IGmStateRepository
   typedRetrievalService?: TypedRetrievalService
   speechToTextAdapter?: ISpeechToTextAdapter
+  textToSpeechAdapter?: ITextToSpeechAdapter
   utteranceIdempotencyStore?: IUtteranceIdempotencyStore
 }
 
@@ -147,6 +151,13 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
   app.register(voiceMessagesRoute, {
     config: options.config,
     ...(deps.voiceTurnUseCase === undefined ? {} : { voiceTurnUseCase: deps.voiceTurnUseCase }),
+  })
+
+  app.register(conversationMessageAudioRoute, {
+    config: options.config,
+    ...(deps.synthesizeMessageAudioUseCase === undefined
+      ? {}
+      : { synthesizeMessageAudioUseCase: deps.synthesizeMessageAudioUseCase }),
   })
 
   app.post<{ Params: ConversationParams; Body: SendMessageRequest }>(
@@ -267,6 +278,7 @@ type RouteDependencies = {
   conversationRepository: IConversationRepository
   messageRepository: IMessageRepository
   voiceTurnUseCase?: VoiceTurnUseCase
+  synthesizeMessageAudioUseCase?: SynthesizeMessageAudioUseCase
 }
 
 type ConversationPersistenceDeps = {
@@ -361,6 +373,16 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
           observabilityAdapter,
         )
       : undefined
+  const synthesizeMessageAudioUseCase =
+    options.textToSpeechAdapter === undefined
+      ? undefined
+      : new SynthesizeMessageAudioUseCase(
+          repositories.conversationRepository,
+          repositories.messageRepository,
+          repositories.avatarRepository,
+          repositories.scenarioRepository,
+          options.textToSpeechAdapter,
+        )
 
   return {
     observabilityAdapter,
@@ -369,6 +391,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
     sendMessageUseCase,
     streamingSendMessageUseCase,
     ...(voiceTurnUseCase === undefined ? {} : { voiceTurnUseCase }),
+    ...(synthesizeMessageAudioUseCase === undefined ? {} : { synthesizeMessageAudioUseCase }),
   }
 }
 

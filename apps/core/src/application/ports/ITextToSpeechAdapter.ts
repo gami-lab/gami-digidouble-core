@@ -44,7 +44,11 @@ export type TextToSpeechFailure =
     }>
   | Readonly<{
       code: 'invalid_configuration'
-      reason: 'missing_credentials' | 'missing_voice_mapping' | 'invalid_adapter_configuration'
+      reason:
+        | 'missing_credentials'
+        | 'missing_voice_configuration'
+        | 'missing_voice_mapping'
+        | 'invalid_adapter_configuration'
       retryable: false
     }>
   | Readonly<{

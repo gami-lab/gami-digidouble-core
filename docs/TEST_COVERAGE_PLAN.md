@@ -82,8 +82,11 @@ observability. These tests use injected transport fakes and do not require Gradi
 Voice-output contract cleanup must cover the shared finite output-format guard, provider-neutral
 logical voice configuration, client playback/delivery preference boundaries, minimal delivery
 request, and bounded binary delivery metadata. These tests must reject provider credentials,
-provider-native voice fields, and raw audio values; synthesis, route, and playback coverage belongs
-to the subsequent EPIC 9.2 prompts.
+provider-native voice fields, and raw audio values. The completed-message audio route additionally
+covers canonical persisted Avatar content, conversation/message ownership, voice resolution,
+bounded binary headers, transient delivery, typed synthesis failures, and the required stack-E2E
+auth/validation/not-found contract; its binary happy path remains environment-gated when no seeded
+deterministic adapter is available.
 
 Voice configuration coverage also verifies additive Avatar/Scenario create and update mapping,
 reserved JSONB projection, legacy records without configuration, explicit null clearing, deterministic

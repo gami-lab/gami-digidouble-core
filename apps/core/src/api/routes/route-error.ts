@@ -3,6 +3,10 @@ import {
   isSpeechToTextError,
   type SpeechToTextFailure,
 } from '../../application/ports/ISpeechToTextAdapter.js'
+import {
+  isTextToSpeechError,
+  type TextToSpeechFailure,
+} from '../../application/ports/ITextToSpeechAdapter.js'
 import { isVoiceTurnError } from '../../application/use-cases/voice-turn/voice-turn.types.js'
 import { DomainError } from '../../domain/errors.js'
 import { LlmError } from '../../infrastructure/llm/index.js'
@@ -26,10 +30,27 @@ export function handleRouteError(error: unknown): {
 
   if (isSpeechToTextError(error))
     return mapSpeechToTextRouteError(error.failure.code, error.message)
+  if (isTextToSpeechError(error)) {
+    return mapTextToSpeechRouteError(error.failure, error.message)
+  }
   if (error instanceof LlmError) {
     return { statusCode: 502, body: fail('EXTERNAL_SERVICE_ERROR', error.message) }
   }
   return { statusCode: 500, body: fail('INTERNAL_ERROR', 'Internal server error') }
+}
+
+function mapTextToSpeechRouteError(
+  failure: TextToSpeechFailure,
+  safeMessage: string,
+): { statusCode: number; body: ReturnType<typeof fail> } {
+  if (
+    failure.code === 'invalid_configuration' &&
+    failure.reason === 'missing_voice_configuration'
+  ) {
+    return { statusCode: 409, body: fail('CONFLICT', safeMessage) }
+  }
+  const mapping = TEXT_TO_SPEECH_ROUTE_ERRORS[failure.code]
+  return { statusCode: mapping.statusCode, body: fail(mapping.errorCode, safeMessage) }
 }
 
 function mapSpeechToTextRouteError(
@@ -55,4 +76,17 @@ const SPEECH_TO_TEXT_ROUTE_ERRORS: Readonly<
   rate_limited: { statusCode: 429, errorCode: 'RATE_LIMITED' },
   malformed_transcription: { statusCode: 400, errorCode: 'VALIDATION_ERROR' },
   cancelled: { statusCode: 409, errorCode: 'CONFLICT' },
+}
+
+const TEXT_TO_SPEECH_ROUTE_ERRORS: Readonly<
+  Record<TextToSpeechFailure['code'], { statusCode: number; errorCode: ErrorCode }>
+> = {
+  invalid_request: { statusCode: 400, errorCode: 'VALIDATION_ERROR' },
+  invalid_configuration: { statusCode: 502, errorCode: 'PROVIDER_ERROR' },
+  provider_unavailable: { statusCode: 502, errorCode: 'PROVIDER_ERROR' },
+  timeout: { statusCode: 504, errorCode: 'TIMEOUT' },
+  rate_limited: { statusCode: 429, errorCode: 'RATE_LIMITED' },
+  cancelled: { statusCode: 409, errorCode: 'CONFLICT' },
+  unsupported_format: { statusCode: 400, errorCode: 'VALIDATION_ERROR' },
+  invalid_provider_output: { statusCode: 502, errorCode: 'PROVIDER_ERROR' },
 }

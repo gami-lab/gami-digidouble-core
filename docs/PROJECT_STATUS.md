@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-09-12
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-02 voice/audio contracts, provider-neutral configuration, and TTS adapter delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-03 voice/audio contracts, provider-neutral configuration, TTS adapter, and completed-message audio route delivered
 
 ## Snapshot
 
@@ -61,8 +61,9 @@ The platform is now a working headless conversational runtime with:
   unavailable-provider behavior with text-route continuity, latency/failure observability,
   provider-payload redaction, and environment-gated stack happy-path success checks
 - canonical shared voice-output contracts for logical voice configuration, client audio preferences,
-  supported browser output formats, and bounded transient binary-delivery metadata; no public audio
-  route, playback UI, provider SDK, or audio persistence is included
+  supported browser output formats, and bounded transient binary-delivery metadata, plus the
+  completed-message audio application flow and additive binary route; no playback UI, provider SDK,
+  or audio persistence is included
 
 ## What Is Shipped
 
@@ -362,8 +363,9 @@ retrieval proof or change production behavior.
   unconfigured safely when `DEEPGRAM_API_KEY` is absent, preserving the existing text/LLM path.
 - Gradium is an Infrastructure implementation detail behind the text-to-speech port. The adapter
   uses native `fetch` against the official one-shot REST contract, maps only logical voice keys, and
-  returns transient bounded bytes; no SDK, provider fields, audio persistence, or public synthesis
-  route was added.
+  returns transient bounded bytes; no SDK, provider fields, audio persistence, or provider-facing
+  route was added. The completed-message audio route invokes this port using persisted cleaned
+  Avatar content and returns bounded binary delivery metadata.
 - Voice idempotency now uses a Redis-backed implementation for cross-instance coordination while
   preserving the same application port and fail-safe expired reservation behavior.
 - Deterministic Epic 9.1 verification passes without credentials. Live Deepgram success and stack

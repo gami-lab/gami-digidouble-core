@@ -124,6 +124,8 @@ to the shared wire type.
 - `POST /v1/conversations/{conversationId}/messages` -> `SendMessageRequest` -> `ApiResponse<SendMessageResponse>`
 - `POST /v1/conversations/{conversationId}/messages/stream` -> `SendMessageRequest` -> SSE
   `MessageStreamEvent` frames
+- `POST /v1/conversations/{conversationId}/messages/{messageId}/audio` -> minimal JSON request ->
+  bounded binary audio
 - `POST /v1/conversations/{conversationId}/voice-messages` -> raw audio ->
   `ApiResponse<SendMessageResponse>`
 - `POST /v1/conversations/{conversationId}/voice-messages/stream` -> raw audio -> SSE
@@ -153,6 +155,27 @@ Voice message transport contract:
 - Request disconnects propagate cancellation through transcription and the existing streaming turn
   flow. Partial Avatar content is not persisted and post-turn work is not scheduled for an
   interrupted stream. Raw audio and transcript text are never included in API errors or logs.
+
+Completed message audio contract:
+
+- `POST /v1/conversations/{conversationId}/messages/{messageId}/audio` requires the existing
+  `x-api-key` header and accepts an optional JSON body `{ "format": "audio/wav" }`. `format` is
+  limited to the shared browser-compatible output-format union; omission defaults to `audio/wav`.
+  The body cannot select provider credentials, endpoints, voice identifiers, or provider-native
+  synthesis options.
+- A successful response is a bounded binary body, not an `ApiResponse` envelope. It returns the
+  validated `Content-Type`, exact `Content-Length`, `Content-Disposition: inline`, `X-Request-Id`,
+  `X-Message-Id`, and optional `X-Audio-Duration-Ms` headers. The response uses only the persisted,
+  cleaned Avatar `Message.content` from the requested conversation.
+- Authentication failures return `401 UNAUTHORIZED`; malformed or unsupported requests return
+  `400 VALIDATION_ERROR`; unknown conversations/messages return `404 NOT_FOUND`; non-Avatar
+  messages and missing voice configuration return `409 CONFLICT`; provider configuration,
+  availability, and malformed/oversized output return `502 PROVIDER_ERROR`; timeout returns
+  `504 TIMEOUT`; rate limiting returns `429 RATE_LIMITED`; cancellation returns `409 CONFLICT`.
+  All error responses use the standard JSON `ApiResponse` envelope.
+- Audio bytes are transient delivery data. The route reads existing conversation, Avatar, Scenario,
+  and Message records only; it does not write `messages.metadata`, create audio assets, or alter
+  text-turn, Game Master, memory, or stream-event behavior.
 
 `StartSessionRequest` accepts an optional session-scoped `model` override and Avatar retrieval
 settings. The model override is reused for Avatar, Game Master, and memory-compaction calls in the
@@ -221,9 +244,10 @@ Voice-output contract ownership:
 - Provider-neutral voice configuration, client audio preferences, supported browser output formats,
   and bounded binary delivery metadata are owned by `@gami/shared` in
   `voice-contract-types.ts`.
-- The current API has no voice-output route. A future message-audio route must accept only the
-  shared minimal `AudioDeliveryRequest` (`format` optional) and map shared delivery metadata to
-  binary response headers.
+- The completed-message audio route accepts only the shared minimal `AudioDeliveryRequest`
+  (`format` optional) and maps shared delivery metadata to binary response headers. The application
+  use case owns conversation/message lookup, Avatar-message checks, voice resolution, and adapter
+  invocation; the API route owns authentication, validation, headers, and binary serialization.
 - Avatar and Scenario create requests accept optional `voiceConfig`; update requests also accept
   `voiceConfig: null` to clear it. Omission leaves existing configuration unchanged on update.
   Avatar voice overrides the Scenario default; absent both means no configured voice. Clients
@@ -231,10 +255,10 @@ Voice-output contract ownership:
   options.
 - Persisted `Message` and `MessageMetadata`, `SendMessageResponse`, and `MessageStreamEvent` remain
   text-only and unchanged. Audio bytes are transient and are not persisted by default.
-- The current TTS implementation is an internal application port and has no public synthesis route.
-  Its infrastructure adapter returns transient bytes and shared delivery metadata only; it does not
-  alter text message persistence or stream events. A later binary route must preserve this boundary
-  and map only bounded metadata to response headers.
+- The TTS implementation remains an internal application port. Its infrastructure adapter returns
+  transient bytes and shared delivery metadata only; it does not alter text message persistence or
+  stream events. The completed-message audio route preserves this boundary and maps only bounded
+  metadata to response headers.
 
 ### Runtime
 

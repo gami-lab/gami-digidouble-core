@@ -84,8 +84,11 @@ interruption, bounded latency/outcome diagnostics, and absence of duplicate back
 The voice HTTP route suite additionally covers raw-body parsing and byte/media/header limits,
 authentication before parsing, canonical synchronous and SSE response shapes, standard error
 mapping, unknown-conversation ordering, duplicate utterance rejection, and request-disconnect
-cleanup. The stack-E2E suite uses real HTTP requests for both routes and covers auth, validation,
-not-found, and environment-gated provider-backed success cases using a deterministic audio fixture.
+cleanup. The completed-message audio route suite additionally covers persisted Avatar content,
+conversation/message ownership, voice inheritance, binary headers, transient delivery, and typed
+synthesis failure mapping. The stack-E2E suite uses real HTTP requests for all voice routes and
+covers auth, validation, not-found, and environment-gated provider-backed success cases using a
+deterministic audio fixture.
 Voice stack success checks are gated by `VOICE_STACK_E2E=1` and `VOICE_STACK_E2E_AUDIO_PATH`.
 The Deepgram live smoke test is environment-gated by `DEEPGRAM_LIVE_SMOKE=1`, `DEEPGRAM_API_KEY`, and
 `DEEPGRAM_LIVE_AUDIO_PATH`; skipped checks are reported as an environment limitation.
@@ -94,9 +97,9 @@ The Deepgram live smoke test is environment-gated by `DEEPGRAM_LIVE_SMOKE=1`, `D
 
 The shared voice contract tests cover the finite browser output-format set, provider-neutral logical
 voice configuration, client preference boundaries, minimal delivery requests, and bounded binary
-delivery metadata. They reject provider-shaped fields and raw audio values. The current gate does
-not add synthesis, a binary route, or playback behavior; those tests belong to the later EPIC 9.2
-prompts and must continue to consume the shared contracts. Core contract tests additionally cover
+delivery metadata. They reject provider-shaped fields and raw audio values. The completed-message
+audio route tests consume those shared contracts but do not test playback behavior. Core contract
+tests additionally cover
 legacy config reads, reserved-section mapping, explicit update clearing, Avatar-over-Scenario
 resolution, and old payload compatibility.
 
