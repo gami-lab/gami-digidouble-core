@@ -804,6 +804,16 @@ routes map directly to the existing `SendMessageResponse` and `MessageStreamEven
 voice-specific shared DTO or alternate persistence path is introduced. Binary transport uses
 `Content-Type`, `x-utterance-id`, and optional `x-language`/`x-audio-duration-ms` headers.
 
+## Voice-output contract boundary
+
+Provider-neutral voice configuration, client audio preferences, supported output formats, and
+binary delivery metadata are owned by `packages/shared/src/voice-contract-types.ts`. Core
+application code will own the future TTS port and finite synthesis failures; provider mapping and
+credentials remain in Infrastructure. The persisted cleaned Avatar message remains the synthesis
+source text, while audio bytes remain transient delivery data and are not added to `Message`,
+`MessageMetadata`, the event log, or a new persistence entity. Existing text responses and stream
+events remain unchanged.
+
 ## Logger Port
 
 ```ts

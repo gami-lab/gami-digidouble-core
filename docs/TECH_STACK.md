@@ -85,7 +85,9 @@ For product principles, read `PRINCIPLES.md`.
   a Deepgram pre-recorded HTTP adapter using the platform `fetch` client, with no SDK dependency;
   the optional `DEEPGRAM_API_KEY`, model, timeout, and default language are validated at startup.
   Raw-audio persistence, continuous streaming, and voice/media rendering are not part of the
-  current Core stack. The public voice routes use Fastify's encapsulated bounded raw-body parser
+  current Core stack. The shared voice-output contract is additive preparation for a future
+  delivery route; it does not add a provider, SDK, or rendering runtime. The public voice routes use
+  Fastify's encapsulated bounded raw-body parser
   with no multipart dependency. Voice idempotency is backed by Redis and injectable through the
   application port for deterministic testing.
 

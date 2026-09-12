@@ -13,6 +13,7 @@ Exact wire types live in:
 - `packages/shared/src/knowledge-contract-types.ts`
 - `packages/shared/src/runtime-inspector-types.ts`
 - `packages/shared/src/lifecycle-types.ts`
+- `packages/shared/src/voice-contract-types.ts`
 
 Use those files as the canonical field-level source of truth. This document keeps the stable surface area, invariants, and route inventory in one place.
 
@@ -212,6 +213,19 @@ Message-stream contract ownership:
   `parseMessageStreamEvent` boundary before applying state changes. The observed provider wrapper
   records interruption outcome and reason on the existing request trace without creating a trace
   per delta.
+
+Voice-output contract ownership:
+
+- Provider-neutral voice configuration, client audio preferences, supported browser output formats,
+  and bounded binary delivery metadata are owned by `@gami/shared` in
+  `voice-contract-types.ts`.
+- The current API has no voice-output route. A future message-audio route must accept only the
+  shared minimal delivery request and map shared delivery metadata to binary response headers.
+- Voice configuration is omitted when absent; `null` is reserved for an explicit future clear
+  mutation. Clients cannot submit provider credentials, endpoints, provider voice identifiers, or
+  arbitrary synthesis options.
+- Persisted `Message` and `MessageMetadata`, `SendMessageResponse`, and `MessageStreamEvent` remain
+  text-only and unchanged. Audio bytes are transient and are not persisted by default.
 
 ### Runtime
 

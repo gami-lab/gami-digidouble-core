@@ -1,7 +1,7 @@
 # Project Status
 
-Last updated: 2026-09-11
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered
+Last updated: 2026-09-12
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompt 00 voice/audio contract ownership delivered
 
 ## Snapshot
 
@@ -56,6 +56,9 @@ The platform is now a working headless conversational runtime with:
 - voice hardening coverage for concurrent duplicate submissions, post-transcription cancellation,
   unavailable-provider behavior with text-route continuity, latency/failure observability,
   provider-payload redaction, and environment-gated stack happy-path success checks
+- canonical shared voice-output contracts for logical voice configuration, client audio preferences,
+  supported browser output formats, and bounded transient binary-delivery metadata; no synthesis,
+  audio route, playback UI, provider SDK, or audio persistence is included
 
 ## What Is Shipped
 
@@ -326,6 +329,9 @@ retrieval proof or change production behavior.
 - `tools/conversation-evaluation` is an external client/tool boundary; its report types remain
   outside the Core domain.
 - `MessageStreamEvent` is owned by `@gami/shared`; future stream requests reuse `SendMessageRequest`.
+- `voice-contract-types.ts` is the canonical `@gami/shared` owner for provider-neutral logical voice
+  configuration, client audio preferences, supported output formats, and transient binary-delivery
+  metadata. Synthesis failures remain an internal Application TTS-port contract.
 - `LlmStreamEvent` and `LlmStreamOptions` are owned by the internal `ILlmAdapter` port; provider
   streams emit ordered deltas followed by one terminal response with usage metadata.
 - `ObservedLlmAdapter` remains the single LLM observability boundary for streams and traces the

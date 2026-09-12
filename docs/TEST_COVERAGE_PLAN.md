@@ -74,6 +74,12 @@ Voice-turn application coverage verifies that synchronous and streaming voice ca
 canonical send-message use cases, preserve cancellation/interruption behavior, and consume or
 release the idempotency reservation at the correct boundary without duplicating turn execution.
 
+Voice-output contract cleanup must cover the shared finite output-format guard, provider-neutral
+logical voice configuration, client playback/delivery preference boundaries, minimal delivery
+request, and bounded binary delivery metadata. These tests must reject provider credentials,
+provider-native voice fields, and raw audio values; synthesis, route, and playback coverage belongs
+to the subsequent EPIC 9.2 prompts.
+
 Epic 9.1 hardening evidence maps the remaining independent risks to deterministic checks: concurrent
 duplicate requests to one transcription/turn, cancellation after transcription before handoff,
 unconfigured voice with an unchanged text route, failure traces containing only bounded latency,

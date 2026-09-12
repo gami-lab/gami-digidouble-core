@@ -66,6 +66,21 @@ export type {
 export type { LlmResponseMetrics } from './llm-contract-types.js'
 export type { RawExchangeRequest, RawExchangeResponse } from './raw-exchange-contract-types.js'
 export type {
+  AudioDeliveryMetadata,
+  AudioDeliveryRequest,
+  AudioOutputFormat,
+  ClientAudioOptions,
+  VoiceConfiguration,
+} from './voice-contract-types.js'
+export {
+  AUDIO_OUTPUT_FORMATS,
+  isAudioDeliveryMetadata,
+  isAudioDeliveryRequest,
+  isAudioOutputFormat,
+  isClientAudioOptions,
+  isVoiceConfiguration,
+} from './voice-contract-types.js'
+export type {
   MessageStreamEventBase,
   MessageStreamStartedEvent,
   MessageStreamDeltaEvent,

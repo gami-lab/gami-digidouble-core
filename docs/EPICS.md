@@ -553,7 +553,8 @@ environment limitations rather than claims of provider-backed success.
 ### `9.2 Voice Output Integration with Gradium`
 
 **Current state**  
-Proposed. The Core currently returns or streams cleaned Avatar text only; no voice-output integration is shipped.
+Prompt 00 complete. Canonical provider-neutral voice/audio contract ownership is shipped; the Core
+still returns or streams cleaned Avatar text only, with no synthesis, binary route, or playback UI.
 
 **Summary**  
 Add a voice-output path using Gradium for text-to-speech. A provider-neutral voice port and
@@ -561,6 +562,13 @@ adapter boundary—implemented in Core infrastructure or an adjacent voice edge,
 requires—consumes the canonical cleaned Avatar response, produces playable audio with cancellation
 and failure handling, and keeps text persistence and Core turn completion independent from audio
 playback.
+
+Prompt 00 records the ownership decision in
+[VOICE_AUDIO_CONTRACT_OWNERSHIP.md](VOICE_AUDIO_CONTRACT_OWNERSHIP.md). The shared contract module
+owns logical voice configuration, client playback/delivery preferences, finite browser output
+formats, and bounded binary delivery metadata. Internal synthesis failures belong to the future
+Core Application TTS port; provider details remain Infrastructure. Existing text and stream
+contracts are unchanged, and audio remains transient rather than persisted.
 
 ## Superseded Or Absorbed Items
 

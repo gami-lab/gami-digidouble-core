@@ -82,6 +82,14 @@ Voice stack success checks are gated by `VOICE_STACK_E2E=1` and `VOICE_STACK_E2E
 The Deepgram live smoke test is environment-gated by `DEEPGRAM_LIVE_SMOKE=1`, `DEEPGRAM_API_KEY`, and
 `DEEPGRAM_LIVE_AUDIO_PATH`; skipped checks are reported as an environment limitation.
 
+## 4e Voice-output contract ownership
+
+The shared voice contract tests cover the finite browser output-format set, provider-neutral logical
+voice configuration, client preference boundaries, minimal delivery requests, and bounded binary
+delivery metadata. They reject provider-shaped fields and raw audio values. The current gate does
+not add synthesis, a binary route, or playback behavior; those tests belong to the later EPIC 9.2
+prompts and must continue to consume the shared contracts.
+
 ## 5. Assert from the consumer inward, not from the implementation outward
 
 The most dangerous test gap is a test that passes because it only checks what the code already does, not what the consumer requires.
