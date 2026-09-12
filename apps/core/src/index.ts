@@ -63,6 +63,7 @@ import { createEmbeddingAdapter } from './infrastructure/knowledge/openai-embedd
 import { KnowledgeQueryEmbeddingService } from './application/services/knowledge/knowledge-query-embedding.service.js'
 import { TypedRetrievalService } from './application/services/knowledge/typed-retrieval.service.js'
 import { createSpeechToTextAdapter } from './infrastructure/speech/deepgram-speech-to-text.adapter.js'
+import { createTextToSpeechAdapter } from './infrastructure/speech/gradium-text-to-speech.adapter.js'
 import { RedisUtteranceIdempotencyStore } from './infrastructure/cache/redis-utterance-idempotency.store.js'
 
 type CoreRepositories = ReturnType<typeof buildCoreRepositories>
@@ -135,6 +136,7 @@ async function main(): Promise<void> {
       },
       observability,
     ),
+    textToSpeechAdapter: buildTextToSpeechAdapter(config, observability),
     observabilityAdapter: observability,
     ...repositories,
     ...knowledgeAdapters,
@@ -250,6 +252,23 @@ function buildKnowledgeAdapters(
       observability,
     ),
   }
+}
+
+function buildTextToSpeechAdapter(
+  config: Config,
+  observability: ReturnType<typeof createObservabilityAdapter>,
+) {
+  return createTextToSpeechAdapter(
+    {
+      provider: config.ttsProvider,
+      ...(config.gradiumApiKey === undefined ? {} : { apiKey: config.gradiumApiKey }),
+      endpoint: config.gradiumEndpoint,
+      timeoutMs: config.gradiumTimeoutMs,
+      limits: config.textToSpeechLimits,
+      voiceMap: config.gradiumVoiceMap,
+    },
+    observability,
+  )
 }
 
 await main()

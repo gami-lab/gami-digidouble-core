@@ -231,6 +231,10 @@ Voice-output contract ownership:
   options.
 - Persisted `Message` and `MessageMetadata`, `SendMessageResponse`, and `MessageStreamEvent` remain
   text-only and unchanged. Audio bytes are transient and are not persisted by default.
+- The current TTS implementation is an internal application port and has no public synthesis route.
+  Its infrastructure adapter returns transient bytes and shared delivery metadata only; it does not
+  alter text message persistence or stream events. A later binary route must preserve this boundary
+  and map only bounded metadata to response headers.
 
 ### Runtime
 

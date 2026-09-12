@@ -792,6 +792,24 @@ provider response payloads, and provider-specific errors remain inside Infrastru
 composition root creates a typed unconfigured adapter when the optional voice credential is absent,
 so existing text-only deployments remain available without a silent transcript fallback.
 
+## Text-to-speech Port
+
+`apps/core/src/application/ports/ITextToSpeechAdapter.ts` owns the provider-neutral synthesis
+boundary. Its normalized input contains cleaned text, logical voice configuration, requested
+browser-compatible output format, and bounded request identity. Results contain transient
+`Uint8Array` audio plus the shared `AudioDeliveryMetadata`; synthesis never writes message or
+audio persistence. The port exposes finite failures for invalid request/configuration, provider
+availability, timeout, rate limiting, cancellation, unsupported format, and invalid provider
+output.
+
+`GradiumTextToSpeechAdapter` lives under `apps/core/src/infrastructure/speech/` and uses the
+official one-shot REST contract through the platform `fetch` client. Infrastructure maps the
+logical voice key to a private provider voice ID and maps `audio/wav` to Gradium `wav` and
+`audio/ogg` to Gradium `opus`; unsupported shared formats fail before transport. Caller
+`AbortSignal`, the configured timeout, response content type, declared/observed byte count, and
+stream cleanup are all enforced at this boundary. The null adapter is the default composition,
+and the deterministic fake remains injectable for tests.
+
 `VoiceTurnUseCase` is composed next to the existing send-message use cases. It validates the active
 conversation, claims the bounded utterance identity, transcribes once, and hands the normalized
 text to the synchronous or streaming turn owner. It never owns message persistence, prompt

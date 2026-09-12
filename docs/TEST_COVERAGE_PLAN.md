@@ -74,6 +74,11 @@ Voice-turn application coverage verifies that synchronous and streaming voice ca
 canonical send-message use cases, preserve cancellation/interruption behavior, and consume or
 release the idempotency reservation at the correct boundary without duplicating turn execution.
 
+The TTS adapter coverage verifies the official Gradium request mapping, private logical voice-ID
+resolution, native output-format mapping, typed failure categories, response content-type and size
+validation, stream cancellation/cleanup, timeout and caller abort propagation, and secret-safe
+observability. These tests use injected transport fakes and do not require Gradium credentials.
+
 Voice-output contract cleanup must cover the shared finite output-format guard, provider-neutral
 logical voice configuration, client playback/delivery preference boundaries, minimal delivery
 request, and bounded binary delivery metadata. These tests must reject provider credentials,

@@ -68,6 +68,14 @@ categories, timeout and cancellation propagation, and that credentials, audio, t
 provider payloads are absent from observability. Live provider smoke tests remain optional and are
 not required for the normal credential-free suite.
 
+The TTS port and Gradium adapter are tested separately from turn orchestration with an injected
+HTTP transport. Coverage asserts exact provider field mapping, logical voice-ID resolution, native
+WAV/Opus format mapping, typed invalid-request/configuration/provider/timeout/rate-limit/cancellation
+failures, content-type and declared/observed byte validation, bounded streamed output, abort and
+timeout propagation, body cleanup, and secret-safe bounded observability. The deterministic null
+and fake adapters keep unit, route, and stack tests credential-free; no live Gradium test is part of
+the normal suite.
+
 Voice-turn coordinator tests additionally use fake application ports to verify active-conversation
 validation, one transcript handoff to each existing turn flow, concurrent duplicate reservation
 handling, pre- and post-transcription cancellation, provider failure propagation, downstream stream

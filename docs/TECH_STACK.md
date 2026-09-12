@@ -84,10 +84,16 @@ For product principles, read `PRINCIPLES.md`.
 - Provider-neutral speech-to-text input contracts are application-owned. Infrastructure contains
   a Deepgram pre-recorded HTTP adapter using the platform `fetch` client, with no SDK dependency;
   the optional `DEEPGRAM_API_KEY`, model, timeout, and default language are validated at startup.
-  Raw-audio persistence, continuous streaming, and voice/media rendering are not part of the
-  current Core stack. The shared voice-output contract is additive preparation for a future
-  delivery route; it does not add a provider, SDK, or rendering runtime. The public voice routes use
-  Fastify's encapsulated bounded raw-body parser
+  Text-to-speech uses an application-owned `ITextToSpeechAdapter` and an infrastructure-only
+  Gradium adapter over the official [one-shot REST endpoint](https://docs.gradium.ai/api-reference/endpoint/tts-post); the repository uses native `fetch`
+  rather than the Python-only Gradium SDK, so no new dependency is added. `TTS_PROVIDER` selects
+  `null` or `gradium`; `GRADIUM_API_KEY`, `GRADIUM_ENDPOINT`, `GRADIUM_TIMEOUT_MS`,
+  `GRADIUM_VOICE_MAP`, and `TTS_MAX_OUTPUT_BYTES` configure the adapter. Logical voice keys are
+  mapped to provider voice IDs only in infrastructure. The adapter emits native WAV or Ogg-wrapped
+  Opus and rejects unsupported output formats without transcoding. Raw-audio persistence,
+  continuous streaming, and voice/media rendering are not part of the current Core stack. The
+  shared voice-output contract remains additive preparation for a future delivery route. The
+  public voice routes use Fastify's encapsulated bounded raw-body parser
   with no multipart dependency. Voice idempotency is backed by Redis and injectable through the
   application port for deterministic testing.
 

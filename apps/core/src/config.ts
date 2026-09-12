@@ -8,6 +8,10 @@ import {
   SPEECH_TO_TEXT_LIMITS,
   type SpeechToTextLimits,
 } from './application/ports/ISpeechToTextAdapter.js'
+import {
+  TEXT_TO_SPEECH_LIMITS,
+  type TextToSpeechLimits,
+} from './application/ports/ITextToSpeechAdapter.js'
 
 export interface Config {
   port: number
@@ -32,6 +36,12 @@ export interface Config {
   deepgramTimeoutMs: number
   deepgramDefaultLanguage: string | undefined
   speechToTextLimits: SpeechToTextLimits
+  ttsProvider: 'null' | 'gradium'
+  gradiumApiKey: string | undefined
+  gradiumEndpoint: string
+  gradiumTimeoutMs: number
+  gradiumVoiceMap: Readonly<Record<string, string>>
+  textToSpeechLimits: TextToSpeechLimits
   langfusePublicKey: string | undefined
   langfuseSecretKey: string | undefined
   langfuseHost: string | undefined
@@ -47,6 +57,9 @@ export const DEFAULT_EMBEDDING_BATCH_SIZE = 100
 export const DEFAULT_DEEPGRAM_MODEL = 'nova-3'
 export const DEFAULT_DEEPGRAM_TIMEOUT_MS = 30_000
 export const DEFAULT_DEEPGRAM_LANGUAGE = 'en'
+export const DEFAULT_TTS_PROVIDER = 'null'
+export const DEFAULT_GRADIUM_ENDPOINT = 'https://api.gradium.ai/api/post/speech/tts'
+export const DEFAULT_GRADIUM_TIMEOUT_MS = 30_000
 
 function requireEnv(key: string): string {
   const value = process.env[key]
@@ -104,6 +117,31 @@ export function loadConfig(): Config {
       DEFAULT_DEEPGRAM_LANGUAGE,
     ),
     speechToTextLimits: SPEECH_TO_TEXT_LIMITS,
+    ttsProvider: parseTtsProvider(process.env['TTS_PROVIDER']),
+    gradiumApiKey: process.env['GRADIUM_API_KEY'],
+    gradiumEndpoint: parseUrl(
+      'GRADIUM_ENDPOINT',
+      process.env['GRADIUM_ENDPOINT'],
+      DEFAULT_GRADIUM_ENDPOINT,
+    ),
+    gradiumTimeoutMs: parseBoundedPositiveInteger(
+      'GRADIUM_TIMEOUT_MS',
+      process.env['GRADIUM_TIMEOUT_MS'],
+      DEFAULT_GRADIUM_TIMEOUT_MS,
+      100,
+      120_000,
+    ),
+    gradiumVoiceMap: parseVoiceMap(process.env['GRADIUM_VOICE_MAP']),
+    textToSpeechLimits: {
+      ...TEXT_TO_SPEECH_LIMITS,
+      maxOutputBytes: parseBoundedPositiveInteger(
+        'TTS_MAX_OUTPUT_BYTES',
+        process.env['TTS_MAX_OUTPUT_BYTES'],
+        TEXT_TO_SPEECH_LIMITS.maxOutputBytes,
+        1,
+        50_000_000,
+      ),
+    },
     langfusePublicKey: process.env['LANGFUSE_PUBLIC_KEY'],
     langfuseSecretKey: process.env['LANGFUSE_SECRET_KEY'],
     langfuseHost: process.env['LANGFUSE_BASE_URL'],
@@ -163,6 +201,51 @@ function parseLanguage(key: string, value: string | undefined, fallback: string)
     throw new Error(`Invalid ${key}: expected a BCP-47 language tag.`)
   }
   return normalized
+}
+
+function parseTtsProvider(value: string | undefined): 'null' | 'gradium' {
+  const normalized = value === undefined || value.trim().length === 0 ? DEFAULT_TTS_PROVIDER : value
+  if (normalized !== 'null' && normalized !== 'gradium') {
+    throw new Error('Invalid TTS_PROVIDER: expected null or gradium.')
+  }
+  return normalized
+}
+
+function parseUrl(key: string, value: string | undefined, fallback: string): string {
+  const normalized = value === undefined || value.trim().length === 0 ? fallback : value.trim()
+  try {
+    const url = new URL(normalized)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error()
+  } catch {
+    throw new Error(`Invalid ${key}: expected an HTTP(S) URL.`)
+  }
+  return normalized
+}
+
+// eslint-disable-next-line complexity
+function parseVoiceMap(value: string | undefined): Readonly<Record<string, string>> {
+  if (value === undefined || value.trim().length === 0) return {}
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    throw new Error('Invalid GRADIUM_VOICE_MAP: expected a JSON object.')
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error('Invalid GRADIUM_VOICE_MAP: expected a JSON object.')
+  }
+  const map: Record<string, string> = {}
+  for (const [logicalKey, providerVoiceId] of Object.entries(parsed)) {
+    if (
+      logicalKey.trim().length === 0 ||
+      typeof providerVoiceId !== 'string' ||
+      providerVoiceId.trim().length === 0
+    ) {
+      throw new Error('Invalid GRADIUM_VOICE_MAP: keys and values must be non-empty strings.')
+    }
+    map[logicalKey] = providerVoiceId
+  }
+  return map
 }
 
 function parseAllowedRoots(value: string | undefined): string[] {
