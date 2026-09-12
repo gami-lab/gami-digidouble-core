@@ -103,6 +103,12 @@ tests additionally cover
 legacy config reads, reserved-section mapping, explicit update clearing, Avatar-over-Scenario
 resolution, and old payload compatibility.
 
+Browser audio playback tests remain deterministic and provider-free. They cover canonical message-ID
+requests after terminal completion, binary metadata handling, autoplay rejection with manual retry,
+unsupported playback, request failure fallback, stale response suppression, abort propagation, and
+audio-element/listener/object-URL cleanup. Text reconciliation assertions remain independent from
+audio availability.
+
 ## 5. Assert from the consumer inward, not from the implementation outward
 
 The most dangerous test gap is a test that passes because it only checks what the code already does, not what the consumer requires.

@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-09-12
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-03 voice/audio contracts, provider-neutral configuration, TTS adapter, and completed-message audio route delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-04 voice/audio contracts, provider-neutral configuration, TTS adapter, completed-message audio route, and browser playback delivered
 
 ## Snapshot
 
@@ -62,8 +62,8 @@ The platform is now a working headless conversational runtime with:
   provider-payload redaction, and environment-gated stack happy-path success checks
 - canonical shared voice-output contracts for logical voice configuration, client audio preferences,
   supported browser output formats, and bounded transient binary-delivery metadata, plus the
-  completed-message audio application flow and additive binary route; no playback UI, provider SDK,
-  or audio persistence is included
+  completed-message audio application flow, additive binary route, and optional browser playback
+  with text fallback; no provider SDK or audio persistence is included
 
 ## What Is Shipped
 
@@ -271,6 +271,8 @@ retrieval proof or change production behavior.
 
 - `apps/console` is the local operator/debug surface.
 - `apps/web` is the public player-facing chat surface.
+- `apps/web` requests completed-message audio only after terminal Avatar text completion and owns
+  localized playback state, abortable audio resources, and text-preserving fallback behavior.
 - Scenario-builder flows cover scenario/avatar editing, knowledge-source authoring, visibility policy, and model selection.
 
 ### Evaluation Tooling

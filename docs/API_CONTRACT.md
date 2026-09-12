@@ -21,7 +21,8 @@ Use those files as the canonical field-level source of truth. This document keep
 
 - Base path: `/v1`
 - Compatibility route outside `/v1`: `GET /health`
-- Content types: `application/json`, `text/event-stream`
+- Content types: `application/json`, `text/event-stream`, and bounded browser-compatible audio
+  responses
 - Auth: `x-api-key: <API_KEY>`
 - Timestamps: ISO-8601 UTC strings
 - IDs: opaque strings
@@ -176,6 +177,10 @@ Completed message audio contract:
 - Audio bytes are transient delivery data. The route reads existing conversation, Avatar, Scenario,
   and Message records only; it does not write `messages.metadata`, create audio assets, or alter
   text-turn, Game Master, memory, or stream-event behavior.
+- The public web client requests audio only after a completed stream event supplies the canonical
+  Avatar message ID. Playback is optional: failed requests, missing voice configuration, autoplay
+  rejection, unsupported browser formats, and cancellation preserve the displayed text and expose
+  a localized retry or status control.
 
 `StartSessionRequest` accepts an optional session-scoped `model` override and Avatar retrieval
 settings. The model override is reused for Avatar, Game Master, and memory-compaction calls in the

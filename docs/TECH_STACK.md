@@ -92,8 +92,8 @@ For product principles, read `PRINCIPLES.md`.
   mapped to provider voice IDs only in infrastructure. The adapter emits native WAV or Ogg-wrapped
   Opus and rejects unsupported output formats without transcoding. Raw-audio persistence,
   continuous streaming, and voice/media rendering are not part of the current Core stack. The
-  shared voice-output contract remains additive preparation for a future delivery route. The
-  public voice routes use Fastify's encapsulated bounded raw-body parser
+  shared voice-output contract and completed-message binary delivery route are additive; browser
+  playback remains owned by `apps/web`. The public voice routes use Fastify's encapsulated bounded raw-body parser
   with no multipart dependency. Voice idempotency is backed by Redis and injectable through the
   application port for deterministic testing.
 

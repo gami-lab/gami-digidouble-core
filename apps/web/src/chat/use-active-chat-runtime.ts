@@ -22,6 +22,7 @@ import {
   type OptimisticSendState,
   type SendStatus,
 } from './chat-thread-state'
+import { useMessageAudioPlayback, type AudioPlaybackState } from './use-message-audio-playback'
 
 export type ActiveChatRuntimeState = {
   activeAvatarId: string | null
@@ -33,12 +34,15 @@ export type ActiveChatRuntimeState = {
   composerValue: string
   sendStatus: SendStatus
   sendError: string | null
+  audio: AudioPlaybackState
   canSend: boolean
   canEndConversation: boolean
   setComposerValue: (value: string) => void
   startChatWithAvatar: (avatarId: string) => void
   sendCurrentMessage: () => void
   endCurrentConversation: () => void
+  playMessageAudio: (messageId: string) => void
+  stopMessageAudio: () => void
 }
 
 export {
@@ -73,6 +77,7 @@ export function useActiveChatRuntime(
   const [composerValue, setComposerValue] = useState('')
   const [sendStatus, setSendStatus] = useState<SendStatus>('idle')
   const [sendError, setSendError] = useState<string | null>(null)
+  const messageAudio = useMessageAudioPlayback(conversation?.conversationId ?? null)
   const conversationRequestIdRef = useRef(0)
   const activeStreamControllerRef = useRef<AbortController | null>(null)
   const previousSessionIdRef = useRef<string | null>(null)
@@ -97,6 +102,7 @@ export function useActiveChatRuntime(
     threadSetters,
     conversationRequestIdRef,
     activeStreamControllerRef,
+    messageAudio.stopMessageAudio,
   )
   useEffect(() => {
     return () => {
@@ -112,12 +118,14 @@ export function useActiveChatRuntime(
     restoreSetters,
   )
   function startChatWithAvatar(avatarId: string): void {
+    messageAudio.stopMessageAudio()
     startChat(session, avatarId, conversationRequestIdRef, threadSetters, {
       setConversation,
       setConversationStatus,
       setConversationError,
       conversationRequestIdRef,
       activeStreamControllerRef,
+      stopMessageAudio: messageAudio.stopMessageAudio,
     })
   }
   function sendCurrentMessage(): void {
@@ -132,6 +140,8 @@ export function useActiveChatRuntime(
       setMessages,
       setAvatarDraft,
       activeStreamControllerRef,
+      messageAudio.stopMessageAudio,
+      messageAudio.playMessageAudio,
     )
   }
   function endCurrentConversation(): void {
@@ -144,6 +154,7 @@ export function useActiveChatRuntime(
       setConversationStatus,
       setConversationError,
       endSetters,
+      messageAudio.stopMessageAudio,
     )
   }
   const canSend = conversation !== null && sendStatus !== 'streaming'
@@ -159,12 +170,15 @@ export function useActiveChatRuntime(
     composerValue,
     sendStatus,
     sendError,
+    audio: messageAudio.audio,
     canSend,
     canEndConversation,
     setComposerValue,
     startChatWithAvatar,
     sendCurrentMessage,
     endCurrentConversation,
+    playMessageAudio: messageAudio.playMessageAudio,
+    stopMessageAudio: messageAudio.stopMessageAudio,
   }
 }
 
@@ -175,6 +189,7 @@ function useResetThreadOnSessionChange(
   threadSetters: ThreadStateSetters,
   conversationRequestIdRef: RequestRef,
   activeStreamControllerRef: ActiveStreamControllerRef,
+  stopMessageAudio: () => void,
 ): void {
   useEffect(() => {
     const nextSessionId = session?.sessionId ?? null
@@ -187,6 +202,7 @@ function useResetThreadOnSessionChange(
     conversationRequestIdRef.current += 1
     activeStreamControllerRef.current?.abort()
     activeStreamControllerRef.current = null
+    stopMessageAudio()
     applyThreadState(createThreadStateForConversationEnd(), threadSetters)
   }, [
     session,
@@ -195,6 +211,7 @@ function useResetThreadOnSessionChange(
     threadSetters,
     conversationRequestIdRef,
     activeStreamControllerRef,
+    stopMessageAudio,
   ])
 }
 
@@ -248,6 +265,7 @@ function startChat(
 
   conversationSetters.activeStreamControllerRef.current?.abort()
   conversationSetters.activeStreamControllerRef.current = null
+  conversationSetters.stopMessageAudio()
   conversationRequestIdRef.current += 1
   const requestId = conversationRequestIdRef.current
   applyThreadState(createThreadStateForAvatarSelection(avatarId), threadSetters)
@@ -265,6 +283,8 @@ function sendMessageInActiveConversation(
   setMessages: (updater: (current: ChatThreadMessage[]) => ChatThreadMessage[]) => void,
   setAvatarDraft: AvatarDraftSetter,
   activeStreamControllerRef: ActiveStreamControllerRef,
+  stopMessageAudio: () => void,
+  onAvatarMessageCompleted: (messageId: string) => void,
 ): void {
   if (conversation === null || sendStatus === 'streaming') {
     return
@@ -289,6 +309,7 @@ function sendMessageInActiveConversation(
   setMessages((current) => createOptimisticSendState(current, pendingMessage).messages)
   setAvatarDraft(null)
   activeStreamControllerRef.current?.abort()
+  stopMessageAudio()
   const streamController = new AbortController()
   activeStreamControllerRef.current = streamController
 
@@ -300,6 +321,7 @@ function sendMessageInActiveConversation(
     conversationRequestIdRef,
     activeStreamControllerRef,
     streamController,
+    onAvatarMessageCompleted,
   })
 }
 
@@ -312,6 +334,7 @@ function endActiveConversation(
   setConversationStatus: (value: ConversationStatus) => void,
   setConversationError: (value: string | null) => void,
   endSetters: EndConversationSetters,
+  stopMessageAudio: () => void,
 ): void {
   if (
     session === null ||
@@ -323,6 +346,7 @@ function endActiveConversation(
   }
 
   conversationRequestIdRef.current += 1
+  stopMessageAudio()
   const runId = conversationRequestIdRef.current
   setConversationStatus('ending')
   setConversationError(null)
@@ -335,6 +359,7 @@ type ConversationSetters = {
   setConversationError: (value: string | null) => void
   conversationRequestIdRef: RequestRef
   activeStreamControllerRef: ActiveStreamControllerRef
+  stopMessageAudio: () => void
 }
 
 type RequestRef = {

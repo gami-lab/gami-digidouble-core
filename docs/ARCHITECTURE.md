@@ -730,6 +730,10 @@ Conversation message-stream DTOs are owned by
 remain under `apps/core/src/application/use-cases/`. Generic SSE frame buffering and JSON extraction
 are shared from `packages/shared/src/sse.ts`, while each client retains its own subscription,
 reconnect, URL, and authentication behavior.
+The web client keeps audio delivery in its presentation boundary: it requests the completed-message
+audio route only after a terminal completed event, uses the event’s persisted Avatar message ID,
+and owns one abortable audio element plus its object URL. Autoplay rejection and provider/network
+failures become localized playback states without changing stream reconciliation or text state.
 
 ---
 

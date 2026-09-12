@@ -1,4 +1,6 @@
 import type {
+  AudioDeliveryMetadata,
+  AudioDeliveryRequest,
   ConversationHistoryApiResponse,
   ConversationSummary,
   EndConversationApiResponse,
@@ -11,8 +13,8 @@ import type {
   StartConversationRequest,
   StartConversationResponse,
 } from '@gami/shared'
-import { parseMessageStreamEvent, processSseFrames } from '@gami/shared'
-import { ApiError, webRequest } from './client'
+import { isAudioDeliveryMetadata, parseMessageStreamEvent, processSseFrames } from '@gami/shared'
+import { ApiError, webBinaryRequest, webRequest } from './client'
 import { apiKey, apiUrl } from '../env'
 
 const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
@@ -43,6 +45,32 @@ export async function sendMessage(
     `/v1/conversations/${conversationId}/messages`,
     request,
   )
+}
+
+export type MessageAudioDelivery = Readonly<{
+  blob: Blob
+  metadata: AudioDeliveryMetadata
+}>
+
+export async function requestMessageAudio(
+  conversationId: string,
+  messageId: string,
+  request: AudioDeliveryRequest = {},
+  signal?: AbortSignal,
+): Promise<MessageAudioDelivery> {
+  const path = `/v1/conversations/${conversationId}/messages/${messageId}/audio`
+  const response = await webBinaryRequest('POST', path, request, signal)
+  const metadata = readAudioDeliveryMetadata(response, path)
+  if (metadata.messageId !== messageId) {
+    throw new ApiError('NETWORK_ERROR', `Audio response message identity mismatch from ${path}`)
+  }
+  const blob = await response.blob()
+
+  if (blob.size !== metadata.byteLength || blob.size === 0) {
+    throw new ApiError('NETWORK_ERROR', `Invalid audio response body from ${path}`)
+  }
+
+  return { blob, metadata }
 }
 
 export async function sendMessageStream(
@@ -218,4 +246,27 @@ function isTerminalMessageStreamEvent(event: MessageStreamEvent): boolean {
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
+}
+
+function readAudioDeliveryMetadata(response: Response, path: string): AudioDeliveryMetadata {
+  const contentType = response.headers.get('content-type')?.split(';', 1)[0]?.trim()
+  const requestId = response.headers.get('x-request-id')
+  const messageId = response.headers.get('x-message-id')
+  const contentLength = response.headers.get('content-length')
+  const byteLength = contentLength === null ? Number.NaN : Number(contentLength)
+  const durationHeader = response.headers.get('x-audio-duration-ms')
+  const durationMs = durationHeader === null ? undefined : Number(durationHeader)
+
+  const candidate: unknown = {
+    requestId,
+    messageId,
+    format: contentType,
+    byteLength,
+    ...(durationMs === undefined ? {} : { durationMs }),
+  }
+  if (!isAudioDeliveryMetadata(candidate)) {
+    throw new ApiError('NETWORK_ERROR', `Invalid audio response metadata from ${path}`)
+  }
+
+  return candidate
 }

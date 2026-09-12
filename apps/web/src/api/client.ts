@@ -91,3 +91,58 @@ export async function webRequest<T>(method: HttpMethod, path: string, body?: unk
 
   return payload.data
 }
+
+export async function webBinaryRequest(
+  method: 'POST',
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<Response> {
+  const normalizedPath = normalizePath(path)
+  const url = `${normalizeApiUrl(apiUrl)}${normalizedPath}`
+
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'audio/*',
+        ...(shouldInjectApiKey(normalizedPath) ? { 'x-api-key': apiKey } : {}),
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(signal === undefined ? {} : { signal }),
+    })
+  } catch (error) {
+    if (isAbortError(error) && signal?.aborted === true) {
+      throw error
+    }
+    throw new ApiError('NETWORK_ERROR', `Network request failed: ${method} ${normalizedPath}`)
+  }
+
+  if (!response.ok) {
+    throw await readApiError(response, normalizedPath)
+  }
+
+  return response
+}
+
+async function readApiError(response: Response, path: string): Promise<ApiError> {
+  try {
+    const payload: unknown = await response.json()
+    if (isApiResponseEnvelope<null>(payload) && payload.error !== null) {
+      return new ApiError(payload.error.code, payload.error.message, payload.error.details)
+    }
+  } catch {
+    // Fall through to the status-based error below.
+  }
+
+  return new ApiError(
+    'NETWORK_ERROR',
+    `Request failed with status ${String(response.status)}: ${path}`,
+  )
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
+}

@@ -73,6 +73,17 @@ const fr = {
     sending: 'Envoi…',
     send: 'Envoyer',
     endConversation: 'Terminer la conversation',
+    audio: {
+      play: "Lire la réponse de l'avatar",
+      replay: "Relire la réponse de l'avatar",
+      stop: "Arrêter l'audio",
+      loading: 'Chargement de l’audio…',
+      playing: "Lecture de la réponse de l'avatar.",
+      stopped: 'Audio arrêté. Sélectionnez Lire pour recommencer.',
+      unsupported: 'La lecture audio n’est pas prise en charge par ce navigateur.',
+      failed: 'Audio indisponible. La réponse texte reste disponible.',
+      duration: 'Durée {{duration}}',
+    },
     meta: {
       sending: ' · envoi…',
       streaming: ' · réponse en cours…',

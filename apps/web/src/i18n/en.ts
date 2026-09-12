@@ -72,6 +72,17 @@ const en = {
     sending: 'Sending…',
     send: 'Send',
     endConversation: 'End conversation',
+    audio: {
+      play: 'Play Avatar response',
+      replay: 'Replay Avatar response',
+      stop: 'Stop audio',
+      loading: 'Loading audio…',
+      playing: 'Playing Avatar response.',
+      stopped: 'Audio stopped. Select play to listen again.',
+      unsupported: 'Audio playback is not supported in this browser.',
+      failed: 'Audio is unavailable. The text response remains available.',
+      duration: 'Duration {{duration}}',
+    },
     meta: {
       sending: ' · sending…',
       streaming: ' · responding…',

@@ -50,12 +50,20 @@ describe('App onboarding behavior', () => {
       composerValue: '',
       sendStatus: 'idle',
       sendError: null,
+      audio: {
+        messageId: null,
+        status: 'idle',
+        durationMs: null,
+        errorCode: null,
+      },
       canSend: false,
       canEndConversation: false,
       setComposerValue: vi.fn(),
       startChatWithAvatar: vi.fn(),
       sendCurrentMessage: vi.fn(),
       endCurrentConversation: vi.fn(),
+      playMessageAudio: vi.fn(),
+      stopMessageAudio: vi.fn(),
     })
   })
 

@@ -30,6 +30,8 @@ Must cover:
 - message-stream route auth, validation, not-found, framing, and stack-e2e completion ordering
 - voice-message route auth, bounded raw-body/media/header validation, canonical JSON/SSE framing,
   not-found/error mapping, interruption cleanup, and stack-e2e coverage for both route variants
+- completed-message audio route auth, minimal JSON validation, binary metadata, error mapping, and
+  stack-e2e auth/validation/not-found coverage
 
 ### Conversation Runtime
 
@@ -265,6 +267,9 @@ Must cover:
 - single-active-chat behavior
 - optimistic send lifecycle
 - consumption of canonical shared DTOs only
+- completed Avatar message audio request and accessible play/replay/stop controls
+- autoplay, unsupported-browser, failure, cancellation, stale-result, and object-URL cleanup behavior
+- unchanged stream ordering and text reconciliation when audio delivery is unavailable
 
 ### `apps/admin`
 

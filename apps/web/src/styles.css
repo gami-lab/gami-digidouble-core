@@ -407,6 +407,24 @@ textarea {
   color: var(--ink-500);
 }
 
+.chat-audio-control {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chat-audio-button {
+  padding: 7px 11px;
+  font-size: 0.78rem;
+}
+
+.chat-audio-status {
+  color: var(--ink-500);
+  font-size: 0.78rem;
+}
+
 .chat-composer {
   margin-top: 12px;
   display: grid;

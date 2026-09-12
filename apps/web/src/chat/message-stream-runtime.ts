@@ -37,6 +37,7 @@ type StreamMessageSetters = {
   conversationRequestIdRef: RequestRef
   activeStreamControllerRef: ActiveStreamControllerRef
   streamController: AbortController
+  onAvatarMessageCompleted?: (messageId: string) => void
 }
 
 export async function streamMessageAndReconcile(
@@ -90,6 +91,7 @@ export async function streamMessageAndReconcile(
   }
 }
 
+// eslint-disable-next-line complexity
 function handleMessageStreamEvent(
   event: MessageStreamEvent,
   pendingMessageId: string,
@@ -146,6 +148,7 @@ function handleMessageStreamEvent(
         ),
       )
       setters.setAvatarDraft(null)
+      setters.onAvatarMessageCompleted?.(event.response.avatarMessage.messageId)
       setters.setSendStatus('idle')
       setters.setSendError(null)
       return

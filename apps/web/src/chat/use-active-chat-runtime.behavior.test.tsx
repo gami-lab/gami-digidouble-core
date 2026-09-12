@@ -179,6 +179,7 @@ describe('useActiveChatRuntime behavior', () => {
         'msg_user_1',
         'msg_avatar_1',
       ])
+      expect(result.current.audio.messageId).toBe('msg_avatar_1')
     })
   })
 
