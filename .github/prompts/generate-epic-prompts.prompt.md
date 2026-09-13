@@ -94,7 +94,9 @@ Create a new folder structure:
 docs/implementation-prompts/[EPIC-SLUG]/
 ```
 
-Inside it, generate **4 to 6 markdown prompt files**.
+Inside it, generate **3 to 7 markdown prompt files**. The number of of files should depends
+on the complixity of the EPIC. Simple EPICs will have 3 files, complex one may have up to 7
+different steps.
 
 Example:
 
