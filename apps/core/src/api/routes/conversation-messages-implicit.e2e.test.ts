@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ApiResponse } from '@gami/shared'
+import type { ApiResponse, AvatarComputedTraits } from '@gami/shared'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Conversation, Session } from '../../domain/conversation/session.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
@@ -28,6 +28,16 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   }
 }
 
+const SAMPLE_TRAITS: AvatarComputedTraits = {
+  identity: ['Ava'],
+  personality: ['Warm and curious'],
+  speakingStyle: ['Short and direct'],
+  background: ['Guide for new arrivals'],
+  timeline: ['Introduced at scenario start'],
+  currentSituation: ['Welcoming the user'],
+  behaviouralRules: ['Stay in character'],
+}
+
 function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   return {
     avatarId: 'avatar_1',
@@ -35,6 +45,7 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
     name: 'Ava',
     status: 'active',
     personaPrompt: 'You are Ava.',
+    computedTraits: SAMPLE_TRAITS,
     config: {},
     createdAt: '2026-04-20T10:00:00.000Z',
     updatedAt: '2026-04-20T10:00:00.000Z',
