@@ -40,7 +40,7 @@ describe('GetSessionMemoryUseCase — session lookup', () => {
 
     expect(memorySummary.sessionId).toBe('session_1')
     expect(memorySummary.summary).toBe('')
-    expect(memorySummary.shortTerm).toEqual({ exchangeCount: 2 })
+    expect(memorySummary.shortTerm).toEqual({ exchangeCount: 3 })
     expect(memorySummary.longTermFactCount).toBeUndefined()
   })
 })

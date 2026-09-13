@@ -1,4 +1,4 @@
-import type { AvatarSummary } from '@gami/shared'
+import type { AvatarSummary, AvailableAvatarSummary } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 
 function readAvailabilityKey(config: Record<string, unknown>): string | undefined {
@@ -32,6 +32,22 @@ export function toAvatarSummary(avatar: AvatarConfig): AvatarSummary {
     ...(availabilityKey !== undefined ? { availabilityKey } : {}),
     computedTraits: avatar.computedTraits ?? null,
     config: avatar.config,
+    createdAt: avatar.createdAt,
+    updatedAt: avatar.updatedAt,
+  }
+}
+
+/** Public player projection; deliberately excludes admin-only Avatar fields. */
+export function toAvailableAvatarSummary(avatar: AvatarConfig): AvailableAvatarSummary {
+  return {
+    avatarId: avatar.avatarId,
+    scenarioId: avatar.scenarioId,
+    name: avatar.name,
+    status: avatar.status,
+    personaPrompt: avatar.personaPrompt,
+    ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
+    ...(avatar.description !== undefined ? { description: avatar.description } : {}),
+    ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
     createdAt: avatar.createdAt,
     updatedAt: avatar.updatedAt,
   }

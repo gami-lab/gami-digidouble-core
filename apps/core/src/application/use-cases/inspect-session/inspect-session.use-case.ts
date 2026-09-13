@@ -10,9 +10,9 @@ import { DomainError } from '../../../domain/errors.js'
 import type {
   InspectSessionInput,
   InspectSessionOutput,
-  SessionSummary,
   InspectTransitionRecord,
 } from './inspect-session.types.js'
+import { toSessionSummary } from '../shared/entity-summaries.js'
 
 export class InspectSessionUseCase {
   constructor(
@@ -75,23 +75,6 @@ export class InspectSessionUseCase {
       scenario,
       resolvedConfig: modelConfig ?? DEFAULT_MODEL_CONFIG,
     }
-  }
-}
-
-function toSessionSummary(session: Session): SessionSummary {
-  return {
-    sessionId: session.sessionId,
-    userId: session.userId,
-    scenarioId: session.scenarioId,
-    ...(session.activeAvatarId !== undefined ? { activeAvatarId: session.activeAvatarId } : {}),
-    ...(session.unlockedAvatarIds !== undefined
-      ? { unlockedAvatarIds: [...session.unlockedAvatarIds] }
-      : {}),
-    ...(session.avatarOptions !== undefined ? { avatarOptions: session.avatarOptions } : {}),
-    status: session.status,
-    startedAt: session.startedAt,
-    lastActivityAt: session.lastActivityAt,
-    ...(session.endedAt !== undefined ? { endedAt: session.endedAt } : {}),
   }
 }
 

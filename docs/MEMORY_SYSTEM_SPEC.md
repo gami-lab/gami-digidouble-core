@@ -31,6 +31,8 @@ change knowledge chunks, embeddings, source status, or corpus generations.
 
 - Domain/internal memory contracts: `apps/core/src/domain/memory/memory.types.ts`
 - Shared HTTP/admin DTOs: `packages/shared/src/memory-contract-types.ts`
+- Entity/lifecycle response projections: `packages/shared/src/lifecycle-types.ts` and
+  `packages/shared/src/runtime-inspector-types.ts`
 - Compatibility mirrors such as `workingSummary` are summary-only mirrors of canonical working memory.
 - New working-memory fields must be added to the canonical owner first, then projected outward deliberately.
 
@@ -298,10 +300,9 @@ must not be duplicated in the recent-message list.
 
 ### Current Alignment Note
 
-The target contract in this document is three exchanges. As of 2026-07-25, the repository still
-contains a legacy two-exchange constant/test in the Avatar memory assembler, while the admin
-inspection contract already asserts a maximum of three. The runtime constant, fallback behavior,
-and tests must be aligned before this rule can be considered fully implemented.
+The current short-term contract is three complete exchanges. The shared summary and layered admin
+projections use the same Core policy constant, while `exchangeCount` in assembled snapshots remains
+the number represented by that snapshot.
 
 ## Observability
 

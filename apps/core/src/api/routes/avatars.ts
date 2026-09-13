@@ -1,6 +1,6 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
-import type { AvatarSummary, UpdateAvatarRequest, UpdateAvatarResponse } from '@gami/shared'
+import type { UpdateAvatarRequest, UpdateAvatarResponse } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { DeleteAvatarUseCase } from '../../application/use-cases/delete-avatar/delete-avatar.use-case.js'
@@ -111,7 +111,7 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
         const output = await updateAvatarUseCase.execute(
           buildUpdateAvatarInput(request.params.avatarId, request.body),
         )
-        return await reply.send(ok<UpdateAvatarResponse>(mapUpdateAvatarResponse(output)))
+        return await reply.send(ok<UpdateAvatarResponse>(output))
       } catch (error) {
         if (error instanceof DomainError) {
           if (error.code === 'NOT_FOUND') {
@@ -152,10 +152,6 @@ function buildUpdateAvatarInput(avatarId: string, body: UpdateAvatarRequest): Up
     ...(config !== undefined ? { config } : {}),
     ...(status !== undefined ? { status } : {}),
   }
-}
-
-function mapUpdateAvatarResponse(output: { avatar: AvatarSummary }): UpdateAvatarResponse {
-  return { avatar: output.avatar }
 }
 
 function normalizeLlmOverride(

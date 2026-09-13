@@ -4,7 +4,7 @@ import type { IConversationWorkingMemoryRepository } from '../../ports/IConversa
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
-import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
+import type { Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import {
@@ -12,6 +12,7 @@ import {
   type EpisodicMemoryHydrationService,
 } from '../shared/hydrate-conversation-memory.js'
 import type { SwitchAvatarInput, SwitchAvatarOutput } from './switch-avatar.types.js'
+import { toConversationSummary, toSessionSummary } from '../shared/entity-summaries.js'
 
 type EpisodicMemoryService = {
   generateForClosedConversation(input: {
@@ -92,8 +93,8 @@ export class SwitchAvatarUseCase {
     })
 
     return {
-      session: this.toSessionSummary(updatedSession),
-      conversation: this.toConversationSummary(conversation),
+      session: toSessionSummary(updatedSession),
+      conversation: toConversationSummary(conversation),
       previousConversationId: previousConversation?.conversationId ?? null,
     }
   }
@@ -243,35 +244,6 @@ export class SwitchAvatarUseCase {
       })
     } catch (err: unknown) {
       console.error('[switch-avatar] Initial GM run failed for session:', args.sessionId, err)
-    }
-  }
-
-  private toSessionSummary(session: Session) {
-    return {
-      sessionId: session.sessionId,
-      userId: session.userId,
-      scenarioId: session.scenarioId,
-      status: session.status,
-      startedAt: session.startedAt,
-      lastActivityAt: session.lastActivityAt,
-      ...(session.activeAvatarId !== undefined ? { activeAvatarId: session.activeAvatarId } : {}),
-      ...(session.unlockedAvatarIds !== undefined
-        ? { unlockedAvatarIds: [...session.unlockedAvatarIds] }
-        : {}),
-      ...(session.avatarOptions !== undefined ? { avatarOptions: session.avatarOptions } : {}),
-      ...(session.endedAt !== undefined ? { endedAt: session.endedAt } : {}),
-    }
-  }
-
-  private toConversationSummary(conversation: Conversation) {
-    return {
-      conversationId: conversation.conversationId,
-      sessionId: conversation.sessionId,
-      avatarId: conversation.avatarId,
-      status: conversation.status,
-      startedAt: conversation.startedAt,
-      lastActivityAt: conversation.lastActivityAt,
-      ...(conversation.endedAt !== undefined ? { endedAt: conversation.endedAt } : {}),
     }
   }
 }

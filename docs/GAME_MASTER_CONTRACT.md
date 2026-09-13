@@ -355,3 +355,6 @@ Diagnostics must never include:
 - Dynamic GM renderer: `apps/core/src/domain/game-master/gm-input-renderer.ts`
 - Output parsing and normalization: `apps/core/src/domain/game-master/gm-output-parser.ts`, `gm-output-normalization.ts`
 - GM-facing memory contracts: `apps/core/src/domain/memory/memory.types.ts`
+- Public/admin GM and event projections: `packages/shared/src/runtime-inspector-types.ts` and
+  `packages/shared/src/runtime-types.ts`, mapped at the Core application/API boundary. The full
+  cross-layer map is in [`CONTEXT_CONTRACT_OWNERSHIP_MAP.md`](CONTEXT_CONTRACT_OWNERSHIP_MAP.md).

@@ -12,6 +12,7 @@ import { MemorySelectionService } from '../../services/memory-selection.service.
 import { DomainError } from '../../../domain/errors.js'
 import {
   ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT,
+  MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
   MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
 } from '../../../domain/memory/memory.policy.js'
 import type { ConversationWorkingMemory } from '../../../domain/memory/memory.types.js'
@@ -24,8 +25,6 @@ type LongTermAvatarMemoryGroup = SessionMemoryLayers['longTerm']['avatars'][numb
 
 export class GetSessionMemoryLayersUseCase {
   private readonly selectionService?: MemorySelectionService
-  private static readonly ADMIN_SHORT_TERM_EXCHANGE_LIMIT = 3
-
   constructor(
     private readonly sessionRepository: ISessionRepository,
     private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
@@ -79,7 +78,7 @@ export class GetSessionMemoryLayersUseCase {
           }
         : {}),
       shortTerm: {
-        exchangeCount: GetSessionMemoryLayersUseCase.ADMIN_SHORT_TERM_EXCHANGE_LIMIT,
+        exchangeCount: MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
         recentExchanges: shortTermExchanges,
       },
       working: workingLayer,
@@ -154,7 +153,7 @@ export class GetSessionMemoryLayersUseCase {
       }
     }
 
-    return exchanges.slice(-GetSessionMemoryLayersUseCase.ADMIN_SHORT_TERM_EXCHANGE_LIMIT)
+    return exchanges.slice(-MEMORY_SHORT_TERM_EXCHANGE_LIMIT)
   }
 
   private async loadCurrentWorkingMemory(

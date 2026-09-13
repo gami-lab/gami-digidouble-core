@@ -15,7 +15,7 @@ Exact wire types live in:
 - `packages/shared/src/lifecycle-types.ts`
 - `packages/shared/src/voice-contract-types.ts`
 
-Use those files as the canonical field-level source of truth. This document keeps the stable surface area, invariants, and route inventory in one place.
+Use those files as the canonical field-level source of truth. This document keeps the stable surface area, invariants, and route inventory in one place. The cross-layer owner and mapper for each high fan-out contract is documented in [`CONTEXT_CONTRACT_OWNERSHIP_MAP.md`](CONTEXT_CONTRACT_OWNERSHIP_MAP.md).
 
 ## Base Rules
 
@@ -511,6 +511,8 @@ Runtime precedence:
 - Admin event payloads may include counts, flags, latency, effective models, and bounded selection metadata.
 - Admin event payloads must not include raw prompt text, secrets, or unbounded transcript content.
 - Session context is a bounded current snapshot, not a replay of a specific historical turn.
+- Session, Conversation, and Message response projections use the shared entity contracts; Core maps
+  domain entities at the application boundary rather than exposing persistence rows.
 - Current shared GM state projections expose progression and interaction count; covered topics are
   exposed only under memory-owned working-memory sections.
 - Legacy `gm_states.topics_covered` data may be read for persistence compatibility but is omitted

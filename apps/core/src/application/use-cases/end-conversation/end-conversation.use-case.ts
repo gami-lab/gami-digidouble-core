@@ -1,5 +1,4 @@
 import crypto from 'node:crypto'
-import type { ConversationSummary } from '@gami/shared'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
@@ -10,6 +9,7 @@ import type { IUserFactExtractor } from '../../ports/IUserFactExtractor.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { EndConversationInput, EndConversationResponse } from './end-conversation.types.js'
+import { toConversationSummary } from '../shared/entity-summaries.js'
 
 const DEFAULT_END_REASON = 'operator_end'
 
@@ -83,7 +83,7 @@ export class EndConversationUseCase {
     void this.extractAndPersistUserFacts(session.userId, sessionId, conversationId)
 
     return {
-      conversation: this.toSummary(updatedConversation),
+      conversation: toConversationSummary(updatedConversation),
       compaction: { scheduled: true },
     }
   }
@@ -249,26 +249,6 @@ export class EndConversationUseCase {
           error: error instanceof Error ? error.message : 'Unknown error',
         },
       })
-    }
-  }
-
-  private toSummary(conversation: {
-    conversationId: string
-    sessionId: string
-    avatarId: string
-    status: 'active' | 'closed' | 'archived'
-    startedAt: string
-    lastActivityAt: string
-    endedAt?: string
-  }): ConversationSummary {
-    return {
-      conversationId: conversation.conversationId,
-      sessionId: conversation.sessionId,
-      avatarId: conversation.avatarId,
-      status: conversation.status,
-      startedAt: conversation.startedAt,
-      lastActivityAt: conversation.lastActivityAt,
-      ...(conversation.endedAt !== undefined ? { endedAt: conversation.endedAt } : {}),
     }
   }
 }

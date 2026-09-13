@@ -384,7 +384,7 @@ describe('GET /v1/admin/sessions/:sessionId/memory', () => {
     const body = response.json<ApiResponse<{ session: SessionMemorySummary }>>()
     expect(body.error).toBeNull()
     expect(body.data?.session.summary).toBe('Compacted memory summary')
-    expect(body.data?.session.shortTerm).toEqual({ exchangeCount: 2 })
+    expect(body.data?.session.shortTerm).toEqual({ exchangeCount: 3 })
     expect(body.data?.session.updatedAt).toBe('2026-05-01T10:05:00.000Z')
     expect(response.body).not.toContain('OPENAI_API_KEY')
     expect(response.body).not.toContain('anthropicApiKey')

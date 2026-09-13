@@ -3,6 +3,7 @@ import type { ISessionMemoryRepository } from '../../ports/ISessionMemoryReposit
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import { DomainError } from '../../../domain/errors.js'
+import { MEMORY_SHORT_TERM_EXCHANGE_LIMIT } from '../../../domain/memory/memory.policy.js'
 import type { GetSessionMemoryInput, GetSessionMemoryOutput } from './get-session-memory.types.js'
 
 export class GetSessionMemoryUseCase {
@@ -25,7 +26,7 @@ export class GetSessionMemoryUseCase {
     const summary: SessionMemorySummary = {
       sessionId: session.sessionId,
       summary: summaryText,
-      shortTerm: { exchangeCount: 2 },
+      shortTerm: { exchangeCount: MEMORY_SHORT_TERM_EXCHANGE_LIMIT },
       updatedAt,
     }
 

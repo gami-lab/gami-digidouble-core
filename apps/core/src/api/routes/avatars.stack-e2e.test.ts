@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type {
   ApiResponse,
   CreateAvatarResponse,
+  CreateScenarioResponse,
+  ListScenariosResponse,
   ListScenarioAvatarsResponse,
   UpdateAvatarResponse,
 } from '@gami/shared'
@@ -9,18 +11,6 @@ import type {
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
 const UNKNOWN_ENDPOINT = `${APP_URL}/v1/scenarios/scenario_unknown/avatars`
-
-type CreateScenarioResponse = {
-  scenario: {
-    scenarioId: string
-  }
-}
-
-type ListScenariosResponse = {
-  scenarios: Array<{
-    scenarioId: string
-  }>
-}
 
 describe('Stack E2E — POST /v1/scenarios/:scenarioId/avatars — auth', () => {
   it('rejects requests with no API key (401)', async () => {

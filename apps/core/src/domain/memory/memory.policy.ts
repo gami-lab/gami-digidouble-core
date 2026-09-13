@@ -6,7 +6,7 @@
  */
 
 /** Number of recent exchanges retained in short-term memory for Avatar and GM. */
-export const MEMORY_SHORT_TERM_EXCHANGE_LIMIT = 2
+export const MEMORY_SHORT_TERM_EXCHANGE_LIMIT = 3
 
 /** Maximum long-term facts injected into Avatar/GM context per turn. */
 export const MEMORY_LONG_TERM_FACT_LIMIT = 10

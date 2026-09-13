@@ -1,4 +1,4 @@
-import type { LifecycleStatus } from './entity-types.js'
+import type { ConversationSummary, LifecycleStatus } from './entity-types.js'
 import type {
   SharedLongTermAvatarMemory,
   SharedLongTermMemoryFact,
@@ -81,15 +81,7 @@ export type LifecycleSummary = {
 }
 
 export type EndConversationResponse = {
-  conversation: {
-    conversationId: string
-    sessionId: string
-    avatarId: string
-    status: LifecycleStatus
-    startedAt: string
-    lastActivityAt: string
-    endedAt?: string
-  }
+  conversation: ConversationSummary
   compaction: {
     scheduled: true
   }

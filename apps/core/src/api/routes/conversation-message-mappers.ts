@@ -1,11 +1,7 @@
-import type {
-  Message as SharedMessage,
-  MessageStreamEvent,
-  SendMessageResponse,
-} from '@gami/shared'
+import type { MessageStreamEvent, SendMessageResponse } from '@gami/shared'
 import type { StreamingSendMessageEvent } from '../../application/use-cases/send-message/streaming-send-message.types.js'
 import type { SendMessageOutput } from '../../application/use-cases/send-message/send-message.types.js'
-import type { Message as DomainMessage } from '../../domain/conversation/session.types.js'
+import { toMessage } from '../../application/use-cases/shared/entity-summaries.js'
 
 export function mapSendMessageResponse(output: SendMessageOutput): SendMessageResponse {
   return {
@@ -75,7 +71,7 @@ export function mapStreamingEvent(event: StreamingSendMessageEvent): MessageStre
         type: 'conversation.message.started',
         requestId: event.requestId,
         conversationId: event.conversationId,
-        userMessage: mapMessage(event.userMessage),
+        userMessage: toMessage(event.userMessage),
       }
     case 'delta':
       return {
@@ -108,10 +104,6 @@ export function writeMessageStreamFrame(
 ): void {
   const id = getMessageStreamEventId(event)
   response.write(`event: conversation_message\nid: ${id}\ndata: ${JSON.stringify(event)}\n\n`)
-}
-
-function mapMessage(message: DomainMessage): SharedMessage {
-  return message
 }
 
 function getMessageStreamEventId(event: MessageStreamEvent): string {

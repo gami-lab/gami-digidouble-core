@@ -6,7 +6,7 @@ import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-mem
 import { AvatarMemoryContextAssembler } from './avatar-memory-context-assembler.service.js'
 
 describe('AvatarMemoryContextAssembler short-term and working memory', () => {
-  it('uses exactly the last 2 user/avatar exchanges for short-term memory', async () => {
+  it('uses exactly the last 3 user/avatar exchanges for short-term memory', async () => {
     const messageRepository = new InMemoryMessageRepository([
       makeMessage('msg_1', 'user', 'u1', '2026-05-06T10:00:00.000Z'),
       makeMessage('msg_2', 'avatar', 'a1', '2026-05-06T10:00:01.000Z'),
@@ -25,9 +25,11 @@ describe('AvatarMemoryContextAssembler short-term and working memory', () => {
     })
 
     expect(memory?.shortTerm?.recentExchanges).toEqual([
+      { user: 'u1', avatar: 'a1' },
       { user: 'u2', avatar: 'a2' },
       { user: 'u3', avatar: 'a3' },
     ])
+    expect(memory?.shortTerm?.exchangeCount).toBe(3)
   })
 
   it('omits working memory when repositories have no rows', async () => {

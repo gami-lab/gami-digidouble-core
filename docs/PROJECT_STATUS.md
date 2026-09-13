@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-12
+Last updated: 2026-09-13
 Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-05 voice/audio contracts, provider-neutral configuration, TTS adapter, completed-message audio route, browser playback, and hardening delivered
 
 ## Snapshot
@@ -389,6 +389,21 @@ retrieval proof or change production behavior.
   available at the configured base URL or when the voice fixture gate is not enabled.
 - Voice contract work does not change `Message`, `SendMessageRequest`, `SendMessageResponse`, or
   `MessageStreamEvent`; no shared DTO or persistence table was added.
+
+### EPIC 10.1 Prompt 0 — canonical contract baseline
+
+- Extended [`CONTEXT_CONTRACT_OWNERSHIP_MAP.md`](CONTEXT_CONTRACT_OWNERSHIP_MAP.md), covering Avatar, Scenario, Session,
+  Conversation, Message, memory, retrieval, Game Master, event, admin, console, and web
+  projections.
+- Consolidated the repeated Core Session/Conversation/Message projection mappers and the player
+  Avatar projection; public DTO ownership remains in `@gami/shared`.
+- Aligned the short-term memory policy and session projections on the documented three-exchange
+  current contract.
+- Added focused shared contract and Core mapper tests for current field names, optionals, explicit
+  `computedTraits: null`, and the narrower player Avatar projection.
+- No database schema, migration/quarantine tooling, persisted memory mirror, GM migration/parser
+  branch, event-history reader, or content compatibility path was removed. See the Prompt 01–04
+  handoff in `CONTEXT_CONTRACT_OWNERSHIP_MAP.md`.
 
 ## Open Product Work
 

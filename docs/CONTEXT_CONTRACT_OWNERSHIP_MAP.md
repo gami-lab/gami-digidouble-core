@@ -4,7 +4,10 @@
 
 Define canonical ownership for Context Engine contracts (EPIC 5.2) to prevent drift across `apps/core`, `apps/console`, and `packages/shared`.
 
-Last updated: September 10, 2026
+Last updated: September 13, 2026
+
+EPIC 10.1 Prompt 0 extends this map to the high-fan-out Avatar, Scenario, Session, Conversation,
+Message, Game Master, lifecycle, memory, retrieval, event, admin, console, and web contracts.
 
 ---
 
@@ -298,3 +301,51 @@ close, switch, reset, reindex, and scenario-cascade boundaries, is maintained in
 - If a new context contract is internal-only, define it in `domain/context`.
 - If a new context contract crosses app boundaries, define it in `packages/shared` and map at API boundaries.
 - If a new session/conversation HTTP contract crosses app boundaries, define it in `packages/shared/src/conversation-contract-types.ts`.
+
+## EPIC 10.1 Canonical Entity Baseline
+
+The following table is the current contract baseline. Internal entities and public DTOs are
+deliberately separate; the mapper is the only place where the two shapes cross.
+
+| Contract                     | Internal owner                                          | Public/projection owner                                                                                | Boundary mapper                                                                          | Consumers                                                |
+| ---------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Avatar entity/runtime config | `apps/core/src/domain/avatar/avatar.types.ts`           | `packages/shared/src/entity-types.ts` (`AvatarSummary`, `AvatarComputedTraits`)                        | `application/use-cases/shared/avatar-summary.ts`                                         | Avatar/scenario use cases, API routes, admin, console    |
+| Scenario entity              | `apps/core/src/domain/scenario/scenario.types.ts`       | `packages/shared/src/entity-types.ts` (`ScenarioSummary`)                                              | `application/use-cases/shared/scenario-summary.ts`                                       | Scenario use cases, API routes, admin, web, console      |
+| Session entity               | `apps/core/src/domain/conversation/session.types.ts`    | `packages/shared/src/entity-types.ts` (`SessionSummary`)                                               | `application/use-cases/shared/entity-summaries.ts`                                       | Session use cases, API routes, admin, web, console       |
+| Conversation entity          | `apps/core/src/domain/conversation/session.types.ts`    | `packages/shared/src/entity-types.ts` (`ConversationSummary`)                                          | `application/use-cases/shared/entity-summaries.ts`                                       | Conversation/session use cases, API routes, web, console |
+| Message entity               | `apps/core/src/domain/conversation/session.types.ts`    | `packages/shared/src/conversation-contract-types.ts` (`Message`)                                       | `application/use-cases/shared/entity-summaries.ts` and `conversation-message-mappers.ts` | History, message, SSE, web, console                      |
+| Lifecycle responses          | Domain entities plus shared lifecycle vocabulary        | `packages/shared/src/lifecycle-types.ts`                                                               | `entity-summaries.ts` for entity projections                                             | End-conversation and transition routes, web, console     |
+| Memory layers                | `apps/core/src/domain/memory/memory.types.ts`           | `packages/shared/src/memory-contract-types.ts`, `lifecycle-types.ts`, and `runtime-inspector-types.ts` | Memory use cases and session-context mapper                                              | Avatar/GM context, admin, console                        |
+| Knowledge/retrieval          | `apps/core/src/domain/knowledge/knowledge.types.ts`     | `packages/shared/src/knowledge-contract-types.ts`                                                      | Retrieval presenter and trace DTO mapper                                                 | Retrieval, context, admin, console                       |
+| GM state/input/output        | `apps/core/src/domain/game-master/game-master.types.ts` | `packages/shared/src/runtime-inspector-types.ts` for safe diagnostics                                  | GM event builders and session-event projection                                           | GM orchestration, runtime inspection, console            |
+| Runtime/persisted events     | Core event builders and `IEventLogRepository`           | `packages/shared/src/runtime-types.ts` and `runtime-inspector-types.ts`                                | Event publisher and `ListSessionEventsUseCase`                                           | API, admin, console, web event stream                    |
+| Admin/session inspection     | Core inspection use cases                               | `packages/shared/src/runtime-inspector-types.ts`                                                       | Inspection and context mappers                                                           | Admin API, console runtime inspector                     |
+
+### Frozen vocabulary and nullability
+
+- Current static knowledge values are `avatar_knowledge`, `world`, and `media`. The request-only
+  `memory` input alias remains because its removal belongs to EPIC 10.1 Prompt 02.
+- Knowledge visibility is represented by `KnowledgeVisibilityPolicy` (`all`, `avatars`, `none`);
+  inferred-policy and sentinel cleanup belongs to Prompt 04.
+- `Scenario.language` / `ScenarioSummary.language` is the canonical Scenario language field;
+  config/voice fallback removal belongs to Prompt 04.
+- Avatar routing uses `availabilityKey`. Prepared identity uses `AvatarComputedTraits`; the
+  current nullable public projection remains until the activation/content cleanup in Prompt 04.
+- Session memory uses `SessionMemorySummary`, `SessionMemoryLayers`, and the domain memory types.
+  The current short-term policy is three complete exchanges.
+- `GameMasterOutput` requires `dialogueControl`, `retrievalPlan`, `directorNotes`, and
+  `progressionUpdate`. Parser acceptance of older outputs belongs to Prompt 03.
+- Current event projections use sectioned Avatar/GM context snapshots and shared event payload
+  DTOs. Historical payload readers remain a Prompt 03 concern.
+
+### Prompt 01–04 handoff
+
+Prompt 0 intentionally removes no compatibility runtime path. The unresolved paths are:
+
+- Prompt 01: startup/schema alignment and compatibility-only database columns/bootstrap logic.
+- Prompt 02: legacy knowledge alias/migration/quarantine tooling and the `sessions.memory_summary`
+  persistence/read/write mirror.
+- Prompt 03: GM state migration/parser branches, old state fields, legacy event readers, and
+  compatibility-only ranking fields in historical diagnostics.
+- Prompt 04: Avatar flat prompt/identity fallbacks, Scenario language fallbacks, `routeKey`, legacy
+  visibility inference/sentinel handling, and runtime model-resolution compatibility wiring.

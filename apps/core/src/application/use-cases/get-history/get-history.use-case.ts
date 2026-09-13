@@ -2,6 +2,7 @@ import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { GetHistoryInput, GetHistoryOutput } from './get-history.types.js'
+import { toConversationSummary, toMessage } from '../shared/entity-summaries.js'
 
 export class GetHistoryUseCase {
   constructor(
@@ -19,16 +20,8 @@ export class GetHistoryUseCase {
 
     // TODO(EPIC-4.2): include session memory summary
     return {
-      conversation: {
-        conversationId: conversation.conversationId,
-        sessionId: conversation.sessionId,
-        avatarId: conversation.avatarId,
-        status: conversation.status,
-        startedAt: conversation.startedAt,
-        lastActivityAt: conversation.lastActivityAt,
-        ...(conversation.endedAt !== undefined ? { endedAt: conversation.endedAt } : {}),
-      },
-      messages,
+      conversation: toConversationSummary(conversation),
+      messages: messages.map(toMessage),
     }
   }
 }

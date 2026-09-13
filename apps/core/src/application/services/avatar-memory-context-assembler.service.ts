@@ -37,7 +37,7 @@ export class AvatarMemoryContextAssembler {
       ...(shortTerm.length > 0
         ? {
             shortTerm: {
-              exchangeCount: 2,
+              exchangeCount: MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
               recentExchanges: shortTerm,
             },
           }

@@ -5,6 +5,7 @@ import type {
   ListSessionConversationsInput,
   ListSessionConversationsOutput,
 } from './list-session-conversations.types.js'
+import { toConversationSummary } from '../shared/entity-summaries.js'
 
 export class ListSessionConversationsUseCase {
   constructor(
@@ -20,15 +21,7 @@ export class ListSessionConversationsUseCase {
 
     const conversations = await this.conversationRepository.listBySessionId(input.sessionId)
     return {
-      conversations: conversations.map((conversation) => ({
-        conversationId: conversation.conversationId,
-        sessionId: conversation.sessionId,
-        avatarId: conversation.avatarId,
-        status: conversation.status,
-        startedAt: conversation.startedAt,
-        lastActivityAt: conversation.lastActivityAt,
-        ...(conversation.endedAt !== undefined ? { endedAt: conversation.endedAt } : {}),
-      })),
+      conversations: conversations.map(toConversationSummary),
     }
   }
 }

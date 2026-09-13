@@ -31,6 +31,10 @@ to prove the composed HTTP ordering, same-session reuse, and judge-before-next-q
 it is still local and credential-free, not a provider benchmark. The real seeded scenario remains
 opt-in and is never part of the default suite.
 
+Canonical shared entity DTO shape tests live in `packages/shared`; Core domain-to-DTO boundary
+mapper tests live next to the application mappers. Consumers should import those contracts rather
+than recreate response shapes locally.
+
 ## 4b. Prefer deterministic policy tests for orchestration
 
 When behavior is defined by transition rules, pacing rules, constraints, and scenario goals, test it as deterministic policy first. LLM reasoning should be layered on top, not used as the only test surface.

@@ -91,10 +91,6 @@ type UpdateScenarioRequestParams = {
   scenarioId: string
 }
 
-type ListScenariosResponse = ListScenariosOutput
-type ListScenarioAvatarsResponse = ListScenarioAvatarsOutput
-type DeleteScenarioResponse = DeleteScenarioOutput
-
 const avatarAvailabilityBodySchema = {
   type: 'object',
   required: ['initialAvatarIds'],
@@ -279,7 +275,7 @@ function registerListScenariosRoute(app: FastifyInstance, useCase: ListScenarios
   app.get('/', async (_request, reply) => {
     try {
       const output = await useCase.execute()
-      return await reply.send(ok<ListScenariosResponse>(output))
+      return await reply.send(ok<ListScenariosOutput>(output))
     } catch (error) {
       app.log.error({ error }, 'Failed to list scenarios.')
       return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
@@ -372,7 +368,7 @@ function registerListScenarioAvatarsRoute(
     async (request, reply) => {
       try {
         const output = await useCase.execute({ scenarioId: request.params.scenarioId })
-        return await reply.send(ok<ListScenarioAvatarsResponse>(output))
+        return await reply.send(ok<ListScenarioAvatarsOutput>(output))
       } catch (error) {
         if (error instanceof DomainError && error.code === 'NOT_FOUND') {
           return await reply.status(404).send(fail('NOT_FOUND', error.message))
@@ -391,7 +387,7 @@ function registerDeleteScenarioRoute(app: FastifyInstance, useCase: DeleteScenar
     async (request, reply) => {
       try {
         const output = await useCase.execute({ scenarioId: request.params.scenarioId })
-        return await reply.send(ok<DeleteScenarioResponse>(output))
+        return await reply.send(ok<DeleteScenarioOutput>(output))
       } catch (error) {
         if (error instanceof DomainError) {
           if (error.code === 'NOT_FOUND') {

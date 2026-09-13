@@ -4,6 +4,7 @@ import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import { DomainError } from '../../../domain/errors.js'
 import { resolveInitialUnlockedAvatarIds } from '../../../domain/scenario/scenario-policy.service.js'
 import type { StartSessionInput, StartSessionOutput } from './start-session.types.js'
+import { toSessionSummary } from '../shared/entity-summaries.js'
 
 export class StartSessionUseCase {
   constructor(
@@ -12,7 +13,6 @@ export class StartSessionUseCase {
     private readonly avatarRepository: IAvatarRepository,
   ) {}
 
-  // eslint-disable-next-line complexity
   async execute(input: StartSessionInput): Promise<StartSessionOutput> {
     // TODO(EPIC-4.2): expand to full StartSessionRequest shape (nested user, initialContext)
     const userId = input.userId.trim()
@@ -44,20 +44,7 @@ export class StartSessionUseCase {
     })
 
     return {
-      session: {
-        sessionId: session.sessionId,
-        userId: session.userId,
-        scenarioId: session.scenarioId,
-        ...(session.activeAvatarId !== undefined ? { activeAvatarId: session.activeAvatarId } : {}),
-        ...(session.unlockedAvatarIds !== undefined
-          ? { unlockedAvatarIds: session.unlockedAvatarIds }
-          : {}),
-        ...(session.avatarOptions !== undefined ? { avatarOptions: session.avatarOptions } : {}),
-        status: session.status,
-        startedAt: session.startedAt,
-        lastActivityAt: session.lastActivityAt,
-        ...(session.endedAt !== undefined ? { endedAt: session.endedAt } : {}),
-      },
+      session: toSessionSummary(session),
     }
   }
 }

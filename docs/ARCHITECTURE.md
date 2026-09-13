@@ -28,6 +28,10 @@ This architecture is intentionally pragmatic.
 
 See `PRINCIPLES.md` for full engineering philosophy.
 
+Contract ownership for the current high fan-out entities and projections is recorded in
+[`CONTEXT_CONTRACT_OWNERSHIP_MAP.md`](CONTEXT_CONTRACT_OWNERSHIP_MAP.md). Shared DTOs are public wire contracts; domain
+entities remain internal and cross the boundary through application mappers.
+
 ---
 
 - external scripted evaluations
@@ -211,6 +215,8 @@ Contains:
 
 - session + conversation types (`domain/conversation/session.types.ts`)
 - message types and metadata (`domain/conversation/session.types.ts`)
+- public Session, Conversation, and Message projections are owned by `@gami/shared` and mapped by
+  `application/use-cases/shared/entity-summaries.ts`
 - streaming responses
 - session lifecycle and conversation lifecycle
 - runtime-state derivation for session-level message readiness

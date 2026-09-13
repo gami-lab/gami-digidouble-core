@@ -1,12 +1,11 @@
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import { DomainError } from '../../../domain/errors.js'
-import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type {
-  AvatarSummary,
   GetAvailableAvatarsInput,
   GetAvailableAvatarsOutput,
 } from './get-available-avatars.types.js'
+import { toAvailableAvatarSummary } from '../shared/avatar-summary.js'
 
 export class GetAvailableAvatarsUseCase {
   constructor(
@@ -31,22 +30,7 @@ export class GetAvailableAvatarsUseCase {
     return {
       sessionId: session.sessionId,
       currentAvatarId: session.activeAvatarId ?? null,
-      avatars: availableAvatars.map(mapAvatarSummary),
+      avatars: availableAvatars.map(toAvailableAvatarSummary),
     }
-  }
-}
-
-function mapAvatarSummary(avatar: AvatarConfig): AvatarSummary {
-  return {
-    avatarId: avatar.avatarId,
-    scenarioId: avatar.scenarioId,
-    name: avatar.name,
-    status: avatar.status,
-    personaPrompt: avatar.personaPrompt,
-    ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
-    ...(avatar.description !== undefined ? { description: avatar.description } : {}),
-    ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
-    createdAt: avatar.createdAt,
-    updatedAt: avatar.updatedAt,
   }
 }

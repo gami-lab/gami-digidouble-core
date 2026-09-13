@@ -12,6 +12,8 @@ This document records:
 - reset boundaries
 
 Runtime behavior belongs in `MEMORY_SYSTEM_SPEC.md` and `GAME_MASTER_CONTRACT.md`.
+Cross-layer ownership of persisted entities and their API projections is recorded in
+[`CONTEXT_CONTRACT_OWNERSHIP_MAP.md`](CONTEXT_CONTRACT_OWNERSHIP_MAP.md).
 
 ## Scope Rules
 

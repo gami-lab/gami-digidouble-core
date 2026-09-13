@@ -245,8 +245,9 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 
 **Current state**
 
-The compatibility audit is complete, but removal work has not started. The product will be
-redeployed with a fresh database and fresh content.
+The compatibility audit and Prompt 0 contract baseline are complete. Runtime removal work for
+Prompts 01–04 remains pending. The product will be redeployed with a fresh database and fresh
+content.
 
 **Purpose**
 
