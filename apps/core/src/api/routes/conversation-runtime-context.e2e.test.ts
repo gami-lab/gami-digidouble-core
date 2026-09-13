@@ -326,7 +326,7 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     })
   })
 
-  it('falls back to the authored personaPrompt on the HTTP path when traits are not prepared', async () => {
+  it('rejects the HTTP path when traits are not prepared', async () => {
     const llm = new CapturingLlmAdapter()
     const app = makeApp(
       llm,
@@ -342,11 +342,9 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
       payload: { message: { content: 'What should I do?' } },
     })
 
-    expect(response.statusCode).toBe(200)
-    const systemPrompt = llm.calls[0]?.systemPrompt ?? ''
-    expect(systemPrompt).toContain('## Avatar Traits')
-    expect(systemPrompt).toContain('You are Ava, a careful harbor guide.')
-    expect(systemPrompt).not.toContain('- Harbor archivist')
+    expect(response.statusCode).toBe(409)
+    expect(response.json<ApiResponse<null>>().error?.code).toBe('CONFLICT')
+    expect(llm.calls).toHaveLength(0)
   })
 })
 

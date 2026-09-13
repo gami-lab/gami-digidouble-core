@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import type { ApiResponse } from '@gami/shared'
+import { createEmptyAvatarComputedTraits, type ApiResponse } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Session } from '../../domain/conversation/session.types.js'
@@ -18,23 +18,31 @@ afterEach(async () => {
   await Promise.all(appsToClose.splice(0).map(async (app) => app.close()))
 })
 
-function registerApp(app: FastifyInstance): FastifyInstance {
+function registerApp<T extends FastifyInstance>(app: T): T {
   appsToClose.push(app)
   return app
+}
+
+type TestApp = FastifyInstance & {
+  avatarRepositoryForTest: InMemoryAvatarRepository
 }
 
 function makeApp(params?: {
   scenarios?: Scenario[]
   avatars?: AvatarConfig[]
   sessions?: Session[]
-}): FastifyInstance {
-  return createServer(TEST_CONFIG, {
-    scenarioRepository: new InMemoryScenarioRepository(params?.scenarios ?? []),
-    avatarRepository: new InMemoryAvatarRepository(params?.avatars ?? []),
-    sessionRepository: new InMemorySessionRepository(params?.sessions ?? []),
-    conversationRepository: new InMemoryConversationRepository(),
-    messageRepository: new InMemoryMessageRepository(),
-  })
+}): TestApp {
+  const avatarRepository = new InMemoryAvatarRepository(params?.avatars ?? [])
+  return Object.assign(
+    createServer(TEST_CONFIG, {
+      scenarioRepository: new InMemoryScenarioRepository(params?.scenarios ?? []),
+      avatarRepository,
+      sessionRepository: new InMemorySessionRepository(params?.sessions ?? []),
+      conversationRepository: new InMemoryConversationRepository(),
+      messageRepository: new InMemoryMessageRepository(),
+    }),
+    { avatarRepositoryForTest: avatarRepository },
+  )
 }
 
 function authHeaders(apiKey = 'test-secret'): { 'x-api-key': string } {
@@ -49,7 +57,7 @@ function requireId<T extends Record<string, unknown>>(value: T | undefined, key:
   return id
 }
 
-async function seedSessionWithAvatar(app: FastifyInstance): Promise<{
+async function seedSessionWithAvatar(app: TestApp): Promise<{
   sessionId: string
   avatarId: string
 }> {
@@ -77,6 +85,8 @@ async function seedSessionWithAvatar(app: FastifyInstance): Promise<{
     'avatarId',
   )
 
+  await prepareAndActivateAvatarForTest(app, avatarId)
+
   const createSession = await app.inject({
     method: 'POST',
     url: '/v1/sessions',
@@ -92,7 +102,12 @@ async function seedSessionWithAvatar(app: FastifyInstance): Promise<{
   return { sessionId, avatarId }
 }
 
-async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
+async function prepareAndActivateAvatarForTest(app: TestApp, avatarId: string): Promise<void> {
+  await app.avatarRepositoryForTest.saveComputedTraits(avatarId, createEmptyAvatarComputedTraits())
+  await app.avatarRepositoryForTest.update(avatarId, { status: 'active' })
+}
+
+async function seedPolicySessionWithGuideEthics(app: TestApp): Promise<{
   sessionId: string
   guideAvatarId: string
 }> {
@@ -142,6 +157,8 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     createEthics.json<ApiResponse<{ avatar: { avatarId: string } }>>().data?.avatar,
     'avatarId',
   )
+  await prepareAndActivateAvatarForTest(app, guideAvatarId)
+  await prepareAndActivateAvatarForTest(app, ethicsAvatarId)
   const patchScenarioInitialBoth = await app.inject({
     method: 'PATCH',
     url: `/v1/scenarios/${scenarioId}`,

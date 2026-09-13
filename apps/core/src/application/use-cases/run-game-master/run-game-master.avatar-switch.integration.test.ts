@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 import { SwitchAvatarUseCase } from '../switch-avatar/switch-avatar.use-case.js'
@@ -15,6 +16,7 @@ const avatars: AvatarConfig[] = [
     name: 'Ava',
     status: 'active',
     personaPrompt: 'You are Ava.',
+    computedTraits: createEmptyAvatarComputedTraits(),
     config: {},
     createdAt: '2026-07-20T09:00:00.000Z',
     updatedAt: '2026-07-20T09:00:00.000Z',
@@ -25,6 +27,7 @@ const avatars: AvatarConfig[] = [
     name: 'Theo',
     status: 'active',
     personaPrompt: 'You are Theo.',
+    computedTraits: createEmptyAvatarComputedTraits(),
     config: {},
     createdAt: '2026-07-20T09:00:00.000Z',
     updatedAt: '2026-07-20T09:00:00.000Z',
