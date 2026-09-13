@@ -69,6 +69,10 @@ rather than a silent corruption risk:
   identity, and must have a finite vector matching that generation's profile — chunks are unique
   per `(source_id, corpus_generation_id, chunk_index)` so a staged generation can reprocess a
   source independently of the active one.
+- `knowledge_chunks.content_hash` stores a SHA-256 hash of the final persisted chunk text. Reindex
+  compares it at the same source and chunk index only when the target profile is the active profile;
+  copied vectors are still persisted under the new generation/profile identity. Profile changes do
+  not reuse hashes across vector spaces.
 - `reindex_operations`/`reindex_operation_sources`/`corpus_generation_sources` track full-corpus
   rebuild progress per source; promotion is a single transaction that locks and swaps the active
   pointer only after every expected source is complete, then marks the previous generation

@@ -59,6 +59,17 @@ Rollout sequence:
    snapshotted source has staged fully compatible vectors; the database transaction then flips the
    active generation atomically.
 
+### Incremental reindex behavior
+
+Each persisted chunk stores a SHA-256 hash of its final text, including heading context and overlap.
+During a reindex targeting the currently active profile, Core re-chunks every source but only sends
+changed `(sourceId, chunkIndex, contentHash)` entries to the embedding provider. Matching active
+chunks with finite, profile-sized vectors are copied into the staged generation and written with the
+new generation/profile identity, so corpus validation remains unchanged. A changed chunk, a shifted
+chunk index, a missing/invalid old vector, or any profile/model/dimension change forces a fresh embed.
+The ordinary per-source ingestion path remains a full embed operation; this optimization is scoped to
+the multi-source reindex flow.
+
 Operational guarantees worth relying on:
 
 - The previous active generation stays readable while the new one is staging — reindexing is not a

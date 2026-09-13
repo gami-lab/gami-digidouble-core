@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   source_id       UUID        NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
   content         TEXT        NOT NULL,
+  content_hash    TEXT        NOT NULL,
   chunk_index     INT         NOT NULL,
   embedding       VECTOR(1536),
   embedding_profile_id UUID REFERENCES embedding_profiles(id),

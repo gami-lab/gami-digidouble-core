@@ -16,6 +16,7 @@ import type {
   LexicalRetrievalCandidate,
   VectorRetrievalCandidate,
 } from '../../../domain/knowledge/knowledge.types.js'
+import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
 import { assertStaticMetadataAllowed } from '../../../domain/knowledge/static-knowledge-validation.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
@@ -23,6 +24,7 @@ type KnowledgeChunkDbRow = {
   id: string
   source_id: string
   content: string
+  content_hash: string | null
   chunk_index: number
   embedding: unknown
   embedding_profile_id: string | null
@@ -80,6 +82,7 @@ function rowToKnowledgeChunk(row: KnowledgeChunkRow): KnowledgeChunk {
     chunkId: `knowledge_chunk_${row.id}`,
     sourceId: `knowledge_source_${row.source_id}`,
     content: row.content,
+    ...(row.content_hash !== null ? { contentHash: row.content_hash } : {}),
     chunkIndex: row.chunk_index,
     ...(row.embedding !== null ? { embedding: [...row.embedding] } : {}),
     ...(row.embedding_profile_id !== null
@@ -100,6 +103,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
   // Production ingestion and reindex writes go through PostgresKnowledgeCorpusRepository's
   // generation-aware replacement methods. This direct method is retained for the shared interface
   // and repository-level fixtures; it is not a supported production write path.
+  // eslint-disable-next-line complexity
   async create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk> {
     assertStaticMetadataAllowed(params.metadata, 'chunk')
     const sourceUuid = stripPrefix('knowledge_source_', params.sourceId)
@@ -126,6 +130,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
       INSERT INTO knowledge_chunks (
         source_id,
         content,
+        content_hash,
         chunk_index,
         embedding,
         embedding_profile_id,
@@ -136,6 +141,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
       VALUES (
         ${sourceUuid},
         ${params.content},
+        ${params.contentHash ?? hashKnowledgeChunkContent(params.content)},
         ${params.chunkIndex},
         ${embeddingExpression},
         ${profileUuid},
@@ -144,7 +150,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
         ${visibleToAvatarIds ?? null}
       )
       RETURNING id, source_id, content, chunk_index, embedding::text, embedding_profile_id,
-        corpus_generation_id, metadata, visible_to_avatar_ids, created_at
+        content_hash, corpus_generation_id, metadata, visible_to_avatar_ids, created_at
     `
 
     if (row === undefined) {
@@ -159,7 +165,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
     if (sourceUuid === null) return []
 
     const rows = await this.sql<KnowledgeChunkDbRow[]>`
-      SELECT c.id, c.source_id, c.content, c.chunk_index, c.embedding::text,
+      SELECT c.id, c.source_id, c.content, c.content_hash, c.chunk_index, c.embedding::text,
         c.embedding_profile_id, c.corpus_generation_id, c.metadata, c.visible_to_avatar_ids, c.created_at
       FROM knowledge_chunks c
       CROSS JOIN knowledge_corpus_state state
@@ -184,7 +190,7 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
     if (uuids.length === 0) return []
 
     const rows = await this.sql<KnowledgeChunkDbRow[]>`
-      SELECT c.id, c.source_id, c.content, c.chunk_index, c.embedding::text,
+      SELECT c.id, c.source_id, c.content, c.content_hash, c.chunk_index, c.embedding::text,
         c.embedding_profile_id, c.corpus_generation_id, c.metadata, c.visible_to_avatar_ids, c.created_at
       FROM knowledge_chunks c
       CROSS JOIN knowledge_corpus_state state

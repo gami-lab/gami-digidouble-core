@@ -38,9 +38,11 @@ Main implementation entry points: `knowledge-ingestion.service.ts`, `typed-retri
    considered by runtime retrieval — `pending`/`error` sources are excluded.
 2. Ingest text/Markdown/PDF/media descriptions into deterministic paragraph-aware chunks (see
    "Chunking strategy" below).
-3. Embed chunks through the active immutable embedding profile.
-4. Stage a complete source/corpus replacement and promote it atomically — partial or stale
-   profile/generation results never become active, so a failed reindex can't half-apply.
+3. Embed chunks through the active immutable embedding profile. During same-profile reindexing,
+   unchanged final chunk text can reuse its active-generation vector by source and chunk index;
+   changed chunks and every profile-change target are embedded normally.
+4. Stage a complete source/corpus replacement and promote it atomically — copied vectors are written
+   with the target generation/profile identity, and partial or stale results never become active.
 5. At query time, normalize runtime query variants, embed them as one ordered batch, and search
    active pgvector data alongside the bounded PostgreSQL full-text index.
 6. Apply the same scenario/type/readiness/source/active-corpus/visibility filters to both paths

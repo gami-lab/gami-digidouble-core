@@ -207,9 +207,9 @@ Removed audited compatibility paths and legacy contracts, verified fresh schema/
 
 **Current state**
 The labelled recall@k/MRR baseline harness, deterministic oversized-input chunk cap/overlap, native
-1536-dimensional embedding migration, single-authority Avatar selection, dead-diagnostic cleanup, and
-bounded lexical candidate fusion are landed. The committed before/after reports are the measurement
-record for this work.
+1536-dimensional embedding migration, single-authority Avatar selection, dead-diagnostic cleanup,
+bounded lexical candidate fusion, and same-profile incremental reindexing are landed. The committed
+before/after reports are the measurement record for this work.
 
 **Purpose**
 Improve retrieval fidelity and prove answer-grounding improvements against the committed baseline.

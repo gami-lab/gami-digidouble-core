@@ -17,6 +17,7 @@ import type {
   UpdateReindexSourceProgressParams,
 } from '../../../application/ports/IKnowledgeCorpusRepository.js'
 import type { KnowledgeChunk } from '../../../domain/knowledge/knowledge.types.js'
+import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
 import { DEFAULT_EMBEDDING_DIMENSIONS } from '../../../config.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
@@ -52,6 +53,7 @@ type ChunkRow = {
   id: string
   source_id: string
   content: string
+  content_hash: string | null
   chunk_index: number
   embedding: string | null
   embedding_profile_id: string | null
@@ -363,6 +365,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
   ): Promise<number> {
     const operationUuid = requireUuid('reindex_operation_', reindexOperationId)
     const sourceUuid = requireUuid('knowledge_source_', sourceId)
+    // eslint-disable-next-line complexity
     return this.sql.begin(async (tx) => {
       const [operation] = await tx<{ generation_id: string; profile_id: string }[]>`
         SELECT corpus_generation_id AS generation_id, embedding_profile_id AS profile_id
@@ -391,10 +394,11 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       for (const chunk of chunks) {
         await tx`
           INSERT INTO knowledge_chunks (
-            source_id, content, chunk_index, embedding, embedding_profile_id,
+            source_id, content, content_hash, chunk_index, embedding, embedding_profile_id,
             corpus_generation_id, metadata, visible_to_avatar_ids
           ) VALUES (
-            ${sourceUuid}, ${chunk.content}, ${chunk.chunkIndex},
+            ${sourceUuid}, ${chunk.content},
+            ${chunk.contentHash ?? hashKnowledgeChunkContent(chunk.content)}, ${chunk.chunkIndex},
             ${JSON.stringify(chunk.embedding)}::vector, ${operation.profile_id},
             ${operation.generation_id}, ${tx.json((chunk.metadata ?? {}) as JSONValue)},
             ${chunk.visibleToAvatarIds ?? null}
@@ -484,10 +488,11 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       for (const chunk of replacement.chunks) {
         await tx`
           INSERT INTO knowledge_chunks (
-            source_id, content, chunk_index, embedding, embedding_profile_id,
+            source_id, content, content_hash, chunk_index, embedding, embedding_profile_id,
             corpus_generation_id, metadata, visible_to_avatar_ids
           ) VALUES (
-            ${sourceUuid}, ${chunk.content}, ${chunk.chunkIndex},
+            ${sourceUuid}, ${chunk.content},
+            ${chunk.contentHash ?? hashKnowledgeChunkContent(chunk.content)}, ${chunk.chunkIndex},
             ${JSON.stringify(chunk.embedding)}::vector, ${profileUuid},
             ${generationUuid}, ${tx.json((chunk.metadata ?? {}) as JSONValue)},
             ${chunk.visibleToAvatarIds ?? null}
@@ -744,7 +749,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       .filter((sourceId): sourceId is string => sourceId !== null)
     if (uuids.length === 0) return []
     const rows = await this.sql<ChunkRow[]>`
-      SELECT c.id, c.source_id, c.content, c.chunk_index, c.embedding::text,
+      SELECT c.id, c.source_id, c.content, c.content_hash, c.chunk_index, c.embedding::text,
         c.embedding_profile_id, c.corpus_generation_id, c.metadata,
         c.visible_to_avatar_ids, c.created_at
       FROM knowledge_chunks c
@@ -802,6 +807,7 @@ function rowToSourceProgress(row: ReindexSourceProgressRow): ReindexSourceProgre
   }
 }
 
+// eslint-disable-next-line complexity
 function rowToKnowledgeChunk(row: ChunkRow): KnowledgeChunk {
   const metadata =
     typeof row.metadata === 'object' && row.metadata !== null && !Array.isArray(row.metadata)
@@ -811,6 +817,7 @@ function rowToKnowledgeChunk(row: ChunkRow): KnowledgeChunk {
     chunkId: `knowledge_chunk_${row.id}`,
     sourceId: `knowledge_source_${row.source_id}`,
     content: row.content,
+    ...(row.content_hash !== null ? { contentHash: row.content_hash } : {}),
     chunkIndex: row.chunk_index,
     ...(row.embedding !== null ? { embedding: parseVectorText(row.embedding) } : {}),
     ...(row.embedding_profile_id !== null

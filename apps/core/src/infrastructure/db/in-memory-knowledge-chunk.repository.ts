@@ -11,6 +11,7 @@ import {
   MAX_VECTOR_SEARCH_CANDIDATES,
 } from '../../application/ports/IKnowledgeChunkRepository.js'
 import type { KnowledgeChunk, KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
+import { hashKnowledgeChunkContent } from '../../domain/knowledge/knowledge-content-hash.js'
 import { assertStaticMetadataAllowed } from '../../domain/knowledge/static-knowledge-validation.js'
 import {
   buildKnowledgeVisibilitySelection,
@@ -63,6 +64,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
       chunkId: `knowledge_chunk_${crypto.randomUUID()}`,
       sourceId: params.sourceId,
       content: params.content,
+      contentHash: params.contentHash ?? hashKnowledgeChunkContent(params.content),
       chunkIndex: params.chunkIndex,
       ...(params.embedding !== undefined ? { embedding: [...params.embedding] } : {}),
       ...(params.embeddingProfileId !== undefined
@@ -189,6 +191,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
         chunkId: `knowledge_chunk_${crypto.randomUUID()}`,
         sourceId: chunk.sourceId,
         content: chunk.content,
+        contentHash: chunk.contentHash ?? hashKnowledgeChunkContent(chunk.content),
         chunkIndex: chunk.chunkIndex,
         embedding: [...chunk.embedding],
         embeddingProfileId: chunk.embeddingProfileId,

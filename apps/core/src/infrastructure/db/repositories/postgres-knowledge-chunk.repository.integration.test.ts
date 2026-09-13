@@ -136,6 +136,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
 
     expect(chunks).toHaveLength(2)
     expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual([0, 2])
+    expect(chunks.every((chunk) => chunk.contentHash?.length === 64)).toBe(true)
     expect(chunks[0]?.embedding).toEqual(vectorForCurrentProfile(0.1, 0))
     expect(chunks[0]?.visibleToAvatarIds).toBeUndefined()
   })

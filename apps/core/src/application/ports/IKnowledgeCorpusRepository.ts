@@ -57,6 +57,7 @@ export type ReindexSourceProgress = Readonly<{
 export type StagedKnowledgeChunk = Readonly<{
   sourceId: string
   content: string
+  contentHash?: string
   chunkIndex: number
   embedding: EmbeddingVector
   embeddingProfileId: string

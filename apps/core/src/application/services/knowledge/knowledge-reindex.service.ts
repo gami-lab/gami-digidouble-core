@@ -13,12 +13,14 @@ import type {
 } from '../../ports/IKnowledgeCorpusRepository.js'
 import type { IKnowledgeSourceContentLoader } from '../../ports/IKnowledgeSourceContentLoader.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
+import type { KnowledgeChunk } from '../../../domain/knowledge/knowledge.types.js'
 import {
   KnowledgeIngestionError,
   toChunkSeeds,
   validateEmbeddingResult,
 } from './knowledge-ingestion.service.js'
 import { assertStaticMetadataAllowed } from '../../../domain/knowledge/static-knowledge-validation.js'
+import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
 
 export type KnowledgeReindexStartResult = Readonly<{
   status: 'started' | 'reused' | 'already_active'
@@ -155,6 +157,7 @@ export class KnowledgeReindexService {
     }
   }
 
+  // eslint-disable-next-line max-lines-per-function
   private async processSource(
     operation: ReindexOperation,
     profile: { embeddingProfileId: string; provider: string; model: string; dimensions: number },
@@ -181,25 +184,51 @@ export class KnowledgeReindexService {
       if (seeds.length === 0) {
         throw new ReindexSourceError('empty_source', 'Source produced no chunks.')
       }
-      const result = await this.embeddingAdapter.embed({
-        inputs: seeds.map((seed) => seed.content),
+      const reusableChunks = await this.reusableActiveChunks(operation, profile, source.sourceId)
+      const seedsToEmbed = seeds.filter((seed) => {
+        return !hasMatchingContent(reusableChunks.get(seed.chunkIndex), seed.contentHash)
       })
-      validateEmbeddingResult(result, profile, seeds.length)
-      const chunks: StagedKnowledgeChunk[] = seeds.map((seed, index) => ({
-        sourceId: source.sourceId,
-        content: seed.content,
-        chunkIndex: seed.chunkIndex,
-        embedding: [...(result.vectors[index] ?? [])],
-        embeddingProfileId: operation.embeddingProfileId,
-        corpusGenerationId: operation.corpusGenerationId,
-        metadata: {
-          ...seed.metadata,
-          reindexOperationId: operation.reindexOperationId,
-        },
-        ...(source.visibleToAvatarIds !== undefined
-          ? { visibleToAvatarIds: [...source.visibleToAvatarIds] }
-          : {}),
-      }))
+      const embeddedVectors = new Map<number, readonly number[]>()
+      if (seedsToEmbed.length > 0) {
+        const result = await this.embeddingAdapter.embed({
+          inputs: seedsToEmbed.map((seed) => seed.content),
+        })
+        validateEmbeddingResult(result, profile, seedsToEmbed.length)
+        seedsToEmbed.forEach((seed, index) => {
+          const vector = result.vectors[index]
+          if (vector === undefined) {
+            throw new ReindexSourceError('vector_count_mismatch', 'Embedding vector is missing.')
+          }
+          embeddedVectors.set(seed.chunkIndex, vector)
+        })
+      }
+      const chunks: StagedKnowledgeChunk[] = seeds.map((seed) => {
+        const existing = reusableChunks.get(seed.chunkIndex)
+        const isUnchanged = hasMatchingContent(existing, seed.contentHash)
+        const embedding = isUnchanged ? existing?.embedding : embeddedVectors.get(seed.chunkIndex)
+        if (embedding === undefined) {
+          throw new ReindexSourceError(
+            'vector_count_mismatch',
+            `Embedding vector for chunk ${String(seed.chunkIndex)} is missing.`,
+          )
+        }
+        return {
+          sourceId: source.sourceId,
+          content: seed.content,
+          contentHash: seed.contentHash,
+          chunkIndex: seed.chunkIndex,
+          embedding: [...embedding],
+          embeddingProfileId: operation.embeddingProfileId,
+          corpusGenerationId: operation.corpusGenerationId,
+          metadata: {
+            ...seed.metadata,
+            reindexOperationId: operation.reindexOperationId,
+          },
+          ...(source.visibleToAvatarIds !== undefined
+            ? { visibleToAvatarIds: [...source.visibleToAvatarIds] }
+            : {}),
+        }
+      })
       await this.corpusRepository.replaceStagedSourceChunks(
         operation.reindexOperationId,
         source.sourceId,
@@ -276,6 +305,34 @@ export class KnowledgeReindexService {
       console.error('[knowledge-reindex] Event log append failed:', error)
     }
   }
+
+  private async reusableActiveChunks(
+    operation: ReindexOperation,
+    profile: EmbeddingProfile,
+    sourceId: string,
+  ): Promise<Map<number, KnowledgeChunk>> {
+    const activeCorpus = await this.corpusRepository.getActiveCorpus()
+    if (
+      activeCorpus === null ||
+      activeCorpus.embeddingProfileId !== operation.embeddingProfileId ||
+      activeCorpus.embeddingProfileId !== operation.expectedActiveProfileId ||
+      activeCorpus.corpusGenerationId !== operation.expectedActiveGenerationId ||
+      !sameProfile(activeCorpus.profile, profile)
+    ) {
+      return new Map()
+    }
+    const activeChunks = await this.corpusRepository.listActiveChunksBySourceIds([sourceId])
+    return new Map(
+      activeChunks
+        .filter(
+          (chunk) =>
+            chunk.embedding !== undefined &&
+            chunk.embedding.length === profile.dimensions &&
+            chunk.embedding.every((value) => Number.isFinite(value)),
+        )
+        .map((chunk) => [chunk.chunkIndex, chunk]),
+    )
+  }
 }
 
 class ReindexSourceError extends Error {
@@ -293,6 +350,13 @@ function sameProfile(left: EmbeddingProfile, right: EmbeddingProfile): boolean {
     left.provider === right.provider &&
     left.model === right.model &&
     left.dimensions === right.dimensions
+  )
+}
+
+function hasMatchingContent(chunk: KnowledgeChunk | undefined, contentHash: string): boolean {
+  return (
+    chunk !== undefined &&
+    (chunk.contentHash ?? hashKnowledgeChunkContent(chunk.content)) === contentHash
   )
 }
 

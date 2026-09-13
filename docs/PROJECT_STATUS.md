@@ -79,7 +79,8 @@ that touches persistence, retrieval, or provider adapters.
 - Retrieval quality work now has a measured native-profile comparison: the historical 16-dimensional
   baseline has recall@3/7/9 = 1.000000 and MRR = 0.722222, versus recall@3/7/9 = 1.000000 and
   MRR = 0.916667 at 1536 dimensions (`EPICS.md` 5.1e); bounded lexical candidate fusion now
-  addresses exact-entity fallback. Context Engine now owns the final Avatar retrieval selection;
+  addresses exact-entity fallback, and same-profile reindexing now skips unchanged chunk embeds.
+  Context Engine now owns the final Avatar retrieval selection;
   prompt assembly only formats the selected sections. Unmeasurable visibility-exclusion counts are
   no longer emitted, and the direct Postgres chunk-write method is documented as a fixture/in-memory
   compatibility path.

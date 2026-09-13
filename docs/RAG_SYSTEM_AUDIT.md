@@ -38,9 +38,12 @@ carries an `embeddingProfileId` + `corpusGenerationId`; a source's chunks are wr
 inside one transaction, so a source is never left half-vectorized. Changing the embedding
 profile/model runs a **staged reindex**
 ([knowledge-reindex.service.ts](../apps/core/src/application/services/knowledge/knowledge-reindex.service.ts)):
-every source is re-embedded into a new `corpusGenerationId`, validated for completeness, and only
-then atomically promoted as the active generation — the previous generation stays servable until
-promotion succeeds. This is a genuine, non-trivial piece of infrastructure engineering.
+every source is re-chunked into a new `corpusGenerationId`; changed chunks are re-embedded, while
+unchanged chunks at the same `sourceId` + `chunkIndex` reuse their content-matched vector when the
+active profile is unchanged. Every vector is still written under the new generation, validated for
+completeness, and only then atomically promoted as the active generation — the previous generation
+stays servable until promotion succeeds. A profile change always re-embeds every chunk. This is a
+genuine, non-trivial piece of infrastructure engineering.
 
 ### Phase 4 — Runtime query construction
 
@@ -118,7 +121,7 @@ profile, visibility mode, match type, and failure codes — never raw vectors or
 | Corpus lifecycle           | Versioned embedding spaces, staged rebuild, safe cutover                                                                                                                                    | Full staged reindex + generation promotion + rollback-safe active-corpus pointer                                                                                          | **Genuine strength**, better than most hand-rolled RAG stacks.                                                                                                                      |
 | Multi-tenant/ACL filtering | Push access control into the retrieval query, not post-filtering in the app                                                                                                                 | Visibility policy filtered in SQL (`buildVisibilityFilter`)                                                                                                               | **Strength.**                                                                                                                                                                       |
 | Observability              | Bounded, PII/vector-safe tracing                                                                                                                                                            | Structured trace events with profile/timing/count/failure fields, no raw vectors/content leaked                                                                           | **Strength.**                                                                                                                                                                       |
-| Incremental indexing       | Re-embed only changed content (content hash / chunk diffing)                                                                                                                                | Every ingest and every reindex re-embeds **all** chunks of a source from scratch                                                                                          | Cost/latency gap; fine at current scale, will not scale to large or frequently-edited sources.                                                                                      |
+| Incremental indexing       | Re-embed only changed content (content hash / chunk diffing)                                                                                                                                | Reindex hashes final chunk text and reuses matching active-profile vectors by source + chunk index; ingestion remains a full embed path                                   | Resolved for same-profile reindex; profile changes and chunking still correctly force new vectors.                                                                                  |
 | Retrieval evaluation       | Offline IR metrics (recall@k, MRR/nDCG) against a labelled query set                                                                                                                        | A small opt-in recall@k/MRR harness now covers six labelled murder-party queries; the broader conversation-evaluation harness still judges whole conversations            | The harness records the historical 16-dimensional baseline and the native 1536-dimensional comparison; it is intentionally not a general framework, dashboard, or CI gate.          |
 
 ## 3. Is this a real RAG system?
@@ -191,10 +194,11 @@ the unmeasurable excluded-row count is no longer emitted or rendered.
 query variant. `TypedRetrievalService` fuses them with vector candidates and exposes a bounded
 `matchType` diagnostic, recovering named-entity lookups that dense retrieval may miss.
 
-**P2 — Incremental reindexing.** `KnowledgeReindexService.processSource` re-embeds every chunk of
-every source on every reindex run, with no content-hash short-circuit for unchanged chunks. Fine
-today; will become a real cost/latency problem as the number and size of sources grows. Track a
-content hash per chunk and skip re-embedding when it's unchanged from the previous generation.
+**Resolved — Incremental reindexing.** Final chunk text is persisted as a SHA-256 content hash.
+`KnowledgeReindexService` reuses a valid vector for matching `(sourceId, chunkIndex, contentHash)`
+entries only when the target profile is the active profile; it still writes the copied vector under
+the new generation and validates the complete corpus. Profile changes and the separate ingestion
+path continue to embed all produced chunks.
 
 **Resolved — Add a small retrieval-quality eval set.** The standalone retrieval-quality tool now
 uses versioned `(scenario, query, expected chunk IDs)` fixtures and reports recall@k/MRR, including

@@ -24,6 +24,7 @@ import type {
 import type { IKnowledgeSourceContentLoader } from '../../ports/IKnowledgeSourceContentLoader.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
+import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
 import { findReservedStaticScopeKeys } from '../../../domain/knowledge/static-knowledge-validation.js'
 
 export type IngestionExecutionInput = {
@@ -219,6 +220,7 @@ export class KnowledgeIngestionService {
     const chunks: StagedKnowledgeChunk[] = chunkSeeds.map((chunk, index) => ({
       sourceId: source.sourceId,
       content: chunk.content,
+      contentHash: chunk.contentHash,
       chunkIndex: chunk.chunkIndex,
       embedding: [...(embeddingResult.vectors[index] ?? [])],
       embeddingProfileId: activeCorpus.embeddingProfileId,
@@ -422,6 +424,7 @@ function isStaleCorpusError(error: unknown): boolean {
 
 type ChunkSeed = {
   content: string
+  contentHash: string
   chunkIndex: number
   metadata: Record<string, unknown>
 }
@@ -448,6 +451,7 @@ export function toChunkSeeds(
     return [
       {
         content: `Reference source: ${source.uriOrPath}`,
+        contentHash: hashKnowledgeChunkContent(`Reference source: ${source.uriOrPath}`),
         chunkIndex: 0,
         metadata: buildChunkMetadata(source, loadedMetadata),
       },
@@ -583,6 +587,7 @@ function appendBoundedChunk(
         : withChunkOverlap(piece, chunks.at(-1)?.content, INGESTION_CHUNK_HARD_MAX)
     chunks.push({
       content: boundedContent,
+      contentHash: hashKnowledgeChunkContent(boundedContent),
       chunkIndex: chunks.length,
       metadata: buildChunkMetadata(source, loadedMetadata),
     })
@@ -687,6 +692,7 @@ function toMediaChunk(
   return [
     {
       content: mediaDescription,
+      contentHash: hashKnowledgeChunkContent(mediaDescription),
       chunkIndex: 0,
       metadata: {
         mediaUri: source.uriOrPath,

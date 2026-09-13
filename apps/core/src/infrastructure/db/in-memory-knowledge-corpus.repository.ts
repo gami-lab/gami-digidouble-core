@@ -387,6 +387,11 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     return Promise.resolve(this.activeCorpus)
   }
 
+  setActiveCorpus(activeCorpus: ActiveCorpus | null): void {
+    this.activeCorpus = activeCorpus
+    this.chunkRepository.setActiveCorpus(activeCorpus)
+  }
+
   listActiveChunksBySourceIds(sourceIds: readonly string[]): Promise<KnowledgeChunk[]> {
     const chunks = this.chunkRepository
       .listAllBySourceIds(sourceIds)

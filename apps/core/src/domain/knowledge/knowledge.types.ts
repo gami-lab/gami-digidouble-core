@@ -60,6 +60,8 @@ export interface KnowledgeChunk {
   chunkId: string
   sourceId: string
   content: string
+  /** SHA-256 of the final persisted chunk content. */
+  contentHash?: string
   /** Index of the chunk within the source document. */
   chunkIndex: number
   /** Embedding vector for retrieval (when available). */

@@ -12,6 +12,7 @@ import { InMemoryKnowledgeCorpusRepository } from '../../../infrastructure/db/in
 import { InMemoryKnowledgeSourceContentLoader } from '../../../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { KnowledgeReindexService } from './knowledge-reindex.service.js'
+import { toChunkSeeds } from './knowledge-ingestion.service.js'
 
 const targetProfile: EmbeddingProfile = {
   provider: 'test-provider',
@@ -31,18 +32,23 @@ const previousCorpus = {
 
 class CountingEmbeddingAdapter implements IEmbeddingAdapter {
   calls = 0
+  readonly requests: string[][] = []
 
-  constructor(private readonly failFirst = false) {}
+  constructor(
+    private readonly failFirst = false,
+    private readonly responseProfile: EmbeddingProfile = targetProfile,
+  ) {}
 
   embed(request: EmbeddingBatchRequest): Promise<EmbeddingBatchResult> {
     this.calls += 1
+    this.requests.push([...request.inputs])
     if (this.failFirst && this.calls === 1) {
       return Promise.reject(new Error('provider unavailable'))
     }
     return Promise.resolve({
       vectors: request.inputs.map((_input, index) => [index + 1, 1]),
       metadata: {
-        profile: targetProfile,
+        profile: this.responseProfile,
         inputCount: request.inputs.length,
         batchCount: 1,
       },
@@ -55,9 +61,11 @@ async function makeService(
   configuredProfile: EmbeddingProfile = targetProfile,
   firstSourceContent = 'first source content',
   chunkSize = 1000,
+  includeSecondSource = true,
+  previousFirstSourceContent?: string,
 ) {
   const sourceRepository = new InMemoryKnowledgeSourceRepository()
-  await sourceRepository.create({
+  const firstSource = await sourceRepository.create({
     scenarioId: 'scenario_1',
     name: 'First source',
     knowledgeType: 'world',
@@ -66,17 +74,44 @@ async function makeService(
     visibilityPolicy: 'all',
     metadata: { inlineText: firstSourceContent },
   })
-  await sourceRepository.create({
-    scenarioId: 'scenario_1',
-    name: 'Second source',
-    knowledgeType: 'world',
-    format: 'text',
-    uriOrPath: 'inline://second',
-    visibilityPolicy: 'all',
-    metadata: { inlineText: 'second source content' },
-  })
+  if (includeSecondSource) {
+    await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Second source',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: 'inline://second',
+      visibilityPolicy: 'all',
+      metadata: { inlineText: 'second source content' },
+    })
+  }
   const chunks = new InMemoryKnowledgeChunkRepository()
-  const corpusRepository = new InMemoryKnowledgeCorpusRepository(chunks, previousCorpus)
+  const corpusRepository = new InMemoryKnowledgeCorpusRepository(chunks)
+  const previousProfile = await corpusRepository.createEmbeddingProfile(previousCorpus.profile)
+  const activeCorpus = {
+    ...previousCorpus,
+    embeddingProfileId: previousProfile.embeddingProfileId,
+  }
+  corpusRepository.setActiveCorpus(activeCorpus)
+  if (previousFirstSourceContent !== undefined) {
+    const previousSeeds = toChunkSeeds(
+      firstSource,
+      previousFirstSourceContent,
+      undefined,
+      chunkSize,
+    )
+    for (const seed of previousSeeds) {
+      await chunks.create({
+        sourceId: firstSource.sourceId,
+        content: seed.content,
+        contentHash: seed.contentHash,
+        chunkIndex: seed.chunkIndex,
+        embedding: [9, 9],
+        embeddingProfileId: activeCorpus.embeddingProfileId,
+        corpusGenerationId: activeCorpus.corpusGenerationId,
+      })
+    }
+  }
   const sourceContentLoader = new InMemoryKnowledgeSourceContentLoader()
   const eventLogRepository = new InMemoryEventLogRepository()
   const service = new KnowledgeReindexService(
@@ -95,6 +130,7 @@ async function makeService(
     sourceRepository,
     sourceContentLoader,
     eventLogRepository,
+    firstSourceId: firstSource.sourceId,
   }
 }
 
@@ -117,6 +153,7 @@ describe('KnowledgeReindexService', () => {
 
     expect(chunks.length).toBeGreaterThan(1)
     expect(chunks.every((chunk) => chunk.content.length <= INGESTION_CHUNK_HARD_MAX)).toBe(true)
+    expect(chunks.every((chunk) => chunk.contentHash?.length === 64)).toBe(true)
     expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual(chunks.map((_chunk, index) => index))
     expect(chunks[1]?.content.startsWith(chunks[0]?.content.slice(-200) ?? '')).toBe(true)
   })
@@ -150,6 +187,68 @@ describe('KnowledgeReindexService', () => {
     ])
     expect(JSON.stringify(events)).not.toContain('first source content')
     expect(JSON.stringify(events)).not.toContain('vectors')
+  })
+
+  it('re-embeds only changed chunks when the active profile is unchanged', async () => {
+    const oldContent = ['A'.repeat(700), 'B'.repeat(700), 'C'.repeat(700)].join('\n\n')
+    const newContent = ['A'.repeat(700), 'B'.repeat(700), 'D'.repeat(700)].join('\n\n')
+    const adapter = new CountingEmbeddingAdapter(false, previousCorpus.profile)
+    const { service, corpusRepository, sourceRepository } = await makeService(
+      adapter,
+      previousCorpus.profile,
+      newContent,
+      1000,
+      false,
+      oldContent,
+    )
+    const source = (await sourceRepository.listAll())[0]
+    if (source === undefined) throw new Error('Expected a test source.')
+    const profile = await corpusRepository.createEmbeddingProfile(previousCorpus.profile)
+    const operation = await corpusRepository.createReindexOperation({
+      embeddingProfileId: profile.embeddingProfileId,
+      sourceIds: [source.sourceId],
+    })
+
+    await service.run(operation.reindexOperationId)
+
+    expect(adapter.calls).toBe(1)
+    expect(adapter.requests).toHaveLength(1)
+    expect(adapter.requests[0]).toHaveLength(1)
+    expect(adapter.requests[0]?.[0]).toContain('D'.repeat(100))
+    const chunks = await corpusRepository.listActiveChunksBySourceIds([source.sourceId])
+    expect(chunks).toHaveLength(3)
+    expect(chunks[0]?.embedding).toEqual([9, 9])
+    expect(chunks[1]?.embedding).toEqual([9, 9])
+    expect(chunks[2]?.embedding).toEqual([1, 1])
+    await expect(
+      corpusRepository.validateCorpusGeneration(operation.reindexOperationId),
+    ).resolves.toMatchObject({
+      valid: true,
+      expectedChunkCount: 3,
+      actualChunkCount: 3,
+      nonNullVectorCount: 3,
+    })
+  })
+
+  it('re-embeds every chunk when the embedding profile changes', async () => {
+    const content = ['A'.repeat(700), 'B'.repeat(700), 'C'.repeat(700)].join('\n\n')
+    const adapter = new CountingEmbeddingAdapter()
+    const { service, corpusRepository, sourceRepository } = await makeService(
+      adapter,
+      targetProfile,
+      content,
+      1000,
+      false,
+      content,
+    )
+    const started = await service.start()
+    await service.run(started.operation?.reindexOperationId ?? '')
+
+    expect(adapter.calls).toBe(1)
+    expect(adapter.requests[0]).toHaveLength(3)
+    const source = (await sourceRepository.listAll())[0]
+    const chunks = await corpusRepository.listActiveChunksBySourceIds([source?.sourceId ?? ''])
+    expect(chunks.every((chunk) => chunk.embedding?.[0] !== 9)).toBe(true)
   })
 
   // eslint-disable-next-line complexity
