@@ -17,7 +17,7 @@ Reference documents:
 - `PROJECT_STATUS.md` describes the current shipped platform.
 - `API_CONTRACT.md`, `GAME_MASTER_CONTRACT.md`, and `MEMORY_SYSTEM_SPEC.md` hold contract-level detail.
 
-As of July 21, 2026, the Phase A core runtime is delivered through EPIC 8.4. The backlog below remains open only where explicitly marked.
+Completed EPICs are summarized under `Shipped EPICS`; the backlog below contains only incomplete work.
 
 ## Shipped EPICS
 
@@ -129,12 +129,15 @@ Added avatar-scoped retrieval visibility so avatars only see allowed knowledge w
 
 #### `5.1c Real Embedding Infrastructure & Reindexing` ✅ Done
 
-Delivered the provider-neutral embedding contract, production OpenAI adapter, fixed-dimension
-profile-aware persistence, transactional ingestion, safe full reindexing, atomic corpus promotion,
-and authenticated operator start/status/retry controls. Deterministic, PostgreSQL, and opt-in
-provider hardening checks cover batching, failure translation, staging isolation, rollback,
-stale-work rejection, recovery, idempotency, and safe observability. Nearest-neighbor retrieval
-remains the separate `5.1d` scope.
+Delivered provider-neutral embeddings, production OpenAI integration, profile-aware persistence, transactional ingestion, safe reindexing, atomic corpus promotion, and authenticated operator controls.
+
+#### `4.2d Memory Domain Separation` ✅ Done
+
+Separated scenario-shared static knowledge from user-bound conversational memory with canonical types, explicit lifecycle ownership, and isolation coverage ([requirements matrix](EPIC_4_2D_REQUIREMENTS_MATRIX.md)).
+
+#### `5.1d Vector Retrieval Runtime` ✅ Done
+
+Replaced lexical retrieval with profile-aware pgvector search for Avatar, Game Master, and admin flows, with deterministic merging, visibility rules, controlled failures, and shared diagnostics ([requirements matrix](EPIC_5_1D_REQUIREMENTS_MATRIX.md)).
 
 #### `5.2 Context Engine v2` ✅ Done
 
@@ -156,14 +159,7 @@ Delivered the first player-facing web app with browser-owned identity, scenario 
 
 #### `5.3 Streaming UX Layer` ✅ Done
 
-Delivered the public message-stream client and progressive avatar rendering in `apps/web`. The
-single active thread keeps optimistic user sends, renders one in-memory avatar draft while ordered
-deltas arrive, reconciles the terminal event with the persisted avatar message, and clears drafts on
-errors or interruptions. The shipped path is hardened by regression coverage for contiguous delta
-ordering, completion and interruption cleanup, exact-once avatar persistence, provider iterator and
-web reader cleanup, and backward-compatible JSON send-message responses. Documentation now records
-the stream as additive transport behavior: interruptions never persist partial avatar content or
-trigger post-turn Game Master/memory work.
+Delivered additive message streaming with progressive Avatar rendering, ordered-delta handling, interruption cleanup, exact-once persistence, and backward-compatible JSON responses.
 
 ### Phase A Refinements
 
@@ -183,150 +179,29 @@ Strengthened the Game Master prompt contract with explicit structure and clearer
 
 Refined working-memory generation around structured fields such as `coveredTopics` and aligned the related operator-facing inspection surfaces.
 
-### `8.5 Game Master Post-Analysis Refinement` ✅ Done
+#### `8.5 Game Master Post-Analysis Refinement` ✅ Done
 
-**Current state**
-The asynchronous Game Master provides structured orchestration decisions after each Avatar response.
-Its output is focused on next-turn orchestration, with memory compaction and application state kept
-under their owning boundaries.
+Refined asynchronous Game Master orchestration with forward retrieval planning, dialogue-control modes, dynamic routing, and explicit ownership boundaries for application state and memory compaction.
 
-**Purpose**
-Improve the quality, maintainability, and usefulness of asynchronous Game Master orchestration without changing the existing runtime architecture or introducing additional latency.
+### Evaluation, Voice, And Platform Hardening
 
-**Description**
-Refine the Game Master so it focuses exclusively on preparing the next Avatar turn. Introduce first-class retrieval planning, explicit dialogue-control modes, simplified routing decisions, and clearer ownership boundaries between Game Master orchestration, application logic, and working-memory compaction.
+#### `8.6 Scripted Conversation Response Evaluation` ✅ Done
 
-The Game Master remains a single asynchronous post-analysis step executed after the Avatar response. Its output is stored and consumed during the next Avatar turn, allowing richer orchestration without delaying the current interaction.
+Added authenticated CLI evaluation for sequential scripted conversations, semantic judging, runtime metrics, partial reports, model comparison metadata, and deterministic test coverage.
 
-**Includes**
+#### `9.1 Voice Input Integration with Deepgram` ✅ Done
 
-- explicit dialogue-control modes (`user_led`, `avatar_guided`, `avatar_led`, `repair`, `transition`)
-- first-class retrieval planning for the next Avatar turn
-- simplified and normalized Avatar routing contract
-- dynamic routing capabilities based on runtime scenario configuration
-- removal of application-owned fields from the GM output
-- clarification of ownership between Game Master and working-memory compaction
-- improved integration of stored GM guidance into the Avatar runtime
-- required non-empty Director Notes as the canonical GM narrative guidance field
-- platform-owned conversation handoff after GM records a switch target
+Added provider-neutral speech-to-text contracts, an optional Deepgram adapter, transcript coordination, authenticated sync/SSE routes, idempotency, cancellation, and hardening coverage.
 
-**Definition of done**
+#### `9.2 Voice Output Integration with Gradium` ✅ Done
 
-- the Game Master remains a single asynchronous post-analysis call
-- current Avatar responses are not delayed by Game Master execution
-- retrieval planning is generated and consumed during the next relevant Avatar turn
-- dialogue-control modes influence Avatar behaviour consistently
-- routing continues to support Avatar suggestion, switching, and unlocking
-- routing capabilities adapt dynamically to the current scenario configuration
-- application-owned state is removed from the Game Master contract
-- working-memory ownership remains exclusively within the memory-compaction pipeline
-- existing multi-Avatar behaviour and progression logic remain compatible
+Added provider-neutral text-to-speech contracts, an optional Gradium adapter, completed-message audio delivery, browser playback with text fallback, and hardening coverage.
 
-**What can be tested**
+#### `10.1 Clean-Slate Compatibility Removal` ✅ Done
 
-1. contradictions generate appropriate retrieval plans and repair dialogue mode
-2. stored retrieval planning is consumed during the next related Avatar turn
-3. unrelated user messages do not reuse stale retrieval plans
-4. dialogue-control modes produce the expected Avatar behaviour
-5. single-Avatar scenarios omit unnecessary routing instructions
-6. multi-Avatar scenarios continue to support switching and unlocking
-7. contradicted Avatar statements are not persisted as working-memory facts
-8. asynchronous execution remains non-blocking
-9. current persisted retrieval scopes and multi-target unlock decisions survive reload
-10. post-LLM persistence failures emit structured GM diagnostics
-
-**User increment**
-
-- more consistent, context-aware Avatar conversations with improved factual grounding, clearer dialogue flow, and better orchestration, while preserving the existing low-latency conversation experience.
+Removed audited compatibility paths and legacy contracts, verified fresh schema/content deployment, and synchronized the source-of-truth documentation.
 
 ## Open Backlog
-
-### `10.1 Clean-Slate Compatibility Removal` ✅ Complete
-
-**Current state**
-
-EPIC 10.1 is complete: Prompts 0-5 established canonical contracts, removed audited compatibility
-paths, verified the fresh database/content deployment, and synchronized the source-of-truth docs.
-The product is supported from a fresh database volume with fresh canonical content.
-
-**Purpose**
-
-Remove legacy support and establish one strict current contract across runtime code, persistence,
-content, operator tooling, tests, and deployment.
-
-**Description**
-
-Replace compatibility migrations, aliases, fallback readers, and legacy content paths with the
-canonical current schema and contracts. Existing database volumes, persisted payloads, API aliases,
-and pre-current content shapes are not supported after the clean redeploy.
-
-**Includes**
-
-- canonical fresh-database bootstrap without runtime schema alignment or obsolete columns
-- removal of legacy knowledge, session-memory, GM-state, event, content, visibility, routing, and model paths
-- strict current API, shared, persistence, Avatar, Scenario, Game Master, and event contracts
-- removal of compatibility-only tests, scripts, fixtures, UI labels, and documentation
-- fresh-volume deployment and fresh-content seeding verification
-
-**Definition of done**
-
-- all backward-compatibility paths identified by the audit are removed
-- current contracts reject legacy inputs and persisted shapes
-- fresh schema and content deploy successfully without old data
-- normal error handling, operational resilience, and current product behavior remain intact
-- the full verification suite passes and all source-of-truth documentation is synchronized
-
-**What can be tested**
-
-1. initialize the product from an empty database volume
-2. reject legacy inputs and incomplete current content at validation boundaries
-3. persist and reload current session, GM, event, knowledge, and content contracts
-4. verify current runtime behavior without compatibility readers or aliases
-5. run the full typecheck, lint, unit, integration, E2E, and applicable stack verification suite
-
-**User increment**
-
-- a simpler, deterministic runtime with one supported contract and a reproducible clean deployment
-
-### `5.1d Vector Retrieval Runtime` ✅ Complete
-
-The canonical retrieval query, candidate, result, trace, failure, shared DTO, recorded-event, and
-console projection contracts are now established. Ordered, profile-aware query vectorization is
-also implemented behind `KnowledgeQueryEmbeddingService`, including all-or-nothing validation and
-safe diagnostics. The canonical chunk-repository nearest-neighbor port now provides bounded,
-profile/generation-aware cosine candidates with SQL-side eligibility and explicit visibility modes;
-runtime integration, multi-query merging, selection, ranking replacement, and the additive
-admin/console diagnostic presentation are now complete.
-
-Replaced lexical token-overlap retrieval with pgvector nearest-neighbor search for Avatar, Game
-Master, and admin diagnostics, preserving scope, visibility, bounded selection, prompt integration,
-and retrieval observability. Runtime uses one shared profile-aware service with explicit Avatar
-filtered and GM unrestricted modes; failures remain controlled and no lexical fallback exists.
-Unified retrieval diagnostics now flow through the existing admin route, recorded turn events,
-session-context inspection, and console/admin views. Shared mappings expose profile, separate
-embedding/search timing, bounded candidate/selection/exclusion counts, normalized similarity,
-visibility mode, failures, matched query variants, and final Context Engine kept/trimmed facts;
-current event readers require structured context sections, and the evaluation tool has no direct
-retrieval consumer.
-
-The definition-of-done evidence is maintained in
-[EPIC_5_1D_REQUIREMENTS_MATRIX.md](EPIC_5_1D_REQUIREMENTS_MATRIX.md). Deterministic semantic,
-batching, selection, failure-isolation, mapper, and composition audits are blocking evidence;
-PostgreSQL and stack checks remain their existing environment-gated integration tiers.
-
-### `4.2d Memory Domain Separation`
-
-Separate shared scenario/avatar/world knowledge from user-bound conversational memory: static documents remain in the knowledge/RAG pipeline, while short-term, working, episodic, and long-term user memory remain non-RAG conversation state with explicit ownership and lifecycle boundaries.
-
-**Current state**
-
-Prompts `00-contract-and-data-audit` through `05-isolation-tests-hardening-and-doc-sync` are
-complete. Canonical static values are `avatar_knowledge | world | media`; `memory` is rejected at
-the API boundary. Reserved user/session/conversation metadata keys remain invalid under the
-current static-knowledge validator. Static retrieval is scenario-shared and conversational memory
-remains lifecycle-bound and non-RAG, with no legacy migration or quarantine surface.
-The complete definition-of-done evidence is maintained in
-[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
 
 ### `3.3 Replay & Recovery Tools`
 
@@ -504,137 +379,6 @@ Package the text-in/text-out core, usable back-office, validated scenario, and s
 **User increment**
 
 - first external prototype ready for demonstration
-
-### `8.6 Scripted Conversation Response Evaluation`
-
-**Current state**
-EPIC 8.6 is complete: the contract cleanup, tool foundation, sequential HTTP runner, semantic
-judging, aggregation, atomic report persistence, CLI execution, deterministic hardening suite, and
-opt-in seeded-scenario definition are shipped.
-
-**Purpose**
-Make conversation quality, latency, token usage, and available cost data easy to compare without
-building a new product UI or changing the normal conversation flow.
-
-**Description**
-Add a TypeScript command-line evaluation tool that loads a versioned JSON conversation definition,
-starts a session through the existing API, resolves a deterministic initial-avatar selector, and
-sends questions sequentially through one conversation. Each response is evaluated semantically by
-an LLM judge through the existing authenticated raw-exchange boundary, then written to a structured
-JSON report and summarized in the console. Model comparison is achieved by running the same
-definition against separately configured runtime targets; the tool does not invent a per-request
-model override. Cost is recorded when the API supplies it and remains explicitly unavailable when
-it does not.
-
-**Includes**
-
-- versioned, manually editable JSON test definitions
-- scenario and initial-avatar selection using existing API contracts
-- sequential single-session execution
-- structured semantic judge results with pass/fail, score, explanation, missing elements, and contradictions
-- per-question and run-level latency and token metrics
-- nullable cost reporting with no local pricing estimation
-- partial-result persistence, error classification, and readable console output
-- one real seeded-scenario example and deterministic automated tests
-
-**Definition of done**
-
-- a local command can execute at least three ordered questions in one seeded scenario
-- every question uses the same session and conversation
-- Avatar and judge calls use existing authenticated API boundaries; provider SDKs are not imported by the tool
-- model labels/effective models are recorded and mismatches are visible
-- semantic judge output is validated and judge failures remain distinct from Avatar quality failures
-- JSON reports preserve per-question results and partial runs
-- latency and token usage are captured from API responses; cost is either captured or reported as unavailable
-- unit and integration-style tool tests cover ordering, paraphrases, missing facts, contradictions, API errors, judge errors, and partial reports
-- usage documentation and an example definition are available
-
-**What can be tested**
-
-1. questions are processed in definition order through one conversation
-2. the same definition can be rerun against a different configured runtime model
-3. a valid paraphrase passes semantic judging
-4. missing essential content and contradictions fail judging
-5. API errors and judge errors are classified separately from quality failures
-6. response latency and token counts match the API payloads
-7. unavailable cost is not reported as zero or estimated
-8. an interrupted run leaves a valid partial JSON report
-
-**User increment**
-
-- a repeatable baseline for conversation quality and runtime-cost comparisons without a dashboard or CI integration
-
-### `9.1 Voice Input Integration with Deepgram`
-
-**Current state**  
-The provider-neutral contracts, optional Deepgram adapter, application voice-turn coordinator, and
-authenticated binary HTTP routes are implemented and deterministically hardened. Raw-audio
-persistence and voice output remain out of scope.
-
-**Summary**  
-Add an utterance-based voice-input path using Deepgram for speech-to-text. A provider-neutral voice
-port and adapter boundary—implemented in Core infrastructure or an adjacent voice edge, as the
-deployment requires—captures audio, produces a finalized transcript, and submits that transcript
-through the existing validated conversation message flow while keeping interim transcripts and raw
-audio out of durable Core state by default.
-
-Prompt 01 is complete: Core now owns bounded provider-neutral speech-to-text input/result/failure
-contracts, deterministic final-transcript normalization, cancellation mapping, deterministic test
-fakes, and conservative at-most-once `(conversationId, utteranceId)` reservation semantics. Prompt
-02 adds the optional Infrastructure-only Deepgram pre-recorded HTTP adapter, startup-validated
-configuration, injectable transport tests, safe failure mapping, and bounded redacted observability.
-Prompt 03 adds the application coordinator that validates the active conversation, reserves
-utterance identity, and delegates finalized transcripts to the existing synchronous or streaming
-turn flows, preserving their persistence, memory, and asynchronous GM ownership. No raw-audio
-persistence or shared message DTO was added; the initial idempotency composition
-is process-local and must be replaced with shared coordination before multi-instance voice scaling.
-Prompt 04 adds authenticated raw-binary synchronous and SSE routes under the existing conversations
-prefix, strict bounded Fastify parsing, canonical response/event reuse, safe finite error mapping,
-and real-stack coverage for auth, validation, and resource-not-found behavior. Provider-backed
-success smoke tests remain deferred until a deterministic audio fixture, configured providers, and
-an available stack are present. Prompt 05 adds release hardening evidence for concurrent duplicate
-requests, cancellation after transcription, unavailable-provider text continuity, bounded latency
-and failure observability, and diagnostics redaction. The remaining live checks are explicit
-environment limitations rather than claims of provider-backed success.
-
-### `9.2 Voice Output Integration with Gradium`
-
-**Current state — complete**
-Prompts 00 through 05 are shipped. The repository now has one canonical provider-neutral
-voice/audio contract, additive Avatar/Scenario voice configuration, an application TTS port, a
-credential-free Gradium REST adapter, completed-message binary delivery, browser playback with
-text fallback, deterministic hardening coverage, and synchronized documentation. Existing text
-routes, stream events, turn completion, Game Master scheduling, memory maintenance, and message
-persistence remain independent of audio.
-
-**Summary**  
-Add a voice-output path using Gradium for text-to-speech. A provider-neutral voice port and
-adapter boundary—implemented in Core infrastructure or an adjacent voice edge, as the deployment
-requires—consumes the canonical cleaned Avatar response, produces playable audio with cancellation
-and failure handling, and keeps text persistence and Core turn completion independent from audio
-playback.
-
-Prompt 00 records the ownership decision in
-[VOICE_AUDIO_CONTRACT_OWNERSHIP.md](VOICE_AUDIO_CONTRACT_OWNERSHIP.md). The shared contract module
-owns logical voice configuration, client playback/delivery preferences, finite browser output
-formats, and bounded binary delivery metadata. Internal synthesis failures belong to the future
-Core Application TTS port; provider details remain Infrastructure. Prompt 01 maps voice config
-through Avatar/Scenario summaries and existing JSONB persistence, with Avatar-over-Scenario
-resolution and explicit update clearing. Existing text and stream contracts are unchanged, and
-audio remains transient rather than persisted.
-
-Prompts 02 and 03 add the provider-neutral TTS port, bounded Gradium adapter, typed failures,
-timeout/cancellation propagation, safe observability, persisted-message lookup, and the additive
-audio route. Prompt 04 adds canonical message-ID browser playback, localized accessible controls,
-stale-request suppression, abort handling, and object-URL/audio-element cleanup. Prompt 05 adds
-regressions for cleaned-text fidelity, voice inheritance and records without configuration, repeated/concurrent
-synthesis, response bounds and metadata association, provider-body cleanup, observability
-redaction, and text-first failure isolation.
-
-The stack-E2E contract always covers authentication, validation, and not-found behavior. Its binary
-success case remains an explicit TODO because the production stack has no seeded deterministic TTS
-adapter and should not require live Gradium credentials; route-level success coverage is always-on.
-This is a deployment-fixture limitation, not a missing application contract.
 
 ## Superseded Or Absorbed Items
 
