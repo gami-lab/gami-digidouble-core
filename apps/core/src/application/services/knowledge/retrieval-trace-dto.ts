@@ -63,7 +63,6 @@ export function parseRetrievalTraceDto(value: unknown): RetrievalTraceDto | unde
     ...readOptionalRetrievalCount(value, 'selectedCount'),
     ...readOptionalRetrievalCount(value, 'duplicateCount'),
     ...readOptionalRetrievalCount(value, 'selectionExcludedCount'),
-    ...readOptionalRetrievalCount(value, 'eligibilityExcludedCount'),
     ...readOptionalRetrievalCount(value, 'excludedCount'),
   }
 }
@@ -98,7 +97,6 @@ function readRetrievalTracePerType(
     ...readOptionalRetrievalCount(record, 'selectedCount'),
     ...readOptionalRetrievalCount(record, 'duplicateCount'),
     ...readOptionalRetrievalCount(record, 'selectionExcludedCount'),
-    ...readOptionalRetrievalCount(record, 'eligibilityExcludedCount'),
     ...readOptionalRetrievalCount(record, 'excludedCount'),
   }
 }
@@ -113,7 +111,6 @@ function readRetrievalVisibility(
       : undefined
   return {
     consideredChunkCount: readNumber(value['consideredChunkCount']),
-    excludedChunkCount: readNumber(value['excludedChunkCount']),
     ...(mode !== undefined ? { mode } : {}),
     ...readOptionalTextField(value, 'activeAvatarId'),
   }
@@ -179,7 +176,6 @@ function readOptionalRetrievalCount(
     | 'selectedCount'
     | 'duplicateCount'
     | 'selectionExcludedCount'
-    | 'eligibilityExcludedCount'
     | 'excludedCount',
 ): Partial<
   Pick<
@@ -189,7 +185,6 @@ function readOptionalRetrievalCount(
     | 'selectedCount'
     | 'duplicateCount'
     | 'selectionExcludedCount'
-    | 'eligibilityExcludedCount'
     | 'excludedCount'
   >
 > {

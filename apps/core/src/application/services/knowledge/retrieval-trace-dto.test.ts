@@ -36,7 +36,6 @@ describe('retrieval-trace-dto', () => {
             mode: 'avatar_filtered',
             activeAvatarId: 'avatar_1',
             consideredChunkCount: 1,
-            excludedChunkCount: 0,
           },
         },
         world: {
@@ -82,7 +81,7 @@ describe('retrieval-trace-dto', () => {
           visibility: {
             mode: 'avatar_filtered',
             consideredChunkCount: 1,
-            excludedChunkCount: 0,
+            excludedChunkCount: 99,
           },
         },
         world: { sourceIds: [], selectedChunkIds: [] },
@@ -94,6 +93,10 @@ describe('retrieval-trace-dto', () => {
       { source: 'last_user_input', text: 'dock now', queryIndex: 0 },
     ])
     expect(parsed?.failure).toEqual({ code: 'query_embedding_failed', retryable: true })
+    expect(parsed?.perType.avatar_knowledge.visibility).toEqual({
+      mode: 'avatar_filtered',
+      consideredChunkCount: 1,
+    })
   })
 
   it('normalizes diagnostic distance and similarity', () => {

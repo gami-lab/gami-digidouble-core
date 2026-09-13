@@ -133,7 +133,7 @@ describe('session admin knowledge actions', () => {
             world: {
               sourceIds: [],
               selectedChunkIds: [],
-              visibility: { excludedChunkCount: 2, consideredChunkCount: 4 },
+              visibility: { consideredChunkCount: 4 },
             },
             media: { sourceIds: ['s2'], selectedChunkIds: ['c2'] },
           },
@@ -149,7 +149,7 @@ describe('session admin knowledge actions', () => {
       expect.objectContaining({ activeAvatarId: 'avatar_scope' }),
     )
     expect(setSummary).toHaveBeenCalledWith(
-      'retrieval: Shared Avatar Knowledge=1(Shared with all Avatars), Shared World Knowledge=0(Shared with all Avatars), Media Knowledge=1(Shared with all Avatars) · unknown · profile unavailable · candidates=0 · selected=0 · embedding=0ms · search=0ms · excluded(world)=2 · mode=unknown.',
+      'retrieval: Shared Avatar Knowledge=1(Shared with all Avatars), Shared World Knowledge=0(Shared with all Avatars), Media Knowledge=1(Shared with all Avatars) · unknown · profile unavailable · candidates=0 · selected=0 · embedding=0ms · search=0ms · mode=unknown.',
     )
   })
 

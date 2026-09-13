@@ -80,7 +80,8 @@ that touches persistence, retrieval, or provider adapters.
   baseline has recall@3/7/9 = 1.000000 and MRR = 0.722222, versus recall@3/7/9 = 1.000000 and
   MRR = 0.916667 at 1536 dimensions (`EPICS.md` 5.1e); selection and lexical-fallback improvements
   remain open. Context Engine now owns the final Avatar retrieval selection; prompt assembly only
-  formats the selected sections.
+  formats the selected sections. Unmeasurable visibility-exclusion counts are no longer emitted, and
+  the direct Postgres chunk-write method is documented as a fixture/in-memory compatibility path.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.

@@ -54,7 +54,6 @@ type RetrievedType = {
     mode: RetrievalVisibilityMode
     activeAvatarId?: string
     consideredChunkCount: number
-    excludedChunkCount: number
   }
 }
 
@@ -236,7 +235,6 @@ export class TypedRetrievalService {
         mode: visibilityMode(input),
         ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
         consideredChunkCount: candidates.length,
-        excludedChunkCount: 0,
       },
     }
   }
@@ -301,7 +299,6 @@ function emptyType(input: TypedRetrievalInput, sourceIds: string[]): RetrievedTy
       mode: visibilityMode(input),
       ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
       consideredChunkCount: 0,
-      excludedChunkCount: 0,
     },
   }
 }

@@ -62,11 +62,6 @@ export type ContextEngineTrace = {
     }
     visibility?: {
       activeAvatarId?: string
-      excludedCounts: {
-        avatar_knowledge: number
-        world: number
-        media: number
-      }
       gmRetrievalCounts?: {
         avatar_knowledge: number
         world: number

@@ -109,7 +109,6 @@ describe('presentKnowledgeRetrieval', () => {
             visibility: {
               mode: 'gm_unrestricted',
               consideredChunkCount: 4,
-              excludedChunkCount: 0,
             },
           },
           world: { sourceIds: [], selectedChunkIds: [] },

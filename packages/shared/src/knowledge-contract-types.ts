@@ -119,8 +119,6 @@ export type RetrievalCountsDto = {
   duplicateCount?: number
   /** Candidates removed by bounded retrieval selection after variant merging. */
   selectionExcludedCount?: number
-  /** Eligibility rows excluded by the repository, when a bounded count is available. */
-  eligibilityExcludedCount?: number
   /** Compatibility aggregate of all bounded exclusions reported by retrieval. */
   excludedCount?: number
 }
@@ -129,7 +127,6 @@ export type RetrievalVisibilityDto = {
   mode?: RetrievalVisibilityMode
   activeAvatarId?: string
   consideredChunkCount: number
-  excludedChunkCount: number
 }
 
 export type RetrievalTracePerTypeDto = RetrievalCountsDto & {

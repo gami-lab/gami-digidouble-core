@@ -429,7 +429,6 @@ describe('SendMessageUseCase — context selection observability', () => {
             selectedForAssemblyCounts: { avatar_knowledge: number; world: number; media: number }
             includedCounts: { avatar_knowledge: number; world: number; media: number }
             omittedByAssemblyCounts?: { avatar_knowledge: number; world: number; media: number }
-            excludedByVisibilityCounts?: { avatar_knowledge: number; world: number; media: number }
           }
           hasUserPersona: boolean
           hasGmDirective: boolean
@@ -448,7 +447,6 @@ describe('SendMessageUseCase — context selection observability', () => {
         selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0, media: 0 },
         includedCounts: { avatar_knowledge: 1, world: 0, media: 0 },
         omittedByAssemblyCounts: { avatar_knowledge: 0, world: 0, media: 0 },
-        excludedByVisibilityCounts: { avatar_knowledge: 0, world: 0, media: 0 },
         retrievalTrace: {
           query: 'How do tides affect docking?',
           perType: {

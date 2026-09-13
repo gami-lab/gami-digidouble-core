@@ -111,7 +111,6 @@ export type RetrievalCounts = Readonly<{
   selectedCount?: number
   duplicateCount?: number
   selectionExcludedCount?: number
-  eligibilityExcludedCount?: number
   excludedCount?: number
 }>
 
@@ -119,7 +118,6 @@ export type RetrievalVisibilityTrace = Readonly<{
   mode?: RetrievalVisibilityMode
   activeAvatarId?: string
   consideredChunkCount: number
-  excludedChunkCount: number
 }>
 
 export type RetrievalTypeTrace = RetrievalCounts & {

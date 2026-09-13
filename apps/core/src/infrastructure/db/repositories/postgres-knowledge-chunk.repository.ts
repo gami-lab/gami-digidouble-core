@@ -90,6 +90,9 @@ function rowToKnowledgeChunk(row: KnowledgeChunkRow): KnowledgeChunk {
 export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkRepository {
   constructor(private readonly sql: Sql) {}
 
+  // Production ingestion and reindex writes go through PostgresKnowledgeCorpusRepository's
+  // generation-aware replacement methods. This direct method is retained for the shared interface
+  // and repository-level fixtures; it is not a supported production write path.
   async create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk> {
     assertStaticMetadataAllowed(params.metadata, 'chunk')
     const sourceUuid = stripPrefix('knowledge_source_', params.sourceId)

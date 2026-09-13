@@ -21,11 +21,6 @@ export type ContextSelectionMetadata = {
       world: number
       media: number
     }
-    excludedByVisibilityCounts?: {
-      avatar_knowledge: number
-      world: number
-      media: number
-    }
     retrievalTrace?: ReturnType<typeof toRetrievalTraceDto>
   }
   contextEngineSelection?: {
@@ -59,9 +54,6 @@ export function toContextSelectionMetadata(
       selectedForAssemblyCounts: selected.retrievalCounts,
       includedCounts,
       omittedByAssemblyCounts,
-      ...(selected.visibility !== undefined
-        ? { excludedByVisibilityCounts: selected.visibility.excludedCounts }
-        : {}),
       ...(selected.retrieval !== undefined
         ? { retrievalTrace: toRetrievalTraceDto(selected.retrieval) }
         : {}),

@@ -136,17 +136,12 @@ remained 1.000000. This is useful baseline evidence, not a substitute for a larg
 
 ## 4. Dead code and vestigial diagnostics
 
-1. **`excludedChunkCount` is permanently `0`.**
-   [typed-retrieval.service.ts:239](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L239)
-   and [:304](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L304)
-   hardcode `excludedChunkCount: 0` — visibility filtering moved into the SQL `WHERE` clause, so the
-   application layer can no longer observe what it excluded. The field still flows through
-   `retrieval-trace-dto.ts`, `knowledge.types.ts`, `knowledge-contract-types.ts`, and is rendered to
-   operators in
-   [session-admin-knowledge.tsx:371](../apps/console/src/pages/session-admin-knowledge.tsx#L371) as
-   `excluded(world)=0` — a diagnostic that looks meaningful but never varies. Either compute a real
-   SQL-side excluded count (e.g. a second bounded count query, or an `EXPLAIN`-free `COUNT(*) FILTER`
-   in the same query) or delete the field end-to-end and stop showing it to operators.
+1. **Resolved — remove the unmeasurable `excludedChunkCount`.** Visibility filtering remains in the
+   SQL `WHERE` clause, so the application cannot cheaply observe excluded rows without an additional
+   corpus scan. The field, its derived visibility aggregate, and the unused
+   `eligibilityExcludedCount` sibling were removed from retrieval traces, shared DTOs, persisted
+   context-selection output, and console diagnostics. Parsers continue to ignore the legacy fields in
+   older persisted events.
 
 2. **Resolved — duplicate Avatar selection.** `TypedRetrievalService` still selects independently
    within each knowledge type
@@ -157,15 +152,12 @@ remained 1.000000. This is useful baseline evidence, not a substitute for a larg
    while `persona-prompt.service.ts` formats the approved typed sections directly. The removed
    `retrievalOptions` plumbing prevents selection limits from being duplicated across layers.
 
-3. **`PostgresKnowledgeChunkRepository.create()` is unreachable in production.** All production
-   vector writes go through
+3. **Resolved — document the retained direct chunk write method.** All production vector writes go through
    [postgres-knowledge-corpus.repository.ts](../apps/core/src/infrastructure/db/repositories/postgres-knowledge-corpus.repository.ts)'s
    own `INSERT INTO knowledge_chunks` inside `replaceActiveSourceChunks`/`replaceStagedSourceChunks`.
-   `PostgresKnowledgeChunkRepository.create()` exists only to satisfy the `IKnowledgeChunkRepository`
-   interface; its only real caller is `InMemoryKnowledgeCorpusRepository` (the dev/test in-memory
-   stack). It isn't harmful, but it is dead weight on the Postgres adapter and slightly misleads a
-   reader into thinking single-chunk creation is a supported production write path. Worth a comment
-   at minimum, or splitting a narrower interface for the corpus-generation write path vs. read/delete.
+   `PostgresKnowledgeChunkRepository.create()` remains only because the shared interface is also used
+   by the in-memory corpus repository and repository-level fixtures. Its implementation now explicitly
+   documents that it is not a supported production write path.
 
 4. **`HashEmbeddingAdapter` and `SemanticFixtureEmbeddingAdapter`** are correctly test-only (verified:
    referenced only from test files and `UnconfiguredEmbeddingAdapter` correctly hard-fails when no
@@ -189,9 +181,8 @@ baseline harness.
 and budget decision lives in `context-engine.service.ts`; `persona-prompt.service.ts` only formats the
 already-selected items it receives.
 
-**P1 — Make `excludedChunkCount` real or remove it.** Currently a hardcoded zero surfaced to
-operators as if it were live data (Dead code finding #1). Either compute it or delete it from the
-DTO/UI so operators aren't reading a diagnostic that never moves.
+**Resolved — Remove `excludedChunkCount`.** Visibility-filtered candidate counts remain available;
+the unmeasurable excluded-row count is no longer emitted or rendered.
 
 **P2 — Add a lexical fallback for exact-entity queries.** A `tsvector`/trigram index on
 `knowledge_chunks.content`, fused with the vector results (even a simple "union in, dedupe, prefer
@@ -204,10 +195,7 @@ every source on every reindex run, with no content-hash short-circuit for unchan
 today; will become a real cost/latency problem as the number and size of sources grows. Track a
 content hash per chunk and skip re-embedding when it's unchanged from the previous generation.
 
-**P2 — A small retrieval-quality eval set.** The existing `tools/conversation-evaluation` harness
-judges whole conversations with an LLM judge; it does not isolate retrieval precision/recall. A
-lightweight, versioned set of (scenario, query, expected chunk IDs) fixtures with recall@k scoring
-would (a) prove whether the P0 dimension fix actually helps and by how much, and (b) catch future
-regressions in chunking/selection changes that a conversation-level judge would not localize to
-retrieval specifically. This was explicitly deferred by design during the 5.1d epic, not forgotten —
-but it is now the only way to validate the P0 fix quantitatively rather than by inspection.
+**Resolved — Add a small retrieval-quality eval set.** The standalone retrieval-quality tool now
+uses versioned `(scenario, query, expected chunk IDs)` fixtures and reports recall@k/MRR, including
+the historical 16-dimensional baseline and native-profile comparison. It remains intentionally
+small and is not a general framework, dashboard, or CI gate.

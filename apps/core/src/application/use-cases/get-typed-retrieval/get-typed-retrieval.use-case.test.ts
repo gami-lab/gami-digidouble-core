@@ -135,7 +135,7 @@ describe('GetTypedRetrievalUseCase', () => {
     expect(visible.retrieval.world).toHaveLength(1)
     expect(hidden.retrieval.world).toHaveLength(0)
     expect(hidden.retrieval.trace.perType.world.visibility?.activeAvatarId).toBe('avatar_2')
-    expect(hidden.retrieval.trace.perType.world.visibility?.excludedChunkCount).toBe(0)
+    expect(hidden.retrieval.trace.perType.world.visibility?.consideredChunkCount).toBe(0)
   })
 
   it('uses the unrestricted GM view when no active avatar is selected', async () => {

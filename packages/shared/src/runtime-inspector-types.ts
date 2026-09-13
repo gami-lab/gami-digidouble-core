@@ -112,11 +112,6 @@ export type ContextSelectionRetrievalDiagnostics = {
     world: number
     media: number
   }
-  excludedByVisibilityCounts?: {
-    avatar_knowledge: number
-    world: number
-    media: number
-  }
   /** The bounded retrieval diagnostics that produced the selected inputs. */
   retrievalTrace?: RetrievalTraceDto
 }
@@ -449,11 +444,6 @@ export type SessionContextTrace = {
     }
     visibility?: {
       activeAvatarId?: string
-      excludedCounts: {
-        avatar_knowledge: number
-        world: number
-        media: number
-      }
       gmRetrievalCounts?: {
         avatar_knowledge: number
         world: number

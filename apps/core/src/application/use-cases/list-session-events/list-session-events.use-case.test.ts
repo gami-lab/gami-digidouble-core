@@ -470,11 +470,6 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
                 world: 1,
                 media: 0,
               },
-              excludedByVisibilityCounts: {
-                avatar_knowledge: 1,
-                world: 0,
-                media: 0,
-              },
             },
             hasUserPersona: true,
             hasGmDirective: true,

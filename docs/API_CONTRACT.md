@@ -175,6 +175,8 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
 
 - Retrieval similarity (`1 - distance`) is a presenter-level normalized value; raw cosine distance
   remains an internal repository diagnostic and never crosses into DTOs, events, logs, or errors.
+- Retrieval visibility diagnostics report the visibility mode and considered candidates; they do not
+  expose an excluded-row count because filtering is performed inside the SQL query.
 - Context projections separate `conversationState` (messages/working memory/episodic
   memories/facts) from `retrievedContext` (static `avatar_knowledge`/`world`/`media` with
   provenance) — retrieved documents are never emitted as conversational memory.

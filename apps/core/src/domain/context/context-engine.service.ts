@@ -664,7 +664,6 @@ function buildTraceGmRetrievalCounts(
 }
 
 // Keep this helper explicit for trace explainability while preserving deterministic defaults.
-// eslint-disable-next-line complexity
 function buildTraceVisibility(
   input: ContextEngineInput,
 ): ContextEngineOutput['trace']['selectedInputs']['visibility'] | undefined {
@@ -678,11 +677,6 @@ function buildTraceVisibility(
   const activeAvatarId = firstDefinedAvatarId(perTypeVisibility) ?? input.activeAvatarId
   return {
     ...(activeAvatarId !== undefined ? { activeAvatarId } : {}),
-    excludedCounts: {
-      avatar_knowledge: trace.perType.avatar_knowledge.visibility?.excludedChunkCount ?? 0,
-      world: trace.perType.world.visibility?.excludedChunkCount ?? 0,
-      media: trace.perType.media.visibility?.excludedChunkCount ?? 0,
-    },
     ...(input.extensions.retrievalForGm !== undefined
       ? {
           gmRetrievalCounts: {

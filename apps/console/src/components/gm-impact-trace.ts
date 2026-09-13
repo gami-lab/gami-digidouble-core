@@ -427,13 +427,6 @@ function formatAvatarRetrievalAssembly(turnPayload: TurnCompletedEventPayload): 
     media: 0,
   }
   const omittedTotal = omittedCounts.avatar_knowledge + omittedCounts.world + omittedCounts.media
-  const excludedCounts = retrieval.excludedByVisibilityCounts ?? {
-    avatar_knowledge: 0,
-    world: 0,
-    media: 0,
-  }
-  const excludedTotal =
-    excludedCounts.avatar_knowledge + excludedCounts.world + excludedCounts.media
   const diagnostics = retrieval.retrievalTrace
     ? formatRetrievalDiagnostics(retrieval.retrievalTrace)
     : undefined
@@ -441,7 +434,6 @@ function formatAvatarRetrievalAssembly(turnPayload: TurnCompletedEventPayload): 
   return [
     `Avatar retrieval assembly: ${String(selectedTotal)} hit${selectedTotal === 1 ? '' : 's'} selected for assembly`,
     `${String(includedTotal)} included in the final avatar input`,
-    `${String(excludedTotal)} excluded by avatar visibility`,
     `${String(omittedTotal)} omitted during final assembly`,
     ...(diagnostics !== undefined ? [diagnostics] : []),
   ].join(', ')

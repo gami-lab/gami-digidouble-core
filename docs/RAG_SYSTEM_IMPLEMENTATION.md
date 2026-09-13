@@ -143,9 +143,10 @@ slow or failing GM retrieval never delays the user-facing reply.
 ## Diagnostics
 
 Expose only profile identity, counts, timings, query index/source, visibility mode, outcome/failure,
-similarity, and bounded selected references. Never expose raw vectors, credentials, provider
-payloads, or unbounded source content. Runtime events and admin/console projections reuse the shared
-retrieval DTOs; operator screens use the same categories as the API (Shared Avatar Knowledge, Shared
-World Knowledge, Media Knowledge).
+similarity, and bounded selected references. Visibility diagnostics include considered candidates but
+do not claim to count rows excluded by SQL visibility filters. Never expose raw vectors, credentials,
+provider payloads, or unbounded source content. Runtime events and admin/console projections reuse the
+shared retrieval DTOs; operator screens use the same categories as the API (Shared Avatar Knowledge,
+Shared World Knowledge, Media Knowledge).
 
 See [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md) for profile changes and reindex operations.

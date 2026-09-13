@@ -239,7 +239,6 @@ function readOptionalContextSelection(
   return selection
 }
 
-// eslint-disable-next-line complexity
 function readOptionalRetrievalSelection(
   value: unknown,
 ): NonNullable<TurnCompletedEventPayload['contextSelection']>['retrieval'] | undefined {
@@ -252,9 +251,6 @@ function readOptionalRetrievalSelection(
     : undefined
   const omittedCountsValue = isRecord(value['omittedByAssemblyCounts'])
     ? value['omittedByAssemblyCounts']
-    : undefined
-  const excludedCountsValue = isRecord(value['excludedByVisibilityCounts'])
-    ? value['excludedByVisibilityCounts']
     : undefined
   const retrievalTrace = parseRetrievalTraceDto(value['retrievalTrace'])
   if (selectedCountsValue === undefined || includedCountsValue === undefined) {
@@ -276,9 +272,6 @@ function readOptionalRetrievalSelection(
             world: Math.max(0, selectedForAssemblyCounts.world - includedCounts.world),
             media: Math.max(0, selectedForAssemblyCounts.media - includedCounts.media),
           },
-    ...(excludedCountsValue !== undefined
-      ? { excludedByVisibilityCounts: readRetrievalCounts(excludedCountsValue) }
-      : {}),
     ...(retrievalTrace !== undefined ? { retrievalTrace } : {}),
   }
 }

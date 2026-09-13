@@ -356,7 +356,6 @@ export async function inspectRetrieval(
     )
     const worldScope = firstAvatarScopeLabel(world.map((item) => item.visibleToAvatarIds))
     const mediaScope = firstAvatarScopeLabel(media.map((item) => item.visibleToAvatarIds))
-    const worldVisibility = response.retrieval.trace.perType.world.visibility
     const diagnostics = [
       trace.outcome ?? 'unknown',
       trace.embeddingProfile === undefined
@@ -366,9 +365,6 @@ export async function inspectRetrieval(
       `selected=${String(trace.selectedCount ?? 0)}`,
       `embedding=${String(trace.timings?.queryEmbeddingMs ?? 0)}ms`,
       `search=${String(trace.timings?.vectorSearchMs ?? 0)}ms`,
-      worldVisibility === undefined
-        ? 'visibility diagnostics unavailable'
-        : `excluded(world)=${String(worldVisibility.excludedChunkCount)}`,
       `mode=${trace.visibilityMode ?? 'unknown'}`,
       ...(trace.failure !== undefined ? [`failure=${trace.failure.code}`] : []),
     ].join(' · ')

@@ -52,6 +52,7 @@ export class KnowledgeVectorSearchError extends Error {
 }
 
 export interface IKnowledgeChunkRepository {
+  /** Compatibility seam for in-memory corpus assembly and repository fixtures; production writes use corpus replacement. */
   create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk>
   listBySourceId(sourceId: string): Promise<KnowledgeChunk[]>
   listBySourceIds(sourceIds: string[]): Promise<KnowledgeChunk[]>

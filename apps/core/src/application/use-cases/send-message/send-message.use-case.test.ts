@@ -855,17 +855,17 @@ describe('SendMessageUseCase — validation and GM integration', () => {
           avatar_knowledge: {
             sourceIds: [],
             selectedChunkIds: [],
-            visibility: { consideredChunkCount: 0, excludedChunkCount: 0 },
+            visibility: { consideredChunkCount: 0 },
           },
           world: {
             sourceIds: [],
             selectedChunkIds: [],
-            visibility: { consideredChunkCount: 0, excludedChunkCount: 0 },
+            visibility: { consideredChunkCount: 0 },
           },
           media: {
             sourceIds: [],
             selectedChunkIds: [],
-            visibility: { consideredChunkCount: 0, excludedChunkCount: 0 },
+            visibility: { consideredChunkCount: 0 },
           },
         },
       },
@@ -1098,7 +1098,6 @@ describe('SendMessageUseCase — validation and GM integration', () => {
         selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0, media: 0 },
         includedCounts: { avatar_knowledge: 1, world: 0, media: 0 },
         omittedByAssemblyCounts: { avatar_knowledge: 0, world: 0, media: 0 },
-        excludedByVisibilityCounts: { avatar_knowledge: 0, world: 0, media: 0 },
         retrievalTrace: {
           query: 'secret retrieval query',
           perType: {

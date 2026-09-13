@@ -199,9 +199,6 @@ function toContextTrace(
         ? {
             visibility: {
               ...snapshot.contextTrace.selectedInputs.visibility,
-              excludedCounts: {
-                ...snapshot.contextTrace.selectedInputs.visibility.excludedCounts,
-              },
               ...(snapshot.contextTrace.selectedInputs.visibility.gmRetrievalCounts !== undefined
                 ? {
                     gmRetrievalCounts: {

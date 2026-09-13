@@ -171,10 +171,14 @@ function assertBaselineRetrievalCounts(output: ReturnType<ContextEngine['assembl
     world: 1,
     media: 1,
   })
-  expect(output.trace.selectedInputs.visibility?.excludedCounts).toEqual({
-    avatar_knowledge: 0,
-    world: 0,
-    media: 0,
+  expect(output.trace.selectedInputs.visibility).toEqual({
+    activeAvatarId: 'avatar_1',
+    gmRetrievalCounts: {
+      avatar_knowledge: 1,
+      world: 1,
+      media: 1,
+    },
+    gmUnrestricted: true,
   })
 }
 
@@ -478,7 +482,6 @@ describe('ContextEngine baseline', () => {
             visibility: {
               activeAvatarId: 'avatar_1',
               consideredChunkCount: 2,
-              excludedChunkCount: 1,
             },
           },
           world: {
@@ -487,7 +490,6 @@ describe('ContextEngine baseline', () => {
             visibility: {
               activeAvatarId: 'avatar_1',
               consideredChunkCount: 2,
-              excludedChunkCount: 2,
             },
           },
           media: {
@@ -496,7 +498,6 @@ describe('ContextEngine baseline', () => {
             visibility: {
               activeAvatarId: 'avatar_1',
               consideredChunkCount: 0,
-              excludedChunkCount: 0,
             },
           },
         },
@@ -611,11 +612,6 @@ describe('ContextEngine baseline', () => {
     })
     expect(output.trace.selectedInputs.visibility).toEqual({
       activeAvatarId: 'avatar_1',
-      excludedCounts: {
-        avatar_knowledge: 1,
-        world: 2,
-        media: 0,
-      },
       gmRetrievalCounts: {
         avatar_knowledge: 2,
         world: 1,
