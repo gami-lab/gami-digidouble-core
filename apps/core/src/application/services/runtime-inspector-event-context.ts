@@ -159,6 +159,7 @@ function toRecordedKnowledgeReference(item: RetrievedKnowledgeItem): RecordedKno
     knowledgeType: item.knowledgeType,
     content: item.content,
     ...(item.similarity !== undefined ? { similarity: presentSimilarity(item.similarity) } : {}),
+    ...(item.matchType !== undefined ? { matchType: item.matchType } : {}),
     ...(item.queryIndex !== undefined ? { queryIndex: item.queryIndex } : {}),
     ...(item.reason !== undefined ? { reason: item.reason } : {}),
     ...(item.matchedQuery !== undefined ? { matchedQuery: item.matchedQuery } : {}),

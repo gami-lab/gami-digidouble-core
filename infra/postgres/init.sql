@@ -351,6 +351,8 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding
   ON knowledge_chunks USING ivfflat (embedding vector_cosine_ops)
   WITH (lists = 10)
   WHERE embedding IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_content_fts
+  ON knowledge_chunks USING GIN (to_tsvector('simple', content));
 CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_source_status
   ON ingestion_jobs(source_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_active_generation

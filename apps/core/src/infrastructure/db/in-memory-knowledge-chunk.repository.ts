@@ -1,6 +1,8 @@
 import type {
   CreateKnowledgeChunkParams,
   IKnowledgeChunkRepository,
+  TextSearchRequest,
+  TextSearchResult,
   VectorSearchRequest,
   VectorSearchResult,
 } from '../../application/ports/IKnowledgeChunkRepository.js'
@@ -17,6 +19,18 @@ import {
 import type { IKnowledgeSourceRepository } from '../../application/ports/IKnowledgeSourceRepository.js'
 import type { ActiveCorpus } from '../../application/ports/IKnowledgeCorpusRepository.js'
 import type { StagedKnowledgeChunk } from '../../application/ports/IKnowledgeCorpusRepository.js'
+
+type SearchScopeRequest = Pick<
+  TextSearchRequest,
+  | 'scenarioId'
+  | 'knowledgeType'
+  | 'embeddingProfileId'
+  | 'corpusGenerationId'
+  | 'profile'
+  | 'visibilityMode'
+  | 'activeAvatarId'
+  | 'eligibleSourceIds'
+>
 
 function normalizeVisibleToAvatarIds(
   visibleToAvatarIds: string[] | undefined,
@@ -94,7 +108,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
     if (sourceRepository === undefined) return []
 
     const eligibleSources = filterEligibleSources(
-      await findVectorSources(sourceRepository, request),
+      await findEligibleSources(sourceRepository, request),
       request,
     )
     const sourceById = new Map(eligibleSources.map((source) => [source.sourceId, source]))
@@ -104,7 +118,7 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
 
     return [...this.chunks.values()]
       .filter((chunk) => isEligibleVectorChunk(chunk, request, eligibleSourceIds, sourceById))
-      .filter((chunk) => isVisibleVectorChunk(chunk, request, sourceById))
+      .filter((chunk) => isVisibleChunk(chunk, request, sourceById))
       .map((chunk) => {
         const distance = cosineDistance(
           request.queryVector,
@@ -117,6 +131,34 @@ export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkReposito
       .sort(compareVectorChunks)
       .slice(0, request.candidateLimit)
       .map(({ chunk, distance }) => toVectorCandidate(chunk, distance, request))
+  }
+
+  async searchByText(request: TextSearchRequest): Promise<TextSearchResult> {
+    validateSearchCandidateLimit(request.candidateLimit)
+    assertMatchingActiveCorpus(this.activeCorpus, request)
+    if (hasEmptySourceScope(request) || request.queryVariant.text.trim().length === 0) return []
+    const sourceRepository = this.sourceRepository
+    if (sourceRepository === undefined) return []
+
+    const eligibleSources = filterEligibleSources(
+      await findEligibleSources(sourceRepository, request),
+      request,
+    )
+    const sourceById = new Map(eligibleSources.map((source) => [source.sourceId, source]))
+    const eligibleSourceIds =
+      request.eligibleSourceIds ?? eligibleSources.map((source) => source.sourceId)
+    const queryTerms = tokenize(request.queryVariant.text)
+    if (queryTerms.length === 0) return []
+
+    return [...this.chunks.values()]
+      .filter((chunk) =>
+        isEligibleTextChunk(chunk, request, eligibleSourceIds, sourceById, queryTerms),
+      )
+      .filter((chunk) => isVisibleChunk(chunk, request, sourceById))
+      .map((chunk) => ({ chunk, lexicalScore: lexicalScore(chunk.content, queryTerms) }))
+      .sort(compareTextChunks)
+      .slice(0, request.candidateLimit)
+      .map(({ chunk, lexicalScore }) => toTextCandidate(chunk, lexicalScore, request))
   }
 
   deleteBySourceId(sourceId: string): Promise<number> {
@@ -197,13 +239,13 @@ function validateVectorSearchRequest(request: VectorSearchRequest): void {
   }
 }
 
-function hasEmptySourceScope(request: VectorSearchRequest): boolean {
+function hasEmptySourceScope(request: SearchScopeRequest): boolean {
   return request.eligibleSourceIds !== undefined && request.eligibleSourceIds.length === 0
 }
 
 function filterEligibleSources(
   sources: KnowledgeSource[],
-  request: VectorSearchRequest,
+  request: SearchScopeRequest,
 ): KnowledgeSource[] {
   return sources.filter(
     (source) =>
@@ -215,7 +257,7 @@ function filterEligibleSources(
 
 function isEligibleVectorChunk(
   chunk: KnowledgeChunk,
-  request: VectorSearchRequest,
+  request: SearchScopeRequest,
   eligibleSourceIds: readonly string[],
   sourceById: ReadonlyMap<string, KnowledgeSource>,
 ): boolean {
@@ -230,9 +272,26 @@ function isEligibleVectorChunk(
   )
 }
 
+function isEligibleTextChunk(
+  chunk: KnowledgeChunk,
+  request: SearchScopeRequest,
+  eligibleSourceIds: readonly string[],
+  sourceById: ReadonlyMap<string, KnowledgeSource>,
+  queryTerms: readonly string[],
+): boolean {
+  const contentTerms = new Set(tokenize(chunk.content))
+  return (
+    eligibleSourceIds.includes(chunk.sourceId) &&
+    sourceById.has(chunk.sourceId) &&
+    queryTerms.every((term) => contentTerms.has(term)) &&
+    chunk.embeddingProfileId === request.embeddingProfileId &&
+    chunk.corpusGenerationId === request.corpusGenerationId
+  )
+}
+
 function assertMatchingActiveCorpus(
   activeCorpus: ActiveCorpus | null,
-  request: VectorSearchRequest,
+  request: SearchScopeRequest,
 ): void {
   if (activeCorpus === null) return
   if (
@@ -246,9 +305,9 @@ function assertMatchingActiveCorpus(
   }
 }
 
-async function findVectorSources(
+async function findEligibleSources(
   sourceRepository: Pick<IKnowledgeSourceRepository, 'findById' | 'listByScenario'>,
-  request: VectorSearchRequest,
+  request: SearchScopeRequest,
 ): Promise<KnowledgeSource[]> {
   if (request.eligibleSourceIds === undefined) {
     return sourceRepository.listByScenario({
@@ -263,9 +322,9 @@ async function findVectorSources(
   return found.filter((source): source is KnowledgeSource => source !== null)
 }
 
-function isVisibleVectorChunk(
+function isVisibleChunk(
   chunk: KnowledgeChunk,
-  request: VectorSearchRequest,
+  request: SearchScopeRequest,
   sourceById: ReadonlyMap<string, KnowledgeSource>,
 ): boolean {
   const source = sourceById.get(chunk.sourceId)
@@ -294,6 +353,45 @@ function compareVectorChunks(
   return left.chunk.chunkId.localeCompare(right.chunk.chunkId)
 }
 
+function validateSearchCandidateLimit(candidateLimit: number): void {
+  if (
+    !Number.isInteger(candidateLimit) ||
+    candidateLimit <= 0 ||
+    candidateLimit > MAX_VECTOR_SEARCH_CANDIDATES
+  ) {
+    throw new KnowledgeVectorSearchError({ code: 'vector_search_failed', retryable: false })
+  }
+}
+
+function tokenize(value: string): string[] {
+  return value
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((token) => token.length > 0)
+}
+
+function lexicalScore(content: string, queryTerms: readonly string[]): number {
+  const contentTerms = tokenize(content)
+  return queryTerms.reduce(
+    (score, term) => score + contentTerms.filter((contentTerm) => contentTerm === term).length,
+    0,
+  )
+}
+
+function compareTextChunks(
+  left: { chunk: KnowledgeChunk; lexicalScore: number },
+  right: { chunk: KnowledgeChunk; lexicalScore: number },
+): number {
+  if (left.lexicalScore !== right.lexicalScore) return right.lexicalScore - left.lexicalScore
+  if (left.chunk.sourceId !== right.chunk.sourceId) {
+    return left.chunk.sourceId.localeCompare(right.chunk.sourceId)
+  }
+  if (left.chunk.chunkIndex !== right.chunk.chunkIndex) {
+    return left.chunk.chunkIndex - right.chunk.chunkIndex
+  }
+  return left.chunk.chunkId.localeCompare(right.chunk.chunkId)
+}
+
 function toVectorCandidate(chunk: KnowledgeChunk, distance: number, request: VectorSearchRequest) {
   const visibleToAvatarIds = normalizeVisibleToAvatarIds(chunk.visibleToAvatarIds)
   return {
@@ -304,6 +402,22 @@ function toVectorCandidate(chunk: KnowledgeChunk, distance: number, request: Vec
     chunkIndex: chunk.chunkIndex,
     distance,
     similarity: 1 - distance,
+    matchedQuery: request.queryVariant,
+    ...(request.queryIndex !== undefined ? { queryIndex: request.queryIndex } : {}),
+    ...(chunk.metadata !== undefined ? { metadata: chunk.metadata } : {}),
+    ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
+  }
+}
+
+function toTextCandidate(chunk: KnowledgeChunk, lexicalScore: number, request: TextSearchRequest) {
+  const visibleToAvatarIds = normalizeVisibleToAvatarIds(chunk.visibleToAvatarIds)
+  return {
+    sourceId: chunk.sourceId,
+    chunkId: chunk.chunkId,
+    knowledgeType: request.knowledgeType,
+    content: chunk.content,
+    chunkIndex: chunk.chunkIndex,
+    lexicalScore,
     matchedQuery: request.queryVariant,
     ...(request.queryIndex !== undefined ? { queryIndex: request.queryIndex } : {}),
     ...(chunk.metadata !== undefined ? { metadata: chunk.metadata } : {}),

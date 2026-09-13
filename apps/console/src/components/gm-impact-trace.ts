@@ -570,6 +570,8 @@ function formatMatchBasis(reason: string | undefined): string {
     .map((part) => {
       if (part === 'token-overlap') return 'keyword match'
       if (part === 'vector-match') return 'vector similarity'
+      if (part === 'lexical-match') return 'lexical match'
+      if (part === 'both-match') return 'vector and lexical match'
       if (part === 'tag-match') return 'tag match'
       return part.replaceAll('_', ' ')
     })

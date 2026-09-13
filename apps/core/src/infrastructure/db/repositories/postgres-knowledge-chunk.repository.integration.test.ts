@@ -243,6 +243,53 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     expect(candidates[0]).not.toHaveProperty('embedding')
   })
 
+  it('returns bounded exact-token candidates in lexical rank order', async () => {
+    await seedSource()
+    const active = await activateVectorCorpus(
+      [sourceId],
+      new Map([
+        [
+          sourceId,
+          [
+            {
+              content: 'The winter garden has damp footprints.',
+              chunkIndex: 1,
+              vector: vectorForCurrentProfile(0, 1),
+            },
+            {
+              content: 'The winter garden winter garden is locked.',
+              chunkIndex: 0,
+              vector: vectorForCurrentProfile(1, 0),
+            },
+          ],
+        ],
+      ]),
+    )
+    const source = await sourceRepo.findById(sourceId)
+    expect(source).not.toBeNull()
+
+    const candidates = await chunkRepo.searchByText({
+      queryVariant: { source: 'last_user_input', text: 'winter garden' },
+      scenarioId: source?.scenarioId ?? 'scenario_missing',
+      knowledgeType: 'world',
+      candidateLimit: 1,
+      embeddingProfileId: active.profileId,
+      corpusGenerationId: active.generationId,
+      profile: {
+        provider: 'test',
+        model: 'test-embedding',
+        dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
+      },
+      visibilityMode: 'avatar_filtered',
+    })
+
+    expect(candidates.map((candidate) => candidate.content)).toEqual([
+      'The winter garden winter garden is locked.',
+    ])
+    expect(candidates[0]?.lexicalScore).toBeGreaterThan(0)
+    expect(candidates[0]).not.toHaveProperty('distance')
+  })
+
   // eslint-disable-next-line max-lines-per-function
   it('filters ready sources, type, scenario, profile, generation, static scope, and visibility', async () => {
     const scenario = await scenarioRepo.create({

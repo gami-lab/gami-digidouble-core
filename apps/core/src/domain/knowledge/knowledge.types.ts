@@ -5,6 +5,7 @@ import type {
   KnowledgeType as SharedKnowledgeType,
   KnowledgeVisibilityPolicy as SharedKnowledgeVisibilityPolicy,
   RetrievalFailureCode as SharedRetrievalFailureCode,
+  RetrievalMatchType as SharedRetrievalMatchType,
   RetrievalOutcomeCode as SharedRetrievalOutcomeCode,
   RetrievalQuerySource as SharedRetrievalQuerySource,
   RetrievalQueryVariant as SharedRetrievalQueryVariant,
@@ -106,6 +107,8 @@ export type RetrievalTimings = Readonly<{
   vectorSearchMs?: number
 }>
 
+export type RetrievalMatchType = SharedRetrievalMatchType
+
 export type RetrievalCounts = Readonly<{
   candidateCount?: number
   selectedCount?: number
@@ -159,6 +162,10 @@ export interface RetrievedKnowledgeItem {
   content: string
   /** Normalized cosine similarity (`1 - distance`); higher values are better. */
   similarity?: number
+  /** Internal fused rank used before bounded selection; never exposed over the API. */
+  retrievalScore?: number
+  /** Indicates whether this item was returned by vector search, lexical search, or both. */
+  matchType?: RetrievalMatchType
   queryIndex?: number
   reason?: string
   matchedQuery?: RetrievalQueryVariant
@@ -175,6 +182,20 @@ export interface VectorRetrievalCandidate {
   chunkIndex: number
   distance: number
   similarity: number
+  matchedQuery: RetrievalQueryVariant
+  queryIndex?: number
+  metadata?: Record<string, unknown>
+  visibleToAvatarIds?: string[]
+}
+
+/** Internal candidate returned by bounded lexical retrieval before fusion and selection. */
+export interface LexicalRetrievalCandidate {
+  sourceId: string
+  chunkId: string
+  knowledgeType: KnowledgeType
+  content: string
+  chunkIndex: number
+  lexicalScore: number
   matchedQuery: RetrievalQueryVariant
   queryIndex?: number
   metadata?: Record<string, unknown>

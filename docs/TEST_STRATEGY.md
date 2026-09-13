@@ -72,7 +72,8 @@ preflight reason so audits do not fail for missing infrastructure. Set
 - paragraph-aware chunking, oversized paragraph/code-fence splitting, bounded overlap, and ingestion lifecycle
 - embedding profile/dimension validation and ordered complete batches
 - staged reindex completeness, restart/retry safety, rollback, and atomic promotion
-- vector filtering, visibility asymmetry, deterministic merge/dedup/selection, and safe failures
+- vector and bounded lexical filtering, visibility asymmetry, deterministic fusion/merge/dedup/selection,
+  and safe failures
 - retrieval/context diagnostics contain no vectors, credentials, prompts, or unbounded content
 
 ### Boundaries

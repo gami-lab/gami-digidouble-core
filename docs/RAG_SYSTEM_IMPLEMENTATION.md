@@ -18,8 +18,8 @@ Knowledge source -> ingestion job -> content loader -> paragraph/header chunking
   -> embed each chunk (production: OpenAI adapter) -> persist chunks + vectors in PostgreSQL
 
 Avatar turn -> build query variants from turn context -> filter ready sources by scenario/type
-  -> load chunks -> visibility filtering -> embed query variants -> vector search
-  -> deterministic per-type selection -> Context Engine final Avatar selection + budget/precedence
+  -> load chunks -> visibility filtering -> embed query variants -> vector + lexical search
+  -> deterministic candidate fusion/per-type selection -> Context Engine final Avatar selection + budget/precedence
   -> Avatar prompt formatting
 
 Post-turn GM run -> build GM query variants -> same retrieval service with visibility bypass
@@ -42,11 +42,14 @@ Main implementation entry points: `knowledge-ingestion.service.ts`, `typed-retri
 4. Stage a complete source/corpus replacement and promote it atomically — partial or stale
    profile/generation results never become active, so a failed reindex can't half-apply.
 5. At query time, normalize runtime query variants, embed them as one ordered batch, and search
-   active pgvector data.
-6. Filter eligibility before the candidate limit, apply Avatar visibility or explicit GM bypass,
-   merge/deduplicate deterministically, and pass results to Context Engine. The Context Engine is
-   the single authoritative final selector for the Avatar path, applying session limits together
-   with token-budget and segment inclusion decisions.
+   active pgvector data alongside the bounded PostgreSQL full-text index.
+6. Apply the same scenario/type/readiness/source/active-corpus/visibility filters to both paths
+   before their candidate limits. `TypedRetrievalService` fuses the results with a fixed lexical
+   boost: vector-only candidates retain cosine similarity ordering, lexical-only candidates can
+   recover exact entities, and candidates found by both paths rank highest. The resulting items carry
+   `matchType` (`vector`, `lexical`, or `both`) for bounded diagnostics. The Context Engine is the
+   single authoritative final selector for the Avatar path, applying session limits together with
+   token-budget and segment inclusion decisions.
 
 ## Chunking strategy and why
 
@@ -106,10 +109,11 @@ type, readiness, active-corpus, profile, or metadata rules, only Avatar-visibili
 
 ## Ranking and limits
 
-PostgreSQL cosine distance is the repository truth (lower is better). Public similarity is derived
-as `1 - distance` and clamped/rounded only by presenters — raw distance never leaves the
-infrastructure layer. Ties are broken deterministically (similarity, then query-variant order,
-source ID, chunk index) so identical inputs always produce the same result for different callers.
+PostgreSQL cosine distance is the repository truth for vector candidates (lower is better). Public
+similarity is derived as `1 - distance` and clamped/rounded only by presenters — raw distance never
+leaves the infrastructure layer. Fusion ranks candidates matched by both paths first, lexical-only
+candidates next, and vector-only candidates by cosine similarity; all ties use query-variant order,
+source ID, chunk index, and chunk ID deterministically.
 
 Limits differ by call site and can drift with code changes — check
 `AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS` and `DEFAULT_LIMIT_PER_TYPE` in
@@ -125,12 +129,13 @@ decisions. `persona-prompt.service.ts` only formats the resulting typed sections
 silently apply a second limit or reorder the approved set. A chunk can still win retrieval selection
 and be omitted by the context budget; the turn trace reports selected vs. included vs. omitted counts.
 
-No production lexical scorer, metadata boost, or application-wide corpus scan participates in
-retrieval — matching is vector similarity only, scoped by SQL eligibility filters.
+Retrieval combines pgvector cosine similarity with a bounded PostgreSQL `simple` full-text candidate
+path. Both paths use the same SQL eligibility filters; lexical search is not an application-wide
+corpus scan and does not bypass active profile/generation identity checks.
 
 ## Failure behavior
 
-Embedding or vector-search failures return bounded controlled outcomes; no partial query-vector
+Embedding or vector/lexical-search failures return bounded controlled outcomes; no partial query-vector
 batch is accepted. Avatar generation can continue with explicit uncertainty guidance
 (`insufficient_evidence` retrieval status) rather than fabricating retrieved evidence — this applies
 when a GM plan marked retrieval as required and it failed or returned nothing. If retrieval throws
@@ -143,10 +148,11 @@ slow or failing GM retrieval never delays the user-facing reply.
 ## Diagnostics
 
 Expose only profile identity, counts, timings, query index/source, visibility mode, outcome/failure,
-similarity, and bounded selected references. Visibility diagnostics include considered candidates but
-do not claim to count rows excluded by SQL visibility filters. Never expose raw vectors, credentials,
-provider payloads, or unbounded source content. Runtime events and admin/console projections reuse the
-shared retrieval DTOs; operator screens use the same categories as the API (Shared Avatar Knowledge,
-Shared World Knowledge, Media Knowledge).
+similarity, bounded selected references, and each returned item's vector/lexical/both match type.
+Visibility diagnostics include considered candidates but do not claim to count rows excluded by SQL
+visibility filters. Never expose raw vectors, credentials, provider payloads, or unbounded source
+content. Runtime events and admin/console projections reuse the shared retrieval DTOs; operator
+screens use the same categories as the API (Shared Avatar Knowledge, Shared World Knowledge, Media
+Knowledge).
 
 See [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md) for profile changes and reindex operations.

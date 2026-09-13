@@ -143,6 +143,7 @@ export type {
   RetryKnowledgeReindexResponse,
   RetrievedKnowledgeItemDto,
   KnowledgeRetrievalReferenceDto,
+  RetrievalMatchType,
   SharedContextScenarioSnapshot,
   SharedAvatarContextKnowledgeInjection,
   SharedTypedKnowledgeSections,

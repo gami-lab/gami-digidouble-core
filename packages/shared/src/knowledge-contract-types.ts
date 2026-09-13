@@ -67,6 +67,8 @@ export type RetrievalQueryVariant = {
 
 export type RetrievalVisibilityMode = 'avatar_filtered' | 'gm_unrestricted'
 
+export type RetrievalMatchType = 'vector' | 'lexical' | 'both'
+
 export type RetrievalOutcomeCode = 'success' | 'no_results' | 'failed'
 
 export const RETRIEVAL_OUTCOME_CODES: readonly RetrievalOutcomeCode[] = [
@@ -253,6 +255,8 @@ export type KnowledgeRetrievalReferenceDto = {
   knowledgeType: KnowledgeType
   /** Normalized cosine similarity; higher values are better. */
   similarity?: number
+  /** Whether the item matched vector retrieval, lexical retrieval, or both. */
+  matchType?: RetrievalMatchType
   queryIndex?: number
   reason?: string
   matchedQuery?: RetrievalQueryVariant

@@ -14,18 +14,18 @@ test-design rules and tier definitions, read [TEST_STRATEGY.md](TEST_STRATEGY.md
 
 ## Coverage by boundary
 
-| Area                  | Must prove                                                                                                                                                                                |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| API                   | Auth, validation, not-found/conflict/provider mapping, stable success shapes, bounded inputs/outputs.                                                                                     |
-| Conversation          | Complete lifecycle, active Avatar, history ordering, reset/end/switch ownership, exact-once messages.                                                                                     |
-| Avatar/context        | Stable section precedence, bounded recent exchanges, prepared-trait requirements, response cleanup.                                                                                       |
-| Game Master           | Strict current output, safe invalid actions, async/non-blocking execution, stale guidance suppression, safe events.                                                                       |
-| Memory                | Three complete-exchange window, compaction ownership, hydration, fact trust/contradictions, isolation and clear/reset.                                                                    |
-| Knowledge             | Canonical types, visibility policy, reserved keys, paragraph splitting, hard chunk caps, overlap, ingestion/retry, source replacement, media boundaries.                                  |
-| Embeddings/retrieval  | Profile and dimension matching, complete ordered batches, vector filtering, GM bypass limits, deterministic selection, controlled failure, and the opt-in labelled recall@k/MRR baseline. |
-| Streaming/voice/audio | Ordering, disconnect cleanup, interruption semantics, utterance idempotency, provider-unavailable text continuity, transient audio delivery.                                              |
-| Operations            | Health, metrics, event/context/memory projections, redaction, replay/refresh/clear/reindex actions.                                                                                       |
-| Clients/tools         | Canonical HTTP usage, runtime event reconciliation, audio text fallback, evaluator ordering and valid partial reports.                                                                    |
+| Area                  | Must prove                                                                                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| API                   | Auth, validation, not-found/conflict/provider mapping, stable success shapes, bounded inputs/outputs.                                                                                                        |
+| Conversation          | Complete lifecycle, active Avatar, history ordering, reset/end/switch ownership, exact-once messages.                                                                                                        |
+| Avatar/context        | Stable section precedence, bounded recent exchanges, prepared-trait requirements, response cleanup.                                                                                                          |
+| Game Master           | Strict current output, safe invalid actions, async/non-blocking execution, stale guidance suppression, safe events.                                                                                          |
+| Memory                | Three complete-exchange window, compaction ownership, hydration, fact trust/contradictions, isolation and clear/reset.                                                                                       |
+| Knowledge             | Canonical types, visibility policy, reserved keys, paragraph splitting, hard chunk caps, overlap, ingestion/retry, source replacement, media boundaries.                                                     |
+| Embeddings/retrieval  | Profile and dimension matching, complete ordered batches, vector/lexical filtering and fusion, GM bypass limits, deterministic selection, controlled failure, and the opt-in labelled recall@k/MRR baseline. |
+| Streaming/voice/audio | Ordering, disconnect cleanup, interruption semantics, utterance idempotency, provider-unavailable text continuity, transient audio delivery.                                                                 |
+| Operations            | Health, metrics, event/context/memory projections, redaction, replay/refresh/clear/reindex actions.                                                                                                          |
+| Clients/tools         | Canonical HTTP usage, runtime event reconciliation, audio text fallback, evaluator ordering and valid partial reports.                                                                                       |
 
 ## Non-obvious invariants to protect
 

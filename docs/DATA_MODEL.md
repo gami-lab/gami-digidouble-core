@@ -79,6 +79,9 @@ rather than a silent corruption risk:
 - Nearest-neighbor search applies active profile/generation, source-readiness, scenario/type, and
   visibility filters in SQL before `LIMIT`; it never selects or persists the embedding column into
   a result. Repository cosine distance is lower-is-better; public similarity is `1 - distance`.
+- `knowledge_chunks` also has an expression GIN index on `to_tsvector('simple', content)` for the
+  bounded lexical candidate path. Lexical search applies the same active profile/generation,
+  source-readiness, scenario/type, and visibility filters and never replaces vector identity checks.
 
 ## Static knowledge contract
 

@@ -1,5 +1,6 @@
 import type {
   IKnowledgeChunkRepository,
+  TextSearchResult,
   VectorSearchResult,
 } from '../../ports/IKnowledgeChunkRepository.js'
 import {
@@ -9,8 +10,10 @@ import {
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type {
   KnowledgeType,
+  LexicalRetrievalCandidate,
   RetrievalEmbeddingProfile,
   RetrievalFailure,
+  RetrievalMatchType,
   RetrievalTimings,
   RetrievalVisibilityMode,
   RetrievedKnowledgeItem,
@@ -32,6 +35,13 @@ type QueryEmbeddingService = Pick<KnowledgeQueryEmbeddingService, 'embedVariants
 type ResolvedRetrievalEmbeddingProfile = RetrievalEmbeddingProfile & {
   embeddingProfileId: string
   corpusGenerationId: string
+}
+
+type FusedRetrievalCandidate = {
+  vectorCandidate?: VectorRetrievalCandidate
+  lexicalCandidate?: LexicalRetrievalCandidate
+  retrievalScore: number
+  matchType: RetrievalMatchType
 }
 
 export type TypedRetrievalInput = {
@@ -199,9 +209,8 @@ export class TypedRetrievalService {
       Math.max(limit, limit * queryVectors.length),
     )
     const searchResults = await Promise.all(
-      queryVectors.map((queryVector) =>
-        this.chunkRepository.searchByVector({
-          queryVector: queryVector.vector,
+      queryVectors.map(async (queryVector) => {
+        const commonRequest = {
           queryVariant: queryVector.variant,
           queryIndex: queryVector.queryIndex,
           scenarioId: input.scenarioId,
@@ -217,11 +226,22 @@ export class TypedRetrievalService {
           visibilityMode: visibilityMode(input),
           ...(input.activeAvatarId !== undefined ? { activeAvatarId: input.activeAvatarId } : {}),
           eligibleSourceIds: sourceIds,
-        }),
-      ),
+        } as const
+        return await Promise.all([
+          this.chunkRepository.searchByVector({
+            ...commonRequest,
+            queryVector: queryVector.vector,
+          }),
+          this.chunkRepository.searchByText(commonRequest),
+        ])
+      }),
     )
-    const candidates = searchResults.flatMap((result: VectorSearchResult) => result)
-    const merged = mergeCandidates(candidates)
+    const vectorResults = searchResults.map(([result]) => result)
+    const lexicalResults = searchResults.map(([, result]) => result)
+    const vectorCandidates = vectorResults.flatMap((result) => result)
+    const lexicalCandidates = lexicalResults.flatMap((result) => result)
+    const candidates = [...vectorCandidates, ...lexicalCandidates]
+    const merged = fuseCandidates(vectorResults, lexicalResults)
     const items = selectBalancedRetrievedItems(merged.map(toRetrievedItem), limit)
 
     return {
@@ -240,17 +260,115 @@ export class TypedRetrievalService {
   }
 }
 
-function mergeCandidates(
-  candidates: readonly VectorRetrievalCandidate[],
-): VectorRetrievalCandidate[] {
-  const bestByChunk = new Map<string, VectorRetrievalCandidate>()
-  for (const candidate of candidates) {
-    const existing = bestByChunk.get(candidate.chunkId)
-    if (existing === undefined || compareCandidates(candidate, existing) < 0) {
-      bestByChunk.set(candidate.chunkId, candidate)
-    }
+function fuseCandidates(
+  vectorResults: readonly VectorSearchResult[],
+  lexicalResults: readonly TextSearchResult[],
+): FusedRetrievalCandidate[] {
+  const byChunk = new Map<string, FusedRetrievalCandidate>()
+  for (const result of vectorResults) {
+    result.forEach((candidate) => {
+      const entry = byChunk.get(candidate.chunkId) ?? { retrievalScore: 0, matchType: 'vector' }
+      entry.vectorCandidate = chooseBestVectorCandidate(entry.vectorCandidate, candidate)
+      entry.matchType = entry.lexicalCandidate === undefined ? 'vector' : 'both'
+      byChunk.set(candidate.chunkId, entry)
+    })
   }
-  return [...bestByChunk.values()].sort(compareCandidates)
+  for (const result of lexicalResults) {
+    result.forEach((candidate) => {
+      const entry = byChunk.get(candidate.chunkId) ?? { retrievalScore: 0, matchType: 'lexical' }
+      entry.lexicalCandidate = chooseBestLexicalCandidate(entry.lexicalCandidate, candidate)
+      entry.matchType = entry.vectorCandidate === undefined ? 'lexical' : 'both'
+      byChunk.set(candidate.chunkId, entry)
+    })
+  }
+  return [...byChunk.values()]
+    .map((entry) => ({ ...entry, retrievalScore: fusionScore(entry) }))
+    .sort(compareFusedCandidates)
+}
+
+function fusionScore(candidate: FusedRetrievalCandidate): number {
+  if (candidate.vectorCandidate !== undefined && candidate.lexicalCandidate !== undefined) {
+    return 2 + boundedSimilarity(candidate.vectorCandidate.similarity)
+  }
+  if (candidate.lexicalCandidate !== undefined) {
+    const score = Math.max(0, candidate.lexicalCandidate.lexicalScore)
+    return 1 + score / (score + 1)
+  }
+  return boundedSimilarity(candidate.vectorCandidate?.similarity ?? 0)
+}
+
+function boundedSimilarity(value: number): number {
+  return Math.min(1, Math.max(0, value))
+}
+
+function chooseBestVectorCandidate(
+  current: VectorRetrievalCandidate | undefined,
+  candidate: VectorRetrievalCandidate,
+): VectorRetrievalCandidate {
+  return current === undefined || compareCandidates(candidate, current) < 0 ? candidate : current
+}
+
+function chooseBestLexicalCandidate(
+  current: LexicalRetrievalCandidate | undefined,
+  candidate: LexicalRetrievalCandidate,
+): LexicalRetrievalCandidate {
+  if (current === undefined) return candidate
+  if (candidate.lexicalScore !== current.lexicalScore) {
+    return candidate.lexicalScore > current.lexicalScore ? candidate : current
+  }
+  return compareCandidateIdentity(candidate, current) < 0 ? candidate : current
+}
+
+function compareFusedCandidates(
+  left: FusedRetrievalCandidate,
+  right: FusedRetrievalCandidate,
+): number {
+  if (left.retrievalScore !== right.retrievalScore) {
+    return right.retrievalScore - left.retrievalScore
+  }
+  return compareFusedTieBreakers(left, right)
+}
+
+function compareFusedTieBreakers(
+  left: FusedRetrievalCandidate,
+  right: FusedRetrievalCandidate,
+): number {
+  const matchTypeDifference = matchTypeRank(left.matchType) - matchTypeRank(right.matchType)
+  const leftSimilarity = left.vectorCandidate?.similarity ?? 0
+  const rightSimilarity = right.vectorCandidate?.similarity ?? 0
+  return (
+    [
+      matchTypeDifference,
+      rightSimilarity - leftSimilarity,
+      compareFusedCandidateIdentity(left, right),
+    ].find((difference) => difference !== 0) ?? 0
+  )
+}
+
+function compareFusedCandidateIdentity(
+  left: FusedRetrievalCandidate,
+  right: FusedRetrievalCandidate,
+): number {
+  const leftCandidate = left.vectorCandidate ?? left.lexicalCandidate
+  const rightCandidate = right.vectorCandidate ?? right.lexicalCandidate
+  return leftCandidate === undefined || rightCandidate === undefined
+    ? 0
+    : compareCandidateIdentity(leftCandidate, rightCandidate)
+}
+
+function matchTypeRank(matchType: RetrievalMatchType): number {
+  if (matchType === 'both') return 0
+  if (matchType === 'lexical') return 1
+  return 2
+}
+
+function compareCandidateIdentity(
+  left: Pick<VectorRetrievalCandidate, 'sourceId' | 'chunkIndex' | 'chunkId'>,
+  right: Pick<VectorRetrievalCandidate, 'sourceId' | 'chunkIndex' | 'chunkId'>,
+): number {
+  if (left.sourceId !== right.sourceId) return left.sourceId.localeCompare(right.sourceId)
+  if (left.chunkIndex !== right.chunkIndex) return left.chunkIndex - right.chunkIndex
+  return left.chunkId.localeCompare(right.chunkId)
 }
 
 function compareCandidates(
@@ -266,20 +384,26 @@ function compareCandidates(
   return left.chunkId.localeCompare(right.chunkId)
 }
 
-function toRetrievedItem(candidate: VectorRetrievalCandidate): RetrievedKnowledgeItem {
+function toRetrievedItem(candidate: FusedRetrievalCandidate): RetrievedKnowledgeItem {
+  const representative = candidate.vectorCandidate ?? candidate.lexicalCandidate
+  if (representative === undefined) throw new Error('Fused retrieval candidate is empty.')
   return {
-    sourceId: candidate.sourceId,
-    chunkId: candidate.chunkId,
-    knowledgeType: candidate.knowledgeType,
-    content: candidate.content,
-    similarity: candidate.similarity,
-    ...(candidate.queryIndex !== undefined ? { queryIndex: candidate.queryIndex } : {}),
-    reason: 'vector-match',
-    matchedQuery: candidate.matchedQuery,
-    ...(candidate.visibleToAvatarIds !== undefined
-      ? { visibleToAvatarIds: candidate.visibleToAvatarIds }
+    sourceId: representative.sourceId,
+    chunkId: representative.chunkId,
+    knowledgeType: representative.knowledgeType,
+    content: representative.content,
+    ...(candidate.vectorCandidate === undefined
+      ? {}
+      : { similarity: candidate.vectorCandidate.similarity }),
+    retrievalScore: candidate.retrievalScore,
+    matchType: candidate.matchType,
+    ...(representative.queryIndex !== undefined ? { queryIndex: representative.queryIndex } : {}),
+    reason: `${candidate.matchType}-match`,
+    matchedQuery: representative.matchedQuery,
+    ...(representative.visibleToAvatarIds !== undefined
+      ? { visibleToAvatarIds: representative.visibleToAvatarIds }
       : {}),
-    ...(candidate.metadata !== undefined ? { metadata: candidate.metadata } : {}),
+    ...(representative.metadata !== undefined ? { metadata: representative.metadata } : {}),
   }
 }
 

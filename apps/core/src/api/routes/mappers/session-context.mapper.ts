@@ -1,5 +1,6 @@
 import type { AdminSessionContextResponse } from '@gami/shared'
 import type { SessionContextSnapshot } from '../../../domain/context/session-context.types.js'
+import type { RetrievedKnowledgeItem } from '../../../domain/knowledge/knowledge.types.js'
 import { toRetrievalTraceDto } from '../../../application/services/runtime-inspector-event-context.js'
 
 export function toAdminSessionContextResponse(
@@ -157,11 +158,11 @@ function toSharedAvatarRetrievedContext(
     media: knowledge.retrievedItems.filter((item) => item.knowledgeType === 'media'),
   }
   return {
-    retrievedItems: knowledge.retrievedItems.map((item) => ({ ...item })),
+    retrievedItems: knowledge.retrievedItems.map(toSharedRetrievedItem),
     typedSections: {
-      avatar_knowledge: typedSections.avatar_knowledge.map((item) => ({ ...item })),
-      world: typedSections.world.map((item) => ({ ...item })),
-      media: typedSections.media.map((item) => ({ ...item })),
+      avatar_knowledge: typedSections.avatar_knowledge.map(toSharedRetrievedItem),
+      world: typedSections.world.map(toSharedRetrievedItem),
+      media: typedSections.media.map(toSharedRetrievedItem),
       ...(knowledge.trace !== undefined ? { trace: toRetrievalTraceDto(knowledge.trace) } : {}),
     },
   }
@@ -171,11 +172,17 @@ function toSharedGmRetrievedContext(
   knowledge: NonNullable<SessionContextSnapshot['gmContext']['sections']['retrievedContext']>,
 ) {
   return {
-    avatar_knowledge: knowledge.avatar_knowledge.map((item) => ({ ...item })),
-    world: knowledge.world.map((item) => ({ ...item })),
-    media: knowledge.media.map((item) => ({ ...item })),
+    avatar_knowledge: knowledge.avatar_knowledge.map(toSharedRetrievedItem),
+    world: knowledge.world.map(toSharedRetrievedItem),
+    media: knowledge.media.map(toSharedRetrievedItem),
     ...(knowledge.trace !== undefined ? { trace: toRetrievalTraceDto(knowledge.trace) } : {}),
   }
+}
+
+function toSharedRetrievedItem(item: RetrievedKnowledgeItem) {
+  const sharedItem = { ...item }
+  delete sharedItem.retrievalScore
+  return sharedItem
 }
 
 function toContextTrace(

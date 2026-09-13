@@ -200,6 +200,7 @@ describe('TypedRetrievalService', () => {
       embeddingResult([{ source: 'last_user_input', text: 'memory' }], [[1, 0]]),
     )
     const searchByVector = vi.spyOn(chunkRepository, 'searchByVector')
+    const searchByText = vi.spyOn(chunkRepository, 'searchByText')
 
     const result = await service.retrieve({
       scenarioId: 'scenario_1',
@@ -209,18 +210,52 @@ describe('TypedRetrievalService', () => {
 
     expect(embedVariants).toHaveBeenCalledTimes(1)
     expect(searchByVector).toHaveBeenCalledTimes(3)
+    expect(searchByText).toHaveBeenCalledTimes(3)
     expect(searchByVector.mock.calls.every(([request]) => request.candidateLimit === 2)).toBe(true)
+    expect(searchByText.mock.calls.every(([request]) => request.candidateLimit === 2)).toBe(true)
     expect(result.avatar_knowledge[0]).toEqual(
       expect.objectContaining({
         chunkId: 'memory_1',
         similarity: 1,
-        reason: 'vector-match',
+        matchType: 'both',
+        reason: 'both-match',
         queryIndex: 0,
       }),
     )
     expect(result.trace.queryVectorCount).toBe(1)
     expect(result.trace.visibilityMode).toBe('avatar_filtered')
     expect(result.trace.gmUnrestricted).toBe(false)
+  })
+
+  it('recovers an exact entity through lexical search when vector retrieval misses it', async () => {
+    const { service } = buildService(
+      [
+        chunk('generic_vector_match', 'memory_source', [1, 0], {
+          content: 'A generic clue with no named entity.',
+        }),
+        chunk('marquis_de_lune', 'memory_source', [0, 1], {
+          content: 'Marquis de Lune keeps the key in the winter garden.',
+          chunkIndex: 1,
+        }),
+      ],
+      embeddingResult([{ source: 'direct_query', text: 'Marquis de Lune' }], [[1, 0]]),
+    )
+
+    const result = await service.retrieve({
+      scenarioId: 'scenario_1',
+      query: 'Marquis de Lune',
+      limitPerType: 1,
+    })
+
+    expect(result.avatar_knowledge).toHaveLength(1)
+    expect(result.avatar_knowledge[0]).toEqual(
+      expect.objectContaining({
+        chunkId: 'marquis_de_lune',
+        matchType: 'lexical',
+        reason: 'lexical-match',
+      }),
+    )
+    expect(result.avatar_knowledge[0]?.similarity).toBeUndefined()
   })
 
   it('deduplicates a chunk across variants using the best similarity and stable ties', async () => {

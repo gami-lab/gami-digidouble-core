@@ -77,6 +77,7 @@ describe('presentKnowledgeRetrieval', () => {
           knowledgeType: 'avatar_knowledge',
           content: 'retrieved content',
           similarity: 0.876544,
+          matchType: 'both',
           queryIndex: 2,
           matchedQuery: { source: 'last_user_input', text: 'query' },
         },
@@ -119,6 +120,7 @@ describe('presentKnowledgeRetrieval', () => {
 
     expect(output.retrieval.avatar_knowledge[0]).toMatchObject({
       similarity: 0.8765,
+      matchType: 'both',
       queryIndex: 2,
     })
     expect(output.retrieval.avatar_knowledge[0]).not.toHaveProperty('score')

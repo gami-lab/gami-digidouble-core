@@ -6,6 +6,7 @@ import type {
   RetrievalFailure,
   RetrievalQueryVariant,
   RetrievalVisibilityMode,
+  LexicalRetrievalCandidate,
   VectorRetrievalCandidate,
 } from '../../domain/knowledge/knowledge.types.js'
 
@@ -39,6 +40,22 @@ export type VectorSearchRequest = Readonly<{
 }>
 
 export type VectorSearchResult = readonly VectorRetrievalCandidate[]
+export type TextSearchResult = readonly LexicalRetrievalCandidate[]
+
+/** All scope needed to execute one bounded, profile-compatible lexical search. */
+export type TextSearchRequest = Readonly<{
+  queryVariant: RetrievalQueryVariant
+  queryIndex?: number
+  scenarioId: string
+  knowledgeType: KnowledgeType
+  candidateLimit: number
+  embeddingProfileId: string
+  corpusGenerationId: string
+  profile: EmbeddingProfile
+  visibilityMode: RetrievalVisibilityMode
+  activeAvatarId?: string
+  eligibleSourceIds?: readonly string[]
+}>
 
 /** Safe, finite failure boundary for vector retrieval infrastructure. */
 export class KnowledgeVectorSearchError extends Error {
@@ -57,5 +74,6 @@ export interface IKnowledgeChunkRepository {
   listBySourceId(sourceId: string): Promise<KnowledgeChunk[]>
   listBySourceIds(sourceIds: string[]): Promise<KnowledgeChunk[]>
   searchByVector(request: VectorSearchRequest): Promise<VectorSearchResult>
+  searchByText(request: TextSearchRequest): Promise<TextSearchResult>
   deleteBySourceId(sourceId: string): Promise<number>
 }

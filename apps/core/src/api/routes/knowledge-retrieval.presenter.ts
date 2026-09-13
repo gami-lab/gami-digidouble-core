@@ -20,6 +20,7 @@ export function presentKnowledgeRetrieval(
     knowledgeType: item.knowledgeType,
     content: truncateContent(item.content, maxContentLength),
     ...(item.similarity !== undefined ? { similarity: presentSimilarity(item.similarity) } : {}),
+    ...(item.matchType !== undefined ? { matchType: item.matchType } : {}),
     ...(item.queryIndex !== undefined ? { queryIndex: item.queryIndex } : {}),
     ...(item.reason !== undefined ? { reason: item.reason } : {}),
     ...(item.matchedQuery !== undefined ? { matchedQuery: item.matchedQuery } : {}),

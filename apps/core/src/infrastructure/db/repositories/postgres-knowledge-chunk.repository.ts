@@ -2,6 +2,8 @@ import type { JSONValue, Sql } from 'postgres'
 import type {
   CreateKnowledgeChunkParams,
   IKnowledgeChunkRepository,
+  TextSearchRequest,
+  TextSearchResult,
   VectorSearchRequest,
   VectorSearchResult,
 } from '../../../application/ports/IKnowledgeChunkRepository.js'
@@ -11,6 +13,7 @@ import {
 } from '../../../application/ports/IKnowledgeChunkRepository.js'
 import type {
   KnowledgeChunk,
+  LexicalRetrievalCandidate,
   VectorRetrievalCandidate,
 } from '../../../domain/knowledge/knowledge.types.js'
 import { assertStaticMetadataAllowed } from '../../../domain/knowledge/static-knowledge-validation.js'
@@ -41,6 +44,10 @@ type VectorSearchRow = {
   distance: number | string
   metadata: unknown
   visible_to_avatar_ids: string[] | null
+}
+
+type LexicalSearchRow = Omit<VectorSearchRow, 'distance'> & {
+  lexical_score: number | string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -238,6 +245,51 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
     return rows.map((row) => vectorSearchRowToCandidate(row, request))
   }
 
+  async searchByText(request: TextSearchRequest): Promise<TextSearchResult> {
+    validateLexicalSearchRequest(request)
+    if (request.queryVariant.text.trim().length === 0) return []
+
+    const scenarioUuid = requireUuid('scenario_', request.scenarioId)
+    const profileUuid = requireUuid('embedding_profile_', request.embeddingProfileId)
+    const generationUuid = requireUuid('corpus_generation_', request.corpusGenerationId)
+    await assertActiveCorpus(this.sql, profileUuid, generationUuid, request.profile)
+    const sourceUuids = getSourceUuids(request)
+    if (sourceUuids !== undefined && sourceUuids.length === 0) return []
+
+    const sourceFilter = buildSourceFilter(this.sql, sourceUuids)
+    const visibilityFilter = buildVisibilityFilter(this.sql, request)
+    const query = this.sql`plainto_tsquery('simple', ${request.queryVariant.text})`
+
+    let rows: LexicalSearchRow[]
+    try {
+      rows = await this.sql<LexicalSearchRow[]>`
+        SELECT c.id, c.source_id, c.content, c.chunk_index, s.knowledge_type,
+          ts_rank_cd(to_tsvector('simple', c.content), ${query}) AS lexical_score,
+          c.metadata, c.visible_to_avatar_ids
+        FROM knowledge_chunks c
+        JOIN knowledge_sources s ON s.id = c.source_id
+        CROSS JOIN knowledge_corpus_state state
+        WHERE s.scenario_id = ${scenarioUuid}
+          AND s.status = 'ready'
+          AND s.knowledge_type = ${request.knowledgeType}
+          AND c.embedding_profile_id = ${profileUuid}
+          AND c.corpus_generation_id = ${generationUuid}
+          AND state.active_profile_id = ${profileUuid}
+          AND state.active_generation_id = ${generationUuid}
+          AND to_tsvector('simple', c.content) @@ ${query}
+          ${sourceFilter}
+          ${visibilityFilter}
+        ORDER BY ts_rank_cd(to_tsvector('simple', c.content), ${query}) DESC,
+          c.source_id ASC, c.chunk_index ASC, c.id ASC
+        LIMIT ${request.candidateLimit}
+      `
+    } catch {
+      throw new KnowledgeVectorSearchError({ code: 'vector_search_failed', retryable: false })
+    }
+
+    return rows.map((row) => lexicalSearchRowToCandidate(row, request))
+  }
+
   async deleteBySourceId(sourceId: string): Promise<number> {
     const sourceUuid = extractUuid('knowledge_source_', sourceId)
     if (sourceUuid === null) return 0
@@ -253,19 +305,27 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
 }
 
 function validateVectorSearchRequest(request: VectorSearchRequest): void {
-  if (
-    !Number.isInteger(request.candidateLimit) ||
-    request.candidateLimit <= 0 ||
-    request.candidateLimit > MAX_VECTOR_SEARCH_CANDIDATES
-  ) {
-    throw new KnowledgeVectorSearchError({ code: 'vector_search_failed', retryable: false })
-  }
+  validateSearchCandidateLimit(request.candidateLimit)
   if (
     request.queryVector.length !== request.profile.dimensions ||
     request.queryVector.some((value) => !Number.isFinite(value)) ||
     request.queryVector.every((value) => value === 0)
   ) {
     throw new KnowledgeVectorSearchError({ code: 'incompatible_dimension', retryable: false })
+  }
+}
+
+function validateLexicalSearchRequest(request: TextSearchRequest): void {
+  validateSearchCandidateLimit(request.candidateLimit)
+}
+
+function validateSearchCandidateLimit(candidateLimit: number): void {
+  if (
+    !Number.isInteger(candidateLimit) ||
+    candidateLimit <= 0 ||
+    candidateLimit > MAX_VECTOR_SEARCH_CANDIDATES
+  ) {
+    throw new KnowledgeVectorSearchError({ code: 'vector_search_failed', retryable: false })
   }
 }
 
@@ -277,7 +337,7 @@ function requireUuid(prefix: string, id: string): string {
   return uuid
 }
 
-function getSourceUuids(request: VectorSearchRequest): string[] | undefined {
+function getSourceUuids(request: { eligibleSourceIds?: readonly string[] }): string[] | undefined {
   if (request.eligibleSourceIds === undefined) return undefined
   const sourceUuids = request.eligibleSourceIds.map((sourceId) =>
     extractUuid('knowledge_source_', sourceId),
@@ -337,7 +397,10 @@ function buildSourceFilter(sql: Sql, sourceUuids: string[] | undefined): SqlFrag
     : sql`AND c.source_id = ANY(${sql.array(sourceUuids)}::uuid[])`
 }
 
-function buildVisibilityFilter(sql: Sql, request: VectorSearchRequest): SqlFragment {
+function buildVisibilityFilter(
+  sql: Sql,
+  request: Pick<TextSearchRequest, 'visibilityMode' | 'activeAvatarId'>,
+): SqlFragment {
   if (request.visibilityMode === 'gm_unrestricted') return sql``
   const activeAvatarId = request.activeAvatarId ?? null
   const effectiveAvatarIds = sql`
@@ -376,6 +439,31 @@ function vectorSearchRowToCandidate(
     chunkIndex: row.chunk_index,
     distance,
     similarity: 1 - distance,
+    matchedQuery: request.queryVariant,
+    ...(request.queryIndex !== undefined ? { queryIndex: request.queryIndex } : {}),
+    ...(metadata !== undefined ? { metadata } : {}),
+    ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
+  }
+}
+
+function lexicalSearchRowToCandidate(
+  row: LexicalSearchRow,
+  request: TextSearchRequest,
+): LexicalRetrievalCandidate {
+  const lexicalScore =
+    typeof row.lexical_score === 'number' ? row.lexical_score : Number(row.lexical_score)
+  if (!Number.isFinite(lexicalScore)) {
+    throw new KnowledgeVectorSearchError({ code: 'vector_search_failed', retryable: false })
+  }
+  const metadata = normalizeMetadata(row.metadata)
+  const visibleToAvatarIds = normalizeVisibleToAvatarIds(row.visible_to_avatar_ids)
+  return {
+    sourceId: `knowledge_source_${row.source_id}`,
+    chunkId: `knowledge_chunk_${row.id}`,
+    knowledgeType: row.knowledge_type,
+    content: row.content,
+    chunkIndex: row.chunk_index,
+    lexicalScore,
     matchedQuery: request.queryVariant,
     ...(request.queryIndex !== undefined ? { queryIndex: request.queryIndex } : {}),
     ...(metadata !== undefined ? { metadata } : {}),

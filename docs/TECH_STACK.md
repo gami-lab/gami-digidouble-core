@@ -47,9 +47,9 @@ product code rather than in an external agent framework.
   and existing DB volumes are not reusable across that change. There is no production hash-vector
   fallback.
 - Query embedding is application-owned (`KnowledgeQueryEmbeddingService` resolves the active
-  profile, embeds normalized variants in one batch); nearest-neighbor filtering is repository-owned
-  (parameterized pgvector `embedding <=> query`, no lexical scoring in the production path); context
-  selection is deterministic and traceable.
+  profile, embeds normalized variants in one batch); candidate filtering is repository-owned
+  (parameterized pgvector `embedding <=> query` plus bounded PostgreSQL full-text search with shared
+  eligibility filters); context selection is deterministic and traceable.
 - Why in-house instead of a vector DB or RAG framework: retrieval is one bounded context source, not
   the architecture itself — pgvector is deferred-replaceable, not a foundational dependency.
 

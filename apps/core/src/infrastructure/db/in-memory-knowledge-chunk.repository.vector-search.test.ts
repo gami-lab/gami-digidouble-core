@@ -53,6 +53,22 @@ function makeRequest(
   }
 }
 
+function makeTextRequest(
+  overrides: Partial<Parameters<InMemoryKnowledgeChunkRepository['searchByText']>[0]> = {},
+) {
+  return {
+    queryVariant: { source: 'direct_query' as const, text: 'find this' },
+    scenarioId: 'scenario_1',
+    knowledgeType: 'world' as const,
+    candidateLimit: 10,
+    embeddingProfileId: 'embedding_profile_active',
+    corpusGenerationId: 'corpus_generation_active',
+    profile,
+    visibilityMode: 'avatar_filtered' as const,
+    ...overrides,
+  }
+}
+
 function makeRepository(
   sources: KnowledgeSource[],
   chunks: KnowledgeChunk[],
@@ -116,6 +132,73 @@ describe('InMemoryKnowledgeChunkRepository vector search', () => {
     )
 
     expect(candidates.map((candidate) => candidate.chunkId)).toEqual(['knowledge_chunk_allowed'])
+  })
+})
+
+describe('InMemoryKnowledgeChunkRepository text search', () => {
+  it('returns bounded exact-token candidates in lexical order', async () => {
+    const repository = makeRepository(
+      [makeSource()],
+      [
+        makeChunk({
+          chunkId: 'knowledge_chunk_partial',
+          content: 'The winter garden has damp footprints.',
+          chunkIndex: 1,
+        }),
+        makeChunk({
+          chunkId: 'knowledge_chunk_exact',
+          content: 'The winter garden winter garden is locked.',
+          chunkIndex: 0,
+        }),
+      ],
+    )
+
+    const candidates = await repository.searchByText(
+      makeTextRequest({
+        queryVariant: { source: 'last_user_input', text: 'winter garden' },
+        candidateLimit: 1,
+      }),
+    )
+
+    expect(candidates.map((candidate) => candidate.chunkId)).toEqual(['knowledge_chunk_exact'])
+    expect(candidates[0]?.lexicalScore).toBe(4)
+  })
+
+  it('applies the same scope, profile, generation, and visibility rules as vector search', async () => {
+    const sources = [
+      makeSource({
+        sourceId: 'knowledge_source_private',
+        visibilityPolicy: 'avatars',
+        visibleToAvatarIds: ['avatar_1'],
+      }),
+      makeSource({ sourceId: 'knowledge_source_hidden', visibilityPolicy: 'none' }),
+    ]
+    const repository = makeRepository(sources, [
+      makeChunk({
+        sourceId: 'knowledge_source_private',
+        chunkId: 'knowledge_chunk_private',
+        content: 'The private winter garden clue.',
+      }),
+      makeChunk({
+        sourceId: 'knowledge_source_hidden',
+        chunkId: 'knowledge_chunk_hidden',
+        content: 'The hidden winter garden clue.',
+      }),
+      makeChunk({
+        chunkId: 'knowledge_chunk_old',
+        content: 'The old winter garden clue.',
+        embeddingProfileId: 'embedding_profile_old',
+      }),
+    ])
+
+    const candidates = await repository.searchByText(
+      makeTextRequest({
+        queryVariant: { source: 'direct_query', text: 'winter garden' },
+        activeAvatarId: 'avatar_1',
+      }),
+    )
+
+    expect(candidates.map((candidate) => candidate.chunkId)).toEqual(['knowledge_chunk_private'])
   })
 })
 

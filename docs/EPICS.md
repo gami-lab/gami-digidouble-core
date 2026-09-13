@@ -137,7 +137,7 @@ Separated scenario-shared static knowledge from user-bound conversational memory
 
 #### `5.1d Vector Retrieval Runtime` ✅ Done
 
-Replaced lexical retrieval with profile-aware pgvector search for Avatar, Game Master, and admin flows, with deterministic merging, visibility rules, controlled failures, and shared diagnostics ([requirements matrix](EPIC_5_1D_REQUIREMENTS_MATRIX.md)).
+Established profile-aware pgvector retrieval for Avatar, Game Master, and admin flows, with deterministic merging, shared visibility rules, controlled failures, and shared diagnostics ([requirements matrix](EPIC_5_1D_REQUIREMENTS_MATRIX.md)). The later retrieval-quality hardening slice adds a bounded full-text candidate path for exact-entity recovery.
 
 #### `5.2 Context Engine v2` ✅ Done
 
@@ -207,9 +207,9 @@ Removed audited compatibility paths and legacy contracts, verified fresh schema/
 
 **Current state**
 The labelled recall@k/MRR baseline harness, deterministic oversized-input chunk cap/overlap, native
-1536-dimensional embedding migration, single-authority Avatar selection, and dead-diagnostic cleanup
-are landed; lexical fallback improvements remain open. The committed before/after reports are the
-measurement record for this work.
+1536-dimensional embedding migration, single-authority Avatar selection, dead-diagnostic cleanup, and
+bounded lexical candidate fusion are landed. The committed before/after reports are the measurement
+record for this work.
 
 **Purpose**
 Improve retrieval fidelity and prove answer-grounding improvements against the committed baseline.

@@ -792,12 +792,14 @@ function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeRefere
     return null
   }
   const matchedQuery = readRecordedMatchedQuery(entry['matchedQuery'])
+  const matchType = readRetrievalMatchType(entry['matchType'])
   const item: RecordedKnowledgeReference = {
     sourceId,
     chunkId,
     knowledgeType,
     ...(typeof entry['content'] === 'string' ? { content: entry['content'] } : {}),
     ...(typeof entry['similarity'] === 'number' ? { similarity: entry['similarity'] } : {}),
+    ...(matchType !== undefined ? { matchType } : {}),
     ...(typeof entry['queryIndex'] === 'number' ? { queryIndex: entry['queryIndex'] } : {}),
     ...(typeof entry['reason'] === 'string' ? { reason: entry['reason'] } : {}),
     ...(matchedQuery !== undefined ? { matchedQuery } : {}),
@@ -806,6 +808,12 @@ function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeRefere
       : {}),
   }
   return item
+}
+
+function readRetrievalMatchType(
+  value: unknown,
+): NonNullable<RecordedKnowledgeReference['matchType']> | undefined {
+  return value === 'vector' || value === 'lexical' || value === 'both' ? value : undefined
 }
 
 function readRecordedMatchedQuery(

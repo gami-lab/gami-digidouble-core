@@ -58,18 +58,20 @@ when a keyword heuristic (`shouldUsePlannedRetrieval`) judges the plan still on-
 embeds all variants in one batch through the same adapter/profile used at ingestion time, and
 rejects the batch outright (all variants, not per-variant) if the profile drifted mid-flight.
 
-### Phase 6 — Vector search
+### Phase 6 — Vector and lexical search
 
 [postgres-knowledge-chunk.repository.ts](../apps/core/src/infrastructure/db/repositories/postgres-knowledge-chunk.repository.ts#L196-L233)
 runs one `pgvector` cosine-distance `ORDER BY ... LIMIT` query per (query variant × knowledge type),
 with scenario, readiness, embedding-profile/corpus-generation identity, and Avatar-visibility
-filters **all pushed into the SQL `WHERE` clause**. There is no separate hybrid/keyword search path.
+filters **all pushed into the SQL `WHERE` clause**. It also runs a bounded `simple` full-text query
+with the same filters; both candidate paths are fused before selection.
 
 ### Phase 7 — Merge, dedupe, rank
 
 [typed-retrieval.service.ts](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L245-L269)
-merges per-variant candidate lists, keeps the best-scoring row per `chunkId`, and sorts deterministically
-(similarity → query-variant order → sourceId → chunkIndex).
+merges per-variant vector and lexical candidate lists, deduplicates by `chunkId`, and applies the
+fixed lexical fusion boost before deterministic sorting. The item records whether it matched the
+vector path, lexical path, or both.
 
 ### Phase 8 — Selection (two distinct stages)
 
@@ -100,7 +102,7 @@ After the Avatar reply is sent, the GM runs its own retrieval asynchronously wit
 
 The admin retrieval endpoint and console "inspect retrieval" panel run the same
 `TypedRetrievalService` and surface a bounded trace: candidate/selected counts, timings, embedding
-profile, visibility mode, and failure codes — never raw vectors or provider payloads.
+profile, visibility mode, match type, and failure codes — never raw vectors or provider payloads.
 
 ## 2. Comparison against current RAG best practice
 
@@ -108,7 +110,7 @@ profile, visibility mode, and failure codes — never raw vectors or provider pa
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Embedding fidelity         | Use the model's native or near-native dimensionality (OpenAI's own Matryoshka guidance treats ~256 as a reasonable practical floor for `text-embedding-3-small`, whose native size is 1536) | **`dimensions: 1536`**, enforced against the fresh `VECTOR(1536)` schema ([config.ts:55](../apps/core/src/config.ts), [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md)) | **Resolved for the selected profile.** The native profile removes the previous 16-dimensional compression; the six-fixture harness records the before/after retrieval measurements. |
 | Chunking                   | Overlapping windows (~10–20%) or sentence-aware splitting with a hard max chunk size                                                                                                        | Paragraph-aware packing with sentence/raw splitting, an 8,000-character hard cap, and up to 200 characters of overlap                                                     | Deterministic boundary protection and oversized-input safety are now covered; the bounded overlap is intentionally character-based.                                                 |
-| Retrieval method           | Hybrid dense + lexical (BM25/full-text) fused (e.g. RRF), especially for names/IDs/numbers                                                                                                  | Pure dense vector only, no lexical fallback                                                                                                                               | Exact-entity lookups still lack lexical fallback; this remains open independently of the dimension migration.                                                                       |
+| Retrieval method           | Hybrid dense + lexical (BM25/full-text) fused (e.g. RRF), especially for names/IDs/numbers                                                                                                  | Bounded `simple` full-text GIN candidates fused with profile-aware pgvector candidates, with shared SQL eligibility filters and `matchType` diagnostics                   | Appropriate fixed hybrid path for the current small corpus; revisit weighting or reranking only if evaluation shows a need.                                                         |
 | Reranking                  | Cross-encoder or LLM rerank over the top-k vector hits                                                                                                                                      | None                                                                                                                                                                      | Acceptable at small scale; would address a separate ranking-quality gap if added.                                                                                                   |
 | Query transformation       | Query rewriting / HyDE / decomposition                                                                                                                                                      | GM-authored `retrievalPlan` (queries + required facts) generated by the LLM on the prior turn                                                                             | **Genuine strength** — this is a legitimate agentic query-planning mechanism, not just raw-text search.                                                                             |
 | Diversity (MMR)            | Penalize near-duplicate top-k results                                                                                                                                                       | None; only per-query-source balancing                                                                                                                                     | Minor gap; low risk given small per-type limits (3–9 chunks).                                                                                                                       |
@@ -126,7 +128,7 @@ reindex with transactional promotion, SQL-pushed ACL/visibility, bounded observa
 LLM-authored retrieval-planning loop between the GM and the next Avatar turn) is well above the bar
 of a typical hand-rolled RAG implementation. This is not the old system's "hash-vector fallback
 posing as retrieval" — chunks are truly embedded by a real provider, truly stored in `pgvector`, and
-truly ranked by nearest-neighbor search in SQL.
+ranked by bounded SQL vector and full-text candidate paths.
 
 The previous production profile was retrieval-crippled by one configuration choice. Shrinking
 `text-embedding-3-small` down to 16 dimensions threw away essentially all of the semantic resolution
@@ -184,11 +186,10 @@ already-selected items it receives.
 **Resolved — Remove `excludedChunkCount`.** Visibility-filtered candidate counts remain available;
 the unmeasurable excluded-row count is no longer emitted or rendered.
 
-**P2 — Add a lexical fallback for exact-entity queries.** A `tsvector`/trigram index on
-`knowledge_chunks.content`, fused with the vector results (even a simple "union in, dedupe, prefer
-vector rank" — full reciprocal-rank fusion isn't required to get most of the benefit), would recover
-named-entity lookups that dense retrieval may still miss, independently of the resolved embedding
-dimension.
+**Resolved — Add a lexical fallback for exact-entity queries.** A `simple` full-text GIN index on
+`knowledge_chunks.content` supplies bounded, filter-consistent lexical candidates for every normalized
+query variant. `TypedRetrievalService` fuses them with vector candidates and exposes a bounded
+`matchType` diagnostic, recovering named-entity lookups that dense retrieval may miss.
 
 **P2 — Incremental reindexing.** `KnowledgeReindexService.processSource` re-embeds every chunk of
 every source on every reindex run, with no content-hash short-circuit for unchanged chunks. Fine
