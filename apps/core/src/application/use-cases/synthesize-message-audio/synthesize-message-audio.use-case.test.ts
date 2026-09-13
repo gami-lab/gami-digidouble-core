@@ -168,6 +168,23 @@ describe('SynthesizeMessageAudioUseCase', () => {
     })
   })
 
+  it('forces the selected voice to use the Scenario language', async () => {
+    const { useCase, adapter } = createUseCase({
+      scenarioConfig: { ...scenario, language: 'fr-FR' },
+    })
+
+    await useCase.execute({
+      conversationId: conversation.conversationId,
+      messageId: avatarMessage.messageId,
+      requestId: 'request_language',
+    })
+
+    expect(adapter.inputs[0]?.voice).toEqual({
+      voiceKey: 'avatar-override',
+      language: 'fr-FR',
+    })
+  })
+
   it('keeps provider failures isolated from the persisted message', async () => {
     const adapter = createAdapter(new TextToSpeechError({ code: 'rate_limited', retryable: true }))
     const { useCase, messages } = createUseCase({ adapter })

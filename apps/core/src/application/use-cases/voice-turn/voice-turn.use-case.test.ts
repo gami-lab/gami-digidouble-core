@@ -95,6 +95,7 @@ function createUseCase(
     send?: SendMock
     stream?: StreamMock
     store?: InMemoryUtteranceIdempotencyStore
+    scenarioLanguage?: string
   } = {},
 ) {
   const observability = createObservability()
@@ -121,6 +122,18 @@ function createUseCase(
     >()
   const store = overrides.store ?? new InMemoryUtteranceIdempotencyStore()
   const conversationRepository = createConversationRepository()
+  const scenarioRepository =
+    overrides.scenarioLanguage === undefined
+      ? undefined
+      : {
+          findById: vi.fn().mockResolvedValue({ language: overrides.scenarioLanguage }),
+        }
+  const sessionRepository =
+    scenarioRepository === undefined
+      ? undefined
+      : {
+          findById: vi.fn().mockResolvedValue({ scenarioId: 'scenario-1' }),
+        }
   return {
     useCase: new VoiceTurnUseCase(
       { transcribe },
@@ -129,6 +142,8 @@ function createUseCase(
       { execute: send },
       { execute: stream },
       observability.adapter,
+      sessionRepository,
+      scenarioRepository,
     ),
     transcribe,
     send,
@@ -138,6 +153,24 @@ function createUseCase(
     trace: observability.trace,
   }
 }
+
+describe('VoiceTurnUseCase Scenario language', () => {
+  it('uses the Scenario language for recognition instead of the client hint', async () => {
+    const { useCase, transcribe } = createUseCase({ scenarioLanguage: 'fr-FR' })
+    const inputWithClientLanguage = normalizeSpeechToTextInput({
+      ...input,
+      audio: input.audio,
+      language: 'en-US',
+    })
+
+    await useCase.execute(inputWithClientLanguage)
+
+    expect(transcribe).toHaveBeenCalledWith(
+      expect.objectContaining({ language: 'fr-FR' }),
+      expect.anything(),
+    )
+  })
+})
 
 describe('VoiceTurnUseCase synchronous execution', () => {
   it('normalizes the final transcript and delegates one normal turn', async () => {

@@ -82,6 +82,14 @@ describe('resolveAvatarPromptIdentitySource', () => {
 
 // eslint-disable-next-line max-lines-per-function
 describe('assemblePersonaPrompt -> section order', () => {
+  it('instructs the Avatar to use the Scenario language', () => {
+    const prompt = assemblePersonaPrompt(makeAvatarConfig(), { language: 'fr-FR' })
+
+    expect(prompt).toContain(
+      'Respond entirely in fr-FR. Do not switch languages unless the Scenario language changes.',
+    )
+  })
+
   it('renders structured Game Master dialogue guidance and removes generic follow-up pressure', () => {
     const prompt = assemblePersonaPrompt(makeAvatarConfig(), {
       gmGuidance: {

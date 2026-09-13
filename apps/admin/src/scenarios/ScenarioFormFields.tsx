@@ -7,6 +7,7 @@ import type { ModelSelectionFormValue } from './model-selection-form'
 type ScenarioFormFieldsProps = {
   name: string
   status: ScenarioStatus
+  language: string
   worldContext: string
   objectives: string[]
   defaultModelSelection: ModelSelectionFormValue
@@ -17,6 +18,7 @@ type ScenarioFormFieldsProps = {
   disabled: boolean
   onNameChange: (value: string) => void
   onStatusChange: (value: ScenarioStatus) => void
+  onLanguageChange: (value: string) => void
   onWorldContextChange: (value: string) => void
   onObjectivesChange: (objectives: string[]) => void
   onDefaultModelSelectionChange: (value: ModelSelectionFormValue) => void
@@ -25,9 +27,11 @@ type ScenarioFormFieldsProps = {
   onVoiceLanguageChange: (value: string) => void
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function ScenarioFormFields({
   name,
   status,
+  language,
   worldContext,
   objectives,
   defaultModelSelection,
@@ -38,6 +42,7 @@ export function ScenarioFormFields({
   disabled,
   onNameChange,
   onStatusChange,
+  onLanguageChange,
   onWorldContextChange,
   onObjectivesChange,
   onDefaultModelSelectionChange,
@@ -47,6 +52,24 @@ export function ScenarioFormFields({
 }: ScenarioFormFieldsProps): JSX.Element {
   return (
     <>
+      <div className="admin-form-group">
+        <label htmlFor={`${idPrefix}-language`} className="admin-form-label">
+          Scenario language <span aria-hidden="true">*</span>
+        </label>
+        <select
+          id={`${idPrefix}-language`}
+          className="admin-form-select"
+          value={language}
+          onChange={(e) => {
+            onLanguageChange(e.target.value)
+          }}
+          disabled={disabled}
+        >
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+        </select>
+      </div>
+
       <div className="admin-form-group">
         <label htmlFor={`${idPrefix}-name`} className="admin-form-label">
           Name <span aria-hidden="true">*</span>
@@ -166,7 +189,7 @@ function VoiceConfigurationFields({
       </div>
       <div className="admin-form-group">
         <label htmlFor={`${idPrefix}-voice-language`} className="admin-form-label">
-          Voice language
+          Legacy voice language fallback
         </label>
         <input
           id={`${idPrefix}-voice-language`}
@@ -177,7 +200,7 @@ function VoiceConfigurationFields({
             onVoiceLanguageChange(e.target.value)
           }}
           disabled={disabled}
-          placeholder="Optional language tag, e.g. en-US"
+          placeholder="Used only when scenario language is not configured"
         />
       </div>
     </>

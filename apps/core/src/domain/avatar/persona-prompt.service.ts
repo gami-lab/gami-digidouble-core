@@ -43,7 +43,7 @@ export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptO
     ...(promptInputs.gmGuidance === undefined
       ? buildDirectorNotes(promptInputs.directorNotes)
       : []),
-    buildResponseRulesSection(promptInputs.responseRules),
+    buildResponseRulesSection(promptInputs.responseRules, promptInputs.language),
     ...buildConversationStateSection(promptInputs.memory, promptInputs.avatarAwareness),
     ...buildUserPersonaContext(promptInputs.userPersona),
     ...buildWorldContext(promptInputs.worldContext),
@@ -68,6 +68,7 @@ function resolvePromptSectionInputs(
   worldContext: string | ContextScenarioSnapshot | undefined
   retrieval: AvatarPromptOptions['retrieval']
   gmGuidance: AvatarPromptOptions['gmGuidance']
+  language: string | undefined
 } {
   const promptSections = opts?.sections
   if (promptSections === undefined) {
@@ -89,6 +90,7 @@ function resolveLegacyPromptSectionInputs(
   worldContext: string | ContextScenarioSnapshot | undefined
   retrieval: AvatarPromptOptions['retrieval']
   gmGuidance: AvatarPromptOptions['gmGuidance']
+  language: string | undefined
 } {
   return {
     directorNotes: opts?.gmNotes,
@@ -99,6 +101,7 @@ function resolveLegacyPromptSectionInputs(
     worldContext: opts?.worldContext,
     retrieval: opts?.retrieval,
     gmGuidance: opts?.gmGuidance,
+    language: opts?.language,
   }
 }
 
@@ -114,6 +117,7 @@ function resolveSelectedPromptSectionInputs(
   worldContext: string | ContextScenarioSnapshot | undefined
   retrieval: AvatarPromptOptions['retrieval']
   gmGuidance: AvatarPromptOptions['gmGuidance']
+  language: string | undefined
 } {
   return {
     directorNotes: promptSections.directorNotes ?? undefined,
@@ -124,6 +128,7 @@ function resolveSelectedPromptSectionInputs(
     worldContext: promptSections.worldContext,
     retrieval: promptSections.retrievedContext?.typedSections,
     gmGuidance: opts?.gmGuidance,
+    language: opts?.language,
   }
 }
 
@@ -336,8 +341,20 @@ function buildAdjustments(adjustments: AvatarConfig['adjustments']): string[] {
   return adjustments.map((a) => a.trim()).filter((a) => a.length > 0)
 }
 
-function buildResponseRulesSection(responseRules: string[] | undefined): string {
-  const lines = ['## Response Rules', ...buildAdjustments(responseRules), DEFAULT_STYLE_RULE]
+function buildResponseRulesSection(
+  responseRules: string[] | undefined,
+  language: string | undefined,
+): string {
+  const lines = [
+    '## Response Rules',
+    ...buildAdjustments(responseRules),
+    ...(language === undefined
+      ? []
+      : [
+          `Respond entirely in ${language}. Do not switch languages unless the Scenario language changes.`,
+        ]),
+    DEFAULT_STYLE_RULE,
+  ]
   return lines.join('\n')
 }
 

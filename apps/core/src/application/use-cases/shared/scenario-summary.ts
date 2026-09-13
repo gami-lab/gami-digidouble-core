@@ -6,6 +6,7 @@ export function toScenarioSummary(scenario: Scenario): ScenarioSummary {
     scenarioId: scenario.scenarioId,
     name: scenario.name,
     status: scenario.status,
+    ...(scenario.language !== undefined ? { language: scenario.language } : {}),
     objectives: scenario.objectives,
     worldContext: scenario.worldContext,
     avatarAvailability: scenario.avatarAvailability,

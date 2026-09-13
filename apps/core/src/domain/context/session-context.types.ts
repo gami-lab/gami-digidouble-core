@@ -24,6 +24,7 @@ import type { ContextEngineTrace } from './context-engine.types.js'
 
 export type ContextScenarioSnapshot = {
   scenarioId: string
+  language?: string
   name?: string
   description?: string
   goals?: string[]

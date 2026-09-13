@@ -86,7 +86,7 @@ function renderRetrievalPlanningPolicy(): string[] {
     '- When retrievalPlan.required is true, always provide one to three focused queries and one to three requiredFacts. Identify the entity and the fact being verified; do not leave both arrays empty.',
     '- Set retrievalPlan.required false only for greetings, purely emotional or subjective reflection, or purely stylistic guidance where no factual, narrative, or character context would improve the next turn. When uncertain, include retrievalPlan with required true.',
     '- Queries must be short, precise, and retrieval-oriented, e.g. "Mona quarantine camp" or "what Max knows about Mona\'s location" — avoid generic queries like "Mona information" or "family story".',
-    '- Write every retrievalPlan query and requiredFact in the same language as context.experience.description, the Scenario description, because the RAG documents use that language. Do not translate them to English. If the Scenario description is empty, follow the latest user message language.',
+    '- Write every retrievalPlan query and requiredFact in the declared Scenario language when context.experience.language is present, because the RAG documents use that language. Do not translate them to English. If no Scenario language is declared, follow the Scenario description language; if that is empty, follow the latest user message language.',
     "- Example: after the Avatar answers who accompanied them to a named place, prepare retrieval for that place, the companions, the surrounding event, and the Avatar's knowledge boundary because the next turn may ask for details or consequences, even if the current reply is correct.",
     '- You do not perform retrieval yourself; you only prepare it for the next Avatar turn.',
   ]

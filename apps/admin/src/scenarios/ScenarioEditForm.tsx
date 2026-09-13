@@ -18,6 +18,7 @@ type ScenarioEditFormProps = {
   onError: (message: string) => void
 }
 
+// eslint-disable-next-line complexity, max-lines-per-function
 export function ScenarioEditForm({
   scenario,
   onCancel,
@@ -27,6 +28,9 @@ export function ScenarioEditForm({
   const initialModelSelection = fromScenarioModelSelection(scenario.modelSelection)
   const [name, setName] = useState(scenario.name)
   const [status, setStatus] = useState<ScenarioStatus>(scenario.status)
+  const [language, setLanguage] = useState(
+    scenario.language ?? scenario.voiceConfig?.language?.split('-')[0] ?? 'en',
+  )
   const [worldContext, setWorldContext] = useState(scenario.worldContext)
   const [objectives, setObjectives] = useState<string[]>(scenario.objectives)
   const [defaultModelSelection, setDefaultModelSelection] = useState(
@@ -52,6 +56,7 @@ export function ScenarioEditForm({
       const updated = await updateScenario(scenario.scenarioId, {
         name: name.trim(),
         status,
+        language,
         worldContext: worldContext.trim(),
         objectives,
         modelSelection: modelSelection ?? null,
@@ -76,6 +81,7 @@ export function ScenarioEditForm({
         <ScenarioFormFields
           name={name}
           status={status}
+          language={language}
           worldContext={worldContext}
           objectives={objectives}
           defaultModelSelection={defaultModelSelection}
@@ -86,6 +92,7 @@ export function ScenarioEditForm({
           disabled={saving}
           onNameChange={setName}
           onStatusChange={setStatus}
+          onLanguageChange={setLanguage}
           onWorldContextChange={setWorldContext}
           onObjectivesChange={setObjectives}
           onDefaultModelSelectionChange={setDefaultModelSelection}

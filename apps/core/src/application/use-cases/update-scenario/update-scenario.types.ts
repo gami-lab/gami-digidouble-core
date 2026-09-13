@@ -9,6 +9,7 @@ export type UpdateScenarioInput = {
   scenarioId: string
   name?: string
   status?: ScenarioStatus
+  language?: string
   objectives?: string[]
   worldContext?: string
   avatarAvailability?: ScenarioAvatarAvailabilityConfig

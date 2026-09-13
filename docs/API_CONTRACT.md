@@ -91,6 +91,10 @@ Compatibility rules:
 - `AvailableAvatarSummary` is intentionally narrower than `AvatarSummary`; do not leak `config` or `llmOverride` into player-facing discovery routes.
 - `AvatarSummary.voiceConfig` and `ScenarioSummary.voiceConfig` are optional provider-neutral
   projections containing only `voiceKey` and optional `language`.
+- `ScenarioSummary.language` is the optional canonical BCP-47 language for the experience. New
+  scenarios default to `en`; when present it controls Avatar response language, speech recognition,
+  and synthesis. The optional language on a voice configuration is a legacy fallback and is
+  overridden by the Scenario language.
 - `SessionSummary.activeAvatarId` is optional; use explicit `null` only where a route contract says so.
 
 ## Public Routes
@@ -141,7 +145,8 @@ Voice message transport contract:
   or `audio/webm`; media parameters such as `codecs=opus` are normalized away. The body is bounded
   to 10,000,000 bytes, including both declared and actual-size checks.
 - `x-utterance-id` is required and must be a bounded opaque ID. `x-language` is optional and uses a
-  normalized BCP-47 tag. `x-audio-duration-ms` is optional, must be a positive integer, and is a
+  normalized BCP-47 tag; when the Scenario has a language, Core uses that Scenario language for
+  recognition regardless of this header. `x-audio-duration-ms` is optional, must be a positive integer, and is a
   client-supplied validation hint bounded to 120,000 ms; provider-reported duration remains
   authoritative when available.
 - A successful synchronous request returns the unchanged `ApiResponse<SendMessageResponse>` shape.
@@ -262,6 +267,9 @@ Voice-output contract ownership:
   Avatar voice overrides the Scenario default; absent both means no configured voice. Clients
   cannot submit provider credentials, endpoints, provider voice identifiers, or arbitrary synthesis
   options.
+- Scenario create/update requests accept `language` as a BCP-47 tag. The selected Scenario language
+  is authoritative for Avatar text and audio; Avatar/voice language values are retained only for
+  backwards-compatible records and fallback when a legacy Scenario has no language.
 - Persisted `Message` and `MessageMetadata`, `SendMessageResponse`, and `MessageStreamEvent` remain
   text-only and unchanged. Audio bytes are transient and are not persisted by default.
 - The TTS implementation remains an internal application port. Its infrastructure adapter returns

@@ -13,6 +13,8 @@ export interface Scenario {
   scenarioId: string
   name: string
   status: ScenarioStatus
+  /** Canonical language for Avatar responses and all voice operations. */
+  language?: string
   /** Learning or engagement objectives. Always present (defaults to []). */
   objectives: string[]
   /** World/experience description injected into context. Always present (defaults to ''). */

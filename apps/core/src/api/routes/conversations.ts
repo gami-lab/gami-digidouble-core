@@ -371,6 +371,8 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
           sendMessageUseCase,
           streamingSendMessageUseCase,
           observabilityAdapter,
+          repositories.sessionRepository,
+          repositories.scenarioRepository,
         )
       : undefined
   const synthesizeMessageAudioUseCase =

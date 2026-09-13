@@ -111,6 +111,7 @@ const createScenarioBodySchema = {
   properties: {
     name: { type: 'string', minLength: 1 },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
+    language: { type: 'string', minLength: 1 },
     objectives: { type: 'array', items: { type: 'string' } },
     worldContext: { type: 'string' },
     avatarAvailability: avatarAvailabilityBodySchema,
@@ -151,6 +152,7 @@ const updateScenarioBodySchema = {
   properties: {
     name: { type: 'string', minLength: 1 },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
+    language: { type: 'string', minLength: 1 },
     objectives: { type: 'array', items: { type: 'string' } },
     worldContext: { type: 'string' },
     avatarAvailability: avatarAvailabilityBodySchema,

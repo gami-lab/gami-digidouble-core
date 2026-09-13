@@ -71,6 +71,7 @@ describe('CreateScenarioUseCase', () => {
     expect(createMock).toHaveBeenCalledWith({
       name: 'Demo Name',
       status: 'active',
+      language: 'en',
       objectives: [],
       worldContext: '',
       avatarAvailability: { initialAvatarIds: [] },

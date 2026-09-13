@@ -61,6 +61,9 @@ mapping; and cancellation before adapter work starts. Idempotency tests must cov
 in-flight duplicates, completed replays, expired reservations, conflicting fingerprints, and safe
 release before downstream turn execution. Voice tests must not import a provider SDK, persist raw
 audio, or alter the canonical `Message`/`SendMessageRequest`/`MessageStreamEvent` contracts.
+Scenario-language tests additionally verify that the configured Scenario language replaces a
+conflicting voice-input language before transcription and a conflicting Avatar voice language
+before synthesis.
 
 The Deepgram adapter is tested separately with an injected transport fake. These tests assert exact
 provider request metadata, final-response validation, provider duration limits, HTTP failure

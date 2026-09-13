@@ -17,6 +17,7 @@ describe('voice and audio contract guards', () => {
 
   it('accepts a logical voice configuration and rejects provider-shaped fields', () => {
     expect(isVoiceConfiguration({ voiceKey: 'guide', language: 'fr-CH' })).toBe(true)
+    expect(isVoiceConfiguration({ voiceKey: 'guide', language: 'en_US' })).toBe(false)
     expect(isVoiceConfiguration({})).toBe(false)
     expect(isVoiceConfiguration({ voiceKey: 'guide', gradiumVoiceId: 'provider-id' })).toBe(false)
   })

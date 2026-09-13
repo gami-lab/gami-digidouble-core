@@ -361,6 +361,10 @@ retrieval proof or change production behavior.
 - Retrieval visibility is asymmetric by design: avatar-filtered, GM-unrestricted.
 - Voice input is application-owned and provider-neutral: only finalized normalized transcripts may
   enter the existing message flow, and one `(conversationId, utteranceId)` can execute at most once.
+- Scenario language is the canonical BCP-47 language for Avatar text, speech recognition, and voice
+  synthesis. New scenarios default to English; legacy scenarios fall back to their configured voice
+  language or provider defaults. The client `x-language` header cannot override a configured
+  Scenario language.
 - Deepgram is an Infrastructure implementation detail behind the speech-to-text port. Voice remains
   unconfigured safely when `DEEPGRAM_API_KEY` is absent, preserving the existing text/LLM path.
 - Gradium is an Infrastructure implementation detail behind the text-to-speech port. The adapter

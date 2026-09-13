@@ -6,6 +6,8 @@
  * configuration. Provider resolution belongs behind the Core application port.
  */
 
+import { isLanguageTag } from './language-contract.js'
+
 export const AUDIO_OUTPUT_FORMATS = ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/webm'] as const
 export const AUDIO_METADATA_ID_MAX_LENGTH = 128
 
@@ -45,7 +47,7 @@ export function isVoiceConfiguration(value: unknown): value is VoiceConfiguratio
   if (!isRecord(value) || !hasOnlyKeys(value, ['voiceKey', 'language'])) return false
   return (
     isNonEmptyString(value['voiceKey']) &&
-    (value['language'] === undefined || isNonEmptyString(value['language']))
+    (value['language'] === undefined || isLanguageTag(value['language']))
   )
 }
 

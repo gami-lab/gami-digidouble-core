@@ -451,6 +451,7 @@ export class RunGameMasterUseCase {
       ...(Array.isArray(scenario.config.goals) ? scenario.config.goals : []),
     ]
     return {
+      ...(scenario.language !== undefined ? { language: scenario.language } : {}),
       ...(hasText(scenario.worldContext) ? { description: scenario.worldContext } : {}),
       ...(goals.length > 0 ? { goals } : {}),
       ...(scenario.modelSelection !== undefined ? { modelSelection: scenario.modelSelection } : {}),

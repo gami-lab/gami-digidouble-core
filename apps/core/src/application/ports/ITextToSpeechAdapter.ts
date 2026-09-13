@@ -1,5 +1,5 @@
 import type { AudioDeliveryMetadata, AudioOutputFormat, VoiceConfiguration } from '@gami/shared'
-import { isAudioDeliveryMetadata, isAudioOutputFormat } from '@gami/shared'
+import { isAudioDeliveryMetadata, isAudioOutputFormat, normalizeLanguageTag } from '@gami/shared'
 
 export type TextToSpeechLimits = Readonly<{
   maxTextCharacters: number
@@ -121,7 +121,8 @@ export function normalizeTextToSpeechInput(input: unknown): TextToSpeechInput {
   ) {
     throw invalidRequest('invalid_voice')
   }
-  if (voice['language'] !== undefined && typeof voice['language'] !== 'string') {
+  const language = normalizeLanguageTag(voice['language'])
+  if (language === null) {
     throw invalidRequest('invalid_voice')
   }
 
@@ -144,7 +145,7 @@ export function normalizeTextToSpeechInput(input: unknown): TextToSpeechInput {
     text,
     voice: {
       voiceKey: voice['voiceKey'].trim(),
-      ...(voice['language'] === undefined ? {} : { language: voice['language'].trim() }),
+      ...(language === undefined ? {} : { language }),
     },
     format,
     requestId,

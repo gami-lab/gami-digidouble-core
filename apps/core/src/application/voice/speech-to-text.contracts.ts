@@ -5,6 +5,8 @@
  * contains no transport, provider, or persistence types.
  */
 
+import { normalizeLanguageTag } from '@gami/shared'
+
 export const SPEECH_TO_TEXT_MEDIA_TYPES = [
   'audio/flac',
   'audio/mpeg',
@@ -369,28 +371,15 @@ function isSpeechToTextMediaType(value: string): value is SpeechToTextMediaType 
 }
 
 function normalizeLanguage(value: unknown): string | undefined | null {
-  if (value === undefined) return undefined
-  if (typeof value !== 'string') return null
-  const normalized = value.trim()
+  const normalized = normalizeLanguageTag(value)
   if (
-    normalized.length === 0 ||
-    normalized.length > SPEECH_TO_TEXT_LIMITS.maxLanguageCharacters ||
-    !/^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/u.test(normalized)
+    normalized !== undefined &&
+    normalized !== null &&
+    normalized.length > SPEECH_TO_TEXT_LIMITS.maxLanguageCharacters
   ) {
     return null
   }
-
   return normalized
-    .split('-')
-    .map((part, index) => {
-      if (index === 0) return part.toLowerCase()
-      if (/^[A-Za-z]{2}$/u.test(part) || /^\d{3}$/u.test(part)) return part.toUpperCase()
-      const firstCharacter = part[0]
-      return firstCharacter === undefined
-        ? part
-        : firstCharacter.toUpperCase() + part.slice(1).toLowerCase()
-    })
-    .join('-')
 }
 
 function normalizeDuration(value: unknown): number | undefined | null {

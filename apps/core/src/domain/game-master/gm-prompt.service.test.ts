@@ -75,7 +75,7 @@ describe('buildGameMasterSystemPrompt', () => {
       'after the Avatar answers who accompanied them to a named place, prepare retrieval for that place',
     )
     expect(policySection).toContain(
-      'Write every retrievalPlan query and requiredFact in the same language as context.experience.description',
+      'Write every retrievalPlan query and requiredFact in the declared Scenario language when context.experience.language is present',
     )
     expect(policySection).toContain('You do not perform retrieval yourself')
     expect(policySection).toContain('directorNotes is required on every response')

@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS scenarios (
   id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   name                TEXT        NOT NULL,
   status              TEXT        NOT NULL DEFAULT 'draft',
+  language            TEXT,
   objectives          TEXT[]      NOT NULL DEFAULT '{}',
   world_context       TEXT        NOT NULL DEFAULT '',
   avatar_availability JSONB       NOT NULL DEFAULT '{"initialAvatarIds": []}',

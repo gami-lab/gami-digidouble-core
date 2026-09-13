@@ -60,7 +60,11 @@ export class SynthesizeMessageAudioUseCase {
     if (scenario === null) {
       throw new DomainError('NOT_FOUND', `Scenario ${avatar.scenarioId} was not found.`)
     }
-    const voice = resolveVoiceConfiguration(scenario.voiceConfig, avatar.voiceConfig)
+    const voice = resolveVoiceConfiguration(
+      scenario.voiceConfig,
+      avatar.voiceConfig,
+      scenario.language,
+    )
     if (voice === undefined) {
       throw new TextToSpeechError({
         code: 'invalid_configuration',

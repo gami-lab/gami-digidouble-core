@@ -121,6 +121,7 @@ function ScenarioSummarySection({
       <p>
         <span className="admin-status-pill">{scenario.status}</span>
       </p>
+      <p className="admin-muted">Language: {scenario.language ?? 'Legacy / not configured'}</p>
       {actionError !== null ? <p className="admin-error">{actionError}</p> : null}
 
       <h3>World context</h3>

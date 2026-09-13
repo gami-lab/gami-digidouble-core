@@ -8,6 +8,11 @@
 export type { ApiResponse, ApiError, ResponseMeta, ErrorCode } from './api-response.js'
 export { ok, fail } from './api-response.js'
 export {
+  isLanguageTag,
+  normalizeLanguageTag,
+  LANGUAGE_TAG_MAX_LENGTH,
+} from './language-contract.js'
+export {
   MODEL_PROVIDER_NAMES,
   MODEL_SELECTION_PROVIDER_NAMES,
   getModelPresetOptions,

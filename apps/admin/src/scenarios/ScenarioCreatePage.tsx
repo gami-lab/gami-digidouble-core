@@ -21,6 +21,7 @@ type CreateState = { status: 'idle' } | { status: 'saving' } | { status: 'error'
 export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProps): JSX.Element {
   const [name, setName] = useState('')
   const [status, setStatus] = useState<ScenarioStatus>('draft')
+  const [language, setLanguage] = useState('en')
   const [worldContext, setWorldContext] = useState('')
   const [objectives, setObjectives] = useState<string[]>([])
   const [defaultModelSelection, setDefaultModelSelection] = useState(EMPTY_MODEL_SELECTION)
@@ -42,6 +43,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
       const scenario = await createScenario({
         name: name.trim(),
         status,
+        language,
         objectives,
         worldContext: worldContext.trim(),
         ...(modelSelection !== undefined ? { modelSelection } : {}),
@@ -73,6 +75,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
         <ScenarioFormFields
           name={name}
           status={status}
+          language={language}
           worldContext={worldContext}
           objectives={objectives}
           defaultModelSelection={defaultModelSelection}
@@ -83,6 +86,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           disabled={isSaving}
           onNameChange={setName}
           onStatusChange={setStatus}
+          onLanguageChange={setLanguage}
           onWorldContextChange={setWorldContext}
           onObjectivesChange={setObjectives}
           onDefaultModelSelectionChange={setDefaultModelSelection}

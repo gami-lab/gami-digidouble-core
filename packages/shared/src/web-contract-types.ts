@@ -30,6 +30,7 @@ export type ListScenariosResponse = {
 export type CreateScenarioRequest = {
   name: string
   status?: ScenarioSummary['status']
+  language?: string
   objectives?: string[]
   worldContext?: string
   avatarAvailability?: ScenarioAvatarAvailability
@@ -45,6 +46,7 @@ export type CreateScenarioResponse = {
 export type UpdateScenarioRequest = {
   name?: ScenarioSummary['name']
   status?: ScenarioSummary['status']
+  language?: string
   objectives?: ScenarioSummary['objectives']
   worldContext?: ScenarioSummary['worldContext']
   avatarAvailability?: ScenarioAvatarAvailability

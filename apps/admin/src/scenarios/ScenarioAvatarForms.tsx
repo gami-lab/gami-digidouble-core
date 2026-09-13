@@ -422,7 +422,7 @@ function VoiceConfigurationFields({
       </div>
       <div className="admin-form-group">
         <label htmlFor={`${idPrefix}-av-voice-language`} className="admin-form-label">
-          Voice language
+          Legacy voice language fallback
         </label>
         <input
           id={`${idPrefix}-av-voice-language`}
@@ -433,7 +433,7 @@ function VoiceConfigurationFields({
             onVoiceLanguageChange(event.target.value)
           }}
           disabled={saving}
-          placeholder="Optional language tag, e.g. en-US"
+          placeholder="Used only when scenario language is not configured"
         />
       </div>
     </>

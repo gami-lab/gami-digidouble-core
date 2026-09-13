@@ -11,7 +11,7 @@ export function buildGmContextSnapshot(args: {
   session: Session | null
   currentState: GameMasterState
   scenarioAvatars: AvatarConfig[]
-  scenarioContext: { description?: string; goals?: string[] }
+  scenarioContext: { language?: string; description?: string; goals?: string[] }
   recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>
   memory: GameMasterMemoryContext | undefined
   retrieval: TypedRetrievalResult | undefined
@@ -50,6 +50,9 @@ export function buildGmContextSnapshot(args: {
       userPersona: args.userPersona,
       worldContext: {
         scenarioId: args.session?.scenarioId ?? '',
+        ...(args.scenarioContext.language !== undefined
+          ? { language: args.scenarioContext.language }
+          : {}),
         ...(args.scenarioContext.description !== undefined
           ? { description: args.scenarioContext.description }
           : {}),

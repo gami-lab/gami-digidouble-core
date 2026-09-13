@@ -20,6 +20,7 @@ export interface IScenarioRepository {
 export interface CreateScenarioParams {
   name: string
   status?: ScenarioStatus
+  language?: string
   objectives?: string[]
   worldContext?: string
   avatarAvailability?: ScenarioAvatarAvailabilityConfig
@@ -31,6 +32,7 @@ export interface CreateScenarioParams {
 export type UpdateScenarioParams = {
   name?: string
   status?: ScenarioStatus
+  language?: string
   objectives?: string[]
   worldContext?: string
   avatarAvailability?: ScenarioAvatarAvailabilityConfig

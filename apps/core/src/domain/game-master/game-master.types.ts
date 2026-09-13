@@ -53,6 +53,7 @@ export interface GameMasterInput {
   context: {
     experience: {
       scenarioId: string
+      language?: string
       description?: string
       goals?: string[]
     }

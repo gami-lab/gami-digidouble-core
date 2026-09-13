@@ -1,4 +1,4 @@
-import { isVoiceConfiguration, type VoiceConfiguration } from '@gami/shared'
+import { isVoiceConfiguration, normalizeLanguageTag, type VoiceConfiguration } from '@gami/shared'
 import { DomainError } from '../errors.js'
 
 export const VOICE_CONFIGURATION_CONFIG_KEY = 'voiceConfig'
@@ -16,9 +16,10 @@ export function normalizeVoiceConfiguration(
     throw new DomainError('INVALID_INPUT', 'voiceConfig must contain a non-empty voiceKey')
   }
 
+  const language = normalizeLanguageTag(value.language)
   return {
     voiceKey: value.voiceKey.trim(),
-    ...(value.language !== undefined ? { language: value.language.trim() } : {}),
+    ...(language !== undefined && language !== null ? { language } : {}),
   }
 }
 
@@ -84,6 +85,9 @@ export function applyVoiceConfiguration(
 export function resolveVoiceConfiguration(
   scenarioVoiceConfig: VoiceConfiguration | undefined,
   avatarVoiceConfig: VoiceConfiguration | undefined,
+  scenarioLanguage?: string,
 ): VoiceConfiguration | undefined {
-  return avatarVoiceConfig ?? scenarioVoiceConfig
+  const selected = avatarVoiceConfig ?? scenarioVoiceConfig
+  if (selected === undefined || scenarioLanguage === undefined) return selected
+  return { ...selected, language: scenarioLanguage }
 }

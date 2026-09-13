@@ -12,6 +12,7 @@ export function mapCreateScenarioInput(body: CreateScenarioRequest): CreateScena
   return {
     name: body.name,
     ...(body.status !== undefined ? { status: body.status } : {}),
+    ...(body.language !== undefined ? { language: body.language } : {}),
     ...(body.objectives !== undefined ? { objectives: body.objectives } : {}),
     ...(body.worldContext !== undefined ? { worldContext: body.worldContext } : {}),
     ...(body.avatarAvailability !== undefined
@@ -23,6 +24,7 @@ export function mapCreateScenarioInput(body: CreateScenarioRequest): CreateScena
   }
 }
 
+// eslint-disable-next-line complexity
 export function mapUpdateScenarioInput(
   scenarioId: string,
   body: UpdateScenarioRequest,
@@ -32,6 +34,7 @@ export function mapUpdateScenarioInput(
     scenarioId,
     ...(body.name !== undefined ? { name: body.name } : {}),
     ...(body.status !== undefined ? { status: body.status } : {}),
+    ...(body.language !== undefined ? { language: body.language } : {}),
     ...(body.objectives !== undefined ? { objectives: body.objectives } : {}),
     ...(body.worldContext !== undefined ? { worldContext: body.worldContext } : {}),
     ...(body.avatarAvailability !== undefined

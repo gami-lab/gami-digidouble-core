@@ -1,5 +1,8 @@
 import crypto from 'node:crypto'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
+import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
+import type { ISessionRepository } from '../../ports/ISessionRepository.js'
+import type { Conversation } from '../../../domain/conversation/session.types.js'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
 import {
   createSpeechUtteranceFingerprint,
@@ -52,6 +55,8 @@ export class VoiceTurnUseCase {
     private readonly sendMessageUseCase: Pick<SendMessageUseCase, 'execute'>,
     private readonly streamingSendMessageUseCase: Pick<StreamingSendMessageUseCase, 'execute'>,
     private readonly observability: IObservabilityAdapter,
+    private readonly sessionRepository?: Pick<ISessionRepository, 'findById'>,
+    private readonly scenarioRepository?: Pick<IScenarioRepository, 'findById'>,
   ) {}
 
   async execute(input: VoiceTurnInput, options?: VoiceTurnOptions): Promise<SendMessageOutput> {
@@ -148,15 +153,20 @@ export class VoiceTurnUseCase {
   ): Promise<PreparedVoiceTurn> {
     const normalizedInput = normalizeSpeechToTextInput(input)
     throwIfSpeechToTextCancelled(options?.signal, 'before_transcription')
-    await this.assertActiveConversation(normalizedInput.conversationId)
+    const conversation = await this.assertActiveConversation(normalizedInput.conversationId)
+    const scenarioLanguage = await this.resolveScenarioLanguage(conversation.sessionId)
+    const scopedInput =
+      scenarioLanguage === undefined
+        ? normalizedInput
+        : { ...normalizedInput, language: scenarioLanguage }
     const reservation = await this.idempotencyStore.reserve(
       {
-        conversationId: normalizedInput.conversationId,
-        utteranceId: normalizedInput.utteranceId,
+        conversationId: scopedInput.conversationId,
+        utteranceId: scopedInput.utteranceId,
       },
-      createSpeechUtteranceFingerprint(normalizedInput),
+      createSpeechUtteranceFingerprint(scopedInput),
     )
-    return { input: normalizedInput, reservation }
+    return { input: scopedInput, reservation }
   }
 
   private async transcribe(
@@ -173,7 +183,7 @@ export class VoiceTurnUseCase {
     return transcript
   }
 
-  private async assertActiveConversation(conversationId: string): Promise<void> {
+  private async assertActiveConversation(conversationId: string): Promise<Conversation> {
     const conversation = await this.conversationRepository.findById(conversationId)
     if (conversation === null) {
       throw new DomainError('NOT_FOUND', 'Conversation was not found.')
@@ -181,6 +191,17 @@ export class VoiceTurnUseCase {
     if (conversation.status !== 'active') {
       throw new DomainError('CONFLICT', 'Conversation is not active.')
     }
+    return conversation
+  }
+
+  private async resolveScenarioLanguage(sessionId: string): Promise<string | undefined> {
+    if (this.sessionRepository === undefined || this.scenarioRepository === undefined) {
+      return undefined
+    }
+    const session = await this.sessionRepository.findById(sessionId)
+    if (session === null) return undefined
+    const scenario = await this.scenarioRepository.findById(session.scenarioId)
+    return scenario?.language ?? scenario?.voiceConfig?.language
   }
 
   private requireClaim(reservation: SpeechUtteranceReservation): ClaimedReservation {

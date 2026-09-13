@@ -1,5 +1,9 @@
 import type { JSONValue, Sql } from 'postgres'
-import { isModelSelectionProviderName, type ScenarioModelSelection } from '@gami/shared'
+import {
+  isModelSelectionProviderName,
+  normalizeLanguageTag,
+  type ScenarioModelSelection,
+} from '@gami/shared'
 import type {
   CreateScenarioParams,
   IScenarioRepository,
@@ -21,6 +25,7 @@ interface ScenarioRow {
   id: string
   name: string
   status: string
+  language: string | null
   objectives: string[] | null
   world_context: string | null
   avatar_availability: unknown
@@ -104,6 +109,9 @@ function buildScenarioSetClauses(updates: UpdateScenarioParams): {
   if (updates.status !== undefined) {
     appendUpdateValue(setClauses, values, 'status', updates.status)
   }
+  if (updates.language !== undefined) {
+    appendUpdateValue(setClauses, values, 'language', updates.language)
+  }
   if (updates.objectives !== undefined) {
     appendUpdateValue(setClauses, values, 'objectives', updates.objectives)
   }
@@ -154,14 +162,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function readLegacyScenarioLanguage(config: Record<string, unknown>): string | undefined {
+  const language = normalizeLanguageTag(config['language'])
+  return language === null ? undefined : language
+}
+
 function rowToScenario(row: ScenarioRow): Scenario {
   const modelSelection = readScenarioModelSelection(row.model_selection)
   const rawConfig = normalizeConfig(row.config)
   const voiceConfig = readVoiceConfiguration(rawConfig)
+  const language = row.language ?? readLegacyScenarioLanguage(rawConfig)
   return {
     scenarioId: `scenario_${row.id}`,
     name: row.name,
     status: row.status as Scenario['status'],
+    ...(language !== undefined ? { language } : {}),
     objectives: row.objectives ?? [],
     worldContext: row.world_context ?? '',
     avatarAvailability: normalizeAvatarAvailability(row.avatar_availability),
@@ -179,17 +194,18 @@ export class PostgresScenarioRepository implements IScenarioRepository {
   async create(params: CreateScenarioParams): Promise<Scenario> {
     const config = applyVoiceConfiguration(params.config ?? {}, params.voiceConfig)
     const [row] = await this.sql<[ScenarioRow]>`
-      INSERT INTO scenarios (name, status, objectives, world_context, avatar_availability, config, model_selection)
+      INSERT INTO scenarios (name, status, language, objectives, world_context, avatar_availability, config, model_selection)
       VALUES (
         ${params.name},
         ${params.status ?? 'draft'},
+        ${params.language ?? null},
         ${params.objectives ?? []},
         ${params.worldContext ?? ''},
         ${this.sql.json((params.avatarAvailability ?? { initialAvatarIds: [] }) as unknown as JSONValue)},
         ${this.sql.json(config as JSONValue)},
         ${this.sql.json(params.modelSelection ?? null)}
       )
-      RETURNING id, name, status, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
+      RETURNING id, name, status, language, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
     `
     return rowToScenario(row)
   }
@@ -198,7 +214,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
     const uuid = extractUuid('scenario_', scenarioId)
     if (uuid === null) return null
     const [row] = await this.sql<[ScenarioRow?]>`
-      SELECT id, name, status, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
+      SELECT id, name, status, language, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
       FROM scenarios
       WHERE id = ${uuid}
     `
@@ -207,7 +223,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
 
   async list(): Promise<Scenario[]> {
     const rows = await this.sql<ScenarioRow[]>`
-      SELECT id, name, status, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
+      SELECT id, name, status, language, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
       FROM scenarios
       ORDER BY created_at DESC
     `
@@ -258,7 +274,7 @@ export class PostgresScenarioRepository implements IScenarioRepository {
       UPDATE scenarios
       SET ${setClauses.join(', ')}
       WHERE id = ${whereParam}
-      RETURNING id, name, status, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
+      RETURNING id, name, status, language, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at
     `
 
     const rows = await this.sql.unsafe(query, values as string[])

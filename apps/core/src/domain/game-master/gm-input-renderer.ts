@@ -219,6 +219,9 @@ function renderUserPersona(userPersona: GameMasterInput['context']['userPersona'
 function renderExperience(experience: GameMasterInput['context']['experience']): string[] {
   return [
     '### Scenario',
+    ...(hasText(experience.language)
+      ? [`- Language: ${normalizeInlineText(experience.language)}`]
+      : []),
     ...(hasText(experience.description)
       ? [`- Description: ${normalizeInlineText(experience.description)}`]
       : []),

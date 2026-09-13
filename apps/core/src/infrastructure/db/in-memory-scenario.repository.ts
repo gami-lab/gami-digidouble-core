@@ -3,7 +3,7 @@ import type {
   IScenarioRepository,
   UpdateScenarioParams,
 } from '../../application/ports/IScenarioRepository.js'
-import type { ScenarioModelSelection } from '@gami/shared'
+import { normalizeLanguageTag, type ScenarioModelSelection } from '@gami/shared'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../domain/errors.js'
 import {
@@ -36,16 +36,28 @@ function resolveNextConfig(existing: Scenario, updates: UpdateScenarioParams): S
 }
 
 function normalizeInitialScenario(scenario: Scenario): Scenario {
+  const legacyLanguage = readLegacyScenarioLanguage(
+    scenario.config as unknown as Record<string, unknown>,
+  )
   const voiceConfig =
     scenario.voiceConfig ??
     readVoiceConfiguration(scenario.config as unknown as Record<string, unknown>)
   return {
     ...scenario,
+    ...(scenario.language === undefined && legacyLanguage !== undefined
+      ? { language: legacyLanguage }
+      : {}),
     ...(voiceConfig !== undefined ? { voiceConfig } : {}),
     config: withoutVoiceConfiguration(scenario.config as unknown as Record<string, unknown>),
   }
 }
 
+function readLegacyScenarioLanguage(config: Record<string, unknown>): string | undefined {
+  const language = normalizeLanguageTag(config['language'])
+  return language === null ? undefined : language
+}
+
+// eslint-disable-next-line complexity
 function buildUpdatedScenario(existing: Scenario, updates: UpdateScenarioParams): Scenario {
   const nextModelSelection = resolveNextModelSelection(existing, updates)
   const existingWithoutVoiceConfig = withoutModelSelection(existing)
@@ -54,6 +66,7 @@ function buildUpdatedScenario(existing: Scenario, updates: UpdateScenarioParams)
     ...existingWithoutVoiceConfig,
     ...(updates.name !== undefined ? { name: updates.name } : {}),
     ...(updates.status !== undefined ? { status: updates.status } : {}),
+    ...(updates.language !== undefined ? { language: updates.language } : {}),
     ...(updates.objectives !== undefined ? { objectives: updates.objectives } : {}),
     ...(updates.worldContext !== undefined ? { worldContext: updates.worldContext } : {}),
     ...(updates.avatarAvailability !== undefined
@@ -92,12 +105,19 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
     return Promise.resolve(scenarios)
   }
 
+  // eslint-disable-next-line complexity
   create(params: CreateScenarioParams): Promise<Scenario> {
     const now = new Date().toISOString()
+    const legacyLanguage = readLegacyScenarioLanguage(params.config ?? {})
     const scenario: Scenario = {
       scenarioId: `scenario_${crypto.randomUUID()}`,
       name: params.name,
       status: params.status ?? 'draft',
+      ...(params.language !== undefined
+        ? { language: params.language }
+        : legacyLanguage !== undefined
+          ? { language: legacyLanguage }
+          : {}),
       objectives: params.objectives ?? [],
       worldContext: params.worldContext ?? '',
       avatarAvailability: params.avatarAvailability ?? { initialAvatarIds: [] },

@@ -9,6 +9,7 @@ type CreateScenarioRouteData = {
     scenarioId: string
     name: string
     status: 'draft' | 'active' | 'archived'
+    language?: string
     config: Record<string, unknown>
     createdAt: string
     updatedAt: string
@@ -114,6 +115,7 @@ describe('POST /v1/scenarios — success', () => {
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Voice Scenario',
+        language: 'fr-FR',
         voiceConfig: { voiceKey: 'guide', language: 'en-US' },
         config: { routeKey: 'guide' },
       },
@@ -125,6 +127,7 @@ describe('POST /v1/scenarios — success', () => {
         ApiResponse<CreateScenarioRouteData & { scenario: { voiceConfig?: unknown } }>
       >()
     expect(body.data?.scenario.voiceConfig).toEqual({ voiceKey: 'guide', language: 'en-US' })
+    expect(body.data?.scenario.language).toBe('fr-FR')
     expect(body.data?.scenario.config).toEqual({ routeKey: 'guide' })
   })
 

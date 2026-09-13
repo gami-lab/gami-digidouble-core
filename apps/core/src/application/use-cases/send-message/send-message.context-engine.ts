@@ -15,6 +15,7 @@ export function toScenarioSnapshot(session: Session, scenario: Scenario): Contex
   return {
     scenarioId: session.scenarioId,
     name: scenario.name,
+    ...(scenario.language !== undefined ? { language: scenario.language } : {}),
     ...(scenario.worldContext.length > 0 ? { description: scenario.worldContext } : {}),
     ...(goals.length > 0 ? { goals } : {}),
   }

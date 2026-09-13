@@ -23,6 +23,8 @@ export type AvatarPromptOptions = {
   sections?: AvatarContextSections
   identitySource?: AvatarPromptIdentitySource | null
   gmNotes?: string
+  /** Scenario-authoritative language for the Avatar response. */
+  language?: string
   worldContext?: string
   avatarAwareness?: AvatarAwarenessItem[]
   userPersona?: UserPersona

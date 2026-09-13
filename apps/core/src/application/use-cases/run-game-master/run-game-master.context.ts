@@ -22,7 +22,10 @@ import type { RunGameMasterInput } from './run-game-master.types.js'
 
 const GM_RECENT_EXCHANGE_LIMIT = 3
 
-export type GameMasterScenarioContext = Pick<ContextScenarioSnapshot, 'description' | 'goals'> & {
+export type GameMasterScenarioContext = Pick<
+  ContextScenarioSnapshot,
+  'language' | 'description' | 'goals'
+> & {
   modelSelection?: Scenario['modelSelection']
 }
 
@@ -74,6 +77,9 @@ export async function buildGameMasterInput(args: {
   const context: GameMasterInput['context'] = {
     experience: {
       scenarioId: args.input.scenarioId,
+      ...(assembledGmContext.sections.worldContext.language !== undefined
+        ? { language: assembledGmContext.sections.worldContext.language }
+        : {}),
       ...(assembledGmContext.sections.worldContext.description !== undefined
         ? { description: assembledGmContext.sections.worldContext.description }
         : {}),

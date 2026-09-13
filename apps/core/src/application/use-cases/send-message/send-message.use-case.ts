@@ -434,6 +434,7 @@ export class SendMessageUseCase {
     )
     const systemPrompt = assemblePersonaPrompt(args.avatar, {
       sections: assembledContext.avatar.sections,
+      ...(scenario.language !== undefined ? { language: scenario.language } : {}),
       ...(selectedIdentitySource !== undefined ? { identitySource: selectedIdentitySource } : {}),
       avatarAwareness: buildAvatarAwareness(
         args.avatar,

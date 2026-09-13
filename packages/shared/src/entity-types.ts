@@ -95,6 +95,8 @@ export type ScenarioSummary = {
   scenarioId: string
   name: string
   status: ScenarioStatus
+  /** Canonical language used by Avatar text, speech recognition, and synthesis. */
+  language?: string
   objectives: string[]
   worldContext: string
   avatarAvailability: ScenarioAvatarAvailability
