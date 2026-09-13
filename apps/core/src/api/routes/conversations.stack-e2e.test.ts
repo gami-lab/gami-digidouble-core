@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
+import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
@@ -48,7 +49,7 @@ async function seedSessionFixture(
   scenarioName: string,
   avatarName: string,
 ): Promise<{ scenarioId: string; avatarId: string; sessionId: string }> {
-  const scenarioRes = await postJson('/v1/scenarios', { name: scenarioName })
+  const scenarioRes = await postJson('/v1/scenarios', { name: scenarioName, language: 'en' })
   expect(scenarioRes.status).toBe(201)
   const scenarioBody = (await scenarioRes.json()) as ApiResponse<{
     scenario: { scenarioId: string }
@@ -62,6 +63,8 @@ async function seedSessionFixture(
   expect(avatarRes.status).toBe(201)
   const avatarBody = (await avatarRes.json()) as ApiResponse<{ avatar: { avatarId: string } }>
   const avatarId = requireValue(avatarBody.data?.avatar.avatarId, 'avatarId')
+
+  await prepareAndActivateAvatar({ appUrl: APP_URL, apiKey: API_KEY, scenarioId, avatarId })
 
   const sessionRes = await postJson('/v1/sessions', {
     userId: `user_${Date.now().toString()}`,

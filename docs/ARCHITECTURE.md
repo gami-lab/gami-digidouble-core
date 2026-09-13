@@ -446,8 +446,7 @@ trim/empty/deduplication rules, embeds every normalized variant in one ordered b
 the effective profile, count, dimensions, and finite values, and returns profile/generation-tagged
 vectors only on an all-or-nothing success. It emits bounded source/index/text-length and profile/
 count/timing observability without raw query text or vectors. Controlled failures map to the
-retrieval outcome codes without provider payloads. The compatibility `embed` method delegates to
-this boundary for one direct query. It does not perform retrieval. Typed Retrieval, Avatar, Game
+retrieval outcome codes without provider payloads. It does not perform retrieval. Typed Retrieval, Avatar, Game
 Master, and admin retrieval must use this boundary rather than embedding text independently.
 
 ### Retrieval contract boundary (EPIC 5.1d foundation)
@@ -465,8 +464,8 @@ count/visibility DTOs, and controlled outcome/failure codes. API and runtime cod
 internal-to-public mappers. Console retrieval items are display view models derived from the
 recorded shared reference DTO, not parallel wire contracts.
 
-The shared diagnostic count contract keeps `candidateCount`, `selectedCount`, and the compatibility
-`excludedCount`, while optionally distinguishing `duplicateCount`, `selectionExcludedCount`, and
+The shared diagnostic count contract keeps `candidateCount`, `selectedCount`, and `excludedCount`,
+while optionally distinguishing `duplicateCount`, `selectionExcludedCount`, and
 repository-provided `eligibilityExcludedCount`. Candidate counts are already SQL-eligible bounded
 results; the service never invents a full-corpus exclusion count. Runtime turn events and
 session-context inspection use these same trace DTOs and add a small Context Engine kept/trimmed

@@ -182,7 +182,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — output and source gathering', (
     ])
   })
 
-  it('only gathers memory/world knowledge sources scoped to the scenario', async () => {
+  it('only gathers avatar knowledge/world sources scoped to the scenario', async () => {
     const llm = createLlm({ avatar_1: JSON.stringify(sampleTraits) })
     const useCase = new PrepareScenarioAvatarTraitsUseCase(
       new InMemoryScenarioRepository([makeScenario({ worldContext: '' })]),
@@ -191,7 +191,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — output and source gathering', (
         makeKnowledgeSource({
           sourceId: 'mem_in_scope',
           knowledgeType: 'avatar_knowledge',
-          metadata: { inlineText: 'IN SCOPE MEMORY TEXT' },
+          metadata: { inlineText: 'IN SCOPE AVATAR KNOWLEDGE TEXT' },
         }),
         makeKnowledgeSource({
           sourceId: 'world_in_scope',
@@ -216,7 +216,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — output and source gathering', (
     await useCase.execute({ scenarioId: 'scenario_1' })
 
     const userMessage = llm.requests[0]?.messages[0]?.content ?? ''
-    expect(userMessage).toContain('IN SCOPE MEMORY TEXT')
+    expect(userMessage).toContain('IN SCOPE AVATAR KNOWLEDGE TEXT')
     expect(userMessage).toContain('IN SCOPE WORLD TEXT')
     expect(userMessage).not.toContain('MEDIA TEXT SHOULD BE EXCLUDED')
     expect(userMessage).not.toContain('OTHER SCENARIO TEXT SHOULD BE EXCLUDED')

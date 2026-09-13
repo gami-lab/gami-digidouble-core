@@ -44,7 +44,7 @@ Must cover:
   exactly once, provider/client interruption cleanup over the HTTP boundary, provider
   iterator/reader cleanup, malformed frame rejection, interruption observability, and no partial
   avatar persistence
-- legacy JSON send-message response envelope remains `ApiResponse<SendMessageResponse>`
+- JSON send-message response envelope remains `ApiResponse<SendMessageResponse>`
 - avatar switch behavior
 - available-avatar and avatar-transition endpoints
 - end-conversation behavior and compaction trigger
@@ -94,7 +94,7 @@ auth/validation/not-found contract; its binary happy path remains environment-ga
 deterministic adapter is available.
 
 Voice configuration coverage also verifies additive Avatar/Scenario create and update mapping,
-reserved JSONB projection, legacy records without configuration, explicit null clearing, deterministic
+reserved JSONB projection, records without configuration, explicit null clearing, deterministic
 Avatar-over-Scenario inheritance, and rejection of provider-specific fields.
 
 Epic 9.1 hardening evidence maps the remaining independent risks to deterministic checks: concurrent

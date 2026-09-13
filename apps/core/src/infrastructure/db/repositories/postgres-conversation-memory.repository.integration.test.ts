@@ -30,13 +30,17 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationMemoryRepository', () => {
 
   beforeEach(async () => {
     await truncateAllTables(sql)
-    const scenario = await scenarioRepo.create({ name: 'Episodic harness', status: 'active' })
+    const scenario = await scenarioRepo.create({
+      name: 'Episodic harness',
+      status: 'active',
+      language: 'en',
+    })
     scenarioId = scenario.scenarioId
     const avatar = await avatarRepo.create({
       scenarioId,
       name: 'Guide',
       personaPrompt: 'Guide',
-      status: 'active',
+      status: 'draft',
     })
     avatarId = avatar.avatarId
     const session = await sessionRepo.create({ userId: 'user_1', scenarioId })

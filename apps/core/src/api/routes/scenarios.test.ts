@@ -108,7 +108,7 @@ describe('POST /v1/scenarios — success', () => {
     expect(body.data?.scenario.status).toBe('draft')
   })
 
-  it('accepts provider-neutral voice configuration and preserves legacy config separately', async () => {
+  it('accepts provider-neutral voice configuration and preserves canonical config separately', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/scenarios',

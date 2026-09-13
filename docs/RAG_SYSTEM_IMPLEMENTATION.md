@@ -323,7 +323,7 @@ The admin retrieval route performs retrieval immediately for the submitted query
 Operator displays use the same shared DTOs and explicit labels: Shared Avatar Knowledge, Shared
 World Knowledge, and Media Knowledge. Source cards show scenario ownership and Avatar visibility;
 GM-only visibility is not user access control. Console event readers consume only current structured
-section payloads; current diagnostics never emit a static `memory` bucket or legacy scope-match label.
+section payloads; current diagnostics never emit a static `memory` bucket or scope-match label.
 
 The final proof also asserts that identical scenario/query/Avatar visibility inputs produce the
 same static candidates for different callers, while conversational working, episodic, and

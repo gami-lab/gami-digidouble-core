@@ -26,7 +26,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationRepository', () => {
       scenarioId: scenario.scenarioId,
       name: 'Harness Avatar',
       personaPrompt: 'You are a harness avatar.',
-      status: 'active',
+      status: 'draft',
     })
     avatarId = avatar.avatarId
     const session = await sessionRepo.create({ userId: 'user-1', scenarioId: scenario.scenarioId })

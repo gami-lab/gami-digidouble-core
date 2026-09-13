@@ -28,7 +28,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresIngestionJobRepository', () => {
   })
 
   async function seedSource(): Promise<void> {
-    const scenario = await scenarioRepo.create({ name: 'Ingestion scenario', status: 'active' })
+    const scenario = await scenarioRepo.create({
+      name: 'Ingestion scenario',
+      status: 'active',
+      language: 'en',
+    })
     const source = await sourceRepo.create({
       scenarioId: scenario.scenarioId,
       name: 'Ingestion source',

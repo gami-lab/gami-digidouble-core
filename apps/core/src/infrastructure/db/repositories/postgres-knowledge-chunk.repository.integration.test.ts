@@ -36,7 +36,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
   })
 
   async function seedSource(): Promise<void> {
-    const scenario = await scenarioRepo.create({ name: 'Chunk scenario', status: 'active' })
+    const scenario = await scenarioRepo.create({
+      name: 'Chunk scenario',
+      status: 'active',
+      language: 'en',
+    })
     const source = await sourceRepo.create({
       scenarioId: scenario.scenarioId,
       name: 'Chunk source',
@@ -171,7 +175,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
 
   it('listBySourceIds returns chunks from selected sources only', async () => {
     await seedSource()
-    const scenario = await scenarioRepo.create({ name: 'Chunk scenario 2', status: 'active' })
+    const scenario = await scenarioRepo.create({
+      name: 'Chunk scenario 2',
+      status: 'active',
+      language: 'en',
+    })
     const secondSource = await sourceRepo.create({
       scenarioId: scenario.scenarioId,
       name: 'Chunk source 2',
@@ -232,8 +240,16 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
 
   // eslint-disable-next-line max-lines-per-function
   it('filters ready sources, type, scenario, profile, generation, static scope, and visibility', async () => {
-    const scenario = await scenarioRepo.create({ name: 'Vector scenario', status: 'active' })
-    const otherScenario = await scenarioRepo.create({ name: 'Other scenario', status: 'active' })
+    const scenario = await scenarioRepo.create({
+      name: 'Vector scenario',
+      status: 'active',
+      language: 'en',
+    })
+    const otherScenario = await scenarioRepo.create({
+      name: 'Other scenario',
+      status: 'active',
+      language: 'en',
+    })
     const publicSource = await sourceRepo.create({
       scenarioId: scenario.scenarioId,
       name: 'Public',

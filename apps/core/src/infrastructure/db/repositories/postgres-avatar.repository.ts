@@ -182,7 +182,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
       VALUES (
         ${scenarioUuid},
         ${params.name},
-        ${params.status ?? 'active'},
+        ${params.status ?? 'draft'},
         ${params.personaPrompt},
         ${params.tone ?? null},
         ${params.description ?? null},

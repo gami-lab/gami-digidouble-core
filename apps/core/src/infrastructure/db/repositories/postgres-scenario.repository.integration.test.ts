@@ -36,11 +36,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
     const result = await repo.create({
       name: 'Active Scenario',
       status: 'active',
-      config: { language: 'fr' },
+      language: 'fr',
     })
 
     expect(result.status).toBe('active')
-    expect(result.config).toEqual({ language: 'fr' })
+    expect(result.language).toBe('fr')
   })
 
   it('findById returns the scenario by its id', async () => {

@@ -20,6 +20,7 @@ function registerRepositoryLifecycle(state: RepositoryTestState): void {
     const scenario = await state.scenarioRepo.create({
       name: 'Knowledge scenario',
       status: 'active',
+      language: 'en',
     })
     state.scenarioId = scenario.scenarioId
   })
@@ -29,6 +30,7 @@ function registerRepositoryLifecycle(state: RepositoryTestState): void {
     const scenario = await state.scenarioRepo.create({
       name: 'Knowledge scenario',
       status: 'active',
+      language: 'en',
     })
     state.scenarioId = scenario.scenarioId
   })
@@ -232,13 +234,21 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
     scenarioRepo = new PostgresScenarioRepository(sql)
     sourceRepo = new PostgresKnowledgeSourceRepository(sql)
     chunkRepo = new PostgresKnowledgeChunkRepository(sql)
-    const scenario = await scenarioRepo.create({ name: 'Knowledge scenario', status: 'active' })
+    const scenario = await scenarioRepo.create({
+      name: 'Knowledge scenario',
+      status: 'active',
+      language: 'en',
+    })
     scenarioId = scenario.scenarioId
   })
 
   afterEach(async () => {
     await truncateAllTables(sql)
-    const scenario = await scenarioRepo.create({ name: 'Knowledge scenario', status: 'active' })
+    const scenario = await scenarioRepo.create({
+      name: 'Knowledge scenario',
+      status: 'active',
+      language: 'en',
+    })
     scenarioId = scenario.scenarioId
   })
 

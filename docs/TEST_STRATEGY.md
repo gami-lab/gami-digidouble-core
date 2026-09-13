@@ -56,7 +56,7 @@ Streaming tests must protect both transport behavior and persistence boundaries.
 public delta delivery, stale or out-of-order client deltas, one terminal completion, provider and
 client interruption, provider-iterator/reader cleanup, no partial avatar persistence, and exactly
 one completed avatar persistence. Also validate malformed public frames at the client boundary and
-assert interruption outcome metadata at the observability boundary. Keep the legacy JSON
+assert interruption outcome metadata at the observability boundary. Keep the JSON
 send-message route covered separately as an `ApiResponse<SendMessageResponse>` contract so the
 additive stream cannot change it accidentally.
 
@@ -85,7 +85,7 @@ WAV/Opus format mapping, typed invalid-request/configuration/provider/timeout/ra
 failures, content-type and declared/observed byte validation, bounded streamed output, abort and
 timeout propagation, body cleanup including a streamless-body rejection, and secret-safe bounded
 observability. The application TTS use case additionally validates cleaned persisted text, output
-identity/byte metadata, voice inheritance, legacy records, repeated/concurrent requests, failure
+identity/byte metadata, voice inheritance, records without configuration, repeated/concurrent requests, failure
 isolation, and absence of audio persistence. The deterministic null and fake adapters keep unit,
 route, and stack tests credential-free; no live Gradium test is part of the normal suite.
 
@@ -392,7 +392,7 @@ Do not only patch behavior. If the bug escaped because of a test gap, add the te
 - add an evaluation platform before MVP needs it
 
 Knowledge corpus persistence tests cover deterministic in-memory parity and PostgreSQL lifecycle
-behavior. The PostgreSQL suite verifies fixed-dimension/profile constraints, legacy vector
+behavior. The PostgreSQL suite verifies fixed-dimension/profile constraints, unprofiled-vector
 invalidation assumptions, staging isolation, idempotent source replacement, failed promotion
 preservation, active-source transactional replacement, stale publication rejection, and the atomic
 active-pointer switch. Reindex tests additionally cover source-set snapshotting, duplicate starts,

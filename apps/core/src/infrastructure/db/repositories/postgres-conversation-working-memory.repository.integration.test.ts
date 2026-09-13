@@ -33,14 +33,14 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationWorkingMemoryRepository', ()
     await truncateAllTables(sql)
     const scenario = await scenarioRepo.create({
       name: 'Conversation WM harness',
-      status: 'active',
+      status: 'draft',
     })
     scenarioId = scenario.scenarioId
     const avatar = await avatarRepo.create({
       scenarioId,
       name: 'Guide',
       personaPrompt: 'You are a guide.',
-      status: 'active',
+      status: 'draft',
     })
     avatarId = avatar.avatarId
     const session = await sessionRepo.create({ userId: 'user_1', scenarioId })

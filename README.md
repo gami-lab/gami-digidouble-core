@@ -145,8 +145,8 @@ Run it locally with the core API:
 pnpm infra:up
 pnpm --filter @gami/core dev
 
-# Optional: seed a ready scenario + avatars for first run
-pnpm --filter @gami/core seed:ai-guided-discovery
+# Optional: seed canonical Scenario, Avatars, and knowledge for first run
+MURDER_PARTY_API_KEY=your-local-key pnpm seed:murder-party:api:local
 
 # Terminal B: public web app
 VITE_API_URL=http://localhost:3000 VITE_API_KEY=your-api-key-secret pnpm --filter @gami/web dev

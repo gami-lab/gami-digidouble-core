@@ -1,6 +1,7 @@
 import { describe, expect, it, type TestContext } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
+import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -80,7 +81,7 @@ describe('GET /v1/users/:userId/memory-facts — stack behavior', () => {
     const scenarioRes = await fetch(buildUrl('/v1/scenarios'), {
       method: 'POST',
       headers: { ...authHeaders(), 'content-type': 'application/json' },
-      body: JSON.stringify({ name: `Memory Facts Scenario ${String(Date.now())}` }),
+      body: JSON.stringify({ name: `Memory Facts Scenario ${String(Date.now())}`, language: 'en' }),
     })
     expect(scenarioRes.status).toBe(201)
     const scenarioBody = (await scenarioRes.json()) as ApiResponse<{
@@ -96,6 +97,8 @@ describe('GET /v1/users/:userId/memory-facts — stack behavior', () => {
     expect(avatarRes.status).toBe(201)
     const avatarBody = (await avatarRes.json()) as ApiResponse<{ avatar: { avatarId: string } }>
     const avatarId = requireId(avatarBody.data?.avatar, 'avatarId')
+
+    await prepareAndActivateAvatar({ appUrl: APP_URL, apiKey: API_KEY, scenarioId, avatarId })
 
     const sessionRes = await fetch(buildUrl('/v1/sessions'), {
       method: 'POST',

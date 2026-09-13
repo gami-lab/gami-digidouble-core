@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
+import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -49,6 +50,7 @@ async function seedConversation(): Promise<{
     '/v1/scenarios',
     {
       name: `Audio stack e2e ${String(Date.now())}`,
+      language: 'en',
       voiceConfig: { voiceKey: 'stack-default' },
     },
     API_KEY,
@@ -70,6 +72,8 @@ async function seedConversation(): Promise<{
   expect(avatarResponse.status).toBe(201)
   const avatarBody = (await avatarResponse.json()) as ApiResponse<{ avatar: { avatarId: string } }>
   const avatarId = requireId(avatarBody.data?.avatar.avatarId, 'avatarId')
+
+  await prepareAndActivateAvatar({ appUrl: APP_URL, apiKey: API_KEY, scenarioId, avatarId })
 
   const sessionResponse = await postJson(
     '/v1/sessions',

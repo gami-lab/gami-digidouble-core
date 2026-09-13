@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-09-13
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-05 voice/audio contracts, provider-neutral configuration, TTS adapter, completed-message audio route, browser playback, and hardening delivered; EPIC 10.1 Prompts 0-4 canonical contract and compatibility cleanup delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-05 voice/audio contracts, provider-neutral configuration, TTS adapter, completed-message audio route, browser playback, and hardening delivered; EPIC 10.1 complete through Prompt 5 with canonical contracts, compatibility cleanup, fresh deployment verification, and documentation sync
 
 ## Snapshot
 
@@ -41,7 +41,7 @@ The platform is now a working headless conversational runtime with:
 - web message-stream client and in-memory avatar-draft reconciliation with completion and
   interruption tests
 - streaming cleanup and ordering hardening: contiguous client delta rendering, abort listener and
-  reader cleanup, provider iterator cleanup, exact-once terminal persistence, and legacy JSON route
+  reader cleanup, provider iterator cleanup, exact-once terminal persistence, and JSON route
   contract coverage
 - provider-neutral voice input contracts with bounded audio/transcript normalization, finite
   speech-to-text failures, cancellation, deterministic adapter/idempotency fakes, and at-most-once
@@ -394,7 +394,7 @@ retrieval proof or change production behavior.
 - Added focused shared contract and Core mapper tests for current field names, optionals, prepared
   trait projections, and the narrower player Avatar projection.
 - Prompt 0 intentionally did not remove database schema, persisted memory, GM migration/parser,
-  event-history, or content compatibility paths. See the Prompt 01–04
+  event-history, or content compatibility paths. See the Prompt 01–05
   handoff in `CONTEXT_CONTRACT_OWNERSHIP_MAP.md`.
 
 ### EPIC 10.1 Prompt 1 — fresh canonical database schema
@@ -449,6 +449,21 @@ retrieval proof or change production behavior.
   vector distance remains internal to the repository search path.
 - Removed obsolete GM state/context projections and legacy scope-match presentation labels while
   preserving asynchronous execution, routing safeguards, redaction, and observability.
+
+### EPIC 10.1 Prompt 5 — final hardening and fresh-deployment verification ✅ complete
+
+- Removed the remaining compatibility-only test fixtures and terminology, and aligned stack fixtures
+  with required Scenario language, explicit visibility, prepared traits, active Avatars, and current
+  omitted-field response semantics.
+- Updated the clean-redeploy procedure with fresh-volume prerequisites, canonical seed ordering,
+  source ingestion, trait preparation, activation, and verification commands. Existing volumes remain
+  unsupported and were not used as verification inputs.
+- Verified the isolated fresh PostgreSQL + pgvector schema, canonical seed, API health, current
+  source/corpus/profile/chunk state, and absence of obsolete GM columns, quarantine storage, and
+  `memory_summary` persistence. No HTTP endpoint was added.
+- Final checks passed: repository typecheck and lint; all package tests (including Core 1,131 tests,
+  Shared 14, Admin 90, Console 49, Web 47, and evaluation 87); Core repository integration (19
+  files, 119 tests); and stack E2E (20 files, 129 passed, 8 intentional skips).
 
 ## Open Product Work
 

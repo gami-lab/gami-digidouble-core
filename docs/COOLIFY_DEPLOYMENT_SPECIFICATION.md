@@ -206,6 +206,42 @@ has been verified; do not attach both volumes to the same service.
 6. Keep the old volume detached as a rollback reference or remove it only after an explicit
    operator decision.
 
+### Fresh-content verification order
+
+After the new API is healthy, seed canonical content in this order:
+
+1. Run `pnpm seed:murder-party:api:prod` with the new API URL and API key. The seed creates or
+   updates the Scenario with its required language, then Avatars with structured prompt sections
+   and canonical availability data.
+2. Register the `world`, `avatar_knowledge`, and `media` sources with explicit visibility policy.
+3. Wait for each ingestion job to complete successfully.
+4. Run the Avatar-trait preparation step and verify that every active Avatar has `computedTraits`
+   before serving traffic.
+5. Verify `/health`, the active Scenario and Avatar summaries, and the current schema contract
+   (including `gm_states`, `knowledge_sources.visibility_policy`, and vector profile/dimension
+   constraints).
+
+The API seed is the supported fresh-content path; it does not read or rewrite historical content.
+Do not attach an old PostgreSQL volume, seed legacy knowledge types, or activate incomplete
+Avatars/Scenarios. For local verification, the equivalent sequence is:
+
+```bash
+docker compose down
+docker volume create gami-digidouble-core_postgres_data_canonical
+docker compose up -d postgres redis
+pnpm --filter @gami/core test:integration-e2e
+docker compose up -d --build app
+curl --fail http://localhost:3000/health
+MURDER_PARTY_API_BASE_URL=http://localhost:3000 \
+MURDER_PARTY_API_KEY=your-local-key \
+pnpm seed:murder-party:api:local
+pnpm --filter @gami/core test:stack-e2e
+```
+
+The E2E compose flow provisions an isolated empty database for each run and can be verified with
+`docker compose -f docker-compose.e2e.yml up -d --build --wait`; tear down only those temporary
+resources with `docker compose -f docker-compose.e2e.yml down -v` after verification.
+
 For local Docker development, use `docker compose down` followed by a fresh canonical volume (the
 local compose file uses `postgres_data_canonical`) before starting PostgreSQL again. The E2E compose
 flow is also expected to use a fresh database for each run and already tears its resources down with

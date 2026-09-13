@@ -102,7 +102,7 @@ export class PostgresSessionRepository implements ISessionRepository {
         gm_notes = CASE
           WHEN ${p.hasGmNotesUpdate}::BOOLEAN THEN ${p.gmNotesValue}::TEXT
           ELSE gm_notes
-        END,
+        END
       WHERE id = ${uuid}
       RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options, gm_notes, status, started_at, last_activity_at, ended_at
     `

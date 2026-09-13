@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import type { Sql } from 'postgres'
 import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
 import { GetAvatarTransitionsUseCase } from '../../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
@@ -29,12 +30,16 @@ describe.skipIf(!DB_AVAILABLE)('Persistence stack — fixture roundtrip', () => 
     const conversationRepo1 = new PostgresConversationRepository(sql)
     const messageRepo1 = new PostgresMessageRepository(sql)
 
-    const scenario = await scenarioRepo1.create({ name: 'Stack E2E Scenario', status: 'active' })
+    const scenario = await scenarioRepo1.create({
+      name: 'Stack E2E Scenario',
+      status: 'active',
+      language: 'en',
+    })
     const avatar = await avatarRepo1.create({
       scenarioId: scenario.scenarioId,
       name: 'Stack E2E Avatar',
       personaPrompt: 'You are a stack e2e avatar.',
-      status: 'active',
+      status: 'draft',
     })
     const session = await sessionRepo1.create({
       userId: 'stack-e2e-user',
@@ -94,19 +99,27 @@ describe.skipIf(!DB_AVAILABLE)('Persistence stack — multi-avatar switch flow',
     const sessionRepo = new PostgresSessionRepository(sql)
     const conversationRepo = new PostgresConversationRepository(sql)
 
-    const scenario = await scenarioRepo.create({ name: 'Multi-Avatar Scenario', status: 'active' })
-    const avatar1 = await avatarRepo.create({
+    const scenario = await scenarioRepo.create({
+      name: 'Multi-Avatar Scenario',
+      status: 'active',
+      language: 'en',
+    })
+    const avatar1Draft = await avatarRepo.create({
       scenarioId: scenario.scenarioId,
       name: 'Avatar One',
       personaPrompt: 'You are avatar one.',
-      status: 'active',
+      status: 'draft',
     })
-    const avatar2 = await avatarRepo.create({
+    await avatarRepo.saveComputedTraits(avatar1Draft.avatarId, createEmptyAvatarComputedTraits())
+    const avatar1 = await avatarRepo.update(avatar1Draft.avatarId, { status: 'active' })
+    const avatar2Draft = await avatarRepo.create({
       scenarioId: scenario.scenarioId,
       name: 'Avatar Two',
       personaPrompt: 'You are avatar two.',
-      status: 'active',
+      status: 'draft',
     })
+    await avatarRepo.saveComputedTraits(avatar2Draft.avatarId, createEmptyAvatarComputedTraits())
+    const avatar2 = await avatarRepo.update(avatar2Draft.avatarId, { status: 'active' })
     const session = await sessionRepo.create({
       userId: 'multi-avatar-user',
       scenarioId: scenario.scenarioId,

@@ -159,7 +159,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresMessageRepository', () => {
       scenarioId: scenario.scenarioId,
       name: 'Harness Avatar',
       personaPrompt: 'You are a harness avatar.',
-      status: 'active',
+      status: 'draft',
     })
     const conversation = await conversationRepo.create({
       sessionId: session.sessionId,

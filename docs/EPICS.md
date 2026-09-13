@@ -241,13 +241,13 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 
 ## Open Backlog
 
-### `10.1 Clean-Slate Compatibility Removal`
+### `10.1 Clean-Slate Compatibility Removal` ✅ Complete
 
 **Current state**
 
-The compatibility audit and Prompts 0-4 are complete: canonical contracts, fresh database schema,
-knowledge/session-memory cleanup, GM/event cleanup, and content/config/provider cleanup are all
-implemented. The product is redeployed with a fresh database and fresh content.
+EPIC 10.1 is complete: Prompts 0-5 established canonical contracts, removed audited compatibility
+paths, verified the fresh database/content deployment, and synchronized the source-of-truth docs.
+The product is supported from a fresh database volume with fresh canonical content.
 
 **Purpose**
 
@@ -627,7 +627,7 @@ Prompts 02 and 03 add the provider-neutral TTS port, bounded Gradium adapter, ty
 timeout/cancellation propagation, safe observability, persisted-message lookup, and the additive
 audio route. Prompt 04 adds canonical message-ID browser playback, localized accessible controls,
 stale-request suppression, abort handling, and object-URL/audio-element cleanup. Prompt 05 adds
-regressions for cleaned-text fidelity, voice inheritance and legacy records, repeated/concurrent
+regressions for cleaned-text fidelity, voice inheritance and records without configuration, repeated/concurrent
 synthesis, response bounds and metadata association, provider-body cleanup, observability
 redaction, and text-first failure isolation.
 

@@ -265,6 +265,30 @@ async function waitForJob(
   )
 }
 
+async function ensureActiveKnowledgeCorpus(
+  client: ApiClient,
+  options: CliOptions,
+): Promise<'started' | 'reused' | 'already_active'> {
+  const started = await client.startKnowledgeReindex()
+  const operationId = started.operation?.reindexOperationId
+  if (operationId === undefined) return started.status
+
+  const deadline = Date.now() + options.pollTimeoutMs
+  while (Date.now() < deadline) {
+    const current = await client.getKnowledgeReindex(operationId)
+    if (current.operation.status === 'completed') return started.status
+    if (current.operation.status === 'failed') {
+      throw new Error(
+        `Knowledge corpus initialization failed: ${current.operation.failureDetails ?? 'unknown failure'}`,
+      )
+    }
+    await new Promise((resolve) => setTimeout(resolve, options.pollIntervalMs))
+  }
+  throw new Error(
+    `Timed out waiting for knowledge corpus initialization after ${String(options.pollTimeoutMs)}ms.`,
+  )
+}
+
 function hasHashDrift(existing: KnowledgeSourceDto, newHash: string): boolean {
   const existingHash = readStringField(existing.metadata?.['contentSha256'])
   return existingHash !== null && existingHash !== newHash
@@ -314,7 +338,7 @@ async function ensureOneKnowledgeSource(args: {
   existingBySlug: Map<string, KnowledgeSourceDto>
   avatars: Record<AvatarSlug, AvatarSummary>
   warnings: string[]
-}): Promise<string | null> {
+}): Promise<{ sourceId: string; needsIngestion: boolean } | null> {
   const { client, options, scenarioId, seed, existingBySlug, avatars, warnings } = args
   const visibility = resolveVisibility(seed.visibility, avatars)
   const content = await readSeedFile(seed.fileName)
@@ -353,19 +377,14 @@ async function ensureOneKnowledgeSource(args: {
     return null
   }
 
-  if (existing !== undefined && !contentReplaced && !options.reingestExisting) {
-    return source.sourceId
+  return {
+    sourceId: source.sourceId,
+    needsIngestion:
+      existing === undefined ||
+      contentReplaced ||
+      source.status !== 'ready' ||
+      options.reingestExisting,
   }
-
-  const trigger = await client.triggerIngestion(source.sourceId)
-  const finalJob = await waitForJob(client, trigger.ingestionJob.ingestionJobId, options)
-  if (finalJob.status === 'failed') {
-    throw new Error(
-      `Ingestion failed for source ${source.sourceId}: ${finalJob.errorMessage ?? 'unknown error'}`,
-    )
-  }
-
-  return source.sourceId
 }
 
 async function ensureKnowledgeSources(
@@ -373,11 +392,12 @@ async function ensureKnowledgeSources(
   options: CliOptions,
   scenarioId: string,
   avatars: Record<AvatarSlug, AvatarSummary>,
-): Promise<{ warnings: string[]; sourceIds: string[] }> {
+): Promise<{ warnings: string[]; sourceIds: string[]; ingestSourceIds: string[] }> {
   const listed = await client.listKnowledgeSources(scenarioId)
   const existingBySlug = new Map<string, KnowledgeSourceDto>()
   const warnings: string[] = []
   const sourceIds: string[] = []
+  const ingestSourceIds: string[] = []
 
   for (const source of listed.sources) {
     const slug = readStringField(source.metadata?.['seedSlug'])
@@ -385,7 +405,7 @@ async function ensureKnowledgeSources(
   }
 
   for (const seed of SOURCE_SEEDS) {
-    const sourceId = await ensureOneKnowledgeSource({
+    const source = await ensureOneKnowledgeSource({
       client,
       options,
       scenarioId,
@@ -394,10 +414,29 @@ async function ensureKnowledgeSources(
       avatars,
       warnings,
     })
-    if (sourceId !== null) sourceIds.push(sourceId)
+    if (source !== null) {
+      sourceIds.push(source.sourceId)
+      if (source.needsIngestion) ingestSourceIds.push(source.sourceId)
+    }
   }
 
-  return { warnings, sourceIds }
+  return { warnings, sourceIds, ingestSourceIds }
+}
+
+async function ingestKnowledgeSources(
+  client: ApiClient,
+  sourceIds: string[],
+  options: CliOptions,
+): Promise<void> {
+  for (const sourceId of sourceIds) {
+    const trigger = await client.triggerIngestion(sourceId)
+    const finalJob = await waitForJob(client, trigger.ingestionJob.ingestionJobId, options)
+    if (finalJob.status === 'failed') {
+      throw new Error(
+        `Ingestion failed for source ${sourceId}: ${finalJob.errorMessage ?? 'unknown error'}`,
+      )
+    }
+  }
 }
 
 async function runSetup(options: CliOptions): Promise<SetupOutcome> {
@@ -417,6 +456,8 @@ async function runSetup(options: CliOptions): Promise<SetupOutcome> {
   })
 
   const knowledge = await ensureKnowledgeSources(client, options, scenario.scenarioId, avatars)
+  await ensureActiveKnowledgeCorpus(client, options)
+  await ingestKnowledgeSources(client, knowledge.ingestSourceIds, options)
   await client.prepareAvatarTraits(scenario.scenarioId)
   for (const avatar of Object.values(avatars)) {
     await client.updateAvatar(avatar.avatarId, { status: 'active' })

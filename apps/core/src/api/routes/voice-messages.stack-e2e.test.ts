@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { processSseFrames } from '@gami/shared'
 import type { ApiResponse, MessageStreamEvent, SendMessageResponse } from '@gami/shared'
+import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -76,6 +77,7 @@ async function seedConversation(): Promise<{
 }> {
   const scenario = await postJson('/v1/scenarios', {
     name: `Voice stack e2e ${String(Date.now())}`,
+    language: 'en',
   })
   expect(scenario.status).toBe(201)
   const scenarioBody = (await scenario.json()) as ApiResponse<{ scenario: { scenarioId: string } }>
@@ -88,6 +90,8 @@ async function seedConversation(): Promise<{
   expect(avatar.status).toBe(201)
   const avatarBody = (await avatar.json()) as ApiResponse<{ avatar: { avatarId: string } }>
   const avatarId = requireId(avatarBody.data?.avatar.avatarId, 'avatarId')
+
+  await prepareAndActivateAvatar({ appUrl: APP_URL, apiKey: API_KEY, scenarioId, avatarId })
 
   const session = await postJson('/v1/sessions', {
     userId: `voice_stack_${crypto.randomUUID()}`,

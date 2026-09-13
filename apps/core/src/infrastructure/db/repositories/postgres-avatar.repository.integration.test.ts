@@ -29,7 +29,7 @@ function defineCreateAndReadTests(
     expect(result.avatarId).toBeTypeOf('string')
     expect(result.scenarioId).toBe(getScenarioId())
     expect(result.name).toBe('Test Avatar')
-    expect(result.status).toBe('active')
+    expect(result.status).toBe('draft')
     expect(result.personaPrompt).toBe('You are a test avatar.')
     expect(result.createdAt).toBeTypeOf('string')
     expect(result.updatedAt).toBeTypeOf('string')

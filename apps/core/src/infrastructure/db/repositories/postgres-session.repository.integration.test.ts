@@ -107,7 +107,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository — extended operation
     const avatarSqlId = crypto.randomUUID()
     await sql`
       INSERT INTO avatars (id, scenario_id, name, status, persona_prompt, config)
-      VALUES (${avatarSqlId}, ${scenarioId.replace('scenario_', '')}::UUID, 'Guide', 'active', 'Guide prompt', '{}'::JSONB)
+      VALUES (${avatarSqlId}, ${scenarioId.replace('scenario_', '')}::UUID, 'Guide', 'draft', 'Guide prompt', '{}'::JSONB)
     `
 
     const created = await sessionRepo.create({

@@ -26,7 +26,7 @@ describe('InMemoryAvatarRepository', () => {
 
     expect(created.avatarId.startsWith('avatar_')).toBe(true)
     expect(created.scenarioId).toBe('scenario-1')
-    expect(created.status).toBe('active')
+    expect(created.status).toBe('draft')
     expect(created.adjustments).toEqual(['Use short answers.'])
 
     const loaded = await repository.findById(created.avatarId)

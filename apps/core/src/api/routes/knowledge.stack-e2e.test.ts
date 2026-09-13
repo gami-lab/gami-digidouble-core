@@ -65,20 +65,6 @@ describe('Stack E2E — knowledge routes — validation', () => {
     expect(res.status).toBe(400)
   })
 
-  it('rejects lifecycle scope fields on static retrieval (400)', async () => {
-    const res = await fetch(`${APP_URL}/v1/admin/knowledge/retrieval`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        scenarioId: 'scenario_test',
-        query: 'test',
-        userId: 'user_test',
-      }),
-    })
-
-    expect(res.status).toBe(400)
-  })
-
   it('rejects upload with unsupported file extension (400)', async () => {
     const content = Buffer.from('some data').toString('base64')
     const res = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
@@ -197,7 +183,7 @@ async function seedReadyWorldKnowledgeSource(args: {
   const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({ name: `Knowledge scenario ${now}` }),
+    body: JSON.stringify({ name: `Knowledge scenario ${now}`, language: 'en' }),
   })
   expect(createScenarioRes.status).toBe(201)
   const scenarioBody = (await createScenarioRes.json()) as {
@@ -212,6 +198,7 @@ async function seedReadyWorldKnowledgeSource(args: {
       scenarioId,
       name: 'World lore',
       knowledgeType: 'world',
+      visibilityPolicy: args.visibleToAvatarIds === undefined ? 'all' : 'avatars',
       format: 'text',
       uriOrPath: '/tmp/world-lore.txt',
       metadata: { inlineText: args.inlineText },
@@ -361,7 +348,7 @@ describe('Stack E2E — knowledge upload — happy path', () => {
     const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ name: `Upload scenario ${now}` }),
+      body: JSON.stringify({ name: `Upload scenario ${now}`, language: 'en' }),
     })
     expect(createScenarioRes.status).toBe(201)
     const scenarioBody = (await createScenarioRes.json()) as {
@@ -380,6 +367,7 @@ describe('Stack E2E — knowledge upload — happy path', () => {
           scenarioId,
           name: 'Uploaded lore',
           knowledgeType: 'world',
+          visibilityPolicy: 'all',
           content,
           filename: 'lore.txt',
         }),

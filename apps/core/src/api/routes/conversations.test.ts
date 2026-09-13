@@ -359,7 +359,7 @@ describe('conversation message/history API', () => {
     ])
   })
 
-  it('keeps the legacy JSON route on the documented ApiResponse<SendMessageResponse> contract', async () => {
+  it('keeps the JSON route on the documented ApiResponse<SendMessageResponse> contract', async () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',

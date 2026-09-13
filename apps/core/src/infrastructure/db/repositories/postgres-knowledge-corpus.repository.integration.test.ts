@@ -35,7 +35,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
   })
 
   async function seedSources(): Promise<[string, string]> {
-    const scenario = await scenarioRepository.create({ name: 'Corpus scenario', status: 'active' })
+    const scenario = await scenarioRepository.create({
+      name: 'Corpus scenario',
+      status: 'active',
+      language: 'en',
+    })
     const first = await sourceRepository.create({
       scenarioId: scenario.scenarioId,
       name: 'First source',

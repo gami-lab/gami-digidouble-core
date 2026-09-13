@@ -6,6 +6,7 @@ import type {
   CreateKnowledgeSourceResponse,
   CreateKnowledgeSourceRequest,
   DeleteKnowledgeSourceResponse,
+  GetKnowledgeReindexResponse,
   GetIngestionJobResponse,
   IngestionJobDto,
   KnowledgeSourceDto,
@@ -14,6 +15,7 @@ import type {
   KnowledgeVisibilityPolicy,
   PrepareAvatarTraitsResponse,
   ListKnowledgeSourcesResponse,
+  StartKnowledgeReindexResponse,
   TriggerIngestionResponse,
   UpdateKnowledgeSourceRequest,
   UpdateKnowledgeSourceResponse,
@@ -115,8 +117,8 @@ export class ApiClient {
     const response = await fetch(`${this.options.baseUrl}${path}`, {
       method,
       headers: {
-        'content-type': 'application/json',
         'x-api-key': this.options.apiKey,
+        ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     })
@@ -220,5 +222,13 @@ export class ApiClient {
 
   getIngestionJob(ingestionJobId: string): Promise<GetIngestionJobResponse> {
     return this.request('GET', `/v1/ingestion-jobs/${ingestionJobId}`)
+  }
+
+  startKnowledgeReindex(): Promise<StartKnowledgeReindexResponse> {
+    return this.request('POST', '/v1/admin/knowledge/reindex', {}, [200, 202])
+  }
+
+  getKnowledgeReindex(reindexOperationId: string): Promise<GetKnowledgeReindexResponse> {
+    return this.request('GET', `/v1/admin/knowledge/reindex/${reindexOperationId}`)
   }
 }

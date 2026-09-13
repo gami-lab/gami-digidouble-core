@@ -137,6 +137,7 @@ async function createKnowledgeSource(args: {
       scenarioId: args.scenarioId,
       name: args.name,
       knowledgeType: args.knowledgeType,
+      visibilityPolicy: 'all',
       format: 'text',
       uriOrPath: `/tmp/${args.name.toLowerCase().replaceAll(' ', '-')}.txt`,
       metadata: { inlineText: args.inlineText },

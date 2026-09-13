@@ -238,10 +238,10 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — JSONB payload and
     type TestPayload = {
       triggerReason: string
       decision: {
-        avatarId: string
-        conversationMode: string
+        dialogueMode: string
+        askFollowUp: boolean
         notesInjected: boolean
-        directiveCount: number
+        retrievalRequired: boolean
       }
       stateAfter: { progression: string }
     }
@@ -251,10 +251,10 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — JSONB payload and
       interactionCount: 3,
       latencyMs: 8,
       decision: {
-        avatarId: 'avatar-1',
-        conversationMode: 'continue',
+        dialogueMode: 'avatar_guided',
+        askFollowUp: false,
         notesInjected: true,
-        directiveCount: 2,
+        retrievalRequired: false,
       },
       stateAfter: { progression: 'advanced' },
     }

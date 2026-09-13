@@ -2,17 +2,18 @@
 
 Date: 2026-09-13  
 Repository: `gami-digidouble-core`  
-Revision: `a366b27d`  
+Revision: `9b6f7238` plus the completed Prompt 5 hardening changes
 Scope: production source, shared contracts, database bootstrap/alignment, seed tooling, and tests that document compatibility behavior.
 
-Status: the P0 runtime schema-alignment finding was resolved by EPIC 10.1 Prompt 1, the
-knowledge/session-memory findings were resolved by Prompt 2, and the GM state/output/event
-findings were resolved by Prompt 3. The historical evidence and remaining findings below are
-retained as the cleanup ledger for Prompt 4; resolved paths are no longer active current code.
+Status: all audited compatibility findings are resolved in current production code through EPIC
+10.1 Prompt 5. The historical evidence below is retained as the cleanup ledger; the Prompt 5
+closure audit classifies the remaining textual matches and records fresh-deployment evidence.
 
 ## Executive summary
 
-The codebase is not yet a clean-slate codebase. It contains several live compatibility paths for previous database schemas, API values, persisted JSON payloads, prompt contracts, and content/configuration shapes.
+The historical audit identified live compatibility paths for previous database schemas, API values,
+persisted JSON payloads, prompt contracts, and content/configuration shapes. Those paths have now
+been removed from the current runtime and replaced by the strict current contracts.
 
 For the requested clean redeploy with a fresh database and fresh content, the highest-value removal targets are:
 
@@ -257,7 +258,7 @@ The documentation also currently presents compatibility as part of the contract.
 
 The root README still advertises “WebSocket + SSE fallback” at [`README.md:72`](../README.md#L72), while the current route inventory and clients found in this audit use SSE. This is a documentation/configuration inconsistency worth resolving during the cleanup, but it was not counted as a confirmed legacy runtime path.
 
-## Proposed implementation order for Step 2
+## Historical implementation order (completed)
 
 1. Freeze the new canonical contracts: schema, current DTOs, current GM payload, current event payload, Scenario language, Avatar traits, and knowledge visibility.
 2. Remove startup schema alignment and build a fresh canonical database bootstrap.
@@ -267,6 +268,34 @@ The root README still advertises “WebSocket + SSE fallback” at [`README.md:7
 6. Remove legacy event readers, score/scope compatibility projections, and related UI labels.
 7. Remove content/configuration aliases and require canonical fresh content.
 8. Remove compatibility-only tests and documentation, then run typecheck, lint, unit, integration, and stack checks against the fresh deployment path.
+
+## Prompt 5 closure audit and evidence
+
+The final repository-wide audit classified every remaining match as follows:
+
+- Current behavior: internal vector `distance` is an infrastructure metric, public retrieval uses
+  normalized `similarity`, episodic selection uses `score`, conversational memory still uses the
+  word “memory”, and `runtime.avatar_suggested` records its current `suggestedAvatarId` payload.
+- Negative tests: obsolete knowledge type, GM fields, and retired model names occur only in tests
+  that prove strict rejection. Schema tests mention removed columns/tables only to assert absence.
+- Historical records: this audit and older implementation prompts retain their original identifiers
+  as historical evidence; they are not imported or executed by current runtime code.
+- Intentional resilience: retries, cancellation, localization, provider failure handling, and
+  current JSON transport remain documented product behavior.
+
+Verification completed on 2026-09-13:
+
+- A uniquely isolated PostgreSQL container initialized `infra/postgres/init.sql` from empty state.
+- The current Core runtime started against that database and returned `/health` with HTTP 200.
+- The canonical API seed created an active English Scenario, four active prepared Avatars, nine
+  explicit-visibility sources, 21 embedded chunks, and an active embedding corpus/profile.
+- Fresh schema inspection found no `memory_summary`, `current_avatar_id`, `topics_covered`, or
+  `knowledge_source_quarantines`.
+- No endpoint was added in Prompt 5; existing route changes retain colocated stack-E2E coverage.
+
+The complete typecheck, lint, package unit suites, and applicable Core integration suite remain the
+release checks for this baseline. Live stack-E2E output is recorded in the implementation handoff;
+any stale fixture failures must be corrected before marking EPIC 10.1 complete.
 
 ## Acceptance criteria for declaring the cleanup complete
 

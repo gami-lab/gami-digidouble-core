@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ApiResponse, SessionMemoryLayers, SessionMemorySummary } from '@gami/shared'
 import type { TestContext } from 'vitest'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
+import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
@@ -128,7 +129,7 @@ async function seedSession(): Promise<{
       ...authHeaders(),
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ name: `Memory Scenario ${String(Date.now())}` }),
+    body: JSON.stringify({ name: `Memory Scenario ${String(Date.now())}`, language: 'en' }),
   })
   const scenarioBody = (await scenarioRes.json()) as ApiResponse<{
     scenario: { scenarioId: string }
@@ -145,6 +146,8 @@ async function seedSession(): Promise<{
   })
   const avatarBody = (await avatarRes.json()) as ApiResponse<{ avatar: { avatarId: string } }>
   const avatarId = requireId(avatarBody.data?.avatar, 'avatarId')
+
+  await prepareAndActivateAvatar({ appUrl: APP_URL, apiKey: API_KEY, scenarioId, avatarId })
 
   const sessionRes = await fetch(buildUrl('/v1/sessions'), {
     method: 'POST',
