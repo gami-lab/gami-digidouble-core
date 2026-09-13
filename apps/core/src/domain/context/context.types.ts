@@ -17,8 +17,6 @@ export interface RuntimeContext {
   recentMessages: ContextMessage[]
   /** Canonical layered memory snapshot assembled for this turn. */
   memory?: LayeredMemorySnapshot
-  /** Compacted summary of the session so far. */
-  memorySummary?: string
   /** Persistent user facts relevant to this turn. */
   userFacts?: Record<LongTermMemoryFact['key'], LongTermMemoryFact['value']>
   /** Scenario world description and objectives. */

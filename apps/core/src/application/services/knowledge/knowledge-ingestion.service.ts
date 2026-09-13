@@ -20,7 +20,7 @@ import type {
 import type { IKnowledgeSourceContentLoader } from '../../ports/IKnowledgeSourceContentLoader.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
-import { findReservedStaticScopeKeys } from '../../../domain/knowledge/legacy-memory-audit.js'
+import { findReservedStaticScopeKeys } from '../../../domain/knowledge/static-knowledge-validation.js'
 
 export type IngestionExecutionInput = {
   sourceId: string

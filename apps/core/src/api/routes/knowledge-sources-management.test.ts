@@ -38,7 +38,7 @@ function makeApp({
 }
 
 describe('POST /v1/knowledge-sources — static knowledge contract', () => {
-  it('normalizes the legacy memory input alias and emits only avatar_knowledge', async () => {
+  it('rejects the removed memory knowledge type at the API boundary', async () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/knowledge-sources',
@@ -52,10 +52,9 @@ describe('POST /v1/knowledge-sources — static knowledge contract', () => {
       },
     })
 
-    expect(response.statusCode).toBe(201)
-    const body = response.json<ApiResponse<{ source: { knowledgeType: string } }>>()
-    expect(body.data?.source.knowledgeType).toBe('avatar_knowledge')
-    expect(JSON.stringify(body)).not.toContain('"memory"')
+    expect(response.statusCode).toBe(400)
+    const body = response.json<ApiResponse<null>>()
+    expect(body.error?.code).toBe('VALIDATION_ERROR')
   })
 
   it('rejects reserved scope metadata recursively with a standard validation error', async () => {

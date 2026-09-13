@@ -17,7 +17,6 @@ interface SessionRow {
   model_override: unknown
   avatar_options: unknown
   gm_notes: string | null
-  memory_summary: string | null
   status: string
   started_at: Date
   last_activity_at: Date
@@ -40,7 +39,6 @@ function rowToSession(row: SessionRow): Session {
       ? { avatarOptions: row.avatar_options }
       : {}),
     ...(row.gm_notes !== null ? { gmNotes: row.gm_notes } : {}),
-    ...(row.memory_summary !== null ? { memorySummary: row.memory_summary } : {}),
     status: row.status as Session['status'],
     startedAt: row.started_at.toISOString(),
     lastActivityAt: row.last_activity_at.toISOString(),
@@ -58,7 +56,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     const [row] = await this.sql<[SessionRow]>`
       INSERT INTO sessions (user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options)
       VALUES (${params.userId}, ${scenarioUuid}, NULL, ${unlockedAvatarUuids}::UUID[], ${this.sql.json(params.modelOverride ?? null)}::JSONB, ${this.sql.json(params.avatarOptions ?? null)}::JSONB)
-      RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
+      RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options, gm_notes, status, started_at, last_activity_at, ended_at
     `
     return rowToSession(row)
   }
@@ -67,7 +65,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     const uuid = extractUuid('session_', sessionId)
     if (uuid === null) return null
     const [row] = await this.sql<[SessionRow?]>`
-      SELECT id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
+      SELECT id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options, gm_notes, status, started_at, last_activity_at, ended_at
       FROM sessions
       WHERE id = ${uuid}
     `
@@ -105,12 +103,8 @@ export class PostgresSessionRepository implements ISessionRepository {
           WHEN ${p.hasGmNotesUpdate}::BOOLEAN THEN ${p.gmNotesValue}::TEXT
           ELSE gm_notes
         END,
-        memory_summary = CASE
-          WHEN ${p.hasMemorySummaryUpdate}::BOOLEAN THEN ${p.memorySummaryValue}::TEXT
-          ELSE memory_summary
-        END
       WHERE id = ${uuid}
-      RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
+      RETURNING id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options, gm_notes, status, started_at, last_activity_at, ended_at
     `
 
     if (!row) {
@@ -129,8 +123,6 @@ export class PostgresSessionRepository implements ISessionRepository {
     unlockedAvatarUuids: string[] | null
     hasGmNotesUpdate: boolean
     gmNotesValue: string | null
-    hasMemorySummaryUpdate: boolean
-    memorySummaryValue: string | null
   } {
     const hasEndedAtUpdate = Object.hasOwn(updates, 'endedAt')
     const endedAtValue = updates.endedAt === undefined ? null : new Date(updates.endedAt)
@@ -148,8 +140,6 @@ export class PostgresSessionRepository implements ISessionRepository {
         : null
     const hasGmNotesUpdate = Object.hasOwn(updates, 'gmNotes')
     const gmNotesValue = updates.gmNotes ?? null
-    const hasMemorySummaryUpdate = Object.hasOwn(updates, 'memorySummary')
-    const memorySummaryValue = updates.memorySummary ?? null
     return {
       hasEndedAtUpdate,
       endedAtValue,
@@ -159,8 +149,6 @@ export class PostgresSessionRepository implements ISessionRepository {
       unlockedAvatarUuids,
       hasGmNotesUpdate,
       gmNotesValue,
-      hasMemorySummaryUpdate,
-      memorySummaryValue,
     }
   }
 
@@ -177,7 +165,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     const status = filter?.status ?? null
 
     const rows = await this.sql<SessionRow[]>`
-      SELECT id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options, gm_notes, memory_summary, status, started_at, last_activity_at, ended_at
+      SELECT id, user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options, gm_notes, status, started_at, last_activity_at, ended_at
       FROM sessions
       WHERE (${scenarioUuid}::UUID IS NULL OR scenario_id = ${scenarioUuid}::UUID)
         AND (${userId}::TEXT IS NULL OR user_id = ${userId}::TEXT)

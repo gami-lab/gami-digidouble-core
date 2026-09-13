@@ -29,7 +29,7 @@ describe('GetSessionMemoryUseCase — session lookup', () => {
     await expect(useCase.execute({ sessionId: 'nonexistent' })).rejects.toBeInstanceOf(DomainError)
   })
 
-  it('returns empty summary when no working memory row and no legacy memorySummary', async () => {
+  it('returns empty summary when no working memory row exists', async () => {
     const useCase = new GetSessionMemoryUseCase(
       new InMemorySessionRepository([SESSION]),
       undefined,
@@ -46,17 +46,15 @@ describe('GetSessionMemoryUseCase — session lookup', () => {
 })
 
 describe('GetSessionMemoryUseCase — summary and timestamp precedence', () => {
-  it('uses dedicated working memory summary over legacy session mirror', async () => {
+  it('uses the dedicated working memory summary when available', async () => {
     const sessionMemoryRepository = new InMemorySessionMemoryRepository()
     await sessionMemoryRepository.upsert({
       sessionId: 'session_1',
       summary: 'Working memory summary text',
     })
 
-    const sessionWithLegacy = { ...SESSION, memorySummary: 'Legacy mirror — should be ignored' }
-
     const useCase = new GetSessionMemoryUseCase(
-      new InMemorySessionRepository([sessionWithLegacy]),
+      new InMemorySessionRepository([SESSION]),
       undefined,
       sessionMemoryRepository,
     )
@@ -64,18 +62,6 @@ describe('GetSessionMemoryUseCase — summary and timestamp precedence', () => {
     const { memorySummary } = await useCase.execute({ sessionId: 'session_1' })
 
     expect(memorySummary.summary).toBe('Working memory summary text')
-  })
-
-  it('falls back to legacy session memorySummary when no dedicated working memory row', async () => {
-    const useCase = new GetSessionMemoryUseCase(
-      new InMemorySessionRepository([{ ...SESSION, memorySummary: 'Legacy summary' }]),
-      undefined,
-      new InMemorySessionMemoryRepository(),
-    )
-
-    const { memorySummary } = await useCase.execute({ sessionId: 'session_1' })
-
-    expect(memorySummary.summary).toBe('Legacy summary')
   })
 
   it('uses working memory updatedAt when a row exists', async () => {

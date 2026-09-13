@@ -320,11 +320,10 @@ Separate shared scenario/avatar/world knowledge from user-bound conversational m
 **Current state**
 
 Prompts `00-contract-and-data-audit` through `05-isolation-tests-hardening-and-doc-sync` are
-complete. Canonical static values are `avatar_knowledge | world | media`; the API-only `memory`
-input alias is normalized and observable, never persisted or emitted. Positively classified legacy
-rows migrate deterministically, while ambiguous rows are blocked and quarantined. New and updated
-static source/chunk metadata rejects reserved user/session/conversation scope keys. Static
-retrieval is scenario-shared and conversational memory remains lifecycle-bound and non-RAG.
+complete. Canonical static values are `avatar_knowledge | world | media`; `memory` is rejected at
+the API boundary. Reserved user/session/conversation metadata keys remain invalid under the
+current static-knowledge validator. Static retrieval is scenario-shared and conversational memory
+remains lifecycle-bound and non-RAG, with no legacy migration or quarantine surface.
 The complete definition-of-done evidence is maintained in
 [EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
 

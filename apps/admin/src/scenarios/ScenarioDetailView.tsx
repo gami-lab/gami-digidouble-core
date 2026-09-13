@@ -372,7 +372,7 @@ type KnowledgeSourceRowProps = {
   onViewKnowledgeChunks: (sourceId: string) => void
 }
 
-// eslint-disable-next-line complexity, max-lines-per-function
+// eslint-disable-next-line max-lines-per-function
 function KnowledgeSourceRow({
   source,
   avatarNamesById,
@@ -405,14 +405,8 @@ function KnowledgeSourceRow({
         <td>{formatKnowledgeVisibility(source, avatarNamesById)}</td>
         <td>
           <span className="admin-status-pill">
-            {source.quarantine !== undefined ? 'blocked — quarantine review' : source.status}
+            {source.status}
           </span>
-          {source.quarantine !== undefined ? (
-            <div className="admin-muted">
-              {source.quarantine.reason} Keys:{' '}
-              {source.quarantine.offendingKeyNames.join(', ') || 'none'}.
-            </div>
-          ) : null}
         </td>
         <td>
           <label className="admin-form-label" htmlFor={`chunk-size-${source.sourceId}`}>

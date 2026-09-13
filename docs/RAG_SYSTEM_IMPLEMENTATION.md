@@ -72,9 +72,8 @@ The HTTP contract is in [knowledge-contract-types.ts](../packages/shared/src/kno
 `avatar_knowledge` is static source material relevant to an Avatar, including avatar-specific
 backstory that is visibility-scoped to that Avatar. It is not conversational user memory. New or
 updated source/chunk metadata cannot contain `userId`, `sessionId`, or `conversationId`,
-including at nested keys; the API rejects those keys before persistence. Legacy `memory` sources
-are audited and either migrated to a positive static classification or blocked and quarantined when
-ambiguous. They are never converted into conversational-memory records.
+including at nested keys; the API rejects those keys before persistence. The removed `memory` value
+is not accepted, persisted, or converted into conversational-memory records.
 
 The source content is loaded as follows in [file-url-knowledge-source-content-loader.ts](../apps/core/src/infrastructure/knowledge/file-url-knowledge-source-content-loader.ts):
 
@@ -335,9 +334,7 @@ The admin retrieval route performs retrieval immediately for the submitted query
 
 Operator displays use the same shared DTOs and explicit labels: Shared Avatar Knowledge, Shared
 World Knowledge, and Media Knowledge. Source cards show scenario ownership and Avatar visibility;
-GM-only visibility is not user access control. A blocked legacy source may appear in the existing
-source list with safe quarantine classification, reason, and offending key names, but it is not a
-ready retrieval candidate. Console event readers may accept older event encodings only while
+GM-only visibility is not user access control. Console event readers may accept older event encodings only while
 deserializing; current diagnostics never emit a static `memory` bucket or legacy scope-match label.
 
 The final proof also asserts that identical scenario/query/Avatar visibility inputs produce the

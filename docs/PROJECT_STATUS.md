@@ -120,22 +120,15 @@ The platform is now a working headless conversational runtime with:
 - Context Engine assembles bounded Avatar and GM projections with deterministic precedence and trace metadata.
 - Avatar prompt assembly consumes structured runtime sections, including prepared avatar traits when available.
 
-#### EPIC 4.2d static terminology and migration ✅ Prompt 01 complete
+#### EPIC 4.2d static terminology and migration ✅ complete
 
 The static-knowledge/conversational-memory ownership baseline is now recorded in
 `docs/CONTEXT_CONTRACT_OWNERSHIP_MAP.md`. `@gami/shared` owns the HTTP `KnowledgeType` tuple and
 DTOs; Core domain owns internal knowledge entities and conversational-memory entities; explicit
 application/API mappers connect those shapes. Canonical static values are now
-`avatar_knowledge | world | media`. The temporary `memory` compatibility value is accepted only
-as an API input and is normalized before application/domain code.
-
-`pnpm audit:legacy-memory -- --dry-run` provides a repeatable non-mutating audit from
-either a metadata-only export or PostgreSQL. It reports safe IDs, visibility, recursive reserved
-scope keys, and conservative classifications for legacy static `memory` sources. The companion
-`pnpm migrate:legacy-memory -- --dry-run` command produces a deterministic migration plan; apply
-mode changes only positively classified rows and blocks ambiguous rows in the quarantine table.
-Neither command emits source content, vectors, metadata values, or user facts. New and updated
-static source/chunk metadata rejects reserved user/session/conversation scope keys.
+`avatar_knowledge | world | media`. The removed `memory` value is rejected at the API boundary.
+Reserved user/session/conversation metadata keys remain rejected by the current static-knowledge
+validation module; static knowledge is never converted into conversational memory.
 
 #### EPIC 4.2d shared RAG scope and lifecycle boundaries ✅ Prompt 02 complete
 
@@ -161,9 +154,9 @@ not enter memory maintenance or fact extraction inputs through prompt injection.
 
 Existing admin and console inspection surfaces now use explicit operator categories: Shared Avatar
 Knowledge, Shared World Knowledge, Media Knowledge, Conversation Working Memory, Episodic Memory,
-and Long-Term User Facts. Static source views include scenario ownership, Avatar visibility, and
-safe blocked/quarantine details. Conversation memory views include user, session, and conversation
-scope where applicable. `SessionMemoryLayers.userId` is part of the shared inspection DTO. No new
+and Long-Term User Facts. Static source views include scenario ownership and Avatar visibility.
+Conversation memory views include user, session, and conversation scope where applicable.
+`SessionMemoryLayers.userId` is part of the shared inspection DTO. No new
 operator endpoint was required; the existing source list, retrieval tester, session context, event,
 and memory-layer surfaces remain the owners. Source presenters recursively redact content/vector
 metadata from operator output, and legacy event match-basis names are normalized at the reader/UI
@@ -174,7 +167,7 @@ boundary without restoring static user/session/conversation scope.
 The final requirements-to-tests matrix is checked in at
 `docs/EPIC_4_2D_REQUIREMENTS_MATRIX.md`. Deterministic coverage proves identical static retrieval
 for callers with the same scenario/query/Avatar visibility, isolation of working/episodic/fact
-layers, bounded separated prompt sections, GM bypass limits, alias/quarantine safety, and
+layers, bounded separated prompt sections, GM bypass limits, strict canonical knowledge inputs, and
 retrieved-context non-contamination. Lifecycle coverage includes close, switch, hydration, reset,
 static reindex, memory maintenance, and the PostgreSQL-gated scenario source/chunk cascade.
 
@@ -401,8 +394,8 @@ retrieval proof or change production behavior.
   current contract.
 - Added focused shared contract and Core mapper tests for current field names, optionals, explicit
   `computedTraits: null`, and the narrower player Avatar projection.
-- No database schema, migration/quarantine tooling, persisted memory mirror, GM migration/parser
-  branch, event-history reader, or content compatibility path was removed. See the Prompt 01–04
+- Prompt 0 intentionally did not remove database schema, persisted memory, GM migration/parser,
+  event-history, or content compatibility paths. See the Prompt 01–04
   handoff in `CONTEXT_CONTRACT_OWNERSHIP_MAP.md`.
 
 ### EPIC 10.1 Prompt 1 — fresh canonical database schema
@@ -412,13 +405,25 @@ retrieval proof or change production behavior.
 - Removed startup schema alignment, its infrastructure module/tests, and integration-test alignment
   helpers. Existing repositories now assume the canonical fresh database established by bootstrap.
 - Removed bootstrap column-addition, legacy vector nulling, old-index cleanup, and obsolete GM
-  column preservation paths while retaining the Prompt 2 knowledge quarantine and
-  `sessions.memory_summary` schema surfaces.
+  column preservation paths while retaining the current layered session-memory tables.
 - Added a database-backed schema contract test for current GM columns and pgvector identity
   constraints; local and Coolify PostgreSQL volumes now use the explicit
   `postgres_data_canonical` fresh-volume contract.
 - Updated data-model, architecture, stack, test, and deployment documentation. Existing volumes
   are intentionally unsupported after this clean-slate schema change.
+
+### EPIC 10.1 Prompt 2 — legacy knowledge and session-memory removal
+
+- Restricted shared, API, application, and UI knowledge contracts to `avatar_knowledge`, `world`,
+  and `media`; the removed `memory` alias is rejected by the API schema.
+- Removed legacy knowledge audit/migration scripts, domain modules, quarantine storage and DTOs,
+  and quarantine-only operator projections. Reserved metadata-key validation remains owned by
+  `static-knowledge-validation.ts`.
+- Removed the `sessions.memory_summary` persistence mirror, repository fields, reset/clear writes,
+  hydration query fallback, and session entity field. Session memory inspection reads the canonical
+  layered memory repositories and preserves current short-term, working, episodic, and fact views.
+- Updated canonical-content tests and source-of-truth documentation; no database migration path or
+  compatibility reader remains for the removed surfaces.
 
 ## Open Product Work
 

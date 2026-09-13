@@ -179,8 +179,8 @@ It also includes trace metadata so you can see which chunks were selected and ho
 
 Operator screens use the same categories as the API: Shared Avatar Knowledge, Shared World
 Knowledge, and Media Knowledge. They also show the owning scenario and Avatar visibility policy.
-If a legacy source is blocked for ambiguous or user-specific metadata, the source list shows a
-quarantine review state and safe key/reason details; it is not relabeled or made retrievable.
+Sources with reserved user/session/conversation metadata are rejected during registration or
+ingestion and are not made retrievable.
 
 ## How Avatar Scoping Works
 
@@ -206,10 +206,8 @@ Example use cases:
 - recurring preferences
 - avatar-specific facts that should not be shown to other Avatars
 
-For a temporary migration period, create/upload/list inputs may also accept `memory`. The API
-normalizes that input to `avatar_knowledge`, records a bounded deprecation warning, and never
-persists or emits the alias. Remove the alias after all callers and seeds use the canonical value
-and the legacy migration report contains no remaining `memory` rows.
+Create, upload, and list inputs accept only the canonical static knowledge values
+`avatar_knowledge`, `world`, and `media`; `memory` is rejected at the API boundary.
 
 Static Avatar knowledge is shared scenario material, not user-private conversational memory. Do
 not place user, session, or conversation scope keys in source or chunk metadata; those records

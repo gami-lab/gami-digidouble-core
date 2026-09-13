@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyPluginCallback } from 'fastify'
 import {
   INGESTION_CHUNK_SIZE_MAX,
   INGESTION_CHUNK_SIZE_MIN,
-  KNOWLEDGE_TYPE_INPUTS,
+  KNOWLEDGE_TYPES,
   fail,
   ok,
 } from '@gami/shared'
@@ -50,7 +50,6 @@ import {
   validateUploadedKnowledgeSource,
 } from './knowledge-upload.request.js'
 import { presentKnowledgeRetrieval } from './knowledge-retrieval.presenter.js'
-import { normalizeKnowledgeTypeAtBoundary } from './knowledge-type-input.js'
 import { handleKnowledgeRouteError } from './knowledge-route-error.js'
 
 export type KnowledgeRouteOptions = {
@@ -90,7 +89,7 @@ const sourceBodySchema = {
   properties: {
     scenarioId: { type: 'string', minLength: 1 },
     name: { type: 'string', minLength: 1 },
-    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPE_INPUTS },
+    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPES },
     format: { type: 'string', enum: ['pdf', 'text', 'markdown', 'url', 'media'] },
     uriOrPath: { type: 'string', minLength: 1 },
     metadata: { type: 'object' },
@@ -106,7 +105,7 @@ const sourceBodySchema = {
 const listQuerySchema = {
   type: 'object',
   properties: {
-    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPE_INPUTS },
+    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPES },
     status: { type: 'string', enum: ['pending', 'ready', 'error', 'blocked'] },
   },
   additionalProperties: false,
@@ -171,7 +170,7 @@ const uploadBodySchema = {
   properties: {
     scenarioId: { type: 'string', minLength: 1 },
     name: { type: 'string', minLength: 1 },
-    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPE_INPUTS },
+    knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPES },
     content: { type: 'string', minLength: 1 },
     filename: { type: 'string', minLength: 1 },
     visibilityPolicy: { type: 'string', enum: VISIBILITY_POLICY_ENUM },
@@ -260,10 +259,6 @@ function registerCreateSourceRoute(app: FastifyInstance, useCases: UseCases): vo
       try {
         const output = await useCases.createSourceUseCase.execute({
           ...request.body,
-          knowledgeType: await normalizeKnowledgeTypeAtBoundary(
-            useCases.eventLogRepository,
-            request.body.knowledgeType,
-          ),
         })
         return await reply.status(201).send(ok<CreateKnowledgeSourceResponse>(output))
       } catch (error) {
@@ -297,10 +292,7 @@ function registerUploadSourceRoute(app: FastifyInstance, useCases: UseCases): vo
         const output = await useCases.createSourceUseCase.execute({
           scenarioId,
           name,
-          knowledgeType: await normalizeKnowledgeTypeAtBoundary(
-            useCases.eventLogRepository,
-            knowledgeType,
-          ),
+          knowledgeType,
           format: uploaded.value.format,
           uriOrPath: uploaded.value.filename,
           metadata: { inlineText: uploaded.value.text },
@@ -325,12 +317,7 @@ function registerListSourcesRoute(app: FastifyInstance, useCases: UseCases): voi
         const output = await useCases.listSourcesUseCase.execute({
           scenarioId: request.params.scenarioId,
           ...(request.query.knowledgeType !== undefined
-            ? {
-                knowledgeType: await normalizeKnowledgeTypeAtBoundary(
-                  useCases.eventLogRepository,
-                  request.query.knowledgeType,
-                ),
-              }
+            ? { knowledgeType: request.query.knowledgeType }
             : {}),
           ...(request.query.status !== undefined ? { status: request.query.status } : {}),
         })

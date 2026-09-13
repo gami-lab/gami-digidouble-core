@@ -4,7 +4,6 @@ import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructur
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { EpisodicMemoryService } from './episodic-memory.service.js'
 
-// eslint-disable-next-line max-lines-per-function
 describe('EpisodicMemoryService', () => {
   it('creates one episodic memory on closed conversation generation', async () => {
     const conversationMemoryRepository = new InMemoryConversationMemoryRepository()
@@ -100,7 +99,6 @@ describe('EpisodicMemoryService', () => {
       userId: 'user_1',
       avatarId: 'avatar_1',
       scenarioId: 'scenario_1',
-      queryText: 'Need latency benchmark',
     })
     const hydration = hydrationWithMetadata.hydration
 

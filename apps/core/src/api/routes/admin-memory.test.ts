@@ -358,7 +358,7 @@ describe('GET /v1/admin/sessions/:sessionId/memory', () => {
     expect(body.error?.code).toBe('NOT_FOUND')
   })
 
-  it('returns empty summary when session has no memorySummary', async () => {
+  it('returns empty summary when session has no working memory row', async () => {
     const response = await makeApp({
       sessions: [makeSession()],
     }).inject({
@@ -372,9 +372,16 @@ describe('GET /v1/admin/sessions/:sessionId/memory', () => {
     expect(body.data?.session.summary).toBe('')
   })
 
-  it('returns session summary when present', async () => {
+  it('returns session working-memory summary when present', async () => {
     const response = await makeApp({
-      sessions: [makeSession({ memorySummary: 'Compacted memory summary' })],
+      sessions: [makeSession()],
+      sessionMemories: [
+        {
+          sessionId: 'session_1',
+          summary: 'Compacted memory summary',
+          updatedAt: '2026-05-01T10:05:00.000Z',
+        },
+      ],
     }).inject({
       method: 'GET',
       url: '/v1/admin/sessions/session_1/memory',
@@ -392,7 +399,6 @@ describe('GET /v1/admin/sessions/:sessionId/memory', () => {
 
   it('derives summary from dedicated session working memory when available', async () => {
     const response = await makeApp({
-      sessions: [makeSession({ memorySummary: 'Legacy session summary' })],
       sessionMemories: [
         {
           sessionId: 'session_1',

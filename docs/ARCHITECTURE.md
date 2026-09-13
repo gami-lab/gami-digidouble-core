@@ -342,7 +342,7 @@ Contains:
 
 - short-term memory policy (last 3 complete exchanges, runtime-assembled)
 - conversation working memory (conversation-scoped, rewritten/bounded summary)
-- compatibility session/avatar summaries for existing admin/runtime surfaces
+- session/avatar working-memory projections for admin/runtime surfaces
 - async memory maintenance pipeline (`IMemoryMaintenancePort` / `MemoryMaintenanceService`)
 - long-term user facts/events
 - retrieval of relevant conversational memories through memory repositories only

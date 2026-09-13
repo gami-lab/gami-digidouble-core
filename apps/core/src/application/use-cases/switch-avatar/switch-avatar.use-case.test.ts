@@ -216,7 +216,7 @@ describe('SwitchAvatarUseCase success flows', () => {
 describe('SwitchAvatarUseCase episodic continuity', () => {
   it('generates episodic memory for the closed conversation and hydrates the new conversation', async () => {
     findSessionByIdMock
-      .mockResolvedValueOnce(makeSession({ memorySummary: 'Existing session memory' }))
+      .mockResolvedValueOnce(makeSession())
       .mockResolvedValueOnce(makeSession({ activeAvatarId: 'avatar_2' }))
     createConversationMock.mockResolvedValueOnce(
       makeConversation({
@@ -242,7 +242,6 @@ describe('SwitchAvatarUseCase episodic continuity', () => {
       userId: 'user_1',
       avatarId: 'avatar_2',
       scenarioId: 'scenario_1',
-      queryText: 'Existing session memory',
     })
     expect(workingMemoryUpsertMock).toHaveBeenCalledWith({
       conversationId: 'conversation_2',

@@ -189,15 +189,16 @@ Required tests:
   knowledge categories separately from working memory, episodic memory, and long-term user facts;
   verify source scenario/Avatar visibility and memory user/session/conversation scope are shown in
   their owning surfaces
-- **Quarantine-safe output:** verify blocked source projections expose only classification, reason,
-  offending key names, and timestamp; nested source content and vector metadata are redacted
+- **Strict knowledge input:** verify `memory` is rejected at the API boundary and canonical source
+  projections contain only `avatar_knowledge`, `world`, or `media`; reserved metadata keys remain
+  rejected recursively without exposing metadata values
 - **Lifecycle boundaries:** verify reset clears messages and owned conversational memory without
   knowledge changes, conversation close creates episodic memory without RAG rows, scenario deletion
   owns knowledge cascade, reindex does not alter memory rows, and memory maintenance does not alter
   chunks, embeddings, source status, or corpus generation.
 - **EPIC 4.2d isolation proof:** verify identical static retrieval for different callers with the
   same scenario/query/Avatar visibility, isolation of working/episodic/fact layers, separated
-  prompt sections and provenance, deterministic alias/quarantine behavior, and absence of
+  prompt sections and provenance, strict canonical knowledge behavior, and absence of
   retrieved-context contamination in fact extraction. The complete matrix is
   [EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
 - **EPIC 5.1d quality proof:** use exact-vector semantic fixtures for multilingual paraphrases and
@@ -249,7 +250,7 @@ access, or provider credentials.
 
 Representative GM integration test files:
 
-- `postgres-gm-state.repository.integration.test.ts` — verifies `findBySessionId`, `save` (insert and upsert), orchestration/count round-trip, and legacy GM memory/avatar columns being ignored
+- `postgres-gm-state.repository.integration.test.ts` — verifies `findBySessionId`, `save` (insert and upsert), and orchestration/count round-trip
 - `postgres-event-log.repository.integration.test.ts` — verifies `append` inserts rows, JSONB payload round-trip, nullable `sessionId`, and `correlation_id` lookup
 - `run-game-master.integration.test.ts` — verifies the composed refined GM prompt path with real in-memory adapters and services: bounded memory selection, typed retrieval, latest-exchange rendering, persisted GM notes/state, emitted runtime suggestion events, safe event logging, and observability trace metadata carrying prompt-version identifiers
 

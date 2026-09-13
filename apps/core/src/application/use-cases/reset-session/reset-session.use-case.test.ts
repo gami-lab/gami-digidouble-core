@@ -258,7 +258,6 @@ describe('ResetSessionUseCase baseline behavior', () => {
     expect(result.session.activeAvatarId).toBeUndefined()
     expect(result.session.unlockedAvatarIds).toEqual([])
     expect(result.session.gmNotes).toBeUndefined()
-    expect(result.session.memorySummary).toBeUndefined()
   })
 
   it('deletes all conversations and messages for the session', async () => {

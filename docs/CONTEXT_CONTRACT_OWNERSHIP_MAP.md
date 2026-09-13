@@ -31,20 +31,16 @@ model-selection shapes. Its report types remain local to the tool.
 ### Static Knowledge Contract Ownership
 
 - Canonical HTTP owner: `packages/shared/src/knowledge-contract-types.ts`
-  - `KnowledgeType` is exactly `avatar_knowledge | world | media`.
-  - `KnowledgeTypeInput` is request-only compatibility input; its legacy `memory` member is
-    normalized at the API route boundary and is never emitted or persisted.
+- `KnowledgeType` is exactly `avatar_knowledge | world | media`.
   - Source/chunk DTOs, typed retrieval sections, and retrieval trace `perType` keys use the
     canonical `avatar_knowledge` key.
 - Canonical internal owner: `apps/core/src/domain/knowledge/knowledge.types.ts`
-  - Internal retrieval and source/chunk domain shapes use `KnowledgeType`, never the input alias.
-- Boundary mapper: `apps/core/src/api/routes/knowledge-type-input.ts` plus the knowledge route
-  handlers. It performs the one-way alias normalization and emits bounded deprecation telemetry.
-- Migration/classification owner: `apps/core/src/domain/knowledge/legacy-memory-audit.ts` and
-  `legacy-memory-migration.ts`; CLI orchestration lives in `scripts/`.
+  - Internal retrieval and source/chunk domain shapes use the same canonical `KnowledgeType`.
+- Boundary validation owner: `apps/core/src/api/routes/knowledge.ts` uses the shared canonical
+  tuple for schema validation. Reserved metadata-key validation belongs to
+  `apps/core/src/domain/knowledge/static-knowledge-validation.ts`.
 - Persistence owner: `knowledge_sources` and `knowledge_chunks` in the PostgreSQL schema and
-  repositories. The schema rejects `memory`; ambiguous legacy rows are blocked and recorded in
-  `knowledge_source_quarantines`.
+  repositories. The schema and repositories persist only canonical static knowledge types.
 
 ### Internal Context Engine Contracts (domain/internal)
 
@@ -136,8 +132,8 @@ model-selection shapes. Its report types remain local to the tool.
 
 ### Operator Inspection Projections
 
-- Static source and quarantine DTOs -> `packages/shared/src/knowledge-contract-types.ts`
-  (`KnowledgeSourceDto`, `KnowledgeSourceQuarantineDto`, and canonical knowledge labels). Core's
+- Static source DTOs -> `packages/shared/src/knowledge-contract-types.ts`
+  (`KnowledgeSourceDto` and canonical knowledge labels). Core's
   knowledge-source presenter is the redaction boundary; admin and console render the shared DTO
   rather than declaring local category/status shapes.
 - Layered conversational inspection -> `packages/shared/src/lifecycle-types.ts`
@@ -180,19 +176,17 @@ contracts retain their `memory` terminology and lifecycle ownership.
 
 ### Conversational memory
 
-| Shape                                                                                                                                                                                                      | Canonical owner                                                                                                                                                                                                       | Mapping boundary and consumers                                                                                                                                                                       |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Recent messages and exchanges (`ContextMessage`, `ShortTermMemoryExchange`, `ShortTermMemoryWindow`, and shared `SharedShortTermMemorySnapshot`)                                                           | `apps/core/src/domain/conversation/session.types.ts` for persisted messages; `apps/core/src/domain/memory/memory.types.ts` for memory projections; `packages/shared/src/memory-contract-types.ts` for HTTP projection | `conversation-exchange-window.ts` derives bounded exchanges from message history; context assembly maps them into Avatar/GM internal snapshots. No short-term memory table exists.                   |
-| Conversation working memory                                                                                                                                                                                | `apps/core/src/domain/memory/memory.types.ts` (`ConversationWorkingMemory`, snapshots, refresh output)                                                                                                                | `IConversationWorkingMemoryRepository` is the application port; in-memory/PostgreSQL repositories are infrastructure adapters; `memory-maintenance.service.ts` is the sole refresh workflow owner.   |
-| Episodic `ConversationMemory`                                                                                                                                                                              | `apps/core/src/domain/memory/memory.types.ts`                                                                                                                                                                         | `IConversationMemoryRepository` and its infrastructure adapters own persistence; `memory-selection.service.ts` selects bounded episodes for new conversations and GM input.                          |
-| Session/avatar compatibility summaries                                                                                                                                                                     | `apps/core/src/domain/memory/memory.types.ts` (`SessionMemory`, `AvatarSessionMemory`, layered snapshot)                                                                                                              | Session/avatar memory repositories map persistence into `LayeredMemorySnapshot`; shared compatibility DTOs are projected through `packages/shared/src/memory-contract-types.ts` and lifecycle types. |
-| Durable `UserFact` and fact records                                                                                                                                                                        | `apps/core/src/domain/memory/memory.types.ts` (`UserFact`, `MemoryFactRecord`)                                                                                                                                        | `IUserMemoryFactRepository` and the PostgreSQL/in-memory adapters own persistence; extraction is fed by compacted conversational memory, not static knowledge chunks.                                |
-| Shared/admin memory DTOs (`SharedWorkingMemoryCurrent`, `SharedLongTermAvatarMemory`, `SessionMemorySummary`, `SessionMemoryLayers`, `AdminSessionMemoryResponse`, and `AdminSessionMemoryLayersResponse`) | `packages/shared/src/memory-contract-types.ts` plus `packages/shared/src/lifecycle-types.ts`                                                                                                                          | `packages/shared/src/runtime-inspector-types.ts` composes these into admin memory, event, and context DTOs. Core maps internal memory snapshots at use-case/API boundaries.                          |
-| Avatar memory prompt projection                                                                                                                                                                            | `apps/core/src/domain/avatar/persona-prompt.service.ts`                                                                                                                                                               | `LayeredMemorySnapshot` is rendered under `Conversation State`; retrieved static knowledge remains a separate `Retrieved Context` projection.                                                        |
-| GM memory prompt projection                                                                                                                                                                                | `apps/core/src/domain/game-master/game-master.types.ts` and `gm-input-renderer.ts`                                                                                                                                    | `GameMasterMemoryContext` is selected by application services and rendered separately from GM retrieved knowledge.                                                                                   |
-| Memory diagnostics/events and client mirrors                                                                                                                                                               | `packages/shared/src/runtime-inspector-types.ts`                                                                                                                                                                      | `runtime-inspector-event-context.ts` and session-context mappers provide the only internal-to-shared mapping; console/admin components consume shared types or derive view-only local state.         |
-
-### Audit and classification boundary
+| Shape                                                                                                                                                                                                      | Canonical owner                                                                                                                                                                                                       | Mapping boundary and consumers                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Recent messages and exchanges (`ContextMessage`, `ShortTermMemoryExchange`, `ShortTermMemoryWindow`, and shared `SharedShortTermMemorySnapshot`)                                                           | `apps/core/src/domain/conversation/session.types.ts` for persisted messages; `apps/core/src/domain/memory/memory.types.ts` for memory projections; `packages/shared/src/memory-contract-types.ts` for HTTP projection | `conversation-exchange-window.ts` derives bounded exchanges from message history; context assembly maps them into Avatar/GM internal snapshots. No short-term memory table exists.                 |
+| Conversation working memory                                                                                                                                                                                | `apps/core/src/domain/memory/memory.types.ts` (`ConversationWorkingMemory`, snapshots, refresh output)                                                                                                                | `IConversationWorkingMemoryRepository` is the application port; in-memory/PostgreSQL repositories are infrastructure adapters; `memory-maintenance.service.ts` is the sole refresh workflow owner. |
+| Episodic `ConversationMemory`                                                                                                                                                                              | `apps/core/src/domain/memory/memory.types.ts`                                                                                                                                                                         | `IConversationMemoryRepository` and its infrastructure adapters own persistence; `memory-selection.service.ts` selects bounded episodes for new conversations and GM input.                        |
+| Session/avatar working-memory summaries                                                                                                                                                                    | `apps/core/src/domain/memory/memory.types.ts` (`SessionMemory`, `AvatarSessionMemory`, layered snapshot)                                                                                                              | Session/avatar memory repositories map persistence into `LayeredMemorySnapshot`; shared projections are exposed through `packages/shared/src/memory-contract-types.ts` and lifecycle types.        |
+| Durable `UserFact` and fact records                                                                                                                                                                        | `apps/core/src/domain/memory/memory.types.ts` (`UserFact`, `MemoryFactRecord`)                                                                                                                                        | `IUserMemoryFactRepository` and the PostgreSQL/in-memory adapters own persistence; extraction is fed by compacted conversational memory, not static knowledge chunks.                              |
+| Shared/admin memory DTOs (`SharedWorkingMemoryCurrent`, `SharedLongTermAvatarMemory`, `SessionMemorySummary`, `SessionMemoryLayers`, `AdminSessionMemoryResponse`, and `AdminSessionMemoryLayersResponse`) | `packages/shared/src/memory-contract-types.ts` plus `packages/shared/src/lifecycle-types.ts`                                                                                                                          | `packages/shared/src/runtime-inspector-types.ts` composes these into admin memory, event, and context DTOs. Core maps internal memory snapshots at use-case/API boundaries.                        |
+| Avatar memory prompt projection                                                                                                                                                                            | `apps/core/src/domain/avatar/persona-prompt.service.ts`                                                                                                                                                               | `LayeredMemorySnapshot` is rendered under `Conversation State`; retrieved static knowledge remains a separate `Retrieved Context` projection.                                                      |
+| GM memory prompt projection                                                                                                                                                                                | `apps/core/src/domain/game-master/game-master.types.ts` and `gm-input-renderer.ts`                                                                                                                                    | `GameMasterMemoryContext` is selected by application services and rendered separately from GM retrieved knowledge.                                                                                 |
+| Memory diagnostics/events and client mirrors                                                                                                                                                               | `packages/shared/src/runtime-inspector-types.ts`                                                                                                                                                                      | `runtime-inspector-event-context.ts` and session-context mappers provide the only internal-to-shared mapping; console/admin components consume shared types or derive view-only local state.       |
 
 ### Retrieval and lifecycle boundary
 
@@ -208,26 +202,6 @@ contracts retain their `memory` terminology and lifecycle ownership.
 - Scenario deletion owns scenario knowledge removal through the database foreign-key cascade, and
   static reindex owns corpus generations/chunks only. These boundaries are asserted by focused
   application/repository tests rather than duplicated DTOs.
-
-`apps/core/src/domain/knowledge/legacy-memory-audit.ts` owns the pure deterministic classifier.
-`scripts/audit-legacy-knowledge-memory.ts` is the non-mutating repository-tooling entry point: it
-can read a metadata-only JSON export for tests/rehearsals or query only source/chunk IDs, type,
-visibility, and metadata from PostgreSQL. It never selects content or vectors and never writes
-legacy rows. Its report is safe metadata only: source/scenario/chunk IDs, visibility summaries,
-reserved key names, and the proposed classification.
-
-Classification is intentionally conservative:
-
-- `avatars` with non-empty Avatar IDs (including the existing implicit Avatar-ID convention) is
-  `shared_avatar_knowledge`.
-- Explicit `all` or `none` visibility without Avatar IDs is `shared_world_knowledge`.
-- Missing/contradictory visibility, missing Avatar IDs under `avatars`, or any recursive
-  `userId`, `sessionId`, or `conversationId` metadata key is
-  `ambiguous_or_invalid_user_specific`.
-
-Ambiguous records are reported for operator classification/removal only. The companion migration
-plan changes positively classified legacy rows and records ambiguous rows as blocked in
-`knowledge_source_quarantines`; it does not convert any data into conversational memory.
 
 The final cross-boundary proof for these owners, including two-user consistency/isolation and
 close, switch, reset, reindex, and scenario-cascade boundaries, is maintained in
@@ -324,8 +298,8 @@ deliberately separate; the mapper is the only place where the two shapes cross.
 
 ### Frozen vocabulary and nullability
 
-- Current static knowledge values are `avatar_knowledge`, `world`, and `media`. The request-only
-  `memory` input alias remains because its removal belongs to EPIC 10.1 Prompt 02.
+- Current static knowledge values are exactly `avatar_knowledge`, `world`, and `media`; `memory` is
+  rejected at the API boundary.
 - Knowledge visibility is represented by `KnowledgeVisibilityPolicy` (`all`, `avatars`, `none`);
   inferred-policy and sentinel cleanup belongs to Prompt 04.
 - `Scenario.language` / `ScenarioSummary.language` is the canonical Scenario language field;
@@ -346,8 +320,9 @@ removes runtime schema alignment; the unresolved paths are:
 
 - Prompt 01: complete. Fresh `init.sql` is authoritative, startup alignment is removed, and
   obsolete GM schema columns are absent from the canonical schema.
-- Prompt 02: legacy knowledge alias/migration/quarantine tooling and the `sessions.memory_summary`
-  persistence/read/write mirror.
+- Prompt 02: complete. Static knowledge accepts only canonical types, reserved metadata validation
+  has a current owner, legacy migration/quarantine tooling is removed, and session working memory
+  is read only from layered memory tables without a session mirror.
 - Prompt 03: GM state migration/parser branches, old state fields, legacy event readers, and
   compatibility-only ranking fields in historical diagnostics.
 - Prompt 04: Avatar flat prompt/identity fallbacks, Scenario language fallbacks, `routeKey`, legacy

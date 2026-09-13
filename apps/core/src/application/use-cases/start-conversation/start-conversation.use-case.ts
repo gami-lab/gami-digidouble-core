@@ -93,7 +93,6 @@ export class StartConversationUseCase {
       userId: session.userId,
       avatarId,
       scenarioId: session.scenarioId,
-      ...(session.memorySummary !== undefined ? { queryText: session.memorySummary } : {}),
     })
 
     await this.runInitialGameMaster({
@@ -134,7 +133,6 @@ export class StartConversationUseCase {
     userId: string
     avatarId: string
     scenarioId: string
-    queryText?: string
   }): Promise<void> {
     await hydrateConversationMemoryForNewConversation({
       input,

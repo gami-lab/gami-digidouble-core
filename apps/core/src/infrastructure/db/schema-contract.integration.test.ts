@@ -51,4 +51,21 @@ describe.skipIf(!DB_AVAILABLE)('canonical PostgreSQL schema', () => {
       ]),
     )
   })
+
+  it('contains no legacy session summary or knowledge quarantine surface', async () => {
+    const sessionColumns = await sql<{ column_name: string }[]>`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'sessions'
+      ORDER BY ordinal_position
+    `
+    const quarantineTable = await sql<{ table_name: string }[]>`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = 'knowledge_source_quarantines'
+    `
+
+    expect(sessionColumns.map((row) => row.column_name)).not.toContain('memory_summary')
+    expect(quarantineTable).toHaveLength(0)
+  })
 })

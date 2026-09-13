@@ -8,7 +8,6 @@ export type HydrationInput = {
   userId: string
   avatarId: string
   scenarioId: string
-  queryText?: string
 }
 
 export type EpisodicMemoryHydrationService = {

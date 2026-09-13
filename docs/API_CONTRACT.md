@@ -311,23 +311,15 @@ Voice-output contract ownership:
 - `GET /v1/knowledge-sources/{sourceId}/ingestion-jobs` -> `ListIngestionJobsResponse`
 - `GET /v1/ingestion-jobs/{ingestionJobId}` -> `GetIngestionJobResponse`
 
-Knowledge source and retrieval contracts emit only `avatar_knowledge`, `world`, and `media`.
-For temporary compatibility, `memory` is accepted only as an input value on source
-create/upload and source-list query requests. The route normalizes it once to
-`avatar_knowledge`, records a bounded `knowledge_type_legacy_alias_used` warning, and never
-persists or emits the alias. The alias can be removed when all callers and seeds use the canonical
-value and the legacy migration report has no remaining `memory` rows.
+Knowledge source and retrieval contracts accept and emit exactly `avatar_knowledge`, `world`, and
+`media`. The removed `memory` value is rejected by API schema validation with the standard
+`400 VALIDATION_ERROR` envelope.
 
 Source and chunk metadata is validated recursively at create, update, upload, and ingestion
 boundaries. Reserved keys `userId`, `sessionId`, and `conversationId` are rejected with the
 standard `400 VALIDATION_ERROR` envelope; content, vectors, and metadata values are not included
-in the error or diagnostic report. `blocked` sources are retained only for quarantine/action
-diagnostics and are excluded from retrieval.
-
-`KnowledgeSourceDto.quarantine`, when present, is a safe blocked-source projection containing only
-the classification, bounded reason, reserved key names, and quarantine timestamp. It never includes
-source contents or vectors. Operator clients render this alongside the canonical knowledge category,
-scenario ownership, and Avatar visibility policy.
+in the error or diagnostic report. Current source statuses remain `pending`, `ready`, `error`, and
+`blocked`; retrieval eligibility continues to be enforced by the current source/corpus rules.
 
 Typed retrieval, context snapshots, recorded retrieval sections, and diagnostic `perType` maps
 use `avatar_knowledge` as the canonical object key. Conversational memory DTOs retain their

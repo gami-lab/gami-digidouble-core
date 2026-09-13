@@ -11,10 +11,9 @@ import {
 } from '../../../domain/knowledge/knowledge-visibility.js'
 import type {
   KnowledgeSource,
-  KnowledgeSourceQuarantine,
   KnowledgeVisibilityPolicy,
 } from '../../../domain/knowledge/knowledge.types.js'
-import { assertStaticMetadataAllowed } from '../../../domain/knowledge/legacy-memory-audit.js'
+import { assertStaticMetadataAllowed } from '../../../domain/knowledge/static-knowledge-validation.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
 type KnowledgeSourceRow = {
@@ -30,10 +29,6 @@ type KnowledgeSourceRow = {
   visible_to_avatar_ids: string[] | null
   created_at: Date
   updated_at: Date
-  quarantine_classification?: string | null
-  quarantine_reason?: string | null
-  quarantine_offending_key_names?: string[] | null
-  quarantine_quarantined_at?: Date | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -76,7 +71,6 @@ function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
     { inferAvatarPolicyFromIds: true },
   )
   const metadata = normalizeMetadata(row.metadata)
-  const quarantine = normalizeQuarantine(row)
   return {
     sourceId: `knowledge_source_${row.id}`,
     scenarioId: `scenario_${row.scenario_id}`,
@@ -92,27 +86,8 @@ function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
     ...(visibility.visibleToAvatarIds !== undefined
       ? { visibleToAvatarIds: visibility.visibleToAvatarIds }
       : {}),
-    ...(quarantine !== undefined ? { quarantine } : {}),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
-  }
-}
-
-function normalizeQuarantine(row: KnowledgeSourceRow): KnowledgeSourceQuarantine | undefined {
-  if (
-    row.quarantine_classification !== 'ambiguous_or_invalid_user_specific' ||
-    row.quarantine_reason === null ||
-    row.quarantine_reason === undefined ||
-    row.quarantine_quarantined_at === null ||
-    row.quarantine_quarantined_at === undefined
-  ) {
-    return undefined
-  }
-  return {
-    classification: 'ambiguous_or_invalid_user_specific',
-    reason: row.quarantine_reason,
-    offendingKeyNames: [...(row.quarantine_offending_key_names ?? [])],
-    quarantinedAt: row.quarantine_quarantined_at.toISOString(),
   }
 }
 
@@ -169,11 +144,8 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
 
     const [row] = await this.sql<[KnowledgeSourceRow?]>`
       SELECT s.id, s.scenario_id, s.name, s.knowledge_type, s.format, s.uri_or_path, s.status,
-        s.metadata, s.visibility_policy, s.visible_to_avatar_ids, s.created_at, s.updated_at,
-        q.classification AS quarantine_classification, q.reason AS quarantine_reason,
-        q.offending_key_names AS quarantine_offending_key_names, q.quarantined_at AS quarantine_quarantined_at
+        s.metadata, s.visibility_policy, s.visible_to_avatar_ids, s.created_at, s.updated_at
       FROM knowledge_sources s
-      LEFT JOIN knowledge_source_quarantines q ON q.source_id = s.id
       WHERE s.id = ${sourceUuid}
     `
 
@@ -183,11 +155,8 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
   async listAll(): Promise<KnowledgeSource[]> {
     const rows = await this.sql<KnowledgeSourceRow[]>`
       SELECT s.id, s.scenario_id, s.name, s.knowledge_type, s.format, s.uri_or_path, s.status, s.metadata,
-        s.visibility_policy, s.visible_to_avatar_ids, s.created_at, s.updated_at,
-        q.classification AS quarantine_classification, q.reason AS quarantine_reason,
-        q.offending_key_names AS quarantine_offending_key_names, q.quarantined_at AS quarantine_quarantined_at
+        s.visibility_policy, s.visible_to_avatar_ids, s.created_at, s.updated_at
       FROM knowledge_sources s
-      LEFT JOIN knowledge_source_quarantines q ON q.source_id = s.id
       ORDER BY s.id ASC
     `
     return rows.map(rowToKnowledgeSource)
@@ -199,11 +168,8 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
 
     const rows = await this.sql<KnowledgeSourceRow[]>`
       SELECT s.id, s.scenario_id, s.name, s.knowledge_type, s.format, s.uri_or_path, s.status, s.metadata,
-        s.visibility_policy, s.visible_to_avatar_ids, s.created_at, s.updated_at,
-        q.classification AS quarantine_classification, q.reason AS quarantine_reason,
-        q.offending_key_names AS quarantine_offending_key_names, q.quarantined_at AS quarantine_quarantined_at
+        s.visibility_policy, s.visible_to_avatar_ids, s.created_at, s.updated_at
       FROM knowledge_sources s
-      LEFT JOIN knowledge_source_quarantines q ON q.source_id = s.id
       WHERE s.scenario_id = ${scenarioUuid}
         AND (${filters.knowledgeType ?? null}::text IS NULL OR s.knowledge_type = ${filters.knowledgeType ?? null})
         AND (${filters.status ?? null}::text IS NULL OR s.status = ${filters.status ?? null})

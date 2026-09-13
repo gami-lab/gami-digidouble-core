@@ -523,7 +523,6 @@ export type AdminClearMemoryResponse = {
     sessionWorkingMemory: boolean
     avatarWorkingMemoryCount: number
     gmNotesCleared: boolean
-    legacySessionSummaryCleared: boolean
     userFactsCleared: false
   }
 }

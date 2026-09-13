@@ -77,7 +77,6 @@ export class SwitchAvatarUseCase {
       userId: session.userId,
       avatarId,
       scenarioId: session.scenarioId,
-      ...(session.memorySummary !== undefined ? { queryText: session.memorySummary } : {}),
     })
 
     const updatedSession = await this.sessionRepository.findById(sessionId)
@@ -161,7 +160,6 @@ export class SwitchAvatarUseCase {
     userId: string
     avatarId: string
     scenarioId: string
-    queryText?: string
   }): Promise<void> {
     await hydrateConversationMemoryForNewConversation({
       input,

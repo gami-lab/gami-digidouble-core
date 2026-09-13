@@ -59,7 +59,6 @@ export class ResetSessionUseCase {
           ? { unlockedAvatarIds: initialUnlockedAvatarIds }
           : {}),
         gmNotes: null,
-        memorySummary: null,
         status: 'active',
         lastActivityAt: new Date().toISOString(),
       })

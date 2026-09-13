@@ -20,7 +20,7 @@ export class GetSessionMemoryUseCase {
     }
 
     const workingMemory = await this.sessionMemoryRepository?.findBySessionId(session.sessionId)
-    const summaryText = workingMemory?.summary ?? session.memorySummary ?? ''
+    const summaryText = workingMemory?.summary ?? ''
     const updatedAt = workingMemory?.updatedAt ?? session.lastActivityAt
 
     const summary: SessionMemorySummary = {

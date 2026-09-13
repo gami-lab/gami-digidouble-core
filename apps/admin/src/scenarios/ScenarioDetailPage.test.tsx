@@ -287,17 +287,11 @@ describe('ScenarioDetailPage knowledge section', () => {
     expect(screen.getByText('No knowledge sources yet.')).toBeTruthy()
   })
 
-  it('groups static category, ownership, visibility, and quarantine status explicitly', async () => {
+  it('groups static category, ownership, and visibility status explicitly', async () => {
     mockReadyLoad({
       knowledgeSources: [
         createKnowledgeSource({
           status: 'blocked',
-          quarantine: {
-            classification: 'ambiguous_or_invalid_user_specific',
-            reason: 'Reserved scope metadata requires review.',
-            offendingKeyNames: ['userId'],
-            quarantinedAt: '2026-06-01T00:00:00.000Z',
-          },
         }),
       ],
     })
@@ -311,9 +305,7 @@ describe('ScenarioDetailPage knowledge section', () => {
     expect(screen.getByText('scenario_a')).toBeTruthy()
     expect(screen.getByText('Avatar visibility')).toBeTruthy()
     expect(screen.getByText('Shared with all Avatars')).toBeTruthy()
-    expect(screen.getByText('blocked — quarantine review')).toBeTruthy()
-    expect(screen.getByText(/Reserved scope metadata requires review/)).toBeTruthy()
-    expect(screen.getByText(/userId/)).toBeTruthy()
+    expect(screen.getByText('blocked')).toBeTruthy()
   })
 
   it('shows knowledge create form when "Add knowledge" is clicked', async () => {

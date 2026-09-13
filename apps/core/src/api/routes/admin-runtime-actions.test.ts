@@ -64,7 +64,6 @@ function makeApp() {
         userId: 'user_1',
         scenarioId: 'scenario_1',
         gmNotes: 'nudge',
-        memorySummary: 'legacy summary',
         status: 'active',
         startedAt: '2026-05-01T10:00:00.000Z',
         lastActivityAt: '2026-05-01T10:00:00.000Z',
@@ -193,7 +192,6 @@ describe('admin runtime actions behavior', () => {
           avatarWorkingMemoryCount: number
           userFactsCleared: false
           gmNotesCleared: boolean
-          legacySessionSummaryCleared: boolean
         }
       }>
     >()

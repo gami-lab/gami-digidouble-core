@@ -71,17 +71,6 @@ CREATE TABLE IF NOT EXISTS knowledge_sources (
   CHECK (status IN ('pending', 'ready', 'error', 'blocked'))
 );
 
-CREATE TABLE IF NOT EXISTS knowledge_source_quarantines (
-  source_id              UUID PRIMARY KEY REFERENCES knowledge_sources(id) ON DELETE CASCADE,
-  original_knowledge_type TEXT NOT NULL,
-  classification         TEXT NOT NULL,
-  reason                 TEXT NOT NULL,
-  offending_key_names    TEXT[] NOT NULL DEFAULT '{}',
-  quarantined_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CHECK (classification = 'ambiguous_or_invalid_user_specific'),
-  CHECK (original_knowledge_type = 'memory')
-);
-
 CREATE TABLE IF NOT EXISTS embedding_profiles (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   provider    TEXT        NOT NULL,
@@ -212,7 +201,6 @@ CREATE TABLE IF NOT EXISTS sessions (
   model_override   JSONB,
   avatar_options   JSONB,
   gm_notes         TEXT,
-  memory_summary   TEXT,
   status           TEXT        NOT NULL DEFAULT 'active',
   started_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_activity_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

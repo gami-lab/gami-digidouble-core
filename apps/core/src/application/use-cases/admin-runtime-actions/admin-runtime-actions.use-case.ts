@@ -145,12 +145,10 @@ export class AdminRuntimeActionsUseCase {
 
     await this.sessionRepository.update(input.sessionId, {
       gmNotes: null,
-      memorySummary: null,
       lastActivityAt: new Date().toISOString(),
     })
 
     const gmNotesCleared = session.gmNotes != null
-    const legacySessionSummaryCleared = session.memorySummary != null
 
     await this.appendAuditEvent({
       sessionId: input.sessionId,
@@ -163,7 +161,6 @@ export class AdminRuntimeActionsUseCase {
         avatarWorkingMemoryCount: deletedAvatarMemories,
         conversationWorkingMemoryCount: deletedConversationWorkingMemories,
         gmNotesCleared,
-        legacySessionSummaryCleared,
         userFactsCleared: false,
       },
     })
@@ -175,7 +172,6 @@ export class AdminRuntimeActionsUseCase {
         sessionWorkingMemory: deletedSessionMemory,
         avatarWorkingMemoryCount: deletedAvatarMemories,
         gmNotesCleared,
-        legacySessionSummaryCleared,
         userFactsCleared: false,
       },
     }

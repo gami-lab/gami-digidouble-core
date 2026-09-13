@@ -5,7 +5,7 @@ import {
   normalizeKnowledgeVisibilitySelection,
 } from '../../../domain/knowledge/knowledge-visibility.js'
 import { toKnowledgeSourceDto } from '../../../domain/knowledge/knowledge-source-presenter.js'
-import { findReservedStaticScopeKeys } from '../../../domain/knowledge/legacy-memory-audit.js'
+import { findReservedStaticScopeKeys } from '../../../domain/knowledge/static-knowledge-validation.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type {

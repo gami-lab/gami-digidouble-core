@@ -59,7 +59,6 @@ describe('sessions runtime inspector action API wrappers', () => {
         sessionWorkingMemory: true,
         avatarWorkingMemoryCount: 1,
         gmNotesCleared: true,
-        legacySessionSummaryCleared: true,
         userFactsCleared: false,
       },
     }

@@ -113,7 +113,6 @@ export type {
 } from './memory-contract-types.js'
 export type {
   KnowledgeType,
-  KnowledgeTypeInput,
   KnowledgeSourceFormat,
   KnowledgeSourceStatus,
   IngestionJobStatus,
@@ -131,7 +130,6 @@ export type {
   RetrievalTracePerTypeDto,
   RetrievalTraceDto,
   KnowledgeSourceDto,
-  KnowledgeSourceQuarantineDto,
   KnowledgeChunkDto,
   IngestionJobDto,
   KnowledgeEmbeddingProfileDto,
@@ -174,8 +172,6 @@ export {
   KNOWLEDGE_TYPES,
   KNOWLEDGE_TYPE_LABELS,
   getKnowledgeTypeLabel,
-  KNOWLEDGE_TYPE_INPUTS,
-  LEGACY_KNOWLEDGE_TYPE_ALIAS,
   INGESTION_CHUNK_SIZE_MIN,
   INGESTION_CHUNK_SIZE_MAX,
   INGESTION_CHUNK_SIZE_DEFAULT,

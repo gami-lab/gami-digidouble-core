@@ -33,7 +33,8 @@ change knowledge chunks, embeddings, source status, or corpus generations.
 - Shared HTTP/admin DTOs: `packages/shared/src/memory-contract-types.ts`
 - Entity/lifecycle response projections: `packages/shared/src/lifecycle-types.ts` and
   `packages/shared/src/runtime-inspector-types.ts`
-- Compatibility mirrors such as `workingSummary` are summary-only mirrors of canonical working memory.
+- Derived projections such as `workingSummary` are summary-only views of canonical working memory;
+  session state has no separate summary mirror.
 - New working-memory fields must be added to the canonical owner first, then projected outward deliberately.
 
 ## Core Model
@@ -293,7 +294,7 @@ Operator inspection preserves the same boundary. The memory-layer view labels Co
 Memory, Episodic Memory, and Long-Term User Facts separately and shows their applicable user,
 session, and conversation scope. Static source and retrieval views use Shared Avatar Knowledge,
 Shared World Knowledge, and Media Knowledge instead; a static source is never shown in a generic
-memory category. Blocked legacy sources expose only safe quarantine details and remain unavailable.
+memory category. No static source is quarantined or converted into conversational memory.
 
 Chronological messages remain messages. Working memory is not injected as a synthetic message and
 must not be duplicated in the recent-message list.

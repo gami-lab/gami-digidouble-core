@@ -18,7 +18,7 @@ import {
   toChunkSeeds,
   validateEmbeddingResult,
 } from './knowledge-ingestion.service.js'
-import { assertStaticMetadataAllowed } from '../../../domain/knowledge/legacy-memory-audit.js'
+import { assertStaticMetadataAllowed } from '../../../domain/knowledge/static-knowledge-validation.js'
 
 export type KnowledgeReindexStartResult = Readonly<{
   status: 'started' | 'reused' | 'already_active'

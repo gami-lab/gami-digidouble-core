@@ -9,7 +9,7 @@ import {
   normalizeKnowledgeVisibilitySelection,
 } from '../../domain/knowledge/knowledge-visibility.js'
 import type { KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
-import { assertStaticMetadataAllowed } from '../../domain/knowledge/legacy-memory-audit.js'
+import { assertStaticMetadataAllowed } from '../../domain/knowledge/static-knowledge-validation.js'
 
 function normalizeSourceVisibility(
   source: Pick<KnowledgeSource, 'visibilityPolicy' | 'visibleToAvatarIds'>,

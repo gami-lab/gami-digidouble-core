@@ -69,7 +69,6 @@ function makeFixtures() {
       userId: 'user_1',
       scenarioId: 'scenario_1',
       gmNotes: 'Keep momentum.',
-      memorySummary: 'Legacy memory summary.',
       status: 'active' as const,
       startedAt: '2026-05-07T10:00:00.000Z',
       lastActivityAt: '2026-05-07T10:00:00.000Z',
@@ -246,7 +245,6 @@ describe('AdminRuntimeActionsUseCase clear', () => {
 
     expect(output.action).toBe('memory.clear')
     expect(output.cleared.gmNotesCleared).toBe(false)
-    expect(output.cleared.legacySessionSummaryCleared).toBe(false)
   })
 
   it('clears session and avatar memory and reports cleared flags when values existed', async () => {
@@ -257,11 +255,9 @@ describe('AdminRuntimeActionsUseCase clear', () => {
     expect(output.cleared.sessionWorkingMemory).toBe(true)
     expect(output.cleared.avatarWorkingMemoryCount).toBe(1)
     expect(output.cleared.gmNotesCleared).toBe(true)
-    expect(output.cleared.legacySessionSummaryCleared).toBe(true)
     expect(output.cleared.userFactsCleared).toBe(false)
 
     const sessionAfter = await sessionRepository.findById('session_1')
     expect(sessionAfter?.gmNotes).toBeUndefined()
-    expect(sessionAfter?.memorySummary).toBeUndefined()
   })
 })

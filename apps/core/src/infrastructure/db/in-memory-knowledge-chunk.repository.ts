@@ -9,7 +9,7 @@ import {
   MAX_VECTOR_SEARCH_CANDIDATES,
 } from '../../application/ports/IKnowledgeChunkRepository.js'
 import type { KnowledgeChunk, KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
-import { assertStaticMetadataAllowed } from '../../domain/knowledge/legacy-memory-audit.js'
+import { assertStaticMetadataAllowed } from '../../domain/knowledge/static-knowledge-validation.js'
 import {
   buildKnowledgeVisibilitySelection,
   isKnowledgeVisibleToAvatar,

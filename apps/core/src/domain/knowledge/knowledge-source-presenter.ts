@@ -50,16 +50,6 @@ export function toKnowledgeSourceDto(source: KnowledgeSource): KnowledgeSourceDt
     ...(source.visibleToAvatarIds !== undefined
       ? { visibleToAvatarIds: source.visibleToAvatarIds }
       : {}),
-    ...(source.quarantine !== undefined
-      ? {
-          quarantine: {
-            classification: source.quarantine.classification,
-            reason: source.quarantine.reason,
-            offendingKeyNames: [...source.quarantine.offendingKeyNames],
-            quarantinedAt: source.quarantine.quarantinedAt,
-          },
-        }
-      : {}),
     createdAt: source.createdAt,
     ...(metadata !== undefined ? { metadata } : {}),
   }

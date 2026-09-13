@@ -11,24 +11,9 @@ export const KNOWLEDGE_TYPES = ['avatar_knowledge', 'world', 'media'] as const
 
 export type KnowledgeType = (typeof KNOWLEDGE_TYPES)[number]
 
-/**
- * Temporary API input compatibility. This alias is normalized at the API boundary and is never
- * persisted or emitted in a response.
- */
-export const KNOWLEDGE_TYPE_INPUTS = [...KNOWLEDGE_TYPES, 'memory'] as const
-export type KnowledgeTypeInput = (typeof KNOWLEDGE_TYPE_INPUTS)[number]
-export const LEGACY_KNOWLEDGE_TYPE_ALIAS = 'memory' as const
-
 export type KnowledgeSourceFormat = 'pdf' | 'text' | 'markdown' | 'url' | 'media'
 
 export type KnowledgeSourceStatus = 'pending' | 'ready' | 'error' | 'blocked'
-
-export type KnowledgeSourceQuarantineDto = {
-  classification: 'ambiguous_or_invalid_user_specific'
-  reason: string
-  offendingKeyNames: string[]
-  quarantinedAt: string
-}
 
 export type IngestionJobStatus = 'queued' | 'running' | 'completed' | 'failed'
 
@@ -175,7 +160,6 @@ export type KnowledgeSourceDto = {
   metadata?: Record<string, unknown>
   visibilityPolicy?: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
-  quarantine?: KnowledgeSourceQuarantineDto
   createdAt: string
 }
 
@@ -325,7 +309,7 @@ export type RecordedGmContextKnowledgeInjection = RecordedTypedKnowledgeSections
 export type CreateKnowledgeSourceRequest = {
   scenarioId: string
   name: string
-  knowledgeType: KnowledgeTypeInput
+  knowledgeType: KnowledgeType
   format: KnowledgeSourceFormat
   uriOrPath: string
   metadata?: Record<string, unknown>
@@ -338,7 +322,7 @@ export type CreateKnowledgeSourceResponse = {
 }
 
 export type ListKnowledgeSourcesQuery = {
-  knowledgeType?: KnowledgeTypeInput
+  knowledgeType?: KnowledgeType
   status?: KnowledgeSourceStatus
 }
 
@@ -377,7 +361,7 @@ export type DeleteKnowledgeSourceResponse = {
 export type UploadKnowledgeSourceRequest = {
   scenarioId: string
   name: string
-  knowledgeType: KnowledgeTypeInput
+  knowledgeType: KnowledgeType
   content: string
   filename: string
   visibilityPolicy?: KnowledgeVisibilityPolicy

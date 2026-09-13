@@ -13,7 +13,7 @@ import type {
   KnowledgeChunk,
   VectorRetrievalCandidate,
 } from '../../../domain/knowledge/knowledge.types.js'
-import { assertStaticMetadataAllowed } from '../../../domain/knowledge/legacy-memory-audit.js'
+import { assertStaticMetadataAllowed } from '../../../domain/knowledge/static-knowledge-validation.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
 type KnowledgeChunkDbRow = {

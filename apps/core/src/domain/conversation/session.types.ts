@@ -8,7 +8,6 @@ export interface Session {
   activeAvatarId?: string
   unlockedAvatarIds?: string[]
   gmNotes?: string
-  memorySummary?: string
   status: 'active' | 'closed' | 'archived'
   modelOverride?: ModelSelectionOverride
   avatarOptions?: AvatarRequestOptions

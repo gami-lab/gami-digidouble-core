@@ -298,7 +298,7 @@ export async function refreshKnowledgeSources(
         : `Knowledge sources: ${listed.sources
             .map(
               (source) =>
-                `${source.name} [${getKnowledgeTypeLabel(source.knowledgeType)}; ${source.status}] {scenario: ${source.scenarioId}; Avatar visibility: ${formatVisibilityLabel(source.visibleToAvatarIds)}${source.quarantine === undefined ? '' : `; quarantine: ${source.quarantine.reason}`}}`,
+                `${source.name} [${getKnowledgeTypeLabel(source.knowledgeType)}; ${source.status}] {scenario: ${source.scenarioId}; Avatar visibility: ${formatVisibilityLabel(source.visibleToAvatarIds)}}`,
             )
             .join(', ')}`,
     )

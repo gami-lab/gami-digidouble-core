@@ -58,7 +58,6 @@ export class EpisodicMemoryService {
     userId: string
     avatarId: string
     scenarioId: string
-    queryText?: string
   }): Promise<{
     hydration: ConversationWorkingMemoryRefreshOutput
     selectedConversationIds: string[]
@@ -71,11 +70,7 @@ export class EpisodicMemoryService {
       limit: MEMORY_EPISODIC_RETRIEVAL_LIMIT,
     })
 
-    const selected = selectRelevantConversationMemories(
-      scoped,
-      input.queryText ?? '',
-      MEMORY_EPISODIC_SELECTION_LIMIT,
-    )
+    const selected = selectRelevantConversationMemories(scoped, '', MEMORY_EPISODIC_SELECTION_LIMIT)
     const summary = buildHydrationSummary(selected)
     const unresolvedThreads = unique(
       selected.flatMap((memory) => memory.unresolvedTopics).slice(0, 6),

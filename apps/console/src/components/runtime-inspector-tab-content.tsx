@@ -356,9 +356,6 @@ function ContextTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.
             [{getKnowledgeTypeLabel(source.knowledgeType)}] {source.name} [{source.status}] ·
             Scenario ownership: {source.scenarioId} · Avatar visibility:{' '}
             {formatKnowledgeAccess(source)}
-            {source.quarantine !== undefined
-              ? ` · Quarantine: ${source.quarantine.reason} (${source.quarantine.offendingKeyNames.join(', ') || 'no reserved keys'})`
-              : ''}
           </p>
         ))
       )}
