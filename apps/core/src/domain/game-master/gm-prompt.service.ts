@@ -49,7 +49,7 @@ export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext
       '- dialogueControl and dialogueControl.askFollowUp are required.',
       '- retrievalPlan is required on every response; set required false with empty or omitted arrays only under the retrieval-planning exception above.',
       '- directorNotes is required on every response and must be one concise sentence of useful next-turn guidance.',
-      '- progressionUpdate is optional; omit it when no update is needed.',
+      '- progressionUpdate is required on every response; use progression "none" when no update is needed.',
       '- askFollowUp must always be stated explicitly; never infer it from mode alone.',
       '- retrievalPlan.queries and requiredFacts should be omitted or empty when required is false.',
       ...(routingMode !== 'none' ? renderRoutingFieldRules(routingMode) : []),

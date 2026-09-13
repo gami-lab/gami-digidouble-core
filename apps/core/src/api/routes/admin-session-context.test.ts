@@ -267,7 +267,6 @@ function assertCoreContextShape(body: ApiResponse<AdminSessionContextResponse>):
     unresolvedThreads: ['thread_1'],
     coveredTopics: ['completed_intro'],
   })
-  expect(body.data?.gmContext.sections.conversationState.workingSummary).toBe('Working summary')
 }
 
 function assertContextTraceBounds(body: ApiResponse<AdminSessionContextResponse>): void {

@@ -408,7 +408,6 @@ export class SendMessageUseCase {
       availableAvatars: toGameMasterAvailableAvatars(scenarioAvatars, args.session),
       gmState: {
         progression: '',
-        topicsCovered: [],
         interactionCount: 0,
       },
       extensions: {

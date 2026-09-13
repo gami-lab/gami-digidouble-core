@@ -12,7 +12,6 @@ const findMessagesByConversationIdMock = vi.fn()
 beforeEach(() => {
   findBySessionIdMock.mockResolvedValue({
     progression: '',
-    topicsCovered: [],
     interactionCount: 0,
   })
   saveGmStateMock.mockResolvedValue(undefined)

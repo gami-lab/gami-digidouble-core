@@ -605,7 +605,7 @@ describe('ScenarioDetailPage retrieval tester', () => {
           chunkId: 'chunk_1',
           knowledgeType: 'world',
           content: 'World chunk content',
-          score: 0.8,
+          similarity: 0.8,
           reason: 'lexical overlap',
         },
       ],

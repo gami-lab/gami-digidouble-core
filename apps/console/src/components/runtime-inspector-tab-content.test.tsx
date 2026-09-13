@@ -254,7 +254,6 @@ function makeGmContext(): RuntimeInspectorViewModel['context']['gmContext'] {
           unresolvedThreads: ['follow_up'],
           coveredTopics: ['quality_goal'],
         },
-        workingSummary: 'active working summary',
         episodicMemories: [],
         longTermFacts: [],
       },

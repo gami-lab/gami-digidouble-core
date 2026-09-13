@@ -104,21 +104,21 @@ type GameMasterInput = {
         chunkId: string
         knowledgeType: 'avatar_knowledge'
         content: string
-        score: number
+        similarity?: number
       }>
       world?: Array<{
         sourceId: string
         chunkId: string
         knowledgeType: 'world'
         content: string
-        score: number
+        similarity?: number
       }>
       media?: Array<{
         sourceId: string
         chunkId: string
         knowledgeType: 'media'
         content: string
-        score: number
+        similarity?: number
       }>
     }
     experience: {
@@ -142,7 +142,8 @@ Input invariants:
 - `GameMasterInput` is the only runtime input contract for GM evaluation.
 - `context.conversationState.recentMessages` and `recentExchanges` are bounded short-term context, not transcript replay.
 - `session.activeAvatarId` is the authoritative active Avatar ID for the current GM run; it is not stored in `GameMasterState`.
-- `context.conversationState` is the only location for conversational memory. A compatibility `workingSummary` mirror may appear in diagnostics, but it is not a second runtime source.
+- `context.conversationState` is the only location for conversational memory. Working memory is
+  represented by its current layered projection only.
 - `context.retrievedContext` contains only static knowledge with source/chunk/type provenance. It is never treated as memory or as a fact-extraction input.
 - Avatar retrieval may be visibility-filtered, but GM retrieval remains unrestricted only through
   the explicit `gm_unrestricted` retrieval mode; a missing active avatar is not itself an
@@ -176,7 +177,7 @@ type GameMasterOutput = {
       reason: string
     }>
   }
-  progressionUpdate?: {
+  progressionUpdate: {
     progression: 'none' | 'increase'
     objectiveId?: string
     reason?: string
@@ -188,10 +189,10 @@ Output invariants:
 
 - `GameMasterOutput` is the canonical runtime output contract.
 - `dialogueControl.askFollowUp` must always be stated explicitly by the GM; it is never inferred from `mode` alone.
-- `dialogueControl`, `retrievalPlan`, and `directorNotes` are required in current GM responses.
-  `directorNotes` must be non-empty. `routing` and `progressionUpdate` are optional. The parser
-  still accepts omitted retrieval
-  and progression fields for backwards compatibility and normalizes them to safe no-op defaults.
+- `dialogueControl`, `retrievalPlan`, `directorNotes`, and `progressionUpdate` are required in
+  current GM responses. `directorNotes` must be non-empty. `progressionUpdate.progression` is
+  `none` when no progression change is needed. The parser rejects omitted or malformed required
+  fields.
   `retrievalPlan.required` should be false only for greetings, purely emotional or subjective
   reflection, or purely stylistic guidance where no factual, narrative, or character context
   would improve the next turn.
@@ -346,7 +347,8 @@ Diagnostics must never include:
 
 - Avatar context is sectioned for avatar runtime consumption.
 - GM context exposes bounded recent messages, exchanges, working memory, episodic memories, long-term facts, static retrieval, scenario context, and avatar availability under separate projections.
-- `workingSummary` may appear as a compatibility mirror, but canonical working memory remains owned by the memory-compaction pipeline and remains under `Conversation State`.
+- Canonical working memory remains owned by the memory-compaction pipeline and remains under
+  `Conversation State`; GM diagnostics use the same current layered projection.
 
 ## Ownership
 

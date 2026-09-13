@@ -30,47 +30,39 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
       interactionCount: 5,
       stateBefore: {
         progression: 'intro',
-        topicsCovered: ['setup'],
       },
       gmContext: {
-        recentMessages: [{ role: 'user', content: 'Who left last night?' }],
-        memory: {
-          shortTerm: { recentExchanges: [{ user: 'u', avatar: 'a' }] },
-          workingMemory: {
-            summary: 'Working summary',
-            unresolvedThreads: ['Need dock confirmation'],
-            coveredTopics: ['dock_timeline'],
-          },
-          workingSummary: 'Working summary',
-          longTermFacts: [
-            {
-              category: 'context',
-              key: 'k',
-              value: 'v',
-            },
-          ],
-        },
-        knowledge: {
-          avatar_knowledge: [],
-          world: [
-            {
-              sourceId: 'source_1',
-              chunkId: 'chunk_1',
-              knowledgeType: 'world',
-              metadata: { inlineText: 'World clue' },
-              visibleToAvatarIds: ['avatar_1'],
-            },
-          ],
-          media: [],
-        },
-        currentState: {
-          progression: 'intro',
-          topicsCovered: ['setup'],
-          interactionCount: 5,
-        },
+        currentState: { progression: 'intro', interactionCount: 5 },
         availableAvatars: [{ avatarId: 'avatar_1', name: 'Clara', availability: 'available' }],
-        userPersona: { name: 'Maya', roleInWorld: 'inspector' },
-        scenario: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
+        sections: {
+          conversationState: {
+            recentMessages: [{ role: 'user', content: 'Who left last night?' }],
+            recentExchanges: [{ user: 'u', avatar: 'a' }],
+            episodicMemories: [],
+            longTermFacts: [
+              {
+                category: 'context',
+                key: 'k',
+                value: 'v',
+              },
+            ],
+          },
+          retrievedContext: {
+            avatar_knowledge: [],
+            world: [
+              {
+                sourceId: 'source_1',
+                chunkId: 'chunk_1',
+                knowledgeType: 'world',
+                metadata: { inlineText: 'World clue' },
+                visibleToAvatarIds: ['avatar_1'],
+              },
+            ],
+            media: [],
+          },
+          userPersona: { name: 'Maya', roleInWorld: 'inspector' },
+          worldContext: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
+        },
       },
       decision: {
         dialogueMode: 'transition',
@@ -92,7 +84,6 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
       },
       stateAfter: {
         progression: 'advanced',
-        topicsCovered: ['setup', 'handoff'],
       },
       latencyMs: 12,
       totalLatencyMs: 18,
@@ -141,7 +132,7 @@ function makeErrorEvent(): StoredEvent {
       triggerReason: 'post_turn_observation',
       turnIndex: 6,
       interactionCount: 6,
-      stateBefore: { progression: 'intro', topicsCovered: ['setup'] },
+      stateBefore: { progression: 'intro' },
       latencyMs: 2,
       errorCode: 'llm_error',
       userMessageText: 'secret skip input',
@@ -179,7 +170,7 @@ describe('ListSessionEventsUseCase — filtering', () => {
             triggerReason: 'post_turn_observation',
             turnIndex: 4,
             interactionCount: 4,
-            stateBefore: { progression: 'intro', topicsCovered: [] },
+            stateBefore: { progression: 'intro' },
             latencyMs: 3,
             errorCode: 'invalid_output',
           },
@@ -224,12 +215,6 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
             conversationState: {
               recentMessages: [{ role: 'user', content: 'Who left last night?' }],
               recentExchanges: [{ user: 'u', avatar: 'a' }],
-              workingMemory: {
-                summary: 'Working summary',
-                unresolvedThreads: ['Need dock confirmation'],
-                coveredTopics: ['dock_timeline'],
-              },
-              workingSummary: 'Working summary',
               episodicMemories: [],
               longTermFacts: [{ category: 'context', key: 'k', value: 'v' }],
             },
@@ -319,37 +304,45 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
             avatarId: 'avatar_1',
             avatarContext: {
               avatarId: 'avatar_1',
-              recentExchanges: [{ user: 'u1', avatar: 'a1' }],
-              workingMemory: {
-                session: { summary: 'Session memory', updatedAt: '2026-04-28T10:05:00.000Z' },
-                avatar: {
-                  avatarId: 'avatar_1',
-                  summary: 'Avatar memory',
-                  updatedAt: '2026-04-28T10:05:00.000Z',
-                },
-              },
-              longTermFacts: [
-                {
-                  category: 'goal',
-                  key: 'focus',
-                  value: 'truth',
-                },
-              ],
-              knowledge: {
-                retrievedItems: [
-                  {
-                    sourceId: 'source_1',
-                    chunkId: 'chunk_1',
-                    knowledgeType: 'world',
-                    content: 'A clue',
-                    metadata: { inlineText: 'A clue' },
-                    visibleToAvatarIds: ['avatar_1'],
+              sections: {
+                directorNotes: 'Ask about the glass.',
+                responseRules: { count: 0 },
+                conversationState: {
+                  recentExchanges: [{ user: 'u1', avatar: 'a1' }],
+                  workingMemory: {
+                    session: { summary: 'Session memory', updatedAt: '2026-04-28T10:05:00.000Z' },
+                    avatar: {
+                      avatarId: 'avatar_1',
+                      summary: 'Avatar memory',
+                      updatedAt: '2026-04-28T10:05:00.000Z',
+                    },
                   },
-                ],
+                  episodicMemories: [],
+                  longTermFacts: [
+                    {
+                      category: 'goal',
+                      key: 'focus',
+                      value: 'truth',
+                    },
+                  ],
+                },
+                retrievedContext: {
+                  avatar_knowledge: [],
+                  world: [
+                    {
+                      sourceId: 'source_1',
+                      chunkId: 'chunk_1',
+                      knowledgeType: 'world',
+                      content: 'A clue',
+                      metadata: { inlineText: 'A clue' },
+                      visibleToAvatarIds: ['avatar_1'],
+                    },
+                  ],
+                  media: [],
+                },
+                userPersona: { name: 'Maya', roleInWorld: 'inspector' },
+                worldContext: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
               },
-              userPersona: { name: 'Maya', roleInWorld: 'inspector' },
-              gmNotes: 'Ask about the glass.',
-              scenario: { scenarioId: 'scenario_1', name: 'Villa Miralac' },
             },
             avatarLatencyMs: 8,
             totalTurnLatencyMs: 19,
@@ -364,23 +357,27 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
               shortTermExchangeCount: 1,
               hasWorkingMemory: true,
               longTermFactCount: 1,
-              retrievalCounts: {
-                avatar_knowledge: 3,
-                world: 2,
-                media: 0,
-              },
-              visibility: {
-                excludedCounts: {
-                  avatar_knowledge: 1,
-                  world: 0,
-                  media: 0,
-                },
-                gmRetrievalCounts: {
+              retrieval: {
+                selectedForAssemblyCounts: {
                   avatar_knowledge: 3,
                   world: 2,
                   media: 0,
                 },
-                gmUnrestricted: true,
+                includedCounts: {
+                  avatar_knowledge: 0,
+                  world: 1,
+                  media: 0,
+                },
+                omittedByAssemblyCounts: {
+                  avatar_knowledge: 3,
+                  world: 1,
+                  media: 0,
+                },
+                excludedByVisibilityCounts: {
+                  avatar_knowledge: 1,
+                  world: 0,
+                  media: 0,
+                },
               },
               hasUserPersona: true,
               hasGmDirective: true,
@@ -491,7 +488,7 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
     expect(JSON.stringify(output)).not.toContain('inlineText')
   })
 
-  it('reads recorded avatar retrieval from the flat avatar-knowledge/world/media event shape', async () => {
+  it('ignores flattened avatar context payloads', async () => {
     const { useCase } = createUseCase({
       events: [
         makeEvent({
@@ -535,23 +532,32 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
 
     const output = await useCase.execute({ sessionId: 'session_1' })
 
-    expect(output.events[0]?.payload).toMatchObject({
-      avatarContext: {
-        sections: {
-          retrievedContext: {
-            world: [
-              {
-                sourceId: 'source_world_1',
-                chunkId: 'chunk_world_1',
-                knowledgeType: 'world',
-                score: 0.4444,
-                reason: 'token-overlap',
-              },
-            ],
+    expect(output.events[0]?.payload).not.toHaveProperty('avatarContext')
+  })
+
+  it('ignores flattened GM context payloads', async () => {
+    const { useCase } = createUseCase({
+      events: [
+        makeEvent({
+          payload: {
+            triggerReason: 'post_turn_observation',
+            turnIndex: 5,
+            interactionCount: 5,
+            stateBefore: { progression: 'intro' },
+            gmContext: {
+              currentState: { progression: 'intro', interactionCount: 5 },
+              conversationState: { recentMessages: [] },
+              retrievedContext: { world: [] },
+            },
+            latencyMs: 12,
           },
-        },
-      },
+        }),
+      ],
     })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.events[0]?.payload).not.toHaveProperty('gmContext')
   })
 
   it('reads additive retrieval and Context Engine diagnostics from newer turn events', async () => {

@@ -266,10 +266,7 @@ function RetrievalItem({
         <span className="admin-muted">
           {item.similarity !== undefined
             ? `similarity ${item.similarity.toFixed(4)}`
-            : item.score !== undefined
-              ? `similarity ${item.score.toFixed(4)}`
               : null}
-          {item.distance !== undefined ? ` · distance ${item.distance.toFixed(4)}` : null}
           {item.reason !== undefined ? ` · ${item.reason}` : null}
         </span>
       </div>

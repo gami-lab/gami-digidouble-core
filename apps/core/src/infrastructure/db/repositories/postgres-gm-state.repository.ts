@@ -1,7 +1,7 @@
 import type { JSONValue, Sql } from 'postgres'
 import type { IGmStateRepository } from '../../../application/ports/IGmStateRepository.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
-import { normalizePersistedOrchestration } from '../../../domain/game-master/gm-state-migration.js'
+import { parsePersistedGameMasterOrchestration } from '../../../domain/game-master/gm-state-parser.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
 
 interface GmStateRow {
@@ -13,7 +13,7 @@ interface GmStateRow {
 }
 
 function rowToGameMasterState(row: GmStateRow): GameMasterState {
-  const nextTurnOrchestration = normalizePersistedOrchestration(row.next_turn_orchestration)
+  const nextTurnOrchestration = parsePersistedGameMasterOrchestration(row.next_turn_orchestration)
   return {
     progression: row.progression,
     interactionCount: row.interaction_count,

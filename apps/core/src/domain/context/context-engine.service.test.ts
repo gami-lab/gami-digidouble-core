@@ -37,7 +37,6 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
     ],
     gmState: {
       progression: 'intro',
-      topicsCovered: ['setup'],
       interactionCount: 2,
     },
     extensions: {
@@ -329,10 +328,7 @@ describe('ContextEngine baseline', () => {
     expect(output.avatar.sections.avatarTraits).toEqual(SAMPLE_TRAITS)
     assertBaselineAvatarRetrievedContext(output)
     expect(output.gm.currentState.progression).toBe('intro')
-    expect(output.gm.sections.conversationState.workingSummary).toContain('Session summary')
-    expect(output.gm.sections.conversationState.workingSummary).toContain(
-      'Avatar (avatar_1): Avatar summary',
-    )
+    expect(output.gm.sections.conversationState.workingMemory).toBeUndefined()
     expect(output.gm.sections.retrievedContext?.world[0]?.chunkId).toBe('chunk_2')
     expect(output.trace.deterministic).toBe(true)
     expect(output.trace.policy.sectionPrecedence).toEqual([
@@ -367,21 +363,21 @@ describe('ContextEngine baseline', () => {
           chunkId: 'memory_chunk_1',
           knowledgeType: 'avatar_knowledge',
           content: 'memory 0.8',
-          score: 0.8,
+          similarity: 0.8,
         },
         {
           sourceId: 'memory_source_2',
           chunkId: 'memory_chunk_2',
           knowledgeType: 'avatar_knowledge',
           content: 'memory 0.1',
-          score: 0.1,
+          similarity: 0.1,
         },
         {
           sourceId: 'memory_source_3',
           chunkId: 'memory_chunk_3',
           knowledgeType: 'avatar_knowledge',
           content: 'memory 0.05',
-          score: 0.05,
+          similarity: 0.05,
         },
       ],
       world: [
@@ -390,21 +386,21 @@ describe('ContextEngine baseline', () => {
           chunkId: 'world_chunk_1',
           knowledgeType: 'world',
           content: 'world 0.95',
-          score: 0.95,
+          similarity: 0.95,
         },
         {
           sourceId: 'world_source_2',
           chunkId: 'world_chunk_2',
           knowledgeType: 'world',
           content: 'world 0.7',
-          score: 0.7,
+          similarity: 0.7,
         },
         {
           sourceId: 'world_source_3',
           chunkId: 'world_chunk_3',
           knowledgeType: 'world',
           content: 'world 0.6',
-          score: 0.6,
+          similarity: 0.6,
         },
       ],
       media: [],

@@ -274,8 +274,6 @@ function toRetrievedItem(candidate: VectorRetrievalCandidate): RetrievedKnowledg
     chunkId: candidate.chunkId,
     knowledgeType: candidate.knowledgeType,
     content: candidate.content,
-    score: candidate.similarity,
-    distance: candidate.distance,
     similarity: candidate.similarity,
     ...(candidate.queryIndex !== undefined ? { queryIndex: candidate.queryIndex } : {}),
     reason: 'vector-match',

@@ -164,10 +164,6 @@ export interface RetrievedKnowledgeItem {
   chunkId: string
   knowledgeType: KnowledgeType
   content: string
-  /** Compatibility score carrying normalized cosine similarity. */
-  score?: number
-  /** pgvector cosine distance; lower values are better. */
-  distance?: number
   /** Normalized cosine similarity (`1 - distance`); higher values are better. */
   similarity?: number
   queryIndex?: number

@@ -243,7 +243,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — JSONB payload and
         notesInjected: boolean
         directiveCount: number
       }
-      stateAfter: { progression: string; topicsCovered: string[] }
+      stateAfter: { progression: string }
     }
     const payload: TestPayload & Record<string, unknown> = {
       triggerReason: 'post_turn_observation',
@@ -256,7 +256,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — JSONB payload and
         notesInjected: true,
         directiveCount: 2,
       },
-      stateAfter: { progression: 'advanced', topicsCovered: ['plastic', 'water'] },
+      stateAfter: { progression: 'advanced' },
     }
 
     await eventLogRepo.append({ type: 'gm_triggered', severity: 'info', correlationId, payload })

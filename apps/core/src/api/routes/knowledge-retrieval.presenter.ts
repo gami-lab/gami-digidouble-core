@@ -4,7 +4,6 @@ import type {
   TypedRetrievalResult,
 } from '../../domain/knowledge/knowledge.types.js'
 import {
-  presentDistance,
   presentSimilarity,
   toRetrievalTraceDto,
 } from '../../application/services/knowledge/retrieval-trace-dto.js'
@@ -20,8 +19,6 @@ export function presentKnowledgeRetrieval(
     chunkId: item.chunkId,
     knowledgeType: item.knowledgeType,
     content: truncateContent(item.content, maxContentLength),
-    ...(item.score !== undefined ? { score: presentSimilarity(item.score) } : {}),
-    ...(item.distance !== undefined ? { distance: presentDistance(item.distance) } : {}),
     ...(item.similarity !== undefined ? { similarity: presentSimilarity(item.similarity) } : {}),
     ...(item.queryIndex !== undefined ? { queryIndex: item.queryIndex } : {}),
     ...(item.reason !== undefined ? { reason: item.reason } : {}),

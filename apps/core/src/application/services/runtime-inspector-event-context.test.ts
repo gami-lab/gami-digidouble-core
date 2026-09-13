@@ -24,8 +24,6 @@ function createAvatarSnapshotInput() {
             knowledgeType: 'world' as const,
             content: 'Sensitive chunk text',
             matchedQuery: { source: 'last_user_input' as const, text: 'Who left?' },
-            score: 0.9,
-            distance: 0.2,
             similarity: 0.8,
             queryIndex: 1,
             reason: 'token-overlap',
@@ -83,7 +81,6 @@ function createGmSnapshotInput() {
   return {
     currentState: {
       progression: 'intro',
-      topicsCovered: [],
       interactionCount: 1,
     },
     availableAvatars: [{ avatarId: 'avatar_1', name: 'Clara' }],
@@ -96,7 +93,6 @@ function createGmSnapshotInput() {
           unresolvedThreads: ['Need dock confirmation'],
           coveredTopics: ['dock_timeline'],
         },
-        workingSummary: 'Working summary',
         episodicMemories: [],
         longTermFacts: [],
       },
@@ -144,8 +140,6 @@ describe('runtime inspector event context snapshots', () => {
           chunkId: 'chunk_1',
           knowledgeType: 'world',
           content: 'Sensitive chunk text',
-          score: 0.9,
-          distance: 0.2,
           similarity: 0.8,
           queryIndex: 1,
           reason: 'token-overlap',
@@ -200,7 +194,6 @@ describe('runtime inspector event context snapshots', () => {
       unresolvedThreads: ['Need dock confirmation'],
       coveredTopics: ['dock_timeline'],
     })
-    expect(snapshot.sections.conversationState.workingSummary).toBe('Working summary')
     expect(snapshot.sections.retrievedContext).toEqual({
       avatar_knowledge: [
         {

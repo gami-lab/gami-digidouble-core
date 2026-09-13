@@ -280,7 +280,6 @@ beforeEach(() => {
   findUserFactsByUserIdMock.mockResolvedValue([])
   gmStateFindMock.mockResolvedValue({
     progression: '',
-    topicsCovered: [],
     interactionCount: 4,
   })
   gmStateSaveMock.mockResolvedValue(undefined)
@@ -817,7 +816,6 @@ describe('SendMessageUseCase — validation and GM integration', () => {
   it('consumes matching GM orchestration once and combines its retrieval intent with the user message', async () => {
     let gmState: GameMasterState = {
       progression: 'none',
-      topicsCovered: [],
       interactionCount: 0,
       nextTurnOrchestration: {
         activeAvatarId: 'avatar_1',

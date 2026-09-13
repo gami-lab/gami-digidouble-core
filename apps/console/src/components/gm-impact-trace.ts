@@ -518,15 +518,7 @@ function describeRecordedGmContext(
   const lines = [
     `GM input summary: ${String(sections.conversationState.recentMessages.length)} message(s), ${String(sections.conversationState.episodicMemories.length)} Episodic Memory item(s), ${String(sections.conversationState.longTermFacts.length)} Long-Term User Fact(s), user persona ${sections.userPersona ? 'present' : 'absent'}.`,
   ]
-  const workingMemory =
-    sections.conversationState.workingMemory ??
-    (sections.conversationState.workingSummary
-      ? {
-          summary: sections.conversationState.workingSummary,
-          unresolvedThreads: [],
-          coveredTopics: [],
-        }
-      : undefined)
+  const workingMemory = sections.conversationState.workingMemory
   if (workingMemory) {
     lines.push(`Conversation Working Memory: ${workingMemory.summary}`)
     if (workingMemory.unresolvedThreads.length > 0) {
@@ -549,8 +541,6 @@ function toRetrievalTraceItem(
     knowledgeType: KnowledgeType
     sourceId: string
     chunkId: string
-    score?: number
-    distance?: number
     similarity?: number
     queryIndex?: number
     reason?: string
@@ -573,8 +563,6 @@ function toRetrievalTraceItem(
     sourceName,
     chunkId: item.chunkId,
     access,
-    ...(item.score !== undefined ? { score: item.score } : {}),
-    ...(item.distance !== undefined ? { distance: item.distance } : {}),
     ...(item.similarity !== undefined ? { similarity: item.similarity } : {}),
     ...(item.queryIndex !== undefined ? { queryIndex: item.queryIndex } : {}),
     matchBasis: formatMatchBasis(item.reason),
@@ -590,9 +578,6 @@ function formatMatchBasis(reason: string | undefined): string {
     .map((part) => {
       if (part === 'token-overlap') return 'keyword match'
       if (part === 'vector-match') return 'vector similarity'
-      if (part === 'user-match') return 'legacy scope basis'
-      if (part === 'session-match') return 'legacy scope basis'
-      if (part === 'conversation-match') return 'legacy scope basis'
       if (part === 'tag-match') return 'tag match'
       return part.replaceAll('_', ' ')
     })

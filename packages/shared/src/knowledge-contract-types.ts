@@ -250,9 +250,7 @@ export type KnowledgeRetrievalReferenceDto = {
   sourceId: string
   chunkId: string
   knowledgeType: KnowledgeType
-  score?: number
-  /** Compatibility ranking field carrying normalized cosine similarity. */
-  distance?: number
+  /** Normalized cosine similarity; higher values are better. */
   similarity?: number
   queryIndex?: number
   reason?: string

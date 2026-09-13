@@ -50,20 +50,25 @@ export function safeParseGameMasterOutput(content: string): GameMasterOutput | n
 
 function toGameMasterOutput(value: unknown): GameMasterOutput | null {
   if (!isRecord(value)) return null
+  if (
+    !hasOnlyKeys(value, [
+      'dialogueControl',
+      'retrievalPlan',
+      'directorNotes',
+      'routing',
+      'progressionUpdate',
+    ])
+  ) {
+    return null
+  }
 
   const dialogueControl = toDialogueControl(value['dialogueControl'])
   if (dialogueControl === null) return null
 
-  const retrievalPlan =
-    value['retrievalPlan'] === undefined
-      ? { required: false }
-      : toRetrievalPlan(value['retrievalPlan'])
+  const retrievalPlan = toRetrievalPlan(value['retrievalPlan'])
   if (retrievalPlan === null) return null
 
-  const progressionUpdate =
-    value['progressionUpdate'] === undefined
-      ? { progression: 'none' as const }
-      : toProgressionUpdate(value['progressionUpdate'])
+  const progressionUpdate = toProgressionUpdate(value['progressionUpdate'])
   if (progressionUpdate === null) return null
 
   const directorNotes = toRequiredDirectorNotes(value['directorNotes'])
@@ -85,6 +90,7 @@ function toRequiredDirectorNotes(value: unknown): string | null {
 
 function toDialogueControl(value: unknown): DialogueControl | null {
   if (!isRecord(value)) return null
+  if (!hasOnlyKeys(value, ['mode', 'askFollowUp'])) return null
   const mode = value['mode']
   if (typeof mode !== 'string' || !DIALOGUE_CONTROL_MODES.has(mode as DialogueControlMode)) {
     return null
@@ -96,11 +102,13 @@ function toDialogueControl(value: unknown): DialogueControl | null {
 
 function toRetrievalPlan(value: unknown): RetrievalPlan | null {
   if (!isRecord(value)) return null
+  if (!hasOnlyKeys(value, ['required', 'queries', 'requiredFacts', 'scopes'])) return null
   if (typeof value['required'] !== 'boolean') return null
 
   const queries = toOptionalStringArray(value['queries'])
   const requiredFacts = toOptionalStringArray(value['requiredFacts'])
   const scopes = toOptionalScopes(value['scopes'])
+  if (queries === null || requiredFacts === null || scopes === null) return null
 
   return {
     required: value['required'],
@@ -110,25 +118,34 @@ function toRetrievalPlan(value: unknown): RetrievalPlan | null {
   }
 }
 
-function toOptionalScopes(value: unknown): RetrievalScope[] | undefined {
-  if (!Array.isArray(value)) return undefined
-  const scopes = value.filter((entry): entry is RetrievalScope =>
-    RETRIEVAL_SCOPES.has(entry as RetrievalScope),
-  )
-  return scopes.length > 0 ? [...new Set(scopes)] : undefined
+function toOptionalScopes(value: unknown): RetrievalScope[] | undefined | null {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value)) return null
+  if (
+    !value.every((entry): entry is RetrievalScope => RETRIEVAL_SCOPES.has(entry as RetrievalScope))
+  ) {
+    return null
+  }
+  return [...new Set(value)]
 }
 
+// eslint-disable-next-line complexity
 function toRoutingDecision(value: unknown): RoutingDecision | undefined {
   if (value === undefined) return undefined
   if (!isRecord(value)) return { action: 'stay' }
+  if (!hasOnlyKeys(value, ['action', 'avatarId', 'reason', 'unlockDecisions']))
+    return { action: 'stay' }
   const action = value['action']
   if (typeof action !== 'string' || !ROUTING_ACTIONS.has(action as RoutingAction)) {
     return { action: 'stay' }
   }
 
-  const avatarId = hasText(value['avatarId']) ? value['avatarId'].trim() : undefined
-  const reason = hasText(value['reason']) ? value['reason'].trim() : undefined
+  const avatarId = toOptionalText(value['avatarId'])
+  const reason = toOptionalText(value['reason'])
   const unlockDecisions = toUnlockDecisions(value['unlockDecisions'])
+  if (avatarId === null || reason === null || unlockDecisions === null) {
+    return { action: 'stay' }
+  }
 
   return {
     action: action as RoutingAction,
@@ -140,25 +157,33 @@ function toRoutingDecision(value: unknown): RoutingDecision | undefined {
 
 function toUnlockDecisions(
   value: unknown,
-): Array<{ avatarId: string; reason: string }> | undefined {
-  if (!Array.isArray(value)) return undefined
-  const unlockDecisions = value
-    .map((entry) => {
-      if (!isRecord(entry) || !hasText(entry['avatarId']) || !hasText(entry['reason'])) return null
-      return { avatarId: entry['avatarId'].trim(), reason: entry['reason'].trim() }
-    })
-    .filter((entry): entry is { avatarId: string; reason: string } => entry !== null)
-
-  return unlockDecisions.length > 0 ? unlockDecisions : undefined
+): Array<{ avatarId: string; reason: string }> | undefined | null {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value)) return null
+  const unlockDecisions: Array<{ avatarId: string; reason: string }> = []
+  for (const entry of value) {
+    if (
+      !isRecord(entry) ||
+      !hasOnlyKeys(entry, ['avatarId', 'reason']) ||
+      !hasText(entry['avatarId']) ||
+      !hasText(entry['reason'])
+    ) {
+      return null
+    }
+    unlockDecisions.push({ avatarId: entry['avatarId'].trim(), reason: entry['reason'].trim() })
+  }
+  return unlockDecisions
 }
 
 function toProgressionUpdate(value: unknown): ProgressionUpdate | null {
   if (!isRecord(value)) return null
+  if (!hasOnlyKeys(value, ['progression', 'objectiveId', 'reason'])) return null
   const progression = value['progression']
   if (typeof progression !== 'string' || !PROGRESSION_STATES.has(progression)) return null
 
-  const objectiveId = hasText(value['objectiveId']) ? value['objectiveId'].trim() : undefined
-  const reason = hasText(value['reason']) ? value['reason'].trim() : undefined
+  const objectiveId = toOptionalText(value['objectiveId'])
+  const reason = toOptionalText(value['reason'])
+  if (objectiveId === null || reason === null) return null
 
   return {
     progression: progression as ProgressionUpdate['progression'],
@@ -167,10 +192,20 @@ function toProgressionUpdate(value: unknown): ProgressionUpdate | null {
   }
 }
 
-function toOptionalStringArray(value: unknown): string[] | undefined {
-  if (!Array.isArray(value)) return undefined
-  const items = value.filter(hasText).map((item) => item.trim())
-  return items.length > 0 ? items : undefined
+function toOptionalStringArray(value: unknown): string[] | undefined | null {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value) || !value.every(hasText)) return null
+  return value.map((item) => item.trim())
+}
+
+function toOptionalText(value: unknown): string | undefined | null {
+  if (value === undefined) return undefined
+  return hasText(value) ? value.trim() : null
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  const allowed = new Set(keys)
+  return Object.keys(value).every((key) => allowed.has(key))
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

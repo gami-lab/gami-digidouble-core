@@ -179,7 +179,6 @@ describe('TypedRetrievalService', () => {
     expect(result.world[0]?.matchedQuery?.text).toBe('¿Dónde puedo atracar?')
     expect(result.world[0]?.queryIndex).toBe(0)
     expect(result.world[0]?.similarity).toBe(1)
-    expect(result.world[0]?.distance).toBe(0)
     expect(result.world[1]?.matchedQuery?.source).toBe('gm_required_fact')
     expect(result.world[1]?.matchedQuery?.text).toBe('Quelle jetée est fermée ?')
     expect(result.world[1]?.queryIndex).toBe(1)
@@ -213,8 +212,6 @@ describe('TypedRetrievalService', () => {
     expect(result.avatar_knowledge[0]).toEqual(
       expect.objectContaining({
         chunkId: 'memory_1',
-        score: 1,
-        distance: 0,
         similarity: 1,
         reason: 'vector-match',
         queryIndex: 0,

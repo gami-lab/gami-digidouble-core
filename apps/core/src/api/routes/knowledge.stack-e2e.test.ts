@@ -275,7 +275,6 @@ describe('Stack E2E — knowledge routes — happy path', () => {
           retrieval: {
             world: Array<{
               content: string
-              distance?: number
               similarity?: number
               embedding?: unknown
             }>
@@ -305,7 +304,6 @@ describe('Stack E2E — knowledge routes — happy path', () => {
       expect(typeof retrieval.trace.timings.vectorSearchMs).toBe('number')
       for (const item of retrieval.world) {
         expect(item.content.length).toBeLessThanOrEqual(803)
-        expect(typeof item.distance).toBe('number')
         expect(typeof item.similarity).toBe('number')
         expect(item).not.toHaveProperty('embedding')
       }

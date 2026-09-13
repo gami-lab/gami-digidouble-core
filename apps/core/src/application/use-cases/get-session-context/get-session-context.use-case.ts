@@ -230,7 +230,6 @@ function applyStructuredGmWorkingMemory(
     unresolvedThreads: [...workingMemory.unresolvedThreads],
     coveredTopics: [...workingMemory.coveredTopics],
   }
-  gmContext.sections.conversationState.workingSummary = workingMemory.summary
 }
 
 function toScenarioSnapshot(

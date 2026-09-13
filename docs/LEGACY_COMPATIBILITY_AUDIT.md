@@ -5,10 +5,10 @@ Repository: `gami-digidouble-core`
 Revision: `a366b27d`  
 Scope: production source, shared contracts, database bootstrap/alignment, seed tooling, and tests that document compatibility behavior.
 
-Status: the P0 runtime schema-alignment finding was resolved by EPIC 10.1 Prompt 1, and the
-knowledge/session-memory findings were resolved by Prompt 2. The historical evidence and remaining
-findings below are retained as the cleanup ledger for Prompts 3–4; resolved paths are no longer
-active current code.
+Status: the P0 runtime schema-alignment finding was resolved by EPIC 10.1 Prompt 1, the
+knowledge/session-memory findings were resolved by Prompt 2, and the GM state/output/event
+findings were resolved by Prompt 3. The historical evidence and remaining findings below are
+retained as the cleanup ledger for Prompt 4; resolved paths are no longer active current code.
 
 ## Executive summary
 

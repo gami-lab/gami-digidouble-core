@@ -121,11 +121,6 @@ function toGmContext(snapshot: SessionContextSnapshot): AdminSessionContextRespo
               },
             }
           : {}),
-        ...(snapshot.gmContext.sections.conversationState.workingSummary !== undefined
-          ? {
-              workingSummary: snapshot.gmContext.sections.conversationState.workingSummary,
-            }
-          : {}),
         episodicMemories: snapshot.gmContext.sections.conversationState.episodicMemories.map(
           (memory) => ({
             ...memory,

@@ -50,7 +50,6 @@ const messageRepository = {
 function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
   return {
     progression: 'progressing',
-    topicsCovered: [],
     interactionCount: 1,
     ...overrides,
   }

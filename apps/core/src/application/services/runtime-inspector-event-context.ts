@@ -13,11 +13,7 @@ import type {
   RetrievalTrace,
   RetrievedKnowledgeItem,
 } from '../../domain/knowledge/knowledge.types.js'
-import {
-  presentDistance,
-  presentSimilarity,
-  toRetrievalTraceDto,
-} from './knowledge/retrieval-trace-dto.js'
+import { presentSimilarity, toRetrievalTraceDto } from './knowledge/retrieval-trace-dto.js'
 
 export { toRetrievalTraceDto } from './knowledge/retrieval-trace-dto.js'
 
@@ -98,9 +94,6 @@ export function toRecordedGmContextSnapshot(
         ...(snapshot.sections.conversationState.workingMemory !== undefined
           ? { workingMemory: snapshot.sections.conversationState.workingMemory }
           : {}),
-        ...(snapshot.sections.conversationState.workingSummary !== undefined
-          ? { workingSummary: snapshot.sections.conversationState.workingSummary }
-          : {}),
         episodicMemories: snapshot.sections.conversationState.episodicMemories,
         longTermFacts: snapshot.sections.conversationState.longTermFacts,
       },
@@ -165,8 +158,6 @@ function toRecordedKnowledgeReference(item: RetrievedKnowledgeItem): RecordedKno
     chunkId: item.chunkId,
     knowledgeType: item.knowledgeType,
     content: item.content,
-    ...(item.score !== undefined ? { score: presentSimilarity(item.score) } : {}),
-    ...(item.distance !== undefined ? { distance: presentDistance(item.distance) } : {}),
     ...(item.similarity !== undefined ? { similarity: presentSimilarity(item.similarity) } : {}),
     ...(item.queryIndex !== undefined ? { queryIndex: item.queryIndex } : {}),
     ...(item.reason !== undefined ? { reason: item.reason } : {}),

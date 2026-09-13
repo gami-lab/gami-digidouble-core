@@ -1066,9 +1066,7 @@ curl "$BASE_URL/v1/admin/sessions/$SESSION_ID/inspect" \
         "lastActivityAt": "2026-04-20T10:10:00.000Z"
       },
       "gmState": {
-        "currentAvatarId": "avatar_01jwxxxxxy",
         "progression": "intro complete",
-        "topicsCovered": ["setup", "background"],
         "interactionCount": 5
       },
       "transitionHistory": [
@@ -1148,20 +1146,18 @@ curl "$BASE_URL/v1/admin/sessions/$SESSION_ID/events?limit=10" \
           "turnIndex": 5,
           "interactionCount": 5,
           "stateBefore": {
-            "currentAvatarId": "avatar_01jwxxxxxx",
-            "progression": "intro",
-            "topicsCovered": ["setup"]
+            "progression": "intro"
           },
           "decision": {
-            "avatarId": "avatar_01jwxxxxxy",
-            "conversationMode": "new",
+            "dialogueMode": "transition",
+            "askFollowUp": false,
             "notesInjected": true,
-            "directiveCount": 1
+            "injectedNote": "Ask Theo for concrete implementation details next.",
+            "retrievalRequired": false,
+            "progression": "none"
           },
           "stateAfter": {
-            "currentAvatarId": "avatar_01jwxxxxxy",
-            "progression": "intro complete",
-            "topicsCovered": ["setup", "background"]
+            "progression": "intro complete"
           },
           "latencyMs": 240,
           "inputTokens": 180,

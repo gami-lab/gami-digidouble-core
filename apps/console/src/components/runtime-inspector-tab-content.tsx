@@ -454,7 +454,7 @@ function renderGmRuntimeContext(
         {String(gmSections.conversationState.recentMessages.length)}
       </Row>
       <Row label="Conversation Working Memory">
-        {workingMemory?.summary ?? gmSections.conversationState.workingSummary ?? '-'}
+        {workingMemory?.summary ?? '-'}
       </Row>
       <Row label="GM unresolved threads">{formatInlineItems(workingMemory?.unresolvedThreads)}</Row>
       <Row label="GM covered topics">{formatInlineItems(workingMemory?.coveredTopics)}</Row>
@@ -646,15 +646,9 @@ function TraceRetrievalSection({
             ) : null}
           </div>
           <div>
-            <div>Similarity / distance</div>
+            <div>Similarity</div>
             <div style={{ color: '#6b7280', fontSize: '12px' }}>
-              {item.similarity !== undefined
-                ? item.similarity.toFixed(4)
-                : item.score !== undefined
-                  ? item.score.toFixed(4)
-                  : '-'}
-              {' / '}
-              {item.distance !== undefined ? item.distance.toFixed(4) : '-'}
+              {item.similarity !== undefined ? item.similarity.toFixed(4) : '-'}
             </div>
           </div>
           {item.content !== undefined ? (

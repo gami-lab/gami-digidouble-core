@@ -82,7 +82,7 @@ The platform is now a working headless conversational runtime with:
   lifecycle remains owned by the existing platform switch use case.
 - GM output is stored as turn-scoped next-turn orchestration state; the next Avatar turn consumes matching dialogue guidance and retrieval intent exactly once.
 - GM retrieval queries and required facts are used as RAG query variants, and are instructed to follow the Scenario description language used by the knowledge documents. The GM prompt treats retrieval as forward-looking preparation for the next related turn, anticipating likely continuation context in addition to handling exact questions, contradictions, and knowledge-boundary issues.
-- Avatar retrieval keeps the best distinct match for the user question, GM retrieval queries, and GM required facts before filling remaining slots by global score; retrieval diagnostics preserve the matched input and chunk content for console inspection. Runtime events now expose the GM retrieval plan and link it to the subsequent Avatar turn, including per-proposal match outcomes.
+- Avatar retrieval keeps the best distinct match for the user question, GM retrieval queries, and GM required facts before filling remaining slots by normalized similarity; retrieval diagnostics preserve the matched input and chunk content for console inspection. Runtime events now expose the GM retrieval plan and link it to the subsequent Avatar turn, including per-proposal match outcomes.
 - Required retrieval gaps inject explicit uncertainty guidance, and invalid routing falls back to `stay` without changing progression or memory ownership.
 - Safe GM diagnostics are recorded in the event log and exposed through admin APIs.
 - Invalid-output traces and parser failures record bounded metadata only; raw prompts, user
@@ -103,10 +103,8 @@ The platform is now a working headless conversational runtime with:
   `candidateFacts`; Avatar claims remain untrusted unless user-supported or provenance-labeled.
 - Contradicted Avatar claims are filtered before working-memory persistence, while user-supported
   and verified-context claims remain eligible.
-- Legacy GM state and pending orchestration records remain readable through compatibility
-  normalization, with ambiguous legacy routing ignored.
-- Legacy GM-state fields remain readable through the deferred compatibility normalizer; removal is
-  owned by EPIC 10.1 Prompt 3. They are not columns in the fresh canonical `gm_states` table.
+- Persisted GM orchestration state is parsed as the current structured shape only; malformed or
+  pre-current JSON is ignored as invalid current state rather than normalized.
 - Memory layers are inspectable through admin routes and runtime tooling.
 
 ### Knowledge And Context
@@ -134,7 +132,7 @@ validation module; static knowledge is never converted into conversational memor
 
 Static retrieval now accepts only scenario/query/Avatar-visibility inputs. Candidates are limited
 by canonical type, ready source, active corpus, and visibility; the explicit GM bypass changes
-visibility only. User/session/conversation scope filtering, score boosts, request fields, and
+visibility only. User/session/conversation scope filtering, ranking boosts, request fields, and
 retrieval diagnostics were removed, and admin/console clients use the shared request contract.
 Source/chunk create, update, ingestion, and reindex writes reject reserved scope metadata.
 Reset, conversation close, memory maintenance, and static reindex remain independent owners, with
@@ -159,8 +157,8 @@ Conversation memory views include user, session, and conversation scope where ap
 `SessionMemoryLayers.userId` is part of the shared inspection DTO. No new
 operator endpoint was required; the existing source list, retrieval tester, session context, event,
 and memory-layer surfaces remain the owners. Source presenters recursively redact content/vector
-metadata from operator output, and legacy event match-basis names are normalized at the reader/UI
-boundary without restoring static user/session/conversation scope.
+metadata from operator output, and current event projections expose only the structured section
+shape and canonical retrieval similarity field.
 
 #### EPIC 4.2d isolation proof and documentation ✅ Prompt 05 complete
 
@@ -220,7 +218,8 @@ The retrieval audit established one shared query-source/variant contract and dom
 vector candidates, typed results, traces, and controlled failures. `@gami/shared` now owns safe
 retrieval references and diagnostic DTOs used by admin responses, recorded runtime context, and
 console-derived views. Cosine distance is the repository truth and normalized similarity is
-`1 - distance`; presenter mappers clamp/round only at the public boundary. Diagnostics include
+`1 - distance`; presenter mappers clamp/round only at the public boundary. Public references expose
+normalized similarity while raw distance remains internal. Diagnostics include
 bounded profile, timing, count, visibility, query-index, outcome, and failure fields without raw
 vectors. Candidate exclusions distinguish duplicate removal from bounded selection drops when
 available; SQL eligibility exclusions remain optional because retrieval does not perform an extra
@@ -241,7 +240,7 @@ index-compatible query shape. A deterministic semantic-fixture regression now pr
 paraphrase proximity, unrelated-vector exclusion, matched-variant mapping, and active-profile
 consistency through the application retrieval boundary. The complete requirements-to-tests matrix
 is maintained in [EPIC_5_1D_REQUIREMENTS_MATRIX.md](EPIC_5_1D_REQUIREMENTS_MATRIX.md). Admin
-presentation remains additive and contract-compatible.
+presentation uses the current shared contract.
 
 The final verification run on 2026-09-09 passed the deterministic repository test suite (958 core
 tests; all workspace packages passed), typecheck, lint, build, formatting, and diff checks. The
@@ -424,6 +423,19 @@ retrieval proof or change production behavior.
   layered memory repositories and preserves current short-term, working, episodic, and fact views.
 - Updated canonical-content tests and source-of-truth documentation; no database migration path or
   compatibility reader remains for the removed surfaces.
+
+### EPIC 10.1 Prompt 3 — current GM state, output, and event contracts
+
+- Removed pre-current GM state migration/normalization and replaced it with a strict parser for the
+  current `GameMasterOrchestrationState` JSON shape.
+- Required `retrievalPlan`, `directorNotes`, and `progressionUpdate` in GM output parsing and prompt
+  instructions; malformed or legacy-shaped output is rejected with bounded diagnostics.
+- Restricted session-event inspection to current structured Avatar/GM `sections` payloads and
+  removed flattened context readers and legacy retrieval aliases.
+- Standardized public and recorded retrieval references on normalized cosine `similarity`; raw
+  vector distance remains internal to the repository search path.
+- Removed obsolete GM state/context projections and legacy scope-match presentation labels while
+  preserving asynchronous execution, routing safeguards, redaction, and observability.
 
 ## Open Product Work
 

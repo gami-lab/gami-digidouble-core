@@ -407,9 +407,9 @@ All admin endpoints live under `/v1/admin/*`.
   diagnostics are owned by `@gami/shared`: safe embedding profile identity, bounded timings,
   query-vector/candidate/selected/excluded counts, duplicate and selection-exclusion counts when
   available, visibility mode, outcome/failure code, and
-  optional cosine `distance`/normalized `similarity`. Cosine distance is lower-is-better;
-  similarity is `1 - distance`; clamping and rounding are applied only at the presenter boundary. The compatibility
-  `score` field carries the same normalized similarity in runtime retrieval. The trace also carries
+  optional normalized cosine `similarity`. Similarity is `1 - distance`; clamping and rounding are
+  applied only at the presenter boundary. Raw cosine distance remains an internal repository
+  diagnostic and is not part of public or recorded retrieval references. The trace also carries
   explicit `gmUnrestricted` state; it is never inferred from an absent avatar ID. No raw vectors are
   exposed.
 
@@ -426,7 +426,7 @@ The request is intentionally scenario-shared:
 
 `sessionId`, `userId`, and `conversationId` are not accepted retrieval fields. Conversational
 memory is selected through its existing lifecycle repositories and is never a static RAG filter or
-score input. `activeAvatarId` controls Avatar visibility only; the Game Master bypass does not skip
+ranking input. `activeAvatarId` controls Avatar visibility only; the Game Master bypass does not skip
 scenario, type, readiness, active-corpus, or metadata validity constraints.
 
 Runtime `turn_completed` event retrieval references include the selected chunk content and matched
@@ -434,14 +434,14 @@ query source/text so the console can inspect the exact knowledge passed to the A
 events include the retrieval plan's required flag, proposed queries, and required facts. When a
 subsequent Avatar turn consumes that plan, its `turn_completed` event records the source turn and
 plan contents so the console can show which proposals produced matching chunks. Recorded retrieval
-references may carry the same safe query-index, distance/similarity, and trace diagnostics; their
+references may carry the same safe query-index, similarity, and trace diagnostics; their
 shared DTO deliberately omits metadata and raw vectors.
 
 The `turn_completed.contextSelection` projection additionally reports the canonical bounded
 `retrievalTrace` and `contextEngineSelection` kept/trimmed segment counts. The session-context
 inspection trace reports the same retrieval trace under `selectedInputs.retrieval` alongside the
-existing final selection `kept` and `trimmed` entries. These fields are optional so older persisted
-events remain readable. Retrieval candidate counts describe rows returned after SQL eligibility
+existing final selection `kept` and `trimmed` entries. These fields are optional because not every
+current event carries every diagnostic. Retrieval candidate counts describe rows returned after SQL eligibility
 filters; `duplicateCount` describes multi-query chunk deduplication and
 `selectionExcludedCount` describes bounded retrieval selection drops. No expensive excluded-row
 count is inferred when the repository does not provide one.
@@ -505,10 +505,8 @@ Runtime precedence:
 - Session context is a bounded current snapshot, not a replay of a specific historical turn.
 - Session, Conversation, and Message response projections use the shared entity contracts; Core maps
   domain entities at the application boundary rather than exposing persistence rows.
-- Current shared GM state projections expose progression and interaction count; covered topics are
+- Current GM state projections expose only progression and interaction count; covered topics are
   exposed only under memory-owned working-memory sections.
-- Legacy `gm_states.topics_covered` data may be read for persistence compatibility but is omitted
-  from current admin DTOs and runtime event summaries.
 - Admin context and recorded GM context keep `conversationState` and `retrievedContext` as separate
   projections. Conversation state contains bounded messages/exchanges, working memory, episodic
   memories, and long-term facts. Retrieved context contains only static `avatar_knowledge`, `world`,

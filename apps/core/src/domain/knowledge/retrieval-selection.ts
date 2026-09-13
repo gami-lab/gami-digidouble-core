@@ -93,8 +93,8 @@ function sortRetrievedItems(items: RetrievedKnowledgeItem[]): RetrievedKnowledge
 }
 
 function compareRetrievedItems(a: RetrievedKnowledgeItem, b: RetrievedKnowledgeItem): number {
-  const scoreDifference = (b.similarity ?? b.score ?? 0) - (a.similarity ?? a.score ?? 0)
-  if (scoreDifference !== 0) return scoreDifference
+  const similarityDifference = (b.similarity ?? 0) - (a.similarity ?? 0)
+  if (similarityDifference !== 0) return similarityDifference
   const sourceDifference = sourceRank(a.matchedQuery?.source) - sourceRank(b.matchedQuery?.source)
   if (sourceDifference !== 0) return sourceDifference
   if (a.chunkId !== b.chunkId) return a.chunkId.localeCompare(b.chunkId)

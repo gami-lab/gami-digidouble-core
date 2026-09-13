@@ -169,7 +169,7 @@ function readMemoryTrigger(value: unknown): MemoryRefreshEventPayload['trigger']
 
 function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompletedEventPayload {
   const avatarContext = readOptionalAvatarContextSnapshot(payload['avatarContext'])
-  const contextSelection = readOptionalContextSelection(payload['contextSelection'], avatarContext)
+  const contextSelection = readOptionalContextSelection(payload['contextSelection'])
   const consumedGmRetrievalPlan = readConsumedGmRetrievalPlan(payload['consumedGmRetrievalPlan'])
   return {
     conversationId: readString(payload['conversationId']),
@@ -195,6 +195,7 @@ function readOptionalAvatarContextSnapshot(
   value: unknown,
 ): RecordedAvatarContextSnapshot | undefined {
   if (!isRecord(value)) return undefined
+  if (!hasOnlyKeys(value, ['avatarId', 'sections'])) return undefined
 
   if (isRecord(value['sections'])) {
     return {
@@ -202,71 +203,32 @@ function readOptionalAvatarContextSnapshot(
       sections: readAvatarSections(value['sections']),
     }
   }
-
-  return {
-    ...(typeof value['avatarId'] === 'string' ? { avatarId: value['avatarId'] } : {}),
-    sections: readLegacyAvatarSections(value),
-  }
+  return undefined
 }
 
 function readOptionalGmContextSnapshot(value: unknown): RecordedGmContextSnapshot | undefined {
   if (!isRecord(value)) return undefined
+  if (!hasOnlyKeys(value, ['currentState', 'availableAvatars', 'sections'])) return undefined
+  if (!isRecord(value['sections'])) return undefined
 
   return {
     currentState: readFullStateSummary(value['currentState']),
     availableAvatars: readAvailableAvatars(value['availableAvatars']),
-    sections: isRecord(value['sections'])
-      ? readGmSections(value['sections'])
-      : readLegacyGmSections(value),
+    sections: readGmSections(value['sections']),
   }
 }
 
-// eslint-disable-next-line complexity
 function readOptionalContextSelection(
   value: unknown,
-  avatarContext: RecordedAvatarContextSnapshot | undefined,
 ): TurnCompletedEventPayload['contextSelection'] | undefined {
   if (!isRecord(value)) return undefined
-  const retrieval = readOptionalRetrievalSelection(value['retrieval'], avatarContext)
+  const retrieval = readOptionalRetrievalSelection(value['retrieval'])
   const contextEngineSelection = readContextEngineSelection(value['contextEngineSelection'])
-  const retrievalCountsValue = isRecord(value['retrievalCounts'])
-    ? value['retrievalCounts']
-    : undefined
-  const visibility = readOptionalVisibilitySelection(value['visibility'])
   const selection = {
     shortTermExchangeCount: readNumber(value['shortTermExchangeCount']),
     hasWorkingMemory: readBoolean(value['hasWorkingMemory']),
     longTermFactCount: readNumber(value['longTermFactCount']),
-    ...(retrieval !== undefined
-      ? { retrieval }
-      : retrievalCountsValue !== undefined
-        ? {
-            retrieval: {
-              selectedForAssemblyCounts: readRetrievalCounts(retrievalCountsValue),
-              includedCounts: readIncludedRetrievalCounts(avatarContext),
-              omittedByAssemblyCounts: {
-                avatar_knowledge: Math.max(
-                  0,
-                  readNumber(retrievalCountsValue['avatar_knowledge']) -
-                    (avatarContext?.sections.retrievedContext?.avatar_knowledge.length ?? 0),
-                ),
-                world: Math.max(
-                  0,
-                  readNumber(retrievalCountsValue['world']) -
-                    (avatarContext?.sections.retrievedContext?.world.length ?? 0),
-                ),
-                media: Math.max(
-                  0,
-                  readNumber(retrievalCountsValue['media']) -
-                    (avatarContext?.sections.retrievedContext?.media.length ?? 0),
-                ),
-              },
-              ...(visibility !== undefined
-                ? { excludedByVisibilityCounts: visibility.excludedCounts }
-                : {}),
-            },
-          }
-        : {}),
+    ...(retrieval !== undefined ? { retrieval } : {}),
     ...(contextEngineSelection !== undefined ? { contextEngineSelection } : {}),
     hasUserPersona: readBoolean(value['hasUserPersona']),
     hasGmDirective: readBoolean(value['hasGmDirective']),
@@ -280,14 +242,11 @@ function readOptionalContextSelection(
 // eslint-disable-next-line complexity
 function readOptionalRetrievalSelection(
   value: unknown,
-  avatarContext: RecordedAvatarContextSnapshot | undefined,
 ): NonNullable<TurnCompletedEventPayload['contextSelection']>['retrieval'] | undefined {
   if (!isRecord(value)) return undefined
   const selectedCountsValue = isRecord(value['selectedForAssemblyCounts'])
     ? value['selectedForAssemblyCounts']
-    : isRecord(value['selectedCounts'])
-      ? value['selectedCounts']
-      : undefined
+    : undefined
   const includedCountsValue = isRecord(value['includedCounts'])
     ? value['includedCounts']
     : undefined
@@ -298,21 +257,11 @@ function readOptionalRetrievalSelection(
     ? value['excludedByVisibilityCounts']
     : undefined
   const retrievalTrace = parseRetrievalTraceDto(value['retrievalTrace'])
-  if (
-    selectedCountsValue === undefined &&
-    includedCountsValue === undefined &&
-    retrievalTrace === undefined
-  ) {
+  if (selectedCountsValue === undefined || includedCountsValue === undefined) {
     return undefined
   }
-  const selectedForAssemblyCounts =
-    selectedCountsValue !== undefined
-      ? readRetrievalCounts(selectedCountsValue)
-      : { avatar_knowledge: 0, world: 0, media: 0 }
-  const includedCounts =
-    includedCountsValue !== undefined
-      ? readRetrievalCounts(includedCountsValue)
-      : readIncludedRetrievalCounts(avatarContext)
+  const selectedForAssemblyCounts = readRetrievalCounts(selectedCountsValue)
+  const includedCounts = readRetrievalCounts(includedCountsValue)
   return {
     selectedForAssemblyCounts,
     includedCounts,
@@ -345,20 +294,6 @@ function readContextEngineSelection(
   return { keptSegmentCount, trimmedSegmentCount }
 }
 
-function readOptionalVisibilitySelection(
-  value: unknown,
-): { excludedCounts: { avatar_knowledge: number; world: number; media: number } } | undefined {
-  if (!isRecord(value)) return undefined
-  const excludedCountsValue = isRecord(value['excludedCounts']) ? value['excludedCounts'] : {}
-  return {
-    excludedCounts: {
-      avatar_knowledge: readNumber(excludedCountsValue['avatar_knowledge']),
-      world: readNumber(excludedCountsValue['world']),
-      media: readNumber(excludedCountsValue['media']),
-    },
-  }
-}
-
 function readRetrievalCounts(value: Record<string, unknown>): {
   avatar_knowledge: number
   world: number
@@ -368,18 +303,6 @@ function readRetrievalCounts(value: Record<string, unknown>): {
     avatar_knowledge: readNumber(value['avatar_knowledge']),
     world: readNumber(value['world']),
     media: readNumber(value['media']),
-  }
-}
-
-function readIncludedRetrievalCounts(avatarContext: RecordedAvatarContextSnapshot | undefined): {
-  avatar_knowledge: number
-  world: number
-  media: number
-} {
-  return {
-    avatar_knowledge: avatarContext?.sections.retrievedContext?.avatar_knowledge.length ?? 0,
-    world: avatarContext?.sections.retrievedContext?.world.length ?? 0,
-    media: avatarContext?.sections.retrievedContext?.media.length ?? 0,
   }
 }
 
@@ -538,31 +461,6 @@ function readAvatarSections(
   }
 }
 
-function readLegacyAvatarSections(
-  value: Record<string, unknown>,
-): RecordedAvatarContextSnapshot['sections'] {
-  const retrievedContext = isRecord(value['knowledge'])
-    ? readAvatarKnowledge(value['knowledge'])
-    : undefined
-  const avatarTraits = isRecord(value['avatarTraits'])
-    ? readRecordedAvatarTraits(value['avatarTraits'])
-    : undefined
-  return {
-    directorNotes: readStringOrNull(value['gmNotes']),
-    responseRules: { count: readNumber(value['responseRuleCount']) },
-    conversationState: {
-      recentExchanges: readRecentExchanges(value),
-      workingMemory: readAvatarWorkingMemory(value),
-      episodicMemories: [],
-      longTermFacts: readLongTermFacts(value),
-    },
-    ...(retrievedContext !== undefined ? { retrievedContext } : {}),
-    userPersona: readUserPersona(value['userPersona']),
-    worldContext: readScenarioSnapshot(value['scenario']),
-    ...(avatarTraits !== undefined ? { avatarTraits } : {}),
-  }
-}
-
 function readGmSections(value: Record<string, unknown>): RecordedGmContextSnapshot['sections'] {
   const retrievedContext = isRecord(value['retrievedContext'])
     ? readGmKnowledge(value['retrievedContext'])
@@ -579,28 +477,11 @@ function readGmSections(value: Record<string, unknown>): RecordedGmContextSnapsh
   }
 }
 
-function readLegacyGmSections(
-  value: Record<string, unknown>,
-): RecordedGmContextSnapshot['sections'] {
-  const retrievedContext = isRecord(value['knowledge'])
-    ? readGmKnowledge(value['knowledge'])
-    : undefined
-  return {
-    conversationState: {
-      recentMessages: readRecentMessages(value),
-      ...readGmMemory(value),
-    },
-    ...(retrievedContext !== undefined ? { retrievedContext } : {}),
-    userPersona: readUserPersona(value['userPersona']),
-    worldContext: readScenarioSnapshot(value['scenario']),
-  }
-}
-
 function readRecentExchanges(
   value: unknown,
 ): RecordedAvatarContextSnapshot['sections']['conversationState']['recentExchanges'] {
   const record = isRecord(value) ? value : {}
-  const rawValue = Array.isArray(record['recentExchanges']) ? record['recentExchanges'] : value
+  const rawValue = record['recentExchanges']
   if (!Array.isArray(rawValue)) return []
   return rawValue
     .map((entry) => {
@@ -622,7 +503,7 @@ function readAvatarWorkingMemory(
   value: unknown,
 ): RecordedAvatarContextSnapshot['sections']['conversationState']['workingMemory'] {
   const record = isRecord(value) ? value : {}
-  const workingMemory = isRecord(record['workingMemory']) ? record['workingMemory'] : record
+  const workingMemory = isRecord(record['workingMemory']) ? record['workingMemory'] : {}
   return {
     ...(isRecord(workingMemory['session'])
       ? { session: readWorkingSession(workingMemory['session']) }
@@ -677,7 +558,7 @@ function readLongTermFacts(
   value: unknown,
 ): RecordedAvatarContextSnapshot['sections']['conversationState']['longTermFacts'] {
   const record = isRecord(value) ? value : {}
-  const rawValue = Array.isArray(record['longTermFacts']) ? record['longTermFacts'] : value
+  const rawValue = record['longTermFacts']
   if (!Array.isArray(rawValue)) return []
   return rawValue
     .map((entry) => {
@@ -741,15 +622,7 @@ function readEpisodicMemories(
 function readAvatarKnowledge(
   value: Record<string, unknown>,
 ): RecordedAvatarContextSnapshot['sections']['retrievedContext'] | undefined {
-  const typedSectionsValue = isRecord(value['typedSections']) ? value['typedSections'] : undefined
-  const typedSections =
-    typedSectionsValue !== undefined
-      ? readRecordedTypedSections(typedSectionsValue)
-      : Array.isArray(value['avatar_knowledge']) ||
-          Array.isArray(value['world']) ||
-          Array.isArray(value['media'])
-        ? readRecordedTypedSections(value)
-        : groupRecordedKnowledgeReferences(readRecordedKnowledgeReferences(value['retrievedItems']))
+  const typedSections = readRecordedTypedSections(value)
   if (!hasRecordedKnowledge(typedSections) && typedSections.trace === undefined) return undefined
   return typedSections
 }
@@ -758,17 +631,12 @@ function readGmMemory(
   value: unknown,
 ): Omit<RecordedGmContextSnapshot['sections']['conversationState'], 'recentMessages'> {
   const record = isRecord(value) ? value : {}
-  const memory = isRecord(record['memory']) ? record['memory'] : record
-  const workingMemory = readOptionalGmWorkingMemory(memory['workingMemory'])
-  const workingSummary = readOptionalString(memory['workingSummary'])
+  const workingMemory = readOptionalGmWorkingMemory(record['workingMemory'])
   return {
-    recentExchanges: isRecord(memory['shortTerm'])
-      ? readRecentExchanges(memory['shortTerm'])
-      : readRecentExchanges(memory['recentExchanges']),
+    recentExchanges: readRecentExchanges(record),
     ...(workingMemory !== undefined ? { workingMemory } : {}),
-    ...(workingSummary !== undefined ? { workingSummary } : {}),
-    episodicMemories: readEpisodicMemories(memory),
-    longTermFacts: readLongTermFacts(memory['longTermFacts']),
+    episodicMemories: readEpisodicMemories(record),
+    longTermFacts: readLongTermFacts(record),
   }
 }
 
@@ -798,7 +666,7 @@ function readRecentMessages(
   value: unknown,
 ): RecordedGmContextSnapshot['sections']['conversationState']['recentMessages'] {
   const record = isRecord(value) ? value : {}
-  const rawValue = Array.isArray(record['recentMessages']) ? record['recentMessages'] : value
+  const rawValue = record['recentMessages']
   if (!Array.isArray(rawValue)) return []
   return rawValue
     .map((entry) => {
@@ -911,22 +779,6 @@ function readRecordedTypedSections(value: Record<string, unknown>): RecordedType
   }
 }
 
-function groupRecordedKnowledgeReferences(
-  items: RecordedKnowledgeReference[],
-): RecordedTypedKnowledgeSections {
-  return items.reduce(
-    (grouped, item) => {
-      grouped[item.knowledgeType].push(item)
-      return grouped
-    },
-    {
-      avatar_knowledge: [] as RecordedKnowledgeReference[],
-      world: [] as RecordedKnowledgeReference[],
-      media: [] as RecordedKnowledgeReference[],
-    },
-  )
-}
-
 function hasRecordedKnowledge(
   value: Pick<RecordedTypedKnowledgeSections, 'avatar_knowledge' | 'world' | 'media'>,
 ): boolean {
@@ -952,8 +804,6 @@ function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeRefere
     chunkId,
     knowledgeType,
     ...(typeof entry['content'] === 'string' ? { content: entry['content'] } : {}),
-    ...(typeof entry['score'] === 'number' ? { score: entry['score'] } : {}),
-    ...(typeof entry['distance'] === 'number' ? { distance: entry['distance'] } : {}),
     ...(typeof entry['similarity'] === 'number' ? { similarity: entry['similarity'] } : {}),
     ...(typeof entry['queryIndex'] === 'number' ? { queryIndex: entry['queryIndex'] } : {}),
     ...(typeof entry['reason'] === 'string' ? { reason: entry['reason'] } : {}),
@@ -1061,4 +911,9 @@ function readBoolean(value: unknown): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  const allowed = new Set(keys)
+  return Object.keys(value).every((key) => allowed.has(key))
 }

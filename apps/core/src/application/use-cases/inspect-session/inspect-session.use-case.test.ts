@@ -17,7 +17,6 @@ const defaultScenarioModelSelection = {
 
 const defaultGmState = {
   progression: 'intro complete',
-  topicsCovered: ['setup'],
   interactionCount: 4,
 }
 

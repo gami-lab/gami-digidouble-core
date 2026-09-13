@@ -27,13 +27,6 @@ import type {
 export interface GameMasterState {
   /** Textual description of where the user is in the experience. */
   progression: string
-  /**
-   * Retained for schema/API compatibility only. Covered-topic tracking is now
-   * owned exclusively by memory compaction (`ConversationWorkingMemory.coveredTopics`);
-   * the GM no longer reports or appends to this field.
-   */
-  /** Legacy persisted field; never read for orchestration and never written by GM logic. */
-  topicsCovered?: string[]
   interactionCount: number
   /** Latest unconsumed GM result for the next Avatar turn. */
   nextTurnOrchestration?: GameMasterOrchestrationState
@@ -61,8 +54,6 @@ export interface GameMasterInput {
       recentMessages: ContextMessage[]
       recentExchanges: ShortTermMemoryExchange[]
       workingMemory?: GameMasterMemoryContext['workingMemory']
-      /** Compatibility mirror of the internal working-memory summary only. */
-      workingSummary?: string
       episodicMemories: SelectedEpisodicMemory[]
       longTermFacts: NonNullable<GameMasterMemoryContext['longTermFacts']>
     }

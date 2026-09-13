@@ -64,7 +64,6 @@ function makeEvent(type: StoredEvent['type'], correlationId: string): StoredEven
       interactionCount: 5,
       stateBefore: {
         progression: 'intro',
-        topicsCovered: ['setup'],
       },
       latencyMs: 8,
       ...(isError ? { errorCode: 'llm_error' } : {}),

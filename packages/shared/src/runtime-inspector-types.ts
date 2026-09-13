@@ -314,8 +314,6 @@ export type SessionContextAvailableAvatar = {
 export type SessionContextGmMemory = {
   recentExchanges: SharedShortTermMemoryExchange[]
   workingMemory?: SharedGmWorkingMemory
-  /** Compatibility mirror of the internal working-memory summary only. */
-  workingSummary?: string
   episodicMemories: SharedSelectedEpisodicMemory[]
   longTermFacts: SharedLongTermMemoryFact[]
 }

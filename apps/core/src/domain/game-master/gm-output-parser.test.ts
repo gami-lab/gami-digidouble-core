@@ -3,7 +3,9 @@ import { safeParseGameMasterOutput } from './gm-output-parser.js'
 
 const validDialogueControl = {
   dialogueControl: { mode: 'user_led', askFollowUp: false },
+  retrievalPlan: { required: false },
   directorNotes: 'Keep the next answer focused on the current subject.',
+  progressionUpdate: { progression: 'none' },
 }
 
 afterEach(() => {
@@ -26,7 +28,9 @@ describe('safeParseGameMasterOutput', () => {
       const parsed = safeParseGameMasterOutput(
         JSON.stringify({
           dialogueControl: { mode, askFollowUp: false },
+          retrievalPlan: { required: false },
           directorNotes: 'Keep the next answer focused on the current subject.',
+          progressionUpdate: { progression: 'none' },
         }),
       )
 
@@ -34,7 +38,7 @@ describe('safeParseGameMasterOutput', () => {
     },
   )
 
-  it('requires directorNotes and accepts optional retrieval, routing, and progression fields', () => {
+  it('requires retrievalPlan, directorNotes, and progressionUpdate', () => {
     const parsed = safeParseGameMasterOutput(JSON.stringify(validDialogueControl))
 
     expect(parsed).toMatchObject({
@@ -44,6 +48,15 @@ describe('safeParseGameMasterOutput', () => {
     })
     expect(parsed).toHaveProperty('directorNotes', validDialogueControl.directorNotes)
     expect(parsed).not.toHaveProperty('routing')
+  })
+
+  it.each(['retrievalPlan', 'progressionUpdate'])('rejects missing required field %s', (field) => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const output: Record<string, unknown> = { ...validDialogueControl }
+    const { [field]: removedField, ...withoutField } = output
+    expect(removedField).toBeDefined()
+
+    expect(safeParseGameMasterOutput(JSON.stringify(withoutField))).toBeNull()
   })
 
   it.each([undefined, '', '   '])('rejects missing or blank directorNotes: %j', (directorNotes) => {
@@ -76,7 +89,8 @@ describe('safeParseGameMasterOutput', () => {
     ).toBeNull()
   })
 
-  it('ignores obsolete top-level application and memory fields', () => {
+  it('rejects obsolete top-level application and memory fields', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const parsed = safeParseGameMasterOutput(
       JSON.stringify({
         ...validDialogueControl,
@@ -92,15 +106,7 @@ describe('safeParseGameMasterOutput', () => {
       }),
     )
 
-    expect(parsed).not.toHaveProperty('avatarId')
-    expect(parsed).not.toHaveProperty('nextAvatarId')
-    expect(parsed).not.toHaveProperty('conversationMode')
-    expect(parsed).not.toHaveProperty('topicCovered')
-    expect(parsed).not.toHaveProperty('interactionIncrement')
-    expect(parsed).not.toHaveProperty('suggestedAvatarId')
-    expect(parsed).not.toHaveProperty('suggestedAvatarReason')
-    expect(parsed).not.toHaveProperty('unlockAvatarIds')
-    expect(parsed).not.toHaveProperty('transitionReason')
+    expect(parsed).toBeNull()
   })
 
   it('falls invalid routing back to stay', () => {

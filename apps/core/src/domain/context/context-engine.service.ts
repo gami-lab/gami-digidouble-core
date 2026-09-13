@@ -190,12 +190,6 @@ function pushWorkingMemoryCandidates(
           unresolvedThreads: memory.working.conversation.unresolvedThreads,
           coveredTopics: memory.working.conversation.coveredTopics,
         }
-        draft.gm.sections.conversationState.workingSummary = memory.working.conversation.summary
-      } else {
-        const workingSummary = toWorkingSummary(memory)
-        if (workingSummary !== undefined) {
-          draft.gm.sections.conversationState.workingSummary = workingSummary
-        }
       }
     },
   })
@@ -743,18 +737,6 @@ function dedupeRetrievedItems(
     output.push(item)
   }
   return output
-}
-
-function toWorkingSummary(memory: ContextEngineInput['extensions']['memory']): string | undefined {
-  if (memory === undefined) return undefined
-  const parts: string[] = []
-  if (hasText(memory.working?.session?.summary)) parts.push(memory.working.session.summary.trim())
-  if (hasText(memory.working?.avatar?.summary)) {
-    parts.push(
-      `Avatar (${memory.working.avatar.avatarId}): ${memory.working.avatar.summary.trim()}`,
-    )
-  }
-  return parts.length > 0 ? parts.join('\n') : undefined
 }
 
 function toPersonaText(persona: ContextEngineInput['extensions']['userPersona']): string {

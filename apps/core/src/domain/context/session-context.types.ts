@@ -80,8 +80,6 @@ export type GmContextConversationState = {
   recentMessages: ContextMessage[]
   recentExchanges: ShortTermMemoryExchange[]
   workingMemory?: NonNullable<GameMasterMemoryContext['workingMemory']>
-  /** Compatibility mirror of GameMasterMemoryContext.workingMemory.summary only. */
-  workingSummary?: string
   episodicMemories: SelectedEpisodicMemory[]
   longTermFacts: LongTermMemoryFact[]
 }

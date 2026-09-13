@@ -31,7 +31,6 @@ export function buildGmContextSnapshot(args: {
                 unresolvedThreads: args.memory.workingMemory.unresolvedThreads,
                 coveredTopics: args.memory.workingMemory.coveredTopics,
               },
-              workingSummary: args.memory.workingMemory.summary,
             }
           : {}),
         episodicMemories: args.memory?.episodicMemories ?? [],

@@ -12,7 +12,7 @@ function item(
     chunkId,
     knowledgeType: 'world',
     content: chunkId,
-    score: 1,
+    similarity: 1,
     matchedQuery: { source, text: source },
   }
 }

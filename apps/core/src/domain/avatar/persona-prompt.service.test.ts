@@ -30,14 +30,14 @@ function retrievalItem(
   knowledgeType: KnowledgeType,
   chunkId: string,
   content: string,
-  score?: number,
+  similarity?: number,
 ) {
   return {
     sourceId: `${knowledgeType}_${chunkId}`,
     chunkId,
     knowledgeType,
     content,
-    ...(score !== undefined ? { score } : {}),
+    ...(similarity !== undefined ? { similarity } : {}),
   }
 }
 

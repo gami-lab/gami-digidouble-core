@@ -35,7 +35,6 @@ function makeInput(overrides: InputOverrides = {}): GameMasterInput {
     },
     state: {
       progression: 'investigation',
-      topicsCovered: ['harbor'],
       interactionCount: 3,
       ...overrides.state,
     },
@@ -191,7 +190,6 @@ describe('renderGameMasterInputForLlm', () => {
       },
       state: {
         progression: '',
-        topicsCovered: [],
         interactionCount: 0,
       },
       context: {

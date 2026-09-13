@@ -223,7 +223,6 @@ function createIntegrationHarness() {
       sessionId: 'session_1',
       state: {
         progression: 'intro',
-        topicsCovered: ['setup'],
         interactionCount: 1,
       },
     },
@@ -404,7 +403,6 @@ async function assertPersistenceAndEvents(harness: ReturnType<typeof createInteg
   })
   expect(await harness.gmStateRepository.findBySessionId('session_1')).toMatchObject({
     progression: 'intro [advanced]',
-    topicsCovered: ['setup'],
     interactionCount: 1,
     nextTurnOrchestration: {
       activeAvatarId: 'avatar_1',

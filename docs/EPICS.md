@@ -245,8 +245,9 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 
 **Current state**
 
-The compatibility audit, Prompt 0 contract baseline, and Prompt 1 fresh canonical database schema
-are complete. Runtime removal work for Prompts 02–04 remains pending. The product will be
+The compatibility audit, Prompt 0 contract baseline, Prompt 1 fresh canonical database schema,
+Prompt 2 knowledge/session-memory cleanup, and Prompt 3 GM/event cleanup are complete. Prompt 4
+content, visibility, routing, and model compatibility removal remains pending. The product will be
 redeployed with a fresh database and fresh content.
 
 **Purpose**
@@ -304,9 +305,10 @@ and retrieval observability. Runtime uses one shared profile-aware service with 
 filtered and GM unrestricted modes; failures remain controlled and no lexical fallback exists.
 Unified retrieval diagnostics now flow through the existing admin route, recorded turn events,
 session-context inspection, and console/admin views. Shared mappings expose profile, separate
-embedding/search timing, bounded candidate/selection/exclusion counts, cosine distance/similarity,
+embedding/search timing, bounded candidate/selection/exclusion counts, normalized similarity,
 visibility mode, failures, matched query variants, and final Context Engine kept/trimmed facts;
-older persisted events remain readable and the evaluation tool has no direct retrieval consumer.
+current event readers require structured context sections, and the evaluation tool has no direct
+retrieval consumer.
 
 The definition-of-done evidence is maintained in
 [EPIC_5_1D_REQUIREMENTS_MATRIX.md](EPIC_5_1D_REQUIREMENTS_MATRIX.md). Deterministic semantic,

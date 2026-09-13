@@ -81,7 +81,6 @@ function makeAssembledContext(): ContextEngineOutput {
     gm: {
       currentState: {
         progression: '',
-        topicsCovered: [],
         interactionCount: 0,
       },
       availableAvatars: [{ avatarId: 'avatar_1', name: 'Ava', availability: 'available' }],

@@ -229,7 +229,8 @@ close, switch, reset, reindex, and scenario-cascade boundaries, is maintained in
   - API-facing: `SessionContextAvatarSnapshot`
   - Internal grouping owner: `AvatarContextSnapshot.sections`
   - Canonical section order: Director Notes -> Response Rules -> Conversation State -> User Persona -> World Context -> Retrieved Context -> Avatar Traits
-  - Retrieval sections: `knowledge.typedSections.avatar_knowledge|world|media` are canonical and additive (merged `retrievedItems` remains for compatibility)
+  - Retrieval sections: `knowledge.typedSections.avatar_knowledge|world|media` are the canonical
+    structured projection; recorded event readers accept only the sectioned shape.
 - GM context snapshot:
   - Internal: `GmContextSnapshot`
   - API-facing: `SessionContextGmSnapshot`
@@ -309,21 +310,22 @@ deliberately separate; the mapper is the only place where the two shapes cross.
 - Session memory uses `SessionMemorySummary`, `SessionMemoryLayers`, and the domain memory types.
   The current short-term policy is three complete exchanges.
 - `GameMasterOutput` requires `dialogueControl`, `retrievalPlan`, `directorNotes`, and
-  `progressionUpdate`. Parser acceptance of older outputs belongs to Prompt 03.
+  `progressionUpdate`; the current parser rejects missing or legacy-shaped output.
 - Current event projections use sectioned Avatar/GM context snapshots and shared event payload
-  DTOs. Historical payload readers remain a Prompt 03 concern.
+  DTOs. Event readers accept only current structured section payloads.
 
 ### Prompt 01–04 handoff
 
-Prompt 0 established the contract baseline. Prompt 1 now owns the fresh-database bootstrap and
-removes runtime schema alignment; the unresolved paths are:
+Prompt 0 established the contract baseline. Prompt 1 owns the fresh-database bootstrap and removes
+runtime schema alignment; the remaining unresolved path is:
 
 - Prompt 01: complete. Fresh `init.sql` is authoritative, startup alignment is removed, and
   obsolete GM schema columns are absent from the canonical schema.
 - Prompt 02: complete. Static knowledge accepts only canonical types, reserved metadata validation
   has a current owner, legacy migration/quarantine tooling is removed, and session working memory
   is read only from layered memory tables without a session mirror.
-- Prompt 03: GM state migration/parser branches, old state fields, legacy event readers, and
-  compatibility-only ranking fields in historical diagnostics.
+- Prompt 03: complete. GM state parsing is current-shape-only, event readers accept structured
+  sections only, and public/recorded retrieval references use `similarity` as the single ranking
+  field.
 - Prompt 04: Avatar flat prompt/identity fallbacks, Scenario language fallbacks, `routeKey`, legacy
   visibility inference/sentinel handling, and runtime model-resolution compatibility wiring.

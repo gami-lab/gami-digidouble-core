@@ -4,19 +4,21 @@ This document describes the RAG code that is currently in this repository. It do
 
 ## Important conclusion
 
-The current composition **generates and stores an embedding for every ingested chunk, but does not
-use embeddings during retrieval**. Production composition uses the Infrastructure OpenAI adapter
-with an independent profile and no hash-vector fallback. The default profile is
+The current composition generates and stores an embedding for every ingested chunk and uses those
+embeddings during retrieval. Production composition uses the Infrastructure OpenAI adapter with an
+independent profile and no hash-vector fallback. The default profile is
 `text-embedding-3-small` with 16 requested dimensions, matching the current `VECTOR(16)` schema.
 
 Runtime retrieval currently:
 
 - loads every chunk belonging to the eligible sources;
 - filters those chunks by scenario, canonical type, readiness, active corpus, and visibility;
-- ranks them using the configured retrieval implementation without lifecycle-scope boosts;
-- selects the highest-scoring chunks deterministically.
+- embeds normalized query variants and searches bounded vector pools without lifecycle-scope boosts;
+- selects the highest-similarity chunks deterministically.
 
-There is currently no query embedding, no cosine-distance calculation in application code, and no SQL nearest-neighbor query. The `VECTOR(16)` column and the pgvector IVFFlat index exist in the database schema, but the current repository port only exposes `listBySourceIds`, not vector search.
+The application derives normalized cosine similarity from repository candidates. PostgreSQL performs
+the nearest-neighbor ordering and eligibility filtering through the canonical vector repository
+port.
 
 ## End-to-end flow
 
@@ -34,7 +36,7 @@ Avatar turn
   -> load all chunks for those sources
   -> scenario/type/readiness/active-corpus filtering
   -> Avatar visibility filtering (or explicit GM visibility bypass)
-  -> lexical token-overlap scoring
+  -> profile-aware query embedding and vector search
   -> deterministic per-type selection
   -> context-engine selection and token-budget filtering
   -> Avatar prompt
@@ -178,7 +180,8 @@ The database schema still stores the value as `VECTOR(16)` in [infra/postgres/in
 
 ## 4. How runtime query text is built
 
-The system does not build a vector query. It builds one or more text query variants and passes those strings to the lexical retrieval scorer.
+The system builds one or more normalized text query variants and embeds them through
+`KnowledgeQueryEmbeddingService` before vector retrieval.
 
 ### Avatar query inputs
 
@@ -233,11 +236,13 @@ For one type, the process is:
 3. Apply visibility filtering.
 4. Apply active-corpus and embedding identity checks.
 5. Apply Avatar visibility, unless the explicit Game Master bypass is active.
-6. Score every remaining chunk against every query variant.
-7. Sort deterministically.
+6. Embed normalized query variants once and search bounded candidate pools.
+7. Merge, deduplicate, and rank by normalized similarity deterministically.
 8. Select up to the per-type limit.
 
-The PostgreSQL implementation currently performs step 2 with a normal `SELECT ... WHERE source_id IN (...) ORDER BY ...`; it does not use `embedding` in the query. See [postgres-knowledge-chunk.repository.ts](../apps/core/src/infrastructure/db/repositories/postgres-knowledge-chunk.repository.ts#L95-L109).
+The PostgreSQL implementation performs vector ordering with the pgvector cosine-distance operator
+and applies current source, corpus, profile, readiness, type, and visibility constraints in SQL.
+See [postgres-knowledge-chunk.repository.ts](../apps/core/src/infrastructure/db/repositories/postgres-knowledge-chunk.repository.ts).
 
 ### Visibility filtering
 
@@ -255,50 +260,33 @@ The implementation is in [knowledge-visibility.ts](../apps/core/src/domain/knowl
 
 Static retrieval is shared by scenario and canonical knowledge type. It does not accept, match, or
 score by `userId`, `sessionId`, or `conversationId`. New and updated source/chunk metadata rejects
-those reserved keys recursively; legacy rows with them remain blocked by the audit/migration
-workflow and are not silently relabeled. Conversational text can form the query, but conversational
-memory repositories remain a separate lifecycle.
+those reserved keys recursively. Existing legacy rows are outside the fresh content contract and
+are not silently relabeled. Conversational text can form the query, but conversational memory
+repositories remain a separate lifecycle.
 
-## 6. How a chunk is scored
+## 6. How a chunk is ranked
 
-The live score is in [typed-retrieval.service.ts](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L222-L241).
+The live ranking is in [typed-retrieval.service.ts](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L222-L241).
+The repository returns cosine-distance candidates; the application derives normalized
+`similarity = 1 - distance`, where higher values are better. Public and recorded retrieval
+references expose only `similarity`; raw distance remains an infrastructure value.
 
-### Base score: token overlap
-
-Both the query and chunk content are tokenized by:
-
-```text
-lowercase
-split on anything except a-z, 0-9
-discard tokens shorter than 2 characters
-```
-
-The content tokens are put in a `Set`. The score is:
-
-```text
-number of query tokens found in the content-token set
-------------------------------------------------------
-number of query tokens
-```
-
-There is no stemming, synonym expansion, language model, semantic similarity, or vector comparison in this calculation.
-
-### Metadata boosts
+### Vector similarity
 
 Static retrieval has no user/session/conversation metadata boosts. Metadata is descriptive static
-source information only and cannot establish private retrieval scope. The returned score is rounded
-to four decimal places for the retrieval result.
+source information only and cannot establish private retrieval scope. Presenters clamp and round
+similarity only at the public boundary.
 
 ### Ties and duplicate chunks
 
 Before selection, entries are sorted by:
 
-1. descending score;
+1. descending similarity;
 2. query variant order;
 3. source ID;
 4. chunk index.
 
-The selector removes duplicate chunk IDs. It first tries to preserve results from `last_user_input`, `gm_retrieval_query`, and `gm_required_fact`. Their default minimums are 3, 1, and 1 respectively, subject to the limit and available matches. It then fills remaining slots by score. See [retrieval-selection.ts](../apps/core/src/domain/knowledge/retrieval-selection.ts#L23-L89).
+The selector removes duplicate chunk IDs. It first tries to preserve results from `last_user_input`, `gm_retrieval_query`, and `gm_required_fact`. Their default minimums are 3, 1, and 1 respectively, subject to the limit and available matches. It then fills remaining slots by similarity. See [retrieval-selection.ts](../apps/core/src/domain/knowledge/retrieval-selection.ts#L23-L89).
 
 The retrieval service applies that selector once per knowledge type, with no custom minimum options. The later Avatar context assembly applies it again to the combined `avatar_knowledge + world` results and passes the Avatar retrieval options, including `maxChunks` and `minimumChunksBySource`. This second selection is in [context-engine.service.ts](../apps/core/src/domain/context/context-engine.service.ts#L305-L327).
 
@@ -334,15 +322,15 @@ The admin retrieval route performs retrieval immediately for the submitted query
 
 Operator displays use the same shared DTOs and explicit labels: Shared Avatar Knowledge, Shared
 World Knowledge, and Media Knowledge. Source cards show scenario ownership and Avatar visibility;
-GM-only visibility is not user access control. Console event readers may accept older event encodings only while
-deserializing; current diagnostics never emit a static `memory` bucket or legacy scope-match label.
+GM-only visibility is not user access control. Console event readers consume only current structured
+section payloads; current diagnostics never emit a static `memory` bucket or legacy scope-match label.
 
 The final proof also asserts that identical scenario/query/Avatar visibility inputs produce the
 same static candidates for different callers, while conversational working, episodic, and
 long-term fact projections remain user-scoped and non-vectorized. See
 [EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
 
-## 9. What the vector infrastructure currently does not do
+## 9. Current vector infrastructure boundaries
 
 The following pieces exist:
 
@@ -358,47 +346,32 @@ The following pieces exist:
   avatar/GM visibility filtering;
 - a PostgreSQL `ORDER BY` using the pgvector cosine-distance operator.
 
-The following pieces do **not** yet exist in the current runtime retrieval path:
+The application owns query normalization, embedding orchestration, multi-query candidate merging,
+deduplication, balanced selection, and public similarity mapping. The repository owns vector
+ordering and SQL eligibility. Raw vectors and raw cosine distance remain internal.
 
-- wiring the query-vector and nearest-neighbor boundaries into typed retrieval;
-- multi-query candidate merging, Context Engine selection, and vector-based ranking replacement;
-- vector-distance trace data from the integrated runtime presenter.
+## 10. Operational notes
 
-The repository computes no vectors and does no application-side corpus scan. It receives a
-validated query vector, applies eligibility filters in SQL, orders by lower cosine distance, and
-returns bounded candidates with similarity derived as `1 - distance`. Raw vectors remain internal.
-
-## 10. Issues and improvements identified from the code
-
-These are concrete gaps in the current implementation, not claims about behavior that already exists.
-
-### 1. Replace lexical retrieval with actual vector retrieval
-
-The main improvement is to add a query-embedding path and a repository method for pgvector nearest-neighbor search. The query and chunk embeddings must use the same embedding model and dimension. The repository should apply scenario/type/status/visibility scope in SQL and order by cosine distance before returning candidates.
-
-The deterministic `HashEmbeddingAdapter` is explicitly test-only. Its character-position buckets do
-not represent semantic similarity, so two conceptually similar strings can score poorly and two
-unrelated strings can collide. Production now uses OpenAI without changing the application port.
-
-### 2. Make the pgvector dimension a single enforced configuration
+### Profile and dimension
 
 The database is still fixed at `VECTOR(16)`. The default OpenAI profile requests that dimension via
 the provider's supported shortening parameter, while the adapter has no hard-coded storage
-assumption. Embedding profile identity still needs to be persisted and enforced across ingestion and
-query time in the remaining 5.1c/5.1d slices.
+assumption. Embedding profile identity is persisted and enforced across ingestion and query time. A
+dimension or profile change requires a matching canonical schema revision and staged
+reindex.
 
-### 3. Use a transaction for replacing a source's chunks
+### Source replacement
 
-Ingestion deletes all previous chunks and then inserts the new set. The service attempts to restore the old chunks if an insert fails, but that is application-level compensation rather than one database transaction. Also, `restorePreviousChunks` restores content, index, embedding, and metadata but does not restore the previous `visibleToAvatarIds`. A transaction would remove both failure windows.
+Source replacement validates the complete staged vector set and promotes it transactionally; partial
+or stale profile/generation results do not become active.
 
-### 4. Decide how oversized paragraphs should be handled
+### Chunking
 
-The configured chunk size is a maximum for packed paragraphs, but a single paragraph longer than that maximum is kept intact. If long documents are expected, the implementation needs a defined split rule for oversized paragraphs, likely with a tested overlap policy.
+The configured chunk size is a target for packed paragraphs, while a single oversized paragraph is
+kept intact according to the current ingestion contract.
 
-### 5. Improve tokenization if lexical fallback remains
+### Diagnostics
 
-The live scorer splits on ASCII `a-z0-9`. The query-planning helper accepts accented Latin characters, but the scorer itself does not preserve them as normal tokens. Multilingual retrieval will therefore need better normalization/tokenization even if vector search is added as the primary path.
-
-### 6. Measure vector retrieval separately from lexical retrieval
-
-The current turn data records retrieval latency and retrieval traces, but the trace does not identify an embedding model, query vector, distance, or candidate count from a vector index. Once vector retrieval is implemented, those fields should be added so retrieval quality and cost can be evaluated from recorded turns.
+Turn events and session inspection record bounded profile, timing, candidate, selection, visibility,
+and failure diagnostics. Public and recorded references expose normalized similarity only; vectors,
+provider payloads, and raw query text remain excluded.

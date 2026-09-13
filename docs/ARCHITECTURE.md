@@ -314,11 +314,11 @@ This layer must be configurable and testable without prompt-only behavior.
 Static GM system instructions and dynamic GM input rendering remain separate canonical
 boundaries (`domain/game-master/gm-prompt.service.ts` and
 `domain/game-master/gm-input-renderer.ts` respectively); application orchestration wires
-those contracts without introducing a parallel prompt shape.
-The application use case keeps workflow coordination explicit while context loading, routing
-validation, and result persistence live in focused collaborators. Legacy GM topic columns remain
-a persistence-compatibility concern; current runtime and inspection projections read topics from
-conversation working memory only.
+those contracts without introducing a parallel prompt shape. The application use case keeps
+workflow coordination explicit while context loading, routing validation, and result persistence
+live in focused collaborators. Current runtime and inspection projections read topics from
+conversation working memory only, and persisted GM orchestration state is parsed strictly at the
+repository boundary.
 
 #### 3) Avatar Routing / Transition Engine
 
@@ -455,9 +455,9 @@ The internal retrieval contract owner is `apps/core/src/domain/knowledge/knowled
 It owns `RetrievalQueryVariant`, `VectorRetrievalCandidate`, `TypedRetrievalResult`,
 `RetrievalTrace`, and `RetrievalFailure`. The finite query-source union is the shared primitive
 `RetrievalQuerySource` in `packages/shared/src/knowledge-contract-types.ts`, which the domain
-aliases instead of redeclaring. Vector candidates contain bounded chunk identity/content and
-scores only; raw query or chunk vectors never enter retrieval results, traces, events, logs, or
-errors.
+aliases instead of redeclaring. Public and recorded retrieval references contain bounded chunk
+identity/content and normalized similarity only; raw query or chunk vectors and raw cosine distance
+never enter retrieval results, traces, events, logs, or errors.
 
 `@gami/shared` owns safe public/runtime projections: retrieval references, trace/profile/timing/
 count/visibility DTOs, and controlled outcome/failure codes. API and runtime code must use explicit
@@ -474,8 +474,7 @@ ownership.
 
 The repository truth for vector ranking is pgvector cosine distance: lower distance is better.
 Service/API ranking and display use normalized cosine similarity, defined as `1 - distance`, with
-clamping and rounding applied only at the presenter boundary. The legacy `score` field is retained
-as a compatibility alias for normalized similarity; production retrieval does not perform token
+clamping and rounding applied only at the presenter boundary. Production retrieval does not perform token
 overlap scoring or metadata relevance boosts. Retrieval diagnostics use the provider-neutral outcomes `success`,
 `no_results`, and `failed`, with failures distinguished as `query_embedding_failed`,
 `incompatible_profile`, `incompatible_dimension`, or `vector_search_failed`.

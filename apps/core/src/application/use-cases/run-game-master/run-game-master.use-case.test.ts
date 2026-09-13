@@ -68,7 +68,6 @@ const sessionEventPublisher = {
 function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
   return {
     progression: 'progressing',
-    topicsCovered: ['plastic'],
     interactionCount: 1,
     ...overrides,
   }
@@ -184,7 +183,6 @@ describe('RunGameMasterUseCase — state persistence', () => {
       'session_1',
       expect.objectContaining({
         interactionCount: 1,
-        topicsCovered: ['plastic'],
       }),
     )
     expect(updateSessionMock).toHaveBeenCalledWith('session_1', {

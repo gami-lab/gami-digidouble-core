@@ -138,7 +138,6 @@ beforeEach(() => {
 
   findBySessionIdMock.mockResolvedValue({
     progression: 'none',
-    topicsCovered: [],
     interactionCount: 1,
   })
   saveMock.mockResolvedValue(undefined)

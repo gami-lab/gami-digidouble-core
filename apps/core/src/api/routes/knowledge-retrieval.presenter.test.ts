@@ -12,7 +12,7 @@ describe('presentKnowledgeRetrieval', () => {
             chunkId: 'knowledge_chunk_1',
             knowledgeType: 'avatar_knowledge',
             content: 'a'.repeat(120),
-            score: 0.9,
+            similarity: 0.9,
             reason: 'token-overlap',
             metadata: { userId: 'user_1' },
           },
@@ -68,7 +68,7 @@ describe('presentKnowledgeRetrieval', () => {
     expect(output.retrieval.world[0]?.content).toBe('short content')
   })
 
-  it('maps vector diagnostics safely and normalizes display scores at the boundary', () => {
+  it('maps vector diagnostics safely and normalizes similarity at the boundary', () => {
     const output = presentKnowledgeRetrieval({
       avatar_knowledge: [
         {
@@ -76,7 +76,6 @@ describe('presentKnowledgeRetrieval', () => {
           chunkId: 'chunk_1',
           knowledgeType: 'avatar_knowledge',
           content: 'retrieved content',
-          distance: 0.123456,
           similarity: 0.876544,
           queryIndex: 2,
           matchedQuery: { source: 'last_user_input', text: 'query' },
@@ -120,10 +119,11 @@ describe('presentKnowledgeRetrieval', () => {
     })
 
     expect(output.retrieval.avatar_knowledge[0]).toMatchObject({
-      distance: 0.1235,
       similarity: 0.8765,
       queryIndex: 2,
     })
+    expect(output.retrieval.avatar_knowledge[0]).not.toHaveProperty('score')
+    expect(output.retrieval.avatar_knowledge[0]).not.toHaveProperty('distance')
     expect(output.retrieval.trace).toMatchObject({
       candidateCount: 4,
       selectedCount: 1,

@@ -171,20 +171,20 @@ Required tests:
   timing diagnostics, all-or-nothing profile/dimension/count/finite/provider failures, and no raw
   vectors or provider payloads in logs
 - **Retrieval contract boundary:** verify the single query-source/variant union, vector-candidate and
-  trace ownership, provider-neutral outcome/failure codes, cosine distance/similarity semantics,
+  trace ownership, provider-neutral outcome/failure codes, normalized cosine similarity semantics,
   and explicit internal-to-public/runtime mapper redaction and normalization
 - **Typed retrieval:** verify one embedding operation, bounded vector searches, domain separation
   (`avatar_knowledge` / `world` / `media`), deterministic similarity ranking/deduplication under fixed
   fixtures, balanced source minimums, controlled failures, and trace metadata (`sourceId`,
-  `chunkId`, `distance`, `similarity`, `reason`)
+  `chunkId`, `similarity`, `reason`); raw vector distance remains an infrastructure-only value
 - **Avatar-scoped visibility:** verify deterministic exclusion of non-visible knowledge per active avatar, avatar-switch scope updates, and bounded visibility explainability counters in retrieval/context traces
 - **Visibility asymmetry:** verify avatar filtering remains enforced while GM retrieval diagnostics prove unrestricted omniscient scope (`gmUnrestricted`, `gmRetrievalCounts`) without content leakage
 - **Filtered vector repository:** verify PostgreSQL cosine order, limit-after-filter behavior, active profile/generation, source/type/scenario/readiness, shared-candidate behavior, visibility truth-table behavior, GM-bypass limits, dimension/profile failures, and an index-compatible `ORDER BY embedding <=> query LIMIT` shape; use the in-memory implementation for deterministic unit coverage
 - **Knowledge API operator flow:** verify stack-e2e coverage for auth, validation, not-found, and happy-path source->ingestion->retrieval flow
 - **Console operator adapters:** verify `apps/console` knowledge API wrappers and Session Admin knowledge action helpers reuse shared DTOs and map operator-facing errors
 - **Unified retrieval diagnostics:** verify admin responses, recorded turn events, session-context
-  projections, and console/admin displays consume shared profile/timing/count/distance/failure
-  fields, preserve older event payloads, and never serialize vectors or provider payloads
+  projections, and console/admin displays consume shared profile/timing/count/similarity/failure
+  fields, reject flattened/pre-current event context, and never serialize vectors or provider payloads
 - **Operator category separation:** verify admin/console displays visibly group the three static
   knowledge categories separately from working memory, episodic memory, and long-term user facts;
   verify source scenario/Avatar visibility and memory user/session/conversation scope are shown in

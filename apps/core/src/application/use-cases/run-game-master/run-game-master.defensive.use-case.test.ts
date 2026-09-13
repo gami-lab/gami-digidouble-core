@@ -41,7 +41,6 @@ const observability = { trace: traceMock, flush: vi.fn() }
 function makeState(overrides: Partial<GameMasterState> = {}): GameMasterState {
   return {
     progression: 'none',
-    topicsCovered: [],
     interactionCount: 5,
     ...overrides,
   }

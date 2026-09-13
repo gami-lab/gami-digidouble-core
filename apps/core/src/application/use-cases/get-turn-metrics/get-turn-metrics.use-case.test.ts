@@ -65,7 +65,7 @@ function makeGmTriggeredEvent(params: {
       triggerReason: 'post_turn_observation',
       turnIndex: 1,
       interactionCount: 1,
-      stateBefore: { progression: 'intro', topicsCovered: [] },
+      stateBefore: { progression: 'intro' },
       ...(params.latencyMs !== undefined ? { latencyMs: params.latencyMs } : {}),
       ...(params.inputTokens !== undefined ? { inputTokens: params.inputTokens } : {}),
       ...(params.outputTokens !== undefined ? { outputTokens: params.outputTokens } : {}),

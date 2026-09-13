@@ -56,7 +56,6 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
       interactionCount: 5,
       stateBefore: {
         progression: 'intro',
-        topicsCovered: ['setup'],
       },
       decision: {
         dialogueMode: 'transition',
@@ -92,7 +91,6 @@ function makeApp(params?: {
         sessionId: 'session_1',
         state: {
           progression: 'intro complete',
-          topicsCovered: ['setup'],
           interactionCount: 4,
         },
       },
