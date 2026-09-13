@@ -14,11 +14,16 @@ This file is a compatibility entry point for agents and contributors. The mainta
 - Testing: [docs/TEST_STRATEGY.md](docs/TEST_STRATEGY.md), [docs/TEST_COVERAGE_PLAN.md](docs/TEST_COVERAGE_PLAN.md)
 - Agent workflow: [AGENTS.md](AGENTS.md)
 
-## Non-negotiables
+## What never changes
 
-Core is a TypeScript modular monolith: `API -> Application -> Domain -> Infrastructure`.
-Avatar responses are direct; GM and memory work are asynchronous. Provider SDKs stay behind
-internal ports. Static knowledge (`avatar_knowledge`, `world`, `media`) is separate from
-conversational memory. External input is validated at the API boundary.
+Core coordinates two AI agents behind one API: an **Avatar** (answers the user directly) and a
+**Game Master** (an asynchronous director that guides progression without blocking the reply).
+
+- TypeScript modular monolith: `API -> Application -> Domain -> Infrastructure`; no cross-layer shortcuts.
+- Avatar responses are direct; GM and memory work are asynchronous and never block the turn.
+- LLM/embedding/speech providers stay behind internal ports — never call an SDK from business logic.
+- Static knowledge (`avatar_knowledge`, `world`, `media`) is separate from conversational memory.
+- External input is validated at the API boundary; responses use the standard `ApiResponse<T>` envelope.
+- Work stays within the current epic's scope — do not pull in later-phase features opportunistically.
 
 Do not duplicate these rules or code-level details here; update the canonical document instead.

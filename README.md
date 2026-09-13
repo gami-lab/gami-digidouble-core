@@ -5,15 +5,18 @@ a platform layer consumed through HTTP/SSE, not a product application.
 
 The runtime coordinates:
 
-- **Avatar** — responds directly to the user through a persona and bounded context.
-- **Game Master** — runs asynchronously to guide progression, routing, and future turns.
-- **Memory and knowledge** — preserve useful conversational state and retrieve scenario content.
+- **Avatar** — a persona attached to a scenario; responds directly to the user through a bounded context.
+- **Game Master** — runs asynchronously to guide progression, routing, and future turns without blocking the reply.
+- **Session** — the durable container for one user's run inside a scenario.
+- **Conversation** — a bounded dialogue episode with one avatar inside a session; switching avatars or resuming starts a new one.
+- **Memory and knowledge** — session/user memory and retrieved scenario content, kept separate from each other.
 - **Operations** — expose safe inspection, diagnostics, and recovery actions.
 
 ## Current state
 
-Phase A is shipped through the current clean-slate contract. See
-[docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for capabilities and limitations.
+Phase A (the current, validated increment) is shipped through the current clean-slate contract.
+See [docs/VISION.md](docs/VISION.md) for the roadmap phases and
+[docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for shipped capabilities and limitations.
 
 ## Start locally
 

@@ -1,48 +1,140 @@
 # RAG system
 
 This is the durable behavior of the current static knowledge pipeline. Algorithms and field details
-belong in the knowledge domain/services and shared contracts.
+belong in the knowledge domain/services and shared contracts; this document records the decisions
+and gotchas that aren't obvious from reading any single file.
 
 ## Scope
 
 Static knowledge is scenario-shared and typed as `avatar_knowledge`, `world`, or `media`.
 Conversational memory is a separate system. Static sources and chunks must not contain
-`userId`, `sessionId`, or `conversationId` scope.
+`userId`, `sessionId`, or `conversationId` scope — those keys are rejected recursively at
+persistence time, and the removed `memory` knowledge type is not accepted.
+
+## End-to-end flow
+
+```text
+Knowledge source -> ingestion job -> content loader -> paragraph/header chunking
+  -> embed each chunk (production: OpenAI adapter) -> persist chunks + vectors in PostgreSQL
+
+Avatar turn -> build query variants from turn context -> filter ready sources by scenario/type
+  -> load chunks -> visibility filtering -> embed query variants -> vector search
+  -> deterministic per-type selection -> context engine budget/precedence -> Avatar prompt
+
+Post-turn GM run -> build GM query variants -> same retrieval service with visibility bypass
+  -> inject into GM "Retrieved Context" (no fallback to Avatar results)
+```
+
+Main implementation entry points: `knowledge-ingestion.service.ts`, `typed-retrieval.service.ts`,
+`typed-retrieval-query-builder.ts`, `retrieval-selection.ts`, and
+`postgres-knowledge-chunk.repository.ts` under
+`apps/core/src/application/services/knowledge/` and `apps/core/src/infrastructure/db/repositories/`.
 
 ## Pipeline
 
-1. Register a source with an explicit visibility policy.
-2. Ingest text/Markdown/PDF/media descriptions into deterministic paragraph-aware chunks.
+1. Register a source with an explicit visibility policy. Registering also schedules ingestion by
+   default; the separate ingest route creates another queued job. Only `status: ready` sources are
+   considered by runtime retrieval — `pending`/`error` sources are excluded.
+2. Ingest text/Markdown/PDF/media descriptions into deterministic paragraph-aware chunks (see
+   "Chunking strategy" below).
 3. Embed chunks through the active immutable embedding profile.
-4. Stage a complete source/corpus replacement and promote it atomically.
-5. Normalize runtime query variants, embed them as one ordered batch, and search active pgvector data.
-6. Filter eligibility before the candidate limit, apply Avatar visibility or explicit GM bypass, merge/deduplicate deterministically, and pass bounded results to Context Engine.
+4. Stage a complete source/corpus replacement and promote it atomically — partial or stale
+   profile/generation results never become active, so a failed reindex can't half-apply.
+5. At query time, normalize runtime query variants, embed them as one ordered batch, and search
+   active pgvector data.
+6. Filter eligibility before the candidate limit, apply Avatar visibility or explicit GM bypass,
+   merge/deduplicate deterministically, and pass bounded results to Context Engine.
+
+## Chunking strategy and why
+
+- Paragraph-aware, not fixed-width: text is split on blank lines into paragraphs, Markdown headings
+  (levels 1-6) are tracked and kept with the paragraph text so heading context is embedded and
+  retrieved alongside it, and consecutive paragraphs are packed into one chunk up to the configured
+  size. This preserves semantic boundaries instead of cutting mid-sentence.
+- No overlap between adjacent chunks, and a paragraph is never split even if it exceeds the limit —
+  simplicity and determinism were chosen over maximizing recall at chunk edges.
+- Default chunk size is 1,500 characters (`INGESTION_CHUNK_SIZE_DEFAULT` in
+  `packages/shared/src/knowledge-contract-types.ts`); callers may override per ingestion within the
+  API-enforced bounds.
+- An empty source still produces one fallback chunk (`Reference source: <uriOrPath>`) so a source
+  never silently ends up with zero retrievable content.
+- A media source always produces exactly one chunk, from `metadata.description` or a generated
+  `Media reference: <uriOrPath>` fallback — Core stores descriptions/references, not a real
+  multimodal embedding of the asset.
+
+## Embedding provider
+
+Production uses the OpenAI embedding adapter (requires `OPENAI_API_KEY`), with no hash-vector
+fallback — if the adapter isn't configured, ingestion/query embedding fails rather than silently
+degrading to a fake vector. The default profile is `text-embedding-3-small` requested at 16
+dimensions via OpenAI's native dimension-shortening parameter, matching the fixed `VECTOR(16)`
+column in `infra/postgres/init.sql`.
+
+A deterministic hash-based adapter exists only for tests (explicitly injected, never a server
+default). It accumulates character codes per input string into buckets and L2-normalizes the
+result — useful for reproducible test fixtures, not a semantic embedding.
+
+**Gotcha:** the embedding profile identity (provider/model/dimension) is persisted and enforced
+across ingestion and query time. Changing the profile or dimension requires a matching schema
+revision (the `VECTOR(16)` column width) and a staged reindex of the whole corpus — you cannot
+silently swap models without a coordinated migration. See
+[EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md) for the reindex procedure.
 
 ## Query sources
 
-Avatar retrieval can combine the current user input with relevant GM-planned queries and required
-facts. The plan is consumed only when relevant to the next turn. GM and admin diagnostics may use
-the explicit unrestricted visibility mode, but it does not bypass scenario, type, readiness, active
-corpus, profile, or metadata rules.
+Avatar retrieval combines the current user input, working-memory summary/recent exchanges, and
+relevant GM-planned queries/required facts. A heuristic (`shouldUsePlannedRetrieval`, in
+`typed-retrieval-query-builder.ts`) decides per turn whether the GM's plan is still relevant —
+it's suppressed on an explicit topic change or an emotion-focused message, and otherwise enabled on
+token overlap or continuation language. This exists so a stale GM plan from a prior turn doesn't
+pollute retrieval when the user has moved on.
+
+GM and admin diagnostics may use the explicit unrestricted visibility mode (`bypassVisibilityFilter`)
+so the GM can plan around knowledge hidden from the active Avatar — but it never bypasses scenario,
+type, readiness, active-corpus, profile, or metadata rules, only Avatar-visibility scoping.
 
 ## Ranking and limits
 
 PostgreSQL cosine distance is the repository truth (lower is better). Public similarity is derived
-as `1 - distance` and clamped/rounded only by presenters. Multi-query matches are deduplicated and
-selected within the configured bounded limits. No production lexical scorer, metadata boost, or
-application-wide corpus scan participates in retrieval.
+as `1 - distance` and clamped/rounded only by presenters — raw distance never leaves the
+infrastructure layer. Ties are broken deterministically (similarity, then query-variant order,
+source ID, chunk index) so identical inputs always produce the same result for different callers.
+
+Limits differ by call site and can drift with code changes — check
+`AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS` and `DEFAULT_LIMIT_PER_TYPE` in
+`packages/shared/src/knowledge-contract-types.ts` and `typed-retrieval.service.ts` for current
+values; as of this writing the Avatar path defaults to 7/type (session-configurable up to 9), the
+GM path to 3/type, and the admin endpoint accepts 1-20/type.
+
+**Gotcha — double selection:** `TypedRetrievalService` selects per knowledge type first (e.g. up to
+N `avatar_knowledge` chunks and N `world` chunks independently). The Avatar context engine then
+combines `avatar_knowledge` + `world` and re-applies the deduplication/selection logic with the
+session's `maxChunks`/`minimumChunksBySource` options. A chunk can therefore win the first selection
+and still be dropped at the second stage, and the context engine's token budget can drop a selected
+chunk from the final prompt entirely. The turn trace reports selected vs. included vs. omitted
+counts so this is diagnosable, but it means "retrieved" does not guarantee "used".
+
+No production lexical scorer, metadata boost, or application-wide corpus scan participates in
+retrieval — matching is vector similarity only, scoped by SQL eligibility filters.
 
 ## Failure behavior
 
-Embedding or vector-search failures return bounded controlled outcomes. Avatar generation can
-continue with explicit uncertainty guidance; failures must not fabricate retrieved evidence. No
-partial query-vector batch is accepted.
+Embedding or vector-search failures return bounded controlled outcomes; no partial query-vector
+batch is accepted. Avatar generation can continue with explicit uncertainty guidance
+(`insufficient_evidence` retrieval status) rather than fabricating retrieved evidence — this applies
+when a GM plan marked retrieval as required and it failed or returned nothing. If retrieval throws
+during an Avatar turn, the failure is logged and the turn continues without retrieved knowledge
+rather than failing the whole response.
+
+GM retrieval runs asynchronously after the Avatar response is sent (`schedulePostTurnWork`), so a
+slow or failing GM retrieval never delays the user-facing reply.
 
 ## Diagnostics
 
 Expose only profile identity, counts, timings, query index/source, visibility mode, outcome/failure,
-similarity, and bounded selected references. Never expose raw vectors, credentials, provider payloads,
-or unbounded source content. Runtime events and admin/console projections reuse the shared retrieval
-DTOs.
+similarity, and bounded selected references. Never expose raw vectors, credentials, provider
+payloads, or unbounded source content. Runtime events and admin/console projections reuse the shared
+retrieval DTOs; operator screens use the same categories as the API (Shared Avatar Knowledge, Shared
+World Knowledge, Media Knowledge).
 
 See [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md) for profile changes and reindex operations.

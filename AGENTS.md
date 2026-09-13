@@ -3,12 +3,23 @@
 These instructions apply to AI coding agents working in Gami DigiDouble Core. Read
 [docs/README.md](docs/README.md) and the relevant source-of-truth docs before changing code.
 
+Core coordinates two AI agents behind one API: an **Avatar** (answers the user directly) and a
+**Game Master** (an asynchronous director that guides progression without blocking the reply). See
+[docs/VISION.md](docs/VISION.md) for the product framing.
+
 ## Think before coding
 
-- State assumptions and success criteria. Surface ambiguity or meaningful trade-offs before acting.
-- Prefer the smallest solution that satisfies the request. Do not add speculative features, abstractions, dependencies, or error paths.
-- Make surgical changes and preserve unrelated user work. Do not reformat or refactor adjacent code without a direct reason.
-- For a multi-step change, state a short plan and verify each step.
+- State assumptions and success criteria. If multiple interpretations exist, present them instead
+  of picking silently. If something is unclear, stop and ask rather than guessing.
+- Prefer the smallest solution that satisfies the request: no speculative features, no
+  abstractions for single-use code, no "flexibility" that wasn't requested, no error handling for
+  impossible scenarios. If it could be half the size, rewrite it.
+- Make surgical changes and preserve unrelated user work. Do not reformat or refactor adjacent code
+  without a direct reason, even if you'd have written it differently. If you notice unrelated dead
+  code, mention it — don't delete it unless your own change made it unused.
+- Turn the task into a verifiable goal before starting, e.g. "fix the bug" becomes "write a test
+  that reproduces it, then make it pass." For a multi-step change, state a short plan
+  (`step -> verify`) and check off each step as you go.
 
 ## Project boundaries
 
@@ -57,13 +68,19 @@ tests, and CI rather than copying it into docs.
 - Use E2E only for critical user flows; use stack E2E for real infrastructure boundaries.
 - Test contracts, ownership, ordering, redaction, and failure handling—not writing quality.
 - Every bug fix gets a regression test at the boundary that exposed it.
+- Protect API contracts aggressively: any endpoint shape change requires updating
+  [docs/API_CONTRACT.md](docs/API_CONTRACT.md) in the same change.
 
 ## Workflow and git
 
-1. Check current status and relevant epic.
+1. Check [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) and work within the scope of the
+   targeted [docs/EPICS.md](docs/EPICS.md) item — do not pull in later-phase work opportunistically
+   (see the roadmap phases in [docs/VISION.md](docs/VISION.md)).
 2. Implement the minimal change with tests.
 3. Run the narrowest relevant checks, then format/lint/typecheck/test/build as appropriate.
 4. Review `git diff`, `git diff --check`, and `git status` before handoff.
+5. Update [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) when a feature or epic is completed —
+   not for every commit.
 
 Use Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`), with an epic
 reference when applicable. Never commit secrets, `.env` files, or generated artifacts. Use

@@ -203,6 +203,15 @@ Removed audited compatibility paths and legacy contracts, verified fresh schema/
 
 ## Open Backlog
 
+### `5.1e Retrieval Quality Hardening`
+
+**Current state**
+The labelled recall@k/MRR baseline harness is landed; embedding, chunking, selection, and lexical
+fallback improvements remain open.
+
+**Purpose**
+Improve retrieval fidelity and prove answer-grounding improvements against the committed baseline.
+
 ### `3.3 Replay & Recovery Tools`
 
 **Current state**  

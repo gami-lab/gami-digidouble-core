@@ -10,7 +10,9 @@ schemas belong to `packages/shared/src/` and route schemas; do not copy them her
 - IDs are opaque strings; timestamps are ISO-8601 UTC strings.
 - JSON success/error responses use `ApiResponse<T>`. SSE uses shared event DTOs. Binary audio is the only intentional non-envelope success response.
 - Public payloads are projections, never database rows. Unknown fields are rejected at input boundaries.
-- Errors use stable categories: unauthorized, validation, forbidden, not-found, conflict, rate-limit, provider, timeout, and internal.
+- Errors use stable `ErrorCode` categories: `UNAUTHORIZED`, `VALIDATION_ERROR`, `FORBIDDEN`,
+  `NOT_FOUND`, `CONFLICT`, `RATE_LIMITED`, `EXTERNAL_SERVICE_ERROR`/`PROVIDER_ERROR`, `TIMEOUT`, and
+  `INTERNAL_ERROR`. Do not invent a route-local error code.
 
 ## Canonical contract owners
 
@@ -107,25 +109,75 @@ provider payloads, or unbounded transcript content.
 - JSON turns return `ApiResponse<SendMessageResponse>`.
 - Streams emit `started`, ordered `delta` frames, then exactly one `completed` or `interrupted` terminal frame.
 - An interrupted stream keeps the user message, discards partial Avatar content, and skips post-turn work.
-- Avatar text is cleaned before persistence and delivery; clients must not invent a second cleanup policy.
+- Avatar text is cleaned before persistence and delivery (presentation-only speaker labels and
+  `*stage direction*` blocks are stripped); clients must not invent a second cleanup policy.
+- `StartSessionRequest` accepts an optional session-scoped `model` override (reused for Avatar, GM,
+  and memory calls in that session) and `avatarOptions.retrieval` (`maxChunks` 1-9, default 7;
+  per-source `minimumChunksBySource`, default 1 for GM sources and 3 for `last_user_input`). These
+  settings are stored on the session and apply to every message in it, not per-message.
+- `SendMessageRequest` accepts an optional additive `model` override for that one request only
+  (evaluation/tooling use, not a replacement for persisted scenario/avatar config); the streaming
+  route reuses the same request shape.
 
 ### Voice and audio
 
-- Voice input is raw bounded audio with an utterance identity; it reuses the existing turn flow.
-- Missing provider configuration makes voice unavailable but does not affect text routes.
-- Audio playback is requested only after a completed text message. Audio bytes are transient and never change message/GM/memory behavior.
-- Provider credentials, voice IDs, and provider-native options are not public fields.
+- Voice input is raw bounded audio (`audio/flac|mpeg|mp4|ogg|wav|webm`, <=10MB) with a required
+  `x-utterance-id` header; it reuses the existing turn flow and the same terminal-frame contract as
+  text streaming. `x-language` and `x-audio-duration-ms` are optional hints; a Scenario language,
+  when set, is authoritative over the header.
+- Missing provider configuration (`DEEPGRAM_API_KEY` absent) makes voice return `502
+PROVIDER_ERROR`; text routes remain unaffected. Duplicate/cancelled voice work returns `409
+CONFLICT`, provider timeout `504`, rate limiting `429`.
+- Audio playback (`POST .../messages/{messageId}/audio`) is requested only after a completed text
+  message, using the persisted cleaned Avatar `Message.content` as the only synthesis source. It
+  returns a bounded binary body (not an `ApiResponse` envelope) with `Content-Type`,
+  `Content-Length`, `Content-Disposition: inline`, `X-Request-Id`, `X-Message-Id`, and optional
+  `X-Audio-Duration-Ms`. Audio bytes are transient and never change message/GM/memory behavior;
+  repeated requests are independent reads.
+- Provider credentials, voice IDs, and provider-native options are not public fields; a client may
+  only pick a shared `format` (default `audio/wav`).
 
 ### Content and model selection
 
-- Active Scenarios require canonical language; active Avatars require prepared traits.
-- Static knowledge accepts only `avatar_knowledge`, `world`, and `media`. `memory` is invalid.
-- `visibilityPolicy` is explicit. Avatar retrieval filters visibility; GM retrieval can request an explicit unrestricted view but still enforces scenario/type/readiness/corpus rules.
-- Static retrieval accepts scenario/query/visibility inputs only; user/session/conversation scope is conversational memory, not a RAG filter.
-- Model/provider pairs come from the shared catalog. Runtime precedence is session override, then Avatar/Scenario/role/global configuration as defined by the model-resolution service.
+- Active Scenarios require canonical BCP-47 `language`; active Avatars require prepared traits
+  (`AvatarComputedTraits`) — creation/activation/serving reject incomplete Avatars.
+- Static knowledge accepts only `avatar_knowledge`, `world`, and `media`. The removed `memory` value
+  is rejected with `400 VALIDATION_ERROR`. Source/chunk metadata is validated recursively; reserved
+  keys `userId`, `sessionId`, `conversationId` are rejected the same way.
+- `visibilityPolicy` (`'all' | 'avatars' | 'none'`) is required on source create/upload; `'none'`
+  means GM-only. `'avatars'` requires at least one avatar ID; `'all'`/`'none'` clear any provided
+  IDs. Providing `visibleToAvatarIds` on update still requires an explicit policy.
+- Upload accepts `.pdf`/`.txt`/`.text` only, base64-encoded, bounded to ~14MB base64 (~10MB raw);
+  replacing content/filename resets source status to `pending`; file replacement cannot combine
+  with direct `metadata`/`uriOrPath` edits in the same request.
+- Avatar retrieval filters visibility; GM retrieval can request an explicit unrestricted
+  (`gm_unrestricted`) view but still enforces scenario/type/readiness/corpus rules.
+- Static retrieval (`POST /v1/admin/knowledge/retrieval`) accepts scenario/query/visibility/limit
+  inputs only — `sessionId`/`userId`/`conversationId` are rejected; conversational memory is never a
+  RAG filter or ranking input.
+- Model/provider pairs come from the shared catalog (`packages/shared/src/model-catalog.ts`).
+  `scenario.modelSelection` needs `defaultProfile` or `gameMasterOverride` when present; `null`
+  clears it. `avatar.llmOverride`, when an object, requires both `provider` and `model`; `null`
+  clears it. Runtime precedence: session override (if present, wins for all roles) else, per role —
+  Avatar: request model -> `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` ->
+  global avatar override -> global default; GM: `scenario.modelSelection.gameMasterOverride` ->
+  `scenario.modelSelection.defaultProfile` -> global GM override -> global default; Memory:
+  scenario memory/default profile -> global memory override -> global default.
+- `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` takes no request body. One avatar's
+  failure (e.g. `provider_unavailable`) never fails the whole batch, and preparation overwrites only
+  `computedTraits`, never authored fields.
+- Reindex routes (`POST reindex`, `GET .../{id}`, `POST .../{id}/retry`) return `202` when started,
+  `200` when the profile is already active, `404` for an unknown operation, and `409` on retry unless
+  the operation is `failed`. The active corpus stays unchanged until every snapshotted source
+  validates and promotion commits atomically.
 
 ### Diagnostics and evolution
 
-- Retrieval similarity is a presenter-level normalized value; raw distance remains internal.
-- Context projections separate `conversationState` from `retrievedContext`.
+- Retrieval similarity (`1 - distance`) is a presenter-level normalized value; raw cosine distance
+  remains an internal repository diagnostic and never crosses into DTOs, events, logs, or errors.
+- Context projections separate `conversationState` (messages/working memory/episodic
+  memories/facts) from `retrievedContext` (static `avatar_knowledge`/`world`/`media` with
+  provenance) — retrieved documents are never emitted as conversational memory.
+- Session-context inspection and `turn_completed` events share the same bounded retrieval-trace and
+  kept/trimmed selection diagnostics; fields are optional because not every event carries every one.
 - Prefer additive changes, preserve field meaning, and update shared DTOs plus consumer tests together.

@@ -20,6 +20,14 @@ All `/v1` routes require `x-api-key: $API_KEY`. Responses use:
 On failure, `data` is `null` and `error` contains a stable code and message. Always check `error`
 before reading `data`.
 
+For local dev, set `API_KEY_SECRET` in `.env` (change it from the placeholder before calling any
+endpoint). The Docker Compose E2E stack (`docker-compose.e2e.yml`) uses a fixed key,
+`e2e-stack-secret`, already known by the test suite — don't reuse it outside that stack.
+
+With `LLM_PROVIDER=null` (the default for local dev and E2E), the Avatar replies with a fixed stub
+(`"[null] ..."`) instead of calling a real provider. This lets you exercise the full API flow
+without provider credentials; switch to a real provider only when you need actual replies.
+
 ## Core flow
 
 Create or select a Scenario and Avatar through the authoring routes, then create a session and
@@ -72,7 +80,21 @@ the removed `memory` knowledge type or put user/session/conversation scope in st
 ## Client rules
 
 - Treat public DTOs as contracts, not database rows.
-- Keep local state keyed by returned opaque IDs.
+- Keep local state keyed by returned opaque IDs (`scenario_...`, `avatar_...`, `session_...`,
+  `conv_...`, `msg_...`); never parse or generate IDs yourself. Timestamps are ISO 8601 UTC strings.
 - Render the text response even if GM, voice, audio, or optional diagnostics fail.
 - Decode SSE frames through the shared contract helpers before applying UI state.
 - Do not expose provider credentials, raw prompts, raw vectors, or unbounded diagnostics.
+
+## Frontend integration notes
+
+- Append the user's message to local state optimistically, before awaiting the response; show a
+  loading indicator until the Avatar reply (or an error) arrives, then clear it.
+- On error, remove the optimistic message and surface `error.code`/`error.message` — never swallow
+  a non-null `error`. `NOT_FOUND` on a conversation usually means it expired or was never created
+  (start a new session); `CONFLICT` means the session/conversation was closed elsewhere (refresh
+  state); `EXTERNAL_SERVICE_ERROR` means the LLM provider failed (offer a retry).
+- On mount or session resume, call `GET /v1/conversations/:conversationId/history` to hydrate prior
+  messages rather than replaying local-only state.
+- `debug.requestId` on a message response correlates with the corresponding Langfuse trace and with
+  `/v1/admin/sessions/:sessionId/events` — useful when reporting or debugging a specific turn.
