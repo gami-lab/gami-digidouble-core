@@ -71,18 +71,17 @@ filters **all pushed into the SQL `WHERE` clause**. There is no separate hybrid/
 merges per-variant candidate lists, keeps the best-scoring row per `chunkId`, and sorts deterministically
 (similarity → query-variant order → sourceId → chunkIndex).
 
-### Phase 8 — Selection (three times)
+### Phase 8 — Selection (two distinct stages)
 
 [retrieval-selection.ts](../apps/core/src/domain/knowledge/retrieval-selection.ts) guarantees a floor
 of chunks from `last_user_input`/`gm_retrieval_query`/`gm_required_fact` before filling the rest by
 similarity. This selector runs:
 
 1. once per knowledge type inside `TypedRetrievalService`,
-2. again on the combined `avatar_knowledge + world` set in
+2. once on the combined `avatar_knowledge + world` set inside
    [context-engine.service.ts:358](../apps/core/src/domain/context/context-engine.service.ts#L358),
-3. **again** inside
-   [persona-prompt.service.ts:226](../apps/core/src/domain/avatar/persona-prompt.service.ts#L226)
-   with the same default limit, on the output of step 2.
+   which owns the final Avatar budget decision. `persona-prompt.service.ts` formats those approved
+   sections directly and does not select again.
 
 ### Phase 9 — Budget and prompt assembly
 
@@ -149,19 +148,14 @@ remained 1.000000. This is useful baseline evidence, not a substitute for a larg
    SQL-side excluded count (e.g. a second bounded count query, or an `EXPLAIN`-free `COUNT(*) FILTER`
    in the same query) or delete the field end-to-end and stop showing it to operators.
 
-2. **`selectBalancedRetrievedItems` runs three times on the Avatar path** for the same content: once
-   per knowledge type in `TypedRetrievalService`
-   ([typed-retrieval.service.ts:226](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L226)),
-   again on the combined `avatar_knowledge + world` set in
-   [context-engine.service.ts:358](../apps/core/src/domain/context/context-engine.service.ts#L358),
-   and a third time in
-   [persona-prompt.service.ts:228](../apps/core/src/domain/avatar/persona-prompt.service.ts#L228) with
-   the same default limit. The third call is not incorrect (the selector is stable/idempotent on an
-   already-selected set), but it re-runs balancing logic on data that was already balanced and
-   budgeted, which is confusing to trace and a latent bug magnet if the two call sites' options
-   (`maxChunks`, `minimumChunksBySource`) ever drift apart. Recommend making the context engine the
-   single authoritative selection point and have `persona-prompt.service.ts` format pre-selected
-   items without re-selecting.
+2. **Resolved — duplicate Avatar selection.** `TypedRetrievalService` still selects independently
+   within each knowledge type
+   ([typed-retrieval.service.ts:226](../apps/core/src/application/services/knowledge/typed-retrieval.service.ts#L226));
+   that is distinct from the final cross-type decision. `context-engine.service.ts` is now the single
+   authoritative final Avatar selector
+   ([context-engine.service.ts:358](../apps/core/src/domain/context/context-engine.service.ts#L358)),
+   while `persona-prompt.service.ts` formats the approved typed sections directly. The removed
+   `retrievalOptions` plumbing prevents selection limits from being duplicated across layers.
 
 3. **`PostgresKnowledgeChunkRepository.create()` is unreachable in production.** All production
    vector writes go through
@@ -191,9 +185,9 @@ harness.
 paths. Remaining retrieval-quality work is tracked below and should be measured against the committed
 baseline harness.
 
-**P1 — Resolve the triple-selection redundancy** described in Dead code finding #2: make
-`context-engine.service.ts` the single place that runs `selectBalancedRetrievedItems` for the Avatar
-path, and have `persona-prompt.service.ts` only format the already-selected items it's given.
+**Resolved — Make Context Engine the authoritative Avatar selector.** The final cross-type selection
+and budget decision lives in `context-engine.service.ts`; `persona-prompt.service.ts` only formats the
+already-selected items it receives.
 
 **P1 — Make `excludedChunkCount` real or remove it.** Currently a hardcoded zero surfaced to
 operators as if it were live data (Dead code finding #1). Either compute it or delete it from the
@@ -202,8 +196,8 @@ DTO/UI so operators aren't reading a diagnostic that never moves.
 **P2 — Add a lexical fallback for exact-entity queries.** A `tsvector`/trigram index on
 `knowledge_chunks.content`, fused with the vector results (even a simple "union in, dedupe, prefer
 vector rank" — full reciprocal-rank fusion isn't required to get most of the benefit), would recover
-named-entity lookups that a compressed embedding is likely to miss. This becomes materially more
-important if the P0 dimension fix is deferred.
+named-entity lookups that dense retrieval may still miss, independently of the resolved embedding
+dimension.
 
 **P2 — Incremental reindexing.** `KnowledgeReindexService.processSource` re-embeds every chunk of
 every source on every reindex run, with no content-hash short-circuit for unchanged chunks. Fine

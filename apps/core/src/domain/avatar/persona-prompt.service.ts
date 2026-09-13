@@ -1,6 +1,5 @@
 import type { AvatarComputedTraits, AvatarConfig } from './avatar.types.js'
 import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
-import { AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS } from '@gami/shared'
 import type {
   AvatarAwarenessItem,
   AvatarPromptRetrievalSections,
@@ -13,7 +12,6 @@ import type {
 import type { DialogueControlMode } from '../game-master/game-master.types.js'
 import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
 import type { UserPersona } from '../user/user.types.js'
-import { selectBalancedRetrievedItems } from '../knowledge/retrieval-selection.js'
 
 const DEFAULT_STYLE_RULE = [
   'Stay in character and keep responses concise.',
@@ -50,7 +48,7 @@ export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptO
     ...buildConversationStateSection(promptInputs.memory, promptInputs.avatarAwareness),
     ...buildUserPersonaContext(promptInputs.userPersona),
     ...buildWorldContext(promptInputs.worldContext),
-    ...buildRetrievalContext(promptInputs.retrieval, opts.retrievalOptions),
+    ...buildRetrievalContext(promptInputs.retrieval),
   ]
   sections.push(buildAvatarTraitsSection(config, promptInputs.avatarTraits))
   return sections.join('\n\n')
@@ -223,17 +221,10 @@ function formatPromptList(values: string[]): string {
   return values.length > 0 ? values.map((value) => value.trim()).join('; ') : 'none'
 }
 
-function buildRetrievalContext(
-  retrieval: AvatarPromptRetrievalSections | undefined,
-  options: AvatarPromptOptions['retrievalOptions'],
-): string[] {
+function buildRetrievalContext(retrieval: AvatarPromptRetrievalSections | undefined): string[] {
   if (retrieval === undefined) return []
 
-  const avatarKnowledgeAndWorld = selectBalancedRetrievedItems(
-    [...retrieval.avatar_knowledge, ...retrieval.world],
-    options?.maxChunks ?? AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
-    options,
-  )
+  const avatarKnowledgeAndWorld = [...retrieval.avatar_knowledge, ...retrieval.world]
   const contextLines = formatRetrievedItems(avatarKnowledgeAndWorld, 'Context')
   const mediaLines = formatRetrievedItems(retrieval.media, 'Media context')
   const lines = [

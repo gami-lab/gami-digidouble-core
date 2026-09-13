@@ -19,7 +19,8 @@ Knowledge source -> ingestion job -> content loader -> paragraph/header chunking
 
 Avatar turn -> build query variants from turn context -> filter ready sources by scenario/type
   -> load chunks -> visibility filtering -> embed query variants -> vector search
-  -> deterministic per-type selection -> context engine budget/precedence -> Avatar prompt
+  -> deterministic per-type selection -> Context Engine final Avatar selection + budget/precedence
+  -> Avatar prompt formatting
 
 Post-turn GM run -> build GM query variants -> same retrieval service with visibility bypass
   -> inject into GM "Retrieved Context" (no fallback to Avatar results)
@@ -43,7 +44,9 @@ Main implementation entry points: `knowledge-ingestion.service.ts`, `typed-retri
 5. At query time, normalize runtime query variants, embed them as one ordered batch, and search
    active pgvector data.
 6. Filter eligibility before the candidate limit, apply Avatar visibility or explicit GM bypass,
-   merge/deduplicate deterministically, and pass bounded results to Context Engine.
+   merge/deduplicate deterministically, and pass results to Context Engine. The Context Engine is
+   the single authoritative final selector for the Avatar path, applying session limits together
+   with token-budget and segment inclusion decisions.
 
 ## Chunking strategy and why
 
@@ -114,13 +117,13 @@ Limits differ by call site and can drift with code changes — check
 values; as of this writing the Avatar path defaults to 7/type (session-configurable up to 9), the
 GM path to 3/type, and the admin endpoint accepts 1-20/type.
 
-**Gotcha — double selection:** `TypedRetrievalService` selects per knowledge type first (e.g. up to
-N `avatar_knowledge` chunks and N `world` chunks independently). The Avatar context engine then
-combines `avatar_knowledge` + `world` and re-applies the deduplication/selection logic with the
-session's `maxChunks`/`minimumChunksBySource` options. A chunk can therefore win the first selection
-and still be dropped at the second stage, and the context engine's token budget can drop a selected
-chunk from the final prompt entirely. The turn trace reports selected vs. included vs. omitted
-counts so this is diagnosable, but it means "retrieved" does not guarantee "used".
+**Gotcha — two distinct selection stages:** `TypedRetrievalService` selects per knowledge type first
+(e.g. up to N `avatar_knowledge` chunks and N `world` chunks independently). The Avatar Context
+Engine then combines those typed results and performs the single final selection with the session's
+`maxChunks`/`minimumChunksBySource` options before applying token-budget and segment inclusion
+decisions. `persona-prompt.service.ts` only formats the resulting typed sections, so it cannot
+silently apply a second limit or reorder the approved set. A chunk can still win retrieval selection
+and be omitted by the context budget; the turn trace reports selected vs. included vs. omitted counts.
 
 No production lexical scorer, metadata boost, or application-wide corpus scan participates in
 retrieval — matching is vector similarity only, scoped by SQL eligibility filters.

@@ -441,9 +441,6 @@ export class SendMessageUseCase {
             },
           }
         : {}),
-      ...(args.session.avatarOptions?.retrieval !== undefined
-        ? { retrievalOptions: args.session.avatarOptions.retrieval }
-        : {}),
     })
     return {
       systemPrompt,

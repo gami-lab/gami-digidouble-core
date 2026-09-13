@@ -40,6 +40,20 @@ function retrievalItem(knowledgeType: KnowledgeType, chunkId: string, content: s
   return { sourceId: `${knowledgeType}_${chunkId}`, chunkId, knowledgeType, content }
 }
 
+function preselectedRetrievalSections() {
+  const avatarKnowledge = Array.from({ length: 8 }, (_, index) =>
+    retrievalItem(
+      'avatar_knowledge',
+      `chunk-${String(index + 1)}`,
+      `Preselected context ${String(index + 1)}.`,
+    ),
+  )
+  return {
+    retrievedItems: avatarKnowledge,
+    typedSections: { avatar_knowledge: avatarKnowledge, world: [], media: [] },
+  }
+}
+
 describe('assemblePersonaPrompt', () => {
   it('requires structured context sections', () => {
     expect(() => assemblePersonaPrompt(makeAvatarConfig())).toThrow(
@@ -128,5 +142,16 @@ describe('assemblePersonaPrompt', () => {
     expect(prompt).toContain('- Session: The user is planning a quick visit.')
     expect(prompt).toContain('- pace: quick overview')
     expect(prompt).not.toContain('Legacy persona')
+  })
+
+  it('formats the complete preselected retrieval set without applying a second default limit', () => {
+    const prompt = assemblePersonaPrompt(makeAvatarConfig(), {
+      sections: sections({
+        retrievedContext: preselectedRetrievalSections(),
+      }),
+    })
+
+    expect(prompt).toContain('Context 8 (avatar_knowledge):')
+    expect(prompt).toContain('Preselected context 8.')
   })
 })

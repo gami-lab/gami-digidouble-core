@@ -1,7 +1,6 @@
 import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import type { AvatarContextSections } from '../context/session-context.types.js'
 import type { DialogueControlMode } from '../game-master/game-master.types.js'
-import type { RetrievalSelectionOptions } from '../knowledge/retrieval-selection.js'
 
 export type AvatarAwarenessItem = {
   name: string
@@ -20,7 +19,6 @@ export type AvatarPromptOptions = {
   /** Structured context is the only prompt input boundary. */
   sections: AvatarContextSections
   avatarAwareness?: AvatarAwarenessItem[]
-  retrievalOptions?: RetrievalSelectionOptions
   gmGuidance?: {
     mode: DialogueControlMode
     askFollowUp: boolean
