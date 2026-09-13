@@ -23,6 +23,13 @@ not belong in the development context.
 Complete operator recovery as a coherent, audited capability: safe replay-last-turn semantics,
 explicit reset boundaries, and action audit history/permissions.
 
+### 5.1e Retrieval quality hardening
+
+Fix the gaps found by `docs/RAG_SYSTEM_AUDIT.md`: raise embedding fidelity off its current
+16-dimension floor, cap/overlap chunking correctly, remove redundant/dead retrieval selection and
+diagnostics code, and add a lexical fallback plus a small recall@k harness to prove it actually
+improved answer grounding. See `docs/implementation-prompts/epic-5-1e-retrieval-quality-hardening/`.
+
 ### 5.4 Guided progression engine
 
 Make scenario objectives, pacing, milestones, recommendations, and role-fidelity constraints
