@@ -1,56 +1,393 @@
-# Epics
+# EPICS
 
-`PROJECT_STATUS.md` is the current capability snapshot. This file keeps only the product history
-needed to understand scope and the small open backlog; implementation prompts and audit history do
-not belong in the development context.
+## Purpose
 
-## Shipped
+Roadmap and delivery ledger for the MVP EPICs.
 
-- **1.1–1.2 Foundations:** pnpm/Turborepo monorepo, local infrastructure, modular Core, LLM and observability boundaries.
-- **2.1–2.8 Conversation and operator surfaces:** Avatar runtime, lifecycle, persistence, console, admin CRUD, GM inspection, and runtime inspector.
-- **3.1–3.2 Operations:** dependency health and canonical session inspection.
-- **4.1–4.5 Runtime:** async GM, model configuration, layered memory, multi-Avatar navigation, runtime state/events, and performance instrumentation.
-- **5.1–5.3 Knowledge and context:** typed RAG, Avatar visibility, embeddings/reindexing, vector retrieval, context engine, and streaming UX.
-- **5.5–7.1 Product surfaces:** user persona, scenario builder, and public web app.
-- **8.1–8.6 Refinement/evaluation:** prepared Avatar traits, structured context, GM and memory prompt contracts, and scripted conversation evaluation.
-- **9.1–9.2 Voice:** optional speech input, transient text-to-speech delivery, browser playback, and safe fallback.
-- **10.1 Clean-slate contracts:** removed compatibility paths, aligned fresh schema/content, and made current contracts strict.
+Each EPIC should remain:
 
-## Open backlog
+- a coherent product increment
+- testable in isolation
+- understandable without commit history
+- small enough to plan and verify deliberately
 
-### 3.3 Replay and recovery tools
+Reference documents:
 
-Complete operator recovery as a coherent, audited capability: safe replay-last-turn semantics,
-explicit reset boundaries, and action audit history/permissions.
+- `ARCHITECTURE.md` defines structural boundaries.
+- `PROJECT_STATUS.md` describes the current shipped platform.
+- `API_CONTRACT.md`, `GAME_MASTER_CONTRACT.md`, and `MEMORY_SYSTEM_SPEC.md` hold contract-level detail.
 
-### 5.1e Retrieval quality hardening
+Completed EPICs are summarized under `Shipped EPICS`; the backlog below contains only incomplete work.
 
-Fix the gaps found by `docs/RAG_SYSTEM_AUDIT.md`: raise embedding fidelity off its current
-16-dimension floor, cap/overlap chunking correctly, remove redundant/dead retrieval selection and
-diagnostics code, and add a lexical fallback plus a small recall@k harness to prove it actually
-improved answer grounding. See `docs/implementation-prompts/epic-5-1e-retrieval-quality-hardening/`.
+## Shipped EPICS
 
-### 5.4 Guided progression engine
+### Foundations
 
-Make scenario objectives, pacing, milestones, recommendations, and role-fidelity constraints
-explicit and inspectable rather than relying only on GM heuristics.
+#### `1.1 Core Platform Bootstrap` ✅ Done
 
-### 5.6/6.4 Hybrid response optimization
+Established the monorepo, Docker-based local stack, strict TypeScript baseline, Postgres + pgvector + Redis runtime, and the base module structure used by the platform.
 
-Evaluate deterministic/cached/retrieval-backed response paths with live generation fallback. Add
-only after response-path quality, latency, and cost can be measured.
+#### `1.2 First LLM Loop + Observability` ✅ Done
 
-### 6.2 Real-scenario validation
+Delivered the first provider-wrapped text exchange flow plus request tracing, latency/token metrics, and the initial observability baseline.
 
-Run a representative AVA scenario through authoring, operator, and multi-session quality workflows.
-Capture concrete product gaps rather than adding speculative platform features.
+### Core Conversation Runtime
 
-### 6.3 Prototype delivery
+#### `2.1 Avatar Agent v1` ✅ Done
 
-Package a stakeholder-ready scenario, Core, back-office workflow, deployment path, and handoff guide.
+Delivered direct avatar replies with persona-driven multi-turn behavior, establishing the first differentiated conversational runtime.
 
-## Backlog rules
+#### `2.1b Avatar Agent v2` ✅ Done
 
-- A new epic must be a coherent, testable product increment with a user-facing outcome.
-- Merge overlapping backlog items instead of creating parallel names.
-- Move completed detail to code/tests and keep this file at milestone level.
+Extended avatar prompt assembly so replies can use user persona, layered memory, and retrieval context instead of behaving like stateless responders.
+
+#### `2.2 Scenario & Session Lifecycle v1` ✅ Done
+
+Shipped the core scenario, avatar, session, and conversation lifecycle with persisted messages, history access, and session-level conversation management.
+
+#### `2.2b Conversation Lifecycle v2` ✅ Done
+
+Added bounded conversation closure, end-of-conversation handling, and the trigger that hands completed conversations into memory compaction.
+
+#### `2.3 Persistence Layer v1` ✅ Done
+
+Replaced in-memory core repositories with durable Postgres persistence and migrations for the main runtime entities.
+
+#### `2.4 Manual Test Console v1` ✅ Done
+
+Provided the first internal UI for creating content, starting sessions, sending messages, reviewing history, and resetting test sessions.
+
+#### `2.5 Admin CRUD + Console Integration` ✅ Done
+
+Completed the Tier 1 admin CRUD surface for scenarios, avatars, and sessions, then wired the console to those real admin APIs.
+
+#### `2.6 GM Debug Panel v1 + Observability APIs` ✅ Done
+
+Introduced safe GM inspection endpoints and a console debug panel for triggers, notes, transitions, unlocks, and orchestration state.
+
+#### `2.7 Runtime Inspector v2` ✅ Done
+
+Expanded the console into a runtime inspector covering context, memory layers, events, transitions, and operational actions.
+
+#### `2.8 Console Debugging Redesign` ✅ Done
+
+Consolidated fragmented debug flows into one operator shell with bounded workspaces for setup, memory evolution, GM impact, profiling, and persona editing.
+
+### Operations And Runtime Control
+
+#### `3.1 Operational Health & Dependency Monitoring` ✅ Done
+
+Delivered health and dependency probes for core services so operators can detect degraded runtime conditions before users do.
+
+#### `3.2 Inspector Consolidation & Contract Cleanup` ✅ Done
+
+Consolidated session inspection around canonical DTO ownership, cleaner admin read paths, and one coherent operator inspection flow.
+
+### Orchestration, Memory, And Runtime State
+
+#### `4.1 Async Game Master v1` ✅ Done
+
+Implemented non-blocking Game Master execution with structured decisions, routing influence, and deterministic runtime safeguards.
+
+#### `4.1c Multi-Model Runtime Configuration` ✅ Done
+
+Added deterministic model selection across global, role, scenario, and avatar scopes, together with admin editing and observability of effective model usage.
+
+#### `4.2 Memory Layer v1` ✅ Done
+
+Introduced persistent user facts and prompt injection so the runtime can retain and reuse basic user memory across sessions.
+
+#### `4.2b Memory System v2` ✅ Done
+
+Added working memory and an async maintenance pipeline so long conversations no longer depend on replaying the full transcript.
+
+#### `4.2c Memory System v3` ✅ Done
+
+Completed the layered memory model with episodic memories, hydration, deterministic memory selection, and stronger debug visibility.
+
+#### `4.3 Performance Baseline` ✅ Done
+
+Instrumented per-turn latency, token usage, and runtime metrics so the team can measure cost and responsiveness objectively.
+
+#### `4.4 Multi-Avatar Navigation v1` ✅ Done
+
+Made avatar availability, unlocking, switching, and session-scoped navigation explicit parts of the runtime.
+
+#### `4.5 Runtime State & World Events` ✅ Done
+
+Added runtime-state snapshots and SSE event streaming so clients can react to async GM-driven world changes in realtime.
+
+### Knowledge And Context
+
+#### `5.1 Multi-Layer Knowledge & RAG System v1` ✅ Done
+
+Delivered typed knowledge ingestion, chunking, embeddings, retrieval pipelines, and admin diagnostics for avatar, world, and media knowledge.
+
+#### `5.1b Avatar-Scoped Knowledge Visibility` ✅ Done
+
+Added avatar-scoped retrieval visibility so avatars only see allowed knowledge while the Game Master keeps unrestricted orchestration access.
+
+#### `5.1c Real Embedding Infrastructure & Reindexing` ✅ Done
+
+Delivered provider-neutral embeddings, production OpenAI integration, profile-aware persistence, transactional ingestion, safe reindexing, atomic corpus promotion, and authenticated operator controls.
+
+#### `4.2d Memory Domain Separation` ✅ Done
+
+Separated scenario-shared static knowledge from user-bound conversational memory with canonical types, explicit lifecycle ownership, and isolation coverage ([requirements matrix](EPIC_4_2D_REQUIREMENTS_MATRIX.md)).
+
+#### `5.1d Vector Retrieval Runtime` ✅ Done
+
+Replaced lexical retrieval with profile-aware pgvector search for Avatar, Game Master, and admin flows, with deterministic merging, visibility rules, controlled failures, and shared diagnostics ([requirements matrix](EPIC_5_1D_REQUIREMENTS_MATRIX.md)).
+
+#### `5.2 Context Engine v2` ✅ Done
+
+Established deterministic context assembly, precedence rules, token budgeting, trimming, and explainable trace output for Avatar and GM runtime contexts.
+
+#### `5.5 User Persona System` ✅ Done
+
+Persisted user persona and injected it into Avatar and GM flows so the runtime can adapt to the user’s role and interaction style.
+
+### Authoring And User Surfaces
+
+#### `6.1 Scenario Builder v1` ✅ Done
+
+Delivered the admin authoring surface for scenario and avatar editing, knowledge-source management, visibility policy, and runtime model selection.
+
+#### `7.1 Public User Web App v1` ✅ Done
+
+Delivered the first player-facing web app with browser-owned identity, scenario discovery, available-avatar chat flow, and SSE-driven runtime updates.
+
+#### `5.3 Streaming UX Layer` ✅ Done
+
+Delivered additive message streaming with progressive Avatar rendering, ordered-delta handling, interruption cleanup, exact-once persistence, and backward-compatible JSON responses.
+
+### Phase A Refinements
+
+#### `8.1 Avatar Trait Structuring` ✅ Done
+
+Introduced explicit scenario-scoped avatar-trait preparation so runtime prompt assembly can consume canonical computed traits instead of ad hoc fields.
+
+#### `8.2 Runtime Context Assembly Refactoring` ✅ Done
+
+Refactored runtime context into structured sections with clearer precedence and tighter prompt assembly for Avatar behavior.
+
+#### `8.3 Game Master Prompt Refinement` ✅ Done
+
+Strengthened the Game Master prompt contract with explicit structure and clearer decision-policy guidance.
+
+#### `8.4 Working Memory Prompt Refinement` ✅ Done
+
+Refined working-memory generation around structured fields such as `coveredTopics` and aligned the related operator-facing inspection surfaces.
+
+#### `8.5 Game Master Post-Analysis Refinement` ✅ Done
+
+Refined asynchronous Game Master orchestration with forward retrieval planning, dialogue-control modes, dynamic routing, and explicit ownership boundaries for application state and memory compaction.
+
+### Evaluation, Voice, And Platform Hardening
+
+#### `8.6 Scripted Conversation Response Evaluation` ✅ Done
+
+Added authenticated CLI evaluation for sequential scripted conversations, semantic judging, runtime metrics, partial reports, model comparison metadata, and deterministic test coverage.
+
+#### `9.1 Voice Input Integration with Deepgram` ✅ Done
+
+Added provider-neutral speech-to-text contracts, an optional Deepgram adapter, transcript coordination, authenticated sync/SSE routes, idempotency, cancellation, and hardening coverage.
+
+#### `9.2 Voice Output Integration with Gradium` ✅ Done
+
+Added provider-neutral text-to-speech contracts, an optional Gradium adapter, completed-message audio delivery, browser playback with text fallback, and hardening coverage.
+
+#### `10.1 Clean-Slate Compatibility Removal` ✅ Done
+
+Removed audited compatibility paths and legacy contracts, verified fresh schema/content deployment, and synchronized the source-of-truth documentation.
+
+## Open Backlog
+
+### `3.3 Replay & Recovery Tools`
+
+**Current state**  
+Partially covered by GM replay, memory refresh/clear, and runtime inspection actions, but not closed as a dedicated milestone.
+
+**Purpose**  
+Enable safe experimentation and faster debugging.
+
+**Description**  
+Provide reset, replay-last-turn, and audit logging for operational recovery actions so operators can recover broken sessions without engineering intervention.
+
+**Includes**
+
+- replay last turn
+- reset runtime state
+- admin action audit log
+- action permissions groundwork
+
+**Definition of done**
+
+- operators can retry and recover sessions safely
+- recovery actions are explicit and traceable
+- sensitive actions have clear permission boundaries
+
+**What can be tested**
+
+1. force a broken conversation state
+2. replay the last turn
+3. reset the affected runtime state
+4. verify the audit trail records each operator action
+
+**User increment**
+
+- safe recovery tools without direct engineering support
+
+### `5.4 Guided Progression Engine v1`
+
+**Current state**  
+No standalone progression engine exists beyond current GM heuristics and scenario-goal handling.
+
+**Purpose**  
+Ensure conversations move toward scenario objectives instead of drifting into generic chat.
+
+**Description**  
+Implement configurable progression logic that combines goals, pacing rules, milestone tracking, and role-fidelity constraints with GM orchestration.
+
+**Includes**
+
+- scenario goals model integration
+- pacing rule evaluation
+- progression milestone tracking
+- recommended user choices generation
+- guardrails for role fidelity and objective coverage
+
+**Definition of done**
+
+- progression state is visible and testable
+- stalled conversations trigger appropriate guidance
+- role breaks are reduced in guided scenarios
+
+**What can be tested**
+
+1. progression advances when objective criteria are met
+2. pacing rules trigger guidance after stalled turns
+3. recommended choices align with the active objective
+4. role-fidelity constraints block invalid guidance paths
+
+**User increment**
+
+- sessions feel directed, meaningful, and outcome-oriented
+
+### `5.6 / 6.4 Hybrid Response System / Hybrid Response Optimization`
+
+**Current state**  
+Still open. The original `5.6` and `6.4` scopes overlap enough that future implementation should treat them as one EPIC unless requirements diverge materially.
+
+**Purpose**  
+Improve latency, consistency, and controllability without removing live generative flexibility.
+
+**Description**  
+Introduce a hybrid response path that can choose among canonical answers, retrieval-backed answers, constrained generation, and live generation fallback.
+
+**Includes**
+
+- canonical or cached response lookup for recurring intents
+- retrieval-first response path when grounded knowledge is sufficient
+- constrained generation templates for high-risk or structured outputs
+- fallback to live generation when deterministic paths are not eligible
+- response-path observability tags and diagnostics
+
+**Definition of done**
+
+- response path is explicit and measurable on each turn
+- common queries are faster when they match deterministic paths
+- fallback behavior is safe and reliable
+- no regression in baseline conversational quality
+
+**What can be tested**
+
+1. known intents hit the canonical or cached path
+2. retrieval path activates when source confidence is sufficient
+3. constrained generation returns the required structure
+4. live-generation fallback activates when no deterministic path applies
+
+**User increment**
+
+- faster, more reliable responses without losing adaptability
+
+### `6.2 AVA Scenario Validation`
+
+**Current state**  
+The milestone is not recorded complete.
+
+**Purpose**  
+Test the platform on real content.
+
+**Description**  
+Use AVA assets, characters, and narrative material to validate conversation quality, operator workflow, and scenario realism beyond synthetic tests.
+
+**Includes**
+
+- AVA scenario configuration
+- persona materials
+- narrative test sessions
+- operator review sessions
+
+**Definition of done**
+
+- the AVA scenario runs at usable quality
+- scenario-specific issues are documented and addressed
+- operator workflows are sufficient for maintaining the scenario
+
+**What can be tested**
+
+1. real end-user sessions with AVA content
+2. narrative consistency across multiple conversations
+3. immersion and operator quality review loops
+
+**User increment**
+
+- first market-relevant validated scenario
+
+### `6.3 Summer Prototype Delivery`
+
+**Current state**  
+The delivery milestone is not recorded complete.
+
+**Purpose**  
+Deliver the agreed MVP Scenario A.
+
+**Description**  
+Package the text-in/text-out core, usable back-office, validated scenario, and supporting documentation into an external-stakeholder-ready prototype.
+
+**Includes**
+
+- back-office tooling
+- AVA scenario
+- API surface
+- core runtime
+- supporting documentation
+
+**Definition of done**
+
+- the prototype is demoable to external stakeholders
+- scenario lifecycle can be operated without code changes
+- the delivery package is documented clearly enough to hand over
+
+**What can be tested**
+
+1. end-to-end demo walkthrough
+2. stakeholder-facing prototype review
+3. operator-managed scenario lifecycle from setup through conversation
+
+**User increment**
+
+- first external prototype ready for demonstration
+
+## Superseded Or Absorbed Items
+
+### `4.1b Game Master Context Awareness Upgrade`
+
+Do not reopen this as a standalone EPIC unless the scope changes materially. Its intended outcome is already covered by shipped work in `5.1`, `5.1b`, `5.2`, `8.3`, and `8.4`.
+
+## Future-Use Rules
+
+- Create a new EPIC only for a coherent, testable product increment.
+- Keep implementation history out of this file; detailed execution belongs in commits, PRs, and focused design docs.
+- When an EPIC is absorbed by later work, mark it as absorbed instead of duplicating the same scope under multiple headings.
