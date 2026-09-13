@@ -1,4 +1,4 @@
-import type { Config } from '../../config.js'
+import { DEFAULT_EMBEDDING_DIMENSIONS, type Config } from '../../config.js'
 import { SPEECH_TO_TEXT_LIMITS } from '../../application/ports/ISpeechToTextAdapter.js'
 
 /**
@@ -19,7 +19,7 @@ export const TEST_CONFIG: Config = {
   llmProvider: 'null',
   embeddingProvider: 'openai',
   embeddingModel: 'text-embedding-3-small',
-  embeddingDimensions: 16,
+  embeddingDimensions: DEFAULT_EMBEDDING_DIMENSIONS,
   embeddingBatchSize: 100,
   openaiApiKey: undefined,
   anthropicApiKey: undefined,

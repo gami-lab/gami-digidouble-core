@@ -73,7 +73,7 @@ rather than a silent corruption risk:
   rebuild progress per source; promotion is a single transaction that locks and swaps the active
   pointer only after every expected source is complete, then marks the previous generation
   `superseded` — so a failed or partial rebuild always leaves the previous active corpus queryable.
-- The deployed column is fixed at `VECTOR(16)` with `vector_cosine_ops`. Changing dimensions
+- The deployed column is fixed at `VECTOR(1536)` with `vector_cosine_ops`. Changing dimensions
   requires a new canonical schema revision plus a full staged reindex; existing DB volumes are not
   reusable across that change, and config alone cannot select a mixed vector space.
 - Nearest-neighbor search applies active profile/generation, source-readiness, scenario/type, and

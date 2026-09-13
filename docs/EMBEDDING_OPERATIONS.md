@@ -6,7 +6,8 @@ Set via environment, independent from `LLM_PROVIDER`/Avatar/GM/memory/scenario c
 
 - `EMBEDDING_PROVIDER=openai`
 - `EMBEDDING_MODEL=text-embedding-3-small`
-- `EMBEDDING_DIMENSIONS=16` — must match the deployed `VECTOR(16)` column with cosine index.
+- `EMBEDDING_DIMENSIONS=1536` — the model's native profile; must match the deployed `VECTOR(1536)`
+  column with cosine index.
 - `EMBEDDING_BATCH_SIZE=100` — safe request batch size; the adapter still enforces the provider's
   own limit underneath.
 - `OPENAI_API_KEY` — required and non-empty.
@@ -14,22 +15,41 @@ Set via environment, independent from `LLM_PROVIDER`/Avatar/GM/memory/scenario c
 Defaults live in `apps/core/src/config.ts` (`DEFAULT_EMBEDDING_*`); see `.env.example` for the
 canonical variable names.
 
-An unsupported provider, missing credential, incompatible model/dimension pair, or a dimension
-other than the deployed `VECTOR(16)` fails fast at startup/adapter construction — not silently, and
-not at first query time. There is no hash-vector fallback in production; the deterministic hash
-adapter is an explicit test double only.
+An unsupported provider, missing credential, or incompatible model/dimension pair fails fast at
+startup/adapter construction — not silently. The configured dimension must also match the deployed
+`VECTOR(1536)` before ingestion or retrieval; the corpus repository rejects a mismatched profile
+rather than mixing vector spaces. `text-embedding-3-small` supports up to 1536 output dimensions;
+the application rejects dimensions beyond the configured model's supported maximum. There is no
+hash-vector fallback in production; the deterministic hash adapter is an explicit test double only.
+
+### Retrieval-quality measurement
+
+The six-fixture retrieval harness measured the historical 16-dimensional profile against the native
+1536-dimensional profile using the same labelled queries and `TypedRetrievalService` path:
+
+| Profile                  | Recall@3 | Recall@7 | Recall@9 |      MRR |
+| ------------------------ | -------: | -------: | -------: | -------: |
+| Historical 16 dimensions | 1.000000 | 1.000000 | 1.000000 | 0.722222 |
+| Current 1536 dimensions  | 1.000000 | 1.000000 | 1.000000 | 0.916667 |
+
+Recall was already saturated on this small fixture set, while MRR improved by 0.194445. The native
+profile was selected because it preserves the model's full semantic resolution; the measured gain is
+supporting evidence, not a claim that this six-query sample represents every production workload.
+The committed reports are `apps/core/src/tools/retrieval-quality/baseline-before.json` (historical)
+and `baseline-after-1536.json` (current).
 
 ## Changing a profile
 
 A provider/model/dimension change creates a new, incompatible vector space. **Do not** just change
 the environment variable and let ingestion continue against the existing corpus — old vectors and
-new vectors are not comparable. A dimension change additionally requires a new canonical PostgreSQL
-schema revision (the `VECTOR(16)` column type and its `vector_cosine_ops` index must be recreated
-to match).
+new vectors are not comparable. For this 16-to-1536 migration, wipe and recreate the database from
+the canonical PostgreSQL schema before starting the application; the `VECTOR(1536)` column type and
+its `vector_cosine_ops` index must be created together.
 
 Rollout sequence:
 
-1. Deploy the compatible schema revision and the target environment configuration together.
+1. Recreate the database from `infra/postgres/init.sql` and deploy the compatible target environment
+   configuration together. Existing 16-dimensional data is intentionally discarded for this migration.
 2. Start `POST /v1/admin/knowledge/reindex` with the operator API key and `{}`.
 3. Poll `GET /v1/admin/knowledge/reindex/{reindexOperationId}` until `completed` or `failed`.
 4. On failure, inspect the failed source IDs and bounded failure codes, fix the underlying source

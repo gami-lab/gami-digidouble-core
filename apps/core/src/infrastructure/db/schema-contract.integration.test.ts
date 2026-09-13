@@ -1,5 +1,6 @@
 import type { Sql } from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { DEFAULT_EMBEDDING_DIMENSIONS } from '../../config.js'
 import { DB_AVAILABLE, createTestSql } from './test-helpers.js'
 
 describe.skipIf(!DB_AVAILABLE)('canonical PostgreSQL schema', () => {
@@ -43,7 +44,7 @@ describe.skipIf(!DB_AVAILABLE)('canonical PostgreSQL schema', () => {
       WHERE conrelid = 'knowledge_chunks'::regclass
     `
 
-    expect(embeddingColumn?.formatted_type).toBe('vector(16)')
+    expect(embeddingColumn?.formatted_type).toBe(`vector(${String(DEFAULT_EMBEDDING_DIMENSIONS)})`)
     expect(constraints.map((constraint) => constraint.conname)).toEqual(
       expect.arrayContaining([
         'knowledge_chunks_generation_profile_fkey',

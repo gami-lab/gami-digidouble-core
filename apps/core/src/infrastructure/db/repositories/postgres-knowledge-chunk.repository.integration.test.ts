@@ -1,13 +1,14 @@
 import type { Sql } from 'postgres'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { DEFAULT_EMBEDDING_DIMENSIONS } from '../../../config.js'
 import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
 import { PostgresKnowledgeChunkRepository } from './postgres-knowledge-chunk.repository.js'
 import { PostgresKnowledgeCorpusRepository } from './postgres-knowledge-corpus.repository.js'
 import { PostgresKnowledgeSourceRepository } from './postgres-knowledge-source.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 
-function vector16(first: number, second: number): number[] {
-  return [first, second, ...Array.from({ length: 14 }, () => 0)]
+function vectorForCurrentProfile(first: number, second: number): number[] {
+  return [first, second, ...Array.from({ length: DEFAULT_EMBEDDING_DIMENSIONS - 2 }, () => 0)]
 }
 
 // eslint-disable-next-line max-lines-per-function
@@ -59,7 +60,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     const profile = await corpusRepo.createEmbeddingProfile({
       provider: 'test',
       model: 'test-embedding',
-      dimensions: 16,
+      dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
     })
     const operation = await corpusRepo.createReindexOperation({
       embeddingProfileId: profile.embeddingProfileId,
@@ -97,7 +98,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     const profile = await corpusRepo.createEmbeddingProfile({
       provider: 'test',
       model: 'test-embedding',
-      dimensions: 16,
+      dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
     })
     const operation = await corpusRepo.createReindexOperation({
       embeddingProfileId: profile.embeddingProfileId,
@@ -108,7 +109,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       sourceId,
       content: 'Chunk 2',
       chunkIndex: 2,
-      embedding: vector16(0.2, 0.3),
+      embedding: vectorForCurrentProfile(0.2, 0.3),
       embeddingProfileId: profile.embeddingProfileId,
       corpusGenerationId: operation.corpusGenerationId,
     })
@@ -116,7 +117,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       sourceId,
       content: 'Chunk 0',
       chunkIndex: 0,
-      embedding: vector16(0.1, 0.0),
+      embedding: vectorForCurrentProfile(0.1, 0.0),
       embeddingProfileId: profile.embeddingProfileId,
       corpusGenerationId: operation.corpusGenerationId,
     })
@@ -135,7 +136,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
 
     expect(chunks).toHaveLength(2)
     expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual([0, 2])
-    expect(chunks[0]?.embedding).toEqual(vector16(0.1, 0))
+    expect(chunks[0]?.embedding).toEqual(vectorForCurrentProfile(0.1, 0))
     expect(chunks[0]?.visibleToAvatarIds).toBeUndefined()
   })
 
@@ -210,9 +211,9 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
         [
           sourceId,
           [
-            { content: 'far', chunkIndex: 2, vector: vector16(0, 1) },
-            { content: 'near', chunkIndex: 1, vector: vector16(1, 0.1) },
-            { content: 'best', chunkIndex: 0, vector: vector16(1, 0) },
+            { content: 'far', chunkIndex: 2, vector: vectorForCurrentProfile(0, 1) },
+            { content: 'near', chunkIndex: 1, vector: vectorForCurrentProfile(1, 0.1) },
+            { content: 'best', chunkIndex: 0, vector: vectorForCurrentProfile(1, 0) },
           ],
         ],
       ]),
@@ -221,14 +222,18 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     expect(source).not.toBeNull()
 
     const candidates = await chunkRepo.searchByVector({
-      queryVector: vector16(1, 0),
+      queryVector: vectorForCurrentProfile(1, 0),
       queryVariant: { source: 'direct_query', text: 'find best' },
       scenarioId: source?.scenarioId ?? 'scenario_missing',
       knowledgeType: 'world',
       candidateLimit: 2,
       embeddingProfileId: active.profileId,
       corpusGenerationId: active.generationId,
-      profile: { provider: 'test', model: 'test-embedding', dimensions: 16 },
+      profile: {
+        provider: 'test',
+        model: 'test-embedding',
+        dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
+      },
       visibilityMode: 'avatar_filtered',
     })
 
@@ -312,21 +317,25 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       new Map(
         sourceIds.map((currentSourceId) => [
           currentSourceId,
-          [{ content: currentSourceId, chunkIndex: 0, vector: vector16(1, 0) }],
+          [{ content: currentSourceId, chunkIndex: 0, vector: vectorForCurrentProfile(1, 0) }],
         ]),
       ),
     )
     await sourceRepo.updateStatus(pendingSource.sourceId, 'pending')
 
     const baseRequest = {
-      queryVector: vector16(1, 0),
+      queryVector: vectorForCurrentProfile(1, 0),
       queryVariant: { source: 'world_context' as const, text: 'world' },
       scenarioId: scenario.scenarioId,
       knowledgeType: 'world' as const,
       candidateLimit: 10,
       embeddingProfileId: active.profileId,
       corpusGenerationId: active.generationId,
-      profile: { provider: 'test', model: 'test-embedding', dimensions: 16 },
+      profile: {
+        provider: 'test',
+        model: 'test-embedding',
+        dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
+      },
     }
     const filtered = await chunkRepo.searchByVector({
       ...baseRequest,
@@ -356,18 +365,24 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     await seedSource()
     const active = await activateVectorCorpus(
       [sourceId],
-      new Map([[sourceId, [{ content: 'vector', chunkIndex: 0, vector: vector16(1, 0) }]]]),
+      new Map([
+        [sourceId, [{ content: 'vector', chunkIndex: 0, vector: vectorForCurrentProfile(1, 0) }]],
+      ]),
     )
     const source = await sourceRepo.findById(sourceId)
     const request = {
-      queryVector: vector16(1, 0),
+      queryVector: vectorForCurrentProfile(1, 0),
       queryVariant: { source: 'direct_query' as const, text: 'vector' },
       scenarioId: source?.scenarioId ?? 'scenario_missing',
       knowledgeType: 'world' as const,
       candidateLimit: 2,
       embeddingProfileId: active.profileId,
       corpusGenerationId: active.generationId,
-      profile: { provider: 'test', model: 'test-embedding', dimensions: 16 },
+      profile: {
+        provider: 'test',
+        model: 'test-embedding',
+        dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
+      },
       visibilityMode: 'avatar_filtered' as const,
     }
 
@@ -387,7 +402,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
   })
 
   it('keeps the nearest-neighbor query shape compatible with the cosine index', async () => {
-    const queryVector = JSON.stringify(vector16(1, 0))
+    const queryVector = JSON.stringify(vectorForCurrentProfile(1, 0))
     const plan = await sql.begin(async (transaction) => {
       await transaction`SET LOCAL enable_seqscan = off`
       return transaction<{ 'QUERY PLAN': string }[]>`

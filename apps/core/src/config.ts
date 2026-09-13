@@ -50,9 +50,9 @@ export interface Config {
 
 export const DEFAULT_EMBEDDING_PROVIDER = 'openai'
 export const DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small'
-// Keep the first production profile compatible with the current VECTOR(16) schema.
-// The next persistence slice can promote a larger profile atomically.
-export const DEFAULT_EMBEDDING_DIMENSIONS = 16
+// Use the model's native 1536 dimensions to preserve semantic resolution.
+// A matching fresh schema and staged reindex are required before promotion.
+export const DEFAULT_EMBEDDING_DIMENSIONS = 1536
 export const DEFAULT_EMBEDDING_BATCH_SIZE = 100
 export const DEFAULT_DEEPGRAM_MODEL = 'nova-3'
 export const DEFAULT_DEEPGRAM_TIMEOUT_MS = 30_000

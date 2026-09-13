@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "fixtureCount": 6,
+  "recallAtK": {
+    "3": 1,
+    "7": 1,
+    "9": 1
+  },
+  "meanReciprocalRank": 0.9166666666666666,
+  "fixtures": [
+    {
+      "fixtureId": "crime-scene-digitalis",
+      "expectedCount": 1,
+      "retrievedChunkIds": [
+        "winter-garden-location",
+        "crime-scene-digitalis",
+        "world-damp-footprints",
+        "world-boathouse"
+      ],
+      "firstRelevantRank": 2,
+      "hitsAtK": {
+        "3": true,
+        "7": true,
+        "9": true
+      },
+      "reciprocalRank": 0.5
+    },
+    {
+      "fixtureId": "clara-medical-case",
+      "expectedCount": 1,
+      "retrievedChunkIds": [
+        "clara-medical-case",
+        "elias-digitalis",
+        "thomas-timeline",
+        "elias-motive",
+        "clara-cherry-liqueur",
+        "thomas-papers",
+        "margot-envelope",
+        "margot-boathouse"
+      ],
+      "firstRelevantRank": 1,
+      "hitsAtK": {
+        "3": true,
+        "7": true,
+        "9": true
+      },
+      "reciprocalRank": 1
+    },
+    {
+      "fixtureId": "elias-motive",
+      "expectedCount": 1,
+      "retrievedChunkIds": [
+        "elias-motive",
+        "elias-digitalis",
+        "margot-envelope",
+        "thomas-papers",
+        "thomas-timeline",
+        "clara-cherry-liqueur",
+        "clara-medical-case",
+        "margot-boathouse"
+      ],
+      "firstRelevantRank": 1,
+      "hitsAtK": {
+        "3": true,
+        "7": true,
+        "9": true
+      },
+      "reciprocalRank": 1
+    },
+    {
+      "fixtureId": "thomas-timeline",
+      "expectedCount": 1,
+      "retrievedChunkIds": [
+        "thomas-timeline",
+        "clara-medical-case",
+        "thomas-papers",
+        "elias-digitalis",
+        "elias-motive",
+        "margot-envelope",
+        "margot-boathouse",
+        "clara-cherry-liqueur"
+      ],
+      "firstRelevantRank": 1,
+      "hitsAtK": {
+        "3": true,
+        "7": true,
+        "9": true
+      },
+      "reciprocalRank": 1
+    },
+    {
+      "fixtureId": "margot-envelope",
+      "expectedCount": 1,
+      "retrievedChunkIds": [
+        "margot-envelope",
+        "elias-motive",
+        "clara-cherry-liqueur",
+        "margot-boathouse",
+        "elias-digitalis",
+        "thomas-papers",
+        "clara-medical-case",
+        "thomas-timeline"
+      ],
+      "firstRelevantRank": 1,
+      "hitsAtK": {
+        "3": true,
+        "7": true,
+        "9": true
+      },
+      "reciprocalRank": 1
+    },
+    {
+      "fixtureId": "winter-garden-location",
+      "expectedCount": 1,
+      "retrievedChunkIds": [
+        "winter-garden-location",
+        "crime-scene-digitalis",
+        "world-boathouse",
+        "world-damp-footprints"
+      ],
+      "firstRelevantRank": 1,
+      "hitsAtK": {
+        "3": true,
+        "7": true,
+        "9": true
+      },
+      "reciprocalRank": 1
+    }
+  ],
+  "embeddingProfile": {
+    "provider": "openai",
+    "model": "text-embedding-3-small",
+    "dimensions": 1536
+  }
+}

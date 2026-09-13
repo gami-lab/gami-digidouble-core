@@ -73,18 +73,19 @@ Main implementation entry points: `knowledge-ingestion.service.ts`, `typed-retri
 
 Production uses the OpenAI embedding adapter (requires `OPENAI_API_KEY`), with no hash-vector
 fallback — if the adapter isn't configured, ingestion/query embedding fails rather than silently
-degrading to a fake vector. The default profile is `text-embedding-3-small` requested at 16
-dimensions via OpenAI's native dimension-shortening parameter, matching the fixed `VECTOR(16)`
-column in `infra/postgres/init.sql`.
+degrading to a fake vector. The default profile is `text-embedding-3-small` at its native 1536
+dimensions, matching the fixed `VECTOR(1536)` column in `infra/postgres/init.sql`. The historical
+16-dimensional retrieval baseline remains available for comparison in the retrieval-quality tool.
 
 A deterministic hash-based adapter exists only for tests (explicitly injected, never a server
 default). It accumulates character codes per input string into buckets and L2-normalizes the
 result — useful for reproducible test fixtures, not a semantic embedding.
 
 **Gotcha:** the embedding profile identity (provider/model/dimension) is persisted and enforced
-across ingestion and query time. Changing the profile or dimension requires a matching schema
-revision (the `VECTOR(16)` column width) and a staged reindex of the whole corpus — you cannot
-silently swap models without a coordinated migration. See
+across ingestion and query time. Changing the profile or dimension requires a matching fresh schema
+revision (the `VECTOR(1536)` column width); existing database volumes are not reusable across a
+dimension change. After the clean-slate deployment, use the staged reindex for the complete corpus —
+you cannot silently swap models without a coordinated migration. See
 [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md) for the reindex procedure.
 
 ## Query sources

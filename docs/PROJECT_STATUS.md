@@ -12,7 +12,8 @@ shipped platform includes:
 - asynchronous Game Master planning, routing proposals, progression guidance, and runtime events
 - bounded working, episodic, and user-fact memory with admin inspection and maintenance actions
 - typed scenario knowledge ingestion, OpenAI embeddings, profile-aware pgvector retrieval, atomic reindexing, and Avatar visibility rules
-- versioned retrieval-quality fixtures and an opt-in 16-dimension baseline harness with recall@k/MRR reporting
+- versioned retrieval-quality fixtures with an opt-in historical 16-dimension baseline and current
+  1536-dimension recall@k/MRR reporting
 - deterministic context assembly for Avatar and GM with separate conversation/retrieved-context projections
 - API, admin, console, web, and authenticated scripted-evaluation consumers
 - optional Deepgram speech input and Gradium-compatible text-to-speech delivery with text-preserving fallback
@@ -75,9 +76,10 @@ that touches persistence, retrieval, or provider adapters.
 - No standalone guided progression engine beyond current GM/scenario heuristics (`EPICS.md` 5.4).
 - No hybrid response/cache path for latency-sensitive or canonical answers (`EPICS.md` 5.6/6.4).
 - No completed real-scenario validation milestone or prototype-packaging milestone yet (`EPICS.md` 6.2/6.3).
-- Retrieval quality work continues against the committed recall@k/MRR baseline (`EPICS.md` 5.1e);
-  deterministic oversized-input caps and bounded chunk overlap are now covered, while embedding,
-  selection, and lexical-fallback improvements remain open.
+- Retrieval quality work now has a measured native-profile comparison: the historical 16-dimensional
+  baseline has recall@3/7/9 = 1.000000 and MRR = 0.722222, versus recall@3/7/9 = 1.000000 and
+  MRR = 0.916667 at 1536 dimensions (`EPICS.md` 5.1e); selection and lexical-fallback improvements
+  remain open.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.

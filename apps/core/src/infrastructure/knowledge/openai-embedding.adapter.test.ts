@@ -271,4 +271,14 @@ describe('OpenAiEmbeddingAdapter', () => {
       'Missing OPENAI_API_KEY',
     )
   })
+
+  it('allows supported model dimensions through the production factory', () => {
+    expect(
+      createEmbeddingAdapter({ ...profileConfig, dimensions: 256 }, createObservability().adapter),
+    ).toBeInstanceOf(OpenAiEmbeddingAdapter)
+
+    expect(() =>
+      createEmbeddingAdapter({ ...profileConfig, dimensions: 1537 }, createObservability().adapter),
+    ).toThrow('expected at most 1536')
+  })
 })

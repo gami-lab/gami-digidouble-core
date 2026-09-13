@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS embedding_profiles (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   provider    TEXT        NOT NULL,
   model       TEXT        NOT NULL,
-  dimensions  INT         NOT NULL CHECK (dimensions = 16),
+  dimensions  INT         NOT NULL CHECK (dimensions > 0 AND dimensions <= 3072),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (provider, model, dimensions)
 );
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
   source_id       UUID        NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
   content         TEXT        NOT NULL,
   chunk_index     INT         NOT NULL,
-  embedding       VECTOR(16),
+  embedding       VECTOR(1536),
   embedding_profile_id UUID REFERENCES embedding_profiles(id),
   corpus_generation_id UUID,
   metadata        JSONB       NOT NULL DEFAULT '{}',
@@ -346,9 +346,10 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_sources_scope
   ON knowledge_sources(scenario_id, knowledge_type, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_chunk
   ON knowledge_chunks(source_id, chunk_index);
+-- Ten lists suits the current small seeded corpus; revisit this with corpus growth.
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding
   ON knowledge_chunks USING ivfflat (embedding vector_cosine_ops)
-  WITH (lists = 100)
+  WITH (lists = 10)
   WHERE embedding IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_source_status
   ON ingestion_jobs(source_id, status, created_at DESC);

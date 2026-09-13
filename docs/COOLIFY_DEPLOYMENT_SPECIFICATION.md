@@ -46,7 +46,7 @@ host) will be blocked. Until the backend supports multiple allowed origins, eith
 `CORS_ORIGIN=*` or pick the one exact origin that covers your actual usage.
 
 Keep the embedding profile (`EMBEDDING_PROVIDER`/`EMBEDDING_MODEL`/`EMBEDDING_DIMENSIONS`) aligned
-with the deployed `VECTOR(16)` schema. A profile change needs a matching schema revision and a
+with the deployed `VECTOR(1536)` schema. A profile change needs a matching schema revision and a
 complete staged reindex before it can go active — see the procedure in
 [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md); do not just flip the env var.
 

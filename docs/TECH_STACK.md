@@ -40,8 +40,8 @@ product code rather than in an external agent framework.
 
 - Static knowledge types are `avatar_knowledge`, `world`, and `media`.
 - Conversational memory is a separate lifecycle and is never represented as a static knowledge type.
-- Production embeddings currently use OpenAI `text-embedding-3-small`, requested at 16 dimensions to
-  match the deployed PostgreSQL `VECTOR(16)` column with `vector_cosine_ops`.
+- Production embeddings use OpenAI `text-embedding-3-small` at its native 1536 dimensions to match
+  the deployed PostgreSQL `VECTOR(1536)` column with `vector_cosine_ops`.
 - A profile/model/dimension change requires a matching schema revision and a full staged, atomic
   reindex (see `EMBEDDING_OPERATIONS.md`) — configuration alone cannot select a mixed vector space,
   and existing DB volumes are not reusable across that change. There is no production hash-vector

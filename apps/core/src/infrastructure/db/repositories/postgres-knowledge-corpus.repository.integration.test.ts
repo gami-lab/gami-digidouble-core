@@ -1,13 +1,14 @@
 import type { Sql } from 'postgres'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { DEFAULT_EMBEDDING_DIMENSIONS } from '../../../config.js'
 import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
 import { PostgresKnowledgeChunkRepository } from './postgres-knowledge-chunk.repository.js'
 import { PostgresKnowledgeCorpusRepository } from './postgres-knowledge-corpus.repository.js'
 import { PostgresKnowledgeSourceRepository } from './postgres-knowledge-source.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 
-function vector16(first: number, second: number): number[] {
-  return [first, second, ...Array.from({ length: 14 }, () => 0)]
+function vectorForCurrentProfile(first: number, second: number): number[] {
+  return [first, second, ...Array.from({ length: DEFAULT_EMBEDDING_DIMENSIONS - 2 }, () => 0)]
 }
 
 // eslint-disable-next-line max-lines-per-function
@@ -64,7 +65,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
     const profile = await corpusRepository.createEmbeddingProfile({
       provider: 'test',
       model: 'test-embedding',
-      dimensions: 16,
+      dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
     })
     const operation = await corpusRepository.createReindexOperation({
       embeddingProfileId: profile.embeddingProfileId,
@@ -76,7 +77,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
         sourceId: firstSource,
         content: 'first',
         chunkIndex: 0,
-        embedding: vector16(1, 0),
+        embedding: vectorForCurrentProfile(1, 0),
         embeddingProfileId: operation.embeddingProfileId,
         corpusGenerationId: operation.corpusGenerationId,
       },
@@ -92,7 +93,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
         sourceId: secondSource,
         content: 'second',
         chunkIndex: 0,
-        embedding: vector16(0, 1),
+        embedding: vectorForCurrentProfile(0, 1),
         embeddingProfileId: operation.embeddingProfileId,
         corpusGenerationId: operation.corpusGenerationId,
       },
@@ -115,7 +116,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
         sourceId: firstSource,
         content: 'replacement first',
         chunkIndex: 0,
-        embedding: vector16(0.5, 0),
+        embedding: vectorForCurrentProfile(0.5, 0),
         embeddingProfileId: replacement.embeddingProfileId,
         corpusGenerationId: replacement.corpusGenerationId,
       },
@@ -129,7 +130,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
         sourceId: secondSource,
         content: 'replacement second',
         chunkIndex: 0,
-        embedding: vector16(0, 0.5),
+        embedding: vectorForCurrentProfile(0, 0.5),
         embeddingProfileId: replacement.embeddingProfileId,
         corpusGenerationId: replacement.corpusGenerationId,
       },
@@ -150,7 +151,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
       JOIN pg_class c ON c.oid = a.attrelid
       WHERE c.relname = 'knowledge_chunks' AND a.attname = 'embedding'
     `
-    expect(column?.formatted_type).toBe('vector(16)')
+    expect(column?.formatted_type).toBe(`vector(${String(DEFAULT_EMBEDDING_DIMENSIONS)})`)
 
     const [index] = await sql<{ indexdef: string }[]>`
       SELECT indexdef
@@ -165,7 +166,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
         model: 'wrong-dimension',
         dimensions: 8,
       }),
-    ).rejects.toThrow('VECTOR(16)')
+    ).rejects.toThrow(`VECTOR(${String(DEFAULT_EMBEDDING_DIMENSIONS)})`)
   })
 
   it('rejects unprofiled vectors and preserves the prior active generation on failure', async () => {
@@ -175,14 +176,14 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
         sourceId: firstSource,
         content: 'legacy vector',
         chunkIndex: 0,
-        embedding: vector16(1, 0),
+        embedding: vectorForCurrentProfile(1, 0),
       }),
     ).rejects.toThrow('require an embedding profile')
 
     const profile = await corpusRepository.createEmbeddingProfile({
       provider: 'test',
       model: 'test-embedding',
-      dimensions: 16,
+      dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
     })
     const firstOperation = await corpusRepository.createReindexOperation({
       embeddingProfileId: profile.embeddingProfileId,
@@ -196,7 +197,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
           sourceId: firstSource,
           content: 'active',
           chunkIndex: 0,
-          embedding: vector16(1, 0),
+          embedding: vectorForCurrentProfile(1, 0),
           embeddingProfileId: firstOperation.embeddingProfileId,
           corpusGenerationId: firstOperation.corpusGenerationId,
         },
@@ -221,7 +222,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
     const profile = await corpusRepository.createEmbeddingProfile({
       provider: 'test',
       model: 'test-embedding',
-      dimensions: 16,
+      dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
     })
     const operation = await corpusRepository.createReindexOperation({
       embeddingProfileId: profile.embeddingProfileId,
@@ -232,7 +233,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
         sourceId: firstSource,
         content: 'active',
         chunkIndex: 0,
-        embedding: vector16(1, 0),
+        embedding: vectorForCurrentProfile(1, 0),
         embeddingProfileId: operation.embeddingProfileId,
         corpusGenerationId: operation.corpusGenerationId,
       },
@@ -249,7 +250,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
             sourceId: firstSource,
             content: 'replacement',
             chunkIndex: 0,
-            embedding: vector16(0, 1),
+            embedding: vectorForCurrentProfile(0, 1),
             embeddingProfileId: operation.embeddingProfileId,
             corpusGenerationId: operation.corpusGenerationId,
           },
@@ -270,7 +271,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
             sourceId: firstSource,
             content: 'stale replacement',
             chunkIndex: 0,
-            embedding: vector16(0, 1),
+            embedding: vectorForCurrentProfile(0, 1),
             embeddingProfileId: operation.embeddingProfileId,
             corpusGenerationId: 'corpus_generation_00000000-0000-0000-0000-000000000000',
           },
@@ -287,7 +288,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
     const profile = await corpusRepository.createEmbeddingProfile({
       provider: 'test',
       model: 'test-embedding',
-      dimensions: 16,
+      dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
     })
     const operation = await corpusRepository.createReindexOperation({
       embeddingProfileId: profile.embeddingProfileId,
