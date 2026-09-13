@@ -103,13 +103,13 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
       name: 'Scenario Models',
       config: { language: 'fr' },
       modelSelection: {
-        defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+        defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
         gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
       },
     })
 
     expect(created.modelSelection).toEqual({
-      defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+      defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
     expect(created.config).toEqual({ language: 'fr' })

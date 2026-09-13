@@ -114,12 +114,12 @@ describe('InMemoryScenarioRepository', () => {
     const created = await repository.create({
       name: 'Runtime-configured',
       modelSelection: {
-        defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+        defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
         gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
       },
     })
     expect(created.modelSelection).toEqual({
-      defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+      defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
     expect(created.config).toEqual({})
@@ -133,20 +133,20 @@ describe('InMemoryScenarioRepository', () => {
     const repository = new InMemoryScenarioRepository()
     const created = await repository.create({
       name: 'Voice scenario',
-      config: { routeKey: 'scenario' },
+      config: { availabilityKey: 'scenario' },
       voiceConfig: { voiceKey: 'scenario-default', language: 'en-US' },
     })
 
     expect(created.voiceConfig).toEqual({ voiceKey: 'scenario-default', language: 'en-US' })
-    expect(created.config).toEqual({ routeKey: 'scenario' })
+    expect(created.config).toEqual({ availabilityKey: 'scenario' })
 
     const withUnrelatedConfig = await repository.update(created.scenarioId, {
-      config: { routeKey: 'updated' },
+      config: { availabilityKey: 'updated' },
     })
     expect(withUnrelatedConfig.voiceConfig).toEqual(created.voiceConfig)
 
     const cleared = await repository.update(created.scenarioId, { voiceConfig: null })
     expect(cleared.voiceConfig).toBeUndefined()
-    expect(cleared.config).toEqual({ routeKey: 'updated' })
+    expect(cleared.config).toEqual({ availabilityKey: 'updated' })
   })
 })

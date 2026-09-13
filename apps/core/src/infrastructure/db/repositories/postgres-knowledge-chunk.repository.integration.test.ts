@@ -43,6 +43,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/chunks.txt',
+      visibilityPolicy: 'all',
     })
     sourceId = source.sourceId
   }
@@ -177,6 +178,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       knowledgeType: 'media',
       format: 'media',
       uriOrPath: '/tmp/media.png',
+      visibilityPolicy: 'all',
     })
 
     await chunkRepo.create({ sourceId, content: 'World chunk', chunkIndex: 0 })
@@ -228,6 +230,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     expect(candidates[0]).not.toHaveProperty('embedding')
   })
 
+  // eslint-disable-next-line max-lines-per-function
   it('filters ready sources, type, scenario, profile, generation, static scope, and visibility', async () => {
     const scenario = await scenarioRepo.create({ name: 'Vector scenario', status: 'active' })
     const otherScenario = await scenarioRepo.create({ name: 'Other scenario', status: 'active' })
@@ -262,6 +265,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/pending.txt',
+      visibilityPolicy: 'all',
     })
     const otherScenarioSource = await sourceRepo.create({
       scenarioId: otherScenario.scenarioId,
@@ -269,6 +273,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/other.txt',
+      visibilityPolicy: 'all',
     })
     const mediaSource = await sourceRepo.create({
       scenarioId: scenario.scenarioId,
@@ -276,6 +281,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       knowledgeType: 'media',
       format: 'media',
       uriOrPath: '/tmp/media.png',
+      visibilityPolicy: 'all',
     })
     const sourceIds = [
       publicSource.sourceId,

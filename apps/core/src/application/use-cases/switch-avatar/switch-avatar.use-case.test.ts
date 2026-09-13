@@ -1,3 +1,4 @@
+import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Conversation, Session } from '../../../domain/conversation/session.types.js'
@@ -65,6 +66,7 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
     name: 'Nova',
     status: 'active',
     personaPrompt: 'You are Nova.',
+    computedTraits: createEmptyAvatarComputedTraits(),
     config: {},
     createdAt: '2026-04-20T10:00:00.000Z',
     updatedAt: '2026-04-20T10:00:00.000Z',

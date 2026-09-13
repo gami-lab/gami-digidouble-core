@@ -1,3 +1,4 @@
+import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import { describe, expect, it, vi } from 'vitest'
 import { processSseFrames } from '@gami/shared'
 import type { ApiResponse, MessageStreamEvent, SendMessageResponse } from '@gami/shared'
@@ -56,6 +57,7 @@ const avatar: AvatarConfig = {
   name: 'Ava',
   status: 'active',
   personaPrompt: 'You are Ava.',
+  computedTraits: createEmptyAvatarComputedTraits(),
   config: {},
   createdAt: conversation.startedAt,
   updatedAt: conversation.startedAt,

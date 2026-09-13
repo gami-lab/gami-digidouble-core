@@ -38,6 +38,7 @@ function registerRepositoryLifecycle(state: RepositoryTestState): void {
   })
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — create/find', () => {
   let sql: Sql
   let scenarioRepo: PostgresScenarioRepository
@@ -79,6 +80,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — create/fin
       format: 'markdown',
       uriOrPath: '/data/world.md',
       metadata: { version: 1 },
+      visibilityPolicy: 'all',
     })
 
     const found = await sourceRepo.findById(created.sourceId)
@@ -101,6 +103,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — create/fin
       knowledgeType: 'avatar_knowledge',
       format: 'text',
       uriOrPath: '/data/private.txt',
+      visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_a', 'avatar_b'],
     })
     const publicByEmpty = await sourceRepo.create({
@@ -109,6 +112,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — create/fin
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/data/public.txt',
+      visibilityPolicy: 'all',
       visibleToAvatarIds: [],
     })
 
@@ -135,6 +139,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — create/fin
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/data/private.txt',
+      visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_a'],
     })
 
@@ -188,6 +193,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — list/statu
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/world.txt',
+      visibilityPolicy: 'all',
     })
     const media = await sourceRepo.create({
       scenarioId,
@@ -195,6 +201,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — list/statu
       knowledgeType: 'media',
       format: 'url',
       uriOrPath: 'https://example.com/a.png',
+      visibilityPolicy: 'all',
     })
     await sourceRepo.updateStatus(media.sourceId, 'ready')
 
@@ -246,6 +253,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/data/world.txt',
+      visibilityPolicy: 'all',
     })
 
     const updated = await sourceRepo.update(created.sourceId, { name: 'Updated Lore' })
@@ -262,12 +270,14 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/data/world.txt',
+      visibilityPolicy: 'all',
     })
     await sourceRepo.updateStatus(created.sourceId, 'ready')
 
     const updated = await sourceRepo.update(created.sourceId, {
       metadata: { inlineText: 'New content' },
       uriOrPath: '/data/world-v2.txt',
+      visibilityPolicy: 'all',
       status: 'pending',
     })
 
@@ -283,6 +293,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
       knowledgeType: 'avatar_knowledge',
       format: 'text',
       uriOrPath: '/data/private.txt',
+      visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_a'],
     })
 
@@ -304,6 +315,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/data/world.txt',
+      visibilityPolicy: 'all',
     })
 
     await sourceRepo.delete(created.sourceId)
@@ -322,6 +334,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/data/world.txt',
+      visibilityPolicy: 'all',
     })
     await chunkRepo.create({
       sourceId: created.sourceId,
@@ -343,6 +356,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/data/world.txt',
+      visibilityPolicy: 'all',
     })
 
     await sql`DELETE FROM users WHERE id = 'user_unrelated'`

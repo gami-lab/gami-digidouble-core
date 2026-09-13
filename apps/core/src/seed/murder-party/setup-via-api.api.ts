@@ -12,6 +12,7 @@ import type {
   KnowledgeSourceFormat,
   KnowledgeType,
   KnowledgeVisibilityPolicy,
+  PrepareAvatarTraitsResponse,
   ListKnowledgeSourcesResponse,
   TriggerIngestionResponse,
   UpdateKnowledgeSourceRequest,
@@ -39,6 +40,7 @@ export type ScenarioSummary = {
   scenarioId: string
   name: string
   status: 'draft' | 'active' | 'archived'
+  language: string
   objectives: string[]
   worldContext: string
   avatarAvailability: ScenarioAvatarAvailability
@@ -131,6 +133,7 @@ export class ApiClient {
   createScenario(input: {
     name: string
     status: 'draft' | 'active' | 'archived'
+    language: string
     objectives?: string[]
     worldContext?: string
     avatarAvailability?: ScenarioAvatarAvailability
@@ -144,6 +147,7 @@ export class ApiClient {
     input: Partial<{
       name: string
       status: 'draft' | 'active' | 'archived'
+      language?: string
       objectives: string[]
       worldContext: string
       avatarAvailability: ScenarioAvatarAvailability
@@ -183,6 +187,10 @@ export class ApiClient {
     }>,
   ): Promise<{ avatar: AvatarSummary }> {
     return this.request('PATCH', `/v1/avatars/${avatarId}`, input)
+  }
+
+  prepareAvatarTraits(scenarioId: string): Promise<PrepareAvatarTraitsResponse> {
+    return this.request('POST', `/v1/scenarios/${scenarioId}/prepare-avatar-traits`)
   }
 
   listKnowledgeSources(scenarioId: string): Promise<ListKnowledgeSourcesResponse> {

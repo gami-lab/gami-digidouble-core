@@ -80,7 +80,7 @@ The TTS adapter coverage verifies the official Gradium request mapping, private 
 resolution, native output-format mapping, typed failure categories, response content-type and size
 validation, stream cancellation/cleanup including streamless-body rejection, timeout and caller
 abort propagation, and secret-safe observability. The synthesis use-case coverage verifies exact
-persisted cleaned text, output identity/byte validation, voice inheritance, legacy configuration,
+persisted cleaned text, output identity/byte validation, voice inheritance, canonical configuration,
 repeated/concurrent requests, failure isolation, and no audio persistence. These tests use injected
 transport fakes and do not require Gradium credentials.
 
@@ -108,7 +108,7 @@ observability consumer boundary.
 Must cover:
 
 - prompt section ordering
-- legacy fallback when `computedTraits` is `null`
+- rejection of active or served Avatars without prepared `computedTraits`
 - trait-aware prompt assembly when traits exist
 - deterministic prompt composition for the same runtime inputs
 - provider failure handling

@@ -1,3 +1,4 @@
+import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Session, Conversation, Message } from '../../../domain/conversation/session.types.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
@@ -93,6 +94,7 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
     name: 'Ava',
     status: 'active',
     personaPrompt: 'You are Ava.',
+    computedTraits: createEmptyAvatarComputedTraits(),
     config: {},
     createdAt: '2026-04-20T10:00:00.000Z',
     updatedAt: '2026-04-20T10:00:00.000Z',
@@ -456,11 +458,11 @@ describe('SendMessageUseCase — context selection observability', () => {
           },
         },
       },
-      contextEngineSelection: { keptSegmentCount: 8, trimmedSegmentCount: 0 },
+      contextEngineSelection: { keptSegmentCount: 9, trimmedSegmentCount: 0 },
       hasUserPersona: true,
       hasGmDirective: false,
       responseRuleCount: 0,
-      hasAvatarTraits: false,
+      hasAvatarTraits: true,
     })
     expect(event.payload.retrievalLatencyMs).toBeTypeOf('number')
     expect(event.payload.otherOverheadMs).toBeTypeOf('number')

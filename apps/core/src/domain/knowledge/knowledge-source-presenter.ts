@@ -46,7 +46,7 @@ export function toKnowledgeSourceDto(source: KnowledgeSource): KnowledgeSourceDt
     format: source.format,
     uriOrPath: source.uriOrPath,
     status: source.status,
-    ...(source.visibilityPolicy !== undefined ? { visibilityPolicy: source.visibilityPolicy } : {}),
+    visibilityPolicy: source.visibilityPolicy,
     ...(source.visibleToAvatarIds !== undefined
       ? { visibleToAvatarIds: source.visibleToAvatarIds }
       : {}),

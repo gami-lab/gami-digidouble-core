@@ -44,13 +44,13 @@ beforeEach(() => {
     worldContext: '',
     avatarAvailability: { initialAvatarIds: [] },
     modelSelection: {
-      defaultProfile: { provider: 'openai', model: 'gpt-4o-mini' },
+      defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     },
     config: {
       goals: ['Goal'],
       modelSelection: {
-        defaultProfile: { provider: 'openai', model: 'gpt-4o-mini' },
+        defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
         gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
       },
     },

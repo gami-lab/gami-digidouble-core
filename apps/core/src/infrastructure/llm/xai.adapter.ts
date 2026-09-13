@@ -9,7 +9,7 @@ import type {
 import { LlmError } from './llm.error.js'
 import { completedEvent, deltaEvent, isAborted, throwIfAborted } from './streaming.js'
 
-const DEFAULT_MODEL = 'grok-3'
+const DEFAULT_MODEL = 'grok-4.3'
 const BASE_URL = 'https://api.x.ai/v1'
 const REQUEST_TIMEOUT_MS = 30_000
 

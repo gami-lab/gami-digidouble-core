@@ -13,7 +13,7 @@ export type CreateKnowledgeSourceParams = {
   format: KnowledgeSourceFormat
   uriOrPath: string
   metadata?: Record<string, unknown>
-  visibilityPolicy?: KnowledgeVisibilityPolicy
+  visibilityPolicy: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
 }
 

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { DomainError } from '../../../domain/errors.js'
@@ -46,6 +47,7 @@ function makeAvatarConfig(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
     name: 'Ava',
     status: 'active',
     personaPrompt: 'You are Ava.',
+    computedTraits: createEmptyAvatarComputedTraits(),
     config: {},
     createdAt: '2026-04-20T10:00:00.000Z',
     updatedAt: '2026-04-20T10:00:00.000Z',
@@ -99,6 +101,19 @@ describe('CreateAvatarUseCase', () => {
     ).rejects.toEqual(expect.objectContaining<Partial<DomainError>>({ code: 'NOT_FOUND' }))
   })
 
+  it('rejects active creation before traits are prepared', async () => {
+    const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+
+    await expect(
+      useCase.execute({
+        scenarioId: 'scenario_1',
+        name: 'Ava',
+        personaPrompt: 'You are Ava.',
+        status: 'active',
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+  })
+
   it('returns avatar with defaults when optional fields are omitted', async () => {
     const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
     createAvatarMock.mockResolvedValue(
@@ -106,7 +121,7 @@ describe('CreateAvatarUseCase', () => {
         avatarId: 'avatar_abc',
         scenarioId: 'scenario_1',
         name: 'Ava',
-        status: 'active',
+        status: 'draft',
       }),
     )
 
@@ -120,19 +135,19 @@ describe('CreateAvatarUseCase', () => {
       scenarioId: 'scenario_1',
       name: 'Ava',
       personaPrompt: 'You are Ava.',
-      status: 'active',
+      status: 'draft',
     })
     expect(output.avatar).toMatchObject({
       avatarId: 'avatar_abc',
       scenarioId: 'scenario_1',
       name: 'Ava',
-      status: 'active',
+      status: 'draft',
       personaPrompt: 'You are Ava.',
     })
     expect(output.avatar.tone).toBeUndefined()
     expect(output.avatar.description).toBeUndefined()
     expect(output.avatar.adjustments).toBeUndefined()
-    expect(output.avatar.computedTraits).toBeNull()
+    expect(output.avatar.computedTraits).toEqual(createEmptyAvatarComputedTraits())
     expect(output.avatar.config).toEqual({})
   })
 })

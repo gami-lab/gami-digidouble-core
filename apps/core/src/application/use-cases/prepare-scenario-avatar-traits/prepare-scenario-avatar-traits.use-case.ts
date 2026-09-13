@@ -121,7 +121,7 @@ export class PrepareScenarioAvatarTraitsUseCase {
   }): ReturnType<ILlmAdapter['complete']> {
     const resolvedLlm = await resolveRoleLlmCall({
       role: 'avatar',
-      legacyAdapter: this.llm,
+      defaultAdapter: this.llm,
       modelConfigRepository: this.modelConfigRepository,
       llmAdapterRegistry: this.llmAdapterRegistry,
       modelConfigFallback: this.modelConfigFallback,

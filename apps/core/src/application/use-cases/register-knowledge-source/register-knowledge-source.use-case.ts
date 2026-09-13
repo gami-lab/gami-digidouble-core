@@ -48,6 +48,7 @@ export class RegisterKnowledgeSourceUseCase {
       format: input.format,
       uriOrPath,
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+      visibilityPolicy: input.visibilityPolicy,
       ...(input.visibleToAvatarIds !== undefined
         ? { visibleToAvatarIds: input.visibleToAvatarIds }
         : {}),

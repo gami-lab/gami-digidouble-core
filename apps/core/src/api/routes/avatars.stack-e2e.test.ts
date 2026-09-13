@@ -353,13 +353,13 @@ describe('Stack E2E — avatar llmOverride flow', () => {
       const patchSetRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-        body: JSON.stringify({ llmOverride: { provider: 'openai', model: 'gpt-4o' } }),
+        body: JSON.stringify({ llmOverride: { provider: 'openai', model: 'gpt-5.6-luna' } }),
       })
       expect(patchSetRes.status).toBe(200)
       const patchSetBody = (await patchSetRes.json()) as ApiResponse<UpdateAvatarResponse>
       expect(patchSetBody.data?.avatar.llmOverride).toEqual({
         provider: 'openai',
-        model: 'gpt-4o',
+        model: 'gpt-5.6-luna',
       })
 
       const patchInvalidProviderRes = await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {

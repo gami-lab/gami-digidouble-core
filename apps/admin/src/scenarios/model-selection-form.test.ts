@@ -18,22 +18,22 @@ describe('model selection form helpers', () => {
   })
 
   it('treats only fully-populated values as complete', () => {
-    expect(isModelSelectionComplete({ provider: 'openai', model: 'gpt-4.1-mini' })).toBe(true)
+    expect(isModelSelectionComplete({ provider: 'openai', model: 'gpt-5.6-luna' })).toBe(true)
     expect(isModelSelectionComplete({ provider: 'openai', model: '' })).toBe(false)
     expect(isModelSelectionComplete(EMPTY_MODEL_SELECTION)).toBe(false)
   })
 
   it('flags a partial (one field set, one blank) selection', () => {
     expect(hasPartialModelSelection({ provider: 'openai', model: '' })).toBe(true)
-    expect(hasPartialModelSelection({ provider: '', model: 'gpt-4.1-mini' })).toBe(true)
+    expect(hasPartialModelSelection({ provider: '', model: 'gpt-5.6-luna' })).toBe(true)
     expect(hasPartialModelSelection(EMPTY_MODEL_SELECTION)).toBe(false)
-    expect(hasPartialModelSelection({ provider: 'openai', model: 'gpt-4.1-mini' })).toBe(false)
+    expect(hasPartialModelSelection({ provider: 'openai', model: 'gpt-5.6-luna' })).toBe(false)
   })
 
   it('converts a complete form value to an AvatarLlmOverride, trimming whitespace', () => {
-    expect(toAvatarLlmOverride({ provider: ' openai ', model: ' gpt-4.1-mini ' })).toEqual({
+    expect(toAvatarLlmOverride({ provider: ' openai ', model: ' gpt-5.6-luna ' })).toEqual({
       provider: 'openai',
-      model: 'gpt-4.1-mini',
+      model: 'gpt-5.6-luna',
     })
   })
 
@@ -58,12 +58,12 @@ describe('model selection form helpers', () => {
 
   it('builds a ScenarioModelSelection with only complete sub-fields included', () => {
     const result = toScenarioModelSelection({
-      defaultProfile: { provider: 'openai', model: 'gpt-4.1-mini' },
+      defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
       gameMasterOverride: { provider: '', model: '' },
     })
 
     expect(result).toEqual({
-      defaultProfile: { provider: 'openai', model: 'gpt-4.1-mini' },
+      defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
     })
   })
 
@@ -78,11 +78,11 @@ describe('model selection form helpers', () => {
 
   it('maps a ScenarioModelSelection back to form values, defaulting missing fields to blank', () => {
     const result = fromScenarioModelSelection({
-      defaultProfile: { provider: 'mistral', model: 'mistral-small-latest' },
+      defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
     })
 
     expect(result).toEqual({
-      defaultProfile: { provider: 'mistral', model: 'mistral-small-latest' },
+      defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
       gameMasterOverride: EMPTY_MODEL_SELECTION,
     })
   })

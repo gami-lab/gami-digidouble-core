@@ -5,8 +5,8 @@ import { GetModelConfigUseCase } from './get-model-config.use-case.js'
 describe('GetModelConfigUseCase', () => {
   it('returns persisted config when repository has one', async () => {
     const persisted: ModelConfig = {
-      globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
-      roleOverrides: { memory: { provider: 'mistral', model: 'mistral-small-latest' } },
+      globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
+      roleOverrides: { memory: { provider: 'mistral', model: 'mistral-small-4' } },
       updatedAt: '2026-05-20T00:00:00.000Z',
     }
     const repository = {

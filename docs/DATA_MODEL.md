@@ -46,6 +46,9 @@ identity without persisting raw vectors.
 The repository strictly parses its required dialogue, retrieval, and progression fields and ignores
 malformed persisted values rather than reconstructing an older state shape.
 
+`model_config` is bootstrapped with the current production model matrix documented in
+`TECH_STACK.md`; provider/model pairs outside that matrix are invalid persisted configuration.
+
 Streaming does not change the data model: it is transport-only. The user message is saved before
 deltas, and a partial avatar message is never saved.
 
@@ -77,6 +80,11 @@ deltas, and a partial avatar message is never saved.
   context assembly. It survives normal session reset.
 
 ### Knowledge
+
+The canonical content contract requires `language` on active Scenarios and prepared
+`computed_traits` on active Avatars. `knowledge_sources.visibility_policy` is non-null and must be
+`'all' | 'avatars' | 'none'`; `visible_to_avatar_ids` is interpreted only with the explicit
+`'avatars'` policy.
 
 | Table | Purpose | Key fields | Notes |
 | ------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------- | -------------------------------- |

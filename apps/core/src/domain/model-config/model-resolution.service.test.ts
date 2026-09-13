@@ -5,7 +5,7 @@ import { ModelResolutionService } from './model-resolution.service.js'
 const baseConfig: ModelConfig = {
   globalDefault: {
     provider: 'openai',
-    model: 'gpt-4.1-mini',
+    model: 'gpt-5.6-luna',
   },
   roleOverrides: {},
   updatedAt: '2026-01-01T00:00:00.000Z',
@@ -15,17 +15,17 @@ describe('ModelResolutionService.resolve -> no overrides', () => {
   it('returns global default for avatar, gameMaster, and memory', () => {
     expect(ModelResolutionService.resolve('avatar', baseConfig)).toEqual({
       provider: 'openai',
-      model: 'gpt-4.1-mini',
+      model: 'gpt-5.6-luna',
     })
 
     expect(ModelResolutionService.resolve('gameMaster', baseConfig)).toEqual({
       provider: 'openai',
-      model: 'gpt-4.1-mini',
+      model: 'gpt-5.6-luna',
     })
 
     expect(ModelResolutionService.resolve('memory', baseConfig)).toEqual({
       provider: 'openai',
-      model: 'gpt-4.1-mini',
+      model: 'gpt-5.6-luna',
     })
   })
 })
@@ -37,19 +37,19 @@ describe('ModelResolutionService.resolve -> role overrides', () => {
       roleOverrides: {
         gameMaster: {
           provider: 'anthropic',
-          model: 'claude-3-7-sonnet',
+          model: 'claude-sonnet-4-6',
         },
       },
     }
 
     expect(ModelResolutionService.resolve('gameMaster', config)).toEqual({
       provider: 'anthropic',
-      model: 'claude-3-7-sonnet',
+      model: 'claude-sonnet-4-6',
     })
 
     expect(ModelResolutionService.resolve('avatar', config)).toEqual({
       provider: 'openai',
-      model: 'gpt-4.1-mini',
+      model: 'gpt-5.6-luna',
     })
   })
 })
@@ -131,12 +131,12 @@ describe('ModelResolutionService.resolve -> avatar overrides', () => {
     expect(
       ModelResolutionService.resolve('avatar', config, {
         avatarOverride: {
-          model: 'claude-3-5-haiku',
+          model: 'claude-haiku-4-5',
         },
       }),
     ).toEqual({
       provider: 'anthropic',
-      model: 'claude-3-5-haiku',
+      model: 'claude-haiku-4-5',
     })
   })
 

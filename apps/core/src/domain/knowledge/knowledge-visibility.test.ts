@@ -15,16 +15,13 @@ describe('knowledge visibility helpers', () => {
     expect(normalizeVisibleToAvatarIds(['  '])).toBeUndefined()
   })
 
-  it('infers avatar-scoped visibility from legacy ids-only selections when requested', () => {
+  it('does not infer a policy from avatar ids', () => {
     expect(
-      normalizeKnowledgeVisibilitySelection(
-        { visibleToAvatarIds: ['avatar_1'] },
-        { inferAvatarPolicyFromIds: true },
-      ),
-    ).toEqual({
-      visibilityPolicy: 'avatars',
-      visibleToAvatarIds: ['avatar_1'],
-    })
+      normalizeKnowledgeVisibilitySelection({
+        visibilityPolicy: 'all',
+        visibleToAvatarIds: ['avatar_1'],
+      }),
+    ).toEqual({ visibilityPolicy: 'all' })
   })
 
   it('clears stale avatar ids for all and none policies', () => {

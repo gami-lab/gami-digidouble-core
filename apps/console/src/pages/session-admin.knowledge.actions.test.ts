@@ -27,7 +27,7 @@ function expectRegisterFlowSummary(
 ): void {
   expect(setStatus).toHaveBeenCalledWith('Registered source_1 and scheduled job_1.')
   expect(setSourcesSummary).toHaveBeenCalledWith(
-    'Source Lore (Shared World Knowledge/markdown) · visibility: Shared with all Avatars · jobs: 0.',
+    'Source Lore (Shared World Knowledge/markdown) · visibility: Avatar-visible:  · jobs: 0.',
   )
 }
 
@@ -47,6 +47,7 @@ describe('session admin knowledge actions', () => {
         format: 'markdown',
         uriOrPath: '/lore.md',
         status: 'pending',
+        visibilityPolicy: 'avatars',
         createdAt: '2026-05-11T00:00:00.000Z',
       },
     })
@@ -75,6 +76,7 @@ describe('session admin knowledge actions', () => {
         uriOrPath: '/lore.md',
         knowledgeType: 'world',
         format: 'markdown',
+        visibilityPolicy: 'avatars',
         visibilityCsv: 'avatar_1,avatar_2',
       },
       { setStatus, setError, setSourcesSummary, setName, setUriOrPath, setVisibilityCsv: vi.fn() },
@@ -100,6 +102,7 @@ describe('session admin knowledge actions', () => {
           format: 'markdown',
           uriOrPath: '/lore.md',
           status: 'ready',
+          visibilityPolicy: 'avatars',
           visibleToAvatarIds: ['avatar_7'],
           createdAt: '2026-05-11T00:00:00.000Z',
         },

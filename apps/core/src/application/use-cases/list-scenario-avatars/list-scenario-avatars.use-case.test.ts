@@ -1,3 +1,4 @@
+import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import { describe, expect, it } from 'vitest'
 import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
@@ -36,6 +37,7 @@ describe('ListScenarioAvatarsUseCase', () => {
         name: 'Old',
         status: 'active',
         personaPrompt: 'Old prompt',
+        computedTraits: createEmptyAvatarComputedTraits(),
         config: {},
         createdAt: '2026-04-21T08:00:00.000Z',
         updatedAt: '2026-04-21T08:00:00.000Z',
@@ -46,6 +48,7 @@ describe('ListScenarioAvatarsUseCase', () => {
         name: 'New',
         status: 'active',
         personaPrompt: 'New prompt',
+        computedTraits: createEmptyAvatarComputedTraits(),
         config: {},
         createdAt: '2026-04-21T09:00:00.000Z',
         updatedAt: '2026-04-21T09:00:00.000Z',
@@ -57,6 +60,6 @@ describe('ListScenarioAvatarsUseCase', () => {
 
     expect(result.avatars.map((avatar) => avatar.avatarId)).toEqual(['avatar_new', 'avatar_old'])
     expect(result.avatars[0]?.config).toEqual({})
-    expect(result.avatars[0]?.computedTraits).toBeNull()
+    expect(result.avatars[0]?.computedTraits).toEqual(createEmptyAvatarComputedTraits())
   })
 })

@@ -245,10 +245,9 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 
 **Current state**
 
-The compatibility audit, Prompt 0 contract baseline, Prompt 1 fresh canonical database schema,
-Prompt 2 knowledge/session-memory cleanup, and Prompt 3 GM/event cleanup are complete. Prompt 4
-content, visibility, routing, and model compatibility removal remains pending. The product will be
-redeployed with a fresh database and fresh content.
+The compatibility audit and Prompts 0-4 are complete: canonical contracts, fresh database schema,
+knowledge/session-memory cleanup, GM/event cleanup, and content/config/provider cleanup are all
+implemented. The product is redeployed with a fresh database and fresh content.
 
 **Purpose**
 

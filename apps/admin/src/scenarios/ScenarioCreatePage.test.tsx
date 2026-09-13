@@ -86,7 +86,7 @@ describe('ScenarioCreatePage', () => {
       target: { value: 'openai' },
     })
     fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-default-model-model' }), {
-      target: { value: 'gpt-4o' },
+      target: { value: 'gpt-5.6-luna' },
     })
     fireEvent.change(screen.getByLabelText('Provider', { selector: '#sc-gm-model-provider' }), {
       target: { value: 'anthropic' },
@@ -100,7 +100,7 @@ describe('ScenarioCreatePage', () => {
       expect(createScenario).toHaveBeenCalledWith(
         expect.objectContaining({
           modelSelection: {
-            defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+            defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
             gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
           },
         }),

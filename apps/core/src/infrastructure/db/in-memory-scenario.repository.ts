@@ -3,7 +3,7 @@ import type {
   IScenarioRepository,
   UpdateScenarioParams,
 } from '../../application/ports/IScenarioRepository.js'
-import { normalizeLanguageTag, type ScenarioModelSelection } from '@gami/shared'
+import type { ScenarioModelSelection } from '@gami/shared'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import { DomainError } from '../../domain/errors.js'
 import {
@@ -36,25 +36,14 @@ function resolveNextConfig(existing: Scenario, updates: UpdateScenarioParams): S
 }
 
 function normalizeInitialScenario(scenario: Scenario): Scenario {
-  const legacyLanguage = readLegacyScenarioLanguage(
-    scenario.config as unknown as Record<string, unknown>,
-  )
   const voiceConfig =
     scenario.voiceConfig ??
     readVoiceConfiguration(scenario.config as unknown as Record<string, unknown>)
   return {
     ...scenario,
-    ...(scenario.language === undefined && legacyLanguage !== undefined
-      ? { language: legacyLanguage }
-      : {}),
     ...(voiceConfig !== undefined ? { voiceConfig } : {}),
     config: withoutVoiceConfiguration(scenario.config as unknown as Record<string, unknown>),
   }
-}
-
-function readLegacyScenarioLanguage(config: Record<string, unknown>): string | undefined {
-  const language = normalizeLanguageTag(config['language'])
-  return language === null ? undefined : language
 }
 
 // eslint-disable-next-line complexity
@@ -105,19 +94,13 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
     return Promise.resolve(scenarios)
   }
 
-  // eslint-disable-next-line complexity
   create(params: CreateScenarioParams): Promise<Scenario> {
     const now = new Date().toISOString()
-    const legacyLanguage = readLegacyScenarioLanguage(params.config ?? {})
     const scenario: Scenario = {
       scenarioId: `scenario_${crypto.randomUUID()}`,
       name: params.name,
       status: params.status ?? 'draft',
-      ...(params.language !== undefined
-        ? { language: params.language }
-        : legacyLanguage !== undefined
-          ? { language: legacyLanguage }
-          : {}),
+      ...(params.language !== undefined ? { language: params.language } : {}),
       objectives: params.objectives ?? [],
       worldContext: params.worldContext ?? '',
       avatarAvailability: params.avatarAvailability ?? { initialAvatarIds: [] },

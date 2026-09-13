@@ -113,8 +113,9 @@ voice configuration, client preference boundaries, minimal delivery requests, an
 delivery metadata. They reject provider-shaped fields and raw audio values. The completed-message
 audio route tests consume those shared contracts but do not test playback behavior. Core contract
 tests additionally cover
-legacy config reads, reserved-section mapping, explicit update clearing, Avatar-over-Scenario
-resolution, and old payload compatibility.
+reserved-section mapping, explicit update clearing, and Avatar-over-Scenario resolution. They also
+verify that active Avatars reject missing prepared traits and that Scenario language is not read from
+voice configuration.
 
 Browser audio playback tests remain deterministic and provider-free. They cover canonical message-ID
 requests after terminal completion, binary metadata handling, autoplay rejection with manual retry,

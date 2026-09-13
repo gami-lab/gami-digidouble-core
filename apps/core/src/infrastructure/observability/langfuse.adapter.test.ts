@@ -38,7 +38,7 @@ const event: TraceEvent = {
   inputTokens: 20,
   outputTokens: 40,
   costUsd: 0.0002,
-  metadata: { model: 'gpt-4o' },
+  metadata: { model: 'gpt-5.6-luna' },
 }
 
 function makeAdapter(): LangfuseObservabilityAdapter {
@@ -77,7 +77,7 @@ describe('LangfuseObservabilityAdapter', () => {
     expect(usage['input']).toBe(event.inputTokens)
     expect(usage['output']).toBe(event.outputTokens)
     expect(usage['totalCost']).toBe(event.costUsd)
-    expect(genArg['model']).toBe('gpt-4o')
+    expect(genArg['model']).toBe('gpt-5.6-luna')
     expect(genArg['metadata']).toEqual(event.metadata)
     expect(genArg['input']).toEqual(event.input)
     expect(genArg['output']).toBe(event.output)

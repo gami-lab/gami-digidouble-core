@@ -18,13 +18,6 @@ import type {
 } from '../../../domain/knowledge/knowledge.types.js'
 import { normalizeTypedRetrievalQueries } from './typed-retrieval-query-builder.js'
 
-export type ProfiledQueryVector = Readonly<{
-  vector: EmbeddingVector
-  embeddingProfileId: string
-  corpusGenerationId: string
-  profile: EmbeddingProfile
-}>
-
 export type RetrievalQueryEmbeddingInput = Readonly<{
   query?: string | null
   queries?: readonly RetrievalQueryVariant[]
@@ -50,16 +43,6 @@ export type RetrievalQueryEmbeddingResult = Readonly<{
   queryVectors: readonly RetrievalQueryVector[]
   diagnostics: RetrievalQueryEmbeddingDiagnostics
 }>
-
-export class RetrievalQueryEmbeddingError extends Error {
-  readonly failure: RetrievalFailure
-
-  constructor(failure: RetrievalFailure) {
-    super(`Retrieval query embedding failed: ${failure.code}.`)
-    this.name = 'RetrievalQueryEmbeddingError'
-    this.failure = failure
-  }
-}
 
 export class KnowledgeQueryEmbeddingService {
   constructor(
@@ -121,36 +104,6 @@ export class KnowledgeQueryEmbeddingService {
       return result
     } catch (error) {
       return await this.failedResult(queries, startedAt, activeCorpus, toRetrievalFailure(error))
-    }
-  }
-
-  /** Compatibility wrapper for callers that still embed one direct query. */
-  async embed(query: string): Promise<ProfiledQueryVector> {
-    const result = await this.embedVariants({ query })
-    const queryVector = result.queryVectors[0]
-    if (queryVector === undefined) {
-      if (result.diagnostics.failure !== undefined) {
-        throw new RetrievalQueryEmbeddingError(result.diagnostics.failure)
-      }
-      throw new Error('No non-empty retrieval query was provided.')
-    }
-    const profile = result.diagnostics.embeddingProfile
-    if (profile === undefined || profile.embeddingProfileId === undefined) {
-      throw new Error('Query embedding did not return an active embedding profile.')
-    }
-    const corpusGenerationId = profile.corpusGenerationId
-    if (corpusGenerationId === undefined) {
-      throw new Error('Query embedding did not return a corpus generation identity.')
-    }
-    return {
-      vector: queryVector.vector,
-      embeddingProfileId: profile.embeddingProfileId,
-      corpusGenerationId,
-      profile: {
-        provider: profile.provider,
-        model: profile.model,
-        dimensions: profile.dimensions,
-      },
     }
   }
 

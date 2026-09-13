@@ -499,13 +499,8 @@ function countKnowledgeSources(
 
 type KnowledgeSourceView = RuntimeInspectorViewModel['knowledge']['sources'][number]
 
-// '__GM_ONLY__' sentinel check preserves compatibility with sources created before
-// the canonical `visibilityPolicy: 'none'` field existed (EPIC 6.1).
 function isGmOnlySource(source: KnowledgeSourceView): boolean {
-  return (
-    source.visibilityPolicy === 'none' ||
-    source.visibleToAvatarIds?.includes('__GM_ONLY__') === true
-  )
+  return source.visibilityPolicy === 'none'
 }
 
 function listGmOnlySourceNames(sources: KnowledgeSourceView[]): string[] {

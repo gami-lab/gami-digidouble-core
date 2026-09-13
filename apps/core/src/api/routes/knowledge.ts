@@ -85,7 +85,7 @@ const VISIBILITY_POLICY_ENUM = ['all', 'avatars', 'none'] as const
 
 const sourceBodySchema = {
   type: 'object',
-  required: ['scenarioId', 'name', 'knowledgeType', 'format', 'uriOrPath'],
+  required: ['scenarioId', 'name', 'knowledgeType', 'format', 'uriOrPath', 'visibilityPolicy'],
   properties: {
     scenarioId: { type: 'string', minLength: 1 },
     name: { type: 'string', minLength: 1 },
@@ -166,7 +166,7 @@ const triggerBodySchema = {
 
 const uploadBodySchema = {
   type: 'object',
-  required: ['scenarioId', 'name', 'knowledgeType', 'content', 'filename'],
+  required: ['scenarioId', 'name', 'knowledgeType', 'content', 'filename', 'visibilityPolicy'],
   properties: {
     scenarioId: { type: 'string', minLength: 1 },
     name: { type: 'string', minLength: 1 },
@@ -296,7 +296,7 @@ function registerUploadSourceRoute(app: FastifyInstance, useCases: UseCases): vo
           format: uploaded.value.format,
           uriOrPath: uploaded.value.filename,
           metadata: { inlineText: uploaded.value.text },
-          ...(visibilityPolicy !== undefined ? { visibilityPolicy } : {}),
+          visibilityPolicy,
           ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
         })
 

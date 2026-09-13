@@ -9,7 +9,7 @@ import type {
 import { LlmError } from './llm.error.js'
 import { completedEvent, deltaEvent, isAborted, throwIfAborted } from './streaming.js'
 
-const DEFAULT_MODEL = 'gpt-4o-mini'
+const DEFAULT_MODEL = 'gpt-5.6-luna'
 const REQUEST_TIMEOUT_MS = 30_000
 
 export class OpenAiAdapter implements ILlmAdapter {
@@ -35,7 +35,7 @@ export class OpenAiAdapter implements ILlmAdapter {
         messages: buildMessages(request),
         ...reasoningEffort(model),
         ...(request.serviceTier === undefined ? {} : { service_tier: 'priority' as const }),
-        ...completionTokenLimit(model, maxTokens),
+        ...maxCompletionTokens(maxTokens),
       })
     } catch (err) {
       throw wrapOpenAiError(err)
@@ -113,16 +113,15 @@ function buildStreamingRequest(
     stream_options: { include_usage: true },
     ...reasoningEffort(model),
     ...(request.serviceTier === undefined ? {} : { service_tier: 'priority' as const }),
-    ...completionTokenLimit(model, request.maxTokens),
+    ...maxCompletionTokens(request.maxTokens),
   }
 }
 
-function completionTokenLimit(
-  model: string,
+function maxCompletionTokens(
   maxTokens: number | undefined,
-): { max_completion_tokens: number } | { max_tokens: number } | Record<string, never> {
+): { max_completion_tokens: number } | Record<string, never> {
   if (maxTokens === undefined) return {}
-  return isGpt5Model(model) ? { max_completion_tokens: maxTokens } : { max_tokens: maxTokens }
+  return { max_completion_tokens: maxTokens }
 }
 
 function reasoningEffort(model: string): { reasoning_effort: 'none' } | Record<string, never> {

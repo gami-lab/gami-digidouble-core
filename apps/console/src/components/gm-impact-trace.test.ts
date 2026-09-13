@@ -36,9 +36,9 @@ function makeViewModel(): RuntimeInspectorViewModel {
       unlockedAvatarIds: ['avatar_2'],
     },
     effectiveModels: {
-      avatar: { provider: 'openai', model: 'gpt-4.1-mini' },
-      gameMaster: { provider: 'mistral', model: 'mistral-small-latest' },
-      memory: { provider: 'xai', model: 'grok-2-mini' },
+      avatar: { provider: 'openai', model: 'gpt-5.6-luna' },
+      gameMaster: { provider: 'mistral', model: 'mistral-small-4' },
+      memory: { provider: 'xai', model: 'grok-4.3' },
     },
     memory: {
       summary: {
@@ -84,6 +84,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
           format: 'markdown',
           uriOrPath: '/tmp/terrace.md',
           status: 'ready',
+          visibilityPolicy: 'all',
           createdAt: '2026-05-07T10:00:00.000Z',
         },
         {
@@ -94,6 +95,7 @@ function makeViewModel(): RuntimeInspectorViewModel {
           format: 'markdown',
           uriOrPath: '/tmp/footprints.md',
           status: 'ready',
+          visibilityPolicy: 'all',
           createdAt: '2026-05-07T10:00:00.000Z',
         },
       ],

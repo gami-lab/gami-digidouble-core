@@ -30,6 +30,14 @@ export class UpdateAvatarUseCase {
       throw new DomainError('INVALID_INPUT', 'At least one field must be provided for update')
     }
 
+    const existing = await this.avatarRepository.findById(input.avatarId)
+    if (existing === null) throw new DomainError('NOT_FOUND', 'Avatar not found')
+    if (updates.status === 'active' && existing.computedTraits === undefined) {
+      throw new DomainError(
+        'VALIDATION_ERROR',
+        'An Avatar must be prepared before it can be active.',
+      )
+    }
     const avatar = await this.avatarRepository.update(input.avatarId, updates)
     return { avatar: toAvatarSummary(avatar) }
   }

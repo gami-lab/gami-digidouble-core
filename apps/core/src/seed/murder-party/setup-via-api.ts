@@ -138,8 +138,8 @@ async function readSeedFile(fileName: string): Promise<string> {
 function resolveVisibility(
   visibility: SourceVisibility,
   avatars: Record<AvatarSlug, AvatarSummary>,
-): { visibilityPolicy?: KnowledgeVisibilityPolicy; visibleToAvatarIds?: string[] } {
-  if (visibility === 'public') return {}
+): { visibilityPolicy: KnowledgeVisibilityPolicy; visibleToAvatarIds?: string[] } {
+  if (visibility === 'public') return { visibilityPolicy: 'all' }
   if (visibility === 'gm-only') return { visibilityPolicy: 'none' }
 
   const map: Record<Exclude<SourceVisibility, 'public' | 'gm-only'>, AvatarSlug> = {
@@ -167,6 +167,7 @@ async function ensureScenario(client: ApiClient, options: CliOptions): Promise<S
     const created = await client.createScenario({
       name: options.scenarioName,
       status: 'active',
+      language: 'en',
       worldContext: SCENARIO_WORLD_CONTEXT,
       objectives: SCENARIO_OBJECTIVES,
       config: scenarioConfig,
@@ -177,6 +178,7 @@ async function ensureScenario(client: ApiClient, options: CliOptions): Promise<S
   const updated = await client.updateScenario(existing.scenarioId, {
     name: options.scenarioName,
     status: 'active',
+    language: 'en',
     worldContext: SCENARIO_WORLD_CONTEXT,
     objectives: SCENARIO_OBJECTIVES,
     config: {
@@ -207,7 +209,7 @@ async function ensureAvatars(
     const existing = bySlug.get(seed.slug) ?? byName.get(seed.name)
     const payload = {
       name: seed.name,
-      status: 'active' as const,
+      status: 'draft' as const,
       personaPrompt: seed.personaPrompt,
       tone: seed.tone,
       description: seed.description,
@@ -273,7 +275,7 @@ function toCreateSourcePayload(args: {
   seed: SourceSeed
   content: string
   contentHash: string
-  visibilityPolicy?: KnowledgeVisibilityPolicy
+  visibilityPolicy: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
 }): {
   scenarioId: string
@@ -282,7 +284,7 @@ function toCreateSourcePayload(args: {
   format: SourceSeed['format']
   uriOrPath: string
   metadata: Record<string, unknown>
-  visibilityPolicy?: KnowledgeVisibilityPolicy
+  visibilityPolicy: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
 } {
   return {
@@ -297,7 +299,7 @@ function toCreateSourcePayload(args: {
       contentSha256: args.contentHash,
       inlineText: args.content,
     },
-    ...(args.visibilityPolicy !== undefined ? { visibilityPolicy: args.visibilityPolicy } : {}),
+    visibilityPolicy: args.visibilityPolicy,
     ...(args.visibleToAvatarIds !== undefined
       ? { visibleToAvatarIds: args.visibleToAvatarIds }
       : {}),
@@ -415,6 +417,10 @@ async function runSetup(options: CliOptions): Promise<SetupOutcome> {
   })
 
   const knowledge = await ensureKnowledgeSources(client, options, scenario.scenarioId, avatars)
+  await client.prepareAvatarTraits(scenario.scenarioId)
+  for (const avatar of Object.values(avatars)) {
+    await client.updateAvatar(avatar.avatarId, { status: 'active' })
+  }
 
   return {
     scenarioId: scenario.scenarioId,

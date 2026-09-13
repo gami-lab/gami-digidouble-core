@@ -18,7 +18,6 @@ type ScenarioEditFormProps = {
   onError: (message: string) => void
 }
 
-// eslint-disable-next-line complexity, max-lines-per-function
 export function ScenarioEditForm({
   scenario,
   onCancel,
@@ -28,9 +27,7 @@ export function ScenarioEditForm({
   const initialModelSelection = fromScenarioModelSelection(scenario.modelSelection)
   const [name, setName] = useState(scenario.name)
   const [status, setStatus] = useState<ScenarioStatus>(scenario.status)
-  const [language, setLanguage] = useState(
-    scenario.language ?? scenario.voiceConfig?.language?.split('-')[0] ?? 'en',
-  )
+  const [language, setLanguage] = useState(scenario.language ?? '')
   const [worldContext, setWorldContext] = useState(scenario.worldContext)
   const [objectives, setObjectives] = useState<string[]>(scenario.objectives)
   const [defaultModelSelection, setDefaultModelSelection] = useState(
@@ -40,7 +37,6 @@ export function ScenarioEditForm({
     initialModelSelection.gameMasterOverride,
   )
   const [voiceKey, setVoiceKey] = useState(scenario.voiceConfig?.voiceKey ?? '')
-  const [voiceLanguage, setVoiceLanguage] = useState(scenario.voiceConfig?.language ?? '')
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: SyntheticEvent): Promise<void> {
@@ -52,7 +48,7 @@ export function ScenarioEditForm({
         defaultProfile: defaultModelSelection,
         gameMasterOverride: gameMasterModelSelection,
       })
-      const voiceConfig = toVoiceConfiguration(voiceKey, voiceLanguage)
+      const voiceConfig = toVoiceConfiguration(voiceKey)
       const updated = await updateScenario(scenario.scenarioId, {
         name: name.trim(),
         status,
@@ -87,7 +83,6 @@ export function ScenarioEditForm({
           defaultModelSelection={defaultModelSelection}
           gameMasterModelSelection={gameMasterModelSelection}
           voiceKey={voiceKey}
-          voiceLanguage={voiceLanguage}
           idPrefix="edit-sc"
           disabled={saving}
           onNameChange={setName}
@@ -98,7 +93,6 @@ export function ScenarioEditForm({
           onDefaultModelSelectionChange={setDefaultModelSelection}
           onGameMasterModelSelectionChange={setGameMasterModelSelection}
           onVoiceKeyChange={setVoiceKey}
-          onVoiceLanguageChange={setVoiceLanguage}
         />
         {hasPartialModelSelectionState ? (
           <p className="admin-error">

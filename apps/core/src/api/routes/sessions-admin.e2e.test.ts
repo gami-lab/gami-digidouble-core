@@ -118,7 +118,7 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     payload: {
       name: 'Guide',
       personaPrompt: 'Guide persona',
-      config: { routeKey: 'guide' },
+      config: { availabilityKey: 'guide' },
     },
   })
   expect(createGuide.statusCode).toBe(201)
@@ -134,7 +134,7 @@ async function seedPolicySessionWithGuideEthics(app: FastifyInstance): Promise<{
     payload: {
       name: 'Ethics',
       personaPrompt: 'Ethics persona',
-      config: { routeKey: 'ethics' },
+      config: { availabilityKey: 'ethics' },
     },
   })
   expect(createEthics.statusCode).toBe(201)

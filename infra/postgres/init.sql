@@ -31,7 +31,9 @@ CREATE TABLE IF NOT EXISTS scenarios (
   model_selection     JSONB,
   config              JSONB       NOT NULL DEFAULT '{}',
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (status IN ('draft', 'active', 'archived')),
+  CHECK (status <> 'active' OR language IS NOT NULL)
 );
 
 -- ── Avatars ───────────────────────────────────────────────────────────────────
@@ -48,7 +50,9 @@ CREATE TABLE IF NOT EXISTS avatars (
   computed_traits  JSONB,
   config           JSONB       NOT NULL DEFAULT '{}',
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (status IN ('draft', 'active', 'archived')),
+  CHECK (status <> 'active' OR computed_traits IS NOT NULL)
 );
 
 -- ── Knowledge ────────────────────────────────────────────────────────────────
@@ -62,7 +66,7 @@ CREATE TABLE IF NOT EXISTS knowledge_sources (
   uri_or_path     TEXT        NOT NULL,
   status          TEXT        NOT NULL DEFAULT 'pending',
   metadata        JSONB       NOT NULL DEFAULT '{}',
-  visibility_policy TEXT CHECK (visibility_policy IN ('all', 'avatars', 'none')),
+  visibility_policy TEXT NOT NULL CHECK (visibility_policy IN ('all', 'avatars', 'none')),
   visible_to_avatar_ids TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -327,6 +331,13 @@ CREATE TABLE IF NOT EXISTS model_config (
   config      JSONB       NOT NULL,
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+INSERT INTO model_config (id, config)
+VALUES (
+  1,
+  '{"globalDefault":{"provider":"openai","model":"gpt-5.6-luna"},"roleOverrides":{},"updatedAt":"2026-09-13T00:00:00.000Z"}'::JSONB
+)
+ON CONFLICT (id) DO NOTHING;
 
 -- ── Indexes ───────────────────────────────────────────────────────────────────
 

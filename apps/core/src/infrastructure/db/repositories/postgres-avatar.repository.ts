@@ -292,7 +292,7 @@ export class PostgresAvatarRepository implements IAvatarRepository {
 
   async saveComputedTraits(
     avatarId: string,
-    computedTraits: AvatarComputedTraits | null,
+    computedTraits: AvatarComputedTraits,
   ): Promise<AvatarConfig> {
     const uuid = extractUuid('avatar_', avatarId)
     if (uuid === null) {

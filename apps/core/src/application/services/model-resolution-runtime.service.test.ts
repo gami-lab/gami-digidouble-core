@@ -5,11 +5,11 @@ import { resolveRoleLlmCall } from './model-resolution-runtime.service.js'
 
 describe('resolveRoleLlmCall', () => {
   it('uses a request-level Avatar model override before persisted configuration', async () => {
-    const legacyAdapter = { complete: vi.fn() } as unknown as ILlmAdapter
+    const defaultAdapter = { complete: vi.fn() } as unknown as ILlmAdapter
     const selectedAdapter = { complete: vi.fn() } as unknown as ILlmAdapter
     const modelConfigRepository = {
       get: vi.fn().mockResolvedValue({
-        globalDefault: { provider: 'openai', model: 'gpt-4o' },
+        globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
         roleOverrides: { avatar: { provider: 'anthropic', model: 'claude-sonnet-4-6' } },
         updatedAt: '2026-05-20T00:00:00.000Z',
       }),
@@ -20,7 +20,7 @@ describe('resolveRoleLlmCall', () => {
     await expect(
       resolveRoleLlmCall({
         role: 'avatar',
-        legacyAdapter,
+        defaultAdapter,
         modelConfigRepository,
         llmAdapterRegistry,
         modelConfigFallback: undefined,
@@ -38,11 +38,11 @@ describe('resolveRoleLlmCall', () => {
   })
 
   it('throws a clear role-scoped error when provider adapter is unavailable', async () => {
-    const legacyAdapter = { complete: vi.fn() } as unknown as ILlmAdapter
+    const defaultAdapter = { complete: vi.fn() } as unknown as ILlmAdapter
     const modelConfigRepository = {
       get: vi.fn().mockResolvedValue({
         globalDefault: { provider: 'null', model: '' },
-        roleOverrides: { avatar: { provider: 'anthropic', model: 'claude-3-7-sonnet' } },
+        roleOverrides: { avatar: { provider: 'anthropic', model: 'claude-sonnet-4-6' } },
         updatedAt: '2026-05-20T00:00:00.000Z',
       }),
       upsert: vi.fn(),
@@ -56,7 +56,7 @@ describe('resolveRoleLlmCall', () => {
     await expect(
       resolveRoleLlmCall({
         role: 'avatar',
-        legacyAdapter,
+        defaultAdapter,
         modelConfigRepository,
         llmAdapterRegistry,
         modelConfigFallback: undefined,

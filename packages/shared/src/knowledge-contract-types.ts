@@ -24,9 +24,9 @@ export const INGESTION_CHUNK_SIZE_DEFAULT = 1500
 /**
  * Explicit visibility policy for a knowledge source.
  *
- * - `'all'`     — visible to all avatars (default / backward-compatible)
+ * - `'all'`     — visible to all avatars
  * - `'avatars'` — visible only to the avatar IDs listed in `visibleToAvatarIds`
- * - `'none'`    — GM-only: not visible to any avatar in retrieval; GM omniscience bypasses this
+ * - `'none'`    — not visible to any avatar in retrieval; GM omniscience bypasses this
  */
 export type KnowledgeVisibilityPolicy = 'all' | 'avatars' | 'none'
 
@@ -158,7 +158,7 @@ export type KnowledgeSourceDto = {
   uriOrPath: string
   status: KnowledgeSourceStatus
   metadata?: Record<string, unknown>
-  visibilityPolicy?: KnowledgeVisibilityPolicy
+  visibilityPolicy: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
   createdAt: string
 }
@@ -311,7 +311,7 @@ export type CreateKnowledgeSourceRequest = {
   format: KnowledgeSourceFormat
   uriOrPath: string
   metadata?: Record<string, unknown>
-  visibilityPolicy?: KnowledgeVisibilityPolicy
+  visibilityPolicy: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
 }
 
@@ -362,7 +362,7 @@ export type UploadKnowledgeSourceRequest = {
   knowledgeType: KnowledgeType
   content: string
   filename: string
-  visibilityPolicy?: KnowledgeVisibilityPolicy
+  visibilityPolicy: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
 }
 

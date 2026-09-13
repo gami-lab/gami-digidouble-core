@@ -197,18 +197,14 @@ export class InMemoryAvatarRepository implements IAvatarRepository {
 
   async saveComputedTraits(
     avatarId: string,
-    computedTraits: AvatarComputedTraits | null,
+    computedTraits: AvatarComputedTraits,
   ): Promise<AvatarConfig> {
     const existing = this.avatars.get(avatarId)
     if (existing === undefined) {
       throw new DomainError('NOT_FOUND', 'Avatar not found')
     }
     const updated = { ...existing, updatedAt: new Date().toISOString() }
-    if (computedTraits === null) {
-      delete updated.computedTraits
-    } else {
-      updated.computedTraits = computedTraits
-    }
+    updated.computedTraits = computedTraits
     this.avatars.set(avatarId, updated)
     return Promise.resolve(updated)
   }

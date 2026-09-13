@@ -39,6 +39,7 @@ describe('RegisterKnowledgeSourceUseCase', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '  /tmp/source.txt  ',
+      visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_a', 'avatar_b'],
       triggerIngestion: true,
     })
@@ -70,6 +71,7 @@ describe('RegisterKnowledgeSourceUseCase', () => {
         knowledgeType: 'world',
         format: 'text',
         uriOrPath: '/tmp/source.txt',
+        visibilityPolicy: 'all',
       }),
     ).rejects.toEqual(expect.objectContaining<Partial<DomainError>>({ code: 'VALIDATION_ERROR' }))
   })

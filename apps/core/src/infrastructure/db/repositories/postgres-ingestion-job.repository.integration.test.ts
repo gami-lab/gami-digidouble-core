@@ -35,6 +35,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresIngestionJobRepository', () => {
       knowledgeType: 'avatar_knowledge',
       format: 'text',
       uriOrPath: '/tmp/source.txt',
+      visibilityPolicy: 'all',
     })
     sourceId = source.sourceId
   }

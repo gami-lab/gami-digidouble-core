@@ -15,6 +15,7 @@ export {
 export {
   MODEL_PROVIDER_NAMES,
   MODEL_SELECTION_PROVIDER_NAMES,
+  SUPPORTED_PRODUCTION_MODEL_MATRIX,
   getModelPresetOptions,
   isAllowedModelForProvider,
   isModelProviderName,

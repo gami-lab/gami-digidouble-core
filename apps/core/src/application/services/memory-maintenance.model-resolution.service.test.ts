@@ -145,7 +145,7 @@ describe('MemoryMaintenanceService model resolution', () => {
       get: vi.fn().mockReturnValue({ complete: resolvedAdapterCompleteMock }),
     }
     const modelConfigFallback: ModelConfig = {
-      globalDefault: { provider: 'openai', model: 'gpt-4o-mini' },
+      globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
       roleOverrides: {},
       updatedAt: '2026-05-20T00:00:00.000Z',
     }

@@ -33,7 +33,7 @@ vi.mock('@anthropic-ai/sdk', () => {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function buildMessage(text: string, model = 'claude-3-haiku-20240307'): Anthropic.Message {
+function buildMessage(text: string, model = 'claude-haiku-4-5'): Anthropic.Message {
   return {
     id: 'msg_test',
     type: 'message',
@@ -66,19 +66,19 @@ describe('AnthropicAdapter', () => {
     const response = await adapter.complete(request)
 
     expect(response.content).toBe('Hi there!')
-    expect(response.model).toBe('claude-3-haiku-20240307')
+    expect(response.model).toBe('claude-haiku-4-5')
     expect(response.inputTokens).toBe(12)
     expect(response.outputTokens).toBe(8)
     expect(response.latencyMs).toBeGreaterThanOrEqual(0)
   })
 
   it('uses the model override from the request', async () => {
-    mockCreate.mockResolvedValue(buildMessage('ok', 'claude-3-5-sonnet-20241022'))
+    mockCreate.mockResolvedValue(buildMessage('ok', 'claude-sonnet-4-6'))
     const adapter = new AnthropicAdapter('sk-ant-test')
-    await adapter.complete({ ...request, model: 'claude-3-5-sonnet-20241022' })
+    await adapter.complete({ ...request, model: 'claude-sonnet-4-6' })
 
     const calledWith = mockCreate.mock.calls[0]?.[0] as { model: string }
-    expect(calledWith.model).toBe('claude-3-5-sonnet-20241022')
+    expect(calledWith.model).toBe('claude-sonnet-4-6')
   })
 
   it('passes the system prompt separately', async () => {
@@ -132,7 +132,7 @@ describe('AnthropicAdapter', () => {
       (function* () {
         yield {
           type: 'message_start',
-          message: { model: 'claude-3-haiku-20240307', usage: { input_tokens: 12 } },
+          message: { model: 'claude-haiku-4-5', usage: { input_tokens: 12 } },
         }
         yield { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hello' } }
         yield { type: 'content_block_delta', delta: { type: 'text_delta', text: ' world' } }
@@ -152,7 +152,7 @@ describe('AnthropicAdapter', () => {
       type: 'completed',
       response: {
         content: 'Hello world',
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-haiku-4-5',
         inputTokens: 12,
         outputTokens: 5,
       },

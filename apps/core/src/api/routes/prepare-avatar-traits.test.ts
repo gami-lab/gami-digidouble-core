@@ -148,7 +148,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () 
     })
     const listBeforeBody = listBeforeResponse.json<ApiResponse<ListScenarioAvatarsResponse>>()
     expect(listBeforeBody.data?.avatars.find((a) => a.avatarId === avatarId)?.computedTraits).toBe(
-      null,
+      undefined,
     )
 
     const prepareResponse = await app.inject({

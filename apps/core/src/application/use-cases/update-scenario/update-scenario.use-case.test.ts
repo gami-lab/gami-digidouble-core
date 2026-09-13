@@ -6,6 +6,7 @@ const seedScenario = {
   scenarioId: 'scenario_1',
   name: 'Original Name',
   status: 'draft' as const,
+  language: 'en',
   objectives: [],
   worldContext: '',
   avatarAvailability: { initialAvatarIds: [] },
@@ -72,7 +73,7 @@ describe('UpdateScenarioUseCase', () => {
       {
         ...seedScenario,
         modelSelection: {
-          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
         },
         config: {},
       },

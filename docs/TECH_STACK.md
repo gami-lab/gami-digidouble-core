@@ -47,6 +47,15 @@ For product principles, read `PRINCIPLES.md`.
 - Direct provider SDKs behind an internal wrapper
 - Provider/model selection resolved by runtime role
 - Current provider set supported in contracts: OpenAI, Anthropic, Mistral, xAI
+- The supported production model matrix is owned by `packages/shared/src/model-catalog.ts`:
+  OpenAI (`gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.6`, `gpt-5.5`, `gpt-5.4`,
+  `gpt-5.4-mini`, `gpt-5.4-nano`), Anthropic (`claude-fable-5`, `claude-opus-5`,
+  `claude-opus-4-8`, `claude-opus-4-7`, `claude-opus-4-6`, `claude-opus-4-5-20251101`,
+  `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-sonnet-4-5-20250929`, `claude-haiku-4-5`,
+  `claude-haiku-4-5-20251001`), Mistral (`mistral-medium-3.5`, `mistral-small-4`,
+  `mistral-large-3`, `ministral-3b`), and xAI (`grok-4.3`, `grok-4.3-latest`, `grok-build-0.1`).
+  OpenAI chat requests use `max_completion_tokens`; pre-current token-parameter branching is not
+  supported.
 
 ### Knowledge And Retrieval
 

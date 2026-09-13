@@ -45,7 +45,7 @@ describe('UpdateAvatarUseCase', () => {
     expect(result.avatar.tone).toBe('formal')
     expect(result.avatar.name).toBe('Ava')
     expect(result.avatar.updatedAt).not.toBe(baseAvatar.updatedAt)
-    expect(result.avatar.computedTraits).toBeNull()
+    expect(result.avatar.computedTraits).toBeUndefined()
   })
 
   it('only updates provided fields — other fields remain unchanged', async () => {
@@ -62,7 +62,7 @@ describe('UpdateAvatarUseCase', () => {
     expect(result.avatar.personaPrompt).toBe('You are Ava.')
   })
 
-  it('surfaces computedTraits as null when not yet prepared, and passes through when set', async () => {
+  it('omits computedTraits when not yet prepared, and passes through when set', async () => {
     const traits = {
       identity: ['Guide'],
       personality: ['Warm'],

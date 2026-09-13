@@ -1,18 +1,15 @@
 import type { KnowledgeVisibilityPolicy } from './knowledge.types.js'
 
 export type KnowledgeVisibilitySelection = {
-  visibilityPolicy?: KnowledgeVisibilityPolicy
+  visibilityPolicy: KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
 }
 
 export function buildKnowledgeVisibilitySelection(
-  visibilityPolicy: KnowledgeVisibilityPolicy | undefined,
+  visibilityPolicy: KnowledgeVisibilityPolicy,
   visibleToAvatarIds: string[] | undefined,
 ): KnowledgeVisibilitySelection {
-  return {
-    ...(visibilityPolicy !== undefined ? { visibilityPolicy } : {}),
-    ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
-  }
+  return { visibilityPolicy, ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}) }
 }
 
 export function normalizeVisibleToAvatarIds(
@@ -29,9 +26,6 @@ export function normalizeVisibleToAvatarIds(
 
 export function normalizeKnowledgeVisibilitySelection(
   selection: KnowledgeVisibilitySelection,
-  options?: {
-    inferAvatarPolicyFromIds?: boolean
-  },
 ): KnowledgeVisibilitySelection {
   const visibleToAvatarIds = normalizeVisibleToAvatarIds(selection.visibleToAvatarIds)
 
@@ -46,11 +40,7 @@ export function normalizeKnowledgeVisibilitySelection(
         ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
       }
     default:
-      if (options?.inferAvatarPolicyFromIds === true && visibleToAvatarIds !== undefined) {
-        return { visibilityPolicy: 'avatars', visibleToAvatarIds }
-      }
-
-      return visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}
+      throw new Error('Invalid knowledge visibility policy.')
   }
 }
 
@@ -71,9 +61,7 @@ export function isKnowledgeVisibleToAvatar(
 ): boolean {
   if (bypassVisibilityFilter) return true
 
-  const normalized = normalizeKnowledgeVisibilitySelection(selection, {
-    inferAvatarPolicyFromIds: true,
-  })
+  const normalized = normalizeKnowledgeVisibilitySelection(selection)
 
   if (normalized.visibilityPolicy === 'none') return false
 

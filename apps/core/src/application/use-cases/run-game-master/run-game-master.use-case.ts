@@ -387,7 +387,7 @@ export class RunGameMasterUseCase {
   }> {
     return await resolveRoleLlmCall({
       role: 'gameMaster',
-      legacyAdapter: this.llm,
+      defaultAdapter: this.llm,
       modelConfigRepository: this.options.modelConfigRepository,
       llmAdapterRegistry: this.options.llmAdapterRegistry,
       modelConfigFallback: this.options.modelConfigFallback,

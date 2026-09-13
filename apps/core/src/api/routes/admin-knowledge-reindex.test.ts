@@ -58,6 +58,7 @@ async function makeApp(adapter = new TestEmbeddingAdapter()) {
     knowledgeType: 'world',
     format: 'text',
     uriOrPath: 'inline://reindex',
+    visibilityPolicy: 'all',
     metadata: { inlineText: 'Reindexable source content.' },
   })
   const chunkRepository = new InMemoryKnowledgeChunkRepository()

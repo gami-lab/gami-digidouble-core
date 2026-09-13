@@ -8,6 +8,7 @@
  * All services use real domain logic with in-memory repositories — no mocks for
  * the memory path.
  */
+import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InMemoryConversationMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-memory.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
@@ -77,6 +78,7 @@ beforeEach(() => {
     name: 'Ava',
     status: 'active',
     personaPrompt: 'You are Ava.',
+    computedTraits: createEmptyAvatarComputedTraits(),
     config: {},
     createdAt: '2026-05-01T10:00:00.000Z',
     updatedAt: '2026-05-01T10:00:00.000Z',

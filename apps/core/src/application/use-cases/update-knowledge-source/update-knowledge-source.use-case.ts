@@ -99,16 +99,20 @@ function resolveVisibilityTransition(
   visibilityPolicy: UpdateKnowledgeSourceInput['visibilityPolicy'],
   visibleToAvatarIds: UpdateKnowledgeSourceInput['visibleToAvatarIds'],
 ): VisibilityTransition {
+  if (visibleToAvatarIds !== undefined && visibilityPolicy === undefined) {
+    throw new DomainError(
+      'VALIDATION_ERROR',
+      'visibilityPolicy is required when visibleToAvatarIds is provided.',
+    )
+  }
   const currentVisibility = normalizeKnowledgeVisibilitySelection(
     buildKnowledgeVisibilitySelection(existing.visibilityPolicy, existing.visibleToAvatarIds),
-    { inferAvatarPolicyFromIds: true },
   )
   const nextVisibility = normalizeKnowledgeVisibilitySelection(
     buildKnowledgeVisibilitySelection(
       visibilityPolicy ?? existing.visibilityPolicy,
       visibleToAvatarIds ?? existing.visibleToAvatarIds,
     ),
-    { inferAvatarPolicyFromIds: true },
   )
   const visibilityError = getKnowledgeVisibilityValidationError(nextVisibility)
   if (visibilityError !== null) {

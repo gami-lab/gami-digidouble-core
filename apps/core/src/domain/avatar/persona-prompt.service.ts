@@ -1,10 +1,9 @@
 import type { AvatarComputedTraits, AvatarConfig } from './avatar.types.js'
+import type { RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import { AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS } from '@gami/shared'
 import type {
   AvatarAwarenessItem,
-  AvatarPromptIdentityConfig,
-  AvatarPromptIdentityInput,
-  AvatarPromptIdentitySource,
+  AvatarPromptRetrievalSections,
   AvatarPromptOptions,
 } from './persona-prompt.types.js'
 import type {
@@ -13,6 +12,7 @@ import type {
 } from '../context/session-context.types.js'
 import type { DialogueControlMode } from '../game-master/game-master.types.js'
 import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
+import type { UserPersona } from '../user/user.types.js'
 import { selectBalancedRetrievedItems } from '../knowledge/retrieval-selection.js'
 
 const DEFAULT_STYLE_RULE = [
@@ -37,7 +37,10 @@ const DIALOGUE_CONTROL_RULES: Record<DialogueControlMode, string> = {
 }
 
 export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptOptions): string {
-  const promptInputs = resolvePromptSectionInputs(config, opts)
+  if (opts === undefined) {
+    throw new Error('Avatar prompt assembly requires structured context sections.')
+  }
+  const promptInputs = resolveSelectedPromptSectionInputs(opts.sections, opts)
   const sections = [
     ...buildGameMasterGuidance(promptInputs.gmGuidance),
     ...(promptInputs.gmGuidance === undefined
@@ -47,110 +50,46 @@ export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptO
     ...buildConversationStateSection(promptInputs.memory, promptInputs.avatarAwareness),
     ...buildUserPersonaContext(promptInputs.userPersona),
     ...buildWorldContext(promptInputs.worldContext),
-    ...buildRetrievalContext(promptInputs.retrieval, opts?.retrievalOptions),
+    ...buildRetrievalContext(promptInputs.retrieval, opts.retrievalOptions),
   ]
-  const avatarTraitsSection = buildAvatarTraitsSection(config, opts)
-  if (avatarTraitsSection !== null) {
-    sections.push(avatarTraitsSection)
-  }
+  sections.push(buildAvatarTraitsSection(config, promptInputs.avatarTraits))
   return sections.join('\n\n')
 }
 
-function resolvePromptSectionInputs(
-  config: AvatarConfig,
-  opts?: AvatarPromptOptions,
-): {
-  directorNotes: string | undefined
-  responseRules: string[] | undefined
-  memory: AvatarPromptOptions['memory']
-  avatarAwareness: AvatarAwarenessItem[] | undefined
-  userPersona: AvatarPromptOptions['userPersona']
-  worldContext: string | ContextScenarioSnapshot | undefined
-  retrieval: AvatarPromptOptions['retrieval']
-  gmGuidance: AvatarPromptOptions['gmGuidance']
-  language: string | undefined
-} {
-  const promptSections = opts?.sections
-  if (promptSections === undefined) {
-    return resolveLegacyPromptSectionInputs(config, opts)
-  }
-
-  return resolveSelectedPromptSectionInputs(promptSections, opts)
-}
-
-function resolveLegacyPromptSectionInputs(
-  config: AvatarConfig,
-  opts?: AvatarPromptOptions,
-): {
-  directorNotes: string | undefined
-  responseRules: string[] | undefined
-  memory: AvatarPromptOptions['memory']
-  avatarAwareness: AvatarAwarenessItem[] | undefined
-  userPersona: AvatarPromptOptions['userPersona']
-  worldContext: string | ContextScenarioSnapshot | undefined
-  retrieval: AvatarPromptOptions['retrieval']
-  gmGuidance: AvatarPromptOptions['gmGuidance']
-  language: string | undefined
-} {
-  return {
-    directorNotes: opts?.gmNotes,
-    responseRules: config.adjustments,
-    memory: opts?.memory,
-    avatarAwareness: opts?.avatarAwareness,
-    userPersona: opts?.userPersona,
-    worldContext: opts?.worldContext,
-    retrieval: opts?.retrieval,
-    gmGuidance: opts?.gmGuidance,
-    language: opts?.language,
-  }
-}
-
 function resolveSelectedPromptSectionInputs(
-  promptSections: NonNullable<AvatarPromptOptions['sections']>,
-  opts?: AvatarPromptOptions,
+  promptSections: AvatarPromptOptions['sections'],
+  opts: AvatarPromptOptions,
 ): {
   directorNotes: string | undefined
   responseRules: string[] | undefined
-  memory: AvatarPromptOptions['memory']
+  memory: LayeredMemorySnapshot | undefined
   avatarAwareness: AvatarAwarenessItem[] | undefined
-  userPersona: AvatarPromptOptions['userPersona']
+  userPersona: UserPersona | undefined
   worldContext: string | ContextScenarioSnapshot | undefined
-  retrieval: AvatarPromptOptions['retrieval']
+  retrieval: AvatarPromptRetrievalSections | undefined
   gmGuidance: AvatarPromptOptions['gmGuidance']
   language: string | undefined
+  avatarTraits: AvatarComputedTraits
 } {
   return {
     directorNotes: promptSections.directorNotes ?? undefined,
     responseRules: promptSections.responseRules.items,
     memory: toLayeredMemorySnapshot(promptSections.conversationState),
-    avatarAwareness: opts?.avatarAwareness,
+    avatarAwareness: opts.avatarAwareness,
     userPersona: promptSections.userPersona ?? undefined,
     worldContext: promptSections.worldContext,
     retrieval: promptSections.retrievedContext?.typedSections,
-    gmGuidance: opts?.gmGuidance,
-    language: opts?.language,
+    gmGuidance: opts.gmGuidance,
+    language: promptSections.worldContext.language,
+    avatarTraits: requireAvatarTraits(promptSections.avatarTraits),
   }
 }
 
-/**
- * Compatibility boundary for EPIC 8.1 -> 8.2:
- * prefer prepared `computedTraits`, otherwise fall back to authored
- * `personaPrompt` so pre-preparation avatars still answer normally.
- */
-export function resolveAvatarPromptIdentitySource(
-  config: AvatarPromptIdentityInput,
-): AvatarPromptIdentitySource {
-  if (config.computedTraits !== undefined && config.computedTraits !== null) {
-    return {
-      source: 'computedTraits',
-      computedTraits: config.computedTraits,
-    }
+function requireAvatarTraits(traits: AvatarComputedTraits | undefined): AvatarComputedTraits {
+  if (traits === undefined) {
+    throw new Error('Avatar prompt assembly requires prepared computedTraits.')
   }
-
-  return {
-    source: 'personaPrompt',
-    personaPrompt: requirePersonaPrompt(config.personaPrompt),
-  }
+  return traits
 }
 
 function buildWorldContext(worldContext: string | ContextScenarioSnapshot | undefined): string[] {
@@ -180,7 +119,7 @@ function buildWorldContext(worldContext: string | ContextScenarioSnapshot | unde
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 
-function buildUserPersonaContext(userPersona: AvatarPromptOptions['userPersona']): string[] {
+function buildUserPersonaContext(userPersona: UserPersona | undefined): string[] {
   if (userPersona === undefined) return []
 
   const lines: string[] = ['## User Persona']
@@ -204,7 +143,7 @@ function buildUserPersonaContext(userPersona: AvatarPromptOptions['userPersona']
 }
 
 function buildConversationStateSection(
-  memory: AvatarPromptOptions['memory'],
+  memory: LayeredMemorySnapshot | undefined,
   avatarAwareness: AvatarAwarenessItem[] | undefined,
 ): string[] {
   if (memory === undefined && (avatarAwareness === undefined || avatarAwareness.length === 0))
@@ -220,7 +159,7 @@ function buildConversationStateSection(
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 
-function appendRecentExchanges(lines: string[], memory: AvatarPromptOptions['memory']): void {
+function appendRecentExchanges(lines: string[], memory: LayeredMemorySnapshot | undefined): void {
   const exchanges = memory?.shortTerm?.recentExchanges ?? []
   if (exchanges.length === 0) return
   lines.push('Recent exchanges:')
@@ -230,7 +169,7 @@ function appendRecentExchanges(lines: string[], memory: AvatarPromptOptions['mem
   })
 }
 
-function appendWorkingMemory(lines: string[], memory: AvatarPromptOptions['memory']): void {
+function appendWorkingMemory(lines: string[], memory: LayeredMemorySnapshot | undefined): void {
   const working = memory?.working
   if (working === undefined) return
   const hasWorkingContent =
@@ -253,7 +192,7 @@ function appendWorkingMemory(lines: string[], memory: AvatarPromptOptions['memor
   }
 }
 
-function appendEpisodicMemories(lines: string[], memory: AvatarPromptOptions['memory']): void {
+function appendEpisodicMemories(lines: string[], memory: LayeredMemorySnapshot | undefined): void {
   const episodicMemories = memory?.episodicMemories ?? []
   if (episodicMemories.length === 0) return
   lines.push('Episodic memories:')
@@ -270,7 +209,7 @@ function appendEpisodicMemories(lines: string[], memory: AvatarPromptOptions['me
   })
 }
 
-function appendLongTermMemory(lines: string[], memory: AvatarPromptOptions['memory']): void {
+function appendLongTermMemory(lines: string[], memory: LayeredMemorySnapshot | undefined): void {
   const facts = memory?.longTerm?.facts ?? []
   const validFacts = facts.filter((fact) => hasText(fact.key) && hasText(fact.value))
   if (validFacts.length === 0) return
@@ -285,7 +224,7 @@ function formatPromptList(values: string[]): string {
 }
 
 function buildRetrievalContext(
-  retrieval: AvatarPromptOptions['retrieval'],
+  retrieval: AvatarPromptRetrievalSections | undefined,
   options: AvatarPromptOptions['retrievalOptions'],
 ): string[] {
   if (retrieval === undefined) return []
@@ -305,10 +244,7 @@ function buildRetrievalContext(
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 
-function formatRetrievedItems(
-  items: NonNullable<AvatarPromptOptions['retrieval']>['avatar_knowledge'],
-  label: string,
-): string[] {
+function formatRetrievedItems(items: RetrievedKnowledgeItem[], label: string): string[] {
   if (items.length === 0) return []
   const lines: string[] = []
   items.forEach((item, index) => {
@@ -316,14 +252,6 @@ function formatRetrievedItems(
     lines.push(`${label} ${String(index + 1)} (${item.knowledgeType}):`, item.content.trim())
   })
   return lines
-}
-
-function requirePersonaPrompt(personaPrompt: string): string {
-  if (!hasText(personaPrompt)) {
-    throw new Error('Avatar personaPrompt must be a non-empty string.')
-  }
-
-  return personaPrompt
 }
 
 function shouldAppendName(personaPrompt: string, name: string): boolean {
@@ -405,28 +333,12 @@ function buildGameMasterGuidance(guidance: AvatarPromptOptions['gmGuidance']): s
 }
 
 function buildAvatarTraitsSection(
-  config: AvatarPromptIdentityConfig,
-  opts?: AvatarPromptOptions,
-): string | null {
-  const identitySource = resolvePromptIdentitySource(config, opts)
-  if (identitySource === null) return null
+  config: AvatarConfig,
+  computedTraits: AvatarComputedTraits,
+): string {
   const lines = ['## Avatar Traits']
 
-  if (identitySource.source === 'personaPrompt') {
-    lines.push(identitySource.personaPrompt)
-
-    if (shouldAppendName(identitySource.personaPrompt, config.name)) {
-      lines.push(`Your name is ${config.name.trim()}.`)
-    }
-
-    if (hasText(config.tone)) {
-      lines.push(`Your tone is ${config.tone.trim()}.`)
-    }
-
-    return lines.join('\n')
-  }
-
-  const traitText = flattenTraitText(identitySource.computedTraits)
+  const traitText = flattenTraitText(computedTraits)
 
   if (shouldAppendName(traitText, config.name)) {
     lines.push(`Name: ${config.name.trim()}`)
@@ -435,17 +347,13 @@ function buildAvatarTraitsSection(
     lines.push(`Tone: ${config.tone.trim()}`)
   }
 
-  lines.push(...buildTraitField('Identity', identitySource.computedTraits.identity))
-  lines.push(...buildTraitField('Personality', identitySource.computedTraits.personality))
-  lines.push(...buildTraitField('Speaking Style', identitySource.computedTraits.speakingStyle))
-  lines.push(...buildTraitField('Background', identitySource.computedTraits.background))
-  lines.push(...buildTraitField('Timeline', identitySource.computedTraits.timeline))
-  lines.push(
-    ...buildTraitField('Current Situation', identitySource.computedTraits.currentSituation),
-  )
-  lines.push(
-    ...buildTraitField('Behavioural Rules', identitySource.computedTraits.behaviouralRules),
-  )
+  lines.push(...buildTraitField('Identity', computedTraits.identity))
+  lines.push(...buildTraitField('Personality', computedTraits.personality))
+  lines.push(...buildTraitField('Speaking Style', computedTraits.speakingStyle))
+  lines.push(...buildTraitField('Background', computedTraits.background))
+  lines.push(...buildTraitField('Timeline', computedTraits.timeline))
+  lines.push(...buildTraitField('Current Situation', computedTraits.currentSituation))
+  lines.push(...buildTraitField('Behavioural Rules', computedTraits.behaviouralRules))
 
   return lines.join('\n')
 }
@@ -477,22 +385,6 @@ function flattenTraitText(config: AvatarComputedTraits): string {
     ...config.currentSituation,
     ...config.behaviouralRules,
   ].join(' ')
-}
-
-function resolvePromptIdentitySource(
-  config: AvatarPromptIdentityConfig,
-  opts?: AvatarPromptOptions,
-): AvatarPromptIdentitySource | null {
-  if (opts?.identitySource !== undefined) {
-    return opts.identitySource
-  }
-  if (opts?.sections?.avatarTraits !== undefined) {
-    return {
-      source: 'computedTraits',
-      computedTraits: opts.sections.avatarTraits,
-    }
-  }
-  return resolveAvatarPromptIdentitySource(config)
 }
 
 // eslint-disable-next-line complexity

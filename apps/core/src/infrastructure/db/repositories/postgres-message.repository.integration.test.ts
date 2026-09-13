@@ -35,10 +35,10 @@ function defineSaveTests(): void {
       role: 'avatar',
       content: 'Hi there!',
       createdAt: new Date().toISOString(),
-      metadata: { model: 'gpt-4o', latencyMs: 300 },
+      metadata: { model: 'gpt-5.6-luna', latencyMs: 300 },
     })
 
-    expect(saved.metadata).toEqual({ model: 'gpt-4o', latencyMs: 300 })
+    expect(saved.metadata).toEqual({ model: 'gpt-5.6-luna', latencyMs: 300 })
   })
 }
 

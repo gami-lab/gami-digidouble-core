@@ -1,4 +1,8 @@
-import type { UpdateModelConfigRequest } from '@gami/shared'
+import {
+  isAllowedModelForProvider,
+  isModelSelectionProviderName,
+  type UpdateModelConfigRequest,
+} from '@gami/shared'
 import type {
   ModelConfig,
   ModelOverride,
@@ -34,6 +38,21 @@ function assertNonEmptyModel(model: string, field: string): void {
   }
 }
 
+function assertSupportedModel(provider: ProviderName, model: string, field: string): void {
+  if (provider === 'null') return
+  if (!isModelSelectionProviderName(provider) || !isAllowedModelForProvider(provider, model)) {
+    throw new DomainError(
+      'INVALID_INPUT',
+      `${field} is not in the supported production model matrix`,
+      {
+        field,
+        provider,
+        model,
+      },
+    )
+  }
+}
+
 function validateProvider(provider: string, field: string): ProviderName {
   if (!isProviderName(provider)) {
     throw new DomainError('INVALID_INPUT', `${field} must be one of ${PROVIDER_NAMES.join('|')}`, {
@@ -56,6 +75,9 @@ function toModelOverride(
   const model = override.model
   if (model !== undefined) {
     assertNonEmptyModel(model, `${field}.model`)
+  }
+  if (provider !== undefined && model !== undefined) {
+    assertSupportedModel(provider, model, `${field}.model`)
   }
 
   return {
@@ -89,6 +111,7 @@ export class UpdateModelConfigUseCase {
   async execute(input: UpdateModelConfigInput): Promise<UpdateModelConfigOutput> {
     const provider = validateProvider(input.globalDefault.provider, 'globalDefault.provider')
     assertNonEmptyModel(input.globalDefault.model, 'globalDefault.model')
+    assertSupportedModel(provider, input.globalDefault.model, 'globalDefault.model')
 
     const config: ModelConfig = {
       globalDefault: {

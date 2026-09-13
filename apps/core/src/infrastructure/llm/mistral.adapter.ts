@@ -15,7 +15,7 @@ import type {
 import { LlmError } from './llm.error.js'
 import { completedEvent, deltaEvent, isAborted, throwIfAborted } from './streaming.js'
 
-const DEFAULT_MODEL = 'mistral-small-latest'
+const DEFAULT_MODEL = 'mistral-small-4'
 const REQUEST_TIMEOUT_MS = 30_000
 
 export class MistralAdapter implements ILlmAdapter {

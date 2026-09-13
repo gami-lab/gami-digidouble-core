@@ -42,6 +42,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/first.txt',
+      visibilityPolicy: 'all',
     })
     const second = await sourceRepository.create({
       scenarioId: scenario.scenarioId,
@@ -49,6 +50,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/second.txt',
+      visibilityPolicy: 'all',
     })
     return [first.sourceId, second.sourceId]
   }

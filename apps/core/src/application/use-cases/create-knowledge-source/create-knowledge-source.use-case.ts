@@ -34,9 +34,7 @@ export class CreateKnowledgeSourceUseCase {
       format: input.format,
       uriOrPath: normalized.uriOrPath,
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
-      ...(normalized.visibility.visibilityPolicy !== undefined
-        ? { visibilityPolicy: normalized.visibility.visibilityPolicy }
-        : {}),
+      visibilityPolicy: normalized.visibility.visibilityPolicy,
       ...(normalized.visibility.visibleToAvatarIds !== undefined
         ? { visibleToAvatarIds: normalized.visibility.visibleToAvatarIds }
         : {}),
@@ -64,7 +62,6 @@ function normalizeCreateKnowledgeSourceInput(
   const uriOrPath = input.uriOrPath.trim()
   const visibility = normalizeKnowledgeVisibilitySelection(
     buildKnowledgeVisibilitySelection(input.visibilityPolicy, input.visibleToAvatarIds),
-    { inferAvatarPolicyFromIds: true },
   )
 
   if (scenarioId.length === 0 || name.length === 0 || uriOrPath.length === 0) {

@@ -12,12 +12,9 @@ export interface IAvatarRepository {
   /**
    * Narrow write path for derived trait preparation (EPIC 8.1). Deliberately
    * separate from `update` so trait writes never ride along with generic
-   * author-input mutation payloads. Pass `null` to clear.
+   * author-input mutation payloads.
    */
-  saveComputedTraits(
-    avatarId: string,
-    computedTraits: AvatarComputedTraits | null,
-  ): Promise<AvatarConfig>
+  saveComputedTraits(avatarId: string, computedTraits: AvatarComputedTraits): Promise<AvatarConfig>
 }
 
 export type CreateAvatarParams = CreateAvatarRequest & {

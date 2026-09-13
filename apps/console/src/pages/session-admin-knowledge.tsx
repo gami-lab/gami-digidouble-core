@@ -12,6 +12,7 @@ import { buttonStyle } from './form-styles'
 import type {
   KnowledgeSourceFormat,
   KnowledgeType,
+  KnowledgeVisibilityPolicy,
   QueryKnowledgeRetrievalRequest,
 } from '@gami/shared'
 import { getKnowledgeTypeLabel } from '@gami/shared'
@@ -28,6 +29,7 @@ export function KnowledgeOperationsPanel({
   const [knowledgeType, setKnowledgeType] = useState<KnowledgeType>('world')
   const [format, setFormat] = useState<KnowledgeSourceFormat>('markdown')
   const [visibilityCsv, setVisibilityCsv] = useState('')
+  const [visibilityPolicy, setVisibilityPolicy] = useState<KnowledgeVisibilityPolicy>('all')
   const [retrievalAvatarId, setRetrievalAvatarId] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +62,8 @@ export function KnowledgeOperationsPanel({
         setFormat={setFormat}
         visibilityCsv={visibilityCsv}
         setVisibilityCsv={setVisibilityCsv}
+        visibilityPolicy={visibilityPolicy}
+        setVisibilityPolicy={setVisibilityPolicy}
         retrievalAvatarId={retrievalAvatarId}
         setRetrievalAvatarId={setRetrievalAvatarId}
       />
@@ -68,7 +72,7 @@ export function KnowledgeOperationsPanel({
         onRegisterAndIngest={() => {
           if (scenarioId === null) return
           void registerAndIngestSource(
-            { scenarioId, name, uriOrPath, knowledgeType, format, visibilityCsv },
+            { scenarioId, name, uriOrPath, knowledgeType, format, visibilityCsv, visibilityPolicy },
             { setStatus, setError, setSourcesSummary, setName, setUriOrPath, setVisibilityCsv },
           )
         }}
@@ -99,6 +103,7 @@ type KnowledgeInputFieldsProps = {
   knowledgeType: KnowledgeType
   format: KnowledgeSourceFormat
   visibilityCsv: string
+  visibilityPolicy: KnowledgeVisibilityPolicy
   retrievalAvatarId: string
   disabled: boolean
   setName: (value: string) => void
@@ -106,6 +111,7 @@ type KnowledgeInputFieldsProps = {
   setKnowledgeType: (value: KnowledgeType) => void
   setFormat: (value: KnowledgeSourceFormat) => void
   setVisibilityCsv: (value: string) => void
+  setVisibilityPolicy: (value: KnowledgeVisibilityPolicy) => void
   setRetrievalAvatarId: (value: string) => void
 }
 
@@ -160,9 +166,22 @@ function KnowledgeInputFields(props: KnowledgeInputFieldsProps): JSX.Element {
         <option value="pdf">pdf</option>
         <option value="media">media</option>
       </select>
+      <select
+        aria-label="Knowledge visibility policy"
+        value={props.visibilityPolicy}
+        onChange={(event) => {
+          props.setVisibilityPolicy(event.target.value as KnowledgeVisibilityPolicy)
+        }}
+        style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
+        disabled={props.disabled}
+      >
+        <option value="all">Shared with all Avatars</option>
+        <option value="avatars">Selected Avatars</option>
+        <option value="none">GM only</option>
+      </select>
       <input
         aria-label="Knowledge visibility avatar ids"
-        placeholder="Visible avatar IDs (comma-separated; blank=all)"
+        placeholder="Visible avatar IDs (comma-separated; policy=avatars)"
         value={props.visibilityCsv}
         onChange={(event) => {
           props.setVisibilityCsv(event.target.value)
@@ -229,6 +248,7 @@ type RegisterAndIngestInput = {
   knowledgeType: KnowledgeType
   format: KnowledgeSourceFormat
   visibilityCsv: string
+  visibilityPolicy: KnowledgeVisibilityPolicy
 }
 
 type RegisterAndIngestState = {
@@ -257,6 +277,10 @@ export async function registerAndIngestSource(
     state.setError(parsedVisibility.error)
     return
   }
+  if (input.visibilityPolicy !== 'avatars' && parsedVisibility.visibleToAvatarIds !== undefined) {
+    state.setError('Select Avatar visibility when providing visible avatar IDs.')
+    return
+  }
   try {
     const created = await createKnowledgeSource({
       scenarioId: input.scenarioId,
@@ -264,6 +288,7 @@ export async function registerAndIngestSource(
       knowledgeType: input.knowledgeType,
       format: input.format,
       uriOrPath: trimmedUri,
+      visibilityPolicy: input.visibilityPolicy,
       ...(parsedVisibility.visibleToAvatarIds !== undefined
         ? { visibleToAvatarIds: parsedVisibility.visibleToAvatarIds }
         : {}),
@@ -274,7 +299,7 @@ export async function registerAndIngestSource(
       `Registered ${created.source.sourceId} and scheduled ${triggered.ingestionJob.ingestionJobId}.`,
     )
     state.setSourcesSummary(
-      `Source ${created.source.name} (${getKnowledgeTypeLabel(created.source.knowledgeType)}/${created.source.format}) · visibility: ${formatVisibilityLabel(created.source.visibleToAvatarIds)} · jobs: ${String(jobs.jobs.length)}.`,
+      `Source ${created.source.name} (${getKnowledgeTypeLabel(created.source.knowledgeType)}/${created.source.format}) · visibility: ${formatVisibilityLabel(created.source.visibilityPolicy, created.source.visibleToAvatarIds)} · jobs: ${String(jobs.jobs.length)}.`,
     )
     state.setName('')
     state.setUriOrPath('')
@@ -298,7 +323,7 @@ export async function refreshKnowledgeSources(
         : `Knowledge sources: ${listed.sources
             .map(
               (source) =>
-                `${source.name} [${getKnowledgeTypeLabel(source.knowledgeType)}; ${source.status}] {scenario: ${source.scenarioId}; Avatar visibility: ${formatVisibilityLabel(source.visibleToAvatarIds)}}`,
+                `${source.name} [${getKnowledgeTypeLabel(source.knowledgeType)}; ${source.status}] {scenario: ${source.scenarioId}; Avatar visibility: ${formatVisibilityLabel(source.visibilityPolicy, source.visibleToAvatarIds)}}`,
             )
             .join(', ')}`,
     )
@@ -326,11 +351,11 @@ export async function inspectRetrieval(
     const response = await queryKnowledgeRetrieval(request)
     const { avatar_knowledge, world, media } = response.retrieval
     const trace = response.retrieval.trace
-    const avatarKnowledgeScope = firstVisibilityLabel(
+    const avatarKnowledgeScope = firstAvatarScopeLabel(
       avatar_knowledge.map((item) => item.visibleToAvatarIds),
     )
-    const worldScope = firstVisibilityLabel(world.map((item) => item.visibleToAvatarIds))
-    const mediaScope = firstVisibilityLabel(media.map((item) => item.visibleToAvatarIds))
+    const worldScope = firstAvatarScopeLabel(world.map((item) => item.visibleToAvatarIds))
+    const mediaScope = firstAvatarScopeLabel(media.map((item) => item.visibleToAvatarIds))
     const worldVisibility = response.retrieval.trace.perType.world.visibility
     const diagnostics = [
       trace.outcome ?? 'unknown',
@@ -376,16 +401,19 @@ export function parseVisibilityCsv(value: string): ParsedVisibility {
   return { visibleToAvatarIds: parsed, error: null }
 }
 
-function formatVisibilityLabel(visibleToAvatarIds: string[] | undefined): string {
-  if (visibleToAvatarIds === undefined || visibleToAvatarIds.length === 0)
-    return 'Shared with all Avatars'
-  return `Avatar-visible: ${visibleToAvatarIds.join('|')}`
+function formatVisibilityLabel(
+  visibilityPolicy: KnowledgeVisibilityPolicy,
+  visibleToAvatarIds: string[] | undefined,
+): string {
+  if (visibilityPolicy === 'none') return 'GM only'
+  if (visibilityPolicy === 'all') return 'Shared with all Avatars'
+  return `Avatar-visible: ${(visibleToAvatarIds ?? []).join('|')}`
 }
 
-function firstVisibilityLabel(candidates: Array<string[] | undefined>): string {
+function firstAvatarScopeLabel(candidates: Array<string[] | undefined>): string {
   for (const candidate of candidates) {
     if (candidate === undefined || candidate.length === 0) continue
-    return formatVisibilityLabel(candidate)
+    return candidate.length === 0 ? 'Shared with all Avatars' : `Avatar-visible: ${candidate.join('|')}`
   }
   return 'Shared with all Avatars'
 }

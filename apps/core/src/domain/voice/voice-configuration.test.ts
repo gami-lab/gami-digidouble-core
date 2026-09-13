@@ -44,7 +44,7 @@ describe('voice configuration', () => {
       assertVoiceConfigurationIsNotEmbedded({ voiceConfig: { voiceKey: 'nested' } })
     }).toThrow(DomainError)
     expect(() => {
-      assertVoiceConfigurationIsNotEmbedded({ routeKey: 'public' })
+      assertVoiceConfigurationIsNotEmbedded({ unrelatedConfig: 'public' })
     }).not.toThrow()
   })
 })

@@ -29,6 +29,7 @@ describe('knowledge API wrappers - source operations', () => {
         format: 'markdown',
         uriOrPath: '/docs/lore.md',
         status: 'pending',
+        visibilityPolicy: 'avatars',
         createdAt: '2026-05-11T12:00:00.000Z',
       },
     }
@@ -44,6 +45,7 @@ describe('knowledge API wrappers - source operations', () => {
       knowledgeType: 'world',
       format: 'markdown',
       uriOrPath: '/docs/lore.md',
+      visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_1'],
     })
     const listed = await listKnowledgeSources('scenario_1', { knowledgeType: 'world' })
@@ -54,6 +56,7 @@ describe('knowledge API wrappers - source operations', () => {
       knowledgeType: 'world',
       format: 'markdown',
       uriOrPath: '/docs/lore.md',
+      visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_1'],
     })
     expect(coreRequest).toHaveBeenNthCalledWith(

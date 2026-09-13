@@ -85,16 +85,17 @@ type RuntimeState = {
 }
 ```
 
-Compatibility rules:
+Current content rules:
 
-- `AvatarSummary.computedTraits: null` is valid for avatars that have not been prepared yet.
+- `AvatarSummary.computedTraits` is omitted until explicit trait preparation completes. An active
+  Avatar must have prepared traits; create/activation and serving reject incomplete Avatars.
 - `AvailableAvatarSummary` is intentionally narrower than `AvatarSummary`; do not leak `config` or `llmOverride` into player-facing discovery routes.
 - `AvatarSummary.voiceConfig` and `ScenarioSummary.voiceConfig` are optional provider-neutral
   projections containing only `voiceKey` and optional `language`.
-- `ScenarioSummary.language` is the optional canonical BCP-47 language for the experience. New
-  scenarios default to `en`; when present it controls Avatar response language, speech recognition,
-  and synthesis. The optional language on a voice configuration is a legacy fallback and is
-  overridden by the Scenario language.
+- `ScenarioSummary.language` is the canonical BCP-47 language for an active experience. New
+  scenarios default to `en`; it controls Avatar response language, speech recognition, and
+  synthesis. Voice configuration language remains provider-neutral metadata and is never a fallback
+  for a Scenario language.
 - `SessionSummary.activeAvatarId` is optional; use explicit `null` only where a route contract says so.
 
 ## Public Routes
@@ -267,9 +268,8 @@ Voice-output contract ownership:
   Avatar voice overrides the Scenario default; absent both means no configured voice. Clients
   cannot submit provider credentials, endpoints, provider voice identifiers, or arbitrary synthesis
   options.
-- Scenario create/update requests accept `language` as a BCP-47 tag. The selected Scenario language
-  is authoritative for Avatar text and audio; Avatar/voice language values are retained only for
-  backwards-compatible records and fallback when a legacy Scenario has no language.
+- Scenario create/update requests accept `language` as a BCP-47 tag. Active Scenarios must have a
+  language, and the selected Scenario language is authoritative for Avatar text and audio.
 - Persisted `Message` and `MessageMetadata`, `SendMessageResponse`, and `MessageStreamEvent` remain
   text-only and unchanged. Audio bytes are transient and are not persisted by default.
 - The TTS implementation remains an internal application port. Its infrastructure adapter returns
@@ -485,7 +485,8 @@ Runtime precedence:
 
 - `KnowledgeVisibilityPolicy` is `'all' | 'avatars' | 'none'`.
 - `'none'` means GM-only: excluded from avatar retrieval, still visible to GM/debug paths where explicitly allowed.
-- Providing `visibleToAvatarIds` without `visibilityPolicy` normalizes to `'avatars'`.
+- `visibilityPolicy` is required on every source create/upload request. Providing
+  `visibleToAvatarIds` on an update also requires an explicit policy; IDs never infer one.
 - `'all'` or `'none'` clears any provided `visibleToAvatarIds`.
 - `'avatars'` requires at least one avatar ID after trimming.
 

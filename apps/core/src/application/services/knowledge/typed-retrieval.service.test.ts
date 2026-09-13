@@ -45,6 +45,7 @@ function source(
     format: 'text' as const,
     uriOrPath: `/${sourceId}.txt`,
     status: 'ready' as const,
+    visibilityPolicy: 'all' as const,
     createdAt: '2026-05-11T10:00:00.000Z',
     updatedAt: '2026-05-11T10:00:00.000Z',
     ...extra,
@@ -262,7 +263,10 @@ describe('TypedRetrievalService', () => {
       [
         chunk('memory_visible', 'memory_source', [1, 0]),
         chunk('memory_shared', 'memory_source', [1, 0]),
-        chunk('world_hidden', 'world_source', [1, 0], { visibleToAvatarIds: ['avatar_2'] }),
+        chunk('world_hidden', 'world_source', [1, 0], {
+          visibilityPolicy: 'avatars',
+          visibleToAvatarIds: ['avatar_2'],
+        }),
       ],
       embeddingResult([{ source: 'last_user_input', text: 'memory' }], [[1, 0]]),
     )
@@ -278,7 +282,7 @@ describe('TypedRetrievalService', () => {
       'memory_shared',
       'memory_visible',
     ])
-    expect(result.world).toHaveLength(0)
+    expect(result.world).toHaveLength(1)
     expect(result.trace.visibilityMode).toBe('avatar_filtered')
     expect(listBySourceIds).not.toHaveBeenCalled()
   })

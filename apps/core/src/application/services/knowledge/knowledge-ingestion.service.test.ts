@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { describe, expect, it } from 'vitest'
 import { InMemoryIngestionJobRepository } from '../../../infrastructure/db/in-memory-ingestion-job.repository.js'
 import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
@@ -60,6 +61,7 @@ describe('KnowledgeIngestionService — completion flow', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/rules.txt',
+      visibilityPolicy: 'avatars',
       metadata: { inlineText: 'A\n\nB\n\nC' },
       visibleToAvatarIds: ['avatar_memory_1'],
     })
@@ -108,6 +110,7 @@ describe('KnowledgeIngestionService — completion flow', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: 'inline://kingdom-lore.txt',
+      visibilityPolicy: 'all',
     })
     const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
 
@@ -150,6 +153,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/default-guide.txt',
+      visibilityPolicy: 'all',
     })
     const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
 
@@ -177,6 +181,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/configured-guide.txt',
+      visibilityPolicy: 'all',
     })
     const job = await jobRepository.create({
       sourceId: source.sourceId,
@@ -209,6 +214,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/paragraph-guide.txt',
+      visibilityPolicy: 'all',
     })
     const job = await jobRepository.create({
       sourceId: source.sourceId,
@@ -247,6 +253,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/long-paragraph.txt',
+      visibilityPolicy: 'all',
     })
     const job = await jobRepository.create({
       sourceId: source.sourceId,
@@ -283,6 +290,7 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
       knowledgeType: 'world',
       format: 'markdown',
       uriOrPath: '/tmp/guide.md',
+      visibilityPolicy: 'all',
     })
     const job = await jobRepository.create({
       sourceId: source.sourceId,
@@ -323,6 +331,7 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
       knowledgeType: 'world',
       format: 'markdown',
       uriOrPath: '/tmp/section-guide.md',
+      visibilityPolicy: 'all',
     })
     const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
     const firstParagraph = 'A'.repeat(850)
@@ -359,6 +368,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       knowledgeType: 'avatar_knowledge',
       format: 'markdown',
       uriOrPath: '/tmp/guide.md',
+      visibilityPolicy: 'all',
     })
     const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
 
@@ -415,6 +425,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/guide.txt',
+      visibilityPolicy: 'all',
     })
 
     const chunkRepository = new InMemoryKnowledgeChunkRepository([
@@ -482,6 +493,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/dimension.txt',
+      visibilityPolicy: 'all',
     })
     const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
     const adapter: IEmbeddingAdapter = {
@@ -524,6 +536,7 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/stale.txt',
+      visibilityPolicy: 'all',
     })
     const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
     const activeCorpus = new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS)

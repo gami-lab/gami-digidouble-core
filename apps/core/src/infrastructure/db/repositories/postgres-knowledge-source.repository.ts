@@ -25,7 +25,7 @@ type KnowledgeSourceRow = {
   uri_or_path: string
   status: KnowledgeSource['status']
   metadata: unknown
-  visibility_policy: string | null
+  visibility_policy: string
   visible_to_avatar_ids: string[] | null
   created_at: Date
   updated_at: Date
@@ -57,9 +57,9 @@ function normalizeVisibleToAvatarIds(value: unknown): string[] | undefined {
   return normalized.length > 0 ? normalized : undefined
 }
 
-function normalizeVisibilityPolicy(value: unknown): KnowledgeVisibilityPolicy | undefined {
+function normalizeVisibilityPolicy(value: unknown): KnowledgeVisibilityPolicy {
   if (value === 'all' || value === 'avatars' || value === 'none') return value
-  return undefined
+  throw new Error('Invalid persisted knowledge source visibility policy.')
 }
 
 function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
@@ -68,7 +68,6 @@ function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
       normalizeVisibilityPolicy(row.visibility_policy),
       normalizeVisibleToAvatarIds(row.visible_to_avatar_ids),
     ),
-    { inferAvatarPolicyFromIds: true },
   )
   const metadata = normalizeMetadata(row.metadata)
   return {
@@ -80,9 +79,7 @@ function rowToKnowledgeSource(row: KnowledgeSourceRow): KnowledgeSource {
     uriOrPath: row.uri_or_path,
     status: row.status,
     ...(metadata !== undefined ? { metadata } : {}),
-    ...(visibility.visibilityPolicy !== undefined
-      ? { visibilityPolicy: visibility.visibilityPolicy }
-      : {}),
+    visibilityPolicy: visibility.visibilityPolicy,
     ...(visibility.visibleToAvatarIds !== undefined
       ? { visibleToAvatarIds: visibility.visibleToAvatarIds }
       : {}),
@@ -102,7 +99,6 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
         params.visibilityPolicy,
         normalizeVisibleToAvatarIds(params.visibleToAvatarIds),
       ),
-      { inferAvatarPolicyFromIds: true },
     )
 
     const [row] = await this.sql<[KnowledgeSourceRow?]>`
@@ -125,7 +121,7 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
         ${params.uriOrPath},
         ${'pending'},
         ${this.sql.json((params.metadata ?? {}) as JSONValue)},
-        ${visibility.visibilityPolicy ?? null},
+        ${visibility.visibilityPolicy},
         ${visibility.visibleToAvatarIds ?? null}
       )
       RETURNING id, scenario_id, name, knowledge_type, format, uri_or_path, status, metadata, visibility_policy, visible_to_avatar_ids, created_at, updated_at

@@ -49,6 +49,7 @@ function createScenario(overrides: Partial<ScenarioSummary> = {}): ScenarioSumma
     scenarioId: 'scenario_a',
     name: 'Guided Discovery',
     status: 'active',
+    language: 'en',
     objectives: ['Explore AI concepts'],
     worldContext: 'A guided discovery lab.',
     avatarAvailability: { initialAvatarIds: [] },
@@ -66,7 +67,6 @@ function createAvatar(overrides: Partial<AvatarSummary> = {}): AvatarSummary {
     name: 'Mira',
     status: 'active',
     personaPrompt: 'You are Mira.',
-    computedTraits: null,
     config: {},
     createdAt: '2026-06-01T00:00:00.000Z',
     updatedAt: '2026-06-01T00:00:00.000Z',
@@ -83,6 +83,7 @@ function createKnowledgeSource(overrides: Partial<KnowledgeSourceDto> = {}): Kno
     format: 'text',
     uriOrPath: 'inline://secret-lore.txt',
     status: 'pending',
+    visibilityPolicy: 'all',
     createdAt: '2026-06-01T00:00:00.000Z',
     ...overrides,
   }
@@ -140,7 +141,7 @@ describe('ScenarioDetailPage loading and data states', () => {
     mockReadyLoad({
       scenario: createScenario({
         modelSelection: {
-          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
         },
       }),
@@ -153,7 +154,7 @@ describe('ScenarioDetailPage loading and data states', () => {
     expect(screen.getByText('A guided discovery lab.')).toBeTruthy()
     expect(screen.getByText('Explore AI concepts')).toBeTruthy()
     expect(screen.getByText('Mira')).toBeTruthy()
-    expect(screen.getByText(/Scenario default:\s*openai \/ gpt-4o/)).toBeTruthy()
+    expect(screen.getByText(/Scenario default:\s*openai \/ gpt-5.6-luna/)).toBeTruthy()
     expect(screen.getByText(/Game Master override:\s*anthropic \/ claude-sonnet-4-6/)).toBeTruthy()
     expect(screen.getByText('mistral / mistral-small-4')).toBeTruthy()
   })
@@ -227,7 +228,7 @@ describe('ScenarioDetailPage navigation and avatar actions', () => {
       },
     )
     fireEvent.change(screen.getByLabelText('Model', { selector: '#create-avatar-model-model' }), {
-      target: { value: 'gpt-4o' },
+      target: { value: 'gpt-5.6-luna' },
     })
     fireEvent.submit(
       screen.getByRole('button', { name: /Create avatar/ }).closest('form') as HTMLFormElement,
@@ -237,8 +238,8 @@ describe('ScenarioDetailPage navigation and avatar actions', () => {
       expect(createAvatarApi).toHaveBeenCalledWith('scenario_a', {
         name: 'Mira',
         personaPrompt: 'You are Mira.',
-        status: 'active',
-        llmOverride: { provider: 'openai', model: 'gpt-4o' },
+        status: 'draft',
+        llmOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
       })
     })
   })

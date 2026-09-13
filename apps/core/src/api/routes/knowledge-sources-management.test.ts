@@ -19,6 +19,7 @@ function makeSource(overrides: Partial<KnowledgeSource> = {}): KnowledgeSource {
     format: 'text',
     uriOrPath: '/tmp/lore.txt',
     status: 'ready',
+    visibilityPolicy: 'all',
     createdAt: '2026-05-11T08:00:00.000Z',
     updatedAt: '2026-05-11T08:00:00.000Z',
     ...overrides,
@@ -68,6 +69,7 @@ describe('POST /v1/knowledge-sources — static knowledge contract', () => {
         knowledgeType: 'avatar_knowledge',
         format: 'text',
         uriOrPath: 'invalid.md',
+        visibilityPolicy: 'all',
         metadata: { ingestion: [{ nested: { conversationId: 'private' } }] },
       },
     })
@@ -129,7 +131,7 @@ describe('PATCH /v1/knowledge-sources/:sourceId — visibility and replacement',
     expect(body.data?.source.visibilityPolicy).toBe('none')
   })
 
-  it('infers avatar-scoped visibility when only avatar ids are provided', async () => {
+  it('rejects avatar ids without an explicit visibility policy', async () => {
     const app = makeApp({ sources: [makeSource()] })
 
     const response = await app.inject({
@@ -139,13 +141,8 @@ describe('PATCH /v1/knowledge-sources/:sourceId — visibility and replacement',
       payload: { visibleToAvatarIds: ['avatar_1'] },
     })
 
-    expect(response.statusCode).toBe(200)
-    const body =
-      response.json<
-        ApiResponse<{ source: { visibilityPolicy?: string; visibleToAvatarIds?: string[] } }>
-      >()
-    expect(body.data?.source.visibilityPolicy).toBe('avatars')
-    expect(body.data?.source.visibleToAvatarIds).toEqual(['avatar_1'])
+    expect(response.statusCode).toBe(400)
+    expect(response.json<ApiResponse<null>>().error?.code).toBe('VALIDATION_ERROR')
   })
 
   it('clears stale avatar ids when visibilityPolicy changes to all', async () => {
@@ -329,6 +326,7 @@ describe('POST /v1/knowledge-sources/upload — success', () => {
         knowledgeType: 'world',
         content,
         filename: 'lore.txt',
+        visibilityPolicy: 'all',
       },
     })
 
@@ -469,7 +467,7 @@ describe('POST /v1/knowledge-sources — visibilityPolicy', () => {
     expect(body.data?.source.visibilityPolicy).toBe('none')
   })
 
-  it('infers avatar-scoped visibility from visibleToAvatarIds on create', async () => {
+  it('rejects avatar ids without an explicit visibility policy on create', async () => {
     const app = makeApp()
 
     const response = await app.inject({
@@ -486,13 +484,8 @@ describe('POST /v1/knowledge-sources — visibilityPolicy', () => {
       },
     })
 
-    expect(response.statusCode).toBe(201)
-    const body =
-      response.json<
-        ApiResponse<{ source: { visibilityPolicy?: string; visibleToAvatarIds?: string[] } }>
-      >()
-    expect(body.data?.source.visibilityPolicy).toBe('avatars')
-    expect(body.data?.source.visibleToAvatarIds).toEqual(['avatar_1', 'avatar_2'])
+    expect(response.statusCode).toBe(400)
+    expect(response.json<ApiResponse<null>>().error?.code).toBe('VALIDATION_ERROR')
   })
 
   it('clears stale avatar ids when visibilityPolicy is all on create', async () => {

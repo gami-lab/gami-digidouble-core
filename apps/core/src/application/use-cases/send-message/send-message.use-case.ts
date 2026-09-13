@@ -13,7 +13,7 @@ import type { IConversationWorkingMemoryRepository } from '../../ports/IConversa
 import type { IConversationMemoryRepository } from '../../ports/IConversationMemoryRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
-import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import { requirePreparedAvatar, type AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { buildAvatarAwareness } from '../../../domain/avatar/avatar-awareness.service.js'
 import { cleanAvatarResponse } from '../../../domain/avatar/avatar-response-cleaner.js'
 import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
@@ -62,10 +62,7 @@ import type { TypedRetrievalResult } from '../../../domain/knowledge/knowledge.t
 import type { ModelConfig } from '../../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../../infrastructure/llm/llm-adapter-registry.js'
 import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master.avatar-unlocks.js'
-import {
-  toSelectedPromptIdentitySource,
-  toScenarioSnapshot,
-} from './send-message.context-engine.js'
+import { toScenarioSnapshot } from './send-message.context-engine.js'
 import { buildSendMessageLlmRequest } from './send-message.llm-request.js'
 import { buildSendMessageOutput } from './send-message.output.js'
 import { toContextSelectionMetadata } from './send-message.context-selection.js'
@@ -169,7 +166,7 @@ export class SendMessageUseCase {
     )
     const resolvedLlm = await resolveRoleLlmCall({
       role: 'avatar',
-      legacyAdapter: this.llm,
+      defaultAdapter: this.llm,
       modelConfigRepository: this.modelConfigRepository,
       llmAdapterRegistry: this.llmAdapterRegistry,
       modelConfigFallback: this.modelConfigFallback,
@@ -427,14 +424,8 @@ export class SendMessageUseCase {
       },
     })
 
-    const selectedIdentitySource = toSelectedPromptIdentitySource(
-      args.avatar,
-      assembledContext.avatar.sections,
-    )
     const systemPrompt = assemblePersonaPrompt(args.avatar, {
       sections: assembledContext.avatar.sections,
-      ...(scenario.language !== undefined ? { language: scenario.language } : {}),
-      ...(selectedIdentitySource !== undefined ? { identitySource: selectedIdentitySource } : {}),
       avatarAwareness: buildAvatarAwareness(
         args.avatar,
         scenarioAvatars,
@@ -635,7 +626,7 @@ export class SendMessageUseCase {
     if (avatar === null) {
       throw new DomainError('NOT_FOUND', `Avatar ${avatarId} was not found.`)
     }
-    return avatar
+    return requirePreparedAvatar(avatar)
   }
 
   private async loadScenario(scenarioId: string): Promise<Scenario> {

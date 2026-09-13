@@ -27,6 +27,7 @@ function makeSource(): KnowledgeSourceDto {
     format: 'text',
     uriOrPath: '/tmp/world-lore.txt',
     status: 'pending',
+    visibilityPolicy: 'all',
     createdAt: '2026-07-01T00:00:00.000Z',
   }
 }

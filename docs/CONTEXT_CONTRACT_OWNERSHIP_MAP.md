@@ -247,9 +247,8 @@ close, switch, reset, reindex, and scenario-cascade boundaries, is maintained in
   `avatar_knowledge`, `world`, and `media`. Each item retains source ID, chunk ID, canonical type,
   and retrieval evidence allowed by the internal type.
 - `packages/shared/src/runtime-inspector-types.ts` owns the public/admin mirror. Core maps internal
-  snapshots explicitly in `session-context.mapper.ts` and recorded event context. Legacy event
-  readers may accept older nested `memory`/`rag` records, but they emit only the canonical separated
-  shape.
+  snapshots explicitly in `session-context.mapper.ts` and recorded event context. Event readers
+  accept only the current structured sections shape and emit the canonical separated projection.
 - `persona-prompt.service.ts` and `gm-input-renderer.ts` render stable `## Conversation State` and
   `## Retrieved Context` headings. Retrieved documents are not inputs to working-memory refresh or
   user-fact extraction merely because they were rendered.
@@ -264,9 +263,9 @@ close, switch, reset, reindex, and scenario-cascade boundaries, is maintained in
   - Existing bounded-selection observability remains in memory-layer contracts (`packages/shared/src/lifecycle-types.ts` -> `SessionMemoryLayers.observability`).
 - Context observability payloads:
   - Current API-facing observability is memory-centric and remains owned by shared lifecycle DTOs.
-- Avatar identity compatibility boundary:
-  - Internal owner: `apps/core/src/domain/avatar/persona-prompt.service.ts#resolveAvatarPromptIdentitySource`
-  - Rule: prepared `computedTraits` are the preferred runtime identity input; when traits are absent internally (`undefined`) or unprepared over HTTP (`computedTraits: null`), runtime prompt assembly must fall back to the authored `personaPrompt`
+- Avatar identity and prompt boundary:
+  - Internal owner: `apps/core/src/domain/avatar/persona-prompt.service.ts`
+  - Rule: prompt assembly consumes structured context sections and requires prepared `computedTraits`; authored `personaPrompt` remains authoring data and is not a runtime identity fallback
 
 ---
 
@@ -302,9 +301,9 @@ deliberately separate; the mapper is the only place where the two shapes cross.
 - Current static knowledge values are exactly `avatar_knowledge`, `world`, and `media`; `memory` is
   rejected at the API boundary.
 - Knowledge visibility is represented by `KnowledgeVisibilityPolicy` (`all`, `avatars`, `none`);
-  inferred-policy and sentinel cleanup belongs to Prompt 04.
+  inferred-policy and sentinel cleanup was completed by Prompt 04.
 - `Scenario.language` / `ScenarioSummary.language` is the canonical Scenario language field;
-  config/voice fallback removal belongs to Prompt 04.
+  config/voice fallback removal was completed by Prompt 04.
 - Avatar routing uses `availabilityKey`. Prepared identity uses `AvatarComputedTraits`; the
   current nullable public projection remains until the activation/content cleanup in Prompt 04.
 - Session memory uses `SessionMemorySummary`, `SessionMemoryLayers`, and the domain memory types.
@@ -317,7 +316,7 @@ deliberately separate; the mapper is the only place where the two shapes cross.
 ### Prompt 01–04 handoff
 
 Prompt 0 established the contract baseline. Prompt 1 owns the fresh-database bootstrap and removes
-runtime schema alignment; the remaining unresolved path is:
+runtime schema alignment. The completed clean-slate slices are:
 
 - Prompt 01: complete. Fresh `init.sql` is authoritative, startup alignment is removed, and
   obsolete GM schema columns are absent from the canonical schema.
@@ -327,5 +326,5 @@ runtime schema alignment; the remaining unresolved path is:
 - Prompt 03: complete. GM state parsing is current-shape-only, event readers accept structured
   sections only, and public/recorded retrieval references use `similarity` as the single ranking
   field.
-- Prompt 04: Avatar flat prompt/identity fallbacks, Scenario language fallbacks, `routeKey`, legacy
-  visibility inference/sentinel handling, and runtime model-resolution compatibility wiring.
+- Prompt 04: complete. Avatar flat prompt/identity fallbacks, Scenario language fallbacks, `routeKey`,
+  visibility inference/sentinel handling, and runtime model-resolution compatibility wiring are removed.

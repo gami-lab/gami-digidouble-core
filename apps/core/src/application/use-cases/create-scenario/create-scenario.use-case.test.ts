@@ -88,7 +88,7 @@ describe('CreateScenarioUseCase', () => {
     createMock.mockResolvedValue(
       makeScenario({
         modelSelection: {
-          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
         },
       }),
@@ -97,7 +97,7 @@ describe('CreateScenarioUseCase', () => {
     const output = await useCase.execute({
       name: 'Demo',
       modelSelection: {
-        defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+        defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
         gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
       },
     })
@@ -105,13 +105,13 @@ describe('CreateScenarioUseCase', () => {
     expect(createMock).toHaveBeenCalledWith(
       expect.objectContaining({
         modelSelection: {
-          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
         },
       }),
     )
     expect(output.scenario.modelSelection).toEqual({
-      defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+      defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
   })

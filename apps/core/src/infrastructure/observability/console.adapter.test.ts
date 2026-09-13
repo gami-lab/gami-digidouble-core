@@ -10,7 +10,7 @@ const event: TraceEvent = {
   inputTokens: 10,
   outputTokens: 25,
   costUsd: 0.00005,
-  metadata: { model: 'claude-3-haiku' },
+  metadata: { model: 'claude-haiku-4-5' },
 }
 
 describe('ConsoleObservabilityAdapter', () => {

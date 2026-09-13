@@ -16,13 +16,10 @@ function normalizeSourceVisibility(
 ): Pick<KnowledgeSource, 'visibilityPolicy' | 'visibleToAvatarIds'> {
   const visibility = normalizeKnowledgeVisibilitySelection(
     buildKnowledgeVisibilitySelection(source.visibilityPolicy, source.visibleToAvatarIds),
-    { inferAvatarPolicyFromIds: true },
   )
 
   return {
-    ...(visibility.visibilityPolicy !== undefined
-      ? { visibilityPolicy: visibility.visibilityPolicy }
-      : {}),
+    visibilityPolicy: visibility.visibilityPolicy,
     ...(visibility.visibleToAvatarIds !== undefined
       ? { visibleToAvatarIds: visibility.visibleToAvatarIds }
       : {}),
@@ -107,6 +104,7 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
     return Promise.resolve(normalizeSource(updated))
   }
 
+  // eslint-disable-next-line complexity
   update(sourceId: string, updates: UpdateKnowledgeSourceParams): Promise<KnowledgeSource | null> {
     const existing = this.sources.get(sourceId)
     if (existing === undefined) return Promise.resolve(null)
@@ -115,7 +113,10 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
     }
 
     const visibility = normalizeSourceVisibility(
-      buildKnowledgeVisibilitySelection(updates.visibilityPolicy, updates.visibleToAvatarIds),
+      buildKnowledgeVisibilitySelection(
+        updates.visibilityPolicy ?? existing.visibilityPolicy,
+        updates.visibleToAvatarIds ?? existing.visibleToAvatarIds,
+      ),
     )
     const updated: KnowledgeSource = {
       ...existing,
@@ -123,9 +124,7 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
       ...(updates.uriOrPath !== undefined ? { uriOrPath: updates.uriOrPath } : {}),
       ...(updates.metadata !== undefined ? { metadata: updates.metadata } : {}),
       ...(updates.status !== undefined ? { status: updates.status } : {}),
-      ...(updates.visibilityPolicy !== undefined
-        ? { visibilityPolicy: visibility.visibilityPolicy }
-        : {}),
+      visibilityPolicy: visibility.visibilityPolicy,
       updatedAt: new Date().toISOString(),
     }
 

@@ -27,7 +27,6 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
   const [defaultModelSelection, setDefaultModelSelection] = useState(EMPTY_MODEL_SELECTION)
   const [gameMasterModelSelection, setGameMasterModelSelection] = useState(EMPTY_MODEL_SELECTION)
   const [voiceKey, setVoiceKey] = useState('')
-  const [voiceLanguage, setVoiceLanguage] = useState('')
   const [createState, setCreateState] = useState<CreateState>({ status: 'idle' })
 
   async function handleSubmit(e: SyntheticEvent): Promise<void> {
@@ -39,7 +38,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
         defaultProfile: defaultModelSelection,
         gameMasterOverride: gameMasterModelSelection,
       })
-      const voiceConfig = toVoiceConfiguration(voiceKey, voiceLanguage)
+      const voiceConfig = toVoiceConfiguration(voiceKey)
       const scenario = await createScenario({
         name: name.trim(),
         status,
@@ -81,7 +80,6 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           defaultModelSelection={defaultModelSelection}
           gameMasterModelSelection={gameMasterModelSelection}
           voiceKey={voiceKey}
-          voiceLanguage={voiceLanguage}
           idPrefix="sc"
           disabled={isSaving}
           onNameChange={setName}
@@ -92,7 +90,6 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           onDefaultModelSelectionChange={setDefaultModelSelection}
           onGameMasterModelSelectionChange={setGameMasterModelSelection}
           onVoiceKeyChange={setVoiceKey}
-          onVoiceLanguageChange={setVoiceLanguage}
         />
         {hasPartialModelSelectionState ? (
           <p className="admin-error">

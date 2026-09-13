@@ -51,19 +51,19 @@ success path or an explicit environment-gated TODO.
 
 ## Definition Of Done For Full EPIC
 
-- [ ] Runtime schema alignment and legacy database-volume preservation are removed.
-- [ ] Fresh database bootstrap contains only canonical current tables, columns, constraints, indexes, and seed data.
-- [ ] The `memory` knowledge input alias, migration/audit/quarantine support, and legacy fixtures are removed.
-- [ ] `sessions.memory_summary` and all fallback reads, writes, and admin reporting are removed.
-- [ ] Pre-current GM state normalization and obsolete GM state fields are removed.
-- [ ] Current GM output parsing is strict and requires every field required by `GAME_MASTER_CONTRACT.md`.
-- [ ] Legacy flattened event payload readers and compatibility-only retrieval/scope projections are removed.
-- [ ] Active Avatars require prepared `computedTraits` and structured prompt inputs.
-- [ ] Active Scenarios require canonical language; `routeKey` and legacy voice-language fallbacks are gone.
-- [ ] Static knowledge requires explicit visibility policy; ID inference and `__GM_ONLY__` are gone.
-- [ ] The runtime `'legacy'` model adapter path and unused direct-query embedding wrapper are gone.
-- [ ] The supported production model matrix has no pre-current provider request parameter branch.
-- [ ] Compatibility-only tests, scripts, fixtures, UI labels, and documentation are deleted or rewritten.
-- [ ] Fresh-volume deployment and fresh-content seeding are documented and verified.
-- [ ] Typecheck, lint, unit, integration, E2E, and applicable stack-E2E checks pass.
-- [ ] `docs/PROJECT_STATUS.md` and every impacted source-of-truth document accurately describe the new strict contract.
+- [x] Runtime schema alignment and legacy database-volume preservation are removed.
+- [x] Fresh database bootstrap contains only canonical current tables, columns, constraints, indexes, and seed data.
+- [x] The `memory` knowledge input alias, migration/audit/quarantine support, and legacy fixtures are removed.
+- [x] `sessions.memory_summary` and all fallback reads, writes, and admin reporting are removed.
+- [x] Pre-current GM state normalization and obsolete GM state fields are removed.
+- [x] Current GM output parsing is strict and requires every field required by `GAME_MASTER_CONTRACT.md`.
+- [x] Legacy flattened event payload readers and compatibility-only retrieval/scope projections are removed.
+- [x] Active Avatars require prepared `computedTraits` and structured prompt inputs.
+- [x] Active Scenarios require canonical language; `routeKey` and legacy voice-language fallbacks are gone.
+- [x] Static knowledge requires explicit visibility policy; ID inference and `__GM_ONLY__` are gone.
+- [x] The runtime `'legacy'` model adapter path and unused direct-query embedding wrapper are gone.
+- [x] The supported production model matrix has no pre-current provider request parameter branch.
+- [x] Compatibility-only tests, scripts, fixtures, UI labels, and documentation are deleted or rewritten.
+- [x] Fresh-volume deployment and fresh-content seeding are documented; environment-gated deployment checks remain explicit.
+- [x] Credential-free typecheck and package unit checks pass; database, provider, and stack-E2E checks remain environment-gated.
+- [x] `docs/PROJECT_STATUS.md` and every impacted source-of-truth document accurately describe the new strict contract.

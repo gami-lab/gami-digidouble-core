@@ -55,6 +55,7 @@ function createKnowledgeSource(overrides: Partial<KnowledgeSourceDto> = {}): Kno
     format: 'text',
     uriOrPath: 'inline://secret-lore.txt',
     status: 'pending',
+    visibilityPolicy: 'all',
     createdAt: '2026-06-01T00:00:00.000Z',
     ...overrides,
   }

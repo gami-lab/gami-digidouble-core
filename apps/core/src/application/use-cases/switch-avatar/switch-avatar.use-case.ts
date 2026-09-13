@@ -6,6 +6,7 @@ import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
+import { requirePreparedAvatar } from '../../../domain/avatar/avatar.types.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import {
   hydrateConversationMemoryForNewConversation,
@@ -141,6 +142,7 @@ export class SwitchAvatarUseCase {
     if (avatar.scenarioId !== scenarioId) {
       throw new DomainError('VALIDATION_ERROR', 'Avatar does not belong to the session scenario.')
     }
+    requirePreparedAvatar(avatar)
   }
 
   private async closePreviousConversation(

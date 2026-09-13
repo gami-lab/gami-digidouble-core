@@ -14,6 +14,13 @@ export class UpdateScenarioUseCase {
       throw new DomainError('INVALID_INPUT', 'At least one field must be provided for update')
     }
 
+    const existing = await this.scenarioRepository.findById(input.scenarioId)
+    if (existing === null) throw new DomainError('NOT_FOUND', 'Scenario not found')
+    const nextStatus = updates.status ?? existing.status
+    const nextLanguage = updates.language ?? existing.language
+    if (nextStatus === 'active' && nextLanguage === undefined) {
+      throw new DomainError('VALIDATION_ERROR', 'Active Scenarios require a canonical language.')
+    }
     const scenario = await this.scenarioRepository.update(input.scenarioId, updates)
     return { scenario }
   }

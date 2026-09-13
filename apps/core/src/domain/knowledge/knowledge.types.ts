@@ -45,13 +45,8 @@ export interface KnowledgeSource {
   createdAt: string
   updatedAt: string
   metadata?: Record<string, unknown>
-  /**
-   * Explicit visibility policy for EPIC 6.1.
-   * - `'all'`     — visible to all avatars (default when absent)
-   * - `'avatars'` — visible only to IDs in `visibleToAvatarIds`
-   * - `'none'`    — GM-only; no avatar retrieval regardless of `visibleToAvatarIds`
-   */
-  visibilityPolicy?: KnowledgeVisibilityPolicy
+  /** Explicit visibility policy for every persisted static source. */
+  visibilityPolicy: KnowledgeVisibilityPolicy
   /**
    * Avatar visibility scope for EPIC 5.1b.
    * Relevant when `visibilityPolicy` is `'avatars'`.

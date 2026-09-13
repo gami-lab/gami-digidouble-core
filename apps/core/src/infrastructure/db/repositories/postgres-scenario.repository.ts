@@ -1,9 +1,5 @@
 import type { JSONValue, Sql } from 'postgres'
-import {
-  isModelSelectionProviderName,
-  normalizeLanguageTag,
-  type ScenarioModelSelection,
-} from '@gami/shared'
+import { isModelSelectionProviderName, type ScenarioModelSelection } from '@gami/shared'
 import type {
   CreateScenarioParams,
   IScenarioRepository,
@@ -162,21 +158,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function readLegacyScenarioLanguage(config: Record<string, unknown>): string | undefined {
-  const language = normalizeLanguageTag(config['language'])
-  return language === null ? undefined : language
-}
-
 function rowToScenario(row: ScenarioRow): Scenario {
   const modelSelection = readScenarioModelSelection(row.model_selection)
   const rawConfig = normalizeConfig(row.config)
   const voiceConfig = readVoiceConfiguration(rawConfig)
-  const language = row.language ?? readLegacyScenarioLanguage(rawConfig)
   return {
     scenarioId: `scenario_${row.id}`,
     name: row.name,
     status: row.status as Scenario['status'],
-    ...(language !== undefined ? { language } : {}),
+    ...(row.language !== null ? { language: row.language } : {}),
     objectives: row.objectives ?? [],
     worldContext: row.world_context ?? '',
     avatarAvailability: normalizeAvatarAvailability(row.avatar_availability),

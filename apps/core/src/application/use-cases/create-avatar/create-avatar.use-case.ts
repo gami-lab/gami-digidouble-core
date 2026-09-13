@@ -57,10 +57,12 @@ function normalizeAndValidateInput(input: CreateAvatarInput): {
     throw new DomainError('VALIDATION_ERROR', 'personaPrompt must be a non-empty string.')
   }
 
-  const status = input.status ?? 'active'
+  const status = input.status ?? 'draft'
   if (!ALLOWED_AVATAR_STATUSES.has(status)) {
     throw new DomainError('VALIDATION_ERROR', 'status must be one of: draft, active, archived.')
   }
-
+  if (status === 'active') {
+    throw new DomainError('VALIDATION_ERROR', 'An Avatar must be prepared before it can be active.')
+  }
   return { name, personaPrompt, status }
 }

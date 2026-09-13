@@ -45,6 +45,7 @@ function makeKnowledgeSource(overrides: Partial<KnowledgeSource> = {}): Knowledg
     format: 'text',
     uriOrPath: 'inline://source_1',
     status: 'ready',
+    visibilityPolicy: 'all',
     createdAt: '2026-07-20T00:00:00.000Z',
     updatedAt: '2026-07-20T00:00:00.000Z',
     ...overrides,

@@ -6,12 +6,6 @@ function readAvailabilityKey(config: Record<string, unknown>): string | undefine
   if (typeof availabilityKey === 'string' && availabilityKey.length > 0) {
     return availabilityKey
   }
-
-  const legacyRouteKey = config['routeKey']
-  if (typeof legacyRouteKey === 'string' && legacyRouteKey.length > 0) {
-    return legacyRouteKey
-  }
-
   return undefined
 }
 
@@ -30,7 +24,7 @@ export function toAvatarSummary(avatar: AvatarConfig): AvatarSummary {
     ...(avatar.llmOverride !== undefined ? { llmOverride: avatar.llmOverride } : {}),
     ...(avatar.voiceConfig !== undefined ? { voiceConfig: avatar.voiceConfig } : {}),
     ...(availabilityKey !== undefined ? { availabilityKey } : {}),
-    computedTraits: avatar.computedTraits ?? null,
+    ...(avatar.computedTraits !== undefined ? { computedTraits: avatar.computedTraits } : {}),
     config: avatar.config,
     createdAt: avatar.createdAt,
     updatedAt: avatar.updatedAt,

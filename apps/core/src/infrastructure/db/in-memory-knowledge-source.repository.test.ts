@@ -11,6 +11,7 @@ function makeSource(overrides: Partial<KnowledgeSource> = {}): KnowledgeSource {
     format: 'markdown',
     uriOrPath: 's3://bucket/lore.md',
     status: 'pending',
+    visibilityPolicy: 'all',
     createdAt: '2026-05-11T08:00:00.000Z',
     updatedAt: '2026-05-11T08:00:00.000Z',
     ...overrides,
@@ -27,6 +28,7 @@ describe('InMemoryKnowledgeSourceRepository', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/rules.txt',
+      visibilityPolicy: 'all',
     })
 
     expect(created.sourceId.startsWith('knowledge_source_')).toBe(true)
@@ -45,6 +47,7 @@ describe('InMemoryKnowledgeSourceRepository', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/private.txt',
+      visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_a', ' avatar_b '],
     })
     const publicByEmpty = await repository.create({
@@ -53,6 +56,7 @@ describe('InMemoryKnowledgeSourceRepository', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/public.txt',
+      visibilityPolicy: 'all',
       visibleToAvatarIds: [],
     })
 
@@ -78,6 +82,7 @@ describe('InMemoryKnowledgeSourceRepository', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/private.txt',
+      visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_a'],
     })
 

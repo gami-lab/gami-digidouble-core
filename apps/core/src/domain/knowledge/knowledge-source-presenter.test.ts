@@ -11,6 +11,7 @@ function makeSource(overrides: Partial<KnowledgeSource> = {}): KnowledgeSource {
     format: 'text',
     uriOrPath: 'inline://lore.txt',
     status: 'ready',
+    visibilityPolicy: 'all',
     createdAt: '2026-05-11T08:00:00.000Z',
     updatedAt: '2026-05-11T08:00:00.000Z',
     ...overrides,

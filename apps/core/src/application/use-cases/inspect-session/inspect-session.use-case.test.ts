@@ -11,7 +11,7 @@ import { DomainError } from '../../../domain/errors.js'
 import { InspectSessionUseCase } from './inspect-session.use-case.js'
 
 const defaultScenarioModelSelection = {
-  defaultProfile: { provider: 'openai' as const, model: 'gpt-4o-mini' },
+  defaultProfile: { provider: 'openai' as const, model: 'gpt-5.6-luna' },
   gameMasterOverride: { provider: 'anthropic' as const, model: 'claude-sonnet-4-6' },
 }
 
@@ -21,10 +21,10 @@ const defaultGmState = {
 }
 
 const defaultModelConfig = {
-  globalDefault: { provider: 'openai' as const, model: 'gpt-4.1-mini' },
+  globalDefault: { provider: 'openai' as const, model: 'gpt-5.6-luna' },
   roleOverrides: {
-    gameMaster: { provider: 'mistral' as const, model: 'mistral-small-latest' },
-    memory: { provider: 'xai' as const, model: 'grok-2-mini' },
+    gameMaster: { provider: 'mistral' as const, model: 'mistral-small-4' },
+    memory: { provider: 'xai' as const, model: 'grok-4.3' },
   },
   updatedAt: '2026-05-20T00:00:00.000Z',
 }
@@ -80,7 +80,7 @@ function createAvatarRepository(): IAvatarRepository {
       name: 'Avatar',
       status: 'active',
       personaPrompt: 'Prompt',
-      llmOverride: { provider: 'anthropic', model: 'claude-3-5-haiku' },
+      llmOverride: { provider: 'anthropic', model: 'claude-haiku-4-5' },
       config: {},
       createdAt: '2026-04-28T09:01:00.000Z',
       updatedAt: '2026-04-28T09:01:00.000Z',
@@ -210,9 +210,9 @@ describe('InspectSessionUseCase', () => {
     expect(output.inspect.unlockedAvatarIds).toEqual(['avatar_1', 'avatar_2'])
     expect(output.inspect.gmNotes).toBe('Guide the next turn toward reflection.')
     expect(output.inspect.effectiveModels).toEqual({
-      avatar: { provider: 'anthropic', model: 'claude-3-5-haiku' },
+      avatar: { provider: 'anthropic', model: 'claude-haiku-4-5' },
       gameMaster: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
-      memory: { provider: 'xai', model: 'grok-2-mini' },
+      memory: { provider: 'xai', model: 'grok-4.3' },
     })
     expect(output.inspect.transitionHistory).toEqual([
       {
@@ -251,7 +251,7 @@ describe('InspectSessionUseCase', () => {
     expect(output.inspect.unlockedAvatarIds).toEqual([])
     expect(output.inspect.gmNotes).toBeNull()
     expect(output.inspect.effectiveModels.avatar.provider).toBe('openai')
-    expect(output.inspect.effectiveModels.avatar.model).toBe('gpt-4o-mini')
+    expect(output.inspect.effectiveModels.avatar.model).toBe('gpt-5.6-luna')
   })
 
   it('throws NOT_FOUND when the session does not exist', async () => {

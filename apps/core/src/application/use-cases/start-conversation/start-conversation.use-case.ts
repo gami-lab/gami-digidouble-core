@@ -5,6 +5,7 @@ import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import { DomainError } from '../../../domain/errors.js'
+import { requirePreparedAvatar } from '../../../domain/avatar/avatar.types.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import {
   hydrateConversationMemoryForNewConversation,
@@ -57,6 +58,7 @@ export class StartConversationUseCase {
     if (session.unlockedAvatarIds !== undefined && !session.unlockedAvatarIds.includes(avatarId)) {
       throw new DomainError('FORBIDDEN', `Avatar ${avatarId} is locked for session ${sessionId}.`)
     }
+    requirePreparedAvatar(avatar)
 
     // Close any existing active conversation and promote its working memory to long-term
     // before opening the new one, so history is never lost.

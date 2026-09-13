@@ -13,19 +13,19 @@ describe('UpdateModelConfigUseCase', () => {
 
     const useCase = new UpdateModelConfigUseCase(repository)
     const output = await useCase.execute({
-      globalDefault: { provider: 'openai', model: '  gpt-4.1-mini  ' },
+      globalDefault: { provider: 'openai', model: '  gpt-5.6-luna  ' },
       roleOverrides: {
-        avatar: { model: ' gpt-4.1 ' },
-        memory: { provider: 'xai', model: ' grok-2-mini ' },
+        avatar: { model: ' gpt-5.6-sol ' },
+        memory: { provider: 'xai', model: ' grok-4.3 ' },
       },
     })
 
     expect(upsert).toHaveBeenCalledTimes(1)
-    expect(output.modelConfig.globalDefault).toEqual({ provider: 'openai', model: 'gpt-4.1-mini' })
-    expect(output.modelConfig.roleOverrides.avatar).toEqual({ model: 'gpt-4.1' })
+    expect(output.modelConfig.globalDefault).toEqual({ provider: 'openai', model: 'gpt-5.6-luna' })
+    expect(output.modelConfig.roleOverrides.avatar).toEqual({ model: 'gpt-5.6-sol' })
     expect(output.modelConfig.roleOverrides.memory).toEqual({
       provider: 'xai',
-      model: 'grok-2-mini',
+      model: 'grok-4.3',
     })
   })
 
@@ -37,7 +37,7 @@ describe('UpdateModelConfigUseCase', () => {
 
     await expect(
       useCase.execute({
-        globalDefault: { provider: 'unsupported' as 'openai', model: 'gpt-4.1-mini' },
+        globalDefault: { provider: 'unsupported' as 'openai', model: 'gpt-5.6-luna' },
       }),
     ).rejects.toThrowError(/globalDefault\.provider must be one of/)
   })
@@ -53,5 +53,18 @@ describe('UpdateModelConfigUseCase', () => {
         globalDefault: { provider: 'openai', model: 'x'.repeat(201) },
       }),
     ).rejects.toThrowError(/at most 200 characters/)
+  })
+
+  it('rejects models outside the supported production matrix', async () => {
+    const useCase = new UpdateModelConfigUseCase({
+      get: vi.fn(),
+      upsert: vi.fn(),
+    })
+
+    await expect(
+      useCase.execute({
+        globalDefault: { provider: 'openai', model: 'gpt-4o' },
+      }),
+    ).rejects.toThrowError(/supported production model matrix/)
   })
 })

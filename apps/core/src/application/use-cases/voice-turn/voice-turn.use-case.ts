@@ -195,13 +195,12 @@ export class VoiceTurnUseCase {
   }
 
   private async resolveScenarioLanguage(sessionId: string): Promise<string | undefined> {
-    if (this.sessionRepository === undefined || this.scenarioRepository === undefined) {
+    if (this.sessionRepository === undefined || this.scenarioRepository === undefined)
       return undefined
-    }
     const session = await this.sessionRepository.findById(sessionId)
     if (session === null) return undefined
     const scenario = await this.scenarioRepository.findById(session.scenarioId)
-    return scenario?.language ?? scenario?.voiceConfig?.language
+    return scenario?.language
   }
 
   private requireClaim(reservation: SpeechUtteranceReservation): ClaimedReservation {

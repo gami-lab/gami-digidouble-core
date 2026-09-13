@@ -334,7 +334,7 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     const session = await this.sessionRepository?.findById(sessionId)
     return await resolveRoleLlmCall({
       role: 'memory',
-      legacyAdapter: this.llm,
+      defaultAdapter: this.llm,
       modelConfigRepository: this.modelConfigRepository,
       llmAdapterRegistry: this.llmAdapterRegistry,
       modelConfigFallback: this.modelConfigFallback,

@@ -13,6 +13,7 @@ describe('CreateKnowledgeSourceUseCase', () => {
       format: 'text',
       uriOrPath: ' inline://world-lore.txt ',
       metadata: { inlineText: 'Important lore' },
+      visibilityPolicy: 'all',
     })
 
     expect(output.source.scenarioId).toBe('scenario_1')
@@ -21,7 +22,7 @@ describe('CreateKnowledgeSourceUseCase', () => {
     expect(output.source.status).toBe('pending')
   })
 
-  it('infers avatar-scoped visibility from visibleToAvatarIds', async () => {
+  it('uses explicit avatar-scoped visibility', async () => {
     const useCase = new CreateKnowledgeSourceUseCase(new InMemoryKnowledgeSourceRepository())
 
     const output = await useCase.execute({
@@ -30,6 +31,7 @@ describe('CreateKnowledgeSourceUseCase', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: 'inline://private-lore.txt',
+      visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_1', ' avatar_2 '],
     })
 

@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 
 import { describe, expect, it } from 'vitest'
-import { processSseFrames } from '@gami/shared'
+import { createEmptyAvatarComputedTraits, processSseFrames } from '@gami/shared'
 import type { ApiResponse, MessageStreamEvent, SendMessageResponse } from '@gami/shared'
 import type { ILlmAdapter, LlmRequest } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
@@ -42,6 +42,7 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
     name: 'Ava',
     status: 'active',
     personaPrompt: 'You are Ava, a helpful guide.',
+    computedTraits: createEmptyAvatarComputedTraits(),
     config: {},
     createdAt: '2026-04-20T10:00:00.000Z',
     updatedAt: '2026-04-20T10:00:00.000Z',

@@ -21,6 +21,7 @@ describe('RetryIngestionJobUseCase — retry scheduling', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/retry.txt',
+      visibilityPolicy: 'all',
     })
 
     const jobRepo = new InMemoryIngestionJobRepository([
@@ -67,6 +68,7 @@ describe('RetryIngestionJobUseCase — retry scheduling', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: '/tmp/retry.txt',
+      visibilityPolicy: 'all',
     })
 
     const jobRepo = new InMemoryIngestionJobRepository([

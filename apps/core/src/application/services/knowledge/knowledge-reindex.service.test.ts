@@ -60,6 +60,7 @@ async function makeService(
     knowledgeType: 'world',
     format: 'text',
     uriOrPath: 'inline://first',
+    visibilityPolicy: 'all',
     metadata: { inlineText: 'first source content' },
   })
   await sourceRepository.create({
@@ -68,6 +69,7 @@ async function makeService(
     knowledgeType: 'world',
     format: 'text',
     uriOrPath: 'inline://second',
+    visibilityPolicy: 'all',
     metadata: { inlineText: 'second source content' },
   })
   const chunks = new InMemoryKnowledgeChunkRepository()

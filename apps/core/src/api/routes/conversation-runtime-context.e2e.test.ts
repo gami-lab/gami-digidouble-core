@@ -175,6 +175,7 @@ function makeKnowledgeSources(): KnowledgeSource[] {
       format: 'markdown',
       uriOrPath: '/tmp/harbor-ledgers.md',
       status: 'ready',
+      visibilityPolicy: 'all',
       createdAt: '2026-07-20T09:30:00.000Z',
       updatedAt: '2026-07-20T09:30:00.000Z',
     },

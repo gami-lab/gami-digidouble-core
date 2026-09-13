@@ -10,7 +10,7 @@ const event: TraceEvent = {
   inputTokens: 15,
   outputTokens: 30,
   costUsd: 0.0001,
-  metadata: { model: 'gpt-4o-mini' },
+  metadata: { model: 'gpt-5.6-luna' },
 }
 
 describe('NullObservabilityAdapter', () => {

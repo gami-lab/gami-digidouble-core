@@ -117,7 +117,7 @@ describe('POST /v1/scenarios — success', () => {
         name: 'Voice Scenario',
         language: 'fr-FR',
         voiceConfig: { voiceKey: 'guide', language: 'en-US' },
-        config: { routeKey: 'guide' },
+        config: { availabilityKey: 'guide' },
       },
     })
 
@@ -128,7 +128,7 @@ describe('POST /v1/scenarios — success', () => {
       >()
     expect(body.data?.scenario.voiceConfig).toEqual({ voiceKey: 'guide', language: 'en-US' })
     expect(body.data?.scenario.language).toBe('fr-FR')
-    expect(body.data?.scenario.config).toEqual({ routeKey: 'guide' })
+    expect(body.data?.scenario.config).toEqual({ availabilityKey: 'guide' })
   })
 
   it('rejects provider-specific voice fields', async () => {
@@ -236,7 +236,7 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
     expect(avatarBody.data?.avatar.avatarId.startsWith('avatar_')).toBe(true)
     expect(avatarBody.data?.avatar.scenarioId).toBe(scenarioId)
     expect(avatarBody.data?.avatar.config).toEqual({})
-    expect(avatarBody.data?.avatar.computedTraits).toBeNull()
+    expect(avatarBody.data?.avatar.computedTraits).toBeUndefined()
   })
 
   it('accepts provider-neutral voice configuration without exposing it in generic config', async () => {
@@ -307,7 +307,7 @@ describe('POST /v1/scenarios — optional field coverage', () => {
       payload: {
         name: 'Configured Runtime Scenario',
         modelSelection: {
-          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
         },
       },
@@ -316,7 +316,7 @@ describe('POST /v1/scenarios — optional field coverage', () => {
     expect(response.statusCode).toBe(201)
     const body = response.json<ApiResponse<{ scenario: { modelSelection?: unknown } }>>()
     expect(body.data?.scenario.modelSelection).toEqual({
-      defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+      defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
   })

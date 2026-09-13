@@ -243,7 +243,8 @@ Contains:
 - deterministic avatar fixtures (`domain/avatar/avatar.fixtures.ts`)
 - style behavior rules used by persona prompt assembly
 - explicit, rerunnable trait preparation (`PrepareScenarioAvatarTraitsUseCase`, EPIC 8.1): derives the fixed `AvatarComputedTraits` structure from existing avatar/scenario/knowledge-source storage via the `avatar` LLM role, and persists it through `IAvatarRepository.saveComputedTraits` — a narrow write path kept separate from generic avatar create/update
-- runtime avatar-identity consumption (EPIC 8.2): prompt assembly prefers prepared `computedTraits` when present and falls back to the authored `personaPrompt` for compatibility
+- runtime avatar-identity consumption (EPIC 8.2): prompt assembly consumes only structured context
+  sections and prepared `computedTraits`; incomplete active Avatars fail before serving
 
 The Avatar speaks.
 

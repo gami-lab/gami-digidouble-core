@@ -120,7 +120,7 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
       body: JSON.stringify({
         name: `Scenario With Models ${String(Date.now())}`,
         modelSelection: {
-          defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
         },
       }),
@@ -141,7 +141,7 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
     }
     expect(body.error).toBeNull()
     expect(body.data.scenario.modelSelection).toEqual({
-      defaultProfile: { provider: 'openai', model: 'gpt-4o' },
+      defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
 

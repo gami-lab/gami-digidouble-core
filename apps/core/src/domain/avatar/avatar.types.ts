@@ -2,6 +2,7 @@
 // stays in sync with the shared HTTP contract automatically.
 import type { AvatarComputedTraits, VoiceConfiguration } from '@gami/shared'
 import type { AvatarLlmOverride } from '../model-config/index.js'
+import { DomainError } from '../errors.js'
 
 export type { AvatarComputedTraits }
 
@@ -22,7 +23,7 @@ export interface Avatar {
   tone?: string
   /** Optional human-readable avatar description. */
   description?: string
-  /** Derived trait structure; undefined until preparation has run (EPIC 8.1). */
+  /** Derived trait structure for prepared avatars. */
   computedTraits?: AvatarComputedTraits
   /** JSONB-backed extensible configuration. */
   config: Record<string, unknown>
@@ -57,4 +58,16 @@ export interface AvatarConfig {
   voiceConfig?: VoiceConfiguration
   createdAt: string
   updatedAt: string
+}
+
+export function requirePreparedAvatar(avatar: AvatarConfig): AvatarConfig & {
+  computedTraits: AvatarComputedTraits
+} {
+  if (avatar.status !== 'active') {
+    throw new DomainError('CONFLICT', `Avatar ${avatar.avatarId} is not active.`)
+  }
+  if (avatar.computedTraits === undefined) {
+    throw new DomainError('CONFLICT', `Avatar ${avatar.avatarId} has not been prepared.`)
+  }
+  return avatar as AvatarConfig & { computedTraits: AvatarComputedTraits }
 }

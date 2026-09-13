@@ -1,7 +1,7 @@
 # Project Status
 
 Last updated: 2026-09-13
-Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-05 voice/audio contracts, provider-neutral configuration, TTS adapter, completed-message audio route, browser playback, and hardening delivered
+Current phase: Phase A core runtime delivered through EPIC 8.5 Prompt 4; EPIC 8.6 scripted evaluation delivered; EPIC 4.2d static/conversational RAG boundary enforced; EPIC 9.1 voice implementation and deterministic hardening delivered; EPIC 9.2 Prompts 00-05 voice/audio contracts, provider-neutral configuration, TTS adapter, completed-message audio route, browser playback, and hardening delivered; EPIC 10.1 Prompts 0-4 canonical contract and compatibility cleanup delivered
 
 ## Snapshot
 
@@ -354,9 +354,9 @@ retrieval proof or change production behavior.
 - Voice input is application-owned and provider-neutral: only finalized normalized transcripts may
   enter the existing message flow, and one `(conversationId, utteranceId)` can execute at most once.
 - Scenario language is the canonical BCP-47 language for Avatar text, speech recognition, and voice
-  synthesis. New scenarios default to English; legacy scenarios fall back to their configured voice
-  language or provider defaults. The client `x-language` header cannot override a configured
-  Scenario language.
+  synthesis. New scenarios default to English, active scenarios require it, and voice configuration
+  language is not a fallback. The client `x-language` header cannot override a configured Scenario
+  language.
 - Deepgram is an Infrastructure implementation detail behind the speech-to-text port. Voice remains
   unconfigured safely when `DEEPGRAM_API_KEY` is absent, preserving the existing text/LLM path.
 - Gradium is an Infrastructure implementation detail behind the text-to-speech port. The adapter
@@ -365,7 +365,7 @@ retrieval proof or change production behavior.
   completed-message audio route invokes this port using persisted cleaned Avatar content, validates
   returned identity/byte metadata, and returns bounded binary delivery metadata.
 - EPIC 9.2 hardening proves text-first failure isolation, exact cleaned-text fidelity, voice
-  inheritance and legacy configuration, repeated/concurrent message synthesis association, provider
+  inheritance and canonical configuration, repeated/concurrent message synthesis association, provider
   body cancellation/cleanup, bounded output, secret-safe observability, and browser stale-request
   and object-URL cleanup. Duration is propagated only when the selected adapter supplies it; the
   current Gradium one-shot REST response does not.
@@ -391,8 +391,8 @@ retrieval proof or change production behavior.
   Avatar projection; public DTO ownership remains in `@gami/shared`.
 - Aligned the short-term memory policy and session projections on the documented three-exchange
   current contract.
-- Added focused shared contract and Core mapper tests for current field names, optionals, explicit
-  `computedTraits: null`, and the narrower player Avatar projection.
+- Added focused shared contract and Core mapper tests for current field names, optionals, prepared
+  trait projections, and the narrower player Avatar projection.
 - Prompt 0 intentionally did not remove database schema, persisted memory, GM migration/parser,
   event-history, or content compatibility paths. See the Prompt 01–04
   handoff in `CONTEXT_CONTRACT_OWNERSHIP_MAP.md`.
@@ -423,6 +423,19 @@ retrieval proof or change production behavior.
   layered memory repositories and preserves current short-term, working, episodic, and fact views.
 - Updated canonical-content tests and source-of-truth documentation; no database migration path or
   compatibility reader remains for the removed surfaces.
+
+### EPIC 10.1 Prompt 4 — canonical content, runtime config, and provider contracts ✅ complete
+
+- Structured Avatar prompt sections and prepared `computedTraits` are now the only serving inputs;
+  active Avatar creation/activation and runtime serving reject incomplete content.
+- Scenario language is authoritative for active experiences, Avatar `availabilityKey` is the only
+  routing summary key, and static sources require explicit visibility policy without sentinel or ID
+  inference.
+- Removed the runtime legacy adapter branch and the unused direct-query embedding wrapper, and
+  standardized OpenAI completion-token requests against the documented production model matrix.
+- Updated fresh seeds, admin forms, console projections, focused contract tests, and source-of-truth
+  documentation. No database, knowledge migration, session-memory, or GM/event compatibility
+  deletion was included beyond the ownership assigned to Prompts 1-3.
 
 ### EPIC 10.1 Prompt 3 — current GM state, output, and event contracts
 

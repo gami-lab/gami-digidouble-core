@@ -27,20 +27,20 @@ describe.skipIf(!DB_AVAILABLE)('PostgresModelConfigRepository', () => {
 
   it('upsert inserts then updates single row', async () => {
     const first = await repository.upsert({
-      globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+      globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
       roleOverrides: {},
       updatedAt: '2026-05-18T00:00:00.000Z',
     })
 
     const second = await repository.upsert({
-      globalDefault: { provider: 'anthropic', model: 'claude-3-7-sonnet' },
-      roleOverrides: { gameMaster: { model: 'claude-3-5-haiku' } },
+      globalDefault: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+      roleOverrides: { gameMaster: { model: 'claude-haiku-4-5' } },
       updatedAt: '2026-05-18T00:00:00.000Z',
     })
 
     expect(first.globalDefault.provider).toBe('openai')
     expect(second.globalDefault.provider).toBe('anthropic')
-    expect(second.roleOverrides.gameMaster?.model).toBe('claude-3-5-haiku')
+    expect(second.roleOverrides.gameMaster?.model).toBe('claude-haiku-4-5')
 
     const rows = await sql<
       Array<{ count: string }>
@@ -50,8 +50,8 @@ describe.skipIf(!DB_AVAILABLE)('PostgresModelConfigRepository', () => {
 
   it('persists config across repository re-instantiation', async () => {
     await repository.upsert({
-      globalDefault: { provider: 'mistral', model: 'mistral-large-latest' },
-      roleOverrides: { memory: { model: 'mistral-medium-latest' } },
+      globalDefault: { provider: 'mistral', model: 'mistral-large-3' },
+      roleOverrides: { memory: { model: 'mistral-medium-3.5' } },
       updatedAt: '2026-05-20T00:00:00.000Z',
     })
 
@@ -60,7 +60,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresModelConfigRepository', () => {
 
     expect(loaded).not.toBeNull()
     expect(loaded?.globalDefault.provider).toBe('mistral')
-    expect(loaded?.globalDefault.model).toBe('mistral-large-latest')
-    expect(loaded?.roleOverrides.memory?.model).toBe('mistral-medium-latest')
+    expect(loaded?.globalDefault.model).toBe('mistral-large-3')
+    expect(loaded?.roleOverrides.memory?.model).toBe('mistral-medium-3.5')
   })
 })

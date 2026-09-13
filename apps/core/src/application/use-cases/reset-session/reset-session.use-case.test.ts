@@ -370,6 +370,7 @@ describe('ResetSessionUseCase memory isolation', () => {
       knowledgeType: 'world',
       format: 'text',
       uriOrPath: 'inline://shared-lore',
+      visibilityPolicy: 'all',
     })
     const chunkRepository = new InMemoryKnowledgeChunkRepository()
     await chunkRepository.create({

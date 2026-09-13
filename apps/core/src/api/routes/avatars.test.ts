@@ -99,7 +99,7 @@ describe('PATCH /v1/avatars/:avatarId', () => {
         makeAvatar({
           avatarId: 'avatar_1',
           personaPrompt: 'You are Ava.',
-          config: { routeKey: 'guide' },
+          config: { availabilityKey: 'guide' },
         }),
       ],
     })
@@ -120,7 +120,7 @@ describe('PATCH /v1/avatars/:avatarId', () => {
     expect(body.error).toBeNull()
     expect(body.data?.avatar.personaPrompt).toBe('Updated prompt')
     expect(body.data?.avatar.tone).toBe('formal')
-    expect(body.data?.avatar.config).toEqual({ routeKey: 'guide' })
+    expect(body.data?.avatar.config).toEqual({ availabilityKey: 'guide' })
   })
 
   it('returns 404 when avatar does not exist', async () => {
@@ -229,7 +229,6 @@ describe('PATCH /v1/avatars/:avatarId contract coverage', () => {
       name: 'Ava Updated',
       status: 'active',
       availabilityKey: 'guide',
-      computedTraits: null,
     })
     expect(avatar.config).toBeDefined()
     expect(avatar.createdAt).toBeDefined()
@@ -238,7 +237,7 @@ describe('PATCH /v1/avatars/:avatarId contract coverage', () => {
 
   it('derives availabilityKey from persisted avatar config when present', async () => {
     const app = makeApp({
-      avatars: [makeAvatar({ avatarId: 'avatar_1', config: { routeKey: 'guide' } })],
+      avatars: [makeAvatar({ avatarId: 'avatar_1', config: { availabilityKey: 'guide' } })],
     })
     const response = await app.inject({
       method: 'PATCH',
@@ -250,7 +249,7 @@ describe('PATCH /v1/avatars/:avatarId contract coverage', () => {
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<{ avatar: AvatarSummary }>>()
     expect(body.data?.avatar.availabilityKey).toBe('guide')
-    expect(body.data?.avatar.config).toEqual({ routeKey: 'guide' })
+    expect(body.data?.avatar.config).toEqual({ availabilityKey: 'guide' })
   })
 })
 
@@ -302,18 +301,18 @@ describe('PATCH /v1/avatars/:avatarId llmOverride', () => {
 
   it('sets and clears llmOverride', async () => {
     const app = makeApp({
-      avatars: [makeAvatar({ avatarId: 'avatar_1', config: { routeKey: 'guide' } })],
+      avatars: [makeAvatar({ avatarId: 'avatar_1', config: { availabilityKey: 'guide' } })],
     })
 
     const setResponse = await app.inject({
       method: 'PATCH',
       url: '/v1/avatars/avatar_1',
       headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
-      payload: { llmOverride: { provider: 'openai', model: 'gpt-4o' } },
+      payload: { llmOverride: { provider: 'openai', model: 'gpt-5.6-luna' } },
     })
     expect(setResponse.statusCode).toBe(200)
     const setBody = setResponse.json<ApiResponse<{ avatar: AvatarSummary }>>()
-    expect(setBody.data?.avatar.llmOverride).toEqual({ provider: 'openai', model: 'gpt-4o' })
+    expect(setBody.data?.avatar.llmOverride).toEqual({ provider: 'openai', model: 'gpt-5.6-luna' })
 
     const clearResponse = await app.inject({
       method: 'PATCH',

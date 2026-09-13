@@ -12,6 +12,7 @@ function makeSource(overrides: Partial<KnowledgeSource> = {}): KnowledgeSource {
     format: 'text',
     uriOrPath: '/tmp/lore.txt',
     status: 'ready',
+    visibilityPolicy: 'all',
     createdAt: '2026-05-11T08:00:00.000Z',
     updatedAt: '2026-05-11T08:00:00.000Z',
     ...overrides,
@@ -73,25 +74,25 @@ describe('UpdateKnowledgeSourceUseCase', () => {
     expect(output.source.uriOrPath).toBe('/tmp/new-lore.txt')
   })
 
-  it('does not reset status when only visibility changes', async () => {
+  it('rejects avatar ids without an explicit visibility policy', async () => {
     const repo = new InMemoryKnowledgeSourceRepository([makeSource()])
     const useCase = new UpdateKnowledgeSourceUseCase(repo)
 
-    const output = await useCase.execute({
-      sourceId: 'knowledge_source_1',
-      visibleToAvatarIds: ['avatar_a'],
-    })
-
-    expect(output.source.status).toBe('ready')
-    expect(output.source.visibleToAvatarIds).toEqual(['avatar_a'])
+    await expect(
+      useCase.execute({
+        sourceId: 'knowledge_source_1',
+        visibleToAvatarIds: ['avatar_a'],
+      }),
+    ).rejects.toThrow('visibilityPolicy is required')
   })
 
-  it('infers avatars visibility when only avatar ids are provided', async () => {
+  it('requires avatars visibility when avatar ids are provided', async () => {
     const repo = new InMemoryKnowledgeSourceRepository([makeSource()])
     const useCase = new UpdateKnowledgeSourceUseCase(repo)
 
     const output = await useCase.execute({
       sourceId: 'knowledge_source_1',
+      visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_a', ' avatar_b '],
     })
 

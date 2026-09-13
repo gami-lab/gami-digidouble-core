@@ -28,7 +28,10 @@ export type ScenarioModelSelection = {
   memoryOverride?: ModelProfile
 }
 
-const PROVIDER_MODEL_PRESETS: Record<ModelSelectionProviderName, readonly ModelPresetOption[]> = {
+export const SUPPORTED_PRODUCTION_MODEL_MATRIX: Record<
+  ModelSelectionProviderName,
+  readonly ModelPresetOption[]
+> = {
   openai: [
     { value: 'gpt-5.6-sol', label: 'gpt-5.6-sol (frontier)' },
     { value: 'gpt-5.6-terra', label: 'gpt-5.6-terra (balanced)' },
@@ -36,8 +39,6 @@ const PROVIDER_MODEL_PRESETS: Record<ModelSelectionProviderName, readonly ModelP
     { value: 'gpt-5.6', label: 'gpt-5.6 (Sol alias)' },
     { value: 'gpt-5.5', label: 'gpt-5.5 (frontier)' },
     { value: 'gpt-5.4', label: 'gpt-5.4 (balanced)' },
-    { value: 'gpt-4o', label: 'gpt-4o (fast & cheap)' },
-    { value: 'gpt-4o-mini', label: 'gpt-4o-mini (faster & cheaper)' },
     { value: 'gpt-5.4-mini', label: 'gpt-5.4-mini (fast)' },
     { value: 'gpt-5.4-nano', label: 'gpt-5.4-nano (lowest cost)' },
   ],
@@ -99,12 +100,12 @@ export function isAllowedModelForProvider(
   provider: ModelSelectionProviderName,
   model: string,
 ): boolean {
-  return PROVIDER_MODEL_PRESETS[provider].some((preset) => preset.value === model.trim())
+  return SUPPORTED_PRODUCTION_MODEL_MATRIX[provider].some((preset) => preset.value === model.trim())
 }
 
 export function getModelPresetOptions(provider: string, model: string): ModelPresetOption[] {
   if (isModelSelectionProviderName(provider)) {
-    return includeCurrentModelIfMissing(PROVIDER_MODEL_PRESETS[provider], model)
+    return includeCurrentModelIfMissing(SUPPORTED_PRODUCTION_MODEL_MATRIX[provider], model)
   }
 
   if (provider === 'null') {
@@ -112,7 +113,7 @@ export function getModelPresetOptions(provider: string, model: string): ModelPre
   }
 
   const flattened = MODEL_SELECTION_PROVIDER_NAMES.flatMap((name) =>
-    PROVIDER_MODEL_PRESETS[name].map((preset) => normalizePreset(name, preset)),
+    SUPPORTED_PRODUCTION_MODEL_MATRIX[name].map((preset) => normalizePreset(name, preset)),
   )
   return includeCurrentModelIfMissing(flattened, model)
 }

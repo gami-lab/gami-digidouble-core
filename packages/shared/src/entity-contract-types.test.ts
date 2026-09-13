@@ -16,7 +16,6 @@ describe('canonical entity contracts', () => {
       personaPrompt: 'You are a guide.',
       status: 'active',
       availabilityKey: 'guide',
-      computedTraits: null,
       config: { availabilityKey: 'guide' },
       createdAt: '2026-09-13T00:00:00.000Z',
       updatedAt: '2026-09-13T00:00:00.000Z',
@@ -56,7 +55,7 @@ describe('canonical entity contracts', () => {
     }
 
     expect(avatar.availabilityKey).toBe('guide')
-    expect(avatar.computedTraits).toBeNull()
+    expect(avatar.computedTraits).toBeUndefined()
     expect(endResponse.conversation).toBe(conversation)
   })
 })

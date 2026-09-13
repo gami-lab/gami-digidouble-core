@@ -13,6 +13,7 @@ export type RegisterKnowledgeSourceInput = {
   format: KnowledgeSourceFormat
   uriOrPath: string
   metadata?: Record<string, unknown>
+  visibilityPolicy: import('../../../domain/knowledge/knowledge.types.js').KnowledgeVisibilityPolicy
   visibleToAvatarIds?: string[]
   triggerIngestion?: boolean
   correlationId?: string

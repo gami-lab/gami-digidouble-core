@@ -421,7 +421,7 @@ describe('RunGameMasterUseCase — event log', () => {
     expect(typeof event?.payload['latencyMs']).toBe('number')
     expect(event?.payload['inputTokens']).toBe(10)
     expect(event?.payload['outputTokens']).toBe(20)
-    expect(event?.payload['provider']).toBe('legacy')
+    expect(event?.payload['provider']).toBe('null')
     expect(event?.payload['model']).toBe('null-model')
     expect(event?.payload['correlationId']).toBe('corr_metric')
   })

@@ -351,16 +351,6 @@ function buildVisibilityFilter(sql: Sql, request: VectorSearchRequest): SqlFragm
         AND ${activeAvatarId}::text IS NOT NULL
         AND ${effectiveAvatarIds} @> ARRAY[${activeAvatarId}]::text[]
       )
-      OR (
-        s.visibility_policy IS NULL
-        AND (
-          ${effectiveAvatarIds} IS NULL
-          OR (
-            ${activeAvatarId}::text IS NOT NULL
-            AND ${effectiveAvatarIds} @> ARRAY[${activeAvatarId}]::text[]
-          )
-        )
-      )
     )
   `
 }

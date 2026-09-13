@@ -83,7 +83,7 @@ describe('PUT /v1/admin/model-config auth and validation', () => {
       method: 'PUT',
       url: '/v1/admin/model-config',
       payload: {
-        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+        globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
       },
     })
 
@@ -96,7 +96,7 @@ describe('PUT /v1/admin/model-config auth and validation', () => {
       url: '/v1/admin/model-config',
       headers: authHeaders('wrong-key'),
       payload: {
-        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+        globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
       },
     })
 
@@ -109,7 +109,7 @@ describe('PUT /v1/admin/model-config auth and validation', () => {
       url: '/v1/admin/model-config',
       headers: authHeaders(),
       payload: {
-        globalDefault: { provider: 'invalid-provider', model: 'gpt-4.1-mini' },
+        globalDefault: { provider: 'invalid-provider', model: 'gpt-5.6-luna' },
       },
     })
 
@@ -141,7 +141,7 @@ describe('PUT /v1/admin/model-config schema edge validation', () => {
       url: '/v1/admin/model-config',
       headers: authHeaders(),
       payload: {
-        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+        globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
         unknownField: 'nope',
       },
     })
@@ -158,7 +158,7 @@ describe('PUT /v1/admin/model-config schema edge validation', () => {
       url: '/v1/admin/model-config',
       headers: authHeaders(),
       payload: {
-        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+        globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
         roleOverrides: [],
       },
     })
@@ -174,7 +174,7 @@ describe('PUT /v1/admin/model-config schema edge validation', () => {
       url: '/v1/admin/model-config',
       headers: authHeaders(),
       payload: {
-        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+        globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
         roleOverrides: { avatar: { provider: null } },
       },
     })
@@ -210,10 +210,10 @@ describe('PUT /v1/admin/model-config persistence', () => {
       url: '/v1/admin/model-config',
       headers: authHeaders(),
       payload: {
-        globalDefault: { provider: 'openai', model: 'gpt-4.1-mini' },
+        globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
         roleOverrides: {
-          gameMaster: { provider: 'anthropic', model: 'claude-3-7-sonnet' },
-          avatar: { model: 'gpt-4.1' },
+          gameMaster: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+          avatar: { model: 'gpt-5.6-sol' },
         },
       },
     })

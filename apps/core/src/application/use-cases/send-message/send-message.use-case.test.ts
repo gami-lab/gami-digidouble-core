@@ -1,5 +1,6 @@
 /* eslint-disable max-lines, max-lines-per-function */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import type { ConversationEndReason } from '@gami/shared'
 import type { AvatarComputedTraits } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
@@ -128,6 +129,7 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
     name: 'Ava',
     status: 'active',
     personaPrompt: 'You are Ava.',
+    computedTraits: createEmptyAvatarComputedTraits(),
     config: {},
     createdAt: '2026-04-20T10:00:00.000Z',
     updatedAt: '2026-04-20T10:00:00.000Z',
@@ -347,7 +349,7 @@ describe('SendMessageUseCase — llm request payload', () => {
         metadata?: Record<string, unknown>
       }
     }
-    expect(llmArg.systemPrompt).toContain('You are Ava.')
+    expect(llmArg.systemPrompt).toContain('## Avatar Traits')
     expect(llmArg.messages).toEqual([{ role: 'user', content: 'Hello tracing' }])
     expect(typeof llmArg.trace?.requestId).toBe('string')
     expect(llmArg.trace?.sessionId).toBe('session_1')

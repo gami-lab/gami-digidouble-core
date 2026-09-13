@@ -139,19 +139,6 @@ function defineComputedTraitsTests(
     expect(found?.computedTraits).toEqual(sampleTraits)
   })
 
-  it('saveComputedTraits clears traits when passed null', async () => {
-    const created = await getRepo().create({
-      scenarioId: getScenarioId(),
-      name: 'Clearable Avatar',
-      personaPrompt: 'Prompt.',
-    })
-    await getRepo().saveComputedTraits(created.avatarId, sampleTraits)
-
-    const cleared = await getRepo().saveComputedTraits(created.avatarId, null)
-
-    expect(cleared.computedTraits).toBeUndefined()
-  })
-
   it('a second saveComputedTraits call overwrites the first, still leaving author fields untouched', async () => {
     const created = await getRepo().create({
       scenarioId: getScenarioId(),

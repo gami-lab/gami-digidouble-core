@@ -117,22 +117,22 @@ describe('InMemoryAvatarRepository', () => {
       scenarioId: 'scenario-1',
       name: 'Ava',
       personaPrompt: 'You are Ava.',
-      config: { routeKey: 'ava' },
+      config: { availabilityKey: 'ava' },
       voiceConfig: { voiceKey: 'guide', language: 'en-US' },
     })
 
     expect(created.voiceConfig).toEqual({ voiceKey: 'guide', language: 'en-US' })
-    expect(created.config).toEqual({ routeKey: 'ava' })
+    expect(created.config).toEqual({ availabilityKey: 'ava' })
 
     const withUnrelatedConfig = await repository.update(created.avatarId, {
-      config: { routeKey: 'updated' },
+      config: { availabilityKey: 'updated' },
     })
     expect(withUnrelatedConfig.voiceConfig).toEqual(created.voiceConfig)
-    expect(withUnrelatedConfig.config).toEqual({ routeKey: 'updated' })
+    expect(withUnrelatedConfig.config).toEqual({ availabilityKey: 'updated' })
 
     const cleared = await repository.update(created.avatarId, { voiceConfig: null })
     expect(cleared.voiceConfig).toBeUndefined()
-    expect(cleared.config).toEqual({ routeKey: 'updated' })
+    expect(cleared.config).toEqual({ availabilityKey: 'updated' })
   })
 })
 
@@ -150,15 +150,6 @@ describe('InMemoryAvatarRepository — saveComputedTraits', () => {
 
     const loaded = await repository.findById(avatar.avatarId)
     expect(loaded?.computedTraits).toEqual(sampleTraits)
-  })
-
-  it('clears traits when passed null', async () => {
-    const avatar = makeAvatarConfig({ computedTraits: sampleTraits })
-    const repository = new InMemoryAvatarRepository([avatar])
-
-    const result = await repository.saveComputedTraits(avatar.avatarId, null)
-
-    expect(result.computedTraits).toBeUndefined()
   })
 
   it('throws NOT_FOUND when avatar does not exist', async () => {

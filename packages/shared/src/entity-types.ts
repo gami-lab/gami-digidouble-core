@@ -63,8 +63,8 @@ export type AvatarSummary = AvatarAuthoredFields & {
   voiceConfig?: VoiceConfiguration
   /** Stable public route key when present in avatar config. */
   availabilityKey?: string
-  /** Derived trait structure, or `null` if preparation has not run yet (EPIC 8.1). */
-  computedTraits: AvatarComputedTraits | null
+  /** Derived trait structure is present once the Avatar is servable. */
+  computedTraits?: AvatarComputedTraits
   config: Record<string, unknown>
   createdAt: string
   updatedAt: string

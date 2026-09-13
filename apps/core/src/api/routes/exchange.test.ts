@@ -19,7 +19,7 @@ afterEach(() => {
 
 describe('POST /v1/exchange — auth and validation', () => {
   it('returns 200 with standard envelope when request is valid', async () => {
-    const app = makeApp('Arrr, hello!', 'gpt-4o-mini')
+    const app = makeApp('Arrr, hello!', 'gpt-5.6-luna')
 
     const response = await app.inject({
       method: 'POST',
@@ -33,7 +33,7 @@ describe('POST /v1/exchange — auth and validation', () => {
     expect(body.error).toBeNull()
     expect(body.data).not.toBeNull()
     expect(body.data?.reply).toBe('Arrr, hello!')
-    expect(body.data?.model).toBe('gpt-4o-mini')
+    expect(body.data?.model).toBe('gpt-5.6-luna')
     expect(typeof body.data?.requestId).toBe('string')
   })
 

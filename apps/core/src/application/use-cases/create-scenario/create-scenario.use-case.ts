@@ -37,6 +37,10 @@ function buildCreateParams(input: CreateScenarioInput): CreateScenarioParams {
 
   const language = normalizeScenarioLanguage(input.language ?? 'en')
 
+  if (status === 'active' && language === undefined) {
+    throw new DomainError('VALIDATION_ERROR', 'Active Scenarios require a canonical language.')
+  }
+
   const voiceConfig = normalizeVoiceConfigurationMutation(input.config, input.voiceConfig, false)
   return {
     name,

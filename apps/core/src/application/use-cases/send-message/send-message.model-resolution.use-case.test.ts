@@ -1,4 +1,5 @@
 /* eslint-disable max-lines-per-function */
+import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ModelConfig } from '../../../domain/model-config/index.js'
 import type { Message } from '../../../domain/conversation/session.types.js'
@@ -78,6 +79,7 @@ beforeEach(() => {
     name: 'Ava',
     status: 'active',
     personaPrompt: 'You are Ava.',
+    computedTraits: createEmptyAvatarComputedTraits(),
     config: {},
     createdAt: '2026-04-20T10:00:00.000Z',
     updatedAt: '2026-04-20T10:00:00.000Z',
@@ -127,7 +129,7 @@ describe('SendMessageUseCase model resolution', () => {
     const modelConfigRepository = {
       get: vi.fn().mockResolvedValue({
         globalDefault: { provider: 'null', model: '' },
-        roleOverrides: { avatar: { provider: 'openai', model: 'gpt-4o' } },
+        roleOverrides: { avatar: { provider: 'openai', model: 'gpt-5.6-luna' } },
         updatedAt: '2026-05-20T00:00:00.000Z',
       } satisfies ModelConfig),
       upsert: vi.fn(),
@@ -139,6 +141,7 @@ describe('SendMessageUseCase model resolution', () => {
       name: 'Ava',
       status: 'active',
       personaPrompt: 'You are Ava.',
+      computedTraits: createEmptyAvatarComputedTraits(),
       config: {},
       createdAt: '2026-04-20T10:00:00.000Z',
       updatedAt: '2026-04-20T10:00:00.000Z',
@@ -174,9 +177,9 @@ describe('SendMessageUseCase model resolution', () => {
       model?: string
       trace: { metadata: { effectiveProvider: string; effectiveModel: string } }
     }
-    expect(llmRequest.model).toBe('gpt-4o')
+    expect(llmRequest.model).toBe('gpt-5.6-luna')
     expect(llmRequest.trace.metadata.effectiveProvider).toBe('anthropic')
-    expect(llmRequest.trace.metadata.effectiveModel).toBe('gpt-4o')
+    expect(llmRequest.trace.metadata.effectiveModel).toBe('gpt-5.6-luna')
   })
 
   it('uses fallback config when repository returns null', async () => {
@@ -254,11 +257,11 @@ describe('SendMessageUseCase model resolution', () => {
       worldContext: '',
       avatarAvailability: { initialAvatarIds: [] },
       modelSelection: {
-        defaultProfile: { provider: 'openai', model: 'gpt-4o-mini' },
+        defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
       },
       config: {
         modelSelection: {
-          defaultProfile: { provider: 'openai', model: 'gpt-4o-mini' },
+          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
         },
       },
       createdAt: '2026-04-18T10:00:00.000Z',
@@ -294,8 +297,8 @@ describe('SendMessageUseCase model resolution', () => {
       model?: string
       trace: { metadata: { effectiveProvider: string; effectiveModel: string } }
     }
-    expect(llmRequest.model).toBe('gpt-4o-mini')
+    expect(llmRequest.model).toBe('gpt-5.6-luna')
     expect(llmRequest.trace.metadata.effectiveProvider).toBe('openai')
-    expect(llmRequest.trace.metadata.effectiveModel).toBe('gpt-4o-mini')
+    expect(llmRequest.trace.metadata.effectiveModel).toBe('gpt-5.6-luna')
   })
 })

@@ -121,7 +121,7 @@ function ScenarioSummarySection({
       <p>
         <span className="admin-status-pill">{scenario.status}</span>
       </p>
-      <p className="admin-muted">Language: {scenario.language ?? 'Legacy / not configured'}</p>
+      <p className="admin-muted">Language: {scenario.language ?? 'Not configured'}</p>
       {actionError !== null ? <p className="admin-error">{actionError}</p> : null}
 
       <h3>World context</h3>
@@ -239,7 +239,7 @@ function AvatarListSection({
                 </td>
                 <td>
                   <span className="admin-status-pill">
-                    {avatar.computedTraits !== null ? 'prepared' : 'not prepared'}
+                    {avatar.computedTraits !== undefined ? 'prepared' : 'not prepared'}
                   </span>
                 </td>
                 <td>

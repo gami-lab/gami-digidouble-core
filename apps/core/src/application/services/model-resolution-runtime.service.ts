@@ -35,7 +35,7 @@ function resolveAdapterOrThrow(
 // eslint-disable-next-line complexity
 export async function resolveRoleLlmCall(args: {
   role: ModelRole
-  legacyAdapter: ILlmAdapter
+  defaultAdapter: ILlmAdapter
   modelConfigRepository: IModelConfigRepository | undefined
   llmAdapterRegistry: LlmAdapterRegistry | undefined
   modelConfigFallback: ModelConfig | undefined
@@ -51,7 +51,7 @@ export async function resolveRoleLlmCall(args: {
   effectiveModel: string
 }> {
   if (args.modelConfigRepository === undefined || args.llmAdapterRegistry === undefined) {
-    return { adapter: args.legacyAdapter, provider: 'legacy', effectiveModel: 'legacy' }
+    return { adapter: args.defaultAdapter, provider: 'null', effectiveModel: 'adapter_default' }
   }
 
   const config =

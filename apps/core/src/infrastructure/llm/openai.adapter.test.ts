@@ -27,7 +27,7 @@ vi.mock('openai', () => {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function buildCompletion(content: string, model = 'gpt-4o-mini'): OpenAI.ChatCompletion {
+function buildCompletion(content: string, model = 'gpt-5.6-luna'): OpenAI.ChatCompletion {
   return {
     id: 'chatcmpl-test',
     object: 'chat.completion',
@@ -47,7 +47,7 @@ function buildCompletion(content: string, model = 'gpt-4o-mini'): OpenAI.ChatCom
 
 function buildStreamChunk(
   content: string,
-  model = 'gpt-4o-mini',
+  model = 'gpt-5.6-luna',
   usage: OpenAI.CompletionUsage | null = null,
 ): OpenAI.ChatCompletionChunk {
   return {
@@ -86,19 +86,19 @@ describe('OpenAiAdapter', () => {
     const response = await adapter.complete(request)
 
     expect(response.content).toBe('Hi there!')
-    expect(response.model).toBe('gpt-4o-mini')
+    expect(response.model).toBe('gpt-5.6-luna')
     expect(response.inputTokens).toBe(15)
     expect(response.outputTokens).toBe(25)
     expect(response.latencyMs).toBeGreaterThanOrEqual(0)
   })
 
   it('uses the model override from the request', async () => {
-    mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-4o'))
+    mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-5.6-sol'))
     const adapter = new OpenAiAdapter('sk-test')
-    await adapter.complete({ ...request, model: 'gpt-4o' })
+    await adapter.complete({ ...request, model: 'gpt-5.6-sol' })
 
     const calledWith = mockCreate.mock.calls[0]?.[0] as { model: string }
-    expect(calledWith.model).toBe('gpt-4o')
+    expect(calledWith.model).toBe('gpt-5.6-sol')
   })
 
   it('maps the Fast service tier to the OpenAI priority wire value', async () => {
@@ -133,25 +133,6 @@ describe('OpenAiAdapter', () => {
 
     expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({ max_completion_tokens: 3000 })
     expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('max_tokens')
-  })
-
-  it('keeps the legacy completion token parameter for pre-GPT-5 models', async () => {
-    mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-4o-mini'))
-    const adapter = new OpenAiAdapter('sk-test')
-
-    await adapter.complete({ ...request, model: 'gpt-4o-mini', maxTokens: 3000 })
-
-    expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({ max_tokens: 3000 })
-    expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('max_completion_tokens')
-  })
-
-  it('does not send unsupported reasoning settings to pre-GPT-5 models', async () => {
-    mockCreate.mockResolvedValue(buildCompletion('ok', 'gpt-4o'))
-    const adapter = new OpenAiAdapter('sk-test')
-
-    await adapter.complete({ ...request, model: 'gpt-4o' })
-
-    expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('reasoning_effort')
   })
 
   it('wraps OpenAI.APIError in LlmError with status code', async () => {
@@ -223,14 +204,14 @@ describe('OpenAiAdapter', () => {
     expect(events[0]).toEqual({ type: 'delta', text: 'Hello ' })
     expect(events[2]).toMatchObject({
       type: 'completed',
-      response: { content: 'Hello world', model: 'gpt-4o-mini', inputTokens: 15, outputTokens: 5 },
+      response: { content: 'Hello world', model: 'gpt-5.6-luna', inputTokens: 15, outputTokens: 5 },
     })
     expect(mockCreate.mock.calls[0]?.[0]).toMatchObject({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.6-luna',
       stream: true,
       stream_options: { include_usage: true },
     })
-    expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('reasoning_effort')
+    expect(mockCreate.mock.calls[0]?.[0]).toHaveProperty('reasoning_effort', 'none')
     expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal })
   })
 
