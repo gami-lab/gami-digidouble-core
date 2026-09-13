@@ -20,6 +20,10 @@ export type IngestionJobStatus = 'queued' | 'running' | 'completed' | 'failed'
 export const INGESTION_CHUNK_SIZE_MIN = 100
 export const INGESTION_CHUNK_SIZE_MAX = 10_000
 export const INGESTION_CHUNK_SIZE_DEFAULT = 1500
+/** Safety ceiling in characters for one persisted chunk, including headers and overlap. */
+export const INGESTION_CHUNK_HARD_MAX = 8000
+/** Maximum number of trailing characters repeated at a chunk boundary. */
+export const INGESTION_CHUNK_OVERLAP = 200
 
 /**
  * Explicit visibility policy for a knowledge source.

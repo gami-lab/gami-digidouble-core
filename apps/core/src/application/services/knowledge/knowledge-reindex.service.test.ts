@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { INGESTION_CHUNK_HARD_MAX } from '@gami/shared'
 import type {
   EmbeddingBatchRequest,
   EmbeddingBatchResult,
@@ -52,6 +53,8 @@ class CountingEmbeddingAdapter implements IEmbeddingAdapter {
 async function makeService(
   adapter = new CountingEmbeddingAdapter(),
   configuredProfile: EmbeddingProfile = targetProfile,
+  firstSourceContent = 'first source content',
+  chunkSize = 1000,
 ) {
   const sourceRepository = new InMemoryKnowledgeSourceRepository()
   await sourceRepository.create({
@@ -61,7 +64,7 @@ async function makeService(
     format: 'text',
     uriOrPath: 'inline://first',
     visibilityPolicy: 'all',
-    metadata: { inlineText: 'first source content' },
+    metadata: { inlineText: firstSourceContent },
   })
   await sourceRepository.create({
     scenarioId: 'scenario_1',
@@ -83,7 +86,7 @@ async function makeService(
     adapter,
     eventLogRepository,
     configuredProfile,
-    1000,
+    chunkSize,
   )
   return {
     service,
@@ -97,6 +100,27 @@ async function makeService(
 
 // eslint-disable-next-line max-lines-per-function
 describe('KnowledgeReindexService', () => {
+  it('uses the shared capped and overlapped chunking behavior', async () => {
+    const firstSourceContent = 'A'.repeat(INGESTION_CHUNK_HARD_MAX + 1000)
+    const { service, corpusRepository, sourceRepository } = await makeService(
+      new CountingEmbeddingAdapter(),
+      targetProfile,
+      firstSourceContent,
+      10_000,
+    )
+    const started = await service.start()
+    await service.run(started.operation?.reindexOperationId ?? '')
+
+    const sources = await sourceRepository.listAll()
+    const firstSource = sources.find((source) => source.uriOrPath === 'inline://first')
+    const chunks = await corpusRepository.listActiveChunksBySourceIds([firstSource?.sourceId ?? ''])
+
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(chunks.every((chunk) => chunk.content.length <= INGESTION_CHUNK_HARD_MAX)).toBe(true)
+    expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual(chunks.map((_chunk, index) => index))
+    expect(chunks[1]?.content.startsWith(chunks[0]?.content.slice(-200) ?? '')).toBe(true)
+  })
+
   it('stages every source and promotes only the complete target corpus', async () => {
     const { service, corpusRepository, eventLogRepository } = await makeService()
 

@@ -50,12 +50,19 @@ Main implementation entry points: `knowledge-ingestion.service.ts`, `typed-retri
 - Paragraph-aware, not fixed-width: text is split on blank lines into paragraphs, Markdown headings
   (levels 1-6) are tracked and kept with the paragraph text so heading context is embedded and
   retrieved alongside it, and consecutive paragraphs are packed into one chunk up to the configured
-  size. This preserves semantic boundaries instead of cutting mid-sentence.
-- No overlap between adjacent chunks, and a paragraph is never split even if it exceeds the limit —
-  simplicity and determinism were chosen over maximizing recall at chunk edges.
+  size. This preserves semantic boundaries where possible instead of cutting mid-sentence.
+- Oversized paragraphs are split deterministically at sentence boundaries first, with a raw character
+  fallback for long sentences. Oversized fenced code blocks use raw character splitting so the hard
+  safety ceiling is always honored; a fragment may not be a standalone valid fence, but no source
+  content is silently truncated.
+- The hard maximum is 8,000 characters per persisted chunk, including headings and overlap
+  (`INGESTION_CHUNK_HARD_MAX`). Adjacent chunks repeat up to 200 trailing characters from the prior
+  chunk (`INGESTION_CHUNK_OVERLAP`), including boundaries created while splitting an oversized
+  paragraph. The overlap is reduced when necessary to stay within the target or hard maximum.
 - Default chunk size is 1,500 characters (`INGESTION_CHUNK_SIZE_DEFAULT` in
   `packages/shared/src/knowledge-contract-types.ts`); callers may override per ingestion within the
-  API-enforced bounds.
+  API-enforced 100–10,000 character bounds. The hard maximum remains an internal safety ceiling even
+  when a caller requests the largest target.
 - An empty source still produces one fallback chunk (`Reference source: <uriOrPath>`) so a source
   never silently ends up with zero retrievable content.
 - A media source always produces exactly one chunk, from `metadata.description` or a generated

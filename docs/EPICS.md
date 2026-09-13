@@ -206,8 +206,8 @@ Removed audited compatibility paths and legacy contracts, verified fresh schema/
 ### `5.1e Retrieval Quality Hardening`
 
 **Current state**
-The labelled recall@k/MRR baseline harness is landed; embedding, chunking, selection, and lexical
-fallback improvements remain open.
+The labelled recall@k/MRR baseline harness and deterministic oversized-input chunk cap/overlap are
+landed; embedding, selection, and lexical fallback improvements remain open.
 
 **Purpose**
 Improve retrieval fidelity and prove answer-grounding improvements against the committed baseline.

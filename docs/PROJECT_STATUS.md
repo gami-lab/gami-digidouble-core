@@ -75,8 +75,9 @@ that touches persistence, retrieval, or provider adapters.
 - No standalone guided progression engine beyond current GM/scenario heuristics (`EPICS.md` 5.4).
 - No hybrid response/cache path for latency-sensitive or canonical answers (`EPICS.md` 5.6/6.4).
 - No completed real-scenario validation milestone or prototype-packaging milestone yet (`EPICS.md` 6.2/6.3).
-- Retrieval quality work (embedding, chunking, selection, and lexical-fallback improvements) is open
-  against the committed recall@k/MRR baseline (`EPICS.md` 5.1e).
+- Retrieval quality work continues against the committed recall@k/MRR baseline (`EPICS.md` 5.1e);
+  deterministic oversized-input caps and bounded chunk overlap are now covered, while embedding,
+  selection, and lexical-fallback improvements remain open.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.

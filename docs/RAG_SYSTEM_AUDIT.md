@@ -23,9 +23,10 @@ sources resolve to a text description, not a real multimodal embedding.
 
 [knowledge-ingestion.service.ts](../apps/core/src/application/services/knowledge/knowledge-ingestion.service.ts#L435-L492)
 splits on blank lines, tracks Markdown heading paths, and packs consecutive paragraphs up to a
-configurable size (default **1,500 chars**, 100–10,000 allowed). There is **no overlap** between
-chunks, and **no upper bound** on a single paragraph: if one paragraph exceeds the chunk size it
-becomes one oversized chunk regardless of length.
+configurable size (default **1,500 chars**, 100–10,000 allowed). A safety ceiling of 8,000 characters
+and up to 200 characters of deterministic overlap are applied to persisted chunks. Oversized normal
+paragraphs split at sentence boundaries with a raw-character fallback; oversized fenced code blocks
+use raw splitting to honor the same ceiling.
 
 ### Phase 3 — Embedding and corpus versioning
 
@@ -191,15 +192,10 @@ transactional promotion) already exists — this is a configuration and migratio
 architecture. This single change is likely to have a larger effect on answer quality than any other
 item in this list.
 
-**P0 — Cap oversized paragraphs.** `toChunkSeeds` never splits a paragraph larger than `chunkSize`
-([knowledge-ingestion.service.ts:459-481](../apps/core/src/application/services/knowledge/knowledge-ingestion.service.ts#L459-L481)).
-A PDF or pasted source with no blank lines can produce a chunk large enough to exceed the embedding
-model's input token limit, failing ingestion outright. Add a hard fallback split (e.g. by sentence or
-by raw character count) for any paragraph beyond a safety multiple of `chunkSize`.
-
-**P1 — Add chunk overlap.** Even a small fixed overlap (trailing N characters/sentences of the
-previous chunk repeated at the start of the next) reduces boundary information loss, and is a
-low-risk, well-understood change to `toChunkSeeds`.
+**Addressed — Cap oversized paragraphs and add chunk overlap.** `toChunkSeeds` now applies the
+8,000-character hard maximum and bounded deterministic overlap to both ingestion and staged reindex
+paths. Remaining retrieval-quality work is tracked below and should be measured against the committed
+baseline harness.
 
 **P1 — Resolve the triple-selection redundancy** described in Dead code finding #2: make
 `context-engine.service.ts` the single place that runs `selectBalancedRetrievedItems` for the Avatar

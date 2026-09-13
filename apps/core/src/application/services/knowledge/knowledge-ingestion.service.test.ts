@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import { describe, expect, it } from 'vitest'
+import { INGESTION_CHUNK_HARD_MAX, INGESTION_CHUNK_OVERLAP } from '@gami/shared'
 import { InMemoryIngestionJobRepository } from '../../../infrastructure/db/in-memory-ingestion-job.repository.js'
 import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
@@ -205,7 +206,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
     expect(chunks).toHaveLength(2)
   })
 
-  it('packs complete paragraphs up to the target size without splitting a paragraph', async () => {
+  it('packs complete paragraphs up to the target size and overlaps adjacent chunks', async () => {
     const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
       createDefaultIngestionDeps()
     const source = await sourceRepository.create({
@@ -238,13 +239,14 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
     await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
 
     const chunks = await chunkRepository.listBySourceId(source.sourceId)
+    const firstChunk = `${firstParagraph}\n\n${secondParagraph}`
     expect(chunks.map((chunk) => chunk.content)).toEqual([
-      `${firstParagraph}\n\n${secondParagraph}`,
-      thirdParagraph,
+      firstChunk,
+      `${firstChunk.slice(-INGESTION_CHUNK_OVERLAP)}\n\n${thirdParagraph}`,
     ])
   })
 
-  it('keeps an oversized paragraph intact instead of cutting it at the target size', async () => {
+  it('splits an oversized paragraph and preserves overlap and contiguous indexes', async () => {
     const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
       createDefaultIngestionDeps()
     const source = await sourceRepository.create({
@@ -260,7 +262,10 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
       status: 'queued',
       chunkSize: 800,
     })
-    const oversizedParagraph = 'A'.repeat(900)
+    const oversizedParagraph = Array.from(
+      { length: 24 },
+      (_value, index) => `Sentence ${index.toString()} carries source-specific context.`,
+    ).join(' ')
     const nextParagraph = 'B'.repeat(100)
 
     const service = new KnowledgeIngestionService(
@@ -276,7 +281,89 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
     await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
 
     const chunks = await chunkRepository.listBySourceId(source.sourceId)
-    expect(chunks.map((chunk) => chunk.content)).toEqual([oversizedParagraph, nextParagraph])
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual(chunks.map((_chunk, index) => index))
+    expect(chunks.every((chunk) => chunk.content.length <= 800)).toBe(true)
+    expect(chunks[0]?.content.endsWith('.')).toBe(true)
+    expect(
+      chunks[1]?.content.startsWith(chunks[0]?.content.slice(-INGESTION_CHUNK_OVERLAP) ?? ''),
+    ).toBe(true)
+    expect(chunks[1]?.content).toContain(nextParagraph)
+  })
+
+  it('caps a blank-line-free paragraph at the hard maximum', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Hard maximum guide',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/hard-maximum-guide.txt',
+      visibilityPolicy: 'all',
+    })
+    const job = await jobRepository.create({
+      sourceId: source.sourceId,
+      status: 'queued',
+      chunkSize: 10_000,
+    })
+    const endingMarker = 'hard-maximum-ending-marker'
+    const oversizedParagraph = `${'A'.repeat(INGESTION_CHUNK_HARD_MAX + 500)}${endingMarker}`
+
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new StubLoader(oversizedParagraph),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
+      eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
+    )
+
+    const result = await service.execute({
+      sourceId: source.sourceId,
+      ingestionJobId: job.ingestionJobId,
+    })
+
+    expect(result.status).toBe('completed')
+    const chunks = await chunkRepository.listBySourceId(source.sourceId)
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(chunks.every((chunk) => chunk.content.length <= INGESTION_CHUNK_HARD_MAX)).toBe(true)
+    expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual(chunks.map((_chunk, index) => index))
+    expect(chunks.at(-1)?.content).toContain(endingMarker)
+  })
+
+  it('splits an oversized code fence deterministically without truncating its end', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Large code guide',
+      knowledgeType: 'world',
+      format: 'markdown',
+      uriOrPath: '/tmp/large-code-guide.md',
+      visibilityPolicy: 'all',
+    })
+    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    const endingMarker = 'code-fence-ending-marker'
+    const oversizedCodeFence = `\`\`\`text\n${'x'.repeat(INGESTION_CHUNK_HARD_MAX + 100)}\n${endingMarker}\n\`\`\``
+
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      chunkRepository,
+      jobRepository,
+      new StubLoader(oversizedCodeFence),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
+      eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
+    )
+
+    await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
+
+    const chunks = await chunkRepository.listBySourceId(source.sourceId)
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(chunks.every((chunk) => chunk.content.length <= INGESTION_CHUNK_HARD_MAX)).toBe(true)
+    expect(chunks.at(-1)?.content).toContain(endingMarker)
   })
 })
 
@@ -319,7 +406,7 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
     expect(chunks).toHaveLength(2)
     expect(chunks[0]?.content).toContain('# Guide')
     expect(chunks[0]?.content).toContain('## Harbor')
-    expect(chunks[1]?.content).toMatch(/^# Guide\n\n## Harbor\n\n####details\n\nDetails /)
+    expect(chunks[1]?.content).toContain('# Guide\n\n## Harbor\n\n####details\n\nDetails ')
   })
 
   it('repeats a section header when a section spans multiple chunks', async () => {
@@ -352,7 +439,7 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
     const chunks = await chunkRepository.listBySourceId(source.sourceId)
     expect(chunks).toHaveLength(2)
     expect(chunks[0]?.content.startsWith('## Section\n\n')).toBe(true)
-    expect(chunks[1]?.content.startsWith('## Section\n\n')).toBe(true)
+    expect(chunks[1]?.content).toContain('## Section\n\n')
   })
 })
 

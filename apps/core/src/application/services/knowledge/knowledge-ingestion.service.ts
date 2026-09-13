@@ -1,7 +1,11 @@
 /* eslint-disable max-lines */
 
 import crypto from 'node:crypto'
-import { INGESTION_CHUNK_SIZE_DEFAULT } from '@gami/shared'
+import {
+  INGESTION_CHUNK_HARD_MAX,
+  INGESTION_CHUNK_OVERLAP,
+  INGESTION_CHUNK_SIZE_DEFAULT,
+} from '@gami/shared'
 import { stripNonDescriptiveMetadata } from '../../../domain/knowledge/knowledge-source-presenter.js'
 import {
   EmbeddingAdapterError,
@@ -452,13 +456,20 @@ export function toChunkSeeds(
 
   const paragraphs = parseParagraphsWithHeaders(normalized)
   const chunks: ChunkSeed[] = []
-  const maxLength = chunkSize ?? INGESTION_CHUNK_SIZE_DEFAULT
+  const maxLength = Math.min(chunkSize ?? INGESTION_CHUNK_SIZE_DEFAULT, INGESTION_CHUNK_HARD_MAX)
+  const paragraphsToChunk = (
+    paragraphs.length > 0 ? paragraphs : [{ content: normalized, headers: [] }]
+  ).flatMap((paragraph) => splitParsedParagraph(paragraph, maxLength))
 
   let current = ''
   let currentHeaders: string[] = []
-  for (const paragraph of paragraphs.length > 0
-    ? paragraphs
-    : [{ content: normalized, headers: [] }]) {
+  const flushCurrent = (): void => {
+    if (current.length === 0) return
+    appendBoundedChunk(chunks, current, source, loadedMetadata)
+    current = ''
+  }
+
+  for (const paragraph of paragraphsToChunk) {
     const headerLines = headersToAdd(currentHeaders, paragraph.headers)
     const paragraphWithHeaders = [...headerLines, paragraph.content].join('\n\n')
     if (current.length === 0) {
@@ -471,24 +482,111 @@ export function toChunkSeeds(
       currentHeaders = paragraph.headers
       continue
     }
-    chunks.push({
-      content: current,
-      chunkIndex: chunks.length,
-      metadata: buildChunkMetadata(source, loadedMetadata),
-    })
-    current = [...paragraph.headers, paragraph.content].join('\n\n')
+    flushCurrent()
+    current = withChunkOverlap(
+      [...paragraph.headers, paragraph.content].join('\n\n'),
+      chunks.at(-1)?.content,
+      maxLength,
+    )
     currentHeaders = paragraph.headers
   }
 
-  if (current.length > 0) {
+  flushCurrent()
+
+  return chunks
+}
+
+function splitParsedParagraph(paragraph: ParsedParagraph, maxLength: number): ParsedParagraph[] {
+  const headerText = headersToAdd([], paragraph.headers).join('\n\n')
+  const headerSeparatorLength = headerText.length > 0 ? 2 : 0
+  const overlapBudget = overlapLengthForTarget(maxLength)
+  const contentMaxLength = Math.max(
+    1,
+    maxLength - headerText.length - headerSeparatorLength - overlapBudget - 2,
+  )
+
+  return splitParagraphContent(paragraph.content, contentMaxLength).map((content) => ({
+    content,
+    headers: paragraph.headers,
+  }))
+}
+
+function splitParagraphContent(content: string, maxLength: number): string[] {
+  if (content.length <= maxLength) return [content]
+
+  if (/^\s*(```|~~~)/m.test(content)) return splitRawText(content, maxLength)
+
+  const pieces: string[] = []
+  let remaining = content
+  while (remaining.length > maxLength) {
+    const cutAt = findSentenceCut(remaining, maxLength) ?? maxLength
+    pieces.push(remaining.slice(0, cutAt))
+    remaining = remaining.slice(cutAt)
+  }
+  if (remaining.length > 0) pieces.push(remaining)
+  return pieces
+}
+
+function findSentenceCut(content: string, maxLength: number): number | null {
+  const sentenceEnd = /[.!?](?:["'’)\]]+)?(?=\s|$)/g
+  let lastCut: number | null = null
+  for (const match of content.slice(0, maxLength + 1).matchAll(sentenceEnd)) {
+    const end = match.index + match[0].length
+    if (end <= maxLength) lastCut = end
+  }
+  return lastCut
+}
+
+function splitRawText(content: string, maxLength: number): string[] {
+  const pieces: string[] = []
+  for (let offset = 0; offset < content.length; offset += maxLength) {
+    pieces.push(content.slice(offset, offset + maxLength))
+  }
+  return pieces
+}
+
+function withChunkOverlap(
+  content: string,
+  previousContent: string | undefined,
+  maxLength: number,
+): string {
+  if (previousContent === undefined || previousContent.length === 0) return content
+
+  const availableLength = maxLength - content.length - 2
+  if (availableLength <= 0) return content
+
+  const overlapLength = Math.min(INGESTION_CHUNK_OVERLAP, previousContent.length, availableLength)
+  if (overlapLength === 0) return content
+
+  return `${previousContent.slice(-overlapLength)}\n\n${content}`
+}
+
+function overlapLengthForTarget(maxLength: number): number {
+  return Math.min(INGESTION_CHUNK_OVERLAP, Math.floor(maxLength / 4))
+}
+
+function appendBoundedChunk(
+  chunks: ChunkSeed[],
+  content: string,
+  source: KnowledgeSource,
+  loadedMetadata?: Record<string, unknown>,
+): void {
+  const pieces =
+    content.length <= INGESTION_CHUNK_HARD_MAX
+      ? [content]
+      : splitRawText(content, INGESTION_CHUNK_HARD_MAX)
+
+  for (const [pieceIndex, piece] of pieces.entries()) {
+    const boundedContent =
+      pieceIndex === 0
+        ? piece
+        : withChunkOverlap(piece, chunks.at(-1)?.content, INGESTION_CHUNK_HARD_MAX)
     chunks.push({
-      content: current,
+      content: boundedContent,
       chunkIndex: chunks.length,
       metadata: buildChunkMetadata(source, loadedMetadata),
     })
   }
-
-  return chunks
 }
 
 function parseParagraphsWithHeaders(content: string): ParsedParagraph[] {
