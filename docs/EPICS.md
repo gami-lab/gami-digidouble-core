@@ -241,80 +241,51 @@ The Game Master remains a single asynchronous post-analysis step executed after 
 
 ## Open Backlog
 
-### `10.1 Clean-Slate Contract And Legacy Compatibility Removal`
+### `10.1 Clean-Slate Compatibility Removal`
 
 **Current state**
 
-The legacy and backward-compatibility audit is complete, but the removal work has not started.
-The product will be redeployed with a fresh database and fresh content, so existing persisted
-data, old API inputs, and pre-current content/configuration shapes do not need to remain supported.
+The compatibility audit is complete, but removal work has not started. The product will be
+redeployed with a fresh database and fresh content.
 
 **Purpose**
 
-Establish one strict current product contract by removing all backward-compatibility code identified
-in the audit. The clean deployment intentionally permits breaking changes and does not preserve old
-database volumes, legacy content, or pre-current persisted payloads.
+Remove legacy support and establish one strict current contract across runtime code, persistence,
+content, operator tooling, tests, and deployment.
 
 **Description**
 
-Remove compatibility behavior across the database lifecycle, static knowledge, session memory,
-Game Master state and output, event inspection, Avatar prompt assembly, Scenario and Avatar content
-schemas, knowledge visibility, model resolution, embedding APIs, provider request handling, and
-operator-facing documentation. Replace implicit migrations and aliases with canonical current
-contracts, strict validation, and fresh deployment/seed procedures.
+Replace compatibility migrations, aliases, fallback readers, and legacy content paths with the
+canonical current schema and contracts. Existing database volumes, persisted payloads, API aliases,
+and pre-current content shapes are not supported after the clean redeploy.
 
 **Includes**
 
-- replacement of startup schema alignment and legacy database-volume preservation with one canonical fresh-database bootstrap
-- removal of old GM state columns, pre-current JSON normalization, and unused compatibility fields
-- removal of the `knowledge_type = 'memory'` alias, warning path, migration/audit scripts, quarantine support, and legacy fixtures while retaining current reserved-key validation
-- removal of the `sessions.memory_summary` mirror and all session-memory fallback reads, writes, and admin reporting
-- strict current Game Master output parsing with required `retrievalPlan` and `progressionUpdate` fields
-- removal of flattened legacy event-payload readers and compatibility-only retrieval/scope projections
-- strict structured Avatar prompt inputs and required prepared `computedTraits` for active Avatars
-- canonical Scenario language only, with removal of config/voice-language fallbacks and legacy admin fields
-- canonical Avatar `availabilityKey` only, with removal of the `routeKey` alias
-- explicit knowledge `visibilityPolicy` on all static sources, with removal of ID inference and the `__GM_ONLY__` sentinel
-- removal of the runtime model `legacyAdapter`/`'legacy'` path and enforcement of the current model configuration contract
-- removal of the unused direct-query embedding compatibility wrapper
-- removal of pre-current provider request parameter branching after defining the supported production model matrix
-- deletion or rewrite of compatibility-only tests, fixtures, scripts, contracts, and documentation
-- documented fresh-volume, fresh-schema, and fresh-content deployment procedure
-
-**Out of scope**
-
-- normal error handling and malformed-current-payload rejection
-- operational retries, cancellation, and failure isolation
-- localization fallbacks
-- current additive transports or features that do not read an older contract
+- canonical fresh-database bootstrap without runtime schema alignment or obsolete columns
+- removal of legacy knowledge, session-memory, GM-state, event, content, visibility, routing, and model paths
+- strict current API, shared, persistence, Avatar, Scenario, Game Master, and event contracts
+- removal of compatibility-only tests, scripts, fixtures, UI labels, and documentation
+- fresh-volume deployment and fresh-content seeding verification
 
 **Definition of done**
 
-- no production path reads or emits legacy knowledge, session-memory, GM-state, event, Avatar, Scenario, visibility, routing, or model aliases identified by the audit
-- fresh database bootstrap contains only the canonical current tables, columns, constraints, indexes, and seed data
-- current API and shared contracts reject legacy inputs instead of normalizing them
-- current repositories deserialize only current persisted shapes and do not migrate old payloads at runtime
-- active Avatars require prepared `computedTraits`; active Scenarios require canonical language; static sources require explicit visibility policy
-- the supported production model matrix is explicit and has no pre-current request compatibility branch
-- compatibility-only modules, tests, scripts, UI labels, and documentation are removed or rewritten
-- a clean deployment from an empty database volume with fresh content passes the full verification suite
-- repository-wide searches for the audit’s legacy identifiers return no unintended production or contract references
+- all backward-compatibility paths identified by the audit are removed
+- current contracts reject legacy inputs and persisted shapes
+- fresh schema and content deploy successfully without old data
+- normal error handling, operational resilience, and current product behavior remain intact
+- the full verification suite passes and all source-of-truth documentation is synchronized
 
 **What can be tested**
 
-1. an empty database initializes successfully using only the canonical schema
-2. legacy knowledge aliases, missing visibility policy, legacy routing keys, and incomplete active content are rejected at validation boundaries
-3. current session memory and GM state persist and reload without compatibility mappers or mirror columns
-4. malformed current payloads fail safely while pre-current payloads are not accepted
-5. current GM outputs require all current fields and preserve strict validation behavior
-6. current event payloads render correctly without flattened-payload readers or legacy projections
-7. current model resolution requires the configured repository/adapter path and uses only supported provider request parameters
-8. the fresh seed/content pipeline produces deployable Avatars, Scenarios, and knowledge sources
-9. typecheck, lint, unit, integration, and fresh-stack verification pass after compatibility-only tests are removed or rewritten
+1. initialize the product from an empty database volume
+2. reject legacy inputs and incomplete current content at validation boundaries
+3. persist and reload current session, GM, event, knowledge, and content contracts
+4. verify current runtime behavior without compatibility readers or aliases
+5. run the full typecheck, lint, unit, integration, E2E, and applicable stack verification suite
 
 **User increment**
 
-- a simpler, deterministic product runtime with one supported contract and a reproducible clean deployment
+- a simpler, deterministic runtime with one supported contract and a reproducible clean deployment
 
 ### `5.1d Vector Retrieval Runtime` ✅ Complete
 
