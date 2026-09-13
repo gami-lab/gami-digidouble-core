@@ -1,6 +1,6 @@
 # Project status
 
-Last reviewed: 2026-09-13
+Last reviewed: 2026-09-14
 
 ## Snapshot
 
@@ -76,14 +76,13 @@ that touches persistence, retrieval, or provider adapters.
 - No standalone guided progression engine beyond current GM/scenario heuristics (`EPICS.md` 5.4).
 - No hybrid response/cache path for latency-sensitive or canonical answers (`EPICS.md` 5.6/6.4).
 - No completed real-scenario validation milestone or prototype-packaging milestone yet (`EPICS.md` 6.2/6.3).
-- Retrieval quality work now has a measured native-profile comparison: the historical 16-dimensional
-  baseline has recall@3/7/9 = 1.000000 and MRR = 0.722222, versus recall@3/7/9 = 1.000000 and
-  MRR = 0.916667 at 1536 dimensions (`EPICS.md` 5.1e); bounded lexical candidate fusion now
-  addresses exact-entity fallback, and same-profile reindexing now skips unchanged chunk embeds.
-  Context Engine now owns the final Avatar retrieval selection;
-  prompt assembly only formats the selected sections. Unmeasurable visibility-exclusion counts are
-  no longer emitted, and the direct Postgres chunk-write method is documented as a fixture/in-memory
-  compatibility path.
+- Retrieval Quality Hardening (`EPICS.md` 5.1e) is complete: the six-fixture harness measured
+  recall@3/7/9 = 1.000000 for both the historical 16-dimensional baseline and the current native
+  1536-dimensional profile, while MRR improved from 0.722222 to 0.916667. The comparison records
+  mixed per-fixture rank movement honestly; bounded lexical fusion addresses exact-entity fallback,
+  same-profile reindexing skips unchanged chunk embeds, Context Engine owns final Avatar selection,
+  unmeasurable visibility-exclusion counts are no longer emitted, and the direct Postgres chunk-write
+  method is documented as a fixture/in-memory compatibility path.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.

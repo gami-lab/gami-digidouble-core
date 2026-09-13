@@ -139,6 +139,14 @@ Separated scenario-shared static knowledge from user-bound conversational memory
 
 Established profile-aware pgvector retrieval for Avatar, Game Master, and admin flows, with deterministic merging, shared visibility rules, controlled failures, and shared diagnostics ([requirements matrix](EPIC_5_1D_REQUIREMENTS_MATRIX.md)). The later retrieval-quality hardening slice adds a bounded full-text candidate path for exact-entity recovery.
 
+#### `5.1e Retrieval Quality Hardening` ✅ Done
+
+Delivered the labelled recall@k/MRR harness, deterministic chunk hard caps and overlap, native
+1536-dimensional embeddings, authoritative Avatar selection, retrieval-diagnostic cleanup, bounded
+lexical candidate fusion, and same-profile incremental reindexing. The six-fixture before/after
+comparison records unchanged recall@3/7/9 at 1.000000 and an MRR improvement from 0.722222 to
+0.916667, with mixed per-fixture rank movement documented in the harness report.
+
 #### `5.2 Context Engine v2` ✅ Done
 
 Established deterministic context assembly, precedence rules, token budgeting, trimming, and explainable trace output for Avatar and GM runtime contexts.
@@ -202,17 +210,6 @@ Added provider-neutral text-to-speech contracts, an optional Gradium adapter, co
 Removed audited compatibility paths and legacy contracts, verified fresh schema/content deployment, and synchronized the source-of-truth documentation.
 
 ## Open Backlog
-
-### `5.1e Retrieval Quality Hardening`
-
-**Current state**
-The labelled recall@k/MRR baseline harness, deterministic oversized-input chunk cap/overlap, native
-1536-dimensional embedding migration, single-authority Avatar selection, dead-diagnostic cleanup,
-bounded lexical candidate fusion, and same-profile incremental reindexing are landed. The committed
-before/after reports are the measurement record for this work.
-
-**Purpose**
-Improve retrieval fidelity and prove answer-grounding improvements against the committed baseline.
 
 ### `3.3 Replay & Recovery Tools`
 

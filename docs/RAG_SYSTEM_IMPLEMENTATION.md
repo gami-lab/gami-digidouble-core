@@ -83,7 +83,9 @@ Production uses the OpenAI embedding adapter (requires `OPENAI_API_KEY`), with n
 fallback — if the adapter isn't configured, ingestion/query embedding fails rather than silently
 degrading to a fake vector. The default profile is `text-embedding-3-small` at its native 1536
 dimensions, matching the fixed `VECTOR(1536)` column in `infra/postgres/init.sql`. The historical
-16-dimensional retrieval baseline remains available for comparison in the retrieval-quality tool.
+16-dimensional retrieval baseline and current after report remain available in the
+[retrieval-quality tool](../apps/core/src/tools/retrieval-quality/README.md), with their comparison
+in [baseline-comparison.md](../apps/core/src/tools/retrieval-quality/baseline-comparison.md).
 
 A deterministic hash-based adapter exists only for tests (explicitly injected, never a server
 default). It accumulates character codes per input string into buckets and L2-normalizes the

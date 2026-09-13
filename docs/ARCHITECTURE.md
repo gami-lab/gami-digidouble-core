@@ -123,8 +123,9 @@ Static knowledge and conversational memory are separate systems:
 - Context exposes `conversationState` and `retrievedContext` as separate projections. Retrieved documents never become memory merely because they were injected into a prompt.
 
 The production retrieval path is: normalized query variants -> one profile-aware embedding batch ->
-filtered pgvector nearest-neighbor search -> deterministic merge/dedup/per-type selection -> Context
-Engine's authoritative Avatar selection and budget -> context projection.
+filtered pgvector nearest-neighbor plus bounded lexical candidate search -> deterministic
+merge/dedup/per-type selection -> Context Engine's authoritative Avatar selection and budget ->
+context projection.
 
 ## Port rules
 

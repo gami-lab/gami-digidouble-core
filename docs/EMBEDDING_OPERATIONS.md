@@ -35,8 +35,8 @@ The six-fixture retrieval harness measured the historical 16-dimensional profile
 Recall was already saturated on this small fixture set, while MRR improved by 0.194445. The native
 profile was selected because it preserves the model's full semantic resolution; the measured gain is
 supporting evidence, not a claim that this six-query sample represents every production workload.
-The committed reports are `apps/core/src/tools/retrieval-quality/baseline-before.json` (historical)
-and `baseline-after-1536.json` (current).
+The committed reports are `apps/core/src/tools/retrieval-quality/baseline-before.json` (historical),
+`baseline-after-1536.json` (current), and the hand-reviewed `baseline-comparison.md`.
 
 ## Changing a profile
 

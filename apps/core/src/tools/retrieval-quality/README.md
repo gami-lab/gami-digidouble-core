@@ -43,3 +43,7 @@ The normal full-stack route is `/v1/admin/knowledge/retrieval`, which also invok
 `TypedRetrievalService`; this harness does not use that route because its generated PostgreSQL chunk
 IDs would make the checked-in labels unstable. The normal composed stack can still be started with
 `docker compose -f docker-compose.e2e.yml up -d --build --wait` for stack-E2E coverage.
+
+The hand-reviewed aggregate comparison is in [baseline-comparison.md](baseline-comparison.md).
+It records the measured rank changes as well as the aggregate scores, including mixed or
+inconclusive movement.

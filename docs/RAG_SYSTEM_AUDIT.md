@@ -137,7 +137,9 @@ The previous production profile was retrieval-crippled by one configuration choi
 `text-embedding-3-small` down to 16 dimensions threw away essentially all of the semantic resolution
 the embedding model provides. The selected native 1536-dimensional profile removes that compression;
 on the representative six-fixture set, MRR improved from 0.722222 to 0.916667 while recall@3/7/9
-remained 1.000000. This is useful baseline evidence, not a substitute for a larger labelled evaluation set.
+remained 1.000000. The detailed rank movement is recorded in the
+[retrieval-quality comparison report](../apps/core/src/tools/retrieval-quality/baseline-comparison.md).
+This is useful baseline evidence, not a substitute for a larger labelled evaluation set.
 
 ## 4. Dead code and vestigial diagnostics
 
@@ -175,7 +177,7 @@ remained 1.000000. This is useful baseline evidence, not a substitute for a larg
 **Resolved — Raise embedding dimensionality.** The default is now the native 1536 dimensions for
 `text-embedding-3-small`; the canonical schema and staged reindex path were updated together. The
 historical 16-dimensional baseline and native-profile comparison are recorded by the retrieval-quality
-harness.
+harness and its [comparison report](../apps/core/src/tools/retrieval-quality/baseline-comparison.md).
 
 **Addressed — Cap oversized paragraphs and add chunk overlap.** `toChunkSeeds` now applies the
 8,000-character hard maximum and bounded deterministic overlap to both ingestion and staged reindex
