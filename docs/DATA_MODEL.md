@@ -1,194 +1,61 @@
-# Data Model
+# Data model
 
-## Purpose
+This is the durable ownership map for the current clean-slate schema. Exact columns, constraints,
+and JSON shapes are defined by `infra/postgres/init.sql` and the repository types.
 
-Compact reference for the Phase A persisted model.
+## Scope rules
 
-This document records:
+- PostgreSQL is the system of record; Redis holds cache/coordination state, not durable conversation truth.
+- Public DTOs are projections, never persistence rows.
+- Static knowledge is scenario-scoped. Conversational memory is user/session/conversation-scoped.
+- Raw prompts, provider payloads, raw audio, and embedding vectors are not public inspection data.
+- The current Phase A deployment assumes a fresh canonical database schema; there is no runtime schema migration layer.
 
-- persisted entities
-- key fields
-- important relationships
-- reset boundaries
+## Persisted aggregates
 
-Runtime behavior belongs in `MEMORY_SYSTEM_SPEC.md` and `GAME_MASTER_CONTRACT.md`.
-Cross-layer ownership of persisted entities and their API projections is recorded in
-[`CONTEXT_CONTRACT_OWNERSHIP_MAP.md`](CONTEXT_CONTRACT_OWNERSHIP_MAP.md).
-
-## Scope Rules
-
-- Only document persisted entities that exist in the current implementation.
-- Derived runtime artifacts such as `contextTrace` are not database entities.
-- This file describes persistence, not HTTP DTO ownership.
-
-## Persisted Entities
-
-### Core Runtime
-
-| Table           | Purpose                                                | Key fields                                                                                                                                                | Notes                                                                                                                                                                                                                                                                  |
-| --------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `users`         | Stable user identity plus optional persona             | `id`, `persona`, `created_at`, `updated_at`                                                                                                               | Persona matches canonical `UserPersona` and is injected into runtime context, not copied into sessions or messages.                                                                                                                                                    |
-| `scenarios`     | Top-level experience configuration                     | `id`, `name`, `status`, `language`, `objectives`, `world_context`, `avatar_availability`, `config`, `model_selection`, timestamps                         | Owns avatars, sessions, and knowledge sources. `language` is the canonical BCP-47 language for Avatar text, speech recognition, and synthesis.                                                                                                                         |
-| `avatars`       | One actor inside a scenario                            | `id`, `scenario_id`, `name`, `status`, `persona_prompt`, `tone`, `description`, `adjustments`, `computed_traits`, `config`, timestamps                    | `computed_traits` stores the EPIC 8.1 seven-field trait structure. `config.llmOverride` stores the per-avatar model override.                                                                                                                                          |
-| `sessions`      | Durable user run container for one scenario            | `id`, `user_id`, `scenario_id`, `active_avatar_id`, `unlocked_avatar_ids`, `model_override`, `avatar_options`, `gm_notes`, `status`, lifecycle timestamps | `model_override` is an optional session-scoped runtime model selection shared by Avatar, Game Master, and memory compaction. `avatar_options` stores session-scoped Avatar retrieval experiments. Canonical session working memory is persisted in `session_memories`. |
-| `conversations` | One bounded dialogue episode inside a session          | `id`, `session_id`, `avatar_id`, `status`, `started_by`, `reason`, `handoff_from_conversation_id`, lifecycle timestamps                                   | Avatar switches create new conversations. Closure is the episodic-memory boundary.                                                                                                                                                                                     |
-| `messages`      | Persisted conversation messages                        | `id`, `conversation_id`, `role`, `content`, `metadata`, `created_at`                                                                                      | `metadata` stores model, latency, token, and related observability fields.                                                                                                                                                                                             |
-| `gm_states`     | Lightweight persisted Game Master state                | `session_id`, `progression`, `interaction_count`, `next_turn_orchestration`, `updated_at`                                                                 | One row per session. The session owns the active Avatar and memory compaction owns covered topics; no active-Avatar or topic columns are part of the canonical schema.                                                                                                 |
-| `event_log`     | Persisted runtime diagnostics and observability events | `id`, `session_id`, `type`, `severity`, `correlation_id`, `request_id`, `payload`, `created_at`                                                           | Must stay free of raw prompts, secrets, and unbounded transcript payloads.                                                                                                                                                                                             |
-| `model_config`  | Single-row runtime model routing config                | `id`, `config`, `updated_at`                                                                                                                              | `id` is constrained to one active row. Stores global default plus role overrides.                                                                                                                                                                                      |
-
-Retrieval trace/profile diagnostics are additive safe payload projections; this slice does not add
-or change a persisted table or vector schema. If later runtime events persist retrieval traces,
-they must use the shared bounded DTO fields and retain the active embedding profile/generation
-identity without persisting raw vectors.
-
-`gm_states.next_turn_orchestration` stores only the current `GameMasterOrchestrationState` shape.
-The repository strictly parses its required dialogue, retrieval, and progression fields and ignores
-malformed persisted values rather than reconstructing an older state shape.
-
-`model_config` is bootstrapped with the current production model matrix documented in
-`TECH_STACK.md`; provider/model pairs outside that matrix are invalid persisted configuration.
-
-Streaming does not change the data model: it is transport-only. The user message is saved before
-deltas, and a partial avatar message is never saved.
-
-### Memory
-
-| Table                           | Purpose                                             | Key fields                                                                                                                                                 | Notes                                                        |
-| ------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `session_memories`              | Compact session-level memory summary                | `session_id`, `summary`, `updated_at`                                                                                                                      | Session-scoped continuity layer.                             |
-| `conversation_working_memories` | Canonical active-conversation working memory        | `conversation_id`, `session_id`, `avatar_id`, `summary`, `unresolved_threads`, `covered_topics`, `candidate_facts`, `updated_at`                           | `covered_topics` is first-class state.                       |
-| `avatar_session_memories`       | Avatar-scoped session continuity                    | `session_id`, `avatar_id`, `summary`, `updated_at`                                                                                                         | One row per `(session_id, avatar_id)`.                       |
-| `conversation_memories`         | Long-term episodic memory from closed conversations | `conversation_id`, `session_id`, `user_id`, `avatar_id`, `scenario_id`, `summary`, `key_discoveries`, `unresolved_topics`, `fact_candidates`, `created_at` | Retrieval scope is intentionally `user + avatar + scenario`. |
-| `user_memory_facts`             | Stable structured user facts                        | `id`, `user_id`, `category`, `key`, `value`, `confidence`, `updated_at`                                                                                    | Stores facts, not transcripts.                               |
-
-### Memory Field Semantics
-
-- The three most recent complete exchanges are derived at runtime from `messages`; they are not
-  persisted in a separate short-term table.
-- `conversation_working_memories` is the canonical mutable state for an active conversation. Its
-  `summary`, `covered_topics`, `unresolved_threads`, and `candidate_facts` are rewritten and
-  upserted on refresh; they are not append-only transcript fragments.
-- `covered_topics` records subjects already discussed. `unresolved_threads` records only active
-  loose ends. A thread is resolved by disappearing from the next rewritten list; no extra status
-  column is required.
-- `candidate_facts` are compacted, grounded candidates. They are not equivalent to a durable
-  `user_memory_facts` row and must not be treated as inferred mood, trust, pacing, or progression.
-- `conversation_memories` is immutable episodic output created at conversation close and is used
-  for bounded hydration/selection in later conversations.
-- `user_memory_facts` is user-scoped, deduplicated, and injected into prompts only through bounded
-  context assembly. It survives normal session reset.
-
-### Knowledge
-
-The canonical content contract requires `language` on active Scenarios and prepared
-`computed_traits` on active Avatars. `knowledge_sources.visibility_policy` is non-null and must be
-`'all' | 'avatars' | 'none'`; `visible_to_avatar_ids` is interpreted only with the explicit
-`'avatars'` policy.
-
-| Table | Purpose | Key fields | Notes |
-| ------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------- | -------------------------------- |
-| `knowledge_sources` | Scenario-scoped knowledge assets | `id`, `scenario_id`, `name`, `knowledge_type`, `format`, `uri_or_path`, `status`, `metadata`, `visible_to_avatar_ids`, `visibility_policy`, `created_at` | Visibility policies are `'all'                                                                           | 'avatars' | 'none'`; `'none'` means GM-only. |
-| `embedding_profiles` | Immutable provider/model/dimension identity for one vector space | `id`, `provider`, `model`, `dimensions`, `created_at` | Unique on `(provider, model, dimensions)`. Internal persistence state; not a public DTO. |
-| `corpus_generations` | Immutable staged or active replacement corpus | `id`, `embedding_profile_id`, `status`, `expected_source_count`, lifecycle timestamps | A generation belongs to exactly one profile. Status is `staging`, `validated`, `active`, `superseded`, or `failed`. |
-| `knowledge_corpus_state` | Atomic active-corpus pointer | `id=1`, `active_generation_id`, `active_profile_id` | Singleton database-owned pointer. Normal reads use this pair and never expose staged generations. |
-| `knowledge_chunks` | Retrieval chunks derived from knowledge sources | `id`, `source_id`, `content`, `chunk_index`, `embedding`, `embedding_profile_id`, `corpus_generation_id`, `metadata`, `visible_to_avatar_ids`, `created_at` | Vectorized chunks must carry both immutable identities. New or updated metadata cannot recursively contain `userId`, `sessionId`, or `conversationId`. The fixed column is `VECTOR(16)` and uses `vector_cosine_ops`; the identity check rejects partially profiled vectors. Chunks are unique per `(source_id, corpus_generation_id, chunk_index)`, so replacement generations can stage the same source/index independently. Normal ingestion replaces only the source's rows in the active generation inside one transaction. |
-| `reindex_operations` | Replacement corpus lifecycle tracking | `id`, `corpus_generation_id`, `embedding_profile_id`, expected active profile/generation, `status`, `attempts`, source counts, timestamps, bounded `failure_details` | Tracks `pending`, `running`, `completed`, and `failed` operations. The expected active pair is a promotion compare-and-set guard. |
-| `reindex_operation_sources` | Per-operation source progress | `reindex_operation_id`, `source_id`, `status`, `attempts`, chunk counts, timestamps, bounded `failure_details` | Unique per operation/source and idempotently replaceable. |
-| `corpus_generation_sources` | Per-generation completeness ledger | `corpus_generation_id`, `source_id`, `status`, expected/completed chunk counts | Promotion requires every expected source to complete and all staged vectors to be non-null. |
-| `ingestion_jobs` | Knowledge ingestion lifecycle tracking | `id`, `source_id`, `status`, `attempts`, `chunk_size`, `started_at`, `completed_at`, `error_message`, `created_at`, `updated_at` | Tracks queued/running/completed/failed ingestion work. Full-corpus replacement is owned by reindex operations, not this per-source job. |
-
-Core Application owns the provider-neutral `EmbeddingProfile` and reindex-operation contracts.
-Infrastructure maps them to the internal PostgreSQL profile, generation, active-pointer, and
-progress tables. The current public source/chunk/ingestion-job DTOs remain unchanged. The
-authenticated operator routes expose additive shared projections for profile and operation/source
-status; those DTOs do not mirror persistence rows or include vectors/content.
-
-`knowledge_corpus_state` is the canonical owner of the active profile/generation identity.
-`knowledge_chunks` are immutable members of a generation and must have a finite vector matching
-that generation's profile. A source becomes `ready` only after its complete replacement commits
-against the active pointer; failed or stale work leaves a prior ready source unchanged, or keeps a
-source unavailable when no valid active vectors exist. Reindex operation and source-progress
-lifecycle types are internal Application contracts owned by Core; only the bounded operator
-projection is shared for the admin API.
-
-Nearest-neighbor retrieval applies the active profile/generation, ready-source, scenario/type,
-and visibility filters in SQL before limiting candidates. Pgvector cosine distance
-is lower-is-better; service/API similarity is exactly `1 - distance`, with clamping and rounding
-owned only by presenters. A query with the wrong dimension or stale profile/generation is rejected
-before search, and rows outside the active profile/generation are ineligible before the candidate
-limit. Search candidates do not select or persist the embedding column.
-
-### Static knowledge contract
-
-The canonical `knowledge_sources.knowledge_type` values are exactly `avatar_knowledge`, `world`,
-and `media`. The API and internal contracts reject `memory` at validation boundaries, and the
-PostgreSQL check constraint enforces the same vocabulary. Static source and chunk metadata are
-validated recursively by `apps/core/src/domain/knowledge/static-knowledge-validation.ts`; the
-reserved scope keys `userId`, `sessionId`, and `conversationId` remain invalid because static
-knowledge is scenario-scoped and is never converted into conversational memory.
-
-Static retrieval has no user, session, or conversation scope. The only retrieval visibility inputs
-are scenario, canonical knowledge type, active corpus identity, Avatar visibility, and the explicit
-Game Master visibility bypass. Session reset, conversation close, user-fact deletion, and memory
-maintenance cannot mutate knowledge sources, chunks, embeddings, or corpus generations. Scenario
-deletion owns scenario knowledge removal through the existing scenario foreign-key cascade; static
-reindex owns only knowledge corpus rows.
-
-The final EPIC 4.2d boundary proof is recorded in
-[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md): scenario deletion cascades
-owned sources/chunks, while conversation/session memory remains outside that cascade. The full
-user-deletion aggregate is not exposed by the current Phase A API; existing user-scoped fact
-deletion and session reset paths are the implemented ownership boundaries.
+| Aggregate                | Owns                                                                     | Boundary                                                                   |
+| ------------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| User                     | identity, persona, long-term facts                                       | User facts are managed separately from static knowledge.                   |
+| Scenario                 | language, authored configuration, enabled Avatars, model selection       | Defines an experience; does not own conversation history.                  |
+| Avatar                   | persona, prompt sections, prepared traits, optional voice/model override | Must be prepared before activation/serving.                                |
+| Session                  | user/scenario membership, active Avatar, runtime state, exchange count   | Reset is a session operation.                                              |
+| Conversation             | one bounded Avatar episode and lifecycle                                 | Close/switch boundaries trigger memory work.                               |
+| Message                  | user/avatar/system content and safe metadata                             | Final Avatar text is the source for optional audio.                        |
+| Game Master state/events | current orchestration state and bounded runtime diagnostics              | GM state is current-shape-only; events are append-only inspection records. |
+| Memory                   | working, episodic, and long-term fact layers                             | Each layer has an explicit owner and lifecycle.                            |
+| Knowledge source/chunk   | scenario-shared content, visibility, ingestion state, corpus identity    | Types are `avatar_knowledge`, `world`, `media`.                            |
+| Embedding profile/corpus | immutable vector profile, generations, reindex progress, active pointer  | Promotion is complete and atomic.                                          |
+| Model configuration      | global/role/scenario/avatar model choices                                | Values must come from the shared catalog.                                  |
 
 ## Relationships
 
-- `users` -> `sessions` (1:N)
-- `users` -> `user_memory_facts` (1:N)
-- `scenarios` -> `avatars` (1:N)
-- `scenarios` -> `sessions` (1:N)
-- `scenarios` -> `knowledge_sources` (1:N)
-- `sessions` -> `conversations` (1:N)
-- `sessions` -> `gm_states` (1:1)
-- `sessions` -> `session_memories` (1:1)
-- `sessions` -> `avatar_session_memories` (1:N)
-- `sessions` -> `event_log` (1:N)
-- `conversations` -> `messages` (1:N)
-- `conversations` -> `conversation_working_memories` (1:1)
-- `conversations` -> `conversation_memories` (1:1 after close)
-- `knowledge_sources` -> `knowledge_chunks` (1:N)
-- `knowledge_sources` -> `ingestion_jobs` (1:N)
-- `embedding_profiles` -> `corpus_generations` (1:N)
-- `corpus_generations` -> `knowledge_chunks` (1:N)
-- `corpus_generations` -> `corpus_generation_sources` (1:N)
-- `reindex_operations` -> `reindex_operation_sources` (1:N)
+`User -> Sessions -> Scenario`; `Scenario -> Avatars and Knowledge Sources`; `Session ->
+Conversations -> Messages`; `Conversation -> working/episodic memory`; `User -> persona/facts`;
+`Knowledge Source -> Chunks -> active Corpus Generation`.
 
-## Reset Boundaries
+Knowledge visibility is source-owned and inherited by chunks. It is not an Avatar-to-source join
+table and does not create conversational memory.
 
-- Session reset clears session-scoped runtime state, messages, and active memory layers for that session.
-- User facts are long-lived and are not part of normal session reset.
-- Episodic memories are not the same as active working memory and should not be treated as session scratch state.
+## Reset and lifecycle ownership
 
-## JSONB Rules
+- Session reset owns active runtime cleanup and the reset boundary.
+- Conversation close owns compaction of conversation working/episodic memory.
+- Memory maintenance owns summaries, covered topics, unresolved threads, candidate facts, and fact promotion.
+- Static ingestion/reindex owns source/chunk replacement and vector corpus promotion.
+- Scenario/avatar deletion owns its configured cascade.
+- No whole-user deletion aggregate is part of the current Phase A API; user-fact deletion and session reset are the implemented user-scoped operations.
 
-- Use JSONB for bounded structured payloads that are genuinely flexible.
-- Do not use JSONB as a substitute for stable top-level fields already owned by canonical contracts.
-- Keep persistence and shared DTO ownership aligned when contracts evolve.
-- Voice configuration uses the existing Avatar/Scenario `config` JSONB columns under the reserved
-  `voiceConfig` key. Core validates and projects that section into the typed `voiceConfig` field;
-  generic public `config` does not duplicate it. Existing rows without the key map to an omitted
-  voice configuration. Audio bytes and delivery metadata are transient and are not persisted with
-  messages by default.
+## JSONB rules
 
-- Completed-message audio reads the canonical persisted `Message.content` for an Avatar message and
-  never writes audio bytes or delivery metadata to `messages.metadata`. There is no audio asset
-  table or blob column in this boundary; response headers and bytes exist only for the request.
-- Repeated audio requests are independent transient reads. No synthesis result, duration, provider
-  response, or failure payload is added to the message row, event log, or conversation history.
+- JSONB is for bounded, owned configuration/projection data, not an undocumented second schema.
+- Validate and normalize at the API/application boundary.
+- Do not store provider credentials, raw prompts, raw audio, or user/session/conversation scope in static knowledge metadata.
+- Add a new persisted field only with an owner, lifecycle, public projection decision, and tests.
 
-## Not In Scope
+## Not persisted
 
-- Audit-log tables not backed by current implementation
-- Prompt-template-variable tables not backed by current implementation
-- Persisted context-engine traces
-- Raw transcript-as-memory storage
+- audio bytes generated for playback
+- provider request/response payloads
+- transient query vectors and raw retrieval distance
+- partial streamed Avatar responses
+- historical compatibility mirrors removed by the clean-slate contract

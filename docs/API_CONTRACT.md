@@ -1,528 +1,131 @@
-# API Contract
+# API contract
 
-## Purpose
+This document records the stable HTTP surface and invariants. Exact request/response fields and
+schemas belong to `packages/shared/src/` and route schemas; do not copy them here.
 
-Compact HTTP contract reference for Gami DigiDouble Core Phase A.
+## Base rules
 
-Exact wire types live in:
+- Versioned base path: `/v1`; health compatibility route: `GET /health`.
+- Authentication: `x-api-key`.
+- IDs are opaque strings; timestamps are ISO-8601 UTC strings.
+- JSON success/error responses use `ApiResponse<T>`. SSE uses shared event DTOs. Binary audio is the only intentional non-envelope success response.
+- Public payloads are projections, never database rows. Unknown fields are rejected at input boundaries.
+- Errors use stable categories: unauthorized, validation, forbidden, not-found, conflict, rate-limit, provider, timeout, and internal.
 
-- `packages/shared/src/entity-types.ts`
-- `packages/shared/src/conversation-contract-types.ts`
-- `packages/shared/src/conversation-stream-contract-types.ts`
-- `packages/shared/src/web-contract-types.ts`
-- `packages/shared/src/knowledge-contract-types.ts`
-- `packages/shared/src/runtime-inspector-types.ts`
-- `packages/shared/src/lifecycle-types.ts`
-- `packages/shared/src/voice-contract-types.ts`
+## Canonical contract owners
 
-Use those files as the canonical field-level source of truth. This document keeps the stable surface area, invariants, and route inventory in one place. The cross-layer owner and mapper for each high fan-out contract is documented in [`CONTEXT_CONTRACT_OWNERSHIP_MAP.md`](CONTEXT_CONTRACT_OWNERSHIP_MAP.md).
+- Entities and lifecycle: `entity-types.ts`, `lifecycle-types.ts`.
+- Conversation and message responses: `conversation-contract-types.ts`.
+- Streaming frames: `conversation-stream-contract-types.ts` and `sse.ts`.
+- Knowledge/retrieval: `knowledge-contract-types.ts`.
+- Runtime inspection: `runtime-inspector-types.ts` and `runtime-types.ts`.
+- Voice/audio: `voice-contract-types.ts`.
+- Raw provider exchange: `raw-exchange-contract-types.ts`.
 
-## Base Rules
+## Public routes
 
-- Base path: `/v1`
-- Compatibility route outside `/v1`: `GET /health`
-- Content types: `application/json`, `text/event-stream`, and bounded browser-compatible audio
-  responses
-- Auth: `x-api-key: <API_KEY>`
-- Timestamps: ISO-8601 UTC strings
-- IDs: opaque strings
-- Non-streaming responses use `ApiResponse<T>`
+### Raw exchange
 
-```ts
-type ApiResponse<T> = {
-  data: T | null
-  error: {
-    code: ErrorCode
-    message: string
-    details?: unknown
-  } | null
-  meta?: {
-    requestId?: string
-    timestamp?: string
-  }
-}
+- `POST /v1/exchange` — authenticated raw provider exchange for smoke tests and evaluation judging.
 
-type ErrorCode =
-  | 'UNAUTHORIZED'
-  | 'VALIDATION_ERROR'
-  | 'FORBIDDEN'
-  | 'NOT_FOUND'
-  | 'CONFLICT'
-  | 'RATE_LIMITED'
-  | 'EXTERNAL_SERVICE_ERROR'
-  | 'TIMEOUT'
-  | 'INTERNAL_ERROR'
-```
+### Sessions and conversations
 
-## Core Shared Shapes
-
-Only the highest-value DTOs are summarized here. For exact fields, read the shared types.
-
-```ts
-type UserPersona = {
-  name?: string
-  roleInWorld?: string
-  avatarRelationships?: string[]
-  dialogGuidance?: string
-}
-
-type AvatarComputedTraits = {
-  identity: string[]
-  personality: string[]
-  speakingStyle: string[]
-  background: string[]
-  timeline: string[]
-  currentSituation: string[]
-  behaviouralRules: string[]
-}
-
-type RuntimeState = {
-  sessionId: string
-  conversationId?: string
-  canSendMessage: boolean
-  isProcessing: boolean
-  updatedAt: string
-}
-```
-
-Current content rules:
-
-- `AvatarSummary.computedTraits` is omitted until explicit trait preparation completes. An active
-  Avatar must have prepared traits; create/activation and serving reject incomplete Avatars.
-- `AvailableAvatarSummary` is intentionally narrower than `AvatarSummary`; do not leak `config` or `llmOverride` into player-facing discovery routes.
-- `AvatarSummary.voiceConfig` and `ScenarioSummary.voiceConfig` are optional provider-neutral
-  projections containing only `voiceKey` and optional `language`.
-- `ScenarioSummary.language` is the canonical BCP-47 language for an active experience. New
-  scenarios default to `en`; it controls Avatar response language, speech recognition, and
-  synthesis. Voice configuration language remains provider-neutral metadata and is never a fallback
-  for a Scenario language.
-- `SessionSummary.activeAvatarId` is optional; use explicit `null` only where a route contract says so.
-
-## Public Routes
-
-### Raw Exchange
-
-- `GET /health` -> basic process health check
-- `POST /v1/exchange` -> raw provider smoke-test path. Request body: `{ message: string; systemPrompt?: string; model?: { provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'; model?: string; serviceTier?: 'fast' } }`; `message` and `systemPrompt` are limited to 4000 characters and `model.model` to 200 characters. When provided, `model` is an explicit request-level selection for this exchange; `serviceTier: 'fast'` requests OpenAI Fast mode; omitted fields continue to use the configured provider/model resolution.
-  The success payload is `ApiResponse<RawExchangeResponse>` with `{ requestId, reply, model,
-inputTokens, outputTokens, latencyMs }`. The route does not guarantee `costUsd`; consumers must
-  treat cost as unavailable unless a future additive API field supplies it.
-
-`RawExchangeResponse` is owned by `packages/shared/src/raw-exchange-contract-types.ts`. The
-application use case keeps its internal `SendRawMessageOutput`, and the API route maps that output
-to the shared wire type.
-
-### Sessions
-
-- `POST /v1/sessions` -> `StartSessionRequest` -> `StartSessionResponse`
-- `GET /v1/sessions/{sessionId}` -> `GetSessionResponse`
-- `GET /v1/sessions` -> `ListSessionsResponse`
-- `POST /v1/sessions/{sessionId}/reset` -> `ResetSessionResponse`
-- `GET /v1/sessions/{sessionId}/available-avatars` -> `GetAvailableAvatarsResponse`
-- `GET /v1/sessions/{sessionId}/avatar-transitions` -> `{ sessionId: string; transitions: AvatarTransitionRecord[] }`
-
-### Conversations
-
-- `POST /v1/sessions/{sessionId}/conversations` -> `StartConversationRequest` -> `StartConversationResponse`
-- `GET /v1/sessions/{sessionId}/conversations` -> `ListSessionConversationsResponse`
-- `POST /v1/sessions/{sessionId}/switch-avatar` -> `SwitchAvatarResponse`
-- `POST /v1/sessions/{sessionId}/conversations/{conversationId}/end` -> `EndConversationRequest` -> `EndConversationResponse`
-- `POST /v1/conversations/{conversationId}/messages` -> `SendMessageRequest` -> `ApiResponse<SendMessageResponse>`
-- `POST /v1/conversations/{conversationId}/messages/stream` -> `SendMessageRequest` -> SSE
-  `MessageStreamEvent` frames
-- `POST /v1/conversations/{conversationId}/messages/{messageId}/audio` -> minimal JSON request ->
-  bounded binary audio
-- `POST /v1/conversations/{conversationId}/voice-messages` -> raw audio ->
-  `ApiResponse<SendMessageResponse>`
-- `POST /v1/conversations/{conversationId}/voice-messages/stream` -> raw audio -> SSE
-  `MessageStreamEvent` frames
-- `GET /v1/conversations/{conversationId}/history` -> `ConversationHistoryResponse`
-
-Voice message transport contract:
-
-- Both voice routes require the existing `x-api-key` header and accept a raw request body. No
-  multipart dependency or JSON voice DTO is introduced.
-- `Content-Type` must be one of `audio/flac`, `audio/mpeg`, `audio/mp4`, `audio/ogg`, `audio/wav`,
-  or `audio/webm`; media parameters such as `codecs=opus` are normalized away. The body is bounded
-  to 10,000,000 bytes, including both declared and actual-size checks.
-- `x-utterance-id` is required and must be a bounded opaque ID. `x-language` is optional and uses a
-  normalized BCP-47 tag; when the Scenario has a language, Core uses that Scenario language for
-  recognition regardless of this header. `x-audio-duration-ms` is optional, must be a positive integer, and is a
-  client-supplied validation hint bounded to 120,000 ms; provider-reported duration remains
-  authoritative when available.
-- A successful synchronous request returns the unchanged `ApiResponse<SendMessageResponse>` shape.
-  The stream uses the unchanged `MessageStreamEvent` frames and emits `started`, zero or more
-  ordered `delta` frames, then exactly one terminal `completed` or `interrupted` frame.
-- Empty, malformed, unsupported, oversized, over-duration, invalid-language, invalid-duration, or
-  missing-identity input returns `400 VALIDATION_ERROR`. Unknown conversations return `404 NOT_FOUND`.
-  Duplicate or cancelled voice work returns `409 CONFLICT`; provider timeout returns `504 TIMEOUT`,
-  rate limiting returns `429 RATE_LIMITED`, and provider rejection/failure returns `502 PROVIDER_ERROR`.
-- When `DEEPGRAM_API_KEY` is absent, valid authenticated voice requests return `502 PROVIDER_ERROR`;
-  the existing text message routes remain available and unchanged.
-- Request disconnects propagate cancellation through transcription and the existing streaming turn
-  flow. Partial Avatar content is not persisted and post-turn work is not scheduled for an
-  interrupted stream. Raw audio and transcript text are never included in API errors or logs.
-
-Completed message audio contract:
-
-- `POST /v1/conversations/{conversationId}/messages/{messageId}/audio` requires the existing
-  `x-api-key` header and accepts an optional JSON body `{ "format": "audio/wav" }`. `format` is
-  limited to the shared browser-compatible output-format union; omission defaults to `audio/wav`.
-  The body cannot select provider credentials, endpoints, voice identifiers, or provider-native
-  synthesis options.
-- A successful response is a bounded binary body, not an `ApiResponse` envelope. It returns the
-  validated `Content-Type`, exact `Content-Length`, `Content-Disposition: inline`, `X-Request-Id`,
-  `X-Message-Id`, and optional `X-Audio-Duration-Ms` headers. The response uses only the persisted,
-  cleaned Avatar `Message.content` from the requested conversation.
-- Core validates the adapter result again at the application boundary: audio must be non-empty and
-  bounded, its declared byte length must equal the observed bytes, and request/message/format
-  metadata must match the current request. The Gradium one-shot response does not currently supply
-  duration metadata, so `X-Audio-Duration-Ms` is omitted unless a configured adapter supplies it.
-- Authentication failures return `401 UNAUTHORIZED`; malformed or unsupported requests return
-  `400 VALIDATION_ERROR`; unknown conversations/messages return `404 NOT_FOUND`; non-Avatar
-  messages and missing voice configuration return `409 CONFLICT`; provider configuration,
-  availability, and malformed/oversized output return `502 PROVIDER_ERROR`; timeout returns
-  `504 TIMEOUT`; rate limiting returns `429 RATE_LIMITED`; cancellation returns `409 CONFLICT`.
-  All error responses use the standard JSON `ApiResponse` envelope.
-- Audio bytes are transient delivery data. The route reads existing conversation, Avatar, Scenario,
-  and Message records only; it does not write `messages.metadata`, create audio assets, or alter
-  text-turn, Game Master, memory, or stream-event behavior.
-- The public web client requests audio only after a completed stream event supplies the canonical
-  Avatar message ID. Playback is optional: failed requests, missing voice configuration, autoplay
-  rejection, unsupported browser formats, and cancellation preserve the displayed text and expose
-  a localized retry or status control.
-
-`StartSessionRequest` accepts an optional session-scoped `model` override and Avatar retrieval
-settings. The model override is reused for Avatar, Game Master, and memory-compaction calls in the
-session:
-
-```json
-{
-  "userId": "user_1",
-  "scenarioId": "scenario_1",
-  "model": {
-    "provider": "openai",
-    "model": "gpt-5.6-luna",
-    "serviceTier": "fast"
-  },
-  "avatarOptions": {
-    "retrieval": {
-      "maxChunks": 7,
-      "minimumChunksBySource": {
-        "gm_required_fact": 1,
-        "gm_retrieval_query": 1,
-        "last_user_input": 3
-      }
-    }
-  }
-}
-```
-
-`maxChunks` is an integer from 1 to 9 and defaults to 7. Source minimums default to 1 for GM
-sources and 3 for `last_user_input`; they are bounded by available retrieval results and the total
-chunk limit. The settings are stored on the
-session and reused for every synchronous and streaming message in that session; they are not
-changed per message.
-
-`SendMessageRequest` requires `{ message: { content: string } }` and accepts an optional additive
-`model` selection `{ provider?: 'openai' | 'anthropic' | 'mistral' | 'xai'; model?: string; serviceTier?: 'fast' }`.
-When supplied, its provider/model fields take precedence for that Avatar request only; omitted
-fields continue through the normal server model-resolution precedence. The same request shape is
-used by the streaming route. This is intended for controlled clients such as evaluation tooling,
-not as a replacement for persisted scenario or Avatar configuration.
-
-Avatar responses are cleaned before persistence and before they are returned or streamed to clients.
-Presentation-only labels or stage-direction blocks that begin a line with `*` or `**` are removed
-through their closing marker; dialogue following a leading speaker label is preserved.
-
-Message-stream contract ownership:
-
-- The message-stream request reuses `SendMessageRequest`; no parallel stream request DTO is
-  introduced.
-- Public stream events are defined by `MessageStreamEvent` in
-  `packages/shared/src/conversation-stream-contract-types.ts`.
-- Provider adapters and the application streaming use case now expose the internal streaming
-  capability behind `ILlmAdapter`; the use case persists the user before streaming, persists the
-  final avatar only after terminal completion, and leaves the user message intact on interruption.
-- The streaming route emits one `data:` JSON payload per event with `event: conversation_message`
-  over `text/event-stream`; events are emitted as `started`, zero or more monotonically sequenced
-  `delta` events, then exactly one terminal `completed` or `interrupted` event. A client/provider
-  abort never persists a partial avatar message or schedules post-turn GM/memory work. The route
-  is additive and does not change the existing JSON send-message route, which continues to return
-  `ApiResponse<SendMessageResponse>`. Public clients decode frames through the shared
-  `parseMessageStreamEvent` boundary before applying state changes. The observed provider wrapper
-  records interruption outcome and reason on the existing request trace without creating a trace
-  per delta.
-
-Voice-output contract ownership:
-
-- Provider-neutral voice configuration, client audio preferences, supported browser output formats,
-  and bounded binary delivery metadata are owned by `@gami/shared` in
-  `voice-contract-types.ts`.
-- The completed-message audio route accepts only the shared minimal `AudioDeliveryRequest`
-  (`format` optional) and maps shared delivery metadata to binary response headers. The application
-  use case owns conversation/message lookup, Avatar-message checks, voice resolution, and adapter
-  invocation; the API route owns authentication, validation, headers, and binary serialization.
-- Avatar and Scenario create requests accept optional `voiceConfig`; update requests also accept
-  `voiceConfig: null` to clear it. Omission leaves existing configuration unchanged on update.
-  Avatar voice overrides the Scenario default; absent both means no configured voice. Clients
-  cannot submit provider credentials, endpoints, provider voice identifiers, or arbitrary synthesis
-  options.
-- Scenario create/update requests accept `language` as a BCP-47 tag. Active Scenarios must have a
-  language, and the selected Scenario language is authoritative for Avatar text and audio.
-- Persisted `Message` and `MessageMetadata`, `SendMessageResponse`, and `MessageStreamEvent` remain
-  text-only and unchanged. Audio bytes are transient and are not persisted by default.
-- The TTS implementation remains an internal application port. Its infrastructure adapter returns
-  transient bytes and shared delivery metadata only; it does not alter text message persistence or
-  stream events. The completed-message audio route preserves this boundary and maps only bounded
-  metadata to response headers.
+- `POST /v1/sessions`
+- `GET /v1/sessions`, `GET /v1/sessions/{sessionId}`
+- `POST /v1/sessions/{sessionId}/reset`
+- `GET /v1/sessions/{sessionId}/available-avatars`
+- `GET /v1/sessions/{sessionId}/avatar-transitions`
+- `POST /v1/sessions/{sessionId}/conversations`
+- `GET /v1/sessions/{sessionId}/conversations`
+- `POST /v1/sessions/{sessionId}/switch-avatar`
+- `POST /v1/sessions/{sessionId}/conversations/{conversationId}/end`
+- `GET /v1/conversations/{conversationId}/history`
+- `POST /v1/conversations/{conversationId}/messages` — normal JSON turn.
+- `POST /v1/conversations/{conversationId}/messages/stream` — additive SSE turn.
+- `POST /v1/conversations/{conversationId}/voice-messages` — bounded raw-audio turn.
+- `POST /v1/conversations/{conversationId}/voice-messages/stream` — bounded raw-audio SSE turn.
+- `POST /v1/conversations/{conversationId}/messages/{messageId}/audio` — optional audio for a completed Avatar message.
 
 ### Runtime
 
-- `GET /v1/sessions/{sessionId}/runtime-state` -> `{ runtimeState: RuntimeState }`
-- `GET /v1/sessions/{sessionId}/events/stream` -> SSE runtime events
-- GM switch decisions update the session’s next active Avatar only. They do not create or close
-  conversations and do not emit a second switch event; clients use the existing
-  `POST /v1/sessions/{sessionId}/switch-avatar` mechanism to complete the conversation handoff.
+- `GET /v1/sessions/{sessionId}/runtime-state`
+- `GET /v1/sessions/{sessionId}/events/stream`
 
-### Scenarios
+### Scenarios and Avatars
 
-- `GET /v1/scenarios` -> `ListScenariosResponse`
-- `POST /v1/scenarios` -> `CreateScenarioRequest` -> `CreateScenarioResponse`
-- `GET /v1/scenarios/{scenarioId}` -> `GetScenarioResponse`
-- `PATCH /v1/scenarios/{scenarioId}` -> `UpdateScenarioRequest` -> `UpdateScenarioResponse`
-- `DELETE /v1/scenarios/{scenarioId}` -> `DeleteScenarioResponse`
-- `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` -> `PrepareAvatarTraitsResponse`
-
-### Avatars
-
-- `POST /v1/scenarios/{scenarioId}/avatars` -> `CreateAvatarRequest` -> `CreateAvatarResponse`
-- `GET /v1/scenarios/{scenarioId}/avatars` -> `ListScenarioAvatarsResponse`
-- `PATCH /v1/avatars/{avatarId}` -> `UpdateAvatarRequest` -> `UpdateAvatarResponse`
-- `DELETE /v1/avatars/{avatarId}` -> `DeleteAvatarResponse`
+- `GET|POST /v1/scenarios`
+- `GET|PATCH|DELETE /v1/scenarios/{scenarioId}`
+- `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits`
+- `POST /v1/scenarios/{scenarioId}/avatars`
+- `GET /v1/scenarios/{scenarioId}/avatars`
+- `PATCH|DELETE /v1/avatars/{avatarId}`
 
 ### Knowledge
 
-- `POST /v1/knowledge-sources` -> `CreateKnowledgeSourceRequest` -> `CreateKnowledgeSourceResponse`
-- `POST /v1/knowledge-sources/upload` -> `UploadKnowledgeSourceRequest` -> `UploadKnowledgeSourceResponse`
-- `PATCH /v1/knowledge-sources/{sourceId}` -> `UpdateKnowledgeSourceRequest` -> `UpdateKnowledgeSourceResponse`
-- `GET /v1/scenarios/{scenarioId}/knowledge-sources` -> `ListKnowledgeSourcesResponse`
-- `POST /v1/knowledge-sources/{sourceId}/ingest` -> `TriggerIngestionRequest` -> `TriggerIngestionResponse`
-- `GET /v1/knowledge-sources/{sourceId}/ingestion-jobs` -> `ListIngestionJobsResponse`
-- `GET /v1/ingestion-jobs/{ingestionJobId}` -> `GetIngestionJobResponse`
+- `POST /v1/knowledge-sources`
+- `POST /v1/knowledge-sources/upload`
+- `PATCH /v1/knowledge-sources/{sourceId}`
+- `GET /v1/scenarios/{scenarioId}/knowledge-sources`
+- `POST /v1/knowledge-sources/{sourceId}/ingest`
+- `GET /v1/knowledge-sources/{sourceId}/ingestion-jobs`
+- `GET /v1/ingestion-jobs/{ingestionJobId}`
 
-Knowledge source and retrieval contracts accept and emit exactly `avatar_knowledge`, `world`, and
-`media`. The removed `memory` value is rejected by API schema validation with the standard
-`400 VALIDATION_ERROR` envelope.
+### User persona and facts
 
-Source and chunk metadata is validated recursively at create, update, upload, and ingestion
-boundaries. Reserved keys `userId`, `sessionId`, and `conversationId` are rejected with the
-standard `400 VALIDATION_ERROR` envelope; content, vectors, and metadata values are not included
-in the error or diagnostic report. Current source statuses remain `pending`, `ready`, `error`, and
-`blocked`; retrieval eligibility continues to be enforced by the current source/corpus rules.
+- `PUT|GET /v1/users/{userId}/persona`
+- `GET /v1/users/{userId}/memory-facts`
+- `DELETE /v1/users/{userId}/memory-facts/{factId}`
 
-Typed retrieval, context snapshots, recorded retrieval sections, and diagnostic `perType` maps
-use `avatar_knowledge` as the canonical object key. Conversational memory DTOs retain their
-separate memory lifecycle names. Cross-user consistency, private-memory isolation, and lifecycle
-boundary evidence are tracked in
-[EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
+## Admin routes
 
-`TriggerIngestionRequest` accepts an optional `chunkSize` integer from 100 to 10000. It controls
-the target character size for that asynchronous ingestion job, is persisted for retries, and keeps
-the default 1500-character target when omitted.
-
-### Knowledge Reindex Operations
-
-These authenticated operator routes use the standard `ApiResponse<T>` envelope and expose only
-bounded operation/source diagnostics; they never return source content, vectors, credentials, or
-provider payloads.
-
-- `POST /v1/admin/knowledge/reindex` -> `StartKnowledgeReindexResponse`; accepts only an empty
-  JSON object and returns `202` when started/reused or `200` when the configured profile is already
-  active.
-- `GET /v1/admin/knowledge/reindex/{reindexOperationId}` -> `GetKnowledgeReindexResponse`; returns
-  `404 NOT_FOUND` for an unknown operation.
-- `POST /v1/admin/knowledge/reindex/{reindexOperationId}/retry` -> `RetryKnowledgeReindexResponse`;
-  accepts only an empty JSON object, returns `202`, `404 NOT_FOUND` for an unknown operation, and
-  `409 CONFLICT` unless the operation is failed.
-
-All three routes require `x-api-key`. Invalid bodies or path parameters return `400
-VALIDATION_ERROR`. Reindex status is asynchronous: the active corpus remains unchanged until all
-snapshotted sources validate and promotion commits atomically.
-
-The shared reindex projections are:
-
-- `KnowledgeReindexOperationDto`: `reindexOperationId`, `corpusGenerationId`,
-  `embeddingProfileId`, `profile { provider, model, dimensions }`, `status`, `attempts`,
-  `expectedSourceCount`, `completedSourceCount`, `createdAt`, optional `startedAt`,
-  `completedAt`, and bounded optional `failureDetails`.
-- `KnowledgeReindexSourceProgressDto`: `reindexOperationId`, `sourceId`, `status`, `attempts`,
-  `completedChunkCount`, optional `expectedChunkCount`, optional timestamps, and bounded optional
-  `failureDetails`.
-
-These projections are the only public profile/reindex identity surface. Vectors, source content,
-credentials, raw provider payloads, and persistence rows remain internal.
-
-### User Persona And Memory
-
-- `PUT /v1/users/{userId}/persona` -> `UpsertUserPersonaRequest` -> `UpsertUserPersonaResponse`
-- `GET /v1/users/{userId}/persona` -> `UserPersonaResponse`
-- `GET /v1/users/{userId}/memory-facts` -> user fact list
-- `DELETE /v1/users/{userId}/memory-facts/{factId}` -> fact deletion result
-
-## Admin Routes
-
-All admin endpoints live under `/v1/admin/*`.
-
-### Health And Model Configuration
+All admin routes use `/v1/admin/*` and the same API key in Phase A.
 
 - `GET /v1/admin/health`
-- `GET /v1/admin/model-config` -> effective global/role config
-- `PUT /v1/admin/model-config` -> update global default plus optional role overrides
-
-### Session Inspection
-
-- `GET /v1/admin/sessions/{sessionId}/inspect` -> session, GM state, transition history, unlocks, notes, effective models
-- `GET /v1/admin/sessions/{sessionId}/events` -> safe event-log view
-- `GET /v1/admin/sessions/{sessionId}/context` -> bounded `avatarContext`, `gmContext`, and `contextTrace`
+- `GET|PUT /v1/admin/model-config`
+- `GET /v1/admin/sessions/{sessionId}/inspect`
+- `GET /v1/admin/sessions/{sessionId}/events`
+- `GET /v1/admin/sessions/{sessionId}/context`
 - `GET /v1/admin/sessions/{sessionId}/metrics`
 - `GET /v1/admin/sessions/{sessionId}/memory`
-- `GET /v1/admin/sessions/{sessionId}/memory-layers` -> `SessionMemoryLayers`; the layered response
-  includes `userId`, `sessionId`, and active `conversationId`/conversation-owned records where
-  available. Its short-term exchanges, conversation working memory, episodic memories, and
-  long-term user facts are conversational state, not static retrieval results.
-
-### Runtime Actions
-
+- `GET /v1/admin/sessions/{sessionId}/memory-layers`
 - `POST /v1/admin/sessions/{sessionId}/gm/replay`
 - `POST /v1/admin/sessions/{sessionId}/memory/refresh`
 - `POST /v1/admin/sessions/{sessionId}/memory/clear`
+- `POST /v1/admin/knowledge/retrieval`
+- `POST /v1/admin/knowledge/reindex`
+- `GET /v1/admin/knowledge/reindex/{reindexOperationId}`
+- `POST /v1/admin/knowledge/reindex/{reindexOperationId}/retry`
 
-### Knowledge Diagnostics
+Admin projections are bounded and must not expose raw prompts, secrets, raw audio, raw vectors,
+provider payloads, or unbounded transcript content.
 
-- `POST /v1/admin/knowledge/retrieval` -> `QueryKnowledgeRetrievalResponse`; an omitted
-  `activeAvatarId` requests the unrestricted GM diagnostic view, while an explicit avatar ID
-  applies avatar visibility filtering. The response trace includes the query variants used and
-  each result may include its matched query source/text and query index. Additive retrieval
-  diagnostics are owned by `@gami/shared`: safe embedding profile identity, bounded timings,
-  query-vector/candidate/selected/excluded counts, duplicate and selection-exclusion counts when
-  available, visibility mode, outcome/failure code, and
-  optional normalized cosine `similarity`. Similarity is `1 - distance`; clamping and rounding are
-  applied only at the presenter boundary. Raw cosine distance remains an internal repository
-  diagnostic and is not part of public or recorded retrieval references. The trace also carries
-  explicit `gmUnrestricted` state; it is never inferred from an absent avatar ID. No raw vectors are
-  exposed.
+## Stable invariants
 
-The request is intentionally scenario-shared:
+### Conversation turns
 
-```json
-{
-  "scenarioId": "scenario_1",
-  "query": "harbor rules",
-  "activeAvatarId": "avatar_1",
-  "limitPerType": 3
-}
-```
+- Avatar responds directly; GM and memory work start only after successful completion.
+- JSON turns return `ApiResponse<SendMessageResponse>`.
+- Streams emit `started`, ordered `delta` frames, then exactly one `completed` or `interrupted` terminal frame.
+- An interrupted stream keeps the user message, discards partial Avatar content, and skips post-turn work.
+- Avatar text is cleaned before persistence and delivery; clients must not invent a second cleanup policy.
 
-`sessionId`, `userId`, and `conversationId` are not accepted retrieval fields. Conversational
-memory is selected through its existing lifecycle repositories and is never a static RAG filter or
-ranking input. `activeAvatarId` controls Avatar visibility only; the Game Master bypass does not skip
-scenario, type, readiness, active-corpus, or metadata validity constraints.
+### Voice and audio
 
-Runtime `turn_completed` event retrieval references include the selected chunk content and matched
-query source/text so the console can inspect the exact knowledge passed to the Avatar prompt. GM
-events include the retrieval plan's required flag, proposed queries, and required facts. When a
-subsequent Avatar turn consumes that plan, its `turn_completed` event records the source turn and
-plan contents so the console can show which proposals produced matching chunks. Recorded retrieval
-references may carry the same safe query-index, similarity, and trace diagnostics; their
-shared DTO deliberately omits metadata and raw vectors.
+- Voice input is raw bounded audio with an utterance identity; it reuses the existing turn flow.
+- Missing provider configuration makes voice unavailable but does not affect text routes.
+- Audio playback is requested only after a completed text message. Audio bytes are transient and never change message/GM/memory behavior.
+- Provider credentials, voice IDs, and provider-native options are not public fields.
 
-The `turn_completed.contextSelection` projection additionally reports the canonical bounded
-`retrievalTrace` and `contextEngineSelection` kept/trimmed segment counts. The session-context
-inspection trace reports the same retrieval trace under `selectedInputs.retrieval` alongside the
-existing final selection `kept` and `trimmed` entries. These fields are optional because not every
-current event carries every diagnostic. Retrieval candidate counts describe rows returned after SQL eligibility
-filters; `duplicateCount` describes multi-query chunk deduplication and
-`selectionExcludedCount` describes bounded retrieval selection drops. No expensive excluded-row
-count is inferred when the repository does not provide one.
+### Content and model selection
 
-The nearest-neighbor repository request/result is an internal Application/Infrastructure contract,
-not an HTTP DTO. Public and recorded projections continue to expose only deliberate bounded
-diagnostics; vectors, provider payloads, and full persistence rows remain internal. Repository
-cosine distance is lower-is-better, while public similarity is derived as `1 - distance` and
-clamped/rounded only by presenters.
+- Active Scenarios require canonical language; active Avatars require prepared traits.
+- Static knowledge accepts only `avatar_knowledge`, `world`, and `media`. `memory` is invalid.
+- `visibilityPolicy` is explicit. Avatar retrieval filters visibility; GM retrieval can request an explicit unrestricted view but still enforces scenario/type/readiness/corpus rules.
+- Static retrieval accepts scenario/query/visibility inputs only; user/session/conversation scope is conversational memory, not a RAG filter.
+- Model/provider pairs come from the shared catalog. Runtime precedence is session override, then Avatar/Scenario/role/global configuration as defined by the model-resolution service.
 
-## Route-Specific Invariants
+### Diagnostics and evolution
 
-### Scenario And Avatar Model Selection
-
-- Scenario `modelSelection` must contain `defaultProfile` or `gameMasterOverride` when present.
-- Avatar `llmOverride`, when provided as an object, requires both `provider` and `model`.
-- `modelSelection: null` clears stored scenario-level model selection.
-- `llmOverride: null` clears the stored avatar override.
-- Provider/model pairs must come from the canonical catalog in `packages/shared/src/model-catalog.ts`.
-
-Runtime precedence:
-
-- Avatar runtime: `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` -> global avatar override -> global default
-- When a session `model` override is present, it takes precedence for all three runtime roles,
-  including over per-message Avatar model overrides.
-- Avatar runtime without a session override: request `model` -> `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` -> global avatar override -> global default
-- GM runtime without a session override: `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` -> global GM override -> global default
-- Memory runtime without a session override: scenario memory/default profile -> global memory override -> global default
-
-### Avatar Trait Preparation
-
-- `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` is explicit and synchronous.
-- The route accepts no request body; any JSON body returns `400 VALIDATION_ERROR`.
-- One failed avatar preparation must not fail the whole scenario batch.
-- A transient provider failure is returned as a per-avatar `failed` result with reason
-  `provider_unavailable`; authentication, malformed-output, and persistence failures retain
-  their distinct reasons.
-- Preparation overwrites `computedTraits` only; it never edits authored avatar fields.
-
-### Knowledge Visibility
-
-- `KnowledgeVisibilityPolicy` is `'all' | 'avatars' | 'none'`.
-- `'none'` means GM-only: excluded from avatar retrieval, still visible to GM/debug paths where explicitly allowed.
-- `visibilityPolicy` is required on every source create/upload request. Providing
-  `visibleToAvatarIds` on an update also requires an explicit policy; IDs never infer one.
-- `'all'` or `'none'` clears any provided `visibleToAvatarIds`.
-- `'avatars'` requires at least one avatar ID after trimming.
-
-### Knowledge Upload And Update
-
-- Upload accepts `.pdf`, `.txt`, and `.text` only.
-- Upload `content` is base64-encoded file bytes; extracted text is stored as `metadata.inlineText`.
-- Max upload size is approximately 14 MB base64 / 10 MB raw.
-- For updates, `content` and `filename` must be provided together.
-- File replacement cannot be combined with direct `metadata` or `uriOrPath` edits in the same request.
-- Replacing inline text or file content resets the source status to `pending`.
-
-### Runtime Diagnostics
-
-- Admin event payloads may include counts, flags, latency, effective models, and bounded selection metadata.
-- Admin event payloads must not include raw prompt text, secrets, or unbounded transcript content.
-- Session context is a bounded current snapshot, not a replay of a specific historical turn.
-- Session, Conversation, and Message response projections use the shared entity contracts; Core maps
-  domain entities at the application boundary rather than exposing persistence rows.
-- Current GM state projections expose only progression and interaction count; covered topics are
-  exposed only under memory-owned working-memory sections.
-- Admin context and recorded GM context keep `conversationState` and `retrievedContext` as separate
-  projections. Conversation state contains bounded messages/exchanges, working memory, episodic
-  memories, and long-term facts. Retrieved context contains only static `avatar_knowledge`, `world`,
-  and `media` items with source/chunk provenance; it is never emitted as conversational memory.
-
-## Validation And Status Rules
-
-- Message content must be non-empty after trimming and stay within route-specific limits.
-- Config fields are JSON objects, never JSON-encoded strings.
-- Success statuses: `200`, `201`, `202`, `204`
-- Common error statuses: `400`, `401`, `403`, `404`, `409`, `429`, `500`, `502`, `503`, `504`
-
-## Evolution Rules
-
-- Prefer additive changes.
-- Do not silently change field meaning.
-- Keep public payloads thinner than internal runtime state.
-- Reuse canonical shared DTOs instead of re-declaring route-local variants.
+- Retrieval similarity is a presenter-level normalized value; raw distance remains internal.
+- Context projections separate `conversationState` from `retrievedContext`.
+- Prefer additive changes, preserve field meaning, and update shared DTOs plus consumer tests together.

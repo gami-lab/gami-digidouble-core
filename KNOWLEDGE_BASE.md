@@ -1,65 +1,24 @@
-# Knowledge Base — Gami DigiDouble Core
+# Repository orientation
 
-Quick reference for AI agents and contributors. Use this to orient yourself in the codebase and find the right documentation.
+This file is a compatibility entry point for agents and contributors. The maintained context map is
+[docs/README.md](docs/README.md).
 
----
+## Fast orientation
 
-## What This Project Is
+- Project identity and boundaries: [docs/VISION.md](docs/VISION.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Decision rules: [docs/PRINCIPLES.md](docs/PRINCIPLES.md)
+- Current stack and provider boundaries: [docs/TECH_STACK.md](docs/TECH_STACK.md)
+- Public contracts: [docs/API_CONTRACT.md](docs/API_CONTRACT.md)
+- Persistence ownership: [docs/DATA_MODEL.md](docs/DATA_MODEL.md)
+- Current capabilities/backlog: [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md), [docs/EPICS.md](docs/EPICS.md)
+- Testing: [docs/TEST_STRATEGY.md](docs/TEST_STRATEGY.md), [docs/TEST_COVERAGE_PLAN.md](docs/TEST_COVERAGE_PLAN.md)
+- Agent workflow: [AGENTS.md](AGENTS.md)
 
-**Gami DigiDouble Core** is a headless orchestration engine for AI-driven, adaptive conversations.
-It is a **platform layer** (not an app), consumed via REST/WebSocket API by products that need interactive, persona-driven conversational experiences.
+## Non-negotiables
 
-The core coordinates two AI agents:
+Core is a TypeScript modular monolith: `API -> Application -> Domain -> Infrastructure`.
+Avatar responses are direct; GM and memory work are asynchronous. Provider SDKs stay behind
+internal ports. Static knowledge (`avatar_knowledge`, `world`, `media`) is separate from
+conversational memory. External input is validated at the API boundary.
 
-- **Avatar** — answers the user directly, has a persona and memory
-- **Game Master (GM)** — runs async in the background, orchestrates the experience without blocking responses
-
----
-
-## Documentation Map
-
-### Where to Look for What
-
-| Question                                                   | Document                                                     |
-| ---------------------------------------------------------- | ------------------------------------------------------------ |
-| What is this project trying to achieve?                    | [docs/VISION.md](docs/VISION.md)                             |
-| What principles govern every decision?                     | [docs/PRINCIPLES.md](docs/PRINCIPLES.md)                     |
-| How is the codebase structured? (layers, modules, flows)   | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                 |
-| What does the database look like? (entities, schemas)      | [docs/DATA_MODEL.md](docs/DATA_MODEL.md)                     |
-| What API endpoints exist and what do they return?          | [docs/API_CONTRACT.md](docs/API_CONTRACT.md)                 |
-| How do I use the API? (curl examples, integration flow)    | [API_GUIDE.md](API_GUIDE.md)                                 |
-| How does the Game Master work? (inputs, outputs, triggers) | [docs/GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md) |
-| What technologies are used and why?                        | [docs/TECH_STACK.md](docs/TECH_STACK.md)                     |
-| What has been built already?                               | [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)             |
-| What is planned and in which sprint?                       | [docs/EPICS.md](docs/EPICS.md)                               |
-| How should tests be written?                               | [docs/TEST_STRATEGY.md](docs/TEST_STRATEGY.md)               |
-| How to work on this repo as an agent?                      | [AGENTS.md](AGENTS.md)                                       |
-
----
-
-## Key Facts
-
-- **Language:** TypeScript (strict mode), Node.js LTS
-- **API:** Fastify, REST + WebSocket, all endpoints under `/v1`, authenticated with `x-api-key`
-- **Database:** PostgreSQL + pgvector (single datastore); Redis for sessions and cache
-- **LLM:** Provider-agnostic — all LLM calls go through an internal abstraction layer
-- **Deployment:** Docker Compose (3 containers: app, PostgreSQL, Redis)
-- **No LangChain / LangGraph** — orchestration is owned, not delegated to a framework
-- **Current Phase:** Phase A (MVP), April–July 2026 — EPICs 1.1, 1.2, 2.1, 2.2, 2.3, and 2.4 complete
-
----
-
-## Core Architecture in One Paragraph
-
-The engine uses a **4-layer modular monolith**: API → Application → Domain → Infrastructure. User messages enter via Fastify, get validated, then pass through use cases that coordinate domain modules (Avatar, Game Master, Memory, Context Manager, Knowledge). The Avatar generates responses synchronously for low latency; the Game Master processes the turn asynchronously to decide on interventions for future turns. All LLM, database, and observability calls are isolated in the Infrastructure layer behind adapter interfaces.
-
----
-
-## Most Important Constraints (Never Violate)
-
-1. The Game Master must **never block** the Avatar response
-2. All LLM provider calls must go through the **internal abstraction layer**
-3. No direct infrastructure access from Domain or Application logic
-4. API responses always use the standard `ApiResponse<T>` envelope
-5. TypeScript strict mode — no `any`, no implicit types
-6. Do not build Phase B/C features during Phase A — keep the core small
+Do not duplicate these rules or code-level details here; update the canonical document instead.

@@ -1,191 +1,70 @@
-# Agent Instructions — Gami DigiDouble Core
+# Agent instructions
 
-This file provides instructions and conventions for any AI coding agent working on this repository.
-**Read this file before writing any code.**
+These instructions apply to AI coding agents working in Gami DigiDouble Core. Read
+[docs/README.md](docs/README.md) and the relevant source-of-truth docs before changing code.
 
-## 1. Think Before Coding
+## Think before coding
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+- State assumptions and success criteria. Surface ambiguity or meaningful trade-offs before acting.
+- Prefer the smallest solution that satisfies the request. Do not add speculative features, abstractions, dependencies, or error paths.
+- Make surgical changes and preserve unrelated user work. Do not reformat or refactor adjacent code without a direct reason.
+- For a multi-step change, state a short plan and verify each step.
 
-Before implementing:
+## Project boundaries
 
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+Core is a headless platform layer, not an application. It is a TypeScript strict-mode modular
+monolith with this direction:
 
-## 2. Simplicity First
+`API -> Application -> Domain -> Infrastructure`
 
-**Minimum code that solves the problem. Nothing speculative.**
+- API owns authentication, input validation, route schemas, mapping, and serialization.
+- Application owns use cases, orchestration order, transactions, and ports.
+- Domain owns entities, policies, deterministic selection, and typed failures.
+- Infrastructure owns PostgreSQL/pgvector, Redis, provider adapters, and observability implementations.
 
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
+`packages/shared` owns public/shared DTOs. Frontend apps and tools consume HTTP/SSE and do not import
+Core domain or infrastructure modules.
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+## Non-negotiables
 
-## 3. Surgical Changes
+- Runtime: Node.js LTS, strict TypeScript, pnpm workspaces, Turborepo.
+- API: Fastify. Validate every external input at the API boundary.
+- Persistence: PostgreSQL/pgvector and Redis; do not add another datastore without measured need.
+- LLM, embedding, speech, and TTS providers are accessed only through internal ports/adapters.
+- Avatar responds directly. Game Master and memory maintenance are asynchronous and must not block the normal turn.
+- Keep static knowledge separate from conversational memory.
+- Keep diagnostics bounded; never expose secrets, raw prompts, provider payloads, raw vectors, raw audio, or unbounded transcripts.
+- Do not add LangChain/LangGraph or microservices to Phase A without explicit architectural approval.
 
-**Touch only what you must. Clean up only your own mess.**
+## Required documentation checks
 
-When editing existing code:
+- Architecture/module/flow change: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Design decision: [docs/PRINCIPLES.md](docs/PRINCIPLES.md)
+- Schema/repository change: [docs/DATA_MODEL.md](docs/DATA_MODEL.md)
+- API change: [docs/API_CONTRACT.md](docs/API_CONTRACT.md)
+- GM change: [docs/GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md)
+- Stack/dependency change: [docs/TECH_STACK.md](docs/TECH_STACK.md)
+- Test change: [docs/TEST_STRATEGY.md](docs/TEST_STRATEGY.md) and [docs/TEST_COVERAGE_PLAN.md](docs/TEST_COVERAGE_PLAN.md)
+- Shipped/backlog change: [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) and [docs/EPICS.md](docs/EPICS.md)
 
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
+Update only the durable document affected by the change. Keep implementation history in commits,
+tests, and CI rather than copying it into docs.
 
-When your changes create orphans:
+## Testing
 
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
+- Unit-test domain logic deterministically with no provider calls.
+- Integration-test repositories, adapters, and application composition.
+- Use E2E only for critical user flows; use stack E2E for real infrastructure boundaries.
+- Test contracts, ownership, ordering, redaction, and failure handling—not writing quality.
+- Every bug fix gets a regression test at the boundary that exposed it.
 
-The test: Every changed line should trace directly to the user's request.
+## Workflow and git
 
-## 4. Goal-Driven Execution
+1. Check current status and relevant epic.
+2. Implement the minimal change with tests.
+3. Run the narrowest relevant checks, then format/lint/typecheck/test/build as appropriate.
+4. Review `git diff`, `git diff --check`, and `git status` before handoff.
 
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-## Project Identity
-
-**Gami DigiDouble Core** is a headless orchestration engine for interactive, conversational experiences.
-It is **not an application** — it is a platform layer consumed via API by multiple products.
-
-The engine coordinates two AI agents: an **Avatar** (the conversational actor) and a **Game Master** (the asynchronous director).
-
----
-
-## Mandatory Documentation to Read First
-
-Before implementing any feature or making any architectural decision, consult the relevant documentation in `docs/`:
-
-| Document                                                | When to Read                                                  |
-| ------------------------------------------------------- | ------------------------------------------------------------- |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Before touching any module structure, layers, or flow         |
-| [PRINCIPLES.md](docs/PRINCIPLES.md)                     | Before any design decision — 19 principles govern all choices |
-| [DATA_MODEL.md](docs/DATA_MODEL.md)                     | Before writing any DB schema, entity, or repository           |
-| [API_CONTRACT.md](docs/API_CONTRACT.md)                 | Before adding or modifying any API endpoint                   |
-| [GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md) | Before touching the Game Master module                        |
-| [TECH_STACK.md](docs/TECH_STACK.md)                     | Before adding any dependency or infrastructure change         |
-| [EPICS.md](docs/EPICS.md)                               | For understanding which sprint/epic a task belongs to         |
-| [TEST_STRATEGY.md](docs/TEST_STRATEGY.md)               | Before writing or deciding on tests (how to design tests)     |
-| [TEST_COVERAGE_PLAN.md](docs/TEST_COVERAGE_PLAN.md)     | Before implementing a module (what must be tested per module) |
-| [PROJECT_STATUS.md](docs/PROJECT_STATUS.md)             | For the current state of implemented features                 |
-
----
-
-## Non-Negotiable Architectural Rules
-
-These derive directly from the project principles and must not be violated:
-
-### Technology
-
-- **Runtime:** Node.js (LTS) + TypeScript in strict mode — no exceptions
-- **Monorepo:** pnpm + Turborepo
-- **API:** Fastify only for HTTP and WebSocket
-- **Database:** PostgreSQL + pgvector; **Redis** for sessions and cache
-- **No LangChain / LangGraph** in Phase A — owned orchestration only
-- **LLM providers** must be accessed exclusively through the internal abstraction layer — never call provider SDKs directly from business logic
-
-### Architecture
-
-- Respect the 4-layer architecture: **API → Application → Domain → Infrastructure**
-- No cross-layer shortcuts. Infrastructure code never in Domain; Domain never in API handlers
-- Each module has one clear responsibility (see [ARCHITECTURE.md](docs/ARCHITECTURE.md))
-- The Game Master is always **async and non-blocking** — it must not delay the Avatar's response
-- The Avatar answers the user directly without waiting for GM validation on normal turns
-
-### Code Quality
-
-- TypeScript strict mode — no `any`, no implicit types
-- All external inputs (user messages, API payloads) must be validated at the API boundary
-- Errors must use the standard `ApiResponse<T>` envelope (see [API_CONTRACT.md](docs/API_CONTRACT.md))
-- No hard-coded LLM provider names, model IDs, or credentials in business logic
-- Observability (request ID, latency, token usage) must be recorded from day one — never skip instrumentation
-
----
-
-## Module Map
-
-```
-src/
-  api/          → Fastify routes, handlers, validation, serialization
-  application/  → Use cases (StartSession, SendMessage, ResetSession, …)
-  domain/
-    conversation/   → Session and message logic
-    avatar/         → Persona configuration, response generation
-    game-master/    → Trigger logic, state management, guidance injection
-    memory/         → Session summary + persistent user facts
-    context/        → Context assembly (memory + scenario + knowledge)
-    knowledge/      → Ingestion, chunking, embeddings, RAG retrieval
-    scenario/       → Config-driven experience templates
-  infrastructure/
-    db/         → PostgreSQL repositories (pgvector included)
-    cache/      → Redis adapters
-    llm/        → Provider abstraction layer + adapters
-    observability/ → Langfuse wrapper, logging, metrics
-```
-
----
-
-## Testing Rules
-
-Follow the strategy defined in [TEST_STRATEGY.md](docs/TEST_STRATEGY.md):
-
-1. **Unit tests** for all domain logic (Game Master triggers, memory rules, context selection, token budgeting) — these must be deterministic, no LLM calls
-2. **Integration tests** for API endpoints, repositories, and the knowledge pipeline
-3. **E2E tests** only for the critical flows (start → message → history, streaming, reset)
-4. **AI regression tests** for conversation quality (coherence, persona, memory continuity)
-5. Never test writing quality; test structure, contracts, and error handling
-6. Protect API contracts aggressively — any endpoint shape change requires updating [API_CONTRACT.md](docs/API_CONTRACT.md)
-
----
-
-## Development Workflow
-
-1. Check [PROJECT_STATUS.md](docs/PROJECT_STATUS.md) to understand what is already built
-2. Work only inside the scope of the targeted epic (see [EPICS.md](docs/EPICS.md))
-3. Do not add dependencies not listed in [TECH_STACK.md](docs/TECH_STACK.md) without explicit justification
-4. Do not build Phase B or C features during Phase A — keep the core small
-5. Always update [PROJECT_STATUS.md](docs/PROJECT_STATUS.md) when a feature or epic is completed
-
----
-
-## Git Conventions
-
-- Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
-- Commit messages must reference the epic when applicable (e.g., `feat(avatar): implement persona prompt assembly [EPIC-2.1]`)
-- Never commit secrets, `.env` files, or provider credentials
-
----
-
-## Key Design Decisions (Do Not Revisit Without Good Reason)
-
-| Decision                                     | Rationale                                                |
-| -------------------------------------------- | -------------------------------------------------------- |
-| Modular monolith over microservices          | Simpler for MVP; boundaries enforced by module structure |
-| Custom orchestration over LangChain          | Full control, no hidden abstractions, easier debugging   |
-| Avatar answers first, GM async               | Latency is critical; blocking on GM would degrade UX     |
-| PostgreSQL + pgvector, no separate vector DB | Single datastore for MVP reduces operational complexity  |
-| API key auth for Phase A                     | Simplest viable auth; OAuth deferred to Phase B/C        |
-| Langfuse for observability                   | Self-hosted, LLM-native, wrapped behind abstraction      |
+Use Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`), with an epic
+reference when applicable. Never commit secrets, `.env` files, or generated artifacts. Use
+`apply_patch` for local file edits and preserve pre-existing changes.

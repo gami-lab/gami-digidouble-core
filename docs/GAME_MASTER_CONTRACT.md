@@ -1,362 +1,68 @@
-# Game Master Contract
+# Game Master contract
 
-## Purpose
+The Game Master (GM) is the asynchronous director of an experience. It observes completed Avatar
+turns and prepares safe guidance for future turns. It never blocks the normal Avatar response.
 
-Define the stable runtime contract for the MVP Game Master.
+## Non-negotiables
 
-The Game Master is an async director, not a chat responder. It observes the runtime, updates lightweight orchestration state, and supplies guidance without blocking the normal avatar reply path.
+- Run after a completed Avatar turn, on session start when configured, or by explicit admin replay.
+- Do not run post-turn GM work after an interrupted stream or failed Avatar completion.
+- Keep routing/lifecycle ownership in the session/conversation application use cases.
+- Treat model output as untrusted. Parse a strict current shape, validate all references, and ignore invalid actions safely.
+- Persist bounded current orchestration state and safe diagnostics; never persist raw prompts, raw model output, or user text in events.
+- Keep static retrieved context separate from conversational memory.
 
-## Core Role
+## Runtime inputs
 
-- Avatar speaks directly to the user.
-- Game Master runs in the background during normal conversation.
-- GM can choose, unlock, suggest, or switch avatars; inject guidance notes; and update progression state.
-- GM owns orchestration decisions, not tone or final wording.
+GM input is a bounded projection of:
 
-Terms:
+- scenario language, goals, rules, and active Avatar roster
+- session active Avatar, available/unlocked Avatars, and transition state
+- the completed turn and bounded conversation state
+- working/episodic/user memory projections
+- scenario knowledge retrieval, with explicit unrestricted visibility for GM when needed
+- pending guidance from the previous GM turn, consumed at most once
 
-- `session`: one experience run
-- `conversation`: one bounded avatar dialogue episode inside a session
+The exact input DTO and prompt rendering are code-owned. The contract is the ownership and safety
+boundary, not a template to copy into another layer.
 
-## Non-Negotiable Rules
+## Runtime output
 
-- GM must not block the normal avatar response path.
-- GM produces structured decisions; API/application layers translate them into persistence and runtime events.
-- If the avatar can handle a decision alone, GM should not own it.
-- GM input and output contracts stay stable even if prompt wording changes.
-- Runtime diagnostics must be safe: no raw prompts, secrets, or unbounded transcript replay.
+The current output contains only structured, validated decisions:
 
-## Turn Pipeline
+- director notes for the next Avatar turn
+- progression update
+- optional dialogue-control guidance
+- optional next-turn retrieval queries and required facts
+- optional routing proposal and unlock proposal
+- bounded orchestration state update
 
-### Session Start
+The parser rejects missing required current fields and obsolete/legacy shapes. Empty or invalid
+proposals are ignored or reduced to a safe `stay` outcome; they cannot mutate lifecycle state.
 
-1. Session is created.
-2. GM may run synchronously to choose opening guidance or the initial avatar.
-3. First conversation is started by policy or client action.
+## Routing and progression
 
-### Normal Turn
+- A GM routing proposal may update the session’s next active Avatar after validation.
+- It does not create, close, or switch a conversation by itself.
+- Repeating the current Avatar is not a switch.
+- The explicit session switch use case owns conversation handoff and emits the canonical transition.
+- Completed exchange count is incremented by application code exactly once, not by GM success/failure.
 
-1. User message is received.
-2. Avatar responds immediately.
-3. Messages are persisted.
-4. GM runs asynchronously after a successfully completed avatar turn, whether the avatar reply
-   was delivered as JSON or as a completed message stream.
-5. GM input is built from bounded recent messages, GM state, scenario context, user persona, memory, retrieval, and avatar availability.
-6. GM output is parsed, normalized, validated, reduced into state, and persisted.
-7. Safe runtime events are emitted.
-8. GM failures are caught and logged without affecting the user reply.
+## Retrieval guidance
 
-An interrupted message stream is not a completed avatar turn: it keeps the persisted user message,
-does not persist partial avatar content, and does not trigger post-turn GM work.
-
-## Runtime Input Contract
-
-```ts
-type GameMasterInput = {
-  session: {
-    sessionId: string
-    turnIndex: number
-    activeAvatarId: string
-  }
-  userMessage: {
-    text: string
-  }
-  state: GameMasterState
-  context: {
-    userPersona?: {
-      name?: string
-      roleInWorld?: string
-      avatarRelationships?: string[]
-      dialogGuidance?: string
-    }
-    conversationState: {
-      recentMessages: Array<{
-        role: 'user' | 'avatar' | 'system'
-        content: string
-      }>
-      recentExchanges: Array<{ user: string; avatar: string }>
-      workingMemory?: {
-        summary: string
-        unresolvedThreads: string[]
-        coveredTopics: string[]
-      }
-      episodicMemories: Array<{
-        memoryId: string
-        conversationId: string
-        summary: string
-        keyDiscoveries: string[]
-        unresolvedTopics: string[]
-        createdAt: string
-        selectionReasons: Array<
-          'recency' | 'relevance' | 'continuity' | 'unresolved_topic' | 'working_memory'
-        >
-        score: number
-      }>
-      longTermFacts: Array<{
-        category: string
-        key: string
-        value: string
-      }>
-    }
-    retrievedContext?: {
-      avatar_knowledge?: Array<{
-        sourceId: string
-        chunkId: string
-        knowledgeType: 'avatar_knowledge'
-        content: string
-        similarity?: number
-      }>
-      world?: Array<{
-        sourceId: string
-        chunkId: string
-        knowledgeType: 'world'
-        content: string
-        similarity?: number
-      }>
-      media?: Array<{
-        sourceId: string
-        chunkId: string
-        knowledgeType: 'media'
-        content: string
-        similarity?: number
-      }>
-    }
-    experience: {
-      scenarioId: string
-      description?: string
-      goals?: string[]
-    }
-    availableAvatars: Array<{
-      avatarId: string
-      name: string
-      description?: string
-      scope?: string
-      availability?: 'available' | 'locked'
-    }>
-  }
-}
-```
-
-Input invariants:
-
-- `GameMasterInput` is the only runtime input contract for GM evaluation.
-- `context.conversationState.recentMessages` and `recentExchanges` are bounded short-term context, not transcript replay.
-- `session.activeAvatarId` is the authoritative active Avatar ID for the current GM run; it is not stored in `GameMasterState`.
-- `context.conversationState` is the only location for conversational memory. Working memory is
-  represented by its current layered projection only.
-- `context.retrievedContext` contains only static knowledge with source/chunk/type provenance. It is never treated as memory or as a fact-extraction input.
-- Avatar retrieval may be visibility-filtered, but GM retrieval remains unrestricted only through
-  the explicit `gm_unrestricted` retrieval mode; a missing active avatar is not itself an
-  authorization bypass.
-- The GM projection is tested against the same separation contract as Avatar: conversational
-  memory appears only under `conversationState`, static scenario knowledge appears only under
-  `retrievedContext`, and GM bypass does not remove scenario, type, readiness, or active-corpus
-  filters. See [EPIC_4_2D_REQUIREMENTS_MATRIX.md](EPIC_4_2D_REQUIREMENTS_MATRIX.md).
-
-## Runtime Output Contract
-
-```ts
-type GameMasterOutput = {
-  dialogueControl: {
-    mode: 'user_led' | 'avatar_guided' | 'avatar_led' | 'repair' | 'transition'
-    askFollowUp: boolean
-  }
-  retrievalPlan: {
-    required: boolean
-    queries?: string[]
-    requiredFacts?: string[]
-    scopes?: Array<'avatar_memory' | 'world_context' | 'scenario_knowledge'>
-  }
-  directorNotes: string
-  routing?: {
-    action: 'stay' | 'suggest' | 'switch' | 'unlock' | 'unlock_and_switch'
-    avatarId?: string
-    reason?: string
-    unlockDecisions?: Array<{
-      avatarId: string
-      reason: string
-    }>
-  }
-  progressionUpdate: {
-    progression: 'none' | 'increase'
-    objectiveId?: string
-    reason?: string
-  }
-}
-```
-
-Output invariants:
-
-- `GameMasterOutput` is the canonical runtime output contract.
-- `dialogueControl.askFollowUp` must always be stated explicitly by the GM; it is never inferred from `mode` alone.
-- `dialogueControl`, `retrievalPlan`, `directorNotes`, and `progressionUpdate` are required in
-  current GM responses. `directorNotes` must be non-empty. `progressionUpdate.progression` is
-  `none` when no progression change is needed. The parser rejects omitted or malformed required
-  fields.
-  `retrievalPlan.required` should be false only for greetings, purely emotional or subjective
-  reflection, or purely stylistic guidance where no factual, narrative, or character context
-  would improve the next turn.
-- The GM does not perform retrieval — `retrievalPlan` prepares queries and required facts for the next Avatar turn, and the Avatar pipeline uses both to select RAG chunks. Retrieval execution remains an Avatar-pipeline responsibility shared with the explicit `gm_unrestricted` diagnostic/context mode. Provider or vector-search failure yields bounded empty context and does not block the Avatar response; when the plan is required, the Avatar receives insufficient-evidence guidance.
-- `retrievalPlan.queries` and `retrievalPlan.requiredFacts` must use the language of `context.experience.description` (the Scenario description), because the RAG documents are stored in that language.
-- `retrievalPlan.required` marks retrieval as necessary for the next related Avatar turn; if retrieval fails or yields no knowledge, the Avatar receives explicit insufficient-evidence guidance.
-- The GM must anticipate the most likely next direction on the current subject. It should assume
-  the subject continues unless the exchange clearly closes or changes it, and prepare retrieval
-  for context that could help answer a likely follow-up, deepen the subject, connect related
-  events or characters, or preserve the Avatar's knowledge boundary.
-- Factual who/what/where/when/which/how-many questions and questions about named people, events,
-  places, objects, participants, relationships, actions, or timelines require a retrieval plan
-  even when the latest Avatar reply sounds coherent. A required plan must contain focused queries
-  and required facts for the next related turn.
-- `directorNotes` is required on every response and must contain one concise sentence of useful
-  narrative or character guidance for the next Avatar turn. It should complement, not merely
-  restate, the structured fields.
-- `routing` is omitted entirely when routing is not applicable (single-Avatar scenarios). When present:
-  - `stay` does not require `avatarId`.
-  - `suggest` and `switch` require an active, unlocked `avatarId`.
-  - `unlock` requires a locked `avatarId`, or `unlockDecisions` for multiple targets.
-  - `unlock_and_switch` requires a locked `avatarId` that may immediately become active.
-- The GM does not repeat the current Avatar ID as a routing target when no change occurs.
-- `interactionIncrement` and `topicCovered` are not part of the output — interaction counting is app-owned, and covered-topic tracking belongs solely to memory compaction (`ConversationWorkingMemory.coveredTopics`).
-- Prompt refinement may change wording but must preserve this contract and its validation path.
-
-## State Model
-
-```ts
-type GameMasterState = {
-  progression: string
-  interactionCount: number
-  nextTurnOrchestration?: {
-    activeAvatarId: string
-    generatedAfterTurn: number
-    generatedAt: string
-    dialogueControl: DialogueControl
-    retrievalPlan: RetrievalPlan
-    directorNotes?: string
-    routing?: RoutingDecision
-    progressionUpdate: ProgressionUpdate
-    consumedAfterTurn?: number
-    consumedAt?: string
-  }
-}
-```
-
-State meaning:
-
-- `progression`: lightweight progress marker
-- `interactionCount`: pacing context; it does not gate whether GM runs
-- `nextTurnOrchestration`: the latest result retained for the immediately following matching Avatar turn; it is replaced by newer GM output and marked consumed after use.
-
-Reducer rules:
-
-- `interactionCount` is incremented exactly once by application code after each completed user/Avatar exchange. GM success, failure, and memory compaction do not change it.
-- `progression` changes only when `progressionUpdate.progression` is `"increase"`.
-- Active-Avatar ownership remains in the session/conversation records; legacy GM current-avatar state is not used for routing decisions.
-
-## Validation Boundaries
-
-### Avatar Switch
-
-1. GM may return `routing.action: 'suggest'` for a non-forcing recommendation.
-2. GM may return `routing.action: 'switch'` or `'unlock_and_switch'` to request a new active Avatar.
-3. Runtime accepts a switch only when the target avatar belongs to the active scenario and is already unlocked or unlocked by the same valid GM output.
-4. If accepted by the platform switch path, the active conversation is closed, a new conversation is created, and the session active avatar is updated. The asynchronous GM only records the target as the next active Avatar and does not perform this lifecycle transition or emit a duplicate switch event; the platform consumer invokes the existing switch mechanism.
-
-### Avatar Unlock
-
-1. Session start seeds `session.unlockedAvatarIds` from `scenario.avatarAvailability.initialAvatarIds`.
-2. GM may return `routing.action: 'unlock'` or `'unlock_and_switch'`, targeting a locked avatar via `avatarId`/`reason` or multiple via `unlockDecisions`.
-3. Runtime ignores inactive IDs, duplicate IDs, already-unlocked IDs, and invalid targets.
-4. `GET /v1/sessions/{sessionId}/available-avatars` remains the player-facing source of truth.
-
-## Model Resolution
-
-GM runtime model precedence is:
-
-1. `scenario.modelSelection.gameMasterOverride`
-2. `scenario.modelSelection.defaultProfile`
-3. global Game Master role override
-4. global default
-
-If a scenario has no explicit `modelSelection`, GM falls back to the global config path.
-
-## Prompt Structure Rules
-
-The static GM prompt is intentionally short and organized into:
-
-- `Role`
-- `Responsibilities`
-- `Fact Discipline`
-- `Decision Policies` (dialogue control, retrieval planning, director notes, avatar routing, progression)
-- `Output Contract`
-
-The dynamic GM input renderer is organized into:
-
-- `Current Turn`
-- `Conversation State`
-- `Experience Context`
-- `Retrieved Context`
-- `Output Reminder`
-
-The static prompt is also built dynamically from the current avatar roster:
-
-- A single active Avatar omits routing entirely — from the prose, the field, and the JSON schema.
-- A single active Avatar omits the current Avatar ID from the dynamic GM input because the identity is unambiguous.
-- No locked Avatars omits unlock instructions, unlock actions, and locked-Avatar metadata.
-- Locked Avatars present includes only the valid locked targets.
-- Multiple active Avatars includes `stay`, `suggest`, `switch`, plus unlock actions when applicable.
-
-Prompt wording may evolve, but these rules must hold:
-
-- JSON-only output matching `GameMasterOutput`
-- evidence-based bias toward `dialogueControl.mode: 'user_led'`/`'avatar_guided'` over forcing routing or progression changes
-- no default progression increase without evidence
-- prefer `routing.action: 'suggest'` over a forced `'switch'` when possible
-- no prompt-only fields that fork `GameMasterInput`
-- no generic Director Notes that merely restate permanent Avatar rules
+GM retrieval is forward-looking: it may prepare evidence for the likely next subject, exact questions,
+contradictions, or knowledge-boundary issues. Planned retrieval is consumed only when relevant to the
+next Avatar turn; stale or unrelated plans are suppressed. Required gaps become explicit uncertainty
+guidance instead of fabricated certainty.
 
 ## Diagnostics
 
-Knowledge embedding, vector retrieval, and reindex work remain outside the Game Master timing
-contract. They run through the shared knowledge application boundary and do not block Avatar
-responses or change GM chat model selection. GM context requests explicit `gm_unrestricted` vector
-retrieval; an embedding or search failure yields bounded empty RAG context while the asynchronous
-GM turn remains observable and non-blocking.
-
-Successful runs emit `gm_triggered`; safe failures emit `gm_error`.
-
-Required diagnostic properties:
-
-- correlation with the originating turn
-- trigger reason
-- turn index
-- interaction count
-- state before/after
-- safe decision summary
-- latency and token metadata when available
-
-Diagnostics must never include:
-
-- raw prompts
-- raw provider payloads
-- raw user-message content
-- secrets or credentials
-
-## Admin Inspection Boundary
-
-`GET /v1/admin/sessions/{sessionId}/context` exposes a bounded current snapshot of the same inputs used by Avatar and GM assembly.
-
-- Avatar context is sectioned for avatar runtime consumption.
-- GM context exposes bounded recent messages, exchanges, working memory, episodic memories, long-term facts, static retrieval, scenario context, and avatar availability under separate projections.
-- Canonical working memory remains owned by the memory-compaction pipeline and remains under
-  `Conversation State`; GM diagnostics use the same current layered projection.
+Record event type, outcome, latency, effective model, bounded validation/failure codes, and safe
+retrieval/context metadata. Do not emit prompts, user messages, secrets, raw model responses, vectors,
+or unbounded document content.
 
 ## Ownership
 
-- GM runtime types: `apps/core/src/domain/game-master/game-master.types.ts`
-- Static GM instructions: `apps/core/src/domain/game-master/gm-prompt.service.ts`
-- Dynamic GM renderer: `apps/core/src/domain/game-master/gm-input-renderer.ts`
-- Output parsing and normalization: `apps/core/src/domain/game-master/gm-output-parser.ts`, `gm-output-normalization.ts`
-- GM-facing memory contracts: `apps/core/src/domain/memory/memory.types.ts`
-- Public/admin GM and event projections: `packages/shared/src/runtime-inspector-types.ts` and
-  `packages/shared/src/runtime-types.ts`, mapped at the Core application/API boundary. The full
-  cross-layer map is in [`CONTEXT_CONTRACT_OWNERSHIP_MAP.md`](CONTEXT_CONTRACT_OWNERSHIP_MAP.md).
+The GM owns planning and structured guidance. Conversation owns lifecycle. Memory owns compaction and
+fact promotion. Knowledge owns static retrieval. Operations owns replay and inspection. API/shared
+types own public projections.

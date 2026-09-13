@@ -1,63 +1,33 @@
-# Embedding Operations
+# Embedding operations
 
-## Supported production profile
+## Current production profile
 
-Production currently supports the OpenAI embedding adapter with this fixed profile:
+- Provider: OpenAI
+- Model: `text-embedding-3-small`
+- Dimensions: `16` (`VECTOR(16)` with cosine index)
+- Batch size: configured independently from chat models
+- Credential: `OPENAI_API_KEY`
 
-- `EMBEDDING_PROVIDER=openai`
-- `EMBEDDING_MODEL=text-embedding-3-small`
-- `EMBEDDING_DIMENSIONS=16`
-- `EMBEDDING_BATCH_SIZE=100` (safe request batch size; the adapter enforces the provider limit)
-- `OPENAI_API_KEY` must be present and non-empty
+The profile is independent from Avatar, GM, memory, and scenario chat-model selection. Test hash
+embeddings are explicit test doubles only; there is no silent production fallback.
 
-Embedding settings are independent from `LLM_PROVIDER`, Avatar, Game Master, memory, and scenario
-chat-model selection. Unsupported providers, missing credentials, incompatible model/dimension
-pairs, and dimensions other than the deployed `VECTOR(16)` fail startup or adapter construction;
-there is no production hash-vector fallback.
+## Changing a profile
 
-## Profile changes
+A provider/model/dimension change creates a new vector space. Do not change environment variables
+and ingest into the existing corpus. A dimension change also requires a canonical fresh schema with
+the matching vector type/index.
 
-Changing provider, model, or dimensions changes the vector space. Do not change only the
-environment variable and begin ingestion. A dimension change also requires a new canonical
-PostgreSQL schema revision and fresh volume that changes `knowledge_chunks.embedding` and recreates
-its `vector_cosine_ops` index.
+1. Deploy the compatible schema and target configuration.
+2. Start `POST /v1/admin/knowledge/reindex` with `{}`.
+3. Poll `GET /v1/admin/knowledge/reindex/{id}`.
+4. Fix failed sources and retry with `POST .../{id}/retry`.
+5. Let the service promote only after every snapshotted source has complete compatible vectors.
 
-After deploying a compatible target profile:
+The previous active generation stays readable while staging. Repeated starts reuse the same source
+snapshot; database claims serialize workers; interrupted work is retryable after restart.
 
-1. Confirm the target environment variables and `OPENAI_API_KEY`.
-2. Start `POST /v1/admin/knowledge/reindex` with the operator API key and an empty JSON object.
-3. Poll `GET /v1/admin/knowledge/reindex/{reindexOperationId}` until `completed` or `failed`.
-4. Inspect failed source IDs and bounded failure codes. Retry with
-   `POST /v1/admin/knowledge/reindex/{reindexOperationId}/retry` after correcting the source or
-   provider condition.
-5. Promote no profile manually. Promotion occurs only after every snapshotted source has staged
-   compatible vectors and the database transaction switches the active generation.
+## Safety
 
-The previous active generation remains readable while staging. Repeated starts for the same target
-and source snapshot reuse the existing operation. Concurrent workers are serialized by the database
-claim transition. On process restart, orphaned `running` operations are marked interrupted and
-resumed through the same retry-safe workflow.
-
-## Safety and observability
-
-Operation status exposes profile identifiers, source/chunk counts, attempts, timestamps, and
-bounded failure details. Embedding traces record safe provider/model/dimension identifiers,
-batch/input counts, usage when supplied, latency, outcome, and bounded failure code. Source text,
-vectors, credentials, and raw provider payloads are not emitted.
-
-Embedding query vectorization is owned by `KnowledgeQueryEmbeddingService` for EPIC 5.1d. Its
-variant operation trims, filters, and stably deduplicates all configured query sources, sends one
-ordered batch through `IEmbeddingAdapter`, validates the active profile and complete finite result,
-and returns profile/generation-tagged query vectors only when the batch is valid. Failures return a
-controlled retrieval outcome with no partial vectors. Safe diagnostics include profile, query-vector
-count, and measured embedding latency; raw text, vectors, and provider payloads are not logged.
-The service does not perform retrieval.
-
-The separate `IKnowledgeChunkRepository.searchByVector` boundary consumes the validated,
-profile/generation-tagged query vector. PostgreSQL applies the active corpus, source readiness,
-scenario/type, active corpus, and explicit avatar-filtered or GM-unrestricted visibility
-rules before ordering by pgvector cosine distance and applying the candidate limit. Distance is
-lower-is-better; downstream similarity is `1 - distance`. This repository slice is not yet wired
-into typed runtime selection or ranking.
-
-Memory and user facts are not vectorized by this lifecycle.
+Reindex status and traces expose bounded profile/count/timing/failure metadata only. Source text,
+vectors, credentials, and provider payloads are never logged or returned. Query vectorization uses
+the same active profile and ordered-batch validation before repository search.

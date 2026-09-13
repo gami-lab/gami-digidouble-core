@@ -1,222 +1,60 @@
 # Gami DigiDouble Core
 
-A headless orchestration engine for interactive, conversational experiences — where content adapts dynamically to users through natural dialogue rather than static, linear delivery.
+Gami DigiDouble Core is a headless modular monolith for guided, conversational experiences. It is
+a platform layer consumed through HTTP/SSE, not a product application.
 
----
+The runtime coordinates:
 
-## What Is This?
+- **Avatar** — responds directly to the user through a persona and bounded context.
+- **Game Master** — runs asynchronously to guide progression, routing, and future turns.
+- **Memory and knowledge** — preserve useful conversational state and retrieve scenario content.
+- **Operations** — expose safe inspection, diagnostics, and recovery actions.
 
-**Gami DigiDouble Core** is not an application. It is a **platform layer** — a reusable engine that powers interactive AI-driven experiences across multiple products: learning, storytelling, simulations, cultural mediation, training, and more.
+## Current state
 
-The engine coordinates two AI agents:
+Phase A is shipped through the current clean-slate contract. See
+[docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for capabilities and limitations.
 
-- **Avatar** — the conversational actor that responds directly to the user with a defined persona
-- **Game Master** — the asynchronous director that observes conversations, triggers interventions, and guides the experience without blocking responses
+## Start locally
 
-The result is a system where conversations feel natural and adaptive, while remaining structured and purposeful.
-
----
-
-## Core Concepts
-
-| Concept                | Description                                                                                               |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Avatar**             | An AI persona with a defined character, tone, and knowledge domain. Responds directly to user messages.   |
-| **Game Master (GM)**   | Runs asynchronously in the background. Decides when to intervene, switch avatars, or inject guidance.     |
-| **Session**            | A durable container for one user's run inside a scenario. Holds state and links all conversations.        |
-| **Conversation**       | A bounded dialogue episode with one avatar inside a session. Messages belong to a conversation.           |
-| **Scenario**           | A config-driven experience template: objectives, avatars, knowledge sources, progression rules.           |
-| **Memory**             | Two-layer system: session summaries (short-term) and persistent user facts (long-term).                   |
-| **Context Manager**    | Assembles the three context dimensions for each turn: memory, experience/world, and knowledge.            |
-| **Knowledge Pipeline** | Ingests documents (PDF, Markdown, text), chunks and embeds them, and retrieves relevant passages via RAG. |
-
----
-
-## Architecture
-
-The engine is a **modular monolith** with clean internal boundaries, organized in 4 layers:
-
-```
-┌──────────────────────────────┐
-│         API Layer            │  HTTP / WebSocket (Fastify)
-├──────────────────────────────┤
-│      Application Layer       │  Use cases (StartSession, SendMessage, …)
-├──────────────────────────────┤
-│        Domain Layer          │  Business logic (GM, Avatar, Memory, Context, …)
-├──────────────────────────────┤
-│    Infrastructure Layer      │  PostgreSQL, Redis, LLM adapters, Observability
-└──────────────────────────────┘
-```
-
-**Request flow (normal turn):**
-
-```
-User message → API validation → Load session/scenario
-→ Build context → Avatar generates response → Save message
-→ [async] GM review → memory update → metrics
-```
-
----
-
-## Tech Stack
-
-| Concern         | Technology                                            |
-| --------------- | ----------------------------------------------------- |
-| Runtime         | Node.js (LTS) + TypeScript (strict)                   |
-| Monorepo        | pnpm + Turborepo                                      |
-| API             | Fastify (REST + WebSocket)                            |
-| Database        | PostgreSQL + pgvector                                 |
-| Cache / Session | Redis                                                 |
-| LLM Providers   | OpenAI, Anthropic, Mistral (via internal abstraction) |
-| Observability   | Langfuse (self-hosted)                                |
-| Streaming       | WebSocket + SSE fallback                              |
-| Deployment      | Docker Compose (app + PostgreSQL + Redis) / Coolify   |
-| Back-office     | Next.js (TypeScript)                                  |
-
----
-
-## API at a Glance
-
-All endpoints are under `/v1` and require an `x-api-key` header.
-
-```
-POST   /v1/sessions                                        # Create a session
-GET    /v1/sessions/:sessionId                             # Get session
-POST   /v1/sessions/:sessionId/conversations               # Start a conversation
-GET    /v1/sessions/:sessionId/conversations               # List conversations
-POST   /v1/conversations/:conversationId/messages          # Send a message
-GET    /v1/conversations/:conversationId/history           # Get conversation history
-POST   /v1/exchange                                        # Raw LLM exchange (no session)
-```
-
-See [API_GUIDE.md](API_GUIDE.md) for curl examples, the full integration flow, and frontend notes.
-See [docs/API_CONTRACT.md](docs/API_CONTRACT.md) for the full formal spec.
-See [docs/EMBEDDING_OPERATIONS.md](docs/EMBEDDING_OPERATIONS.md) for production profile settings,
-safe reindexing, recovery, and operator procedures.
-
----
-
-## Getting Started
-
-> The project is in early development. See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for what is currently implemented.
-
-### Prerequisites
-
-- Node.js (LTS)
-- pnpm
-- Docker + Docker Compose
-
-### Local Setup
+Prerequisites: Node.js 22, pnpm, and Docker Compose.
 
 ```bash
-# Clone the repo
-git clone https://github.com/your-org/gami-digidouble-core.git
-cd gami-digidouble-core
-
-# Install dependencies (also registers the pre-commit hook)
 pnpm install
-
-# Copy environment variables
 cp .env.example .env
-# Fill in your LLM provider API keys and DB credentials
-
-# Start infrastructure (PostgreSQL + Redis only)
 pnpm infra:up
-
-# Start the development server
 pnpm dev
 ```
 
-`infra/postgres/init.sql` is a fresh-database bootstrap and runs only for an empty PostgreSQL data
-volume. After schema changes, provision the canonical volume described in
-[`docs/COOLIFY_DEPLOYMENT_SPECIFICATION.md`](docs/COOLIFY_DEPLOYMENT_SPECIFICATION.md#fresh-volume-procedure)
-before starting the stack.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full onboarding guide, quality commands, workflow conventions, and deployment notes.
-
-### Public Web App (EPIC 7.1)
-
-The repository now includes a production-facing player app in `apps/web`.
-
-Run it locally with the core API:
+The API is normally available at `http://localhost:3000`; verify it with:
 
 ```bash
-# Terminal A: infra + core API
-pnpm infra:up
-pnpm --filter @gami/core dev
-
-# Optional: seed canonical Scenario, Avatars, and knowledge for first run
-MURDER_PARTY_API_KEY=your-local-key pnpm seed:murder-party:api:local
-
-# Terminal B: public web app
-VITE_API_URL=http://localhost:3000 VITE_API_KEY=your-api-key-secret pnpm --filter @gami/web dev
+curl http://localhost:3000/health
 ```
 
-Open `http://localhost:5173`.
+For a complete authenticated conversation flow, see [API_GUIDE.md](API_GUIDE.md). The fresh
+PostgreSQL bootstrap rule and deployment shape are in
+[docs/COOLIFY_DEPLOYMENT_SPECIFICATION.md](docs/COOLIFY_DEPLOYMENT_SPECIFICATION.md).
 
-What you can do in the web app:
+## Repository map
 
-- Create a local player identity/persona (persisted in browser local storage)
-- Reset identity at any time
-- Select an active scenario
-- See currently available avatars only (hidden avatars unlock later)
-- Play one active chat with optimistic send and visible processing state
-
-Package-level checks for the web app:
-
-```bash
-pnpm --filter @gami/web test
-pnpm --filter @gami/web typecheck
-pnpm --filter @gami/web lint
-pnpm --filter @gami/web build
-```
-
-Coolify deployment file:
-
-- Single project stack: `docker-compose.coolify.yml`
-
-Deploy the backend API and public web app together as separate services inside one Coolify project, each with its own domain.
-
----
+- `apps/core` — Fastify API and Core runtime.
+- `apps/web` — public player UI.
+- `apps/admin` — scenario/content authoring UI.
+- `apps/console` — local operator/debug UI.
+- `packages/shared` — public/shared DTOs and contract helpers.
+- `tools/conversation-evaluation` — authenticated scripted evaluation tool.
+- `infra` — PostgreSQL/bootstrap and deployment infrastructure.
 
 ## Documentation
 
-| Document                                                | Description                                                    |
-| ------------------------------------------------------- | -------------------------------------------------------------- |
-| [API_GUIDE.md](API_GUIDE.md)                            | **Developer guide** — curl examples, full flow, frontend notes |
-| [VISION.md](docs/VISION.md)                             | Project vision and mission                                     |
-| [PRINCIPLES.md](docs/PRINCIPLES.md)                     | 19 guiding principles behind every decision                    |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Layered architecture, module map, request flows                |
-| [DATA_MODEL.md](docs/DATA_MODEL.md)                     | Entities, schemas, database design                             |
-| [API_CONTRACT.md](docs/API_CONTRACT.md)                 | Full REST + WebSocket + SSE API specification                  |
-| [GAME_MASTER_CONTRACT.md](docs/GAME_MASTER_CONTRACT.md) | Game Master input/output contract and trigger rules            |
-| [TECH_STACK.md](docs/TECH_STACK.md)                     | Technology choices and rationale                               |
-| [EPICS.md](docs/EPICS.md)                               | Roadmap broken into sprints and epics                          |
-| [TEST_STRATEGY.md](docs/TEST_STRATEGY.md)               | Test philosophy, pyramid, and module coverage                  |
-| [PROJECT_STATUS.md](docs/PROJECT_STATUS.md)             | Current implementation status                                  |
-| [CONTRIBUTING.md](CONTRIBUTING.md)                      | Onboarding guide, commands, and conventions                    |
+Start at [docs/README.md](docs/README.md). The durable source-of-truth set is:
 
----
+- [Principles](docs/PRINCIPLES.md), [architecture](docs/ARCHITECTURE.md), and [tech stack](docs/TECH_STACK.md)
+- [API contract](docs/API_CONTRACT.md) and [data model](docs/DATA_MODEL.md)
+- [Game Master](docs/GAME_MASTER_CONTRACT.md), [memory](docs/MEMORY_SYSTEM_SPEC.md), and [RAG](docs/RAG_SYSTEM_IMPLEMENTATION.md)
+- [test strategy](docs/TEST_STRATEGY.md), [coverage plan](docs/TEST_COVERAGE_PLAN.md), and [project status](docs/PROJECT_STATUS.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md) for workflow and commands
 
-## Roadmap
-
-| Phase                      | Period       | Focus                                                           |
-| -------------------------- | ------------ | --------------------------------------------------------------- |
-| **Phase A — MVP**          | Apr–Jul 2026 | Core engine: Avatar, Game Master, Memory, API, RAG, Back-office |
-| **Phase B — Enhanced**     | TBD          | Voice, multimedia, multi-scenario/avatars, end-user frontend    |
-| **Phase C — Pre-research** | TBD          | Security, multi-tenancy, scaling, SDKs, research contracts      |
-
-See [docs/EPICS.md](docs/EPICS.md) for the detailed sprint breakdown.
-
----
-
-## Guiding Principles (Summary)
-
-- **Experience First** — technology serves the conversation, not the other way around
-- **Orchestration over Generation** — decide before generating; structure creates value
-- **Context is the Product** — what you give the LLM defines what you get back
-- **LLM-Agnostic Always** — no provider lock-in; adapters are mandatory
-- **Keep Core Small** — minimal, focused, stable; UI and tools live outside
-- **Measure Everything That Matters** — latency, cost, tokens, retrieval quality, conversation quality
-
-See [docs/PRINCIPLES.md](docs/PRINCIPLES.md) for the full list.
+Exact fields, schemas, and implementation details belong in TypeScript, route schemas, and
+`infra/postgres/init.sql`, not in this README.

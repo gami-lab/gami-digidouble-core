@@ -1,182 +1,44 @@
-# Tech Stack
+# Tech stack
 
-## Purpose
+This file records current constraints. Exact versions, scripts, and environment variables belong in
+the repository manifests and compose files.
 
-Compact record of the technologies and constraints currently used by the Phase A core.
+## Runtime
 
-For architecture boundaries, read `ARCHITECTURE.md`.
-For product principles, read `PRINCIPLES.md`.
+- Node.js LTS, strict TypeScript
+- pnpm workspaces and Turborepo
+- Fastify for HTTP; JSON, SSE, and bounded binary audio transports
+- PostgreSQL with pgvector; Redis for cache, coordination, and runtime idempotency
+- Docker Compose for local and Coolify deployment
 
-## Core Constraints
+## Core boundaries
 
-- Runtime language: TypeScript only
-- Runtime architecture: modular monolith
-- Priority order: learning speed -> correctness -> performance
-- Core product shape: headless, API-first, self-hostable
-- Orchestration ownership stays in product code, not in an external framework
+- `apps/core` is a modular monolith using `API -> Application -> Domain -> Infrastructure`.
+- Provider SDKs and network calls live only in Infrastructure adapters.
+- LLM calls use the internal adapter/registry and role-based model resolution (`avatar`, `gameMaster`, `memory`).
+- OpenAI, Anthropic, Mistral, and xAI are supported through the shared model catalog; do not hard-code provider behavior in business logic.
+- Embeddings use `IEmbeddingAdapter`, independent from chat-model configuration.
+- Speech-to-text and text-to-speech use provider-neutral application ports. Voice is optional and must not alter text-turn behavior.
 
-## Locked Stack
+## Knowledge and retrieval
 
-### Runtime And Tooling
+- Static knowledge types are `avatar_knowledge`, `world`, and `media`.
+- Conversational memory is a separate lifecycle and is never represented as a static knowledge type.
+- Production embeddings currently use OpenAI `text-embedding-3-small` with 16 dimensions and a PostgreSQL `VECTOR(16)` cosine index.
+- A profile/model/dimension change requires a matching schema revision and staged, atomic reindex. There is no production hash-vector fallback.
+- Query embedding is application-owned; nearest-neighbor filtering is repository-owned; context selection is deterministic and traceable.
 
-- Node.js LTS
-- TypeScript in strict mode
-- pnpm workspaces
-- Turborepo
-- ESLint + `typescript-eslint`
-- Prettier
-- `simple-git-hooks` + `lint-staged`
-- GitHub Actions for format, lint, typecheck, and test gates
+## Clients and tools
 
-### API And Backend
+- `apps/web` — public player experience.
+- `apps/admin` — scenario/content authoring.
+- `apps/console` — local operator/debug UI; not a production service.
+- `tools/conversation-evaluation` — external authenticated HTTP client and report generator.
+- `packages/shared` — public/shared DTOs and contract helpers. It must not contain Core business logic.
 
-- Fastify for HTTP
-- SSE for runtime event and progressive message streaming
-- REST-style JSON contracts under `/v1`
-- API-key auth for Phase A
+## Rules
 
-### Persistence And Infra
-
-- PostgreSQL as primary datastore
-- pgvector for embeddings
-- Redis for cache and runtime coordination
-- Docker Compose for local infrastructure
-
-### LLM Layer
-
-- Direct provider SDKs behind an internal wrapper
-- Provider/model selection resolved by runtime role
-- Current provider set supported in contracts: OpenAI, Anthropic, Mistral, xAI
-- The supported production model matrix is owned by `packages/shared/src/model-catalog.ts`:
-  OpenAI (`gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.6`, `gpt-5.5`, `gpt-5.4`,
-  `gpt-5.4-mini`, `gpt-5.4-nano`), Anthropic (`claude-fable-5`, `claude-opus-5`,
-  `claude-opus-4-8`, `claude-opus-4-7`, `claude-opus-4-6`, `claude-opus-4-5-20251101`,
-  `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-sonnet-4-5-20250929`, `claude-haiku-4-5`,
-  `claude-haiku-4-5-20251001`), Mistral (`mistral-medium-3.5`, `mistral-small-4`,
-  `mistral-large-3`, `ministral-3b`), and xAI (`grok-4.3`, `grok-4.3-latest`, `grok-build-0.1`).
-  OpenAI chat requests use `max_completion_tokens`; pre-current token-parameter branching is not
-  supported.
-
-### Knowledge And Retrieval
-
-- In-house ingestion and typed retrieval pipeline
-- Static knowledge types: `avatar_knowledge`, `world`, `media`; conversational memory keeps its
-  separate repository/lifecycle contracts
-- Retrieval is one bounded context source, not the architecture itself
-- Production embeddings use the OpenAI `text-embedding-3-small` adapter through the internal
-  `IEmbeddingAdapter` port. The default profile requests 16 dimensions to match the current
-  `VECTOR(16)` schema; `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, and
-  `EMBEDDING_BATCH_SIZE` are independent environment configuration and are validated at startup.
-- Knowledge vectors are persisted through the internal `IKnowledgeCorpusRepository` using
-  immutable embedding profiles and corpus generations. PostgreSQL owns a singleton active pointer,
-  stages complete source replacements, validates them, and promotes them transactionally.
-- The deployed vector type is fixed at `VECTOR(16)` with `vector_cosine_ops`. A configured
-  dimension other than 16 is rejected until a matching canonical schema revision and full staged
-  reindex exist.
-  The fresh bootstrap rejects vector rows without profile/generation identity; existing database
-  volumes are not supported after schema changes.
-- The supported profile, fixed-dimension schema-revision procedure, operator lifecycle, recovery rules,
-  and safe observability fields are documented in [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md).
-- Retrieval query vectorization is application-owned: `KnowledgeQueryEmbeddingService` resolves
-  one active corpus profile, batch-embeds normalized ordered variants, validates the complete
-  result, and records only bounded query-source/index/length and profile/count/timing metadata.
-- Nearest-neighbor retrieval is repository-owned: `PostgresKnowledgeChunkRepository` uses
-  parameterized pgvector cosine distance (`embedding <=> query`) with the existing
-  `vector_cosine_ops` index shape and applies eligibility filters before `LIMIT`. The in-memory
-  repository is a deterministic unit-test double; no lexical scoring or application-side corpus
-  scan participates in the production vector path.
-
-### Observability
-
-- Langfuse behind an internal observability abstraction for LLM traces
-- Fastify/Pino-style structured logs for application/runtime operations
-- Event-log persistence plus admin inspection routes for runtime diagnostics
-- Provider-neutral speech-to-text input contracts are application-owned. Infrastructure contains
-  a Deepgram pre-recorded HTTP adapter using the platform `fetch` client, with no SDK dependency;
-  the optional `DEEPGRAM_API_KEY`, model, timeout, and default language are validated at startup.
-  Text-to-speech uses an application-owned `ITextToSpeechAdapter` and an infrastructure-only
-  Gradium adapter over the official [one-shot REST endpoint](https://docs.gradium.ai/api-reference/endpoint/tts-post); the repository uses native `fetch`
-  rather than the Python-only Gradium SDK, so no new dependency is added. `TTS_PROVIDER` selects
-  `null` or `gradium`; `GRADIUM_API_KEY`, `GRADIUM_ENDPOINT`, `GRADIUM_TIMEOUT_MS`,
-  `GRADIUM_VOICE_MAP`, and `TTS_MAX_OUTPUT_BYTES` configure the adapter. Logical voice keys are
-  mapped to provider voice IDs only in infrastructure. The adapter emits native WAV or Ogg-wrapped
-  Opus and rejects unsupported output formats without transcoding. Raw-audio persistence,
-  continuous streaming, and voice/media rendering are not part of the current Core stack. The
-  shared voice-output contract and completed-message binary delivery route are additive; browser
-  playback remains owned by `apps/web`. The public voice routes use Fastify's encapsulated bounded raw-body parser
-  with no multipart dependency. Voice idempotency is backed by Redis and injectable through the
-  application port for deterministic testing. The Gradium one-shot response exposes audio bytes but
-  no duration metadata in the selected REST contract; bounded duration metadata remains optional at
-  the adapter/public delivery boundary.
-
-### User-Facing Apps
-
-- `apps/console`: operator/debug UI
-- `apps/admin`: scenario-builder/admin UI
-- `apps/web`: public player-facing UI
-- Frontend stack: React + Vite + strict TypeScript
-
-### Evaluation Tooling
-
-- `tools/conversation-evaluation`: standalone TypeScript workspace package for scripted evaluation
-  definitions, authenticated sequential API execution, semantic judging through `/v1/exchange`,
-  structured reports, multi-model comparison runs, token-based public-price cost estimates, console
-  summaries, and a dependency-free local report viewer; its local CLI
-  uses the repository-standard `tsx` entry-point approach. Deterministic unit and fake-HTTP
-  integration-style tests run without Core, infrastructure, network access, or provider credentials.
-- Evaluation tooling uses public authenticated HTTP boundaries and shared DTOs; it does not import
-  provider SDKs or Core runtime internals.
-
-### Testing
-
-- Vitest-based package test suites
-- Unit, integration, e2e, and stack-e2e tiers
-- Contract-first testing for API/admin/runtime surfaces
-
-## Non-Negotiable Technical Rules
-
-- All LLM calls go through the internal wrapper.
-- Domain and application code do not call provider SDKs directly.
-- No LangChain or LangGraph as architectural control layers in Phase A.
-- No dedicated vector database before pgvector proves insufficient.
-- No microservice split for the Phase A core.
-- No frontend assumptions inside core business logic.
-
-## Runtime Patterns In Use
-
-### Conversation Runtime
-
-- Avatar responds directly to the user.
-- Game Master runs asynchronously after completed avatar turns.
-- Memory maintenance is asynchronous whenever possible.
-- Runtime state changes are exposed through SSE and admin inspection routes.
-- Public avatar responses also use an additive SSE message route; the web client buffers late
-  deltas until sequence order is contiguous, validates decoded frames through the shared stream
-  contract decoder, and cancels the response reader on interruption.
-
-### Model Resolution
-
-- Avatar role can be overridden per avatar and per scenario.
-- Game Master can be overridden per scenario.
-- Memory role uses global role override or global default.
-- Allowed provider/model pairs are owned centrally in shared contract/catalog code.
-
-### Retrieval And Context
-
-- Retrieval is typed and bounded.
-- Avatar retrieval may be visibility-filtered by active avatar.
-- Game Master retrieval remains unrestricted for orchestration.
-- Context assembly is deterministic and traceable.
-
-## Deferred Or Out Of Scope
-
-- Heavy orchestration frameworks
-- Dedicated vector database
-- OAuth / multi-tenant auth
-- Voice or media rendering inside core
-- Hybrid response caching as a default runtime path
-
-## Source Of Truth
-
-- Stack decisions here should describe current implementation, not earlier exploration.
-- If a technology is merely speculative, it does not belong in this file.
+- No LangChain/LangGraph as orchestration layers in Phase A.
+- No microservice split or dedicated vector database without measured need.
+- No frontend assumptions in Core.
+- Prefer additive API changes and keep public payloads smaller than internal runtime state.
