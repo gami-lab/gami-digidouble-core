@@ -46,6 +46,12 @@ Core domain or infrastructure modules.
 - Keep static knowledge separate from conversational memory.
 - Keep diagnostics bounded; never expose secrets, raw prompts, provider payloads, raw vectors, raw audio, or unbounded transcripts.
 - Do not add LangChain/LangGraph or microservices to Phase A without explicit architectural approval.
+- We are prototyping: never preserve backward compatibility for its own sake. Every deploy wipes and
+  recreates the database from scratch, so there is no data or contract continuity to protect. Change
+  API shapes, schemas, and internal contracts freely when it simplifies the design — do not add
+  migrations, versioned fields, dual-write paths, or deprecated-but-kept code to ease a transition.
+  Update the same change's docs/tests instead. This will change once a phase requires durable data
+  across deploys.
 
 ## Required documentation checks
 

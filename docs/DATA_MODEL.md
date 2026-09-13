@@ -9,7 +9,7 @@ and JSON shapes are defined by `infra/postgres/init.sql` and the repository type
 - Public DTOs are projections, never persistence rows.
 - Static knowledge is scenario-scoped. Conversational memory is user/session/conversation-scoped.
 - Raw prompts, provider payloads, raw audio, and embedding vectors are not public inspection data.
-- The current Phase A deployment assumes a fresh canonical database schema; there is no runtime schema migration layer.
+- The current Phase A deployment assumes a fresh canonical database schema; there is no runtime schema migration layer. Every deploy wipes and recreates the database, so schema/column changes never need a migration path or backward-compatible shape — edit `infra/postgres/init.sql` and the repository types directly.
 
 ## Persisted aggregates
 

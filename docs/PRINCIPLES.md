@@ -29,4 +29,8 @@ deliver a coherent, evolving, measurable experience — everything else is secon
 - Validate external input at the API boundary.
 - Never call a provider SDK from Domain or Application code.
 - Do not add LangChain/LangGraph, microservices, or a dedicated vector database without a measured need.
-- Preserve backward compatibility only when it is an explicit product requirement; the current Phase A deployment is a clean-slate contract.
+- No backward compatibility during prototyping: every deploy wipes and recreates the database, so
+  there is no persisted data or shipped contract to preserve across releases. Do not add migrations,
+  compatibility shims, versioned/optional fields, or deprecated-but-kept paths to ease a transition —
+  change shapes freely and update docs/tests in the same change. Revisit only once a phase requires
+  durable user data or an external integration across deploys.
