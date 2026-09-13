@@ -6,8 +6,9 @@ Define canonical ownership for Context Engine contracts (EPIC 5.2) to prevent dr
 
 Last updated: September 13, 2026
 
-EPIC 10.1 Prompt 0 extends this map to the high-fan-out Avatar, Scenario, Session, Conversation,
-Message, Game Master, lifecycle, memory, retrieval, event, admin, console, and web contracts.
+EPIC 10.1 Prompts 0 and 1 extend this map to the high-fan-out Avatar, Scenario, Session,
+Conversation, Message, Game Master, lifecycle, memory, retrieval, event, admin, console, and web
+contracts, including their fresh-database persistence boundary.
 
 ---
 
@@ -340,9 +341,11 @@ deliberately separate; the mapper is the only place where the two shapes cross.
 
 ### Prompt 01–04 handoff
 
-Prompt 0 intentionally removes no compatibility runtime path. The unresolved paths are:
+Prompt 0 established the contract baseline. Prompt 1 now owns the fresh-database bootstrap and
+removes runtime schema alignment; the unresolved paths are:
 
-- Prompt 01: startup/schema alignment and compatibility-only database columns/bootstrap logic.
+- Prompt 01: complete. Fresh `init.sql` is authoritative, startup alignment is removed, and
+  obsolete GM schema columns are absent from the canonical schema.
 - Prompt 02: legacy knowledge alias/migration/quarantine tooling and the `sessions.memory_summary`
   persistence/read/write mirror.
 - Prompt 03: GM state migration/parser branches, old state fields, legacy event readers, and

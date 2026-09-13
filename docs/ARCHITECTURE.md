@@ -507,10 +507,10 @@ source replacement is transactional and invisible to normal reads until validati
 Promotion locks and updates the active pointer in one transaction, then marks the previous
 generation superseded, so a failed build leaves the previous active corpus queryable.
 
-The deployed pgvector contract is fixed at `VECTOR(16)` with `vector_cosine_ops`. Startup schema
-alignment invalidates pre-profile vectors by clearing only their embedding identity/vector while
-retaining source content and metadata. A dimension change requires a matching schema migration and
-full staged reindex; configuration alone cannot select a mixed vector space.
+The deployed pgvector contract is fixed at `VECTOR(16)` with `vector_cosine_ops`. The fresh
+bootstrap requires vectorized chunks to carry both profile and generation identity; a dimension
+change requires a new canonical schema and full staged reindex. Configuration alone cannot select a
+mixed vector space, and existing database volumes are not supported after schema changes.
 
 Profile-aware migration call sites are therefore limited to the ingestion service, query-vector
 application boundary, embedding composition/configuration, chunk persistence, and reindex

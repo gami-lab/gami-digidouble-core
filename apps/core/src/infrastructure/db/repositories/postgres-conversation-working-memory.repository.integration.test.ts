@@ -1,11 +1,6 @@
 import type { Sql } from 'postgres'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import {
-  DB_AVAILABLE,
-  createTestSql,
-  ensureSchemaAlignment,
-  truncateAllTables,
-} from '../test-helpers.js'
+import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
 import { PostgresAvatarRepository } from './postgres-avatar.repository.js'
 import { PostgresConversationRepository } from './postgres-conversation.repository.js'
 import { PostgresConversationWorkingMemoryRepository } from './postgres-conversation-working-memory.repository.js'
@@ -25,9 +20,8 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationWorkingMemoryRepository', ()
   let avatarRepo!: PostgresAvatarRepository
   let conversationRepo!: PostgresConversationRepository
 
-  beforeAll(async () => {
+  beforeAll(() => {
     sql = createTestSql()
-    await ensureSchemaAlignment(sql)
     repository = new PostgresConversationWorkingMemoryRepository(sql)
     scenarioRepo = new PostgresScenarioRepository(sql)
     sessionRepo = new PostgresSessionRepository(sql)

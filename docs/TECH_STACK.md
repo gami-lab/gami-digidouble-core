@@ -62,10 +62,11 @@ For product principles, read `PRINCIPLES.md`.
   immutable embedding profiles and corpus generations. PostgreSQL owns a singleton active pointer,
   stages complete source replacements, validates them, and promotes them transactionally.
 - The deployed vector type is fixed at `VECTOR(16)` with `vector_cosine_ops`. A configured
-  dimension other than 16 is rejected until a matching migration and full staged reindex exist.
-  Schema alignment clears legacy vectors that have no profile/generation identity but keeps source
-  content available for regeneration.
-- The supported profile, fixed-dimension migration procedure, operator lifecycle, recovery rules,
+  dimension other than 16 is rejected until a matching canonical schema revision and full staged
+  reindex exist.
+  The fresh bootstrap rejects vector rows without profile/generation identity; existing database
+  volumes are not supported after schema changes.
+- The supported profile, fixed-dimension schema-revision procedure, operator lifecycle, recovery rules,
   and safe observability fields are documented in [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md).
 - Retrieval query vectorization is application-owned: `KnowledgeQueryEmbeddingService` resolves
   one active corpus profile, batch-embeds normalized ordered variants, validates the complete

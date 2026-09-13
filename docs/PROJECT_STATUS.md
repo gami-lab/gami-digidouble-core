@@ -105,8 +105,8 @@ The platform is now a working headless conversational runtime with:
   and verified-context claims remain eligible.
 - Legacy GM state and pending orchestration records remain readable through compatibility
   normalization, with ambiguous legacy routing ignored.
-- Legacy `topics_covered` values remain persistence-compatible but are omitted from current
-  shared/admin GM projections.
+- Legacy GM-state fields remain readable through the deferred compatibility normalizer; removal is
+  owned by EPIC 10.1 Prompt 3. They are not columns in the fresh canonical `gm_states` table.
 - Memory layers are inspectable through admin routes and runtime tooling.
 
 ### Knowledge And Context
@@ -404,6 +404,21 @@ retrieval proof or change production behavior.
 - No database schema, migration/quarantine tooling, persisted memory mirror, GM migration/parser
   branch, event-history reader, or content compatibility path was removed. See the Prompt 01–04
   handoff in `CONTEXT_CONTRACT_OWNERSHIP_MAP.md`.
+
+### EPIC 10.1 Prompt 1 — fresh canonical database schema
+
+- Made [`infra/postgres/init.sql`](../infra/postgres/init.sql) self-contained for the current
+  schema, including model-selection, visibility, vector-identity, and current GM-state definitions.
+- Removed startup schema alignment, its infrastructure module/tests, and integration-test alignment
+  helpers. Existing repositories now assume the canonical fresh database established by bootstrap.
+- Removed bootstrap column-addition, legacy vector nulling, old-index cleanup, and obsolete GM
+  column preservation paths while retaining the Prompt 2 knowledge quarantine and
+  `sessions.memory_summary` schema surfaces.
+- Added a database-backed schema contract test for current GM columns and pgvector identity
+  constraints; local and Coolify PostgreSQL volumes now use the explicit
+  `postgres_data_canonical` fresh-volume contract.
+- Updated data-model, architecture, stack, test, and deployment documentation. Existing volumes
+  are intentionally unsupported after this clean-slate schema change.
 
 ## Open Product Work
 

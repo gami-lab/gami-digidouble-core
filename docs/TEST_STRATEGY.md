@@ -35,6 +35,10 @@ Canonical shared entity DTO shape tests live in `packages/shared`; Core domain-t
 mapper tests live next to the application mappers. Consumers should import those contracts rather
 than recreate response shapes locally.
 
+Fresh-database schema verification lives in the Core integration tier and assumes `init.sql` has
+already run against an empty PostgreSQL volume. Integration harnesses do not invoke application
+schema alignment; startup schema mutation is not a test fixture.
+
 ## 4b. Prefer deterministic policy tests for orchestration
 
 When behavior is defined by transition rules, pacing rules, constraints, and scenario goals, test it as deterministic policy first. LLM reasoning should be layered on top, not used as the only test surface.

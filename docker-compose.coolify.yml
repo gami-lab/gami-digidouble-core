@@ -31,7 +31,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: gami_core
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_canonical:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d gami_core']
       interval: 5s
@@ -157,5 +157,5 @@ services:
       start_period: 10s
 
 volumes:
-  postgres_data:
+  postgres_data_canonical:
   redis_data:

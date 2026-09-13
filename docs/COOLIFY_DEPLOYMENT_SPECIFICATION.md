@@ -123,7 +123,7 @@ Embedding deployment notes:
 
 - Keep `EMBEDDING_PROVIDER=openai`, `EMBEDDING_MODEL=text-embedding-3-small`, and
   `EMBEDDING_DIMENSIONS=16` together with the deployed `VECTOR(16)` schema.
-- A provider/model/dimension change requires the matching PostgreSQL migration and a complete
+- A provider/model/dimension change requires the matching canonical schema revision and a complete
   staged reindex through the authenticated admin routes before the new profile can become active.
 - Review [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md) for the start, status, retry, and
   restart-recovery procedure.
@@ -185,36 +185,31 @@ Set backend `CORS_ORIGIN` so browser requests from `app.example.com` to `api.exa
 
 ## Schema Changes and Resets
 
-`infra/postgres/init.sql` is the single canonical schema — there are no migration files. It uses `CREATE TABLE IF NOT EXISTS` and `ALTER ... ADD COLUMN IF NOT EXISTS`, which only ever add. It cannot drop columns, rename things, or change types on an existing database, and Postgres only runs its bootstrap script (`01-init.sql`) against an empty data volume. A normal redeploy after editing `init.sql` will **not** retroactively apply breaking schema changes to production — the old schema stays as-is.
+`infra/postgres/init.sql` is the single canonical fresh-database bootstrap. There is no runtime
+schema alignment and no migration framework. PostgreSQL runs the bootstrap only when its data
+directory is empty, so changing `init.sql` does not update an existing database volume. Existing
+volumes are outside the supported deployment contract for this clean-slate schema.
 
-To fully replace the production schema with a new, non-backward-compatible one (all data is lost — there is no rollback):
+### Fresh-volume procedure
 
-Coolify's dashboard treats compose volumes as read-only (Storages tab is view-only for compose-based resources — you cannot delete `postgres_data` from the UI), and this instance does not expose a per-resource or per-server Terminal tab. Reset the schema in place instead, using one of the two methods below.
+Provision a new PostgreSQL volume whenever the canonical schema changes or when deploying this
+clean-slate baseline for the first time. Preserve the old volume as a backup until the new stack
+has been verified; do not attach both volumes to the same service.
 
-### Method A — Pre-deployment command (preferred, no SSH needed)
+1. Back up any data that must be retained from the old database.
+2. Push the updated `infra/postgres/init.sql` and `docker-compose.coolify.yml`.
+3. Redeploy with the `postgres_data_canonical` volume key. The changed key provisions a new empty
+   volume, and `db-init` applies the complete schema from `/schema/init.sql`.
+4. Check the deploy logs for successful PostgreSQL health, `db-init`, and application startup.
+5. Verify `/health` and spot-check the current tables, including `gm_states` and
+   `knowledge_chunks` vector constraints.
+6. Keep the old volume detached as a rollback reference or remove it only after an explicit
+   operator decision.
 
-Coolify resources have a **Pre-deployment Command** field (Configuration → General, under "Pre/Post Deployment Commands") that runs a command inside a named container before the new stack is brought up. Pre-deployment (not post-deployment) is required: it runs against the _currently running_ `postgres` container before `db-init` executes as part of the same deploy, so the rebuild happens automatically afterward. A post-deployment command would run too late — `db-init` and `app` would already be up against the old schema.
-
-1. Push the updated `infra/postgres/init.sql` to the branch Coolify deploys from.
-2. In the resource's Configuration → General, set:
-   - **Pre-deployment command:** `psql -U postgres -d gami_core -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`
-   - **Container Name:** `postgres`
-   - Click **Save**.
-3. Click **Redeploy**. The pre-deployment command drops every table (and the `vector`/`pgcrypto` extensions) on the live database, then `db-init` runs against the now-empty `public` schema and rebuilds everything from the new canonical schema.
-4. Check the deploy logs to confirm the pre-deployment step and `db-init` both completed, then verify `/health` and spot-check the new tables.
-5. **Immediately clear the Pre-deployment command field and Save again.** It is a standing setting — left in place, it drops the schema on _every_ future deploy, including routine app-code pushes.
-
-### Method B — SSH fallback
-
-If the Pre-deployment Command field isn't available, SSH into the host Coolify manages this server through (see the server's **Private Key** section in Coolify for the key, and its **General** tab for the IP/user/port) and run the reset directly:
-
-```
-ssh root@<server-ip>
-docker ps | grep postgres
-docker exec -it <postgres-container-name> psql -U postgres -d gami_core -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-```
-
-Then click **Redeploy** in Coolify so `db-init` rebuilds the schema from `init.sql`.
+For local Docker development, use `docker compose down` followed by a fresh canonical volume (the
+local compose file uses `postgres_data_canonical`) before starting PostgreSQL again. The E2E compose
+flow is also expected to use a fresh database for each run and already tears its resources down with
+`docker compose -f docker-compose.e2e.yml down -v`.
 
 ---
 

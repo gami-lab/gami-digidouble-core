@@ -19,6 +19,11 @@
 #
 #   Teardown (wipe all data):
 #     docker compose down -v
+#
+#   Fresh canonical database (required after schema changes):
+#     docker compose down
+#     docker volume rm gami-digidouble-core_postgres_data_canonical 2>/dev/null || true
+#     docker compose up -d postgres redis
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -36,7 +41,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_canonical:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d gami_core']
@@ -97,5 +102,5 @@ services:
         condition: service_healthy
 
 volumes:
-  postgres_data:
+  postgres_data_canonical:
   redis_data:

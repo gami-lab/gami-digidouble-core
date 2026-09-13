@@ -38,7 +38,6 @@ import { MemorySelectionService } from './application/services/memory-selection.
 import {
   getDbClient,
   closeDbClient,
-  alignPostgresSchema,
   PostgresScenarioRepository,
   PostgresAvatarRepository,
   PostgresEventLogRepository,
@@ -77,7 +76,6 @@ async function main(): Promise<void> {
     buildLlmAdaptersByProvider(config, observability),
   )
   const sql = getDbClient(config.databaseUrl)
-  await alignPostgresSchema(sql)
   const redisClient = getRedisClient(config.redisUrl)
   const repositories = buildCoreRepositories(sql)
   const knowledgeAdapters = buildKnowledgeAdapters(sql, config, observability)

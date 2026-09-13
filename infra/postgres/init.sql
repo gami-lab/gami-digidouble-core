@@ -1,6 +1,6 @@
 -- PostgreSQL initialization script
 -- Runs once on first container start (docker-entrypoint-initdb.d)
--- This is the canonical schema — no separate migration files.
+-- This is the canonical fresh-database schema — no separate migration files or repair steps.
 
 -- ── Extensions ────────────────────────────────────────────────────────────────
 
@@ -28,13 +28,11 @@ CREATE TABLE IF NOT EXISTS scenarios (
   objectives          TEXT[]      NOT NULL DEFAULT '{}',
   world_context       TEXT        NOT NULL DEFAULT '',
   avatar_availability JSONB       NOT NULL DEFAULT '{"initialAvatarIds": []}',
+  model_selection     JSONB,
   config              JSONB       NOT NULL DEFAULT '{}',
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Own column (not nested in config) for scenario-scoped model overrides.
-ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS model_selection JSONB;
 
 -- ── Avatars ───────────────────────────────────────────────────────────────────
 
@@ -64,6 +62,7 @@ CREATE TABLE IF NOT EXISTS knowledge_sources (
   uri_or_path     TEXT        NOT NULL,
   status          TEXT        NOT NULL DEFAULT 'pending',
   metadata        JSONB       NOT NULL DEFAULT '{}',
+  visibility_policy TEXT CHECK (visibility_policy IN ('all', 'avatars', 'none')),
   visible_to_avatar_ids TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -127,75 +126,16 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
   metadata        JSONB       NOT NULL DEFAULT '{}',
   visible_to_avatar_ids TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (source_id, corpus_generation_id, chunk_index)
+  UNIQUE (source_id, corpus_generation_id, chunk_index),
+  CONSTRAINT knowledge_chunks_generation_profile_fkey
+    FOREIGN KEY (corpus_generation_id, embedding_profile_id)
+    REFERENCES corpus_generations(id, embedding_profile_id),
+  CONSTRAINT knowledge_chunks_embedding_identity_check CHECK (
+    (embedding IS NULL AND embedding_profile_id IS NULL AND corpus_generation_id IS NULL)
+    OR
+    (embedding IS NOT NULL AND embedding_profile_id IS NOT NULL AND corpus_generation_id IS NOT NULL)
+  )
 );
-
--- Backward-compatible schema alignment for existing local volumes.
-ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[];
-ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS visible_to_avatar_ids TEXT[];
-ALTER TABLE knowledge_sources ADD COLUMN IF NOT EXISTS visibility_policy TEXT CHECK (visibility_policy IN ('all', 'avatars', 'none'));
-ALTER TABLE knowledge_sources DROP CONSTRAINT IF EXISTS knowledge_sources_knowledge_type_check;
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM knowledge_sources WHERE knowledge_type = 'memory'
-  ) THEN
-    ALTER TABLE knowledge_sources ADD CONSTRAINT knowledge_sources_knowledge_type_check
-      CHECK (knowledge_type IN ('avatar_knowledge', 'world', 'media'));
-  END IF;
-END $$;
-ALTER TABLE knowledge_sources DROP CONSTRAINT IF EXISTS knowledge_sources_status_check;
-ALTER TABLE knowledge_sources ADD CONSTRAINT knowledge_sources_status_check
-  CHECK (status IN ('pending', 'ready', 'error', 'blocked'));
-ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS embedding_profile_id UUID;
-ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS corpus_generation_id UUID;
-
--- Existing vectors were created before profile identity existed. Keep their source content for
--- regeneration, but make the vectors ineligible for retrieval instead of treating them as real
--- provider vectors.
-UPDATE knowledge_chunks
-SET embedding = NULL,
-    embedding_profile_id = NULL,
-    corpus_generation_id = NULL
-WHERE embedding IS NOT NULL
-  AND (embedding_profile_id IS NULL OR corpus_generation_id IS NULL);
-
--- The supported production profile is text-embedding-3-small with 16 dimensions. A dimension
--- change requires a corresponding migration and a complete staged reindex.
-DO $$
-BEGIN
-  ALTER TABLE knowledge_chunks
-    ALTER COLUMN embedding TYPE VECTOR(16)
-    USING CASE
-      WHEN embedding IS NULL THEN NULL
-      ELSE embedding::vector(16)
-    END;
-END;
-$$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'knowledge_chunks_generation_profile_fkey'
-  ) THEN
-    ALTER TABLE knowledge_chunks
-      ADD CONSTRAINT knowledge_chunks_generation_profile_fkey
-      FOREIGN KEY (corpus_generation_id, embedding_profile_id)
-      REFERENCES corpus_generations(id, embedding_profile_id);
-  END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'knowledge_chunks_embedding_identity_check'
-  ) THEN
-    ALTER TABLE knowledge_chunks
-      ADD CONSTRAINT knowledge_chunks_embedding_identity_check
-      CHECK (
-        (embedding IS NULL AND embedding_profile_id IS NULL AND corpus_generation_id IS NULL)
-        OR
-        (embedding IS NOT NULL AND embedding_profile_id IS NOT NULL AND corpus_generation_id IS NOT NULL)
-      );
-  END IF;
-END;
-$$;
 
 CREATE TABLE IF NOT EXISTS ingestion_jobs (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -210,8 +150,6 @@ CREATE TABLE IF NOT EXISTS ingestion_jobs (
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (status IN ('queued', 'running', 'completed', 'failed'))
 );
-
-ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS chunk_size INT;
 
 CREATE TABLE IF NOT EXISTS reindex_operations (
   id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -281,13 +219,6 @@ CREATE TABLE IF NOT EXISTS sessions (
   ended_at         TIMESTAMPTZ
 );
 
--- Backward-compatible schema alignment for existing local volumes.
--- CREATE TABLE IF NOT EXISTS does not add new columns after initial bootstrap.
-ALTER TABLE sessions ADD COLUMN IF NOT EXISTS unlocked_avatar_ids UUID[];
-ALTER TABLE sessions ADD COLUMN IF NOT EXISTS gm_notes TEXT;
-ALTER TABLE sessions ADD COLUMN IF NOT EXISTS memory_summary TEXT;
-ALTER TABLE sessions ADD COLUMN IF NOT EXISTS model_override JSONB;
-
 -- ── Working Memory ────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS session_memories (
@@ -315,10 +246,6 @@ CREATE TABLE IF NOT EXISTS gm_states (
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Existing volumes may retain legacy current_avatar_id/topics_covered columns. The repository
--- ignores them while the session and memory-compaction stores own those responsibilities.
-ALTER TABLE gm_states ADD COLUMN IF NOT EXISTS next_turn_orchestration JSONB;
-
 -- ── Conversations ─────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS conversations (
@@ -344,9 +271,6 @@ CREATE TABLE IF NOT EXISTS conversation_working_memories (
   candidate_facts     JSONB       NOT NULL DEFAULT '[]'::JSONB,
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-ALTER TABLE conversation_working_memories
-  ADD COLUMN IF NOT EXISTS covered_topics TEXT[] NOT NULL DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS conversation_memories (
   conversation_id     UUID        PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
@@ -423,8 +347,7 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_sources_scope
   ON knowledge_sources(scenario_id, knowledge_type, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_chunk
   ON knowledge_chunks(source_id, chunk_index);
-DROP INDEX IF EXISTS idx_knowledge_chunks_embedding;
-CREATE INDEX idx_knowledge_chunks_embedding
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding
   ON knowledge_chunks USING ivfflat (embedding vector_cosine_ops)
   WITH (lists = 100)
   WHERE embedding IS NOT NULL;

@@ -127,6 +127,11 @@ pnpm infra:up
 pnpm dev
 ```
 
+`infra/postgres/init.sql` is a fresh-database bootstrap and runs only for an empty PostgreSQL data
+volume. After schema changes, provision the canonical volume described in
+[`docs/COOLIFY_DEPLOYMENT_SPECIFICATION.md`](docs/COOLIFY_DEPLOYMENT_SPECIFICATION.md#fresh-volume-procedure)
+before starting the stack.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full onboarding guide, quality commands, workflow conventions, and deployment notes.
 
 ### Public Web App (EPIC 7.1)

@@ -18,8 +18,9 @@ there is no production hash-vector fallback.
 ## Profile changes
 
 Changing provider, model, or dimensions changes the vector space. Do not change only the
-environment variable and begin ingestion. A dimension change also requires a PostgreSQL migration
-that changes `knowledge_chunks.embedding` and recreates its `vector_cosine_ops` index.
+environment variable and begin ingestion. A dimension change also requires a new canonical
+PostgreSQL schema revision and fresh volume that changes `knowledge_chunks.embedding` and recreates
+its `vector_cosine_ops` index.
 
 After deploying a compatible target profile:
 

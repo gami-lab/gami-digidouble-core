@@ -5,6 +5,10 @@ Repository: `gami-digidouble-core`
 Revision: `a366b27d`  
 Scope: production source, shared contracts, database bootstrap/alignment, seed tooling, and tests that document compatibility behavior.
 
+Status: the P0 runtime schema-alignment finding was resolved by EPIC 10.1 Prompt 1. The historical
+evidence and remaining findings below are retained as the cleanup ledger for Prompts 2–4; the
+schema-alignment paths described in the first finding are no longer active current code.
+
 ## Executive summary
 
 The codebase is not yet a clean-slate codebase. It contains several live compatibility paths for previous database schemas, API values, persisted JSON payloads, prompt contracts, and content/configuration shapes.

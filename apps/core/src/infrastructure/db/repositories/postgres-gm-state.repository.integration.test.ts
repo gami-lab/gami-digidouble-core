@@ -163,18 +163,4 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
       { avatarId: 'avatar_3', reason: 'A second perspective is relevant.' },
     ])
   })
-
-  it('ignores legacy current-avatar and covered-topic columns when reading', async () => {
-    const state: GameMasterState = {
-      progression: 'none',
-      interactionCount: 0,
-    }
-
-    await gmStateRepo.save(sessionId, state)
-
-    const found = await gmStateRepo.findBySessionId(sessionId)
-    expect(found).not.toBeNull()
-    expect(found).not.toHaveProperty('currentAvatarId')
-    expect(found).not.toHaveProperty('topicsCovered')
-  })
 })

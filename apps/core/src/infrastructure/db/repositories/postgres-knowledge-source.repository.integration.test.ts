@@ -1,11 +1,6 @@
 import type { Sql } from 'postgres'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import {
-  DB_AVAILABLE,
-  createTestSql,
-  ensureSchemaAlignment,
-  truncateAllTables,
-} from '../test-helpers.js'
+import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
 import { PostgresKnowledgeChunkRepository } from './postgres-knowledge-chunk.repository.js'
 import { PostgresKnowledgeSourceRepository } from './postgres-knowledge-source.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
@@ -20,7 +15,6 @@ type RepositoryTestState = {
 function registerRepositoryLifecycle(state: RepositoryTestState): void {
   beforeAll(async () => {
     state.sql = createTestSql()
-    await ensureSchemaAlignment(state.sql)
     state.scenarioRepo = new PostgresScenarioRepository(state.sql)
     state.sourceRepo = new PostgresKnowledgeSourceRepository(state.sql)
     const scenario = await state.scenarioRepo.create({
@@ -228,7 +222,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
 
   beforeAll(async () => {
     sql = createTestSql()
-    await ensureSchemaAlignment(sql)
     scenarioRepo = new PostgresScenarioRepository(sql)
     sourceRepo = new PostgresKnowledgeSourceRepository(sql)
     chunkRepo = new PostgresKnowledgeChunkRepository(sql)
