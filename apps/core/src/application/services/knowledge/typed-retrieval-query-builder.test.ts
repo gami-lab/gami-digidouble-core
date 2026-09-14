@@ -7,15 +7,11 @@ import {
 
 /* eslint-disable max-lines-per-function */
 describe('typed retrieval query builder', () => {
-  it('builds avatar retrieval queries from GM notes, user input, and prompt memory', () => {
+  it('builds avatar retrieval queries from GM notes, user input, and working memory', () => {
     const queries = buildAvatarTypedRetrievalQueries({
       gmGuideline: 'Keep the user focused on docking safety.',
       lastUserInput: 'What should I check before docking?',
       workingMemorySummary: 'The user wants short, operational guidance.',
-      recentExchanges: [
-        { user: 'The tide is moving fast.', avatar: 'Use the harbor chart first.' },
-        { user: 'The dock is crowded.', avatar: 'Approach slowly and signal early.' },
-      ],
     })
 
     expect(queries).toEqual([
@@ -29,11 +25,11 @@ describe('typed retrieval query builder', () => {
       },
       {
         source: 'working_memory',
-        text: 'The user wants short, operational guidance. User: The tide is moving fast. Avatar: Use the harbor chart first. User: The dock is crowded. Avatar: Approach slowly and signal early.',
+        text: 'The user wants short, operational guidance.',
       },
     ])
     expect(flattenTypedRetrievalQueries(queries)).toBe(
-      'Keep the user focused on docking safety. | What should I check before docking? | The user wants short, operational guidance. User: The tide is moving fast. Avatar: Use the harbor chart first. User: The dock is crowded. Avatar: Approach slowly and signal early.',
+      'Keep the user focused on docking safety. | What should I check before docking? | The user wants short, operational guidance.',
     )
   })
 
@@ -42,7 +38,6 @@ describe('typed retrieval query builder', () => {
       gmGuideline: 'Same',
       lastUserInput: 'same',
       workingMemorySummary: undefined,
-      recentExchanges: undefined,
     })
 
     expect(queries).toEqual([{ source: 'gm_guideline', text: 'Same' }])
@@ -144,21 +139,23 @@ describe('typed retrieval query builder', () => {
     ])
   })
 
-  it('builds GM retrieval queries from world context and current exchanges', () => {
+  it('builds GM retrieval queries from working memory and only the last exchange', () => {
     const queries = buildGameMasterTypedRetrievalQueries({
-      worldContext: 'The harbor closes at dusk during storm warnings.',
       workingMemorySummary: 'The user is still navigating docking rules.',
-      recentExchanges: [{ user: 'Can I dock now?', avatar: 'Only before dusk.' }],
+      recentExchanges: [
+        { user: 'What is the tide doing?', avatar: 'It is rising.' },
+        { user: 'Can I dock now?', avatar: 'Only before dusk.' },
+      ],
     })
 
     expect(queries).toEqual([
       {
-        source: 'world_context',
-        text: 'The harbor closes at dusk during storm warnings.',
+        source: 'working_memory',
+        text: 'The user is still navigating docking rules.',
       },
       {
-        source: 'working_memory',
-        text: 'The user is still navigating docking rules. User: Can I dock now? Avatar: Only before dusk.',
+        source: 'last_exchange',
+        text: 'User: Can I dock now? Avatar: Only before dusk.',
       },
     ])
   })

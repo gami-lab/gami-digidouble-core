@@ -15,6 +15,7 @@ describe('knowledge retrieval contracts', () => {
       'gm_retrieval_query',
       'gm_required_fact',
       'last_user_input',
+      'last_exchange',
       'working_memory',
       'world_context',
       'direct_query',

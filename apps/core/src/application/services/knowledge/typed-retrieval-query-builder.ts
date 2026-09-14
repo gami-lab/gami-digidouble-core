@@ -9,7 +9,6 @@ export function buildAvatarTypedRetrievalQueries(input: {
   gmRequiredFacts?: string[] | null | undefined
   lastUserInput?: string | null | undefined
   workingMemorySummary?: string | null | undefined
-  recentExchanges?: ShortTermMemoryExchange[] | undefined
 }): TypedRetrievalQueryVariant[] {
   const plannedQueries = input.gmRetrievalQueries ?? []
   const requiredFacts = input.gmRequiredFacts ?? []
@@ -22,10 +21,7 @@ export function buildAvatarTypedRetrievalQueries(input: {
     ...(usePlannedRetrieval ? toQueryVariants('gm_retrieval_query', plannedQueries) : []),
     ...(usePlannedRetrieval ? toQueryVariants('gm_required_fact', requiredFacts) : []),
     toQueryVariant('last_user_input', input.lastUserInput),
-    toQueryVariant(
-      'working_memory',
-      buildMemoryAndExchangeQuery(input.workingMemorySummary, input.recentExchanges),
-    ),
+    toQueryVariant('working_memory', input.workingMemorySummary),
   ].filter((query): query is TypedRetrievalQueryVariant => query !== undefined)
 
   return normalizeTypedRetrievalQueries(candidates)
@@ -90,16 +86,12 @@ const RETRIEVAL_STOP_WORDS = new Set([
 ])
 
 export function buildGameMasterTypedRetrievalQueries(input: {
-  worldContext?: string | null | undefined
   workingMemorySummary?: string | null | undefined
   recentExchanges?: ShortTermMemoryExchange[] | undefined
 }): TypedRetrievalQueryVariant[] {
   const candidates: TypedRetrievalQueryVariant[] = [
-    toQueryVariant('world_context', input.worldContext),
-    toQueryVariant(
-      'working_memory',
-      buildMemoryAndExchangeQuery(input.workingMemorySummary, input.recentExchanges),
-    ),
+    toQueryVariant('working_memory', input.workingMemorySummary),
+    toQueryVariant('last_exchange', toLastExchangeQuery(input.recentExchanges)),
   ].filter((query): query is TypedRetrievalQueryVariant => query !== undefined)
 
   return normalizeTypedRetrievalQueries(candidates)
@@ -148,21 +140,11 @@ function toQueryVariants(
     .filter((query): query is TypedRetrievalQueryVariant => query !== undefined)
 }
 
-function buildMemoryAndExchangeQuery(
-  workingMemorySummary: string | null | undefined,
+function toLastExchangeQuery(
   recentExchanges: ShortTermMemoryExchange[] | undefined,
 ): string | undefined {
-  const exchangeText = (recentExchanges ?? [])
-    .map((exchange) => toExchangeText(exchange))
-    .filter((value): value is string => value !== undefined)
-    .join(' ')
-    .trim()
-  const query = [workingMemorySummary?.trim(), exchangeText]
-    .filter((value): value is string => value !== undefined && value.length > 0)
-    .join(' ')
-    .trim()
-
-  return query.length > 0 ? query : undefined
+  const lastExchange = recentExchanges?.at(-1)
+  return lastExchange === undefined ? undefined : toExchangeText(lastExchange)
 }
 
 function toExchangeText(exchange: ShortTermMemoryExchange): string | undefined {

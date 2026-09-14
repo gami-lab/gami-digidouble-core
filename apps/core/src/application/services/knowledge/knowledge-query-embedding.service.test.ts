@@ -111,6 +111,7 @@ describe('KnowledgeQueryEmbeddingService', () => {
       { source: 'gm_retrieval_query', text: 'GM query' },
       { source: 'gm_required_fact', text: 'GM required fact' },
       { source: 'working_memory', text: 'Working memory' },
+      { source: 'last_exchange', text: 'Last exchange' },
       { source: 'world_context', text: 'World context' },
     ]
 
@@ -124,6 +125,7 @@ describe('KnowledgeQueryEmbeddingService', () => {
         'GM query',
         'GM required fact',
         'Working memory',
+        'Last exchange',
         'World context',
       ],
     ])
@@ -134,12 +136,13 @@ describe('KnowledgeQueryEmbeddingService', () => {
       { source: 'gm_retrieval_query', text: 'GM query', queryIndex: 3 },
       { source: 'gm_required_fact', text: 'GM required fact', queryIndex: 4 },
       { source: 'working_memory', text: 'Working memory', queryIndex: 5 },
-      { source: 'world_context', text: 'World context', queryIndex: 6 },
+      { source: 'last_exchange', text: 'Last exchange', queryIndex: 6 },
+      { source: 'world_context', text: 'World context', queryIndex: 7 },
     ])
-    expect(result.queryVectors).toHaveLength(7)
+    expect(result.queryVectors).toHaveLength(8)
     expect(result.diagnostics).toMatchObject({
       outcome: 'success',
-      queryVectorCount: 7,
+      queryVectorCount: 8,
       embeddingProfile: {
         embeddingProfileId: activeCorpus.embeddingProfileId,
         corpusGenerationId: activeCorpus.corpusGenerationId,
@@ -151,8 +154,8 @@ describe('KnowledgeQueryEmbeddingService', () => {
     })
     expect(observability.events[0]).toMatchObject({
       event: 'retrieval.query_embedding',
-      output: { outcome: 'success', queryVectorCount: 7 },
-      metadata: { queryCount: 7, queryVectorCount: 7 },
+      output: { outcome: 'success', queryVectorCount: 8 },
+      metadata: { queryCount: 8, queryVectorCount: 8 },
     })
     expect(JSON.stringify(observability.events)).not.toContain('vectors')
   })
@@ -165,7 +168,7 @@ describe('KnowledgeQueryEmbeddingService', () => {
       queries: [
         { source: 'last_user_input', text: ' Same question ' },
         { source: 'gm_retrieval_query', text: 'same question' },
-        { source: 'world_context', text: '   ' },
+        { source: 'last_exchange', text: '   ' },
         { source: 'working_memory', text: 'Other context' },
       ],
     })

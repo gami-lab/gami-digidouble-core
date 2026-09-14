@@ -59,7 +59,6 @@ export async function buildGameMasterInput(args: {
   const retrieval = await loadTypedRetrieval(
     args.input,
     args.session,
-    args.scenarioContext.description,
     recentMessages,
     memory,
     args.dependencies.typedRetrievalService,
@@ -171,7 +170,6 @@ async function loadRecentMessages(
 async function loadTypedRetrieval(
   input: RunGameMasterInput,
   session: Session | null,
-  worldContext: string | undefined,
   recentMessages: Array<{ role: 'user' | 'avatar' | 'system'; content: string }>,
   memory: GameMasterMemoryContext | undefined,
   typedRetrievalService: TypedRetrievalService | undefined,
@@ -185,7 +183,6 @@ async function loadTypedRetrieval(
   }
 
   const queries = buildGameMasterTypedRetrievalQueries({
-    worldContext,
     recentExchanges: toRecentExchanges(recentMessages),
     workingMemorySummary: memory?.workingMemory?.summary,
   })

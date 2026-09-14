@@ -99,12 +99,16 @@ you cannot silently swap models without a coordinated migration. See
 
 ## Query sources
 
-Avatar retrieval combines the current user input, working-memory summary/recent exchanges, and
-relevant GM-planned queries/required facts. A heuristic (`shouldUsePlannedRetrieval`, in
+Avatar retrieval combines the current user input, working-memory summary only, and relevant
+GM-planned queries/required facts. A heuristic (`shouldUsePlannedRetrieval`, in
 `typed-retrieval-query-builder.ts`) decides per turn whether the GM's plan is still relevant —
 it's suppressed on an explicit topic change or an emotion-focused message, and otherwise enabled on
 token overlap or continuation language. This exists so a stale GM plan from a prior turn doesn't
 pollute retrieval when the user has moved on.
+
+GM retrieval uses exactly two query variants: the working-memory summary and the latest complete
+user/Avatar exchange. It does not query with the static scenario description or multiple historical
+exchanges.
 
 GM and admin diagnostics may use the explicit unrestricted visibility mode (`bypassVisibilityFilter`)
 so the GM can plan around knowledge hidden from the active Avatar — but it never bypasses scenario,

@@ -9,6 +9,7 @@ const BALANCED_QUERY_SOURCES: RetrievalQuerySource[] = [
 
 const FALLBACK_QUERY_SOURCES: RetrievalQuerySource[] = [
   'gm_guideline',
+  'last_exchange',
   'working_memory',
   'world_context',
   'direct_query',

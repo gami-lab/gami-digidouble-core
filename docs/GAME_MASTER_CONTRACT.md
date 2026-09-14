@@ -138,8 +138,10 @@ unless the exchange clearly closes or changes it. Planned retrieval is consumed 
 to the next Avatar turn; stale or unrelated plans are suppressed. Knowledge embedding, vector
 retrieval, and reindex work stay outside the GM timing contract — they run through the shared
 knowledge application boundary, never block Avatar responses, and never change GM chat model
-selection. A provider/search failure yields bounded empty RAG context; the async GM turn stays
-observable and non-blocking.
+selection. GM RAG queries contain only the working-memory summary and the latest complete user/Avatar
+exchange; they do not include the static scenario description or multiple historical exchanges. A
+provider/search failure yields bounded empty RAG context; the async GM turn stays observable and
+non-blocking.
 
 ## Diagnostics
 

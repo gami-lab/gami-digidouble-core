@@ -376,7 +376,6 @@ export class SendMessageUseCase {
       gmRequiredFacts: args.orchestration?.retrievalPlan.requiredFacts,
       lastUserInput: args.userMessage,
       workingMemorySummary: memory?.working?.avatar?.summary ?? memory?.working?.session?.summary,
-      recentExchanges: memory?.shortTerm?.recentExchanges,
     })
     const retrievalStartMs = Date.now()
     let retrieval: Awaited<ReturnType<SendMessageUseCase['loadTypedRetrieval']>>

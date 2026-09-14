@@ -218,7 +218,7 @@ describe('SendMessageUseCase typed retrieval query reuse', () => {
         scenarioId: 'scenario_1',
         activeAvatarId: 'avatar_1',
         query:
-          'Keep the answer focused on docking safety. | What should I do? | The user wants concise docking advice. User: The tide is shifting. Avatar: Then watch the harbor markers.',
+          'Keep the answer focused on docking safety. | What should I do? | The user wants concise docking advice.',
         queries: [
           {
             source: 'gm_guideline',
@@ -230,7 +230,7 @@ describe('SendMessageUseCase typed retrieval query reuse', () => {
           },
           {
             source: 'working_memory',
-            text: 'The user wants concise docking advice. User: The tide is shifting. Avatar: Then watch the harbor markers.',
+            text: 'The user wants concise docking advice.',
           },
         ],
         limitPerType: 7,

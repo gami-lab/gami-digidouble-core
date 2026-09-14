@@ -49,8 +49,10 @@ genuine, non-trivial piece of infrastructure engineering.
 
 [typed-retrieval-query-builder.ts](../apps/core/src/application/services/knowledge/typed-retrieval-query-builder.ts)
 builds several labelled query variants per turn (`gm_guideline`, `gm_retrieval_query`,
-`gm_required_fact`, `last_user_input`, `working_memory` for the Avatar; `world_context` +
-`working_memory` for the GM). Notably, `gm_retrieval_query`/`gm_required_fact` are **written by the
+`gm_required_fact`, `last_user_input`, `working_memory` for the Avatar; `working_memory` +
+`last_exchange` for the GM). Working memory is embedded as its summary only, while GM retrieval uses
+only the latest complete user/Avatar exchange for conversational context. Notably,
+`gm_retrieval_query`/`gm_required_fact` are **written by the
 Game Master LLM** on the previous turn (see `gm-prompt.service.ts`'s retrieval-planning policy) —
 this is a real query-planning step, not just "embed the raw user message," and it is consumed only
 when a keyword heuristic (`shouldUsePlannedRetrieval`) judges the plan still on-topic.

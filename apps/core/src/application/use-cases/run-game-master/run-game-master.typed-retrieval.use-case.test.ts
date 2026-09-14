@@ -210,7 +210,7 @@ beforeEach(() => {
 })
 
 describe('RunGameMasterUseCase typed retrieval input', () => {
-  it('builds GM retrieval from world context plus current exchanges and renders it under experience context', async () => {
+  it('builds GM retrieval from working memory and the last exchange', async () => {
     const useCase = createUseCase()
 
     await useCase.execute({
@@ -226,15 +226,15 @@ describe('RunGameMasterUseCase typed retrieval input', () => {
     expect(retrieveTypedContextMock).toHaveBeenCalledWith(
       expect.objectContaining({
         query:
-          'Storm tide starts at dusk near the harbor. | The witness already shared a timeline contradiction. User: What happened at the harbor? Avatar: The docks are crowded.',
+          'The witness already shared a timeline contradiction. | User: What happened at the harbor? Avatar: The docks are crowded.',
         queries: [
           {
-            source: 'world_context',
-            text: 'Storm tide starts at dusk near the harbor.',
+            source: 'working_memory',
+            text: 'The witness already shared a timeline contradiction.',
           },
           {
-            source: 'working_memory',
-            text: 'The witness already shared a timeline contradiction. User: What happened at the harbor? Avatar: The docks are crowded.',
+            source: 'last_exchange',
+            text: 'User: What happened at the harbor? Avatar: The docks are crowded.',
           },
         ],
         bypassVisibilityFilter: true,
