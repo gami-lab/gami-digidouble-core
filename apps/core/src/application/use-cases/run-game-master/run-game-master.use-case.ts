@@ -153,7 +153,6 @@ export class RunGameMasterUseCase {
       currentState,
       scenarioContext,
       triggerReason,
-      llmStart,
       gmRunStartMs,
       session?.modelOverride,
     )
@@ -308,7 +307,6 @@ export class RunGameMasterUseCase {
     currentState: GameMasterState,
     scenarioContext: GameMasterScenarioContext,
     triggerReason: string,
-    llmStart: number,
     gmRunStartMs: number,
     sessionOverride: Session['modelOverride'],
   ): Promise<{

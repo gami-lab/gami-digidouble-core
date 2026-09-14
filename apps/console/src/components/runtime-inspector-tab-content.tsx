@@ -144,7 +144,7 @@ function OverviewTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX
       <Row label="Can send message">{String(snapshot.runtimeState.canSendMessage)}</Row>
       <Row label="GM progression">{snapshot.gm.gmState?.progression ?? '-'}</Row>
       <Row label="Unlocked avatars">{formatUnlockedAvatars(snapshot)}</Row>
-      <Row label="GM recommendation">{formatSuggestedAvatar(snapshot, latestGmDecision)}</Row>
+      <Row label="GM recommendation">{formatSuggestedAvatar(latestGmDecision)}</Row>
       <Row label="GM next-turn note">{snapshot.gm.gmNotes ?? '-'}</Row>
       <strong style={{ display: 'block', marginTop: '12px' }}>Effective models</strong>
       <Row label="Avatar">{`${snapshot.effectiveModels.avatar.provider} / ${snapshot.effectiveModels.avatar.model}`}</Row>
@@ -453,9 +453,7 @@ function renderGmRuntimeContext(
       <Row label="Recent messages">
         {String(gmSections.conversationState.recentMessages.length)}
       </Row>
-      <Row label="Conversation Working Memory">
-        {workingMemory?.summary ?? '-'}
-      </Row>
+      <Row label="Conversation Working Memory">{workingMemory?.summary ?? '-'}</Row>
       <Row label="GM unresolved threads">{formatInlineItems(workingMemory?.unresolvedThreads)}</Row>
       <Row label="GM covered topics">{formatInlineItems(workingMemory?.coveredTopics)}</Row>
       <Row label="Available avatars">
@@ -842,10 +840,7 @@ function formatUnlockedAvatars(snapshot: RuntimeInspectorViewModel): string {
   return snapshot.gm.unlockedAvatarIds.join(', ')
 }
 
-function formatSuggestedAvatar(
-  snapshot: RuntimeInspectorViewModel,
-  decision: GmSessionEventPayload['decision'] | null,
-): string {
+function formatSuggestedAvatar(decision: GmSessionEventPayload['decision'] | null): string {
   if (decision?.routingAction !== 'suggest' || decision.routingAvatarId === undefined) return '-'
   const reason = decision.routingReason ?? 'no reason recorded'
   return `${decision.routingAvatarId} — ${reason}`

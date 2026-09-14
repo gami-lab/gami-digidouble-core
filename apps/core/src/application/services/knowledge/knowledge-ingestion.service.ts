@@ -15,7 +15,6 @@ import {
 } from '../../ports/IEmbeddingAdapter.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IIngestionJobRepository } from '../../ports/IIngestionJobRepository.js'
-import type { IKnowledgeChunkRepository } from '../../ports/IKnowledgeChunkRepository.js'
 import type {
   ActiveCorpus,
   IKnowledgeCorpusRepository,
@@ -26,6 +25,7 @@ import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRep
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
 import { findReservedStaticScopeKeys } from '../../../domain/knowledge/static-knowledge-validation.js'
+import { areEmbeddingProfilesEqual } from './embedding-profile.js'
 
 export type IngestionExecutionInput = {
   sourceId: string
@@ -67,7 +67,6 @@ export class KnowledgeIngestionError extends Error {
 export class KnowledgeIngestionService {
   constructor(
     private readonly sourceRepository: IKnowledgeSourceRepository,
-    private readonly chunkRepository: IKnowledgeChunkRepository,
     private readonly jobRepository: IIngestionJobRepository,
     private readonly contentLoader: IKnowledgeSourceContentLoader,
     private readonly embeddingAdapter: IEmbeddingAdapter,
@@ -374,7 +373,7 @@ export function validateEmbeddingResult(
       false,
     )
   }
-  if (!sameProfile(result.metadata.profile, expectedProfile)) {
+  if (!areEmbeddingProfilesEqual(result.metadata.profile, expectedProfile)) {
     throw new KnowledgeIngestionError(
       'profile_mismatch',
       'Embedding result profile does not match the active profile snapshot.',
@@ -404,14 +403,6 @@ export function validateEmbeddingResult(
       )
     }
   }
-}
-
-function sameProfile(left: EmbeddingProfile, right: EmbeddingProfile): boolean {
-  return (
-    left.provider === right.provider &&
-    left.model === right.model &&
-    left.dimensions === right.dimensions
-  )
 }
 
 function isStaleCorpusError(error: unknown): boolean {

@@ -1,11 +1,9 @@
 import type { SessionMemoryLayers, SharedShortTermMemoryExchange } from '@gami/shared'
-import type { IAvatarSessionMemoryRepository } from '../../ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../ports/IConversationMemoryRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
-import type { ISessionMemoryRepository } from '../../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
@@ -28,8 +26,6 @@ export class GetSessionMemoryLayersUseCase {
   constructor(
     private readonly sessionRepository: ISessionRepository,
     private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
-    private readonly sessionMemoryRepository?: ISessionMemoryRepository,
-    private readonly avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository,
     private readonly conversationRepository?: IConversationRepository,
     private readonly messageRepository?: IMessageRepository,
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,

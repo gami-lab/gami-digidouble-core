@@ -45,8 +45,7 @@ import { InMemoryScenarioRepository } from '../infrastructure/db/in-memory-scena
 import { InMemoryMessageRepository } from '../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memory-session-event-publisher.js'
-import { createLlmAdapter } from '../infrastructure/llm/index.js'
-import type { LlmConfig } from '../infrastructure/llm/index.js'
+import { buildLlmConfig, createLlmAdapter } from '../infrastructure/llm/index.js'
 import type { LlmAdapterRegistry } from '../infrastructure/llm/llm-adapter-registry.js'
 import { adminMemoryRoute } from './routes/admin-memory.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
@@ -361,7 +360,7 @@ function buildScenariosRouteOptions(
     ),
     llmAdapter:
       adapters.llmAdapter ??
-      createLlmAdapter(resolveServerLlmConfig(config), adapters.observabilityAdapter),
+      createLlmAdapter(buildLlmConfig(config), adapters.observabilityAdapter),
     ...(adapters.observabilityAdapter !== undefined
       ? { observabilityAdapter: adapters.observabilityAdapter }
       : {}),
@@ -447,7 +446,7 @@ function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAd
     config,
     llmAdapter:
       adapters.llmAdapter ??
-      createLlmAdapter(resolveServerLlmConfig(config), adapters.observabilityAdapter),
+      createLlmAdapter(buildLlmConfig(config), adapters.observabilityAdapter),
     sessionRepository: withDefault(adapters.sessionRepository, new InMemorySessionRepository()),
     conversationRepository: withDefault(
       adapters.conversationRepository,
@@ -488,14 +487,4 @@ function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAd
 
 function withDefault<T>(value: T | undefined, fallback: T): T {
   return value ?? fallback
-}
-
-function resolveServerLlmConfig(config: Config): LlmConfig {
-  return {
-    provider: config.llmProvider,
-    ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
-    ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
-    ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
-    ...(config.xaiApiKey !== undefined ? { xaiApiKey: config.xaiApiKey } : {}),
-  }
 }

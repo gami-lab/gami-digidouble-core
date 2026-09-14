@@ -41,18 +41,13 @@ import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-ev
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
-import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
-import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
-import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
-import { InMemoryConversationMemoryRepository } from '../../infrastructure/db/in-memory-conversation-memory.repository.js'
 import { InMemoryKnowledgeChunkRepository } from '../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { EpisodicMemoryService } from '../../application/services/episodic-memory.service.js'
 import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
-import { createLlmAdapter } from '../../infrastructure/llm/index.js'
-import type { LlmConfig } from '../../infrastructure/llm/index.js'
+import { buildLlmConfig, createLlmAdapter } from '../../infrastructure/llm/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
@@ -64,6 +59,7 @@ import {
   writeMessageStreamFrame,
 } from './conversation-message-mappers.js'
 import { handleRouteError } from './route-error.js'
+import { resolveWorkingMemoryRepositories } from '../composition.js'
 
 type ConversationsRouteOptions = {
   config: Config
@@ -410,7 +406,7 @@ function resolvePersistenceDeps(options: ConversationsRouteOptions): Conversatio
     userMemoryFactRepository:
       options.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
     ...resolveKnowledgeDeps(options),
-    ...resolveWorkingMemoryDeps(options),
+    ...resolveWorkingMemoryRepositories(options),
     gmStateRepository: options.gmStateRepository ?? new InMemoryGmStateRepository(),
   }
 }
@@ -424,35 +420,6 @@ function resolveKnowledgeDeps(options: ConversationsRouteOptions): {
       options.knowledgeSourceRepository ?? new InMemoryKnowledgeSourceRepository(),
     knowledgeChunkRepository:
       options.knowledgeChunkRepository ?? new InMemoryKnowledgeChunkRepository(),
-  }
-}
-
-function resolveWorkingMemoryDeps(options: ConversationsRouteOptions): {
-  sessionMemoryRepository: ISessionMemoryRepository
-  avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
-  conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
-  conversationMemoryRepository: IConversationMemoryRepository
-} {
-  return {
-    sessionMemoryRepository:
-      options.sessionMemoryRepository ?? new InMemorySessionMemoryRepository(),
-    avatarSessionMemoryRepository:
-      options.avatarSessionMemoryRepository ?? new InMemoryAvatarSessionMemoryRepository(),
-    conversationWorkingMemoryRepository:
-      options.conversationWorkingMemoryRepository ??
-      new InMemoryConversationWorkingMemoryRepository(),
-    conversationMemoryRepository:
-      options.conversationMemoryRepository ?? new InMemoryConversationMemoryRepository(),
-  }
-}
-
-function buildLlmConfig(config: Config): LlmConfig {
-  return {
-    provider: config.llmProvider,
-    ...(config.openaiApiKey !== undefined ? { openaiApiKey: config.openaiApiKey } : {}),
-    ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
-    ...(config.mistralApiKey !== undefined ? { mistralApiKey: config.mistralApiKey } : {}),
-    ...(config.xaiApiKey !== undefined ? { xaiApiKey: config.xaiApiKey } : {}),
   }
 }
 

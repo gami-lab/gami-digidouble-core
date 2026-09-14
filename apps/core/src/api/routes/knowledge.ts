@@ -217,7 +217,6 @@ export const knowledgeRoute: FastifyPluginCallback<KnowledgeRouteOptions> = (app
 function buildUseCases(options: KnowledgeRouteOptions): UseCases {
   const ingestionService = new KnowledgeIngestionService(
     options.sourceRepository,
-    options.chunkRepository,
     options.ingestionJobRepository,
     options.sourceContentLoader,
     options.embeddingAdapter,

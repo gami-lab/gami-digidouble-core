@@ -50,11 +50,8 @@ import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
-import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
-import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
-import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
-import { InMemoryConversationMemoryRepository } from '../../infrastructure/db/in-memory-conversation-memory.repository.js'
 import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-memory-session-event-publisher.js'
+import { resolveWorkingMemoryRepositories } from '../composition.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
 import { startSessionBodySchema } from './start-session.schema.js'
 import { registerRuntimeEventsRoutes } from './runtime-events.js'
@@ -299,25 +296,6 @@ function resolveRouteDependencies(options: SessionsRouteOptions) {
     conversationMemoryRepository,
     eventLogRepository,
     sessionEventPublisher,
-  }
-}
-
-function resolveWorkingMemoryRepositories(options: SessionsRouteOptions): {
-  sessionMemoryRepository: ISessionMemoryRepository
-  avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
-  conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
-  conversationMemoryRepository: IConversationMemoryRepository
-} {
-  return {
-    sessionMemoryRepository:
-      options.sessionMemoryRepository ?? new InMemorySessionMemoryRepository(),
-    avatarSessionMemoryRepository:
-      options.avatarSessionMemoryRepository ?? new InMemoryAvatarSessionMemoryRepository(),
-    conversationWorkingMemoryRepository:
-      options.conversationWorkingMemoryRepository ??
-      new InMemoryConversationWorkingMemoryRepository(),
-    conversationMemoryRepository:
-      options.conversationMemoryRepository ?? new InMemoryConversationMemoryRepository(),
   }
 }
 

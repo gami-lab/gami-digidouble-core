@@ -70,7 +70,6 @@ describe('KnowledgeIngestionService — completion flow', () => {
 
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader('A\n\nB\n\nC'),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -126,7 +125,6 @@ describe('KnowledgeIngestionService — completion flow', () => {
 
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new InlineTextLoader(),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -160,7 +158,6 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
 
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader(`${'A'.repeat(700)}\n\n${'B'.repeat(700)}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -192,7 +189,6 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
 
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader(`${'A'.repeat(300)}\n\n${'B'.repeat(300)}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -228,7 +224,6 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
 
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader(`${firstParagraph}\n\n${secondParagraph}\n\n${thirdParagraph}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -270,7 +265,6 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
 
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader(`${oversizedParagraph}\n\n${nextParagraph}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -312,7 +306,6 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
 
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader(oversizedParagraph),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -350,7 +343,6 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
 
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader(oversizedCodeFence),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -390,7 +382,6 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
 
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader(
         `# Guide\n\n${firstParagraph}\n\n## Harbor\n\n${secondParagraph}\n\n####details\n\n${thirdParagraph}`,
@@ -426,7 +417,6 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
 
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader(`## Section\n\n${firstParagraph}\n\n${secondParagraph}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -461,7 +451,6 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
 
     const failingService = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader('', true),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -480,7 +469,6 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
     const retryJob = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
     const successService = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader('First\n\nSecond'),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -544,7 +532,6 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
     const longParagraphB = 'B'.repeat(700)
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader(`${longParagraphA}\n\n${longParagraphB}`),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
@@ -596,7 +583,6 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
     }
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader('content'),
       adapter,
@@ -629,7 +615,6 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
     const activeCorpus = new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS)
     const service = new KnowledgeIngestionService(
       sourceRepository,
-      chunkRepository,
       jobRepository,
       new StubLoader('content'),
       new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),

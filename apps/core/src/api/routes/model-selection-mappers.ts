@@ -57,7 +57,7 @@ export function mapCreateAvatarInput(
   scenarioId: string,
   body: CreateAvatarRequest,
 ): CreateAvatarInput {
-  const normalizedLlmOverride = normalizeLlmOverride(body.llmOverride)
+  const normalizedLlmOverride = normalizeAvatarLlmOverride(body.llmOverride)
   return {
     scenarioId,
     name: body.name,
@@ -72,7 +72,7 @@ export function mapCreateAvatarInput(
   }
 }
 
-function normalizeLlmOverride(
+export function normalizeAvatarLlmOverride(
   llmOverride: CreateAvatarRequest['llmOverride'],
 ): CreateAvatarInput['llmOverride'] {
   if (llmOverride === undefined) return undefined

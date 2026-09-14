@@ -42,8 +42,6 @@ export const adminMemoryRoute: FastifyPluginCallback<AdminMemoryRouteOptions> = 
   const getSessionMemoryLayersUseCase = new GetSessionMemoryLayersUseCase(
     options.sessionRepository,
     options.userMemoryFactRepository,
-    options.sessionMemoryRepository,
-    options.avatarSessionMemoryRepository,
     options.conversationRepository,
     options.messageRepository,
     options.conversationWorkingMemoryRepository,

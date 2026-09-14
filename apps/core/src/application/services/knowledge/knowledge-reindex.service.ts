@@ -21,6 +21,7 @@ import {
 } from './knowledge-ingestion.service.js'
 import { assertStaticMetadataAllowed } from '../../../domain/knowledge/static-knowledge-validation.js'
 import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
+import { areEmbeddingProfilesEqual } from './embedding-profile.js'
 
 export type KnowledgeReindexStartResult = Readonly<{
   status: 'started' | 'reused'
@@ -322,7 +323,7 @@ export class KnowledgeReindexService {
       activeCorpus.embeddingProfileId !== operation.embeddingProfileId ||
       activeCorpus.embeddingProfileId !== operation.expectedActiveProfileId ||
       activeCorpus.corpusGenerationId !== operation.expectedActiveGenerationId ||
-      !sameProfile(activeCorpus.profile, profile)
+      !areEmbeddingProfilesEqual(activeCorpus.profile, profile)
     ) {
       return new Map()
     }
@@ -348,14 +349,6 @@ class ReindexSourceError extends Error {
     super(message)
     this.name = 'ReindexSourceError'
   }
-}
-
-function sameProfile(left: EmbeddingProfile, right: EmbeddingProfile): boolean {
-  return (
-    left.provider === right.provider &&
-    left.model === right.model &&
-    left.dimensions === right.dimensions
-  )
 }
 
 function reindexEmbeddingCounts(

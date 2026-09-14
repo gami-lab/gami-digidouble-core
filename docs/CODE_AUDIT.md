@@ -2,7 +2,7 @@
 
 Date: 2026-09-14  
 Scope: TypeScript source under `apps/`, `packages/`, and `tools/`  
-Status: D1-D4 removal complete; R1-R7 cleanup remains open.
+Status: D1-D4 removal complete; R3, R4, and R7 cleanup complete; R1, R2, R5, and R6 remain open.
 
 ## Executive summary
 
@@ -324,6 +324,30 @@ Recommendation: remove the unused parameters/properties and their wiring in a fo
 change. Consider enabling the unused checks in CI once any intentional exceptions are explicitly
 annotated.
 
+Resolution: R7 is complete. The ingestion and memory route constructors no longer accept unused
+repositories, `callLlm` no longer accepts the unused LLM start timestamp, and the console formatter
+accepts only the decision payload it reads. The strict unused-symbol check passes for Core.
+
+### R3, R4, and R7 resolution record — EPIC 11.1 prompt 03
+
+Reviewed: 2026-09-14
+
+R3 is resolved by moving working-memory repository defaults to the API-owned
+[`composition.ts`](../apps/core/src/api/composition.ts) helper. LLM configuration uses the existing
+infrastructure-owned [`buildLlmConfig`](../apps/core/src/infrastructure/llm/index.ts) implementation;
+the duplicate route/server projections were removed rather than creating a second composition owner.
+Route-specific options and adapter injection remain local to each route for isolated tests.
+
+R4 is resolved only where semantics match. Embedding profile equality is owned by the application
+knowledge helper; create/update source validation shares the application use-case validation helper;
+the domain visibility normalizer is reused by the typed in-memory repository; and API Avatar override
+normalization is owned by the Core model-selection mapper. Postgres row decoding, JSON/`unknown`
+normalization, and ingestion/reindex error mapping remain intentionally separate because their input
+boundaries or failure semantics differ.
+
+R7 is resolved as recorded above. No endpoint, schema, persistence, provider, or runtime-order
+behavior changed, and the public source-of-truth contracts remain unchanged.
+
 ## Deliberately not classified as dead code
 
 The following patterns were reviewed and excluded from the dead-code list:
@@ -392,11 +416,11 @@ until that prompt verifies the exact call-site semantics.
 
 ### R3 — Core route composition
 
-| Candidate                                              | Current copies / boundary check                                                                                                     | Canonical owner                                                 | Decision                    |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------- |
-| Working-memory repository defaults                     | `sessions.ts` and `conversations.ts` create the same in-memory defaults so isolated route tests can inject adapters                 | `apps/core/src/api/composition.ts` (new API composition helper) | Consolidate                 |
-| LLM config defaults                                    | `conversations.ts` and `server.ts` build the same provider/API-key projection; this is composition, not domain configuration policy | `apps/core/src/api/composition.ts` (new API composition helper) | Consolidate                 |
-| Route-specific dependency injection and test overrides | Route options intentionally remain local so tests can provide isolated repositories/adapters                                        | Each route's options and composition entrypoint                 | Keep intentionally separate |
+| Candidate                                              | Current copies / boundary check                                                                                                             | Canonical owner                                                 | Decision                    |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------- |
+| Working-memory repository defaults                     | `sessions.ts` and `conversations.ts` create the same in-memory defaults so isolated route tests can inject adapters                         | `apps/core/src/api/composition.ts` (new API composition helper) | Consolidate                 |
+| LLM config defaults                                    | `conversations.ts` and `server.ts` duplicated an existing provider/API-key projection; this is composition, not domain configuration policy | `apps/core/src/infrastructure/llm/index.ts` (`buildLlmConfig`)  | Consolidate                 |
+| Route-specific dependency injection and test overrides | Route options intentionally remain local so tests can provide isolated repositories/adapters                                                | Each route's options and composition entrypoint                 | Keep intentionally separate |
 
 ### R4 — Knowledge validation and normalization
 
@@ -404,7 +428,8 @@ until that prompt verifies the exact call-site semantics.
 | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------- |
 | Embedding profile equality (`provider`, `model`, `dimensions`) | Equivalent pure comparisons in ingestion, query embedding, and reindex services; `EmbeddingProfile` is application-owned                            | `apps/core/src/application/services/knowledge/embedding-profile.ts` (new pure helper) | Consolidate                 |
 | Reserved static-scope-key detection                            | `findReservedStaticScopeKeys` already owns recursive traversal in `apps/core/src/domain/knowledge/static-knowledge-validation.ts`                   | Existing domain helper                                                                | Consolidate                 |
-| Validation failure mapping for create/update/ingestion/reindex | Same reserved-key predicate, but callers intentionally map failures to `DomainError`, ingestion errors, or reindex errors                           | Each owning use case/service                                                          | Keep intentionally separate |
+| Create/update static metadata validation                       | Create and update use cases have the same input and `DomainError` failure semantics                                                                 | `apps/core/src/application/use-cases/shared/knowledge-validation.ts`                  | Consolidate                 |
+| Validation failure mapping for ingestion/reindex/persistence   | The same reserved-key predicate is mapped to ingestion errors, reindex errors, or persistence errors at different boundaries                        | Each owning service/repository                                                        | Keep intentionally separate |
 | Typed visibility policy normalization                          | `knowledge-visibility.ts` owns `all`/`avatars`/`none`, trimming, and `undefined` omission for domain values                                         | `apps/core/src/domain/knowledge/knowledge-visibility.ts`                              | Consolidate                 |
 | Persistence row decoding and JSON/`unknown` normalization      | Postgres source/chunk repositories must decode JSON text, tolerate row-driver shapes, and map dates/IDs; in-memory storage has a different boundary | Each repository adapter, using the domain visibility helper only after decoding       | Keep intentionally separate |
 | API LLM-override normalization                                 | `avatars.ts` repeats the same mapper already present in `model-selection-mappers.ts`; both preserve `undefined` versus `null`                       | `apps/core/src/api/routes/model-selection-mappers.ts`                                 | Consolidate                 |

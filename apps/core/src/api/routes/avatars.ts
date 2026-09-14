@@ -16,6 +16,7 @@ import {
   validateAvatarLlmOverride,
   validateVoiceConfiguration,
 } from './model-selection-validation.js'
+import { normalizeAvatarLlmOverride } from './model-selection-mappers.js'
 import { voiceConfigurationUpdateBodySchema } from './voice-configuration-schema.js'
 
 export type AvatarsRouteOptions = {
@@ -139,7 +140,7 @@ function buildUpdateAvatarInput(avatarId: string, body: UpdateAvatarRequest): Up
     config,
     status,
   } = body
-  const normalizedLlmOverride = normalizeLlmOverride(llmOverride)
+  const normalizedLlmOverride = normalizeAvatarLlmOverride(llmOverride)
   return {
     avatarId,
     ...(name !== undefined ? { name } : {}),
@@ -151,17 +152,5 @@ function buildUpdateAvatarInput(avatarId: string, body: UpdateAvatarRequest): Up
     ...(voiceConfig !== undefined ? { voiceConfig } : {}),
     ...(config !== undefined ? { config } : {}),
     ...(status !== undefined ? { status } : {}),
-  }
-}
-
-function normalizeLlmOverride(
-  llmOverride: UpdateAvatarRequest['llmOverride'],
-): UpdateAvatarInput['llmOverride'] {
-  if (llmOverride === undefined) return undefined
-  if (llmOverride === null) return null
-
-  return {
-    ...(llmOverride.provider !== undefined ? { provider: llmOverride.provider } : {}),
-    ...(llmOverride.model !== undefined ? { model: llmOverride.model.trim() } : {}),
   }
 }

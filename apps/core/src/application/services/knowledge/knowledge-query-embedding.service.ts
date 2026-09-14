@@ -17,6 +17,7 @@ import type {
   RetrievalTimings,
 } from '../../../domain/knowledge/knowledge.types.js'
 import { normalizeTypedRetrievalQueries } from './typed-retrieval-query-builder.js'
+import { areEmbeddingProfilesEqual } from './embedding-profile.js'
 
 export type RetrievalQueryEmbeddingInput = Readonly<{
   query?: string | null
@@ -245,7 +246,7 @@ function validateEmbeddingBatchResult(
   if (metadata['inputCount'] !== expectedCount) {
     throwMalformedEmbeddingResult('Embedding result input count did not match the query count.')
   }
-  if (!sameProfile(profile, expectedProfile)) {
+  if (!areEmbeddingProfilesEqual(profile, expectedProfile)) {
     throw new EmbeddingAdapterError({
       code: 'profile_mismatch',
       message: 'Query embedding profile no longer matches the active corpus.',
@@ -306,14 +307,6 @@ function isEmbeddingProfile(value: unknown): value is EmbeddingProfile {
     typeof value['dimensions'] === 'number' &&
     Number.isInteger(value['dimensions']) &&
     value['dimensions'] > 0
-  )
-}
-
-function sameProfile(left: EmbeddingProfile, right: EmbeddingProfile): boolean {
-  return (
-    left.provider === right.provider &&
-    left.model === right.model &&
-    left.dimensions === right.dimensions
   )
 }
 

@@ -16,6 +16,7 @@ import { assertStaticMetadataAllowed } from '../../domain/knowledge/static-knowl
 import {
   buildKnowledgeVisibilitySelection,
   isKnowledgeVisibleToAvatar,
+  normalizeVisibleToAvatarIds,
 } from '../../domain/knowledge/knowledge-visibility.js'
 import type { IKnowledgeSourceRepository } from '../../application/ports/IKnowledgeSourceRepository.js'
 import type { ActiveCorpus } from '../../application/ports/IKnowledgeCorpusRepository.js'
@@ -32,16 +33,6 @@ type SearchScopeRequest = Pick<
   | 'activeAvatarId'
   | 'eligibleSourceIds'
 >
-
-function normalizeVisibleToAvatarIds(
-  visibleToAvatarIds: string[] | undefined,
-): string[] | undefined {
-  if (visibleToAvatarIds === undefined) return undefined
-  const normalized = visibleToAvatarIds
-    .map((avatarId) => avatarId.trim())
-    .filter((avatarId) => avatarId.length > 0)
-  return normalized.length > 0 ? normalized : undefined
-}
 
 export class InMemoryKnowledgeChunkRepository implements IKnowledgeChunkRepository {
   private readonly chunks: Map<string, KnowledgeChunk>
