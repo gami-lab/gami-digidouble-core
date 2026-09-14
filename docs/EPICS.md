@@ -211,6 +211,63 @@ Removed audited compatibility paths and legacy contracts, verified fresh schema/
 
 ## Open Backlog
 
+### `11.1 Code Hygiene & Duplication Reduction`
+
+**Current state**
+The code audit is complete, but the repository still contains high-confidence orphaned modules,
+retired application contracts, legacy memory/context abstractions, and duplicated client, mapping,
+composition, validation, memory, and provider-helper logic. No implementation cleanup has started.
+See [`CODE_AUDIT.md`](CODE_AUDIT.md) and the generated implementation prompts under
+`implementation-prompts/epic-11-1-code-hygiene-duplication-cleanup/`.
+
+**Purpose**
+Reduce maintenance surface and contract drift by removing code that is no longer on a runtime path
+and consolidating duplication only where ownership and boundary semantics are clear.
+
+**Description**
+Execute the code audit as a bounded cleanup EPIC. Confirm entrypoints and external-consumer
+assumptions, remove dead production/test clusters together, establish canonical ownership for
+duplicated contracts and mappers, consolidate safe shared helpers, and verify that runtime behavior
+and public API shapes remain unchanged.
+
+**Includes**
+
+- orphaned console/admin modules
+- retired ingestion use cases and companion contracts
+- legacy cache, compaction, context, working-memory, and Avatar-memory abstractions
+- duplicated browser API protocol and operator-app mapping helpers
+- redundant Core route-composition and knowledge-normalization logic
+- repeated memory-window, provider, timeout, and stream helper logic
+- unused constructor properties, parameters, and locals identified by the audit
+- regression coverage, strict unused checks, and documentation synchronization
+
+**Definition of done**
+
+- every high-confidence D1-D4 finding is removed or has an explicit documented retention reason
+- R1-R7 duplication/redundancy findings are consolidated, intentionally separated, or documented
+  with a concrete rationale
+- `packages/shared` remains the owner of public/shared DTOs and cross-cutting contract types;
+  persistence and domain ownership are not blurred for convenience
+- no new endpoint, datastore, compatibility layer, or runtime feature is introduced
+- API behavior, contract shapes, and user-visible behavior are unchanged unless separately approved
+  and documented
+- lint, typecheck, build, and the complete deterministic test suite pass
+- `PROJECT_STATUS.md`, `EPICS.md`, and every impacted source-of-truth document are synchronized
+
+**What can be tested**
+
+1. removed modules have no runtime, package-script, test, or external-consumer entrypoint
+2. the canonical shared contracts and mappers are used without optionality or field-name drift
+3. client envelopes, errors, model configuration, memory windows, and provider helpers preserve
+   current behavior
+4. strict unused-symbol checks report no newly retained dead symbols
+5. the full repository verification gate remains green
+
+**User increment**
+
+- a smaller, clearer platform that is safer to extend and less likely to drift across API,
+  application, domain, infrastructure, and operator-client boundaries
+
 ### `3.3 Replay & Recovery Tools`
 
 **Current state**  
