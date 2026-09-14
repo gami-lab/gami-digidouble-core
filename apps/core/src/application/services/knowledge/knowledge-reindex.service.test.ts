@@ -205,7 +205,7 @@ describe('KnowledgeReindexService', () => {
     expect(adapter.calls).toBe(0)
   })
 
-  it('uses the shared capped and overlapped chunking behavior', async () => {
+  it('uses the shared capped and non-overlapping chunking behavior', async () => {
     const firstSourceContent = 'A'.repeat(INGESTION_CHUNK_HARD_MAX + 1000)
     const { service, corpusRepository, sourceRepository } = await makeService(
       new CountingEmbeddingAdapter(),
@@ -224,7 +224,7 @@ describe('KnowledgeReindexService', () => {
     expect(chunks.every((chunk) => chunk.content.length <= INGESTION_CHUNK_HARD_MAX)).toBe(true)
     expect(chunks.every((chunk) => chunk.contentHash?.length === 64)).toBe(true)
     expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual(chunks.map((_chunk, index) => index))
-    expect(chunks[1]?.content.startsWith(chunks[0]?.content.slice(-200) ?? '')).toBe(true)
+    expect(chunks.map((chunk) => chunk.content).join('')).toBe(firstSourceContent)
   })
 
   it('stages every source and promotes only the complete target corpus', async () => {

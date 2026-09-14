@@ -141,7 +141,7 @@ Established profile-aware pgvector retrieval for Avatar, Game Master, and admin 
 
 #### `5.1e Retrieval Quality Hardening` ✅ Done
 
-Delivered the labelled recall@k/MRR harness, deterministic chunk hard caps and overlap, native
+Delivered the labelled recall@k/MRR harness, deterministic paragraph-aware chunk hard caps without overlap, native
 1536-dimensional embeddings, authoritative Avatar selection, retrieval-diagnostic cleanup, bounded
 lexical candidate fusion, and same-profile incremental reindexing. The six-fixture before/after
 comparison records unchanged recall@3/7/9 at 1.000000 and an MRR improvement from 0.722222 to

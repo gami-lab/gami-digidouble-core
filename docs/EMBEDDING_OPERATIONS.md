@@ -68,7 +68,8 @@ Rollout sequence:
 
 ### Incremental reindex behavior
 
-Each persisted chunk stores a SHA-256 hash of its final text, including heading context and overlap.
+Each persisted chunk stores a SHA-256 hash of its final text, including heading context and without
+overlap.
 During a reindex targeting the currently active profile, Core re-chunks every source but only sends
 changed `(sourceId, chunkIndex, contentHash)` entries to the embedding provider. Matching active
 chunks with finite, profile-sized vectors are copied into the staged generation and written with the

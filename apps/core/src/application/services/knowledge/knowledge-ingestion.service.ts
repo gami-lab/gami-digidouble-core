@@ -1,11 +1,7 @@
 /* eslint-disable max-lines */
 
 import crypto from 'node:crypto'
-import {
-  INGESTION_CHUNK_HARD_MAX,
-  INGESTION_CHUNK_OVERLAP,
-  INGESTION_CHUNK_SIZE_DEFAULT,
-} from '@gami/shared'
+import { INGESTION_CHUNK_HARD_MAX, INGESTION_CHUNK_SIZE_DEFAULT } from '@gami/shared'
 import { stripNonDescriptiveMetadata } from '../../../domain/knowledge/knowledge-source-presenter.js'
 import {
   EmbeddingAdapterError,
@@ -478,11 +474,7 @@ export function toChunkSeeds(
       continue
     }
     flushCurrent()
-    current = withChunkOverlap(
-      [...paragraph.headers, paragraph.content].join('\n\n'),
-      chunks.at(-1)?.content,
-      maxLength,
-    )
+    current = [...paragraph.headers, paragraph.content].join('\n\n')
     currentHeaders = paragraph.headers
   }
 
@@ -494,11 +486,7 @@ export function toChunkSeeds(
 function splitParsedParagraph(paragraph: ParsedParagraph, maxLength: number): ParsedParagraph[] {
   const headerText = headersToAdd([], paragraph.headers).join('\n\n')
   const headerSeparatorLength = headerText.length > 0 ? 2 : 0
-  const overlapBudget = overlapLengthForTarget(maxLength)
-  const contentMaxLength = Math.max(
-    1,
-    maxLength - headerText.length - headerSeparatorLength - overlapBudget - 2,
-  )
+  const contentMaxLength = Math.max(1, maxLength - headerText.length - headerSeparatorLength - 2)
 
   return splitParagraphContent(paragraph.content, contentMaxLength).map((content) => ({
     content,
@@ -540,26 +528,6 @@ function splitRawText(content: string, maxLength: number): string[] {
   return pieces
 }
 
-function withChunkOverlap(
-  content: string,
-  previousContent: string | undefined,
-  maxLength: number,
-): string {
-  if (previousContent === undefined || previousContent.length === 0) return content
-
-  const availableLength = maxLength - content.length - 2
-  if (availableLength <= 0) return content
-
-  const overlapLength = Math.min(INGESTION_CHUNK_OVERLAP, previousContent.length, availableLength)
-  if (overlapLength === 0) return content
-
-  return `${previousContent.slice(-overlapLength)}\n\n${content}`
-}
-
-function overlapLengthForTarget(maxLength: number): number {
-  return Math.min(INGESTION_CHUNK_OVERLAP, Math.floor(maxLength / 4))
-}
-
 function appendBoundedChunk(
   chunks: ChunkSeed[],
   content: string,
@@ -571,14 +539,10 @@ function appendBoundedChunk(
       ? [content]
       : splitRawText(content, INGESTION_CHUNK_HARD_MAX)
 
-  for (const [pieceIndex, piece] of pieces.entries()) {
-    const boundedContent =
-      pieceIndex === 0
-        ? piece
-        : withChunkOverlap(piece, chunks.at(-1)?.content, INGESTION_CHUNK_HARD_MAX)
+  for (const piece of pieces) {
     chunks.push({
-      content: boundedContent,
-      contentHash: hashKnowledgeChunkContent(boundedContent),
+      content: piece,
+      contentHash: hashKnowledgeChunkContent(piece),
       chunkIndex: chunks.length,
       metadata: buildChunkMetadata(source, loadedMetadata),
     })

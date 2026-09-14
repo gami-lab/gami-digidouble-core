@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { describe, expect, it } from 'vitest'
-import { INGESTION_CHUNK_HARD_MAX, INGESTION_CHUNK_OVERLAP } from '@gami/shared'
+import { INGESTION_CHUNK_HARD_MAX } from '@gami/shared'
 import { InMemoryIngestionJobRepository } from '../../../infrastructure/db/in-memory-ingestion-job.repository.js'
 import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
@@ -202,7 +202,7 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
     expect(chunks).toHaveLength(2)
   })
 
-  it('packs complete paragraphs up to the target size and overlaps adjacent chunks', async () => {
+  it('packs complete paragraphs up to the target size without overlap', async () => {
     const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
       createDefaultIngestionDeps()
     const source = await sourceRepository.create({
@@ -235,13 +235,10 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
 
     const chunks = await chunkRepository.listBySourceId(source.sourceId)
     const firstChunk = `${firstParagraph}\n\n${secondParagraph}`
-    expect(chunks.map((chunk) => chunk.content)).toEqual([
-      firstChunk,
-      `${firstChunk.slice(-INGESTION_CHUNK_OVERLAP)}\n\n${thirdParagraph}`,
-    ])
+    expect(chunks.map((chunk) => chunk.content)).toEqual([firstChunk, thirdParagraph])
   })
 
-  it('splits an oversized paragraph and preserves overlap and contiguous indexes', async () => {
+  it('splits an oversized paragraph without overlap and preserves contiguous indexes', async () => {
     const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
       createDefaultIngestionDeps()
     const source = await sourceRepository.create({
@@ -279,9 +276,9 @@ describe('KnowledgeIngestionService — paragraph chunking', () => {
     expect(chunks.map((chunk) => chunk.chunkIndex)).toEqual(chunks.map((_chunk, index) => index))
     expect(chunks.every((chunk) => chunk.content.length <= 800)).toBe(true)
     expect(chunks[0]?.content.endsWith('.')).toBe(true)
-    expect(
-      chunks[1]?.content.startsWith(chunks[0]?.content.slice(-INGESTION_CHUNK_OVERLAP) ?? ''),
-    ).toBe(true)
+    expect(chunks.map((chunk) => chunk.content).join('')).toBe(
+      `${oversizedParagraph}\n\n${nextParagraph}`,
+    )
     expect(chunks[1]?.content).toContain(nextParagraph)
   })
 

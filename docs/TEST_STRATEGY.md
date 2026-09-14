@@ -21,8 +21,8 @@ per module) live in [TEST_COVERAGE_PLAN.md](TEST_COVERAGE_PLAN.md).
   their owning boundaries.
 - Keep provider behavior behind injectable transports; live-provider checks are opt-in.
 - The retrieval-quality harness supplements conversation evaluation with labelled recall@k/MRR; its live OpenAI run is opt-in and is not a CI gate.
-- Knowledge ingestion tests cover paragraph splitting, the hard per-chunk character ceiling, bounded
-  deterministic overlap, metadata/header preservation, and reindex reuse of the same chunking path.
+- Knowledge ingestion tests cover paragraph splitting, the hard per-chunk character ceiling, no-overlap
+  boundaries, metadata/header preservation, and reindex reuse of the same chunking path.
 - Never assert writing style. Assert structure, safety, ownership, ordering, and failure behavior.
 - Test admin/inspection projections for redaction and boundedness, not internal object identity.
 - Mock only at infrastructure adapter boundaries: domain/application tests use `vi.fn()` references
@@ -74,7 +74,7 @@ preflight reason so audits do not fail for missing infrastructure. Set
 ### Knowledge
 
 - canonical types and reserved metadata rejection
-- paragraph-aware chunking, oversized paragraph/code-fence splitting, bounded overlap, and ingestion lifecycle
+- paragraph-aware chunking, oversized paragraph/code-fence splitting, no-overlap boundaries, and ingestion lifecycle
 - embedding profile/dimension validation and ordered complete batches
 - staged reindex completeness, same-profile reuse through the admin start route, restart/retry safety,
   rollback, and atomic promotion at the PostgreSQL boundary
