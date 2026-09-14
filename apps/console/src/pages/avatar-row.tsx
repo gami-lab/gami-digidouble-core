@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function, complexity */
 import { useState } from 'react'
 import type { ComponentProps, CSSProperties, JSX } from 'react'
-import type { ModelSelectionProviderName } from '@gami/shared'
+import { mapAvatarOverride } from '@gami/shared'
 import { ApiError } from '../api/client'
 import { getModelPresetOptions } from '../api/model-presets'
 import { PROVIDER_OPTIONS } from '../api/provider-options'
@@ -280,30 +280,16 @@ export async function performUpdateAvatar(
       personaPrompt: values.personaPrompt,
       ...(values.tone.trim().length > 0 ? { tone: values.tone } : {}),
       ...(values.description.trim().length > 0 ? { description: values.description } : {}),
-      ...buildAvatarOverride(values.llmProviderOverride, values.llmModelOverride),
+      llmOverride: mapAvatarOverride({
+        provider: values.llmProviderOverride,
+        model: values.llmModelOverride,
+      }),
     })
     onSaved(updated)
   } catch (error) {
     setSubmitError(formatApiError(error, 'UNKNOWN_ERROR: Failed to update avatar'))
   } finally {
     setIsSubmitting(false)
-  }
-}
-
-function buildAvatarOverride(providerValue: string, modelValue: string): {
-  llmOverride: { provider?: ModelSelectionProviderName; model?: string } | null
-} {
-  const provider = providerValue.trim()
-  const model = modelValue.trim()
-  if (provider.length === 0 && model.length === 0) {
-    return { llmOverride: null }
-  }
-
-  return {
-    llmOverride: {
-      ...(provider.length > 0 ? { provider: provider as ModelSelectionProviderName } : {}),
-      ...(model.length > 0 ? { model } : {}),
-    },
   }
 }
 

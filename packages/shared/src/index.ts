@@ -8,6 +8,17 @@
 export type { ApiResponse, ApiError, ResponseMeta, ErrorCode } from './api-response.js'
 export { ok, fail } from './api-response.js'
 export {
+  ApiError as ApiClientError,
+  createApiError,
+  isApiErrorPayload,
+  isApiResponseEnvelope,
+  normalizeApiPath,
+  normalizeApiUrl,
+  shouldInjectApiKey,
+} from './api-client-protocol.js'
+export { mapAvatarOverride, mapModelConfigFormToRequest } from './model-config-contract-mappers.js'
+export type { ModelConfigFormInput, ModelConfigFormValue } from './model-config-contract-mappers.js'
+export {
   isLanguageTag,
   normalizeLanguageTag,
   LANGUAGE_TAG_MAX_LENGTH,

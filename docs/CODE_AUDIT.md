@@ -2,7 +2,7 @@
 
 Date: 2026-09-14  
 Scope: TypeScript source under `apps/`, `packages/`, and `tools/`  
-Status: D1-D4 removal complete; R3, R4, and R7 cleanup complete; R1, R2, R5, and R6 remain open.
+Status: D1-D4 removal complete; R1-R4 and R7 cleanup complete; R5 and R6 remain open.
 
 ## Executive summary
 
@@ -347,6 +347,24 @@ boundaries or failure semantics differ.
 
 R7 is resolved as recorded above. No endpoint, schema, persistence, provider, or runtime-order
 behavior changed, and the public source-of-truth contracts remain unchanged.
+
+### R1 and R2 resolution record — EPIC 11.1 prompt 02
+
+Reviewed: 2026-09-14
+
+R1 is resolved by placing URL/path normalization, the health-path API-key rule, response-envelope
+guards, and the shared client error runtime shape in
+[`api-client-protocol.ts`](../packages/shared/src/api-client-protocol.ts). Admin, console, and web
+keep their JSON request functions because their method/header policies differ. Web binary/audio,
+streaming, and abort/reconnect lifecycle code remains web-owned. The duplicated admin/console error
+formatters remain app-local because their fallback copy is UI-owned and were explicitly marked for
+follow-up rather than folded into the protocol package.
+
+R2 is resolved by placing equivalent model-config request mapping and Avatar override normalization
+in [`model-config-contract-mappers.ts`](../packages/shared/src/model-config-contract-mappers.ts).
+Admin and console retain their form state, validation, hydration, and presentation helpers; only the
+contract-level trimming, omission, null clearing, and field mapping are shared. No endpoint shape,
+authentication behavior, stream behavior, binary response handling, or abort semantics changed.
 
 ## Deliberately not classified as dead code
 

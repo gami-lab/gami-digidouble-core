@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import { AVATAR_COMPUTED_TRAIT_KEYS, AVATAR_COMPUTED_TRAIT_LABELS } from '@gami/shared'
+import {
+  AVATAR_COMPUTED_TRAIT_KEYS,
+  AVATAR_COMPUTED_TRAIT_LABELS,
+  mapAvatarOverride,
+} from '@gami/shared'
 import type { AvatarComputedTraits, AvatarStatus, AvatarSummary } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { createAvatar, updateAvatar } from '../api/scenarios'
@@ -9,7 +13,6 @@ import {
   EMPTY_MODEL_SELECTION,
   fromAvatarLlmOverride,
   hasPartialModelSelection,
-  toAvatarLlmOverride,
   type ModelSelectionFormValue,
 } from './model-selection-form'
 import { toVoiceConfiguration } from './voice-config-form'
@@ -44,7 +47,7 @@ export function AvatarCreateForm({
         name: name.trim(),
         personaPrompt: personaPrompt.trim(),
         status: avatarStatus,
-        llmOverride: toAvatarLlmOverride(modelOverride),
+        llmOverride: mapAvatarOverride(modelOverride),
         ...(voiceConfig !== undefined ? { voiceConfig } : {}),
       })
       onCreated(avatar)
@@ -107,7 +110,7 @@ export function AvatarEditForm({
         name: name.trim(),
         personaPrompt: personaPrompt.trim(),
         status: avatarStatus,
-        llmOverride: toAvatarLlmOverride(modelOverride),
+        llmOverride: mapAvatarOverride(modelOverride),
         voiceConfig: toVoiceConfiguration(voiceKey) ?? null,
       })
       onSaved(updated)

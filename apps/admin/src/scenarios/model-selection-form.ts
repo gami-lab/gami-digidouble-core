@@ -45,15 +45,6 @@ export function hasPartialModelSelection(value: ModelSelectionFormValue): boolea
   return !isModelSelectionEmpty(value) && !isModelSelectionComplete(value)
 }
 
-export function toAvatarLlmOverride(value: ModelSelectionFormValue): AvatarLlmOverride | null {
-  if (isModelSelectionEmpty(value)) return null
-
-  return {
-    provider: value.provider.trim() as ModelSelectionProviderName,
-    model: value.model.trim(),
-  }
-}
-
 export function toScenarioModelSelection(args: {
   defaultProfile: ModelSelectionFormValue
   gameMasterOverride: ModelSelectionFormValue

@@ -61,8 +61,9 @@ do not import Core domain or infrastructure code.
 - **Observability:** request/turn/provider traces and structured metrics, enforced at the LLM
   boundary by an observed adapter wrapper rather than by each use case. It does not own admin actions.
 
-Public/shared DTOs live in `packages/shared`. Internal entities and application contracts stay in
-Core. Mappers at the API/application boundary are intentional; do not share persistence shapes.
+Public/shared DTOs, environment-neutral client protocol helpers, and pure cross-app contract mappers
+live in `packages/shared`. Internal entities and application contracts stay in Core. Mappers at the
+API/application boundary are intentional; do not share persistence shapes or browser lifecycle code.
 Contract ownership for high fan-out entities/projections is tracked in
 `CONTEXT_CONTRACT_OWNERSHIP_MAP.md`.
 

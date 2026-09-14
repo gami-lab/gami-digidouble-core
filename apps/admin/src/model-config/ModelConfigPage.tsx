@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { Dispatch, JSX, SetStateAction } from 'react'
-import type { ModelConfigResponse, ModelProviderName, UpdateModelConfigRequest } from '@gami/shared'
-import { MODEL_PROVIDER_NAMES, getModelPresetOptions } from '@gami/shared'
+import type { ModelConfigResponse } from '@gami/shared'
+import {
+  MODEL_PROVIDER_NAMES,
+  getModelPresetOptions,
+  mapModelConfigFormToRequest,
+} from '@gami/shared'
 import { ApiError } from '../api/client'
 import { formatApiError } from '../api/error'
 import { getModelConfig, updateModelConfig } from '../api/model-config'
@@ -58,7 +62,7 @@ export function ModelConfigPage(): JSX.Element {
     setIsSaving(true)
     setError(null)
     setSuccess(null)
-    void updateModelConfig(toUpdateModelConfigRequest(form))
+    void updateModelConfig(mapModelConfigFormToRequest(form))
       .then((config) => {
         setForm(toModelConfigForm(config))
         setSuccess('Saved model configuration.')
@@ -335,39 +339,6 @@ function toModelOverrideForm(
   return {
     provider: override?.provider ?? '',
     model: override?.model ?? '',
-  }
-}
-
-function toUpdateModelConfigRequest(form: ModelConfigForm): UpdateModelConfigRequest {
-  const roleOverrides: NonNullable<UpdateModelConfigRequest['roleOverrides']> = {}
-  const avatarOverride = toOverride(form.roleOverrides.avatar)
-  const gameMasterOverride = toOverride(form.roleOverrides.gameMaster)
-  const memoryOverride = toOverride(form.roleOverrides.memory)
-
-  if (avatarOverride !== undefined) roleOverrides.avatar = avatarOverride
-  if (gameMasterOverride !== undefined) roleOverrides.gameMaster = gameMasterOverride
-  if (memoryOverride !== undefined) roleOverrides.memory = memoryOverride
-
-  return {
-    globalDefault: {
-      provider: form.globalDefault.provider as ModelProviderName,
-      model: form.globalDefault.model,
-    },
-    roleOverrides,
-  }
-}
-
-function toOverride(
-  override: ModelOverrideForm,
-): { provider?: ModelProviderName; model?: string } | undefined {
-  const provider = override.provider.trim()
-  const model = override.model.trim()
-
-  if (provider.length === 0 && model.length === 0) return undefined
-
-  return {
-    ...(provider.length > 0 ? { provider: provider as ModelProviderName } : {}),
-    ...(model.length > 0 ? { model } : {}),
   }
 }
 

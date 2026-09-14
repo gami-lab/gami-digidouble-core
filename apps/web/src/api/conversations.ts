@@ -13,11 +13,14 @@ import type {
   StartConversationRequest,
   StartConversationResponse,
 } from '@gami/shared'
-import { isAudioDeliveryMetadata, parseMessageStreamEvent, processSseFrames } from '@gami/shared'
+import {
+  isAudioDeliveryMetadata,
+  normalizeApiUrl,
+  parseMessageStreamEvent,
+  processSseFrames,
+} from '@gami/shared'
 import { ApiError, webBinaryRequest, webRequest } from './client'
 import { apiKey, apiUrl } from '../env'
-
-const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
 
 export type MessageStreamHandlers = {
   onEvent: (event: MessageStreamEvent) => void

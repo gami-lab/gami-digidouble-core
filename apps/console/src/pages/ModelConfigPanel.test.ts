@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { ModelConfigResponse } from '@gami/shared'
-import {
-  formatValidationDetails,
-  toModelConfigForm,
-  toUpdateModelConfigRequest,
-} from './ModelConfigPanel'
+import { mapModelConfigFormToRequest, type ModelConfigResponse } from '@gami/shared'
+import { formatValidationDetails, toModelConfigForm } from './ModelConfigPanel'
 
 describe('ModelConfigPanel mapping helpers', () => {
   it('hydrates empty role overrides with inherit placeholders', () => {
@@ -32,7 +28,7 @@ describe('ModelConfigPanel mapping helpers', () => {
       },
     }
 
-    const request = toUpdateModelConfigRequest(form)
+    const request = mapModelConfigFormToRequest(form)
 
     expect(request).toEqual({
       globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },

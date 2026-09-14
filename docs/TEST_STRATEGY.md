@@ -14,6 +14,8 @@ per module) live in [TEST_COVERAGE_PLAN.md](TEST_COVERAGE_PLAN.md).
 - Unit-test domain policies and orchestration with deterministic ports.
 - Integration-test repositories, schema assumptions, adapters, and application composition.
 - Test HTTP routes as contracts: auth, validation, error envelope, success shape, and cancellation.
+- Test shared client protocol guards and pure contract mappers in `packages/shared`; keep JSON
+  request, streaming, binary, and abort behavior covered at each app boundary.
 - Keep provider behavior behind injectable transports; live-provider checks are opt-in.
 - The retrieval-quality harness supplements conversation evaluation with labelled recall@k/MRR; its live OpenAI run is opt-in and is not a CI gate.
 - Knowledge ingestion tests cover paragraph splitting, the hard per-chunk character ceiling, bounded

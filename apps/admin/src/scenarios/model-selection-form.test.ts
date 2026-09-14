@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { mapAvatarOverride } from '@gami/shared'
 import {
   EMPTY_MODEL_SELECTION,
   fromAvatarLlmOverride,
@@ -6,7 +7,6 @@ import {
   hasPartialModelSelection,
   isModelSelectionComplete,
   isModelSelectionEmpty,
-  toAvatarLlmOverride,
   toScenarioModelSelection,
 } from './model-selection-form'
 
@@ -31,18 +31,18 @@ describe('model selection form helpers', () => {
   })
 
   it('converts a complete form value to an AvatarLlmOverride, trimming whitespace', () => {
-    expect(toAvatarLlmOverride({ provider: ' openai ', model: ' gpt-5.6-luna ' })).toEqual({
+    expect(mapAvatarOverride({ provider: ' openai ', model: ' gpt-5.6-luna ' })).toEqual({
       provider: 'openai',
       model: 'gpt-5.6-luna',
     })
   })
 
   it('returns null only when the form value is fully empty', () => {
-    expect(toAvatarLlmOverride(EMPTY_MODEL_SELECTION)).toBeNull()
+    expect(mapAvatarOverride(EMPTY_MODEL_SELECTION)).toBeNull()
   })
 
   it('does not null out a partial selection (callers must block submission via hasPartialModelSelection)', () => {
-    expect(toAvatarLlmOverride({ provider: 'openai', model: '' })).toEqual({
+    expect(mapAvatarOverride({ provider: 'openai', model: '' })).toEqual({
       provider: 'openai',
       model: '',
     })

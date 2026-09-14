@@ -1,53 +1,19 @@
-import type { ApiError as SharedApiError, ApiResponse } from '@gami/shared'
+import {
+  ApiClientError as ApiError,
+  createApiError,
+  isApiErrorPayload,
+  isApiResponseEnvelope,
+  normalizeApiPath,
+  normalizeApiUrl,
+  shouldInjectApiKey,
+} from '@gami/shared'
 import { apiKey, apiUrl } from '../env'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT'
-type ApiResponseEnvelope<T> = ApiResponse<T>
-type ApiResponseError = SharedApiError
-
-const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
-const normalizePath = (path: string): string => (path.startsWith('/') ? path : `/${path}`)
-const shouldInjectApiKey = (path: string): boolean => normalizePath(path) !== '/health'
-
-const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
-
-const isApiResponseError = (value: unknown): value is ApiResponseError => {
-  if (!isObjectRecord(value)) {
-    return false
-  }
-  return typeof value.code === 'string' && typeof value.message === 'string'
-}
-
-const isApiResponseEnvelope = <T>(value: unknown): value is ApiResponseEnvelope<T> => {
-  if (!isObjectRecord(value)) {
-    return false
-  }
-
-  if (!('data' in value) || !('error' in value)) {
-    return false
-  }
-
-  if (value.error === null) {
-    return value.data !== null
-  }
-
-  return isApiResponseError(value.error) && value.data === null
-}
-
-export class ApiError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly details?: unknown,
-  ) {
-    super(message)
-    this.name = 'ApiError'
-  }
-}
+export { ApiError }
 
 export async function webRequest<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
-  const normalizedPath = normalizePath(path)
+  const normalizedPath = normalizeApiPath(path)
   const url = `${normalizeApiUrl(apiUrl)}${normalizedPath}`
 
   const headers: HeadersInit = {
@@ -98,7 +64,7 @@ export async function webBinaryRequest(
   body?: unknown,
   signal?: AbortSignal,
 ): Promise<Response> {
-  const normalizedPath = normalizePath(path)
+  const normalizedPath = normalizeApiPath(path)
   const url = `${normalizeApiUrl(apiUrl)}${normalizedPath}`
 
   let response: Response
@@ -131,7 +97,15 @@ async function readApiError(response: Response, path: string): Promise<ApiError>
   try {
     const payload: unknown = await response.json()
     if (isApiResponseEnvelope<null>(payload) && payload.error !== null) {
-      return new ApiError(payload.error.code, payload.error.message, payload.error.details)
+      return createApiError(payload.error)
+    }
+    if (
+      typeof payload === 'object' &&
+      payload !== null &&
+      'error' in payload &&
+      isApiErrorPayload(payload.error)
+    ) {
+      return createApiError(payload.error)
     }
   } catch {
     // Fall through to the status-based error below.

@@ -1,60 +1,22 @@
-import type { ApiError as SharedApiError, ApiResponse } from '@gami/shared'
+import {
+  ApiClientError as ApiError,
+  createApiError,
+  isApiResponseEnvelope,
+  normalizeApiPath,
+  normalizeApiUrl,
+  shouldInjectApiKey,
+} from '@gami/shared'
 import { apiKey, apiUrl } from '../env'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
-type ApiResponseEnvelope<T> = ApiResponse<T>
-type ApiResponseError = SharedApiError
-
-const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
-
-const normalizePath = (path: string): string => (path.startsWith('/') ? path : `/${path}`)
-
-const shouldInjectApiKey = (path: string): boolean => normalizePath(path) !== '/health'
-
-const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
-
-const isApiResponseError = (value: unknown): value is ApiResponseError => {
-  if (!isObjectRecord(value)) {
-    return false
-  }
-
-  return typeof value.code === 'string' && typeof value.message === 'string'
-}
-
-const isApiResponseEnvelope = <T>(value: unknown): value is ApiResponseEnvelope<T> => {
-  if (!isObjectRecord(value)) {
-    return false
-  }
-
-  if (!('data' in value) || !('error' in value)) {
-    return false
-  }
-
-  if (value.error === null) {
-    return value.data !== null
-  }
-
-  return isApiResponseError(value.error) && value.data === null
-}
-
-export class ApiError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly details?: unknown,
-  ) {
-    super(message)
-    this.name = 'ApiError'
-  }
-}
+export { ApiError }
 
 export async function adminRequest<T>(
   method: HttpMethod,
   path: string,
   body?: unknown,
 ): Promise<T> {
-  const normalizedPath = normalizePath(path)
+  const normalizedPath = normalizeApiPath(path)
   const url = `${normalizeApiUrl(apiUrl)}${normalizedPath}`
 
   const headers: HeadersInit = {
@@ -85,7 +47,7 @@ export async function adminRequest<T>(
   }
 
   if (payload.error !== null) {
-    throw new ApiError(payload.error.code, payload.error.message, payload.error.details)
+    throw createApiError(payload.error)
   }
 
   if (!response.ok) {

@@ -1,7 +1,5 @@
-import { processSseFrames, type RuntimeEvent } from '@gami/shared'
+import { normalizeApiUrl, processSseFrames, type RuntimeEvent } from '@gami/shared'
 import { apiKey, apiUrl } from '../env'
-
-const normalizeApiUrl = (value: string): string => value.replace(/\/$/, '')
 
 export type RuntimeEventStreamHandlers = {
   onEvent: (event: RuntimeEvent) => void

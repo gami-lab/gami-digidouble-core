@@ -23,6 +23,8 @@ schemas belong to `packages/shared/src/` and route schemas; do not copy them her
 - Runtime inspection: `runtime-inspector-types.ts` and `runtime-types.ts`.
 - Voice/audio: `voice-contract-types.ts`.
 - Raw provider exchange: `raw-exchange-contract-types.ts`.
+- Client protocol guards and environment-neutral operator request mappers:
+  `api-client-protocol.ts` and `model-config-contract-mappers.ts`.
 
 ## Public routes
 
