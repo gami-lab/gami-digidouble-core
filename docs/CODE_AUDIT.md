@@ -150,8 +150,8 @@ operator workflows. No executable or documented external-consumer path reference
 
 The deletion removed 21 files. A post-deletion source/package/config search found no remaining
 references to the removed symbols. The current knowledge ingestion, memory-selection,
-working-memory, Context Engine, and idempotency tests remain in the active suite. R1-R7 are not
-closed by this workstream.
+working-memory, Context Engine, and idempotency tests remain in the active suite. The final
+hardening verification below confirms the R1-R7 ownership decisions and current runtime graph.
 
 ## Findings: duplicate or redundant code
 
@@ -398,7 +398,7 @@ The following patterns were reviewed and excluded from the dead-code list:
 - The raw `/v1/exchange` route: it is still registered and covered by route/stack tests, so it is
   not an orphaned compatibility route based on this audit alone.
 
-## Recommended cleanup order
+## Historical recommended cleanup order
 
 1. Remove the orphaned app modules in D1 and the unused dependency/argument wiring in R7.
 2. Confirm and remove the retired ingestion and legacy memory/context clusters in D2–D4, including
@@ -417,8 +417,9 @@ All checks were run against the unchanged implementation before writing this rep
 - `pnpm build` — PASS; 6 Turbo tasks successful.
 - `pnpm test` — PASS; 7 Turbo tasks successful; 166 core test files and 1,145 core tests passed.
 
-The stricter unused-symbol check intentionally reports the R7 findings and is not part of the
-repository's default gate.
+The initial audit's stricter unused-symbol check exposed the R7 findings and was not part of the
+repository's default gate; the final hardening verification reran it successfully across all
+TypeScript packages.
 
 ## Contract ownership record: EPIC 11.1 prompt 00
 
@@ -431,13 +432,13 @@ until that prompt verifies the exact call-site semantics.
 
 ### R1 — Browser API client protocol
 
-| Candidate                                                                                                 | Current copies / boundary check                                                                                       | Canonical owner                                                                   | Decision                                                |
-| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `ApiResponse`, `ApiError`, `ErrorCode`, and envelope meaning                                              | Shared DTOs in `packages/shared/src/api-response.ts`; all three clients consume them                                  | `packages/shared/src/api-response.ts`                                             | Keep intentionally separate from client implementations |
-| URL/path normalization, API-key path rule, envelope/error guards, and the client `ApiError` runtime shape | Repeated in the three browser clients; no `Blob`, `AbortSignal`, or provider behavior is required by the pure portion | `packages/shared/src/api-client-protocol.ts` (new)                                | Consolidate                                             |
-| JSON request functions                                                                                    | Admin omits `Content-Type` for bodyless requests; console/web always set it; method unions also differ                | Each app's `src/api/client.ts`                                                    | Keep intentionally separate                             |
-| Binary/audio requests, abort handling, and stream parsing                                                 | Web-only `Response`/`Blob`/`AbortSignal` lifecycle                                                                    | `apps/web/src/api/client.ts` and stream modules                                   | Keep intentionally separate                             |
-| `formatApiError` UI fallback formatting                                                                   | Admin and console have identical current code, but fallback text is owned by each UI surface                          | App-level adapter around the shared error shape; revisit with the protocol helper | Needs follow-up investigation                           |
+| Candidate                                                                                                 | Current copies / boundary check                                                                                       | Canonical owner                                      | Decision                                                |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------- |
+| `ApiResponse`, `ApiError`, `ErrorCode`, and envelope meaning                                              | Shared DTOs in `packages/shared/src/api-response.ts`; all three clients consume them                                  | `packages/shared/src/api-response.ts`                | Keep intentionally separate from client implementations |
+| URL/path normalization, API-key path rule, envelope/error guards, and the client `ApiError` runtime shape | Repeated in the three browser clients; no `Blob`, `AbortSignal`, or provider behavior is required by the pure portion | `packages/shared/src/api-client-protocol.ts` (new)   | Consolidate                                             |
+| JSON request functions                                                                                    | Admin omits `Content-Type` for bodyless requests; console/web always set it; method unions also differ                | Each app's `src/api/client.ts`                       | Keep intentionally separate                             |
+| Binary/audio requests, abort handling, and stream parsing                                                 | Web-only `Response`/`Blob`/`AbortSignal` lifecycle                                                                    | `apps/web/src/api/client.ts` and stream modules      | Keep intentionally separate                             |
+| `formatApiError` UI fallback formatting                                                                   | Admin and console have identical current code, but fallback text is owned by each UI surface                          | Each app-level adapter around the shared error shape | Keep intentionally separate                             |
 
 ### R2 — Operator model and Avatar form mappers
 
@@ -515,5 +516,21 @@ trailing-cap semantics.
 
 The source-of-truth architecture, API, data-model, Game Master, memory, and test contracts already
 state these layer boundaries and do not require behavioral edits for prompt 00. `PROJECT_STATUS.md`
-and `EPICS.md` are updated only to record that this ownership prerequisite is complete; EPIC 11.1
-remains open.
+and `EPICS.md` are updated to record the completed cleanup. No API, persistence, Game Master,
+memory, provider, or runtime-order contract changed.
+
+## Final hardening verification — EPIC 11.1 prompt 05
+
+Reviewed: 2026-09-14
+
+The complete EPIC implementation range (`d56f3d94..HEAD`) was reviewed with a clean working tree.
+Repository-wide source, package-script, deployment, and configuration searches found no imports or
+references to the deleted D1-D4 symbols. The remaining R1-R7 candidates have one canonical owner
+or an explicit keep-separate rationale in the matrix above; public DTOs remain owned by
+`packages/shared`, persistence decoding remains adapter-owned, and UI/browser lifecycle behavior
+remains at its app boundary.
+
+The strict TypeScript unused-symbol check
+(`tsc --noEmit --noUnusedLocals --noUnusedParameters`) passes for every TypeScript package. The
+normal lint, typecheck, build, and deterministic test gates pass. No endpoint, schema, migration,
+dependency, compatibility path, provider behavior, or runtime ordering changed in this EPIC.

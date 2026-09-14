@@ -83,11 +83,11 @@ that touches persistence, retrieval, or provider adapters.
   same-profile reindexing skips unchanged chunk embeds, Context Engine owns final Avatar selection,
   unmeasurable visibility-exclusion counts are no longer emitted, and the direct Postgres chunk-write
   method is documented as a fixture/in-memory compatibility path.
-- The code audit, contract-ownership prerequisite, D1-D4 dead-code removal, and the R1-R4/R7
-  client, mapper, composition, normalization, unused-symbol, memory-window, provider, and
-  stream-helper cleanup are complete under `EPICS.md` 11.1. The ownership matrix in
-  `CODE_AUDIT.md` records the canonical owners and explicit keep-separate boundaries. The cleanup
-  is behavior-preserving and does not change runtime ordering or public API contracts.
+- EPIC 11.1 is complete: the code audit, contract-ownership prerequisite, D1-D4 dead-code removal,
+  R1-R7 client/mapper/composition/normalization/memory-window/provider/stream-helper cleanup, and
+  final hardening verification are finished. The ownership matrix in `CODE_AUDIT.md` records the
+  canonical owners and explicit keep-separate boundaries. The cleanup is behavior-preserving and
+  does not change runtime ordering or public API contracts.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.
