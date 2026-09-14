@@ -50,7 +50,9 @@ Rollout sequence:
 
 1. Recreate the database from `infra/postgres/init.sql` and deploy the compatible target environment
    configuration together. Existing 16-dimensional data is intentionally discarded for this migration.
-2. Start `POST /v1/admin/knowledge/reindex` with the operator API key and `{}`.
+2. Start `POST /v1/admin/knowledge/reindex` with the operator API key and `{}`. This starts a
+   replacement generation even when the configured profile is already active; unchanged chunks
+   are reused in that same-profile run.
 3. Poll `GET /v1/admin/knowledge/reindex/{reindexOperationId}` until `completed` or `failed`.
 4. On failure, inspect the failed source IDs and bounded failure codes, fix the underlying source
    or provider condition, and retry with
@@ -74,8 +76,9 @@ Operational guarantees worth relying on:
 
 - The previous active generation stays readable while the new one is staging — reindexing is not a
   read outage.
-- Repeated `reindex` starts against the same target profile and source snapshot reuse the existing
-  operation instead of duplicating work.
+- Repeated `reindex` starts while the same target profile/source snapshot is still pending or
+  running reuse the existing operation instead of duplicating work. A completed same-profile start
+  creates a new replacement generation.
 - Concurrent workers are serialized by a database claim transition, so you can retry/kick the
   operation from multiple places without racing yourself.
 - On process restart, orphaned `running` operations are marked `interrupted` and are resumable
@@ -85,8 +88,8 @@ Operational guarantees worth relying on:
 ## Safety and observability
 
 Reindex status and embedding traces expose only bounded profile identifiers, source/chunk counts,
-attempts, timestamps, and failure codes/latency. Source text, vectors, credentials, and raw provider
-payloads are never logged or returned.
+embedded-versus-reused chunk counts, attempts, timestamps, and failure codes/latency. Source text,
+vectors, credentials, and raw provider payloads are never logged or returned.
 
 Query-time vectorization (`KnowledgeQueryEmbeddingService`) trims, filters, and stably deduplicates
 query variants, sends one ordered batch through the embedding adapter, and validates the active

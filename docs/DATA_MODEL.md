@@ -74,9 +74,11 @@ rather than a silent corruption risk:
   copied vectors are still persisted under the new generation/profile identity. Profile changes do
   not reuse hashes across vector spaces.
 - `reindex_operations`/`reindex_operation_sources`/`corpus_generation_sources` track full-corpus
-  rebuild progress per source; promotion is a single transaction that locks and swaps the active
-  pointer only after every expected source is complete, then marks the previous generation
-  `superseded` — so a failed or partial rebuild always leaves the previous active corpus queryable.
+  rebuild progress per source. `reindex_operation_sources` also records bounded embedded-versus-
+  reused chunk counts for operator support; promotion is a single transaction that locks and swaps
+  the active pointer only after every expected source is complete, then marks the previous
+  generation `superseded` — so a failed or partial rebuild always leaves the previous active corpus
+  queryable.
 - The deployed column is fixed at `VECTOR(1536)` with `vector_cosine_ops`. Changing dimensions
   requires a new canonical schema revision plus a full staged reindex; existing DB volumes are not
   reusable across that change, and config alone cannot select a mixed vector space.

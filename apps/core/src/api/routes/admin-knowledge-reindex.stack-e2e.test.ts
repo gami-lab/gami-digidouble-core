@@ -59,7 +59,7 @@ describe.skipIf(!RUN_REINDEX_STACK_E2E)('Stack E2E — admin knowledge reindex',
       headers: authHeaders(),
       body: JSON.stringify({}),
     })
-    expect([200, 202]).toContain(started.status)
+    expect(started.status).toBe(202)
     const body = (await started.json()) as ApiResponse<{
       status: string
       operation: { reindexOperationId: string } | null

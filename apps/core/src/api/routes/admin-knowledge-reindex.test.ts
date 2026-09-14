@@ -186,18 +186,38 @@ describe('Admin knowledge reindex routes', () => {
     if (operationId === undefined) return
 
     const completed = await waitForOperation(app, operationId, 'completed')
-    expect(completed.sources).toEqual([expect.objectContaining({ status: 'completed' })])
+    expect(completed.sources).toEqual([
+      expect.objectContaining({
+        status: 'completed',
+        embeddedChunkCount: 1,
+        reusedChunkCount: 0,
+      }),
+    ])
 
-    const alreadyActive = await app.inject({
+    const sameProfile = await app.inject({
       method: 'POST',
       url: '/v1/admin/knowledge/reindex',
       headers: authHeaders(),
       payload: {},
     })
-    expect(alreadyActive.statusCode).toBe(200)
-    expect(alreadyActive.json<ApiResponse<{ status: string }>>().data?.status).toBe(
-      'already_active',
-    )
+    expect(sameProfile.statusCode).toBe(202)
+    const sameProfileBody =
+      sameProfile.json<
+        ApiResponse<{ status: string; operation: { reindexOperationId: string } | null }>
+      >()
+    expect(sameProfileBody.data?.status).toBe('started')
+    const sameProfileOperationId = sameProfileBody.data?.operation?.reindexOperationId
+    expect(sameProfileOperationId).toBeTypeOf('string')
+    if (sameProfileOperationId !== undefined) {
+      const sameProfileCompleted = await waitForOperation(app, sameProfileOperationId, 'completed')
+      expect(sameProfileCompleted.sources).toEqual([
+        expect.objectContaining({
+          status: 'completed',
+          embeddedChunkCount: 0,
+          reusedChunkCount: 1,
+        }),
+      ])
+    }
   })
 
   it('retries a failed operation and exposes the completed result', async () => {

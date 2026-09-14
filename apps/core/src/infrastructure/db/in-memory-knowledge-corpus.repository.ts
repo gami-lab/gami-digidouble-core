@@ -136,6 +136,8 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
         status: 'pending',
         attempts: 0,
         completedChunkCount: 0,
+        embeddedChunkCount: 0,
+        reusedChunkCount: 0,
       })
     }
     return Promise.resolve(publicOperation(operation))

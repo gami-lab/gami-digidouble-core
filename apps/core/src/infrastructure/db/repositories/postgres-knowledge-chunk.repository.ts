@@ -101,8 +101,8 @@ export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkReposito
   constructor(private readonly sql: Sql) {}
 
   // Production ingestion and reindex writes go through PostgresKnowledgeCorpusRepository's
-  // generation-aware replacement methods. This direct method is retained for the shared interface
-  // and repository-level fixtures; it is not a supported production write path.
+  // generation-aware replacement methods. This direct method is retained only for repository-level
+  // fixtures and integration setup; it is not part of the application write port.
   // eslint-disable-next-line complexity
   async create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk> {
     assertStaticMetadataAllowed(params.metadata, 'chunk')

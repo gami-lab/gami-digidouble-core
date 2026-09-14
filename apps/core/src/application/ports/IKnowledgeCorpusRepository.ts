@@ -49,6 +49,8 @@ export type ReindexSourceProgress = Readonly<{
   attempts: number
   expectedChunkCount?: number
   completedChunkCount: number
+  embeddedChunkCount: number
+  reusedChunkCount: number
   startedAt?: string
   completedAt?: string
   failureDetails?: string
@@ -105,6 +107,8 @@ export type UpdateReindexSourceProgressParams = Readonly<{
   attempts?: number
   expectedChunkCount?: number
   completedChunkCount?: number
+  embeddedChunkCount?: number
+  reusedChunkCount?: number
   startedAt?: string
   completedAt?: string
   failureDetails?: string

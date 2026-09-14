@@ -424,6 +424,52 @@ describe('ContextEngine baseline', () => {
     expect(output.avatar.sections.retrievedContext?.retrievedItems).toHaveLength(5)
   })
 
+  it('applies the caller selection options to the combined Avatar set', () => {
+    const input = makeInput()
+    input.extensions.avatarRetrievalOptions = {
+      maxChunks: 2,
+      minimumChunksBySource: { last_user_input: 2 },
+    }
+    input.extensions.retrieval = {
+      ...requireRetrieval(input),
+      avatar_knowledge: [
+        {
+          sourceId: 'memory_source_1',
+          chunkId: 'memory_chunk_1',
+          knowledgeType: 'avatar_knowledge',
+          content: 'memory one',
+          similarity: 0.2,
+          matchedQuery: { source: 'last_user_input', text: 'question' },
+        },
+        {
+          sourceId: 'memory_source_2',
+          chunkId: 'memory_chunk_2',
+          knowledgeType: 'avatar_knowledge',
+          content: 'memory two',
+          similarity: 0.1,
+          matchedQuery: { source: 'last_user_input', text: 'question' },
+        },
+      ],
+      world: [
+        {
+          sourceId: 'world_source_1',
+          chunkId: 'world_chunk_1',
+          knowledgeType: 'world',
+          content: 'higher score world fallback',
+          similarity: 0.99,
+        },
+      ],
+      media: [],
+    }
+
+    const output = new ContextEngine().assemble(input)
+
+    expect(
+      output.avatar.sections.retrievedContext?.retrievedItems.map((item) => item.chunkId),
+    ).toEqual(['memory_chunk_1', 'memory_chunk_2'])
+    expect(output.avatar.sections.retrievedContext?.typedSections?.world).toEqual([])
+  })
+
   it('stays deterministic with missing optional structured sections', () => {
     const engine = new ContextEngine()
     const input = makeInput()

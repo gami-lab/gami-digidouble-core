@@ -23,7 +23,7 @@ import { assertStaticMetadataAllowed } from '../../../domain/knowledge/static-kn
 import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
 
 export type KnowledgeReindexStartResult = Readonly<{
-  status: 'started' | 'reused' | 'already_active'
+  status: 'started' | 'reused'
   operation: ReindexOperation | null
 }>
 
@@ -39,11 +39,6 @@ export class KnowledgeReindexService {
   ) {}
 
   async start(): Promise<KnowledgeReindexStartResult> {
-    const activeCorpus = await this.corpusRepository.getActiveCorpus()
-    if (activeCorpus !== null && sameProfile(activeCorpus.profile, this.configuredProfile)) {
-      return { status: 'already_active', operation: null }
-    }
-
     const persistedProfile = await this.corpusRepository.createEmbeddingProfile(
       this.configuredProfile,
     )
@@ -143,6 +138,7 @@ export class KnowledgeReindexService {
           activeGenerationId: active.corpusGenerationId,
           activeProfileId: active.embeddingProfileId,
           outcome: 'promoted',
+          ...reindexEmbeddingCounts(finalProgress),
           durationMs: Date.now() - runStartedAt,
         },
       })
@@ -188,6 +184,8 @@ export class KnowledgeReindexService {
       const seedsToEmbed = seeds.filter((seed) => {
         return !hasMatchingContent(reusableChunks.get(seed.chunkIndex), seed.contentHash)
       })
+      const embeddedChunkCount = seedsToEmbed.length
+      const reusedChunkCount = seeds.length - embeddedChunkCount
       const embeddedVectors = new Map<number, readonly number[]>()
       if (seedsToEmbed.length > 0) {
         const result = await this.embeddingAdapter.embed({
@@ -234,6 +232,11 @@ export class KnowledgeReindexService {
         source.sourceId,
         chunks,
       )
+      await this.corpusRepository.updateReindexSourceProgress(
+        operation.reindexOperationId,
+        source.sourceId,
+        { status: 'completed', embeddedChunkCount, reusedChunkCount },
+      )
       await this.appendEventSafe({
         type: 'knowledge_reindex_source_completed',
         severity: 'info',
@@ -241,6 +244,8 @@ export class KnowledgeReindexService {
           ...operationDiagnostics(operation, profile),
           sourceId: source.sourceId,
           vectorCount: chunks.length,
+          embeddedChunkCount,
+          reusedChunkCount,
           sourceAttempts: attempts,
         },
       })
@@ -351,6 +356,15 @@ function sameProfile(left: EmbeddingProfile, right: EmbeddingProfile): boolean {
     left.model === right.model &&
     left.dimensions === right.dimensions
   )
+}
+
+function reindexEmbeddingCounts(
+  progress: readonly ReindexSourceProgress[],
+): Readonly<{ embeddedChunkCount: number; reusedChunkCount: number }> {
+  return {
+    embeddedChunkCount: progress.reduce((total, entry) => total + entry.embeddedChunkCount, 0),
+    reusedChunkCount: progress.reduce((total, entry) => total + entry.reusedChunkCount, 0),
+  }
 }
 
 function hasMatchingContent(chunk: KnowledgeChunk | undefined, contentHash: string): boolean {

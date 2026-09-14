@@ -114,6 +114,8 @@ function presentSourceProgress(
       ? { expectedChunkCount: entry.expectedChunkCount }
       : {}),
     completedChunkCount: entry.completedChunkCount,
+    embeddedChunkCount: entry.embeddedChunkCount,
+    reusedChunkCount: entry.reusedChunkCount,
     ...(entry.startedAt !== undefined ? { startedAt: entry.startedAt } : {}),
     ...(entry.completedAt !== undefined ? { completedAt: entry.completedAt } : {}),
     ...(entry.failureDetails !== undefined ? { failureDetails: entry.failureDetails } : {}),

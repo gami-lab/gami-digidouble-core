@@ -185,6 +185,8 @@ CREATE TABLE IF NOT EXISTS reindex_operation_sources (
   attempts              INT         NOT NULL DEFAULT 0 CHECK (attempts >= 0),
   expected_chunk_count  INT,
   completed_chunk_count INT         NOT NULL DEFAULT 0,
+  embedded_chunk_count  INT         NOT NULL DEFAULT 0,
+  reused_chunk_count    INT         NOT NULL DEFAULT 0,
   started_at            TIMESTAMPTZ,
   completed_at          TIMESTAMPTZ,
   failure_details       TEXT,
@@ -192,7 +194,9 @@ CREATE TABLE IF NOT EXISTS reindex_operation_sources (
   PRIMARY KEY (reindex_operation_id, source_id),
   CHECK (status IN ('pending', 'running', 'completed', 'failed')),
   CHECK (expected_chunk_count IS NULL OR expected_chunk_count >= 0),
-  CHECK (completed_chunk_count >= 0)
+  CHECK (completed_chunk_count >= 0),
+  CHECK (embedded_chunk_count >= 0),
+  CHECK (reused_chunk_count >= 0)
 );
 
 -- ── Sessions ──────────────────────────────────────────────────────────────────

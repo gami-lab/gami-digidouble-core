@@ -44,6 +44,8 @@ type ReindexSourceProgressRow = {
   attempts: number
   expected_chunk_count: number | null
   completed_chunk_count: number
+  embedded_chunk_count: number
+  reused_chunk_count: number
   started_at: Date | null
   completed_at: Date | null
   failure_details: string | null
@@ -301,7 +303,8 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     if (uuid === null) return []
     const rows = await this.sql<ReindexSourceProgressRow[]>`
       SELECT reindex_operation_id, source_id, status, attempts, expected_chunk_count,
-        completed_chunk_count, started_at, completed_at, failure_details
+        completed_chunk_count, embedded_chunk_count, reused_chunk_count,
+        started_at, completed_at, failure_details
       FROM reindex_operation_sources
       WHERE reindex_operation_id = ${uuid}
       ORDER BY source_id ASC
@@ -317,6 +320,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     const operationUuid = extractUuid('reindex_operation_', reindexOperationId)
     const sourceUuid = extractUuid('knowledge_source_', sourceId)
     if (operationUuid === null || sourceUuid === null) return null
+    // eslint-disable-next-line complexity
     return this.sql.begin(async (tx) => {
       const [row] = await tx<ReindexSourceProgressRow[]>`
         UPDATE reindex_operation_sources
@@ -324,6 +328,8 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
           attempts = COALESCE(${updates.attempts ?? null}, attempts),
           expected_chunk_count = COALESCE(${updates.expectedChunkCount ?? null}, expected_chunk_count),
           completed_chunk_count = COALESCE(${updates.completedChunkCount ?? null}, completed_chunk_count),
+          embedded_chunk_count = COALESCE(${updates.embeddedChunkCount ?? null}, embedded_chunk_count),
+          reused_chunk_count = COALESCE(${updates.reusedChunkCount ?? null}, reused_chunk_count),
           started_at = COALESCE(${updates.startedAt ?? null}::timestamptz, started_at),
           completed_at = COALESCE(${updates.completedAt ?? null}::timestamptz, completed_at),
           failure_details = COALESCE(
@@ -333,7 +339,8 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
           updated_at = NOW()
         WHERE reindex_operation_id = ${operationUuid} AND source_id = ${sourceUuid}
         RETURNING reindex_operation_id, source_id, status, attempts, expected_chunk_count,
-          completed_chunk_count, started_at, completed_at, failure_details
+          completed_chunk_count, embedded_chunk_count, reused_chunk_count,
+          started_at, completed_at, failure_details
       `
       if (row === undefined) return null
       await tx`
@@ -801,6 +808,8 @@ function rowToSourceProgress(row: ReindexSourceProgressRow): ReindexSourceProgre
     attempts: row.attempts,
     ...(row.expected_chunk_count !== null ? { expectedChunkCount: row.expected_chunk_count } : {}),
     completedChunkCount: row.completed_chunk_count,
+    embeddedChunkCount: row.embedded_chunk_count,
+    reusedChunkCount: row.reused_chunk_count,
     ...(row.started_at !== null ? { startedAt: row.started_at.toISOString() } : {}),
     ...(row.completed_at !== null ? { completedAt: row.completed_at.toISOString() } : {}),
     ...(row.failure_details !== null ? { failureDetails: row.failure_details } : {}),

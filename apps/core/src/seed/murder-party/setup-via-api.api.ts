@@ -225,7 +225,7 @@ export class ApiClient {
   }
 
   startKnowledgeReindex(): Promise<StartKnowledgeReindexResponse> {
-    return this.request('POST', '/v1/admin/knowledge/reindex', {}, [200, 202])
+    return this.request('POST', '/v1/admin/knowledge/reindex', {}, [202])
   }
 
   getKnowledgeReindex(reindexOperationId: string): Promise<GetKnowledgeReindexResponse> {

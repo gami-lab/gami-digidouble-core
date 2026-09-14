@@ -220,6 +220,10 @@ describe('KnowledgeReindexService', () => {
     expect(chunks[0]?.embedding).toEqual([9, 9])
     expect(chunks[1]?.embedding).toEqual([9, 9])
     expect(chunks[2]?.embedding).toEqual([1, 1])
+    const progress = await corpusRepository.listReindexSourceProgress(operation.reindexOperationId)
+    expect(progress[0]).toEqual(
+      expect.objectContaining({ embeddedChunkCount: 1, reusedChunkCount: 2 }),
+    )
     await expect(
       corpusRepository.validateCorpusGeneration(operation.reindexOperationId),
     ).resolves.toMatchObject({
@@ -280,10 +284,10 @@ describe('KnowledgeReindexService', () => {
     expect(adapter.calls).toBe(3)
   })
 
-  it('does not start an operation when the configured profile is already active', async () => {
+  it('starts a same-profile operation so unchanged vectors can be reused', async () => {
     const { corpusRepository, sourceRepository, sourceContentLoader, adapter, eventLogRepository } =
       await makeService()
-    const alreadyActive = new KnowledgeReindexService(
+    const sameProfileService = new KnowledgeReindexService(
       sourceRepository,
       corpusRepository,
       sourceContentLoader,
@@ -291,9 +295,9 @@ describe('KnowledgeReindexService', () => {
       eventLogRepository,
       previousCorpus.profile,
     )
-    const result = await alreadyActive.start()
-    expect(result.status).toBe('already_active')
-    expect(result.operation).toBeNull()
+    const result = await sameProfileService.start()
+    expect(result.status).toBe('started')
+    expect(result.operation?.status).toBe('pending')
   })
 
   it.each([

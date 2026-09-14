@@ -268,3 +268,70 @@ identify the missing real-Postgres service-level evidence if the project keeps t
 **Rework before close.** The EPIC has a strong implementation base and should not be redesigned, but
 the operator-reachable same-profile reindex gap and missing production persistence evidence should be
 resolved before treating the EPIC as fully complete.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Made the authenticated admin start route create an explicit replacement run for completed
+  same-profile reindexes. Repeated pending/running requests still reuse the active operation.
+- Added bounded per-source and aggregate `embeddedChunkCount` / `reusedChunkCount` progress and event
+  fields, preserving the old active corpus until staged promotion completes.
+- Removed the application-facing `create()` capability from `IKnowledgeChunkRepository`; direct
+  creation remains available only on the concrete repository for fixture/integration setup.
+- Added behavior-level coverage for same-profile reuse, staged old-generation readability, atomic
+  PostgreSQL-backed promotion, PostgreSQL lexical/vector retrieval, operator progress counts, and
+  Context Engine selection options.
+- Synchronized the affected API, data-model, embedding-operations, testing, and EPIC documents.
+
+### Findings Resolved
+
+- Resolved the high-severity unreachable same-profile reindex behavior through the authenticated API.
+- Resolved the missing production-boundary evidence with real PostgreSQL integration suites covering
+  staged replacement, reuse, promotion, and retrieval fusion. The suites are environment-gated in the
+  standard integration configuration and are intended for the extended CI/database gate.
+- Resolved the missing operator-visible reuse/embedding observability and the under-tested selection
+  option divergence.
+- Resolved the application port capability leak; infrastructure-only fixture setup is no longer part
+  of the application contract.
+- Reduced contract drift by carrying the progress counts through one source-progress concept from
+  persistence to the shared response/event projection.
+
+### Findings Deferred
+
+- The retrieval-quality CLI continues to use its intentionally small deterministic in-memory fixture
+  set. A repository-backed quality-report mode and a larger labelled corpus are useful follow-up work,
+  but are not required to prove the production reindex/retrieval path addressed by this EPIC.
+- The local app container could not execute the new integration suite because its mounted development
+  environment does not contain Vitest. The mandatory host gates passed; extended CI should run the
+  integration configuration with dependencies installed and PostgreSQL available.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS — 166 files, 1,145 tests
+- coverage: PASS — 86.67% statements, 83.64% branches, 96.70% functions, 86.67% lines
+
+### Final Feature Confidence
+
+- Authenticated same-profile reindex initiation and operation state: High.
+- Incremental reuse versus embedding counts and emitted progress: High.
+- Staged generation readability and atomic PostgreSQL promotion: High by the added integration
+  contract; execution remains an extended-CI responsibility in this environment.
+- PostgreSQL lexical/vector retrieval fusion and typed result projection: High by the added integration
+  contract; execution remains an extended-CI responsibility in this environment.
+- Context Engine selection options at the consumer boundary: High.
+- Application/infrastructure write boundary: High, verified by strict typecheck and the repository
+  integration surface.
+
+### Final Grade
+
+**A**
+
+### Remaining Risks
+
+- Extended CI must execute the environment-gated PostgreSQL integration suite; the local Docker app
+  image currently lacks the development test binary.
+- The quality CLI's small deterministic fixture set remains unsuitable for broad retrieval-quality
+  benchmarking until a larger labelled corpus or repository-backed mode is added.

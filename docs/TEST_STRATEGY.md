@@ -71,9 +71,10 @@ preflight reason so audits do not fail for missing infrastructure. Set
 - canonical types and reserved metadata rejection
 - paragraph-aware chunking, oversized paragraph/code-fence splitting, bounded overlap, and ingestion lifecycle
 - embedding profile/dimension validation and ordered complete batches
-- staged reindex completeness, restart/retry safety, rollback, and atomic promotion
+- staged reindex completeness, same-profile reuse through the admin start route, restart/retry safety,
+  rollback, and atomic promotion at the PostgreSQL boundary
 - vector and bounded lexical filtering, visibility asymmetry, deterministic fusion/merge/dedup/selection,
-  and safe failures
+  and safe failures, including a real PostgreSQL service-level hybrid retrieval check
 - retrieval/context diagnostics contain no vectors, credentials, prompts, or unbounded content
 
 ### Boundaries

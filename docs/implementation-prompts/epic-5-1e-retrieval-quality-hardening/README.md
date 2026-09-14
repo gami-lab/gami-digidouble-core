@@ -92,7 +92,9 @@ mean re-touching the fusion code immediately after.
       with vector candidates without introducing a second, divergent ranking algorithm outside the
       canonical retrieval service.
 - [ ] Reindexing skips re-embedding a chunk whose content is unchanged from the previously active
-      generation, verified by a lower embedding-call count on a partial-change fixture.
+      generation, verified by a lower embedding-call count on a partial-change fixture and
+      reachable through the authenticated operator start route. Reindex progress exposes bounded
+      embedded-versus-reused chunk counts.
 - [ ] All checks pass and `docs/PROJECT_STATUS.md`, `docs/EPICS.md`, `docs/EMBEDDING_OPERATIONS.md`,
       `docs/RAG_SYSTEM_IMPLEMENTATION.md`, `docs/RAG_SYSTEM_AUDIT.md`, `docs/DATA_MODEL.md`, and
       `docs/API_CONTRACT.md` describe the shipped behavior accurately.

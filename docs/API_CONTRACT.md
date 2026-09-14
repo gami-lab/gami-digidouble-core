@@ -166,10 +166,12 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
 - `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` takes no request body. One avatar's
   failure (e.g. `provider_unavailable`) never fails the whole batch, and preparation overwrites only
   `computedTraits`, never authored fields.
-- Reindex routes (`POST reindex`, `GET .../{id}`, `POST .../{id}/retry`) return `202` when started,
-  `200` when the profile is already active, `404` for an unknown operation, and `409` on retry unless
-  the operation is `failed`. The active corpus stays unchanged until every snapshotted source
-  validates and promotion commits atomically.
+- Reindex routes (`POST reindex`, `GET .../{id}`, `POST .../{id}/retry`) return `202` when an
+  operation is started or reused, `404` for an unknown operation, and `409` on retry unless the
+  operation is `failed`. A same-profile `POST reindex` is an explicit replacement run: unchanged
+  chunks may be copied forward, while the active corpus stays unchanged until every snapshotted
+  source validates and promotion commits atomically. Reindex source progress includes bounded
+  `embeddedChunkCount` and `reusedChunkCount` values.
 
 ### Diagnostics and evolution
 

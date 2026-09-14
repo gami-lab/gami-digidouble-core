@@ -230,13 +230,15 @@ export type KnowledgeReindexSourceProgressDto = {
   attempts: number
   expectedChunkCount?: number
   completedChunkCount: number
+  embeddedChunkCount: number
+  reusedChunkCount: number
   startedAt?: string
   completedAt?: string
   failureDetails?: string
 }
 
 export type StartKnowledgeReindexResponse = {
-  status: 'started' | 'reused' | 'already_active'
+  status: 'started' | 'reused'
   operation: KnowledgeReindexOperationDto | null
 }
 

@@ -74,7 +74,7 @@ export const adminKnowledgeReindexRoute: FastifyPluginCallback<
   app.post('/knowledge/reindex', { schema: { body: emptyBodySchema } }, async (_request, reply) => {
     try {
       const output = await startUseCase.execute()
-      return await reply.status(output.status === 'already_active' ? 200 : 202).send(ok(output))
+      return await reply.status(202).send(ok(output))
     } catch (error) {
       return await mapDomainError(error, reply)
     }

@@ -268,7 +268,7 @@ async function waitForJob(
 async function ensureActiveKnowledgeCorpus(
   client: ApiClient,
   options: CliOptions,
-): Promise<'started' | 'reused' | 'already_active'> {
+): Promise<'started' | 'reused'> {
   const started = await client.startKnowledgeReindex()
   const operationId = started.operation?.reindexOperationId
   if (operationId === undefined) return started.status
