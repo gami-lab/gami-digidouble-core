@@ -342,3 +342,99 @@ All checks were run against the unchanged implementation before writing this rep
 
 The stricter unused-symbol check intentionally reports the R7 findings and is not part of the
 repository's default gate.
+
+## Contract ownership record: EPIC 11.1 prompt 00
+
+Reviewed: 2026-09-14
+
+This record establishes ownership before any R1-R7 cleanup. Prompt 00 makes no runtime, endpoint,
+schema, provider, or public-contract changes. A future owner marked `new` is a deliberately small
+owner designation for the next cleanup prompt; the implementation remains in its current file
+until that prompt verifies the exact call-site semantics.
+
+### R1 — Browser API client protocol
+
+| Candidate                                                                                                 | Current copies / boundary check                                                                                       | Canonical owner                                                                   | Decision                                                |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `ApiResponse`, `ApiError`, `ErrorCode`, and envelope meaning                                              | Shared DTOs in `packages/shared/src/api-response.ts`; all three clients consume them                                  | `packages/shared/src/api-response.ts`                                             | Keep intentionally separate from client implementations |
+| URL/path normalization, API-key path rule, envelope/error guards, and the client `ApiError` runtime shape | Repeated in the three browser clients; no `Blob`, `AbortSignal`, or provider behavior is required by the pure portion | `packages/shared/src/api-client-protocol.ts` (new)                                | Consolidate                                             |
+| JSON request functions                                                                                    | Admin omits `Content-Type` for bodyless requests; console/web always set it; method unions also differ                | Each app's `src/api/client.ts`                                                    | Keep intentionally separate                             |
+| Binary/audio requests, abort handling, and stream parsing                                                 | Web-only `Response`/`Blob`/`AbortSignal` lifecycle                                                                    | `apps/web/src/api/client.ts` and stream modules                                   | Keep intentionally separate                             |
+| `formatApiError` UI fallback formatting                                                                   | Admin and console have identical current code, but fallback text is owned by each UI surface                          | App-level adapter around the shared error shape; revisit with the protocol helper | Needs follow-up investigation                           |
+
+### R2 — Operator model and Avatar form mappers
+
+| Candidate                                                                        | Current copies / boundary check                                                                                         | Canonical owner                                                                                                                     | Decision                                       |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `ModelSelectionOverride`, `UpdateModelConfigRequest`, and Avatar mutation fields | Public field names and optionality are already shared in `packages/shared/src/`; form state is local to each UI         | `packages/shared/src/model-catalog.ts`, `packages/shared/src/runtime-inspector-types.ts`, and `packages/shared/src/entity-types.ts` | Keep intentionally separate from UI form state |
+| Trimming/omission of provider/model form values                                  | Admin and console `toOverride` have equivalent `undefined` omission semantics                                           | `packages/shared/src/model-config-contract-mappers.ts` (new, pure primitive-input helper)                                           | Consolidate                                    |
+| Whole model-config form-to-request mapping                                       | Admin and console forms are structurally equivalent today, but their form types and validation messages remain UI-owned | The shared pure mapper above, with thin app-local form adapters                                                                     | Consolidate                                    |
+| Avatar override payload mapping                                                  | Console `ScenarioPage`, `avatar-row`, and orphaned `AvatarPage` copies have identical `null`/trim behavior              | The same shared contract-mapper owner; `AvatarPage` is handled by D1 separately                                                     | Consolidate                                    |
+| Form-to-control projections and validation-detail text                           | Browser state and operator copy, not public contract ownership                                                          | Each app/page                                                                                                                       | Keep intentionally separate                    |
+
+### R3 — Core route composition
+
+| Candidate                                              | Current copies / boundary check                                                                                                     | Canonical owner                                                 | Decision                    |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------- |
+| Working-memory repository defaults                     | `sessions.ts` and `conversations.ts` create the same in-memory defaults so isolated route tests can inject adapters                 | `apps/core/src/api/composition.ts` (new API composition helper) | Consolidate                 |
+| LLM config defaults                                    | `conversations.ts` and `server.ts` build the same provider/API-key projection; this is composition, not domain configuration policy | `apps/core/src/api/composition.ts` (new API composition helper) | Consolidate                 |
+| Route-specific dependency injection and test overrides | Route options intentionally remain local so tests can provide isolated repositories/adapters                                        | Each route's options and composition entrypoint                 | Keep intentionally separate |
+
+### R4 — Knowledge validation and normalization
+
+| Candidate                                                      | Current copies / boundary check                                                                                                                     | Canonical owner                                                                       | Decision                    |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------- |
+| Embedding profile equality (`provider`, `model`, `dimensions`) | Equivalent pure comparisons in ingestion, query embedding, and reindex services; `EmbeddingProfile` is application-owned                            | `apps/core/src/application/services/knowledge/embedding-profile.ts` (new pure helper) | Consolidate                 |
+| Reserved static-scope-key detection                            | `findReservedStaticScopeKeys` already owns recursive traversal in `apps/core/src/domain/knowledge/static-knowledge-validation.ts`                   | Existing domain helper                                                                | Consolidate                 |
+| Validation failure mapping for create/update/ingestion/reindex | Same reserved-key predicate, but callers intentionally map failures to `DomainError`, ingestion errors, or reindex errors                           | Each owning use case/service                                                          | Keep intentionally separate |
+| Typed visibility policy normalization                          | `knowledge-visibility.ts` owns `all`/`avatars`/`none`, trimming, and `undefined` omission for domain values                                         | `apps/core/src/domain/knowledge/knowledge-visibility.ts`                              | Consolidate                 |
+| Persistence row decoding and JSON/`unknown` normalization      | Postgres source/chunk repositories must decode JSON text, tolerate row-driver shapes, and map dates/IDs; in-memory storage has a different boundary | Each repository adapter, using the domain visibility helper only after decoding       | Keep intentionally separate |
+| API LLM-override normalization                                 | `avatars.ts` repeats the same mapper already present in `model-selection-mappers.ts`; both preserve `undefined` versus `null`                       | `apps/core/src/api/routes/model-selection-mappers.ts`                                 | Consolidate                 |
+
+### R5 — Recent user/Avatar exchange selection
+
+| Candidate                                                           | Current copies / boundary check                                                                                                                      | Canonical owner                                                                                                        | Decision                                                          |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Timestamp-aware completed-exchange selection and message projection | `conversation-exchange-window.ts` sorts by timestamp, pairs complete exchanges, and supports working-memory coverage fallback                        | `apps/core/src/application/services/conversation-exchange-window.ts`                                                   | Keep intentionally separate as the canonical application selector |
+| Session memory-layer projection                                     | `get-session-memory-layers.use-case.ts` has an admin DTO-specific fixed limit and repository fetch bound; it emits `SharedShortTermMemoryExchange[]` | The use case owns the projection; reuse the canonical selector only after preserving its fixed cap and fetch semantics | Needs follow-up investigation                                     |
+| GM recent-exchange projection                                       | `run-game-master.context.ts` consumes an already bounded context projection and has no timestamp fallback or independent cap                         | GM context mapper                                                                                                      | Keep intentionally separate                                       |
+| Avatar send-message dialogue window                                 | `send-message.helpers.ts` applies an explicit per-call cap and maps Avatar messages to LLM `assistant` roles                                         | Send-message application helper; candidate for the canonical selector after an input/limit comparison                  | Needs follow-up investigation                                     |
+
+No R5 copy is deleted in prompt 00. The differences in ordering, coverage fallback, caps, and output
+roles are semantic until a focused comparison proves otherwise.
+
+### R6 — Provider, stream, and browser-runtime helpers
+
+| Candidate                                                         | Current copies / boundary check                                                                                                             | Canonical owner                                                                     | Decision                    |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------- |
+| Timeout signal creation                                           | Deepgram and Gradium implementations are byte-equivalent; provider error mapping around them is not                                         | `apps/core/src/infrastructure/speech/timeout-signal.ts` (new infrastructure helper) | Consolidate                 |
+| Terminal message-event predicate                                  | `apps/web/src/api/conversations.ts` and `apps/web/src/chat/message-stream-runtime.ts` recognize the same three shared stream terminal types | `apps/web/src/chat/message-stream-events.ts` (new web-local helper)                 | Consolidate                 |
+| `localStorage` availability/default guard                         | Identity and runtime-state modules use the same browser-only guard and `StorageLike` boundary                                               | `apps/web/src/storage.ts` (new web-local helper)                                    | Consolidate                 |
+| Provider-specific status/error/cancellation mapping               | Deepgram and Gradium translate failures into different typed port errors                                                                    | Each speech adapter                                                                 | Keep intentionally separate |
+| Audio delivery, stream interruption cleanup, and browser playback | `Blob`, `AbortSignal`, response headers, and client lifecycle are web-owned                                                                 | Web API/chat modules                                                                | Keep intentionally separate |
+
+### R7 — Unused dependencies and parameters
+
+| Candidate                                                                                                    | Verified owner after removal                                                                                     | Decision |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | -------- |
+| `KnowledgeIngestionService.chunkRepository` and route wiring                                                 | Corpus repository owns active ingestion writes; chunk repository remains an independent persistence/test adapter | Remove   |
+| `GetSessionMemoryLayersUseCase.sessionMemoryRepository` and `avatarSessionMemoryRepository` and route wiring | Conversation working/episodic repositories and `MemorySelectionService` own the active read path                 | Remove   |
+| `RunGameMasterUseCase.callLlm` `llmStart` argument                                                           | GM use-case timing is measured by the existing `gmRunStartMs`/response timing path                               | Remove   |
+| `formatSuggestedAvatar` `snapshot` argument                                                                  | The decision payload alone owns the formatted recommendation                                                     | Remove   |
+
+### Cross-cutting contract drift check
+
+- Public response envelopes and DTO field names remain owned by `packages/shared/src/`; no inline
+  replacement response shape is introduced by this record.
+- Model mappings preserve `provider`/`model`, trim only the model text where the current mapper
+  does so, and preserve `undefined` omission versus explicit `null` clearing.
+- Knowledge mappings preserve `visibilityPolicy` and optional `visibleToAvatarIds`; persistence
+  adapters retain their separate `unknown`/JSON/date/ID decoding responsibilities.
+- Memory mappings preserve user/avatar pairing, timestamp ordering, caps, and the distinction
+  between Avatar `assistant` messages and shared `avatar` message DTOs.
+- Stream mappings preserve the three terminal event types and browser interruption behavior.
+
+The source-of-truth architecture, API, data-model, Game Master, memory, and test contracts already
+state these layer boundaries and do not require behavioral edits for prompt 00. `PROJECT_STATUS.md`
+and `EPICS.md` are updated only to record that this ownership prerequisite is complete; EPIC 11.1
+remains open.

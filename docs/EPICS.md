@@ -217,7 +217,9 @@ Removed audited compatibility paths and legacy contracts, verified fresh schema/
 The code audit is complete, but the repository still contains high-confidence orphaned modules,
 retired application contracts, legacy memory/context abstractions, and duplicated client, mapping,
 composition, validation, memory, and provider-helper logic. No implementation cleanup has started.
-See [`CODE_AUDIT.md`](CODE_AUDIT.md) and the generated implementation prompts under
+The contract-ownership prerequisite is complete: [`CODE_AUDIT.md`](CODE_AUDIT.md) now records the
+canonical owner, keep-separate rationale, or follow-up decision for every R1-R7 candidate. No
+implementation cleanup has started. See [`CODE_AUDIT.md`](CODE_AUDIT.md) and the generated implementation prompts under
 `implementation-prompts/epic-11-1-code-hygiene-duplication-cleanup/`.
 
 **Purpose**
