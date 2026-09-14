@@ -2,7 +2,7 @@
 
 Date: 2026-09-14  
 Scope: TypeScript source under `apps/`, `packages/`, and `tools/`  
-Status: Audit only — no implementation or test code was changed.
+Status: D1-D4 removal complete; R1-R7 cleanup remains open.
 
 ## Executive summary
 
@@ -134,6 +134,24 @@ uses `MemorySelectionService` and the structured Context Engine path instead.
 
 Recommendation: remove this service and its test after confirming that no external script imports
 the private `@gami/core` source tree.
+
+### D1-D4 resolution
+
+The pre-deletion repository-wide search covered runtime entrypoints, package scripts, test
+configuration, seeds, retrieval-quality tooling, deployment files, package exports, and documented
+operator workflows. No executable or documented external-consumer path referenced the targets.
+
+| Finding | Resolution                                                                                                                                                                           | Retained active replacement                                                                                                                  |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1      | Removed the three orphaned console/admin modules: `AvatarPage.tsx`, `GuidedShortcuts.tsx`, and `scenario-detail-state.ts`. Historical implementation prompts remain as history only. | `ScenarioPage`, `UnifiedTestingPage`, and the active admin scenario detail state                                                             |
+| D2      | Removed the three retired ingestion use cases, their three companion type files, and their three tests.                                                                              | `KnowledgeIngestionService` plus the active create/trigger/get/list/update/delete/retrieval use cases wired by `routes/knowledge.ts`         |
+| D3      | Removed `ICacheAdapter`, the compaction port/service, `RuntimeContext`, both legacy working-memory policies, and the policy test.                                                    | Redis utterance idempotency, `MemorySelectionService`, `ConversationWorkingMemory`, `session-context`/Context Engine, and memory maintenance |
+| D4      | Removed `AvatarMemoryContextAssembler` and its dedicated test.                                                                                                                       | `MemorySelectionService` and structured Context Engine assembly                                                                              |
+
+The deletion removed 21 files. A post-deletion source/package/config search found no remaining
+references to the removed symbols. The current knowledge ingestion, memory-selection,
+working-memory, Context Engine, and idempotency tests remain in the active suite. R1-R7 are not
+closed by this workstream.
 
 ## Findings: duplicate or redundant code
 
