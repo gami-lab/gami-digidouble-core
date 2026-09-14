@@ -127,6 +127,7 @@ Static knowledge and conversational memory are separate systems:
 - Static knowledge is scenario-shared and typed as `avatar_knowledge`, `world`, or `media`.
 - Avatar retrieval applies visibility; GM retrieval may use an explicit unrestricted mode for orchestration.
 - User/session/conversation scope is not a static retrieval filter.
+- Prepared Avatar traits are required context; the Context Engine trims optional retrieval and memory before removing them.
 - Context exposes `conversationState` and `retrievedContext` as separate projections. Retrieved documents never become memory merely because they were injected into a prompt.
 
 The production retrieval path is: normalized query variants -> one profile-aware embedding batch ->

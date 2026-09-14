@@ -52,6 +52,7 @@ const DEFAULT_GAME_MASTER_STATE: GameMasterState = {
   progression: '',
   interactionCount: 0,
 }
+const GAME_MASTER_RESPONSE_MAX_TOKENS = 2048
 
 type AvatarUnlockResult = {
   newlyUnlockedAvatarIds: string[]
@@ -327,6 +328,7 @@ export class RunGameMasterUseCase {
         ),
       }),
       messages: [{ role: 'user' as const, content: renderGameMasterInputForLlm(gmInput) }],
+      maxTokens: GAME_MASTER_RESPONSE_MAX_TOKENS,
       ...(resolvedLlm.model !== undefined ? { model: resolvedLlm.model } : {}),
       trace: {
         requestId: gmTraceRequestId,

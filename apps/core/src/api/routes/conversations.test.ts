@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createEmptyAvatarComputedTraits, processSseFrames } from '@gami/shared'
 import type { ApiResponse, MessageStreamEvent, SendMessageResponse } from '@gami/shared'
 import type { ILlmAdapter, LlmRequest } from '../../application/ports/ILlmAdapter.js'
@@ -9,6 +9,8 @@ import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Conversation, Message, Session } from '../../domain/conversation/session.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import type { User } from '../../domain/user/user.types.js'
+import type { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
+import type { TypedRetrievalResult } from '../../domain/knowledge/knowledge.types.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
@@ -85,6 +87,7 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
   }
 }
 
+// eslint-disable-next-line complexity
 function makeApp({
   scenarios = [makeScenario()],
   avatars = [makeAvatar()],
@@ -93,6 +96,7 @@ function makeApp({
   messages = [],
   llmAdapter,
   messageRepository,
+  typedRetrievalService,
   users = [],
 }: {
   scenarios?: Scenario[]
@@ -102,6 +106,7 @@ function makeApp({
   messages?: Message[]
   llmAdapter?: ILlmAdapter
   messageRepository?: IMessageRepository
+  typedRetrievalService?: TypedRetrievalService
   users?: User[]
 } = {}) {
   return createServer(TEST_CONFIG, {
@@ -113,7 +118,31 @@ function makeApp({
     conversationRepository: new InMemoryConversationRepository(conversations),
     messageRepository: messageRepository ?? new InMemoryMessageRepository(messages),
     userRepository: new InMemoryUserRepository(users),
+    ...(typedRetrievalService === undefined ? {} : { typedRetrievalService }),
   })
+}
+
+function makeLargeRetrieval(): TypedRetrievalResult {
+  return {
+    avatar_knowledge: [
+      {
+        sourceId: 'source_1',
+        chunkId: 'chunk_large',
+        knowledgeType: 'avatar_knowledge',
+        content: 'retrieved context '.repeat(12000),
+      },
+    ],
+    world: [],
+    media: [],
+    trace: {
+      query: 'hello',
+      perType: {
+        avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_large'] },
+        world: { sourceIds: [], selectedChunkIds: [] },
+        media: { sourceIds: [], selectedChunkIds: [] },
+      },
+    },
+  }
 }
 
 class CapturingLlmAdapter implements ILlmAdapter {
@@ -395,6 +424,35 @@ describe('conversation message/history API', () => {
       },
     })
     expect(typeof body.data?.debug.requestId).toBe('string')
+  })
+
+  it('keeps the JSON route available when retrieval exceeds the avatar context budget', async () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    try {
+      const app = makeApp({
+        typedRetrievalService: {
+          retrieve: () => Promise.resolve(makeLargeRetrieval()),
+        } as unknown as TypedRetrievalService,
+      })
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/conversations/conversation_1/messages',
+        headers: { 'x-api-key': 'test-secret' },
+        payload: { message: { content: 'Tell me more.' } },
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(warning).toHaveBeenCalledWith(
+        '🚨 CONTEXT BUDGET EXCEEDED: DATA WAS TRUNCATED',
+        expect.objectContaining({
+          conversationId: 'conversation_1',
+          trimmedSegments: ['retrievedContextAvatarKnowledge'],
+        }),
+      )
+    } finally {
+      warning.mockRestore()
+    }
   })
 
   it('returns 404 for invalid conversationId on send/history', async () => {

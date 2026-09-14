@@ -1,5 +1,6 @@
 import type { ContextEngineOutput } from '../../../domain/context/context-engine.types.js'
 import { toRetrievalTraceDto } from '../../services/runtime-inspector-event-context.js'
+import type { ContextProjection } from '../../../domain/context/context-engine.policy.js'
 
 export type ContextSelectionMetadata = {
   shortTermExchangeCount: number
@@ -67,6 +68,49 @@ export function toContextSelectionMetadata(
     responseRuleCount: selected.responseRuleCount,
     hasAvatarTraits: selected.hasAvatarTraits,
   }
+}
+
+export function warnIfContextBudgetTrimmed(
+  assembledContext: ContextEngineOutput,
+  identifiers: { sessionId: string; conversationId: string; avatarId: string },
+): void {
+  const trimmed = assembledContext.trace.selection.trimmed
+  if (trimmed.length === 0) return
+
+  const projections = (['avatar', 'gm'] as const)
+    .filter((projection) => trimmed.some((item) => item.projection === projection))
+    .map((projection) => {
+      const keptTokens = sumSelectionTokens(assembledContext.trace.selection.kept, projection)
+      const trimmedTokens = sumSelectionTokens(trimmed, projection)
+      const maxTokens =
+        projection === 'avatar'
+          ? assembledContext.trace.policy.tokenBudget.avatarMaxTokens
+          : assembledContext.trace.policy.tokenBudget.gmMaxTokens
+      return {
+        projection,
+        maxTokens,
+        keptTokens,
+        trimmedTokens,
+      }
+    })
+
+  console.warn('🚨 CONTEXT BUDGET EXCEEDED: DATA WAS TRUNCATED', {
+    sessionId: identifiers.sessionId,
+    conversationId: identifiers.conversationId,
+    avatarId: identifiers.avatarId,
+    trimmedSegmentCount: trimmed.length,
+    trimmedSegments: [...new Set(trimmed.map((item) => item.segmentId))].sort(),
+    projections,
+  })
+}
+
+function sumSelectionTokens(
+  selection: Array<{ projection: ContextProjection; tokenEstimate: number }>,
+  projection: ContextProjection,
+): number {
+  return selection
+    .filter((item) => item.projection === projection)
+    .reduce((total, item) => total + item.tokenEstimate, 0)
 }
 
 function toIncludedRetrievalCounts(assembledContext: ContextEngineOutput): {

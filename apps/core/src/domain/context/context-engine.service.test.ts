@@ -505,6 +505,40 @@ describe('ContextEngine baseline', () => {
     assertTinyBudgetOutput(output)
   })
 
+  it('keeps required avatar traits when retrieval would exceed the default avatar budget', () => {
+    const input = makeInput()
+    const retrieval = requireRetrieval(input)
+    input.extensions.retrieval = {
+      ...retrieval,
+      avatar_knowledge: [
+        {
+          sourceId: 'large_source',
+          chunkId: 'large_chunk',
+          knowledgeType: 'avatar_knowledge',
+          content: 'retrieved context '.repeat(12000),
+        },
+      ],
+      world: [],
+      media: [],
+    }
+
+    const output = new ContextEngine().assemble(input)
+
+    expect(output.trace.policy.tokenBudget.avatarMaxTokens).toBe(8192)
+    expect(output.avatar.sections.avatarTraits).toEqual(SAMPLE_TRAITS)
+    const avatarTraitsSelection = output.trace.selection.kept.find(
+      (item) => item.projection === 'avatar' && item.segmentId === 'avatarTraits',
+    )
+    expect(avatarTraitsSelection?.reason).toBe('protected')
+    expect(avatarTraitsSelection?.tokenEstimate).toBeTypeOf('number')
+    expect(
+      output.trace.selection.trimmed.some(
+        (item) =>
+          item.projection === 'avatar' && item.segmentId === 'retrievedContextAvatarKnowledge',
+      ),
+    ).toBe(true)
+  })
+
   it('preserves avatar-filtered retrieval separately from larger GM retrieval with visibility metadata', () => {
     const engine = new ContextEngine()
     const input = makeInput()

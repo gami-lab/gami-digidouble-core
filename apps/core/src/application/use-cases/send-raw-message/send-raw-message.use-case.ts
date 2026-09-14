@@ -2,6 +2,7 @@ import type { ILlmAdapter } from '../../ports/ILlmAdapter.js'
 import type { SendRawMessageInput, SendRawMessageOutput } from './send-raw-message.types.js'
 
 const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant.'
+const RAW_EXCHANGE_MAX_TOKENS = 2048
 
 export class SendRawMessageUseCase {
   constructor(private readonly llm: ILlmAdapter) {}
@@ -13,6 +14,7 @@ export class SendRawMessageUseCase {
     const llmRequest = {
       systemPrompt: input.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
       messages: [{ role: 'user' as const, content: input.userMessage }],
+      maxTokens: RAW_EXCHANGE_MAX_TOKENS,
       ...(input.model === undefined ? {} : { model: input.model }),
       ...(input.serviceTier === undefined ? {} : { serviceTier: input.serviceTier }),
       trace: {

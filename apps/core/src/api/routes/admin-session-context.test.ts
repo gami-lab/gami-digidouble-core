@@ -274,6 +274,7 @@ function assertContextTraceBounds(body: ApiResponse<AdminSessionContextResponse>
     'directorNotes',
     'responseRules',
     'worldContext',
+    'avatarTraits',
   ])
   expect(body.data?.contextTrace.selectedInputs.shortTermExchangeCount).toBeLessThanOrEqual(1)
   expect(body.data?.contextTrace.selectedInputs.responseRuleCount).toBe(0)

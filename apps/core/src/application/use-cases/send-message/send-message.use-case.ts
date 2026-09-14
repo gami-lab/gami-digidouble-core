@@ -65,7 +65,10 @@ import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master
 import { toScenarioSnapshot } from './send-message.context-engine.js'
 import { buildSendMessageLlmRequest } from './send-message.llm-request.js'
 import { buildSendMessageOutput } from './send-message.output.js'
-import { toContextSelectionMetadata } from './send-message.context-selection.js'
+import {
+  toContextSelectionMetadata,
+  warnIfContextBudgetTrimmed,
+} from './send-message.context-selection.js'
 
 const MESSAGE_HISTORY_EXCHANGE_LIMIT = 3
 const MESSAGE_HISTORY_FETCH_LIMIT = MESSAGE_HISTORY_EXCHANGE_LIMIT * 2
@@ -422,6 +425,11 @@ export class SendMessageUseCase {
           ? { avatarTraits: args.avatar.computedTraits }
           : {}),
       },
+    })
+    warnIfContextBudgetTrimmed(assembledContext, {
+      sessionId: args.session.sessionId,
+      conversationId: args.conversation.conversationId,
+      avatarId: args.conversation.avatarId,
     })
 
     const systemPrompt = assemblePersonaPrompt(args.avatar, {

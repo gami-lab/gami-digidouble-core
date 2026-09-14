@@ -76,6 +76,7 @@ describe('SendRawMessageUseCase', () => {
 
     const llmArg = completeMock.mock.calls[0]?.[0] as LlmRequest
     expect(llmArg.systemPrompt).toBe('You are a helpful assistant.')
+    expect(llmArg.maxTokens).toBe(2048)
   })
 
   it('forwards a custom systemPrompt to the LLM request', async () => {

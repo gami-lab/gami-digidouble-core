@@ -236,6 +236,7 @@ describe('RunGameMasterUseCase — refined prompt path', () => {
     const request = completeMock.mock.calls[0]?.[0] as {
       systemPrompt: string
       messages: Array<{ content: string }>
+      maxTokens: number
       trace: { metadata: Record<string, unknown> }
     }
     const prompt = readRenderedGameMasterPrompt(request)
@@ -248,6 +249,7 @@ describe('RunGameMasterUseCase — refined prompt path', () => {
       '## Output Contract',
     ])
     expect(request.systemPrompt).toContain('Output ONLY a valid JSON object.')
+    expect(request.maxTokens).toBe(2048)
     expect(request.systemPrompt).toContain(
       '- askFollowUp must always be stated explicitly; never infer it from mode alone.',
     )

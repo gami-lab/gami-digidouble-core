@@ -169,6 +169,14 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
         const response = mapSendMessageResponse(output)
         return await reply.send(ok<SendMessageResponse>(response))
       } catch (error) {
+        request.log.error(
+          {
+            error: toSafeRouteError(error),
+            method: request.method,
+            url: request.url,
+          },
+          'Conversation message failed',
+        )
         const mappedError = handleRouteError(error)
         return await reply.status(mappedError.statusCode).send(mappedError.body)
       }
@@ -425,4 +433,23 @@ function resolveKnowledgeDeps(options: ConversationsRouteOptions): {
 
 function isStreamWritable(reply: { raw: { destroyed: boolean; writableEnded: boolean } }): boolean {
   return !reply.raw.destroyed && !reply.raw.writableEnded
+}
+
+function toSafeRouteError(error: unknown): {
+  name: string
+  message: string
+  code?: string
+  statusCode?: number
+} {
+  if (error instanceof Error) {
+    const candidate = error as Error & { code?: unknown; statusCode?: unknown }
+    return {
+      name: error.name,
+      message: error.message,
+      ...(typeof candidate.code === 'string' ? { code: candidate.code } : {}),
+      ...(typeof candidate.statusCode === 'number' ? { statusCode: candidate.statusCode } : {}),
+    }
+  }
+
+  return { name: 'UnknownError', message: 'Unknown error' }
 }

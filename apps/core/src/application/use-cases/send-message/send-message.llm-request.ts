@@ -1,3 +1,5 @@
+const AVATAR_RESPONSE_MAX_TOKENS = 2048
+
 export function buildSendMessageLlmRequest(args: {
   requestId: string
   sessionId: string
@@ -13,6 +15,7 @@ export function buildSendMessageLlmRequest(args: {
 }): {
   systemPrompt: string
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
+  maxTokens: number
   model?: string
   serviceTier?: 'fast'
   trace: {
@@ -30,6 +33,7 @@ export function buildSendMessageLlmRequest(args: {
   return {
     systemPrompt: args.systemPrompt,
     messages: [...args.historyMessages, { role: 'user' as const, content: args.userMessage }],
+    maxTokens: AVATAR_RESPONSE_MAX_TOKENS,
     ...(args.model !== undefined ? { model: args.model } : {}),
     ...(args.serviceTier === undefined ? {} : { serviceTier: args.serviceTier }),
     trace: {

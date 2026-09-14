@@ -36,7 +36,7 @@ export type ContextEnginePolicy = {
 
 export const DEFAULT_CONTEXT_ENGINE_POLICY: ContextEnginePolicy = {
   tokenBudget: {
-    avatarMaxTokens: 4096,
+    avatarMaxTokens: 8192,
     gmMaxTokens: 4096,
   },
   sectionPrecedence: [
@@ -48,7 +48,9 @@ export const DEFAULT_CONTEXT_ENGINE_POLICY: ContextEnginePolicy = {
     'retrievedContext',
     'avatarTraits',
   ],
-  protectedSegments: ['directorNotes', 'responseRules', 'worldContext'],
+  // Avatar traits are required by persona prompt assembly, so retrieval and optional
+  // memory context must be trimmed before they are ever removed.
+  protectedSegments: ['directorNotes', 'responseRules', 'worldContext', 'avatarTraits'],
   precedence: [
     'directorNotes',
     'responseRules',

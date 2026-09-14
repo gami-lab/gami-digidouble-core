@@ -343,6 +343,7 @@ describe('SendMessageUseCase — llm request payload', () => {
     const llmArg = completeMock.mock.calls[0]?.[0] as {
       systemPrompt?: string
       messages?: Array<{ role: string; content: string }>
+      maxTokens?: number
       trace?: {
         requestId?: string
         sessionId?: string
@@ -351,6 +352,7 @@ describe('SendMessageUseCase — llm request payload', () => {
     }
     expect(llmArg.systemPrompt).toContain('## Avatar Traits')
     expect(llmArg.messages).toEqual([{ role: 'user', content: 'Hello tracing' }])
+    expect(llmArg.maxTokens).toBe(2048)
     expect(typeof llmArg.trace?.requestId).toBe('string')
     expect(llmArg.trace?.sessionId).toBe('session_1')
     expect(llmArg.trace?.metadata).toMatchObject({
