@@ -1,12 +1,9 @@
 import type { LocalWebIdentity, UserPersona } from '@gami/shared'
+import { getDefaultStorage, type StorageLike } from '../storage'
+
+export type { StorageLike } from '../storage'
 
 export const LOCAL_WEB_IDENTITY_STORAGE_KEY = 'gami.web.identity.v1'
-
-export type StorageLike = {
-  getItem: (key: string) => string | null
-  setItem: (key: string, value: string) => void
-  removeItem: (key: string) => void
-}
 
 export type LocalIdentityFormValues = {
   name: string
@@ -157,11 +154,4 @@ function isUserPersona(value: unknown): value is UserPersona {
 
 function isOptionalString(value: unknown): boolean {
   return value === undefined || typeof value === 'string'
-}
-
-function getDefaultStorage(): StorageLike {
-  if (!('localStorage' in globalThis)) {
-    throw new Error('localStorage is not available in this environment')
-  }
-  return globalThis.localStorage
 }

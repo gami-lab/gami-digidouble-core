@@ -16,6 +16,9 @@ per module) live in [TEST_COVERAGE_PLAN.md](TEST_COVERAGE_PLAN.md).
 - Test HTTP routes as contracts: auth, validation, error envelope, success shape, and cancellation.
 - Test shared client protocol guards and pure contract mappers in `packages/shared`; keep JSON
   request, streaming, binary, and abort behavior covered at each app boundary.
+- Test the application exchange-window selector for ordering, complete-pair rules, caps, and
+  working-memory fallback; test infrastructure timeout signals and web terminal/storage helpers at
+  their owning boundaries.
 - Keep provider behavior behind injectable transports; live-provider checks are opt-in.
 - The retrieval-quality harness supplements conversation evaluation with labelled recall@k/MRR; its live OpenAI run is opt-in and is not a CI gate.
 - Knowledge ingestion tests cover paragraph splitting, the hard per-chunk character ceiling, bounded

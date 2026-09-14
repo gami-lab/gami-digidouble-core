@@ -1,25 +1,12 @@
 import type { SelectedMemoryPayload } from '../../../domain/memory/memory.types.js'
 import type { Message } from '../../../domain/conversation/session.types.js'
+import { selectRecentExchanges } from '../../services/conversation-exchange-window.js'
 
 export function toRecentExchanges(
   history: Message[],
   exchangeLimit: number,
 ): Array<{ user: string; avatar: string }> {
-  const exchanges: Array<{ user: string; avatar: string }> = []
-  let pendingUser: string | undefined
-
-  for (const message of history) {
-    if (message.role === 'user') {
-      pendingUser = message.content
-      continue
-    }
-    if (message.role === 'avatar' && pendingUser !== undefined) {
-      exchanges.push({ user: pendingUser, avatar: message.content })
-      pendingUser = undefined
-    }
-  }
-
-  return exchanges.slice(-exchangeLimit)
+  return selectRecentExchanges(history, exchangeLimit)
 }
 
 export function toLlmDialogueMessages(

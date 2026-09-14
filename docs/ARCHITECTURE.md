@@ -62,8 +62,12 @@ do not import Core domain or infrastructure code.
   boundary by an observed adapter wrapper rather than by each use case. It does not own admin actions.
 
 Public/shared DTOs, environment-neutral client protocol helpers, and pure cross-app contract mappers
-live in `packages/shared`. Internal entities and application contracts stay in Core. Mappers at the
-API/application boundary are intentional; do not share persistence shapes or browser lifecycle code.
+live in `packages/shared`. The application exchange-window service owns complete recent user/Avatar
+pairing and ordering; GM-specific projections remain local when their input or output boundary
+differs. Infrastructure speech adapters share only the timeout-signal lifecycle helper, while web
+owns its terminal-event and browser-storage helpers. Internal entities and application contracts
+stay in Core. Mappers at the API/application boundary are intentional; do not share persistence
+shapes or browser lifecycle code.
 Contract ownership for high fan-out entities/projections is tracked in
 `CONTEXT_CONTRACT_OWNERSHIP_MAP.md`.
 

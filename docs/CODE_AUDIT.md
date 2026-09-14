@@ -2,7 +2,7 @@
 
 Date: 2026-09-14  
 Scope: TypeScript source under `apps/`, `packages/`, and `tools/`  
-Status: D1-D4 removal complete; R1-R4 and R7 cleanup complete; R5 and R6 remain open.
+Status: D1-D4 removal complete; R1-R7 cleanup complete.
 
 ## Executive summary
 
@@ -366,6 +366,23 @@ Admin and console retain their form state, validation, hydration, and presentati
 contract-level trimming, omission, null clearing, and field mapping are shared. No endpoint shape,
 authentication behavior, stream behavior, binary response handling, or abort semantics changed.
 
+### R5 and R6 resolution record — EPIC 11.1 prompt 03
+
+Reviewed: 2026-09-14
+
+R5 is resolved by reusing the application-owned exchange selector for the session memory-layer
+projection and the Avatar send-message dialogue window. Both paths sort message history by
+timestamp, pair only complete user→Avatar exchanges, preserve empty content, ignore system and
+incomplete turns, and apply the same trailing limit. The GM mapper remains separate because it
+consumes an already bounded context projection without timestamps, working-memory fallback, or an
+independent cap; its output is a retrieval-query shape rather than the shared memory projection.
+
+R6 is resolved with three minimal boundary helpers: the Core infrastructure speech timeout helper,
+the web-local terminal message-event predicate, and the web-local browser-storage availability
+guard. Deepgram and Gradium retain provider-specific status/error/cancellation mapping. Web stream
+reader cancellation, interruption cleanup, audio delivery, and playback remain app-owned. No API,
+memory, Game Master, provider, or runtime-order contract changed.
+
 ## Deliberately not classified as dead code
 
 The following patterns were reviewed and excluded from the dead-code list:
@@ -388,8 +405,8 @@ The following patterns were reviewed and excluded from the dead-code list:
    tests that only keep those paths alive.
 3. Consolidate the highest-risk duplicate protocol and mapping utilities in R1–R4.
 4. Decide whether the exchange-window variants in R5 are intentionally different; consolidate or
-   document the distinction.
-5. Handle the low-impact helper copies in R6 opportunistically.
+   document the distinction. (Complete.)
+5. Handle the low-impact helper copies in R6 opportunistically. (Complete.)
 
 ## Verification
 
@@ -454,15 +471,16 @@ until that prompt verifies the exact call-site semantics.
 
 ### R5 — Recent user/Avatar exchange selection
 
-| Candidate                                                           | Current copies / boundary check                                                                                                                      | Canonical owner                                                                                                        | Decision                                                          |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Timestamp-aware completed-exchange selection and message projection | `conversation-exchange-window.ts` sorts by timestamp, pairs complete exchanges, and supports working-memory coverage fallback                        | `apps/core/src/application/services/conversation-exchange-window.ts`                                                   | Keep intentionally separate as the canonical application selector |
-| Session memory-layer projection                                     | `get-session-memory-layers.use-case.ts` has an admin DTO-specific fixed limit and repository fetch bound; it emits `SharedShortTermMemoryExchange[]` | The use case owns the projection; reuse the canonical selector only after preserving its fixed cap and fetch semantics | Needs follow-up investigation                                     |
-| GM recent-exchange projection                                       | `run-game-master.context.ts` consumes an already bounded context projection and has no timestamp fallback or independent cap                         | GM context mapper                                                                                                      | Keep intentionally separate                                       |
-| Avatar send-message dialogue window                                 | `send-message.helpers.ts` applies an explicit per-call cap and maps Avatar messages to LLM `assistant` roles                                         | Send-message application helper; candidate for the canonical selector after an input/limit comparison                  | Needs follow-up investigation                                     |
+| Candidate                                                           | Current copies / boundary check                                                                                                                      | Canonical owner                                                                                        | Decision                                                          |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| Timestamp-aware completed-exchange selection and message projection | `conversation-exchange-window.ts` sorts by timestamp, pairs complete exchanges, and supports working-memory coverage fallback                        | `apps/core/src/application/services/conversation-exchange-window.ts`                                   | Keep intentionally separate as the canonical application selector |
+| Session memory-layer projection                                     | `get-session-memory-layers.use-case.ts` has an admin DTO-specific fixed limit and repository fetch bound; it emits `SharedShortTermMemoryExchange[]` | `conversation-exchange-window.ts` owns pairing/order; the use case owns fetch bound and DTO projection | Consolidate                                                       |
+| GM recent-exchange projection                                       | `run-game-master.context.ts` consumes an already bounded context projection and has no timestamp fallback or independent cap                         | GM context mapper                                                                                      | Keep intentionally separate                                       |
+| Avatar send-message dialogue window                                 | `send-message.helpers.ts` applies an explicit per-call cap and maps Avatar messages to LLM `assistant` roles                                         | `conversation-exchange-window.ts` owns pairing/order; send-message helper owns LLM `assistant` mapping | Consolidate                                                       |
 
-No R5 copy is deleted in prompt 00. The differences in ordering, coverage fallback, caps, and output
-roles are semantic until a focused comparison proves otherwise.
+The GM projection and LLM assistant-role mapping remain separate because their input/output
+contracts differ. The shared selector now owns only the verified common pairing, ordering, and
+trailing-cap semantics.
 
 ### R6 — Provider, stream, and browser-runtime helpers
 

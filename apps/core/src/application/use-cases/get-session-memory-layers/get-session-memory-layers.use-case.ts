@@ -14,6 +14,7 @@ import {
   MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
 } from '../../../domain/memory/memory.policy.js'
 import type { ConversationWorkingMemory } from '../../../domain/memory/memory.types.js'
+import { selectRecentExchanges } from '../../services/conversation-exchange-window.js'
 import type {
   GetSessionMemoryLayersInput,
   GetSessionMemoryLayersOutput,
@@ -132,24 +133,7 @@ export class GetSessionMemoryLayersUseCase {
     const messages = await this.messageRepository.findByConversationId(conversationId, {
       limit: MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
     })
-    const orderedMessages = messages
-      .slice()
-      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
-    const exchanges: SharedShortTermMemoryExchange[] = []
-    let pendingUserMessage: string | null = null
-
-    for (const message of orderedMessages) {
-      if (message.role === 'user') {
-        pendingUserMessage = message.content
-        continue
-      }
-      if (message.role === 'avatar' && pendingUserMessage !== null) {
-        exchanges.push({ user: pendingUserMessage, avatar: message.content })
-        pendingUserMessage = null
-      }
-    }
-
-    return exchanges.slice(-MEMORY_SHORT_TERM_EXCHANGE_LIMIT)
+    return selectRecentExchanges(messages, MEMORY_SHORT_TERM_EXCHANGE_LIMIT)
   }
 
   private async loadCurrentWorkingMemory(

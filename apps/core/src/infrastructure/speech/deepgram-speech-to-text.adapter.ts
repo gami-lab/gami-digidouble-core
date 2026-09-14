@@ -15,6 +15,7 @@ import {
 } from '../../application/ports/ISpeechToTextAdapter.js'
 import { SpeechToTextError } from '../../application/ports/ISpeechToTextAdapter.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
+import { createTimeoutSignal } from './timeout-signal.js'
 
 const DEEPGRAM_LISTEN_URL = 'https://api.deepgram.com/v1/listen'
 const MIN_TIMEOUT_MS = 100
@@ -302,32 +303,6 @@ function buildDeepgramUrl(config: DeepgramSpeechToTextConfig, input: SpeechToTex
   if (language !== undefined) url.searchParams.set('language', language)
   url.searchParams.set('smart_format', 'true')
   return url.toString()
-}
-
-function createTimeoutSignal(
-  callerSignal: AbortSignal | undefined,
-  timeoutMs: number,
-): {
-  signal: AbortSignal
-  timedOut: () => boolean
-  clear: () => void
-} {
-  const timeoutController = new AbortController()
-  let timedOut = false
-  const timeoutHandle = setTimeout(() => {
-    timedOut = true
-    timeoutController.abort()
-  }, timeoutMs)
-  return {
-    signal:
-      callerSignal === undefined
-        ? timeoutController.signal
-        : AbortSignal.any([callerSignal, timeoutController.signal]),
-    timedOut: () => timedOut,
-    clear: () => {
-      clearTimeout(timeoutHandle)
-    },
-  }
 }
 
 function ensureSuccessfulStatus(statusCode: number): void {

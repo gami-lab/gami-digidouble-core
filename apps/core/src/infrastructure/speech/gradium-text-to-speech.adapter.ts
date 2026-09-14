@@ -14,6 +14,7 @@ import {
   type TextToSpeechProvider,
 } from '../../application/ports/ITextToSpeechAdapter.js'
 import type { AudioOutputFormat } from '@gami/shared'
+import { createTimeoutSignal } from './timeout-signal.js'
 
 export const DEFAULT_GRADIUM_ENDPOINT = 'https://api.gradium.ai/api/post/speech/tts'
 export const DEFAULT_GRADIUM_TIMEOUT_MS = 30_000
@@ -487,28 +488,6 @@ function mapGradiumError(
     return new TextToSpeechError({ code: 'cancelled', phase: 'during_synthesis', retryable: false })
   }
   return new TextToSpeechError({ code: 'provider_unavailable', retryable: true })
-}
-
-function createTimeoutSignal(
-  callerSignal: AbortSignal | undefined,
-  timeoutMs: number,
-): { signal: AbortSignal; timedOut: () => boolean; clear: () => void } {
-  const timeoutController = new AbortController()
-  let timedOut = false
-  const timeoutHandle = setTimeout(() => {
-    timedOut = true
-    timeoutController.abort()
-  }, timeoutMs)
-  return {
-    signal:
-      callerSignal === undefined
-        ? timeoutController.signal
-        : AbortSignal.any([callerSignal, timeoutController.signal]),
-    timedOut: () => timedOut,
-    clear: () => {
-      clearTimeout(timeoutHandle)
-    },
-  }
 }
 
 function isHttpUrl(value: string): boolean {

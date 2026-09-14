@@ -25,6 +25,13 @@ export function selectExchangeWindow(
   }))
 }
 
+export function selectRecentExchanges(
+  messages: ConversationMessage[],
+  exchangeLimit: number,
+): ShortTermMemoryExchange[] {
+  return selectExchangeWindow(messages, undefined, 0).slice(-exchangeLimit)
+}
+
 export function selectExchangeMessageWindow(
   messages: ConversationMessage[],
   workingMemoryUpdatedAt?: string,

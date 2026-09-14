@@ -1,10 +1,8 @@
-export const LOCAL_WEB_RUNTIME_STORAGE_KEY = 'gami.web.runtime.v1'
+import { getDefaultStorage, type StorageLike } from '../storage'
 
-export type StorageLike = {
-  getItem: (key: string) => string | null
-  setItem: (key: string, value: string) => void
-  removeItem: (key: string) => void
-}
+export type { StorageLike } from '../storage'
+
+export const LOCAL_WEB_RUNTIME_STORAGE_KEY = 'gami.web.runtime.v1'
 
 export type LocalWebRuntimeState = {
   version: 1
@@ -67,11 +65,4 @@ function isLocalWebRuntimeState(value: unknown): value is LocalWebRuntimeState {
 
 function isNullableString(value: unknown): boolean {
   return value === null || typeof value === 'string'
-}
-
-function getDefaultStorage(): StorageLike {
-  if (!('localStorage' in globalThis)) {
-    throw new Error('localStorage is not available in this environment')
-  }
-  return globalThis.localStorage
 }

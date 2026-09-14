@@ -21,6 +21,7 @@ import {
 } from '@gami/shared'
 import { ApiError, webBinaryRequest, webRequest } from './client'
 import { apiKey, apiUrl } from '../env'
+import { isTerminalMessageStreamEvent } from '../chat/message-stream-events'
 
 export type MessageStreamHandlers = {
   onEvent: (event: MessageStreamEvent) => void
@@ -237,14 +238,6 @@ async function readStreamApiError(response: Response, path: string): Promise<Api
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
-}
-
-function isTerminalMessageStreamEvent(event: MessageStreamEvent): boolean {
-  return (
-    event.type === 'conversation.message.completed' ||
-    event.type === 'conversation.message.interrupted' ||
-    event.type === 'conversation.message.error'
-  )
 }
 
 function isAbortError(error: unknown): boolean {

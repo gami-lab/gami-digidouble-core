@@ -214,9 +214,9 @@ Removed audited compatibility paths and legacy contracts, verified fresh schema/
 ### `11.1 Code Hygiene & Duplication Reduction`
 
 **Current state**
-The code audit, contract-ownership prerequisite, D1-D4 removal, and R1-R4/R7 client, mapper,
-composition, normalization, and unused-symbol cleanup workstreams are complete. R5 and R6 remain
-open.
+The code audit, contract-ownership prerequisite, D1-D4 removal, and R1-R7 client, mapper,
+composition, normalization, memory-window, provider, stream-helper, and unused-symbol cleanup
+workstreams are complete. EPIC 11.1 remains open until the remaining prompt 05 review is finished.
 The ownership matrix in [`CODE_AUDIT.md`](CODE_AUDIT.md) records the canonical owner, keep-separate
 rationale, or follow-up decision for every R1-R7 candidate. See
 [`CODE_AUDIT.md`](CODE_AUDIT.md) and the generated implementation prompts under

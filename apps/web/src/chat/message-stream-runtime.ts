@@ -1,6 +1,7 @@
 import type { MessageStreamEvent } from '@gami/shared'
 import i18n from '../i18n/index'
 import { sendMessageStream } from '../api/conversations'
+import { isTerminalMessageStreamEvent } from './message-stream-events'
 import {
   markSendFailure,
   reconcilePendingUserMessage,
@@ -66,7 +67,7 @@ export async function streamMessageAndReconcile(
           }
 
           handleMessageStreamEvent(event, pendingMessageId, pendingDeltas, nextSequence, setters)
-          if (isTerminalEvent(event)) {
+          if (isTerminalMessageStreamEvent(event)) {
             terminalEventSeen = true
           }
         },
@@ -177,12 +178,4 @@ function toThreadMessage(message: {
     content: message.content,
     createdAt: message.createdAt,
   }
-}
-
-function isTerminalEvent(event: MessageStreamEvent): boolean {
-  return (
-    event.type === 'conversation.message.completed' ||
-    event.type === 'conversation.message.interrupted' ||
-    event.type === 'conversation.message.error'
-  )
 }
