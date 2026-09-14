@@ -49,6 +49,9 @@ Keep the embedding profile (`EMBEDDING_PROVIDER`/`EMBEDDING_MODEL`/`EMBEDDING_DI
 with the deployed `VECTOR(1536)` schema. A profile change needs a matching schema revision and a
 complete staged reindex before it can go active — see the procedure in
 [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md); do not just flip the env var.
+The Coolify compose fallback is `EMBEDDING_DIMENSIONS=1536`. On a fresh database, Core creates and
+promotes the initial empty corpus during startup, so operators do not need to run a bootstrap
+reindex before using Admin UI ingestion.
 
 ## Fresh schema rule
 
@@ -70,7 +73,8 @@ attach both volumes to the same service.
    Scenario plus Avatars with their structured prompts, and is safe to rerun (it does not read or
    rewrite historical content).
 4. Register `world`, `avatar_knowledge`, and `media` sources with explicit visibility, and wait for
-   each ingestion job to complete.
+   each ingestion job to complete. Core initializes the empty active corpus automatically on the
+   first startup.
 5. Run the Avatar-trait preparation step and confirm every active Avatar has `computedTraits` before
    serving traffic.
 6. Verify retrieval (see [AVATAR_RAG_SETUP_GUIDE.md](AVATAR_RAG_SETUP_GUIDE.md)) and spot-check the

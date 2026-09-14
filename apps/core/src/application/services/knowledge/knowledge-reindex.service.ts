@@ -54,6 +54,29 @@ export class KnowledgeReindexService {
     }
   }
 
+  /**
+   * Establishes the first active corpus before the API starts accepting work.
+   * Existing active corpora are deliberately left untouched; changing the
+   * configured profile still requires an explicit reindex operation.
+   */
+  async ensureActiveCorpus(): Promise<void> {
+    if ((await this.corpusRepository.getActiveCorpus()) !== null) return
+
+    const profile = await this.corpusRepository.createEmbeddingProfile(this.configuredProfile)
+    const operation = await this.corpusRepository.createReindexOperation({
+      embeddingProfileId: profile.embeddingProfileId,
+      sourceIds: [],
+    })
+
+    await this.run(operation.reindexOperationId)
+    if ((await this.corpusRepository.getActiveCorpus()) !== null) return
+
+    const completed = await this.corpusRepository.findReindexOperation(operation.reindexOperationId)
+    throw new Error(
+      completed?.failureDetails ?? 'Knowledge corpus bootstrap did not activate a corpus.',
+    )
+  }
+
   async run(reindexOperationId: string): Promise<void> {
     const claimed = await this.corpusRepository.claimReindexOperation(reindexOperationId)
     if (claimed === null) return

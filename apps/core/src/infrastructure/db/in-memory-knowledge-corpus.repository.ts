@@ -311,15 +311,18 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     const completedSourceCount = progress.filter((entry) => entry.status === 'completed').length
     const valid =
       completedSourceCount === operation.expectedSourceCount &&
-      progress.every(
-        (entry) => entry.status === 'completed' && (entry.expectedChunkCount ?? 0) > 0,
-      ) &&
-      chunks.length > 0 &&
-      chunks.every(
-        (chunk) =>
-          chunk.embedding !== undefined &&
-          chunk.embedding.length === profileDimensions(this.profiles, operation.embeddingProfileId),
-      )
+      (operation.expectedSourceCount === 0
+        ? chunks.length === 0
+        : progress.every(
+            (entry) => entry.status === 'completed' && (entry.expectedChunkCount ?? 0) > 0,
+          ) &&
+          chunks.length > 0 &&
+          chunks.every(
+            (chunk) =>
+              chunk.embedding !== undefined &&
+              chunk.embedding.length ===
+                profileDimensions(this.profiles, operation.embeddingProfileId),
+          ))
     const validation: CorpusValidation = {
       valid,
       corpusGenerationId: operation.corpusGenerationId,

@@ -12,6 +12,11 @@ Set via environment, independent from `LLM_PROVIDER`/Avatar/GM/memory/scenario c
   own limit underneath.
 - `OPENAI_API_KEY` — required and non-empty.
 
+On startup, Core automatically creates and promotes an empty active corpus when the database has no
+active corpus yet. This makes the first Admin UI ingestion work without a manual bootstrap request.
+An existing active corpus is never replaced automatically; use the reindex operation below for a
+profile change or an explicit full rebuild.
+
 Defaults live in `apps/core/src/config.ts` (`DEFAULT_EMBEDDING_*`); see `.env.example` for the
 canonical variable names.
 

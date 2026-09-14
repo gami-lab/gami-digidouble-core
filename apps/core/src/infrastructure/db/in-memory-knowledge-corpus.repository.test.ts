@@ -28,6 +28,30 @@ function stagedChunk(args: {
 
 // eslint-disable-next-line max-lines-per-function
 describe('InMemoryKnowledgeCorpusRepository', () => {
+  it('promotes an empty initial corpus', async () => {
+    const repository = new InMemoryKnowledgeCorpusRepository(new InMemoryKnowledgeChunkRepository())
+    const persistedProfile = await repository.createEmbeddingProfile(profile)
+    const operation = await repository.createReindexOperation({
+      embeddingProfileId: persistedProfile.embeddingProfileId,
+      sourceIds: [],
+    })
+
+    await expect(
+      repository.validateCorpusGeneration(operation.reindexOperationId),
+    ).resolves.toMatchObject({
+      valid: true,
+      expectedSourceCount: 0,
+      expectedChunkCount: 0,
+      actualChunkCount: 0,
+      nonNullVectorCount: 0,
+    })
+    await expect(
+      repository.promoteCorpusGeneration(operation.reindexOperationId),
+    ).resolves.toMatchObject({
+      profile,
+    })
+  })
+
   it('keeps staged chunks isolated and atomically switches the active corpus', async () => {
     const chunks = new InMemoryKnowledgeChunkRepository()
     const repository = new InMemoryKnowledgeCorpusRepository(chunks)

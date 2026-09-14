@@ -52,7 +52,8 @@ do not import Core domain or infrastructure code.
   and trace metadata. Avatar context sections are ordered: Director Notes, Response Rules,
   Conversation State, User Persona, World Context, Retrieved Context, Avatar Traits.
 - **Knowledge:** source lifecycle, typed ingestion, chunking, embedding, vector retrieval, and
-  visibility. Avatar-scoped visibility filtering is enforced by the vector repository itself, not
+  visibility. On startup, Core ensures that an empty deployment has an active, empty corpus before
+  accepting ingestion; existing active corpora remain untouched. Avatar-scoped visibility filtering is enforced by the vector repository itself, not
   route handlers or prompt text. GM context consumes an explicit unrestricted retrieval channel
   (Director omniscience) separate from the Avatar-filtered channel, with no fallback between them.
 - **Scenario:** experience configuration, enabled Avatars, language, objectives, and model selection.

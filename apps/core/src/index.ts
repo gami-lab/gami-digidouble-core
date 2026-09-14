@@ -61,6 +61,7 @@ import { FileUrlKnowledgeSourceContentLoader } from './infrastructure/knowledge/
 import { createEmbeddingAdapter } from './infrastructure/knowledge/openai-embedding.adapter.js'
 import { KnowledgeQueryEmbeddingService } from './application/services/knowledge/knowledge-query-embedding.service.js'
 import { TypedRetrievalService } from './application/services/knowledge/typed-retrieval.service.js'
+import { KnowledgeReindexService } from './application/services/knowledge/knowledge-reindex.service.js'
 import { createSpeechToTextAdapter } from './infrastructure/speech/deepgram-speech-to-text.adapter.js'
 import { createTextToSpeechAdapter } from './infrastructure/speech/gradium-text-to-speech.adapter.js'
 import { RedisUtteranceIdempotencyStore } from './infrastructure/cache/redis-utterance-idempotency.store.js'
@@ -79,6 +80,7 @@ async function main(): Promise<void> {
   const redisClient = getRedisClient(config.redisUrl)
   const repositories = buildCoreRepositories(sql)
   const knowledgeAdapters = buildKnowledgeAdapters(sql, config, observability)
+  await buildKnowledgeReindexService(knowledgeAdapters, repositories, config).ensureActiveCorpus()
   const typedRetrievalService = new TypedRetrievalService(
     knowledgeAdapters.knowledgeSourceRepository,
     knowledgeAdapters.knowledgeChunkRepository,
@@ -250,6 +252,25 @@ function buildKnowledgeAdapters(
       observability,
     ),
   }
+}
+
+function buildKnowledgeReindexService(
+  knowledgeAdapters: ReturnType<typeof buildKnowledgeAdapters>,
+  repositories: CoreRepositories,
+  config: Config,
+): KnowledgeReindexService {
+  return new KnowledgeReindexService(
+    knowledgeAdapters.knowledgeSourceRepository,
+    knowledgeAdapters.knowledgeCorpusRepository,
+    knowledgeAdapters.knowledgeSourceContentLoader,
+    knowledgeAdapters.embeddingAdapter,
+    repositories.eventLogRepository,
+    {
+      provider: config.embeddingProvider,
+      model: config.embeddingModel,
+      dimensions: config.embeddingDimensions,
+    },
+  )
 }
 
 function buildTextToSpeechAdapter(

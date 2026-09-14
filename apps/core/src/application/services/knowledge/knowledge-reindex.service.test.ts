@@ -136,6 +136,75 @@ async function makeService(
 
 // eslint-disable-next-line max-lines-per-function
 describe('KnowledgeReindexService', () => {
+  it('bootstraps an empty active corpus without calling the embedding provider', async () => {
+    const sourceRepository = new InMemoryKnowledgeSourceRepository()
+    const corpusRepository = new InMemoryKnowledgeCorpusRepository(
+      new InMemoryKnowledgeChunkRepository(),
+    )
+    const adapter = new CountingEmbeddingAdapter()
+    const service = new KnowledgeReindexService(
+      sourceRepository,
+      corpusRepository,
+      new InMemoryKnowledgeSourceContentLoader(),
+      adapter,
+      new InMemoryEventLogRepository(),
+      targetProfile,
+    )
+
+    await service.ensureActiveCorpus()
+
+    await expect(corpusRepository.getActiveCorpus()).resolves.toMatchObject({
+      profile: targetProfile,
+    })
+    expect(adapter.calls).toBe(0)
+  })
+
+  it('bootstraps without embedding existing sources', async () => {
+    const sourceRepository = new InMemoryKnowledgeSourceRepository()
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'First source',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: 'inline://first',
+      visibilityPolicy: 'all',
+      metadata: { inlineText: 'first source content' },
+    })
+    const chunks = new InMemoryKnowledgeChunkRepository()
+    const corpusRepository = new InMemoryKnowledgeCorpusRepository(chunks)
+    const adapter = new CountingEmbeddingAdapter()
+    const service = new KnowledgeReindexService(
+      sourceRepository,
+      corpusRepository,
+      new InMemoryKnowledgeSourceContentLoader(),
+      adapter,
+      new InMemoryEventLogRepository(),
+      targetProfile,
+    )
+
+    await service.ensureActiveCorpus()
+
+    await expect(corpusRepository.getActiveCorpus()).resolves.toMatchObject({
+      profile: targetProfile,
+    })
+    await expect(corpusRepository.listActiveChunksBySourceIds([source.sourceId])).resolves.toEqual(
+      [],
+    )
+    expect(adapter.calls).toBe(0)
+  })
+
+  it('does not replace an existing active corpus during startup', async () => {
+    const { service, corpusRepository, adapter } = await makeService()
+
+    await service.ensureActiveCorpus()
+
+    await expect(corpusRepository.getActiveCorpus()).resolves.toMatchObject({
+      corpusGenerationId: previousCorpus.corpusGenerationId,
+      profile: previousCorpus.profile,
+    })
+    expect(adapter.calls).toBe(0)
+  })
+
   it('uses the shared capped and overlapped chunking behavior', async () => {
     const firstSourceContent = 'A'.repeat(INGESTION_CHUNK_HARD_MAX + 1000)
     const { service, corpusRepository, sourceRepository } = await makeService(

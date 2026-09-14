@@ -144,6 +144,37 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
     )
   })
 
+  it('promotes an empty initial corpus', async () => {
+    const profile = await corpusRepository.createEmbeddingProfile({
+      provider: 'test',
+      model: 'test-embedding',
+      dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
+    })
+    const operation = await corpusRepository.createReindexOperation({
+      embeddingProfileId: profile.embeddingProfileId,
+      sourceIds: [],
+    })
+
+    await expect(
+      corpusRepository.validateCorpusGeneration(operation.reindexOperationId),
+    ).resolves.toMatchObject({
+      valid: true,
+      expectedSourceCount: 0,
+      expectedChunkCount: 0,
+      actualChunkCount: 0,
+      nonNullVectorCount: 0,
+    })
+    await expect(
+      corpusRepository.promoteCorpusGeneration(operation.reindexOperationId),
+    ).resolves.toMatchObject({
+      profile: {
+        provider: 'test',
+        model: 'test-embedding',
+        dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
+      },
+    })
+  })
+
   it('enforces the deployed vector typmod, cosine index, and profile dimension guard', async () => {
     const [column] = await sql<{ formatted_type: string }[]>`
       SELECT format_type(a.atttypid, a.atttypmod) AS formatted_type

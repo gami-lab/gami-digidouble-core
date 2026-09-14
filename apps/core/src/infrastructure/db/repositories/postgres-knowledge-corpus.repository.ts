@@ -515,6 +515,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     })
   }
 
+  // eslint-disable-next-line complexity
   async validateCorpusGeneration(reindexOperationId: string): Promise<CorpusValidation> {
     const operationUuid = requireUuid('reindex_operation_', reindexOperationId)
     const [row] = await this.sql<
@@ -563,11 +564,14 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     if (row === undefined) throw new Error('Reindex operation not found.')
     const valid =
       row.completed_source_count === row.expected_source_count &&
-      row.completed_nonempty_source_count === row.expected_source_count &&
-      row.expected_source_count > 0 &&
-      row.expected_chunk_count === row.actual_chunk_count &&
-      row.actual_chunk_count > 0 &&
-      row.actual_chunk_count === row.non_null_vector_count
+      (row.expected_source_count === 0
+        ? row.expected_chunk_count === 0 &&
+          row.actual_chunk_count === 0 &&
+          row.non_null_vector_count === 0
+        : row.completed_nonempty_source_count === row.expected_source_count &&
+          row.expected_chunk_count === row.actual_chunk_count &&
+          row.actual_chunk_count > 0 &&
+          row.actual_chunk_count === row.non_null_vector_count)
     if (valid) {
       await this.sql`
         UPDATE corpus_generations
@@ -661,15 +665,18 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
         FROM reindex_operations op
         WHERE op.id = ${operationUuid}
       `
-      if (
-        validation === undefined ||
-        validation.completed_source_count !== validation.expected_source_count ||
-        validation.completed_nonempty_source_count !== validation.expected_source_count ||
-        validation.expected_source_count === 0 ||
-        validation.expected_chunk_count !== validation.actual_chunk_count ||
-        validation.actual_chunk_count === 0 ||
-        validation.actual_chunk_count !== validation.non_null_vector_count
-      ) {
+      const valid =
+        validation !== undefined &&
+        validation.completed_source_count === validation.expected_source_count &&
+        (validation.expected_source_count === 0
+          ? validation.expected_chunk_count === 0 &&
+            validation.actual_chunk_count === 0 &&
+            validation.non_null_vector_count === 0
+          : validation.completed_nonempty_source_count === validation.expected_source_count &&
+            validation.expected_chunk_count === validation.actual_chunk_count &&
+            validation.actual_chunk_count > 0 &&
+            validation.actual_chunk_count === validation.non_null_vector_count)
+      if (!valid) {
         throw new Error('Corpus generation validation failed; active corpus was preserved.')
       }
       await tx`
