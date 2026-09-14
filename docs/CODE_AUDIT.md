@@ -410,12 +410,14 @@ The following patterns were reviewed and excluded from the dead-code list:
 
 ## Verification
 
-All checks were run against the unchanged implementation before writing this report:
+The baseline checks were run against the unchanged implementation before writing this report:
 
 - `pnpm lint` — PASS; 7 Turbo tasks successful.
 - `pnpm typecheck` — PASS; 7 Turbo tasks successful.
 - `pnpm build` — PASS; 6 Turbo tasks successful.
-- `pnpm test` — PASS; 7 Turbo tasks successful; 166 core test files and 1,145 core tests passed.
+- `pnpm test` — PASS; 7 Turbo tasks successful; 163 core test files and 1,133 core tests passed.
+
+The EPIC remediation verification is recorded in the EPIC-local `CODE_AUDIT.md` report.
 
 The initial audit's stricter unused-symbol check exposed the R7 findings and was not part of the
 repository's default gate; the final hardening verification reran it successfully across all

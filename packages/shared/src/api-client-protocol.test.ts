@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ApiError,
   createApiError,
+  formatApiError,
   isApiResponseEnvelope,
   normalizeApiPath,
   normalizeApiUrl,
@@ -39,5 +40,12 @@ describe('api client protocol helpers', () => {
       message: 'Missing',
       details: { id: 'a' },
     })
+  })
+
+  it('formats client errors and preserves consumer fallback messages', () => {
+    expect(formatApiError(new ApiError('NOT_FOUND', 'Missing'), 'fallback')).toBe(
+      'NOT_FOUND: Missing',
+    )
+    expect(formatApiError(new Error('generic'), 'fallback')).toBe('fallback')
   })
 })

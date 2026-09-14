@@ -360,6 +360,33 @@ describe('SendMessageUseCase — llm request payload', () => {
     })
   })
 
+  it('assembles the Avatar dialogue from ordered complete exchanges at the use-case boundary', async () => {
+    findMessagesByConversationIdMock.mockResolvedValue([
+      { role: 'avatar', content: 'orphaned answer', createdAt: '2026-06-01T10:00:00.000Z' },
+      { role: 'user', content: 'question 2', createdAt: '2026-06-01T10:02:00.000Z' },
+      { role: 'avatar', content: 'answer 1', createdAt: '2026-06-01T10:01:01.000Z' },
+      { role: 'user', content: '', createdAt: '2026-06-01T10:03:00.000Z' },
+      { role: 'avatar', content: 'answer 3', createdAt: '2026-06-01T10:03:01.000Z' },
+      { role: 'user', content: 'question 1', createdAt: '2026-06-01T10:01:00.000Z' },
+      { role: 'avatar', content: 'answer 2', createdAt: '2026-06-01T10:02:01.000Z' },
+    ])
+
+    await createUseCase().execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
+
+    const llmArg = completeMock.mock.calls[0]?.[0] as {
+      messages?: Array<{ role: 'user' | 'assistant'; content: string }>
+    }
+    expect(llmArg.messages).toEqual([
+      { role: 'user', content: 'question 1' },
+      { role: 'assistant', content: 'answer 1' },
+      { role: 'user', content: 'question 2' },
+      { role: 'assistant', content: 'answer 2' },
+      { role: 'user', content: '' },
+      { role: 'assistant', content: 'answer 3' },
+      { role: 'user', content: 'Hello' },
+    ])
+  })
+
   it('assembles the actual llm system prompt in deterministic runtime section order', async () => {
     const memorySelectionService = {
       select: vi.fn().mockResolvedValue({

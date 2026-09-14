@@ -61,8 +61,9 @@ do not import Core domain or infrastructure code.
 - **Observability:** request/turn/provider traces and structured metrics, enforced at the LLM
   boundary by an observed adapter wrapper rather than by each use case. It does not own admin actions.
 
-Public/shared DTOs, environment-neutral client protocol helpers, and pure cross-app contract mappers
-live in `packages/shared`. The application exchange-window service owns complete recent user/Avatar
+Public/shared DTOs, environment-neutral client protocol helpers, pure cross-app contract mappers,
+and shared client-error presentation helpers live in `packages/shared`. The application
+exchange-window service owns complete recent user/Avatar
 pairing and ordering; GM-specific projections remain local when their input or output boundary
 differs. Infrastructure speech adapters share only the timeout-signal lifecycle helper, while web
 owns its terminal-event and browser-storage helpers. Internal entities and application contracts

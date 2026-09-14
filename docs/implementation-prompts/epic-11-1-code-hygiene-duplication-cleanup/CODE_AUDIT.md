@@ -261,3 +261,78 @@ The EPIC is complete enough to close: all D1-D4 and R1-R7 decisions are implemen
 gates pass, and no architectural or runtime contract defect was found. Track the boundary-test,
 coverage-scope, evaluation-client ownership, and stale-audit-evidence items as follow-up debt before
 using this cleanup as the standard for an A-grade contract refactor.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Added direct protocol contract tests for the Console and Web JSON clients. The tests cover URL and
+  authentication behavior, body/header policy, successful envelope decoding, API errors, malformed
+  envelopes, unsuccessful responses, and transport failures.
+- Added consumer-level exchange-window regression tests for the session memory-layers use case and
+  Avatar dialogue assembly. The tests prove ordering, complete-pair selection, empty user content,
+  caps, and not-found behavior at the consuming boundaries.
+- Moved API error formatting into `packages/shared` and kept the Admin/Console modules as thin
+  compatibility exports, removing duplicate presentation logic without coupling the applications.
+- Replaced the conversation-evaluation tool's duplicate envelope guards with the shared protocol
+  guard while retaining evaluator-specific payload validators and bounded error policy locally.
+- Corrected the baseline test totals in `docs/CODE_AUDIT.md`, and documented that `pnpm test:coverage`
+  intentionally measures Core only while `pnpm test` is the repository-wide behavior gate.
+- Updated `docs/ARCHITECTURE.md` and `docs/TEST_STRATEGY.md` to match the shared formatter ownership
+  and explicit coverage scope.
+
+### Findings Resolved
+
+- Shared coverage did not cover changed browser consumers: resolved as a misleading-scope risk by
+  documenting Core-only coverage and adding direct consumer tests to the repository-wide test gate.
+- Console and Web JSON clients lacked direct protocol contract tests: resolved with six boundary tests
+  for each client.
+- R5 wiring was not proven at consuming use-case boundaries: resolved with session memory projection
+  and Avatar dialogue regression tests.
+- Conversation-evaluation retained duplicate API envelope guards: resolved by reusing the shared guard.
+- Byte-identical Admin/Console error formatters remained duplicated: resolved with one shared formatter.
+- Existing audit verification totals were stale: resolved in `docs/CODE_AUDIT.md`.
+
+### Findings Deferred
+
+- No behavior or architecture finding is deferred. Instrumenting coverage for browser packages is a
+  separate tooling improvement; the current scope is explicit and the changed browser behavior is
+  directly exercised by `pnpm test`.
+
+### Build Gates
+
+- lint: PASS — uncached `TURBO_FORCE=1 pnpm lint`, 7 Turbo tasks.
+- typecheck: PASS — uncached `TURBO_FORCE=1 pnpm typecheck`, 7 Turbo tasks.
+- tests: PASS — uncached elevated `TURBO_FORCE=1 pnpm test`, 236 test files and 1,448 tests.
+- coverage: PASS — `pnpm test:coverage`, Core only: 87.01% statements/lines, 83.94% branches,
+  96.61% functions.
+- build: PASS — uncached `TURBO_FORCE=1 pnpm build`, 6 package builds.
+- strict unused check: PASS — all six TypeScript packages.
+- diff hygiene: PASS — formatting and staged diff checks are clean.
+
+### Final Feature Confidence
+
+- R1 browser protocol ownership: High. Admin, Console, and Web concrete JSON clients now have direct
+  success, authentication, request-shape, and failure contract tests.
+- R2 operator mappers and error presentation: High. Shared mapper and formatter outputs are tested,
+  and both operator surfaces consume the canonical implementations.
+- R5 exchange selection: High. The pure selector and both consuming memory/dialogue paths prove the
+  complete-pair, ordering, empty-content, and cap invariants.
+- R6 timeout, stream, and storage helpers: High. Existing lifecycle tests remain green and are joined
+  by the direct Web client boundary coverage.
+- D1-D4 removal and R3/R4/R7 Core cleanup: High. Full tests, strict unused checks, and build remain
+  green with no active references to the deleted clusters.
+
+### Final Grade
+
+**A — the EPIC is a safe, maintainable foundation with behavior proven at the affected consumer
+boundaries and no unresolved architecture or contract-ownership finding.**
+
+### Remaining Risks
+
+- `pnpm test:coverage` reports Core only; future tooling work can add client-package coverage
+  instrumentation, but this does not weaken the direct behavior evidence for the cleanup.
+- The evaluator retains local validators for evaluator-specific response payloads by design; only the
+  shared API envelope contract is centralized.
+- The sandbox cannot bind loopback for viewer tests, so the full test gate requires the same approved
+  elevated execution used for this verification.

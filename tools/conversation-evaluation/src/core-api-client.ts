@@ -1,6 +1,5 @@
 import type {
   ApiError,
-  ApiResponse,
   AdminSessionEventsResponse,
   AvatarSummary,
   ConversationSummary,
@@ -13,6 +12,7 @@ import type {
   StartSessionRequest,
   StartSessionResponse,
 } from '@gami/shared'
+import { isApiResponseEnvelope } from '@gami/shared'
 import type { ModelSelectionOverride } from '@gami/shared'
 
 import type { EvaluationPhase } from './contracts.js'
@@ -62,8 +62,6 @@ export class CoreApiError extends Error {
     this.phase = options.phase
   }
 }
-
-type ApiResponseError = Pick<ApiError, 'code' | 'message'>
 
 const MAX_SAFE_MESSAGE_LENGTH = 500
 
@@ -252,20 +250,7 @@ function isStartConversationResponse(value: unknown): value is StartConversation
   return isRecord(value) && isConversationSummary(value['conversation'])
 }
 
-function isApiResponseError(value: unknown): value is ApiResponseError {
-  return (
-    isRecord(value) && typeof value['code'] === 'string' && typeof value['message'] === 'string'
-  )
-}
-
-function isApiResponseEnvelope(value: unknown): value is ApiResponse<unknown> {
-  if (!isRecord(value) || !('data' in value) || !('error' in value)) return false
-
-  if (value['error'] === null) return value['data'] !== null
-  return value['data'] === null && isApiResponseError(value['error'])
-}
-
-function safeApiMessage(error: ApiResponseError): string {
+function safeApiMessage(error: ApiError): string {
   return error.message.length > 0 ? error.message : 'Core API request failed.'
 }
 

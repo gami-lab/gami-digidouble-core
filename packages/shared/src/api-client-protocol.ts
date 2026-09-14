@@ -41,3 +41,7 @@ export class ApiError extends Error {
 export function createApiError(error: ApiErrorPayload): ApiError {
   return new ApiError(error.code, error.message, error.details)
 }
+
+export function formatApiError(error: unknown, fallbackMessage: string): string {
+  return error instanceof ApiError ? `${error.code}: ${error.message}` : fallbackMessage
+}

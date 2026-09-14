@@ -116,8 +116,12 @@ Excluded from coverage: `*.types.ts`, `application/ports/**`, `infrastructure/ca
 pnpm test                  # unit tests (PR gate)
 pnpm test:integration-e2e  # integration + E2E (main / nightly)
 pnpm test:stack-e2e        # stack E2E — requires a running Docker stack
-pnpm test:coverage         # unit tests with coverage report
+pnpm test:coverage         # Core unit tests with coverage report (client tests run in pnpm test)
 ```
+
+The repository-wide `pnpm test` gate covers shared and browser client boundaries. The current
+coverage command intentionally measures Core only; its result must not be treated as whole-repository
+coverage.
 
 ## What we intentionally do not do
 

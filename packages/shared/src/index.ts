@@ -10,6 +10,7 @@ export { ok, fail } from './api-response.js'
 export {
   ApiError as ApiClientError,
   createApiError,
+  formatApiError,
   isApiErrorPayload,
   isApiResponseEnvelope,
   normalizeApiPath,
