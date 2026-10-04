@@ -24,6 +24,7 @@ export type ModelSelectionOverride = {
 
 export type ScenarioModelSelection = {
   defaultProfile?: ModelProfile
+  avatarOverride?: ModelProfile
   gameMasterOverride?: ModelProfile
   memoryOverride?: ModelProfile
 }

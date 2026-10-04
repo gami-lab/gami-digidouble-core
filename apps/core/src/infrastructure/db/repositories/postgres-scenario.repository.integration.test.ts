@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 
+// eslint-disable-next-line max-lines-per-function
 describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
   let sql: Sql
   let repo: PostgresScenarioRepository
@@ -117,5 +118,31 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
     const cleared = await repo.update(created.scenarioId, { modelSelection: null })
     expect(cleared.modelSelection).toBeUndefined()
     expect(cleared.config).toEqual({ language: 'fr' })
+  })
+
+  it('round-trips scenarios with only memoryOverride or avatarOverride', async () => {
+    const memoryOnly = await repo.create({
+      name: 'Memory-only Scenario Models',
+      modelSelection: {
+        memoryOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+      },
+    })
+    const avatarOnly = await repo.create({
+      name: 'Avatar-only Scenario Models',
+      modelSelection: {
+        avatarOverride: { provider: 'xai', model: 'grok-4.3' },
+      },
+    })
+
+    await expect(repo.findById(memoryOnly.scenarioId)).resolves.toMatchObject({
+      modelSelection: {
+        memoryOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+      },
+    })
+    await expect(repo.findById(avatarOnly.scenarioId)).resolves.toMatchObject({
+      modelSelection: {
+        avatarOverride: { provider: 'xai', model: 'grok-4.3' },
+      },
+    })
   })
 })

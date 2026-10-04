@@ -55,6 +55,7 @@ function readModelProfile(value: unknown): ScenarioModelSelection['defaultProfil
   return { provider, model }
 }
 
+// eslint-disable-next-line complexity
 function readScenarioModelSelection(value: unknown): ScenarioModelSelection | undefined {
   // sql.unsafe() (used by update()) returns jsonb columns as raw text when that
   // column is also the target of a bound-parameter SET in the same statement.
@@ -63,12 +64,23 @@ function readScenarioModelSelection(value: unknown): ScenarioModelSelection | un
   if (raw === undefined) return undefined
 
   const defaultProfile = readModelProfile(raw['defaultProfile'])
+  const avatarOverride = readModelProfile(raw['avatarOverride'])
   const gameMasterOverride = readModelProfile(raw['gameMasterOverride'])
-  if (defaultProfile === undefined && gameMasterOverride === undefined) return undefined
+  const memoryOverride = readModelProfile(raw['memoryOverride'])
+  if (
+    defaultProfile === undefined &&
+    avatarOverride === undefined &&
+    gameMasterOverride === undefined &&
+    memoryOverride === undefined
+  ) {
+    return undefined
+  }
 
   return {
     ...(defaultProfile !== undefined ? { defaultProfile } : {}),
+    ...(avatarOverride !== undefined ? { avatarOverride } : {}),
     ...(gameMasterOverride !== undefined ? { gameMasterOverride } : {}),
+    ...(memoryOverride !== undefined ? { memoryOverride } : {}),
   }
 }
 

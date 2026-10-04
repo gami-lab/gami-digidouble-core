@@ -203,6 +203,26 @@ describe('ModelResolutionService.resolve -> scenario model selection', () => {
   it('gives avatar override precedence over scenario default', () => {
     expect(
       ModelResolutionService.resolve('avatar', baseConfig, {
+        scenarioModelSelection: {
+          defaultProfile: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-6',
+          },
+          avatarOverride: {
+            provider: 'mistral',
+            model: 'mistral-small-4',
+          },
+        },
+      }),
+    ).toEqual({
+      provider: 'mistral',
+      model: 'mistral-small-4',
+    })
+  })
+
+  it('keeps the Avatar entity override above the scenario avatar override', () => {
+    expect(
+      ModelResolutionService.resolve('avatar', baseConfig, {
         avatarOverride: {
           provider: 'mistral',
           model: 'mistral-small-4',
@@ -248,6 +268,40 @@ describe('ModelResolutionService.resolve -> scenario model selection', () => {
       provider: 'anthropic',
       model: 'claude-opus-4-7',
     })
+  })
+})
+
+describe('resolveScenarioOrGlobalDefault', () => {
+  it('uses the scenario default profile when present', () => {
+    expect(
+      ModelResolutionService.resolveScenarioOrGlobalDefault(baseConfig, {
+        defaultProfile: {
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-6',
+        },
+      }),
+    ).toEqual({ provider: 'anthropic', model: 'claude-sonnet-4-6' })
+  })
+
+  it('falls back to the global default without applying role or scenario overrides', () => {
+    const config: ModelConfig = {
+      ...baseConfig,
+      roleOverrides: {
+        avatar: {
+          provider: 'xai',
+          model: 'grok-4.3',
+        },
+      },
+    }
+
+    expect(
+      ModelResolutionService.resolveScenarioOrGlobalDefault(config, {
+        avatarOverride: {
+          provider: 'mistral',
+          model: 'mistral-small-4',
+        },
+      }),
+    ).toEqual({ provider: 'openai', model: 'gpt-5.6-luna' })
   })
 })
 

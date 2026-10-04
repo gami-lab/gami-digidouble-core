@@ -28,8 +28,24 @@ function resolveScenarioSelection(
   if (role === 'memory') {
     return scenarioModelSelection.memoryOverride ?? scenarioModelSelection.defaultProfile
   }
+  // Keep the role-specific fallback explicit for the three-role contract.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (role === 'avatar') {
+    return scenarioModelSelection.avatarOverride ?? scenarioModelSelection.defaultProfile
+  }
 
   return scenarioModelSelection.defaultProfile
+}
+
+export function resolveScenarioOrGlobalDefault(
+  config: ModelConfig,
+  scenarioModelSelection: ScenarioModelSelectionConfig | undefined,
+): { provider: ProviderName; model: string } {
+  const scenarioDefault = scenarioModelSelection?.defaultProfile
+  return {
+    provider: scenarioDefault?.provider ?? config.globalDefault.provider,
+    model: scenarioDefault?.model ?? config.globalDefault.model,
+  }
 }
 
 function resolveAvatarOverrideProvider(
@@ -84,4 +100,5 @@ function resolve(
 
 export const ModelResolutionService = {
   resolve,
+  resolveScenarioOrGlobalDefault,
 }
