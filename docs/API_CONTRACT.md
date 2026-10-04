@@ -158,7 +158,8 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   inputs only — `sessionId`/`userId`/`conversationId` are rejected; conversational memory is never a
   RAG filter or ranking input.
 - Model/provider pairs come from the shared catalog (`packages/shared/src/model-catalog.ts`).
-  `scenario.modelSelection` needs `defaultProfile` or `gameMasterOverride` when present; `null`
+  `scenario.modelSelection` needs at least one of `defaultProfile`, `avatarOverride`,
+  `gameMasterOverride`, or `memoryOverride` when present; `null`
   clears it. `avatar.llmOverride`, when an object, requires both `provider` and `model`; `null`
   clears it. Runtime precedence: session override (if present, wins for all roles) else, per role —
   Avatar: request model -> `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` ->
@@ -167,7 +168,9 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   scenario memory/default profile -> global memory override -> global default.
 - `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` takes no request body. One avatar's
   failure (e.g. `provider_unavailable`) never fails the whole batch, and preparation overwrites only
-  `computedTraits`, never authored fields.
+  `computedTraits`, never authored fields. Trait preparation resolves `scenario.modelSelection.defaultProfile`
+  and falls back directly to the global default, independently of the Avatar role override,
+  scenario `avatarOverride`, and Avatar entity `llmOverride`.
 - Reindex routes (`POST reindex`, `GET .../{id}`, `POST .../{id}/retry`) return `202` when an
   operation is started or reused, `404` for an unknown operation, and `409` on retry unless the
   operation is `failed`. A same-profile `POST reindex` is an explicit replacement run: unchanged

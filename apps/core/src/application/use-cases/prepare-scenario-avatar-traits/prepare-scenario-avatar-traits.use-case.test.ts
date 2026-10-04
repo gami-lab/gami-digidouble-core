@@ -245,6 +245,75 @@ describe('PrepareScenarioAvatarTraitsUseCase — output and source gathering', (
   })
 })
 
+describe('PrepareScenarioAvatarTraitsUseCase — model resolution', () => {
+  it('uses the scenario default instead of scenario/avatar overrides', async () => {
+    const defaultAdapter = createLlm({ avatar_1: JSON.stringify(sampleTraits) })
+    const selectedAdapter = createLlm({ avatar_1: JSON.stringify(sampleTraits) })
+    const modelConfigRepository = {
+      get: vi.fn().mockResolvedValue({
+        globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
+        roleOverrides: { avatar: { provider: 'xai', model: 'grok-4.3' } },
+        updatedAt: '2026-07-20T00:00:00.000Z',
+      }),
+      upsert: vi.fn(),
+    }
+    const llmAdapterRegistry = { get: vi.fn().mockReturnValue(selectedAdapter) }
+    const useCase = new PrepareScenarioAvatarTraitsUseCase(
+      new InMemoryScenarioRepository([
+        makeScenario({
+          modelSelection: {
+            defaultProfile: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+            avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+          },
+        }),
+      ]),
+      new InMemoryAvatarRepository([
+        makeAvatar({ llmOverride: { provider: 'openai', model: 'gpt-5.4-mini' } }),
+      ]),
+      new InMemoryKnowledgeSourceRepository(),
+      defaultAdapter,
+      modelConfigRepository,
+      llmAdapterRegistry,
+    )
+
+    await useCase.execute({ scenarioId: 'scenario_1' })
+
+    expect(llmAdapterRegistry.get).toHaveBeenCalledWith('anthropic')
+    expect(selectedAdapter.requests[0]?.model).toBe('claude-sonnet-4-6')
+    expect(defaultAdapter.requests).toHaveLength(0)
+  })
+
+  it('uses the global default instead of the global avatar role or entity override', async () => {
+    const defaultAdapter = createLlm({ avatar_1: JSON.stringify(sampleTraits) })
+    const selectedAdapter = createLlm({ avatar_1: JSON.stringify(sampleTraits) })
+    const modelConfigRepository = {
+      get: vi.fn().mockResolvedValue({
+        globalDefault: { provider: 'openai', model: 'gpt-5.6-luna' },
+        roleOverrides: { avatar: { provider: 'anthropic', model: 'claude-sonnet-4-6' } },
+        updatedAt: '2026-07-20T00:00:00.000Z',
+      }),
+      upsert: vi.fn(),
+    }
+    const llmAdapterRegistry = { get: vi.fn().mockReturnValue(selectedAdapter) }
+    const useCase = new PrepareScenarioAvatarTraitsUseCase(
+      new InMemoryScenarioRepository([makeScenario()]),
+      new InMemoryAvatarRepository([
+        makeAvatar({ llmOverride: { provider: 'xai', model: 'grok-4.3' } }),
+      ]),
+      new InMemoryKnowledgeSourceRepository(),
+      defaultAdapter,
+      modelConfigRepository,
+      llmAdapterRegistry,
+    )
+
+    await useCase.execute({ scenarioId: 'scenario_1' })
+
+    expect(llmAdapterRegistry.get).toHaveBeenCalledWith('openai')
+    expect(selectedAdapter.requests[0]?.model).toBe('gpt-5.6-luna')
+    expect(defaultAdapter.requests).toHaveLength(0)
+  })
+})
+
 describe('PrepareScenarioAvatarTraitsUseCase — failure isolation', () => {
   it('isolates a failed avatar so other avatars in the scenario still succeed', async () => {
     const avatarRepository = new InMemoryAvatarRepository([

@@ -14,7 +14,7 @@ import type { LlmAdapterRegistry } from '../../../infrastructure/llm/llm-adapter
 import { LlmError } from '../../../infrastructure/llm/llm.error.js'
 import {
   logResolvedLlmCall,
-  resolveRoleLlmCall,
+  resolveScenarioOrGlobalDefaultLlmCall,
 } from '../../services/model-resolution-runtime.service.js'
 import {
   normalizeComputedTraits,
@@ -119,13 +119,11 @@ export class PrepareScenarioAvatarTraitsUseCase {
     memorySources: KnowledgeSource[]
     worldSources: KnowledgeSource[]
   }): ReturnType<ILlmAdapter['complete']> {
-    const resolvedLlm = await resolveRoleLlmCall({
-      role: 'avatar',
+    const resolvedLlm = await resolveScenarioOrGlobalDefaultLlmCall({
       defaultAdapter: this.llm,
       modelConfigRepository: this.modelConfigRepository,
       llmAdapterRegistry: this.llmAdapterRegistry,
       modelConfigFallback: this.modelConfigFallback,
-      avatarOverride: args.avatar.llmOverride,
       scenarioModelSelection: args.scenario.modelSelection,
     })
     logResolvedLlmCall({

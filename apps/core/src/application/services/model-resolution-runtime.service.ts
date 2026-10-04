@@ -75,6 +75,38 @@ export async function resolveRoleLlmCall(args: {
   }
 }
 
+export async function resolveScenarioOrGlobalDefaultLlmCall(args: {
+  defaultAdapter: ILlmAdapter
+  modelConfigRepository: IModelConfigRepository | undefined
+  llmAdapterRegistry: LlmAdapterRegistry | undefined
+  modelConfigFallback: ModelConfig | undefined
+  scenarioModelSelection: ScenarioModelSelectionConfig | undefined
+}): Promise<{
+  adapter: ILlmAdapter
+  provider: string
+  model?: string
+  effectiveModel: string
+}> {
+  if (args.modelConfigRepository === undefined || args.llmAdapterRegistry === undefined) {
+    return { adapter: args.defaultAdapter, provider: 'null', effectiveModel: 'adapter_default' }
+  }
+
+  const config =
+    (await args.modelConfigRepository.get()) ?? args.modelConfigFallback ?? DEFAULT_MODEL_CONFIG
+  const resolved = ModelResolutionService.resolveScenarioOrGlobalDefault(
+    config,
+    args.scenarioModelSelection,
+  )
+  const normalizedModel = resolved.model.trim().length > 0 ? resolved.model.trim() : undefined
+
+  return {
+    adapter: resolveAdapterOrThrow(args.llmAdapterRegistry, resolved.provider, 'avatar'),
+    provider: resolved.provider,
+    ...(normalizedModel !== undefined ? { model: normalizedModel } : {}),
+    effectiveModel: normalizedModel ?? 'adapter_default',
+  }
+}
+
 export function logResolvedLlmCall(args: {
   role: ModelRole
   effectiveProvider: string
