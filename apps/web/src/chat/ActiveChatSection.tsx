@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import type { JSX } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AvailableAvatarSummary } from '@gami/shared'
@@ -7,6 +8,10 @@ import type {
   ChatThreadMessage,
 } from './use-active-chat-runtime'
 import type { AudioPlaybackState } from './use-message-audio-playback'
+import {
+  useVoiceConversation,
+  type VoiceConversationState,
+} from '../voice/use-voice-conversation'
 
 type ActiveChatSectionProps = {
   avatars: AvailableAvatarSummary[]
@@ -15,13 +20,21 @@ type ActiveChatSectionProps = {
 
 export function ActiveChatSection({ avatars, chat }: ActiveChatSectionProps): JSX.Element {
   const { t } = useTranslation()
+  const voice = useVoiceConversation(chat)
+  const hasConversation = chat.conversation !== null
+  const { enabled: voiceEnabled, stop: stopVoice } = voice
+
+  // Ending or switching away from the conversation also ends the voice loop.
+  useEffect(() => {
+    if (!hasConversation && voiceEnabled) stopVoice()
+  }, [hasConversation, voiceEnabled, stopVoice])
 
   return (
     <section className="chat-section" aria-labelledby="chat-title">
       <h2 id="chat-title">{t('chat.title')}</h2>
       <ChatEntryPanel avatars={avatars} chat={chat} />
       <ChatThreadPanel chat={chat} />
-      <ChatComposer chat={chat} />
+      <ChatComposer chat={chat} voice={voice} />
     </section>
   )
 }
@@ -227,19 +240,28 @@ function AvatarDraftBubble({ draft }: { draft: ChatThreadAvatarDraft }): JSX.Ele
   )
 }
 
-function ChatComposer({ chat }: { chat: ActiveChatRuntimeState }): JSX.Element {
+function ChatComposer({
+  chat,
+  voice,
+}: {
+  chat: ActiveChatRuntimeState
+  voice: VoiceConversationState
+}): JSX.Element {
   const { t } = useTranslation()
 
   if (chat.conversation === null) {
     return <></>
   }
 
+  const hasText = chat.composerValue.trim().length > 0
+
   return (
     <div className="chat-composer">
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          chat.sendCurrentMessage()
+          // Typed text wins; otherwise Send submits what the microphone heard so far.
+          if (hasText || !voice.submitNow()) chat.sendCurrentMessage()
         }}
       >
         <label className="field">
@@ -254,9 +276,25 @@ function ChatComposer({ chat }: { chat: ActiveChatRuntimeState }): JSX.Element {
           />
         </label>
         {chat.sendError !== null ? <p className="error">{chat.sendError}</p> : null}
-        <button type="submit" className="button-primary" disabled={!chat.canSend}>
-          {chat.sendStatus === 'streaming' ? t('chat.sending') : t('chat.send')}
-        </button>
+        <div className="chat-composer-actions">
+          <button type="submit" className="button-primary" disabled={!chat.canSend}>
+            {chat.sendStatus === 'streaming' ? t('chat.sending') : t('chat.send')}
+          </button>
+          <button
+            type="button"
+            className={
+              voice.enabled ? 'button-secondary chat-voice-button-active' : 'button-secondary'
+            }
+            aria-pressed={voice.enabled}
+            onClick={() => {
+              if (voice.enabled) voice.stop()
+              else voice.start()
+            }}
+          >
+            {voice.enabled ? t('chat.voice.stop') : t('chat.voice.start')}
+          </button>
+        </div>
+        <VoiceStatus voice={voice} />
       </form>
       <button
         type="button"
@@ -270,4 +308,35 @@ function ChatComposer({ chat }: { chat: ActiveChatRuntimeState }): JSX.Element {
       </button>
     </div>
   )
+}
+
+function VoiceStatus({ voice }: { voice: VoiceConversationState }): JSX.Element | null {
+  const { t } = useTranslation()
+  const message = getVoiceStatusMessage(voice, t)
+  if (message === null) return null
+  return (
+    <p className={voice.error === null ? 'chat-voice-status' : 'error'} role="status">
+      {message}
+    </p>
+  )
+}
+
+function getVoiceStatusMessage(
+  voice: VoiceConversationState,
+  translate: ReturnType<typeof useTranslation>['t'],
+): string | null {
+  if (voice.error === 'unsupported') return translate('chat.voice.unsupported')
+  if (voice.error === 'permission-denied') return translate('chat.voice.permissionDenied')
+  if (voice.error === 'failed') return translate('chat.voice.failed')
+  switch (voice.phase) {
+    case 'off':
+      // Enabled but not capturing yet: the browser is asking for microphone permission.
+      return voice.enabled ? translate('chat.voice.starting') : null
+    case 'listening':
+      return voice.hearing ? translate('chat.voice.hearing') : translate('chat.voice.listening')
+    case 'waiting':
+      return translate('chat.voice.waiting')
+    case 'speaking':
+      return translate('chat.voice.speaking')
+  }
 }

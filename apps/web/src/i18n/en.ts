@@ -87,6 +87,7 @@ const en = {
       transcribing: '🎙 Transcribing…',
       start: 'Talk',
       stop: 'Stop talking',
+      starting: 'Waiting for microphone access…',
       listening: 'Listening… speak whenever you are ready.',
       hearing: 'Hearing you… pause to send, or press Send.',
       waiting: 'Avatar is answering…',

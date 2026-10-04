@@ -436,6 +436,25 @@ textarea {
   gap: 10px;
 }
 
+.chat-composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.chat-voice-button-active {
+  color: #ffffff;
+  background: #c2410c;
+  border-color: #c2410c;
+}
+
+.chat-voice-status {
+  margin: 0;
+  color: var(--ink-500);
+  font-size: 0.85rem;
+}
+
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
