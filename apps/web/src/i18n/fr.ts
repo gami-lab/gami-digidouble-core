@@ -84,6 +84,18 @@ const fr = {
       failed: 'Audio indisponible. La réponse texte reste disponible.',
       duration: 'Durée {{duration}}',
     },
+    voice: {
+      transcribing: '🎙 Transcription…',
+      start: 'Parler',
+      stop: 'Arrêter de parler',
+      listening: 'À l’écoute… parlez quand vous voulez.',
+      hearing: 'Je vous écoute… faites une pause pour envoyer, ou appuyez sur Envoyer.',
+      waiting: "L'avatar répond…",
+      speaking: "L'avatar parle… l'écoute reprendra ensuite.",
+      unsupported: 'La saisie vocale n’est pas prise en charge par ce navigateur.',
+      permissionDenied: 'Accès au micro refusé. Autorisez-le dans le navigateur pour parler.',
+      failed: 'Impossible de démarrer le micro.',
+    },
     meta: {
       sending: ' · envoi…',
       streaming: ' · réponse en cours…',

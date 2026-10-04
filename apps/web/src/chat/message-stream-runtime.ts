@@ -1,8 +1,9 @@
 import type { MessageStreamEvent } from '@gami/shared'
 import i18n from '../i18n/index'
-import { sendMessageStream } from '../api/conversations'
 import { isTerminalMessageStreamEvent } from './message-stream-events'
 import {
+  createOptimisticSendState,
+  createPendingUserMessage,
   markSendFailure,
   reconcilePendingUserMessage,
   reconcileSendSuccess,
@@ -41,9 +42,54 @@ type StreamMessageSetters = {
   onAvatarMessageCompleted?: (messageId: string) => void
 }
 
+/** Sends one turn (text or voice) and calls `onEvent` for every stream event. */
+export type MessageStreamSender = (
+  onEvent: (event: MessageStreamEvent) => void,
+  signal: AbortSignal,
+) => Promise<void>
+
+export type StreamedTurnArgs = {
+  conversationId: string
+  /** Shown in the optimistic user bubble until the server echoes the real user message. */
+  pendingContent: string
+  send: MessageStreamSender
+  runId: number
+  setters: Omit<StreamMessageSetters, 'streamController'> & { stopMessageAudio: () => void }
+}
+
+/** Shared start of a text or voice turn: optimistic user bubble, then stream and reconcile. */
+export function startStreamedTurn({
+  conversationId,
+  pendingContent,
+  send,
+  runId,
+  setters,
+}: StreamedTurnArgs): void {
+  const pendingMessageId = `pending-${String(Date.now())}-${Math.random().toString(36).slice(2)}`
+  const pendingMessage = createPendingUserMessage(
+    pendingContent,
+    pendingMessageId,
+    new Date().toISOString(),
+  )
+
+  setters.setSendStatus('streaming')
+  setters.setSendError(null)
+  setters.setMessages((current) => createOptimisticSendState(current, pendingMessage).messages)
+  setters.setAvatarDraft(null)
+  setters.activeStreamControllerRef.current?.abort()
+  setters.stopMessageAudio()
+  const streamController = new AbortController()
+  setters.activeStreamControllerRef.current = streamController
+
+  void streamMessageAndReconcile(conversationId, send, runId, pendingMessageId, {
+    ...setters,
+    streamController,
+  })
+}
+
 export async function streamMessageAndReconcile(
   conversationId: string,
-  content: string,
+  send: MessageStreamSender,
   runId: number,
   pendingMessageId: string,
   setters: StreamMessageSetters,
@@ -53,27 +99,20 @@ export async function streamMessageAndReconcile(
   let terminalEventSeen = false
 
   try {
-    await sendMessageStream(
-      conversationId,
-      { message: { content } },
-      {
-        onEvent: (event) => {
-          if (
-            runId !== setters.conversationRequestIdRef.current ||
-            event.conversationId !== conversationId ||
-            terminalEventSeen
-          ) {
-            return
-          }
+    await send((event) => {
+      if (
+        runId !== setters.conversationRequestIdRef.current ||
+        event.conversationId !== conversationId ||
+        terminalEventSeen
+      ) {
+        return
+      }
 
-          handleMessageStreamEvent(event, pendingMessageId, pendingDeltas, nextSequence, setters)
-          if (isTerminalMessageStreamEvent(event)) {
-            terminalEventSeen = true
-          }
-        },
-      },
-      setters.streamController.signal,
-    )
+      handleMessageStreamEvent(event, pendingMessageId, pendingDeltas, nextSequence, setters)
+      if (isTerminalMessageStreamEvent(event)) {
+        terminalEventSeen = true
+      }
+    }, setters.streamController.signal)
   } catch (error) {
     if (runId !== setters.conversationRequestIdRef.current) {
       return

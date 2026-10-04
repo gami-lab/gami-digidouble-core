@@ -83,6 +83,18 @@ const en = {
       failed: 'Audio is unavailable. The text response remains available.',
       duration: 'Duration {{duration}}',
     },
+    voice: {
+      transcribing: '🎙 Transcribing…',
+      start: 'Talk',
+      stop: 'Stop talking',
+      listening: 'Listening… speak whenever you are ready.',
+      hearing: 'Hearing you… pause to send, or press Send.',
+      waiting: 'Avatar is answering…',
+      speaking: 'Avatar is speaking… listening resumes after.',
+      unsupported: 'Voice input is not supported in this browser.',
+      permissionDenied: 'Microphone access was denied. Allow it in your browser to talk.',
+      failed: 'The microphone could not be started.',
+    },
     meta: {
       sending: ' · sending…',
       streaming: ' · responding…',

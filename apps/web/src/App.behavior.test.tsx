@@ -61,6 +61,7 @@ describe('App onboarding behavior', () => {
       setComposerValue: vi.fn(),
       startChatWithAvatar: vi.fn(),
       sendCurrentMessage: vi.fn(),
+    sendVoiceMessage: vi.fn(),
       endCurrentConversation: vi.fn(),
       playMessageAudio: vi.fn(),
       stopMessageAudio: vi.fn(),

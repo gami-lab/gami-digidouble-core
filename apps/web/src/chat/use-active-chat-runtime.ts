@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import type { ConversationSummary, SessionSummary } from '@gami/shared'
 import i18n from '../i18n/index'
 import { endConversation, getConversationHistory, startConversation } from '../api/conversations'
+import { sendMessageStream } from '../api/conversations'
+import { startVoiceTurn } from './voice-turn'
 import {
-  streamMessageAndReconcile,
+  startStreamedTurn,
   type AvatarDraftSetter,
   type ActiveStreamControllerRef,
 } from './message-stream-runtime'
@@ -40,6 +42,8 @@ export type ActiveChatRuntimeState = {
   setComposerValue: (value: string) => void
   startChatWithAvatar: (avatarId: string) => void
   sendCurrentMessage: () => void
+  /** Sends one recorded utterance; the transcript replaces the pending bubble. */
+  sendVoiceMessage: (audio: Blob, durationMs?: number) => void
   endCurrentConversation: () => void
   playMessageAudio: (messageId: string) => void
   stopMessageAudio: () => void
@@ -144,6 +148,20 @@ export function useActiveChatRuntime(
       messageAudio.playMessageAudio,
     )
   }
+  function sendVoiceMessage(audio: Blob, durationMs?: number): void {
+    if (conversation === null || sendStatus === 'streaming') return
+    const recording = durationMs === undefined ? { audio } : { audio, durationMs }
+    startVoiceTurn(conversation.conversationId, recording, conversationRequestIdRef.current, {
+      setMessages,
+      setAvatarDraft,
+      setSendStatus,
+      setSendError,
+      conversationRequestIdRef,
+      activeStreamControllerRef,
+      stopMessageAudio: messageAudio.stopMessageAudio,
+      onAvatarMessageCompleted: messageAudio.playMessageAudio,
+    })
+  }
   function endCurrentConversation(): void {
     endActiveConversation(
       session,
@@ -176,6 +194,7 @@ export function useActiveChatRuntime(
     setComposerValue,
     startChatWithAvatar,
     sendCurrentMessage,
+    sendVoiceMessage,
     endCurrentConversation,
     playMessageAudio: messageAudio.playMessageAudio,
     stopMessageAudio: messageAudio.stopMessageAudio,
@@ -295,33 +314,24 @@ function sendMessageInActiveConversation(
     return
   }
 
-  const runId = conversationRequestIdRef.current
-  const pendingMessageId = `pending-${String(Date.now())}-${Math.random().toString(36).slice(2)}`
-  const pendingMessage = createPendingUserMessage(
-    content,
-    pendingMessageId,
-    new Date().toISOString(),
-  )
-
+  const conversationId = conversation.conversationId
   setComposerValue('')
-  setSendStatus('streaming')
-  setSendError(null)
-  setMessages((current) => createOptimisticSendState(current, pendingMessage).messages)
-  setAvatarDraft(null)
-  activeStreamControllerRef.current?.abort()
-  stopMessageAudio()
-  const streamController = new AbortController()
-  activeStreamControllerRef.current = streamController
-
-  void streamMessageAndReconcile(conversation.conversationId, content, runId, pendingMessageId, {
-    setMessages,
-    setAvatarDraft,
-    setSendStatus,
-    setSendError,
-    conversationRequestIdRef,
-    activeStreamControllerRef,
-    streamController,
-    onAvatarMessageCompleted,
+  startStreamedTurn({
+    conversationId,
+    pendingContent: content,
+    send: (onEvent, signal) =>
+      sendMessageStream(conversationId, { message: { content } }, { onEvent }, signal),
+    runId: conversationRequestIdRef.current,
+    setters: {
+      setMessages,
+      setAvatarDraft,
+      setSendStatus,
+      setSendError,
+      conversationRequestIdRef,
+      activeStreamControllerRef,
+      stopMessageAudio,
+      onAvatarMessageCompleted,
+    },
   })
 }
 
