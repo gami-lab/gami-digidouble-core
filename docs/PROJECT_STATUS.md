@@ -55,8 +55,9 @@ detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT
   persona editing, and the scenario-builder authoring flows (scenario/avatar editing, knowledge-source
   management, visibility policy, and model selection).
 - `apps/web` — the public player-facing chat surface: browser-owned identity, scenario discovery,
-  available-avatar chat, SSE-driven runtime updates, and optional completed-message audio playback
-  with text-preserving fallback.
+  available-avatar chat, SSE-driven runtime updates, autoplayed completed-message audio with
+  text-preserving fallback, and a hands-free voice loop (listen, auto-send on pause, answer, speak,
+  listen again) alongside text input.
 - `apps/admin` — the admin CRUD API surface backing console authoring flows.
 - `tools/conversation-evaluation` — an external, authenticated CLI for scripted-conversation
   evaluation: semantic judging through an LLM judge, runtime latency/token metrics, per-model

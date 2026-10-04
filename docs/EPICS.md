@@ -203,7 +203,7 @@ Added authenticated CLI evaluation for sequential scripted conversations, semant
 
 #### `9.1 Voice Input Integration with Deepgram` ✅ Done
 
-Added provider-neutral speech-to-text contracts, an optional Deepgram adapter, transcript coordination, authenticated sync/SSE routes, idempotency, cancellation, and hardening coverage.
+Added provider-neutral speech-to-text contracts, an optional Deepgram adapter, transcript coordination, authenticated sync/SSE routes, idempotency, cancellation, and hardening coverage. The web client uses it for a hands-free voice conversation: microphone capture with pause-based auto-send, streamed replies, and autoplayed reply audio.
 
 #### `9.2 Voice Output Integration with Gradium` ✅ Done
 
