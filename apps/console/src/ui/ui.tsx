@@ -94,7 +94,7 @@ export function LangfuseSessionLink({ sessionId }: { sessionId: string }): JSX.E
   )
 }
 
-export type LatencySegment = { label: string; ms: number; color: string }
+export type LatencySegment = { label: string; description: string; ms: number; color: string }
 
 export function LatencyBar({
   segments,
@@ -122,14 +122,20 @@ export function LatencyBar({
 
 export function LatencyLegend({ segments }: { segments: LatencySegment[] }): JSX.Element {
   return (
-    <div className="legend">
-      {segments.map((segment) => (
-        <span key={segment.label}>
-          <i style={{ background: segment.color }} />
-          {segment.label} {formatMs(segment.ms)}
-        </span>
-      ))}
-    </div>
+    <table className="data latency-table">
+      <tbody>
+        {segments.map((segment) => (
+          <tr key={segment.label}>
+            <td>
+              <i className="swatch" style={{ background: segment.color }} />
+              {segment.label}
+            </td>
+            <td className="muted small">{segment.description}</td>
+            <td className="mono">{formatMs(segment.ms)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 

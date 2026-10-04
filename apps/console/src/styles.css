@@ -18,6 +18,7 @@
   --lat-llm: #2f5bd3;
   --lat-first-token: #8aa6ee;
   --lat-other: #b4bcc8;
+  --lat-tts: #d9822b;
   --lat-gm: #d9822b;
   --lat-memory: #c25d9b;
   --radius: 8px;
@@ -518,4 +519,22 @@ table.data tr.clickable:hover {
 ul.plain {
   margin: 0;
   padding-left: 18px;
+}
+
+.latency-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.latency-table td:first-child {
+  white-space: nowrap;
+}
+
+.swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: -1px;
 }

@@ -9,7 +9,7 @@ import {
   type TimelineEntry,
   type TurnEntry,
 } from '../../debug/session-timeline'
-import { turnLatencySegments, turnWaitMs } from '../../debug/turn-latency'
+import { turnLatencySegments, turnVoiceReadyMs, turnWaitMs } from '../../debug/turn-latency'
 import { Link } from '../../routing/Link'
 import type { Route } from '../../routing/router'
 import { Badge, Empty, ErrorText, LatencyBar } from '../../ui/ui'
@@ -34,7 +34,7 @@ export function TurnsView({
     timeline.find((entry) => entry.id === route.turn) ?? timeline[timeline.length - 1] ?? null
   const scaleMs = Math.max(
     1,
-    ...timeline.flatMap((entry) => (entry.kind === 'turn' ? [turnWaitMs(entry.turn)] : [])),
+    ...timeline.flatMap((entry) => (entry.kind === 'turn' ? [turnTotalMs(entry)] : [])),
   )
 
   return (
@@ -124,15 +124,17 @@ function TurnItem({
           <span className="muted">{formatTime(entry.createdAt)}</span>
         </span>
         <span className="row">
-          {turn.inputMode === 'voice' ? <Badge>voice</Badge> : null}
-          <span className="mono">{formatMs(turnWaitMs(turn))}</span>
+          {turn.inputMode === 'voice' ? <Badge>voice in</Badge> : null}
+          {entry.audio?.status === 'ok' ? <Badge>voice out</Badge> : null}
+          {entry.audio?.status === 'failed' ? <Badge tone="error">voice failed</Badge> : null}
+          <span className="mono">{formatMs(turnTotalMs(entry))}</span>
         </span>
       </div>
       <p className="line">
         {entry.userMessage?.content ?? <span className="muted">(message not loaded)</span>}
       </p>
       <p className="line muted small">{entry.avatarMessage?.content ?? ''}</p>
-      <LatencyBar segments={turnLatencySegments(turn)} scaleMs={scaleMs} />
+      <LatencyBar segments={turnLatencySegments(turn, entry.audio)} scaleMs={scaleMs} />
       <div className="row">
         <Badge tone={chunkCount > 0 ? 'accent' : 'neutral'}>RAG {chunkCount}</Badge>
         {decision !== undefined ? <Badge>GM {decision.dialogueMode}</Badge> : null}
@@ -150,6 +152,11 @@ function TurnItem({
       </div>
     </div>
   )
+}
+
+// Until the voice is ready when the reply was spoken, otherwise until the text is complete.
+function turnTotalMs(entry: TurnEntry): number {
+  return turnVoiceReadyMs(entry.turn, entry.audio) ?? turnWaitMs(entry.turn)
 }
 
 function BackgroundItem({

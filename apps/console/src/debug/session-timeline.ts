@@ -3,6 +3,7 @@ import type {
   MemoryConsolidationEventPayload,
   MemoryRefreshEventPayload,
   Message,
+  MessageAudioEventPayload,
   SessionEventRecord,
   TurnCompletedEventPayload,
 } from '@gami/shared'
@@ -30,6 +31,13 @@ export type ConsolidationStep = {
   payload: MemoryConsolidationEventPayload
 }
 
+/** The spoken version of a turn's reply, synthesized when the client asked for audio. */
+export type AudioRun = {
+  status: 'ok' | 'failed'
+  createdAt: string
+  payload: MessageAudioEventPayload
+}
+
 export type TurnEntry = {
   kind: 'turn'
   id: string
@@ -39,6 +47,7 @@ export type TurnEntry = {
   avatarMessage: Message | null
   gm: GmRun | null
   memory: MemoryRun[]
+  audio: AudioRun | null
 }
 
 /** Work not caused by a turn: GM replays, conversation-close and avatar-switch memory work. */
@@ -83,8 +92,10 @@ export function buildSessionTimeline(
       ...messages,
       gm: null,
       memory: [],
+      audio: null,
     })
   }
+  attachAudio(ordered, [...turns.values()])
 
   const owner = (event: SessionEventRecord): TurnEntry | BackgroundEntry => {
     const turn = turns.get(event.correlationId)
@@ -106,7 +117,8 @@ export function buildSessionTimeline(
   }
 
   for (const event of ordered) {
-    if (event.type !== 'turn_completed') applyFollowUpEvent(owner(event), event)
+    if (event.type === 'turn_completed' || isAudioEvent(event)) continue
+    applyFollowUpEvent(owner(event), event)
   }
 
   const timeline: TimelineEntry[] = [...turns.values(), ...background.values()].sort((a, b) =>
@@ -138,6 +150,25 @@ function mergeAdjacentBackgroundWork(timeline: TimelineEntry[]): TimelineEntry[]
     merged.push(entry)
   }
   return merged
+}
+
+function isAudioEvent(event: SessionEventRecord): boolean {
+  return event.type === 'message_audio_synthesized' || event.type === 'message_audio_failed'
+}
+
+// Audio is requested per Avatar message after the turn; the latest synthesis of a reply wins.
+function attachAudio(ordered: SessionEventRecord[], turns: TurnEntry[]): void {
+  for (const event of ordered) {
+    if (!isAudioEvent(event)) continue
+    const payload = event.payload as MessageAudioEventPayload
+    const turn = turns.find((entry) => entry.avatarMessage?.messageId === payload.messageId)
+    if (turn === undefined) continue
+    turn.audio = {
+      status: event.type === 'message_audio_synthesized' ? 'ok' : 'failed',
+      createdAt: event.createdAt,
+      payload,
+    }
+  }
 }
 
 function applyFollowUpEvent(entry: TurnEntry | BackgroundEntry, event: SessionEventRecord): void {

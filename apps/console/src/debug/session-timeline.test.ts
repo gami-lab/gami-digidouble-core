@@ -129,3 +129,33 @@ describe('buildSessionTimeline', () => {
     ])
   })
 })
+
+describe('buildSessionTimeline audio', () => {
+  it('attaches the spoken version of a reply to its turn by message id', () => {
+    const [entry] = buildSessionTimeline(
+      [
+        turnEvent('corr_1', '2026-01-01T00:00:02.000Z', 1),
+        {
+          type: 'message_audio_synthesized',
+          correlationId: 'req_audio',
+          createdAt: '2026-01-01T00:00:04.000Z',
+          payload: {
+            conversationId: 'conv_1',
+            messageId: 'a1',
+            provider: 'gradium',
+            characterCount: 120,
+            latencyMs: 900,
+          },
+        },
+      ],
+      {
+        conv_1: [
+          message('u1', 'user', '2026-01-01T00:00:00.000Z'),
+          message('a1', 'avatar', '2026-01-01T00:00:01.000Z'),
+        ],
+      },
+    )
+
+    expect(entry?.kind === 'turn' && entry.audio?.payload.latencyMs).toBe(900)
+  })
+})

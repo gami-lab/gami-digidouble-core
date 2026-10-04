@@ -3,7 +3,12 @@ import { formatMs, formatTime, formatTokens } from '../../debug/format'
 import type { RetrievedByType } from '../../debug/RetrievalView'
 import { RetrievalView } from '../../debug/RetrievalView'
 import { backgroundLabel, type BackgroundEntry, type TurnEntry } from '../../debug/session-timeline'
-import { turnFirstReplyMs, turnLatencySegments, turnWaitMs } from '../../debug/turn-latency'
+import {
+  turnFirstReplyMs,
+  turnLatencySegments,
+  turnVoiceReadyMs,
+  turnWaitMs,
+} from '../../debug/turn-latency'
 import {
   Badge,
   Empty,
@@ -41,16 +46,31 @@ export function TurnDetail({ entry, data }: { entry: TurnEntry; data: SessionDat
         defaultOpen
         title="Latency"
         aside={
-          <span className="small mono">
+          <span className="small">
             {turnFirstReplyMs(turn) !== undefined
-              ? `first reply ${formatMs(turnFirstReplyMs(turn))} · `
+              ? `first words after ${formatMs(turnFirstReplyMs(turn))} · `
               : ''}
-            complete {formatMs(turnWaitMs(turn))}
+            full text after {formatMs(turnWaitMs(turn))}
+            {turnVoiceReadyMs(turn, entry.audio) !== undefined
+              ? ` · voice ready after ${formatMs(turnVoiceReadyMs(turn, entry.audio))}`
+              : ''}
           </span>
         }
       >
-        <LatencyBar segments={turnLatencySegments(turn)} />
-        <LatencyLegend segments={turnLatencySegments(turn)} />
+        <LatencyBar segments={turnLatencySegments(turn, entry.audio)} />
+        <LatencyLegend segments={turnLatencySegments(turn, entry.audio)} />
+        <p className="small muted">
+          Measured from the moment the user stops speaking or sends the message.{' '}
+          {entry.audio === null
+            ? 'No spoken version of this reply was requested.'
+            : entry.audio.status === 'failed'
+              ? `Voice generation failed (${entry.audio.payload.errorCode ?? 'error'}).`
+              : `Voice: ${entry.audio.payload.provider}, ${String(entry.audio.payload.characterCount)} characters${
+                  entry.audio.payload.audioDurationMs !== undefined
+                    ? `, ${formatMs(entry.audio.payload.audioDurationMs)} of audio`
+                    : ''
+                }.`}
+        </p>
         <BackgroundLatency entry={entry} />
       </Section>
 
@@ -137,8 +157,8 @@ function BackgroundLatency({ entry }: { entry: TurnEntry }): JSX.Element | null 
   if (gmMs === undefined && memoryMs === undefined) return null
   return (
     <p className="small muted">
-      After the reply, in the background (the user does not wait):
-      {gmMs !== undefined ? ` GM ${formatMs(gmMs)}` : ''}
+      Then, in the background (the user does not wait):
+      {gmMs !== undefined ? ` Game Master ${formatMs(gmMs)}` : ''}
       {memoryMs !== undefined ? ` · memory refresh ${formatMs(memoryMs)}` : ''}
     </p>
   )
