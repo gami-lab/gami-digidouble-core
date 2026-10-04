@@ -9,9 +9,11 @@ import type { IConversationRepository } from '../../ports/IConversationRepositor
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import { DomainError } from '../../../domain/errors.js'
-import { resolveVoiceConfiguration } from '../../../domain/voice/voice-configuration.js'
+import { selectVoiceId } from '../../../domain/voice/voice-configuration.js'
 import type { TextToSpeechResult } from '../../ports/ITextToSpeechAdapter.js'
 import type { SynthesizeMessageAudioInput } from './synthesize-message-audio.types.js'
+import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 
 const DEFAULT_AUDIO_OUTPUT_FORMAT = 'audio/wav' as const
 
@@ -60,23 +62,12 @@ export class SynthesizeMessageAudioUseCase {
     if (scenario === null) {
       throw new DomainError('NOT_FOUND', `Scenario ${avatar.scenarioId} was not found.`)
     }
-    const voice = resolveVoiceConfiguration(
-      scenario.voiceConfig,
-      avatar.voiceConfig,
-      scenario.language,
-    )
-    if (voice === undefined) {
-      throw new TextToSpeechError({
-        code: 'invalid_configuration',
-        reason: 'missing_voice_configuration',
-        retryable: false,
-      })
-    }
+    const voiceId = await this.resolveVoiceId(scenario, avatar)
 
     const result = await this.textToSpeechAdapter.synthesize(
       {
         text: message.content,
-        voice,
+        voiceId,
         format: normalized.format,
         requestId: normalized.requestId,
         messageId: message.messageId,
@@ -92,6 +83,25 @@ export class SynthesizeMessageAudioUseCase {
       },
       this.maxOutputBytes,
     )
+  }
+
+  /** Avatar voice → scenario voice → the provider's default voice for the scenario language. */
+  private async resolveVoiceId(scenario: Scenario, avatar: AvatarConfig): Promise<string> {
+    const provider = this.textToSpeechAdapter.provider
+    if (provider === null) {
+      throw new TextToSpeechError({ code: 'provider_unavailable', retryable: false })
+    }
+    const voiceId =
+      selectVoiceId(scenario.voiceConfig, avatar.voiceConfig, provider) ??
+      (await this.textToSpeechAdapter.getDefaultVoiceId(scenario.language))
+    if (voiceId === undefined) {
+      throw new TextToSpeechError({
+        code: 'invalid_configuration',
+        reason: 'no_voice_available',
+        retryable: false,
+      })
+    }
+    return voiceId
   }
 }
 

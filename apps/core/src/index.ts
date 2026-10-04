@@ -281,10 +281,9 @@ function buildTextToSpeechAdapter(
     {
       provider: config.ttsProvider,
       ...(config.gradiumApiKey === undefined ? {} : { apiKey: config.gradiumApiKey }),
-      endpoint: config.gradiumEndpoint,
+      baseUrl: config.gradiumBaseUrl,
       timeoutMs: config.gradiumTimeoutMs,
       limits: config.textToSpeechLimits,
-      voiceMap: config.gradiumVoiceMap,
     },
     observability,
   )

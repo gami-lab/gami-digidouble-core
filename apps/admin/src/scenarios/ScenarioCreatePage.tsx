@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import type { ScenarioStatus } from '@gami/shared'
+import type { ScenarioStatus, VoiceConfiguration } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { createScenario } from '../api/scenarios'
 import { Breadcrumbs } from '../shell/Breadcrumbs'
@@ -10,7 +10,6 @@ import {
   hasPartialScenarioModelSelection,
   toScenarioModelSelection,
 } from './model-selection-form'
-import { toVoiceConfiguration } from './voice-config-form'
 
 type ScenarioCreatePageProps = {
   onBack: () => void
@@ -26,7 +25,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
   const [worldContext, setWorldContext] = useState('')
   const [objectives, setObjectives] = useState<string[]>([])
   const [modelSelectionForm, setModelSelectionForm] = useState(EMPTY_SCENARIO_MODEL_SELECTION)
-  const [voiceKey, setVoiceKey] = useState('')
+  const [voiceConfig, setVoiceConfig] = useState<VoiceConfiguration | null>(null)
   const [createState, setCreateState] = useState<CreateState>({ status: 'idle' })
 
   async function handleSubmit(e: SyntheticEvent): Promise<void> {
@@ -35,7 +34,6 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
     setCreateState({ status: 'saving' })
     try {
       const modelSelection = toScenarioModelSelection(modelSelectionForm)
-      const voiceConfig = toVoiceConfiguration(voiceKey)
       const scenario = await createScenario({
         name: name.trim(),
         status,
@@ -43,7 +41,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
         objectives,
         worldContext: worldContext.trim(),
         ...(modelSelection !== undefined ? { modelSelection } : {}),
-        ...(voiceConfig !== undefined ? { voiceConfig } : {}),
+        ...(voiceConfig !== null ? { voiceConfig } : {}),
       })
       onCreated(scenario.scenarioId)
     } catch (error: unknown) {
@@ -71,7 +69,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           worldContext={worldContext}
           objectives={objectives}
           modelSelection={modelSelectionForm}
-          voiceKey={voiceKey}
+          voiceConfig={voiceConfig}
           idPrefix="sc"
           disabled={isSaving}
           onNameChange={setName}
@@ -80,7 +78,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           onWorldContextChange={setWorldContext}
           onObjectivesChange={setObjectives}
           onModelSelectionChange={setModelSelectionForm}
-          onVoiceKeyChange={setVoiceKey}
+          onVoiceConfigChange={setVoiceConfig}
         />
         {hasPartialModelSelectionState ? (
           <p className="admin-error">

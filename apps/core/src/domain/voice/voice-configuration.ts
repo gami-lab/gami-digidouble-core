@@ -1,4 +1,8 @@
-import { isVoiceConfiguration, normalizeLanguageTag, type VoiceConfiguration } from '@gami/shared'
+import {
+  isVoiceConfiguration,
+  type TextToSpeechProviderName,
+  type VoiceConfiguration,
+} from '@gami/shared'
 import { DomainError } from '../errors.js'
 
 export const VOICE_CONFIGURATION_CONFIG_KEY = 'voiceConfig'
@@ -13,14 +17,13 @@ export function normalizeVoiceConfiguration(
     throw new DomainError('INVALID_INPUT', 'voiceConfig cannot be null when creating a record')
   }
   if (!isVoiceConfiguration(value)) {
-    throw new DomainError('INVALID_INPUT', 'voiceConfig must contain a non-empty voiceKey')
+    throw new DomainError(
+      'INVALID_INPUT',
+      'voiceConfig must contain a supported provider and a non-empty voiceId',
+    )
   }
 
-  const language = normalizeLanguageTag(value.language)
-  return {
-    voiceKey: value.voiceKey.trim(),
-    ...(language !== undefined && language !== null ? { language } : {}),
-  }
+  return { provider: value.provider, voiceId: value.voiceId.trim() }
 }
 
 export function normalizeVoiceConfigurationMutation(
@@ -82,12 +85,17 @@ export function applyVoiceConfiguration(
   }
 }
 
-export function resolveVoiceConfiguration(
+/**
+ * Picks the avatar voice, else the scenario voice. A selection saved for another provider is
+ * skipped, so switching providers falls back to the provider default instead of failing.
+ */
+export function selectVoiceId(
   scenarioVoiceConfig: VoiceConfiguration | undefined,
   avatarVoiceConfig: VoiceConfiguration | undefined,
-  scenarioLanguage?: string,
-): VoiceConfiguration | undefined {
-  const selected = avatarVoiceConfig ?? scenarioVoiceConfig
-  if (selected === undefined || scenarioLanguage === undefined) return selected
-  return { ...selected, language: scenarioLanguage }
+  provider: TextToSpeechProviderName,
+): string | undefined {
+  for (const voice of [avatarVoiceConfig, scenarioVoiceConfig]) {
+    if (voice?.provider === provider) return voice.voiceId
+  }
+  return undefined
 }

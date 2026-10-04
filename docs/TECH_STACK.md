@@ -62,6 +62,10 @@ product code rather than in an external agent framework.
   uses the official one-shot REST endpoint over native `fetch` rather than its Python-only SDK. It
   emits native WAV or Ogg-wrapped Opus and rejects unsupported formats without transcoding; its
   response currently carries no duration metadata, so duration is optional end-to-end.
+- The text-to-speech port also lists voices and picks a default per language, so voices are chosen
+  in the admin rather than in env config. Gradium lists account + catalog voices (cached 10 minutes)
+  and defaults to the first catalog voice in the scenario language. A new provider implements the
+  same port and joins `TEXT_TO_SPEECH_PROVIDER_NAMES`.
 - Both are optional, additive ports — their absence must never change text-turn behavior.
 
 ## Clients and tools

@@ -35,7 +35,7 @@ const scenario: Scenario = {
   objectives: [],
   worldContext: '',
   avatarAvailability: { initialAvatarIds: [] },
-  voiceConfig: { voiceKey: 'scenario-default', language: 'en-US' },
+  voiceConfig: { provider: 'gradium', voiceId: 'scenario-default' },
   config: {},
   createdAt: conversation.startedAt,
   updatedAt: conversation.startedAt,
@@ -47,7 +47,7 @@ const avatar: AvatarConfig = {
   name: 'Ava',
   status: 'active',
   personaPrompt: 'You are Ava.',
-  voiceConfig: { voiceKey: 'avatar-override', language: 'fr-CH' },
+  voiceConfig: { provider: 'gradium', voiceId: 'avatar-override' },
   config: {},
   createdAt: conversation.startedAt,
   updatedAt: conversation.startedAt,
@@ -71,6 +71,7 @@ const userMessage: Message = {
 
 function createTtsAdapter(
   outcome?: TextToSpeechResult | TextToSpeechError,
+  defaultVoiceId: string | null = 'provider-default',
 ): ITextToSpeechAdapter & {
   requests: TextToSpeechInput[]
   signals: (AbortSignal | undefined)[]
@@ -96,7 +97,14 @@ function createTtsAdapter(
         },
       )
     })
-  return { synthesize, requests, signals }
+  return {
+    provider: 'gradium',
+    synthesize,
+    listVoices: () => Promise.resolve([]),
+    getDefaultVoiceId: () => Promise.resolve(defaultVoiceId ?? undefined),
+    requests,
+    signals,
+  }
 }
 
 function createApp(tts: ITextToSpeechAdapter, extraMessages: Message[] = []) {
@@ -196,7 +204,7 @@ describe('conversation message audio route', () => {
     expect(response.rawPayload).toEqual(Buffer.from([7, 8, 9]))
     expect(tts.requests[0]).toMatchObject({
       text: avatarMessage.content,
-      voice: avatar.voiceConfig,
+      voiceId: 'avatar-override',
       format: 'audio/ogg',
       messageId: avatarMessage.messageId,
     })
@@ -270,8 +278,8 @@ describe('conversation message audio route', () => {
     expect(tts.requests).toHaveLength(0)
   })
 
-  it('maps missing voice configuration and synthesis failures without changing the message', async () => {
-    const missingVoiceTts = createTtsAdapter()
+  it('maps an unavailable voice and synthesis failures without changing the message', async () => {
+    const missingVoiceTts = createTtsAdapter(undefined, null)
     const avatarWithoutVoice = { ...avatar }
     delete avatarWithoutVoice.voiceConfig
     const scenarioWithoutVoice = { ...scenario }

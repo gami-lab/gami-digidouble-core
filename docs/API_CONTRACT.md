@@ -86,6 +86,8 @@ All admin routes use `/v1/admin/*` and the same API key in Phase A.
 
 - `GET /v1/admin/health`
 - `GET|PUT /v1/admin/model-config`
+- `GET /v1/admin/voices?language=` — active text-to-speech provider voices plus the default voice
+  for that language (`provider: null`, no voices, when text-to-speech is disabled)
 - `GET /v1/admin/sessions/{sessionId}/inspect`
 - `GET /v1/admin/sessions/{sessionId}/events`
 - `GET /v1/admin/sessions/{sessionId}/context`
@@ -136,8 +138,12 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   `Content-Length`, `Content-Disposition: inline`, `X-Request-Id`, `X-Message-Id`, and optional
   `X-Audio-Duration-Ms`. Audio bytes are transient and never change message/GM/memory behavior;
   repeated requests are independent reads.
-- Provider credentials, voice IDs, and provider-native options are not public fields; a client may
-  only pick a shared `format` (default `audio/wav`).
+- Scenario and Avatar `voiceConfig` is `{ provider, voiceId }`, a provider voice picked from
+  `GET /v1/admin/voices`. Synthesis uses the Avatar voice, else the Scenario voice, else the
+  provider's default voice for the Scenario language; a selection saved for another provider is
+  skipped. With no usable voice, audio returns `409 CONFLICT` (`no_voice_available`).
+- Provider credentials and provider-native options are not public fields; a client may only pick a
+  shared `format` (default `audio/wav`).
 
 ### Content and model selection
 

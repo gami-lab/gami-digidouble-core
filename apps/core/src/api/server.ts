@@ -70,6 +70,8 @@ import { InMemoryKnowledgeSourceContentLoader } from '../infrastructure/knowledg
 import { UnconfiguredEmbeddingAdapter } from '../infrastructure/knowledge/unconfigured-embedding.adapter.js'
 import { InMemoryUtteranceIdempotencyStore } from '../application/voice/in-memory-utterance-idempotency.store.js'
 import { adminModelConfigRoute } from './routes/admin-model-config.js'
+import { adminVoicesRoute } from './routes/admin-voices.js'
+import { NullTextToSpeechAdapter } from '../infrastructure/speech/gradium-text-to-speech.adapter.js'
 import { adminKnowledgeReindexRoute } from './routes/admin-knowledge-reindex.js'
 
 export interface ServerAdapters {
@@ -246,6 +248,14 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     ...(resolvedAdapters.modelConfigFallback !== undefined
       ? { modelConfigFallback: resolvedAdapters.modelConfigFallback }
       : {}),
+  })
+  app.register(adminVoicesRoute, {
+    prefix: '/v1/admin',
+    config,
+    textToSpeechAdapter: withDefault(
+      resolvedAdapters.textToSpeechAdapter,
+      new NullTextToSpeechAdapter(),
+    ),
   })
   app.register(scenariosRoute, {
     prefix: '/v1/scenarios',

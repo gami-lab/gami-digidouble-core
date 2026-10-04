@@ -32,9 +32,8 @@ export const TEST_CONFIG: Config = {
   speechToTextLimits: SPEECH_TO_TEXT_LIMITS,
   ttsProvider: 'null',
   gradiumApiKey: undefined,
-  gradiumEndpoint: 'https://api.gradium.ai/api/post/speech/tts',
+  gradiumBaseUrl: 'https://api.gradium.ai/api',
   gradiumTimeoutMs: 30_000,
-  gradiumVoiceMap: {},
   textToSpeechLimits: {
     maxTextCharacters: 10_000,
     maxOutputBytes: 10_000_000,

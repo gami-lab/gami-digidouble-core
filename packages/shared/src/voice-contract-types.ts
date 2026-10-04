@@ -1,22 +1,44 @@
 /**
  * Provider-neutral voice and binary audio-delivery contracts.
  *
- * These types describe the public boundary only. A voiceKey is a product-owned
- * logical key; it is not a provider voice identifier or credential-bearing
- * configuration. Provider resolution belongs behind the Core application port.
+ * A voice selection names the text-to-speech provider and that provider's own voice id, picked
+ * from the admin voice list. Credentials and provider-native options never cross this boundary.
  */
-
-import { isLanguageTag } from './language-contract.js'
 
 export const AUDIO_OUTPUT_FORMATS = ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/webm'] as const
 export const AUDIO_METADATA_ID_MAX_LENGTH = 128
 
 export type AudioOutputFormat = (typeof AUDIO_OUTPUT_FORMATS)[number]
 
-/** Optional scenario/avatar voice selection resolved by Core, not by clients. */
+export const TEXT_TO_SPEECH_PROVIDER_NAMES = ['gradium'] as const
+export const VOICE_ID_MAX_LENGTH = 128
+
+export type TextToSpeechProviderName = (typeof TEXT_TO_SPEECH_PROVIDER_NAMES)[number]
+
+/**
+ * Optional scenario/avatar voice selection. When absent (or saved for another provider), Core
+ * uses the active provider's default voice for the scenario language.
+ */
 export type VoiceConfiguration = {
-  voiceKey: string
+  provider: TextToSpeechProviderName
+  voiceId: string
+}
+
+/** One selectable voice from the active text-to-speech provider. */
+export type VoiceOption = {
+  voiceId: string
+  name: string
   language?: string
+  description?: string
+  gender?: string
+}
+
+/** `GET /v1/admin/voices`; `provider` is null when text-to-speech is disabled. */
+export type ListVoicesResponse = {
+  provider: TextToSpeechProviderName | null
+  voices: VoiceOption[]
+  /** Voice used when nothing is selected, for the requested language. */
+  defaultVoiceId?: string
 }
 
 export type VoiceConfigurationUpdate = VoiceConfiguration | null
@@ -43,11 +65,18 @@ export function isAudioOutputFormat(value: unknown): value is AudioOutputFormat 
   return typeof value === 'string' && (AUDIO_OUTPUT_FORMATS as readonly string[]).includes(value)
 }
 
-export function isVoiceConfiguration(value: unknown): value is VoiceConfiguration {
-  if (!isRecord(value) || !hasOnlyKeys(value, ['voiceKey', 'language'])) return false
+export function isTextToSpeechProviderName(value: unknown): value is TextToSpeechProviderName {
   return (
-    isNonEmptyString(value['voiceKey']) &&
-    (value['language'] === undefined || isLanguageTag(value['language']))
+    typeof value === 'string' &&
+    (TEXT_TO_SPEECH_PROVIDER_NAMES as readonly string[]).includes(value)
+  )
+}
+
+export function isVoiceConfiguration(value: unknown): value is VoiceConfiguration {
+  if (!isRecord(value) || !hasOnlyKeys(value, ['provider', 'voiceId'])) return false
+  return (
+    isTextToSpeechProviderName(value['provider']) &&
+    isBoundedNonEmptyString(value['voiceId'], VOICE_ID_MAX_LENGTH)
   )
 }
 

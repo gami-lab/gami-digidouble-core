@@ -15,11 +15,14 @@ describe('voice and audio contract guards', () => {
     expect(isAudioOutputFormat('audio/gradium')).toBe(false)
   })
 
-  it('accepts a logical voice configuration and rejects provider-shaped fields', () => {
-    expect(isVoiceConfiguration({ voiceKey: 'guide', language: 'fr-CH' })).toBe(true)
-    expect(isVoiceConfiguration({ voiceKey: 'guide', language: 'en_US' })).toBe(false)
+  it('accepts a provider voice selection and rejects unknown providers or extra fields', () => {
+    expect(isVoiceConfiguration({ provider: 'gradium', voiceId: 'YTpq7expH9539ERJ' })).toBe(true)
+    expect(isVoiceConfiguration({ provider: 'acme', voiceId: 'voice_1' })).toBe(false)
+    expect(isVoiceConfiguration({ provider: 'gradium', voiceId: ' ' })).toBe(false)
     expect(isVoiceConfiguration({})).toBe(false)
-    expect(isVoiceConfiguration({ voiceKey: 'guide', gradiumVoiceId: 'provider-id' })).toBe(false)
+    expect(
+      isVoiceConfiguration({ provider: 'gradium', voiceId: 'voice_1', apiKey: 'secret' }),
+    ).toBe(false)
   })
 
   it('keeps client audio options limited to playback and delivery preference', () => {

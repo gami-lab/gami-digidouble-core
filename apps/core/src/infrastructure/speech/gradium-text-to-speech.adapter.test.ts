@@ -27,7 +27,7 @@ function createObservability(): {
 function createInput(overrides: Partial<TextToSpeechInput> = {}): TextToSpeechInput {
   return {
     text: 'Hello from the avatar.',
-    voice: { voiceKey: 'avatar-default', language: 'en-US' },
+    voiceId: 'provider-voice-123',
     format: 'audio/wav',
     requestId: 'request-1',
     messageId: 'message-1',
@@ -85,7 +85,7 @@ function createAdapter(
     adapter: new GradiumTextToSpeechAdapter(
       {
         apiKey: 'gradium-secret-test',
-        endpoint: 'https://gradium.test/api/post/speech/tts',
+        baseUrl: 'https://gradium.test/api',
         timeoutMs: options.timeoutMs ?? 30_000,
         limits: {
           ...TEXT_TO_SPEECH_LIMITS,
@@ -93,7 +93,6 @@ function createAdapter(
             ? {}
             : { maxOutputBytes: options.maxOutputBytes }),
         },
-        voiceMap: { 'avatar-default': 'provider-voice-123' },
       },
       observability.adapter,
       { post } satisfies GradiumTransport,
@@ -164,19 +163,6 @@ describe('GradiumTextToSpeechAdapter', () => {
 
     await expect(adapter.synthesize(createInput())).rejects.toMatchObject({ failure: { code } })
     expect(response.cancelled()).toBe(true)
-  })
-
-  it('rejects missing logical voice mappings as invalid configuration', async () => {
-    const { adapter, post } = createAdapter(
-      createResponse(Uint8Array.from([1]), { contentType: 'audio/wav' }),
-    )
-
-    await expect(
-      adapter.synthesize(createInput({ voice: { voiceKey: 'unknown' } })),
-    ).rejects.toMatchObject({
-      failure: { code: 'invalid_configuration', reason: 'missing_voice_mapping' },
-    })
-    expect(post).not.toHaveBeenCalled()
   })
 
   it('rejects unsupported browser formats before making a provider request', async () => {
@@ -281,10 +267,9 @@ describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
     const adapter = new GradiumTextToSpeechAdapter(
       {
         apiKey: 'gradium-secret-test',
-        endpoint: 'https://gradium.test/api/post/speech/tts',
+        baseUrl: 'https://gradium.test/api',
         timeoutMs: 30_000,
         limits: TEXT_TO_SPEECH_LIMITS,
-        voiceMap: { 'avatar-default': 'provider-voice-123' },
       },
       observability.adapter,
       { post } satisfies GradiumTransport,
@@ -315,10 +300,9 @@ describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
       const adapter = new GradiumTextToSpeechAdapter(
         {
           apiKey: 'gradium-secret-test',
-          endpoint: 'https://gradium.test/api/post/speech/tts',
+          baseUrl: 'https://gradium.test/api',
           timeoutMs: 100,
           limits: TEXT_TO_SPEECH_LIMITS,
-          voiceMap: { 'avatar-default': 'provider-voice-123' },
         },
         observability.adapter,
         { post } satisfies GradiumTransport,
@@ -343,10 +327,9 @@ describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
     const adapter = new GradiumTextToSpeechAdapter(
       {
         apiKey: 'gradium-secret-test',
-        endpoint: 'https://gradium.test/api/post/speech/tts',
+        baseUrl: 'https://gradium.test/api',
         timeoutMs: 30_000,
         limits: TEXT_TO_SPEECH_LIMITS,
-        voiceMap: { 'avatar-default': 'provider-voice-123' },
       },
       observability.adapter,
       { post } satisfies GradiumTransport,
@@ -411,10 +394,9 @@ describe('createTextToSpeechAdapter', () => {
     const adapter = createTextToSpeechAdapter(
       {
         provider: 'null',
-        endpoint: 'https://gradium.test/api/post/speech/tts',
+        baseUrl: 'https://gradium.test/api',
         timeoutMs: 30_000,
         limits: TEXT_TO_SPEECH_LIMITS,
-        voiceMap: {},
       },
       createObservability().adapter,
     )
@@ -422,21 +404,26 @@ describe('createTextToSpeechAdapter', () => {
     await expect(adapter.synthesize(createInput())).rejects.toMatchObject({
       failure: { code: 'provider_unavailable' },
     })
+    expect(adapter.provider).toBeNull()
+    await expect(adapter.listVoices()).resolves.toEqual([])
+    await expect(adapter.getDefaultVoiceId('fr')).resolves.toBeUndefined()
   })
 
   it('reports selected Gradium configuration without credentials as invalid configuration', async () => {
     const adapter = createTextToSpeechAdapter(
       {
         provider: 'gradium',
-        endpoint: 'https://gradium.test/api/post/speech/tts',
+        baseUrl: 'https://gradium.test/api',
         timeoutMs: 30_000,
         limits: TEXT_TO_SPEECH_LIMITS,
-        voiceMap: {},
       },
       createObservability().adapter,
     )
 
     await expect(adapter.synthesize(createInput())).rejects.toMatchObject({
+      failure: { code: 'invalid_configuration', reason: 'missing_credentials' },
+    })
+    await expect(adapter.listVoices()).rejects.toMatchObject({
       failure: { code: 'invalid_configuration', reason: 'missing_credentials' },
     })
   })

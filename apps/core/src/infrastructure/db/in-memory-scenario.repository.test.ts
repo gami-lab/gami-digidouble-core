@@ -134,10 +134,10 @@ describe('InMemoryScenarioRepository', () => {
     const created = await repository.create({
       name: 'Voice scenario',
       config: { availabilityKey: 'scenario' },
-      voiceConfig: { voiceKey: 'scenario-default', language: 'en-US' },
+      voiceConfig: { provider: 'gradium', voiceId: 'scenario-default' },
     })
 
-    expect(created.voiceConfig).toEqual({ voiceKey: 'scenario-default', language: 'en-US' })
+    expect(created.voiceConfig).toEqual({ provider: 'gradium', voiceId: 'scenario-default' })
     expect(created.config).toEqual({ availabilityKey: 'scenario' })
 
     const withUnrelatedConfig = await repository.update(created.scenarioId, {

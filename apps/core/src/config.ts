@@ -38,9 +38,8 @@ export interface Config {
   speechToTextLimits: SpeechToTextLimits
   ttsProvider: 'null' | 'gradium'
   gradiumApiKey: string | undefined
-  gradiumEndpoint: string
+  gradiumBaseUrl: string
   gradiumTimeoutMs: number
-  gradiumVoiceMap: Readonly<Record<string, string>>
   textToSpeechLimits: TextToSpeechLimits
   langfusePublicKey: string | undefined
   langfuseSecretKey: string | undefined
@@ -58,7 +57,7 @@ export const DEFAULT_DEEPGRAM_MODEL = 'nova-3'
 export const DEFAULT_DEEPGRAM_TIMEOUT_MS = 30_000
 export const DEFAULT_DEEPGRAM_LANGUAGE = 'en'
 export const DEFAULT_TTS_PROVIDER = 'null'
-export const DEFAULT_GRADIUM_ENDPOINT = 'https://api.gradium.ai/api/post/speech/tts'
+export const DEFAULT_GRADIUM_BASE_URL = 'https://api.gradium.ai/api'
 export const DEFAULT_GRADIUM_TIMEOUT_MS = 30_000
 
 function requireEnv(key: string): string {
@@ -119,11 +118,11 @@ export function loadConfig(): Config {
     speechToTextLimits: SPEECH_TO_TEXT_LIMITS,
     ttsProvider: parseTtsProvider(process.env['TTS_PROVIDER']),
     gradiumApiKey: process.env['GRADIUM_API_KEY'],
-    gradiumEndpoint: parseUrl(
-      'GRADIUM_ENDPOINT',
-      process.env['GRADIUM_ENDPOINT'],
-      DEFAULT_GRADIUM_ENDPOINT,
-    ),
+    gradiumBaseUrl: parseUrl(
+      'GRADIUM_BASE_URL',
+      process.env['GRADIUM_BASE_URL'],
+      DEFAULT_GRADIUM_BASE_URL,
+    ).replace(/\/+$/, ''),
     gradiumTimeoutMs: parseBoundedPositiveInteger(
       'GRADIUM_TIMEOUT_MS',
       process.env['GRADIUM_TIMEOUT_MS'],
@@ -131,7 +130,6 @@ export function loadConfig(): Config {
       100,
       120_000,
     ),
-    gradiumVoiceMap: parseVoiceMap(process.env['GRADIUM_VOICE_MAP']),
     textToSpeechLimits: {
       ...TEXT_TO_SPEECH_LIMITS,
       maxOutputBytes: parseBoundedPositiveInteger(
@@ -220,32 +218,6 @@ function parseUrl(key: string, value: string | undefined, fallback: string): str
     throw new Error(`Invalid ${key}: expected an HTTP(S) URL.`)
   }
   return normalized
-}
-
-// eslint-disable-next-line complexity
-function parseVoiceMap(value: string | undefined): Readonly<Record<string, string>> {
-  if (value === undefined || value.trim().length === 0) return {}
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(value)
-  } catch {
-    throw new Error('Invalid GRADIUM_VOICE_MAP: expected a JSON object.')
-  }
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new Error('Invalid GRADIUM_VOICE_MAP: expected a JSON object.')
-  }
-  const map: Record<string, string> = {}
-  for (const [logicalKey, providerVoiceId] of Object.entries(parsed)) {
-    if (
-      logicalKey.trim().length === 0 ||
-      typeof providerVoiceId !== 'string' ||
-      providerVoiceId.trim().length === 0
-    ) {
-      throw new Error('Invalid GRADIUM_VOICE_MAP: keys and values must be non-empty strings.')
-    }
-    map[logicalKey] = providerVoiceId
-  }
-  return map
 }
 
 function parseAllowedRoots(value: string | undefined): string[] {

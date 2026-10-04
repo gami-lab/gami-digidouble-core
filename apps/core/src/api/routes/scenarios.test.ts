@@ -116,7 +116,7 @@ describe('POST /v1/scenarios — success', () => {
       payload: {
         name: 'Voice Scenario',
         language: 'fr-FR',
-        voiceConfig: { voiceKey: 'guide', language: 'en-US' },
+        voiceConfig: { provider: 'gradium', voiceId: 'guide' },
         config: { availabilityKey: 'guide' },
       },
     })
@@ -126,19 +126,19 @@ describe('POST /v1/scenarios — success', () => {
       response.json<
         ApiResponse<CreateScenarioRouteData & { scenario: { voiceConfig?: unknown } }>
       >()
-    expect(body.data?.scenario.voiceConfig).toEqual({ voiceKey: 'guide', language: 'en-US' })
+    expect(body.data?.scenario.voiceConfig).toEqual({ provider: 'gradium', voiceId: 'guide' })
     expect(body.data?.scenario.language).toBe('fr-FR')
     expect(body.data?.scenario.config).toEqual({ availabilityKey: 'guide' })
   })
 
-  it('rejects provider-specific voice fields', async () => {
+  it('rejects extra voice fields and unknown providers', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Invalid Voice Scenario',
-        voiceConfig: { voiceKey: 'guide', providerVoiceId: 'x' },
+        voiceConfig: { provider: 'gradium', voiceId: 'guide', providerVoiceId: 'x' },
       },
     })
 
@@ -245,7 +245,10 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { name: 'Avatar Voice Scenario', voiceConfig: { voiceKey: 'scenario-default' } },
+      payload: {
+        name: 'Avatar Voice Scenario',
+        voiceConfig: { provider: 'gradium', voiceId: 'scenario-default' },
+      },
     })
     const scenarioId =
       scenarioResponse.json<ApiResponse<CreateScenarioRouteData>>().data?.scenario.scenarioId
@@ -258,13 +261,16 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
       payload: {
         name: 'Ava',
         personaPrompt: 'You are Ava.',
-        voiceConfig: { voiceKey: 'avatar-override' },
+        voiceConfig: { provider: 'gradium', voiceId: 'avatar-override' },
       },
     })
 
     expect(response.statusCode).toBe(201)
     const body = response.json<ApiResponse<CreateAvatarResponse>>()
-    expect(body.data?.avatar.voiceConfig).toEqual({ voiceKey: 'avatar-override' })
+    expect(body.data?.avatar.voiceConfig).toEqual({
+      provider: 'gradium',
+      voiceId: 'avatar-override',
+    })
     expect(body.data?.avatar.config).toEqual({})
   })
 })

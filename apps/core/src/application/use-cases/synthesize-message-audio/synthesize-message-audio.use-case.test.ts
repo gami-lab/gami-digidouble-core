@@ -32,7 +32,7 @@ const scenario: Scenario = {
   objectives: [],
   worldContext: '',
   avatarAvailability: { initialAvatarIds: [] },
-  voiceConfig: { voiceKey: 'scenario-default', language: 'en-US' },
+  voiceConfig: { provider: 'gradium', voiceId: 'scenario-default' },
   config: {},
   createdAt: conversation.startedAt,
   updatedAt: conversation.startedAt,
@@ -44,7 +44,7 @@ const avatar: AvatarConfig = {
   name: 'Ava',
   status: 'active',
   personaPrompt: 'You are Ava.',
-  voiceConfig: { voiceKey: 'avatar-override', language: 'fr-CH' },
+  voiceConfig: { provider: 'gradium', voiceId: 'avatar-override' },
   config: {},
   createdAt: conversation.startedAt,
   updatedAt: conversation.startedAt,
@@ -63,8 +63,15 @@ const avatarMessage: Message = {
 
 function createAdapter(
   outcome?: TextToSpeechResult | TextToSpeechError,
-): ITextToSpeechAdapter & { inputs: TextToSpeechInput[] } {
+  options: { defaultVoiceId?: string; provider?: 'gradium' | null } = {
+    defaultVoiceId: 'provider-default',
+  },
+): ITextToSpeechAdapter & {
+  inputs: TextToSpeechInput[]
+  defaultLanguages: (string | undefined)[]
+} {
   const inputs: TextToSpeechInput[] = []
+  const defaultLanguages: (string | undefined)[] = []
   const synthesize = vi
     .fn<ITextToSpeechAdapter['synthesize']>()
     .mockImplementation((input: TextToSpeechInput, _options?: TextToSpeechOptions) => {
@@ -82,7 +89,17 @@ function createAdapter(
         },
       )
     })
-  return { synthesize, inputs }
+  return {
+    provider: options.provider === undefined ? 'gradium' : options.provider,
+    synthesize,
+    listVoices: () => Promise.resolve([]),
+    getDefaultVoiceId: (language?: string) => {
+      defaultLanguages.push(language)
+      return Promise.resolve(options.defaultVoiceId)
+    },
+    inputs,
+    defaultLanguages,
+  }
 }
 
 function createUseCase(
@@ -95,7 +112,10 @@ function createUseCase(
 ): {
   useCase: SynthesizeMessageAudioUseCase
   messages: InMemoryMessageRepository
-  adapter: ITextToSpeechAdapter & { inputs: TextToSpeechInput[] }
+  adapter: ITextToSpeechAdapter & {
+    inputs: TextToSpeechInput[]
+    defaultLanguages: (string | undefined)[]
+  }
 } {
   const adapter = args.adapter ?? createAdapter()
   const messages = new InMemoryMessageRepository([args.message ?? avatarMessage])
@@ -109,7 +129,10 @@ function createUseCase(
   return {
     useCase,
     messages,
-    adapter: adapter as ITextToSpeechAdapter & { inputs: TextToSpeechInput[] },
+    adapter: adapter as ITextToSpeechAdapter & {
+      inputs: TextToSpeechInput[]
+      defaultLanguages: (string | undefined)[]
+    },
   }
 }
 
@@ -127,7 +150,7 @@ describe('SynthesizeMessageAudioUseCase', () => {
 
     expect(adapter.inputs[0]).toEqual({
       text: persistedAvatarContent,
-      voice: avatar.voiceConfig,
+      voiceId: 'avatar-override',
       format: 'audio/wav',
       requestId: 'request_1',
       messageId: avatarMessage.messageId,
@@ -137,7 +160,7 @@ describe('SynthesizeMessageAudioUseCase', () => {
     ])
   })
 
-  it('resolves Avatar voice over the Scenario default and supports old records without voice config', async () => {
+  it('falls back from the Avatar voice to the Scenario voice', async () => {
     const avatarWithoutVoice = { ...avatar }
     delete avatarWithoutVoice.voiceConfig
     const { useCase, adapter } = createUseCase({ avatarConfig: avatarWithoutVoice })
@@ -148,41 +171,65 @@ describe('SynthesizeMessageAudioUseCase', () => {
       requestId: 'request_2',
     })
 
-    expect(adapter.inputs[0]?.voice).toEqual(scenario.voiceConfig)
-
-    const oldScenario = { ...scenario }
-    delete oldScenario.voiceConfig
-    const oldAvatar = { ...avatarWithoutVoice }
-    const old = createUseCase({ avatarConfig: oldAvatar, scenarioConfig: oldScenario })
-    await expect(
-      old.useCase.execute({
-        conversationId: conversation.conversationId,
-        messageId: avatarMessage.messageId,
-        requestId: 'request_3',
-      }),
-    ).rejects.toMatchObject({
-      failure: {
-        code: 'invalid_configuration',
-        reason: 'missing_voice_configuration',
-      },
-    })
+    expect(adapter.inputs[0]?.voiceId).toBe('scenario-default')
+    expect(adapter.defaultLanguages).toEqual([])
   })
 
-  it('forces the selected voice to use the Scenario language', async () => {
+  it("uses the provider's default voice for the Scenario language when none is selected", async () => {
+    const avatarWithoutVoice = { ...avatar }
+    delete avatarWithoutVoice.voiceConfig
+    const scenarioWithoutVoice: Scenario = { ...scenario, language: 'fr-CH' }
+    delete scenarioWithoutVoice.voiceConfig
     const { useCase, adapter } = createUseCase({
-      scenarioConfig: { ...scenario, language: 'fr-FR' },
+      avatarConfig: avatarWithoutVoice,
+      scenarioConfig: scenarioWithoutVoice,
     })
 
     await useCase.execute({
       conversationId: conversation.conversationId,
       messageId: avatarMessage.messageId,
-      requestId: 'request_language',
+      requestId: 'request_default',
     })
 
-    expect(adapter.inputs[0]?.voice).toEqual({
-      voiceKey: 'avatar-override',
-      language: 'fr-FR',
+    expect(adapter.defaultLanguages).toEqual(['fr-CH'])
+    expect(adapter.inputs[0]?.voiceId).toBe('provider-default')
+  })
+
+  it('fails with no_voice_available when the provider has no default voice', async () => {
+    const avatarWithoutVoice = { ...avatar }
+    delete avatarWithoutVoice.voiceConfig
+    const scenarioWithoutVoice = { ...scenario }
+    delete scenarioWithoutVoice.voiceConfig
+    const { useCase } = createUseCase({
+      avatarConfig: avatarWithoutVoice,
+      scenarioConfig: scenarioWithoutVoice,
+      adapter: createAdapter(undefined, {}),
     })
+
+    await expect(
+      useCase.execute({
+        conversationId: conversation.conversationId,
+        messageId: avatarMessage.messageId,
+        requestId: 'request_3',
+      }),
+    ).rejects.toMatchObject({
+      failure: { code: 'invalid_configuration', reason: 'no_voice_available' },
+    })
+  })
+
+  it('reports provider_unavailable when text-to-speech is disabled', async () => {
+    const { useCase, adapter } = createUseCase({
+      adapter: createAdapter(undefined, { provider: null }),
+    })
+
+    await expect(
+      useCase.execute({
+        conversationId: conversation.conversationId,
+        messageId: avatarMessage.messageId,
+        requestId: 'request_disabled',
+      }),
+    ).rejects.toMatchObject({ failure: { code: 'provider_unavailable' } })
+    expect(adapter.inputs).toEqual([])
   })
 
   it('keeps provider failures isolated from the persisted message', async () => {

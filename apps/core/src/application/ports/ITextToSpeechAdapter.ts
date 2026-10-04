@@ -1,22 +1,27 @@
-import type { AudioDeliveryMetadata, AudioOutputFormat, VoiceConfiguration } from '@gami/shared'
-import { isAudioDeliveryMetadata, isAudioOutputFormat, normalizeLanguageTag } from '@gami/shared'
+import type {
+  AudioDeliveryMetadata,
+  AudioOutputFormat,
+  TextToSpeechProviderName,
+  VoiceOption,
+} from '@gami/shared'
+import { isAudioDeliveryMetadata, isAudioOutputFormat, VOICE_ID_MAX_LENGTH } from '@gami/shared'
 
 export type TextToSpeechLimits = Readonly<{
   maxTextCharacters: number
   maxOutputBytes: number
 }>
 
-export type TextToSpeechProvider = 'null' | 'gradium'
+export type TextToSpeechProvider = 'null' | TextToSpeechProviderName
 
 export const TEXT_TO_SPEECH_LIMITS: TextToSpeechLimits = Object.freeze({
   maxTextCharacters: 10_000,
   maxOutputBytes: 10_000_000,
 })
 
-/** Normalized application input. Provider identifiers are resolved in infrastructure. */
+/** Normalized application input; `voiceId` is the active provider's own voice id. */
 export type TextToSpeechInput = Readonly<{
   text: string
-  voice: VoiceConfiguration
+  voiceId: string
   format: AudioOutputFormat
   requestId: string
   messageId: string
@@ -31,9 +36,20 @@ export type TextToSpeechOptions = Readonly<{
   signal?: AbortSignal
 }>
 
+export type VoiceListFilter = Readonly<{
+  /** BCP-47 tag; matched on its primary language subtag (`fr-CH` matches `fr`). */
+  language?: string
+}>
+
 /** Provider-neutral text-to-speech capability. */
 export interface ITextToSpeechAdapter {
+  /** Active provider, or null when text-to-speech is disabled. */
+  readonly provider: TextToSpeechProviderName | null
   synthesize(input: TextToSpeechInput, options?: TextToSpeechOptions): Promise<TextToSpeechResult>
+  /** Selectable voices of the active provider. */
+  listVoices(filter?: VoiceListFilter): Promise<VoiceOption[]>
+  /** Voice used when the scenario and avatar select none; undefined when none is available. */
+  getDefaultVoiceId(language?: string): Promise<string | undefined>
 }
 
 export type TextToSpeechFailure =
@@ -44,11 +60,7 @@ export type TextToSpeechFailure =
     }>
   | Readonly<{
       code: 'invalid_configuration'
-      reason:
-        | 'missing_credentials'
-        | 'missing_voice_configuration'
-        | 'missing_voice_mapping'
-        | 'invalid_adapter_configuration'
+      reason: 'missing_credentials' | 'no_voice_available' | 'invalid_adapter_configuration'
       retryable: false
     }>
   | Readonly<{
@@ -113,16 +125,12 @@ export function normalizeTextToSpeechInput(input: unknown): TextToSpeechInput {
     throw invalidRequest('text_too_long')
   }
 
-  const voice = input['voice']
+  const voiceId = input['voiceId']
   if (
-    !isRecord(voice) ||
-    typeof voice['voiceKey'] !== 'string' ||
-    voice['voiceKey'].trim() === ''
+    typeof voiceId !== 'string' ||
+    voiceId.trim() === '' ||
+    voiceId.length > VOICE_ID_MAX_LENGTH
   ) {
-    throw invalidRequest('invalid_voice')
-  }
-  const language = normalizeLanguageTag(voice['language'])
-  if (language === null) {
     throw invalidRequest('invalid_voice')
   }
 
@@ -143,10 +151,7 @@ export function normalizeTextToSpeechInput(input: unknown): TextToSpeechInput {
 
   return {
     text,
-    voice: {
-      voiceKey: voice['voiceKey'].trim(),
-      ...(language === undefined ? {} : { language }),
-    },
+    voiceId: voiceId.trim(),
     format,
     requestId,
     messageId,

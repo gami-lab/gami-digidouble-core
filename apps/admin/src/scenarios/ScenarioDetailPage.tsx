@@ -312,6 +312,7 @@ function renderModePanel({
       return (
         <AvatarCreateForm
           scenarioId={data.scenario.scenarioId}
+          scenarioLanguage={data.scenario.language}
           onCancel={() => { setMode({ kind: 'view' }) }}
           onCreated={(avatar) => { refreshData({ avatars: [avatar, ...data.avatars] }) }}
           onError={setActionError}
@@ -371,6 +372,7 @@ function renderAvatarEditMode(
   return (
     <AvatarEditForm
       avatar={avatar}
+      scenarioLanguage={data.scenario.language}
       onCancel={() => { setMode({ kind: 'view' }) }}
       onSaved={(updated) => {
         refreshData({ avatars: data.avatars.map((item) => (item.avatarId === updated.avatarId ? updated : item)) })

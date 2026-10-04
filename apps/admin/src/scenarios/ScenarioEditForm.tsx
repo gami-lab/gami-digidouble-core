@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import type { ScenarioStatus, ScenarioSummary } from '@gami/shared'
+import type { ScenarioStatus, ScenarioSummary, VoiceConfiguration } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { updateScenario } from '../api/scenarios'
 import { ScenarioFormFields } from './ScenarioFormFields'
@@ -9,7 +9,6 @@ import {
   hasPartialScenarioModelSelection,
   toScenarioModelSelection,
 } from './model-selection-form'
-import { toVoiceConfiguration } from './voice-config-form'
 
 type ScenarioEditFormProps = {
   scenario: ScenarioSummary
@@ -32,7 +31,9 @@ export function ScenarioEditForm({
   const [modelSelectionForm, setModelSelectionForm] = useState(() =>
     fromScenarioModelSelection(scenario.modelSelection),
   )
-  const [voiceKey, setVoiceKey] = useState(scenario.voiceConfig?.voiceKey ?? '')
+  const [voiceConfig, setVoiceConfig] = useState<VoiceConfiguration | null>(
+    scenario.voiceConfig ?? null,
+  )
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: SyntheticEvent): Promise<void> {
@@ -41,7 +42,6 @@ export function ScenarioEditForm({
     setSaving(true)
     try {
       const modelSelection = toScenarioModelSelection(modelSelectionForm)
-      const voiceConfig = toVoiceConfiguration(voiceKey)
       const updated = await updateScenario(scenario.scenarioId, {
         name: name.trim(),
         status,
@@ -49,7 +49,7 @@ export function ScenarioEditForm({
         worldContext: worldContext.trim(),
         objectives,
         modelSelection: modelSelection ?? null,
-        voiceConfig: voiceConfig ?? null,
+        voiceConfig,
       })
       onSaved(updated)
     } catch (error: unknown) {
@@ -72,7 +72,7 @@ export function ScenarioEditForm({
           worldContext={worldContext}
           objectives={objectives}
           modelSelection={modelSelectionForm}
-          voiceKey={voiceKey}
+          voiceConfig={voiceConfig}
           idPrefix="edit-sc"
           disabled={saving}
           onNameChange={setName}
@@ -81,7 +81,7 @@ export function ScenarioEditForm({
           onWorldContextChange={setWorldContext}
           onObjectivesChange={setObjectives}
           onModelSelectionChange={setModelSelectionForm}
-          onVoiceKeyChange={setVoiceKey}
+          onVoiceConfigChange={setVoiceConfig}
         />
         {hasPartialModelSelectionState ? (
           <p className="admin-error">

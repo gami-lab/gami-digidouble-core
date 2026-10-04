@@ -43,10 +43,7 @@ function mapTextToSpeechRouteError(
   failure: TextToSpeechFailure,
   safeMessage: string,
 ): { statusCode: number; body: ReturnType<typeof fail> } {
-  if (
-    failure.code === 'invalid_configuration' &&
-    failure.reason === 'missing_voice_configuration'
-  ) {
+  if (failure.code === 'invalid_configuration' && failure.reason === 'no_voice_available') {
     return { statusCode: 409, body: fail('CONFLICT', safeMessage) }
   }
   const mapping = TEXT_TO_SPEECH_ROUTE_ERRORS[failure.code]

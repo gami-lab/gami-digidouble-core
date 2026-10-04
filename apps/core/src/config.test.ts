@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  DEFAULT_GRADIUM_ENDPOINT,
+  DEFAULT_GRADIUM_BASE_URL,
   DEFAULT_GRADIUM_TIMEOUT_MS,
   DEFAULT_DEEPGRAM_LANGUAGE,
   DEFAULT_DEEPGRAM_MODEL,
@@ -20,9 +20,8 @@ describe('loadConfig Deepgram settings', () => {
     vi.stubEnv('DEEPGRAM_DEFAULT_LANGUAGE', '')
     vi.stubEnv('TTS_PROVIDER', '')
     vi.stubEnv('GRADIUM_API_KEY', '')
-    vi.stubEnv('GRADIUM_ENDPOINT', '')
+    vi.stubEnv('GRADIUM_BASE_URL', '')
     vi.stubEnv('GRADIUM_TIMEOUT_MS', '')
-    vi.stubEnv('GRADIUM_VOICE_MAP', '')
     vi.stubEnv('TTS_MAX_OUTPUT_BYTES', '')
   })
 
@@ -40,9 +39,8 @@ describe('loadConfig Deepgram settings', () => {
     expect(config.speechToTextLimits.maxAudioBytes).toBe(10_000_000)
     expect(config.ttsProvider).toBe(DEFAULT_TTS_PROVIDER)
     expect(config.gradiumApiKey).toBe('')
-    expect(config.gradiumEndpoint).toBe(DEFAULT_GRADIUM_ENDPOINT)
+    expect(config.gradiumBaseUrl).toBe(DEFAULT_GRADIUM_BASE_URL)
     expect(config.gradiumTimeoutMs).toBe(DEFAULT_GRADIUM_TIMEOUT_MS)
-    expect(config.gradiumVoiceMap).toEqual({})
     expect(config.textToSpeechLimits.maxOutputBytes).toBe(10_000_000)
   })
 
@@ -74,28 +72,24 @@ describe('loadConfig Deepgram settings', () => {
   it('parses private Gradium settings without changing the provider-neutral contract', () => {
     vi.stubEnv('TTS_PROVIDER', 'gradium')
     vi.stubEnv('GRADIUM_API_KEY', ' gradium-secret ')
-    vi.stubEnv('GRADIUM_ENDPOINT', 'http://localhost:4010/tts')
+    vi.stubEnv('GRADIUM_BASE_URL', 'http://localhost:4010/api/')
     vi.stubEnv('GRADIUM_TIMEOUT_MS', '45000')
-    vi.stubEnv('GRADIUM_VOICE_MAP', '{"avatar-default":"provider-voice-1"}')
     vi.stubEnv('TTS_MAX_OUTPUT_BYTES', '12345')
 
     const config = loadConfig()
 
     expect(config.ttsProvider).toBe('gradium')
     expect(config.gradiumApiKey).toBe(' gradium-secret ')
-    expect(config.gradiumEndpoint).toBe('http://localhost:4010/tts')
+    expect(config.gradiumBaseUrl).toBe('http://localhost:4010/api')
     expect(config.gradiumTimeoutMs).toBe(45_000)
-    expect(config.gradiumVoiceMap).toEqual({ 'avatar-default': 'provider-voice-1' })
     expect(config.textToSpeechLimits.maxOutputBytes).toBe(12_345)
   })
 
   it.each([
     ['TTS_PROVIDER', 'other'],
-    ['GRADIUM_ENDPOINT', 'file:///tmp/tts'],
+    ['GRADIUM_BASE_URL', 'file:///tmp/tts'],
     ['GRADIUM_TIMEOUT_MS', '99'],
     ['TTS_MAX_OUTPUT_BYTES', '0'],
-    ['GRADIUM_VOICE_MAP', '[]'],
-    ['GRADIUM_VOICE_MAP', '{"avatar-default":1}'],
   ] as const)('rejects invalid %s configuration', (key, value) => {
     vi.stubEnv(key, value)
 

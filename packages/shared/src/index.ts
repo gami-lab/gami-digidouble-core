@@ -90,15 +90,21 @@ export type {
   AudioDeliveryRequest,
   AudioOutputFormat,
   ClientAudioOptions,
+  ListVoicesResponse,
+  TextToSpeechProviderName,
   VoiceConfiguration,
   VoiceConfigurationUpdate,
+  VoiceOption,
 } from './voice-contract-types.js'
 export {
   AUDIO_OUTPUT_FORMATS,
+  TEXT_TO_SPEECH_PROVIDER_NAMES,
+  VOICE_ID_MAX_LENGTH,
   isAudioDeliveryMetadata,
   isAudioDeliveryRequest,
   isAudioOutputFormat,
   isClientAudioOptions,
+  isTextToSpeechProviderName,
   isVoiceConfiguration,
 } from './voice-contract-types.js'
 export type {

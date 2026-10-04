@@ -6,7 +6,12 @@ import {
   MODEL_SELECTION_PROVIDER_NAMES,
   mapAvatarOverride,
 } from '@gami/shared'
-import type { AvatarComputedTraits, AvatarStatus, AvatarSummary } from '@gami/shared'
+import type {
+  AvatarComputedTraits,
+  AvatarStatus,
+  AvatarSummary,
+  VoiceConfiguration,
+} from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { createAvatar, updateAvatar } from '../api/scenarios'
 import { ModelSelectionTable } from '../model-selection/ModelSelectionTable'
@@ -16,10 +21,11 @@ import {
   hasPartialModelSelection,
   type ModelSelectionFormValue,
 } from './model-selection-form'
-import { toVoiceConfiguration } from './voice-config-form'
+import { VoiceSelect } from '../voice/VoiceSelect'
 
 type AvatarCreateFormProps = {
   scenarioId: string
+  scenarioLanguage: string | undefined
   onCancel: () => void
   onCreated: (avatar: AvatarSummary) => void
   onError: (message: string) => void
@@ -27,6 +33,7 @@ type AvatarCreateFormProps = {
 
 export function AvatarCreateForm({
   scenarioId,
+  scenarioLanguage,
   onCancel,
   onCreated,
   onError,
@@ -35,7 +42,7 @@ export function AvatarCreateForm({
   const [personaPrompt, setPersonaPrompt] = useState('')
   const [avatarStatus, setAvatarStatus] = useState<AvatarStatus>('draft')
   const [modelOverride, setModelOverride] = useState<ModelSelectionFormValue>(EMPTY_MODEL_SELECTION)
-  const [voiceKey, setVoiceKey] = useState('')
+  const [voiceConfig, setVoiceConfig] = useState<VoiceConfiguration | null>(null)
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(event: SyntheticEvent): Promise<void> {
@@ -43,13 +50,12 @@ export function AvatarCreateForm({
     if (name.trim().length === 0 || personaPrompt.trim().length === 0) return
     setSaving(true)
     try {
-      const voiceConfig = toVoiceConfiguration(voiceKey)
       const avatar = await createAvatar(scenarioId, {
         name: name.trim(),
         personaPrompt: personaPrompt.trim(),
         status: avatarStatus,
         llmOverride: mapAvatarOverride(modelOverride),
-        ...(voiceConfig !== undefined ? { voiceConfig } : {}),
+        ...(voiceConfig !== null ? { voiceConfig } : {}),
       })
       onCreated(avatar)
     } catch (error: unknown) {
@@ -76,14 +82,16 @@ export function AvatarCreateForm({
       onPersonaPromptChange={setPersonaPrompt}
       onStatusChange={setAvatarStatus}
       onModelOverrideChange={setModelOverride}
-      voiceKey={voiceKey}
-      onVoiceKeyChange={setVoiceKey}
+      language={scenarioLanguage}
+      voiceConfig={voiceConfig}
+      onVoiceConfigChange={setVoiceConfig}
     />
   )
 }
 
 type AvatarEditFormProps = {
   avatar: AvatarSummary
+  scenarioLanguage: string | undefined
   onCancel: () => void
   onSaved: (avatar: AvatarSummary) => void
   onError: (message: string) => void
@@ -91,6 +99,7 @@ type AvatarEditFormProps = {
 
 export function AvatarEditForm({
   avatar,
+  scenarioLanguage,
   onCancel,
   onSaved,
   onError,
@@ -99,7 +108,9 @@ export function AvatarEditForm({
   const [personaPrompt, setPersonaPrompt] = useState(avatar.personaPrompt)
   const [avatarStatus, setAvatarStatus] = useState<AvatarStatus>(avatar.status)
   const [modelOverride, setModelOverride] = useState(fromAvatarLlmOverride(avatar.llmOverride))
-  const [voiceKey, setVoiceKey] = useState(avatar.voiceConfig?.voiceKey ?? '')
+  const [voiceConfig, setVoiceConfig] = useState<VoiceConfiguration | null>(
+    avatar.voiceConfig ?? null,
+  )
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(event: SyntheticEvent): Promise<void> {
@@ -112,7 +123,7 @@ export function AvatarEditForm({
         personaPrompt: personaPrompt.trim(),
         status: avatarStatus,
         llmOverride: mapAvatarOverride(modelOverride),
-        voiceConfig: toVoiceConfiguration(voiceKey) ?? null,
+        voiceConfig,
       })
       onSaved(updated)
     } catch (error: unknown) {
@@ -140,8 +151,9 @@ export function AvatarEditForm({
         onPersonaPromptChange={setPersonaPrompt}
         onStatusChange={setAvatarStatus}
         onModelOverrideChange={setModelOverride}
-        voiceKey={voiceKey}
-        onVoiceKeyChange={setVoiceKey}
+        language={scenarioLanguage}
+        voiceConfig={voiceConfig}
+        onVoiceConfigChange={setVoiceConfig}
       />
       {avatar.computedTraits !== undefined ? (
         <AvatarComputedTraitsView computedTraits={avatar.computedTraits} />
@@ -195,8 +207,9 @@ type AvatarFormProps = {
   onPersonaPromptChange: (value: string) => void
   onStatusChange: (value: AvatarStatus) => void
   onModelOverrideChange: (value: ModelSelectionFormValue) => void
-  voiceKey: string
-  onVoiceKeyChange: (value: string) => void
+  language: string | undefined
+  voiceConfig: VoiceConfiguration | null
+  onVoiceConfigChange: (value: VoiceConfiguration | null) => void
 }
 
 function AvatarForm({
@@ -214,8 +227,9 @@ function AvatarForm({
   onPersonaPromptChange,
   onStatusChange,
   onModelOverrideChange,
-  voiceKey,
-  onVoiceKeyChange,
+  language,
+  voiceConfig,
+  onVoiceConfigChange,
 }: AvatarFormProps): JSX.Element {
   const hasPartialModelOverride = hasPartialModelSelection(modelOverride)
   const submitDisabled =
@@ -239,8 +253,9 @@ function AvatarForm({
           onPersonaPromptChange={onPersonaPromptChange}
           onStatusChange={onStatusChange}
           onModelOverrideChange={onModelOverrideChange}
-          voiceKey={voiceKey}
-          onVoiceKeyChange={onVoiceKeyChange}
+          language={language}
+          voiceConfig={voiceConfig}
+          onVoiceConfigChange={onVoiceConfigChange}
         />
         {hasPartialModelOverride ? (
           <p className="admin-error">
@@ -280,8 +295,9 @@ type AvatarFormFieldsProps = {
   onPersonaPromptChange: (value: string) => void
   onStatusChange: (value: AvatarStatus) => void
   onModelOverrideChange: (value: ModelSelectionFormValue) => void
-  voiceKey: string
-  onVoiceKeyChange: (value: string) => void
+  language: string | undefined
+  voiceConfig: VoiceConfiguration | null
+  onVoiceConfigChange: (value: VoiceConfiguration | null) => void
 }
 
 function AvatarFormFields({
@@ -295,8 +311,9 @@ function AvatarFormFields({
   onPersonaPromptChange,
   onStatusChange,
   onModelOverrideChange,
-  voiceKey,
-  onVoiceKeyChange,
+  language,
+  voiceConfig,
+  onVoiceConfigChange,
 }: AvatarFormFieldsProps): JSX.Element {
   return (
     <>
@@ -371,47 +388,15 @@ function AvatarFormFields({
           }}
         />
       </div>
-      <VoiceConfigurationFields
-        idPrefix={idPrefix}
-        voiceKey={voiceKey}
-        saving={saving}
-        onVoiceKeyChange={onVoiceKeyChange}
+      <VoiceSelect
+        id={`${idPrefix}-av-voice`}
+        label="Avatar voice"
+        language={language}
+        defaultHint="scenario voice"
+        value={voiceConfig}
+        disabled={saving}
+        onChange={onVoiceConfigChange}
       />
-    </>
-  )
-}
-
-type VoiceConfigurationFieldsProps = {
-  idPrefix: string
-  voiceKey: string
-  saving: boolean
-  onVoiceKeyChange: (value: string) => void
-}
-
-function VoiceConfigurationFields({
-  idPrefix,
-  voiceKey,
-  saving,
-  onVoiceKeyChange,
-}: VoiceConfigurationFieldsProps): JSX.Element {
-  return (
-    <>
-      <div className="admin-form-group">
-        <label htmlFor={`${idPrefix}-av-voice-key`} className="admin-form-label">
-          Voice key
-        </label>
-        <input
-          id={`${idPrefix}-av-voice-key`}
-          type="text"
-          className="admin-form-input"
-          value={voiceKey}
-          onChange={(event) => {
-            onVoiceKeyChange(event.target.value)
-          }}
-          disabled={saving}
-          placeholder="Optional logical voice key"
-        />
-      </div>
     </>
   )
 }

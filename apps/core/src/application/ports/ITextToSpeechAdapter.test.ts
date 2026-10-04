@@ -7,19 +7,19 @@ import {
 } from './ITextToSpeechAdapter.js'
 
 describe('text-to-speech application contract', () => {
-  it('normalizes provider-neutral input without accepting provider fields', () => {
+  it('normalizes input and drops unknown fields', () => {
     expect(
       normalizeTextToSpeechInput({
         text: 'Hello',
-        voice: { voiceKey: 'avatar-default', language: 'en-US' },
+        voiceId: '  voice_1  ',
         format: 'audio/wav',
         requestId: 'request-1',
         messageId: 'message-1',
-        voice_id: 'provider-secret',
+        voice_id: 'provider-native-field',
       }),
     ).toEqual({
       text: 'Hello',
-      voice: { voiceKey: 'avatar-default', language: 'en-US' },
+      voiceId: 'voice_1',
       format: 'audio/wav',
       requestId: 'request-1',
       messageId: 'message-1',
@@ -29,13 +29,14 @@ describe('text-to-speech application contract', () => {
   it.each([
     ['empty text', { text: '' }, 'empty_text'],
     ['too much text', { text: 'a'.repeat(10_001) }, 'text_too_long'],
-    ['invalid voice', { voice: {} }, 'invalid_voice'],
+    ['invalid voice', { voiceId: ' ' }, 'invalid_voice'],
+    ['oversized voice id', { voiceId: 'v'.repeat(129) }, 'invalid_voice'],
     ['invalid identity', { requestId: '' }, 'invalid_identity'],
   ] as const)('rejects %s with a typed invalid request', (_label, overrides, reason) => {
     expect(() =>
       normalizeTextToSpeechInput({
         text: 'Hello',
-        voice: { voiceKey: 'avatar-default' },
+        voiceId: 'voice_1',
         format: 'audio/wav',
         requestId: 'request-1',
         messageId: 'message-1',
@@ -48,7 +49,7 @@ describe('text-to-speech application contract', () => {
     expect(() =>
       normalizeTextToSpeechInput({
         text: 'Hello',
-        voice: { voiceKey: 'avatar-default' },
+        voiceId: 'voice_1',
         format: 'audio/flac',
         requestId: 'request-1',
         messageId: 'message-1',

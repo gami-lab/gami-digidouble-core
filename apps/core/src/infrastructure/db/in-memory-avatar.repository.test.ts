@@ -118,10 +118,10 @@ describe('InMemoryAvatarRepository', () => {
       name: 'Ava',
       personaPrompt: 'You are Ava.',
       config: { availabilityKey: 'ava' },
-      voiceConfig: { voiceKey: 'guide', language: 'en-US' },
+      voiceConfig: { provider: 'gradium', voiceId: 'guide' },
     })
 
-    expect(created.voiceConfig).toEqual({ voiceKey: 'guide', language: 'en-US' })
+    expect(created.voiceConfig).toEqual({ provider: 'gradium', voiceId: 'guide' })
     expect(created.config).toEqual({ availabilityKey: 'ava' })
 
     const withUnrelatedConfig = await repository.update(created.avatarId, {

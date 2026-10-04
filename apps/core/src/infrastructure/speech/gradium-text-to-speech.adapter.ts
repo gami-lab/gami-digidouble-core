@@ -12,31 +12,32 @@ import {
   type TextToSpeechOptions,
   type TextToSpeechResult,
   type TextToSpeechProvider,
+  type VoiceListFilter,
 } from '../../application/ports/ITextToSpeechAdapter.js'
-import type { AudioOutputFormat } from '@gami/shared'
+import type { AudioOutputFormat, VoiceOption } from '@gami/shared'
+import { GradiumVoiceCatalog, type GradiumVoiceListTransport } from './gradium-voice-catalog.js'
 import { createTimeoutSignal } from './timeout-signal.js'
 
-export const DEFAULT_GRADIUM_ENDPOINT = 'https://api.gradium.ai/api/post/speech/tts'
+export const DEFAULT_GRADIUM_BASE_URL = 'https://api.gradium.ai/api'
 export const DEFAULT_GRADIUM_TIMEOUT_MS = 30_000
 const MIN_TIMEOUT_MS = 100
 const MAX_TIMEOUT_MS = 120_000
-const MAX_ENDPOINT_CHARACTERS = 500
+const MAX_BASE_URL_CHARACTERS = 500
 
 export type GradiumTextToSpeechConfig = Readonly<{
   apiKey: string
-  endpoint: string
+  /** REST base, e.g. `https://api.gradium.ai/api`; TTS and voice routes hang off it. */
+  baseUrl: string
   timeoutMs: number
   limits: TextToSpeechLimits
-  voiceMap: Readonly<Record<string, string>>
 }>
 
 export type GradiumTextToSpeechFactoryConfig = Readonly<{
   provider: TextToSpeechProvider
   apiKey?: string
-  endpoint: string
+  baseUrl: string
   timeoutMs: number
   limits: TextToSpeechLimits
-  voiceMap: Readonly<Record<string, string>>
 }>
 
 export type GradiumTransportRequest = Readonly<{
@@ -87,6 +88,16 @@ export function createTextToSpeechAdapter(
 }
 
 export class NullTextToSpeechAdapter implements ITextToSpeechAdapter {
+  readonly provider = null
+
+  listVoices(): Promise<VoiceOption[]> {
+    return Promise.resolve([])
+  }
+
+  getDefaultVoiceId(): Promise<string | undefined> {
+    return Promise.resolve(undefined)
+  }
+
   synthesize(
     _input: TextToSpeechInput,
     _options?: TextToSpeechOptions,
@@ -96,32 +107,56 @@ export class NullTextToSpeechAdapter implements ITextToSpeechAdapter {
 }
 
 export class UnconfiguredTextToSpeechAdapter implements ITextToSpeechAdapter {
+  readonly provider = 'gradium' as const
+
+  listVoices(): Promise<VoiceOption[]> {
+    return Promise.reject(missingCredentials())
+  }
+
+  getDefaultVoiceId(): Promise<string | undefined> {
+    return Promise.reject(missingCredentials())
+  }
+
   synthesize(
     _input: TextToSpeechInput,
     _options?: TextToSpeechOptions,
   ): Promise<TextToSpeechResult> {
-    return Promise.reject(
-      new TextToSpeechError({
-        code: 'invalid_configuration',
-        reason: 'missing_credentials',
-        retryable: false,
-      }),
-    )
+    return Promise.reject(missingCredentials())
   }
 }
 
+function missingCredentials(): TextToSpeechError {
+  return new TextToSpeechError({
+    code: 'invalid_configuration',
+    reason: 'missing_credentials',
+    retryable: false,
+  })
+}
+
 export class GradiumTextToSpeechAdapter implements ITextToSpeechAdapter {
+  readonly provider = 'gradium' as const
   private readonly config: GradiumTextToSpeechConfig
   private readonly transport: GradiumTransport
+  private readonly voiceCatalog: GradiumVoiceCatalog
 
   constructor(
     config: GradiumTextToSpeechConfig,
     private readonly observability: IObservabilityAdapter,
     transport: GradiumTransport = new FetchGradiumTransport(),
+    voiceListTransport?: GradiumVoiceListTransport,
   ) {
     validateConfig(config)
     this.config = config
     this.transport = transport
+    this.voiceCatalog = new GradiumVoiceCatalog(config, voiceListTransport)
+  }
+
+  listVoices(filter?: VoiceListFilter): Promise<VoiceOption[]> {
+    return this.voiceCatalog.list(filter?.language)
+  }
+
+  getDefaultVoiceId(language?: string): Promise<string | undefined> {
+    return this.voiceCatalog.getDefaultVoiceId(language)
   }
 
   async synthesize(
@@ -174,27 +209,19 @@ export class GradiumTextToSpeechAdapter implements ITextToSpeechAdapter {
   ): Promise<{ input: TextToSpeechInput; result: TextToSpeechResult }> {
     throwIfTextToSpeechCancelled(options?.signal, 'before_synthesis')
     const normalizedInput = normalizeTextToSpeechInput(input)
-    const providerVoiceId = this.config.voiceMap[normalizedInput.voice.voiceKey]
-    if (providerVoiceId === undefined || providerVoiceId.trim().length === 0) {
-      throw new TextToSpeechError({
-        code: 'invalid_configuration',
-        reason: 'missing_voice_mapping',
-        retryable: false,
-      })
-    }
     const providerFormat = mapOutputFormat(normalizedInput.format)
     const timeout = createTimeoutSignal(options?.signal, this.config.timeoutMs)
 
     try {
       const response = await this.transport.post({
-        url: this.config.endpoint,
+        url: `${this.config.baseUrl}/post/speech/tts`,
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': this.config.apiKey,
         },
         body: JSON.stringify({
           text: normalizedInput.text,
-          voice_id: providerVoiceId,
+          voice_id: normalizedInput.voiceId,
           output_format: providerFormat,
           only_audio: true,
         }),
@@ -291,11 +318,11 @@ function validateConfig(config: GradiumTextToSpeechConfig): void {
     throw new Error('Missing GRADIUM_API_KEY.')
   }
   if (
-    config.endpoint.trim().length === 0 ||
-    config.endpoint.length > MAX_ENDPOINT_CHARACTERS ||
-    !isHttpUrl(config.endpoint)
+    config.baseUrl.trim().length === 0 ||
+    config.baseUrl.length > MAX_BASE_URL_CHARACTERS ||
+    !isHttpUrl(config.baseUrl)
   ) {
-    throw new Error('Invalid GRADIUM_ENDPOINT.')
+    throw new Error('Invalid GRADIUM_BASE_URL.')
   }
   if (
     !Number.isInteger(config.timeoutMs) ||
@@ -311,11 +338,6 @@ function validateConfig(config: GradiumTextToSpeechConfig): void {
     config.limits.maxOutputBytes <= 0
   ) {
     throw new Error('Invalid text-to-speech limits.')
-  }
-  for (const [logicalKey, providerVoiceId] of Object.entries(config.voiceMap)) {
-    if (logicalKey.trim().length === 0 || providerVoiceId.trim().length === 0) {
-      throw new Error('Invalid GRADIUM_VOICE_MAP.')
-    }
   }
 }
 

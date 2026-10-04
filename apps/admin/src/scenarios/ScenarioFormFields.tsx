@@ -1,6 +1,12 @@
 import type { JSX } from 'react'
-import { MODEL_SELECTION_PROVIDER_NAMES, SCENARIO_MODEL_SLOTS, type ScenarioStatus } from '@gami/shared'
+import {
+  MODEL_SELECTION_PROVIDER_NAMES,
+  SCENARIO_MODEL_SLOTS,
+  type ScenarioStatus,
+  type VoiceConfiguration,
+} from '@gami/shared'
 import { ModelSelectionTable } from '../model-selection/ModelSelectionTable'
+import { VoiceSelect } from '../voice/VoiceSelect'
 import { ObjectivesEditor } from './ObjectivesEditor'
 import {
   SCENARIO_MODEL_SLOT_FIELDS,
@@ -14,7 +20,7 @@ type ScenarioFormFieldsProps = {
   worldContext: string
   objectives: string[]
   modelSelection: ScenarioModelSelectionFormValue
-  voiceKey: string
+  voiceConfig: VoiceConfiguration | null
   idPrefix: string
   disabled: boolean
   onNameChange: (value: string) => void
@@ -23,7 +29,7 @@ type ScenarioFormFieldsProps = {
   onWorldContextChange: (value: string) => void
   onObjectivesChange: (objectives: string[]) => void
   onModelSelectionChange: (value: ScenarioModelSelectionFormValue) => void
-  onVoiceKeyChange: (value: string) => void
+  onVoiceConfigChange: (value: VoiceConfiguration | null) => void
 }
 
 // eslint-disable-next-line max-lines-per-function
@@ -34,7 +40,7 @@ export function ScenarioFormFields({
   worldContext,
   objectives,
   modelSelection,
-  voiceKey,
+  voiceConfig,
   idPrefix,
   disabled,
   onNameChange,
@@ -43,7 +49,7 @@ export function ScenarioFormFields({
   onWorldContextChange,
   onObjectivesChange,
   onModelSelectionChange,
-  onVoiceKeyChange,
+  onVoiceConfigChange,
 }: ScenarioFormFieldsProps): JSX.Element {
   return (
     <>
@@ -142,47 +148,14 @@ export function ScenarioFormFields({
           }}
         />
       </div>
-      <VoiceConfigurationFields
-        idPrefix={idPrefix}
-        voiceKey={voiceKey}
+      <VoiceSelect
+        id={`${idPrefix}-voice`}
+        label="Scenario voice"
+        language={language.length > 0 ? language : undefined}
+        value={voiceConfig}
         disabled={disabled}
-        onVoiceKeyChange={onVoiceKeyChange}
+        onChange={onVoiceConfigChange}
       />
-    </>
-  )
-}
-
-type VoiceConfigurationFieldsProps = {
-  idPrefix: string
-  voiceKey: string
-  disabled: boolean
-  onVoiceKeyChange: (value: string) => void
-}
-
-function VoiceConfigurationFields({
-  idPrefix,
-  voiceKey,
-  disabled,
-  onVoiceKeyChange,
-}: VoiceConfigurationFieldsProps): JSX.Element {
-  return (
-    <>
-      <div className="admin-form-group">
-        <label htmlFor={`${idPrefix}-voice-key`} className="admin-form-label">
-          Scenario default voice key
-        </label>
-        <input
-          id={`${idPrefix}-voice-key`}
-          type="text"
-          className="admin-form-input"
-          value={voiceKey}
-          onChange={(e) => {
-            onVoiceKeyChange(e.target.value)
-          }}
-          disabled={disabled}
-          placeholder="Optional logical voice key"
-        />
-      </div>
     </>
   )
 }
