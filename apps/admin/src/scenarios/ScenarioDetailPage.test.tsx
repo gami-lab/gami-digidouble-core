@@ -142,7 +142,9 @@ describe('ScenarioDetailPage loading and data states', () => {
       scenario: createScenario({
         modelSelection: {
           defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
+          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+          memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
         },
       }),
       avatars: [createAvatar({ llmOverride: { provider: 'mistral', model: 'mistral-small-4' } })],
@@ -155,7 +157,9 @@ describe('ScenarioDetailPage loading and data states', () => {
     expect(screen.getByText('Explore AI concepts')).toBeTruthy()
     expect(screen.getByText('Mira')).toBeTruthy()
     expect(screen.getByText(/Scenario default:\s*openai \/ gpt-5.6-luna/)).toBeTruthy()
+    expect(screen.getByText(/Avatar override:\s*mistral \/ mistral-small-4/)).toBeTruthy()
     expect(screen.getByText(/Game Master override:\s*anthropic \/ claude-sonnet-4-6/)).toBeTruthy()
+    expect(screen.getByText(/Memory override:\s*openai \/ gpt-5.6-luna/)).toBeTruthy()
     expect(screen.getByText('mistral / mistral-small-4')).toBeTruthy()
   })
 
@@ -184,7 +188,16 @@ describe('ScenarioDetailPage navigation and avatar actions', () => {
   })
 
   it('shows scenario edit form when Edit button is clicked', async () => {
-    mockReadyLoad()
+    mockReadyLoad({
+      scenario: createScenario({
+        modelSelection: {
+          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
+          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+          gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+          memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
+        },
+      }),
+    })
 
     renderPage()
 
@@ -193,6 +206,12 @@ describe('ScenarioDetailPage navigation and avatar actions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
 
     expect(screen.getByText('Edit scenario')).toBeTruthy()
+    expect(document.querySelector<HTMLSelectElement>('#edit-sc-avatar-model-model')?.value).toBe(
+      'mistral-small-4',
+    )
+    expect(document.querySelector<HTMLSelectElement>('#edit-sc-memory-model-model')?.value).toBe(
+      'gpt-5.6-luna',
+    )
   })
 
   it('shows avatar create form when "Add avatar" is clicked', async () => {

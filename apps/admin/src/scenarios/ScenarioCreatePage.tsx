@@ -18,6 +18,7 @@ type ScenarioCreatePageProps = {
 
 type CreateState = { status: 'idle' } | { status: 'saving' } | { status: 'error'; message: string }
 
+// eslint-disable-next-line max-lines-per-function
 export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProps): JSX.Element {
   const [name, setName] = useState('')
   const [status, setStatus] = useState<ScenarioStatus>('draft')
@@ -25,7 +26,9 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
   const [worldContext, setWorldContext] = useState('')
   const [objectives, setObjectives] = useState<string[]>([])
   const [defaultModelSelection, setDefaultModelSelection] = useState(EMPTY_MODEL_SELECTION)
+  const [avatarModelSelection, setAvatarModelSelection] = useState(EMPTY_MODEL_SELECTION)
   const [gameMasterModelSelection, setGameMasterModelSelection] = useState(EMPTY_MODEL_SELECTION)
+  const [memoryModelSelection, setMemoryModelSelection] = useState(EMPTY_MODEL_SELECTION)
   const [voiceKey, setVoiceKey] = useState('')
   const [createState, setCreateState] = useState<CreateState>({ status: 'idle' })
 
@@ -36,7 +39,9 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
     try {
       const modelSelection = toScenarioModelSelection({
         defaultProfile: defaultModelSelection,
+        avatarOverride: avatarModelSelection,
         gameMasterOverride: gameMasterModelSelection,
+        memoryOverride: memoryModelSelection,
       })
       const voiceConfig = toVoiceConfiguration(voiceKey)
       const scenario = await createScenario({
@@ -60,7 +65,9 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
   const isSaving = createState.status === 'saving'
   const hasPartialModelSelectionState =
     hasPartialModelSelection(defaultModelSelection) ||
-    hasPartialModelSelection(gameMasterModelSelection)
+    hasPartialModelSelection(avatarModelSelection) ||
+    hasPartialModelSelection(gameMasterModelSelection) ||
+    hasPartialModelSelection(memoryModelSelection)
   const submitDisabled = isSaving || name.trim().length === 0 || hasPartialModelSelectionState
 
   return (
@@ -78,7 +85,9 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           worldContext={worldContext}
           objectives={objectives}
           defaultModelSelection={defaultModelSelection}
+          avatarModelSelection={avatarModelSelection}
           gameMasterModelSelection={gameMasterModelSelection}
+          memoryModelSelection={memoryModelSelection}
           voiceKey={voiceKey}
           idPrefix="sc"
           disabled={isSaving}
@@ -88,7 +97,9 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           onWorldContextChange={setWorldContext}
           onObjectivesChange={setObjectives}
           onDefaultModelSelectionChange={setDefaultModelSelection}
+          onAvatarModelSelectionChange={setAvatarModelSelection}
           onGameMasterModelSelectionChange={setGameMasterModelSelection}
+          onMemoryModelSelectionChange={setMemoryModelSelection}
           onVoiceKeyChange={setVoiceKey}
         />
         {hasPartialModelSelectionState ? (

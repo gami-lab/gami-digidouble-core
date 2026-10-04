@@ -18,7 +18,8 @@ shipped platform includes:
 - API, admin, console, web, and authenticated scripted-evaluation consumers
 - optional Deepgram speech input and Gradium-compatible text-to-speech delivery with text-preserving fallback
 - health, metrics, safe diagnostics, replay, reset, and memory/reindex operations
-- provider/model selection and bounded observability behind internal ports
+- provider/model selection and bounded observability behind internal ports, including symmetric
+  four-slot scenario selection and independent scenario-default avatar trait preparation
 
 See `EPICS.md` for the delivery ledger behind each capability and the open backlog. Contract-level
 detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT.md`,

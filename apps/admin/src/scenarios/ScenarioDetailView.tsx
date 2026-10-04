@@ -98,13 +98,16 @@ type ScenarioSummarySectionProps = {
   onEditScenario: () => void
 }
 
+// eslint-disable-next-line complexity
 function ScenarioSummarySection({
   scenario,
   actionError,
   onEditScenario,
 }: ScenarioSummarySectionProps): JSX.Element {
   const defaultProfile = scenario.modelSelection?.defaultProfile
+  const avatarOverride = scenario.modelSelection?.avatarOverride
   const gameMasterOverride = scenario.modelSelection?.gameMasterOverride
+  const memoryOverride = scenario.modelSelection?.memoryOverride
 
   return (
     <>
@@ -148,10 +151,22 @@ function ScenarioSummarySection({
           : formatModelProfile(defaultProfile)}
       </p>
       <p className="admin-muted">
+        Avatar override:{' '}
+        {avatarOverride === undefined
+          ? 'Inherited from scenario default or global Avatar config for live turns.'
+          : formatModelProfile(avatarOverride)}
+      </p>
+      <p className="admin-muted">
         Game Master override:{' '}
         {gameMasterOverride === undefined
           ? 'Inherited from scenario default or global Game Master config.'
           : formatModelProfile(gameMasterOverride)}
+      </p>
+      <p className="admin-muted">
+        Memory override:{' '}
+        {memoryOverride === undefined
+          ? 'Inherited from scenario default or global Memory config.'
+          : formatModelProfile(memoryOverride)}
       </p>
     </>
   )
@@ -404,9 +419,7 @@ function KnowledgeSourceRow({
         <td>{source.scenarioId}</td>
         <td>{formatKnowledgeVisibility(source, avatarNamesById)}</td>
         <td>
-          <span className="admin-status-pill">
-            {source.status}
-          </span>
+          <span className="admin-status-pill">{source.status}</span>
         </td>
         <td>
           <label className="admin-form-label" htmlFor={`chunk-size-${source.sourceId}`}>

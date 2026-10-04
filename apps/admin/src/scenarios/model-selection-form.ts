@@ -25,11 +25,15 @@ export function fromAvatarLlmOverride(
 
 export function fromScenarioModelSelection(value: ScenarioModelSelection | undefined): {
   defaultProfile: ModelSelectionFormValue
+  avatarOverride: ModelSelectionFormValue
   gameMasterOverride: ModelSelectionFormValue
+  memoryOverride: ModelSelectionFormValue
 } {
   return {
     defaultProfile: toFormValue(value?.defaultProfile),
+    avatarOverride: toFormValue(value?.avatarOverride),
     gameMasterOverride: toFormValue(value?.gameMasterOverride),
+    memoryOverride: toFormValue(value?.memoryOverride),
   }
 }
 
@@ -47,7 +51,9 @@ export function hasPartialModelSelection(value: ModelSelectionFormValue): boolea
 
 export function toScenarioModelSelection(args: {
   defaultProfile: ModelSelectionFormValue
+  avatarOverride: ModelSelectionFormValue
   gameMasterOverride: ModelSelectionFormValue
+  memoryOverride: ModelSelectionFormValue
 }): ScenarioModelSelection | undefined {
   const next: ScenarioModelSelection = {
     ...(isModelSelectionComplete(args.defaultProfile)
@@ -58,11 +64,27 @@ export function toScenarioModelSelection(args: {
           },
         }
       : {}),
+    ...(isModelSelectionComplete(args.avatarOverride)
+      ? {
+          avatarOverride: {
+            provider: args.avatarOverride.provider.trim() as ModelSelectionProviderName,
+            model: args.avatarOverride.model.trim(),
+          },
+        }
+      : {}),
     ...(isModelSelectionComplete(args.gameMasterOverride)
       ? {
           gameMasterOverride: {
             provider: args.gameMasterOverride.provider.trim() as ModelSelectionProviderName,
             model: args.gameMasterOverride.model.trim(),
+          },
+        }
+      : {}),
+    ...(isModelSelectionComplete(args.memoryOverride)
+      ? {
+          memoryOverride: {
+            provider: args.memoryOverride.provider.trim() as ModelSelectionProviderName,
+            model: args.memoryOverride.model.trim(),
           },
         }
       : {}),

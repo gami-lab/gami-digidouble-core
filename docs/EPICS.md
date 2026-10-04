@@ -93,6 +93,10 @@ Implemented non-blocking Game Master execution with structured decisions, routin
 
 Added deterministic model selection across global, role, scenario, and avatar scopes, together with admin editing and observability of effective model usage.
 
+#### `4.1d Scenario Model Config Symmetry` ✅ Done
+
+Completed symmetric four-slot scenario model selection (`defaultProfile`, `avatarOverride`, `gameMasterOverride`, and `memoryOverride`), including API/admin UI round-tripping, role-specific precedence, Postgres read-back, and independent avatar trait-preparation resolution through scenario default → global default.
+
 #### `4.2 Memory Layer v1` ✅ Done
 
 Introduced persistent user facts and prompt injection so the runtime can retain and reuse basic user memory across sessions.
@@ -217,68 +221,6 @@ unused checks, lint, typecheck, build, and deterministic tests pass; public API,
 provider, and runtime-order contracts remain unchanged.
 
 ## Open Backlog
-
-### `4.1d Scenario Model Config Symmetry`
-
-**Current state**  
-`4.1c` delivered global model configuration with a default profile plus `avatar`/`gameMaster`/`memory`
-role overrides, and a scenario-level override limited to a scenario default profile and a
-`gameMasterOverride`. Scenario-level configuration is therefore asymmetric with the global level
-(missing scenario-level `avatar` and `memory` overrides), and avatar trait preparation
-(`8.1`, the one-time "prepare avatar" step) shares the `avatar` role with live conversation turns,
-so it cannot be tiered to a different model than per-turn avatar speaking.
-
-**Purpose**  
-Make scenario-level model configuration structurally symmetric with the global level, and let
-avatar trait preparation use a deliberately chosen model independent of the model used for
-ongoing conversation and Game Master turns, without adding a new global concept.
-
-**Description**  
-Extend the scenario-level model selection to mirror the global shape: a scenario default profile
-plus `avatar`, `gameMaster`, and `memory` overrides. Update the resolution precedence so each role
-falls back scenario-role-override → scenario default → global-role-override → global default.
-Change avatar trait preparation to resolve against the scenario default model (falling back to the
-global default) instead of the `avatar` role, so a stronger/more deliberate model can be used for
-one-time trait computation while the `avatar` role override continues to govern cheaper, high-
-frequency conversational turns.
-
-**Includes**
-
-- scenario model config schema: add `avatarOverride` and `memoryOverride` alongside the existing
-  `defaultProfile` and `gameMasterOverride`
-- resolver precedence update and tests covering all four scenario-level slots
-- avatar trait preparation resolves via the scenario default (falling back to the global default),
-  decoupled from the `avatar` role override
-- admin UI: scenario edit form exposes Avatar and Memory override selectors alongside the existing
-  Default and Game Master selectors
-- doc sync (`API_CONTRACT.md`, `DATA_MODEL.md` as needed)
-
-**Definition of done**
-
-- scenario-level config exposes default + avatar + gameMaster + memory overrides, mirroring the
-  global shape
-- resolution precedence is documented and tested for all four scenario-level slots
-- avatar trait preparation uses the scenario default (falling back to the global default),
-  independent of the scenario/global `avatar` role override
-- existing scenarios and avatars resolve unchanged when no new overrides are set
-  (backward-compatible)
-- admin UI can edit all four scenario-level slots
-
-**What can be tested**
-
-1. configure a scenario `avatarOverride` distinct from the global avatar role and confirm
-   conversation turns use it
-2. configure a scenario `memoryOverride` and confirm memory compaction uses it
-3. set only a scenario default (no avatar/GM/memory overrides) and confirm avatar trait
-   preparation uses it, while conversation, GM, and memory still resolve through their own roles
-4. confirm the avatar trait preparation model differs from the live conversation model when the
-   scenario default differs from the scenario `avatarOverride`
-
-**User increment**
-
-- operators can tune cost/quality independently for one-time avatar setup versus ongoing
-  conversation, GM, and memory, at both global and per-scenario granularity, using one consistent
-  mental model
 
 ### `3.3 Replay & Recovery Tools`
 

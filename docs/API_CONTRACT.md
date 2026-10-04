@@ -160,12 +160,15 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
 - Model/provider pairs come from the shared catalog (`packages/shared/src/model-catalog.ts`).
   `scenario.modelSelection` needs at least one of `defaultProfile`, `avatarOverride`,
   `gameMasterOverride`, or `memoryOverride` when present; `null`
-  clears it. `avatar.llmOverride`, when an object, requires both `provider` and `model`; `null`
-  clears it. Runtime precedence: session override (if present, wins for all roles) else, per role —
-  Avatar: request model -> `avatar.llmOverride` -> `scenario.modelSelection.defaultProfile` ->
-  global avatar override -> global default; GM: `scenario.modelSelection.gameMasterOverride` ->
-  `scenario.modelSelection.defaultProfile` -> global GM override -> global default; Memory:
-  scenario memory/default profile -> global memory override -> global default.
+  clears it. The scenario selection has four independent slots: `defaultProfile`,
+  `avatarOverride`, `gameMasterOverride`, and `memoryOverride`. `avatar.llmOverride`, when an
+  object, requires both `provider` and `model`; `null` clears it. Runtime precedence is session
+  override (if present, wins for all roles) otherwise, per role — Avatar: request model ->
+  `avatar.llmOverride` -> `scenario.modelSelection.avatarOverride` ->
+  `scenario.modelSelection.defaultProfile` -> global avatar override -> global default; GM:
+  `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` ->
+  global GM override -> global default; Memory: `scenario.modelSelection.memoryOverride` ->
+  `scenario.modelSelection.defaultProfile` -> global memory override -> global default.
 - `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` takes no request body. One avatar's
   failure (e.g. `provider_unavailable`) never fails the whole batch, and preparation overwrites only
   `computedTraits`, never authored fields. Trait preparation resolves `scenario.modelSelection.defaultProfile`

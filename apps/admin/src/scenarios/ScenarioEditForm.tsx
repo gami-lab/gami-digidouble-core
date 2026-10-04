@@ -18,6 +18,7 @@ type ScenarioEditFormProps = {
   onError: (message: string) => void
 }
 
+// eslint-disable-next-line max-lines-per-function, complexity
 export function ScenarioEditForm({
   scenario,
   onCancel,
@@ -33,8 +34,14 @@ export function ScenarioEditForm({
   const [defaultModelSelection, setDefaultModelSelection] = useState(
     initialModelSelection.defaultProfile,
   )
+  const [avatarModelSelection, setAvatarModelSelection] = useState(
+    initialModelSelection.avatarOverride,
+  )
   const [gameMasterModelSelection, setGameMasterModelSelection] = useState(
     initialModelSelection.gameMasterOverride,
+  )
+  const [memoryModelSelection, setMemoryModelSelection] = useState(
+    initialModelSelection.memoryOverride,
   )
   const [voiceKey, setVoiceKey] = useState(scenario.voiceConfig?.voiceKey ?? '')
   const [saving, setSaving] = useState(false)
@@ -46,7 +53,9 @@ export function ScenarioEditForm({
     try {
       const modelSelection = toScenarioModelSelection({
         defaultProfile: defaultModelSelection,
+        avatarOverride: avatarModelSelection,
         gameMasterOverride: gameMasterModelSelection,
+        memoryOverride: memoryModelSelection,
       })
       const voiceConfig = toVoiceConfiguration(voiceKey)
       const updated = await updateScenario(scenario.scenarioId, {
@@ -67,7 +76,9 @@ export function ScenarioEditForm({
 
   const hasPartialModelSelectionState =
     hasPartialModelSelection(defaultModelSelection) ||
-    hasPartialModelSelection(gameMasterModelSelection)
+    hasPartialModelSelection(avatarModelSelection) ||
+    hasPartialModelSelection(gameMasterModelSelection) ||
+    hasPartialModelSelection(memoryModelSelection)
   const submitDisabled = saving || name.trim().length === 0 || hasPartialModelSelectionState
 
   return (
@@ -81,7 +92,9 @@ export function ScenarioEditForm({
           worldContext={worldContext}
           objectives={objectives}
           defaultModelSelection={defaultModelSelection}
+          avatarModelSelection={avatarModelSelection}
           gameMasterModelSelection={gameMasterModelSelection}
+          memoryModelSelection={memoryModelSelection}
           voiceKey={voiceKey}
           idPrefix="edit-sc"
           disabled={saving}
@@ -91,7 +104,9 @@ export function ScenarioEditForm({
           onWorldContextChange={setWorldContext}
           onObjectivesChange={setObjectives}
           onDefaultModelSelectionChange={setDefaultModelSelection}
+          onAvatarModelSelectionChange={setAvatarModelSelection}
           onGameMasterModelSelectionChange={setGameMasterModelSelection}
+          onMemoryModelSelectionChange={setMemoryModelSelection}
           onVoiceKeyChange={setVoiceKey}
         />
         {hasPartialModelSelectionState ? (

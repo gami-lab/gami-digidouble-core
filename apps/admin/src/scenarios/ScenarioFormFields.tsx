@@ -11,7 +11,9 @@ type ScenarioFormFieldsProps = {
   worldContext: string
   objectives: string[]
   defaultModelSelection: ModelSelectionFormValue
+  avatarModelSelection: ModelSelectionFormValue
   gameMasterModelSelection: ModelSelectionFormValue
+  memoryModelSelection: ModelSelectionFormValue
   voiceKey: string
   idPrefix: string
   disabled: boolean
@@ -21,7 +23,9 @@ type ScenarioFormFieldsProps = {
   onWorldContextChange: (value: string) => void
   onObjectivesChange: (objectives: string[]) => void
   onDefaultModelSelectionChange: (value: ModelSelectionFormValue) => void
+  onAvatarModelSelectionChange: (value: ModelSelectionFormValue) => void
   onGameMasterModelSelectionChange: (value: ModelSelectionFormValue) => void
+  onMemoryModelSelectionChange: (value: ModelSelectionFormValue) => void
   onVoiceKeyChange: (value: string) => void
 }
 
@@ -33,7 +37,9 @@ export function ScenarioFormFields({
   worldContext,
   objectives,
   defaultModelSelection,
+  avatarModelSelection,
   gameMasterModelSelection,
+  memoryModelSelection,
   voiceKey,
   idPrefix,
   disabled,
@@ -43,7 +49,9 @@ export function ScenarioFormFields({
   onWorldContextChange,
   onObjectivesChange,
   onDefaultModelSelectionChange,
+  onAvatarModelSelectionChange,
   onGameMasterModelSelectionChange,
+  onMemoryModelSelectionChange,
   onVoiceKeyChange,
 }: ScenarioFormFieldsProps): JSX.Element {
   return (
@@ -125,8 +133,16 @@ export function ScenarioFormFields({
         label="Scenario default model"
         value={defaultModelSelection}
         disabled={disabled}
-        helperText="Used for avatar turns unless the avatar has its own override."
+        helperText="Used as the fallback for live Avatar turns unless a scenario or avatar override applies."
         onChange={onDefaultModelSelectionChange}
+      />
+      <ModelSelectionFields
+        idPrefix={`${idPrefix}-avatar-model`}
+        label="Avatar override"
+        value={avatarModelSelection}
+        disabled={disabled}
+        helperText="Used for live Avatar conversation turns. Does not affect one-time trait preparation."
+        onChange={onAvatarModelSelectionChange}
       />
       <ModelSelectionFields
         idPrefix={`${idPrefix}-gm-model`}
@@ -135,6 +151,14 @@ export function ScenarioFormFields({
         disabled={disabled}
         helperText="Used for Game Master turns. Leave empty to inherit the scenario default or global runtime config."
         onChange={onGameMasterModelSelectionChange}
+      />
+      <ModelSelectionFields
+        idPrefix={`${idPrefix}-memory-model`}
+        label="Memory override"
+        value={memoryModelSelection}
+        disabled={disabled}
+        helperText="Used for memory maintenance. Leave empty to inherit the scenario default or global runtime config."
+        onChange={onMemoryModelSelectionChange}
       />
       <VoiceConfigurationFields
         idPrefix={idPrefix}

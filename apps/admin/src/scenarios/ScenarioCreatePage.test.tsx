@@ -24,6 +24,7 @@ function makeScenario(): ScenarioSummary {
   }
 }
 
+// eslint-disable-next-line max-lines-per-function
 describe('ScenarioCreatePage', () => {
   afterEach(() => {
     cleanup()
@@ -66,12 +67,12 @@ describe('ScenarioCreatePage', () => {
     render(<ScenarioCreatePage onBack={vi.fn()} onCreated={onCreated} />)
 
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'New Scenario' } })
-    fireEvent.submit(screen.getByRole('button', { name: /Create scenario/ }).closest('form') as HTMLFormElement)
+    fireEvent.submit(
+      screen.getByRole('button', { name: /Create scenario/ }).closest('form') as HTMLFormElement,
+    )
 
     await waitFor(() => {
-      expect(createScenario).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'New Scenario' }),
-      )
+      expect(createScenario).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Scenario' }))
       expect(onCreated).toHaveBeenCalledWith('scenario_new')
     })
   })
@@ -82,11 +83,20 @@ describe('ScenarioCreatePage', () => {
     render(<ScenarioCreatePage onBack={vi.fn()} onCreated={vi.fn()} />)
 
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'New Scenario' } })
-    fireEvent.change(screen.getByLabelText('Provider', { selector: '#sc-default-model-provider' }), {
-      target: { value: 'openai' },
-    })
+    fireEvent.change(
+      screen.getByLabelText('Provider', { selector: '#sc-default-model-provider' }),
+      {
+        target: { value: 'openai' },
+      },
+    )
     fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-default-model-model' }), {
       target: { value: 'gpt-5.6-luna' },
+    })
+    fireEvent.change(screen.getByLabelText('Provider', { selector: '#sc-avatar-model-provider' }), {
+      target: { value: 'mistral' },
+    })
+    fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-avatar-model-model' }), {
+      target: { value: 'mistral-small-4' },
     })
     fireEvent.change(screen.getByLabelText('Provider', { selector: '#sc-gm-model-provider' }), {
       target: { value: 'anthropic' },
@@ -94,14 +104,24 @@ describe('ScenarioCreatePage', () => {
     fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-gm-model-model' }), {
       target: { value: 'claude-sonnet-4-6' },
     })
-    fireEvent.submit(screen.getByRole('button', { name: /Create scenario/ }).closest('form') as HTMLFormElement)
+    fireEvent.change(screen.getByLabelText('Provider', { selector: '#sc-memory-model-provider' }), {
+      target: { value: 'openai' },
+    })
+    fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-memory-model-model' }), {
+      target: { value: 'gpt-5.6-luna' },
+    })
+    fireEvent.submit(
+      screen.getByRole('button', { name: /Create scenario/ }).closest('form') as HTMLFormElement,
+    )
 
     await waitFor(() => {
       expect(createScenario).toHaveBeenCalledWith(
         expect.objectContaining({
           modelSelection: {
             defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
+            avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
             gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+            memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
           },
         }),
       )
@@ -114,7 +134,9 @@ describe('ScenarioCreatePage', () => {
     render(<ScenarioCreatePage onBack={vi.fn()} onCreated={vi.fn()} />)
 
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'New Scenario' } })
-    fireEvent.submit(screen.getByRole('button', { name: /Create scenario/ }).closest('form') as HTMLFormElement)
+    fireEvent.submit(
+      screen.getByRole('button', { name: /Create scenario/ }).closest('form') as HTMLFormElement,
+    )
 
     await waitFor(() => {
       expect(screen.getByText(/UNKNOWN_ERROR: Failed to create scenario/)).toBeTruthy()

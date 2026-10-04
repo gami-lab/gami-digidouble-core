@@ -59,7 +59,9 @@ describe('model selection form helpers', () => {
   it('builds a ScenarioModelSelection with only complete sub-fields included', () => {
     const result = toScenarioModelSelection({
       defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
+      avatarOverride: EMPTY_MODEL_SELECTION,
       gameMasterOverride: { provider: '', model: '' },
+      memoryOverride: EMPTY_MODEL_SELECTION,
     })
 
     expect(result).toEqual({
@@ -70,7 +72,9 @@ describe('model selection form helpers', () => {
   it('returns undefined when neither profile nor override is complete', () => {
     const result = toScenarioModelSelection({
       defaultProfile: EMPTY_MODEL_SELECTION,
+      avatarOverride: EMPTY_MODEL_SELECTION,
       gameMasterOverride: EMPTY_MODEL_SELECTION,
+      memoryOverride: EMPTY_MODEL_SELECTION,
     })
 
     expect(result).toBeUndefined()
@@ -79,18 +83,40 @@ describe('model selection form helpers', () => {
   it('maps a ScenarioModelSelection back to form values, defaulting missing fields to blank', () => {
     const result = fromScenarioModelSelection({
       defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+      avatarOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
+      memoryOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
 
     expect(result).toEqual({
       defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+      avatarOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
       gameMasterOverride: EMPTY_MODEL_SELECTION,
+      memoryOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
   })
 
   it('maps an undefined ScenarioModelSelection to fully-blank form values', () => {
     expect(fromScenarioModelSelection(undefined)).toEqual({
       defaultProfile: EMPTY_MODEL_SELECTION,
+      avatarOverride: EMPTY_MODEL_SELECTION,
       gameMasterOverride: EMPTY_MODEL_SELECTION,
+      memoryOverride: EMPTY_MODEL_SELECTION,
+    })
+  })
+
+  it('writes all four scenario model selection fields symmetrically', () => {
+    expect(
+      toScenarioModelSelection({
+        defaultProfile: { provider: ' openai ', model: ' gpt-5.6-luna ' },
+        avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+        gameMasterOverride: { provider: ' anthropic ', model: ' claude-sonnet-4-6 ' },
+        memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
+      }),
+    ).toEqual({
+      defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
+      avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+      gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+      memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
     })
   })
 })
