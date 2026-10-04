@@ -64,7 +64,8 @@ rather than a silent corruption risk:
   `staging | validated | active | superseded | failed`, belonging to exactly one profile.
 - `knowledge_corpus_state` is a **singleton** row (`id=1`) pointing at the current active
   generation/profile pair; normal reads always go through this pointer and never see staged
-  generations.
+  generations. When the pointer is empty, Core activates the configured `EMBEDDING_*` profile
+  (empty generation) at startup and again on the next ingestion, so no operator setup is needed.
 - Every `knowledge_chunks` row carries both its source's identity and its generation/profile
   identity, and must have a finite vector matching that generation's profile — chunks are unique
   per `(source_id, corpus_generation_id, chunk_index)` so a staged generation can reprocess a

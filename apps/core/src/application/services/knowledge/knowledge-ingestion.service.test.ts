@@ -13,6 +13,7 @@ import {
 import type { IKnowledgeSourceContentLoader } from '../../ports/IKnowledgeSourceContentLoader.js'
 import type { EmbeddingBatchResult, IEmbeddingAdapter } from '../../ports/IEmbeddingAdapter.js'
 import { KnowledgeIngestionService } from './knowledge-ingestion.service.js'
+import { KnowledgeReindexService } from './knowledge-reindex.service.js'
 
 class StubLoader implements IKnowledgeSourceContentLoader {
   constructor(
@@ -632,5 +633,78 @@ describe('KnowledgeIngestionService — failure and retry behavior', () => {
 
     expect(result.status).toBe('failed')
     expect((await jobRepository.findById(job.ingestionJobId))?.status).toBe('failed')
+  })
+})
+
+describe('KnowledgeIngestionService — missing active corpus', () => {
+  async function createQueuedJob(
+    sourceRepository: InMemoryKnowledgeSourceRepository,
+    jobRepository: InMemoryIngestionJobRepository,
+  ): Promise<{ sourceId: string; ingestionJobId: string }> {
+    const source = await sourceRepository.create({
+      scenarioId: 'scenario_1',
+      name: 'Rules',
+      knowledgeType: 'world',
+      format: 'text',
+      uriOrPath: '/tmp/rules.txt',
+      visibilityPolicy: 'all',
+    })
+    const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued' })
+    return { sourceId: source.sourceId, ingestionJobId: job.ingestionJobId }
+  }
+
+  it('activates the configured default embedding profile and completes ingestion', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const corpusRepository = new InMemoryKnowledgeCorpusRepository(chunkRepository)
+    const loader = new StubLoader('A\n\nB')
+    const embeddingAdapter = new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE)
+    const bootstrapper = new KnowledgeReindexService(
+      sourceRepository,
+      corpusRepository,
+      loader,
+      embeddingAdapter,
+      eventLogRepository,
+      DETERMINISTIC_HASH_EMBEDDING_PROFILE,
+    )
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      jobRepository,
+      loader,
+      embeddingAdapter,
+      eventLogRepository,
+      corpusRepository,
+      bootstrapper,
+    )
+
+    const result = await service.execute(await createQueuedJob(sourceRepository, jobRepository))
+
+    expect(result.status).toBe('completed')
+    expect((await corpusRepository.getActiveCorpus())?.profile).toMatchObject(
+      DETERMINISTIC_HASH_EMBEDDING_PROFILE,
+    )
+  })
+
+  it('fails the job with the no-active-corpus error when bootstrap fails', async () => {
+    const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+      createDefaultIngestionDeps()
+    const service = new KnowledgeIngestionService(
+      sourceRepository,
+      jobRepository,
+      new StubLoader('content'),
+      new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
+      eventLogRepository,
+      new InMemoryKnowledgeCorpusRepository(chunkRepository),
+      { ensureActiveCorpus: () => Promise.reject(new Error('bootstrap failed')) },
+    )
+    const input = await createQueuedJob(sourceRepository, jobRepository)
+
+    const result = await service.execute(input)
+
+    expect(result).toMatchObject({
+      status: 'failed',
+      errorMessage: 'No active embedding profile is available for ingestion.',
+    })
+    expect((await jobRepository.findById(input.ingestionJobId))?.status).toBe('failed')
   })
 })

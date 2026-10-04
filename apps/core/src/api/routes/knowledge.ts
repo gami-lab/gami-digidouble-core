@@ -32,6 +32,7 @@ import type { IKnowledgeSourceRepository } from '../../application/ports/IKnowle
 import type { IEmbeddingAdapter } from '../../application/ports/IEmbeddingAdapter.js'
 import type { IKnowledgeSourceContentLoader } from '../../application/ports/IKnowledgeSourceContentLoader.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
+import { KnowledgeReindexService } from '../../application/services/knowledge/knowledge-reindex.service.js'
 import { KnowledgeIngestionService } from '../../application/services/knowledge/knowledge-ingestion.service.js'
 import type { TypedRetrievalService } from '../../application/services/knowledge/typed-retrieval.service.js'
 import { CreateKnowledgeSourceUseCase } from '../../application/use-cases/create-knowledge-source/create-knowledge-source.use-case.js'
@@ -215,6 +216,18 @@ export const knowledgeRoute: FastifyPluginCallback<KnowledgeRouteOptions> = (app
 }
 
 function buildUseCases(options: KnowledgeRouteOptions): UseCases {
+  const reindexService = new KnowledgeReindexService(
+    options.sourceRepository,
+    options.knowledgeCorpusRepository,
+    options.sourceContentLoader,
+    options.embeddingAdapter,
+    options.eventLogRepository,
+    {
+      provider: options.config.embeddingProvider,
+      model: options.config.embeddingModel,
+      dimensions: options.config.embeddingDimensions,
+    },
+  )
   const ingestionService = new KnowledgeIngestionService(
     options.sourceRepository,
     options.ingestionJobRepository,
@@ -222,6 +235,7 @@ function buildUseCases(options: KnowledgeRouteOptions): UseCases {
     options.embeddingAdapter,
     options.eventLogRepository,
     options.knowledgeCorpusRepository,
+    reindexService,
   )
 
   return {

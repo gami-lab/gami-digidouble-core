@@ -71,6 +71,9 @@ export class KnowledgeIngestionService {
       IKnowledgeCorpusRepository,
       'getActiveCorpus' | 'listActiveChunksBySourceIds' | 'replaceActiveSourceChunks'
     >,
+    // Activates the configured default embedding profile when none is active (e.g. after a
+    // database reset while Core kept running), so ingestion never needs manual setup.
+    private readonly corpusBootstrapper?: { ensureActiveCorpus(): Promise<void> },
   ) {}
 
   async execute(input: IngestionExecutionInput): Promise<IngestionExecutionResult> {
@@ -138,7 +141,7 @@ export class KnowledgeIngestionService {
         false,
       )
     }
-    const activeCorpus = await this.knowledgeCorpusRepository.getActiveCorpus()
+    const activeCorpus = await this.getOrBootstrapActiveCorpus()
     const activeChunks =
       activeCorpus === null
         ? []
@@ -168,6 +171,19 @@ export class KnowledgeIngestionService {
     })
 
     return { source, job, requestId, nextAttempts, activeCorpus, hadActiveSource }
+  }
+
+  private async getOrBootstrapActiveCorpus(): Promise<ActiveCorpus | null> {
+    const corpusRepository = this.knowledgeCorpusRepository
+    if (corpusRepository === undefined) return null
+    const activeCorpus = await corpusRepository.getActiveCorpus()
+    if (activeCorpus !== null || this.corpusBootstrapper === undefined) return activeCorpus
+    try {
+      await this.corpusBootstrapper.ensureActiveCorpus()
+    } catch {
+      // Fall through: the job then fails with the retryable `no_active_corpus` error.
+    }
+    return corpusRepository.getActiveCorpus()
   }
 
   private async persistIngestionChunks(
