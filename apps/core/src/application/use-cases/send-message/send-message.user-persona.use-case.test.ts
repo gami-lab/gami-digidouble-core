@@ -208,10 +208,12 @@ describe('SendMessageUseCase — user persona injection', () => {
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).toContain('## User Persona')
-    expect(llmRequest.systemPrompt).toContain('Name: Maya')
-    expect(llmRequest.systemPrompt).toContain('Role in this world: student')
-    expect(llmRequest.systemPrompt).toContain('Potential avatar relationships: Friend of Eva')
+    expect(llmRequest.systemPrompt).toContain('## Your Interlocutor (the user)')
+    expect(llmRequest.systemPrompt).toContain('You are talking with Maya.')
+    expect(llmRequest.systemPrompt).toContain('Their role in this world: student')
+    expect(llmRequest.systemPrompt).toContain(
+      'Their potential relationships with you: Friend of Eva',
+    )
     expect(llmRequest.systemPrompt).toContain('Dialog guidance: Prefers concise answers')
   })
 
@@ -232,7 +234,7 @@ describe('SendMessageUseCase — user persona injection', () => {
     ).resolves.toBeDefined()
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).not.toContain('## User Persona')
+    expect(llmRequest.systemPrompt).not.toContain('## Your Interlocutor (the user)')
   })
 
   it('omits persona section when user exists without persona', async () => {
@@ -246,7 +248,7 @@ describe('SendMessageUseCase — user persona injection', () => {
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
 
     const llmRequest = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
-    expect(llmRequest.systemPrompt).not.toContain('## User Persona')
+    expect(llmRequest.systemPrompt).not.toContain('## Your Interlocutor (the user)')
   })
 
   it('passes userPersona to run game master when persona is present', async () => {
@@ -316,8 +318,8 @@ describe('SendMessageUseCase — prompt assembly v2 context influence', () => {
       .systemPrompt
 
     expect(withPersonaPrompt).not.toBe(changedPersonaPrompt)
-    expect(withPersonaPrompt).toContain('Name: Maya')
-    expect(changedPersonaPrompt).toContain('Name: Lina')
+    expect(withPersonaPrompt).toContain('You are talking with Maya.')
+    expect(changedPersonaPrompt).toContain('You are talking with Lina.')
   })
 
   it('injects typed retrieval context into prompt through canonical context assembly', async () => {

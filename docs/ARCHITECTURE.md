@@ -49,8 +49,9 @@ do not import Core domain or infrastructure code.
   Avatar claims — an Avatar statement is not canonical memory without user or verified-context
   support. No full transcript replay ever enters context.
 - **Context:** bounded Avatar/GM projections with deterministic, inspectable, testable precedence
-  and trace metadata. Avatar context sections are ordered: Director Notes, Response Rules,
-  Conversation State, User Persona, World Context, Retrieved Context, Avatar Traits.
+  and trace metadata. Avatar context sections are ordered: Roles, Director Notes, Response Rules,
+  Conversation State, Your Interlocutor (user persona), World Context, Retrieved Context, Your
+  Character (Avatar traits).
 - **Knowledge:** source lifecycle, typed ingestion, chunking, embedding, vector retrieval, and
   visibility. On startup, Core ensures that an empty deployment has an active, empty corpus before
   accepting ingestion; existing active corpora remain untouched. Avatar-scoped visibility filtering is enforced by the vector repository itself, not

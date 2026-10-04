@@ -297,10 +297,10 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
       '## Director Notes',
       '## Response Rules',
       '## Conversation State',
-      '## User Persona',
+      '## Your Interlocutor (the user)',
       '## World Context',
       '## Retrieved Context',
-      '## Avatar Traits',
+      '## Your Character (',
     ])
     expect(systemPrompt).toContain('Keep the answer practical.')
     expect(systemPrompt).toContain('Use short paragraphs.')
@@ -311,8 +311,8 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     )
     expect(systemPrompt).toContain('Remembered user facts:')
     expect(systemPrompt).toContain('- preferred_route: north pier')
-    expect(systemPrompt).toContain('Name: Maya')
-    expect(systemPrompt).toContain('Role in this world: captain')
+    expect(systemPrompt).toContain('You are talking with Maya.')
+    expect(systemPrompt).toContain('Their role in this world: captain')
     expect(systemPrompt).toContain('The harbor closes at moonrise.')
     expect(systemPrompt).toContain('North pier ledger entries close at moonrise')
     expect(systemPrompt).toContain('Identity:')

@@ -74,9 +74,13 @@ shared DTO via this mapper; application/domain use cases only ever return the in
 ## Avatar and GM prompt assembly
 
 - Avatar prompt sections are assembled in `apps/core/src/domain/avatar/persona-prompt.service.ts`
-  in a fixed order: Director Notes -> Response Rules -> Conversation State -> User Persona ->
-  World Context -> Retrieved Context -> Avatar Traits. Retrieved knowledge is a separate section
-  from Conversation State and is never merged into memory.
+  in a fixed order: Roles -> Director Notes -> Response Rules -> Conversation State -> Your
+  Interlocutor (user persona) -> World Context -> Retrieved Context -> Your Character (Avatar
+  traits). Retrieved knowledge is a separate section from Conversation State and is never merged
+  into memory.
+- The Roles section states that the model is the Avatar, that the user persona describes the human
+  interlocutor (whose name is already known), and that GM guidance/director notes are private and
+  must not be quoted or paraphrased.
 - GM's own projection is rendered by `gm-input-renderer.ts` from
   `apps/core/src/domain/game-master/game-master.types.ts`; it stays parallel to but separate from
   the Avatar projection — `conversationState` carries only memory layers, `retrievedContext` carries

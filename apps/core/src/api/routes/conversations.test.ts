@@ -477,15 +477,15 @@ describe('conversation message/history API', () => {
       name: 'Maya',
       roleInWorld: 'student',
     })
-    expect(studentPrompt).toContain('Name: Maya')
-    expect(studentPrompt).toContain('Role in this world: student')
+    expect(studentPrompt).toContain('You are talking with Maya.')
+    expect(studentPrompt).toContain('Their role in this world: student')
 
     const mentorPrompt = await sendMessageAndCapturePrompt({
       name: 'Lina',
       roleInWorld: 'mentor',
     })
-    expect(mentorPrompt).toContain('Name: Lina')
-    expect(mentorPrompt).toContain('Role in this world: mentor')
+    expect(mentorPrompt).toContain('You are talking with Lina.')
+    expect(mentorPrompt).toContain('Their role in this world: mentor')
     expect(studentPrompt).not.toBe(mentorPrompt)
   })
 })

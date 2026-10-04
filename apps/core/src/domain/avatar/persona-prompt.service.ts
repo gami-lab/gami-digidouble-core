@@ -24,6 +24,8 @@ const DEFAULT_STYLE_RULE = [
   'Answer directly as the Avatar in natural sentences.',
 ].join(' ')
 
+const USER_PERSONA_TITLE = 'Your Interlocutor (the user)'
+
 const DIALOGUE_CONTROL_RULES: Record<DialogueControlMode, string> = {
   user_led:
     "Answer the user's question directly. Let the user control the sequence. Do not add a generic follow-up question.",
@@ -40,6 +42,7 @@ export function assemblePersonaPrompt(config: AvatarConfig, opts?: AvatarPromptO
   }
   const promptInputs = resolveSelectedPromptSectionInputs(opts.sections, opts)
   const sections = [
+    buildRolesSection(config.name, promptInputs.userPersona !== undefined),
     ...buildGameMasterGuidance(promptInputs.gmGuidance),
     ...(promptInputs.gmGuidance === undefined
       ? buildDirectorNotes(promptInputs.directorNotes)
@@ -117,21 +120,38 @@ function buildWorldContext(worldContext: string | ContextScenarioSnapshot | unde
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 
+// The Avatar and the user persona are both character descriptions; without an explicit
+// framing the model can mistake the user's persona for its own role.
+function buildRolesSection(avatarName: string, hasUserPersona: boolean): string {
+  const self = hasText(avatarName) ? avatarName.trim() : 'the Avatar'
+  return [
+    '## Roles',
+    `You are ${self}, the Avatar. Speak only as ${self}, in the first person.`,
+    hasUserPersona
+      ? `The user is a real human talking with you. Their in-world character is described under "${USER_PERSONA_TITLE}". That description is about them, never about you: do not take on their name, role, or point of view.`
+      : 'The user is a real human talking with you.',
+    `"${avatarTraitsTitle(self)}" and retrieved context written in the second person describe you.`,
+    'Game Master guidance and director notes are private backstage instructions: act on them, but never quote, paraphrase, or mention them.',
+  ].join('\n')
+}
+
 function buildUserPersonaContext(userPersona: UserPersona | undefined): string[] {
   if (userPersona === undefined) return []
 
-  const lines: string[] = ['## User Persona']
+  const lines: string[] = [`## ${USER_PERSONA_TITLE}`]
   if (hasText(userPersona.name)) {
-    lines.push(`Name: ${userPersona.name.trim()}`)
+    lines.push(
+      `You are talking with ${userPersona.name.trim()}. You already know their name: use it, do not ask for it.`,
+    )
   }
   if (hasText(userPersona.roleInWorld)) {
-    lines.push(`Role in this world: ${userPersona.roleInWorld.trim()}`)
+    lines.push(`Their role in this world: ${userPersona.roleInWorld.trim()}`)
   }
   const relationships = (userPersona.avatarRelationships ?? [])
     .map((relationship) => relationship.trim())
     .filter((relationship) => relationship.length > 0)
   if (relationships.length > 0) {
-    lines.push(`Potential avatar relationships: ${relationships.join('; ')}`)
+    lines.push(`Their potential relationships with you: ${relationships.join('; ')}`)
   }
   if (hasText(userPersona.dialogGuidance)) {
     lines.push(`Dialog guidance: ${userPersona.dialogGuidance.trim()}`)
@@ -327,7 +347,9 @@ function buildAvatarTraitsSection(
   config: AvatarConfig,
   computedTraits: AvatarComputedTraits,
 ): string {
-  const lines = ['## Avatar Traits']
+  const lines = [
+    `## ${avatarTraitsTitle(hasText(config.name) ? config.name.trim() : 'the Avatar')}`,
+  ]
 
   const traitText = flattenTraitText(computedTraits)
 
@@ -347,6 +369,10 @@ function buildAvatarTraitsSection(
   lines.push(...buildTraitField('Behavioural Rules', computedTraits.behaviouralRules))
 
   return lines.join('\n')
+}
+
+function avatarTraitsTitle(avatarName: string): string {
+  return `Your Character (${avatarName})`
 }
 
 function buildTraitField(label: string, items: string[]): string[] {

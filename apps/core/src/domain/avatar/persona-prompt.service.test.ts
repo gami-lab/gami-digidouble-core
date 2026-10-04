@@ -89,10 +89,10 @@ describe('assemblePersonaPrompt', () => {
       '## Director Notes',
       '## Response Rules',
       '## Conversation State',
-      '## User Persona',
+      '## Your Interlocutor (the user)',
       '## World Context',
       '## Retrieved Context',
-      '## Avatar Traits',
+      '## Your Character (',
     ]
     let previous = -1
     for (const sectionName of sectionNames) {
@@ -153,5 +153,30 @@ describe('assemblePersonaPrompt', () => {
 
     expect(prompt).toContain('Context 8 (avatar_knowledge):')
     expect(prompt).toContain('Preselected context 8.')
+  })
+})
+
+describe('assemblePersonaPrompt roles', () => {
+  it('separates the Avatar role from the user persona before any other section', () => {
+    const config = makeAvatarConfig()
+    const prompt = assemblePersonaPrompt(config, {
+      sections: sections({ userPersona: { name: 'Maya', roleInWorld: 'student' } }),
+    })
+
+    expect(prompt.startsWith('## Roles')).toBe(true)
+    expect(prompt).toContain(`You are ${config.name}, the Avatar.`)
+    expect(prompt).toContain('never about you')
+    expect(prompt).toContain('never quote, paraphrase, or mention them')
+    expect(prompt).toContain(
+      '## Your Interlocutor (the user)\nYou are talking with Maya. You already know their name: use it, do not ask for it.\nTheir role in this world: student',
+    )
+    expect(prompt).toContain(`## Your Character (${config.name})`)
+  })
+
+  it('omits the interlocutor framing when no user persona is selected', () => {
+    const prompt = assemblePersonaPrompt(makeAvatarConfig(), { sections: sections() })
+
+    expect(prompt).toContain('The user is a real human talking with you.')
+    expect(prompt).not.toContain('Your Interlocutor')
   })
 })

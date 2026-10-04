@@ -80,6 +80,7 @@ describe('buildGameMasterSystemPrompt', () => {
     expect(policySection).toContain('You do not perform retrieval yourself')
     expect(policySection).toContain('directorNotes is required on every response')
     expect(policySection).toContain('Keep directorNotes specific to the current exchange')
+    expect(policySection).toContain('Address directorNotes to the Avatar in the second person')
     expect(policySection).toContain(
       'When userMessage.text is empty, no user message has been sent yet. Treat this as conversation opening guidance, and use directorNotes to tell the Avatar how to open instead of reacting to a message.',
     )

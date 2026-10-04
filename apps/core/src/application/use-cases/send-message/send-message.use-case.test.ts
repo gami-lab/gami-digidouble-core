@@ -350,7 +350,7 @@ describe('SendMessageUseCase — llm request payload', () => {
         metadata?: Record<string, unknown>
       }
     }
-    expect(llmArg.systemPrompt).toContain('## Avatar Traits')
+    expect(llmArg.systemPrompt).toContain('## Your Character (')
     expect(llmArg.messages).toEqual([{ role: 'user', content: 'Hello tracing' }])
     expect(llmArg.maxTokens).toBe(2048)
     expect(typeof llmArg.trace?.requestId).toBe('string')
@@ -539,10 +539,10 @@ describe('SendMessageUseCase — llm request payload', () => {
       '## Director Notes',
       '## Response Rules',
       '## Conversation State',
-      '## User Persona',
+      '## Your Interlocutor (the user)',
       '## World Context',
       '## Retrieved Context',
-      '## Avatar Traits',
+      '## Your Character (',
     ])
     expect(llmArg.systemPrompt).toContain('Keep the answer practical.')
     expect(llmArg.systemPrompt).toContain('Use short paragraphs.')
@@ -550,8 +550,8 @@ describe('SendMessageUseCase — llm request payload', () => {
     expect(llmArg.systemPrompt).toContain('Working memory:')
     expect(llmArg.systemPrompt).toContain('- Session: The user wants concise harbor instructions.')
     expect(llmArg.systemPrompt).toContain('- pace: quick overview')
-    expect(llmArg.systemPrompt).toContain('Name: Maya')
-    expect(llmArg.systemPrompt).toContain('Role in this world: captain')
+    expect(llmArg.systemPrompt).toContain('You are talking with Maya.')
+    expect(llmArg.systemPrompt).toContain('Their role in this world: captain')
     expect(llmArg.systemPrompt).toContain('The harbor closes at moonrise.')
     expect(llmArg.systemPrompt).toContain('Context 1 (avatar_knowledge):')
     expect(llmArg.systemPrompt).toContain('The user prefers checklist-style instructions.')

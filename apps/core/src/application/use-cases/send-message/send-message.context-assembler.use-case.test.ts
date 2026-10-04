@@ -246,7 +246,7 @@ function expectStructuredPromptSections(systemPrompt: string): void {
   expect(systemPrompt).toContain('Scenario: Scenario')
   expect(systemPrompt).toContain('Objectives:')
   expect(systemPrompt).toContain('- Find the culprit')
-  expect(systemPrompt).toContain('## Avatar Traits')
+  expect(systemPrompt).toContain('## Your Character (')
   expect(systemPrompt).toContain('- Archivist of the north wing')
 }
 
