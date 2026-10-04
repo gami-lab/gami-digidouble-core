@@ -223,6 +223,25 @@ describe('conversation message audio route', () => {
     expect(tts.requests).toHaveLength(0)
   })
 
+  it('exposes the audio metadata headers to cross-origin browsers', async () => {
+    const app = createApp(createTtsAdapter())
+
+    const response = await app.inject({
+      method: 'POST',
+      url: audioUrl(),
+      headers: headers({ origin: 'http://localhost:5173' }),
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(200)
+    const exposed = (response.headers['access-control-expose-headers'] ?? '')
+      .toLowerCase()
+      .split(/,\s*/)
+    expect(exposed).toEqual(
+      expect.arrayContaining(['x-request-id', 'x-message-id', 'x-audio-duration-ms']),
+    )
+  })
+
   it('returns 404 for a message that belongs to another conversation', async () => {
     const foreignMessage: Message = {
       ...avatarMessage,

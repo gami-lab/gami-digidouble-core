@@ -206,6 +206,9 @@ export function useMessageAudioPlayback(conversationId: string | null): MessageA
   }, [cleanupResources, conversationId])
 
   useEffect(() => {
+    // StrictMode runs cleanup then re-runs this effect; without resetting the flag every later
+    // result would be ignored and playback would stay "loading" forever.
+    mountedRef.current = true
     return () => {
       mountedRef.current = false
       operationRef.current += 1

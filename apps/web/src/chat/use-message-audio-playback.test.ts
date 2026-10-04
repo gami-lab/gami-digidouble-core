@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { StrictMode } from 'react'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { AudioDeliveryMetadata } from '@gami/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -75,6 +76,21 @@ describe('useMessageAudioPlayback', () => {
     unmount()
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:audio-1')
+  })
+
+  it('still starts playback under React StrictMode remounting', async () => {
+    vi.mocked(requestMessageAudio).mockResolvedValue(delivery())
+    const { result } = renderHook(() => useMessageAudioPlayback('conversation_1'), {
+      wrapper: StrictMode,
+    })
+
+    act(() => {
+      result.current.playMessageAudio('message_1')
+    })
+
+    await waitFor(() => {
+      expect(result.current.audio.status).toBe('playing')
+    })
   })
 
   it('keeps text fallback available when autoplay is rejected', async () => {
