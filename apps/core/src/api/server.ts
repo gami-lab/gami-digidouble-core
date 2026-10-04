@@ -169,7 +169,14 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   void app.register(cors, {
     origin: config.corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'x-api-key'],
+    // Voice uploads carry their identity and hints in headers (see voice-messages routes).
+    allowedHeaders: [
+      'Content-Type',
+      'x-api-key',
+      'x-utterance-id',
+      'x-language',
+      'x-audio-duration-ms',
+    ],
     // Binary audio delivery carries its metadata in headers; browsers hide non-safelisted
     // response headers from cross-origin clients unless they are exposed.
     exposedHeaders: ['X-Request-Id', 'X-Message-Id', 'X-Audio-Duration-Ms'],
