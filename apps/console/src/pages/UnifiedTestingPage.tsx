@@ -11,12 +11,14 @@ import { DebugShellPage } from './DebugShellPage'
 import { ModelConfigPanel } from './ModelConfigPanel'
 import { buttonStyle, errorStyle, labelStyle, sectionStyle } from './form-styles'
 import { KnowledgeOperationsPanel } from './session-admin-knowledge'
+import { Link } from '../routing/Link'
+import { parseRoute, updateRunnerRoute, type Route, type RunnerTab } from '../routing/router'
 
 type StatusFilter = 'all' | 'active' | 'closed' | 'archived'
-type UnifiedTab = 'run' | 'knowledge' | 'inspector' | 'model-config'
 
 type UnifiedTestingPageProps = {
   scenario: ScenarioSummary
+  route: Extract<Route, { name: 'runner' }>
 }
 
 const tableStyle: CSSProperties = {
@@ -40,7 +42,7 @@ const tdStyle: CSSProperties = {
   verticalAlign: 'middle',
 }
 
-const tabs: Array<{ id: UnifiedTab; label: string }> = [
+const tabs: Array<{ id: RunnerTab; label: string }> = [
   { id: 'run', label: 'Run and Debug' },
   { id: 'knowledge', label: 'Knowledge Ops' },
   { id: 'inspector', label: 'Runtime Inspector' },
@@ -48,16 +50,15 @@ const tabs: Array<{ id: UnifiedTab; label: string }> = [
 ]
 
 // eslint-disable-next-line max-lines-per-function, complexity
-export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.Element {
+export function UnifiedTestingPage({ scenario, route }: UnifiedTestingPageProps): JSX.Element {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [isLoadingSessions, setIsLoadingSessions] = useState(false)
   const [sessionsError, setSessionsError] = useState<string | null>(null)
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const [activeTab, setActiveTab] = useState<UnifiedTab>('run')
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const { tab: activeTab, sessionId: selectedSessionId, conversationId: selectedConversationId } =
+    route
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
   const [conversationsError, setConversationsError] = useState<string | null>(null)
 
@@ -68,14 +69,13 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
       setIsLoadingSessions,
       setSessionsError,
       selectedSessionId,
-      setSelectedSessionId,
+      selectAutomaticSession,
     )
   }, [refreshTrigger, scenario.scenarioId])
 
   useEffect(() => {
     if (selectedSessionId === null) {
       setConversations([])
-      setSelectedConversationId(null)
       setConversationsError(null)
       return
     }
@@ -85,15 +85,9 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
       try {
         const nextConversations = await listSessionConversations(selectedSessionId)
         setConversations(nextConversations)
-        setSelectedConversationId((previous) => {
-          if (previous !== null && nextConversations.some((item) => item.conversationId === previous)) {
-            return previous
-          }
-          return nextConversations[0]?.conversationId ?? null
-        })
+        selectAutomaticConversation(nextConversations)
       } catch (error) {
         setConversations([])
-        setSelectedConversationId(null)
         setConversationsError(formatApiError(error, 'Failed to load session conversations'))
       } finally {
         setIsLoadingConversations(false)
@@ -111,9 +105,14 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
 
   const handleShellSessionChanged = useCallback((sessionId: string | null): void => {
     if (sessionId === null || sessionId === selectedSessionId) return
-    setSelectedSessionId(sessionId)
+    updateRunnerRoute({ sessionId })
     setRefreshTrigger((previous) => previous + 1)
   }, [selectedSessionId])
+
+  // The shell reports null while it resets; keep the URL's conversation until it settles on one.
+  const handleShellConversationChanged = useCallback((conversationId: string | null): void => {
+    if (conversationId !== null) updateRunnerRoute({ conversationId }, { replace: true })
+  }, [])
 
   return (
     <section style={sectionStyle}>
@@ -141,7 +140,7 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
           sessions={filteredSessions}
           selectedSessionId={selectedSessionId}
           onSelect={(sessionId) => {
-            setSelectedSessionId(sessionId)
+            updateRunnerRoute({ sessionId })
           }}
           onReset={(updatedSession) => {
             setSessions((previous) =>
@@ -156,24 +155,21 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
 
       <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {tabs.map((tab) => (
-          <button
+          <Link
             key={tab.id}
-            type="button"
+            to={{ ...route, tab: tab.id }}
             style={{
               border: '1px solid #d1d5db',
               borderRadius: '8px',
               padding: '8px 10px',
               fontWeight: 600,
-              cursor: 'pointer',
+              textDecoration: 'none',
               color: activeTab === tab.id ? '#ffffff' : '#111827',
               backgroundColor: activeTab === tab.id ? '#111827' : '#ffffff',
             }}
-            onClick={() => {
-              setActiveTab(tab.id)
-            }}
           >
             {tab.label}
-          </button>
+          </Link>
         ))}
       </div>
 
@@ -184,7 +180,7 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
             selectedSessionId={selectedSessionId}
             selectedConversationId={selectedConversationId}
             onSessionChanged={handleShellSessionChanged}
-            onConversationChanged={setSelectedConversationId}
+            onConversationChanged={handleShellConversationChanged}
           />
         ) : null}
 
@@ -198,7 +194,9 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
               <SessionConversationSelector
                 conversations={conversations}
                 selectedConversationId={selectedConversationId}
-                onSelectedConversationChanged={setSelectedConversationId}
+                onSelectedConversationChanged={(conversationId) => {
+                  updateRunnerRoute({ conversationId })
+                }}
                 isLoadingConversations={isLoadingConversations}
                 conversationsError={conversationsError}
               />
@@ -225,6 +223,22 @@ export function UnifiedTestingPage({ scenario }: UnifiedTestingPageProps): JSX.E
         {activeTab === 'model-config' ? <ModelConfigPanel /> : null}
       </div>
     </section>
+  )
+}
+
+// Fills an empty or stale session/conversation in the URL without adding a history entry.
+function selectAutomaticSession(sessionId: string | null): void {
+  updateRunnerRoute({ sessionId }, { replace: true })
+}
+
+function selectAutomaticConversation(conversations: ConversationSummary[]): void {
+  const current = parseRoute(window.location.pathname, window.location.search)
+  if (current.name !== 'runner') return
+  const isKnown = conversations.some((item) => item.conversationId === current.conversationId)
+  if (isKnown) return
+  updateRunnerRoute(
+    { conversationId: conversations[0]?.conversationId ?? null },
+    { replace: true },
   )
 }
 

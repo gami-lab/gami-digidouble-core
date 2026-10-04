@@ -67,6 +67,14 @@ Open [http://localhost:5173](http://localhost:5173).
 7. Start a **new** conversation with the same avatar later.
 8. Use **Session conversations** + **Open previous conversation** to inspect separate threads.
 
+### URLs
+
+Every view and selection is in the URL, so reload, Back, and shared links reopen the same debug target:
+
+- `/` — scenario setup; `/scenarios/:scenarioId` — setup with that scenario selected
+- `/scenarios/:scenarioId/:tab?session=:sessionId&conversation=:conversationId` — the session
+  runner, where `:tab` is `run`, `knowledge`, `inspector`, or `model-config`
+
 ---
 
 ## Package Scripts

@@ -1,17 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, JSX } from 'react'
 import { apiUrl } from './env'
-import type { ScenarioSummary } from './api'
+import { listScenarios, type ScenarioSummary } from './api'
+import { formatApiError } from './api/error'
 import { ScenarioPage } from './pages/ScenarioPage'
 import { UnifiedTestingPage } from './pages/UnifiedTestingPage'
-
-type Page = 'scenario' | 'unified-testing'
-
-const pageOrder: Page[] = ['scenario', 'unified-testing']
-
-type TestContext = {
-  scenario: ScenarioSummary | null
-}
+import { Link } from './routing/Link'
+import { navigate, useRoute, type Route } from './routing/router'
 
 const appContainerStyle: CSSProperties = {
   minHeight: '100vh',
@@ -49,10 +44,11 @@ const breadcrumbInactiveStyle: CSSProperties = {
   color: '#9ca3af',
 }
 
-const breadcrumbItems: Array<{ id: Page; label: string }> = [
-  { id: 'scenario', label: 'Scenario' },
-  { id: 'unified-testing', label: 'Unified Session Runner' },
-]
+const breadcrumbLinkStyle: CSSProperties = {
+  fontWeight: 600,
+  color: '#3b82f6',
+  textDecoration: 'underline',
+}
 
 type ScenarioPageWithActionsProps = {
   selectedScenarioId: string | null
@@ -96,41 +92,32 @@ function ScenarioPageWithActions({
 }
 
 function App(): JSX.Element {
-  const [page, setPage] = useState<Page>('scenario')
-  const [testContext, setTestContext] = useState<TestContext>({
-    scenario: null,
-  })
+  const route = useRoute()
+  const scenarioId = route.name === 'not-found' ? null : route.scenarioId
+  const { scenario, error: scenarioError } = useScenario(scenarioId)
 
-  useEffect(() => {
-    if (page !== 'scenario' && testContext.scenario === null) {
-      setPage('scenario')
-    }
-  }, [page, testContext.scenario])
-
-  const currentBody = useMemo((): JSX.Element => {
-    if (page === 'scenario') {
-      return (
-        <ScenarioPageWithActions
-          selectedScenarioId={testContext.scenario?.scenarioId ?? null}
-          onScenarioSelected={(scenario) => {
-            setTestContext({ scenario })
-          }}
-          onOpenUnifiedTesting={() => {
-            setPage('unified-testing')
-          }}
-        />
-      )
-    }
-    if (testContext.scenario === null) return <p>Redirecting to setup…</p>
-    return <UnifiedTestingPage scenario={testContext.scenario} />
-  }, [page, testContext.scenario])
-
-  function handleBreadcrumbClick(targetPage: Page): void {
-    const targetIndex = pageOrder.indexOf(targetPage)
-    const currentIndex = pageOrder.indexOf(page)
-    if (targetIndex < currentIndex) {
-      setPage(targetPage)
-    }
+  let body: JSX.Element
+  if (route.name === 'not-found') {
+    body = <p>Page not found.</p>
+  } else if (route.name === 'setup') {
+    body = (
+      <ScenarioPageWithActions
+        selectedScenarioId={route.scenarioId}
+        onScenarioSelected={(selected) => {
+          navigate({ name: 'setup', scenarioId: selected.scenarioId })
+        }}
+        onOpenUnifiedTesting={() => {
+          if (route.scenarioId === null) return
+          navigate(runnerRoute(route.scenarioId))
+        }}
+      />
+    )
+  } else if (scenarioError !== null) {
+    body = <p style={{ color: '#b91c1c' }}>{scenarioError}</p>
+  } else if (scenario === null) {
+    body = <p>Loading scenario…</p>
+  } else {
+    body = <UnifiedTestingPage scenario={scenario} route={route} />
   }
 
   return (
@@ -141,56 +128,83 @@ function App(): JSX.Element {
         <p style={{ marginTop: 0, color: '#4b5563' }}>
           Session = global run. Conversation = one avatar thread inside that session.
         </p>
-        <Breadcrumb activePage={page} onNavigate={handleBreadcrumbClick} />
-        {currentBody}
+        <Breadcrumb route={route} />
+        {body}
       </section>
     </main>
   )
 }
 
-type BreadcrumbProps = { activePage: Page; onNavigate: (page: Page) => void }
+function runnerRoute(scenarioId: string): Route {
+  return { name: 'runner', scenarioId, tab: 'run', sessionId: null, conversationId: null }
+}
 
-function Breadcrumb({ activePage, onNavigate }: BreadcrumbProps): JSX.Element {
-  const currentIndex = pageOrder.indexOf(activePage)
+// Resolves the scenario named by the URL so runner pages survive a reload.
+function useScenario(scenarioId: string | null): {
+  scenario: ScenarioSummary | null
+  error: string | null
+} {
+  const [scenario, setScenario] = useState<ScenarioSummary | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setError(null)
+    if (scenarioId === null) {
+      setScenario(null)
+      return
+    }
+    let isCancelled = false
+    void listScenarios()
+      .then((scenarios) => {
+        if (isCancelled) return
+        const found = scenarios.find((item) => item.scenarioId === scenarioId) ?? null
+        setScenario(found)
+        if (found === null) setError(`Scenario ${scenarioId} not found.`)
+      })
+      .catch((loadError: unknown) => {
+        if (!isCancelled) setError(formatApiError(loadError, 'Failed to load scenario'))
+      })
+    return () => {
+      isCancelled = true
+    }
+  }, [scenarioId])
+
+  return { scenario: scenario?.scenarioId === scenarioId ? scenario : null, error }
+}
+
+function Breadcrumb({ route }: { route: Route }): JSX.Element {
+  const scenarioId = route.name === 'not-found' ? null : route.scenarioId
+  const items: Array<{ label: string; target: Route | null; isActive: boolean }> = [
+    {
+      label: 'Scenario',
+      target: { name: 'setup', scenarioId },
+      isActive: route.name === 'setup',
+    },
+    {
+      label: 'Unified Session Runner',
+      target: scenarioId === null ? null : runnerRoute(scenarioId),
+      isActive: route.name === 'runner',
+    },
+  ]
+
   return (
     <nav style={breadcrumbStyle} aria-label="Page flow">
-      {breadcrumbItems.map((item, index) => {
-        const itemIndex = pageOrder.indexOf(item.id)
-        const isActive = item.id === activePage
-        const isClickable = itemIndex < currentIndex
-        return (
-          <span key={item.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            {isClickable ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onNavigate(item.id)
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  color: '#3b82f6',
-                  fontFamily: 'inherit',
-                  fontSize: 'inherit',
-                  textDecoration: 'underline',
-                }}
-              >
-                {item.label}
-              </button>
-            ) : (
-              <span style={isActive ? breadcrumbActiveStyle : breadcrumbInactiveStyle}>
-                {item.label}
-              </span>
-            )}
-            {index < breadcrumbItems.length - 1 ? (
-              <span style={{ color: '#9ca3af', fontWeight: 600 }}>→</span>
-            ) : null}
-          </span>
-        )
-      })}
+      {items.map((item, index) => (
+        <span key={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          {item.target !== null && !item.isActive ? (
+            <Link to={item.target} style={breadcrumbLinkStyle}>
+              {item.label}
+            </Link>
+          ) : (
+            <span style={item.isActive ? breadcrumbActiveStyle : breadcrumbInactiveStyle}>
+              {item.label}
+            </span>
+          )}
+          {index < items.length - 1 ? (
+            <span style={{ color: '#9ca3af', fontWeight: 600 }}>→</span>
+          ) : null}
+        </span>
+      ))}
     </nav>
   )
 }
