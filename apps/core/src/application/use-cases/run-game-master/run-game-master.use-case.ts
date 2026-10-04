@@ -40,6 +40,7 @@ import { type UnlockEvaluation, resolveAvatarUnlocks } from './run-game-master.a
 import { buildGameMasterInput, type GameMasterScenarioContext } from './run-game-master.context.js'
 import {
   emitGameMasterError,
+  gameMasterLlmTraceId,
   emitTriggeredGameMasterTurn,
   handleInvalidGameMasterOutput,
 } from './run-game-master.events.js'
@@ -319,7 +320,7 @@ export class RunGameMasterUseCase {
       scenarioContext.modelSelection,
       sessionOverride,
     )
-    const gmTraceRequestId = `gm_${crypto.randomUUID()}`
+    const gmTraceRequestId = gameMasterLlmTraceId(input.correlationId)
     const llmRequest = {
       systemPrompt: buildGameMasterSystemPrompt({
         activeAvatarCount: gmInput.context.availableAvatars.length,

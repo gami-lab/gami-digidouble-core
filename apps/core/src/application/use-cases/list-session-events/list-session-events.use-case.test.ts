@@ -450,6 +450,7 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
           hasGm: false,
           retrievalLatencyMs: 14,
           otherOverheadMs: 6,
+          inputMode: 'text',
           contextSelection: {
             shortTermExchangeCount: 1,
             hasWorkingMemory: true,
@@ -673,6 +674,59 @@ describe('ListSessionEventsUseCase — memory refresh mapping', () => {
           inputTokens: 4,
           outputTokens: 6,
         },
+      },
+    ])
+  })
+})
+
+function withoutCorrelation(overrides: Partial<StoredEvent>): StoredEvent {
+  const event = makeEvent(overrides)
+  delete event.correlationId
+  return event
+}
+
+describe('ListSessionEventsUseCase — memory consolidation mapping', () => {
+  it('lists close-time memory work under its request id with bounded facts', async () => {
+    const { useCase } = createUseCase({
+      events: [
+        withoutCorrelation({
+          type: 'user_fact_extraction_succeeded',
+          requestId: 'req_close_1',
+          payload: {
+            userId: 'user_1',
+            conversationId: 'conversation_1',
+            factCount: 1,
+            facts: [{ category: 'preference', key: 'drink', value: 'tea', confidence: 0.9 }],
+            llmTraceId: 'req_close_1',
+            transcript: 'secret transcript',
+          },
+        }),
+        withoutCorrelation({
+          type: 'episodic_memory_generation_failed',
+          requestId: 'req_close_2',
+          payload: { conversationId: 'conversation_1', error: 'boom' },
+        }),
+      ],
+    })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.events).toEqual([
+      {
+        type: 'user_fact_extraction_succeeded',
+        correlationId: 'req_close_1',
+        createdAt: '2026-04-28T10:05:00.000Z',
+        payload: {
+          conversationId: 'conversation_1',
+          facts: [{ category: 'preference', key: 'drink', value: 'tea' }],
+          llmTraceId: 'req_close_1',
+        },
+      },
+      {
+        type: 'episodic_memory_generation_failed',
+        correlationId: 'req_close_2',
+        createdAt: '2026-04-28T10:05:00.000Z',
+        payload: { conversationId: 'conversation_1', error: 'boom' },
       },
     ])
   })

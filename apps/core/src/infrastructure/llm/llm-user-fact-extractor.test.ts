@@ -20,7 +20,9 @@ function createLlm(content: string): ILlmAdapter {
 
 const input = {
   userId: 'user_1',
+  sessionId: 'session_1',
   conversationId: 'conversation_1',
+  requestId: 'request_1',
   messages: [{ role: 'user' as const, content: 'I prefer English' }],
 }
 
@@ -92,7 +94,7 @@ describe('LlmUserFactExtractor', () => {
     await expect(extractor.extract(input)).resolves.toEqual([])
   })
 
-  it('emits a trace when extractor uses an observed adapter', async () => {
+  it('traces the extraction under its request and session ids', async () => {
     const base = createLlm('[{"category":"identity","key":"language","value":"english"}]')
     const observabilityTrace = vi.fn().mockResolvedValue(undefined)
     const observability: IObservabilityAdapter = {
@@ -108,7 +110,9 @@ describe('LlmUserFactExtractor', () => {
 
     expect(observabilityTrace).toHaveBeenCalledWith(
       expect.objectContaining({
-        event: 'llm.completion',
+        requestId: 'request_1',
+        sessionId: 'session_1',
+        event: 'memory.user_fact_extraction',
       }),
     )
   })

@@ -10,6 +10,11 @@ import type { RunGameMasterInput } from './run-game-master.types.js'
 import type { UnlockEvaluation } from './run-game-master.avatar-unlocks.js'
 import { toRecordedGmContextSnapshot } from '../../services/runtime-inspector-event-context.js'
 
+// One GM run per correlation id, so its LLM trace id is derived rather than stored separately.
+export function gameMasterLlmTraceId(correlationId: string): string {
+  return `gm_${correlationId}`
+}
+
 export async function handleInvalidGameMasterOutput(args: {
   input: RunGameMasterInput
   currentState: GameMasterState
@@ -38,7 +43,7 @@ export async function handleInvalidGameMasterOutput(args: {
     outputTokens: args.llmResponse.outputTokens,
   })
   await traceSafe(args.observability, {
-    requestId: args.input.correlationId,
+    requestId: gameMasterLlmTraceId(args.input.correlationId),
     sessionId: args.input.sessionId,
     event: 'gm.invalid_output',
     input: {
@@ -81,6 +86,7 @@ export async function emitGameMasterError(
       stateBefore: buildStateSummary(event.currentState),
       latencyMs: event.latencyMs,
       errorCode: event.errorCode,
+      llmTraceId: gameMasterLlmTraceId(event.input.correlationId),
       ...(event.provider === undefined ? {} : { provider: event.provider }),
       ...(event.model === undefined ? {} : { model: event.model }),
       ...(event.inputTokens !== undefined ? { inputTokens: event.inputTokens } : {}),
@@ -135,6 +141,7 @@ export async function emitTriggeredGameMasterTurn(args: {
       inputTokens: args.llmResponse.inputTokens,
       outputTokens: args.llmResponse.outputTokens,
       correlationId: args.input.correlationId,
+      llmTraceId: gameMasterLlmTraceId(args.input.correlationId),
     },
   })
 }

@@ -216,6 +216,45 @@ describe('MemoryMaintenanceService — persistence and events', () => {
   })
 })
 
+describe('MemoryMaintenanceService — skipped post-turn refresh', () => {
+  it('logs no event when the exchange count does not reach the refresh cadence', async () => {
+    const eventLogRepository = new InMemoryEventLogRepository()
+    const complete = vi.fn()
+    const service = new MemoryMaintenanceService(
+      new InMemoryMessageRepository([
+        {
+          messageId: 'msg_1',
+          conversationId: 'conversation_1',
+          role: 'user',
+          content: 'Hello',
+          createdAt: '2026-05-06T10:00:00.000Z',
+        },
+        {
+          messageId: 'msg_2',
+          conversationId: 'conversation_1',
+          role: 'avatar',
+          content: 'Hi',
+          createdAt: '2026-05-06T10:00:01.000Z',
+        },
+      ]),
+      new InMemoryConversationWorkingMemoryRepository(),
+      eventLogRepository,
+      { complete },
+    )
+
+    await service.execute({
+      sessionId: 'session_1',
+      conversationId: 'conversation_1',
+      avatarId: 'avatar_1',
+      scenarioId: 'scenario_1',
+      trigger: 'post_turn',
+    })
+
+    expect(eventLogRepository.getAll()).toEqual([])
+    expect(complete).not.toHaveBeenCalled()
+  })
+})
+
 // eslint-disable-next-line max-lines-per-function
 describe('MemoryMaintenanceService — LLM compaction', () => {
   it('sends a deterministic compaction prompt and input contract to the LLM', async () => {
@@ -582,8 +621,7 @@ describe('MemoryMaintenanceService — event payload contract', () => {
 
     const events = eventLogRepository.getAll()
     const types = events.map((event) => event.type)
-    expect(types).toContain('memory_refresh_triggered')
-    expect(types).toContain('memory_refresh_failed')
+    expect(types).toEqual(['memory_refresh_failed'])
 
     const failed = events.find((e) => e.type === 'memory_refresh_failed')
     expect(failed?.payload).toMatchObject({

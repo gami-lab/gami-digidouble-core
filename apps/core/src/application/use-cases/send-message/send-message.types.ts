@@ -8,6 +8,8 @@ export interface SendMessageInput {
   conversationId: string
   userMessage: string
   model?: ModelSelectionOverride
+  /** Set by voice turns: how long transcription took before this text turn started. */
+  speechToTextLatencyMs?: number
 }
 
 export type { SessionSummary, ConversationSummary }

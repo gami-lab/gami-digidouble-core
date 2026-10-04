@@ -71,11 +71,12 @@ export class VoiceTurnUseCase {
     try {
       prepared = await this.prepareVoiceTurn(input, options)
       claimed = this.requireClaim(prepared.reservation)
+      const transcribeStartedAt = Date.now()
       const transcript = await this.transcribe(prepared.input, options, requestId)
       transcriptLength = Array.from(transcript).length
       downstreamStarted = true
       const output = await this.sendMessageUseCase.execute(
-        toSendMessageInput(prepared.input, transcript),
+        toSendMessageInput(prepared.input, transcript, Date.now() - transcribeStartedAt),
       )
       return output
     } catch (error) {
@@ -115,12 +116,13 @@ export class VoiceTurnUseCase {
     try {
       prepared = await this.prepareVoiceTurn(input, options)
       claimed = this.requireClaim(prepared.reservation)
+      const transcribeStartedAt = Date.now()
       const transcript = await this.transcribe(prepared.input, options, requestId)
       transcriptLength = Array.from(transcript).length
       downstreamStarted = true
 
       for await (const event of this.streamingSendMessageUseCase.execute(
-        toSendMessageInput(prepared.input, transcript),
+        toSendMessageInput(prepared.input, transcript, Date.now() - transcribeStartedAt),
         options,
       )) {
         conversationRequestId ??= event.requestId
@@ -259,8 +261,12 @@ export class VoiceTurnUseCase {
   }
 }
 
-function toSendMessageInput(input: VoiceTurnInput, transcript: string): SendMessageInput {
-  return { conversationId: input.conversationId, userMessage: transcript }
+function toSendMessageInput(
+  input: VoiceTurnInput,
+  transcript: string,
+  speechToTextLatencyMs: number,
+): SendMessageInput {
+  return { conversationId: input.conversationId, userMessage: transcript, speechToTextLatencyMs }
 }
 
 function failureCodeFor(error: unknown): VoiceTurnFailureCode {

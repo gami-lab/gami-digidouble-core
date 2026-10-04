@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import type { ApiResponse, SessionMemoryLayers, SessionMemorySummary } from '@gami/shared'
+import type { ApiResponse, SessionMemoryLayers } from '@gami/shared'
 import type { FastifyInstance } from 'fastify'
 import type { Conversation } from '../../domain/conversation/session.types.js'
 import type { Session } from '../../domain/conversation/session.types.js'
@@ -328,109 +328,6 @@ function expectLayeredMemoryResponse(session: SessionMemoryLayers | undefined): 
     },
   ])
 }
-
-describe('GET /v1/admin/sessions/:sessionId/memory', () => {
-  it('returns 401 without API key', async () => {
-    const response = await makeApp().inject({
-      method: 'GET',
-      url: '/v1/admin/sessions/session_1/memory',
-    })
-    expect(response.statusCode).toBe(401)
-  })
-
-  it('returns 401 with wrong API key', async () => {
-    const response = await makeApp().inject({
-      method: 'GET',
-      url: '/v1/admin/sessions/session_1/memory',
-      headers: authHeaders('wrong'),
-    })
-    expect(response.statusCode).toBe(401)
-  })
-
-  it('returns 404 for unknown session', async () => {
-    const response = await makeApp({ sessions: [] }).inject({
-      method: 'GET',
-      url: '/v1/admin/sessions/missing/memory',
-      headers: authHeaders(),
-    })
-    expect(response.statusCode).toBe(404)
-    const body = response.json<ApiResponse<null>>()
-    expect(body.error?.code).toBe('NOT_FOUND')
-  })
-
-  it('returns empty summary when session has no working memory row', async () => {
-    const response = await makeApp({
-      sessions: [makeSession()],
-    }).inject({
-      method: 'GET',
-      url: '/v1/admin/sessions/session_1/memory',
-      headers: authHeaders(),
-    })
-    expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<{ session: SessionMemorySummary }>>()
-    expect(body.error).toBeNull()
-    expect(body.data?.session.summary).toBe('')
-  })
-
-  it('returns session working-memory summary when present', async () => {
-    const response = await makeApp({
-      sessions: [makeSession()],
-      sessionMemories: [
-        {
-          sessionId: 'session_1',
-          summary: 'Compacted memory summary',
-          updatedAt: '2026-05-01T10:05:00.000Z',
-        },
-      ],
-    }).inject({
-      method: 'GET',
-      url: '/v1/admin/sessions/session_1/memory',
-      headers: authHeaders(),
-    })
-    expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<{ session: SessionMemorySummary }>>()
-    expect(body.error).toBeNull()
-    expect(body.data?.session.summary).toBe('Compacted memory summary')
-    expect(body.data?.session.shortTerm).toEqual({ exchangeCount: 3 })
-    expect(body.data?.session.updatedAt).toBe('2026-05-01T10:05:00.000Z')
-    expect(response.body).not.toContain('OPENAI_API_KEY')
-    expect(response.body).not.toContain('anthropicApiKey')
-  })
-
-  it('derives summary from dedicated session working memory when available', async () => {
-    const response = await makeApp({
-      sessionMemories: [
-        {
-          sessionId: 'session_1',
-          summary: 'Dedicated working-memory summary',
-          updatedAt: '2026-05-01T11:00:00.000Z',
-        },
-      ],
-    }).inject({
-      method: 'GET',
-      url: '/v1/admin/sessions/session_1/memory',
-      headers: authHeaders(),
-    })
-    expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<{ session: SessionMemorySummary }>>()
-    expect(body.data?.session.summary).toBe('Dedicated working-memory summary')
-    expect(body.data?.session.updatedAt).toBe('2026-05-01T11:00:00.000Z')
-  })
-
-  it('returns longTermFactCount from seeded facts', async () => {
-    const response = await makeApp({
-      facts: [makeFact({ id: 'umf_1' }), makeFact({ id: 'umf_2', key: 'role', value: 'friend' })],
-    }).inject({
-      method: 'GET',
-      url: '/v1/admin/sessions/session_1/memory',
-      headers: authHeaders(),
-    })
-    expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<{ session: SessionMemorySummary }>>()
-    expect(body.error).toBeNull()
-    expect(body.data?.session.longTermFactCount).toBe(2)
-  })
-})
 
 describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
   it('returns 401 without API key', async () => {

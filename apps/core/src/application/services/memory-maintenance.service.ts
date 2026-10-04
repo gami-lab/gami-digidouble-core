@@ -17,6 +17,7 @@ import type { ModelConfig } from '../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 import { isUnsupportedContradictedAvatarClaim } from './memory-contradiction.policy.js'
 import { logResolvedLlmCall, resolveRoleLlmCall } from './model-resolution-runtime.service.js'
+import { memoryRefreshEventBase, memoryRefreshPayloadBase } from './memory-refresh-events.js'
 
 const WORKING_MEMORY_COMPACTION_SYSTEM_PROMPT = `You update a running working memory for a conversation.
 
@@ -158,32 +159,27 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
     verifiedContext?: VerifiedMemoryContext[]
   }): Promise<void> {
     const requestId = crypto.randomUUID()
-    await this.appendEventSafe({
-      sessionId: input.sessionId,
-      type: 'memory_refresh_triggered',
-      severity: 'info',
-      requestId,
-      ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
-      payload: {
-        sessionId: input.sessionId,
-        conversationId: input.conversationId,
-        avatarId: input.avatarId,
-        scenarioId: input.scenarioId,
-        trigger: input.trigger,
-      },
-    })
-
+    const startedAt = Date.now()
     try {
       const messages = await this.messageRepository.findByConversationId(input.conversationId)
-      const priorMemory: ConversationWorkingMemory | null =
-        await this.conversationWorkingMemoryRepository.findByConversationId(input.conversationId)
       const ordered = messages
         .slice()
         .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
       const exchangeCount = countExchanges(ordered)
+      // Post-turn refresh runs every third exchange; skipped turns log nothing.
       if (input.trigger === 'post_turn' && exchangeCount % 3 !== 0) {
         return
       }
+      await this.appendEventSafe({
+        ...memoryRefreshEventBase(input, requestId),
+        type: 'memory_refresh_triggered',
+        severity: 'info',
+        payload: {
+          ...memoryRefreshPayloadBase(input),
+        },
+      })
+      const priorMemory: ConversationWorkingMemory | null =
+        await this.conversationWorkingMemoryRepository.findByConversationId(input.conversationId)
       const recentOrdered = ordered.slice(-WORKING_MEMORY_RECENT_MESSAGE_LIMIT)
 
       const rewritten = await this.rewriteWorkingMemory(recentOrdered, priorMemory, {
@@ -207,17 +203,11 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
       })
 
       await this.appendEventSafe({
-        sessionId: input.sessionId,
+        ...memoryRefreshEventBase(input, requestId),
         type: 'memory_refresh_succeeded',
         severity: 'info',
-        requestId,
-        ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
         payload: {
-          sessionId: input.sessionId,
-          conversationId: input.conversationId,
-          avatarId: input.avatarId,
-          scenarioId: input.scenarioId,
-          trigger: input.trigger,
+          ...memoryRefreshPayloadBase(input),
           workingSummary: rewritten.memory.summary,
           messageCount: recentOrdered.length,
           unresolvedThreads: rewritten.memory.unresolvedThreads,
@@ -228,22 +218,20 @@ export class MemoryMaintenanceService implements IMemoryMaintenancePort {
           model: rewritten.model,
           inputTokens: rewritten.inputTokens,
           outputTokens: rewritten.outputTokens,
+          latencyMs: Date.now() - startedAt,
+          llmTraceId: requestId,
         },
       })
     } catch (error) {
       await this.appendEventSafe({
-        sessionId: input.sessionId,
+        ...memoryRefreshEventBase(input, requestId),
         type: 'memory_refresh_failed',
         severity: 'error',
-        requestId,
-        ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
         payload: {
-          sessionId: input.sessionId,
-          conversationId: input.conversationId,
-          avatarId: input.avatarId,
-          scenarioId: input.scenarioId,
-          trigger: input.trigger,
+          ...memoryRefreshPayloadBase(input),
           error: error instanceof Error ? error.message : 'Unknown error',
+          latencyMs: Date.now() - startedAt,
+          llmTraceId: requestId,
         },
       })
     }

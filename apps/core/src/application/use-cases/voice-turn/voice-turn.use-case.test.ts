@@ -182,6 +182,7 @@ describe('VoiceTurnUseCase synchronous execution', () => {
     expect(send).toHaveBeenCalledWith({
       conversationId: 'conversation-1',
       userMessage: 'hello world',
+      speechToTextLatencyMs: expect.any(Number) as number,
     })
     const transcriptionRequestId = transcribe.mock.calls[0]?.[1]?.requestId
     expect(transcriptionRequestId).toEqual(expect.any(String))
@@ -376,7 +377,11 @@ describe('VoiceTurnUseCase streaming execution', () => {
 
     expect(received).toEqual(events)
     expect(streamMock).toHaveBeenCalledWith(
-      { conversationId: 'conversation-1', userMessage: 'hello world' },
+      {
+        conversationId: 'conversation-1',
+        userMessage: 'hello world',
+        speechToTextLatencyMs: expect.any(Number) as number,
+      },
       expect.anything(),
     )
     const streamOptions = streamMock.mock.calls[0]?.[1]

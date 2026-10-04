@@ -218,7 +218,7 @@ export class SendMessageUseCase {
   async completeTurn(
     turn: PreparedSendMessageTurn,
     response: SendMessageTurnResponse,
-    options: { scheduleBackground?: boolean } = {},
+    options: { scheduleBackground?: boolean; firstTokenLatencyMs?: number } = {},
   ): Promise<SendMessageOutput> {
     const cleanedResponse = { ...response, content: cleanAvatarResponse(response.content) }
     const avatarMessage = await this.persistAvatarMessage(turn.conversation.conversationId, {
@@ -257,6 +257,7 @@ export class SendMessageUseCase {
       hasGm: this.runGameMasterUseCase !== null,
       retrievalLatencyMs: turn.retrievalLatencyMs,
       otherOverheadMs,
+      ...optionalTurnLatencies(turn.input, options.firstTokenLatencyMs),
       contextSelection: toContextSelectionMetadata(turn.assembledContext),
       ...(turn.orchestration !== undefined
         ? {
@@ -761,5 +762,19 @@ export class SendMessageUseCase {
 
   private nowIso(): string {
     return new Date().toISOString()
+  }
+}
+
+function optionalTurnLatencies(
+  input: SendMessageInput,
+  firstTokenLatencyMs: number | undefined,
+): { avatarFirstTokenLatencyMs?: number; speechToTextLatencyMs?: number } {
+  return {
+    ...(firstTokenLatencyMs === undefined
+      ? {}
+      : { avatarFirstTokenLatencyMs: firstTokenLatencyMs }),
+    ...(input.speechToTextLatencyMs === undefined
+      ? {}
+      : { speechToTextLatencyMs: input.speechToTextLatencyMs }),
   }
 }

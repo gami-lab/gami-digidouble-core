@@ -1,8 +1,4 @@
-import type {
-  ConversationEndReason,
-  SessionMemoryLayers,
-  SessionMemorySummary,
-} from './lifecycle-types.js'
+import type { ConversationEndReason, SessionMemoryLayers } from './lifecycle-types.js'
 import type {
   SharedGmWorkingMemory,
   SharedMemoryFactRecord,
@@ -23,7 +19,6 @@ import type {
   RetrievalTraceDto,
 } from './knowledge-contract-types.js'
 import type { ModelProviderName } from './model-catalog.js'
-import type { RuntimeState } from './runtime-types.js'
 import type { AvatarComputedTraits, SessionSummary } from './entity-types.js'
 
 export type UserPersona = {
@@ -151,6 +146,8 @@ export type GmSessionEventPayload = {
   outputTokens?: number
   errorCode?: string
   correlationId?: string
+  /** Langfuse trace id of the GM LLM call. */
+  llmTraceId?: string
 }
 
 export type TurnCompletedEventPayload = {
@@ -168,6 +165,11 @@ export type TurnCompletedEventPayload = {
   hasGm: boolean
   retrievalLatencyMs?: number
   otherOverheadMs?: number
+  /** Streamed turns only: Avatar LLM call start to first token. */
+  avatarFirstTokenLatencyMs?: number
+  /** Voice turns only: transcription time before the turn started (not in totalTurnLatencyMs). */
+  speechToTextLatencyMs?: number
+  inputMode: 'text' | 'voice'
   contextSelection?: {
     shortTermExchangeCount: number
     hasWorkingMemory: boolean
@@ -198,6 +200,21 @@ export type MemoryRefreshEventPayload = {
   inputTokens?: number
   outputTokens?: number
   error?: string
+  /** Compaction duration, set on succeeded/failed events. */
+  latencyMs?: number
+  /** Langfuse trace id of the compaction LLM call. */
+  llmTraceId?: string
+}
+
+/** Outcome of the long-term memory work run when a conversation closes. */
+export type MemoryConsolidationEventPayload = {
+  conversationId: string
+  avatarId?: string
+  /** User facts extracted from the conversation (fact extraction only). */
+  facts?: SharedMemoryFactRecord[]
+  error?: string
+  /** Langfuse trace id of the fact-extraction LLM call. */
+  llmTraceId?: string
 }
 
 export type SessionEventRecord = {
@@ -208,67 +225,26 @@ export type SessionEventRecord = {
     | 'memory_refresh_triggered'
     | 'memory_refresh_succeeded'
     | 'memory_refresh_failed'
+    | 'user_fact_extraction_succeeded'
+    | 'user_fact_extraction_failed'
+    | 'episodic_memory_generation_succeeded'
+    | 'episodic_memory_generation_failed'
+  /** The turn's request id, or the event's own request id for work outside a turn. */
   correlationId: string
   createdAt: string
-  payload: GmSessionEventPayload | TurnCompletedEventPayload | MemoryRefreshEventPayload
+  payload:
+    | GmSessionEventPayload
+    | TurnCompletedEventPayload
+    | MemoryRefreshEventPayload
+    | MemoryConsolidationEventPayload
 }
 
 export type AdminSessionEventsResponse = {
   events: SessionEventRecord[]
 }
 
-export type AdminSessionMemoryResponse = {
-  session: SessionMemorySummary
-}
-
 export type AdminSessionMemoryLayersResponse = {
   session: SessionMemoryLayers
-}
-
-export type TurnMetrics = {
-  turnIndex: number
-  correlationId: string
-  conversationId: string
-  avatarLatencyMs: number
-  totalTurnLatencyMs: number
-  overheadMs: number
-  retrievalLatencyMs?: number
-  inputTokens: number
-  outputTokens: number
-  totalTokens: number
-  model: string
-  hasGm: boolean
-  gmLatencyMs?: number
-  gmInputTokens?: number
-  gmOutputTokens?: number
-}
-
-export type TurnMetricsSummary = {
-  totalTurns: number
-  turnsWithGm: number
-  avgAvatarLatencyMs: number
-  avgTotalTurnLatencyMs: number
-  avgInputTokens: number
-  avgOutputTokens: number
-  avgGmLatencyMs: number | null
-}
-
-export type AdminSessionTurnMetricsResponse = {
-  sessionId: string
-  checkedAt: string
-  summary: TurnMetricsSummary
-  turns: TurnMetrics[]
-}
-
-export type RuntimeInspectorSnapshotResponse = {
-  snapshot: {
-    runtimeState: RuntimeState
-    inspect: AdminSessionInspectResponse['inspect']
-    memory: SessionMemoryLayers
-    events: SessionEventRecord[]
-    metrics: AdminSessionTurnMetricsResponse
-    persona: UserPersona | null
-  }
 }
 
 export type ResetSessionAdminActionRequest = {

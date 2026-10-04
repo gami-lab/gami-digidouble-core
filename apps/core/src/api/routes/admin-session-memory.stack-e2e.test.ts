@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ApiResponse, SessionMemoryLayers, SessionMemorySummary } from '@gami/shared'
+import type { ApiResponse, SessionMemoryLayers } from '@gami/shared'
 import type { TestContext } from 'vitest'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
@@ -44,30 +44,6 @@ async function postConversationMessage(
     body.error?.message,
   )
   return response
-}
-
-async function endConversation(sessionId: string, conversationId: string): Promise<Response> {
-  return fetch(buildUrl(`/v1/sessions/${sessionId}/conversations/${conversationId}/end`), {
-    method: 'POST',
-    headers: {
-      ...authHeaders(),
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({ reason: 'operator_end' }),
-  })
-}
-
-async function pollForSummary(sessionId: string): Promise<string | null> {
-  for (let i = 0; i < 100; i += 1) {
-    const memoryRes = await fetch(buildUrl(`/v1/admin/sessions/${sessionId}/memory`), {
-      headers: authHeaders(),
-    })
-    const body = (await memoryRes.json()) as ApiResponse<{ session: SessionMemorySummary }>
-    const summary = body.data?.session.summary ?? null
-    if (summary !== null) return summary
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-  return null
 }
 
 function assertMemoryLayersEnvelope(
@@ -175,15 +151,6 @@ async function seedSession(): Promise<{
   return { sessionId, userId, conversationId, avatarId, scenarioId }
 }
 
-describe('GET /v1/admin/sessions/:sessionId/memory — stack auth', () => {
-  it('returns 401 without API key', async () => {
-    const response = await fetch(buildUrl('/v1/admin/sessions/session_1/memory'))
-    expect(response.status).toBe(401)
-    const body = (await response.json()) as ApiResponse<null>
-    expect(body.error?.code).toBe('UNAUTHORIZED')
-  })
-})
-
 describe('GET /v1/admin/sessions/:sessionId/memory-layers — stack auth', () => {
   it('returns 401 without API key', async () => {
     const response = await fetch(buildUrl('/v1/admin/sessions/session_1/memory-layers'))
@@ -195,79 +162,6 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers — stack auth', () =>
       headers: authHeaders('wrong-secret'),
     })
     expect(response.status).toBe(401)
-  })
-})
-
-describe('GET /v1/admin/sessions/:sessionId/memory — stack behavior', () => {
-  it('returns 404 for unknown sessionId', async () => {
-    const response = await fetch(buildUrl('/v1/admin/sessions/session_missing/memory'), {
-      headers: authHeaders(),
-    })
-    expect(response.status).toBe(404)
-    const body = (await response.json()) as ApiResponse<null>
-    expect(body.error?.code).toBe('NOT_FOUND')
-  })
-
-  it('returns empty summary and zero facts for known session with no summary/facts', async () => {
-    const seeded = await seedSession()
-    try {
-      const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory`), {
-        headers: authHeaders(),
-      })
-      expect(response.status).toBe(200)
-      const body = (await response.json()) as ApiResponse<{ session: SessionMemorySummary }>
-      expect(body.error).toBeNull()
-      expect(body.data?.session.summary).toBe('')
-      expect(body.data?.session.longTermFactCount).toBe(0)
-    } finally {
-      await cleanupSession(seeded)
-    }
-  })
-
-  it('returns a valid memory summary envelope after conversation close compaction', async (context) => {
-    const seeded = await seedSession()
-    try {
-      const messageRes = await postConversationMessage(
-        context,
-        seeded.conversationId,
-        'Hello there',
-      )
-      expect(messageRes.status).toBe(200)
-
-      const endRes = await endConversation(seeded.sessionId, seeded.conversationId)
-      expect(endRes.status).toBe(200)
-
-      const summary = await pollForSummary(seeded.sessionId)
-      expect(typeof summary).toBe('string')
-    } finally {
-      await cleanupSession(seeded)
-    }
-  })
-
-  it('returns a numeric longTermFactCount after real conversation close flow', async (context) => {
-    const seeded = await seedSession()
-    try {
-      const messageRes = await postConversationMessage(
-        context,
-        seeded.conversationId,
-        'I prefer tea over coffee.',
-      )
-      expect(messageRes.status).toBe(200)
-
-      const endRes = await endConversation(seeded.sessionId, seeded.conversationId)
-      expect(endRes.status).toBe(200)
-
-      const response = await fetch(buildUrl(`/v1/admin/sessions/${seeded.sessionId}/memory`), {
-        headers: authHeaders(),
-      })
-      expect(response.status).toBe(200)
-      const body = (await response.json()) as ApiResponse<{ session: SessionMemorySummary }>
-      expect(body.error).toBeNull()
-      expect(typeof body.data?.session.longTermFactCount).toBe('number')
-      expect((body.data?.session.longTermFactCount ?? -1) >= 0).toBe(true)
-    } finally {
-      await cleanupSession(seeded)
-    }
   })
 })
 

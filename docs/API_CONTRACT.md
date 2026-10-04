@@ -91,8 +91,6 @@ All admin routes use `/v1/admin/*` and the same API key in Phase A.
 - `GET /v1/admin/sessions/{sessionId}/inspect`
 - `GET /v1/admin/sessions/{sessionId}/events`
 - `GET /v1/admin/sessions/{sessionId}/context`
-- `GET /v1/admin/sessions/{sessionId}/metrics`
-- `GET /v1/admin/sessions/{sessionId}/memory`
 - `GET /v1/admin/sessions/{sessionId}/memory-layers`
 - `POST /v1/admin/sessions/{sessionId}/gm/replay`
 - `POST /v1/admin/sessions/{sessionId}/memory/refresh`
@@ -200,4 +198,11 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   provenance) — retrieved documents are never emitted as conversational memory.
 - Session-context inspection and `turn_completed` events share the same bounded retrieval-trace and
   kept/trimmed selection diagnostics; fields are optional because not every event carries every one.
+- Session events link to Langfuse instead of carrying prompts: a `turn_completed` event's
+  `correlationId` is the Avatar call's trace id, and GM and memory-refresh payloads carry
+  `llmTraceId`. `turn_completed` records `inputMode`, plus `speechToTextLatencyMs` (voice turns,
+  outside `totalTurnLatencyMs`) and `avatarFirstTokenLatencyMs` (streamed turns). Post-turn memory
+  refreshes that the cadence skips log no event. Conversation-close memory work (user-fact
+  extraction with the extracted facts, episodic generation) is listed too; events outside a turn use
+  their own request id as `correlationId`.
 - Prefer additive changes, preserve field meaning, and update shared DTOs plus consumer tests together.

@@ -375,7 +375,7 @@ describe('RunGameMasterUseCase trace context', () => {
         errorEvent: 'gm.llm_error',
       }),
     )
-    expect(request.trace?.requestId).toMatch(/^gm_[0-9a-f-]{36}$/)
+    expect(request.trace?.requestId).toBe('gm_corr_trace_ctx')
     expect(request.trace?.metadata?.['triggerReason']).toBe('post_turn_observation')
     expect(request.trace?.metadata?.['correlationId']).toBe('corr_trace_ctx')
   })

@@ -156,7 +156,9 @@ export class EndConversationUseCase {
       })
       const facts = await this.userFactExtractor.extract({
         userId,
+        sessionId,
         conversationId,
+        requestId,
         messages: messages.map((message) => ({
           role: message.role,
           content: message.content,
@@ -182,6 +184,12 @@ export class EndConversationUseCase {
           userId,
           conversationId,
           factCount: facts.length,
+          facts: facts.map((fact) => ({
+            category: fact.category,
+            key: fact.key,
+            value: fact.value,
+          })),
+          llmTraceId: requestId,
         },
       })
     } catch (error) {

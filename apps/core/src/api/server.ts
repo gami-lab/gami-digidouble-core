@@ -49,7 +49,6 @@ import { buildLlmConfig, createLlmAdapter } from '../infrastructure/llm/index.js
 import type { LlmAdapterRegistry } from '../infrastructure/llm/llm-adapter-registry.js'
 import { adminMemoryRoute } from './routes/admin-memory.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
-import { adminMetricsRoute } from './routes/admin-metrics.js'
 import { adminHealthRoute } from './routes/admin-health.js'
 import { adminSessionContextRoute } from './routes/admin-session-context.js'
 import { adminRuntimeActionsRoute } from './routes/admin-runtime-actions.js'
@@ -233,12 +232,6 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     config,
     probes: adapters.probes ?? [],
   })
-  app.register(adminMetricsRoute, {
-    prefix: '/v1/admin',
-    config,
-    sessionRepository: resolvedAdapters.sessionRepository ?? new InMemorySessionRepository(),
-    eventLogRepository: resolvedAdapters.eventLogRepository,
-  })
   app.register(adminMemoryRoute, {
     ...buildAdminMemoryRouteOptions(config, resolvedAdapters),
   })
@@ -413,10 +406,6 @@ function buildAdminMemoryRouteOptions(config: Config, adapters: ServerAdapters) 
     prefix: '/v1/admin',
     config,
     sessionRepository: adapters.sessionRepository ?? new InMemorySessionRepository(),
-    sessionMemoryRepository:
-      adapters.sessionMemoryRepository ?? new InMemorySessionMemoryRepository(),
-    avatarSessionMemoryRepository:
-      adapters.avatarSessionMemoryRepository ?? new InMemoryAvatarSessionMemoryRepository(),
     ...(adapters.conversationRepository !== undefined
       ? { conversationRepository: adapters.conversationRepository }
       : {}),

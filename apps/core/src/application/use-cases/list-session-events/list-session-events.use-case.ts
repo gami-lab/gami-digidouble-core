@@ -17,6 +17,7 @@ import type {
   GmSessionEventPayload,
   ListSessionEventsInput,
   ListSessionEventsOutput,
+  MemoryConsolidationEventPayload,
   MemoryRefreshEventPayload,
   SessionEventRecord,
   TurnCompletedEventPayload,
@@ -57,16 +58,26 @@ const MEMORY_REFRESH_TYPES = new Set([
   'memory_refresh_failed',
 ])
 
+const MEMORY_CONSOLIDATION_TYPES = new Set([
+  'user_fact_extraction_succeeded',
+  'user_fact_extraction_failed',
+  'episodic_memory_generation_succeeded',
+  'episodic_memory_generation_failed',
+])
+
 const ALLOWED_EVENT_TYPES = new Set([
   'gm_triggered',
   'gm_error',
   'turn_completed',
   ...MEMORY_REFRESH_TYPES,
+  ...MEMORY_CONSOLIDATION_TYPES,
 ])
 
 function toSafeSessionEvent(event: StoredEvent): SessionEventRecord[] {
   if (!ALLOWED_EVENT_TYPES.has(event.type)) return []
-  if (event.correlationId === undefined || event.createdAt === undefined) return []
+  // Work outside a turn (conversation close, avatar switch) has only a request id.
+  const correlationId = event.correlationId ?? event.requestId
+  if (correlationId === undefined || event.createdAt === undefined) return []
 
   const payload = resolvePayload(event)
   if (payload === null) return []
@@ -74,17 +85,18 @@ function toSafeSessionEvent(event: StoredEvent): SessionEventRecord[] {
   return [
     {
       type: event.type as SessionEventRecord['type'],
-      correlationId: event.correlationId,
+      correlationId,
       createdAt: event.createdAt,
       payload,
     },
   ]
 }
 
-function resolvePayload(
-  event: StoredEvent,
-): GmSessionEventPayload | TurnCompletedEventPayload | MemoryRefreshEventPayload | null {
+function resolvePayload(event: StoredEvent): SessionEventRecord['payload'] | null {
   if (MEMORY_REFRESH_TYPES.has(event.type)) return toSafeMemoryRefreshPayload(event.payload)
+  if (MEMORY_CONSOLIDATION_TYPES.has(event.type)) {
+    return toSafeMemoryConsolidationPayload(event.payload)
+  }
   if (event.type === 'turn_completed') return toSafeTurnCompletedPayload(event.payload)
   return toSafePayload(event.payload)
 }
@@ -105,7 +117,6 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
   const model = readOptionalString(payload['model'])
   const inputTokens = readOptionalNumber(payload['inputTokens'])
   const outputTokens = readOptionalNumber(payload['outputTokens'])
-  const errorCode = readOptionalString(payload['errorCode'])
 
   return {
     ...safePayload,
@@ -117,7 +128,8 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
     ...(model !== undefined ? { model } : {}),
     ...(inputTokens !== undefined ? { inputTokens } : {}),
     ...(outputTokens !== undefined ? { outputTokens } : {}),
-    ...(errorCode !== undefined ? { errorCode } : {}),
+    ...readOptionalStringField(payload, 'errorCode'),
+    ...readOptionalStringField(payload, 'llmTraceId'),
   }
 }
 
@@ -140,6 +152,8 @@ function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRef
   const inputTokens = readOptionalNumber(payload['inputTokens'])
   const outputTokens = readOptionalNumber(payload['outputTokens'])
   const error = readOptionalString(payload['error'])
+  const latencyMs = readOptionalNumber(payload['latencyMs'])
+  const llmTraceId = readOptionalString(payload['llmTraceId'])
   return {
     ...base,
     ...(workingSummary !== undefined ? { workingSummary } : {}),
@@ -153,6 +167,21 @@ function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRef
     ...(inputTokens !== undefined ? { inputTokens } : {}),
     ...(outputTokens !== undefined ? { outputTokens } : {}),
     ...(error !== undefined ? { error } : {}),
+    ...(latencyMs !== undefined ? { latencyMs } : {}),
+    ...(llmTraceId !== undefined ? { llmTraceId } : {}),
+  }
+}
+
+function toSafeMemoryConsolidationPayload(
+  payload: Record<string, unknown>,
+): MemoryConsolidationEventPayload {
+  const facts = readOptionalCandidateFacts(payload['facts'])
+  return {
+    conversationId: readString(payload['conversationId']),
+    ...readOptionalStringField(payload, 'avatarId'),
+    ...(facts !== undefined ? { facts } : {}),
+    ...readOptionalStringField(payload, 'error'),
+    ...readOptionalStringField(payload, 'llmTraceId'),
   }
 }
 
@@ -186,6 +215,9 @@ function toSafeTurnCompletedPayload(payload: Record<string, unknown>): TurnCompl
     hasGm: readBoolean(payload['hasGm']),
     ...readOptionalNumberField(payload, 'retrievalLatencyMs'),
     ...readOptionalNumberField(payload, 'otherOverheadMs'),
+    ...readOptionalNumberField(payload, 'avatarFirstTokenLatencyMs'),
+    ...readOptionalNumberField(payload, 'speechToTextLatencyMs'),
+    inputMode: payload['inputMode'] === 'voice' ? 'voice' : 'text',
     ...(contextSelection !== undefined ? { contextSelection } : {}),
     ...readOptionalStringField(payload, 'correlationId'),
   }
@@ -872,6 +904,10 @@ function readOptionalStringField<
     | 'switchedAvatarId'
     | 'correlationId'
     | 'injectedNote'
+    | 'errorCode'
+    | 'llmTraceId'
+    | 'avatarId'
+    | 'error'
     | 'objectiveId',
 >(value: Record<string, unknown>, key: K): Partial<Record<K, string>> {
   const field = readOptionalString(value[key])
@@ -890,10 +926,13 @@ function readOptionalStringArrayField(
   return field.length > 0 ? { unlockedAvatarIds: field } : {}
 }
 
-function readOptionalNumberField<T extends 'retrievalLatencyMs' | 'otherOverheadMs'>(
-  value: Record<string, unknown>,
-  key: T,
-): Partial<Record<T, number>> {
+function readOptionalNumberField<
+  T extends
+    | 'retrievalLatencyMs'
+    | 'otherOverheadMs'
+    | 'avatarFirstTokenLatencyMs'
+    | 'speechToTextLatencyMs',
+>(value: Record<string, unknown>, key: T): Partial<Record<T, number>> {
   const field = readOptionalNumber(value[key])
   return field !== undefined ? ({ [key]: field } as Partial<Record<T, number>>) : {}
 }

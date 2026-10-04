@@ -24,6 +24,8 @@ export class StreamingSendMessageUseCase {
     let accumulatedContent = ''
     let emittedContent = ''
     let terminalResponse: LlmResponse | undefined
+    let firstTokenLatencyMs: number | undefined
+    const llmStartedAt = Date.now()
 
     const emitCleanDelta = (rawContent: string): string => {
       const cleanedContent = cleanAvatarResponse(rawContent)
@@ -51,6 +53,7 @@ export class StreamingSendMessageUseCase {
       } else {
         for await (const event of turn.adapter.stream(turn.llmRequest, options)) {
           if (event.type === 'delta') {
+            firstTokenLatencyMs ??= Date.now() - llmStartedAt
             accumulatedContent += event.text
             const cleanedDelta = emitCleanDelta(accumulatedContent)
             if (cleanedDelta.length > 0) {
@@ -93,6 +96,7 @@ export class StreamingSendMessageUseCase {
 
       const output = await this.sendMessageUseCase.completeTurn(turn, terminalResponse, {
         scheduleBackground: false,
+        ...(firstTokenLatencyMs === undefined ? {} : { firstTokenLatencyMs }),
       })
       // Schedule post-turn work before exposing completion to the client. The
       // client may immediately start another turn or abort the stream after

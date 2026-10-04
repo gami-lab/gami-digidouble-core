@@ -353,6 +353,7 @@ describe('GET /v1/admin/sessions/:sessionId/events turn-completed behavior', () 
           totalTokens: 34,
           model: 'null-model',
           hasGm: true,
+          inputMode: 'text',
         },
       }),
     )

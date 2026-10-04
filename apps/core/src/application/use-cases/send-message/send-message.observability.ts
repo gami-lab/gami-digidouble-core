@@ -20,6 +20,8 @@ export function emitTurnCompletedEventNonBlocking(args: {
   hasGm: boolean
   retrievalLatencyMs: number
   otherOverheadMs: number
+  avatarFirstTokenLatencyMs?: number
+  speechToTextLatencyMs?: number
   contextSelection: ContextSelectionMetadata
   eventLogRepository: IEventLogRepository
 }): void {
@@ -41,6 +43,13 @@ export function emitTurnCompletedEventNonBlocking(args: {
     hasGm: args.hasGm,
     retrievalLatencyMs: args.retrievalLatencyMs,
     otherOverheadMs: args.otherOverheadMs,
+    inputMode: args.speechToTextLatencyMs === undefined ? 'text' : 'voice',
+    ...(args.avatarFirstTokenLatencyMs === undefined
+      ? {}
+      : { avatarFirstTokenLatencyMs: args.avatarFirstTokenLatencyMs }),
+    ...(args.speechToTextLatencyMs === undefined
+      ? {}
+      : { speechToTextLatencyMs: args.speechToTextLatencyMs }),
     contextSelection: args.contextSelection,
   } as const
 

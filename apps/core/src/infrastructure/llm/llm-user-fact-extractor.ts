@@ -31,6 +31,13 @@ export class LlmUserFactExtractor implements IUserFactExtractor {
         systemPrompt: FACT_EXTRACTION_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: this.buildTranscript(input) }],
         maxTokens: 400,
+        trace: {
+          requestId: input.requestId,
+          sessionId: input.sessionId,
+          event: 'memory.user_fact_extraction',
+          errorEvent: 'memory.user_fact_extraction.llm_error',
+          metadata: { conversationId: input.conversationId },
+        },
       })
       return this.parseFacts(response.content)
     } catch (error) {
