@@ -4,17 +4,9 @@ import type {
   AdminRefreshMemoryResponse,
   AdminReplayGmResponse,
   AdminSessionContextResponse,
-  UpsertUserPersonaResponse,
-  UserPersona,
 } from '@gami/shared'
 import { coreRequest } from './client'
-import {
-  clearSessionMemory,
-  getSessionContext,
-  refreshSessionMemory,
-  replayGm,
-  upsertUserPersona,
-} from './sessions'
+import { clearSessionMemory, getSessionContext, refreshSessionMemory, replayGm } from './sessions'
 
 vi.mock('./client', () => ({
   coreRequest: vi.fn(),
@@ -81,35 +73,13 @@ describe('sessions runtime inspector action API wrappers', () => {
     expect(clear.cleared.userFactsCleared).toBe(false)
   })
 
-  it('calls context and persona endpoints with canonical shapes', async () => {
-    const contextPayload: AdminSessionContextResponse = makeContextPayload()
-    const personaPayload: UpsertUserPersonaResponse = {
-      user: {
-        userId: 'user_1',
-        persona: { name: 'Maya', roleInWorld: 'student' },
-        createdAt: '2026-05-07T10:00:00.000Z',
-        updatedAt: '2026-05-07T10:00:00.000Z',
-      },
-    }
-
-    const personaInput: UserPersona = {
-      name: 'Maya',
-      roleInWorld: 'student',
-      avatarRelationships: ['Friend of Eva'],
-      dialogGuidance: 'Ask one focused question.',
-    }
-
-    vi.mocked(coreRequest)
-      .mockResolvedValueOnce(contextPayload)
-      .mockResolvedValueOnce(personaPayload)
+  it('calls the context endpoint with its canonical shape', async () => {
+    vi.mocked(coreRequest).mockResolvedValueOnce(makeContextPayload())
 
     const context = await getSessionContext('session_1')
-    const updatedPersona = await upsertUserPersona('user_1', personaInput)
 
-    expect(coreRequest).toHaveBeenNthCalledWith(1, 'GET', '/v1/admin/sessions/session_1/context')
-    expect(coreRequest).toHaveBeenNthCalledWith(2, 'PUT', '/v1/users/user_1/persona', personaInput)
+    expect(coreRequest).toHaveBeenCalledWith('GET', '/v1/admin/sessions/session_1/context')
     expect(context.avatarContext.sections.worldContext.goals).toEqual(['Obj1'])
-    expect(updatedPersona.user.persona?.name).toBe('Maya')
   })
 })
 

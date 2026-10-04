@@ -1,19 +1,17 @@
 import { useMemo, useSyncExternalStore } from 'react'
 
-export type RunnerTab = 'run' | 'knowledge' | 'inspector' | 'model-config'
+export type ScenarioTab = 'sessions' | 'avatars' | 'knowledge'
+export type SessionView = 'turns' | 'memory' | 'context'
 
-export const runnerTabs: RunnerTab[] = ['run', 'knowledge', 'inspector', 'model-config']
+export const scenarioTabs: ScenarioTab[] = ['sessions', 'avatars', 'knowledge']
+export const sessionViews: SessionView[] = ['turns', 'memory', 'context']
 
-// Every view and selection lives in the URL so reload, Back, and deep links work.
+// Every view and selection lives in the URL so reload, Back, and shared links reopen the same
+// debug target.
 export type Route =
-  | { name: 'setup'; scenarioId: string | null }
-  | {
-      name: 'runner'
-      scenarioId: string
-      tab: RunnerTab
-      sessionId: string | null
-      conversationId: string | null
-    }
+  | { name: 'scenarios' }
+  | { name: 'scenario'; scenarioId: string; tab: ScenarioTab }
+  | { name: 'session'; sessionId: string; view: SessionView; turn: string | null }
   | { name: 'not-found' }
 
 export function parseRoute(pathname: string, search: string): Route {
@@ -21,49 +19,48 @@ export function parseRoute(pathname: string, search: string): Route {
     .split('/')
     .filter((part) => part.length > 0)
     .map(decodeURIComponent)
-  const [first, scenarioId, tab, ...rest] = parts
+  const [first, id, sub, ...rest] = parts
 
-  if (first === undefined) return { name: 'setup', scenarioId: null }
-  if (first !== 'scenarios' || rest.length > 0) return { name: 'not-found' }
-  if (scenarioId === undefined) return { name: 'setup', scenarioId: null }
-  if (tab === undefined) return { name: 'setup', scenarioId }
-  if (!isRunnerTab(tab)) return { name: 'not-found' }
+  if (first === undefined) return { name: 'scenarios' }
+  if (rest.length > 0 || id === undefined) return { name: 'not-found' }
 
-  const params = new URLSearchParams(search)
-  return {
-    name: 'runner',
-    scenarioId,
-    tab,
-    sessionId: nonEmpty(params.get('session')),
-    conversationId: nonEmpty(params.get('conversation')),
-  }
+  if (first === 'scenarios') return parseScenarioRoute(id, sub ?? 'sessions')
+  if (first === 'sessions') return parseSessionRoute(id, sub ?? 'turns', search)
+  return { name: 'not-found' }
+}
+
+function parseScenarioRoute(scenarioId: string, tab: string): Route {
+  return isOneOf(scenarioTabs, tab) ? { name: 'scenario', scenarioId, tab } : { name: 'not-found' }
+}
+
+function parseSessionRoute(sessionId: string, view: string, search: string): Route {
+  if (!isOneOf(sessionViews, view)) return { name: 'not-found' }
+  const turn = new URLSearchParams(search).get('turn')
+  return { name: 'session', sessionId, view, turn: turn === '' ? null : turn }
 }
 
 export function formatRoute(route: Route): string {
   switch (route.name) {
+    case 'scenarios':
     case 'not-found':
       return '/'
-    case 'setup':
-      return route.scenarioId === null ? '/' : `/scenarios/${encodeURIComponent(route.scenarioId)}`
-    case 'runner': {
-      const params = new URLSearchParams()
-      if (route.sessionId !== null) params.set('session', route.sessionId)
-      if (route.sessionId !== null && route.conversationId !== null) {
-        params.set('conversation', route.conversationId)
-      }
-      const query = params.toString()
-      const path = `/scenarios/${encodeURIComponent(route.scenarioId)}/${route.tab}`
-      return query.length > 0 ? `${path}?${query}` : path
+    case 'scenario':
+      return `/scenarios/${encodeURIComponent(route.scenarioId)}${
+        route.tab === 'sessions' ? '' : `/${route.tab}`
+      }`
+    case 'session': {
+      const path = `/sessions/${encodeURIComponent(route.sessionId)}${
+        route.view === 'turns' ? '' : `/${route.view}`
+      }`
+      return route.view === 'turns' && route.turn !== null
+        ? `${path}?turn=${encodeURIComponent(route.turn)}`
+        : path
     }
   }
 }
 
-function isRunnerTab(value: string): value is RunnerTab {
-  return (runnerTabs as string[]).includes(value)
-}
-
-function nonEmpty(value: string | null): string | null {
-  return value === null || value.length === 0 ? null : value
+function isOneOf<T extends string>(values: readonly T[], value: string): value is T {
+  return (values as readonly string[]).includes(value)
 }
 
 const listeners = new Set<() => void>()
@@ -89,32 +86,8 @@ export function useRoute(): Route {
   }, [href])
 }
 
-// Patches the runner route as it is *now*, so an async loader resolving late cannot undo a
-// navigation that happened while it was in flight. Changing session drops the conversation.
-export function updateRunnerRoute(
-  patch: Partial<Pick<Extract<Route, { name: 'runner' }>, 'tab' | 'sessionId' | 'conversationId'>>,
-  options: { replace?: boolean } = {},
-): void {
-  const current = parseRoute(window.location.pathname, window.location.search)
-  if (current.name !== 'runner') return
-  const sessionChanged = patch.sessionId !== undefined && patch.sessionId !== current.sessionId
-  navigate(
-    {
-      ...current,
-      ...patch,
-      conversationId:
-        'conversationId' in patch
-          ? (patch.conversationId ?? null)
-          : sessionChanged
-            ? null
-            : current.conversationId,
-    },
-    options,
-  )
-}
-
-// User navigation pushes a history entry; automatic selection syncs (first session, the
-// conversation a child view settled on) replace the current one so Back is not polluted.
+// User navigation pushes a history entry; automatic selections replace the current one so Back is
+// not polluted.
 export function navigate(route: Route, options: { replace?: boolean } = {}): void {
   const href = formatRoute(route)
   if (href === getHref()) return

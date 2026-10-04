@@ -1,18 +1,27 @@
-import type { CSSProperties, JSX, ReactNode } from 'react'
+import type { JSX, ReactNode } from 'react'
 import { formatRoute, navigate, type Route } from './router'
 
 type LinkProps = {
   to: Route
-  style?: CSSProperties
+  className?: string
+  current?: boolean
+  replace?: boolean
   children: ReactNode
 }
 
 // A real anchor: modified clicks (new tab/window) keep browser behavior, plain clicks navigate in-app.
-export function Link({ to, style, children }: LinkProps): JSX.Element {
+export function Link({
+  to,
+  className,
+  current = false,
+  replace = false,
+  children,
+}: LinkProps): JSX.Element {
   return (
     <a
       href={formatRoute(to)}
-      style={style}
+      className={className}
+      aria-current={current ? 'page' : undefined}
       onClick={(event) => {
         if (
           event.button !== 0 ||
@@ -24,7 +33,7 @@ export function Link({ to, style, children }: LinkProps): JSX.Element {
           return
         }
         event.preventDefault()
-        navigate(to)
+        navigate(to, { replace })
       }}
     >
       {children}

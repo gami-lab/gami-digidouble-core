@@ -51,14 +51,15 @@ detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT
 
 ## Apps and tooling
 
-- `apps/console` — the local operator/debug surface: runtime inspection, GM/memory debugging,
-  persona editing, and the scenario-builder authoring flows (scenario/avatar editing, knowledge-source
-  management, visibility policy, and model selection).
+- `apps/console` — the read-mostly debug surface for every LLM use: avatar trait preparation, the
+  knowledge retrieval bench, and a live per-session turn timeline (latency breakdown, Avatar inputs,
+  RAG results, GM decisions, memory updates) linking each LLM call to its Langfuse trace. Authoring
+  lives in admin.
 - `apps/web` — the public player-facing chat surface: browser-owned identity, scenario discovery,
   available-avatar chat, SSE-driven runtime updates, autoplayed completed-message audio with
   text-preserving fallback, and a hands-free voice loop (listen, auto-send on pause, answer, speak,
   listen again) alongside text input.
-- `apps/admin` — the admin CRUD API surface backing console authoring flows.
+- `apps/admin` — the scenario-builder authoring app (scenarios, avatars, knowledge, model selection).
 - `tools/conversation-evaluation` — an external, authenticated CLI for scripted-conversation
   evaluation: semantic judging through an LLM judge, runtime latency/token metrics, per-model
   comparison reports, and a local dependency-free report viewer. It reuses shared API contracts and

@@ -3,43 +3,31 @@ import { formatRoute, parseRoute, type Route } from './router'
 
 describe('console router', () => {
   it.each<[string, Route]>([
-    ['/', { name: 'setup', scenarioId: null }],
-    ['/scenarios/sc_1', { name: 'setup', scenarioId: 'sc_1' }],
+    ['/', { name: 'scenarios' }],
+    ['/scenarios/sc_1', { name: 'scenario', scenarioId: 'sc_1', tab: 'sessions' }],
+    ['/scenarios/sc_1/knowledge', { name: 'scenario', scenarioId: 'sc_1', tab: 'knowledge' }],
+    ['/sessions/se_1', { name: 'session', sessionId: 'se_1', view: 'turns', turn: null }],
     [
-      '/scenarios/sc_1/run',
-      { name: 'runner', scenarioId: 'sc_1', tab: 'run', sessionId: null, conversationId: null },
+      '/sessions/se_1?turn=corr_1',
+      { name: 'session', sessionId: 'se_1', view: 'turns', turn: 'corr_1' },
     ],
-    [
-      '/scenarios/sc_1/inspector?session=se_1&conversation=co_1',
-      {
-        name: 'runner',
-        scenarioId: 'sc_1',
-        tab: 'inspector',
-        sessionId: 'se_1',
-        conversationId: 'co_1',
-      },
-    ],
+    ['/sessions/se_1/memory', { name: 'session', sessionId: 'se_1', view: 'memory', turn: null }],
   ])('round-trips %s', (href, route) => {
     const url = new URL(href, 'http://localhost')
     expect(parseRoute(url.pathname, url.search)).toEqual(route)
     expect(formatRoute(route)).toBe(href)
   })
 
-  it('treats unknown paths and tabs as not found', () => {
-    expect(parseRoute('/sessions', '')).toEqual({ name: 'not-found' })
+  it('treats unknown paths, tabs, and views as not found', () => {
+    expect(parseRoute('/scenarios', '')).toEqual({ name: 'not-found' })
     expect(parseRoute('/scenarios/sc_1/bogus', '')).toEqual({ name: 'not-found' })
-    expect(parseRoute('/scenarios/sc_1/run/extra', '')).toEqual({ name: 'not-found' })
+    expect(parseRoute('/sessions/se_1/bogus', '')).toEqual({ name: 'not-found' })
+    expect(parseRoute('/sessions/se_1/memory/extra', '')).toEqual({ name: 'not-found' })
   })
 
-  it('never puts a conversation in the URL without its session', () => {
+  it('keeps the selected turn only on the turns view and encodes ids', () => {
     expect(
-      formatRoute({
-        name: 'runner',
-        scenarioId: 'sc 1',
-        tab: 'knowledge',
-        sessionId: null,
-        conversationId: 'co_1',
-      }),
-    ).toBe('/scenarios/sc%201/knowledge')
+      formatRoute({ name: 'session', sessionId: 'se 1', view: 'context', turn: 'corr_1' }),
+    ).toBe('/sessions/se%201/context')
   })
 })

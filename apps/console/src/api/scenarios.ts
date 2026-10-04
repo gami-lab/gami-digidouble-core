@@ -1,30 +1,21 @@
 import { coreRequest } from './client'
 import type {
   AvatarSummary,
-  CreateAvatarRequest,
-  CreateAvatarResponse,
-  CreateScenarioRequest,
-  CreateScenarioResponse,
-  DeleteAvatarResponse,
-  DeleteScenarioResponse,
+  GetScenarioResponse,
   ListScenarioAvatarsResponse,
   ListScenariosResponse,
-  ScenarioStatus,
+  PrepareAvatarTraitsResponse,
   ScenarioSummary,
-  UpdateScenarioRequest,
-  UpdateScenarioResponse,
-  UpdateAvatarResponse,
-  UpdateAvatarRequest,
 } from '@gami/shared'
-
-export type { AvatarSummary, ScenarioStatus, ScenarioSummary }
-
-export type CreateScenarioParams = CreateScenarioRequest
-export type CreateAvatarParams = CreateAvatarRequest
 
 export async function listScenarios(): Promise<ScenarioSummary[]> {
   const payload = await coreRequest<ListScenariosResponse>('GET', '/v1/scenarios')
   return payload.scenarios
+}
+
+export async function getScenario(scenarioId: string): Promise<ScenarioSummary> {
+  const payload = await coreRequest<GetScenarioResponse>('GET', `/v1/scenarios/${scenarioId}`)
+  return payload.scenario
 }
 
 export async function listScenarioAvatars(scenarioId: string): Promise<AvatarSummary[]> {
@@ -35,54 +26,11 @@ export async function listScenarioAvatars(scenarioId: string): Promise<AvatarSum
   return payload.avatars
 }
 
-export async function createScenario(
-  params: CreateScenarioParams,
-): Promise<CreateScenarioResponse['scenario']> {
-  const payload = await coreRequest<CreateScenarioResponse>('POST', '/v1/scenarios', params)
-  return payload.scenario
-}
-
-export async function createAvatar(
+export async function prepareAvatarTraits(
   scenarioId: string,
-  params: CreateAvatarParams,
-): Promise<AvatarSummary> {
-  const payload = await coreRequest<CreateAvatarResponse>(
+): Promise<PrepareAvatarTraitsResponse> {
+  return coreRequest<PrepareAvatarTraitsResponse>(
     'POST',
-    `/v1/scenarios/${scenarioId}/avatars`,
-    params,
+    `/v1/scenarios/${scenarioId}/prepare-avatar-traits`,
   )
-
-  return payload.avatar
-}
-
-export async function updateScenario(
-  scenarioId: string,
-  updates: UpdateScenarioRequest,
-): Promise<ScenarioSummary> {
-  const payload = await coreRequest<UpdateScenarioResponse>(
-    'PATCH',
-    `/v1/scenarios/${scenarioId}`,
-    updates,
-  )
-  return payload.scenario
-}
-
-export async function deleteScenario(scenarioId: string): Promise<void> {
-  await coreRequest<DeleteScenarioResponse>('DELETE', `/v1/scenarios/${scenarioId}`)
-}
-
-export async function updateAvatar(
-  avatarId: string,
-  updates: UpdateAvatarRequest,
-): Promise<AvatarSummary> {
-  const payload = await coreRequest<UpdateAvatarResponse>(
-    'PATCH',
-    `/v1/avatars/${avatarId}`,
-    updates,
-  )
-  return payload.avatar
-}
-
-export async function deleteAvatar(avatarId: string): Promise<void> {
-  await coreRequest<DeleteAvatarResponse>('DELETE', `/v1/avatars/${avatarId}`)
 }

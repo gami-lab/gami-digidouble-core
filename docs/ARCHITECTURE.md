@@ -89,8 +89,9 @@ Core exposes two HTTP surfaces that must stay separated in routing and responsib
 - **Admin API** (`/v1/admin/*`) — used by back-office/operators; not user-facing, may expose
   internal state, and may carry additional guards beyond the shared API-key auth.
 
-`apps/console` is a consumer-only debug layer over canonical Core routes with a single Session
-Inspector read path (no parallel compatibility reads). `apps/admin` is the first-class
+`apps/console` is a consumer-only debug layer over canonical Core routes: it builds each session's
+turn timeline from the admin events feed and shows structured LLM inputs, linking to Langfuse for
+the rendered prompts instead of reading them from Core. `apps/admin` is the first-class
 scenario-builder authoring app (scenarios, avatars, knowledge, runtime model selection); it is a
 consumer layer too — no direct DB access, no duplicated business logic. Every admin screen,
 including scenario sub-views (edit forms, ingested data, retrieval tester), has its own URL
