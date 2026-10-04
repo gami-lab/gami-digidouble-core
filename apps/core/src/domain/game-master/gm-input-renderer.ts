@@ -1,6 +1,6 @@
 import type { GameMasterInput } from './game-master.types.js'
 
-export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v4'
+export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v5'
 
 /**
  * Internal LLM rendering for the Game Master input contract.
@@ -11,8 +11,10 @@ export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v4'
  *   the prompt and must not introduce prompt-only fields.
  */
 export function renderGameMasterInputForLlm(input: GameMasterInput): string {
+  const avatarName = resolveActiveAvatarName(input)
   return [
-    renderSection('Current Turn', renderCurrentTurn(input)),
+    renderSection('Participants', renderParticipants(input, avatarName)),
+    renderSection('Current Turn', renderCurrentTurn(input, avatarName)),
     renderSection('Conversation State', [
       ...renderRecentMessages(
         excludeCurrentTurnFromRecentMessages(
@@ -22,13 +24,15 @@ export function renderGameMasterInputForLlm(input: GameMasterInput): string {
       ),
       ...renderGameMasterState(input),
       ...renderConversationState(input.context.conversationState),
-      ...renderUserPersona(input.context.userPersona),
     ]),
     renderSection('Experience Context', [
       ...renderExperience(input.context.experience),
       ...renderAvailableAvatars(input.context.availableAvatars),
     ]),
-    renderSection('Retrieved Context', renderRetrievedContext(input.context.retrievedContext)),
+    renderSection(
+      'Retrieved Context',
+      renderRetrievedContext(input.context.retrievedContext, avatarName),
+    ),
     renderSection('Output Reminder', [
       '- Return only the JSON object required by the system prompt.',
       '- Base decisions on the labeled context above and do not repeat it back as prose.',
@@ -36,11 +40,34 @@ export function renderGameMasterInputForLlm(input: GameMasterInput): string {
   ].join('\n\n')
 }
 
-function renderCurrentTurn(input: GameMasterInput): string[] {
+/**
+ * The Avatar and the user persona are both character descriptions; naming who is who
+ * keeps the GM from attributing the user's persona to the Avatar or vice versa.
+ */
+function resolveActiveAvatarName(input: GameMasterInput): string | undefined {
+  const name = input.context.availableAvatars.find(
+    (avatar) => avatar.avatarId === input.session.activeAvatarId,
+  )?.name
+  return hasText(name) ? normalizeInlineText(name) : undefined
+}
+
+function renderParticipants(input: GameMasterInput, avatarName: string | undefined): string[] {
+  const avatarId = normalizeInlineText(input.session.activeAvatarId)
+  return [
+    `- Active Avatar: ${avatarName === undefined ? avatarId : `${avatarName} (${avatarId})`}. The AI character whose next reply you guide.`,
+    '- User: the real human talking with the Avatar.',
+    ...renderUserPersona(input.context.userPersona),
+  ]
+}
+
+function renderCurrentTurn(input: GameMasterInput, avatarName: string | undefined): string[] {
+  const userName = input.context.userPersona?.name
+  const userLabel = hasText(userName) ? ` (${normalizeInlineText(userName)})` : ''
+  const avatarLabel = avatarName === undefined ? '' : ` (${avatarName})`
   const lines = [
     `- Turn Index: ${formatNumber(input.session.turnIndex)}`,
     hasText(input.userMessage.text)
-      ? `- Latest User Message: ${normalizeInlineText(input.userMessage.text)}`
+      ? `- Latest User Message${userLabel}: ${normalizeInlineText(input.userMessage.text)}`
       : '- Latest User Message: [none - session start; provide opening guidance for the Avatar].',
   ]
 
@@ -49,7 +76,9 @@ function renderCurrentTurn(input: GameMasterInput): string[] {
     'avatar',
   )
   if (latestAvatarReply !== undefined) {
-    lines.push(`- Latest Avatar Reply: ${normalizeInlineText(latestAvatarReply.content)}`)
+    lines.push(
+      `- Latest Avatar Reply${avatarLabel}: ${normalizeInlineText(latestAvatarReply.content)}`,
+    )
   }
 
   return lines
@@ -113,9 +142,6 @@ function renderRecentMessages(
 function renderGameMasterState(input: GameMasterInput): string[] {
   return [
     '### Current GM State',
-    ...(input.context.availableAvatars.length > 1
-      ? [`- Current Avatar ID: ${normalizeInlineText(input.session.activeAvatarId)}`]
-      : []),
     `- Progression: ${hasText(input.state.progression) ? normalizeInlineText(input.state.progression) : 'none'}`,
     `- Interaction Count: ${formatNumber(input.state.interactionCount)}`,
   ]
@@ -213,7 +239,9 @@ function renderUserPersona(userPersona: GameMasterInput['context']['userPersona'
       : undefined,
   ].filter((line): line is string => line !== undefined)
 
-  return lines.length > 0 ? ['### User Persona', ...lines] : []
+  return lines.length > 0
+    ? ["### User Persona (the user's in-world character, already known to the Avatar)", ...lines]
+    : []
 }
 
 function renderExperience(experience: GameMasterInput['context']['experience']): string[] {
@@ -257,13 +285,14 @@ function renderAvailableAvatars(avatars: GameMasterInput['context']['availableAv
 
 function renderRetrievedContext(
   retrievedContext: GameMasterInput['context']['retrievedContext'],
+  avatarName: string | undefined,
 ): string[] {
   if (retrievedContext === undefined) {
     return []
   }
 
   const avatarKnowledgeLines = renderRetrievedCategory(
-    'Avatar knowledge',
+    `Avatar knowledge (addressed to the active Avatar; "tu"/"you" means ${avatarName ?? 'the Avatar'})`,
     retrievedContext.avatar_knowledge,
   )
   const worldLines = renderRetrievedCategory('World', retrievedContext.world)

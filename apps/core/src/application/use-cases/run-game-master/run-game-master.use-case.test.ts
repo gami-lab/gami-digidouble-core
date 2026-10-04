@@ -334,7 +334,7 @@ describe('RunGameMasterUseCase — optional and session-start prompt content', (
     const request = completeMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> }
     const prompt = readRenderedGameMasterPrompt(request)
     expect(prompt).toContain(
-      '- Latest Avatar Reply: Start with concrete examples from the harbor schedule.',
+      '- Latest Avatar Reply (Ava): Start with concrete examples from the harbor schedule.',
     )
   })
 

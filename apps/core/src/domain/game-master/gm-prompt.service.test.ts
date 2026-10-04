@@ -86,6 +86,20 @@ describe('buildGameMasterSystemPrompt', () => {
     )
   })
 
+  it('separates the active Avatar from the user persona and repairs persona or guidance leaks', () => {
+    const prompt = buildGameMasterSystemPrompt(MULTI_WITH_LOCKED)
+
+    expect(prompt).toContain('The active Avatar is the AI character whose next reply you guide')
+    expect(prompt).toContain(
+      'The user is a real human. Their in-world character is the User Persona.',
+    )
+    expect(prompt).toContain('"tu"/"you" means the active Avatar, not you and not the user.')
+    expect(prompt).toContain('Never plan retrieval for User Persona facts')
+    expect(prompt).toContain(
+      'If the latest Avatar reply asked for information the User Persona already provides, or quoted or paraphrased Game Master guidance or director notes, use repair mode',
+    )
+  })
+
   it('includes routing guidance and unlock actions when locked avatars exist', () => {
     const prompt = buildGameMasterSystemPrompt(MULTI_WITH_LOCKED)
 

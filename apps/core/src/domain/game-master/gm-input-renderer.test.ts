@@ -140,15 +140,19 @@ describe('renderGameMasterInputForLlm', () => {
     const prompt = renderGameMasterInputForLlm(makeInput())
 
     expectSectionOrder(prompt, [
+      '## Participants',
       '## Current Turn',
       '## Conversation State',
       '## Experience Context',
       '## Retrieved Context',
       '## Output Reminder',
     ])
-    expect(prompt).toContain('- Latest User Message: How should we approach the harbor?')
-    expect(prompt).toContain('- Latest Avatar Reply: The docks were crowded at dusk.')
-    expect(prompt).toContain('- Current Avatar ID: avatar_1')
+    expect(prompt).toContain(
+      '- Active Avatar: Ava (avatar_1). The AI character whose next reply you guide.',
+    )
+    expect(prompt).toContain('- User: the real human talking with the Avatar.')
+    expect(prompt).toContain('- Latest User Message (Lina): How should we approach the harbor?')
+    expect(prompt).toContain('- Latest Avatar Reply (Ava): The docks were crowded at dusk.')
     expect(prompt).toContain('### Recent Exchanges')
     expect(prompt).toContain('1. User: What happened at the harbor?')
     expect(prompt).toContain('### Current GM State')
@@ -157,7 +161,10 @@ describe('renderGameMasterInputForLlm', () => {
     expect(prompt).toContain('- Covered Topics: witness_timeline')
     expect(prompt).toContain('### Episodic Memories')
     expect(prompt).toContain('### Long-Term Facts')
-    expect(prompt).toContain('### User Persona')
+    expect(prompt).toContain(
+      "### User Persona (the user's in-world character, already known to the Avatar)",
+    )
+    expect(prompt.indexOf('### User Persona')).toBeLessThan(prompt.indexOf('## Current Turn'))
     expect(prompt).toContain('### Scenario')
     expect(prompt).toContain('- Goal 1: Understand the harbor timeline.')
     expect(prompt).toContain('### Available Avatars')
@@ -166,7 +173,9 @@ describe('renderGameMasterInputForLlm', () => {
     )
     expect(prompt).toContain('- Theo (avatar_2) [locked]')
     expect(prompt).toContain('## Retrieved Context')
-    expect(prompt).toContain('Avatar knowledge excerpts:')
+    expect(prompt).toContain(
+      'Avatar knowledge (addressed to the active Avatar; "tu"/"you" means Ava) excerpts:',
+    )
     expect(prompt).toContain('World excerpts:')
     expect(prompt).toContain('Media excerpts:')
 
@@ -216,7 +225,9 @@ describe('renderGameMasterInputForLlm', () => {
     expect(prompt).not.toContain('### Long-Term Facts')
     expect(prompt).not.toContain('### User Persona')
     expect(prompt).not.toContain('### Retrieved Context')
-    expect(prompt).not.toContain('- Current Avatar ID:')
+    expect(prompt).toContain(
+      '- Active Avatar: avatar_1. The AI character whose next reply you guide.',
+    )
     expect(prompt).toContain('- Progression: none')
     expect(prompt).not.toContain('- Topics Covered:')
     expect(prompt).toContain('### Available Avatars')
@@ -241,7 +252,7 @@ describe('renderGameMasterInputForLlm', () => {
 
     expect(prompt).toContain('### Available Avatars')
     expect(prompt).toContain('Ava (avatar_1) [available]')
-    expect(prompt).not.toContain('- Current Avatar ID:')
+    expect(prompt).toContain('- Active Avatar: Ava (avatar_1).')
   })
 
   it('does not include locked metadata when every Avatar is unlocked', () => {
@@ -279,7 +290,7 @@ describe('renderGameMasterInputForLlm', () => {
     )
     const routedPrompt = renderGameMasterInputForLlm(makeInput())
 
-    expect(singlePrompt.length).toBeLessThan(routedPrompt.length * 0.95)
+    expect(singlePrompt.length).toBeLessThan(routedPrompt.length * 0.97)
   })
 })
 
@@ -301,8 +312,8 @@ describe('renderGameMasterInputForLlm — current turn deduplication', () => {
       }),
     )
 
-    expect(prompt).toContain('- Latest User Message: Ready to talk about what happened?')
-    expect(prompt).toContain('- Latest Avatar Reply: I am ready, ask away.')
+    expect(prompt).toContain('- Latest User Message (Lina): Ready to talk about what happened?')
+    expect(prompt).toContain('- Latest Avatar Reply (Ava): I am ready, ask away.')
     expect(prompt).toContain('1. User: Hi Max, how are you?')
     expect(prompt).toContain('2. Avatar: Holding up, still shaken.')
     expect(prompt).not.toContain('3. User: Ready to talk about what happened?')
@@ -324,8 +335,10 @@ describe('renderGameMasterInputForLlm — current turn deduplication', () => {
       }),
     )
 
-    expect(prompt).toContain('- Latest User Message: A brand new question not yet persisted.')
-    expect(prompt).toContain('- Latest Avatar Reply: Earlier reply.')
+    expect(prompt).toContain(
+      '- Latest User Message (Lina): A brand new question not yet persisted.',
+    )
+    expect(prompt).toContain('- Latest Avatar Reply (Ava): Earlier reply.')
     expect(prompt).toContain('1. User: Earlier question.')
     expect(prompt).not.toContain('2. Avatar: Earlier reply.')
   })

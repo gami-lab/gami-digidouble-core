@@ -115,12 +115,17 @@ scenario with no explicit `modelSelection` falls back to the global config path.
 
 The static GM prompt stays short: `Role`, `Responsibilities`, `Fact Discipline`,
 `Decision Policies` (dialogue control, retrieval planning, director notes, avatar routing,
-progression), `Output Contract`. The dynamic input renderer covers `Current Turn`,
-`Conversation State`, `Experience Context`, `Retrieved Context`, `Output Reminder`.
+progression), `Output Contract`. The dynamic input renderer covers `Participants`,
+`Current Turn`, `Conversation State`, `Experience Context`, `Retrieved Context`, `Output Reminder`.
+
+`Participants` always names the active Avatar and frames the User Persona as the human user's
+in-world character, already known to the Avatar; speaker lines and Avatar knowledge excerpts carry
+the same names so second-person knowledge is never read as addressed to the GM or the user. The
+GM never plans retrieval for User Persona facts, and uses `repair` when the Avatar asks for
+persona-provided information or leaks GM guidance.
 
 The static prompt is built dynamically from the current avatar roster: a single active Avatar
-omits routing entirely (prose, field, and JSON schema) and omits the current Avatar id from the
-dynamic input since identity is unambiguous; no locked Avatars omits unlock instructions/actions;
+omits routing entirely (prose, field, and JSON schema); no locked Avatars omits unlock instructions/actions;
 locked Avatars present includes only valid locked targets; multiple active Avatars includes
 `stay`/`suggest`/`switch` plus unlock actions when applicable.
 

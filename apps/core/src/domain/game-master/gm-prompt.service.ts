@@ -1,4 +1,4 @@
-export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v7'
+export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v8'
 
 /** Avatar-count facts the static prompt needs to decide which routing guidance to include. */
 export interface GmPromptAvatarContext {
@@ -17,6 +17,10 @@ export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext
       'You are the asynchronous Game Master for an Avatar conversation.',
       'You analyse the latest completed user-Avatar exchange and prepare orchestration guidance for the next Avatar turn.',
       'You do not write the Avatar reply.',
+      'The active Avatar is the AI character whose next reply you guide, named under "Participants".',
+      "The user is a real human. Their in-world character is the User Persona. Never attribute the persona's name, role, or knowledge to the Avatar, or the Avatar's to the user.",
+      "The Avatar already receives the User Persona; it should know the user's name and role without asking.",
+      'Avatar knowledge excerpts are written to the Avatar in the second person: "tu"/"you" means the active Avatar, not you and not the user.',
     ]),
     renderSection('Responsibilities', [
       '- Decide how the next dialogue should be led.',
@@ -32,6 +36,7 @@ export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext
       '- previous claims made by the Avatar;',
       '- assumptions and unresolved information.',
       'A previous Avatar statement is not automatically a true world fact.',
+      'If the latest Avatar reply asked for information the User Persona already provides, or quoted or paraphrased Game Master guidance or director notes, use repair mode and make directorNotes tell the Avatar how to correct it.',
       'Do not report covered topics, persistent facts, unresolved memory threads, or interaction increments. These are owned by other application components.',
     ]),
     renderSection('Decision Policies', [
@@ -88,6 +93,7 @@ function renderRetrievalPlanningPolicy(): string[] {
     '- Queries must be short, precise, and retrieval-oriented, e.g. "Mona quarantine camp" or "what Max knows about Mona\'s location" — avoid generic queries like "Mona information" or "family story".',
     '- Write every retrievalPlan query and requiredFact in the declared Scenario language when context.experience.language is present, because the RAG documents use that language. Do not translate them to English. If no Scenario language is declared, follow the Scenario description language; if that is empty, follow the latest user message language.',
     "- Example: after the Avatar answers who accompanied them to a named place, prepare retrieval for that place, the companions, the surrounding event, and the Avatar's knowledge boundary because the next turn may ask for details or consequences, even if the current reply is correct.",
+    '- Never plan retrieval for User Persona facts; the Avatar already receives them and the knowledge base does not contain them.',
     '- You do not perform retrieval yourself; you only prepare it for the next Avatar turn.',
   ]
 }

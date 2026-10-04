@@ -367,22 +367,23 @@ function assertRenderedPrompt(request: Omit<LlmRequest, 'trace'> | undefined): v
     '- Prefer stay unless the latest exchange provides clear evidence for routing.',
   )
   expectSectionOrder(renderedPrompt, [
+    '## Participants',
     '## Current Turn',
     '## Conversation State',
     '## Experience Context',
     '## Output Reminder',
   ])
   expect(renderedPrompt).toContain(
-    '- Latest User Message: Should we bring in an engineer to verify the tide gates?',
+    '- Latest User Message (Lina): Should we bring in an engineer to verify the tide gates?',
   )
   expect(renderedPrompt).toContain(
-    '- Latest Avatar Reply: We should confirm the tide log before escalating.',
+    '- Latest Avatar Reply (Ava): We should confirm the tide log before escalating.',
   )
   expect(renderedPrompt).toContain('### Scenario')
   expect(renderedPrompt).toContain('- Goal 1: Reconstruct the harbor timeline.')
   expect(renderedPrompt).toContain('- Goal 2: Decide whether a specialist is needed.')
   expect(renderedPrompt).toContain('### Available Avatars')
-  expect(renderedPrompt).toContain('- Current Avatar ID: avatar_1')
+  expect(renderedPrompt).toContain('- Active Avatar: Ava (avatar_1).')
   expect(renderedPrompt).toContain(
     '- Ava (avatar_1) [available]; description: Harbor witness.; scope: Dock activity and local rumors.',
   )
