@@ -22,12 +22,17 @@ export type ModelSelectionOverride = {
   serviceTier?: 'fast'
 }
 
-export type ScenarioModelSelection = {
-  defaultProfile?: ModelProfile
-  avatarOverride?: ModelProfile
-  gameMasterOverride?: ModelProfile
-  memoryOverride?: ModelProfile
-}
+/** Single source of truth for scenario model-selection slots; iterate it instead of naming slots. */
+export const SCENARIO_MODEL_SLOTS = [
+  'defaultProfile',
+  'avatarOverride',
+  'gameMasterOverride',
+  'memoryOverride',
+] as const
+
+export type ScenarioModelSlot = (typeof SCENARIO_MODEL_SLOTS)[number]
+
+export type ScenarioModelSelection = Partial<Record<ScenarioModelSlot, ModelProfile>>
 
 export const SUPPORTED_PRODUCTION_MODEL_MATRIX: Record<
   ModelSelectionProviderName,

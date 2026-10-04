@@ -5,7 +5,7 @@ import type {
   ProviderName,
   ScenarioModelSelectionConfig,
 } from './model-config.types.js'
-import type { ModelSelectionOverride } from '@gami/shared'
+import type { ModelProfile, ModelSelectionOverride, ScenarioModelSlot } from '@gami/shared'
 
 function resolveBaseProvider(role: ModelRole, config: ModelConfig): ProviderName {
   const roleProvider = config.roleOverrides[role]?.provider
@@ -17,24 +17,19 @@ function resolveBaseModel(role: ModelRole, config: ModelConfig): string {
   return roleModel ?? config.globalDefault.model
 }
 
+const SCENARIO_ROLE_SLOT: Record<ModelRole, ScenarioModelSlot> = {
+  avatar: 'avatarOverride',
+  gameMaster: 'gameMasterOverride',
+  memory: 'memoryOverride',
+}
+
 function resolveScenarioSelection(
   role: ModelRole,
   scenarioModelSelection: ScenarioModelSelectionConfig | undefined,
-): ScenarioModelSelectionConfig['defaultProfile'] | undefined {
-  if (scenarioModelSelection === undefined) return undefined
-  if (role === 'gameMaster') {
-    return scenarioModelSelection.gameMasterOverride ?? scenarioModelSelection.defaultProfile
-  }
-  if (role === 'memory') {
-    return scenarioModelSelection.memoryOverride ?? scenarioModelSelection.defaultProfile
-  }
-  // Keep the role-specific fallback explicit for the three-role contract.
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (role === 'avatar') {
-    return scenarioModelSelection.avatarOverride ?? scenarioModelSelection.defaultProfile
-  }
-
-  return scenarioModelSelection.defaultProfile
+): ModelProfile | undefined {
+  return (
+    scenarioModelSelection?.[SCENARIO_ROLE_SLOT[role]] ?? scenarioModelSelection?.defaultProfile
+  )
 }
 
 export function resolveScenarioOrGlobalDefault(

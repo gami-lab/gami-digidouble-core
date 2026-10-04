@@ -1,6 +1,7 @@
 import {
   isAllowedModelForProvider,
   isModelSelectionProviderName,
+  SCENARIO_MODEL_SLOTS,
   type AvatarLlmOverride,
   type ModelProfile,
   type ScenarioModelSelection,
@@ -40,21 +41,15 @@ export function validateScenarioModelSelection(
   value: ScenarioModelSelection | null | undefined,
 ): string | null {
   if (value === undefined || value === null) return null
-  if (
-    value.defaultProfile === undefined &&
-    value.avatarOverride === undefined &&
-    value.gameMasterOverride === undefined &&
-    value.memoryOverride === undefined
-  ) {
-    return 'modelSelection must define defaultProfile, avatarOverride, gameMasterOverride, or memoryOverride when provided'
+  if (SCENARIO_MODEL_SLOTS.every((slot) => value[slot] === undefined)) {
+    return `modelSelection must define at least one of ${SCENARIO_MODEL_SLOTS.join(', ')} when provided`
   }
 
-  return (
-    validateModelProfile(value.defaultProfile, 'modelSelection.defaultProfile') ??
-    validateModelProfile(value.avatarOverride, 'modelSelection.avatarOverride') ??
-    validateModelProfile(value.gameMasterOverride, 'modelSelection.gameMasterOverride') ??
-    validateModelProfile(value.memoryOverride, 'modelSelection.memoryOverride')
-  )
+  for (const slot of SCENARIO_MODEL_SLOTS) {
+    const error = validateModelProfile(value[slot], `modelSelection.${slot}`)
+    if (error !== null) return error
+  }
+  return null
 }
 
 export function validateVoiceConfiguration(value: unknown, allowNull: boolean): string | null {

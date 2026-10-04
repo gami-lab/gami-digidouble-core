@@ -1,5 +1,10 @@
 import type { JSONValue, Sql } from 'postgres'
-import { isModelSelectionProviderName, type ScenarioModelSelection } from '@gami/shared'
+import {
+  isModelSelectionProviderName,
+  SCENARIO_MODEL_SLOTS,
+  type ModelProfile,
+  type ScenarioModelSelection,
+} from '@gami/shared'
 import type {
   CreateScenarioParams,
   IScenarioRepository,
@@ -46,7 +51,7 @@ function normalizeConfig(config: unknown): Record<string, unknown> {
   return {}
 }
 
-function readModelProfile(value: unknown): ScenarioModelSelection['defaultProfile'] | undefined {
+function readModelProfile(value: unknown): ModelProfile | undefined {
   if (!isRecord(value)) return undefined
   const provider = value['provider']
   const model = value['model']
@@ -55,7 +60,6 @@ function readModelProfile(value: unknown): ScenarioModelSelection['defaultProfil
   return { provider, model }
 }
 
-// eslint-disable-next-line complexity
 function readScenarioModelSelection(value: unknown): ScenarioModelSelection | undefined {
   // sql.unsafe() (used by update()) returns jsonb columns as raw text when that
   // column is also the target of a bound-parameter SET in the same statement.
@@ -63,25 +67,12 @@ function readScenarioModelSelection(value: unknown): ScenarioModelSelection | un
   const raw = isRecord(parsed) ? parsed : undefined
   if (raw === undefined) return undefined
 
-  const defaultProfile = readModelProfile(raw['defaultProfile'])
-  const avatarOverride = readModelProfile(raw['avatarOverride'])
-  const gameMasterOverride = readModelProfile(raw['gameMasterOverride'])
-  const memoryOverride = readModelProfile(raw['memoryOverride'])
-  if (
-    defaultProfile === undefined &&
-    avatarOverride === undefined &&
-    gameMasterOverride === undefined &&
-    memoryOverride === undefined
-  ) {
-    return undefined
+  const selection: ScenarioModelSelection = {}
+  for (const slot of SCENARIO_MODEL_SLOTS) {
+    const profile = readModelProfile(raw[slot])
+    if (profile !== undefined) selection[slot] = profile
   }
-
-  return {
-    ...(defaultProfile !== undefined ? { defaultProfile } : {}),
-    ...(avatarOverride !== undefined ? { avatarOverride } : {}),
-    ...(gameMasterOverride !== undefined ? { gameMasterOverride } : {}),
-    ...(memoryOverride !== undefined ? { memoryOverride } : {}),
-  }
+  return Object.keys(selection).length > 0 ? selection : undefined
 }
 
 function appendUpdateValue(

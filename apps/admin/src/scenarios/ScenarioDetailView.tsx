@@ -4,9 +4,11 @@ import {
   getKnowledgeTypeLabel,
   INGESTION_CHUNK_SIZE_MAX,
   INGESTION_CHUNK_SIZE_MIN,
+  SCENARIO_MODEL_SLOTS,
 } from '@gami/shared'
 import type { AvatarSummary, ScenarioSummary } from '@gami/shared'
 import type { KnowledgeSourceDto } from '../api/knowledge'
+import { SCENARIO_MODEL_SLOT_FIELDS } from './model-selection-form'
 
 export type IngestUiStatus = { phase: 'running' } | { phase: 'error'; message: string }
 
@@ -98,17 +100,11 @@ type ScenarioSummarySectionProps = {
   onEditScenario: () => void
 }
 
-// eslint-disable-next-line complexity
 function ScenarioSummarySection({
   scenario,
   actionError,
   onEditScenario,
 }: ScenarioSummarySectionProps): JSX.Element {
-  const defaultProfile = scenario.modelSelection?.defaultProfile
-  const avatarOverride = scenario.modelSelection?.avatarOverride
-  const gameMasterOverride = scenario.modelSelection?.gameMasterOverride
-  const memoryOverride = scenario.modelSelection?.memoryOverride
-
   return (
     <>
       <div className="admin-detail-header">
@@ -144,30 +140,16 @@ function ScenarioSummarySection({
       )}
 
       <h3>Runtime models</h3>
-      <p className="admin-muted">
-        Scenario default:{' '}
-        {defaultProfile === undefined
-          ? 'Inherited from global runtime config.'
-          : formatModelProfile(defaultProfile)}
-      </p>
-      <p className="admin-muted">
-        Avatar override:{' '}
-        {avatarOverride === undefined
-          ? 'Inherited from scenario default or global Avatar config for live turns.'
-          : formatModelProfile(avatarOverride)}
-      </p>
-      <p className="admin-muted">
-        Game Master override:{' '}
-        {gameMasterOverride === undefined
-          ? 'Inherited from scenario default or global Game Master config.'
-          : formatModelProfile(gameMasterOverride)}
-      </p>
-      <p className="admin-muted">
-        Memory override:{' '}
-        {memoryOverride === undefined
-          ? 'Inherited from scenario default or global Memory config.'
-          : formatModelProfile(memoryOverride)}
-      </p>
+      {SCENARIO_MODEL_SLOTS.map((slot) => {
+        const profile = scenario.modelSelection?.[slot]
+        const field = SCENARIO_MODEL_SLOT_FIELDS[slot]
+        return (
+          <p key={slot} className="admin-muted">
+            {field.label}:{' '}
+            {profile === undefined ? field.inheritedText : formatModelProfile(profile)}
+          </p>
+        )
+      })}
     </>
   )
 }

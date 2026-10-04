@@ -1,8 +1,11 @@
 import type { JSX } from 'react'
-import type { ScenarioStatus } from '@gami/shared'
+import { SCENARIO_MODEL_SLOTS, type ScenarioStatus } from '@gami/shared'
 import { ModelSelectionFields } from './ModelSelectionFields'
 import { ObjectivesEditor } from './ObjectivesEditor'
-import type { ModelSelectionFormValue } from './model-selection-form'
+import {
+  SCENARIO_MODEL_SLOT_FIELDS,
+  type ScenarioModelSelectionFormValue,
+} from './model-selection-form'
 
 type ScenarioFormFieldsProps = {
   name: string
@@ -10,10 +13,7 @@ type ScenarioFormFieldsProps = {
   language: string
   worldContext: string
   objectives: string[]
-  defaultModelSelection: ModelSelectionFormValue
-  avatarModelSelection: ModelSelectionFormValue
-  gameMasterModelSelection: ModelSelectionFormValue
-  memoryModelSelection: ModelSelectionFormValue
+  modelSelection: ScenarioModelSelectionFormValue
   voiceKey: string
   idPrefix: string
   disabled: boolean
@@ -22,10 +22,7 @@ type ScenarioFormFieldsProps = {
   onLanguageChange: (value: string) => void
   onWorldContextChange: (value: string) => void
   onObjectivesChange: (objectives: string[]) => void
-  onDefaultModelSelectionChange: (value: ModelSelectionFormValue) => void
-  onAvatarModelSelectionChange: (value: ModelSelectionFormValue) => void
-  onGameMasterModelSelectionChange: (value: ModelSelectionFormValue) => void
-  onMemoryModelSelectionChange: (value: ModelSelectionFormValue) => void
+  onModelSelectionChange: (value: ScenarioModelSelectionFormValue) => void
   onVoiceKeyChange: (value: string) => void
 }
 
@@ -36,10 +33,7 @@ export function ScenarioFormFields({
   language,
   worldContext,
   objectives,
-  defaultModelSelection,
-  avatarModelSelection,
-  gameMasterModelSelection,
-  memoryModelSelection,
+  modelSelection,
   voiceKey,
   idPrefix,
   disabled,
@@ -48,10 +42,7 @@ export function ScenarioFormFields({
   onLanguageChange,
   onWorldContextChange,
   onObjectivesChange,
-  onDefaultModelSelectionChange,
-  onAvatarModelSelectionChange,
-  onGameMasterModelSelectionChange,
-  onMemoryModelSelectionChange,
+  onModelSelectionChange,
   onVoiceKeyChange,
 }: ScenarioFormFieldsProps): JSX.Element {
   return (
@@ -128,38 +119,22 @@ export function ScenarioFormFields({
 
       <ObjectivesEditor objectives={objectives} disabled={disabled} onChange={onObjectivesChange} />
 
-      <ModelSelectionFields
-        idPrefix={`${idPrefix}-default-model`}
-        label="Scenario default model"
-        value={defaultModelSelection}
-        disabled={disabled}
-        helperText="Used as the fallback for live Avatar turns unless a scenario or avatar override applies."
-        onChange={onDefaultModelSelectionChange}
-      />
-      <ModelSelectionFields
-        idPrefix={`${idPrefix}-avatar-model`}
-        label="Avatar override"
-        value={avatarModelSelection}
-        disabled={disabled}
-        helperText="Used for live Avatar conversation turns. Does not affect one-time trait preparation."
-        onChange={onAvatarModelSelectionChange}
-      />
-      <ModelSelectionFields
-        idPrefix={`${idPrefix}-gm-model`}
-        label="Game Master override"
-        value={gameMasterModelSelection}
-        disabled={disabled}
-        helperText="Used for Game Master turns. Leave empty to inherit the scenario default or global runtime config."
-        onChange={onGameMasterModelSelectionChange}
-      />
-      <ModelSelectionFields
-        idPrefix={`${idPrefix}-memory-model`}
-        label="Memory override"
-        value={memoryModelSelection}
-        disabled={disabled}
-        helperText="Used for memory maintenance. Leave empty to inherit the scenario default or global runtime config."
-        onChange={onMemoryModelSelectionChange}
-      />
+      {SCENARIO_MODEL_SLOTS.map((slot) => {
+        const field = SCENARIO_MODEL_SLOT_FIELDS[slot]
+        return (
+          <ModelSelectionFields
+            key={slot}
+            idPrefix={`${idPrefix}-${field.idSuffix}`}
+            label={field.label}
+            value={modelSelection[slot]}
+            disabled={disabled}
+            helperText={field.helperText}
+            onChange={(value) => {
+              onModelSelectionChange({ ...modelSelection, [slot]: value })
+            }}
+          />
+        )
+      })}
       <VoiceConfigurationFields
         idPrefix={idPrefix}
         voiceKey={voiceKey}

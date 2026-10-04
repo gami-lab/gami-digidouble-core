@@ -34,7 +34,8 @@ do not import Core domain or infrastructure code.
 
 - **Conversation:** sessions, conversations, messages, lifecycle, active Avatar.
 - **Avatar:** authored persona, explicit rerunnable trait preparation (`PrepareScenarioAvatarTraitsUseCase`
-  derives `computedTraits` via the `avatar` LLM role and persists them through a narrow
+  derives `computedTraits` with the scenario default model, falling back to the global default and
+  never using Avatar role or override models, and persists them through a narrow
   `saveComputedTraits` write path), response assembly, response cleanup. The Avatar module does not
   own response orchestration — `SendMessageUseCase` coordinates history + LLM invocation; trait
   preparation stays a separate, explicit step from runtime prompt assembly.

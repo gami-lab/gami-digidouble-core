@@ -27,6 +27,7 @@ export {
 export {
   MODEL_PROVIDER_NAMES,
   MODEL_SELECTION_PROVIDER_NAMES,
+  SCENARIO_MODEL_SLOTS,
   SUPPORTED_PRODUCTION_MODEL_MATRIX,
   getModelPresetOptions,
   isAllowedModelForProvider,
@@ -46,6 +47,7 @@ export type {
   ModelSelectionOverride,
   ModelSelectionProviderName,
   ScenarioModelSelection,
+  ScenarioModelSlot,
 } from './model-catalog.js'
 export type {
   AvatarStatus,

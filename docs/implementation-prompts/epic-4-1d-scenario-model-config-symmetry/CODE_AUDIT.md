@@ -282,3 +282,112 @@ API_CONTRACT, DATA_MODEL, EPICS and PROJECT_STATUS are correctly updated.
 **Close with debt.** The functional DoD is met and proven at the correct boundaries, and the build
 is green. Track the slot-duplication refactor (Path to A, item 1) as follow-up debt before any
 further model-selection slot is added.
+
+## Remediation Outcome
+
+### Changes Made
+
+- **One list of slots.** `@gami/shared` now exports `SCENARIO_MODEL_SLOTS` and `ScenarioModelSlot`,
+  and `ScenarioModelSelection` is derived from them
+  (`Partial<Record<ScenarioModelSlot, ModelProfile>>`). Everything that used to name each slot by
+  hand now loops over that list:
+  - the Fastify create and update schemas, which now share one `modelProfileBodySchema` and one
+    `scenarioModelSelectionBodySchema` (8 hand-copied blocks become 1)
+  - the API mapper
+  - the API validator
+  - the Postgres `readScenarioModelSelection`
+  - the admin `fromScenarioModelSelection`, `toScenarioModelSelection` and
+    `hasPartialScenarioModelSelection`
+- **Admin form state collapsed.** The create page and edit form each keep one
+  `ScenarioModelSelectionFormValue` state instead of four. `ScenarioFormFields` and the detail view
+  render from `SCENARIO_MODEL_SLOT_FIELDS`, one table of slot → id suffix, label, help text and
+  "inherited" text.
+- **Resolver.** `resolveScenarioSelection` is now a lookup table from role to slot followed by
+  `?? defaultProfile`. The dead branch and its lint suppression are gone.
+- **Runtime helpers merged.** A private `resolveLlmCall` handles config loading, model
+  normalisation, adapter lookup and the null fallback. `resolveRoleLlmCall` and the renamed
+  `resolveTraitPreparationLlmCall` only provide the selection function.
+- **Trait-preparation label.** A new `LlmCallPurpose = ModelRole | 'traitPreparation'` type is
+  used in `logResolvedLlmCall` and in the adapter-unavailable error. Trait preparation now logs and
+  errors as `traitPreparation`, not `avatar`.
+- **Help text.** The admin text for the scenario default now says it is the fallback for every role
+  and is also used for trait preparation.
+- **New tests:**
+  - edit-form submit payload: one slot cleared, another changed
+  - `send-message` live turn chooses the scenario `avatarOverride` over the scenario default and the
+    global avatar role
+  - trait-preparation 503 error names `traitPreparation`
+- **Docs.** `ARCHITECTURE.md` no longer says trait preparation uses the `avatar` LLM role.
+  `TEST_COVERAGE_PLAN.md` now covers trait-prep model resolution and slot round-tripping.
+
+### Findings Resolved
+
+| Finding                                                        | Resolution                                                                                                                                                                                                                                     |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Model-profile shape hand-repeated across ~10 sites (Medium)    | Resolved. Adding a slot is now one entry in `SCENARIO_MODEL_SLOTS`, one entry in `SCENARIO_MODEL_SLOT_FIELDS` (the compiler enforces this through the `Record` type), and, if it maps to a new runtime role, one entry in `SCENARIO_ROLE_SLOT` |
+| Duplicate runtime helper (Low)                                 | Resolved: one shared `resolveLlmCall`                                                                                                                                                                                                          |
+| Trait prep labelled `avatar` (Low)                             | Resolved and covered by a 503 message test                                                                                                                                                                                                     |
+| Lint suppressions added by this EPIC (Low)                     | Resolved: all 7 removed. The ones that remain (`resolve` complexity, `ScenarioFormFields` length, `ScenarioDetailView` line 372) were there before this EPIC                                                                                   |
+| Dead branch in resolver (Low)                                  | Resolved: lookup table                                                                                                                                                                                                                         |
+| Inaccurate admin help text (Low)                               | Resolved                                                                                                                                                                                                                                       |
+| Missing edit-submit and live-turn `avatarOverride` tests (Low) | Resolved                                                                                                                                                                                                                                       |
+
+### Findings Deferred
+
+- **Unrelated formatting churn in `1be7b1ed` (Low).** That commit is already in history and
+  rewriting it has no value. This remediation reverted formatter-only changes to unrelated files
+  before committing.
+- **Stack E2E invalid-catalog loop not converted to `it.each` (Low).** It is cosmetic and its
+  behaviour is already proven.
+
+### Build Gates
+
+- lint: **PASS** (7/7)
+- typecheck: **PASS** (7/7)
+- tests: **PASS**
+  - core 1159/1159
+  - admin 92/92
+  - shared 21
+  - console 55
+  - web 59
+  - conversation-evaluation 87
+- coverage (core): 87.27% statements · 83.95% branches · 96.89% functions · 87.27% lines
+- stack E2E (`scenarios.stack-e2e.test.ts`, against the `tsx watch` dev server running the
+  refactored code): 13/13 PASS
+- Postgres integration (`postgres-scenario.repository.integration.test.ts`): 9/9 PASS
+
+### Final Feature Confidence
+
+All features are now **High** confidence:
+
+- **Postgres read-back:** all four slots round-trip (integration test plus stack E2E).
+- **Resolver precedence:** Avatar entity override > scenario `avatarOverride` > scenario default >
+  global role > global default (unit tests).
+- **Live Avatar turns** use the scenario `avatarOverride`. This is proven with a use-case test on
+  the outgoing request's provider and model; it was Medium before.
+- **Memory maintenance** uses the scenario `memoryOverride` (service test).
+- **Trait preparation** uses only the scenario default and then the global default. It ignores every
+  avatar or role override (use-case tests on the outgoing request), and its errors and logs say
+  `traitPreparation`.
+- **API:**
+  - Create and PATCH accept, validate and persist every slot.
+  - Unknown catalog entries are rejected with 400.
+  - `null` clears the selection.
+  - All of this runs through the generated schema (stack E2E).
+- **Admin:**
+  - Create sends all slots.
+  - Edit pre-fills them and saves clears and changes. This was Medium before.
+  - The detail view shows every slot.
+
+### Final Grade
+
+**A**
+
+### Remaining Risks
+
+- The Fastify schemas for scenario model selection are built with `Object.fromEntries`, so they are
+  no longer literal `as const` types. Nothing in the routes derives types from them today. If
+  something does later, it will need a typed helper.
+- The global `ModelConfig` role overrides (`avatar`/`gameMaster`/`memory`) and the scenario slot
+  list are still kept in step by hand through `SCENARIO_ROLE_SLOT`. The compiler forces an entry for
+  every `ModelRole`, so a missing entry is a type error, not a silent drift.

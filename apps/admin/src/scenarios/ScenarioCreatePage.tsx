@@ -5,8 +5,8 @@ import { formatApiError } from '../api/error'
 import { createScenario } from '../api/scenarios'
 import { ScenarioFormFields } from './ScenarioFormFields'
 import {
-  EMPTY_MODEL_SELECTION,
-  hasPartialModelSelection,
+  EMPTY_SCENARIO_MODEL_SELECTION,
+  hasPartialScenarioModelSelection,
   toScenarioModelSelection,
 } from './model-selection-form'
 import { toVoiceConfiguration } from './voice-config-form'
@@ -18,17 +18,13 @@ type ScenarioCreatePageProps = {
 
 type CreateState = { status: 'idle' } | { status: 'saving' } | { status: 'error'; message: string }
 
-// eslint-disable-next-line max-lines-per-function
 export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProps): JSX.Element {
   const [name, setName] = useState('')
   const [status, setStatus] = useState<ScenarioStatus>('draft')
   const [language, setLanguage] = useState('en')
   const [worldContext, setWorldContext] = useState('')
   const [objectives, setObjectives] = useState<string[]>([])
-  const [defaultModelSelection, setDefaultModelSelection] = useState(EMPTY_MODEL_SELECTION)
-  const [avatarModelSelection, setAvatarModelSelection] = useState(EMPTY_MODEL_SELECTION)
-  const [gameMasterModelSelection, setGameMasterModelSelection] = useState(EMPTY_MODEL_SELECTION)
-  const [memoryModelSelection, setMemoryModelSelection] = useState(EMPTY_MODEL_SELECTION)
+  const [modelSelectionForm, setModelSelectionForm] = useState(EMPTY_SCENARIO_MODEL_SELECTION)
   const [voiceKey, setVoiceKey] = useState('')
   const [createState, setCreateState] = useState<CreateState>({ status: 'idle' })
 
@@ -37,12 +33,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
     if (name.trim().length === 0) return
     setCreateState({ status: 'saving' })
     try {
-      const modelSelection = toScenarioModelSelection({
-        defaultProfile: defaultModelSelection,
-        avatarOverride: avatarModelSelection,
-        gameMasterOverride: gameMasterModelSelection,
-        memoryOverride: memoryModelSelection,
-      })
+      const modelSelection = toScenarioModelSelection(modelSelectionForm)
       const voiceConfig = toVoiceConfiguration(voiceKey)
       const scenario = await createScenario({
         name: name.trim(),
@@ -63,11 +54,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
   }
 
   const isSaving = createState.status === 'saving'
-  const hasPartialModelSelectionState =
-    hasPartialModelSelection(defaultModelSelection) ||
-    hasPartialModelSelection(avatarModelSelection) ||
-    hasPartialModelSelection(gameMasterModelSelection) ||
-    hasPartialModelSelection(memoryModelSelection)
+  const hasPartialModelSelectionState = hasPartialScenarioModelSelection(modelSelectionForm)
   const submitDisabled = isSaving || name.trim().length === 0 || hasPartialModelSelectionState
 
   return (
@@ -84,10 +71,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           language={language}
           worldContext={worldContext}
           objectives={objectives}
-          defaultModelSelection={defaultModelSelection}
-          avatarModelSelection={avatarModelSelection}
-          gameMasterModelSelection={gameMasterModelSelection}
-          memoryModelSelection={memoryModelSelection}
+          modelSelection={modelSelectionForm}
           voiceKey={voiceKey}
           idPrefix="sc"
           disabled={isSaving}
@@ -96,10 +80,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           onLanguageChange={setLanguage}
           onWorldContextChange={setWorldContext}
           onObjectivesChange={setObjectives}
-          onDefaultModelSelectionChange={setDefaultModelSelection}
-          onAvatarModelSelectionChange={setAvatarModelSelection}
-          onGameMasterModelSelectionChange={setGameMasterModelSelection}
-          onMemoryModelSelectionChange={setMemoryModelSelection}
+          onModelSelectionChange={setModelSelectionForm}
           onVoiceKeyChange={setVoiceKey}
         />
         {hasPartialModelSelectionState ? (

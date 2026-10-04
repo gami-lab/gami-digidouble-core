@@ -6,7 +6,7 @@ import { updateScenario } from '../api/scenarios'
 import { ScenarioFormFields } from './ScenarioFormFields'
 import {
   fromScenarioModelSelection,
-  hasPartialModelSelection,
+  hasPartialScenarioModelSelection,
   toScenarioModelSelection,
 } from './model-selection-form'
 import { toVoiceConfiguration } from './voice-config-form'
@@ -18,30 +18,19 @@ type ScenarioEditFormProps = {
   onError: (message: string) => void
 }
 
-// eslint-disable-next-line max-lines-per-function, complexity
 export function ScenarioEditForm({
   scenario,
   onCancel,
   onSaved,
   onError,
 }: ScenarioEditFormProps): JSX.Element {
-  const initialModelSelection = fromScenarioModelSelection(scenario.modelSelection)
   const [name, setName] = useState(scenario.name)
   const [status, setStatus] = useState<ScenarioStatus>(scenario.status)
   const [language, setLanguage] = useState(scenario.language ?? '')
   const [worldContext, setWorldContext] = useState(scenario.worldContext)
   const [objectives, setObjectives] = useState<string[]>(scenario.objectives)
-  const [defaultModelSelection, setDefaultModelSelection] = useState(
-    initialModelSelection.defaultProfile,
-  )
-  const [avatarModelSelection, setAvatarModelSelection] = useState(
-    initialModelSelection.avatarOverride,
-  )
-  const [gameMasterModelSelection, setGameMasterModelSelection] = useState(
-    initialModelSelection.gameMasterOverride,
-  )
-  const [memoryModelSelection, setMemoryModelSelection] = useState(
-    initialModelSelection.memoryOverride,
+  const [modelSelectionForm, setModelSelectionForm] = useState(() =>
+    fromScenarioModelSelection(scenario.modelSelection),
   )
   const [voiceKey, setVoiceKey] = useState(scenario.voiceConfig?.voiceKey ?? '')
   const [saving, setSaving] = useState(false)
@@ -51,12 +40,7 @@ export function ScenarioEditForm({
     if (name.trim().length === 0) return
     setSaving(true)
     try {
-      const modelSelection = toScenarioModelSelection({
-        defaultProfile: defaultModelSelection,
-        avatarOverride: avatarModelSelection,
-        gameMasterOverride: gameMasterModelSelection,
-        memoryOverride: memoryModelSelection,
-      })
+      const modelSelection = toScenarioModelSelection(modelSelectionForm)
       const voiceConfig = toVoiceConfiguration(voiceKey)
       const updated = await updateScenario(scenario.scenarioId, {
         name: name.trim(),
@@ -74,11 +58,7 @@ export function ScenarioEditForm({
     }
   }
 
-  const hasPartialModelSelectionState =
-    hasPartialModelSelection(defaultModelSelection) ||
-    hasPartialModelSelection(avatarModelSelection) ||
-    hasPartialModelSelection(gameMasterModelSelection) ||
-    hasPartialModelSelection(memoryModelSelection)
+  const hasPartialModelSelectionState = hasPartialScenarioModelSelection(modelSelectionForm)
   const submitDisabled = saving || name.trim().length === 0 || hasPartialModelSelectionState
 
   return (
@@ -91,10 +71,7 @@ export function ScenarioEditForm({
           language={language}
           worldContext={worldContext}
           objectives={objectives}
-          defaultModelSelection={defaultModelSelection}
-          avatarModelSelection={avatarModelSelection}
-          gameMasterModelSelection={gameMasterModelSelection}
-          memoryModelSelection={memoryModelSelection}
+          modelSelection={modelSelectionForm}
           voiceKey={voiceKey}
           idPrefix="edit-sc"
           disabled={saving}
@@ -103,10 +80,7 @@ export function ScenarioEditForm({
           onLanguageChange={setLanguage}
           onWorldContextChange={setWorldContext}
           onObjectivesChange={setObjectives}
-          onDefaultModelSelectionChange={setDefaultModelSelection}
-          onAvatarModelSelectionChange={setAvatarModelSelection}
-          onGameMasterModelSelectionChange={setGameMasterModelSelection}
-          onMemoryModelSelectionChange={setMemoryModelSelection}
+          onModelSelectionChange={setModelSelectionForm}
           onVoiceKeyChange={setVoiceKey}
         />
         {hasPartialModelSelectionState ? (

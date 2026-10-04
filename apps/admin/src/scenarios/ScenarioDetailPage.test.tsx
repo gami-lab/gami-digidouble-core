@@ -156,7 +156,7 @@ describe('ScenarioDetailPage loading and data states', () => {
     expect(screen.getByText('A guided discovery lab.')).toBeTruthy()
     expect(screen.getByText('Explore AI concepts')).toBeTruthy()
     expect(screen.getByText('Mira')).toBeTruthy()
-    expect(screen.getByText(/Scenario default:\s*openai \/ gpt-5.6-luna/)).toBeTruthy()
+    expect(screen.getByText(/Scenario default model:\s*openai \/ gpt-5.6-luna/)).toBeTruthy()
     expect(screen.getByText(/Avatar override:\s*mistral \/ mistral-small-4/)).toBeTruthy()
     expect(screen.getByText(/Game Master override:\s*anthropic \/ claude-sonnet-4-6/)).toBeTruthy()
     expect(screen.getByText(/Memory override:\s*openai \/ gpt-5.6-luna/)).toBeTruthy()
@@ -185,33 +185,6 @@ describe('ScenarioDetailPage navigation and avatar actions', () => {
     fireEvent.click(screen.getByRole('button', { name: '← Back to scenarios' }))
 
     expect(onBack).toHaveBeenCalledTimes(1)
-  })
-
-  it('shows scenario edit form when Edit button is clicked', async () => {
-    mockReadyLoad({
-      scenario: createScenario({
-        modelSelection: {
-          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
-          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
-          gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
-          memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
-        },
-      }),
-    })
-
-    renderPage()
-
-    await waitForScenario()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
-
-    expect(screen.getByText('Edit scenario')).toBeTruthy()
-    expect(document.querySelector<HTMLSelectElement>('#edit-sc-avatar-model-model')?.value).toBe(
-      'mistral-small-4',
-    )
-    expect(document.querySelector<HTMLSelectElement>('#edit-sc-memory-model-model')?.value).toBe(
-      'gpt-5.6-luna',
-    )
   })
 
   it('shows avatar create form when "Add avatar" is clicked', async () => {
@@ -293,6 +266,85 @@ describe('ScenarioDetailPage navigation and avatar actions', () => {
 
     expect(updateScenario).toHaveBeenCalledWith('scenario_a', {
       avatarAvailability: { initialAvatarIds: ['avatar_1'] },
+    })
+  })
+})
+
+describe('ScenarioDetailPage scenario edit form', () => {
+  it('shows scenario edit form when Edit button is clicked', async () => {
+    mockReadyLoad({
+      scenario: createScenario({
+        modelSelection: {
+          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
+          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+          gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+          memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
+        },
+      }),
+    })
+
+    renderPage()
+
+    await waitForScenario()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+
+    expect(screen.getByText('Edit scenario')).toBeTruthy()
+    expect(document.querySelector<HTMLSelectElement>('#edit-sc-avatar-model-model')?.value).toBe(
+      'mistral-small-4',
+    )
+    expect(document.querySelector<HTMLSelectElement>('#edit-sc-memory-model-model')?.value).toBe(
+      'gpt-5.6-luna',
+    )
+  })
+
+  it('submits edited Avatar and Memory scenario overrides', async () => {
+    mockReadyLoad({
+      scenario: createScenario({
+        modelSelection: {
+          defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
+          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+        },
+      }),
+    })
+    vi.mocked(updateScenario).mockResolvedValue(createScenario())
+
+    renderPage()
+    await waitForScenario()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+
+    fireEvent.change(
+      screen.getByLabelText('Provider', { selector: '#edit-sc-avatar-model-provider' }),
+      {
+        target: { value: '' },
+      },
+    )
+    fireEvent.change(screen.getByLabelText('Model', { selector: '#edit-sc-avatar-model-model' }), {
+      target: { value: '' },
+    })
+    fireEvent.change(
+      screen.getByLabelText('Provider', { selector: '#edit-sc-memory-model-provider' }),
+      {
+        target: { value: 'anthropic' },
+      },
+    )
+    fireEvent.change(screen.getByLabelText('Model', { selector: '#edit-sc-memory-model-model' }), {
+      target: { value: 'claude-haiku-4-5' },
+    })
+    fireEvent.submit(
+      screen.getByRole('button', { name: 'Save' }).closest('form') as HTMLFormElement,
+    )
+
+    await waitFor(() => {
+      expect(updateScenario).toHaveBeenCalledWith(
+        'scenario_a',
+        expect.objectContaining({
+          modelSelection: {
+            defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
+            memoryOverride: { provider: 'anthropic', model: 'claude-haiku-4-5' },
+          },
+        }),
+      )
     })
   })
 })

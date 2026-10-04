@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
-import { fail, ok } from '@gami/shared'
+import { fail, ok, SCENARIO_MODEL_SLOTS } from '@gami/shared'
 import type {
   CreateAvatarRequest,
   CreateAvatarResponse,
@@ -101,6 +101,24 @@ const avatarAvailabilityBodySchema = {
   additionalProperties: false,
 } as const
 
+const modelProfileBodySchema = {
+  type: 'object',
+  required: ['provider', 'model'],
+  properties: {
+    provider: { type: 'string' },
+    model: { type: 'string' },
+  },
+  additionalProperties: false,
+} as const
+
+const scenarioModelSelectionBodySchema = {
+  type: 'object',
+  properties: Object.fromEntries(
+    SCENARIO_MODEL_SLOTS.map((slot) => [slot, modelProfileBodySchema]),
+  ),
+  additionalProperties: false,
+} as const
+
 const createScenarioBodySchema = {
   type: 'object',
   required: ['name'],
@@ -111,48 +129,7 @@ const createScenarioBodySchema = {
     objectives: { type: 'array', items: { type: 'string' } },
     worldContext: { type: 'string' },
     avatarAvailability: avatarAvailabilityBodySchema,
-    modelSelection: {
-      type: 'object',
-      properties: {
-        defaultProfile: {
-          type: 'object',
-          required: ['provider', 'model'],
-          properties: {
-            provider: { type: 'string' },
-            model: { type: 'string' },
-          },
-          additionalProperties: false,
-        },
-        avatarOverride: {
-          type: 'object',
-          required: ['provider', 'model'],
-          properties: {
-            provider: { type: 'string' },
-            model: { type: 'string' },
-          },
-          additionalProperties: false,
-        },
-        gameMasterOverride: {
-          type: 'object',
-          required: ['provider', 'model'],
-          properties: {
-            provider: { type: 'string' },
-            model: { type: 'string' },
-          },
-          additionalProperties: false,
-        },
-        memoryOverride: {
-          type: 'object',
-          required: ['provider', 'model'],
-          properties: {
-            provider: { type: 'string' },
-            model: { type: 'string' },
-          },
-          additionalProperties: false,
-        },
-      },
-      additionalProperties: false,
-    },
+    modelSelection: scenarioModelSelectionBodySchema,
     voiceConfig: voiceConfigurationBodySchema,
     config: { type: 'object' },
   },
@@ -170,53 +147,7 @@ const updateScenarioBodySchema = {
     objectives: { type: 'array', items: { type: 'string' } },
     worldContext: { type: 'string' },
     avatarAvailability: avatarAvailabilityBodySchema,
-    modelSelection: {
-      anyOf: [
-        { type: 'null' },
-        {
-          type: 'object',
-          properties: {
-            defaultProfile: {
-              type: 'object',
-              required: ['provider', 'model'],
-              properties: {
-                provider: { type: 'string' },
-                model: { type: 'string' },
-              },
-              additionalProperties: false,
-            },
-            avatarOverride: {
-              type: 'object',
-              required: ['provider', 'model'],
-              properties: {
-                provider: { type: 'string' },
-                model: { type: 'string' },
-              },
-              additionalProperties: false,
-            },
-            gameMasterOverride: {
-              type: 'object',
-              required: ['provider', 'model'],
-              properties: {
-                provider: { type: 'string' },
-                model: { type: 'string' },
-              },
-              additionalProperties: false,
-            },
-            memoryOverride: {
-              type: 'object',
-              required: ['provider', 'model'],
-              properties: {
-                provider: { type: 'string' },
-                model: { type: 'string' },
-              },
-              additionalProperties: false,
-            },
-          },
-          additionalProperties: false,
-        },
-      ],
-    },
+    modelSelection: { anyOf: [{ type: 'null' }, scenarioModelSelectionBodySchema] },
     voiceConfig: voiceConfigurationUpdateBodySchema,
     config: { type: 'object' },
   },

@@ -51,8 +51,11 @@ These are easy to regress silently because they are policy, not type-level const
 
 ## Other modules to keep covered
 
-- Avatar trait preparation: per-avatar failure isolation, rerunnable recomputation, and persistence
-  of `computedTraits` without mutating authored avatar fields.
+- Avatar trait preparation: per-avatar failure isolation, rerunnable recomputation, persistence
+  of `computedTraits` without mutating authored avatar fields, and model resolution through
+  scenario default -> global default only (never Avatar role/entity/scenario overrides).
+- Scenario model selection: every slot in `SCENARIO_MODEL_SLOTS` round-trips through API create/
+  update and Postgres read-back, and each runtime role honors its scenario slot before the default.
 - User persona: partial/empty persona handling, prompt injection only when persona data is present,
   and persona-lookup failures never breaking message delivery.
 - Runtime events (SSE): reconnect stability, session scoping with no cross-session leakage, and

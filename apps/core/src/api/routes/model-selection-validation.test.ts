@@ -34,7 +34,7 @@ describe('validateScenarioModelSelection', () => {
 
   it('rejects an empty modelSelection with all four profiles absent', () => {
     expect(validateScenarioModelSelection({})).toBe(
-      'modelSelection must define defaultProfile, avatarOverride, gameMasterOverride, or memoryOverride when provided',
+      'modelSelection must define at least one of defaultProfile, avatarOverride, gameMasterOverride, memoryOverride when provided',
     )
   })
 })

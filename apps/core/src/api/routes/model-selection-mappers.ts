@@ -1,7 +1,9 @@
-import type {
-  CreateAvatarRequest,
-  CreateScenarioRequest,
-  UpdateScenarioRequest,
+import {
+  SCENARIO_MODEL_SLOTS,
+  type CreateAvatarRequest,
+  type CreateScenarioRequest,
+  type ScenarioModelSelection,
+  type UpdateScenarioRequest,
 } from '@gami/shared'
 import type { CreateAvatarInput } from '../../application/use-cases/create-avatar/create-avatar.types.js'
 import type { CreateScenarioInput } from '../../application/use-cases/create-scenario/create-scenario.types.js'
@@ -89,40 +91,14 @@ function normalizeCreateScenarioModelSelection(
 ): CreateScenarioInput['modelSelection'] {
   if (modelSelection === undefined) return undefined
 
-  return {
-    ...(modelSelection.defaultProfile !== undefined
-      ? {
-          defaultProfile: {
-            provider: modelSelection.defaultProfile.provider,
-            model: modelSelection.defaultProfile.model.trim(),
-          },
-        }
-      : {}),
-    ...(modelSelection.avatarOverride !== undefined
-      ? {
-          avatarOverride: {
-            provider: modelSelection.avatarOverride.provider,
-            model: modelSelection.avatarOverride.model.trim(),
-          },
-        }
-      : {}),
-    ...(modelSelection.gameMasterOverride !== undefined
-      ? {
-          gameMasterOverride: {
-            provider: modelSelection.gameMasterOverride.provider,
-            model: modelSelection.gameMasterOverride.model.trim(),
-          },
-        }
-      : {}),
-    ...(modelSelection.memoryOverride !== undefined
-      ? {
-          memoryOverride: {
-            provider: modelSelection.memoryOverride.provider,
-            model: modelSelection.memoryOverride.model.trim(),
-          },
-        }
-      : {}),
+  const normalized: ScenarioModelSelection = {}
+  for (const slot of SCENARIO_MODEL_SLOTS) {
+    const profile = modelSelection[slot]
+    if (profile !== undefined) {
+      normalized[slot] = { provider: profile.provider, model: profile.model.trim() }
+    }
   }
+  return normalized
 }
 
 function normalizeUpdateScenarioModelSelection(
