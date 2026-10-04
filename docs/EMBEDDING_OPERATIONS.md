@@ -103,4 +103,4 @@ profile and a complete finite result before returning profile/generation-tagged 
 or invalid batch fails closed rather than returning partial vectors. This service only vectorizes
 queries; it does not itself perform retrieval or ranking.
 
-Memory and user facts are not vectorized by this lifecycle — only static knowledge chunks are.
+Conversational memory is not vectorized by this lifecycle — only static knowledge chunks are.

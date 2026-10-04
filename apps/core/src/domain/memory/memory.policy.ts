@@ -8,17 +8,11 @@
 /** Number of recent exchanges retained in short-term memory for Avatar and GM. */
 export const MEMORY_SHORT_TERM_EXCHANGE_LIMIT = 3
 
-/** Maximum long-term facts injected into Avatar/GM context per turn. */
-export const MEMORY_LONG_TERM_FACT_LIMIT = 10
-
 /** Maximum episodic memories selected for turn-time context. */
 export const MEMORY_EPISODIC_SELECTION_LIMIT = 3
 
 /** Number of candidate episodic memories fetched before selection scoring. */
 export const MEMORY_EPISODIC_RETRIEVAL_LIMIT = 12
-
-/** Default cap for long-term facts returned in admin inspection responses. */
-export const ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT = 50
 
 /** Number of raw messages fetched to build short-term exchange windows. */
 export const MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT = 20

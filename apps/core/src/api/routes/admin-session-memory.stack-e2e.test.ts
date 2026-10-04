@@ -66,7 +66,6 @@ function assertShortTermLayer(session: SessionMemoryLayers | undefined): void {
 
 function assertWorkingAndLongTermLayer(session: SessionMemoryLayers | undefined): void {
   expect(Array.isArray(session?.working.avatars)).toBe(true)
-  expect(Array.isArray(session?.longTerm.facts)).toBe(true)
 }
 
 function assertObservabilityLayer(session: SessionMemoryLayers | undefined): void {

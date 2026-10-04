@@ -7,7 +7,6 @@ import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructur
 import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
-import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
 
@@ -87,7 +86,6 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers observability', () => 
         },
       ]),
       eventLogRepository: eventLog,
-      userMemoryFactRepository: new InMemoryUserMemoryFactRepository([]),
     })
     apps.push(app)
 

@@ -5,11 +5,9 @@ import type { IConversationWorkingMemoryRepository } from '../../ports/IConversa
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
-import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import { DomainError } from '../../../domain/errors.js'
 import {
-  ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT,
   MEMORY_SHORT_TERM_EXCHANGE_LIMIT,
   MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
 } from '../../../domain/memory/memory.policy.js'
@@ -26,7 +24,6 @@ export class GetSessionMemoryLayersUseCase {
   private readonly selectionService?: MemorySelectionService
   constructor(
     private readonly sessionRepository: ISessionRepository,
-    private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
     private readonly conversationRepository?: IConversationRepository,
     private readonly messageRepository?: IMessageRepository,
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
@@ -42,7 +39,6 @@ export class GetSessionMemoryLayersUseCase {
         messageRepository,
         conversationWorkingMemoryRepository,
         conversationMemoryRepository,
-        userMemoryFactRepository,
       )
     }
   }
@@ -55,13 +51,11 @@ export class GetSessionMemoryLayersUseCase {
 
     const activeConversation = await this.loadActiveConversation(session.sessionId)
 
-    const [shortTermExchanges, currentWorkingMemory, facts, longTermAvatarMemories] =
-      await Promise.all([
-        this.loadShortTermExchanges(activeConversation?.conversationId),
-        this.loadCurrentWorkingMemory(activeConversation?.conversationId),
-        this.userMemoryFactRepository?.findByUserId(session.userId) ?? Promise.resolve([]),
-        this.loadLongTermAvatarMemories(session.sessionId),
-      ])
+    const [shortTermExchanges, currentWorkingMemory, longTermAvatarMemories] = await Promise.all([
+      this.loadShortTermExchanges(activeConversation?.conversationId),
+      this.loadCurrentWorkingMemory(activeConversation?.conversationId),
+      this.loadLongTermAvatarMemories(session.sessionId),
+    ])
 
     const workingLayer = this.buildWorkingLayer(currentWorkingMemory)
 
@@ -81,12 +75,6 @@ export class GetSessionMemoryLayersUseCase {
       working: workingLayer,
       longTerm: {
         avatars: longTermAvatarMemories,
-        facts: facts.slice(0, ADMIN_LONG_TERM_FACT_DEFAULT_LIMIT).map((fact) => ({
-          category: fact.category,
-          key: fact.key,
-          value: fact.value,
-          updatedAt: fact.updatedAt,
-        })),
       },
       ...(await this.buildObservability(session)),
     }

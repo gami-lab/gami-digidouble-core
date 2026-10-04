@@ -7,7 +7,6 @@ import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
-import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../ports/IConversationMemoryRepository.js'
@@ -107,7 +106,6 @@ export class SendMessageUseCase {
     private readonly userRepository?: IUserRepository,
     private readonly endConversationUseCase: ConversationCloser | null = null,
     private readonly implicitEndPolicy: ImplicitEndPolicy = DEFAULT_IMPLICIT_END_POLICY,
-    private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
     private readonly memoryMaintenance?: IMemoryMaintenancePort,
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly conversationMemoryRepository?: IConversationMemoryRepository,
@@ -751,7 +749,6 @@ export class SendMessageUseCase {
         this.messageRepository,
         this.conversationWorkingMemoryRepository,
         this.conversationMemoryRepository,
-        this.userMemoryFactRepository,
       )
     )
   }

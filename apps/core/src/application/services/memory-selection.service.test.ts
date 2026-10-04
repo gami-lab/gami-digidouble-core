@@ -48,9 +48,6 @@ describe('MemorySelectionService', () => {
           },
         ]),
       } as never,
-      {
-        findByUserId: vi.fn().mockResolvedValue([]),
-      } as never,
     )
 
     const selected = await service.select({
@@ -92,9 +89,6 @@ describe('MemorySelectionService', () => {
       } as never,
       {
         listByScope: vi.fn().mockResolvedValue([]),
-      } as never,
-      {
-        findByUserId: vi.fn().mockResolvedValue([]),
       } as never,
     )
 
@@ -153,9 +147,6 @@ describe('MemorySelectionService', () => {
       } as never,
       {
         listByScope: vi.fn().mockResolvedValue([]),
-      } as never,
-      {
-        findByUserId: vi.fn().mockResolvedValue([]),
       } as never,
     )
 
@@ -216,19 +207,6 @@ describe('MemorySelectionService', () => {
           },
         ]),
       } as never,
-      {
-        findByUserId: vi.fn().mockImplementation((userId: string) => [
-          {
-            id: `fact_${userId}`,
-            userId,
-            category: 'preference',
-            key: 'style',
-            value: `${userId} preference`,
-            createdAt: '2026-05-08T09:00:00.000Z',
-            updatedAt: '2026-05-08T09:00:00.000Z',
-          },
-        ]),
-      } as never,
     )
 
     const userA = await service.select({
@@ -258,8 +236,6 @@ describe('MemorySelectionService', () => {
     expect(userB.workingMemory?.summary).toBe('conversation_user_b working summary')
     expect(userA.episodicMemories[0]?.summary).toBe('user_a episodic summary')
     expect(userB.episodicMemories[0]?.summary).toBe('user_b episodic summary')
-    expect(userA.longTermFacts[0]?.value).toBe('user_a preference')
-    expect(userB.longTermFacts[0]?.value).toBe('user_b preference')
     expect(JSON.stringify(userA)).not.toContain('user_b')
     expect(JSON.stringify(userB)).not.toContain('user_a')
   })

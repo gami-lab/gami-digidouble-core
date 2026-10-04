@@ -60,16 +60,5 @@ export function MemoryRunView({ run }: { run: MemoryRun }): JSX.Element {
 export function ConsolidationView({ step }: { step: ConsolidationStep }): JSX.Element {
   const { payload } = step
   if (payload.error !== undefined) return <p className="error-text">{payload.error}</p>
-  if (step.kind === 'episodic') {
-    return <p className="small muted">Stored as a long-term avatar memory; see “Memory now”.</p>
-  }
-  return (
-    <>
-      <TextList
-        items={(payload.facts ?? []).map((fact) => `${fact.category} · ${fact.key}: ${fact.value}`)}
-        empty="No new facts."
-      />
-      <LangfuseTraceLink traceId={payload.llmTraceId} />
-    </>
-  )
+  return <p className="small muted">Stored as a long-term avatar memory; see “Memory now”.</p>
 }

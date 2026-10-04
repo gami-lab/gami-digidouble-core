@@ -170,7 +170,6 @@ function GmContextView({
       <MemoryInputsView
         workingSummary={sections.conversationState.workingMemory?.summary}
         episodicMemories={sections.conversationState.episodicMemories}
-        longTermFacts={sections.conversationState.longTermFacts}
       />
       {retrieved !== undefined ? (
         <Section nested title="Knowledge the GM retrieved">

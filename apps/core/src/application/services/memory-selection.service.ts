@@ -1,10 +1,8 @@
 import type { IConversationMemoryRepository } from '../ports/IConversationMemoryRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../ports/IConversationWorkingMemoryRepository.js'
 import type { IMessageRepository } from '../ports/IMessageRepository.js'
-import type { IUserMemoryFactRepository } from '../ports/IUserMemoryFactRepository.js'
 import {
   MEMORY_EPISODIC_SELECTION_LIMIT,
-  MEMORY_LONG_TERM_FACT_LIMIT,
   MEMORY_SHORT_TERM_MESSAGE_FETCH_LIMIT,
 } from '../../domain/memory/memory.policy.js'
 import { scoreEpisodicMemorySelection } from '../../domain/memory/memory-selection.policy.js'
@@ -12,7 +10,6 @@ import { selectExchangeWindow } from './conversation-exchange-window.js'
 import type {
   GameMasterMemoryContext,
   LayeredMemorySnapshot,
-  LongTermMemoryFact,
   SelectedMemoryPayload,
   SelectedWorkingMemory,
   ShortTermMemoryExchange,
@@ -24,7 +21,6 @@ export class MemorySelectionService {
     private readonly messageRepository: IMessageRepository,
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly conversationMemoryRepository?: IConversationMemoryRepository,
-    private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
   ) {}
 
   async select(input: {
@@ -55,10 +51,9 @@ export class MemorySelectionService {
     }
   }> {
     const workingMemory = await this.loadWorkingMemory(input.conversationId)
-    const [shortTermExchanges, episodicMemories, longTermFacts] = await Promise.all([
+    const [shortTermExchanges, episodicMemories] = await Promise.all([
       this.loadShortTermExchanges(input.conversationId, workingMemory?.updatedAt),
       this.loadEpisodicMemories(input),
-      this.loadLongTermFacts(input.userId),
     ])
 
     const selectedEpisodes = this.selectEpisodicMemories(
@@ -73,7 +68,6 @@ export class MemorySelectionService {
         shortTermExchanges,
         ...(workingMemory !== undefined ? { workingMemory } : {}),
         episodicMemories: selectedEpisodes,
-        longTermFacts,
       },
       observability: {
         sourceConversationIds: episodicMemories.map((memory) => memory.conversationId),
@@ -109,7 +103,6 @@ export class MemorySelectionService {
       ...(payload.episodicMemories.length > 0
         ? { episodicMemories: payload.episodicMemories }
         : {}),
-      ...(payload.longTermFacts.length > 0 ? { longTerm: { facts: payload.longTermFacts } } : {}),
     }
 
     return Object.keys(memory).length > 0 ? memory : undefined
@@ -198,20 +191,6 @@ export class MemorySelectionService {
       })
       .sort((a, b) => b.score - a.score || Date.parse(b.createdAt) - Date.parse(a.createdAt))
       .slice(0, MEMORY_EPISODIC_SELECTION_LIMIT)
-  }
-
-  private async loadLongTermFacts(userId: string): Promise<LongTermMemoryFact[]> {
-    if (this.userMemoryFactRepository === undefined) return []
-    try {
-      const facts = await this.userMemoryFactRepository.findByUserId(userId)
-      return facts.slice(0, MEMORY_LONG_TERM_FACT_LIMIT).map((fact) => ({
-        category: fact.category,
-        key: fact.key,
-        value: fact.value,
-      }))
-    } catch {
-      return []
-    }
   }
 
   private getTopSelectionReasons(

@@ -104,17 +104,6 @@ function MemoryLayers({
         ))}
       </Section>
       <EpisodicMemoriesView memory={memory} data={data} />
-      <Section
-        title="Long-term: user facts"
-        aside={<span className="small muted">{memory.longTerm.facts.length}</span>}
-      >
-        <TextList
-          items={memory.longTerm.facts.map(
-            (fact) => `${fact.category} · ${fact.key}: ${fact.value}`,
-          )}
-          empty="No facts yet."
-        />
-      </Section>
     </>
   )
 }

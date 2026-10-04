@@ -170,7 +170,6 @@ describe('SendMessageUseCase typed retrieval query reuse', () => {
           selectionReasons: ['working_memory', 'continuity'],
         },
         episodicMemories: [],
-        longTermFacts: [],
       }),
       toAvatarMemorySnapshot: vi.fn().mockReturnValue({
         shortTerm: {
@@ -198,7 +197,6 @@ describe('SendMessageUseCase typed retrieval query reuse', () => {
       null,
       userRepository,
       null,
-      undefined,
       undefined,
       undefined,
       undefined,

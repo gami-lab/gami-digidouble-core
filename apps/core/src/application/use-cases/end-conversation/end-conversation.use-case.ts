@@ -1,12 +1,9 @@
 import crypto from 'node:crypto'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
-import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
 import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
-import type { IUserFactExtractor } from '../../ports/IUserFactExtractor.js'
-import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { EndConversationInput, EndConversationResponse } from './end-conversation.types.js'
 import { toConversationSummary } from '../shared/entity-summaries.js'
@@ -20,9 +17,6 @@ export class EndConversationUseCase {
     private readonly eventLogRepository: IEventLogRepository,
     private readonly memoryMaintenance?: IMemoryMaintenancePort,
     private readonly sessionEventPublisher?: ISessionEventPublisher,
-    private readonly messageRepository?: IMessageRepository,
-    private readonly userFactExtractor?: IUserFactExtractor,
-    private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
     private readonly episodicMemoryService?: {
       generateForClosedConversation(input: {
         conversationId: string
@@ -80,7 +74,6 @@ export class EndConversationUseCase {
       avatarId: conversation.avatarId,
       scenarioId: session.scenarioId,
     })
-    void this.extractAndPersistUserFacts(session.userId, sessionId, conversationId)
 
     return {
       conversation: toConversationSummary(updatedConversation),
@@ -125,85 +118,6 @@ export class EndConversationUseCase {
       })
     } catch (error: unknown) {
       console.warn('[end-conversation] Runtime event emission failed:', error)
-    }
-  }
-
-  private async extractAndPersistUserFacts(
-    userId: string,
-    sessionId: string,
-    conversationId: string,
-  ): Promise<void> {
-    if (
-      this.messageRepository === undefined ||
-      this.userFactExtractor === undefined ||
-      this.userMemoryFactRepository === undefined
-    ) {
-      return
-    }
-
-    const requestId = crypto.randomUUID()
-    await this.appendEventSafe({
-      sessionId,
-      type: 'user_fact_extraction_triggered',
-      severity: 'info',
-      requestId,
-      payload: { userId, conversationId },
-    })
-
-    try {
-      const messages = await this.messageRepository.findByConversationId(conversationId, {
-        limit: 20,
-      })
-      const facts = await this.userFactExtractor.extract({
-        userId,
-        sessionId,
-        conversationId,
-        requestId,
-        messages: messages.map((message) => ({
-          role: message.role,
-          content: message.content,
-        })),
-      })
-
-      for (const fact of facts) {
-        await this.userMemoryFactRepository.upsert({
-          userId,
-          category: fact.category,
-          key: fact.key,
-          value: fact.value,
-          ...(fact.confidence !== undefined ? { confidence: fact.confidence } : {}),
-        })
-      }
-
-      await this.appendEventSafe({
-        sessionId,
-        type: 'user_fact_extraction_succeeded',
-        severity: 'info',
-        requestId,
-        payload: {
-          userId,
-          conversationId,
-          factCount: facts.length,
-          facts: facts.map((fact) => ({
-            category: fact.category,
-            key: fact.key,
-            value: fact.value,
-          })),
-          llmTraceId: requestId,
-        },
-      })
-    } catch (error) {
-      await this.appendEventSafe({
-        sessionId,
-        type: 'user_fact_extraction_failed',
-        severity: 'error',
-        requestId,
-        payload: {
-          userId,
-          conversationId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-      })
     }
   }
 

@@ -25,7 +25,6 @@ export type MemoryRun = {
 }
 
 export type ConsolidationStep = {
-  kind: 'facts' | 'episodic'
   status: 'ok' | 'failed'
   createdAt: string
   payload: MemoryConsolidationEventPayload
@@ -261,7 +260,6 @@ function applyMemoryEvent(runs: MemoryRun[], event: SessionEventRecord): void {
 
 function toConsolidationStep(event: SessionEventRecord): ConsolidationStep {
   return {
-    kind: event.type.startsWith('user_fact_extraction') ? 'facts' : 'episodic',
     status: event.type.endsWith('_succeeded') ? 'ok' : 'failed',
     createdAt: event.createdAt,
     payload: event.payload as MemoryConsolidationEventPayload,

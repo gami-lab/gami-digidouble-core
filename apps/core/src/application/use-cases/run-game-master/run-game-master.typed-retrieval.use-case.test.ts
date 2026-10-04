@@ -151,7 +151,6 @@ beforeEach(() => {
       selectionReasons: ['working_memory', 'continuity'],
     },
     episodicMemories: [],
-    longTermFacts: [],
   })
   memorySelectionService.toGameMasterMemoryContext.mockReturnValue({
     workingMemory: {

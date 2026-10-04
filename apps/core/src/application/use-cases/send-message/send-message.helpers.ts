@@ -26,7 +26,6 @@ export function hasSelectedMemoryContent(selected: SelectedMemoryPayload): boole
   return (
     selected.shortTermExchanges.length > 0 ||
     selected.workingMemory !== undefined ||
-    selected.episodicMemories.length > 0 ||
-    selected.longTermFacts.length > 0
+    selected.episodicMemories.length > 0
   )
 }

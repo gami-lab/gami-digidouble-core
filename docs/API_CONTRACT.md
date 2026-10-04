@@ -74,11 +74,9 @@ schemas belong to `packages/shared/src/` and route schemas; do not copy them her
 - `GET /v1/knowledge-sources/{sourceId}/ingestion-jobs`
 - `GET /v1/ingestion-jobs/{ingestionJobId}`
 
-### User persona and facts
+### User persona
 
 - `PUT|GET /v1/users/{userId}/persona`
-- `GET /v1/users/{userId}/memory-facts`
-- `DELETE /v1/users/{userId}/memory-facts/{factId}`
 
 ## Admin routes
 
@@ -194,7 +192,7 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
 - Retrieval visibility diagnostics report the visibility mode and considered candidates; they do not
   expose an excluded-row count because filtering is performed inside the SQL query.
 - Context projections separate `conversationState` (messages/working memory/episodic
-  memories/facts) from `retrievedContext` (static `avatar_knowledge`/`world`/`media` with
+  memories) from `retrievedContext` (static `avatar_knowledge`/`world`/`media` with
   provenance) — retrieved documents are never emitted as conversational memory.
 - Session-context inspection and `turn_completed` events share the same bounded retrieval-trace and
   kept/trimmed selection diagnostics; fields are optional because not every event carries every one.
@@ -202,8 +200,8 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   `correlationId` is the Avatar call's trace id, and GM and memory-refresh payloads carry
   `llmTraceId`. `turn_completed` records `inputMode`, plus `speechToTextLatencyMs` (voice turns,
   outside `totalTurnLatencyMs`) and `avatarFirstTokenLatencyMs` (streamed turns). Post-turn memory
-  refreshes that the cadence skips log no event. Conversation-close memory work (user-fact
-  extraction with the extracted facts, episodic generation) is listed too; events outside a turn use
+  refreshes that the cadence skips log no event. Conversation-close memory work (episodic
+  generation) is listed too; events outside a turn use
   their own request id as `correlationId`. Each reply audio synthesis is listed
   (`message_audio_synthesized`/`message_audio_failed`, keyed by `messageId`, with `latencyMs`).
 - Prefer additive changes, preserve field meaning, and update shared DTOs plus consumer tests together.

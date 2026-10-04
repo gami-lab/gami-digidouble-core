@@ -63,7 +63,6 @@ export function toRecordedAvatarContextSnapshot(
             : {}),
         },
         episodicMemories: snapshot.sections.conversationState.episodicMemories,
-        longTermFacts: snapshot.sections.conversationState.longTermFacts,
       },
       ...(retrievedContext !== undefined ? { retrievedContext } : {}),
       userPersona: snapshot.sections.userPersona,
@@ -95,7 +94,6 @@ export function toRecordedGmContextSnapshot(
           ? { workingMemory: snapshot.sections.conversationState.workingMemory }
           : {}),
         episodicMemories: snapshot.sections.conversationState.episodicMemories,
-        longTermFacts: snapshot.sections.conversationState.longTermFacts,
       },
       ...(retrievedContext !== undefined ? { retrievedContext } : {}),
       userPersona: snapshot.sections.userPersona,

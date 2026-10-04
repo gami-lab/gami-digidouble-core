@@ -30,7 +30,6 @@ const appendEventMock = vi.fn()
 const runGameMasterExecuteMock = vi.fn()
 const endConversationExecuteMock = vi.fn()
 const findUserByIdMock = vi.fn()
-const findUserFactsByUserIdMock = vi.fn()
 const memoryMaintenanceExecuteMock = vi.fn()
 const gmStateFindMock = vi.fn()
 const gmStateSaveMock = vi.fn()
@@ -80,12 +79,6 @@ const messageRepository = {
 const llm = { complete: completeMock, stream: streamMock }
 const eventLogRepository = { append: appendEventMock, findBySessionId: vi.fn() }
 const userRepository = { findById: findUserByIdMock, upsert: vi.fn() }
-const userMemoryFactRepository = {
-  findByUserId: findUserFactsByUserIdMock,
-  upsert: vi.fn(),
-  findById: vi.fn(),
-  deleteById: vi.fn(),
-}
 
 const SAMPLE_TRAITS: AvatarComputedTraits = {
   identity: ['Harbor archivist'],
@@ -141,7 +134,6 @@ function createUseCase(
   withRunGameMaster = false,
   withUserRepository = true,
   withImplicitEnd = false,
-  withUserMemoryFactRepository = false,
   withMemoryMaintenance = false,
   withGmStateRepository = false,
 ): SendMessageUseCase {
@@ -166,7 +158,6 @@ function createUseCase(
     withUserRepository ? userRepository : undefined,
     endConversationUseCase,
     undefined,
-    withUserMemoryFactRepository ? userMemoryFactRepository : undefined,
     memoryMaintenance,
     undefined,
     undefined,
@@ -233,7 +224,6 @@ beforeEach(() => {
   runGameMasterExecuteMock.mockReset()
   endConversationExecuteMock.mockReset()
   findUserByIdMock.mockReset()
-  findUserFactsByUserIdMock.mockReset()
   memoryMaintenanceExecuteMock.mockReset()
   gmStateFindMock.mockReset()
   gmStateSaveMock.mockReset()
@@ -279,7 +269,6 @@ beforeEach(() => {
     compaction: { scheduled: true },
   })
   findUserByIdMock.mockResolvedValue(null)
-  findUserFactsByUserIdMock.mockResolvedValue([])
   gmStateFindMock.mockResolvedValue({
     progression: '',
     interactionCount: 4,
@@ -400,7 +389,6 @@ describe('SendMessageUseCase — llm request payload', () => {
           selectionReasons: ['working_memory', 'continuity'],
         },
         episodicMemories: [],
-        longTermFacts: [{ category: 'preference', key: 'pace', value: 'quick overview' }],
       }),
       toAvatarMemorySnapshot: vi.fn().mockReturnValue({
         shortTerm: {
@@ -412,9 +400,6 @@ describe('SendMessageUseCase — llm request payload', () => {
             summary: 'The user wants concise harbor instructions.',
             updatedAt: '2026-07-20T10:00:00.000Z',
           },
-        },
-        longTerm: {
-          facts: [{ category: 'preference', key: 'pace', value: 'quick overview' }],
         },
       }),
     }
@@ -466,7 +451,6 @@ describe('SendMessageUseCase — llm request payload', () => {
       null,
       userRepository,
       null,
-      undefined,
       undefined,
       undefined,
       undefined,
@@ -549,7 +533,6 @@ describe('SendMessageUseCase — llm request payload', () => {
     expect(llmArg.systemPrompt).toContain('Recent exchanges:')
     expect(llmArg.systemPrompt).toContain('Working memory:')
     expect(llmArg.systemPrompt).toContain('- Session: The user wants concise harbor instructions.')
-    expect(llmArg.systemPrompt).toContain('- pace: quick overview')
     expect(llmArg.systemPrompt).toContain('You are talking with Maya.')
     expect(llmArg.systemPrompt).toContain('Their role in this world: captain')
     expect(llmArg.systemPrompt).toContain('The harbor closes at moonrise.')
@@ -689,7 +672,7 @@ describe('SendMessageUseCase — GM ownership', () => {
 
 describe('SendMessageUseCase — memory maintenance', () => {
   it('triggers async working-memory refresh after completed avatar turn', async () => {
-    const useCase = createUseCase(false, true, false, false, true)
+    const useCase = createUseCase(false, true, false, true)
 
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello memory' })
 
@@ -706,7 +689,7 @@ describe('SendMessageUseCase — memory maintenance', () => {
   })
 
   it('does not block turn success when memory maintenance fails', async () => {
-    const useCase = createUseCase(false, true, false, false, true)
+    const useCase = createUseCase(false, true, false, true)
     memoryMaintenanceExecuteMock.mockRejectedValueOnce(new Error('refresh failed'))
 
     await expectConsoleError(async () => {
@@ -745,7 +728,6 @@ describe('SendMessageUseCase — memory maintenance', () => {
       null,
       userRepository,
       null,
-      undefined,
       undefined,
       memoryMaintenance,
     )
@@ -792,7 +774,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       },
     })
 
-    const useCase = createUseCase(false, true, false, false, false, true)
+    const useCase = createUseCase(false, true, false, false, true)
     await useCase.execute({
       conversationId: 'conversation_1',
       userMessage: 'Où est Mona maintenant ?',
@@ -833,7 +815,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       },
     })
 
-    const useCase = createUseCase(false, true, false, false, false, true)
+    const useCase = createUseCase(false, true, false, false, true)
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Latest question' })
 
     const request = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
@@ -917,7 +899,6 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       null,
       userRepository,
       null,
-      undefined,
       undefined,
       undefined,
       undefined,
@@ -1008,7 +989,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       },
     })
 
-    const useCase = createUseCase(false, true, false, false, false, true)
+    const useCase = createUseCase(false, true, false, false, true)
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'A new harbor topic.' })
 
     const request = completeMock.mock.calls[0]?.[0] as { systemPrompt: string }
@@ -1087,7 +1068,6 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       typedRetrievalService as unknown as TypedRetrievalService,
     )
     findSessionByIdMock.mockResolvedValue(
@@ -1122,7 +1102,6 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     expect(eventArg.payload['contextSelection']).toEqual({
       shortTermExchangeCount: 0,
       hasWorkingMemory: false,
-      longTermFactCount: 0,
       retrieval: {
         selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0, media: 0 },
         includedCounts: { avatar_knowledge: 1, world: 0, media: 0 },
@@ -1187,7 +1166,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
   })
 
   it('increments the interaction count once in application code after a completed exchange', async () => {
-    const useCase = createUseCase(false, true, false, false, false, true)
+    const useCase = createUseCase(false, true, false, false, true)
 
     await useCase.execute({ conversationId: 'conversation_1', userMessage: 'Hello' })
 
@@ -1198,7 +1177,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
   })
 
   it('passes selected memory payload to run game master when available', async () => {
-    const useCase = createUseCase(true, true, false, true)
+    const useCase = createUseCase(true, true, false)
     findMessagesByConversationIdMock.mockResolvedValue([
       { role: 'user', content: 'Need help', createdAt: '2026-05-08T10:00:00.000Z' },
       { role: 'avatar', content: 'Sure', createdAt: '2026-05-08T10:00:01.000Z' },

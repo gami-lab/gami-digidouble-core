@@ -7,7 +7,6 @@ import type { IConversationWorkingMemoryRepository } from '../../application/por
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
-import type { IUserMemoryFactRepository } from '../../application/ports/IUserMemoryFactRepository.js'
 import { GetSessionMemoryLayersUseCase } from '../../application/use-cases/get-session-memory-layers/get-session-memory-layers.use-case.js'
 import type { Config } from '../../config.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
@@ -20,7 +19,6 @@ import {
 export type AdminMemoryRouteOptions = {
   config: Config
   sessionRepository: ISessionRepository
-  userMemoryFactRepository?: IUserMemoryFactRepository
   conversationRepository?: IConversationRepository
   messageRepository?: IMessageRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
@@ -31,7 +29,6 @@ export type AdminMemoryRouteOptions = {
 export const adminMemoryRoute: FastifyPluginCallback<AdminMemoryRouteOptions> = (app, options) => {
   const getSessionMemoryLayersUseCase = new GetSessionMemoryLayersUseCase(
     options.sessionRepository,
-    options.userMemoryFactRepository,
     options.conversationRepository,
     options.messageRepository,
     options.conversationWorkingMemoryRepository,

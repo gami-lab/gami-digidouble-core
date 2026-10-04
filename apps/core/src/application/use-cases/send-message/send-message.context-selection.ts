@@ -5,7 +5,6 @@ import type { ContextProjection } from '../../../domain/context/context-engine.p
 export type ContextSelectionMetadata = {
   shortTermExchangeCount: number
   hasWorkingMemory: boolean
-  longTermFactCount: number
   retrieval?: {
     selectedForAssemblyCounts: {
       avatar_knowledge: number
@@ -50,7 +49,6 @@ export function toContextSelectionMetadata(
   return {
     shortTermExchangeCount: selected.shortTermExchangeCount,
     hasWorkingMemory: selected.hasWorkingMemory,
-    longTermFactCount: selected.longTermFactCount,
     retrieval: {
       selectedForAssemblyCounts: selected.retrievalCounts,
       includedCounts,

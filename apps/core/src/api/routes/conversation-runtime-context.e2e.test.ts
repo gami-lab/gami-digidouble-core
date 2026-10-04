@@ -4,7 +4,7 @@ import type { ILlmAdapter, LlmRequest } from '../../application/ports/ILlmAdapte
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Conversation, Session } from '../../domain/conversation/session.types.js'
 import type { KnowledgeChunk, KnowledgeSource } from '../../domain/knowledge/knowledge.types.js'
-import type { ConversationWorkingMemory, UserFact } from '../../domain/memory/memory.types.js'
+import type { ConversationWorkingMemory } from '../../domain/memory/memory.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import type { User } from '../../domain/user/user.types.js'
 import { KnowledgeQueryEmbeddingService } from '../../application/services/knowledge/knowledge-query-embedding.service.js'
@@ -18,7 +18,6 @@ import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-me
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
-import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import {
   DETERMINISTIC_HASH_EMBEDDING_PROFILE,
@@ -151,20 +150,6 @@ function makeWorkingMemory(): ConversationWorkingMemory {
   }
 }
 
-function makeUserFacts(): UserFact[] {
-  return [
-    {
-      id: 'fact_1',
-      userId: 'user_1',
-      category: 'preference',
-      key: 'preferred_route',
-      value: 'north pier',
-      createdAt: '2026-07-20T09:00:00.000Z',
-      updatedAt: '2026-07-20T09:00:00.000Z',
-    },
-  ]
-}
-
 function makeKnowledgeSources(): KnowledgeSource[] {
   return [
     {
@@ -203,7 +188,6 @@ function makeApp(
   options: {
     messageRepository?: InMemoryMessageRepository
     conversationWorkingMemoryRepository?: InMemoryConversationWorkingMemoryRepository
-    userMemoryFactRepository?: InMemoryUserMemoryFactRepository
     knowledgeSourceRepository?: InMemoryKnowledgeSourceRepository
     knowledgeChunkRepository?: InMemoryKnowledgeChunkRepository
     typedRetrievalService?: TypedRetrievalService
@@ -221,9 +205,6 @@ function makeApp(
     ...(options.conversationWorkingMemoryRepository !== undefined
       ? { conversationWorkingMemoryRepository: options.conversationWorkingMemoryRepository }
       : {}),
-    ...(options.userMemoryFactRepository !== undefined
-      ? { userMemoryFactRepository: options.userMemoryFactRepository }
-      : {}),
     ...(options.knowledgeSourceRepository !== undefined
       ? { knowledgeSourceRepository: options.knowledgeSourceRepository }
       : {}),
@@ -236,7 +217,6 @@ function makeApp(
   })
 }
 
-// eslint-disable-next-line max-lines-per-function
 describe('POST /v1/conversations/:conversationId/messages runtime context wiring', () => {
   it('uses all seven runtime sections on the HTTP path in the expected priority order', async () => {
     const llm = new CapturingLlmAdapter()
@@ -274,7 +254,6 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
         conversationWorkingMemoryRepository: new InMemoryConversationWorkingMemoryRepository([
           makeWorkingMemory(),
         ]),
-        userMemoryFactRepository: new InMemoryUserMemoryFactRepository(makeUserFacts()),
         knowledgeSourceRepository,
         knowledgeChunkRepository,
         typedRetrievalService,
@@ -309,8 +288,6 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     expect(systemPrompt).toContain(
       '- Session: Track the north pier ledger and unresolved moonrise timing.',
     )
-    expect(systemPrompt).toContain('Remembered user facts:')
-    expect(systemPrompt).toContain('- preferred_route: north pier')
     expect(systemPrompt).toContain('You are talking with Maya.')
     expect(systemPrompt).toContain('Their role in this world: captain')
     expect(systemPrompt).toContain('The harbor closes at moonrise.')

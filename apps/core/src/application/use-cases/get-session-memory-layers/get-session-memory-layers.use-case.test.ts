@@ -61,7 +61,6 @@ describe('GetSessionMemoryLayersUseCase', () => {
 
     const output = await new GetSessionMemoryLayersUseCase(
       sessionRepository,
-      undefined,
       conversationRepository,
       messageRepository,
     ).execute({ sessionId: 'session_1' })

@@ -33,7 +33,6 @@ export function toGameMasterMemoryContext(
           })),
         }
       : {}),
-    ...(payload.longTermFacts.length > 0 ? { longTermFacts: payload.longTermFacts } : {}),
   }
   return Object.keys(memory).length > 0 ? memory : undefined
 }

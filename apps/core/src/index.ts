@@ -47,7 +47,6 @@ import {
   PostgresMessageRepository,
   PostgresSessionMemoryRepository,
   PostgresAvatarSessionMemoryRepository,
-  PostgresUserMemoryFactRepository,
   PostgresUserRepository,
   PostgresConversationWorkingMemoryRepository,
   PostgresConversationMemoryRepository,
@@ -183,7 +182,6 @@ function buildCoreRepositories(sql: ReturnType<typeof getDbClient>) {
     messageRepository: new PostgresMessageRepository(sql),
     sessionMemoryRepository: new PostgresSessionMemoryRepository(sql),
     avatarSessionMemoryRepository: new PostgresAvatarSessionMemoryRepository(sql),
-    userMemoryFactRepository: new PostgresUserMemoryFactRepository(sql),
     userRepository: new PostgresUserRepository(sql),
     conversationWorkingMemoryRepository: new PostgresConversationWorkingMemoryRepository(sql),
     conversationMemoryRepository: new PostgresConversationMemoryRepository(sql),
@@ -196,7 +194,6 @@ function buildMemorySelectionService(repositories: CoreRepositories): MemorySele
     repositories.messageRepository,
     repositories.conversationWorkingMemoryRepository,
     repositories.conversationMemoryRepository,
-    repositories.userMemoryFactRepository,
   )
 }
 

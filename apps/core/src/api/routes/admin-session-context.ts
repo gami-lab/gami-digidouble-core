@@ -8,7 +8,6 @@ import type { IMessageRepository } from '../../application/ports/IMessageReposit
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
-import type { IUserMemoryFactRepository } from '../../application/ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
 import { GetSessionContextUseCase } from '../../application/use-cases/get-session-context/get-session-context.use-case.js'
 import type { Config } from '../../config.js'
@@ -30,7 +29,6 @@ export type AdminSessionContextRouteOptions = {
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   userRepository: IUserRepository
   gmStateRepository: IGmStateRepository
-  userMemoryFactRepository: IUserMemoryFactRepository
 }
 
 export const adminSessionContextRoute: FastifyPluginCallback<AdminSessionContextRouteOptions> = (
@@ -46,7 +44,6 @@ export const adminSessionContextRoute: FastifyPluginCallback<AdminSessionContext
     options.conversationWorkingMemoryRepository,
     options.userRepository,
     options.gmStateRepository,
-    options.userMemoryFactRepository,
   )
 
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))

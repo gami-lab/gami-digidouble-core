@@ -11,7 +11,6 @@ import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
 import { InMemorySessionMemoryRepository } from '../../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
-import { InMemoryUserMemoryFactRepository } from '../../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { ResetSessionUseCase } from './reset-session.use-case.js'
@@ -435,53 +434,5 @@ describe('ResetSessionUseCase memory isolation', () => {
       conversationWorkingMemoryRepository,
       conversationMemoryRepository,
     )
-  })
-
-  it('does not delete cross-session user memory facts', async () => {
-    const userMemoryFactRepository = new InMemoryUserMemoryFactRepository([
-      {
-        id: 'umf_1',
-        userId: 'user_1',
-        category: 'preference',
-        key: 'language',
-        value: 'English',
-        confidence: 0.8,
-        createdAt: '2026-04-21T08:00:00.000Z',
-        updatedAt: '2026-04-21T08:00:00.000Z',
-      },
-    ])
-    const useCase = makeUseCase({
-      sessions: [makeSession({ sessionId: 'session_1', userId: 'user_1' })],
-    })
-
-    await useCase.execute({ sessionId: 'session_1' })
-
-    const facts = await userMemoryFactRepository.findByUserId('user_1')
-    expect(facts).toHaveLength(1)
-    expect(facts[0]?.id).toBe('umf_1')
-  })
-})
-
-describe('ResetSessionUseCase long-term memory preservation', () => {
-  it('does not delete long-term user memory facts during reset', async () => {
-    const userMemoryFactRepository = new InMemoryUserMemoryFactRepository([
-      {
-        id: 'umf_1',
-        userId: 'user_1',
-        category: 'preference',
-        key: 'language',
-        value: 'English',
-        confidence: 0.9,
-        createdAt: '2026-04-21T08:00:00.000Z',
-        updatedAt: '2026-04-21T08:00:00.000Z',
-      },
-    ])
-    const useCase = makeUseCase({
-      sessions: [makeSession({ sessionId: 'session_1' })],
-    })
-
-    await useCase.execute({ sessionId: 'session_1' })
-
-    await expect(userMemoryFactRepository.findByUserId('user_1')).resolves.toHaveLength(1)
   })
 })

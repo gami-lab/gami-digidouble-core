@@ -2,14 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { EndConversationUseCase } from './end-conversation.use-case.js'
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
-import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
-import { InMemoryUserMemoryFactRepository } from '../../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
-import type { IMessageRepository } from '../../ports/IMessageRepository.js'
-import type { IUserFactExtractor } from '../../ports/IUserFactExtractor.js'
-import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import { expectConsoleError } from '../../../test-utils/console.js'
 
 function makeRepositories() {
@@ -34,30 +29,11 @@ function makeRepositories() {
     },
   ])
   const eventLogRepository = new InMemoryEventLogRepository()
-  const messageRepository = new InMemoryMessageRepository([
-    {
-      messageId: 'message_1',
-      conversationId: 'conversation_1',
-      role: 'user',
-      content: 'I prefer English and I am a product manager.',
-      createdAt: '2026-05-01T10:00:20.000Z',
-    },
-    {
-      messageId: 'message_2',
-      conversationId: 'conversation_1',
-      role: 'avatar',
-      content: 'Noted, I can keep responses concise.',
-      createdAt: '2026-05-01T10:00:30.000Z',
-    },
-  ])
-  return { sessionRepository, conversationRepository, eventLogRepository, messageRepository }
+  return { sessionRepository, conversationRepository, eventLogRepository }
 }
 
 function createUseCase(options?: {
   memoryMaintenance?: IMemoryMaintenancePort
-  messageRepository?: IMessageRepository
-  userFactExtractor?: IUserFactExtractor
-  userMemoryFactRepository?: IUserMemoryFactRepository
   episodicMemoryService?: {
     generateForClosedConversation(input: {
       conversationId: string
@@ -68,23 +44,18 @@ function createUseCase(options?: {
     }): Promise<unknown>
   }
 }) {
-  const { sessionRepository, conversationRepository, eventLogRepository, messageRepository } =
-    makeRepositories()
+  const { sessionRepository, conversationRepository, eventLogRepository } = makeRepositories()
 
   return {
     sessionRepository,
     conversationRepository,
     eventLogRepository,
-    messageRepository,
     useCase: new EndConversationUseCase(
       sessionRepository,
       conversationRepository,
       eventLogRepository,
       options?.memoryMaintenance,
       undefined,
-      options?.messageRepository ?? messageRepository,
-      options?.userFactExtractor,
-      options?.userMemoryFactRepository,
       options?.episodicMemoryService,
     ),
   }
@@ -258,97 +229,6 @@ describe('EndConversationUseCase episodic generation', () => {
         scenarioId: 'scenario_1',
       })
     })
-  })
-})
-
-describe('EndConversationUseCase user fact extraction wiring', () => {
-  it('skips extraction when userFactExtractor is not injected', async () => {
-    const userMemoryFactRepository = new InMemoryUserMemoryFactRepository()
-    const { useCase } = createUseCase({ userMemoryFactRepository })
-
-    await expect(
-      useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),
-    ).resolves.toBeDefined()
-    await expect(userMemoryFactRepository.findByUserId('user_1')).resolves.toEqual([])
-  })
-
-  it('skips extraction when userMemoryFactRepository is not injected', async () => {
-    const extractor: IUserFactExtractor = {
-      extract: vi
-        .fn()
-        .mockResolvedValue([
-          { category: 'preference', key: 'language', value: 'english', confidence: 0.8 },
-        ]),
-    }
-    const { useCase } = createUseCase({ userFactExtractor: extractor })
-
-    await expect(
-      useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),
-    ).resolves.toBeDefined()
-  })
-
-  it('upserts extracted facts when both dependencies are injected', async () => {
-    const extractor: IUserFactExtractor = {
-      extract: vi.fn().mockResolvedValue([
-        { category: 'preference', key: 'language', value: 'english', confidence: 0.9 },
-        { category: 'identity', key: 'role', value: 'product manager', confidence: 0.8 },
-      ]),
-    }
-    const userMemoryFactRepository = new InMemoryUserMemoryFactRepository()
-    const upsertSpy = vi.spyOn(userMemoryFactRepository, 'upsert')
-    const { eventLogRepository, useCase } = createUseCase({
-      userFactExtractor: extractor,
-      userMemoryFactRepository,
-    })
-
-    await useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' })
-    await vi.waitFor(() => {
-      expect(upsertSpy).toHaveBeenCalledTimes(2)
-    })
-    await expectEventTypes(eventLogRepository, [
-      'user_fact_extraction_triggered',
-      'user_fact_extraction_succeeded',
-    ])
-  })
-})
-
-describe('EndConversationUseCase user fact extraction failure handling', () => {
-  it('does not throw when extractor fails', async () => {
-    const extractor: IUserFactExtractor = {
-      extract: vi.fn().mockRejectedValue(new Error('llm failed')),
-    }
-    const { eventLogRepository, useCase } = createUseCase({
-      userFactExtractor: extractor,
-      userMemoryFactRepository: new InMemoryUserMemoryFactRepository(),
-    })
-
-    await expect(
-      useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),
-    ).resolves.toBeDefined()
-    await expectEventTypes(eventLogRepository, ['user_fact_extraction_failed'])
-  })
-
-  it('does not throw when upsert fails', async () => {
-    const extractor: IUserFactExtractor = {
-      extract: vi
-        .fn()
-        .mockResolvedValue([{ category: 'preference', key: 'language', value: 'english' }]),
-    }
-    const failingRepository: IUserMemoryFactRepository = {
-      findByUserId: vi.fn(),
-      findById: vi.fn(),
-      deleteById: vi.fn(),
-      upsert: vi.fn().mockRejectedValue(new Error('db write failed')),
-    }
-    const { eventLogRepository, useCase } = createUseCase({
-      userFactExtractor: extractor,
-      userMemoryFactRepository: failingRepository,
-    })
-
-    await expect(
-      useCase.execute({ sessionId: 'session_1', conversationId: 'conversation_1' }),
-    ).resolves.toBeDefined()
-    await expectEventTypes(eventLogRepository, ['user_fact_extraction_failed'])
   })
 })
 

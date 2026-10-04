@@ -12,7 +12,6 @@ const listAvatarsByScenarioIdMock = vi.fn()
 const findMessagesByConversationIdMock = vi.fn()
 const findConversationWorkingMemoryByConversationIdMock = vi.fn()
 const listConversationMemoriesByScopeMock = vi.fn()
-const findFactsByUserIdMock = vi.fn()
 const completeMock = vi.fn()
 const traceMock = vi.fn()
 
@@ -51,12 +50,6 @@ const conversationMemoryRepository = {
   create: vi.fn(),
   listByScope: listConversationMemoriesByScopeMock,
   deleteBySessionId: vi.fn(),
-}
-const userMemoryFactRepository = {
-  findByUserId: findFactsByUserIdMock,
-  upsert: vi.fn(),
-  deleteById: vi.fn(),
-  findById: vi.fn(),
 }
 const llm = { complete: completeMock }
 const observability = { trace: traceMock, flush: vi.fn() }
@@ -111,7 +104,6 @@ function createUseCase(): RunGameMasterUseCase {
     messageRepository,
     conversationWorkingMemoryRepository,
     conversationMemoryRepository,
-    userMemoryFactRepository,
   )
   return new RunGameMasterUseCase(
     gmStateRepository,
@@ -132,7 +124,6 @@ beforeEach(() => {
   findMessagesByConversationIdMock.mockReset()
   findConversationWorkingMemoryByConversationIdMock.mockReset()
   listConversationMemoriesByScopeMock.mockReset()
-  findFactsByUserIdMock.mockReset()
   completeMock.mockReset()
   traceMock.mockReset()
 
@@ -202,18 +193,6 @@ describe('RunGameMasterUseCase memory input', () => {
       updatedAt: '2026-04-18T10:00:00.500Z', // after U0/A0 → U1–A3 are uncovered (3 exchanges)
     })
     listConversationMemoriesByScopeMock.mockResolvedValue([])
-    findFactsByUserIdMock.mockResolvedValue([
-      {
-        id: 'fact_1',
-        userId: 'user_1',
-        category: 'preference',
-        key: 'tone',
-        value: 'concise',
-        confidence: null,
-        createdAt: '2026-04-18T10:00:00.000Z',
-        updatedAt: '2026-04-18T10:00:00.000Z',
-      },
-    ])
 
     await useCase.execute({
       sessionId: 'session_1',
@@ -242,8 +221,6 @@ describe('RunGameMasterUseCase memory input', () => {
     expect(prompt).toContain('- Unresolved Threads: Follow up on budget')
     expect(prompt).toContain('- Covered Topics: initial_budget_review')
     expect(prompt).not.toContain('### Episodic Memories')
-    expect(prompt).toContain('### Long-Term Facts')
-    expect(prompt).toContain('- preference / tone: concise')
   })
 
   it('injects bounded episodic memories with selection reasons when episodic candidates are present', async () => {
@@ -251,7 +228,6 @@ describe('RunGameMasterUseCase memory input', () => {
     findMessagesByConversationIdMock.mockResolvedValue([])
     findConversationWorkingMemoryByConversationIdMock.mockResolvedValue(null)
     listConversationMemoriesByScopeMock.mockResolvedValue([makeEpisodicMemory()])
-    findFactsByUserIdMock.mockResolvedValue([])
     await useCase.execute({
       sessionId: 'session_1',
       scenarioId: 'scenario_1',
@@ -287,7 +263,6 @@ describe('RunGameMasterUseCase output normalization', () => {
     findMessagesByConversationIdMock.mockResolvedValue([])
     findConversationWorkingMemoryByConversationIdMock.mockResolvedValue(null)
     listConversationMemoriesByScopeMock.mockResolvedValue([])
-    findFactsByUserIdMock.mockResolvedValue([])
     listAvatarsByScenarioIdMock.mockResolvedValue([
       {
         avatarId: 'avatar_1',
@@ -346,7 +321,6 @@ describe('RunGameMasterUseCase trace context', () => {
     findMessagesByConversationIdMock.mockResolvedValue([])
     findConversationWorkingMemoryByConversationIdMock.mockResolvedValue(null)
     listConversationMemoriesByScopeMock.mockResolvedValue([])
-    findFactsByUserIdMock.mockResolvedValue([])
 
     await useCase.execute({
       sessionId: 'session_1',
@@ -394,7 +368,6 @@ describe('RunGameMasterUseCase recent message loading', () => {
     ])
     findConversationWorkingMemoryByConversationIdMock.mockResolvedValue(null)
     listConversationMemoriesByScopeMock.mockResolvedValue([])
-    findFactsByUserIdMock.mockResolvedValue([])
 
     await useCase.execute({
       sessionId: 'session_1',

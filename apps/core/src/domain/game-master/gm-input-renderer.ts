@@ -154,7 +154,6 @@ function renderConversationState(
     ...renderShortTermExchanges(conversationState.recentExchanges),
     ...renderWorkingMemory(conversationState.workingMemory),
     ...renderEpisodicMemories(conversationState.episodicMemories),
-    ...renderLongTermFacts(conversationState.longTermFacts),
   ]
 }
 
@@ -202,22 +201,6 @@ function renderEpisodicMemories(
       `   Unresolved Topics: ${formatInlineList(memory.unresolvedTopics)}`,
       `   Selection Reasons: ${formatInlineList(memory.selectionReasons)}`,
     ]),
-  ]
-}
-
-function renderLongTermFacts(
-  longTermFacts: GameMasterInput['context']['conversationState']['longTermFacts'],
-): string[] {
-  if (longTermFacts.length === 0) {
-    return []
-  }
-
-  return [
-    '### Long-Term Facts',
-    ...longTermFacts.map(
-      (fact) =>
-        `- ${normalizeInlineText(fact.category)} / ${normalizeInlineText(fact.key)}: ${normalizeInlineText(fact.value)}`,
-    ),
   ]
 }
 

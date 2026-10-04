@@ -74,9 +74,6 @@ function toAvatarContext(
             selectionReasons: [...memory.selectionReasons],
           }),
         ),
-        longTermFacts: snapshot.avatarContext.sections.conversationState.longTermFacts.map(
-          (fact) => ({ ...fact }),
-        ),
       },
       userPersona: snapshot.avatarContext.sections.userPersona,
       worldContext: snapshot.avatarContext.sections.worldContext,
@@ -130,9 +127,6 @@ function toGmContext(snapshot: SessionContextSnapshot): AdminSessionContextRespo
             selectionReasons: [...memory.selectionReasons],
           }),
         ),
-        longTermFacts: snapshot.gmContext.sections.conversationState.longTermFacts.map((fact) => ({
-          ...fact,
-        })),
       },
       ...(snapshot.gmContext.sections.retrievedContext !== undefined
         ? {

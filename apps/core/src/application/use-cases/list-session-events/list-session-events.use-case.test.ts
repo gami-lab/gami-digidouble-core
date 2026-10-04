@@ -39,13 +39,6 @@ function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
             recentMessages: [{ role: 'user', content: 'Who left last night?' }],
             recentExchanges: [{ user: 'u', avatar: 'a' }],
             episodicMemories: [],
-            longTermFacts: [
-              {
-                category: 'context',
-                key: 'k',
-                value: 'v',
-              },
-            ],
           },
           retrievedContext: {
             avatar_knowledge: [],
@@ -216,7 +209,6 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
               recentMessages: [{ role: 'user', content: 'Who left last night?' }],
               recentExchanges: [{ user: 'u', avatar: 'a' }],
               episodicMemories: [],
-              longTermFacts: [{ category: 'context', key: 'k', value: 'v' }],
             },
             retrievedContext: {
               avatar_knowledge: [],
@@ -318,13 +310,6 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
                     },
                   },
                   episodicMemories: [],
-                  longTermFacts: [
-                    {
-                      category: 'goal',
-                      key: 'focus',
-                      value: 'truth',
-                    },
-                  ],
                 },
                 retrievedContext: {
                   avatar_knowledge: [],
@@ -356,7 +341,6 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
             contextSelection: {
               shortTermExchangeCount: 1,
               hasWorkingMemory: true,
-              longTermFactCount: 1,
               retrieval: {
                 selectedForAssemblyCounts: {
                   avatar_knowledge: 3,
@@ -415,13 +399,6 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
                     updatedAt: '2026-04-28T10:05:00.000Z',
                   },
                 },
-                longTermFacts: [
-                  {
-                    category: 'goal',
-                    key: 'focus',
-                    value: 'truth',
-                  },
-                ],
                 episodicMemories: [],
               },
               retrievedContext: {
@@ -454,7 +431,6 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
           contextSelection: {
             shortTermExchangeCount: 1,
             hasWorkingMemory: true,
-            longTermFactCount: 1,
             retrieval: {
               selectedForAssemblyCounts: {
                 avatar_knowledge: 3,
@@ -496,7 +472,6 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
             avatarContext: {
               recentExchanges: [],
               workingMemory: {},
-              longTermFacts: [],
               knowledge: {
                 avatar_knowledge: [],
                 world: [
@@ -575,7 +550,6 @@ describe('ListSessionEventsUseCase — turn completed mapping', () => {
             contextSelection: {
               shortTermExchangeCount: 0,
               hasWorkingMemory: false,
-              longTermFactCount: 0,
               contextEngineSelection: { keptSegmentCount: 3, trimmedSegmentCount: 1 },
               retrieval: {
                 selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0, media: 0 },
@@ -686,18 +660,15 @@ function withoutCorrelation(overrides: Partial<StoredEvent>): StoredEvent {
 }
 
 describe('ListSessionEventsUseCase — memory consolidation mapping', () => {
-  it('lists close-time memory work under its request id with bounded facts', async () => {
+  it('lists close-time memory work under its request id with bounded payloads', async () => {
     const { useCase } = createUseCase({
       events: [
         withoutCorrelation({
-          type: 'user_fact_extraction_succeeded',
+          type: 'episodic_memory_generation_succeeded',
           requestId: 'req_close_1',
           payload: {
-            userId: 'user_1',
             conversationId: 'conversation_1',
-            factCount: 1,
-            facts: [{ category: 'preference', key: 'drink', value: 'tea', confidence: 0.9 }],
-            llmTraceId: 'req_close_1',
+            avatarId: 'avatar_1',
             transcript: 'secret transcript',
           },
         }),
@@ -713,14 +684,10 @@ describe('ListSessionEventsUseCase — memory consolidation mapping', () => {
 
     expect(output.events).toEqual([
       {
-        type: 'user_fact_extraction_succeeded',
+        type: 'episodic_memory_generation_succeeded',
         correlationId: 'req_close_1',
         createdAt: '2026-04-28T10:05:00.000Z',
-        payload: {
-          conversationId: 'conversation_1',
-          facts: [{ category: 'preference', key: 'drink', value: 'tea' }],
-          llmTraceId: 'req_close_1',
-        },
+        payload: { conversationId: 'conversation_1', avatarId: 'avatar_1' },
       },
       {
         type: 'episodic_memory_generation_failed',

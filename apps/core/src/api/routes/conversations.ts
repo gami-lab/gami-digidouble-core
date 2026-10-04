@@ -14,7 +14,6 @@ import type { IUtteranceIdempotencyStore } from '../../application/ports/IUttera
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
-import type { IUserMemoryFactRepository } from '../../application/ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
@@ -44,7 +43,6 @@ import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-ses
 import { InMemoryKnowledgeChunkRepository } from '../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { EpisodicMemoryService } from '../../application/services/episodic-memory.service.js'
-import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-state.repository.js'
 import { buildLlmConfig, createLlmAdapter } from '../../infrastructure/llm/index.js'
@@ -73,7 +71,6 @@ type ConversationsRouteOptions = {
   messageRepository?: IMessageRepository
   runGameMasterUseCase?: RunGameMasterUseCase
   userRepository?: IUserRepository
-  userMemoryFactRepository?: IUserMemoryFactRepository
   sessionMemoryRepository?: ISessionMemoryRepository
   avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
@@ -293,7 +290,6 @@ type ConversationPersistenceDeps = {
   eventLogRepository: IEventLogRepository
   messageRepository: IMessageRepository
   userRepository: IUserRepository
-  userMemoryFactRepository: IUserMemoryFactRepository
   sessionMemoryRepository: ISessionMemoryRepository
   avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
@@ -346,13 +342,9 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
       repositories.eventLogRepository,
       memoryMaintenance,
       undefined,
-      repositories.messageRepository,
-      undefined,
-      repositories.userMemoryFactRepository,
       episodicMemoryService,
     ),
     undefined,
-    repositories.userMemoryFactRepository,
     memoryMaintenance,
     repositories.conversationWorkingMemoryRepository,
     repositories.conversationMemoryRepository,
@@ -412,8 +404,6 @@ function resolvePersistenceDeps(options: ConversationsRouteOptions): Conversatio
     eventLogRepository: options.eventLogRepository ?? new InMemoryEventLogRepository(),
     messageRepository: options.messageRepository ?? new InMemoryMessageRepository(),
     userRepository: options.userRepository ?? new InMemoryUserRepository(),
-    userMemoryFactRepository:
-      options.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
     ...resolveKnowledgeDeps(options),
     ...resolveWorkingMemoryRepositories(options),
     gmStateRepository: options.gmStateRepository ?? new InMemoryGmStateRepository(),

@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 import type { RetrievalTrace, RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import { selectBalancedRetrievedItems } from '../knowledge/retrieval-selection.js'
-import type { LongTermMemoryFact } from '../memory/memory.types.js'
 import type { ContextEngineInput, ContextEngineOutput } from './context-engine.types.js'
 import type {
   ContextProjection,
@@ -15,8 +14,6 @@ import { AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS } from '@gami/shared'
 const EMPTY_EXCHANGES: ContextEngineOutput['avatar']['sections']['conversationState']['recentExchanges'] =
   []
 const EMPTY_EPISODIC_MEMORIES: ContextEngineOutput['avatar']['sections']['conversationState']['episodicMemories'] =
-  []
-const EMPTY_FACTS: ContextEngineOutput['avatar']['sections']['conversationState']['longTermFacts'] =
   []
 const EMPTY_MESSAGES: ContextEngineOutput['gm']['sections']['conversationState']['recentMessages'] =
   []
@@ -54,7 +51,6 @@ export class ContextEngine {
 
 function normalizeInput(input: ContextEngineInput) {
   return {
-    longTermFacts: dedupeLongTermFacts(input.extensions.memory?.longTerm?.facts ?? EMPTY_FACTS),
     avatarRetrieval: dedupeRetrieval(input.extensions.retrieval),
     gmRetrieval: dedupeRetrieval(input.extensions.retrievalForGm),
     responseRules: normalizeResponseRules(input.extensions.responseRules),
@@ -72,7 +68,6 @@ function buildBaseOutput(input: ContextEngineInput): MutableOutput {
           recentExchanges: EMPTY_EXCHANGES,
           workingMemory: {},
           episodicMemories: EMPTY_EPISODIC_MEMORIES,
-          longTermFacts: EMPTY_FACTS,
         },
         userPersona: null,
         worldContext: input.scenario,
@@ -86,7 +81,6 @@ function buildBaseOutput(input: ContextEngineInput): MutableOutput {
           recentMessages: EMPTY_MESSAGES,
           recentExchanges: EMPTY_EXCHANGES,
           episodicMemories: EMPTY_EPISODIC_MEMORIES,
-          longTermFacts: EMPTY_FACTS,
         },
         userPersona: null,
         worldContext: input.scenario,
@@ -106,7 +100,6 @@ function buildCandidates(
   pushResponseRulesCandidate(candidates, normalized.responseRules)
   pushWorkingMemoryCandidates(candidates, memory)
   pushEpisodicMemoryCandidates(candidates, memory?.episodicMemories ?? EMPTY_EPISODIC_MEMORIES)
-  pushLongTermFactCandidates(candidates, normalized.longTermFacts)
   pushShortTermCandidates(candidates, memory?.shortTerm?.recentExchanges ?? EMPTY_EXCHANGES)
   pushRecentMessageCandidate(candidates, input.recentMessages)
   pushUserPersonaCandidate(candidates, input)
@@ -224,34 +217,6 @@ function pushEpisodicMemoryCandidates(
     tokenEstimate,
     apply: (draft) => {
       draft.gm.sections.conversationState.episodicMemories = episodicMemories
-    },
-  })
-}
-
-function pushLongTermFactCandidates(
-  candidates: CandidateSegment[],
-  facts: LongTermMemoryFact[],
-): void {
-  if (facts.length === 0) return
-  const tokenEstimate = estimateTokens(
-    facts.map((fact) => `${fact.category} ${fact.key} ${fact.value}`).join(' '),
-  )
-  candidates.push({
-    projection: 'avatar',
-    sectionId: 'conversationState',
-    segmentId: 'conversationStateLongTermFacts',
-    tokenEstimate,
-    apply: (draft) => {
-      draft.avatar.sections.conversationState.longTermFacts = facts
-    },
-  })
-  candidates.push({
-    projection: 'gm',
-    sectionId: 'conversationState',
-    segmentId: 'conversationStateLongTermFacts',
-    tokenEstimate,
-    apply: (draft) => {
-      draft.gm.sections.conversationState.longTermFacts = facts
     },
   })
 }
@@ -626,7 +591,6 @@ function buildTraceSelectedInputs(
     shortTermExchangeCount: input.extensions.memory?.shortTerm?.recentExchanges.length ?? 0,
     episodicMemoryCount: input.extensions.memory?.episodicMemories?.length ?? 0,
     hasWorkingMemory: input.extensions.memory?.working !== undefined,
-    longTermFactCount: input.extensions.memory?.longTerm?.facts.length ?? 0,
     retrievalCounts: buildTraceRetrievalCounts(input),
     ...(input.extensions.retrieval?.trace !== undefined
       ? { retrieval: input.extensions.retrieval.trace }
@@ -694,15 +658,6 @@ function firstDefinedAvatarId(
   visibilities: Array<{ activeAvatarId?: string } | undefined>,
 ): string | undefined {
   return visibilities.map((visibility) => visibility?.activeAvatarId).find(hasText)
-}
-
-function dedupeLongTermFacts(facts: LongTermMemoryFact[]): LongTermMemoryFact[] {
-  const byKey = new Map<string, LongTermMemoryFact>()
-  for (const fact of facts) {
-    const key = `${fact.category.trim().toLowerCase()}::${fact.key.trim().toLowerCase()}`
-    if (!byKey.has(key)) byKey.set(key, fact)
-  }
-  return [...byKey.values()]
 }
 
 function dedupeRetrieval(retrieval: ContextEngineInput['extensions']['retrieval']) {

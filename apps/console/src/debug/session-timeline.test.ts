@@ -104,10 +104,10 @@ describe('buildSessionTimeline', () => {
           'conversation_closed',
         ),
         {
-          type: 'user_fact_extraction_succeeded',
+          type: 'episodic_memory_generation_succeeded',
           correlationId: 'req_b',
           createdAt: '2026-01-01T00:01:03.000Z',
-          payload: { conversationId: 'conv_1', facts: [{ category: 'c', key: 'k', value: 'v' }] },
+          payload: { conversationId: 'conv_1' },
         },
         {
           type: 'episodic_memory_generation_failed',
@@ -123,9 +123,9 @@ describe('buildSessionTimeline', () => {
     const [entry] = timeline
     expect(entry?.kind).toBe('background')
     expect(entry?.memory.map((run) => run.status)).toEqual(['ok'])
-    expect(entry?.kind === 'background' && entry.consolidation.map((step) => step.kind)).toEqual([
-      'facts',
-      'episodic',
+    expect(entry?.kind === 'background' && entry.consolidation.map((step) => step.status)).toEqual([
+      'ok',
+      'failed',
     ])
   })
 })

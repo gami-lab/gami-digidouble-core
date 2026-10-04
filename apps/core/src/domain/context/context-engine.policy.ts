@@ -11,7 +11,6 @@ export type ContextSegmentId =
   | 'directorNotes'
   | 'responseRules'
   | 'conversationStateWorkingMemory'
-  | 'conversationStateLongTermFacts'
   | 'conversationStateEpisodicMemories'
   | 'conversationStateRecentExchanges'
   | 'conversationStateRecentMessages'
@@ -55,7 +54,6 @@ export const DEFAULT_CONTEXT_ENGINE_POLICY: ContextEnginePolicy = {
     'directorNotes',
     'responseRules',
     'conversationStateWorkingMemory',
-    'conversationStateLongTermFacts',
     'conversationStateEpisodicMemories',
     'conversationStateRecentExchanges',
     'conversationStateRecentMessages',
@@ -72,7 +70,6 @@ const CONTEXT_SECTION_BY_SEGMENT: Record<ContextSegmentId, ContextSectionId> = {
   directorNotes: 'directorNotes',
   responseRules: 'responseRules',
   conversationStateWorkingMemory: 'conversationState',
-  conversationStateLongTermFacts: 'conversationState',
   conversationStateEpisodicMemories: 'conversationState',
   conversationStateRecentExchanges: 'conversationState',
   conversationStateRecentMessages: 'conversationState',

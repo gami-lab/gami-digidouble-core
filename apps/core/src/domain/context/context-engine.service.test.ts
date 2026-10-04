@@ -2,7 +2,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AvatarComputedTraits } from '../avatar/avatar.types.js'
 import type { TypedRetrievalResult } from '../knowledge/knowledge.types.js'
-import type { LayeredMemorySnapshot } from '../memory/memory.types.js'
 import type { ContextEnginePolicy } from './context-engine.policy.js'
 import { ContextEngine } from './context-engine.service.js'
 import type { ContextEngineInput } from './context-engine.types.js'
@@ -62,7 +61,6 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
             selectionReasons: ['continuity'],
           },
         ],
-        longTerm: { facts: [{ category: 'preference', key: 'style', value: 'concise' }] },
       },
       retrieval: {
         avatar_knowledge: [
@@ -119,11 +117,6 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
     },
     ...overrides,
   }
-}
-
-function requireMemory(input: ContextEngineInput): LayeredMemorySnapshot {
-  if (input.extensions.memory === undefined) throw new Error('Expected memory fixture')
-  return input.extensions.memory
 }
 
 function requireRetrieval(input: ContextEngineInput): TypedRetrievalResult {
@@ -202,7 +195,6 @@ function makeTinyBudgetPolicy(): ContextEnginePolicy {
       'directorNotes',
       'responseRules',
       'conversationStateWorkingMemory',
-      'conversationStateLongTermFacts',
       'conversationStateRecentExchanges',
       'conversationStateRecentMessages',
       'userPersona',
@@ -220,7 +212,6 @@ function assertTinyBudgetOutput(output: ReturnType<ContextEngine['assemble']>): 
   expect(output.avatar.sections.responseRules.items).toEqual(['Use short paragraphs.'])
   expect(output.avatar.sections.worldContext.scenarioId).toBe('scenario_1')
   expect(output.avatar.sections.conversationState.recentExchanges).toEqual([])
-  expect(output.avatar.sections.conversationState.longTermFacts).toEqual([])
   expect(output.avatar.sections.retrievedContext).toBeUndefined()
   expect(output.avatar.sections.avatarTraits).toBeUndefined()
   expect(output.gm.sections.retrievedContext).toBeUndefined()
@@ -252,18 +243,8 @@ function assertTinyBudgetOutput(output: ReturnType<ContextEngine['assemble']>): 
   ])
 }
 
-function applyConflictingMemoryAndRetrieval(input: ContextEngineInput): void {
-  const memory = requireMemory(input)
+function applyConflictingRetrieval(input: ContextEngineInput): void {
   const retrieval = requireRetrieval(input)
-  input.extensions.memory = {
-    ...memory,
-    longTerm: {
-      facts: [
-        { category: 'preference', key: 'style', value: 'concise' },
-        { category: 'Preference', key: 'Style', value: 'verbose' },
-      ],
-    },
-  }
   input.extensions.retrieval = {
     ...retrieval,
     avatar_knowledge: [
@@ -291,9 +272,6 @@ function applyConflictingMemoryAndRetrieval(input: ContextEngineInput): void {
 function assertDeterministicConflictResolution(
   output: ReturnType<ContextEngine['assemble']>,
 ): void {
-  expect(output.avatar.sections.conversationState.longTermFacts).toEqual([
-    { category: 'preference', key: 'style', value: 'concise' },
-  ])
   assertDeterministicTypedSections(output)
   expect(
     output.gm.sections.retrievedContext?.avatar_knowledge.map((item) => item.chunkId),
@@ -487,7 +465,6 @@ describe('ContextEngine baseline', () => {
     expect(output.avatar.sections.directorNotes).toBeNull()
     expect(output.avatar.sections.responseRules.items).toEqual([])
     expect(output.avatar.sections.conversationState.recentExchanges).toEqual([])
-    expect(output.avatar.sections.conversationState.longTermFacts).toEqual([])
     expect(output.avatar.sections.retrievedContext).toBeUndefined()
     expect(output.avatar.sections.avatarTraits).toBeUndefined()
     expect(output.gm.sections.conversationState.workingMemory).toBeUndefined()
@@ -703,10 +680,10 @@ describe('ContextEngine baseline', () => {
 })
 
 describe('ContextEngine policy', () => {
-  it('resolves conflicts deterministically by deduping long-term facts and retrieval chunk ids', () => {
+  it('resolves conflicts deterministically by deduping retrieval chunk ids', () => {
     const engine = new ContextEngine()
     const input = makeInput()
-    applyConflictingMemoryAndRetrieval(input)
+    applyConflictingRetrieval(input)
 
     const output = engine.assemble(input)
     assertDeterministicConflictResolution(output)
@@ -742,9 +719,9 @@ describe('ContextEngine policy', () => {
     const engine = new ContextEngine()
     const output = engine.assemble(makeInput())
 
-    const avatarFacts = output.avatar.sections.conversationState.longTermFacts
-    const gmFacts = output.gm.sections.conversationState.longTermFacts
-    expect(gmFacts).toEqual(avatarFacts)
+    expect(output.gm.sections.conversationState.episodicMemories).toEqual(
+      output.avatar.sections.conversationState.episodicMemories,
+    )
     expect(output.gm.sections.worldContext.scenarioId).toBe(
       output.avatar.sections.worldContext.scenarioId,
     )

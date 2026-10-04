@@ -55,7 +55,6 @@ export interface GameMasterInput {
       recentExchanges: ShortTermMemoryExchange[]
       workingMemory?: GameMasterMemoryContext['workingMemory']
       episodicMemories: SelectedEpisodicMemory[]
-      longTermFacts: NonNullable<GameMasterMemoryContext['longTermFacts']>
     }
     retrievedContext?: {
       avatar_knowledge: RetrievedKnowledgeItem[]

@@ -10,7 +10,6 @@ details live in `DATA_MODEL.md`; GM-specific usage rules live in `GAME_MASTER_CO
   `system` messages are not exchanges, and an incomplete pair is never exposed as a recent exchange.
 - **Conversation working memory:** compact, rewritten (not appended) state for one conversation episode.
 - **Episodic memory:** durable summaries of completed conversation episodes, for one user + avatar + scenario.
-- **User fact:** long-lived user-specific information, separate from scenario knowledge.
 - **Static knowledge:** scenario-owned Avatar/world/media content, always carrying source/chunk/type
   provenance; it is not memory. Static source/chunk metadata cannot carry `userId`, `sessionId`, or
   `conversationId`, and is never converted into a conversational-memory record — even though static
@@ -18,18 +17,17 @@ details live in `DATA_MODEL.md`; GM-specific usage rules live in `GAME_MASTER_CO
 
 ## Layers and owners
 
-| Layer            | Scope                            | Owner                              | Rule                                                                                                                                                                                |
-| ---------------- | -------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Recent exchanges | conversation                     | context assembly                   | At most the three most recent complete exchanges, oldest-to-newest; never incomplete pairs. This is a runtime projection over `messages`, not a second transcript store.            |
-| Working memory   | conversation                     | memory compaction                  | `summary`, `unresolvedThreads`, `coveredTopics`, `candidateFacts`. Rewritten each refresh, not blindly appended; persisted in `conversation_working_memories`.                      |
-| Episodic memory  | conversation/user-facing history | memory maintenance                 | Compact completed episodes, stored in `conversation_memories`; hydrate only bounded relevant records, never transcript replay; with no prior episode, no working memory is written. |
-| User facts       | user                             | fact extraction/deletion use cases | Stable preferences/expertise/goals only; deduplicated by `(user_id, category, key)`; allow explicit deletion.                                                                       |
+| Layer            | Scope                            | Owner              | Rule                                                                                                                                                                                |
+| ---------------- | -------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Recent exchanges | conversation                     | context assembly   | At most the three most recent complete exchanges, oldest-to-newest; never incomplete pairs. This is a runtime projection over `messages`, not a second transcript store.            |
+| Working memory   | conversation                     | memory compaction  | `summary`, `unresolvedThreads`, `coveredTopics`, `candidateFacts`. Rewritten each refresh, not blindly appended; persisted in `conversation_working_memories`.                      |
+| Episodic memory  | conversation/user-facing history | memory maintenance | Compact completed episodes, stored in `conversation_memories`; hydrate only bounded relevant records, never transcript replay; with no prior episode, no working memory is written. |
 
 There is no separate open/closed status column for a working-memory topic: a topic is "covered"
 once it appears in `coveredTopics`, and a thread is "open" while it appears in `unresolvedThreads`.
 Resolution is simply removing the thread on the next rewrite — this avoids stale "closed" entries
-leaking into prompts. `candidateFacts` are the compacted source material for episodic/fact
-extraction, not yet validated `user_memory_facts`.
+leaking into prompts. `candidateFacts` are the compacted source material for episodic memory, not
+validated durable user records.
 
 ## Short-term selection
 
@@ -54,7 +52,7 @@ an assembled snapshot always matches what that snapshot actually contains.
   row, and every trigger has an observable started/succeeded/failed outcome.
 - Conversation close is the episodic boundary: a final working-memory refresh runs, exactly one
   episodic memory is produced from the latest working memory (not full transcript replay),
-  structured user facts may be persisted, and the active working state can then be discarded.
+  and the active working state can then be discarded.
   Avatar switch and reset use the same close semantics for the conversation being left.
 - Starting a new conversation selects prior episodic memories, synthesizes relevant ones into
   bounded context, and establishes a fresh working-memory record — the Avatar starts with compact
@@ -75,9 +73,9 @@ an assembled snapshot always matches what that snapshot actually contains.
 - "Factual" means explicitly stated or directly supported by the discussion; a plausible-sounding
   LLM inference is not a fact. Greetings, fleeting details, and unstable reactions are poor fact
   candidates. Facts may be updated when a later explicit statement supersedes the previous value.
-- Static retrieved documents are prompt context only — they are never fed into fact extraction as
+- Static retrieved documents are prompt context only — they are never fed into compaction as
   user evidence, and are not treated as memory merely because they were rendered into a prompt.
-  Fact extraction receives messages, canonical compacted memory, and only explicitly verified
+  Compaction receives messages, canonical compacted memory, and only explicitly verified
   application context.
 
 ## Prompt projections
@@ -87,16 +85,16 @@ concatenating an unbounded transcript into a prompt.
 
 - **Avatar** receives memory under `## Conversation State`, in order: up to three recent complete
   exchanges; current working summary and active-avatar memory when present; selected episodic
-  memories; bounded long-term user facts. Retrieved knowledge is a separate `## Retrieved Context`
+  memories. Retrieved knowledge is a separate `## Retrieved Context`
   section, subject to Context Engine precedence/token trimming, and is never silently merged into
-  facts or working memory.
+  working memory.
 - **GM** receives a separate projection of the same selected memory: `Recent Exchanges`,
   `Working Memory` (summary, unresolved threads, covered topics), selected `Episodic Memories`
-  (with bounded selection reasons), and bounded `Long-Term Facts`. GM static knowledge is its own
+  (with bounded selection reasons). GM static knowledge is its own
   `Retrieved Context` projection using the explicit unrestricted retrieval result, while Avatar
   uses its visibility-filtered result — neither is a conversational-memory input.
 - Operator/admin inspection preserves the same boundary: memory-layer views label Conversation
-  Working Memory, Episodic Memory, and Long-Term User Facts separately with their user/session/
+  Working Memory and Episodic Memory separately with their user/session/
   conversation scope; static views use Shared Avatar/World/Media Knowledge labels instead. A
   static source is never shown in a generic memory category, and chronological messages are never
   duplicated into a synthetic working-memory message.
@@ -110,14 +108,14 @@ concatenating an unbounded transcript into a prompt.
 - Memory retrieval stays bounded even as the number of prior conversations grows.
 - Clear/reset actions are explicit and observable; all memory selection is deterministic and
   traceable within the configured bounds.
-- The embedding lifecycle applies to shared knowledge only — session memory, episodic memory, and
-  user facts are non-vectorized conversation state and are never touched by a knowledge reindex.
+- The embedding lifecycle applies to shared knowledge only — session memory and episodic memory
+  are non-vectorized conversation state and are never touched by a knowledge reindex.
 
 ## Refresh contract
 
 A refresh conceptually takes session/conversation identity, the active avatar, the previous
 working memory, recent exchanges, and (when relevant) selected episodic memories, and produces an
-updated working memory, a candidate episodic memory, extracted facts, and optional diagnostic
+updated working memory, a candidate episodic memory, and optional diagnostic
 change metadata. All persisted outputs are normalized and validated before storage — the exact
 input/output DTOs are code-owned (see Ownership below).
 

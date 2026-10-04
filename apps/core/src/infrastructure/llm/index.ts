@@ -8,7 +8,6 @@ import { OpenAiAdapter } from './openai.adapter.js'
 import { XaiAdapter } from './xai.adapter.js'
 
 export { LlmError } from './llm.error.js'
-export { LlmUserFactExtractor } from './llm-user-fact-extractor.js'
 export { NullLlmAdapter } from './null.adapter.js'
 export { ObservedLlmAdapter } from './observed.adapter.js'
 export { DefaultLlmAdapterRegistry } from './llm-adapter-registry.js'

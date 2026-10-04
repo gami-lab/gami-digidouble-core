@@ -126,7 +126,6 @@ function ContextSections({
             response.avatarContext.sections.conversationState.workingMemory.conversation?.summary
           }
           episodicMemories={response.avatarContext.sections.conversationState.episodicMemories}
-          longTermFacts={response.avatarContext.sections.conversationState.longTermFacts}
         />
         {response.avatarContext.sections.retrievedContext?.typedSections !== undefined ? (
           <Section nested title="Retrieved knowledge">
@@ -149,7 +148,6 @@ function ContextSections({
         <MemoryInputsView
           workingSummary={response.gmContext.sections.conversationState.workingMemory?.summary}
           episodicMemories={response.gmContext.sections.conversationState.episodicMemories}
-          longTermFacts={response.gmContext.sections.conversationState.longTermFacts}
         />
         {response.gmContext.sections.retrievedContext !== undefined ? (
           <Section nested title="Retrieved knowledge (unrestricted)">

@@ -60,8 +60,6 @@ const MEMORY_REFRESH_TYPES = new Set([
 ])
 
 const MEMORY_CONSOLIDATION_TYPES = new Set([
-  'user_fact_extraction_succeeded',
-  'user_fact_extraction_failed',
   'episodic_memory_generation_succeeded',
   'episodic_memory_generation_failed',
 ])
@@ -180,13 +178,10 @@ function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRef
 function toSafeMemoryConsolidationPayload(
   payload: Record<string, unknown>,
 ): MemoryConsolidationEventPayload {
-  const facts = readOptionalCandidateFacts(payload['facts'])
   return {
     conversationId: readString(payload['conversationId']),
     ...readOptionalStringField(payload, 'avatarId'),
-    ...(facts !== undefined ? { facts } : {}),
     ...readOptionalStringField(payload, 'error'),
-    ...readOptionalStringField(payload, 'llmTraceId'),
   }
 }
 
@@ -279,7 +274,6 @@ function readOptionalContextSelection(
   const selection = {
     shortTermExchangeCount: readNumber(value['shortTermExchangeCount']),
     hasWorkingMemory: readBoolean(value['hasWorkingMemory']),
-    longTermFactCount: readNumber(value['longTermFactCount']),
     ...(retrieval !== undefined ? { retrieval } : {}),
     ...(contextEngineSelection !== undefined ? { contextEngineSelection } : {}),
     hasUserPersona: readBoolean(value['hasUserPersona']),
@@ -497,7 +491,6 @@ function readAvatarSections(
       recentExchanges: readRecentExchanges(value['conversationState']),
       workingMemory: readAvatarWorkingMemory(value['conversationState']),
       episodicMemories: readEpisodicMemories(value['conversationState']),
-      longTermFacts: readLongTermFacts(value['conversationState']),
     },
     ...(retrievedContext !== undefined ? { retrievedContext } : {}),
     userPersona: readUserPersona(value['userPersona']),
@@ -599,31 +592,6 @@ function readSelectedWorkingMemory(
   }
 }
 
-function readLongTermFacts(
-  value: unknown,
-): RecordedAvatarContextSnapshot['sections']['conversationState']['longTermFacts'] {
-  const record = isRecord(value) ? value : {}
-  const rawValue = record['longTermFacts']
-  if (!Array.isArray(rawValue)) return []
-  return rawValue
-    .map((entry) => {
-      if (!isRecord(entry)) return null
-      const category = readOptionalString(entry['category'])
-      const key = readOptionalString(entry['key'])
-      const factValue = readOptionalString(entry['value'])
-      if (category === undefined || key === undefined || factValue === undefined) {
-        return null
-      }
-      return { category, key, value: factValue }
-    })
-    .filter(
-      (
-        entry,
-      ): entry is RecordedAvatarContextSnapshot['sections']['conversationState']['longTermFacts'][number] =>
-        entry !== null,
-    )
-}
-
 function readEpisodicMemories(
   value: unknown,
 ): RecordedAvatarContextSnapshot['sections']['conversationState']['episodicMemories'] {
@@ -681,7 +649,6 @@ function readGmMemory(
     recentExchanges: readRecentExchanges(record),
     ...(workingMemory !== undefined ? { workingMemory } : {}),
     episodicMemories: readEpisodicMemories(record),
-    longTermFacts: readLongTermFacts(record),
   }
 }
 

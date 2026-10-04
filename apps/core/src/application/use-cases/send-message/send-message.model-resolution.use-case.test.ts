@@ -165,7 +165,6 @@ describe('SendMessageUseCase model resolution', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       modelConfigRepository,
       llmAdapterRegistry,
     )
@@ -208,7 +207,6 @@ describe('SendMessageUseCase model resolution', () => {
       null,
       undefined,
       null,
-      undefined,
       undefined,
       undefined,
       undefined,
@@ -285,7 +283,6 @@ describe('SendMessageUseCase model resolution', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       modelConfigRepository,
       llmAdapterRegistry,
     )
@@ -345,7 +342,6 @@ describe('SendMessageUseCase model resolution', () => {
       null,
       undefined,
       null,
-      undefined,
       undefined,
       undefined,
       undefined,

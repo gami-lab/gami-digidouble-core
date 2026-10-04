@@ -199,9 +199,8 @@ export function BackgroundDetail({
       ))}
       {entry.consolidation.map((step) => (
         <Section
-          key={`${step.kind}-${step.createdAt}`}
-          defaultOpen={step.kind === 'facts'}
-          title={step.kind === 'facts' ? 'User facts extracted' : 'Episodic memory generated'}
+          key={step.createdAt}
+          title="Episodic memory generated"
           aside={<Badge tone={step.status === 'failed' ? 'error' : 'ok'}>{step.status}</Badge>}
         >
           <ConsolidationView step={step} />

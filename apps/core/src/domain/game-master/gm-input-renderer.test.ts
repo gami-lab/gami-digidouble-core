@@ -67,7 +67,6 @@ function makeInput(overrides: InputOverrides = {}): GameMasterInput {
             score: 0.92,
           },
         ],
-        longTermFacts: [{ category: 'preference', key: 'tone', value: 'concise' }],
         ...overrides.context?.conversationState,
       },
       retrievedContext: {
@@ -160,7 +159,6 @@ describe('renderGameMasterInputForLlm', () => {
     expect(prompt).toContain('### Working Memory')
     expect(prompt).toContain('- Covered Topics: witness_timeline')
     expect(prompt).toContain('### Episodic Memories')
-    expect(prompt).toContain('### Long-Term Facts')
     expect(prompt).toContain(
       "### User Persona (the user's in-world character, already known to the Avatar)",
     )
@@ -182,9 +180,7 @@ describe('renderGameMasterInputForLlm', () => {
     const conversationStateStart = prompt.indexOf('## Conversation State')
     const retrievedContextStart = prompt.indexOf('## Retrieved Context')
     const conversationStateSection = prompt.slice(conversationStateStart, retrievedContextStart)
-    const retrievedContextSection = prompt.slice(retrievedContextStart)
     expect(conversationStateSection).not.toContain('Harbor map with dock markers.')
-    expect(retrievedContextSection).not.toContain('Remembered user facts:')
   })
 
   it('omits empty optional blocks and preserves the session-start edge case', () => {
@@ -209,7 +205,6 @@ describe('renderGameMasterInputForLlm', () => {
           recentMessages: [],
           recentExchanges: [],
           episodicMemories: [],
-          longTermFacts: [],
         },
         availableAvatars: [],
       },
@@ -222,7 +217,6 @@ describe('renderGameMasterInputForLlm', () => {
     expect(prompt).not.toContain('### Recent Exchanges')
     expect(prompt).not.toContain('### Working Memory')
     expect(prompt).not.toContain('### Episodic Memories')
-    expect(prompt).not.toContain('### Long-Term Facts')
     expect(prompt).not.toContain('### User Persona')
     expect(prompt).not.toContain('### Retrieved Context')
     expect(prompt).toContain(
@@ -243,7 +237,6 @@ describe('renderGameMasterInputForLlm', () => {
             recentMessages: [],
             recentExchanges: [],
             episodicMemories: [],
-            longTermFacts: [],
           },
           availableAvatars: [{ avatarId: 'avatar_1', name: 'Ava', availability: 'available' }],
         },
@@ -264,7 +257,6 @@ describe('renderGameMasterInputForLlm', () => {
             recentMessages: [],
             recentExchanges: [],
             episodicMemories: [],
-            longTermFacts: [],
           },
           availableAvatars: [
             { avatarId: 'avatar_1', name: 'Ava', availability: 'available' },

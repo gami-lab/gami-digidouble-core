@@ -1,7 +1,6 @@
 import type { ConversationSummary, LifecycleStatus } from './entity-types.js'
 import type {
   SharedLongTermAvatarMemory,
-  SharedLongTermMemoryFact,
   SharedShortTermMemorySnapshot,
   SharedWorkingMemoryCurrent,
   SharedWorkingMemoryAvatarSummary,
@@ -21,7 +20,6 @@ export type SessionMemorySummary = {
   sessionId: string
   summary: string
   shortTerm?: Pick<SharedShortTermMemorySnapshot, 'exchangeCount'>
-  longTermFactCount?: number
   updatedAt: string
 }
 
@@ -38,7 +36,6 @@ export type SessionMemoryLayers = {
   }
   longTerm: {
     avatars: SharedLongTermAvatarMemory[]
-    facts: Array<SharedLongTermMemoryFact & { updatedAt: string }>
   }
   observability?: {
     selection?: {

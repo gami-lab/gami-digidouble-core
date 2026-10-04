@@ -87,7 +87,6 @@ export function AvatarContextView({
         workingReasons={working.conversation?.selectionReasons}
         unresolvedThreads={working.conversation?.unresolvedThreads}
         episodicMemories={sections.conversationState.episodicMemories}
-        longTermFacts={sections.conversationState.longTermFacts}
       />
       <Section
         nested
@@ -116,13 +115,11 @@ export function MemoryInputsView({
   workingReasons,
   unresolvedThreads,
   episodicMemories,
-  longTermFacts,
 }: {
   workingSummary: string | undefined
   workingReasons?: string[] | undefined
   unresolvedThreads?: string[] | undefined
   episodicMemories: SessionContextGmMemory['episodicMemories']
-  longTermFacts: SessionContextGmMemory['longTermFacts']
 }): JSX.Element {
   return (
     <>
@@ -150,7 +147,9 @@ export function MemoryInputsView({
         title="Episodic memories"
         aside={<span className="muted small">{episodicMemories.length} selected</span>}
       >
-        {episodicMemories.length === 0 ? <Empty>None selected.</Empty> : null}
+        {episodicMemories.length === 0 ? (
+          <Empty>None yet: created when a conversation with this avatar closes.</Empty>
+        ) : null}
         {episodicMemories.map((memory) => (
           <div key={memory.memoryId} className="small">
             <p className="prewrap">{memory.summary}</p>
@@ -159,16 +158,6 @@ export function MemoryInputsView({
             </p>
           </div>
         ))}
-      </Section>
-      <Section
-        nested
-        title="User facts"
-        aside={<span className="muted small">{longTermFacts.length}</span>}
-      >
-        <TextList
-          items={longTermFacts.map((fact) => `${fact.category} · ${fact.key}: ${fact.value}`)}
-          empty="None."
-        />
       </Section>
     </>
   )

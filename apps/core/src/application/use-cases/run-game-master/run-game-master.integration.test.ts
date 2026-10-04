@@ -13,7 +13,6 @@ import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
-import { InMemoryUserMemoryFactRepository } from '../../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemorySessionEventPublisher } from '../../../infrastructure/events/in-memory-session-event-publisher.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
@@ -215,7 +214,6 @@ describe('RunGameMasterUseCase integration', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
 function createIntegrationHarness() {
   const innerLlm = new RecordingLlmAdapter(GM_RESPONSE)
   const observability = new RecordingObservabilityAdapter()
@@ -259,17 +257,6 @@ function createIntegrationHarness() {
       createdAt: '2026-07-19T12:00:00.000Z',
     },
   ])
-  const userMemoryFactRepository = new InMemoryUserMemoryFactRepository([
-    {
-      id: 'fact_1',
-      userId: 'user_1',
-      category: 'preference',
-      key: 'tone',
-      value: 'concise',
-      createdAt: '2026-07-19T12:00:00.000Z',
-      updatedAt: '2026-07-20T08:00:00.000Z',
-    },
-  ])
   const knowledgeSourceRepository = new InMemoryKnowledgeSourceRepository(INITIAL_KNOWLEDGE_SOURCES)
   const knowledgeChunkRepository = new InMemoryKnowledgeChunkRepository(
     INITIAL_KNOWLEDGE_CHUNKS,
@@ -286,7 +273,6 @@ function createIntegrationHarness() {
     messageRepository,
     workingMemoryRepository,
     conversationMemoryRepository,
-    userMemoryFactRepository,
   )
   const typedRetrievalService = new TypedRetrievalService(
     knowledgeSourceRepository,
@@ -393,7 +379,6 @@ function assertRenderedPrompt(request: Omit<LlmRequest, 'trace'> | undefined): v
   expect(renderedPrompt).toContain('### Working Memory')
   expect(renderedPrompt).toContain('- Covered Topics: none')
   expect(renderedPrompt).toContain('### Episodic Memories')
-  expect(renderedPrompt).toContain('### Long-Term Facts')
   expect(renderedPrompt).toContain('### User Persona')
   expect(renderedPrompt).toContain('- Name: Lina')
   expect(renderedPrompt).toContain('- Role In World: investigator')

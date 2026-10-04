@@ -34,7 +34,7 @@ GM input is a bounded projection of:
   state
 - the completed turn plus bounded recent conversation state — recent messages/exchanges, the
   current working-memory summary projection, episodic memory entries (with their selection
-  reasons and score), and promoted long-term facts. This is the _only_ home for conversational
+  reasons and score). This is the _only_ home for conversational
   memory in the GM projection.
 - static scenario knowledge retrieval (avatar knowledge, world, media), each item carrying
   source/chunk/type provenance — never treated as memory or as a fact-extraction input

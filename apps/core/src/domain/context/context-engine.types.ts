@@ -47,7 +47,6 @@ export type ContextEngineTrace = {
     shortTermExchangeCount: number
     episodicMemoryCount: number
     hasWorkingMemory: boolean
-    longTermFactCount: number
     retrievalCounts: {
       avatar_knowledge: number
       world: number

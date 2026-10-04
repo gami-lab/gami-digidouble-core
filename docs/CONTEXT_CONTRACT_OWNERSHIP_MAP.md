@@ -58,10 +58,9 @@ shared DTO via this mapper; application/domain use cases only ever return the in
 - Recent messages/exchanges: persisted messages in `apps/core/src/domain/conversation/session.types.ts`;
   the bounded exchange projection is derived (no separate short-term table) by
   `conversation-exchange-window.ts`.
-- Working memory, episodic memory, session/avatar memory summaries, and durable user facts are all
+- Working memory, episodic memory, and session/avatar memory summaries are all
   owned by `apps/core/src/domain/memory/memory.types.ts`, behind repository ports
-  (`IConversationWorkingMemoryRepository`, `IConversationMemoryRepository`,
-  `IUserMemoryFactRepository`); `memory-maintenance.service.ts` is the sole working-memory refresh
+  (`IConversationWorkingMemoryRepository`, `IConversationMemoryRepository`); `memory-maintenance.service.ts` is the sole working-memory refresh
   workflow, and `memory-selection.service.ts` is the sole episode-selection workflow.
 - Shared/admin memory DTOs live in `packages/shared/src/memory-contract-types.ts` and
   `lifecycle-types.ts`, composed further by `runtime-inspector-types.ts`. Core maps internal memory
@@ -129,8 +128,8 @@ shared DTO via this mapper; application/domain use cases only ever return the in
 ## Projection rule
 
 Runtime inspection may show bounded `conversationState` and `retrievedContext` sections together,
-but they remain distinct. Conversation state contains exchanges, working memory, episodic memory,
-and user facts. Retrieved context contains only scenario static knowledge and provenance. Event
+but they remain distinct. Conversation state contains exchanges, working memory, and episodic
+memory. Retrieved context contains only scenario static knowledge and provenance. Event
 readers accept only this current structured-section shape — there is no legacy flattened event
 payload to support.
 

@@ -3,7 +3,6 @@ import type { RetrievalTrace, RetrievedKnowledgeItem } from '../knowledge/knowle
 import type {
   ContextMessage,
   GameMasterMemoryContext,
-  LongTermMemoryFact,
   SelectedEpisodicMemory,
   ShortTermMemoryExchange,
   LayeredMemorySnapshot,
@@ -46,7 +45,6 @@ export type AvatarContextConversationState = {
     conversation?: NonNullable<LayeredMemorySnapshot['working']>['conversation']
   }
   episodicMemories: SelectedEpisodicMemory[]
-  longTermFacts: LongTermMemoryFact[]
 }
 
 export type AvatarContextRetrievedContext = {
@@ -81,7 +79,6 @@ export type GmContextConversationState = {
   recentExchanges: ShortTermMemoryExchange[]
   workingMemory?: NonNullable<GameMasterMemoryContext['workingMemory']>
   episodicMemories: SelectedEpisodicMemory[]
-  longTermFacts: LongTermMemoryFact[]
 }
 
 export type GmContextRetrievedContext = {

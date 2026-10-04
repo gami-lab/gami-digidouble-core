@@ -1,9 +1,8 @@
 /**
  * Memory domain types.
  *
- * Two-layer memory model:
- *   - Session memory: rolling summary of the current conversation.
- *   - User facts: persistent, structured facts extracted from interactions.
+ * Layers: short-term exchanges, per-conversation working memory, and
+ * immutable episodic memories created when a conversation closes.
  */
 
 export type ContextMessageRole = 'user' | 'avatar' | 'system'
@@ -50,25 +49,16 @@ export interface ConversationMemory {
   createdAt: string
 }
 
-export interface UserFact {
-  id: string
-  userId: string
+export type MemoryFactRecord = {
   category: string
   key: string
   value: string
-  confidence?: number
-  createdAt: string
-  updatedAt: string
 }
-
-export type MemoryFactRecord = Pick<UserFact, 'category' | 'key' | 'value'>
 
 export type VerifiedMemoryContext = {
   source: 'canonical' | 'application_confirmed'
   content: string
 }
-
-export type LongTermMemoryFact = MemoryFactRecord
 
 export type ShortTermMemoryExchange = {
   user: string
@@ -96,16 +86,12 @@ export type LayeredMemorySnapshot = {
     conversation?: SelectedWorkingMemory
   }
   episodicMemories?: SelectedEpisodicMemory[]
-  longTerm?: {
-    facts: LongTermMemoryFact[]
-  }
 }
 
 export type GameMasterMemoryContext = {
   recentExchanges?: ShortTermMemoryExchange[]
   workingMemory?: Pick<ConversationWorkingMemory, 'summary' | 'unresolvedThreads' | 'coveredTopics'>
   episodicMemories?: SelectedEpisodicMemory[]
-  longTermFacts?: LongTermMemoryFact[]
 }
 
 export type ConversationWorkingMemorySnapshot = Pick<
@@ -140,5 +126,4 @@ export type SelectedMemoryPayload = {
   shortTermExchanges: ShortTermMemoryExchange[]
   workingMemory?: SelectedWorkingMemory
   episodicMemories: SelectedEpisodicMemory[]
-  longTermFacts: LongTermMemoryFact[]
 }

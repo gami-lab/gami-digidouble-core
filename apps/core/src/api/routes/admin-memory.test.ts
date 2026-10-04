@@ -8,7 +8,6 @@ import type {
   ConversationMemory,
   ConversationWorkingMemory,
   SessionMemory,
-  UserFact,
 } from '../../domain/memory/memory.types.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryConversationMemoryRepository } from '../../infrastructure/db/in-memory-conversation-memory.repository.js'
@@ -18,7 +17,6 @@ import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-ev
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
-import { InMemoryUserMemoryFactRepository } from '../../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
 
@@ -40,20 +38,6 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     status: 'active',
     startedAt: '2026-05-01T10:00:00.000Z',
     lastActivityAt: '2026-05-01T10:05:00.000Z',
-    ...overrides,
-  }
-}
-
-function makeFact(overrides: Partial<UserFact> = {}): UserFact {
-  return {
-    id: 'umf_1',
-    userId: 'user_1',
-    category: 'preference',
-    key: 'language',
-    value: 'English',
-    confidence: 0.8,
-    createdAt: '2026-05-01T10:00:00.000Z',
-    updatedAt: '2026-05-01T10:00:00.000Z',
     ...overrides,
   }
 }
@@ -95,7 +79,6 @@ type SeedEvent = {
 type AppSeedParams = {
   sessions?: Session[]
   conversations?: SeedConversation[]
-  facts?: UserFact[]
   sessionMemories?: SeedSessionMemory[]
   avatarMemories?: SeedAvatarMemory[]
   conversationMessages?: SeedConversationMessage[]
@@ -131,7 +114,6 @@ function buildAdapters(params?: AppSeedParams) {
       resolved.conversationMemories,
     ),
     eventLogRepository,
-    userMemoryFactRepository: new InMemoryUserMemoryFactRepository(resolved.facts),
   }
 }
 
@@ -139,7 +121,6 @@ function resolveParams(params: AppSeedParams = {}) {
   const defaults: Required<AppSeedParams> = {
     sessions: [makeSession()],
     conversations: [makeConversation()],
-    facts: [],
     sessionMemories: [],
     avatarMemories: [],
     conversationMessages: [],
@@ -231,7 +212,6 @@ function makeLayeredMessages() {
 
 function makeLayeredMemoryApp(): FastifyInstance {
   return makeApp({
-    facts: [makeFact()],
     conversationMessages: makeLayeredMessages(),
     conversationWorkingMemories: [
       {
@@ -317,14 +297,6 @@ function expectLayeredMemoryResponse(session: SessionMemoryLayers | undefined): 
           createdAt: '2026-05-01T09:00:00.000Z',
         },
       ],
-    },
-  ])
-  expect(session.longTerm.facts).toEqual([
-    {
-      category: 'preference',
-      key: 'language',
-      value: 'English',
-      updatedAt: '2026-05-01T10:00:00.000Z',
     },
   ])
 }

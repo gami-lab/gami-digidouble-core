@@ -15,14 +15,14 @@ and JSON shapes are defined by `infra/postgres/init.sql` and the repository type
 
 | Aggregate                | Owns                                                                     | Boundary                                                                                                                                                                                                                                                                                              |
 | ------------------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| User                     | identity, persona, long-term facts                                       | User facts are managed separately from static knowledge.                                                                                                                                                                                                                                              |
+| User                     | identity, persona                                                        | Persona is managed separately from static knowledge.                                                                                                                                                                                                                                                  |
 | Scenario                 | language, authored configuration, enabled Avatars, model selection       | Defines an experience; does not own conversation history.                                                                                                                                                                                                                                             |
 | Avatar                   | persona, prompt sections, prepared traits, optional voice/model override | Must be prepared before activation/serving.                                                                                                                                                                                                                                                           |
 | Session                  | user/scenario membership, active Avatar, runtime state, exchange count   | Reset is a session operation.                                                                                                                                                                                                                                                                         |
 | Conversation             | one bounded Avatar episode and lifecycle                                 | Close/switch boundaries trigger memory work.                                                                                                                                                                                                                                                          |
 | Message                  | user/avatar/system content and safe metadata                             | Final Avatar text is the source for optional audio.                                                                                                                                                                                                                                                   |
 | Game Master state/events | current orchestration state and bounded runtime diagnostics              | `gm_states` is one row per session (current-shape-only, no history); the session owns the active Avatar and memory owns covered topics, so GM state has no separate active-avatar or topic columns. `event_log` is append-only and must stay free of raw prompts, secrets, and unbounded transcripts. |
-| Memory                   | working, episodic, and long-term fact layers                             | Each layer has an explicit owner and lifecycle.                                                                                                                                                                                                                                                       |
+| Memory                   | working and episodic layers                                              | Each layer has an explicit owner and lifecycle.                                                                                                                                                                                                                                                       |
 | Knowledge source/chunk   | scenario-shared content, visibility, ingestion state, corpus identity    | Types are `avatar_knowledge`, `world`, `media`.                                                                                                                                                                                                                                                       |
 | Embedding profile/corpus | immutable vector profile, generations, reindex progress, active pointer  | Promotion is complete and atomic.                                                                                                                                                                                                                                                                     |
 | Model configuration      | global/role/scenario/avatar model choices                                | `model_config` is a single-row table (one active row); values must come from the shared catalog. Scenario selections are symmetric across `defaultProfile`, `avatarOverride`, `gameMasterOverride`, and `memoryOverride`.                                                                             |
@@ -45,12 +45,10 @@ table and does not create conversational memory.
   summary, `covered_topics`, `unresolved_threads`, and `candidate_facts` are rewritten/upserted on
   each refresh, not appended. A thread is "resolved" simply by being absent from the next rewrite —
   there is no separate status column. `candidate_facts` are compacted and grounded but are not
-  durable `user_memory_facts` rows, and must not be treated as inferred mood/trust/pacing state.
+  durable user records, and must not be treated as inferred mood/trust/pacing state.
 - Episodic memory (`conversation_memories`) is immutable, created once at conversation close, and
   is retrieved for hydration scoped to `user + avatar + scenario` — intentionally narrower than
   global user history.
-- `user_memory_facts` is user-scoped, deduplicated, survives normal session reset, and is injected
-  into prompts only through bounded context assembly — never as raw transcript.
 - Working-memory compaction rejects Avatar claims that are unsupported or contradicted before they
   can become memory (see `ARCHITECTURE.md` Memory module).
 
@@ -105,13 +103,13 @@ rather than a silent corruption risk:
 
 - Session reset owns active runtime cleanup and the reset boundary.
 - Conversation close owns compaction of conversation working/episodic memory.
-- Memory maintenance owns summaries, covered topics, unresolved threads, candidate facts, and fact promotion.
+- Memory maintenance owns summaries, covered topics, unresolved threads, and candidate facts.
 - Static ingestion/reindex owns source/chunk replacement and vector corpus promotion. Session
-  reset, conversation close, and user-fact deletion never mutate knowledge sources, chunks,
+  reset and conversation close never mutate knowledge sources, chunks,
   embeddings, or corpus generations, and reindex never touches conversational memory rows.
 - Scenario deletion cascades its own sources/chunks via a foreign-key cascade; this is a distinct
   path from conversation/session memory cleanup, which stays outside that cascade.
-- No whole-user deletion aggregate is part of the current Phase A API; user-fact deletion and session reset are the implemented user-scoped operations.
+- No whole-user deletion aggregate is part of the current Phase A API; session reset is the implemented user-scoped operation.
 
 ## JSONB rules
 

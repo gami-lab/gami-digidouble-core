@@ -14,7 +14,6 @@ function createAvatarSnapshotInput() {
         recentExchanges: [{ user: 'u', avatar: 'a' }],
         workingMemory: {},
         episodicMemories: [],
-        longTermFacts: [],
       },
       retrievedContext: {
         retrievedItems: [
@@ -94,7 +93,6 @@ function createGmSnapshotInput() {
           coveredTopics: ['dock_timeline'],
         },
         episodicMemories: [],
-        longTermFacts: [],
       },
       retrievedContext: {
         avatar_knowledge: [

@@ -34,7 +34,6 @@ export function buildGmContextSnapshot(args: {
             }
           : {}),
         episodicMemories: args.memory?.episodicMemories ?? [],
-        longTermFacts: args.memory?.longTermFacts ?? [],
       },
       ...(args.retrieval !== undefined
         ? {

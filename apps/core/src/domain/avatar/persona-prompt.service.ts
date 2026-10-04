@@ -171,7 +171,6 @@ function buildConversationStateSection(
   appendRecentExchanges(lines, memory)
   appendWorkingMemory(lines, memory)
   appendEpisodicMemories(lines, memory)
-  appendLongTermMemory(lines, memory)
   appendAvatarAwareness(lines, avatarAwareness)
 
   return lines.length > 1 ? [lines.join('\n')] : []
@@ -225,16 +224,6 @@ function appendEpisodicMemories(lines: string[], memory: LayeredMemorySnapshot |
       lines.push(`   Unresolved topics: ${formatPromptList(episode.unresolvedTopics)}`)
     }
   })
-}
-
-function appendLongTermMemory(lines: string[], memory: LayeredMemorySnapshot | undefined): void {
-  const facts = memory?.longTerm?.facts ?? []
-  const validFacts = facts.filter((fact) => hasText(fact.key) && hasText(fact.value))
-  if (validFacts.length === 0) return
-  lines.push('Remembered user facts:')
-  for (const fact of validFacts) {
-    lines.push(`- ${fact.key}: ${fact.value}`)
-  }
 }
 
 function formatPromptList(values: string[]): string {
@@ -404,7 +393,6 @@ function flattenTraitText(config: AvatarComputedTraits): string {
   ].join(' ')
 }
 
-// eslint-disable-next-line complexity
 function toLayeredMemorySnapshot(
   conversationState: AvatarContextConversationState,
 ): LayeredMemorySnapshot | undefined {
@@ -436,9 +424,6 @@ function toLayeredMemorySnapshot(
       : {}),
     ...(conversationState.episodicMemories.length > 0
       ? { episodicMemories: conversationState.episodicMemories }
-      : {}),
-    ...(conversationState.longTermFacts.length > 0
-      ? { longTerm: { facts: conversationState.longTermFacts } }
       : {}),
   } satisfies Partial<LayeredMemorySnapshot>
 

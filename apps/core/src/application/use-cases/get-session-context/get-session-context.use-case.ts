@@ -5,7 +5,6 @@ import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
-import type { IUserMemoryFactRepository } from '../../ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
@@ -15,7 +14,6 @@ import type {
 } from '../../../domain/memory/memory.types.js'
 import { ContextEngine } from '../../../domain/context/context-engine.service.js'
 import { DomainError } from '../../../domain/errors.js'
-import { MEMORY_LONG_TERM_FACT_LIMIT } from '../../../domain/memory/memory.policy.js'
 import {
   selectExchangeMessageWindow,
   selectExchangeWindow,
@@ -43,7 +41,6 @@ export class GetSessionContextUseCase {
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly userRepository?: IUserRepository,
     private readonly gmStateRepository?: IGmStateRepository,
-    private readonly userMemoryFactRepository?: IUserMemoryFactRepository,
   ) {}
 
   async execute(input: GetSessionContextInput): Promise<GetSessionContextOutput> {
@@ -104,7 +101,6 @@ export class GetSessionContextUseCase {
       messages: conversationData.messages,
       user: userData.user,
       gmState: userData.gmState,
-      userFacts: userData.userFacts,
     }
   }
 
@@ -129,11 +125,7 @@ export class GetSessionContextUseCase {
       availableAvatars: toAvailableAvatars(runtimeData.scenarioAvatars, session),
       gmState: resolveGmState(runtimeData.gmState, runtimeData.activeAvatarId),
       extensions: {
-        memory: buildMemorySnapshot(
-          runtimeData.workingMemory,
-          recentExchanges,
-          runtimeData.userFacts,
-        ),
+        memory: buildMemorySnapshot(runtimeData.workingMemory, recentExchanges),
         retrieval: undefined,
         userPersona: runtimeData.user?.persona ?? null,
         gmDirective: normalizeOptionalText(session.gmNotes),
@@ -172,8 +164,7 @@ export class GetSessionContextUseCase {
     return Promise.all([
       this.userRepository?.findById(session.userId) ?? Promise.resolve(null),
       this.gmStateRepository?.findBySessionId(session.sessionId) ?? Promise.resolve(null),
-      this.userMemoryFactRepository?.findByUserId(session.userId) ?? Promise.resolve([]),
-    ]).then(([user, gmState, userFacts]) => ({ user, gmState, userFacts }))
+    ]).then(([user, gmState]) => ({ user, gmState }))
   }
 }
 
@@ -182,7 +173,6 @@ function buildMemorySnapshot(
     ReturnType<NonNullable<IConversationWorkingMemoryRepository>['findByConversationId']>
   >,
   recentExchanges: ReturnType<typeof selectExchangeWindow>,
-  userFacts: Awaited<ReturnType<NonNullable<IUserMemoryFactRepository>['findByUserId']>>,
 ): LayeredMemorySnapshot {
   return {
     shortTerm: {
@@ -203,17 +193,6 @@ function buildMemorySnapshot(
               summary: workingMemory.summary,
               updatedAt: workingMemory.updatedAt,
             },
-          },
-        }
-      : {}),
-    ...(userFacts.length > 0
-      ? {
-          longTerm: {
-            facts: userFacts.slice(0, MEMORY_LONG_TERM_FACT_LIMIT).map((fact) => ({
-              category: fact.category,
-              key: fact.key,
-              value: fact.value,
-            })),
           },
         }
       : {}),

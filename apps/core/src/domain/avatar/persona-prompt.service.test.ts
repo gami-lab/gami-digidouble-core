@@ -22,7 +22,6 @@ function sections(overrides: Partial<AvatarContextSections> = {}): AvatarContext
       recentExchanges: [],
       workingMemory: {},
       episodicMemories: [],
-      longTermFacts: [],
     },
     userPersona: null,
     worldContext: {
@@ -70,7 +69,6 @@ describe('assemblePersonaPrompt', () => {
           recentExchanges: [{ user: 'Hi', avatar: 'Hello there' }],
           workingMemory: {},
           episodicMemories: [],
-          longTermFacts: [],
         },
         retrievedContext: {
           retrievedItems: [],
@@ -127,7 +125,6 @@ describe('assemblePersonaPrompt', () => {
             session: { summary: 'The user is planning a quick visit.', updatedAt: 'now' },
           },
           episodicMemories: [],
-          longTermFacts: [{ category: 'preference', key: 'pace', value: 'quick overview' }],
         },
       }),
       gmGuidance: {
@@ -140,7 +137,6 @@ describe('assemblePersonaPrompt', () => {
     expect(prompt).toContain('Resolve the contradiction before progressing.')
     expect(prompt).toContain('1. User: Where do I start?')
     expect(prompt).toContain('- Session: The user is planning a quick visit.')
-    expect(prompt).toContain('- pace: quick overview')
     expect(prompt).not.toContain('Legacy persona')
   })
 

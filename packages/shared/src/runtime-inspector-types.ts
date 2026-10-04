@@ -2,7 +2,6 @@ import type { ConversationEndReason, SessionMemoryLayers } from './lifecycle-typ
 import type {
   SharedGmWorkingMemory,
   SharedMemoryFactRecord,
-  SharedLongTermMemoryFact,
   SharedSelectedEpisodicMemory,
   SharedSelectedWorkingMemory,
   SharedShortTermMemoryExchange,
@@ -173,7 +172,6 @@ export type TurnCompletedEventPayload = {
   contextSelection?: {
     shortTermExchangeCount: number
     hasWorkingMemory: boolean
-    longTermFactCount: number
     retrieval?: ContextSelectionRetrievalDiagnostics
     contextEngineSelection?: ContextEngineSelectionDiagnostics
     hasUserPersona: boolean
@@ -210,11 +208,7 @@ export type MemoryRefreshEventPayload = {
 export type MemoryConsolidationEventPayload = {
   conversationId: string
   avatarId?: string
-  /** User facts extracted from the conversation (fact extraction only). */
-  facts?: SharedMemoryFactRecord[]
   error?: string
-  /** Langfuse trace id of the fact-extraction LLM call. */
-  llmTraceId?: string
 }
 
 /** One text-to-speech synthesis of an Avatar message, requested after the turn completed. */
@@ -237,8 +231,6 @@ export type SessionEventRecord = {
     | 'memory_refresh_triggered'
     | 'memory_refresh_succeeded'
     | 'memory_refresh_failed'
-    | 'user_fact_extraction_succeeded'
-    | 'user_fact_extraction_failed'
     | 'episodic_memory_generation_succeeded'
     | 'episodic_memory_generation_failed'
     | 'message_audio_synthesized'
@@ -301,7 +293,6 @@ export type SessionContextGmMemory = {
   recentExchanges: SharedShortTermMemoryExchange[]
   workingMemory?: SharedGmWorkingMemory
   episodicMemories: SharedSelectedEpisodicMemory[]
-  longTermFacts: SharedLongTermMemoryFact[]
 }
 
 export type SessionContextResponseRules = {
@@ -331,7 +322,6 @@ type SharedSessionContextAvatarSections<TKnowledge, TResponseRules, TAvatarTrait
     recentExchanges: SharedShortTermMemoryExchange[]
     workingMemory: SessionContextAvatarWorkingMemory
     episodicMemories: SharedSelectedEpisodicMemory[]
-    longTermFacts: SharedLongTermMemoryFact[]
   }
   userPersona: UserPersona | null
   worldContext: SessionContextScenarioSnapshot
@@ -392,7 +382,6 @@ export type SessionContextSegmentId =
   | 'directorNotes'
   | 'responseRules'
   | 'conversationStateWorkingMemory'
-  | 'conversationStateLongTermFacts'
   | 'conversationStateEpisodicMemories'
   | 'conversationStateRecentExchanges'
   | 'conversationStateRecentMessages'
@@ -420,7 +409,6 @@ export type SessionContextTrace = {
     shortTermExchangeCount: number
     episodicMemoryCount: number
     hasWorkingMemory: boolean
-    longTermFactCount: number
     retrievalCounts: {
       avatar_knowledge: number
       world: number

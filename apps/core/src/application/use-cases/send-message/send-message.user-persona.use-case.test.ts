@@ -125,7 +125,6 @@ function createUseCase(
     undefined,
     undefined,
     undefined,
-    undefined,
     withTypedRetrieval
       ? ({ retrieve: retrieveTypedContextMock } as unknown as TypedRetrievalService)
       : undefined,
@@ -426,7 +425,6 @@ describe('SendMessageUseCase — context selection observability', () => {
         contextSelection?: {
           shortTermExchangeCount: number
           hasWorkingMemory: boolean
-          longTermFactCount: number
           retrieval?: {
             selectedForAssemblyCounts: { avatar_knowledge: number; world: number; media: number }
             includedCounts: { avatar_knowledge: number; world: number; media: number }
@@ -444,7 +442,6 @@ describe('SendMessageUseCase — context selection observability', () => {
     expect(event.payload.contextSelection).toEqual({
       shortTermExchangeCount: 1,
       hasWorkingMemory: false,
-      longTermFactCount: 0,
       retrieval: {
         selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0, media: 0 },
         includedCounts: { avatar_knowledge: 1, world: 0, media: 0 },

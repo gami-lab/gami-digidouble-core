@@ -11,7 +11,6 @@ import type { IScenarioRepository } from '../application/ports/IScenarioReposito
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
 import type { ISessionMemoryRepository } from '../application/ports/ISessionMemoryRepository.js'
-import type { IUserMemoryFactRepository } from '../application/ports/IUserMemoryFactRepository.js'
 import type { IUserRepository } from '../application/ports/IUserRepository.js'
 import type { IAvatarSessionMemoryRepository } from '../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IDependencyProbe } from '../application/ports/IDependencyProbe.js'
@@ -35,7 +34,6 @@ import type { Config } from '../config.js'
 import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemorySessionRepository } from '../infrastructure/db/in-memory-session.repository.js'
-import { InMemoryUserMemoryFactRepository } from '../infrastructure/db/in-memory-user-memory-fact.repository.js'
 import { InMemoryUserRepository } from '../infrastructure/db/in-memory-user.repository.js'
 import { InMemorySessionMemoryRepository } from '../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryAvatarSessionMemoryRepository } from '../infrastructure/db/in-memory-avatar-session-memory.repository.js'
@@ -89,7 +87,6 @@ export interface ServerAdapters {
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   conversationMemoryRepository?: IConversationMemoryRepository
   userRepository?: IUserRepository
-  userMemoryFactRepository?: IUserMemoryFactRepository
   sessionEventPublisher?: ISessionEventPublisher
   probes?: IDependencyProbe[]
   knowledgeSourceRepository?: IKnowledgeSourceRepository
@@ -268,8 +265,6 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     prefix: '/v1/users',
     config,
     userRepository: resolvedAdapters.userRepository,
-    userMemoryFactRepository:
-      resolvedAdapters.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
   })
   app.register(avatarsRoute, {
     prefix: '/v1/avatars',
@@ -419,8 +414,6 @@ function buildAdminMemoryRouteOptions(config: Config, adapters: ServerAdapters) 
       ? { conversationMemoryRepository: adapters.conversationMemoryRepository }
       : {}),
     eventLogRepository: withDefault(adapters.eventLogRepository, new InMemoryEventLogRepository()),
-    userMemoryFactRepository:
-      adapters.userMemoryFactRepository ?? new InMemoryUserMemoryFactRepository(),
   }
 }
 
@@ -442,10 +435,6 @@ function buildAdminSessionContextRouteOptions(config: Config, adapters: ServerAd
     ),
     userRepository: withDefault(adapters.userRepository, new InMemoryUserRepository()),
     gmStateRepository: withDefault(adapters.gmStateRepository, new InMemoryGmStateRepository()),
-    userMemoryFactRepository: withDefault(
-      adapters.userMemoryFactRepository,
-      new InMemoryUserMemoryFactRepository(),
-    ),
   }
 }
 

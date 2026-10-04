@@ -129,7 +129,6 @@ export type {
   SharedWorkingMemoryCurrent,
   SharedWorkingMemorySessionSummary,
   SharedWorkingMemoryAvatarSummary,
-  SharedLongTermMemoryFact,
   SharedLongTermAvatarMemory,
 } from './memory-contract-types.js'
 export type {

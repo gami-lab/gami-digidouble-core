@@ -64,8 +64,6 @@ export type SharedSelectedEpisodicMemory = {
   score: number
 }
 
-export type SharedLongTermMemoryFact = SharedMemoryFactRecord
-
 export type SharedLongTermAvatarMemory = {
   avatarId: string
   memories: Array<{
