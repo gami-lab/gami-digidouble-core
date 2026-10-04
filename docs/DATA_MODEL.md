@@ -119,6 +119,9 @@ rather than a silent corruption risk:
 - Validate and normalize at the API/application boundary.
 - Do not store provider credentials, raw prompts, raw audio, or user/session/conversation scope in static knowledge metadata.
 - Add a new persisted field only with an owner, lifecycle, public projection decision, and tests.
+- Write JSONB values as JS objects (`sql.json(value)` or a raw `$n::jsonb` parameter), never as
+  `JSON.stringify(value)`: postgres.js already encodes jsonb parameters, so pre-stringifying stores a
+  JSON string instead of an object. Repositories read objects only; there is no string fallback.
 - Voice configuration reuses the existing Avatar/Scenario `config` JSONB under a reserved
   `voiceConfig` key rather than a new column; rows without the key simply project as "no voice
   configured." Model overrides (`avatar.config.llmOverride`, `session.model_override`) follow the

@@ -79,14 +79,29 @@ describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
     expect(found).toBeNull()
   })
 
-  it('update keeps config as object (not serialized string)', async () => {
+  it('update stores jsonb columns as objects (not serialized strings)', async () => {
     const created = await repo.create({ name: 'Config update' })
     const updated = await repo.update(created.scenarioId, {
       config: {
         worldContext: 'A guided experience',
         avatarAvailability: { initialAvatarIds: ['avatar_1'] },
       },
+      avatarAvailability: { initialAvatarIds: ['avatar_1'] },
+      modelSelection: { defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' } },
     })
+
+    const [stored] = await sql`
+      SELECT jsonb_typeof(config) AS config,
+             jsonb_typeof(avatar_availability) AS avatar_availability,
+             jsonb_typeof(model_selection) AS model_selection
+      FROM scenarios WHERE id = ${created.scenarioId.replace('scenario_', '')}
+    `
+    expect(stored).toEqual({
+      config: 'object',
+      avatar_availability: 'object',
+      model_selection: 'object',
+    })
+    expect(updated.avatarAvailability).toEqual({ initialAvatarIds: ['avatar_1'] })
 
     expect(typeof updated.config).toBe('object')
     expect(updated.config).toEqual({

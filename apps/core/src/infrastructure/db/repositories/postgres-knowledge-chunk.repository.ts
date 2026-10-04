@@ -66,14 +66,7 @@ function normalizeVisibleToAvatarIds(value: unknown): string[] | undefined {
 }
 
 function normalizeMetadata(value: unknown): Record<string, unknown> | undefined {
-  if (isRecord(value)) return value
-  if (typeof value !== 'string') return undefined
-  try {
-    const parsed: unknown = JSON.parse(value)
-    return isRecord(parsed) ? parsed : undefined
-  } catch {
-    return undefined
-  }
+  return isRecord(value) ? value : undefined
 }
 
 function rowToKnowledgeChunk(row: KnowledgeChunkRow): KnowledgeChunk {

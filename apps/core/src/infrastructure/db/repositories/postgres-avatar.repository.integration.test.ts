@@ -236,6 +236,27 @@ describe.skipIf(!DB_AVAILABLE)('PostgresAvatarRepository', () => {
       () => scenarioId,
     )
 
+    it('update stores config as a jsonb object and adjustments as a text array', async () => {
+      const created = await avatarRepo.create({
+        scenarioId,
+        name: 'Updated Avatar',
+        personaPrompt: 'Prompt.',
+      })
+
+      const updated = await avatarRepo.update(created.avatarId, {
+        llmOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
+        adjustments: ['Speak softly', 'Avoid spoilers'],
+      })
+
+      const [stored] = await sql`
+        SELECT jsonb_typeof(config) AS config, adjustments
+        FROM avatars WHERE id = ${created.avatarId.replace('avatar_', '')}
+      `
+      expect(stored).toEqual({ config: 'object', adjustments: ['Speak softly', 'Avoid spoilers'] })
+      expect(updated.llmOverride).toEqual({ provider: 'openai', model: 'gpt-5.6-luna' })
+      expect(updated.adjustments).toEqual(['Speak softly', 'Avoid spoilers'])
+    })
+
     it('normalizes malformed persisted computed_traits into the canonical seven-field shape', async () => {
       const created = await avatarRepo.create({
         scenarioId,

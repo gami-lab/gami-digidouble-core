@@ -46,6 +46,8 @@ describe.skipIf(!DB_AVAILABLE)('PostgresModelConfigRepository', () => {
       Array<{ count: string }>
     >`SELECT COUNT(*)::TEXT AS count FROM model_config`
     expect(Number(rows[0]?.count ?? '0')).toBe(1)
+    const [stored] = await sql`SELECT jsonb_typeof(config) AS config FROM model_config`
+    expect(stored).toEqual({ config: 'object' })
   })
 
   it('persists config across repository re-instantiation', async () => {

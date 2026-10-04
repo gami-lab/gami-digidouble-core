@@ -37,18 +37,7 @@ interface ScenarioRow {
 }
 
 function normalizeConfig(config: unknown): Record<string, unknown> {
-  if (isRecord(config)) {
-    return config
-  }
-  if (typeof config === 'string') {
-    try {
-      const parsed: unknown = JSON.parse(config)
-      return isRecord(parsed) ? parsed : {}
-    } catch {
-      return {}
-    }
-  }
-  return {}
+  return isRecord(config) ? config : {}
 }
 
 function readModelProfile(value: unknown): ModelProfile | undefined {
@@ -61,15 +50,11 @@ function readModelProfile(value: unknown): ModelProfile | undefined {
 }
 
 function readScenarioModelSelection(value: unknown): ScenarioModelSelection | undefined {
-  // sql.unsafe() (used by update()) returns jsonb columns as raw text when that
-  // column is also the target of a bound-parameter SET in the same statement.
-  const parsed = typeof value === 'string' ? safeJsonParse(value) : value
-  const raw = isRecord(parsed) ? parsed : undefined
-  if (raw === undefined) return undefined
+  if (!isRecord(value)) return undefined
 
   const selection: ScenarioModelSelection = {}
   for (const slot of SCENARIO_MODEL_SLOTS) {
-    const profile = readModelProfile(raw[slot])
+    const profile = readModelProfile(value[slot])
     if (profile !== undefined) selection[slot] = profile
   }
   return Object.keys(selection).length > 0 ? selection : undefined
@@ -91,7 +76,8 @@ function appendJsonbUpdateValue(
   column: string,
   value: unknown,
 ): void {
-  values.push(value === null ? null : JSON.stringify(value))
+  // Pass the value itself: postgres.js already JSON-encodes jsonb parameters.
+  values.push(value)
   setClauses.push(`${column} = $${String(values.length)}::jsonb`)
 }
 
@@ -131,14 +117,13 @@ function buildScenarioSetClauses(updates: UpdateScenarioParams): {
 }
 
 function normalizeAvatarAvailability(value: unknown): ScenarioAvatarAvailabilityConfig {
-  const parsed = typeof value === 'string' ? safeJsonParse(value) : value
-  if (!isRecord(parsed)) return { initialAvatarIds: [] }
+  if (!isRecord(value)) return { initialAvatarIds: [] }
 
-  const initialAvatarIds = Array.isArray(parsed['initialAvatarIds'])
-    ? (parsed['initialAvatarIds'] as unknown[]).filter((id): id is string => typeof id === 'string')
+  const initialAvatarIds = Array.isArray(value['initialAvatarIds'])
+    ? (value['initialAvatarIds'] as unknown[]).filter((id): id is string => typeof id === 'string')
     : []
-  const unlockableAvatarIds = Array.isArray(parsed['unlockableAvatarIds'])
-    ? (parsed['unlockableAvatarIds'] as unknown[]).filter(
+  const unlockableAvatarIds = Array.isArray(value['unlockableAvatarIds'])
+    ? (value['unlockableAvatarIds'] as unknown[]).filter(
         (id): id is string => typeof id === 'string',
       )
     : undefined
@@ -146,14 +131,6 @@ function normalizeAvatarAvailability(value: unknown): ScenarioAvatarAvailability
   return {
     initialAvatarIds,
     ...(unlockableAvatarIds !== undefined ? { unlockableAvatarIds } : {}),
-  }
-}
-
-function safeJsonParse(value: string): unknown {
-  try {
-    return JSON.parse(value)
-  } catch {
-    return null
   }
 }
 

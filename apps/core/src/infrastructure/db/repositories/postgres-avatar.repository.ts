@@ -35,19 +35,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function normalizeAvatarConfig(config: unknown): Record<string, unknown> {
-  const record = asRecord(config)
-  if (record !== null) return record
-
-  if (typeof config === 'string') {
-    try {
-      const parsed: unknown = JSON.parse(config)
-      return asRecord(parsed) ?? {}
-    } catch {
-      return {}
-    }
-  }
-
-  return {}
+  return asRecord(config) ?? {}
 }
 
 function readAvatarLlmOverride(config: Record<string, unknown>): AvatarLlmOverride | undefined {
@@ -91,19 +79,7 @@ function applyLlmOverride(
 }
 
 function normalizeComputedTraits(value: unknown): AvatarComputedTraits | undefined {
-  const normalized = coerceAvatarComputedTraits(value)
-  if (normalized !== null) return normalized
-
-  if (typeof value === 'string') {
-    try {
-      const parsed: unknown = JSON.parse(value)
-      return coerceAvatarComputedTraits(parsed) ?? undefined
-    } catch {
-      return undefined
-    }
-  }
-
-  return undefined
+  return coerceAvatarComputedTraits(value) ?? undefined
 }
 
 function rowToAvatarConfig(row: AvatarRow): AvatarConfig {
@@ -153,11 +129,12 @@ function buildUpdateSetClauses(updates: UpdateAvatarParams): {
   }
 
   if (updates.adjustments !== undefined) {
-    values.push(JSON.stringify(updates.adjustments))
+    values.push(updates.adjustments)
     setClauses.push(`adjustments = $${String(values.length)}`)
   }
   if (updates.config !== undefined) {
-    values.push(JSON.stringify(updates.config))
+    // Pass the value itself: postgres.js already JSON-encodes jsonb parameters.
+    values.push(updates.config)
     setClauses.push(`config = $${String(values.length)}::jsonb`)
   }
 

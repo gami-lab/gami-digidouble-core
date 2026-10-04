@@ -35,17 +35,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-// sql.unsafe() (used by update()) does not decode jsonb columns into objects
-// the way tagged-template queries do — it returns the raw JSON text instead.
 function normalizeMetadata(value: unknown): Record<string, unknown> | undefined {
-  if (isRecord(value)) return value
-  if (typeof value !== 'string') return undefined
-  try {
-    const parsed: unknown = JSON.parse(value)
-    return isRecord(parsed) ? parsed : undefined
-  } catch {
-    return undefined
-  }
+  return isRecord(value) ? value : undefined
 }
 
 function normalizeVisibleToAvatarIds(value: unknown): string[] | undefined {
@@ -212,7 +203,8 @@ export class PostgresKnowledgeSourceRepository implements IKnowledgeSourceReposi
       setClauses.push(`uri_or_path = $${String(values.length)}`)
     }
     if (updates.metadata !== undefined) {
-      values.push(JSON.stringify(updates.metadata))
+      // Pass the value itself: postgres.js already JSON-encodes jsonb parameters.
+      values.push(updates.metadata)
       setClauses.push(`metadata = $${String(values.length)}::jsonb`)
     }
     if (updates.visibilityPolicy !== undefined) {

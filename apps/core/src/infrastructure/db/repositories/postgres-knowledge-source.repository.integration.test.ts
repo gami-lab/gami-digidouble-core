@@ -294,6 +294,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
     expect(updated?.status).toBe('pending')
     expect(updated?.metadata).toEqual({ inlineText: 'New content' })
     expect(updated?.uriOrPath).toBe('/data/world-v2.txt')
+    const [stored] = await sql`
+      SELECT jsonb_typeof(metadata) AS metadata
+      FROM knowledge_sources WHERE id = ${created.sourceId.replace('knowledge_source_', '')}
+    `
+    expect(stored).toEqual({ metadata: 'object' })
   })
 
   it('update() clears visibleToAvatarIds when given an empty array', async () => {

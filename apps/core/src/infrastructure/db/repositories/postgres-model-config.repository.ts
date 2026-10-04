@@ -1,4 +1,4 @@
-import type { Sql } from 'postgres'
+import type { JSONValue, Sql } from 'postgres'
 import type { IModelConfigRepository } from '../../../application/ports/IModelConfigRepository.js'
 import {
   isProviderName,
@@ -85,8 +85,7 @@ function parseGlobalDefault(value: unknown): ModelConfig['globalDefault'] {
 }
 
 function parseConfigPayload(payload: unknown): ModelConfig {
-  const parsed = typeof payload === 'string' ? (JSON.parse(payload) as unknown) : payload
-  const config = asRecord(parsed)
+  const config = asRecord(payload)
   if (config === null) {
     throw new Error('Invalid model_config payload in database.')
   }
@@ -127,11 +126,9 @@ export class PostgresModelConfigRepository implements IModelConfigRepository {
   }
 
   async upsert(config: ModelConfig): Promise<ModelConfig> {
-    const serializedConfig = JSON.stringify(config)
-
     const [row] = await this.sql<[ModelConfigRow]>`
       INSERT INTO model_config (id, config)
-      VALUES (1, ${serializedConfig}::JSONB)
+      VALUES (1, ${this.sql.json(config as unknown as JSONValue)})
       ON CONFLICT (id)
       DO UPDATE SET
         config = EXCLUDED.config,
