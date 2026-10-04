@@ -40,13 +40,20 @@ export function validateScenarioModelSelection(
   value: ScenarioModelSelection | null | undefined,
 ): string | null {
   if (value === undefined || value === null) return null
-  if (value.defaultProfile === undefined && value.gameMasterOverride === undefined) {
-    return 'modelSelection must define defaultProfile or gameMasterOverride when provided'
+  if (
+    value.defaultProfile === undefined &&
+    value.avatarOverride === undefined &&
+    value.gameMasterOverride === undefined &&
+    value.memoryOverride === undefined
+  ) {
+    return 'modelSelection must define defaultProfile, avatarOverride, gameMasterOverride, or memoryOverride when provided'
   }
 
   return (
     validateModelProfile(value.defaultProfile, 'modelSelection.defaultProfile') ??
-    validateModelProfile(value.gameMasterOverride, 'modelSelection.gameMasterOverride')
+    validateModelProfile(value.avatarOverride, 'modelSelection.avatarOverride') ??
+    validateModelProfile(value.gameMasterOverride, 'modelSelection.gameMasterOverride') ??
+    validateModelProfile(value.memoryOverride, 'modelSelection.memoryOverride')
   )
 }
 

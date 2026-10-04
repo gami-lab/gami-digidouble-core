@@ -123,7 +123,25 @@ const createScenarioBodySchema = {
           },
           additionalProperties: false,
         },
+        avatarOverride: {
+          type: 'object',
+          required: ['provider', 'model'],
+          properties: {
+            provider: { type: 'string' },
+            model: { type: 'string' },
+          },
+          additionalProperties: false,
+        },
         gameMasterOverride: {
+          type: 'object',
+          required: ['provider', 'model'],
+          properties: {
+            provider: { type: 'string' },
+            model: { type: 'string' },
+          },
+          additionalProperties: false,
+        },
+        memoryOverride: {
           type: 'object',
           required: ['provider', 'model'],
           properties: {
@@ -167,7 +185,25 @@ const updateScenarioBodySchema = {
               },
               additionalProperties: false,
             },
+            avatarOverride: {
+              type: 'object',
+              required: ['provider', 'model'],
+              properties: {
+                provider: { type: 'string' },
+                model: { type: 'string' },
+              },
+              additionalProperties: false,
+            },
             gameMasterOverride: {
+              type: 'object',
+              required: ['provider', 'model'],
+              properties: {
+                provider: { type: 'string' },
+                model: { type: 'string' },
+              },
+              additionalProperties: false,
+            },
+            memoryOverride: {
               type: 'object',
               required: ['provider', 'model'],
               properties: {

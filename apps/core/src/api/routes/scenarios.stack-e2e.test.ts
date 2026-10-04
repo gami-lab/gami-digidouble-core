@@ -63,24 +63,28 @@ describe('Stack E2E — POST /v1/scenarios — validation', () => {
     expect(res.status).toBe(400)
   })
 
-  it('rejects requests with invalid modelSelection catalog entry (400)', async () => {
-    const res = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-      },
-      body: JSON.stringify({
-        name: 'Invalid Catalog Scenario',
-        modelSelection: {
-          defaultProfile: { provider: 'openai', model: 'unknown-model' },
+  it('rejects requests with invalid modelSelection catalog entries (400)', async () => {
+    for (const modelSelection of [
+      { defaultProfile: { provider: 'openai', model: 'unknown-model' } },
+      { avatarOverride: { provider: 'openai', model: 'unknown-model' } },
+      { memoryOverride: { provider: 'openai', model: 'unknown-model' } },
+    ]) {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
         },
-      }),
-    })
+        body: JSON.stringify({
+          name: 'Invalid Catalog Scenario',
+          modelSelection,
+        }),
+      })
 
-    expect(res.status).toBe(400)
-    const body = (await res.json()) as { error: { code: string } }
-    expect(body.error.code).toBe('VALIDATION_ERROR')
+      expect(res.status).toBe(400)
+      const body = (await res.json()) as { error: { code: string } }
+      expect(body.error.code).toBe('VALIDATION_ERROR')
+    }
   })
 })
 
@@ -121,7 +125,9 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
         name: `Scenario With Models ${String(Date.now())}`,
         modelSelection: {
           defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
+          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+          memoryOverride: { provider: 'xai', model: 'grok-4.3' },
         },
       }),
     })
@@ -133,7 +139,9 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
           scenarioId: string
           modelSelection?: {
             defaultProfile?: { provider: string; model: string }
+            avatarOverride?: { provider: string; model: string }
             gameMasterOverride?: { provider: string; model: string }
+            memoryOverride?: { provider: string; model: string }
           }
         }
       }
@@ -142,7 +150,9 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
     expect(body.error).toBeNull()
     expect(body.data.scenario.modelSelection).toEqual({
       defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
+      avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+      memoryOverride: { provider: 'xai', model: 'grok-4.3' },
     })
 
     await deleteScenario(body.data.scenario.scenarioId)
@@ -226,6 +236,7 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — validation', () => {
   })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
   it('updates scenario name and returns 200 with updated scenario', async () => {
     const createRes = await fetch(ENDPOINT, {
@@ -294,6 +305,8 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
         body: JSON.stringify({
           modelSelection: {
             defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+            avatarOverride: { provider: 'openai', model: 'gpt-5.4-mini' },
+            memoryOverride: { provider: 'anthropic', model: 'claude-haiku-4-5' },
           },
         }),
       })
@@ -301,12 +314,18 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
       const patchSetBody = (await patchSetRes.json()) as {
         data: {
           scenario: {
-            modelSelection?: { defaultProfile?: { provider: string; model: string } }
+            modelSelection?: {
+              defaultProfile?: { provider: string; model: string }
+              avatarOverride?: { provider: string; model: string }
+              memoryOverride?: { provider: string; model: string }
+            }
           }
         }
       }
       expect(patchSetBody.data.scenario.modelSelection).toEqual({
         defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+        avatarOverride: { provider: 'openai', model: 'gpt-5.4-mini' },
+        memoryOverride: { provider: 'anthropic', model: 'claude-haiku-4-5' },
       })
 
       const patchClearRes = await fetch(`${ENDPOINT}/${scenarioId}`, {

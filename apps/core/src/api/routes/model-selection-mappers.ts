@@ -98,11 +98,27 @@ function normalizeCreateScenarioModelSelection(
           },
         }
       : {}),
+    ...(modelSelection.avatarOverride !== undefined
+      ? {
+          avatarOverride: {
+            provider: modelSelection.avatarOverride.provider,
+            model: modelSelection.avatarOverride.model.trim(),
+          },
+        }
+      : {}),
     ...(modelSelection.gameMasterOverride !== undefined
       ? {
           gameMasterOverride: {
             provider: modelSelection.gameMasterOverride.provider,
             model: modelSelection.gameMasterOverride.model.trim(),
+          },
+        }
+      : {}),
+    ...(modelSelection.memoryOverride !== undefined
+      ? {
+          memoryOverride: {
+            provider: modelSelection.memoryOverride.provider,
+            model: modelSelection.memoryOverride.model.trim(),
           },
         }
       : {}),
