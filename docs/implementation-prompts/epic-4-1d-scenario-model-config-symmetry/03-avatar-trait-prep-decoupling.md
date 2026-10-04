@@ -111,7 +111,7 @@ After implementation, update:
 # Acceptance Criteria
 
 - [ ] Avatar trait preparation no longer passes `role: 'avatar'`/`avatarOverride:
-    args.avatar.llmOverride` to resolve its model
+args.avatar.llmOverride` to resolve its model
 - [ ] Trait prep resolves via scenario `defaultProfile` → global default only, verified by tests
 - [ ] Avatar entity `llmOverride`, global avatar role override, and scenario `avatarOverride` are
       all confirmed to have no effect on trait prep via tests
