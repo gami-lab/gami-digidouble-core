@@ -9,6 +9,7 @@ import {
 import { ApiError } from '../api/client'
 import { formatApiError } from '../api/error'
 import { getModelConfig, updateModelConfig } from '../api/model-config'
+import { ModelSelectionTable, selectProvider } from '../model-selection/ModelSelectionTable'
 import { useDocumentTitle } from '../routing/router'
 
 type RoleKey = 'avatar' | 'gameMaster' | 'memory'
@@ -174,108 +175,30 @@ function GlobalDefaultFields({ form, setForm }: GlobalDefaultFieldsProps): JSX.E
   )
 }
 
-type RoleOverridesTableProps = {
-  form: ModelConfigForm
-  setForm: SetModelConfigForm
-}
-
-function RoleOverridesTable({ form, setForm }: RoleOverridesTableProps): JSX.Element {
+function RoleOverridesTable({ form, setForm }: GlobalDefaultFieldsProps): JSX.Element {
   return (
-    <table className="admin-table">
-      <thead>
-        <tr>
-          <th>Role</th>
-          <th>Provider override</th>
-          <th>Model override</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {ROLE_KEYS.map((role) => (
-          <RoleOverrideRow key={role} form={form} role={role} setForm={setForm} />
-        ))}
-      </tbody>
-    </table>
-  )
-}
-
-type RoleOverrideRowProps = {
-  form: ModelConfigForm
-  role: RoleKey
-  setForm: SetModelConfigForm
-}
-
-function RoleOverrideRow({ form, role, setForm }: RoleOverrideRowProps): JSX.Element {
-  const override = form.roleOverrides[role]
-  const modelOptions = getModelPresetOptions(override.provider, override.model)
-
-  return (
-    <tr>
-      <td>{ROLE_LABELS[role]}</td>
-      <td>
-        <select
-          className="admin-form-select"
-          value={override.provider}
-          onChange={(event) => {
-            const provider = event.target.value
-            setForm((previous) =>
-              previous === null ? previous : updateRoleProvider(previous, role, provider),
-            )
-          }}
-        >
-          <option value="">inherit</option>
-          {MODEL_PROVIDER_NAMES.map((provider) => (
-            <option key={provider} value={provider}>
-              {provider}
-            </option>
-          ))}
-        </select>
-      </td>
-      <td>
-        <select
-          className="admin-form-select"
-          value={override.model}
-          onChange={(event) => {
-            const model = event.target.value
-            setForm((previous) =>
-              previous === null ? previous : updateRoleModel(previous, role, model),
-            )
-          }}
-        >
-          <option value="">inherit</option>
-          {modelOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </td>
-      <td>
-        <button
-          type="button"
-          className="admin-button admin-button-secondary"
-          onClick={() => {
-            setForm((previous) =>
-              previous === null
-                ? previous
-                : updateRoleOverride(previous, role, { provider: '', model: '' }),
-            )
-          }}
-        >
-          Reset to default
-        </button>
-      </td>
-    </tr>
+    <ModelSelectionTable
+      providers={MODEL_PROVIDER_NAMES}
+      rows={ROLE_KEYS.map((role) => ({
+        id: `role-${role}`,
+        label: ROLE_LABELS[role],
+        value: form.roleOverrides[role],
+      }))}
+      onChange={(rowId, value) => {
+        const role = ROLE_KEYS.find((key) => `role-${key}` === rowId)
+        if (role === undefined) return
+        setForm((previous) =>
+          previous === null ? previous : updateRoleOverride(previous, role, value),
+        )
+      }}
+    />
   )
 }
 
 function updateGlobalProvider(previous: ModelConfigForm, provider: string): ModelConfigForm {
   return {
     ...previous,
-    globalDefault: {
-      provider,
-      model: getSupportedModelOrEmpty(provider, previous.globalDefault.model),
-    },
+    globalDefault: selectProvider(previous.globalDefault, provider),
   }
 }
 
@@ -284,24 +207,6 @@ function updateGlobalModel(previous: ModelConfigForm, model: string): ModelConfi
     ...previous,
     globalDefault: { ...previous.globalDefault, model },
   }
-}
-
-function updateRoleProvider(
-  previous: ModelConfigForm,
-  role: RoleKey,
-  provider: string,
-): ModelConfigForm {
-  return updateRoleOverride(previous, role, {
-    provider,
-    model: getSupportedModelOrEmpty(provider, previous.roleOverrides[role].model),
-  })
-}
-
-function updateRoleModel(previous: ModelConfigForm, role: RoleKey, model: string): ModelConfigForm {
-  return updateRoleOverride(previous, role, {
-    ...previous.roleOverrides[role],
-    model,
-  })
 }
 
 function updateRoleOverride(
@@ -316,12 +221,6 @@ function updateRoleOverride(
       [role]: override,
     },
   }
-}
-
-function getSupportedModelOrEmpty(provider: string, model: string): string {
-  return getModelPresetOptions(provider, model).some((option) => option.value === model)
-    ? model
-    : ''
 }
 
 function toModelConfigForm(config: ModelConfigResponse): ModelConfigForm {

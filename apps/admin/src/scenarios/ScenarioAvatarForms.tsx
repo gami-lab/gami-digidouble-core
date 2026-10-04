@@ -3,12 +3,13 @@ import type { JSX, SyntheticEvent } from 'react'
 import {
   AVATAR_COMPUTED_TRAIT_KEYS,
   AVATAR_COMPUTED_TRAIT_LABELS,
+  MODEL_SELECTION_PROVIDER_NAMES,
   mapAvatarOverride,
 } from '@gami/shared'
 import type { AvatarComputedTraits, AvatarStatus, AvatarSummary } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { createAvatar, updateAvatar } from '../api/scenarios'
-import { ModelSelectionFields } from './ModelSelectionFields'
+import { ModelSelectionTable } from '../model-selection/ModelSelectionTable'
 import {
   EMPTY_MODEL_SELECTION,
   fromAvatarLlmOverride,
@@ -352,14 +353,24 @@ function AvatarFormFields({
         </select>
       </div>
 
-      <ModelSelectionFields
-        idPrefix={`${idPrefix}-avatar-model`}
-        label="Avatar model override"
-        value={modelOverride}
-        disabled={saving}
-        helperText="Leave empty to inherit the scenario default or global avatar runtime config."
-        onChange={onModelOverrideChange}
-      />
+      <div className="admin-form-group">
+        <p className="admin-form-label">Runtime model</p>
+        <ModelSelectionTable
+          providers={MODEL_SELECTION_PROVIDER_NAMES}
+          disabled={saving}
+          rows={[
+            {
+              id: `${idPrefix}-avatar-model`,
+              label: 'Avatar model override',
+              description: 'Leave on inherit to use the scenario default or global avatar runtime config.',
+              value: modelOverride,
+            },
+          ]}
+          onChange={(_rowId, value) => {
+            onModelOverrideChange(value)
+          }}
+        />
+      </div>
       <VoiceConfigurationFields
         idPrefix={idPrefix}
         voiceKey={voiceKey}

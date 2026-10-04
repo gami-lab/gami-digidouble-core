@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
-import { SCENARIO_MODEL_SLOTS, type ScenarioStatus } from '@gami/shared'
-import { ModelSelectionFields } from './ModelSelectionFields'
+import { MODEL_SELECTION_PROVIDER_NAMES, SCENARIO_MODEL_SLOTS, type ScenarioStatus } from '@gami/shared'
+import { ModelSelectionTable } from '../model-selection/ModelSelectionTable'
 import { ObjectivesEditor } from './ObjectivesEditor'
 import {
   SCENARIO_MODEL_SLOT_FIELDS,
@@ -119,22 +119,29 @@ export function ScenarioFormFields({
 
       <ObjectivesEditor objectives={objectives} disabled={disabled} onChange={onObjectivesChange} />
 
-      {SCENARIO_MODEL_SLOTS.map((slot) => {
-        const field = SCENARIO_MODEL_SLOT_FIELDS[slot]
-        return (
-          <ModelSelectionFields
-            key={slot}
-            idPrefix={`${idPrefix}-${field.idSuffix}`}
-            label={field.label}
-            value={modelSelection[slot]}
-            disabled={disabled}
-            helperText={field.helperText}
-            onChange={(value) => {
-              onModelSelectionChange({ ...modelSelection, [slot]: value })
-            }}
-          />
-        )
-      })}
+      <div className="admin-form-group">
+        <p className="admin-form-label">Runtime models</p>
+        <p className="admin-muted">
+          Leave a row on inherit to use the scenario default, then the global model config.
+        </p>
+        <ModelSelectionTable
+          providers={MODEL_SELECTION_PROVIDER_NAMES}
+          disabled={disabled}
+          rows={SCENARIO_MODEL_SLOTS.map((slot) => ({
+            id: `${idPrefix}-${SCENARIO_MODEL_SLOT_FIELDS[slot].idSuffix}`,
+            label: SCENARIO_MODEL_SLOT_FIELDS[slot].label,
+            description: SCENARIO_MODEL_SLOT_FIELDS[slot].helperText,
+            value: modelSelection[slot],
+          }))}
+          onChange={(rowId, value) => {
+            const slot = SCENARIO_MODEL_SLOTS.find(
+              (key) => `${idPrefix}-${SCENARIO_MODEL_SLOT_FIELDS[key].idSuffix}` === rowId,
+            )
+            if (slot === undefined) return
+            onModelSelectionChange({ ...modelSelection, [slot]: value })
+          }}
+        />
+      </div>
       <VoiceConfigurationFields
         idPrefix={idPrefix}
         voiceKey={voiceKey}

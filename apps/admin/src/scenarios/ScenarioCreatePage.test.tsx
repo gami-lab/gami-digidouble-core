@@ -81,30 +81,30 @@ describe('ScenarioCreatePage', () => {
 
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'New Scenario' } })
     fireEvent.change(
-      screen.getByLabelText('Provider', { selector: '#sc-default-model-provider' }),
+      screen.getByLabelText(/ provider$/, { selector: '#sc-default-model-provider' }),
       {
         target: { value: 'openai' },
       },
     )
-    fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-default-model-model' }), {
+    fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#sc-default-model-model' }), {
       target: { value: 'gpt-5.6-luna' },
     })
-    fireEvent.change(screen.getByLabelText('Provider', { selector: '#sc-avatar-model-provider' }), {
+    fireEvent.change(screen.getByLabelText(/ provider$/, { selector: '#sc-avatar-model-provider' }), {
       target: { value: 'mistral' },
     })
-    fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-avatar-model-model' }), {
+    fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#sc-avatar-model-model' }), {
       target: { value: 'mistral-small-4' },
     })
-    fireEvent.change(screen.getByLabelText('Provider', { selector: '#sc-gm-model-provider' }), {
+    fireEvent.change(screen.getByLabelText(/ provider$/, { selector: '#sc-gm-model-provider' }), {
       target: { value: 'anthropic' },
     })
-    fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-gm-model-model' }), {
+    fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#sc-gm-model-model' }), {
       target: { value: 'claude-sonnet-4-6' },
     })
-    fireEvent.change(screen.getByLabelText('Provider', { selector: '#sc-memory-model-provider' }), {
+    fireEvent.change(screen.getByLabelText(/ provider$/, { selector: '#sc-memory-model-provider' }), {
       target: { value: 'openai' },
     })
-    fireEvent.change(screen.getByLabelText('Model', { selector: '#sc-memory-model-model' }), {
+    fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#sc-memory-model-model' }), {
       target: { value: 'gpt-5.6-luna' },
     })
     fireEvent.submit(

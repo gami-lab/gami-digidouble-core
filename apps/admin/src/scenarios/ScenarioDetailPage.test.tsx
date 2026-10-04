@@ -234,12 +234,12 @@ describe('ScenarioDetailPage navigation and avatar actions', () => {
       target: { value: 'You are Mira.' },
     })
     fireEvent.change(
-      screen.getByLabelText('Provider', { selector: '#create-avatar-model-provider' }),
+      screen.getByLabelText(/ provider$/, { selector: '#create-avatar-model-provider' }),
       {
         target: { value: 'openai' },
       },
     )
-    fireEvent.change(screen.getByLabelText('Model', { selector: '#create-avatar-model-model' }), {
+    fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#create-avatar-model-model' }), {
       target: { value: 'gpt-5.6-luna' },
     })
     fireEvent.submit(
@@ -334,21 +334,21 @@ describe('ScenarioDetailPage scenario edit form', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
 
     fireEvent.change(
-      screen.getByLabelText('Provider', { selector: '#edit-sc-avatar-model-provider' }),
+      screen.getByLabelText(/ provider$/, { selector: '#edit-sc-avatar-model-provider' }),
       {
         target: { value: '' },
       },
     )
-    fireEvent.change(screen.getByLabelText('Model', { selector: '#edit-sc-avatar-model-model' }), {
+    fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#edit-sc-avatar-model-model' }), {
       target: { value: '' },
     })
     fireEvent.change(
-      screen.getByLabelText('Provider', { selector: '#edit-sc-memory-model-provider' }),
+      screen.getByLabelText(/ provider$/, { selector: '#edit-sc-memory-model-provider' }),
       {
         target: { value: 'anthropic' },
       },
     )
-    fireEvent.change(screen.getByLabelText('Model', { selector: '#edit-sc-memory-model-model' }), {
+    fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#edit-sc-memory-model-model' }), {
       target: { value: 'claude-haiku-4-5' },
     })
     fireEvent.submit(
