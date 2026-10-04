@@ -83,8 +83,52 @@ export async function sendMessageStream(
   handlers: MessageStreamHandlers,
   signal?: AbortSignal,
 ): Promise<void> {
-  const path = `/v1/conversations/${conversationId}/messages/stream`
-  const response = await openMessageStream(path, request, signal)
+  await streamMessageEvents(
+    `/v1/conversations/${conversationId}/messages/stream`,
+    { 'Content-Type': 'application/json' },
+    JSON.stringify(request),
+    handlers,
+    signal,
+  )
+}
+
+export type VoiceMessageUpload = Readonly<{
+  audio: Blob
+  /** Unique per recording; Core rejects duplicates of the same utterance. */
+  utteranceId: string
+  durationMs?: number
+}>
+
+/** Sends one recorded utterance; the reply streams back with the same events as text. */
+export async function sendVoiceMessageStream(
+  conversationId: string,
+  upload: VoiceMessageUpload,
+  handlers: MessageStreamHandlers,
+  signal?: AbortSignal,
+): Promise<void> {
+  await streamMessageEvents(
+    `/v1/conversations/${conversationId}/voice-messages/stream`,
+    {
+      'Content-Type': upload.audio.type,
+      'x-utterance-id': upload.utteranceId,
+      ...(upload.durationMs === undefined
+        ? {}
+        : { 'x-audio-duration-ms': String(Math.max(1, Math.round(upload.durationMs))) }),
+    },
+    upload.audio,
+    handlers,
+    signal,
+  )
+}
+
+async function streamMessageEvents(
+  path: string,
+  headers: Record<string, string>,
+  requestBody: BodyInit,
+  handlers: MessageStreamHandlers,
+  signal?: AbortSignal,
+): Promise<void> {
+  const response = await openMessageStream(path, headers, requestBody, signal)
   if (response === null) {
     return
   }
@@ -195,17 +239,15 @@ async function consumeMessageStream(
 
 async function openMessageStream(
   path: string,
-  request: SendMessageRequest,
+  headers: Record<string, string>,
+  body: BodyInit,
   signal?: AbortSignal,
 ): Promise<Response | null> {
   try {
     return await fetch(`${normalizeApiUrl(apiUrl)}${path}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-      },
-      body: JSON.stringify(request),
+      headers: { ...headers, 'x-api-key': apiKey },
+      body,
       ...(signal !== undefined ? { signal } : {}),
     })
   } catch (error) {
