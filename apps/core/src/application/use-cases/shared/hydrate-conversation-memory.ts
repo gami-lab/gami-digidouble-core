@@ -35,15 +35,19 @@ export async function hydrateConversationMemoryForNewConversation(args: {
     await episodicMemoryService.hydrateForNewConversationWithMetadata(input)
   const hydration = hydrationWithMetadata.hydration
 
-  await conversationWorkingMemoryRepository.upsert({
-    conversationId: input.conversationId,
-    sessionId: input.sessionId,
-    avatarId: input.avatarId,
-    summary: hydration.summary,
-    unresolvedThreads: hydration.unresolvedThreads,
-    coveredTopics: hydration.coveredTopics,
-    candidateFacts: hydration.candidateFacts,
-  })
+  // Without prior episodes there is nothing to carry over; a placeholder summary would be read
+  // as real memory by prompts and embedded as a retrieval query.
+  if (hydrationWithMetadata.selectedConversationIds.length > 0) {
+    await conversationWorkingMemoryRepository.upsert({
+      conversationId: input.conversationId,
+      sessionId: input.sessionId,
+      avatarId: input.avatarId,
+      summary: hydration.summary,
+      unresolvedThreads: hydration.unresolvedThreads,
+      coveredTopics: hydration.coveredTopics,
+      candidateFacts: hydration.candidateFacts,
+    })
+  }
 
   if (eventLogRepository === undefined) return
 

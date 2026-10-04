@@ -51,4 +51,8 @@ describe('episodic-memory policy', () => {
     expect(summary).toContain('Episode A')
     expect(summary).toContain('Episode B')
   })
+
+  it('returns no text when there are no episodes', () => {
+    expect(buildHydrationSummary([])).toBe('')
+  })
 })

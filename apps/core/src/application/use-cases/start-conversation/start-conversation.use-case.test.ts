@@ -219,6 +219,36 @@ describe('StartConversationUseCase', () => {
   })
 })
 
+describe('StartConversationUseCase empty hydration', () => {
+  it('writes no working memory when the user has no prior episodes with this avatar', async () => {
+    const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository()
+    const useCase = new StartConversationUseCase(
+      sessionRepository,
+      avatarRepository,
+      conversationRepository,
+      conversationWorkingMemoryRepository,
+      {
+        hydrateForNewConversationWithMetadata: vi.fn().mockResolvedValue({
+          hydration: { summary: '', coveredTopics: [], unresolvedThreads: [], candidateFacts: [] },
+          selectedConversationIds: [],
+          consideredConversationIds: [],
+        }),
+        generateForClosedConversation: vi.fn().mockResolvedValue(undefined),
+      },
+      { append: appendEventMock, findBySessionId: vi.fn() },
+    )
+
+    await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' })
+
+    await expect(
+      conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
+    ).resolves.toBeNull()
+    expect(appendEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'memory_hydration_succeeded' }),
+    )
+  })
+})
+
 describe('StartConversationUseCase initial GM run', () => {
   it('dispatches a GM run for the new conversation before any user message exists', async () => {
     const runGameMasterExecuteMock = vi.fn().mockResolvedValue(undefined)

@@ -18,12 +18,12 @@ details live in `DATA_MODEL.md`; GM-specific usage rules live in `GAME_MASTER_CO
 
 ## Layers and owners
 
-| Layer            | Scope                            | Owner                              | Rule                                                                                                                                                                     |
-| ---------------- | -------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Recent exchanges | conversation                     | context assembly                   | At most the three most recent complete exchanges, oldest-to-newest; never incomplete pairs. This is a runtime projection over `messages`, not a second transcript store. |
-| Working memory   | conversation                     | memory compaction                  | `summary`, `unresolvedThreads`, `coveredTopics`, `candidateFacts`. Rewritten each refresh, not blindly appended; persisted in `conversation_working_memories`.           |
-| Episodic memory  | conversation/user-facing history | memory maintenance                 | Compact completed episodes, stored in `conversation_memories`; hydrate only bounded relevant records, never transcript replay.                                           |
-| User facts       | user                             | fact extraction/deletion use cases | Stable preferences/expertise/goals only; deduplicated by `(user_id, category, key)`; allow explicit deletion.                                                            |
+| Layer            | Scope                            | Owner                              | Rule                                                                                                                                                                                |
+| ---------------- | -------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Recent exchanges | conversation                     | context assembly                   | At most the three most recent complete exchanges, oldest-to-newest; never incomplete pairs. This is a runtime projection over `messages`, not a second transcript store.            |
+| Working memory   | conversation                     | memory compaction                  | `summary`, `unresolvedThreads`, `coveredTopics`, `candidateFacts`. Rewritten each refresh, not blindly appended; persisted in `conversation_working_memories`.                      |
+| Episodic memory  | conversation/user-facing history | memory maintenance                 | Compact completed episodes, stored in `conversation_memories`; hydrate only bounded relevant records, never transcript replay; with no prior episode, no working memory is written. |
+| User facts       | user                             | fact extraction/deletion use cases | Stable preferences/expertise/goals only; deduplicated by `(user_id, category, key)`; allow explicit deletion.                                                                       |
 
 There is no separate open/closed status column for a working-memory topic: a topic is "covered"
 once it appears in `coveredTopics`, and a thread is "open" while it appears in `unresolvedThreads`.

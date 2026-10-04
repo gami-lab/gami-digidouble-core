@@ -22,7 +22,6 @@ export function selectRelevantConversationMemories(
 }
 
 export function buildHydrationSummary(memories: ConversationMemory[]): string {
-  if (memories.length === 0) return 'No prior episodic memory for this avatar and scenario.'
   const parts = memories.map((memory) => {
     const discoveries =
       memory.keyDiscoveries.length > 0
