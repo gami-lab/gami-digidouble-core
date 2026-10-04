@@ -453,13 +453,16 @@ describe('buildGmImpactTrace', () => {
     const turnPayload = turnEvent.payload as TurnCompletedEventPayload
     if (turnPayload.avatarContext === undefined) return
     if (gmPayload.decision === undefined) return
+    const contextSelection = turnPayload.contextSelection as NonNullable<
+      TurnCompletedEventPayload['contextSelection']
+    >
 
     gmPayload.decision = {
       ...gmPayload.decision,
       retrievalRequired: true,
       retrievalPlan: {
         required: true,
-        queries: ['Mona harbor'],
+        queries: ['Mona harbor', 'unindexed clue'],
         requiredFacts: ['Mona current location'],
       },
     }
@@ -477,8 +480,29 @@ describe('buildGmImpactTrace', () => {
           generatedAt: '2026-05-07T10:00:01.000Z',
           consumedOnTurn: 2,
           required: true,
-          queries: ['Mona harbor'],
+          queries: ['Mona harbor', 'unindexed clue'],
           requiredFacts: ['Mona current location'],
+        },
+        contextSelection: {
+          ...contextSelection,
+          retrieval: {
+            ...(contextSelection.retrieval ?? {
+              selectedForAssemblyCounts: { avatar_knowledge: 0, world: 0, media: 0 },
+              includedCounts: { avatar_knowledge: 0, world: 0, media: 0 },
+            }),
+            retrievalTrace: {
+              query: 'Mona harbor | Mona current location',
+              queries: [
+                { source: 'gm_retrieval_query', text: 'Mona harbor', queryIndex: 0 },
+                { source: 'gm_required_fact', text: 'Mona current location', queryIndex: 1 },
+              ],
+              perType: {
+                avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
+                world: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_plan_match'] },
+                media: { sourceIds: [], selectedChunkIds: [] },
+              },
+            },
+          },
         },
         avatarContext: {
           ...turnPayload.avatarContext,
@@ -507,8 +531,13 @@ describe('buildGmImpactTrace', () => {
 
     expect(first?.gmRetrievalPlan).toEqual({
       required: true,
-      queries: [{ text: 'Mona harbor', matchedChunkIds: ['chunk_plan_match'] }],
-      requiredFacts: [{ text: 'Mona current location', matchedChunkIds: [] }],
+      queries: [
+        { text: 'Mona harbor', matchedChunkIds: ['chunk_plan_match'], usedInRetrieval: true },
+        { text: 'unindexed clue', matchedChunkIds: [], usedInRetrieval: false },
+      ],
+      requiredFacts: [
+        { text: 'Mona current location', matchedChunkIds: [], usedInRetrieval: true },
+      ],
       consumedByTurnIndex: 2,
     })
   })

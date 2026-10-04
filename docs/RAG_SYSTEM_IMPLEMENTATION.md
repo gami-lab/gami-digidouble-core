@@ -160,6 +160,7 @@ Visibility diagnostics include considered candidates but do not claim to count r
 visibility filters. Never expose raw vectors, credentials, provider payloads, or unbounded source
 content. Runtime events and admin/console projections reuse the shared retrieval DTOs; operator
 screens use the same categories as the API (Shared Avatar Knowledge, Shared World Knowledge, Media
-Knowledge).
+Knowledge). GM plan diagnostics distinguish a proposal that was not sent to Avatar retrieval from one
+that was sent but retained no final chunk; raw per-proposal candidate counts are not persisted.
 
 See [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md) for profile changes and reindex operations.

@@ -4,6 +4,7 @@ import type {
   KnowledgeType,
   RecordedKnowledgeReferenceDto,
   RetrievalQuerySource,
+  RetrievalTraceDto,
   SessionEventRecord,
   TurnCompletedEventPayload,
 } from '@gami/shared'
@@ -39,6 +40,8 @@ export type GmRetrievalPlanTrace = {
 export type RetrievalProposalTrace = {
   text: string
   matchedChunkIds: string[]
+  /** Whether this exact proposal was sent as a retrieval query variant. */
+  usedInRetrieval?: boolean
 }
 
 export type RetrievalTraceItem = Omit<RecordedKnowledgeReferenceDto, 'sourceId' | 'reason'> & {
@@ -269,13 +272,14 @@ function toGmRetrievalPlanTrace(
         knowledgeSourceNameById,
       ).retrieval
     : []
+  const consumedRetrievalTrace = consumedTurn?.contextSelection?.retrieval?.retrievalTrace
   return {
     required: plan.required,
     queries: plan.queries.map((text) =>
-      toRetrievalProposal(text, 'gm_retrieval_query', consumedRetrieval),
+      toRetrievalProposal(text, 'gm_retrieval_query', consumedRetrieval, consumedRetrievalTrace),
     ),
     requiredFacts: plan.requiredFacts.map((text) =>
-      toRetrievalProposal(text, 'gm_required_fact', consumedRetrieval),
+      toRetrievalProposal(text, 'gm_required_fact', consumedRetrieval, consumedRetrievalTrace),
     ),
     ...(consumedTurn !== undefined ? { consumedByTurnIndex: consumedTurn.turnIndex } : {}),
   }
@@ -285,8 +289,15 @@ function toRetrievalProposal(
   text: string,
   source: RetrievalQuerySource,
   retrievedItems: RetrievalTraceItem[],
+  retrievalTrace: RetrievalTraceDto | undefined,
 ): RetrievalProposalTrace {
   const normalizedText = normalizeTraceText(text)
+  const usedInRetrieval =
+    retrievalTrace?.queries === undefined
+      ? undefined
+      : retrievalTrace.queries.some(
+          (query) => query.source === source && normalizeTraceText(query.text) === normalizedText,
+        )
   return {
     text,
     matchedChunkIds: retrievedItems
@@ -296,6 +307,7 @@ function toRetrievalProposal(
           normalizeTraceText(item.matchedQuery.text) === normalizedText,
       )
       .map((item) => item.chunkId),
+    ...(usedInRetrieval !== undefined ? { usedInRetrieval } : {}),
   }
 }
 

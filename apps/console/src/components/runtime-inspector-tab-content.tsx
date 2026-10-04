@@ -5,7 +5,11 @@ import { getKnowledgeTypeLabel } from '@gami/shared'
 import type { GmSessionEventPayload, RuntimeEvent, UserPersona } from '@gami/shared'
 import type { RuntimeInspectorViewModel } from '../api'
 import { buildGmImpactTrace } from './gm-impact-trace'
-import type { GmRetrievalPlanTrace, RetrievalTraceItem } from './gm-impact-trace'
+import type {
+  GmRetrievalPlanTrace,
+  RetrievalProposalTrace,
+  RetrievalTraceItem,
+} from './gm-impact-trace'
 import type { MemoryEvolutionSnapshot } from './memory-evolution'
 import { computeMemoryDelta } from './memory-evolution'
 import { buildPersonaPayload, PersonaEditor } from './runtime-inspector-persona'
@@ -693,16 +697,24 @@ function TraceProposalGroup({
         <ul style={traceListStyle}>
           {proposals.map((proposal) => (
             <li key={`${title}-${proposal.text}`}>
-              {proposal.text} —{' '}
-              {proposal.matchedChunkIds.length > 0
-                ? `matched ${String(proposal.matchedChunkIds.length)} chunk(s): ${proposal.matchedChunkIds.join(', ')}`
-                : 'no matching chunk recorded'}
+              {proposal.text} — {formatProposalMatch(proposal)}
             </li>
           ))}
         </ul>
       )}
     </div>
   )
+}
+
+function formatProposalMatch(proposal: RetrievalProposalTrace): string {
+  if (proposal.usedInRetrieval === false) return 'not used by Avatar retrieval'
+  if (proposal.usedInRetrieval === true && proposal.matchedChunkIds.length === 0) {
+    return 'used, but no final chunk retained'
+  }
+  if (proposal.matchedChunkIds.length > 0) {
+    return `used; retained ${String(proposal.matchedChunkIds.length)} final chunk(s): ${proposal.matchedChunkIds.join(', ')}`
+  }
+  return 'final chunk attribution unavailable'
 }
 
 function MetricsTab({ snapshot }: { snapshot: RuntimeInspectorViewModel }): JSX.Element {
