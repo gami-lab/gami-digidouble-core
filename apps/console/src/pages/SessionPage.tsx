@@ -58,7 +58,7 @@ export function SessionPage({ route }: { route: SessionRoute }): JSX.Element {
           {route.view === 'turns' ? (
             <TurnsView route={route} data={data} onChanged={session.reload} />
           ) : null}
-          {route.view === 'memory' ? <MemoryView sessionId={route.sessionId} data={data} /> : null}
+          {route.view === 'memory' ? <MemoryView data={data} /> : null}
           {route.view === 'context' ? (
             <ContextView sessionId={route.sessionId} data={data} />
           ) : null}

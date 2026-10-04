@@ -7,8 +7,8 @@ import {
   replayGm,
   resetSession,
 } from '../../api/sessions'
-import { shortId } from '../../debug/format'
-import { Badge, ErrorText, KeyValues, LangfuseSessionLink, Section } from '../../ui/ui'
+import { formatTime, shortId } from '../../debug/format'
+import { Badge, ErrorText, KeyValues, LangfuseSessionLink, Section, TextList } from '../../ui/ui'
 import type { SessionData, SessionDataState } from './use-session-data'
 
 export function avatarName(data: SessionData, avatarId: string | null | undefined): string {
@@ -16,7 +16,6 @@ export function avatarName(data: SessionData, avatarId: string | null | undefine
   return data.avatars.find((avatar) => avatar.avatarId === avatarId)?.name ?? shortId(avatarId)
 }
 
-// eslint-disable-next-line complexity -- render-only branching
 export function SessionHeader({
   data,
   state,
@@ -24,14 +23,15 @@ export function SessionHeader({
   data: SessionData
   state: SessionDataState
 }): JSX.Element {
-  const { session, gmState, effectiveModels, gmNotes } = data.inspect
+  const { session, effectiveModels } = data.inspect
   const unlocked = data.inspect.unlockedAvatarIds.map((id) => avatarName(data, id))
+  const conversationCount = data.conversations.length
 
   return (
     <div className="card stack">
       <div className="row spread">
         <div className="row">
-          <h1>{session.userId}</h1>
+          <h1>Session {shortId(session.sessionId)}</h1>
           <Badge tone={session.status === 'active' ? 'ok' : 'neutral'}>{session.status}</Badge>
           <span
             className="row small muted"
@@ -51,18 +51,14 @@ export function SessionHeader({
       </div>
       <KeyValues
         items={[
+          ['User', session.userId],
           ['Talking to', avatarName(data, session.activeAvatarId)],
           [
-            'Game Master',
-            gmState === null
-              ? 'not started'
-              : `progression “${gmState.progression || '—'}” · ${String(gmState.interactionCount)} interactions`,
+            'Turns',
+            `${String(data.turnCount)} in ${String(conversationCount)} conversation${conversationCount === 1 ? '' : 's'}`,
           ],
           ['Unlocked avatars', unlocked.length > 0 ? unlocked.join(', ') : '—'],
-          [
-            'Queued director note',
-            gmNotes ?? <span className="muted">none (applies to the next turn)</span>,
-          ],
+          ['Conversation memory', <ConversationMemory data={data} />],
           [
             'Models',
             `Avatar ${effectiveModels.avatar.provider}/${effectiveModels.avatar.model} · GM ${effectiveModels.gameMaster.provider}/${effectiveModels.gameMaster.model} · Memory ${effectiveModels.memory.provider}/${effectiveModels.memory.model}`,
@@ -71,6 +67,29 @@ export function SessionHeader({
       />
       <OperatorActions sessionId={session.sessionId} onDone={state.reload} />
     </div>
+  )
+}
+
+// The working memory the Avatar receives right now: written every third exchange, so it lags the
+// latest turns and is absent early in a conversation.
+function ConversationMemory({ data }: { data: SessionData }): JSX.Element {
+  const current = data.memory.working.current
+  if (current === undefined) {
+    return <span className="muted">none yet (written after the third exchange)</span>
+  }
+  return (
+    <details>
+      <summary className="small">
+        {avatarName(data, current.avatarId)} · updated {formatTime(current.updatedAt)} ·{' '}
+        {current.unresolvedThreads.length} open threads
+      </summary>
+      <p className="prewrap" style={{ marginTop: 6 }}>
+        {current.summary}
+      </p>
+      {current.unresolvedThreads.length > 0 ? (
+        <TextList items={current.unresolvedThreads} empty="—" />
+      ) : null}
+    </details>
   )
 }
 

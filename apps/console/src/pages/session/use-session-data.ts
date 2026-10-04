@@ -5,12 +5,14 @@ import type {
   ConversationSummary,
   Message,
   ScenarioSummary,
+  SessionMemoryLayers,
 } from '@gami/shared'
 import { listKnowledgeSources } from '../../api/knowledge'
 import { subscribeToRuntimeEvents } from '../../api/runtime-events-stream'
 import { getScenario, listScenarioAvatars } from '../../api/scenarios'
 import {
   getHistory,
+  getSessionMemoryLayers,
   inspectSession,
   listSessionConversations,
   listSessionEvents,
@@ -24,6 +26,9 @@ export type SessionData = {
   avatars: AvatarSummary[]
   sourceNames: Record<string, string>
   conversations: ConversationSummary[]
+  /** User messages across all conversations: one per turn, including interrupted ones. */
+  turnCount: number
+  memory: SessionMemoryLayers
   timeline: TimelineEntry[]
 }
 
@@ -45,10 +50,11 @@ export function useSessionData(sessionId: string): SessionDataState {
 }
 
 async function loadSessionData(sessionId: string): Promise<SessionData> {
-  const [{ inspect }, eventsResponse, conversations] = await Promise.all([
+  const [{ inspect }, eventsResponse, conversations, memoryResponse] = await Promise.all([
     inspectSession(sessionId),
     listSessionEvents(sessionId),
     listSessionConversations(sessionId),
+    getSessionMemoryLayers(sessionId),
   ])
   const scenarioId = inspect.session.scenarioId
   const [scenario, avatars, sources, histories] = await Promise.all([
@@ -68,6 +74,11 @@ async function loadSessionData(sessionId: string): Promise<SessionData> {
       sources.sources.map((source) => [source.sourceId, source.name]),
     ),
     conversations,
+    turnCount: histories.reduce(
+      (sum, history) => sum + history.messages.filter((message) => message.role === 'user').length,
+      0,
+    ),
+    memory: memoryResponse.session,
     timeline: buildSessionTimeline(eventsResponse.events, messagesByConversation),
   }
 }

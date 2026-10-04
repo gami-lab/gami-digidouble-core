@@ -1,23 +1,13 @@
 import type { JSX } from 'react'
 import type { SessionMemoryLayers } from '@gami/shared'
-import { getSessionMemoryLayers } from '../../api/sessions'
 import { formatDateTime, formatTime } from '../../debug/format'
-import { Badge, Empty, ErrorText, KeyValues, Section, TextList } from '../../ui/ui'
-import { useAsync } from '../../ui/use-async'
+import { Badge, Empty, KeyValues, Section, TextList } from '../../ui/ui'
 import { RecentExchangesView } from './AvatarContextView'
 import { MemoryRunView } from './MemoryRunView'
 import { avatarName } from './SessionHeader'
 import type { SessionData } from './use-session-data'
 
-export function MemoryView({
-  sessionId,
-  data,
-}: {
-  sessionId: string
-  data: SessionData
-}): JSX.Element {
-  const layers = useAsync(() => getSessionMemoryLayers(sessionId), [sessionId, data])
-  const memory = layers.data?.session
+export function MemoryView({ data }: { data: SessionData }): JSX.Element {
   const updates = data.timeline.flatMap((entry) => entry.memory)
 
   return (
@@ -26,14 +16,7 @@ export function MemoryView({
         Memory is layered: recent exchanges are kept verbatim, working memory is an LLM-written
         summary per conversation, and long-term memory holds episodic summaries and user facts.
       </p>
-      <ErrorText error={layers.error} />
-      {memory === undefined ? (
-        layers.error === null ? (
-          <Empty>Loading memory…</Empty>
-        ) : null
-      ) : (
-        <MemoryLayers memory={memory} data={data} />
-      )}
+      <MemoryLayers memory={data.memory} data={data} />
       <Section
         title="Update history"
         aside={<span className="small muted">{updates.length} working-memory refreshes</span>}
