@@ -11,6 +11,7 @@ import type { Conversation, Message } from '../../../domain/conversation/session
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import { cleanAvatarResponse } from '../../../domain/avatar/avatar-response-cleaner.js'
 import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-avatar.repository.js'
+import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
@@ -318,5 +319,70 @@ describe('SynthesizeMessageAudioUseCase', () => {
       }),
     ).rejects.toMatchObject({ code: 'CONFLICT' })
     expect(adapter.inputs).toHaveLength(0)
+  })
+})
+
+describe('SynthesizeMessageAudioUseCase debug events', () => {
+  function createWithEvents(adapter: ITextToSpeechAdapter): {
+    useCase: SynthesizeMessageAudioUseCase
+    events: InMemoryEventLogRepository
+  } {
+    const events = new InMemoryEventLogRepository()
+    const useCase = new SynthesizeMessageAudioUseCase(
+      new InMemoryConversationRepository([conversation]),
+      new InMemoryMessageRepository([avatarMessage]),
+      new InMemoryAvatarRepository([avatar]),
+      new InMemoryScenarioRepository([scenario]),
+      adapter,
+      undefined,
+      events,
+    )
+    return { useCase, events }
+  }
+
+  it('records how long the spoken reply took, keyed by the message', async () => {
+    const { useCase, events } = createWithEvents(createAdapter())
+
+    await useCase.execute({
+      conversationId: conversation.conversationId,
+      messageId: avatarMessage.messageId,
+      requestId: 'request_tts',
+    })
+
+    expect(events.getAll()).toEqual([
+      expect.objectContaining({
+        sessionId: conversation.sessionId,
+        type: 'message_audio_synthesized',
+        correlationId: 'request_tts',
+        payload: expect.objectContaining({
+          messageId: avatarMessage.messageId,
+          provider: 'gradium',
+          characterCount: persistedAvatarContent.length,
+          byteLength: 3,
+          latencyMs: expect.any(Number) as number,
+        }) as unknown,
+      }),
+    ])
+  })
+
+  it('records a failed synthesis with its failure code', async () => {
+    const { useCase, events } = createWithEvents(
+      createAdapter(new TextToSpeechError({ code: 'rate_limited', retryable: true })),
+    )
+
+    await expect(
+      useCase.execute({
+        conversationId: conversation.conversationId,
+        messageId: avatarMessage.messageId,
+        requestId: 'request_tts',
+      }),
+    ).rejects.toBeInstanceOf(TextToSpeechError)
+
+    expect(events.getAll()).toEqual([
+      expect.objectContaining({
+        type: 'message_audio_failed',
+        payload: expect.objectContaining({ errorCode: 'rate_limited' }) as unknown,
+      }),
+    ])
   })
 })

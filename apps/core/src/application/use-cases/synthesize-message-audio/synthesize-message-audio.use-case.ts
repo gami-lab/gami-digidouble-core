@@ -6,6 +6,7 @@ import {
 } from '../../ports/ITextToSpeechAdapter.js'
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
+import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import { DomainError } from '../../../domain/errors.js'
@@ -25,6 +26,7 @@ export class SynthesizeMessageAudioUseCase {
     private readonly scenarioRepository: IScenarioRepository,
     private readonly textToSpeechAdapter: ITextToSpeechAdapter,
     private readonly maxOutputBytes = TEXT_TO_SPEECH_LIMITS.maxOutputBytes,
+    private readonly eventLogRepository?: IEventLogRepository,
   ) {}
 
   async execute(input: SynthesizeMessageAudioInput): Promise<TextToSpeechResult> {
@@ -64,6 +66,52 @@ export class SynthesizeMessageAudioUseCase {
     }
     const voiceId = await this.resolveVoiceId(scenario, avatar)
 
+    return await this.synthesizeWithEvent(
+      { sessionId: conversation.sessionId, conversationId: conversation.conversationId },
+      message,
+      voiceId,
+      normalized,
+    )
+  }
+
+  private async synthesizeWithEvent(
+    conversation: { sessionId: string; conversationId: string },
+    message: { messageId: string; content: string },
+    voiceId: string,
+    normalized: ReturnType<typeof validateInput>,
+  ): Promise<TextToSpeechResult> {
+    const startedAt = Date.now()
+    const event = {
+      sessionId: conversation.sessionId,
+      correlationId: normalized.requestId,
+      conversationId: conversation.conversationId,
+      messageId: message.messageId,
+      characterCount: message.content.length,
+    }
+    try {
+      const result = await this.synthesize(message, voiceId, normalized)
+      await this.recordEvent('message_audio_synthesized', event, {
+        latencyMs: Date.now() - startedAt,
+        byteLength: result.metadata.byteLength,
+        ...(result.metadata.durationMs === undefined
+          ? {}
+          : { audioDurationMs: result.metadata.durationMs }),
+      })
+      return result
+    } catch (error) {
+      await this.recordEvent('message_audio_failed', event, {
+        latencyMs: Date.now() - startedAt,
+        errorCode: error instanceof TextToSpeechError ? error.failure.code : 'synthesis_failed',
+      })
+      throw error
+    }
+  }
+
+  private async synthesize(
+    message: { messageId: string; content: string },
+    voiceId: string,
+    normalized: ReturnType<typeof validateInput>,
+  ): Promise<TextToSpeechResult> {
     const result = await this.textToSpeechAdapter.synthesize(
       {
         text: message.content,
@@ -76,13 +124,40 @@ export class SynthesizeMessageAudioUseCase {
     )
     return validateTextToSpeechResult(
       result,
-      {
-        requestId: normalized.requestId,
-        messageId: message.messageId,
-        format: normalized.format,
-      },
+      { requestId: normalized.requestId, messageId: message.messageId, format: normalized.format },
       this.maxOutputBytes,
     )
+  }
+
+  // Lets the debug timeline show how long the spoken reply took; never blocks or fails synthesis.
+  private async recordEvent(
+    type: 'message_audio_synthesized' | 'message_audio_failed',
+    event: {
+      sessionId: string
+      correlationId: string
+      conversationId: string
+      messageId: string
+      characterCount: number
+    },
+    outcome: Record<string, unknown>,
+  ): Promise<void> {
+    if (this.eventLogRepository === undefined) return
+    const { sessionId, correlationId, ...payload } = event
+    try {
+      await this.eventLogRepository.append({
+        sessionId,
+        type,
+        severity: type === 'message_audio_failed' ? 'error' : 'info',
+        correlationId,
+        payload: {
+          ...payload,
+          provider: this.textToSpeechAdapter.provider ?? 'none',
+          ...outcome,
+        },
+      })
+    } catch (error) {
+      console.error('[synthesize-message-audio] Event log append failed:', error)
+    }
   }
 
   /** Avatar voice → scenario voice → the provider's default voice for the scenario language. */

@@ -389,6 +389,7 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
           repositories.scenarioRepository,
           options.textToSpeechAdapter,
           options.config.textToSpeechLimits.maxOutputBytes,
+          repositories.eventLogRepository,
         )
 
   return {

@@ -219,6 +219,7 @@ export type {
   GmSessionEventPayload,
   MemoryRefreshEventPayload,
   MemoryConsolidationEventPayload,
+  MessageAudioEventPayload,
   TurnCompletedEventPayload,
   SessionEventRecord,
   AdminSessionEventsResponse,

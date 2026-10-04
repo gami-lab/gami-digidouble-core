@@ -3,6 +3,7 @@ import type {
   GmSessionEventPayload,
   MemoryConsolidationEventPayload,
   MemoryRefreshEventPayload,
+  MessageAudioEventPayload,
   SessionEventRecord,
   TurnCompletedEventPayload,
 } from '@gami/shared'
@@ -10,6 +11,7 @@ export type {
   GmSessionEventPayload,
   MemoryConsolidationEventPayload,
   MemoryRefreshEventPayload,
+  MessageAudioEventPayload,
   SessionEventRecord,
   TurnCompletedEventPayload,
 }

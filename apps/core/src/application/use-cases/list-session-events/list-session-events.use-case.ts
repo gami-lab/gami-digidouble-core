@@ -19,6 +19,7 @@ import type {
   ListSessionEventsOutput,
   MemoryConsolidationEventPayload,
   MemoryRefreshEventPayload,
+  MessageAudioEventPayload,
   SessionEventRecord,
   TurnCompletedEventPayload,
 } from './list-session-events.types.js'
@@ -65,7 +66,10 @@ const MEMORY_CONSOLIDATION_TYPES = new Set([
   'episodic_memory_generation_failed',
 ])
 
+const MESSAGE_AUDIO_TYPES = new Set(['message_audio_synthesized', 'message_audio_failed'])
+
 const ALLOWED_EVENT_TYPES = new Set([
+  ...MESSAGE_AUDIO_TYPES,
   'gm_triggered',
   'gm_error',
   'turn_completed',
@@ -94,6 +98,7 @@ function toSafeSessionEvent(event: StoredEvent): SessionEventRecord[] {
 
 function resolvePayload(event: StoredEvent): SessionEventRecord['payload'] | null {
   if (MEMORY_REFRESH_TYPES.has(event.type)) return toSafeMemoryRefreshPayload(event.payload)
+  if (MESSAGE_AUDIO_TYPES.has(event.type)) return toSafeMessageAudioPayload(event.payload)
   if (MEMORY_CONSOLIDATION_TYPES.has(event.type)) {
     return toSafeMemoryConsolidationPayload(event.payload)
   }
@@ -182,6 +187,21 @@ function toSafeMemoryConsolidationPayload(
     ...(facts !== undefined ? { facts } : {}),
     ...readOptionalStringField(payload, 'error'),
     ...readOptionalStringField(payload, 'llmTraceId'),
+  }
+}
+
+function toSafeMessageAudioPayload(payload: Record<string, unknown>): MessageAudioEventPayload {
+  const byteLength = readOptionalNumber(payload['byteLength'])
+  const audioDurationMs = readOptionalNumber(payload['audioDurationMs'])
+  return {
+    conversationId: readString(payload['conversationId']),
+    messageId: readString(payload['messageId']),
+    provider: readString(payload['provider']),
+    characterCount: readNumber(payload['characterCount']),
+    latencyMs: readNumber(payload['latencyMs']),
+    ...(byteLength !== undefined ? { byteLength } : {}),
+    ...(audioDurationMs !== undefined ? { audioDurationMs } : {}),
+    ...readOptionalStringField(payload, 'errorCode'),
   }
 }
 

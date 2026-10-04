@@ -204,5 +204,6 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   outside `totalTurnLatencyMs`) and `avatarFirstTokenLatencyMs` (streamed turns). Post-turn memory
   refreshes that the cadence skips log no event. Conversation-close memory work (user-fact
   extraction with the extracted facts, episodic generation) is listed too; events outside a turn use
-  their own request id as `correlationId`.
+  their own request id as `correlationId`. Each reply audio synthesis is listed
+  (`message_audio_synthesized`/`message_audio_failed`, keyed by `messageId`, with `latencyMs`).
 - Prefer additive changes, preserve field meaning, and update shared DTOs plus consumer tests together.

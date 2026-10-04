@@ -217,6 +217,18 @@ export type MemoryConsolidationEventPayload = {
   llmTraceId?: string
 }
 
+/** One text-to-speech synthesis of an Avatar message, requested after the turn completed. */
+export type MessageAudioEventPayload = {
+  conversationId: string
+  messageId: string
+  provider: string
+  characterCount: number
+  latencyMs: number
+  byteLength?: number
+  audioDurationMs?: number
+  errorCode?: string
+}
+
 export type SessionEventRecord = {
   type:
     | 'gm_triggered'
@@ -229,6 +241,8 @@ export type SessionEventRecord = {
     | 'user_fact_extraction_failed'
     | 'episodic_memory_generation_succeeded'
     | 'episodic_memory_generation_failed'
+    | 'message_audio_synthesized'
+    | 'message_audio_failed'
   /** The turn's request id, or the event's own request id for work outside a turn. */
   correlationId: string
   createdAt: string
@@ -237,6 +251,7 @@ export type SessionEventRecord = {
     | TurnCompletedEventPayload
     | MemoryRefreshEventPayload
     | MemoryConsolidationEventPayload
+    | MessageAudioEventPayload
 }
 
 export type AdminSessionEventsResponse = {
