@@ -9,6 +9,7 @@ import {
 import { ApiError } from '../api/client'
 import { formatApiError } from '../api/error'
 import { getModelConfig, updateModelConfig } from '../api/model-config'
+import { useDocumentTitle } from '../routing/router'
 
 type RoleKey = 'avatar' | 'gameMaster' | 'memory'
 
@@ -36,6 +37,7 @@ const ROLE_LABELS: Record<RoleKey, string> = {
 }
 
 export function ModelConfigPage(): JSX.Element {
+  useDocumentTitle(['Model config'])
   const [form, setForm] = useState<ModelConfigForm | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)

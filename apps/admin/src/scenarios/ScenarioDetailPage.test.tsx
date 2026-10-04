@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /* eslint-disable max-lines */
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarSummary, KnowledgeSourceDto, ScenarioSummary } from '@gami/shared'
 import {
@@ -20,7 +20,7 @@ import {
   updateKnowledgeSource as updateKnowledgeSourceApi,
   uploadKnowledgeSource as uploadKnowledgeSourceApi,
 } from '../api/knowledge'
-import { ScenarioDetailPage } from './ScenarioDetailPage'
+import { renderRoutedDetailPage } from './detail-page-test-utils'
 
 vi.mock('../api/scenarios', () => ({
   getScenario: vi.fn(),
@@ -109,13 +109,13 @@ function mockReadyLoad({
   vi.mocked(listKnowledgeSources).mockResolvedValue(knowledgeSources)
 }
 
-function renderPage(onBack = vi.fn()): void {
-  render(<ScenarioDetailPage scenarioId="scenario_a" onBack={onBack} />)
+function renderPage(): void {
+  renderRoutedDetailPage()
 }
 
 async function waitForScenario(name = 'Guided Discovery'): Promise<void> {
   await waitFor(() => {
-    expect(screen.getByText(name)).toBeTruthy()
+    expect(screen.getByRole('heading', { name })).toBeTruthy()
   })
 }
 
@@ -177,14 +177,34 @@ describe('ScenarioDetailPage loading and data states', () => {
 })
 
 describe('ScenarioDetailPage navigation and avatar actions', () => {
-  it('calls onBack when the back button is clicked', () => {
+  it('links back to the scenario list from the breadcrumb', () => {
     mockPendingLoad()
-    const onBack = vi.fn()
 
-    renderPage(onBack)
-    fireEvent.click(screen.getByRole('button', { name: '← Back to scenarios' }))
+    renderPage()
+    fireEvent.click(screen.getByRole('link', { name: 'Scenarios' }))
 
-    expect(onBack).toHaveBeenCalledTimes(1)
+    expect(window.location.pathname).toBe('/scenarios')
+  })
+
+  it('reflects sub-views in the URL and breadcrumb, and returns to the scenario on cancel', async () => {
+    mockReadyLoad({ avatars: [createAvatar()] })
+
+    renderPage()
+    await waitForScenario()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[1] as HTMLElement)
+
+    expect(window.location.pathname).toBe('/scenarios/scenario_a/avatars/avatar_1/edit')
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe(
+      'Scenarios›Guided Discovery›Edit avatar: Mira',
+    )
+    expect(document.title).toBe('Edit avatar: Mira · Guided Discovery · Scenarios — Gami Admin')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/scenarios/scenario_a')
+    })
+    await waitForScenario()
   })
 
   it('shows avatar create form when "Add avatar" is clicked', async () => {
@@ -289,7 +309,7 @@ describe('ScenarioDetailPage scenario edit form', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
 
-    expect(screen.getByText('Edit scenario')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Edit scenario' })).toBeTruthy()
     expect(document.querySelector<HTMLSelectElement>('#edit-sc-avatar-model-model')?.value).toBe(
       'mistral-small-4',
     )

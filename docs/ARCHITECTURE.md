@@ -92,7 +92,10 @@ Core exposes two HTTP surfaces that must stay separated in routing and responsib
 `apps/console` is a consumer-only debug layer over canonical Core routes with a single Session
 Inspector read path (no parallel compatibility reads). `apps/admin` is the first-class
 scenario-builder authoring app (scenarios, avatars, knowledge, runtime model selection); it is a
-consumer layer too — no direct DB access, no duplicated business logic.
+consumer layer too — no direct DB access, no duplicated business logic. Every admin screen,
+including scenario sub-views (edit forms, ingested data, retrieval tester), has its own URL
+(`apps/admin/src/routing/router.ts`, History API, no router dependency) so reload, browser
+Back/Forward, and deep links work; the nginx image falls back to `index.html` under `/admin/`.
 
 ## Code layout
 

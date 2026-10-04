@@ -51,13 +51,10 @@ describe('ScenarioCreatePage', () => {
     expect(onBack).toHaveBeenCalledTimes(1)
   })
 
-  it('calls onBack when back link is clicked', () => {
-    const onBack = vi.fn()
-    render(<ScenarioCreatePage onBack={onBack} onCreated={vi.fn()} />)
+  it('links back to the scenario list from the breadcrumb', () => {
+    render(<ScenarioCreatePage onBack={vi.fn()} onCreated={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: '← Back to scenarios' }))
-
-    expect(onBack).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('link', { name: 'Scenarios' }).getAttribute('href')).toBe('/scenarios')
   })
 
   it('submits the form and calls onCreated with the new scenario ID', async () => {

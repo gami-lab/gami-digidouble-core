@@ -50,6 +50,9 @@ function createModelConfig(): ModelConfigResponse {
   }
 }
 
+const scrollTo = vi.fn()
+window.scrollTo = scrollTo
+
 describe('App navigation', () => {
   afterEach(() => {
     cleanup()
@@ -57,6 +60,8 @@ describe('App navigation', () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
+    window.history.replaceState(null, '', '/')
+    scrollTo.mockClear()
   })
 
   it('shows the nav shell and the scenario list by default', async () => {
@@ -89,9 +94,57 @@ describe('App navigation', () => {
     screen.getByText('Guided Discovery').closest('tr')?.click()
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '← Back to scenarios' })).toBeTruthy()
+      expect(screen.getByRole('heading', { name: 'Guided Discovery' })).toBeTruthy()
     })
     expect(getScenario).toHaveBeenCalledWith('scenario_a')
+    expect(window.location.pathname).toBe('/scenarios/scenario_a')
+    expect(document.title).toBe('Guided Discovery · Scenarios — Gami Admin')
+  })
+
+  it('opens a sub-view directly from its URL', async () => {
+    vi.mocked(getScenario).mockResolvedValue(createScenario())
+    vi.mocked(listScenarioAvatars).mockResolvedValue([])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
+    window.history.replaceState(null, '', '/scenarios/scenario_a/edit')
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Edit scenario' })).toBeTruthy()
+    })
+    expect(listScenarios).not.toHaveBeenCalled()
+  })
+
+  it('returns to the previous screen and its scroll position on browser Back', async () => {
+    vi.mocked(listScenarios).mockResolvedValue([createScenario()])
+    vi.mocked(getScenario).mockResolvedValue(createScenario())
+    vi.mocked(listScenarioAvatars).mockResolvedValue([])
+    vi.mocked(listKnowledgeSources).mockResolvedValue([])
+    window.history.replaceState(null, '', '/scenarios/scenario_a')
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Guided Discovery' })).toBeTruthy()
+    })
+    Object.defineProperty(window, 'scrollY', { value: 420, configurable: true })
+    screen.getByRole('button', { name: 'Edit' }).click()
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Edit scenario' })).toBeTruthy()
+    })
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 0)
+
+    window.history.back()
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/scenarios/scenario_a')
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Guided Discovery' })).toBeTruthy()
+    })
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 420)
+    expect(getScenario).toHaveBeenCalledTimes(1)
   })
 
   it('opens the model config page from the nav', async () => {
@@ -104,11 +157,12 @@ describe('App navigation', () => {
       expect(screen.getByText('Guided Discovery')).toBeTruthy()
     })
 
-    screen.getByRole('button', { name: 'Model Config' }).click()
+    screen.getByRole('link', { name: 'Model Config' }).click()
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Model configuration' })).toBeTruthy()
     })
+    expect(window.location.pathname).toBe('/model-config')
     expect(getModelConfig).toHaveBeenCalledTimes(1)
   })
 })

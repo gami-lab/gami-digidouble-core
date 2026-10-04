@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AvatarComputedTraits, AvatarSummary, ScenarioSummary } from '@gami/shared'
 import { getScenario, listScenarioAvatars, prepareAvatarTraits } from '../api/scenarios'
 import { listKnowledgeSources } from '../api/knowledge'
-import { ScenarioDetailPage } from './ScenarioDetailPage'
+import { renderRoutedDetailPage } from './detail-page-test-utils'
 
 vi.mock('../api/scenarios', () => ({
   getScenario: vi.fn(),
@@ -84,12 +84,12 @@ function mockReadyLoad({
 }
 
 function renderPage(): void {
-  render(<ScenarioDetailPage scenarioId="scenario_a" onBack={vi.fn()} />)
+  renderRoutedDetailPage()
 }
 
 async function waitForScenario(name = 'Guided Discovery'): Promise<void> {
   await waitFor(() => {
-    expect(screen.getByText(name)).toBeTruthy()
+    expect(screen.getByRole('heading', { name })).toBeTruthy()
   })
 }
 

@@ -1,55 +1,43 @@
-import { useState } from 'react'
 import type { JSX } from 'react'
 import { ModelConfigPage } from './model-config/ModelConfigPage'
+import { navigate, navigateUp, useRoute, useScrollRestoration } from './routing/router'
 import { AppShell } from './shell/AppShell'
+import { Breadcrumbs } from './shell/Breadcrumbs'
 import { ScenarioCreatePage } from './scenarios/ScenarioCreatePage'
 import { ScenarioDetailPage } from './scenarios/ScenarioDetailPage'
 import { ScenarioListPage } from './scenarios/ScenarioListPage'
 
-type AdminView =
-  | { name: 'scenario-list' }
-  | { name: 'scenario-create' }
-  | { name: 'scenario-detail'; scenarioId: string }
-  | { name: 'model-config' }
-
 function App(): JSX.Element {
-  const [view, setView] = useState<AdminView>({ name: 'scenario-list' })
-  const activeModuleId = view.name === 'model-config' ? 'model-config' : 'scenarios'
+  const route = useRoute()
+  useScrollRestoration(route)
+  const activeModuleId = route.name === 'model-config' ? 'model-config' : 'scenarios'
 
   return (
-    <AppShell
-      activeModuleId={activeModuleId}
-      onSelectModule={(moduleId) => {
-        setView(moduleId === 'model-config' ? { name: 'model-config' } : { name: 'scenario-list' })
-      }}
-    >
-      {view.name === 'scenario-list' ? (
+    <AppShell activeModuleId={activeModuleId}>
+      {route.name === 'scenario-list' ? (
         <ScenarioListPage
-          onOpenScenario={(scenarioId) => {
-            setView({ name: 'scenario-detail', scenarioId })
-          }}
           onCreateScenario={() => {
-            setView({ name: 'scenario-create' })
+            navigate({ name: 'scenario-create' })
           }}
         />
-      ) : view.name === 'scenario-create' ? (
+      ) : route.name === 'scenario-create' ? (
         <ScenarioCreatePage
           onBack={() => {
-            setView({ name: 'scenario-list' })
+            navigateUp({ name: 'scenario-list' })
           }}
           onCreated={(scenarioId) => {
-            setView({ name: 'scenario-detail', scenarioId })
+            navigate({ name: 'scenario-detail', scenarioId, mode: { kind: 'view' } }, { replace: true })
           }}
         />
-      ) : view.name === 'model-config' ? (
+      ) : route.name === 'model-config' ? (
         <ModelConfigPage />
+      ) : route.name === 'scenario-detail' ? (
+        <ScenarioDetailPage key={route.scenarioId} scenarioId={route.scenarioId} mode={route.mode} />
       ) : (
-        <ScenarioDetailPage
-          scenarioId={view.scenarioId}
-          onBack={() => {
-            setView({ name: 'scenario-list' })
-          }}
-        />
+        <section className="admin-card">
+          <Breadcrumbs items={[{ label: 'Scenarios', to: { name: 'scenario-list' } }, { label: 'Not found' }]} />
+          <p className="admin-error">This page does not exist.</p>
+        </section>
       )}
     </AppShell>
   )

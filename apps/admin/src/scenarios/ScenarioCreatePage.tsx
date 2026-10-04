@@ -3,6 +3,7 @@ import type { JSX, SyntheticEvent } from 'react'
 import type { ScenarioStatus } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { createScenario } from '../api/scenarios'
+import { Breadcrumbs } from '../shell/Breadcrumbs'
 import { ScenarioFormFields } from './ScenarioFormFields'
 import {
   EMPTY_SCENARIO_MODEL_SELECTION,
@@ -59,9 +60,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
 
   return (
     <section className="admin-card">
-      <button type="button" className="admin-link-button" onClick={onBack}>
-        ← Back to scenarios
-      </button>
+      <Breadcrumbs items={[{ label: 'Scenarios', to: { name: 'scenario-list' } }, { label: 'New scenario' }]} />
       <h2>Create scenario</h2>
       {createState.status === 'error' ? <p className="admin-error">{createState.message}</p> : null}
       <form onSubmit={(e) => void handleSubmit(e)}>

@@ -3,17 +3,16 @@ import type { JSX } from 'react'
 import type { ScenarioSummary } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { listScenarios } from '../api/scenarios'
+import { Link } from '../routing/Link'
+import { navigate, useDocumentTitle, type Route } from '../routing/router'
 import type { ScenarioListState } from './scenario-list-state'
 
 type ScenarioListPageProps = {
-  onOpenScenario: (scenarioId: string) => void
   onCreateScenario: () => void
 }
 
-export function ScenarioListPage({
-  onOpenScenario,
-  onCreateScenario,
-}: ScenarioListPageProps): JSX.Element {
+export function ScenarioListPage({ onCreateScenario }: ScenarioListPageProps): JSX.Element {
+  useDocumentTitle(['Scenarios'])
   const [state, setState] = useState<ScenarioListState>({ status: 'loading' })
 
   useEffect(() => {
@@ -51,17 +50,12 @@ export function ScenarioListPage({
         </button>
       </div>
       <p className="admin-muted">Select a scenario to view its details.</p>
-      <ScenarioListBody state={state} onOpenScenario={onOpenScenario} />
+      <ScenarioListBody state={state} />
     </section>
   )
 }
 
-type ScenarioListBodyProps = {
-  state: ScenarioListState
-  onOpenScenario: (scenarioId: string) => void
-}
-
-function ScenarioListBody({ state, onOpenScenario }: ScenarioListBodyProps): JSX.Element {
+function ScenarioListBody({ state }: { state: ScenarioListState }): JSX.Element {
   if (state.status === 'loading') {
     return <p>Loading scenarios…</p>
   }
@@ -74,15 +68,10 @@ function ScenarioListBody({ state, onOpenScenario }: ScenarioListBodyProps): JSX
     return <p className="admin-muted">No scenarios yet.</p>
   }
 
-  return <ScenarioTable scenarios={state.scenarios} onOpenScenario={onOpenScenario} />
+  return <ScenarioTable scenarios={state.scenarios} />
 }
 
-type ScenarioTableProps = {
-  scenarios: ScenarioSummary[]
-  onOpenScenario: (scenarioId: string) => void
-}
-
-function ScenarioTable({ scenarios, onOpenScenario }: ScenarioTableProps): JSX.Element {
+function ScenarioTable({ scenarios }: { scenarios: ScenarioSummary[] }): JSX.Element {
   return (
     <table className="admin-table">
       <thead>
@@ -93,20 +82,31 @@ function ScenarioTable({ scenarios, onOpenScenario }: ScenarioTableProps): JSX.E
         </tr>
       </thead>
       <tbody>
-        {scenarios.map((scenario) => (
-          <tr
-            key={scenario.scenarioId}
-            onClick={() => {
-              onOpenScenario(scenario.scenarioId)
-            }}
-          >
-            <td>{scenario.name}</td>
-            <td>
-              <span className="admin-status-pill">{scenario.status}</span>
-            </td>
-            <td>{scenario.objectives.length}</td>
-          </tr>
-        ))}
+        {scenarios.map((scenario) => {
+          const detailRoute: Route = {
+            name: 'scenario-detail',
+            scenarioId: scenario.scenarioId,
+            mode: { kind: 'view' },
+          }
+          return (
+            <tr
+              key={scenario.scenarioId}
+              onClick={() => {
+                navigate(detailRoute)
+              }}
+            >
+              <td>
+                <Link to={detailRoute} className="admin-table-link">
+                  {scenario.name}
+                </Link>
+              </td>
+              <td>
+                <span className="admin-status-pill">{scenario.status}</span>
+              </td>
+              <td>{scenario.objectives.length}</td>
+            </tr>
+          )
+        })}
       </tbody>
     </table>
   )

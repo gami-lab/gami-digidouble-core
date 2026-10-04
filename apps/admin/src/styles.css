@@ -68,6 +68,7 @@ body {
   font-weight: 500;
   font: inherit;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .admin-nav-item-active {
@@ -132,14 +133,27 @@ body {
   color: #374151;
 }
 
-.admin-link-button {
-  background: none;
-  border: none;
-  padding: 0;
+.admin-breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.admin-breadcrumbs a {
   color: #2563eb;
-  cursor: pointer;
-  font: inherit;
-  text-decoration: underline;
+}
+
+.admin-breadcrumbs [aria-current='page'] {
+  color: #111827;
+  font-weight: 500;
+}
+
+.admin-table-link {
+  color: inherit;
+  text-decoration: none;
 }
 
 .admin-section-header {

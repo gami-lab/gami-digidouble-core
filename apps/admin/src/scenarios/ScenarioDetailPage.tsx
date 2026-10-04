@@ -28,8 +28,46 @@ import { ScenarioEditForm } from './ScenarioEditForm'
 import { KnowledgeSourceCreateForm, KnowledgeSourceEditForm } from './ScenarioKnowledgeSourceForms'
 import { ScenarioKnowledgeChunksView } from './ScenarioKnowledgeChunksView'
 import { ScenarioKnowledgeRetrievalTester } from './ScenarioKnowledgeRetrievalTester'
+import { navigate, navigateUp, type DetailMode } from '../routing/router'
+import { Breadcrumbs, type Crumb } from '../shell/Breadcrumbs'
 import { ScenarioView } from './ScenarioDetailView'
 import type { IngestUiStatus, PrepareTraitsStatus } from './ScenarioDetailView'
+
+function buildBreadcrumbs(scenarioId: string, mode: DetailMode, state: DetailState): Crumb[] {
+  const data = state.status === 'ready' ? state.data : null
+  const scenarioCrumb: Crumb = {
+    label: data?.scenario.name ?? 'Scenario',
+    to: { name: 'scenario-detail', scenarioId, mode: { kind: 'view' } },
+  }
+  const crumbs: Crumb[] = [{ label: 'Scenarios', to: { name: 'scenario-list' } }, scenarioCrumb]
+  const modeLabel = describeMode(mode, data)
+  return modeLabel === null ? crumbs : [...crumbs, { label: modeLabel }]
+}
+
+function describeMode(mode: DetailMode, data: DetailData | null): string | null {
+  const avatarName = (avatarId: string): string =>
+    data?.avatars.find((avatar) => avatar.avatarId === avatarId)?.name ?? avatarId
+  const sourceName = (sourceId: string): string =>
+    data?.knowledgeSources.find((source) => source.sourceId === sourceId)?.name ?? sourceId
+  switch (mode.kind) {
+    case 'view':
+      return null
+    case 'editing-scenario':
+      return 'Edit scenario'
+    case 'creating-avatar':
+      return 'New avatar'
+    case 'editing-avatar':
+      return `Edit avatar: ${avatarName(mode.avatarId)}`
+    case 'creating-knowledge':
+      return 'New knowledge source'
+    case 'editing-knowledge':
+      return `Edit knowledge: ${sourceName(mode.sourceId)}`
+    case 'viewing-knowledge-chunks':
+      return `Ingested data: ${sourceName(mode.sourceId)}`
+    case 'testing-retrieval':
+      return 'Test retrieval'
+  }
+}
 
 const INGESTION_POLL_INTERVAL_MS = 1200
 const INGESTION_POLL_MAX_ATTEMPTS = 30
@@ -80,18 +118,8 @@ function computeNextAvailability(
 
 type ScenarioDetailPageProps = {
   scenarioId: string
-  onBack: () => void
+  mode: DetailMode
 }
-
-type DetailMode =
-  | { kind: 'view' }
-  | { kind: 'editing-scenario' }
-  | { kind: 'creating-avatar' }
-  | { kind: 'editing-avatar'; avatarId: string }
-  | { kind: 'creating-knowledge' }
-  | { kind: 'editing-knowledge'; sourceId: string }
-  | { kind: 'viewing-knowledge-chunks'; sourceId: string }
-  | { kind: 'testing-retrieval' }
 
 type DetailData = {
   scenario: ScenarioSummary
@@ -102,11 +130,10 @@ type DetailData = {
 type DetailState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; data: DetailData; mode: DetailMode; actionError: string | null }
+  | { status: 'ready'; data: DetailData; actionError: string | null }
 
 type ReadyStateUpdates = Partial<{
   data: DetailData
-  mode: DetailMode
   actionError: string | null
 }>
 
@@ -118,7 +145,7 @@ type SetDetailActionError = (message: string) => void
 type RefreshDetailData = (updated: Partial<DetailData>) => void
 type MakeReadyState = (updates: ReadyStateUpdates) => DetailState
 
-export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPageProps): JSX.Element {
+export function ScenarioDetailPage({ scenarioId, mode }: ScenarioDetailPageProps): JSX.Element {
   const [state, setState] = useState<DetailState>({ status: 'loading' })
   const [ingestStatus, setIngestStatus] = useState<Record<string, IngestUiStatus>>({})
   const [prepareTraitsStatus, setPrepareTraitsStatus] = useState<PrepareTraitsStatus>({ kind: 'idle' })
@@ -128,7 +155,7 @@ export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPagePro
     setPrepareTraitsStatus({ kind: 'idle' })
     Promise.all([getScenario(scenarioId), listScenarioAvatars(scenarioId), listKnowledgeSources(scenarioId)])
       .then(([scenario, avatars, knowledgeSources]) => {
-        setState({ status: 'ready', data: { scenario, avatars, knowledgeSources }, mode: { kind: 'view' }, actionError: null })
+        setState({ status: 'ready', data: { scenario, avatars, knowledgeSources }, actionError: null })
       })
       .catch((error: unknown) => {
         setState({
@@ -144,11 +171,10 @@ export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPagePro
 
   return (
     <section className="admin-card">
-      <button type="button" className="admin-link-button" onClick={onBack}>
-        ← Back to scenarios
-      </button>
+      <Breadcrumbs items={buildBreadcrumbs(scenarioId, mode, state)} />
       <DetailBody
         state={state}
+        mode={mode}
         onSetState={setState}
         ingestStatus={ingestStatus}
         onSetIngestStatus={setIngestStatus}
@@ -161,6 +187,7 @@ export function ScenarioDetailPage({ scenarioId, onBack }: ScenarioDetailPagePro
 
 type DetailBodyProps = {
   state: DetailState
+  mode: DetailMode
   onSetState: SetDetailState
   ingestStatus: Record<string, IngestUiStatus>
   onSetIngestStatus: SetIngestStatus
@@ -170,6 +197,7 @@ type DetailBodyProps = {
 
 function DetailBody({
   state,
+  mode,
   onSetState,
   ingestStatus,
   onSetIngestStatus,
@@ -181,7 +209,7 @@ function DetailBody({
   return (
     <ReadyDetailBody
       data={state.data}
-      mode={state.mode}
+      mode={mode}
       actionError={state.actionError}
       onSetState={onSetState}
       ingestStatus={ingestStatus}
@@ -216,18 +244,24 @@ function ReadyDetailBody({
   const makeReady: MakeReadyState = (updates) => ({
     status: 'ready',
     data: updates.data ?? data,
-    mode: updates.mode ?? mode,
     actionError: updates.actionError !== undefined ? updates.actionError : actionError,
   })
 
+  const scenarioId = data.scenario.scenarioId
   const setMode: SetDetailMode = (next) => {
-    onSetState(makeReady({ mode: next, actionError: null }))
+    onSetState(makeReady({ actionError: null }))
+    if (next.kind === 'view') {
+      navigateUp({ name: 'scenario-detail', scenarioId, mode: next })
+    } else {
+      navigate({ name: 'scenario-detail', scenarioId, mode: next })
+    }
   }
   const setActionError: SetDetailActionError = (message) => {
     onSetState(makeReady({ actionError: message }))
   }
   const refreshData: RefreshDetailData = (updated) => {
-    onSetState(makeReady({ data: { ...data, ...updated }, mode: { kind: 'view' }, actionError: null }))
+    onSetState(makeReady({ data: { ...data, ...updated }, actionError: null }))
+    navigateUp({ name: 'scenario-detail', scenarioId, mode: { kind: 'view' } })
   }
 
   const modePanel = renderModePanel({ data, mode, refreshData, setMode, setActionError })
@@ -319,10 +353,7 @@ function renderKnowledgeChunksMode(
   setMode: SetDetailMode,
 ): JSX.Element {
   const source = data.knowledgeSources.find((item) => item.sourceId === sourceId)
-  if (source === undefined) {
-    setMode({ kind: 'view' })
-    return <p>Knowledge source not found.</p>
-  }
+  if (source === undefined) return <p className="admin-error">Knowledge source not found.</p>
 
   return <ScenarioKnowledgeChunksView source={source} onClose={() => { setMode({ kind: 'view' }) }} />
 }
@@ -335,10 +366,7 @@ function renderAvatarEditMode(
   setActionError: SetDetailActionError,
 ): JSX.Element {
   const avatar = data.avatars.find((item) => item.avatarId === avatarId)
-  if (avatar === undefined) {
-    setMode({ kind: 'view' })
-    return <p>Avatar not found.</p>
-  }
+  if (avatar === undefined) return <p className="admin-error">Avatar not found.</p>
 
   return (
     <AvatarEditForm
@@ -360,10 +388,7 @@ function renderKnowledgeEditMode(
   setActionError: SetDetailActionError,
 ): JSX.Element {
   const source = data.knowledgeSources.find((item) => item.sourceId === sourceId)
-  if (source === undefined) {
-    setMode({ kind: 'view' })
-    return <p>Knowledge source not found.</p>
-  }
+  if (source === undefined) return <p className="admin-error">Knowledge source not found.</p>
 
   return (
     <KnowledgeSourceEditForm

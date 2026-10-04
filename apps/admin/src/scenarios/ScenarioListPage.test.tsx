@@ -36,7 +36,7 @@ describe('ScenarioListPage', () => {
   it('shows a loading state while scenarios are fetched', () => {
     vi.mocked(listScenarios).mockReturnValue(new Promise(() => {}))
 
-    render(<ScenarioListPage onOpenScenario={vi.fn()} onCreateScenario={vi.fn()} />)
+    render(<ScenarioListPage onCreateScenario={vi.fn()} />)
 
     expect(screen.getByText('Loading scenarios…')).toBeTruthy()
   })
@@ -44,7 +44,7 @@ describe('ScenarioListPage', () => {
   it('renders fetched scenarios once loaded', async () => {
     vi.mocked(listScenarios).mockResolvedValue([createScenario('scenario_a', 'Guided Discovery')])
 
-    render(<ScenarioListPage onOpenScenario={vi.fn()} onCreateScenario={vi.fn()} />)
+    render(<ScenarioListPage onCreateScenario={vi.fn()} />)
 
     await waitFor(() => {
       expect(screen.getByText('Guided Discovery')).toBeTruthy()
@@ -54,33 +54,36 @@ describe('ScenarioListPage', () => {
   it('shows an error message when the fetch fails', async () => {
     vi.mocked(listScenarios).mockRejectedValue(new Error('network down'))
 
-    render(<ScenarioListPage onOpenScenario={vi.fn()} onCreateScenario={vi.fn()} />)
+    render(<ScenarioListPage onCreateScenario={vi.fn()} />)
 
     await waitFor(() => {
       expect(screen.getByText('UNKNOWN_ERROR: Failed to load scenarios')).toBeTruthy()
     })
   })
 
-  it('opens a scenario when its row is clicked', async () => {
+  it('links each scenario to its detail URL and opens it when the row is clicked', async () => {
     vi.mocked(listScenarios).mockResolvedValue([createScenario('scenario_a', 'Guided Discovery')])
-    const onOpenScenario = vi.fn()
+    window.history.replaceState(null, '', '/scenarios')
 
-    render(<ScenarioListPage onOpenScenario={onOpenScenario} onCreateScenario={vi.fn()} />)
+    render(<ScenarioListPage onCreateScenario={vi.fn()} />)
 
     await waitFor(() => {
       expect(screen.getByText('Guided Discovery')).toBeTruthy()
     })
 
+    expect(screen.getByRole('link', { name: 'Guided Discovery' }).getAttribute('href')).toBe(
+      '/scenarios/scenario_a',
+    )
     screen.getByText('Guided Discovery').closest('tr')?.click()
 
-    expect(onOpenScenario).toHaveBeenCalledWith('scenario_a')
+    expect(window.location.pathname).toBe('/scenarios/scenario_a')
   })
 
   it('calls onCreateScenario when "Create scenario" is clicked', async () => {
     vi.mocked(listScenarios).mockResolvedValue([])
     const onCreateScenario = vi.fn()
 
-    render(<ScenarioListPage onOpenScenario={vi.fn()} onCreateScenario={onCreateScenario} />)
+    render(<ScenarioListPage onCreateScenario={onCreateScenario} />)
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Create scenario' })).toBeTruthy()

@@ -1,14 +1,14 @@
 import type { JSX, ReactNode } from 'react'
 import { apiUrl } from '../env'
+import { Link } from '../routing/Link'
 import { NAV_ITEMS, type NavModuleId } from './nav-items'
 
 type AppShellProps = {
   activeModuleId: NavModuleId
-  onSelectModule: (moduleId: NavModuleId) => void
   children: ReactNode
 }
 
-export function AppShell({ activeModuleId, onSelectModule, children }: AppShellProps): JSX.Element {
+export function AppShell({ activeModuleId, children }: AppShellProps): JSX.Element {
   return (
     <div className="admin-shell">
       <header className="admin-header">
@@ -20,18 +20,17 @@ export function AppShell({ activeModuleId, onSelectModule, children }: AppShellP
           <ul>
             {NAV_ITEMS.map((item) => (
               <li key={item.id}>
-                <button
-                  type="button"
+                <Link
+                  to={item.route}
                   className={
                     item.id === activeModuleId
                       ? 'admin-nav-item admin-nav-item-active'
                       : 'admin-nav-item'
                   }
-                  aria-current={item.id === activeModuleId ? 'page' : undefined}
-                  onClick={() => { onSelectModule(item.id) }}
+                  ariaCurrent={item.id === activeModuleId}
                 >
                   {item.label}
-                </button>
+                </Link>
               </li>
             ))}
           </ul>
