@@ -17,5 +17,6 @@ export default defineConfig({
     fileParallelism: false,
     include: ['src/**/*.integration.test.ts', 'src/**/*.e2e.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
+    globalSetup: ['./vitest.integration.global-setup.ts'],
   },
 })

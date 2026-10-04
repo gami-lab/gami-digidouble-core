@@ -1,13 +1,27 @@
 import postgres from 'postgres'
 import type { Sql } from 'postgres'
 
-export const DB_AVAILABLE = Boolean(process.env['DATABASE_URL'])
+// Integration tests never use DATABASE_URL: they truncate every table, so they get their own
+// database (recreated by vitest.integration.global-setup.ts) whose name must end in `_test`.
+export const DB_AVAILABLE = Boolean(process.env['TEST_DATABASE_URL'])
+
+/** Returns the database name, refusing anything that does not look like a test database. */
+export function assertTestDatabaseUrl(url: string): string {
+  const name = decodeURIComponent(new URL(url).pathname.replace(/^\//, ''))
+  if (!/^[A-Za-z0-9_]+_test$/.test(name)) {
+    throw new Error(
+      `Refusing to use database "${name}" for integration tests: TEST_DATABASE_URL must name a database ending in "_test".`,
+    )
+  }
+  return name
+}
 
 export function createTestSql(): Sql {
-  const url = process.env['DATABASE_URL']
+  const url = process.env['TEST_DATABASE_URL']
   if (!url) {
-    throw new Error('DATABASE_URL is required for integration tests')
+    throw new Error('TEST_DATABASE_URL is required for integration tests')
   }
+  assertTestDatabaseUrl(url)
 
   // onnotice suppresses PostgreSQL NOTICE messages (e.g. "relation already
   // exists, skipping" from CREATE TABLE IF NOT EXISTS) so they don't leak

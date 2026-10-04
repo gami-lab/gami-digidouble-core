@@ -39,6 +39,9 @@ per module) live in [TEST_COVERAGE_PLAN.md](TEST_COVERAGE_PLAN.md).
 - `*.integration.test.ts` — real adapter or database boundary (real PostgreSQL for repositories,
   real Redis when Redis semantics matter), mocked LLM providers unless specifically testing provider
   integration. Environment-gated with `describe.skipIf` when credentials/DB are absent.
+  Database tests use only `TEST_DATABASE_URL` (never `DATABASE_URL`): the integration global setup
+  drops and recreates that database from `infra/postgres/init.sql` each run, and tests refuse any
+  database whose name does not end in `_test`, so they can never wipe dev data.
 - `*.e2e.test.ts` — critical flow in one process through an in-process Fastify server (`inject()` —
   no real TCP), with fakes where appropriate.
 - `*.stack-e2e.test.ts` — real HTTP requests against a live Docker stack (production image +
@@ -94,7 +97,7 @@ preflight reason so audits do not fail for missing infrastructure. Set
 
 Use null/fake adapters by default. Gate real OpenAI/Anthropic/Mistral/xAI, Deepgram, Gradium,
 PostgreSQL, Redis, and stack checks on explicit environment configuration (for example
-`OPENAI_API_KEY`, `DATABASE_URL`, `VOICE_STACK_E2E=1`, `DEEPGRAM_LIVE_SMOKE=1`). Recognized
+`OPENAI_API_KEY`, `TEST_DATABASE_URL`, `VOICE_STACK_E2E=1`, `DEEPGRAM_LIVE_SMOKE=1`). Recognized
 transient provider outages (429/5xx/timeout/no-credits) may be dynamically skipped in local and
 nightly runs but must remain visible in output; invalid credentials and unexpected adapter/contract
 failures still block the job.

@@ -22,7 +22,7 @@
       "dependsOn": ["^build"],
       "cache": false,
       "passThroughEnv": [
-        "DATABASE_URL",
+        "TEST_DATABASE_URL",
         "REDIS_URL",
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
