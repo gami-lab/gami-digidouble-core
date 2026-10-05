@@ -120,9 +120,10 @@ rather than a silent corruption risk:
 - Write JSONB values as JS objects (`sql.json(value)` or a raw `$n::jsonb` parameter), never as
   `JSON.stringify(value)`: postgres.js already encodes jsonb parameters, so pre-stringifying stores a
   JSON string instead of an object. Repositories read objects only; there is no string fallback.
-- Voice configuration (`{ provider, voiceId }`) reuses the existing Avatar/Scenario `config` JSONB
-  under a reserved `voiceConfig` key rather than a new column; rows without the key use the
-  provider's default voice for the scenario language. Model overrides (`avatar.config.llmOverride`, `session.model_override`) follow the
+- Voice configuration (`{ provider, voiceId? }`) reuses the existing Avatar/Scenario `config` JSONB
+  under a reserved `voiceConfig` key rather than a new column; rows without the key use the default
+  provider, and selections without `voiceId` use the provider's default voice for the scenario
+  language. Model overrides (`avatar.config.llmOverride`, `session.model_override`) follow the
   same pattern: reserved JSONB keys projected into typed fields, not new top-level columns.
 
 ## Gotchas

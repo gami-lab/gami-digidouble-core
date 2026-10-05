@@ -15,8 +15,9 @@ describe('voice and audio contract guards', () => {
     expect(isAudioOutputFormat('audio/gradium')).toBe(false)
   })
 
-  it('accepts a provider voice selection and rejects unknown providers or extra fields', () => {
+  it('accepts a provider (with an optional voice) and rejects unknown providers or extra fields', () => {
     expect(isVoiceConfiguration({ provider: 'gradium', voiceId: 'YTpq7expH9539ERJ' })).toBe(true)
+    expect(isVoiceConfiguration({ provider: 'gradium' })).toBe(true)
     expect(isVoiceConfiguration({ provider: 'acme', voiceId: 'voice_1' })).toBe(false)
     expect(isVoiceConfiguration({ provider: 'gradium', voiceId: ' ' })).toBe(false)
     expect(isVoiceConfiguration({})).toBe(false)

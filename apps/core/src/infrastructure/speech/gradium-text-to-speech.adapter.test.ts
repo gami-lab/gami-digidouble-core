@@ -9,7 +9,7 @@ import {
   type TextToSpeechInput,
 } from '../../application/ports/ITextToSpeechAdapter.js'
 import {
-  createTextToSpeechAdapter,
+  createTextToSpeechProviders,
   GradiumTextToSpeechAdapter,
   type GradiumTransport,
   type GradiumTransportRequest,
@@ -389,43 +389,47 @@ describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
   })
 })
 
-describe('createTextToSpeechAdapter', () => {
-  it('uses the null adapter by default without provider credentials', async () => {
-    const adapter = createTextToSpeechAdapter(
-      {
-        provider: 'null',
-        baseUrl: 'https://gradium.test/api',
-        timeoutMs: 30_000,
-        limits: TEXT_TO_SPEECH_LIMITS,
-      },
+describe('createTextToSpeechProviders', () => {
+  const gradium = { baseUrl: 'https://gradium.test/api', timeoutMs: 30_000 }
+
+  it('registers no provider without credentials, so there is no default either', () => {
+    const providers = createTextToSpeechProviders(
+      { defaultProvider: 'gradium', gradium, limits: TEXT_TO_SPEECH_LIMITS },
       createObservability().adapter,
     )
 
-    await expect(adapter.synthesize(createInput())).rejects.toMatchObject({
-      failure: { code: 'provider_unavailable' },
-    })
-    expect(adapter.provider).toBeNull()
-    await expect(adapter.listVoices()).resolves.toEqual([])
-    await expect(adapter.getDefaultVoiceId('fr')).resolves.toBeUndefined()
+    expect(providers.available).toEqual([])
+    expect(providers.defaultProvider).toBeNull()
+    expect(providers.get('gradium')).toBeUndefined()
   })
 
-  it('reports selected Gradium configuration without credentials as invalid configuration', async () => {
-    const adapter = createTextToSpeechAdapter(
+  it('registers Gradium when its API key is present and keeps it as the default', () => {
+    const providers = createTextToSpeechProviders(
       {
-        provider: 'gradium',
-        baseUrl: 'https://gradium.test/api',
-        timeoutMs: 30_000,
+        defaultProvider: 'gradium',
+        gradium: { ...gradium, apiKey: 'gradium-secret-test' },
         limits: TEXT_TO_SPEECH_LIMITS,
       },
       createObservability().adapter,
     )
 
-    await expect(adapter.synthesize(createInput())).rejects.toMatchObject({
-      failure: { code: 'invalid_configuration', reason: 'missing_credentials' },
-    })
-    await expect(adapter.listVoices()).rejects.toMatchObject({
-      failure: { code: 'invalid_configuration', reason: 'missing_credentials' },
-    })
+    expect(providers.available).toEqual(['gradium'])
+    expect(providers.defaultProvider).toBe('gradium')
+    expect(providers.get('gradium')).toBeInstanceOf(GradiumTextToSpeechAdapter)
+  })
+
+  it('keeps Gradium selectable per scenario when there is no default provider', () => {
+    const providers = createTextToSpeechProviders(
+      {
+        defaultProvider: null,
+        gradium: { ...gradium, apiKey: 'gradium-secret-test' },
+        limits: TEXT_TO_SPEECH_LIMITS,
+      },
+      createObservability().adapter,
+    )
+
+    expect(providers.available).toEqual(['gradium'])
+    expect(providers.defaultProvider).toBeNull()
   })
 
   it('does not expose secrets through typed failures', () => {

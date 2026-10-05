@@ -84,8 +84,10 @@ All admin routes use `/v1/admin/*` and the same API key in Phase A.
 
 - `GET /v1/admin/health`
 - `GET|PUT /v1/admin/model-config`
-- `GET /v1/admin/voices?language=` — active text-to-speech provider voices plus the default voice
-  for that language (`provider: null`, no voices, when text-to-speech is disabled)
+- `GET /v1/admin/voices?provider=&language=` — `providers` (text-to-speech providers with an API
+  key on Core), `defaultProvider`, and the voices of `provider` (the requested one, else the
+  default, else the first available) plus its default voice for that language; `provider: null`
+  with no voices when that provider has no API key or none is available
 - `GET /v1/admin/sessions/{sessionId}/inspect`
 - `GET /v1/admin/sessions/{sessionId}/events`
 - `GET /v1/admin/sessions/{sessionId}/context`
@@ -134,10 +136,12 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   `Content-Length`, `Content-Disposition: inline`, `X-Request-Id`, `X-Message-Id`, and optional
   `X-Audio-Duration-Ms`. Audio bytes are transient and never change message/GM/memory behavior;
   repeated requests are independent reads.
-- Scenario and Avatar `voiceConfig` is `{ provider, voiceId }`, a provider voice picked from
-  `GET /v1/admin/voices`. Synthesis uses the Avatar voice, else the Scenario voice, else the
-  provider's default voice for the Scenario language; a selection saved for another provider is
-  skipped. With no usable voice, audio returns `409 CONFLICT` (`no_voice_available`).
+- Scenario and Avatar `voiceConfig` is `{ provider, voiceId? }`, a provider (and optionally one of
+  its voices) picked from `GET /v1/admin/voices`. Synthesis uses the Avatar provider, else the
+  Scenario provider, else Core's default provider (`TTS_PROVIDER`); selections for a provider
+  without an API key are skipped. The voice is the Avatar's, else the Scenario's, for that provider,
+  else the provider's default voice for the Scenario language. With no provider, audio returns
+  `502 PROVIDER_ERROR`; with no usable voice, `409 CONFLICT` (`no_voice_available`).
 - Provider credentials and provider-native options are not public fields; a client may only pick a
   shared `format` (default `audio/wav`).
 

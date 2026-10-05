@@ -62,7 +62,7 @@ import { KnowledgeQueryEmbeddingService } from './application/services/knowledge
 import { TypedRetrievalService } from './application/services/knowledge/typed-retrieval.service.js'
 import { KnowledgeReindexService } from './application/services/knowledge/knowledge-reindex.service.js'
 import { createSpeechToTextAdapter } from './infrastructure/speech/deepgram-speech-to-text.adapter.js'
-import { createTextToSpeechAdapter } from './infrastructure/speech/gradium-text-to-speech.adapter.js'
+import { createTextToSpeechProviders } from './infrastructure/speech/gradium-text-to-speech.adapter.js'
 import { RedisUtteranceIdempotencyStore } from './infrastructure/cache/redis-utterance-idempotency.store.js'
 
 type CoreRepositories = ReturnType<typeof buildCoreRepositories>
@@ -135,7 +135,7 @@ async function main(): Promise<void> {
       },
       observability,
     ),
-    textToSpeechAdapter: buildTextToSpeechAdapter(config, observability),
+    textToSpeechProviders: buildTextToSpeechProviders(config, observability),
     observabilityAdapter: observability,
     ...repositories,
     ...knowledgeAdapters,
@@ -270,16 +270,18 @@ function buildKnowledgeReindexService(
   )
 }
 
-function buildTextToSpeechAdapter(
+function buildTextToSpeechProviders(
   config: Config,
   observability: ReturnType<typeof createObservabilityAdapter>,
 ) {
-  return createTextToSpeechAdapter(
+  return createTextToSpeechProviders(
     {
-      provider: config.ttsProvider,
-      ...(config.gradiumApiKey === undefined ? {} : { apiKey: config.gradiumApiKey }),
-      baseUrl: config.gradiumBaseUrl,
-      timeoutMs: config.gradiumTimeoutMs,
+      defaultProvider: config.ttsProvider === 'null' ? null : config.ttsProvider,
+      gradium: {
+        ...(config.gradiumApiKey === undefined ? {} : { apiKey: config.gradiumApiKey }),
+        baseUrl: config.gradiumBaseUrl,
+        timeoutMs: config.gradiumTimeoutMs,
+      },
       limits: config.textToSpeechLimits,
     },
     observability,

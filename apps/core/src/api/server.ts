@@ -24,7 +24,6 @@ import type { IIngestionJobRepository } from '../application/ports/IIngestionJob
 import type { IKnowledgeSourceContentLoader } from '../application/ports/IKnowledgeSourceContentLoader.js'
 import type { IEmbeddingAdapter } from '../application/ports/IEmbeddingAdapter.js'
 import type { ISpeechToTextAdapter } from '../application/ports/ISpeechToTextAdapter.js'
-import type { ITextToSpeechAdapter } from '../application/ports/ITextToSpeechAdapter.js'
 import type { IUtteranceIdempotencyStore } from '../application/ports/IUtteranceIdempotencyStore.js'
 import type { IModelConfigRepository } from '../application/ports/IModelConfigRepository.js'
 import type { ModelConfig } from '../domain/model-config/index.js'
@@ -68,7 +67,7 @@ import { UnconfiguredEmbeddingAdapter } from '../infrastructure/knowledge/unconf
 import { InMemoryUtteranceIdempotencyStore } from '../application/voice/in-memory-utterance-idempotency.store.js'
 import { adminModelConfigRoute } from './routes/admin-model-config.js'
 import { adminVoicesRoute } from './routes/admin-voices.js'
-import { NullTextToSpeechAdapter } from '../infrastructure/speech/gradium-text-to-speech.adapter.js'
+import { TextToSpeechProviders } from '../application/voice/text-to-speech-providers.js'
 import { adminKnowledgeReindexRoute } from './routes/admin-knowledge-reindex.js'
 
 export interface ServerAdapters {
@@ -96,7 +95,7 @@ export interface ServerAdapters {
   knowledgeSourceContentLoader?: IKnowledgeSourceContentLoader
   embeddingAdapter?: IEmbeddingAdapter
   speechToTextAdapter?: ISpeechToTextAdapter
-  textToSpeechAdapter?: ITextToSpeechAdapter
+  textToSpeechProviders?: TextToSpeechProviders
   utteranceIdempotencyStore?: IUtteranceIdempotencyStore
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
@@ -252,9 +251,9 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   app.register(adminVoicesRoute, {
     prefix: '/v1/admin',
     config,
-    textToSpeechAdapter: withDefault(
-      resolvedAdapters.textToSpeechAdapter,
-      new NullTextToSpeechAdapter(),
+    textToSpeechProviders: withDefault(
+      resolvedAdapters.textToSpeechProviders,
+      new TextToSpeechProviders(),
     ),
   })
   app.register(scenariosRoute, {

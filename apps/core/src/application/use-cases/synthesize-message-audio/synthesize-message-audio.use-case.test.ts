@@ -15,6 +15,7 @@ import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
+import { TextToSpeechProviders } from '../../voice/text-to-speech-providers.js'
 import { SynthesizeMessageAudioUseCase } from './synthesize-message-audio.use-case.js'
 
 const conversation: Conversation = {
@@ -64,9 +65,7 @@ const avatarMessage: Message = {
 
 function createAdapter(
   outcome?: TextToSpeechResult | TextToSpeechError,
-  options: { defaultVoiceId?: string; provider?: 'gradium' | null } = {
-    defaultVoiceId: 'provider-default',
-  },
+  options: { defaultVoiceId?: string } = { defaultVoiceId: 'provider-default' },
 ): ITextToSpeechAdapter & {
   inputs: TextToSpeechInput[]
   defaultLanguages: (string | undefined)[]
@@ -91,7 +90,7 @@ function createAdapter(
       )
     })
   return {
-    provider: options.provider === undefined ? 'gradium' : options.provider,
+    provider: 'gradium',
     synthesize,
     listVoices: () => Promise.resolve([]),
     getDefaultVoiceId: (language?: string) => {
@@ -109,6 +108,7 @@ function createUseCase(
     scenarioConfig?: Scenario
     message?: Message
     adapter?: ITextToSpeechAdapter
+    providers?: TextToSpeechProviders
   } = {},
 ): {
   useCase: SynthesizeMessageAudioUseCase
@@ -125,7 +125,7 @@ function createUseCase(
     messages,
     new InMemoryAvatarRepository([args.avatarConfig ?? avatar]),
     new InMemoryScenarioRepository([args.scenarioConfig ?? scenario]),
-    adapter,
+    args.providers ?? new TextToSpeechProviders([adapter], 'gradium'),
   )
   return {
     useCase,
@@ -218,10 +218,28 @@ describe('SynthesizeMessageAudioUseCase', () => {
     })
   })
 
-  it('reports provider_unavailable when text-to-speech is disabled', async () => {
-    const { useCase, adapter } = createUseCase({
-      adapter: createAdapter(undefined, { provider: null }),
+  it('uses the provider a scenario picks even when there is no default provider', async () => {
+    const avatarWithoutVoice = { ...avatar }
+    delete avatarWithoutVoice.voiceConfig
+    const adapter = createAdapter()
+    const { useCase } = createUseCase({
+      avatarConfig: avatarWithoutVoice,
+      scenarioConfig: { ...scenario, voiceConfig: { provider: 'gradium' } },
+      providers: new TextToSpeechProviders([adapter], null),
     })
+
+    await useCase.execute({
+      conversationId: conversation.conversationId,
+      messageId: avatarMessage.messageId,
+      requestId: 'request_scenario_provider',
+    })
+
+    expect(adapter.inputs[0]?.voiceId).toBe('provider-default')
+    expect(adapter.defaultLanguages).toEqual([scenario.language])
+  })
+
+  it('reports provider_unavailable when no provider has credentials', async () => {
+    const { useCase, adapter } = createUseCase({ providers: new TextToSpeechProviders() })
 
     await expect(
       useCase.execute({
@@ -333,7 +351,7 @@ describe('SynthesizeMessageAudioUseCase debug events', () => {
       new InMemoryMessageRepository([avatarMessage]),
       new InMemoryAvatarRepository([avatar]),
       new InMemoryScenarioRepository([scenario]),
-      adapter,
+      new TextToSpeechProviders([adapter], 'gradium'),
       undefined,
       events,
     )

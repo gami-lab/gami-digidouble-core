@@ -19,11 +19,13 @@ export function normalizeVoiceConfiguration(
   if (!isVoiceConfiguration(value)) {
     throw new DomainError(
       'INVALID_INPUT',
-      'voiceConfig must contain a supported provider and a non-empty voiceId',
+      'voiceConfig must contain a supported provider and an optional non-empty voiceId',
     )
   }
 
-  return { provider: value.provider, voiceId: value.voiceId.trim() }
+  return value.voiceId === undefined
+    ? { provider: value.provider }
+    : { provider: value.provider, voiceId: value.voiceId.trim() }
 }
 
 export function normalizeVoiceConfigurationMutation(
@@ -86,16 +88,26 @@ export function applyVoiceConfiguration(
 }
 
 /**
- * Picks the avatar voice, else the scenario voice. A selection saved for another provider is
- * skipped, so switching providers falls back to the provider default instead of failing.
+ * Picks the avatar provider, else the scenario provider, else the default provider; selections for
+ * providers without credentials are skipped. The voice is the avatar's, else the scenario's, for
+ * that provider; no `voiceId` means the provider's default voice. Undefined when no provider applies.
  */
-export function selectVoiceId(
+export function selectVoice(
   scenarioVoiceConfig: VoiceConfiguration | undefined,
   avatarVoiceConfig: VoiceConfiguration | undefined,
-  provider: TextToSpeechProviderName,
-): string | undefined {
-  for (const voice of [avatarVoiceConfig, scenarioVoiceConfig]) {
-    if (voice?.provider === provider) return voice.voiceId
-  }
-  return undefined
+  availableProviders: readonly TextToSpeechProviderName[],
+  defaultProvider: TextToSpeechProviderName | null,
+): VoiceConfiguration | undefined {
+  const selections = [avatarVoiceConfig, scenarioVoiceConfig].filter(
+    (voice): voice is VoiceConfiguration =>
+      voice !== undefined && availableProviders.includes(voice.provider),
+  )
+  const provider = selections[0]?.provider ?? defaultProvider
+  if (provider === null) return undefined
+  const voiceId = selections.find(
+    // Always true while Gradium is the only provider name; kept for the next provider.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    (voice) => voice.provider === provider && voice.voiceId !== undefined,
+  )?.voiceId
+  return voiceId === undefined ? { provider } : { provider, voiceId }
 }

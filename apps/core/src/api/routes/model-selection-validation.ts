@@ -57,7 +57,7 @@ export function validateVoiceConfiguration(value: unknown, allowNull: boolean): 
   if (value === null) return allowNull ? null : 'voiceConfig cannot be null when creating a record'
   return isVoiceConfiguration(value)
     ? null
-    : 'voiceConfig must contain only a supported provider and a voiceId'
+    : 'voiceConfig must contain only a supported provider and an optional voiceId'
 }
 
 function validateModelProfile(profile: ModelProfile | undefined, field: string): string | null {

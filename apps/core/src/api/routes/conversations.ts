@@ -9,7 +9,7 @@ import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { ISpeechToTextAdapter } from '../../application/ports/ISpeechToTextAdapter.js'
-import type { ITextToSpeechAdapter } from '../../application/ports/ITextToSpeechAdapter.js'
+import type { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
 import type { IUtteranceIdempotencyStore } from '../../application/ports/IUtteranceIdempotencyStore.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
@@ -83,7 +83,7 @@ type ConversationsRouteOptions = {
   gmStateRepository?: IGmStateRepository
   typedRetrievalService?: TypedRetrievalService
   speechToTextAdapter?: ISpeechToTextAdapter
-  textToSpeechAdapter?: ITextToSpeechAdapter
+  textToSpeechProviders?: TextToSpeechProviders
   utteranceIdempotencyStore?: IUtteranceIdempotencyStore
 }
 
@@ -372,14 +372,14 @@ function createRouteDependencies(options: ConversationsRouteOptions): RouteDepen
         )
       : undefined
   const synthesizeMessageAudioUseCase =
-    options.textToSpeechAdapter === undefined
+    options.textToSpeechProviders === undefined
       ? undefined
       : new SynthesizeMessageAudioUseCase(
           repositories.conversationRepository,
           repositories.messageRepository,
           repositories.avatarRepository,
           repositories.scenarioRepository,
-          options.textToSpeechAdapter,
+          options.textToSpeechProviders,
           options.config.textToSpeechLimits.maxOutputBytes,
           repositories.eventLogRepository,
         )

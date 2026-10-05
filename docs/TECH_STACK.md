@@ -58,14 +58,17 @@ product code rather than in an external agent framework.
 - Speech-to-text: `DeepgramSpeechToTextAdapter` uses Deepgram's pre-recorded HTTP endpoint via the
   platform `fetch` client (no SDK dependency), chosen to avoid adding a provider SDK for a bounded,
   one-shot HTTP call.
-- Text-to-speech: `TTS_PROVIDER` selects `null` (default, disabled) or `gradium`; the Gradium adapter
+- Text-to-speech: every provider with an API key is registered (`GRADIUM_API_KEY` → Gradium), and
+  the admin picks one per Scenario/Avatar. `TTS_PROVIDER` only names the default provider
+  (`gradium` by default; `null` means no voice unless a Scenario/Avatar picks a provider). The Gradium adapter
   uses the official one-shot REST endpoint over native `fetch` rather than its Python-only SDK. It
   emits native WAV or Ogg-wrapped Opus and rejects unsupported formats without transcoding; its
   response currently carries no duration metadata, so duration is optional end-to-end.
 - The text-to-speech port also lists voices and picks a default per language, so voices are chosen
   in the admin rather than in env config. Gradium lists account + catalog voices (cached 10 minutes)
   and defaults to the first catalog voice in the scenario language. A new provider implements the
-  same port and joins `TEXT_TO_SPEECH_PROVIDER_NAMES`.
+  same port, joins `TEXT_TO_SPEECH_PROVIDER_NAMES`, and is registered in
+  `createTextToSpeechProviders` when its API key is present.
 - Both are optional, additive ports — their absence must never change text-turn behavior.
 
 ## Clients and tools

@@ -3,7 +3,7 @@ import { DomainError } from '../errors.js'
 import {
   assertVoiceConfigurationIsNotEmbedded,
   normalizeVoiceConfiguration,
-  selectVoiceId,
+  selectVoice,
 } from './voice-configuration.js'
 import type { TextToSpeechProviderName } from '@gami/shared'
 
@@ -15,6 +15,9 @@ describe('voice configuration', () => {
         { allowClear: false },
       ),
     ).toEqual({ provider: 'gradium', voiceId: 'voice_1' })
+    expect(normalizeVoiceConfiguration({ provider: 'gradium' }, { allowClear: false })).toEqual({
+      provider: 'gradium',
+    })
   })
 
   it('rejects unknown providers, empty ids, and extra fields', () => {
@@ -32,22 +35,45 @@ describe('voice configuration', () => {
     expect(() => normalizeVoiceConfiguration(null, { allowClear: false })).toThrow(DomainError)
   })
 
-  it('selects the Avatar voice over the Scenario voice', () => {
+  it('selects the Avatar voice over the Scenario voice, else the default provider', () => {
     const scenarioVoice = { provider: 'gradium', voiceId: 'scenario-voice' } as const
     const avatarVoice = { provider: 'gradium', voiceId: 'avatar-voice' } as const
 
-    expect(selectVoiceId(scenarioVoice, avatarVoice, 'gradium')).toBe('avatar-voice')
-    expect(selectVoiceId(scenarioVoice, undefined, 'gradium')).toBe('scenario-voice')
-    expect(selectVoiceId(undefined, undefined, 'gradium')).toBeUndefined()
+    expect(selectVoice(scenarioVoice, avatarVoice, ['gradium'], 'gradium')).toEqual(avatarVoice)
+    expect(selectVoice(scenarioVoice, undefined, ['gradium'], 'gradium')).toEqual(scenarioVoice)
+    expect(selectVoice(undefined, undefined, ['gradium'], 'gradium')).toEqual({
+      provider: 'gradium',
+    })
   })
 
-  it('skips selections saved for another provider', () => {
+  it('lets a scenario pick a provider when there is no default provider', () => {
+    expect(selectVoice({ provider: 'gradium' }, undefined, ['gradium'], null)).toEqual({
+      provider: 'gradium',
+    })
+    expect(selectVoice(undefined, undefined, ['gradium'], null)).toBeUndefined()
+  })
+
+  it('keeps the scenario voice when the avatar only pins the same provider', () => {
+    expect(
+      selectVoice(
+        { provider: 'gradium', voiceId: 'scenario-voice' },
+        { provider: 'gradium' },
+        ['gradium'],
+        'gradium',
+      ),
+    ).toEqual({ provider: 'gradium', voiceId: 'scenario-voice' })
+  })
+
+  it('skips selections for providers without credentials', () => {
     const otherProvider = 'other' as TextToSpeechProviderName
     const avatarVoice = { provider: otherProvider, voiceId: 'other-voice' }
     const scenarioVoice = { provider: 'gradium', voiceId: 'scenario-voice' } as const
 
-    expect(selectVoiceId(scenarioVoice, avatarVoice, 'gradium')).toBe('scenario-voice')
-    expect(selectVoiceId(undefined, avatarVoice, 'gradium')).toBeUndefined()
+    expect(selectVoice(scenarioVoice, avatarVoice, ['gradium'], 'gradium')).toEqual(scenarioVoice)
+    expect(selectVoice(undefined, avatarVoice, ['gradium'], 'gradium')).toEqual({
+      provider: 'gradium',
+    })
+    expect(selectVoice(scenarioVoice, undefined, [], null)).toBeUndefined()
   })
 
   it('requires voice configuration to be a top-level mutation field', () => {

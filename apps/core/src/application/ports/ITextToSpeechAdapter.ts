@@ -11,14 +11,12 @@ export type TextToSpeechLimits = Readonly<{
   maxOutputBytes: number
 }>
 
-export type TextToSpeechProvider = 'null' | TextToSpeechProviderName
-
 export const TEXT_TO_SPEECH_LIMITS: TextToSpeechLimits = Object.freeze({
   maxTextCharacters: 10_000,
   maxOutputBytes: 10_000_000,
 })
 
-/** Normalized application input; `voiceId` is the active provider's own voice id. */
+/** Normalized application input; `voiceId` is the adapter provider's own voice id. */
 export type TextToSpeechInput = Readonly<{
   text: string
   voiceId: string
@@ -43,10 +41,9 @@ export type VoiceListFilter = Readonly<{
 
 /** Provider-neutral text-to-speech capability. */
 export interface ITextToSpeechAdapter {
-  /** Active provider, or null when text-to-speech is disabled. */
-  readonly provider: TextToSpeechProviderName | null
+  readonly provider: TextToSpeechProviderName
   synthesize(input: TextToSpeechInput, options?: TextToSpeechOptions): Promise<TextToSpeechResult>
-  /** Selectable voices of the active provider. */
+  /** Selectable voices of this provider. */
   listVoices(filter?: VoiceListFilter): Promise<VoiceOption[]>
   /** Voice used when the scenario and avatar select none; undefined when none is available. */
   getDefaultVoiceId(language?: string): Promise<string | undefined>

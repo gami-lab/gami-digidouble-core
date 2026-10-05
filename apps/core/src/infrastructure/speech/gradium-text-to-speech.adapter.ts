@@ -11,10 +11,10 @@ import {
   type TextToSpeechLimits,
   type TextToSpeechOptions,
   type TextToSpeechResult,
-  type TextToSpeechProvider,
   type VoiceListFilter,
 } from '../../application/ports/ITextToSpeechAdapter.js'
-import type { AudioOutputFormat, VoiceOption } from '@gami/shared'
+import type { AudioOutputFormat, TextToSpeechProviderName, VoiceOption } from '@gami/shared'
+import { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
 import { GradiumVoiceCatalog, type GradiumVoiceListTransport } from './gradium-voice-catalog.js'
 import { createTimeoutSignal } from './timeout-signal.js'
 
@@ -32,11 +32,14 @@ export type GradiumTextToSpeechConfig = Readonly<{
   limits: TextToSpeechLimits
 }>
 
-export type GradiumTextToSpeechFactoryConfig = Readonly<{
-  provider: TextToSpeechProvider
-  apiKey?: string
-  baseUrl: string
-  timeoutMs: number
+export type TextToSpeechProvidersConfig = Readonly<{
+  /** Provider used when a scenario/avatar selects none; null for no default. */
+  defaultProvider: TextToSpeechProviderName | null
+  gradium: Readonly<{
+    apiKey?: string
+    baseUrl: string
+    timeoutMs: number
+  }>
   limits: TextToSpeechLimits
 }>
 
@@ -71,66 +74,24 @@ export class FetchGradiumTransport implements GradiumTransport {
   }
 }
 
-export function createTextToSpeechAdapter(
-  config: GradiumTextToSpeechFactoryConfig,
+/** Registers every text-to-speech provider that has credentials. */
+export function createTextToSpeechProviders(
+  config: TextToSpeechProvidersConfig,
   observability: IObservabilityAdapter,
   transport?: GradiumTransport,
-): ITextToSpeechAdapter {
-  if (config.provider === 'null') return new NullTextToSpeechAdapter()
-  if (config.apiKey === undefined || config.apiKey.trim().length === 0) {
-    return new UnconfiguredTextToSpeechAdapter()
+): TextToSpeechProviders {
+  const adapters: ITextToSpeechAdapter[] = []
+  const gradiumApiKey = config.gradium.apiKey?.trim()
+  if (gradiumApiKey !== undefined && gradiumApiKey.length > 0) {
+    adapters.push(
+      new GradiumTextToSpeechAdapter(
+        { ...config.gradium, apiKey: gradiumApiKey, limits: config.limits },
+        observability,
+        transport,
+      ),
+    )
   }
-  return new GradiumTextToSpeechAdapter(
-    { ...config, apiKey: config.apiKey },
-    observability,
-    transport,
-  )
-}
-
-export class NullTextToSpeechAdapter implements ITextToSpeechAdapter {
-  readonly provider = null
-
-  listVoices(): Promise<VoiceOption[]> {
-    return Promise.resolve([])
-  }
-
-  getDefaultVoiceId(): Promise<string | undefined> {
-    return Promise.resolve(undefined)
-  }
-
-  synthesize(
-    _input: TextToSpeechInput,
-    _options?: TextToSpeechOptions,
-  ): Promise<TextToSpeechResult> {
-    return Promise.reject(new TextToSpeechError({ code: 'provider_unavailable', retryable: false }))
-  }
-}
-
-export class UnconfiguredTextToSpeechAdapter implements ITextToSpeechAdapter {
-  readonly provider = 'gradium' as const
-
-  listVoices(): Promise<VoiceOption[]> {
-    return Promise.reject(missingCredentials())
-  }
-
-  getDefaultVoiceId(): Promise<string | undefined> {
-    return Promise.reject(missingCredentials())
-  }
-
-  synthesize(
-    _input: TextToSpeechInput,
-    _options?: TextToSpeechOptions,
-  ): Promise<TextToSpeechResult> {
-    return Promise.reject(missingCredentials())
-  }
-}
-
-function missingCredentials(): TextToSpeechError {
-  return new TextToSpeechError({
-    code: 'invalid_configuration',
-    reason: 'missing_credentials',
-    retryable: false,
-  })
+  return new TextToSpeechProviders(adapters, config.defaultProvider)
 }
 
 export class GradiumTextToSpeechAdapter implements ITextToSpeechAdapter {

@@ -1,8 +1,9 @@
 /**
  * Provider-neutral voice and binary audio-delivery contracts.
  *
- * A voice selection names the text-to-speech provider and that provider's own voice id, picked
- * from the admin voice list. Credentials and provider-native options never cross this boundary.
+ * A voice selection names the text-to-speech provider and, optionally, that provider's own voice
+ * id, picked from the admin voice list. Credentials and provider-native options never cross this
+ * boundary.
  */
 
 export const AUDIO_OUTPUT_FORMATS = ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/webm'] as const
@@ -16,15 +17,16 @@ export const VOICE_ID_MAX_LENGTH = 128
 export type TextToSpeechProviderName = (typeof TEXT_TO_SPEECH_PROVIDER_NAMES)[number]
 
 /**
- * Optional scenario/avatar voice selection. When absent (or saved for another provider), Core
- * uses the active provider's default voice for the scenario language.
+ * Optional scenario/avatar voice selection. When absent (or naming a provider without credentials),
+ * Core uses the default provider. Without `voiceId`, the provider's default voice for the scenario
+ * language is used.
  */
 export type VoiceConfiguration = {
   provider: TextToSpeechProviderName
-  voiceId: string
+  voiceId?: string
 }
 
-/** One selectable voice from the active text-to-speech provider. */
+/** One selectable voice from a text-to-speech provider. */
 export type VoiceOption = {
   voiceId: string
   name: string
@@ -33,8 +35,15 @@ export type VoiceOption = {
   gender?: string
 }
 
-/** `GET /v1/admin/voices`; `provider` is null when text-to-speech is disabled. */
+/**
+ * `GET /v1/admin/voices?provider=&language=`. `providers` lists the providers with credentials on
+ * Core; `provider` is the one whose voices are listed (the requested one, else the default), and is
+ * null when no provider is available.
+ */
 export type ListVoicesResponse = {
+  /** Provider used when neither the scenario nor the avatar selects one. */
+  defaultProvider: TextToSpeechProviderName | null
+  providers: TextToSpeechProviderName[]
   provider: TextToSpeechProviderName | null
   voices: VoiceOption[]
   /** Voice used when nothing is selected, for the requested language. */
@@ -76,7 +85,8 @@ export function isVoiceConfiguration(value: unknown): value is VoiceConfiguratio
   if (!isRecord(value) || !hasOnlyKeys(value, ['provider', 'voiceId'])) return false
   return (
     isTextToSpeechProviderName(value['provider']) &&
-    isBoundedNonEmptyString(value['voiceId'], VOICE_ID_MAX_LENGTH)
+    (value['voiceId'] === undefined ||
+      isBoundedNonEmptyString(value['voiceId'], VOICE_ID_MAX_LENGTH))
   )
 }
 

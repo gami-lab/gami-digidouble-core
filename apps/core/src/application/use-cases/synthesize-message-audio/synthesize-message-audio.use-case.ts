@@ -10,7 +10,8 @@ import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import { DomainError } from '../../../domain/errors.js'
-import { selectVoiceId } from '../../../domain/voice/voice-configuration.js'
+import { selectVoice } from '../../../domain/voice/voice-configuration.js'
+import type { TextToSpeechProviders } from '../../voice/text-to-speech-providers.js'
 import type { TextToSpeechResult } from '../../ports/ITextToSpeechAdapter.js'
 import type { SynthesizeMessageAudioInput } from './synthesize-message-audio.types.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
@@ -24,7 +25,7 @@ export class SynthesizeMessageAudioUseCase {
     private readonly messageRepository: IMessageRepository,
     private readonly avatarRepository: IAvatarRepository,
     private readonly scenarioRepository: IScenarioRepository,
-    private readonly textToSpeechAdapter: ITextToSpeechAdapter,
+    private readonly textToSpeechProviders: TextToSpeechProviders,
     private readonly maxOutputBytes = TEXT_TO_SPEECH_LIMITS.maxOutputBytes,
     private readonly eventLogRepository?: IEventLogRepository,
   ) {}
@@ -64,12 +65,12 @@ export class SynthesizeMessageAudioUseCase {
     if (scenario === null) {
       throw new DomainError('NOT_FOUND', `Scenario ${avatar.scenarioId} was not found.`)
     }
-    const voiceId = await this.resolveVoiceId(scenario, avatar)
+    const voice = await this.resolveVoice(scenario, avatar)
 
     return await this.synthesizeWithEvent(
       { sessionId: conversation.sessionId, conversationId: conversation.conversationId },
       message,
-      voiceId,
+      voice,
       normalized,
     )
   }
@@ -77,7 +78,7 @@ export class SynthesizeMessageAudioUseCase {
   private async synthesizeWithEvent(
     conversation: { sessionId: string; conversationId: string },
     message: { messageId: string; content: string },
-    voiceId: string,
+    voice: ResolvedVoice,
     normalized: ReturnType<typeof validateInput>,
   ): Promise<TextToSpeechResult> {
     const startedAt = Date.now()
@@ -87,9 +88,10 @@ export class SynthesizeMessageAudioUseCase {
       conversationId: conversation.conversationId,
       messageId: message.messageId,
       characterCount: message.content.length,
+      provider: voice.adapter.provider,
     }
     try {
-      const result = await this.synthesize(message, voiceId, normalized)
+      const result = await this.synthesize(message, voice, normalized)
       await this.recordEvent('message_audio_synthesized', event, {
         latencyMs: Date.now() - startedAt,
         byteLength: result.metadata.byteLength,
@@ -109,13 +111,13 @@ export class SynthesizeMessageAudioUseCase {
 
   private async synthesize(
     message: { messageId: string; content: string },
-    voiceId: string,
+    voice: ResolvedVoice,
     normalized: ReturnType<typeof validateInput>,
   ): Promise<TextToSpeechResult> {
-    const result = await this.textToSpeechAdapter.synthesize(
+    const result = await voice.adapter.synthesize(
       {
         text: message.content,
-        voiceId,
+        voiceId: voice.voiceId,
         format: normalized.format,
         requestId: normalized.requestId,
         messageId: message.messageId,
@@ -138,6 +140,7 @@ export class SynthesizeMessageAudioUseCase {
       conversationId: string
       messageId: string
       characterCount: number
+      provider: string
     },
     outcome: Record<string, unknown>,
   ): Promise<void> {
@@ -149,26 +152,30 @@ export class SynthesizeMessageAudioUseCase {
         type,
         severity: type === 'message_audio_failed' ? 'error' : 'info',
         correlationId,
-        payload: {
-          ...payload,
-          provider: this.textToSpeechAdapter.provider ?? 'none',
-          ...outcome,
-        },
+        payload: { ...payload, ...outcome },
       })
     } catch (error) {
       console.error('[synthesize-message-audio] Event log append failed:', error)
     }
   }
 
-  /** Avatar voice → scenario voice → the provider's default voice for the scenario language. */
-  private async resolveVoiceId(scenario: Scenario, avatar: AvatarConfig): Promise<string> {
-    const provider = this.textToSpeechAdapter.provider
-    if (provider === null) {
+  /**
+   * Avatar provider → scenario provider → default provider; then avatar voice → scenario voice →
+   * that provider's default voice for the scenario language.
+   */
+  private async resolveVoice(scenario: Scenario, avatar: AvatarConfig): Promise<ResolvedVoice> {
+    const providers = this.textToSpeechProviders
+    const selection = selectVoice(
+      scenario.voiceConfig,
+      avatar.voiceConfig,
+      providers.available,
+      providers.defaultProvider,
+    )
+    const adapter = selection === undefined ? undefined : providers.get(selection.provider)
+    if (selection === undefined || adapter === undefined) {
       throw new TextToSpeechError({ code: 'provider_unavailable', retryable: false })
     }
-    const voiceId =
-      selectVoiceId(scenario.voiceConfig, avatar.voiceConfig, provider) ??
-      (await this.textToSpeechAdapter.getDefaultVoiceId(scenario.language))
+    const voiceId = selection.voiceId ?? (await adapter.getDefaultVoiceId(scenario.language))
     if (voiceId === undefined) {
       throw new TextToSpeechError({
         code: 'invalid_configuration',
@@ -176,9 +183,11 @@ export class SynthesizeMessageAudioUseCase {
         retryable: false,
       })
     }
-    return voiceId
+    return { adapter, voiceId }
   }
 }
+
+type ResolvedVoice = { adapter: ITextToSpeechAdapter; voiceId: string }
 
 function validateInput(
   input: SynthesizeMessageAudioInput,

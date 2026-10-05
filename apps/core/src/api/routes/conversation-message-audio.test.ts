@@ -7,6 +7,7 @@ import type {
   TextToSpeechResult,
 } from '../../application/ports/ITextToSpeechAdapter.js'
 import { TextToSpeechError } from '../../application/ports/ITextToSpeechAdapter.js'
+import { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
 import type { Conversation, Message } from '../../domain/conversation/session.types.js'
 import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Scenario } from '../../domain/scenario/scenario.types.js'
@@ -119,7 +120,7 @@ function createApp(tts: ITextToSpeechAdapter, extraMessages: Message[] = []) {
       userMessage,
       ...extraMessages,
     ]),
-    textToSpeechAdapter: tts,
+    textToSpeechProviders: new TextToSpeechProviders([tts], 'gradium'),
   })
 }
 
@@ -309,7 +310,7 @@ describe('conversation message audio route', () => {
       scenarioRepository: new InMemoryScenarioRepository([scenarioWithoutVoice]),
       conversationRepository: new InMemoryConversationRepository([conversation]),
       messageRepository: new InMemoryMessageRepository([avatarMessage]),
-      textToSpeechAdapter: missingVoiceTts,
+      textToSpeechProviders: new TextToSpeechProviders([missingVoiceTts], 'gradium'),
     })
     const missingVoice = await missingVoiceApp.inject({
       method: 'POST',

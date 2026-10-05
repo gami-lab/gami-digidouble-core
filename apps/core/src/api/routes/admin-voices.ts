@@ -1,6 +1,11 @@
 import type { FastifyPluginCallback } from 'fastify'
-import { ok, type ListVoicesResponse } from '@gami/shared'
-import type { ITextToSpeechAdapter } from '../../application/ports/ITextToSpeechAdapter.js'
+import {
+  ok,
+  TEXT_TO_SPEECH_PROVIDER_NAMES,
+  type ListVoicesResponse,
+  type TextToSpeechProviderName,
+} from '@gami/shared'
+import type { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
 import { ListVoicesUseCase } from '../../application/use-cases/list-voices/list-voices.use-case.js'
 import type { Config } from '../../config.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
@@ -8,21 +13,22 @@ import { handleRouteError } from './route-error.js'
 
 export type AdminVoicesRouteOptions = {
   config: Config
-  textToSpeechAdapter: ITextToSpeechAdapter
+  textToSpeechProviders: TextToSpeechProviders
 }
 
-type ListVoicesQuery = { language?: string }
+type ListVoicesQuery = { language?: string; provider?: TextToSpeechProviderName }
 
 const querySchema = {
   type: 'object',
   properties: {
     language: { type: 'string', minLength: 1, maxLength: 35 },
+    provider: { type: 'string', enum: TEXT_TO_SPEECH_PROVIDER_NAMES },
   },
   additionalProperties: false,
 } as const
 
 export const adminVoicesRoute: FastifyPluginCallback<AdminVoicesRouteOptions> = (app, options) => {
-  const useCase = new ListVoicesUseCase(options.textToSpeechAdapter)
+  const useCase = new ListVoicesUseCase(options.textToSpeechProviders)
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
   app.get<{ Querystring: ListVoicesQuery }>(
@@ -30,9 +36,11 @@ export const adminVoicesRoute: FastifyPluginCallback<AdminVoicesRouteOptions> = 
     { schema: { querystring: querySchema } },
     async (request, reply) => {
       try {
-        const output = await useCase.execute(
-          request.query.language === undefined ? {} : { language: request.query.language },
-        )
+        const { language, provider } = request.query
+        const output = await useCase.execute({
+          ...(language === undefined ? {} : { language }),
+          ...(provider === undefined ? {} : { provider }),
+        })
         return await reply.send(ok<ListVoicesResponse>(output))
       } catch (error) {
         const mapped = handleRouteError(error)

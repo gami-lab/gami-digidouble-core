@@ -36,6 +36,7 @@ export interface Config {
   deepgramTimeoutMs: number
   deepgramDefaultLanguage: string | undefined
   speechToTextLimits: SpeechToTextLimits
+  /** Default text-to-speech provider; scenarios/avatars may pick any provider with an API key. */
   ttsProvider: 'null' | 'gradium'
   gradiumApiKey: string | undefined
   gradiumBaseUrl: string
@@ -56,7 +57,7 @@ export const DEFAULT_EMBEDDING_BATCH_SIZE = 100
 export const DEFAULT_DEEPGRAM_MODEL = 'nova-3'
 export const DEFAULT_DEEPGRAM_TIMEOUT_MS = 30_000
 export const DEFAULT_DEEPGRAM_LANGUAGE = 'en'
-export const DEFAULT_TTS_PROVIDER = 'null'
+export const DEFAULT_TTS_PROVIDER = 'gradium'
 export const DEFAULT_GRADIUM_BASE_URL = 'https://api.gradium.ai/api'
 export const DEFAULT_GRADIUM_TIMEOUT_MS = 30_000
 
