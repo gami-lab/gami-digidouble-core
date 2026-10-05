@@ -51,8 +51,9 @@ export async function sendMessage(
   )
 }
 
+/** Reply audio as Core streams it; `body` delivers chunks as soon as they are synthesized. */
 export type MessageAudioDelivery = Readonly<{
-  blob: Blob
+  body: ReadableStream<Uint8Array>
   metadata: AudioDeliveryMetadata
 }>
 
@@ -68,13 +69,11 @@ export async function requestMessageAudio(
   if (metadata.messageId !== messageId) {
     throw new ApiError('NETWORK_ERROR', `Audio response message identity mismatch from ${path}`)
   }
-  const blob = await response.blob()
-
-  if (blob.size !== metadata.byteLength || blob.size === 0) {
+  if (response.body === null) {
     throw new ApiError('NETWORK_ERROR', `Invalid audio response body from ${path}`)
   }
 
-  return { blob, metadata }
+  return { body: response.body, metadata }
 }
 
 export async function sendMessageStream(
@@ -290,18 +289,8 @@ function readAudioDeliveryMetadata(response: Response, path: string): AudioDeliv
   const contentType = response.headers.get('content-type')?.split(';', 1)[0]?.trim()
   const requestId = response.headers.get('x-request-id')
   const messageId = response.headers.get('x-message-id')
-  const contentLength = response.headers.get('content-length')
-  const byteLength = contentLength === null ? Number.NaN : Number(contentLength)
-  const durationHeader = response.headers.get('x-audio-duration-ms')
-  const durationMs = durationHeader === null ? undefined : Number(durationHeader)
 
-  const candidate: unknown = {
-    requestId,
-    messageId,
-    format: contentType,
-    byteLength,
-    ...(durationMs === undefined ? {} : { durationMs }),
-  }
+  const candidate: unknown = { requestId, messageId, format: contentType }
   if (!isAudioDeliveryMetadata(candidate)) {
     throw new ApiError('NETWORK_ERROR', `Invalid audio response metadata from ${path}`)
   }

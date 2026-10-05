@@ -10,7 +10,13 @@ import {
 
 describe('voice and audio contract guards', () => {
   it('owns a finite provider-neutral browser output format set', () => {
-    expect(AUDIO_OUTPUT_FORMATS).toEqual(['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/webm'])
+    expect(AUDIO_OUTPUT_FORMATS).toEqual([
+      'audio/mpeg',
+      'audio/ogg',
+      'audio/pcm',
+      'audio/wav',
+      'audio/webm',
+    ])
     expect(isAudioOutputFormat('audio/wav')).toBe(true)
     expect(isAudioOutputFormat('audio/gradium')).toBe(false)
   })
@@ -38,9 +44,7 @@ describe('voice and audio contract guards', () => {
       isAudioDeliveryMetadata({
         requestId: 'request_1',
         messageId: 'message_1',
-        format: 'audio/wav',
-        byteLength: 128,
-        durationMs: 1_250,
+        format: 'audio/pcm',
       }),
     ).toBe(true)
     expect(
@@ -48,15 +52,6 @@ describe('voice and audio contract guards', () => {
         requestId: 'request_1',
         messageId: 'message_1',
         format: 'audio/wav',
-        byteLength: 0,
-      }),
-    ).toBe(false)
-    expect(
-      isAudioDeliveryMetadata({
-        requestId: 'request_1',
-        messageId: 'message_1',
-        format: 'audio/wav',
-        byteLength: 128,
         audio: 'raw bytes do not belong here',
       }),
     ).toBe(false)
@@ -65,7 +60,6 @@ describe('voice and audio contract guards', () => {
         requestId: 'r'.repeat(129),
         messageId: 'message_1',
         format: 'audio/wav',
-        byteLength: 128,
       }),
     ).toBe(false)
   })

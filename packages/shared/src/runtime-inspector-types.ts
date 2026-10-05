@@ -217,9 +217,11 @@ export type MessageAudioEventPayload = {
   messageId: string
   provider: string
   characterCount: number
+  /** Until the whole clip was synthesized (or the failure). */
   latencyMs: number
+  /** Until the first audio chunk was ready to stream; what the user waits before hearing the voice. */
+  firstAudioMs?: number
   byteLength?: number
-  audioDurationMs?: number
   errorCode?: string
 }
 

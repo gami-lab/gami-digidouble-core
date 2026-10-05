@@ -8,10 +8,7 @@ import type {
   ChatThreadMessage,
 } from './use-active-chat-runtime'
 import type { AudioPlaybackState } from './use-message-audio-playback'
-import {
-  useVoiceConversation,
-  type VoiceConversationState,
-} from '../voice/use-voice-conversation'
+import { useVoiceConversation, type VoiceConversationState } from '../voice/use-voice-conversation'
 
 type ActiveChatSectionProps = {
   avatars: AvailableAvatarSummary[]
@@ -170,7 +167,7 @@ function MessageAudioControl({
       </button>
       {isCurrent && status !== 'idle' ? (
         <span className="chat-audio-status" role="status" aria-live="polite">
-          {getAudioStatusMessage(status, audio.durationMs, t)}
+          {getAudioStatusMessage(status, t)}
         </span>
       ) : null}
     </div>
@@ -194,18 +191,13 @@ function getAudioButtonLabel(
 
 function getAudioStatusMessage(
   status: AudioPlaybackState['status'],
-  durationMs: number | null,
   translate: ReturnType<typeof useTranslation>['t'],
 ): string {
   switch (status) {
     case 'loading':
       return translate('chat.audio.loading')
     case 'playing':
-      return `${translate('chat.audio.playing')}${
-        durationMs === null
-          ? ''
-          : ` ${translate('chat.audio.duration', { duration: formatAudioDuration(durationMs) })}`
-      }`
+      return translate('chat.audio.playing')
     case 'stopped':
       return translate('chat.audio.stopped')
     case 'unsupported':
@@ -215,10 +207,6 @@ function getAudioStatusMessage(
     default:
       return ''
   }
-}
-
-function formatAudioDuration(durationMs: number): string {
-  return `${(durationMs / 1000).toFixed(1)}s`
 }
 
 function TypingIndicator(): JSX.Element {

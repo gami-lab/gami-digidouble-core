@@ -6,9 +6,7 @@ import { requestMessageAudio } from './conversations'
 const metadata: AudioDeliveryMetadata = {
   requestId: 'request_1',
   messageId: 'message_1',
-  format: 'audio/wav',
-  byteLength: 3,
-  durationMs: 1200,
+  format: 'audio/pcm',
 }
 
 describe('message audio API client', () => {
@@ -16,16 +14,14 @@ describe('message audio API client', () => {
     vi.restoreAllMocks()
   })
 
-  it('requests binary audio with shared options and validates delivery metadata', async () => {
+  it('requests binary audio with shared options and hands back the unread stream', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(Uint8Array.from([1, 2, 3]), {
         status: 200,
         headers: {
           'Content-Type': metadata.format,
-          'Content-Length': String(metadata.byteLength),
           'X-Request-Id': metadata.requestId,
           'X-Message-Id': metadata.messageId,
-          'X-Audio-Duration-Ms': String(metadata.durationMs),
         },
       }),
     )
@@ -39,7 +35,9 @@ describe('message audio API client', () => {
     )
 
     expect(result.metadata).toEqual(metadata)
-    expect(new Uint8Array(await result.blob.arrayBuffer())).toEqual(Uint8Array.from([1, 2, 3]))
+    expect(new Uint8Array(await new Response(result.body).arrayBuffer())).toEqual(
+      Uint8Array.from([1, 2, 3]),
+    )
     const [url, init] = fetchMock.mock.calls[0] ?? []
     expect(url).toContain('/v1/conversations/conversation_1/messages/message_1/audio')
     expect(init?.method).toBe('POST')
@@ -64,21 +62,20 @@ describe('message audio API client', () => {
     )
   })
 
-  it('rejects empty or mismatched binary bodies before playback', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(Uint8Array.from([1, 2]), {
-        status: 200,
-        headers: {
-          'Content-Type': metadata.format,
-          'Content-Length': String(metadata.byteLength),
-          'X-Request-Id': metadata.requestId,
-          'X-Message-Id': metadata.messageId,
-        },
-      }),
-    )
+  it('rejects audio for another message or with invalid metadata before playback', async () => {
+    const respond = (headers: Record<string, string>): void => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(Uint8Array.from([1, 2]), { status: 200, headers }),
+      )
+    }
 
+    respond({ 'Content-Type': 'audio/pcm', 'X-Request-Id': 'r', 'X-Message-Id': 'other' })
     await expect(requestMessageAudio('conversation_1', metadata.messageId)).rejects.toThrow(
-      'Invalid audio response body',
+      'identity mismatch',
+    )
+    respond({ 'Content-Type': 'audio/flac', 'X-Request-Id': 'r', 'X-Message-Id': 'message_1' })
+    await expect(requestMessageAudio('conversation_1', metadata.messageId)).rejects.toThrow(
+      'Invalid audio response metadata',
     )
   })
 

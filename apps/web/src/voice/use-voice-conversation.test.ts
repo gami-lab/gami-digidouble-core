@@ -51,7 +51,7 @@ const getUserMedia = vi.fn()
 function fakeChat(overrides: Partial<ActiveChatRuntimeState> = {}): ActiveChatRuntimeState {
   return {
     sendStatus: 'idle',
-    audio: { messageId: null, status: 'idle', durationMs: null, errorCode: null },
+    audio: { messageId: null, status: 'idle', errorCode: null },
     sendVoiceMessage: vi.fn(),
     ...overrides,
   } as unknown as ActiveChatRuntimeState
@@ -122,7 +122,7 @@ describe('useVoiceConversation', () => {
 
     hook.rerender({
       current: fakeChat({
-        audio: { messageId: 'm', status: 'playing', durationMs: null, errorCode: null },
+        audio: { messageId: 'm', status: 'playing', errorCode: null },
       }),
     })
     expect(hook.result.current.phase).toBe('speaking')
@@ -131,7 +131,7 @@ describe('useVoiceConversation', () => {
 
     hook.rerender({
       current: fakeChat({
-        audio: { messageId: 'm', status: 'stopped', durationMs: null, errorCode: null },
+        audio: { messageId: 'm', status: 'stopped', errorCode: null },
       }),
     })
     expect(hook.result.current.phase).toBe('listening')

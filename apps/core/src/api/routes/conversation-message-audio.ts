@@ -1,3 +1,4 @@
+import { Readable } from 'node:stream'
 import type { FastifyPluginCallback } from 'fastify'
 import { AUDIO_OUTPUT_FORMATS, fail } from '@gami/shared'
 import type { AudioDeliveryRequest } from '@gami/shared'
@@ -53,11 +54,12 @@ export const conversationMessageAudioRoute: FastifyPluginCallback<
           .send(fail('PROVIDER_ERROR', 'Audio synthesis is not configured.'))
       }
 
+      // The response outlives this handler while it streams, so the provider request is
+      // cancelled when the connection closes rather than when the handler returns.
       const abortController = new AbortController()
-      const onClose = (): void => {
+      reply.raw.once('close', () => {
         abortController.abort()
-      }
-      request.raw.once('close', onClose)
+      })
 
       try {
         const output = await options.synthesizeMessageAudioUseCase.execute({
@@ -69,20 +71,14 @@ export const conversationMessageAudioRoute: FastifyPluginCallback<
         })
 
         reply.header('Content-Type', output.metadata.format)
-        reply.header('Content-Length', String(output.metadata.byteLength))
         reply.header('Content-Disposition', 'inline')
+        reply.header('Cache-Control', 'no-store')
         reply.header('X-Request-Id', output.metadata.requestId)
         reply.header('X-Message-Id', output.metadata.messageId)
-        if (output.metadata.durationMs !== undefined) {
-          reply.header('X-Audio-Duration-Ms', String(output.metadata.durationMs))
-        }
-        return await reply.send(Buffer.from(output.audio))
+        return await reply.send(Readable.from(output.audio, { objectMode: false }))
       } catch (error) {
         const mappedError = handleRouteError(error)
         return await reply.status(mappedError.statusCode).send(mappedError.body)
-      } finally {
-        request.raw.off('close', onClose)
-        abortController.abort()
       }
     },
   )

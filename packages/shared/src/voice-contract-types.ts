@@ -6,7 +6,15 @@
  * boundary.
  */
 
-export const AUDIO_OUTPUT_FORMATS = ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/webm'] as const
+/** `audio/pcm` is raw 16-bit little-endian mono PCM at {@link PCM_SAMPLE_RATE} Hz, playable as it streams. */
+export const AUDIO_OUTPUT_FORMATS = [
+  'audio/mpeg',
+  'audio/ogg',
+  'audio/pcm',
+  'audio/wav',
+  'audio/webm',
+] as const
+export const PCM_SAMPLE_RATE = 24_000
 export const AUDIO_METADATA_ID_MAX_LENGTH = 128
 
 export type AudioOutputFormat = (typeof AUDIO_OUTPUT_FORMATS)[number]
@@ -61,13 +69,11 @@ export type ClientAudioOptions = {
 /** Minimal request body for a future binary audio-delivery route. */
 export type AudioDeliveryRequest = Pick<ClientAudioOptions, 'format'>
 
-/** Bounded metadata accompanying transient binary audio delivery. */
+/** Metadata sent ahead of streamed binary audio; the length is unknown until the stream ends. */
 export type AudioDeliveryMetadata = {
   requestId: string
   messageId: string
   format: AudioOutputFormat
-  byteLength: number
-  durationMs?: number
 }
 
 export function isAudioOutputFormat(value: unknown): value is AudioOutputFormat {
@@ -104,18 +110,13 @@ export function isAudioDeliveryRequest(value: unknown): value is AudioDeliveryRe
 }
 
 export function isAudioDeliveryMetadata(value: unknown): value is AudioDeliveryMetadata {
-  if (
-    !isRecord(value) ||
-    !hasOnlyKeys(value, ['requestId', 'messageId', 'format', 'byteLength', 'durationMs'])
-  ) {
+  if (!isRecord(value) || !hasOnlyKeys(value, ['requestId', 'messageId', 'format'])) {
     return false
   }
   return (
     isBoundedNonEmptyString(value['requestId'], AUDIO_METADATA_ID_MAX_LENGTH) &&
     isBoundedNonEmptyString(value['messageId'], AUDIO_METADATA_ID_MAX_LENGTH) &&
-    isAudioOutputFormat(value['format']) &&
-    isPositiveSafeInteger(value['byteLength']) &&
-    (value['durationMs'] === undefined || isNonNegativeSafeInteger(value['durationMs']))
+    isAudioOutputFormat(value['format'])
   )
 }
 
@@ -133,12 +134,4 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isBoundedNonEmptyString(value: unknown, maxLength: number): value is string {
   return isNonEmptyString(value) && value.length <= maxLength
-}
-
-function isPositiveSafeInteger(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
-}
-
-function isNonNegativeSafeInteger(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }

@@ -132,10 +132,13 @@ PROVIDER_ERROR`; text routes remain unaffected. Duplicate/cancelled voice work r
 CONFLICT`, provider timeout `504`, rate limiting `429`.
 - Audio playback (`POST .../messages/{messageId}/audio`) is requested only after a completed text
   message, using the persisted cleaned Avatar `Message.content` as the only synthesis source. It
-  returns a bounded binary body (not an `ApiResponse` envelope) with `Content-Type`,
-  `Content-Length`, `Content-Disposition: inline`, `X-Request-Id`, `X-Message-Id`, and optional
-  `X-Audio-Duration-Ms`. Audio bytes are transient and never change message/GM/memory behavior;
-  repeated requests are independent reads.
+  streams a bounded binary body (not an `ApiResponse` envelope, no `Content-Length`) as the provider
+  produces it, with `Content-Type`, `Content-Disposition: inline`, `Cache-Control: no-store`,
+  `X-Request-Id`, and `X-Message-Id`. Failures before the first audio chunk return the standard
+  error envelope; a failure after it ends the stream early. Closing the connection cancels
+  synthesis. `audio/pcm` is raw 16-bit little-endian mono PCM at 24 kHz, playable chunk by chunk.
+  Audio bytes are transient and never change message/GM/memory behavior; repeated requests are
+  independent reads.
 - Scenario and Avatar `voiceConfig` is `{ provider, voiceId? }`, a provider (and optionally one of
   its voices) picked from `GET /v1/admin/voices`. Saving a provider without an API key on Core
   returns `400 VALIDATION_ERROR`. Synthesis uses the Avatar provider, else the
@@ -208,5 +211,6 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   refreshes that the cadence skips log no event. Conversation-close memory work (episodic
   generation) is listed too; events outside a turn use
   their own request id as `correlationId`. Each reply audio synthesis is listed
-  (`message_audio_synthesized`/`message_audio_failed`, keyed by `messageId`, with `latencyMs`).
+  (`message_audio_synthesized`/`message_audio_failed`, keyed by `messageId`, with total `latencyMs`
+  and, on success, `firstAudioMs` until the first audio chunk).
 - Prefer additive changes, preserve field meaning, and update shared DTOs plus consumer tests together.

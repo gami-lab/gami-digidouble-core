@@ -2,7 +2,7 @@
 
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { MessageStreamEvent, SessionSummary } from '@gami/shared'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   requestMessageAudio,
   sendVoiceMessageStream,
@@ -49,10 +49,17 @@ describe('useActiveChatRuntime voice turns', () => {
       lastActivityAt: '2026-06-01T00:00:00.000Z',
     })
     vi.mocked(requestMessageAudio).mockReturnValue(new Promise(() => {}))
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      value: vi.fn().mockReturnValue('blob:audio'),
-    })
+    vi.stubGlobal(
+      'AudioContext',
+      class {
+        resume = (): Promise<void> => Promise.resolve()
+        close = (): Promise<void> => Promise.resolve()
+      },
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('shows a transcribing bubble, replaces it with the transcript, then autoplays the reply', async () => {
@@ -127,7 +134,7 @@ describe('useActiveChatRuntime voice turns', () => {
       expect(requestMessageAudio).toHaveBeenCalledWith(
         'conversation_1',
         'msg_avatar_1',
-        undefined,
+        { format: 'audio/pcm' },
         expect.any(AbortSignal),
       )
     })

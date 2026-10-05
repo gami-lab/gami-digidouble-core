@@ -63,12 +63,13 @@ product code rather than in an external agent framework.
   names the default provider (`gradium` by default, or `openai`; `null` means no voice unless a
   Scenario/Avatar picks a provider). The Gradium adapter
   uses the official one-shot REST endpoint over native `fetch` rather than its Python-only SDK. It
-  emits native WAV or Ogg-wrapped Opus and rejects unsupported formats without transcoding; its
-  response currently carries no duration metadata, so duration is optional end-to-end.
+  emits native WAV, Ogg-wrapped Opus, or 24 kHz PCM and rejects unsupported formats without
+  transcoding.
 - The OpenAI adapter calls `audio.speech` (`gpt-4o-mini-tts`) through the existing `openai` SDK,
-  emitting WAV, Ogg/Opus, or MP3. Its built-in voices are multilingual, so they are not
+  emitting WAV, Ogg/Opus, MP3, or 24 kHz PCM. Its built-in voices are multilingual, so they are not
   language-tagged and the default voice is `marin`; input is capped at OpenAI's 4096 characters.
-  Both adapters share bounded audio-response reading and HTTP status mapping.
+  Both adapters stream provider audio chunks as they arrive (bounded, cancellable) and share HTTP
+  status mapping; `audio/pcm` maps to Gradium `pcm_24000` and OpenAI `pcm`.
 - The text-to-speech port also lists voices and picks a default per language, so voices are chosen
   in the admin rather than in env config. Gradium lists account + catalog voices (cached 10 minutes)
   and defaults to the first catalog voice in the scenario language. A new provider implements the

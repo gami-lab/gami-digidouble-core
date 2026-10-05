@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { AudioDeliveryMetadata } from '@gami/shared'
 import type {
   ITextToSpeechAdapter,
   TextToSpeechInput,
   TextToSpeechOptions,
-  TextToSpeechResult,
+  TextToSpeechStream,
 } from '../../ports/ITextToSpeechAdapter.js'
 import { TextToSpeechError } from '../../ports/ITextToSpeechAdapter.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
@@ -63,8 +64,40 @@ const avatarMessage: Message = {
   createdAt: conversation.startedAt,
 }
 
+type StreamOutcome = {
+  /** Chunks yielded in order; an error entry is thrown at that point of the stream. */
+  chunks?: (Uint8Array | TextToSpeechError)[]
+  metadata?: Partial<AudioDeliveryMetadata>
+}
+
+function streamFor(input: TextToSpeechInput, outcome: StreamOutcome = {}): TextToSpeechStream {
+  const chunks = outcome.chunks ?? [Uint8Array.from([1, 2]), Uint8Array.from([3])]
+  async function* audio(): AsyncGenerator<Uint8Array> {
+    for (const chunk of chunks) {
+      await Promise.resolve()
+      if (chunk instanceof TextToSpeechError) throw chunk
+      yield chunk
+    }
+  }
+  return {
+    audio: audio(),
+    metadata: {
+      requestId: input.requestId,
+      messageId: input.messageId,
+      format: input.format,
+      ...outcome.metadata,
+    },
+  }
+}
+
+async function drain(stream: TextToSpeechStream): Promise<number[]> {
+  const bytes: number[] = []
+  for await (const chunk of stream.audio) bytes.push(...chunk)
+  return bytes
+}
+
 function createAdapter(
-  outcome?: TextToSpeechResult | TextToSpeechError,
+  outcome?: StreamOutcome | TextToSpeechError,
   options: { defaultVoiceId?: string } = { defaultVoiceId: 'provider-default' },
 ): ITextToSpeechAdapter & {
   inputs: TextToSpeechInput[]
@@ -77,17 +110,7 @@ function createAdapter(
     .mockImplementation((input: TextToSpeechInput, _options?: TextToSpeechOptions) => {
       inputs.push(input)
       if (outcome instanceof TextToSpeechError) return Promise.reject(outcome)
-      return Promise.resolve(
-        outcome ?? {
-          audio: Uint8Array.from([1, 2, 3]),
-          metadata: {
-            requestId: input.requestId,
-            messageId: input.messageId,
-            format: input.format,
-            byteLength: 3,
-          },
-        },
-      )
+      return Promise.resolve(streamFor(input, outcome))
     })
   return {
     provider: 'gradium',
@@ -292,16 +315,8 @@ describe('SynthesizeMessageAudioUseCase', () => {
     expect(first.audio).not.toBe(second.audio)
   })
 
-  it('rejects an adapter result with mismatched identity or byte metadata', async () => {
-    const adapter = createAdapter({
-      audio: Uint8Array.from([1, 2]),
-      metadata: {
-        requestId: 'other-request',
-        messageId: avatarMessage.messageId,
-        format: 'audio/wav',
-        byteLength: 3,
-      },
-    })
+  it('rejects an adapter stream with mismatched identity', async () => {
+    const adapter = createAdapter({ metadata: { requestId: 'other-request' } })
     const { useCase } = createUseCase({ adapter })
 
     await expect(
@@ -338,8 +353,61 @@ describe('SynthesizeMessageAudioUseCase', () => {
     ).rejects.toMatchObject({ code: 'CONFLICT' })
     expect(adapter.inputs).toHaveLength(0)
   })
+
+  it('streams the adapter audio in order', async () => {
+    const { useCase } = createUseCase()
+
+    const stream = await useCase.execute({
+      conversationId: conversation.conversationId,
+      messageId: avatarMessage.messageId,
+      requestId: 'request_stream',
+      format: 'audio/pcm',
+    })
+
+    expect(stream.metadata).toEqual({
+      requestId: 'request_stream',
+      messageId: avatarMessage.messageId,
+      format: 'audio/pcm',
+    })
+    await expect(drain(stream)).resolves.toEqual([1, 2, 3])
+  })
+
+  it('rejects an empty adapter stream before the caller starts streaming', async () => {
+    const { useCase } = createUseCase({ adapter: createAdapter({ chunks: [] }) })
+
+    await expect(
+      useCase.execute({
+        conversationId: conversation.conversationId,
+        messageId: avatarMessage.messageId,
+        requestId: 'request_empty',
+      }),
+    ).rejects.toMatchObject({ failure: { code: 'invalid_provider_output', reason: 'empty' } })
+  })
+
+  it('rejects oversized adapter streams while streaming', async () => {
+    const adapter = createAdapter({ chunks: [new Uint8Array(3), new Uint8Array(3)] })
+    const useCase = new SynthesizeMessageAudioUseCase(
+      new InMemoryConversationRepository([conversation]),
+      new InMemoryMessageRepository([avatarMessage]),
+      new InMemoryAvatarRepository([avatar]),
+      new InMemoryScenarioRepository([scenario]),
+      new TextToSpeechProviders([adapter], 'gradium'),
+      4,
+    )
+
+    const stream = await useCase.execute({
+      conversationId: conversation.conversationId,
+      messageId: avatarMessage.messageId,
+      requestId: 'request_oversized',
+    })
+
+    await expect(drain(stream)).rejects.toMatchObject({
+      failure: { code: 'invalid_provider_output', reason: 'oversized' },
+    })
+  })
 })
 
+// eslint-disable-next-line max-lines-per-function
 describe('SynthesizeMessageAudioUseCase debug events', () => {
   function createWithEvents(adapter: ITextToSpeechAdapter): {
     useCase: SynthesizeMessageAudioUseCase
@@ -358,14 +426,16 @@ describe('SynthesizeMessageAudioUseCase debug events', () => {
     return { useCase, events }
   }
 
-  it('records how long the spoken reply took, keyed by the message', async () => {
+  it('records time to first audio and total time once the stream ends', async () => {
     const { useCase, events } = createWithEvents(createAdapter())
 
-    await useCase.execute({
+    const stream = await useCase.execute({
       conversationId: conversation.conversationId,
       messageId: avatarMessage.messageId,
       requestId: 'request_tts',
     })
+    expect(events.getAll()).toEqual([])
+    await drain(stream)
 
     expect(events.getAll()).toEqual([
       expect.objectContaining({
@@ -377,8 +447,56 @@ describe('SynthesizeMessageAudioUseCase debug events', () => {
           provider: 'gradium',
           characterCount: persistedAvatarContent.length,
           byteLength: 3,
+          firstAudioMs: expect.any(Number) as number,
           latencyMs: expect.any(Number) as number,
         }) as unknown,
+      }),
+    ])
+  })
+
+  it('records a failure when the stream breaks after the first audio', async () => {
+    const { useCase, events } = createWithEvents(
+      createAdapter({
+        chunks: [
+          Uint8Array.from([1]),
+          new TextToSpeechError({ code: 'provider_unavailable', retryable: true }),
+        ],
+      }),
+    )
+
+    const stream = await useCase.execute({
+      conversationId: conversation.conversationId,
+      messageId: avatarMessage.messageId,
+      requestId: 'request_broken',
+    })
+
+    await expect(drain(stream)).rejects.toMatchObject({
+      failure: { code: 'provider_unavailable' },
+    })
+    expect(events.getAll()).toEqual([
+      expect.objectContaining({
+        type: 'message_audio_failed',
+        payload: expect.objectContaining({ errorCode: 'provider_unavailable' }) as unknown,
+      }),
+    ])
+  })
+
+  it('records a cancellation when the caller stops streaming early', async () => {
+    const { useCase, events } = createWithEvents(createAdapter())
+
+    const stream = await useCase.execute({
+      conversationId: conversation.conversationId,
+      messageId: avatarMessage.messageId,
+      requestId: 'request_abandoned',
+    })
+    const chunks = stream.audio[Symbol.asyncIterator]()
+    await chunks.next()
+    await chunks.return?.()
+
+    expect(events.getAll()).toEqual([
+      expect.objectContaining({
+        type: 'message_audio_failed',
+        payload: expect.objectContaining({ errorCode: 'cancelled' }) as unknown,
       }),
     ])
   })

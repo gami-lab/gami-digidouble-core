@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
 import OpenAI from 'openai'
-import type { AudioOutputFormat, VoiceOption } from '@gami/shared'
+import { isAudioOutputFormat, type AudioOutputFormat, type VoiceOption } from '@gami/shared'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import {
   isTextToSpeechError,
@@ -8,14 +8,19 @@ import {
   TextToSpeechError,
   throwIfTextToSpeechCancelled,
   type ITextToSpeechAdapter,
-  type TextToSpeechFailure,
   type TextToSpeechInput,
   type TextToSpeechLimits,
   type TextToSpeechOptions,
-  type TextToSpeechResult,
+  type TextToSpeechStream,
 } from '../../application/ports/ITextToSpeechAdapter.js'
-import { failureForStatus, readAudioResponse, TimeoutMarker } from './audio-response.js'
-import { createTimeoutSignal } from './timeout-signal.js'
+import {
+  failureForStatus,
+  settleAudioStream,
+  streamAudioResponse,
+  TimeoutMarker,
+  type AudioStreamOutcome,
+} from './audio-response.js'
+import { createTimeoutSignal, type TimeoutSignal } from './timeout-signal.js'
 
 export const DEFAULT_OPENAI_TTS_MODEL = 'gpt-4o-mini-tts'
 export const DEFAULT_OPENAI_TTS_TIMEOUT_MS = 30_000
@@ -51,7 +56,7 @@ export type OpenAiTextToSpeechConfig = Readonly<{
   limits: TextToSpeechLimits
 }>
 
-type OpenAiSpeechFormat = 'wav' | 'opus' | 'mp3'
+type OpenAiSpeechFormat = 'wav' | 'opus' | 'mp3' | 'pcm'
 
 /** The slice of the OpenAI SDK this adapter uses; the response is the raw HTTP audio response. */
 export interface OpenAiSpeechClient {
@@ -90,95 +95,86 @@ export class OpenAiTextToSpeechAdapter implements ITextToSpeechAdapter {
   async synthesize(
     input: TextToSpeechInput,
     options?: TextToSpeechOptions,
-  ): Promise<TextToSpeechResult> {
+  ): Promise<TextToSpeechStream> {
     const startedAt = Date.now()
-    try {
-      const result = await this.executeSynthesis(input, options)
-      this.trace(result.metadata.requestId, Date.now() - startedAt, { result })
-      return result
-    } catch (error) {
-      const mapped = mapOpenAiError(error, options?.signal)
-      this.trace(input.requestId, Date.now() - startedAt, { failure: mapped.failure })
-      throw mapped
+    let timeout: TimeoutSignal | undefined
+    const settle = (outcome: AudioStreamOutcome): void => {
+      timeout?.clear()
+      this.trace(input.requestId, input.format, Date.now() - startedAt, outcome)
     }
-  }
-
-  private async executeSynthesis(
-    input: TextToSpeechInput,
-    options: TextToSpeechOptions | undefined,
-  ): Promise<TextToSpeechResult> {
-    throwIfTextToSpeechCancelled(options?.signal, 'before_synthesis')
-    const normalized = normalizeTextToSpeechInput(input)
-    if (normalized.text.length > OPENAI_MAX_INPUT_CHARACTERS) {
-      throw new TextToSpeechError({
-        code: 'invalid_request',
-        reason: 'text_too_long',
-        retryable: false,
-      })
-    }
-    const responseFormat = mapOutputFormat(normalized.format)
-    const timeout = createTimeoutSignal(options?.signal, this.config.timeoutMs)
+    const mapError = (error: unknown): TextToSpeechError => mapOpenAiError(error, options?.signal)
 
     try {
-      const response = await this.client.audio.speech.create(
-        {
-          model: this.config.model,
-          voice: normalized.voiceId,
-          input: normalized.text,
-          response_format: responseFormat,
-        },
-        { signal: timeout.signal },
-      )
-      throwIfTextToSpeechCancelled(options?.signal, 'during_synthesis')
-      const audio = await readAudioResponse(
+      throwIfTextToSpeechCancelled(options?.signal, 'before_synthesis')
+      const normalized = normalizeTextToSpeechInput(input)
+      if (normalized.text.length > OPENAI_MAX_INPUT_CHARACTERS) {
+        throw new TextToSpeechError({
+          code: 'invalid_request',
+          reason: 'text_too_long',
+          retryable: false,
+        })
+      }
+      const responseFormat = mapOutputFormat(normalized.format)
+      timeout = createTimeoutSignal(options?.signal, this.config.timeoutMs)
+      const signal = timeout.signal
+      const response = await this.client.audio.speech
+        .create(
+          {
+            model: this.config.model,
+            voice: normalized.voiceId,
+            input: normalized.text,
+            response_format: responseFormat,
+          },
+          { signal },
+        )
+        .catch((error: unknown) => {
+          throw signal.aborted && timeout?.timedOut() === true ? new TimeoutMarker() : error
+        })
+      const chunks = await streamAudioResponse(
         response,
         normalized.format,
         this.config.limits,
-        timeout.signal,
+        signal,
         options?.signal,
       )
-      throwIfTextToSpeechCancelled(options?.signal, 'after_synthesis')
       return {
-        audio,
+        audio: settleAudioStream(chunks, mapError, settle),
         metadata: {
           requestId: normalized.requestId,
           messageId: normalized.messageId,
           format: normalized.format,
-          byteLength: audio.byteLength,
         },
       }
     } catch (error) {
-      if (error instanceof TextToSpeechError) throw error
-      if (timeout.timedOut()) throw new TimeoutMarker()
-      throw error
-    } finally {
-      timeout.clear()
+      const mapped = mapError(error)
+      settle({ failure: mapped.failure })
+      throw mapped
     }
   }
 
   private trace(
-    requestId: string | undefined,
+    requestId: unknown,
+    format: unknown,
     latencyMs: number,
-    outcome: { result?: TextToSpeechResult; failure?: TextToSpeechFailure },
+    outcome: AudioStreamOutcome,
   ): void {
-    const metadata = outcome.result?.metadata
+    const { failure } = outcome
+    const success =
+      failure === undefined
+        ? { byteCount: outcome.byteCount, ...(isAudioOutputFormat(format) ? { format } : {}) }
+        : undefined
     void this.observability
       .trace({
         requestId: typeof requestId === 'string' ? requestId : crypto.randomUUID(),
-        event: outcome.failure === undefined ? 'text_to_speech' : 'text_to_speech.error',
-        ...(metadata === undefined
-          ? {}
-          : { output: { byteCount: metadata.byteLength, format: metadata.format } }),
-        ...(outcome.failure === undefined ? {} : { output: { code: outcome.failure.code } }),
+        event: failure === undefined ? 'text_to_speech' : 'text_to_speech.error',
+        output: success ?? { code: failure?.code },
         latencyMs,
         metadata: {
           provider: 'openai',
           model: this.config.model,
-          outcome: outcome.failure === undefined ? 'success' : 'failure',
-          ...(metadata === undefined
-            ? {}
-            : { byteCount: metadata.byteLength, format: metadata.format }),
-          ...(outcome.failure === undefined ? {} : { failureCode: outcome.failure.code }),
+          outcome: failure === undefined ? 'success' : 'failure',
+          ...success,
+          ...(failure === undefined ? {} : { failureCode: failure.code }),
         },
       })
       .catch(() => undefined)
@@ -189,6 +185,7 @@ function mapOutputFormat(format: AudioOutputFormat): OpenAiSpeechFormat {
   if (format === 'audio/wav') return 'wav'
   if (format === 'audio/ogg') return 'opus'
   if (format === 'audio/mpeg') return 'mp3'
+  if (format === 'audio/pcm') return 'pcm'
   throw new TextToSpeechError({ code: 'unsupported_format', format, retryable: false })
 }
 

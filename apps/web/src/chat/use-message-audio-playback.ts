@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AudioDeliveryRequest } from '@gami/shared'
 import { requestMessageAudio } from '../api/conversations'
 import { ApiError } from '../api/client'
+import { PcmStreamPlayer } from './pcm-stream-player'
 
 export type AudioPlaybackStatus =
   'idle' | 'loading' | 'playing' | 'stopped' | 'unsupported' | 'failed'
@@ -9,35 +9,33 @@ export type AudioPlaybackStatus =
 export type AudioPlaybackState = Readonly<{
   messageId: string | null
   status: AudioPlaybackStatus
-  durationMs: number | null
   errorCode: string | null
 }>
 
 export type MessageAudioPlayback = Readonly<{
   audio: AudioPlaybackState
-  playMessageAudio: (messageId: string, request?: AudioDeliveryRequest) => void
+  playMessageAudio: (messageId: string) => void
   stopMessageAudio: () => void
 }>
 
 type AudioResources = {
   controller: AbortController
-  element: HTMLAudioElement | null
-  objectUrl: string | null
-  listeners: AudioListener[]
-}
-
-type AudioListener = {
-  type: 'playing' | 'ended' | 'error'
-  listener: EventListener
+  context: AudioContext
 }
 
 const INITIAL_AUDIO_STATE: AudioPlaybackState = {
   messageId: null,
   status: 'idle',
-  durationMs: null,
   errorCode: null,
 }
 
+/** How long a suspended AudioContext may take to start before playback counts as blocked. */
+const AUTOPLAY_UNLOCK_MS = 300
+
+/**
+ * Streams reply audio as raw PCM and plays each chunk as it arrives, so the voice starts with the
+ * first synthesized words instead of after the whole clip.
+ */
 // eslint-disable-next-line max-lines-per-function
 export function useMessageAudioPlayback(conversationId: string | null): MessageAudioPlayback {
   const [audio, setAudio] = useState<AudioPlaybackState>(INITIAL_AUDIO_STATE)
@@ -53,19 +51,8 @@ export function useMessageAudioPlayback(conversationId: string | null): MessageA
     const resources = resourcesRef.current
     resourcesRef.current = null
     if (resources === null) return
-
     resources.controller.abort()
-    if (resources.element !== null) {
-      for (const { type, listener } of resources.listeners) {
-        resources.element.removeEventListener(type, listener)
-      }
-      resources.element.pause()
-      resources.element.removeAttribute('src')
-      resources.element.load()
-    }
-    if (resources.objectUrl !== null) {
-      URL.revokeObjectURL(resources.objectUrl)
-    }
+    void resources.context.close().catch(() => undefined)
   }, [])
 
   const stopMessageAudio = useCallback((): void => {
@@ -80,121 +67,78 @@ export function useMessageAudioPlayback(conversationId: string | null): MessageA
   }, [cleanupResources])
 
   const playMessageAudio = useCallback(
-    // eslint-disable-next-line max-lines-per-function
-    (messageId: string, request?: AudioDeliveryRequest): void => {
+    (messageId: string): void => {
       operationRef.current += 1
       const operationId = operationRef.current
       cleanupResources()
 
-      if (typeof document === 'undefined' || typeof URL.createObjectURL !== 'function') {
-        setAudio({
-          messageId,
-          status: 'unsupported',
-          durationMs: null,
-          errorCode: null,
-        })
+      if (typeof AudioContext === 'undefined') {
+        setAudio({ messageId, status: 'unsupported', errorCode: null })
+        return
+      }
+      if (conversationId === null) {
+        setAudio({ messageId, status: 'failed', errorCode: 'NO_CONVERSATION' })
         return
       }
 
       const controller = new AbortController()
-      resourcesRef.current = {
-        controller,
-        element: null,
-        objectUrl: null,
-        listeners: [],
-      }
-      setAudio({ messageId, status: 'loading', durationMs: null, errorCode: null })
+      // Created before the request so the browser can unlock audio while synthesis starts.
+      const context = new AudioContext()
+      const unlocked = context.resume().catch(() => undefined)
+      resourcesRef.current = { controller, context }
+      setAudio({ messageId, status: 'loading', errorCode: null })
 
-      if (conversationId === null) {
-        setAudio({ messageId, status: 'failed', durationMs: null, errorCode: 'NO_CONVERSATION' })
+      const finish = (status: AudioPlaybackStatus, errorCode: string | null): void => {
+        if (!isCurrentOperation(operationId)) return
+        operationRef.current += 1
         cleanupResources()
-        return
+        setAudio((current) => ({ ...current, status, errorCode }))
       }
 
-      void requestMessageAudio(conversationId, messageId, request, controller.signal)
-        .then(async (delivery) => {
+      const play = async (): Promise<void> => {
+        const delivery = await requestMessageAudio(
+          conversationId,
+          messageId,
+          { format: 'audio/pcm' },
+          controller.signal,
+        )
+        if (!isCurrentOperation(operationId)) return
+        if (delivery.metadata.format !== 'audio/pcm') {
+          finish('unsupported', null)
+          return
+        }
+        await Promise.race([unlocked, wait(AUTOPLAY_UNLOCK_MS)])
+        if (!isCurrentOperation(operationId)) return
+        if (context.state !== 'running') {
+          finish('stopped', 'AUTOPLAY_BLOCKED')
+          return
+        }
+
+        const player = new PcmStreamPlayer(context)
+        const reader = delivery.body.getReader()
+        let started = false
+        for (;;) {
+          const next = await reader.read()
           if (!isCurrentOperation(operationId)) return
-
-          const element = document.createElement('audio')
-          if (element.canPlayType(delivery.metadata.format) === '') {
-            cleanupResources()
-            setAudio({ messageId, status: 'unsupported', durationMs: null, errorCode: null })
-            return
-          }
-
-          const objectUrl = URL.createObjectURL(delivery.blob)
-          const resources = resourcesRef.current
-          if (resources === null || !isCurrentOperation(operationId)) {
-            URL.revokeObjectURL(objectUrl)
-            return
-          }
-
-          const listeners: AudioListener[] = [
-            {
-              type: 'playing',
-              listener: () => {
-                if (isCurrentOperation(operationId)) {
-                  setAudio((current) => ({ ...current, status: 'playing' }))
-                }
-              },
-            },
-            {
-              type: 'ended',
-              listener: () => {
-                if (!isCurrentOperation(operationId)) return
-                operationRef.current += 1
-                cleanupResources()
-                setAudio((current) => ({ ...current, status: 'stopped' }))
-              },
-            },
-            {
-              type: 'error',
-              listener: () => {
-                if (!isCurrentOperation(operationId)) return
-                operationRef.current += 1
-                cleanupResources()
-                setAudio((current) => ({
-                  ...current,
-                  status: 'failed',
-                  errorCode: 'PLAYBACK_ERROR',
-                }))
-              },
-            },
-          ]
-          resourcesRef.current = { controller, element, objectUrl, listeners }
-          setAudio((current) => ({
-            ...current,
-            durationMs: delivery.metadata.durationMs ?? null,
-          }))
-          element.preload = 'auto'
-          element.src = objectUrl
-          for (const { type, listener } of listeners) {
-            element.addEventListener(type, listener)
-          }
-
-          try {
-            await element.play()
-            if (!isCurrentOperation(operationId)) return
+          if (next.done) break
+          player.enqueue(next.value)
+          if (!started) {
+            started = true
             setAudio((current) => ({ ...current, status: 'playing' }))
-          } catch {
-            if (!isCurrentOperation(operationId)) return
-            cleanupResources()
-            setAudio((current) => ({
-              ...current,
-              status: 'stopped',
-              errorCode: 'AUTOPLAY_BLOCKED',
-            }))
           }
-        })
-        .catch((error: unknown) => {
-          if (!isCurrentOperation(operationId) || controller.signal.aborted) return
-          setAudio((current) => ({
-            ...current,
-            status: 'failed',
-            errorCode: error instanceof ApiError ? error.code : 'NETWORK_ERROR',
-          }))
-          cleanupResources()
-        })
+        }
+        if (!started) {
+          finish('failed', 'NETWORK_ERROR')
+          return
+        }
+        await player.ended()
+        finish('stopped', null)
+      }
+
+      void play().catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        finish('failed', error instanceof ApiError ? error.code : 'NETWORK_ERROR')
+      })
     },
     [cleanupResources, conversationId, isCurrentOperation],
   )
@@ -217,4 +161,8 @@ export function useMessageAudioPlayback(conversationId: string | null): MessageA
   }, [cleanupResources])
 
   return { audio, playMessageAudio, stopMessageAudio }
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }

@@ -187,15 +187,15 @@ function toSafeMemoryConsolidationPayload(
 
 function toSafeMessageAudioPayload(payload: Record<string, unknown>): MessageAudioEventPayload {
   const byteLength = readOptionalNumber(payload['byteLength'])
-  const audioDurationMs = readOptionalNumber(payload['audioDurationMs'])
+  const firstAudioMs = readOptionalNumber(payload['firstAudioMs'])
   return {
     conversationId: readString(payload['conversationId']),
     messageId: readString(payload['messageId']),
     provider: readString(payload['provider']),
     characterCount: readNumber(payload['characterCount']),
     latencyMs: readNumber(payload['latencyMs']),
+    ...(firstAudioMs !== undefined ? { firstAudioMs } : {}),
     ...(byteLength !== undefined ? { byteLength } : {}),
-    ...(audioDurationMs !== undefined ? { audioDurationMs } : {}),
     ...readOptionalStringField(payload, 'errorCode'),
   }
 }

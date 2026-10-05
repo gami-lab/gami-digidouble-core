@@ -25,8 +25,12 @@ export type TextToSpeechInput = Readonly<{
   messageId: string
 }>
 
-export type TextToSpeechResult = Readonly<{
-  audio: Readonly<Uint8Array>
+/**
+ * Audio as the provider produces it. Iterating `audio` yields bounded chunks as they arrive and
+ * throws a `TextToSpeechError` on failure; stopping early cancels the provider request.
+ */
+export type TextToSpeechStream = Readonly<{
+  audio: AsyncIterable<Uint8Array>
   metadata: AudioDeliveryMetadata
 }>
 
@@ -42,7 +46,8 @@ export type VoiceListFilter = Readonly<{
 /** Provider-neutral text-to-speech capability. */
 export interface ITextToSpeechAdapter {
   readonly provider: TextToSpeechProviderName
-  synthesize(input: TextToSpeechInput, options?: TextToSpeechOptions): Promise<TextToSpeechResult>
+  /** Resolves once the provider accepted the request and its audio can stream. */
+  synthesize(input: TextToSpeechInput, options?: TextToSpeechOptions): Promise<TextToSpeechStream>
   /** Selectable voices of this provider. */
   listVoices(filter?: VoiceListFilter): Promise<VoiceOption[]>
   /** Voice used when the scenario and avatar select none; undefined when none is available. */
@@ -74,7 +79,7 @@ export type TextToSpeechFailure =
     }>
   | Readonly<{
       code: 'cancelled'
-      phase: 'before_synthesis' | 'during_synthesis' | 'after_synthesis'
+      phase: 'before_synthesis' | 'during_synthesis'
       retryable: false
     }>
   | Readonly<{
@@ -157,50 +162,53 @@ export function normalizeTextToSpeechInput(input: unknown): TextToSpeechInput {
 
 export function throwIfTextToSpeechCancelled(
   signal: AbortSignal | undefined,
-  phase: 'before_synthesis' | 'during_synthesis' | 'after_synthesis',
+  phase: 'before_synthesis' | 'during_synthesis',
 ): void {
   if (signal?.aborted) {
     throw new TextToSpeechError({ code: 'cancelled', phase, retryable: false })
   }
 }
 
-export function validateTextToSpeechResult(
-  result: unknown,
+/** Checks an adapter's stream identity and bounds its audio independently of the adapter. */
+export function validateTextToSpeechStream(
+  stream: unknown,
   expected: Pick<TextToSpeechInput, 'requestId' | 'messageId' | 'format'>,
   maxOutputBytes = TEXT_TO_SPEECH_LIMITS.maxOutputBytes,
-): TextToSpeechResult {
-  if (!isRecord(result) || !(result['audio'] instanceof Uint8Array)) {
+): TextToSpeechStream {
+  if (!isRecord(stream) || !isAsyncIterable(stream['audio'])) {
     throw invalidProviderOutput('malformed_body')
   }
-
-  const audio = result['audio']
-  if (audio.byteLength === 0) throw invalidProviderOutput('empty')
-  if (audio.byteLength > maxOutputBytes) {
-    throw invalidProviderOutput('oversized')
-  }
-
-  const metadata = result['metadata']
+  const metadata = stream['metadata']
   if (!isAudioDeliveryMetadata(metadata)) throw invalidProviderOutput('malformed_body')
-  if (!matchesExpectedResult(metadata, audio, expected)) {
+  if (
+    metadata.requestId !== expected.requestId ||
+    metadata.messageId !== expected.messageId ||
+    metadata.format !== expected.format
+  ) {
     throw invalidProviderOutput('identity_mismatch')
   }
-
-  return {
-    audio: new Uint8Array(audio),
-    metadata: { ...metadata },
-  }
+  return { audio: boundAudio(stream['audio'], maxOutputBytes), metadata: { ...metadata } }
 }
 
-function matchesExpectedResult(
-  metadata: AudioDeliveryMetadata,
-  audio: Uint8Array,
-  expected: Pick<TextToSpeechInput, 'requestId' | 'messageId' | 'format'>,
-): boolean {
+async function* boundAudio(
+  audio: AsyncIterable<unknown>,
+  maxOutputBytes: number,
+): AsyncGenerator<Uint8Array> {
+  let total = 0
+  for await (const chunk of audio) {
+    if (!(chunk instanceof Uint8Array)) throw invalidProviderOutput('malformed_body')
+    total += chunk.byteLength
+    if (total > maxOutputBytes) throw invalidProviderOutput('oversized')
+    if (chunk.byteLength > 0) yield chunk
+  }
+  if (total === 0) throw invalidProviderOutput('empty')
+}
+
+function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
   return (
-    metadata.byteLength === audio.byteLength &&
-    metadata.requestId === expected.requestId &&
-    metadata.messageId === expected.messageId &&
-    metadata.format === expected.format
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as Partial<AsyncIterable<unknown>>)[Symbol.asyncIterator] === 'function'
   )
 }
 

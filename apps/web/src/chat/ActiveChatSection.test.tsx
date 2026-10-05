@@ -45,7 +45,6 @@ function createChat(
     audio: {
       messageId: null,
       status: 'idle',
-      durationMs: null,
       errorCode: null,
       ...audioOverrides,
     },

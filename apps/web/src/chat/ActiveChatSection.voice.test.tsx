@@ -30,7 +30,7 @@ function createChat(composerValue = ''): ActiveChatRuntimeState {
     composerValue,
     sendStatus: 'idle',
     sendError: null,
-    audio: { messageId: null, status: 'idle', durationMs: null, errorCode: null },
+    audio: { messageId: null, status: 'idle', errorCode: null },
     canSend: true,
     canEndConversation: true,
     setComposerValue: vi.fn(),

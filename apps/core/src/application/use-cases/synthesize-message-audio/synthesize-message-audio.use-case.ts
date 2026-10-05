@@ -1,8 +1,9 @@
 import {
   TextToSpeechError,
   TEXT_TO_SPEECH_LIMITS,
-  validateTextToSpeechResult,
+  validateTextToSpeechStream,
   type ITextToSpeechAdapter,
+  type TextToSpeechStream,
 } from '../../ports/ITextToSpeechAdapter.js'
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
@@ -12,7 +13,6 @@ import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import { DomainError } from '../../../domain/errors.js'
 import { selectVoice } from '../../../domain/voice/voice-configuration.js'
 import type { TextToSpeechProviders } from '../../voice/text-to-speech-providers.js'
-import type { TextToSpeechResult } from '../../ports/ITextToSpeechAdapter.js'
 import type { SynthesizeMessageAudioInput } from './synthesize-message-audio.types.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
@@ -30,7 +30,7 @@ export class SynthesizeMessageAudioUseCase {
     private readonly eventLogRepository?: IEventLogRepository,
   ) {}
 
-  async execute(input: SynthesizeMessageAudioInput): Promise<TextToSpeechResult> {
+  async execute(input: SynthesizeMessageAudioInput): Promise<TextToSpeechStream> {
     const normalized = validateInput(input)
     const conversation = await this.conversationRepository.findById(normalized.conversationId)
     if (conversation === null) {
@@ -75,12 +75,16 @@ export class SynthesizeMessageAudioUseCase {
     )
   }
 
+  /**
+   * Waits for the first audio chunk so early provider failures still reach the caller as errors,
+   * then streams the rest; the event is recorded once the stream ends, fails, or is abandoned.
+   */
   private async synthesizeWithEvent(
     conversation: { sessionId: string; conversationId: string },
     message: { messageId: string; content: string },
     voice: ResolvedVoice,
     normalized: ReturnType<typeof validateInput>,
-  ): Promise<TextToSpeechResult> {
+  ): Promise<TextToSpeechStream> {
     const startedAt = Date.now()
     const event = {
       sessionId: conversation.sessionId,
@@ -90,22 +94,62 @@ export class SynthesizeMessageAudioUseCase {
       characterCount: message.content.length,
       provider: voice.adapter.provider,
     }
-    try {
-      const result = await this.synthesize(message, voice, normalized)
-      await this.recordEvent('message_audio_synthesized', event, {
-        latencyMs: Date.now() - startedAt,
-        byteLength: result.metadata.byteLength,
-        ...(result.metadata.durationMs === undefined
-          ? {}
-          : { audioDurationMs: result.metadata.durationMs }),
-      })
-      return result
-    } catch (error) {
-      await this.recordEvent('message_audio_failed', event, {
+    const fail = (error: unknown): Promise<void> =>
+      this.recordEvent('message_audio_failed', event, {
         latencyMs: Date.now() - startedAt,
         errorCode: error instanceof TextToSpeechError ? error.failure.code : 'synthesis_failed',
       })
+
+    let chunks: AsyncIterator<Uint8Array>
+    let first: IteratorResult<Uint8Array>
+    try {
+      const stream = await this.synthesize(message, voice, normalized)
+      chunks = stream.audio[Symbol.asyncIterator]()
+      first = await chunks.next()
+    } catch (error) {
+      await fail(error)
       throw error
+    }
+    const firstAudioMs = Date.now() - startedAt
+    const record = this.recordEvent.bind(this)
+    async function* audio(): AsyncGenerator<Uint8Array> {
+      let byteLength = 0
+      let settled = false
+      try {
+        for (let next = first; next.done !== true; next = await chunks.next()) {
+          byteLength += next.value.byteLength
+          yield next.value
+        }
+        settled = true
+        await record('message_audio_synthesized', event, {
+          latencyMs: Date.now() - startedAt,
+          firstAudioMs,
+          byteLength,
+        })
+      } catch (error) {
+        settled = true
+        await fail(error)
+        throw error
+      } finally {
+        if (!settled) {
+          await chunks.return?.()
+          await fail(
+            new TextToSpeechError({
+              code: 'cancelled',
+              phase: 'during_synthesis',
+              retryable: false,
+            }),
+          )
+        }
+      }
+    }
+    return {
+      audio: audio(),
+      metadata: {
+        requestId: normalized.requestId,
+        messageId: message.messageId,
+        format: normalized.format,
+      },
     }
   }
 
@@ -113,8 +157,8 @@ export class SynthesizeMessageAudioUseCase {
     message: { messageId: string; content: string },
     voice: ResolvedVoice,
     normalized: ReturnType<typeof validateInput>,
-  ): Promise<TextToSpeechResult> {
-    const result = await voice.adapter.synthesize(
+  ): Promise<TextToSpeechStream> {
+    const stream = await voice.adapter.synthesize(
       {
         text: message.content,
         voiceId: voice.voiceId,
@@ -124,8 +168,8 @@ export class SynthesizeMessageAudioUseCase {
       },
       { ...(normalized.signal === undefined ? {} : { signal: normalized.signal }) },
     )
-    return validateTextToSpeechResult(
-      result,
+    return validateTextToSpeechStream(
+      stream,
       { requestId: normalized.requestId, messageId: message.messageId, format: normalized.format },
       this.maxOutputBytes,
     )

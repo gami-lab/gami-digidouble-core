@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ApiResponse, AudioOutputFormat } from '@gami/shared'
+import type { ApiResponse, AudioDeliveryMetadata, AudioOutputFormat } from '@gami/shared'
 import type {
   ITextToSpeechAdapter,
   TextToSpeechInput,
   TextToSpeechOptions,
-  TextToSpeechResult,
 } from '../../application/ports/ITextToSpeechAdapter.js'
 import { TextToSpeechError } from '../../application/ports/ITextToSpeechAdapter.js'
 import { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
@@ -70,8 +69,14 @@ const userMessage: Message = {
   createdAt: conversation.startedAt,
 }
 
+type StreamOutcome = {
+  /** Chunks streamed in order; an error entry is thrown at that point of the stream. */
+  chunks?: (Uint8Array | TextToSpeechError)[]
+  metadata?: Partial<AudioDeliveryMetadata>
+}
+
 function createTtsAdapter(
-  outcome?: TextToSpeechResult | TextToSpeechError,
+  outcome?: StreamOutcome | TextToSpeechError,
   defaultVoiceId: string | null = 'provider-default',
 ): ITextToSpeechAdapter & {
   requests: TextToSpeechInput[]
@@ -85,18 +90,23 @@ function createTtsAdapter(
       requests.push(input)
       signals.push(options?.signal)
       if (outcome instanceof TextToSpeechError) return Promise.reject(outcome)
-      return Promise.resolve(
-        outcome ?? {
-          audio: Uint8Array.from([7, 8, 9]),
-          metadata: {
-            requestId: input.requestId,
-            messageId: input.messageId,
-            format: input.format,
-            byteLength: 3,
-            durationMs: 750,
-          },
+      const chunks = outcome?.chunks ?? [Uint8Array.from([7, 8]), Uint8Array.from([9])]
+      async function* audio(): AsyncGenerator<Uint8Array> {
+        for (const chunk of chunks) {
+          await Promise.resolve()
+          if (chunk instanceof TextToSpeechError) throw chunk
+          yield chunk
+        }
+      }
+      return Promise.resolve({
+        audio: audio(),
+        metadata: {
+          requestId: input.requestId,
+          messageId: input.messageId,
+          format: input.format,
+          ...outcome?.metadata,
         },
-      )
+      })
     })
   return {
     provider: 'gradium',
@@ -184,7 +194,7 @@ describe('conversation message audio route', () => {
     expectError(malformed, 400, 'VALIDATION_ERROR')
   })
 
-  it('synthesizes the persisted Avatar content and returns bounded binary metadata', async () => {
+  it('streams the synthesized Avatar content with its metadata headers', async () => {
     const tts = createTtsAdapter()
     const app = createApp(tts)
 
@@ -197,11 +207,11 @@ describe('conversation message audio route', () => {
 
     expect(response.statusCode).toBe(200)
     expect(response.headers['content-type']).toBe('audio/ogg')
-    expect(response.headers['content-length']).toBe('3')
+    expect(response.headers['content-length']).toBeUndefined()
     expect(response.headers['content-disposition']).toBe('inline')
+    expect(response.headers['cache-control']).toBe('no-store')
     expect(response.headers['x-message-id']).toBe(avatarMessage.messageId)
     expect(response.headers['x-request-id']).toBe(tts.requests[0]?.requestId)
-    expect(response.headers['x-audio-duration-ms']).toBe('750')
     expect(response.rawPayload).toEqual(Buffer.from([7, 8, 9]))
     expect(tts.requests[0]).toMatchObject({
       text: avatarMessage.content,
@@ -238,9 +248,7 @@ describe('conversation message audio route', () => {
     const exposed = (response.headers['access-control-expose-headers'] ?? '')
       .toLowerCase()
       .split(/,\s*/)
-    expect(exposed).toEqual(
-      expect.arrayContaining(['x-request-id', 'x-message-id', 'x-audio-duration-ms']),
-    )
+    expect(exposed).toEqual(expect.arrayContaining(['x-request-id', 'x-message-id']))
   })
 
   it('returns 404 for a message that belongs to another conversation', async () => {
@@ -333,18 +341,8 @@ describe('conversation message audio route', () => {
     expect(failureTts.requests).toHaveLength(1)
   })
 
-  it('rejects a fake adapter result that exceeds the bounded delivery contract', async () => {
-    const app = createApp(
-      createTtsAdapter({
-        audio: Uint8Array.from([1, 2]),
-        metadata: {
-          requestId: 'request_1',
-          messageId: avatarMessage.messageId,
-          format: 'audio/wav',
-          byteLength: 3,
-        },
-      }),
-    )
+  it('rejects an adapter stream for another request before sending audio', async () => {
+    const app = createApp(createTtsAdapter({ metadata: { requestId: 'request_other' } }))
 
     const response = await app.inject({
       method: 'POST',
@@ -396,6 +394,83 @@ describe('conversation message audio route', () => {
       expectError(response, status, code)
     },
   )
+
+  it('maps a provider failure before the first audio chunk to an API error', async () => {
+    const app = createApp(
+      createTtsAdapter({
+        chunks: [new TextToSpeechError({ code: 'provider_unavailable', retryable: true })],
+      }),
+    )
+
+    const response = await app.inject({
+      method: 'POST',
+      url: audioUrl(),
+      headers: headers(),
+      payload: {},
+    })
+
+    expectError(response, 502, 'PROVIDER_ERROR')
+  })
+
+  it('accepts raw PCM delivery', async () => {
+    const tts = createTtsAdapter()
+    const response = await createApp(tts).inject({
+      method: 'POST',
+      url: audioUrl(),
+      headers: headers(),
+      payload: { format: 'audio/pcm' satisfies AudioOutputFormat },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['content-type']).toBe('audio/pcm')
+    expect(tts.requests[0]?.format).toBe('audio/pcm')
+  })
+
+  it('sends the first audio before synthesis ends and cancels it when the client disconnects', async () => {
+    let providerSignal: AbortSignal | undefined
+    const tts: ITextToSpeechAdapter = {
+      provider: 'gradium',
+      listVoices: () => Promise.resolve([]),
+      getDefaultVoiceId: () => Promise.resolve('provider-default'),
+      synthesize: (input, options) => {
+        providerSignal = options?.signal
+        async function* audio(): AsyncGenerator<Uint8Array> {
+          yield Uint8Array.from([1, 2])
+          // The provider is still synthesizing; only a cancelled request ends this stream.
+          await new Promise((resolve) => options?.signal?.addEventListener('abort', resolve))
+        }
+        return Promise.resolve({
+          audio: audio(),
+          metadata: {
+            requestId: input.requestId,
+            messageId: input.messageId,
+            format: input.format,
+          },
+        })
+      },
+    }
+    const app = createApp(tts)
+    const address = await app.listen({ port: 0, host: '127.0.0.1' })
+    try {
+      const client = new AbortController()
+      const response = await fetch(`${address}${audioUrl()}`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ format: 'audio/pcm' }),
+        signal: client.signal,
+      })
+      const reader = response.body?.getReader()
+      await expect(reader?.read()).resolves.toMatchObject({ value: Uint8Array.from([1, 2]) })
+      client.abort()
+
+      await vi.waitFor(() => {
+        expect(providerSignal?.aborted).toBe(true)
+      })
+    } finally {
+      app.server.closeAllConnections()
+      await app.close()
+    }
+  })
 
   it('propagates route cancellation to the application adapter and maps it safely', async () => {
     const tts = createTtsAdapter(

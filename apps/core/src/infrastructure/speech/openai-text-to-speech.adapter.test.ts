@@ -55,6 +55,16 @@ function createAdapter(
   return { adapter, trace }
 }
 
+async function synthesizeAll(
+  adapter: OpenAiTextToSpeechAdapter,
+  input: TextToSpeechInput,
+): Promise<{ audio: number[]; metadata: unknown }> {
+  const stream = await adapter.synthesize(input)
+  const audio: number[] = []
+  for await (const chunk of stream.audio) audio.push(...chunk)
+  return { audio, metadata: stream.metadata }
+}
+
 describe('OpenAiTextToSpeechAdapter', () => {
   it('lists the built-in multilingual voices with a default voice', async () => {
     const { adapter } = createAdapter(vi.fn<CreateSpeech>())
@@ -74,6 +84,7 @@ describe('OpenAiTextToSpeechAdapter', () => {
     ['audio/wav', 'wav', 'audio/wav'],
     ['audio/ogg', 'opus', 'audio/opus'],
     ['audio/mpeg', 'mp3', 'audio/mpeg'],
+    ['audio/pcm', 'pcm', 'audio/pcm'],
   ] as const)(
     'synthesizes %s through the %s response format',
     async (format, responseFormat, contentType) => {
@@ -82,7 +93,7 @@ describe('OpenAiTextToSpeechAdapter', () => {
         .mockResolvedValue(audioResponse(Uint8Array.from([1, 2, 3]), contentType))
       const { adapter, trace } = createAdapter(create)
 
-      const result = await adapter.synthesize(createInput({ format }))
+      const result = await synthesizeAll(adapter, createInput({ format }))
 
       expect(create).toHaveBeenCalledWith(
         {
@@ -94,8 +105,8 @@ describe('OpenAiTextToSpeechAdapter', () => {
         { signal: expect.any(AbortSignal) as unknown },
       )
       expect(result).toEqual({
-        audio: Uint8Array.from([1, 2, 3]),
-        metadata: { requestId: 'request-1', messageId: 'message-1', format, byteLength: 3 },
+        audio: [1, 2, 3],
+        metadata: { requestId: 'request-1', messageId: 'message-1', format },
       })
       const serialized = JSON.stringify(trace.mock.calls)
       expect(serialized).toContain('"provider":"openai"')
@@ -122,7 +133,7 @@ describe('OpenAiTextToSpeechAdapter', () => {
       vi.fn<CreateSpeech>().mockResolvedValue(audioResponse(new Uint8Array(10), 'audio/wav')),
       { maxOutputBytes: 4 },
     )
-    await expect(oversized.adapter.synthesize(createInput())).rejects.toMatchObject({
+    await expect(synthesizeAll(oversized.adapter, createInput())).rejects.toMatchObject({
       failure: { code: 'invalid_provider_output', reason: 'oversized' },
     })
 

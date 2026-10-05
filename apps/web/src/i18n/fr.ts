@@ -82,7 +82,6 @@ const fr = {
       stopped: 'Audio arrêté. Sélectionnez Lire pour recommencer.',
       unsupported: 'La lecture audio n’est pas prise en charge par ce navigateur.',
       failed: 'Audio indisponible. La réponse texte reste disponible.',
-      duration: 'Durée {{duration}}',
     },
     voice: {
       transcribing: '🎙 Transcription…',

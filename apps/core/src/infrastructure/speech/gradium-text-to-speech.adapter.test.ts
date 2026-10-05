@@ -7,6 +7,7 @@ import {
   TextToSpeechError,
   TEXT_TO_SPEECH_LIMITS,
   type TextToSpeechInput,
+  type TextToSpeechOptions,
 } from '../../application/ports/ITextToSpeechAdapter.js'
 import {
   GradiumTextToSpeechAdapter,
@@ -101,6 +102,17 @@ function createAdapter(
   }
 }
 
+async function synthesizeAll(
+  adapter: GradiumTextToSpeechAdapter,
+  input: TextToSpeechInput,
+  options?: TextToSpeechOptions,
+): Promise<{ audio: number[]; metadata: unknown }> {
+  const stream = await adapter.synthesize(input, options)
+  const audio: number[] = []
+  for await (const chunk of stream.audio) audio.push(...chunk)
+  return { audio, metadata: stream.metadata }
+}
+
 // eslint-disable-next-line max-lines-per-function
 describe('GradiumTextToSpeechAdapter', () => {
   it('maps the provider-neutral request to the official Gradium JSON fields', async () => {
@@ -110,14 +122,9 @@ describe('GradiumTextToSpeechAdapter', () => {
     })
     const { adapter, post } = createAdapter(response)
 
-    await expect(adapter.synthesize(createInput())).resolves.toEqual({
-      audio: Uint8Array.from([1, 2, 3]),
-      metadata: {
-        requestId: 'request-1',
-        messageId: 'message-1',
-        format: 'audio/wav',
-        byteLength: 3,
-      },
+    await expect(synthesizeAll(adapter, createInput())).resolves.toEqual({
+      audio: [1, 2, 3],
+      metadata: { requestId: 'request-1', messageId: 'message-1', format: 'audio/wav' },
     })
 
     const request = post.mock.calls[0]?.[0] as GradiumTransportRequest
@@ -145,6 +152,46 @@ describe('GradiumTextToSpeechAdapter', () => {
     expect(
       JSON.parse((post.mock.calls[0]?.[0] as GradiumTransportRequest).body) as unknown,
     ).toEqual(expect.objectContaining({ output_format: 'opus' }))
+  })
+
+  it('maps raw PCM delivery to 24 kHz Gradium PCM served as an octet stream', async () => {
+    const { adapter, post } = createAdapter(
+      createResponse(Uint8Array.from([1, 0]), { contentType: 'application/octet-stream' }),
+    )
+
+    await expect(synthesizeAll(adapter, createInput({ format: 'audio/pcm' }))).resolves.toEqual({
+      audio: [1, 0],
+      metadata: { requestId: 'request-1', messageId: 'message-1', format: 'audio/pcm' },
+    })
+    expect(
+      JSON.parse((post.mock.calls[0]?.[0] as GradiumTransportRequest).body) as unknown,
+    ).toEqual(expect.objectContaining({ output_format: 'pcm_24000' }))
+  })
+
+  it('yields provider audio chunks before the provider body ends', async () => {
+    let push: ((chunk: Uint8Array | null) => void) | undefined
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        push = (chunk) => {
+          if (chunk === null) controller.close()
+          else controller.enqueue(chunk)
+        }
+      },
+    })
+    const { adapter } = createAdapter({
+      status: 200,
+      headers: new Headers({ 'content-type': 'audio/pcm' }),
+      body,
+    })
+    const stream = await adapter.synthesize(createInput({ format: 'audio/pcm' }))
+    const chunks = stream.audio[Symbol.asyncIterator]()
+
+    push?.(Uint8Array.from([1, 2]))
+    await expect(chunks.next()).resolves.toEqual({ done: false, value: Uint8Array.from([1, 2]) })
+    push?.(Uint8Array.from([3, 4]))
+    push?.(null)
+    await expect(chunks.next()).resolves.toEqual({ done: false, value: Uint8Array.from([3, 4]) })
+    await expect(chunks.next()).resolves.toMatchObject({ done: true })
   })
 
   it.each([
@@ -190,7 +237,7 @@ describe('GradiumTextToSpeechAdapter', () => {
     )
     const { adapter } = createAdapter(response)
 
-    await expect(adapter.synthesize(createInput())).rejects.toMatchObject({
+    await expect(synthesizeAll(adapter, createInput())).rejects.toMatchObject({
       failure: { code: 'invalid_provider_output', reason },
     })
   })
@@ -203,7 +250,7 @@ describe('GradiumTextToSpeechAdapter', () => {
     })
     const { adapter } = createAdapter(response, { maxOutputBytes: 3 })
 
-    await expect(adapter.synthesize(createInput())).rejects.toMatchObject({
+    await expect(synthesizeAll(adapter, createInput())).rejects.toMatchObject({
       failure: { code: 'invalid_provider_output', reason: 'oversized' },
     })
     expect(response.cancelled()).toBe(true)
@@ -227,7 +274,7 @@ describe('GradiumTextToSpeechAdapter', () => {
     }
     const { adapter } = createAdapter(response)
 
-    await expect(adapter.synthesize(createInput())).rejects.toMatchObject({
+    await expect(synthesizeAll(adapter, createInput())).rejects.toMatchObject({
       failure: { code: 'invalid_provider_output', reason: 'malformed_body' },
     })
     expect(cancelled).toBe(true)
@@ -334,7 +381,7 @@ describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
       { post } satisfies GradiumTransport,
     )
     const controller = new AbortController()
-    const synthesis = adapter.synthesize(createInput(), { signal: controller.signal })
+    const synthesis = synthesizeAll(adapter, createInput(), { signal: controller.signal })
     await vi.waitFor(() => {
       expect(post).toHaveBeenCalled()
     })
@@ -355,7 +402,7 @@ describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
         closeBody: false,
       })
       const { adapter, post } = createAdapter(response, { timeoutMs: 100 })
-      const synthesis = adapter.synthesize(createInput())
+      const synthesis = synthesizeAll(adapter, createInput())
       const failure = expect(synthesis).rejects.toMatchObject({ failure: { code: 'timeout' } })
 
       await vi.advanceTimersByTimeAsync(100)
@@ -368,12 +415,17 @@ describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
     }
   })
 
-  it('records only bounded success metadata', async () => {
+  it('records only bounded success metadata once the stream ends', async () => {
     const { adapter, trace } = createAdapter(
       createResponse(Uint8Array.from([1, 2]), { contentType: 'audio/wav', declaredLength: '2' }),
     )
 
-    await adapter.synthesize(createInput())
+    const stream = await adapter.synthesize(createInput())
+    expect(trace).not.toHaveBeenCalled()
+    const chunks = stream.audio[Symbol.asyncIterator]()
+    while ((await chunks.next()).done !== true) {
+      // Drain: the trace is recorded once the stream ends.
+    }
 
     const event = trace.mock.calls[0]?.[0] as TraceEvent | undefined
     const serialized = JSON.stringify(event)
@@ -385,6 +437,28 @@ describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
     })
     expect(serialized).not.toContain('gradium-secret-test')
     expect(serialized).not.toContain('Hello from the avatar.')
+  })
+
+  it('cancels the provider body and records a cancellation when the consumer stops early', async () => {
+    const response = createResponse(Uint8Array.from([1, 2]), {
+      contentType: 'audio/wav',
+      chunks: [Uint8Array.from([1, 2]), Uint8Array.from([3, 4])],
+      closeBody: false,
+    })
+    const { adapter, trace } = createAdapter(response)
+
+    const stream = await adapter.synthesize(createInput())
+    const chunks = stream.audio[Symbol.asyncIterator]()
+    await chunks.next()
+    await chunks.return?.()
+
+    expect(response.cancelled()).toBe(true)
+    expect(trace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'text_to_speech.error',
+        output: { code: 'cancelled' },
+      }),
+    )
   })
 })
 

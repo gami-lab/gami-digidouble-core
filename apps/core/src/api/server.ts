@@ -174,7 +174,7 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     ],
     // Binary audio delivery carries its metadata in headers; browsers hide non-safelisted
     // response headers from cross-origin clients unless they are exposed.
-    exposedHeaders: ['X-Request-Id', 'X-Message-Id', 'X-Audio-Duration-Ms'],
+    exposedHeaders: ['X-Request-Id', 'X-Message-Id'],
   })
 
   app.setErrorHandler((error, request, reply) => {

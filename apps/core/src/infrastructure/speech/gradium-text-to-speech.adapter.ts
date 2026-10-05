@@ -6,11 +6,10 @@ import {
   TextToSpeechError,
   throwIfTextToSpeechCancelled,
   type ITextToSpeechAdapter,
-  type TextToSpeechFailure,
   type TextToSpeechInput,
   type TextToSpeechLimits,
   type TextToSpeechOptions,
-  type TextToSpeechResult,
+  type TextToSpeechStream,
   type VoiceListFilter,
 } from '../../application/ports/ITextToSpeechAdapter.js'
 import type { AudioOutputFormat, VoiceOption } from '@gami/shared'
@@ -18,10 +17,12 @@ import { GradiumVoiceCatalog, type GradiumVoiceListTransport } from './gradium-v
 import {
   cancelResponseBody,
   failureForStatus,
-  readAudioResponse,
+  settleAudioStream,
+  streamAudioResponse,
   TimeoutMarker,
+  type AudioStreamOutcome,
 } from './audio-response.js'
-import { createTimeoutSignal } from './timeout-signal.js'
+import { createTimeoutSignal, type TimeoutSignal } from './timeout-signal.js'
 
 export const DEFAULT_GRADIUM_BASE_URL = 'https://api.gradium.ai/api'
 export const DEFAULT_GRADIUM_TIMEOUT_MS = 30_000
@@ -97,57 +98,36 @@ export class GradiumTextToSpeechAdapter implements ITextToSpeechAdapter {
   async synthesize(
     input: TextToSpeechInput,
     options?: TextToSpeechOptions,
-  ): Promise<TextToSpeechResult> {
+  ): Promise<TextToSpeechStream> {
     const startedAt = Date.now()
-    let normalizedInput: TextToSpeechInput | undefined
+    let requestId: string | undefined
+    let format: AudioOutputFormat | undefined
     let statusCode: number | undefined
-
-    try {
-      const execution = await this.executeSynthesis(input, options, (status) => {
-        statusCode = status
-      })
-      normalizedInput = execution.input
+    let timeout: TimeoutSignal | undefined
+    const settle = (outcome: AudioStreamOutcome): void => {
+      timeout?.clear()
       this.trace({
-        requestId: execution.input.requestId,
-        input: execution.input,
+        ...(requestId === undefined ? {} : { requestId }),
+        ...(format === undefined ? {} : { format }),
         latencyMs: Date.now() - startedAt,
-        outcome: 'success',
-        result: execution.result,
-      })
-      return execution.result
-    } catch (error) {
-      const mapped = mapGradiumError(error, options?.signal, error instanceof TimeoutMarker)
-      if (normalizedInput === undefined) {
-        try {
-          normalizedInput = normalizeTextToSpeechInput(input)
-        } catch {
-          // Invalid input is reported through the typed failure only.
-        }
-      }
-      this.trace({
-        ...(normalizedInput === undefined ? {} : { requestId: normalizedInput.requestId }),
-        ...(normalizedInput === undefined ? {} : { input: normalizedInput }),
-        latencyMs: Date.now() - startedAt,
-        outcome: 'failure',
-        failure: mapped.failure,
+        outcome,
         ...(statusCode === undefined ? {} : { statusCode }),
       })
-      throw mapped
     }
-  }
-
-  // eslint-disable-next-line complexity
-  private async executeSynthesis(
-    input: TextToSpeechInput,
-    options: TextToSpeechOptions | undefined,
-    onStatusCode: (statusCode: number) => void,
-  ): Promise<{ input: TextToSpeechInput; result: TextToSpeechResult }> {
-    throwIfTextToSpeechCancelled(options?.signal, 'before_synthesis')
-    const normalizedInput = normalizeTextToSpeechInput(input)
-    const providerFormat = mapOutputFormat(normalizedInput.format)
-    const timeout = createTimeoutSignal(options?.signal, this.config.timeoutMs)
+    const mapError = (error: unknown): TextToSpeechError =>
+      mapGradiumError(
+        error,
+        options?.signal,
+        error instanceof TimeoutMarker || timeout?.timedOut() === true,
+      )
 
     try {
+      throwIfTextToSpeechCancelled(options?.signal, 'before_synthesis')
+      const normalized = normalizeTextToSpeechInput(input)
+      requestId = normalized.requestId
+      format = normalized.format
+      const providerFormat = mapOutputFormat(normalized.format)
+      timeout = createTimeoutSignal(options?.signal, this.config.timeoutMs)
       const response = await this.transport.post({
         url: `${this.config.baseUrl}/post/speech/tts`,
         headers: {
@@ -155,90 +135,67 @@ export class GradiumTextToSpeechAdapter implements ITextToSpeechAdapter {
           'x-api-key': this.config.apiKey,
         },
         body: JSON.stringify({
-          text: normalizedInput.text,
-          voice_id: normalizedInput.voiceId,
+          text: normalized.text,
+          voice_id: normalized.voiceId,
           output_format: providerFormat,
           only_audio: true,
         }),
         signal: timeout.signal,
       })
-      onStatusCode(response.status)
+      statusCode = response.status
       if (response.status < 200 || response.status >= 300) {
         await cancelResponseBody(response)
         throw failureForStatus(response.status)
       }
-      if (timeout.timedOut()) throw new TimeoutMarker()
-      throwIfTextToSpeechCancelled(options?.signal, 'during_synthesis')
-      const audio = await readAudioResponse(
+      const chunks = await streamAudioResponse(
         response,
-        normalizedInput.format,
+        normalized.format,
         this.config.limits,
         timeout.signal,
         options?.signal,
       )
-      if (timeout.timedOut()) throw new TimeoutMarker()
-      throwIfTextToSpeechCancelled(options?.signal, 'after_synthesis')
       return {
-        input: normalizedInput,
-        result: {
-          audio,
-          metadata: {
-            requestId: normalizedInput.requestId,
-            messageId: normalizedInput.messageId,
-            format: normalizedInput.format,
-            byteLength: audio.byteLength,
-          },
+        audio: settleAudioStream(chunks, mapError, settle),
+        metadata: {
+          requestId: normalized.requestId,
+          messageId: normalized.messageId,
+          format: normalized.format,
         },
       }
     } catch (error) {
-      if (error instanceof TextToSpeechError) throw error
-      if (timeout.timedOut()) throw new TimeoutMarker()
-      throw error
-    } finally {
-      timeout.clear()
+      const mapped = mapError(error)
+      settle({ failure: mapped.failure })
+      throw mapped
     }
   }
 
   private trace(args: {
     requestId?: string
-    input?: TextToSpeechInput
+    format?: AudioOutputFormat
     latencyMs: number
-    outcome: 'success' | 'failure'
-    result?: TextToSpeechResult
-    failure?: TextToSpeechFailure
+    outcome: AudioStreamOutcome
     statusCode?: number
   }): void {
+    const { failure } = args.outcome
+    const success =
+      failure === undefined
+        ? {
+            byteCount: args.outcome.byteCount,
+            ...(args.format === undefined ? {} : { format: args.format }),
+          }
+        : undefined
     void this.observability
       .trace({
         requestId: args.requestId ?? crypto.randomUUID(),
-        event: args.failure === undefined ? 'text_to_speech' : 'text_to_speech.error',
-        ...(args.result === undefined
-          ? {}
-          : {
-              output: {
-                byteCount: args.result.metadata.byteLength,
-                format: args.result.metadata.format,
-                ...(args.result.metadata.durationMs === undefined
-                  ? {}
-                  : { durationMs: args.result.metadata.durationMs }),
-              },
-            }),
-        ...(args.failure === undefined ? {} : { output: { code: args.failure.code } }),
+        event: failure === undefined ? 'text_to_speech' : 'text_to_speech.error',
+        output: success ?? { code: failure?.code },
         latencyMs: args.latencyMs,
         metadata: {
           provider: 'gradium',
-          outcome: args.outcome,
-          ...(args.result === undefined
-            ? {}
-            : {
-                byteCount: args.result.metadata.byteLength,
-                format: args.result.metadata.format,
-                ...(args.result.metadata.durationMs === undefined
-                  ? {}
-                  : { durationMs: args.result.metadata.durationMs }),
-              }),
+          outcome: failure === undefined ? 'success' : 'failure',
+          ...success,
           ...(args.statusCode === undefined ? {} : { statusCode: args.statusCode }),
-          ...(args.failure === undefined ? {} : { failureCode: args.failure.code }),
+          ...(failure === undefined ? {} : { failureCode: failure.code }),
         },
       })
       .catch(() => undefined)
@@ -274,9 +231,10 @@ function validateConfig(config: GradiumTextToSpeechConfig): void {
   }
 }
 
-function mapOutputFormat(format: AudioOutputFormat): 'wav' | 'opus' {
+function mapOutputFormat(format: AudioOutputFormat): 'wav' | 'opus' | 'pcm_24000' {
   if (format === 'audio/wav') return 'wav'
   if (format === 'audio/ogg') return 'opus'
+  if (format === 'audio/pcm') return 'pcm_24000'
   throw new TextToSpeechError({ code: 'unsupported_format', format, retryable: false })
 }
 
