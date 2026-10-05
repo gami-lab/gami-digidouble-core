@@ -4,6 +4,8 @@ import type { AvatarConfig } from '../../domain/avatar/avatar.types.js'
 import type { Session } from '../../domain/conversation/session.types.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
+import { FakeTextToSpeechAdapter } from '../../application/voice/test-support/fake-text-to-speech.adapter.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
 
@@ -33,15 +35,19 @@ function makeSession(overrides: Partial<Session> = {}): Session {
   }
 }
 
-function makeApp(
-  { avatars = [], sessions = [] }: { avatars?: AvatarConfig[]; sessions?: Session[] } = {
-    avatars: [],
-    sessions: [],
-  },
-) {
+function makeApp({
+  avatars = [],
+  sessions = [],
+  voiceProviders = [new FakeTextToSpeechAdapter()],
+}: {
+  avatars?: AvatarConfig[]
+  sessions?: Session[]
+  voiceProviders?: FakeTextToSpeechAdapter[]
+} = {}) {
   return createServer(TEST_CONFIG, {
     avatarRepository: new InMemoryAvatarRepository(avatars),
     sessionRepository: new InMemorySessionRepository(sessions),
+    textToSpeechProviders: new TextToSpeechProviders(voiceProviders, 'gradium'),
   })
 }
 
@@ -202,6 +208,23 @@ describe('PATCH /v1/avatars/:avatarId', () => {
 
     expect(response.statusCode).toBe(400)
     expect(response.json<ApiResponse<null>>().error?.code).toBe('VALIDATION_ERROR')
+  })
+})
+
+describe('PATCH /v1/avatars/:avatarId voice provider', () => {
+  it('rejects a provider without an API key on Core', async () => {
+    const response = await makeApp({
+      avatars: [makeAvatar({ avatarId: 'avatar_1' })],
+      voiceProviders: [],
+    }).inject({
+      method: 'PATCH',
+      url: '/v1/avatars/avatar_1',
+      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      payload: { voiceConfig: { provider: 'gradium', voiceId: 'guide' } },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json<ApiResponse<null>>().error?.message).toContain('no API key')
   })
 })
 

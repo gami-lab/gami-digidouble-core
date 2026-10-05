@@ -1,3 +1,4 @@
+import type { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
 import type { UpdateAvatarRequest, UpdateAvatarResponse } from '@gami/shared'
@@ -23,6 +24,7 @@ export type AvatarsRouteOptions = {
   config: Config
   avatarRepository?: IAvatarRepository
   sessionRepository?: ISessionRepository
+  textToSpeechProviders: TextToSpeechProviders
 }
 
 type AvatarParams = {
@@ -104,7 +106,11 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
         if (validationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
         }
-        const voiceValidationError = validateVoiceConfiguration(request.body.voiceConfig, true)
+        const voiceValidationError = validateVoiceConfiguration(
+          request.body.voiceConfig,
+          true,
+          options.textToSpeechProviders.available,
+        )
         if (voiceValidationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', voiceValidationError))
         }

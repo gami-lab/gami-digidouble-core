@@ -117,7 +117,7 @@ describe('VoiceSelect', () => {
     expect(screen.getByLabelText('Avatar voice')).toHaveProperty('disabled', true)
   })
 
-  it('keeps a saved provider without an API key visible so it can be changed', async () => {
+  it('flags a saved provider without an API key so it can be changed before saving', async () => {
     vi.mocked(listVoices).mockResolvedValue({
       defaultProvider: null,
       providers: [],
@@ -130,6 +130,7 @@ describe('VoiceSelect', () => {
     await waitFor(() => {
       expect(screen.getByRole('option', { name: 'No API key: gradium' })).toBeTruthy()
     })
+    expect(screen.getByText(/saving will be rejected/)).toBeTruthy()
     expect(screen.getByLabelText('Avatar voice provider')).toHaveProperty('disabled', false)
   })
 

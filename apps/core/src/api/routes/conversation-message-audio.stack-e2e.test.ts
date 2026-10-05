@@ -51,7 +51,6 @@ async function seedConversation(): Promise<{
     {
       name: `Audio stack e2e ${String(Date.now())}`,
       language: 'en',
-      voiceConfig: { provider: 'gradium', voiceId: 'stack-default' },
     },
     API_KEY,
   )

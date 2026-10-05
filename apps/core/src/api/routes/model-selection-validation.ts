@@ -6,6 +6,7 @@ import {
   type ModelProfile,
   type ScenarioModelSelection,
   isVoiceConfiguration,
+  type TextToSpeechProviderName,
 } from '@gami/shared'
 
 function validateRequiredModel(model: string, field: string): string | null {
@@ -52,12 +53,20 @@ export function validateScenarioModelSelection(
   return null
 }
 
-export function validateVoiceConfiguration(value: unknown, allowNull: boolean): string | null {
+/** Also rejects a provider that has no API key on Core (`availableProviders`). */
+export function validateVoiceConfiguration(
+  value: unknown,
+  allowNull: boolean,
+  availableProviders: readonly TextToSpeechProviderName[],
+): string | null {
   if (value === undefined) return null
   if (value === null) return allowNull ? null : 'voiceConfig cannot be null when creating a record'
-  return isVoiceConfiguration(value)
+  if (!isVoiceConfiguration(value)) {
+    return 'voiceConfig must contain only a supported provider and an optional voiceId'
+  }
+  return availableProviders.includes(value.provider)
     ? null
-    : 'voiceConfig must contain only a supported provider and an optional voiceId'
+    : `voiceConfig.provider ${value.provider} has no API key configured on Core`
 }
 
 function validateModelProfile(profile: ModelProfile | undefined, field: string): string | null {

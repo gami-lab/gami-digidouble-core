@@ -94,6 +94,7 @@ export function VoiceSelect({
         />
         <VoiceSelectStatus
           state={state}
+          hasSelection={value !== null}
           selected={data.voices.find((voice) => voice.voiceId === value?.voiceId)}
         />
       </div>
@@ -192,13 +193,24 @@ function VoicePicker({
 
 function VoiceSelectStatus({
   state,
+  hasSelection,
   selected,
 }: {
   state: LoadState
+  hasSelection: boolean
   selected: VoiceOption | undefined
 }): JSX.Element | null {
   if (state.status === 'loading') return <p className="admin-muted">Loading voices…</p>
   if (state.status === 'error') return <p className="admin-error">{state.message}</p>
+  // Only an explicit selection can name a provider whose API key is missing.
+  if (hasSelection && state.data.provider === null) {
+    return (
+      <p className="admin-error">
+        This provider has no API key on Core, so saving will be rejected; pick another provider or
+        Default.
+      </p>
+    )
+  }
   if (state.data.providers.length === 0) {
     return (
       <p className="admin-muted">
@@ -206,9 +218,6 @@ function VoiceSelectStatus({
         GRADIUM_API_KEY).
       </p>
     )
-  }
-  if (state.data.provider === null) {
-    return <p className="admin-muted">This provider has no API key on Core; pick another one.</p>
   }
   if (selected?.description !== undefined) {
     return <p className="admin-muted">{selected.description}</p>

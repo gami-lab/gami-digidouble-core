@@ -380,6 +380,7 @@ function buildScenariosRouteOptions(
     ...(adapters.modelConfigFallback !== undefined
       ? { modelConfigFallback: adapters.modelConfigFallback }
       : {}),
+    textToSpeechProviders: withDefault(adapters.textToSpeechProviders, new TextToSpeechProviders()),
   }
 }
 
@@ -392,6 +393,7 @@ function buildAvatarsRouteOptions(config: Config, adapters: ServerAdapters): Ava
     ...(adapters.sessionRepository !== undefined
       ? { sessionRepository: adapters.sessionRepository }
       : {}),
+    textToSpeechProviders: withDefault(adapters.textToSpeechProviders, new TextToSpeechProviders()),
   }
 }
 

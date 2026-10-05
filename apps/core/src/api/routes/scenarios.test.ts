@@ -1,8 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ApiResponse, CreateAvatarResponse } from '@gami/shared'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
+import { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
+import { FakeTextToSpeechAdapter } from '../../application/voice/test-support/fake-text-to-speech.adapter.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+
+/** Server where Gradium has an API key, so voice selections can be saved. */
+function createVoiceServer(): ReturnType<typeof createServer> {
+  return createServer(TEST_CONFIG, {
+    textToSpeechProviders: new TextToSpeechProviders([new FakeTextToSpeechAdapter()], 'gradium'),
+  })
+}
 
 type CreateScenarioRouteData = {
   scenario: {
@@ -109,7 +118,7 @@ describe('POST /v1/scenarios — success', () => {
   })
 
   it('accepts provider-neutral voice configuration and preserves canonical config separately', async () => {
-    const response = await createServer(TEST_CONFIG).inject({
+    const response = await createVoiceServer().inject({
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
@@ -131,8 +140,20 @@ describe('POST /v1/scenarios — success', () => {
     expect(body.data?.scenario.config).toEqual({ availabilityKey: 'guide' })
   })
 
-  it('rejects extra voice fields and unknown providers', async () => {
+  it('rejects a provider without an API key on Core', async () => {
     const response = await createServer(TEST_CONFIG).inject({
+      method: 'POST',
+      url: '/v1/scenarios',
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { name: 'Keyless Voice Scenario', voiceConfig: { provider: 'gradium' } },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json<ApiResponse<null>>().error?.message).toContain('no API key')
+  })
+
+  it('rejects extra voice fields and unknown providers', async () => {
+    const response = await createVoiceServer().inject({
       method: 'POST',
       url: '/v1/scenarios',
       headers: { 'x-api-key': 'test-secret' },
@@ -240,7 +261,7 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
   })
 
   it('accepts provider-neutral voice configuration without exposing it in generic config', async () => {
-    const app = createServer(TEST_CONFIG)
+    const app = createVoiceServer()
     const scenarioResponse = await app.inject({
       method: 'POST',
       url: '/v1/scenarios',

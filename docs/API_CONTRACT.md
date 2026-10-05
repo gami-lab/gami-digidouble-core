@@ -137,7 +137,8 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   `X-Audio-Duration-Ms`. Audio bytes are transient and never change message/GM/memory behavior;
   repeated requests are independent reads.
 - Scenario and Avatar `voiceConfig` is `{ provider, voiceId? }`, a provider (and optionally one of
-  its voices) picked from `GET /v1/admin/voices`. Synthesis uses the Avatar provider, else the
+  its voices) picked from `GET /v1/admin/voices`. Saving a provider without an API key on Core
+  returns `400 VALIDATION_ERROR`. Synthesis uses the Avatar provider, else the
   Scenario provider, else Core's default provider (`TTS_PROVIDER`); selections for a provider
   without an API key are skipped. The voice is the Avatar's, else the Scenario's, for that provider,
   else the provider's default voice for the Scenario language. With no provider, audio returns

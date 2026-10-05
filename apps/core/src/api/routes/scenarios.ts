@@ -1,3 +1,4 @@
+import type { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok, SCENARIO_MODEL_SLOTS } from '@gami/shared'
 import type {
@@ -69,6 +70,7 @@ export type ScenariosRouteOptions = {
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
+  textToSpeechProviders: TextToSpeechProviders
 }
 
 type CreateAvatarRequestParams = {
@@ -229,12 +231,12 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
   app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
   registerListScenariosRoute(app, listScenariosUseCase)
-  registerCreateScenarioRoute(app, createScenarioUseCase)
+  registerCreateScenarioRoute(app, createScenarioUseCase, options.textToSpeechProviders)
   registerGetScenarioRoute(app, getScenarioUseCase)
-  registerCreateAvatarRoute(app, createAvatarUseCase)
+  registerCreateAvatarRoute(app, createAvatarUseCase, options.textToSpeechProviders)
   registerListScenarioAvatarsRoute(app, listScenarioAvatarsUseCase)
   registerDeleteScenarioRoute(app, deleteScenarioUseCase)
-  registerUpdateScenarioRoute(app, updateScenarioUseCase)
+  registerUpdateScenarioRoute(app, updateScenarioUseCase, options.textToSpeechProviders)
   registerPrepareAvatarTraitsRoute(app, prepareAvatarTraitsUseCase)
 }
 
@@ -250,7 +252,11 @@ function registerListScenariosRoute(app: FastifyInstance, useCase: ListScenarios
   })
 }
 
-function registerCreateScenarioRoute(app: FastifyInstance, useCase: CreateScenarioUseCase): void {
+function registerCreateScenarioRoute(
+  app: FastifyInstance,
+  useCase: CreateScenarioUseCase,
+  voiceProviders: TextToSpeechProviders,
+): void {
   app.post<{ Body: CreateScenarioRequest }>(
     '/',
     { schema: { body: createScenarioBodySchema } },
@@ -261,7 +267,11 @@ function registerCreateScenarioRoute(app: FastifyInstance, useCase: CreateScenar
         if (validationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
         }
-        const voiceValidationError = validateVoiceConfiguration(body.voiceConfig, false)
+        const voiceValidationError = validateVoiceConfiguration(
+          body.voiceConfig,
+          false,
+          voiceProviders.available,
+        )
         if (voiceValidationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', voiceValidationError))
         }
@@ -292,7 +302,11 @@ function registerGetScenarioRoute(app: FastifyInstance, useCase: GetScenarioUseC
   )
 }
 
-function registerCreateAvatarRoute(app: FastifyInstance, useCase: CreateAvatarUseCase): void {
+function registerCreateAvatarRoute(
+  app: FastifyInstance,
+  useCase: CreateAvatarUseCase,
+  voiceProviders: TextToSpeechProviders,
+): void {
   app.post<{ Params: CreateAvatarRequestParams; Body: CreateAvatarRequest }>(
     '/:scenarioId/avatars',
     {
@@ -307,7 +321,11 @@ function registerCreateAvatarRoute(app: FastifyInstance, useCase: CreateAvatarUs
         if (validationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
         }
-        const voiceValidationError = validateVoiceConfiguration(request.body.voiceConfig, false)
+        const voiceValidationError = validateVoiceConfiguration(
+          request.body.voiceConfig,
+          false,
+          voiceProviders.available,
+        )
         if (voiceValidationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', voiceValidationError))
         }
@@ -371,7 +389,11 @@ function registerDeleteScenarioRoute(app: FastifyInstance, useCase: DeleteScenar
   )
 }
 
-function registerUpdateScenarioRoute(app: FastifyInstance, useCase: UpdateScenarioUseCase): void {
+function registerUpdateScenarioRoute(
+  app: FastifyInstance,
+  useCase: UpdateScenarioUseCase,
+  voiceProviders: TextToSpeechProviders,
+): void {
   app.patch<{ Params: UpdateScenarioRequestParams; Body: UpdateScenarioRequest }>(
     '/:scenarioId',
     { schema: { params: scenarioIdParamsSchema, body: updateScenarioBodySchema } },
@@ -381,7 +403,11 @@ function registerUpdateScenarioRoute(app: FastifyInstance, useCase: UpdateScenar
         if (validationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
         }
-        const voiceValidationError = validateVoiceConfiguration(request.body.voiceConfig, true)
+        const voiceValidationError = validateVoiceConfiguration(
+          request.body.voiceConfig,
+          true,
+          voiceProviders.available,
+        )
         if (voiceValidationError !== null) {
           return await reply.status(400).send(fail('VALIDATION_ERROR', voiceValidationError))
         }
