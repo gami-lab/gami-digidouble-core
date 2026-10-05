@@ -56,8 +56,8 @@ detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT
   RAG results, GM decisions, memory updates) linking each LLM call to its Langfuse trace. Authoring
   lives in admin.
 - `apps/web` — the public player-facing chat surface: browser-owned identity, scenario discovery,
-  available-avatar chat, SSE-driven runtime updates, autoplayed completed-message audio with
-  text-preserving fallback, and a hands-free voice loop (listen, auto-send on pause, answer, speak,
+  available-avatar chat, SSE-driven runtime updates, autoplayed completed-message audio streamed as
+  PCM (playing while it is synthesized) with text-preserving fallback, and a hands-free voice loop (listen, auto-send on pause, answer, speak,
   listen again) alongside text input.
 - `apps/admin` — the scenario-builder authoring app (scenarios, avatars, knowledge, model selection).
 - `tools/conversation-evaluation` — an external, authenticated CLI for scripted-conversation

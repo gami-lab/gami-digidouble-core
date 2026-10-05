@@ -215,6 +215,14 @@ Added an OpenAI text-to-speech adapter (WAV, Ogg/Opus, MP3; built-in multilingua
 registered when `OPENAI_API_KEY` is present and selectable per scenario/avatar or as the
 `TTS_PROVIDER` default. Gradium and OpenAI share bounded audio reading and status mapping.
 
+#### `9.4 Streamed Voice Output` ✅ Done
+
+Reply audio streams from the provider through Core to the browser: the text-to-speech port yields
+bounded chunks, the message-audio route forwards them and cancels synthesis on disconnect, and the
+web client plays 24 kHz PCM through Web Audio as it arrives. The voice now starts about 0.3 s after
+the text instead of after the whole clip (about 10 s for 400 characters); `firstAudioMs` and the
+console's "voice starts after" show that wait.
+
 #### `10.1 Clean-Slate Compatibility Removal` ✅ Done
 
 Removed audited compatibility paths and legacy contracts, verified fresh schema/content deployment, and synchronized the source-of-truth documentation.
@@ -227,25 +235,6 @@ unused checks, lint, typecheck, build, and deterministic tests pass; public API,
 provider, and runtime-order contracts remain unchanged.
 
 ## Open Backlog
-
-### `9.4 Streamed Voice Output`
-
-**Purpose**  
-Start speaking the Avatar reply as soon as the provider sends its first audio, instead of after
-the whole clip is synthesized (about 10 s for a 400-character reply).
-
-**Description**  
-Stream provider audio through Core to the browser: the text-to-speech port yields audio chunks,
-the message-audio route forwards them without buffering, and the web client plays raw PCM chunks
-through Web Audio as they arrive. Record time-to-first-audio next to total synthesis time so the
-debug console shows the latency the user actually waits for.
-
-**Definition of done**
-
-- Gradium and OpenAI adapters stream bounded audio chunks with typed failures and cancellation
-- `POST /v1/conversations/:id/messages/:messageId/audio` streams the body and accepts `audio/pcm`
-- the web client starts playback on the first PCM chunks and falls back to text on failure
-- `message_audio_synthesized` records `firstAudioMs`; the console latency shows "voice starts after"
 
 ### `3.3 Replay & Recovery Tools`
 
