@@ -75,7 +75,7 @@ describe('turn latency', () => {
     expect(turnVoiceStartMs(base, audio)).toBeUndefined()
   })
 
-  it('splits streamed voice generation at the first audio chunk', () => {
+  it('counts streamed voice generation only until the first audio chunk', () => {
     const audio = {
       status: 'ok' as const,
       createdAt: '2026-01-01T00:00:00.000Z',
@@ -89,10 +89,12 @@ describe('turn latency', () => {
       },
     }
 
-    expect(turnLatencySegments(base, audio).slice(-2)).toMatchObject([
-      { label: 'Voice generation: first audio (text-to-speech)', ms: 300 },
-      { label: 'Voice generation: rest of the audio (text-to-speech)', ms: 500 },
-    ])
+    const segments = turnLatencySegments(base, audio)
+    expect(segments.at(-1)).toMatchObject({
+      label: 'Voice generation: first audio (text-to-speech)',
+      ms: 300,
+    })
+    expect(segments.reduce((sum, segment) => sum + segment.ms, 0)).toBe(1600)
     expect(turnVoiceStartMs(base, audio)).toBe(1600)
     expect(turnVoiceReadyMs(base, audio)).toBe(2100)
   })

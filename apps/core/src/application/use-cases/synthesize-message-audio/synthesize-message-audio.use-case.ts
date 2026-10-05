@@ -31,6 +31,8 @@ export class SynthesizeMessageAudioUseCase {
   ) {}
 
   async execute(input: SynthesizeMessageAudioInput): Promise<TextToSpeechStream> {
+    // Timed from the request, so lookups before synthesis count toward the wait for the voice.
+    const startedAt = Date.now()
     const normalized = validateInput(input)
     const conversation = await this.conversationRepository.findById(normalized.conversationId)
     if (conversation === null) {
@@ -72,6 +74,7 @@ export class SynthesizeMessageAudioUseCase {
       message,
       voice,
       normalized,
+      startedAt,
     )
   }
 
@@ -84,8 +87,8 @@ export class SynthesizeMessageAudioUseCase {
     message: { messageId: string; content: string },
     voice: ResolvedVoice,
     normalized: ReturnType<typeof validateInput>,
+    startedAt: number,
   ): Promise<TextToSpeechStream> {
-    const startedAt = Date.now()
     const event = {
       sessionId: conversation.sessionId,
       correlationId: normalized.requestId,

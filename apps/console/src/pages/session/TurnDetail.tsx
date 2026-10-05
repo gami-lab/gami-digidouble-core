@@ -1,8 +1,14 @@
 import type { JSX } from 'react'
+import type { TurnCompletedEventPayload } from '@gami/shared'
 import { formatMs, formatTime, formatTokens } from '../../debug/format'
 import type { RetrievedByType } from '../../debug/RetrievalView'
 import { RetrievalView } from '../../debug/RetrievalView'
-import { backgroundLabel, type BackgroundEntry, type TurnEntry } from '../../debug/session-timeline'
+import {
+  backgroundLabel,
+  type AudioRun,
+  type BackgroundEntry,
+  type TurnEntry,
+} from '../../debug/session-timeline'
 import {
   turnFirstReplyMs,
   turnLatencySegments,
@@ -52,12 +58,7 @@ export function TurnDetail({ entry, data }: { entry: TurnEntry; data: SessionDat
               ? `first words after ${formatMs(turnFirstReplyMs(turn))} · `
               : ''}
             full text after {formatMs(turnWaitMs(turn))}
-            {turnVoiceStartMs(turn, entry.audio) !== undefined
-              ? ` · voice starts after ${formatMs(turnVoiceStartMs(turn, entry.audio))}`
-              : ''}
-            {turnVoiceReadyMs(turn, entry.audio) !== undefined
-              ? ` · voice complete after ${formatMs(turnVoiceReadyMs(turn, entry.audio))}`
-              : ''}
+            {voiceWaitLabel(turn, entry.audio)}
           </span>
         }
       >
@@ -235,4 +236,13 @@ function TurnHeader({ entry, data }: { entry: TurnEntry; data: SessionData }): J
       </p>
     </div>
   )
+}
+
+// A streamed voice starts with its first audio chunk; older, non-streamed audio was only ready once
+// fully generated.
+function voiceWaitLabel(turn: TurnCompletedEventPayload, audio: AudioRun | null): string {
+  const startMs = turnVoiceStartMs(turn, audio)
+  if (startMs !== undefined) return ` · voice starts after ${formatMs(startMs)}`
+  const readyMs = turnVoiceReadyMs(turn, audio)
+  return readyMs === undefined ? '' : ` · voice ready after ${formatMs(readyMs)}`
 }

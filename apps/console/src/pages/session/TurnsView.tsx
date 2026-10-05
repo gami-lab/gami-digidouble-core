@@ -9,7 +9,12 @@ import {
   type TimelineEntry,
   type TurnEntry,
 } from '../../debug/session-timeline'
-import { turnLatencySegments, turnVoiceReadyMs, turnWaitMs } from '../../debug/turn-latency'
+import {
+  turnLatencySegments,
+  turnVoiceReadyMs,
+  turnVoiceStartMs,
+  turnWaitMs,
+} from '../../debug/turn-latency'
 import { Link } from '../../routing/Link'
 import type { Route } from '../../routing/router'
 import { Badge, Empty, ErrorText, LatencyBar } from '../../ui/ui'
@@ -154,9 +159,13 @@ function TurnItem({
   )
 }
 
-// Until the voice is ready when the reply was spoken, otherwise until the text is complete.
+// Until the voice starts (or, unstreamed, is ready) when the reply was spoken, else the full text.
 function turnTotalMs(entry: TurnEntry): number {
-  return turnVoiceReadyMs(entry.turn, entry.audio) ?? turnWaitMs(entry.turn)
+  return (
+    turnVoiceStartMs(entry.turn, entry.audio) ??
+    turnVoiceReadyMs(entry.turn, entry.audio) ??
+    turnWaitMs(entry.turn)
+  )
 }
 
 function BackgroundItem({

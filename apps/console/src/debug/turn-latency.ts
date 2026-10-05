@@ -5,8 +5,8 @@ import type { AudioRun } from './session-timeline'
 /**
  * What the user waited for, in order: transcription (voice only), retrieval, the Avatar LLM call
  * (split at the first token when streamed), the remaining orchestration overhead, and, when the
- * reply was spoken, the text-to-speech request the client made once the text was complete (split at
- * the first audio chunk, after which the voice plays while the rest is generated).
+ * reply was spoken, the text-to-speech request the client made once the text was complete (up to the
+ * first audio chunk when streamed, since the voice then plays while the rest is generated).
  */
 export function turnLatencySegments(
   turn: TurnCompletedEventPayload,
@@ -54,18 +54,13 @@ function voiceSegments(audio: AudioRun): LatencySegment[] {
       },
     ]
   }
+  // The rest of the audio plays while it is generated, so the user only waits for the first chunk.
   return [
     {
       label: 'Voice generation: first audio (text-to-speech)',
       description: 'From the finished text until the first audio is ready to play',
       ms: firstAudioMs,
       color: 'var(--lat-tts)',
-    },
-    {
-      label: 'Voice generation: rest of the audio (text-to-speech)',
-      description: 'The remaining audio, streamed and played while it is generated',
-      ms: latencyMs - firstAudioMs,
-      color: 'var(--lat-tts-rest)',
     },
   ]
 }
@@ -114,7 +109,7 @@ export function turnVoiceStartMs(
   return turnWaitMs(turn) + audio.payload.firstAudioMs
 }
 
-/** Time until the whole spoken reply was generated (excludes client round trips). */
+/** Time until a spoken reply that was not streamed was ready (excludes client round trips). */
 export function turnVoiceReadyMs(
   turn: TurnCompletedEventPayload,
   audio: AudioRun | null,
