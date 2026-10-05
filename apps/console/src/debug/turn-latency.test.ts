@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { TurnCompletedEventPayload } from '@gami/shared'
-import { turnFirstReplyMs, turnLatencySegments, turnVoiceReadyMs, turnWaitMs } from './turn-latency'
+import {
+  turnFirstReplyMs,
+  turnLatencySegments,
+  turnVoiceReadyMs,
+  turnVoiceStartMs,
+  turnWaitMs,
+} from './turn-latency'
 
 const base: TurnCompletedEventPayload = {
   conversationId: 'c',
@@ -66,5 +72,28 @@ describe('turn latency', () => {
     })
     expect(turnVoiceReadyMs(base, audio)).toBe(2100)
     expect(turnVoiceReadyMs(base, null)).toBeUndefined()
+    expect(turnVoiceStartMs(base, audio)).toBeUndefined()
+  })
+
+  it('splits streamed voice generation at the first audio chunk', () => {
+    const audio = {
+      status: 'ok' as const,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      payload: {
+        conversationId: 'c',
+        messageId: 'm',
+        provider: 'p',
+        characterCount: 10,
+        latencyMs: 800,
+        firstAudioMs: 300,
+      },
+    }
+
+    expect(turnLatencySegments(base, audio).slice(-2)).toMatchObject([
+      { label: 'Voice generation: first audio (text-to-speech)', ms: 300 },
+      { label: 'Voice generation: rest of the audio (text-to-speech)', ms: 500 },
+    ])
+    expect(turnVoiceStartMs(base, audio)).toBe(1600)
+    expect(turnVoiceReadyMs(base, audio)).toBe(2100)
   })
 })

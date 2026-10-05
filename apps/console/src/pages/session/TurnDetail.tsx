@@ -7,6 +7,7 @@ import {
   turnFirstReplyMs,
   turnLatencySegments,
   turnVoiceReadyMs,
+  turnVoiceStartMs,
   turnWaitMs,
 } from '../../debug/turn-latency'
 import {
@@ -51,8 +52,11 @@ export function TurnDetail({ entry, data }: { entry: TurnEntry; data: SessionDat
               ? `first words after ${formatMs(turnFirstReplyMs(turn))} · `
               : ''}
             full text after {formatMs(turnWaitMs(turn))}
+            {turnVoiceStartMs(turn, entry.audio) !== undefined
+              ? ` · voice starts after ${formatMs(turnVoiceStartMs(turn, entry.audio))}`
+              : ''}
             {turnVoiceReadyMs(turn, entry.audio) !== undefined
-              ? ` · voice ready after ${formatMs(turnVoiceReadyMs(turn, entry.audio))}`
+              ? ` · voice complete after ${formatMs(turnVoiceReadyMs(turn, entry.audio))}`
               : ''}
           </span>
         }
@@ -65,11 +69,7 @@ export function TurnDetail({ entry, data }: { entry: TurnEntry; data: SessionDat
             ? 'No spoken version of this reply was requested.'
             : entry.audio.status === 'failed'
               ? `Voice generation failed (${entry.audio.payload.errorCode ?? 'error'}).`
-              : `Voice: ${entry.audio.payload.provider}, ${String(entry.audio.payload.characterCount)} characters${
-                  entry.audio.payload.audioDurationMs !== undefined
-                    ? `, ${formatMs(entry.audio.payload.audioDurationMs)} of audio`
-                    : ''
-                }.`}
+              : `Voice: ${entry.audio.payload.provider}, ${String(entry.audio.payload.characterCount)} characters.`}
         </p>
         <BackgroundLatency entry={entry} />
       </Section>

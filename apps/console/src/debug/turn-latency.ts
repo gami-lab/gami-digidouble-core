@@ -5,7 +5,8 @@ import type { AudioRun } from './session-timeline'
 /**
  * What the user waited for, in order: transcription (voice only), retrieval, the Avatar LLM call
  * (split at the first token when streamed), the remaining orchestration overhead, and, when the
- * reply was spoken, the text-to-speech request the client made once the text was complete.
+ * reply was spoken, the text-to-speech request the client made once the text was complete (split at
+ * the first audio chunk, after which the voice plays while the rest is generated).
  */
 export function turnLatencySegments(
   turn: TurnCompletedEventPayload,
@@ -37,15 +38,36 @@ export function turnLatencySegments(
       color: 'var(--lat-other)',
     })
   }
-  if (audio?.status === 'ok') {
-    segments.push({
-      label: 'Voice generation (text-to-speech)',
-      description: 'Turning the finished reply into audio; starts once the whole text is ready',
-      ms: audio.payload.latencyMs,
-      color: 'var(--lat-tts)',
-    })
-  }
+  if (audio?.status === 'ok') segments.push(...voiceSegments(audio))
   return segments
+}
+
+function voiceSegments(audio: AudioRun): LatencySegment[] {
+  const { firstAudioMs, latencyMs } = audio.payload
+  if (firstAudioMs === undefined || firstAudioMs > latencyMs) {
+    return [
+      {
+        label: 'Voice generation (text-to-speech)',
+        description: 'Turning the finished reply into audio; starts once the whole text is ready',
+        ms: latencyMs,
+        color: 'var(--lat-tts)',
+      },
+    ]
+  }
+  return [
+    {
+      label: 'Voice generation: first audio (text-to-speech)',
+      description: 'From the finished text until the first audio is ready to play',
+      ms: firstAudioMs,
+      color: 'var(--lat-tts)',
+    },
+    {
+      label: 'Voice generation: rest of the audio (text-to-speech)',
+      description: 'The remaining audio, streamed and played while it is generated',
+      ms: latencyMs - firstAudioMs,
+      color: 'var(--lat-tts-rest)',
+    },
+  ]
 }
 
 // A streamed reply is shown (or spoken) as it arrives, so the wait before its first word matters
@@ -83,7 +105,16 @@ export function turnWaitMs(turn: TurnCompletedEventPayload): number {
   return (turn.speechToTextLatencyMs ?? 0) + turn.totalTurnLatencyMs
 }
 
-/** Time until the spoken reply is ready, when audio was generated (excludes client round trips). */
+/** Time until the voice starts playing, when audio was streamed (excludes client round trips). */
+export function turnVoiceStartMs(
+  turn: TurnCompletedEventPayload,
+  audio: AudioRun | null,
+): number | undefined {
+  if (audio?.status !== 'ok' || audio.payload.firstAudioMs === undefined) return undefined
+  return turnWaitMs(turn) + audio.payload.firstAudioMs
+}
+
+/** Time until the whole spoken reply was generated (excludes client round trips). */
 export function turnVoiceReadyMs(
   turn: TurnCompletedEventPayload,
   audio: AudioRun | null,
